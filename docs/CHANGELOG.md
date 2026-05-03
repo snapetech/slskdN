@@ -79,6 +79,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   success handling.
 - Made Launchpad PPA and Chocolatey publishes best-effort in tag releases so
   external mirror outages no longer mark the entire release workflow failed.
+- Fixed the AUR `slskdn` source package so clean `yay` builds enter the
+  case-correct GitHub archive root (`slskdN-<tag>`) instead of failing on a
+  missing lower-case `slskdn-<tag>` directory.
 - Fixed the standalone PPA retry workflow so rebuilt frontend assets are copied
   into a created `publish-linux-x64/wwwroot` directory.
 - Simplified the ingress-port migration notice to show only the five old

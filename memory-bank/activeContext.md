@@ -1,3 +1,15 @@
+## Update 2026-05-03 00:00:00Z
+
+- Current task: AUR source package archive-root casing fix is complete locally.
+- Last activity:
+  - reproduced the tester failure by listing the `2026050100-slskdn.218` GitHub archive root as `slskdN-2026050100-slskdn.218/`
+  - documented ADR-0001 gotcha `0z277` and committed it separately
+  - changed the source PKGBUILD to use `_archive_root="slskdN-${pkgver//.slskdn/-slskdn}"` in both `build()` and `package()`
+  - added packaging metadata validation so the lower-case archive-root path does not return
+- Next steps:
+  1. Validate packaging metadata and a clean archive-root smoke.
+  2. Commit and push the packaging fix.
+
 ## Update 2026-05-01 20:33:13Z
 
 - Current task: Shared DHT/UDP overlay/QUIC demux is corrected and deployed to `kspls0`.

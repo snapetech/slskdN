@@ -9405,3 +9405,9 @@ Code quality improvements were completed as part of Option A:
 - Inspected current `kspls0` logs and found one real port-reduction regression: the shared DHT/QUIC build still registered `UdpOverlayServer` separately and bound UDP `50400`.
 - Corrected the design note from the first pass: UDP overlay is not legacy, and QUIC does not replace it. DHT rendezvous, UDP overlay control envelopes, and QUIC overlay traffic can share one public UDP port when the shared listener demuxes all three.
 - Documented ADR-0001 gotcha `0z276` with the corrected rule and changed the shared mesh UDP listener to route bencoded DHT packets to MonoTorrent, MessagePack overlay envelopes to `IControlDispatcher`, and QUIC Initial/short-header/session packets to the loopback MsQuic backend.
+
+## 2026-05-03 00:00:00Z
+
+- Reproduced tester-reported AUR source package failure against the `2026050100-slskdn.218` GitHub archive: the tarball root is `slskdN-2026050100-slskdn.218/`, while the PKGBUILD tried to enter lower-case `slskdn-2026050100-slskdn.218/`.
+- Documented ADR-0001 gotcha `0z277` and committed it separately before changing packaging code.
+- Fixed `packaging/aur/PKGBUILD` to use a case-correct `_archive_root` for `build()` and `package()`, added validation coverage to reject the lower-case path regression, and updated AUR packaging docs and changelog.

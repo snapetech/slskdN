@@ -2258,3 +2258,7 @@
 - [x] Run focused network/runtime validation plan
   - Status: completed (2026-05-01)
   - Notes: Validated shared UDP demux, QUIC overlay, DHT rendezvous, Soulseek obfuscation wiring, native Soulseek discovery, local two-node mesh search/download, streaming cleanup, and kspls0 listener/API/QUIC smoke checks. Found and fixed a vendored runtime fire-and-forget listener shutdown fault; deploy of that fix remains a follow-up if we want kspls0 to pick it up.
+
+- [x] Fix AUR source archive root casing
+  - Status: completed (2026-05-03)
+  - Notes: Tester feedback showed clean `yay` source builds failing with `cd: .../src/slskdn-2026050100-slskdn.218: No such file or directory`. GitHub tag archives for `snapetech/slskdN` extract as `slskdN-<tag>`, so the source PKGBUILD now uses a case-correct `_archive_root` and packaging metadata validation rejects the lower-case path regression.
