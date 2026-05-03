@@ -52,6 +52,27 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z277. AUR Source PKGBUILD Must Match GitHub Archive Repository Casing
+
+**The Bug**: The source AUR package downloaded the correct release tag tarball, but `build()` and `package()` tried to enter a lower-case `slskdn-<tag>` directory. GitHub archive tarballs preserve the repository display casing in the extracted root, so `snapetech/slskdN` extracts as `slskdN-<tag>`. Clean `yay` builds then failed before compiling with `cd: .../src/slskdn-<tag>: No such file or directory`.
+
+**Files Affected**:
+- `packaging/aur/PKGBUILD`
+- `packaging/scripts/validate-packaging-metadata.sh`
+
+**Wrong**:
+```bash
+cd "${srcdir}/slskdn-${pkgver//.slskdn/-slskdn}"
+```
+
+**Correct**:
+```bash
+_archive_root="slskdN-${pkgver//.slskdn/-slskdn}"
+cd "${srcdir}/${_archive_root}"
+```
+
+**Why This Keeps Happening**: Package names, URLs, and local source filenames are lower-case, but GitHub archive extraction is based on repository casing. Any source package that enters an extracted GitHub tag archive must use the actual archive root casing or derive it from a validated helper variable instead of assuming the package name.
+
 ### 0z276. Shared Mesh UDP Ports Must Demux DHT, UDP Overlay, And QUIC
 
 **The Bug**: After restoring QUIC on the reduced shared mesh port, the app still treated UDP overlay and QUIC as mutually exclusive listeners. The first correction skipped `UdpOverlayServer` whenever QUIC was active, which removed the extra `50400/udp` socket but also implied QUIC replaced UDP overlay. That is wrong: DHT rendezvous, UDP overlay control envelopes, and QUIC overlay traffic are distinct protocols that can share public UDP `50305` only if the shared listener demuxes all three. A follow-up demux pass also treated QUIC short-header packets without an existing proxy session as UDP overlay, producing MessagePack decode warning stacks from normal QUIC traffic after restart.
