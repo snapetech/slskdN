@@ -9411,3 +9411,4 @@ Code quality improvements were completed as part of Option A:
 - Reproduced tester-reported AUR source package failure against the `2026050100-slskdn.218` GitHub archive: the tarball root is `slskdN-2026050100-slskdn.218/`, while the PKGBUILD tried to enter lower-case `slskdn-2026050100-slskdn.218/`.
 - Documented ADR-0001 gotcha `0z277` and committed it separately before changing packaging code.
 - Fixed `packaging/aur/PKGBUILD` to use a case-correct `_archive_root` for `build()` and `package()`, added validation coverage to reject the lower-case path regression, and updated AUR packaging docs and changelog.
+- Bumped the source package to `2026050100.slskdn.218-3`, regenerated `.SRCINFO`, and pushed live AUR `slskdn` commit `9ee2fb6` so AUR helpers see the corrected PKGBUILD as a package update.

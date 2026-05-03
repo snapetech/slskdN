@@ -2261,4 +2261,4 @@
 
 - [x] Fix AUR source archive root casing
   - Status: completed (2026-05-03)
-  - Notes: Tester feedback showed clean `yay` source builds failing with `cd: .../src/slskdn-2026050100-slskdn.218: No such file or directory`. GitHub tag archives for `snapetech/slskdN` extract as `slskdN-<tag>`, so the source PKGBUILD now uses a case-correct `_archive_root` and packaging metadata validation rejects the lower-case path regression.
+  - Notes: Tester feedback showed clean `yay` source builds failing with `cd: .../src/slskdn-2026050100-slskdn.218: No such file or directory`. GitHub tag archives for `snapetech/slskdN` extract as `slskdN-<tag>`, so the source PKGBUILD now uses a case-correct `_archive_root` and packaging metadata validation rejects the lower-case path regression. The live AUR `slskdn` package was published as `2026050100.slskdn.218-3` at commit `9ee2fb6`.

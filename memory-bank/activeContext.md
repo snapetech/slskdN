@@ -6,9 +6,9 @@
   - documented ADR-0001 gotcha `0z277` and committed it separately
   - changed the source PKGBUILD to use `_archive_root="slskdN-${pkgver//.slskdn/-slskdn}"` in both `build()` and `package()`
   - added packaging metadata validation so the lower-case archive-root path does not return
+  - bumped the source AUR package to `2026050100.slskdn.218-3` and pushed the live AUR `slskdn` repo to `9ee2fb6`
 - Next steps:
-  1. Validate packaging metadata and a clean archive-root smoke.
-  2. Commit and push the packaging fix.
+  1. Monitor tester retry of `yay -Syu slskdn`.
 
 ## Update 2026-05-01 20:33:13Z
 
