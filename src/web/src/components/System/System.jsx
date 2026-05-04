@@ -381,7 +381,6 @@ const System = ({ options = {}, state = {}, theme }) => {
           activeIndex={activeIndex > -1 ? activeIndex : 0}
           onTabChange={onTabChange}
           panes={panes}
-          renderActiveOnly={false}
         />
       </Segment>
     </div>
