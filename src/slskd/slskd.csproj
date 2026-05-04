@@ -90,7 +90,7 @@
   <ItemGroup>
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.0.0" />
     <PackageReference Include="Dapper" Version="2.1.72" />
-    <PackageReference Include="FluentFTP" Version="54.1.1" />
+    <PackageReference Include="FluentFTP" Version="54.1.2" />
     <PackageReference Include="IPAddressRange" Version="6.3.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.7" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.7" />
@@ -126,7 +126,7 @@
     <PackageReference Include="TagLibSharp" Version="2.3.0" />
     <PackageReference Include="Utility.CommandLine.Arguments" Version="6.0.0" />
     <PackageReference Include="Utility.EnvironmentVariables" Version="1.0.5" />
-    <PackageReference Include="YamlDotNet" Version="17.0.1" />
+    <PackageReference Include="YamlDotNet" Version="17.1.0" />
     <PackageReference Include="NSec.Cryptography" Version="25.4.0" />
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
     <PackageReference Include="AWSSDK.S3" Version="4.0.22.1" />
