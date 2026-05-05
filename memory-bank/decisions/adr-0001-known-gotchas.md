@@ -14522,3 +14522,11 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 **Why it happened:** Identifiers commonly contain colon-delimited values, so manual testing did not exercise route separator characters. Some content IDs were encoded while the surrounding pod/channel segments stayed raw, leaving the helper in a partially hardened state.
 
 **How to prevent it:** Every dynamic path segment in Web API helpers must pass through `encodeURIComponent`, including pod/channel/container IDs around already-encoded content IDs. Add helper tests with `/`, `?`, and `%` in identifiers when touching route construction.
+
+### 0z82. Protocol Byte Transformers Must Reject Null Before Length Math
+
+**What went wrong:** Runtime rotated-obfuscation helpers computed output buffer sizes from `input.Length` before validating `input`, so a null caller input produced an incidental `NullReferenceException` instead of targeted argument validation at the protocol helper boundary.
+
+**Why it happened:** The helpers are normally fed by network buffers, so earlier scanner passes focused on count/length bounds and missed the null contract around the same allocation math. The length-prefixed allocation subgroup made the unchecked `input.Length` sites visible.
+
+**How to prevent it:** Any protocol transformer that sizes buffers from caller-supplied byte arrays must reject null at method entry before reading `.Length` or allocating output. Add focused null-input tests when touching encode/decode helpers.
