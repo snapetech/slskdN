@@ -6,29 +6,29 @@ This document tracks protocol and runtime behavior added after the fork from Sou
 
 The fork is intended to remain compatible with legacy Soulseek clients.
 
-Default behavior preserves the upstream wire behavior. New outbound protocol messages are only sent when an application calls the new APIs. Peer-message obfuscation is disabled by default, and enabling it still requires the regular peer-message port to be advertised.
+Default behavior preserves the upstream wire behavior. New outbound protocol messages are only sent when an application calls the new APIs. Peer/distributed-message obfuscation is disabled by default, and enabling it still requires the regular Soulseek listen port to be advertised.
 
 Compatibility rules used by the implementation:
 
-- Do not replace the regular peer-message listener with an obfuscated-only listener.
-- Do not obfuscate file-transfer or distributed-network connections.
-- Do not attempt outbound obfuscated peer-message connections unless the remote peer has advertised a compatible type-1 endpoint.
-- Keep regular direct and indirect peer-message connection attempts available as fallback paths.
+- Do not replace the regular listener with an obfuscated-only listener.
+- Do not attempt outbound obfuscated peer/distributed/transfer connections unless the remote peer has advertised a compatible type-1 endpoint.
+- Keep regular direct and indirect peer/distributed/transfer connection attempts available as fallback paths.
 - Fail closed on malformed new protocol responses rather than accepting impossible counts or partial repeated data.
 
-## Type-1 Peer-message Obfuscation
+## Type-1 Peer/distributed-message Obfuscation
 
-Type-1 obfuscation support covers peer-message streams only. It is not encryption and does not change transfer payload transport.
+Type-1 obfuscation support covers peer-message (`P`), distributed-message (`D`), and file-transfer (`F`) streams. It is not encryption and keeps regular fallback paths available.
 
 Implementation pieces:
 
 - `PeerObfuscationOptions` controls runtime behavior.
 - `SetListenPortCommand` can append obfuscation type and obfuscated port metadata.
 - `UserAddressResponse` and `ConnectToPeerResponse` parse advertised obfuscation metadata.
-- `SoulseekClient` can start a dedicated obfuscated peer-message listener.
-- `ListenerHandler` decodes the initial obfuscated peer-message frame on obfuscated listeners.
-- `MessageConnection` reads and writes obfuscated peer-message frames when the connection is marked obfuscated.
+- `SoulseekClient` can start a dedicated obfuscated listener.
+- `ListenerHandler` decodes the initial obfuscated peer/distributed/transfer frame on obfuscated listeners.
+- `MessageConnection` reads and writes obfuscated message frames when the connection is marked obfuscated.
 - `PeerConnectionManager` can prefer a cached compatible obfuscated endpoint while racing regular direct and indirect paths.
+- `DistributedConnectionManager` can accept obfuscated distributed children, complete obfuscated solicited distributed `PierceFirewall` handoffs, and prefer compatible obfuscated distributed parent candidates while retaining regular direct/indirect fallback paths.
 
 Expected use:
 
@@ -43,13 +43,13 @@ var options = new SoulseekClientOptions(
 
 Legacy impact:
 
-- Legacy peers can still connect to the regular peer-message port.
+- Legacy peers can still connect to the regular Soulseek listen port.
 - If a legacy peer ignores obfuscation metadata, no compatibility issue is introduced.
 - If an obfuscated outbound attempt fails, regular direct or indirect connection setup can still succeed.
 
 Security and safety notes:
 
-- Obfuscation hides the peer-message frame shape from casual inspection, but it does not authenticate peers, encrypt payloads, hide IP addresses, or protect file-transfer traffic.
+- Obfuscation hides peer/distributed/transfer frame shape from casual inspection, but it does not authenticate peers, encrypt payloads, or hide IP addresses.
 - Obfuscated listener input is decoded only after validating the advertised obfuscated frame length.
 - Outbound obfuscated connection preference never disables indirect connection fallback.
 - The runtime requires regular-port advertisement when obfuscation is enabled; callers cannot use this implementation to create an obfuscated-only Soulseek client.
@@ -174,7 +174,7 @@ Descriptors are signed over a canonical binary form that excludes the signature 
 
 6. Distributed-network interoperability audit
 
-No new distributed wire format was added. The implementation keeps upstream-compatible distributed message handling and uses the normal peer-message channel for slskdN capability negotiation. This avoids coupling overlay discovery to parent/child distributed search routing and preserves compatibility with clients that only understand the public Soulseek distributed network.
+No new distributed wire format was added. The implementation keeps upstream-compatible distributed message handling, can carry distributed (`D`) connections over type-1 obfuscated framing when both peers advertise compatible metadata, and uses the normal peer-message channel for slskdN capability negotiation. This avoids coupling overlay discovery to parent/child distributed search routing and preserves compatibility with clients that only understand the public Soulseek distributed network.
 
 7. Full parser count-hardening pass
 

@@ -56,6 +56,7 @@ public class TwoNodeMeshFullInstanceTests
 
         var connectBody = await WaitForOverlayConnectAsync(
             alphaClient,
+            beta.OverlayAddress,
             beta.OverlayPort.Value,
             TimeSpan.FromSeconds(20));
         Assert.True(connectBody.Connected);
@@ -157,6 +158,7 @@ public class TwoNodeMeshFullInstanceTests
 
         await WaitForOverlayConnectAsync(
             alphaClient,
+            beta.OverlayAddress,
             beta.OverlayPort.Value,
             TimeSpan.FromSeconds(20));
 
@@ -257,6 +259,7 @@ public class TwoNodeMeshFullInstanceTests
 
         await WaitForOverlayConnectAsync(
             alphaClient,
+            beta.OverlayAddress,
             beta.OverlayPort!.Value,
             TimeSpan.FromSeconds(20));
 
@@ -406,6 +409,7 @@ public class TwoNodeMeshFullInstanceTests
 
     private static async Task<OverlayConnectResultResponse> WaitForOverlayConnectAsync(
         HttpClient client,
+        string overlayAddress,
         int overlayPort,
         TimeSpan timeout)
     {
@@ -418,7 +422,7 @@ public class TwoNodeMeshFullInstanceTests
                 "/api/v0/overlay/connect",
                 new ConnectOverlayPeerRequest
                 {
-                    Address = "127.0.0.1",
+                    Address = overlayAddress,
                     Port = overlayPort,
                 });
 

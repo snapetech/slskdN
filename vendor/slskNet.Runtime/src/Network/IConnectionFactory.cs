@@ -21,7 +21,7 @@
 //     SPDX-License-Identifier: GPL-3.0-only
 //
 //     Modified by slskdN Team.
-//     Modified: Added obfuscated peer-message connection creation.
+//     Modified: Added obfuscated peer-message, distributed, and transfer connection creation.
 // </copyright>
 
 namespace Soulseek.Network
@@ -44,6 +44,16 @@ namespace Soulseek.Network
         /// <param name="tcpClient">The optional TcpClient instance to use.</param>
         /// <returns>The created connection.</returns>
         IMessageConnection GetDistributedConnection(string username, IPEndPoint ipEndPoint, ConnectionOptions options = null, ITcpClient tcpClient = null);
+
+        /// <summary>
+        ///     Gets a type-1 obfuscated distributed <see cref="IMessageConnection"/> with the specified parameters.
+        /// </summary>
+        /// <param name="username">The username of the peer associated with the connection, if applicable.</param>
+        /// <param name="ipEndPoint">The remote IP endpoint of the connection.</param>
+        /// <param name="options">The optional options for the connection.</param>
+        /// <param name="tcpClient">The optional TcpClient instance to use.</param>
+        /// <returns>The created connection.</returns>
+        IMessageConnection GetObfuscatedDistributedConnection(string username, IPEndPoint ipEndPoint, ConnectionOptions options = null, ITcpClient tcpClient = null);
 
         /// <summary>
         ///     Gets a <see cref="IMessageConnection"/> with the specified parameters.
@@ -94,5 +104,14 @@ namespace Soulseek.Network
         /// <param name="tcpClient">The optional TcpClient instance to use.</param>
         /// <returns>The created connection.</returns>
         IConnection GetTransferConnection(IPEndPoint ipEndPoint, ConnectionOptions options = null, ITcpClient tcpClient = null);
+
+        /// <summary>
+        ///     Gets a type-1 obfuscated <see cref="IConnection"/> for use with transfer connections with the specified parameters.
+        /// </summary>
+        /// <param name="ipEndPoint">The remote IP endpoint of the connection.</param>
+        /// <param name="options">The optional options for the connection.</param>
+        /// <param name="tcpClient">The optional TcpClient instance to use.</param>
+        /// <returns>The created connection.</returns>
+        IConnection GetObfuscatedTransferConnection(IPEndPoint ipEndPoint, ConnectionOptions options = null, ITcpClient tcpClient = null);
     }
 }

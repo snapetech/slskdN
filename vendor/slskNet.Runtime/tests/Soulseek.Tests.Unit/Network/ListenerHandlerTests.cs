@@ -365,6 +365,49 @@ namespace Soulseek.Tests.Unit.Network
             mocks.DistributedConnectionManager.Verify(m => m.AddOrUpdateChildConnectionAsync(username, It.IsAny<IConnection>()));
         }
 
+        [Trait("Category", "PeerInit")]
+        [Theory(DisplayName = "Adds obfuscated distributed connection on distributed PeerInit"), AutoData]
+        public void Adds_Obfuscated_Distributed_Connection_On_Distributed_PeerInit(IPEndPoint endpoint, string username, int token)
+        {
+            var (handler, mocks) = GetFixture(endpoint);
+
+            var message = new PeerInit(username, Constants.ConnectionType.Distributed, token).ToByteArray();
+            var obfuscatedMessage = RotatedObfuscation.Encode(message, 0x1020_3040);
+
+            mocks.Listener.Setup(m => m.Obfuscated).Returns(true);
+            mocks.Connection.Setup(m => m.ReadAsync(8, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(obfuscatedMessage.AsSpan().Slice(0, 8).ToArray()));
+            mocks.Connection.Setup(m => m.ReadAsync(message.Length - 4, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(obfuscatedMessage.AsSpan().Slice(8).ToArray()));
+
+            handler.HandleConnection(mocks.Listener.Object, mocks.Connection.Object);
+
+            mocks.Connection.Verify(m => m.MarkObfuscated(), Times.Once);
+            mocks.DistributedConnectionManager.Verify(m => m.AddOrUpdateChildConnectionAsync(username, mocks.Connection.Object), Times.Once);
+        }
+
+        [Trait("Category", "PeerInit")]
+        [Theory(DisplayName = "Accepts obfuscated transfer PeerInit"), AutoData]
+        public void Accepts_Obfuscated_Transfer_PeerInit(IPEndPoint endpoint, string username, int token)
+        {
+            var (handler, mocks) = GetFixture(endpoint);
+
+            var message = new PeerInit(username, Constants.ConnectionType.Transfer, token).ToByteArray();
+            var obfuscatedMessage = RotatedObfuscation.Encode(message, 0x1020_3040);
+
+            mocks.Listener.Setup(m => m.Obfuscated).Returns(true);
+            mocks.Connection.Setup(m => m.ReadAsync(8, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(obfuscatedMessage.AsSpan().Slice(0, 8).ToArray()));
+            mocks.Connection.Setup(m => m.ReadAsync(message.Length - 4, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(obfuscatedMessage.AsSpan().Slice(8).ToArray()));
+
+            handler.HandleConnection(mocks.Listener.Object, mocks.Connection.Object);
+
+            mocks.Connection.Verify(m => m.MarkObfuscated(), Times.Once);
+            mocks.PeerConnectionManager.Verify(m => m.GetTransferConnectionAsync(username, token, It.IsAny<IConnection>()), Times.Once);
+            mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("Obfuscated transfer PeerInit accepted", StringComparison.InvariantCultureIgnoreCase))), Times.Once);
+        }
+
         [Trait("Category", "PierceFirewall")]
         [Theory(DisplayName = "Completes solicited peer connection on peer PierceFirewall"), AutoData]
         public void Completes_Solicited_Peer_Connection_On_Peer_PierceFirewall(IPEndPoint endpoint, string username, int token)
@@ -463,6 +506,34 @@ namespace Soulseek.Tests.Unit.Network
             handler.HandleConnection(null, mocks.Connection.Object);
 
             var expectedKey = new WaitKey(Constants.WaitKey.SolicitedDistributedConnection, username, token);
+            mocks.Waiter.Verify(m => m.Complete(expectedKey, mocks.Connection.Object), Times.Once);
+        }
+
+        [Trait("Category", "PierceFirewall")]
+        [Theory(DisplayName = "Completes solicited obfuscated distributed connection on distributed PierceFirewall"), AutoData]
+        public void Completes_Solicited_Obfuscated_Distributed_Connection_On_Distributed_PierceFirewall(IPEndPoint endpoint, string username, int token)
+        {
+            var (handler, mocks) = GetFixture(endpoint);
+
+            var message = new PierceFirewall(token).ToByteArray();
+            var obfuscatedMessage = RotatedObfuscation.Encode(message, 0x1020_3040);
+
+            mocks.Connection.Setup(m => m.ReadAsync(8, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(obfuscatedMessage.AsSpan().Slice(0, 8).ToArray()));
+            mocks.Connection.Setup(m => m.ReadAsync(message.Length - 4, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(obfuscatedMessage.AsSpan().Slice(8).ToArray()));
+
+            var dict = new ConcurrentDictionary<int, string>();
+            dict.TryAdd(token, username);
+
+            mocks.Listener.Setup(m => m.Obfuscated).Returns(true);
+            mocks.DistributedConnectionManager.Setup(m => m.PendingSolicitations)
+                .Returns(dict);
+
+            handler.HandleConnection(mocks.Listener.Object, mocks.Connection.Object);
+
+            var expectedKey = new WaitKey(Constants.WaitKey.SolicitedDistributedConnection, username, token);
+            mocks.Connection.Verify(m => m.MarkObfuscated(), Times.Once);
             mocks.Waiter.Verify(m => m.Complete(expectedKey, mocks.Connection.Object), Times.Once);
         }
 

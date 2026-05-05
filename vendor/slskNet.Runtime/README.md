@@ -7,21 +7,21 @@ This is a modified version of Soulseek.NET. It is not maintained by, endorsed by
 ## Runtime Changes
 
 - Package and repository branding changed to `slskNet.Runtime`.
-- Optional Soulseek type-1 peer-message obfuscation metadata is supported in `SetListenPort`, peer-address responses, and `ConnectToPeer` responses.
-- A dedicated type-1 obfuscated peer-message listener can be configured.
-- Outbound peer-message dials can prefer compatible obfuscated endpoints while keeping regular and indirect fallback paths.
+- Optional Soulseek type-1 peer/distributed/transfer obfuscation metadata is supported in `SetListenPort`, peer-address responses, and `ConnectToPeer` responses.
+- A dedicated type-1 obfuscated peer/distributed/transfer listener can be configured.
+- Outbound peer/distributed/transfer dials can prefer compatible obfuscated endpoints while keeping regular direct and indirect fallback paths.
 - Server interest and recommendation protocol messages are exposed through first-class client APIs.
 - Multi-user private-message sends are exposed through a bounded, deduplicated client API.
 - `CannotCreateRoom` server responses are surfaced as room join failures instead of being ignored.
 - New protocol parsers validate collection counts before allocating or reading repeated values.
 
-Type-1 obfuscation is not encryption. It is a compatibility/privacy posture for peer-message streams only; file-transfer and distributed-network streams remain regular transport.
+Type-1 obfuscation is not encryption. It is a compatibility/privacy posture for peer-message (`P`), distributed-message (`D`), and file-transfer (`F`) streams with regular fallback retained.
 
 ## Feature Summary
 
 | Area | Public API / Type | Wire behavior | Default impact |
 | ---- | ----------------- | ------------- | -------------- |
-| Type-1 peer-message obfuscation | `PeerObfuscationOptions`, `SoulseekClientOptions.PeerObfuscationOptions` | Advertises type-1 metadata, opens a dedicated obfuscated peer-message listener, and can prefer compatible obfuscated peer-message dials | Off by default in this runtime; regular peer-message fallback is mandatory when enabled |
+| Type-1 peer/distributed/transfer obfuscation | `PeerObfuscationOptions`, `SoulseekClientOptions.PeerObfuscationOptions` | Advertises type-1 metadata, opens a dedicated obfuscated peer/distributed/transfer listener, and can prefer compatible obfuscated peer/distributed/transfer dials | Off by default in this runtime; regular fallback is mandatory when enabled |
 | User interests | `AddInterestAsync`, `RemoveInterestAsync`, `AddHatedInterestAsync`, `RemoveHatedInterestAsync` | Sends the native Soulseek interest management server commands | No command is sent unless the application calls the API |
 | Recommendations | `GetRecommendationsAsync`, `GetGlobalRecommendationsAsync`, `RecommendationList`, `Recommendation` | Requests personal/global recommendation lists from the Soulseek server | Read-only request; no effect on search/browse/transfer behavior |
 | User interest lookup | `GetUserInterestsAsync`, `UserInterests` | Requests another user's liked and hated interest strings | Read-only request; caller controls when it runs |
@@ -35,11 +35,10 @@ Type-1 obfuscation is not encryption. It is a compatibility/privacy posture for 
 
 The forked runtime remains wire-compatible with legacy Soulseek clients when default options are used. New protocol behavior is opt-in or passive:
 
-- Peer-message obfuscation is disabled by default.
-- When peer-message obfuscation is enabled, the regular peer-message port must still be advertised. This keeps legacy clients able to connect by the normal peer-message path.
+- Peer/distributed-message obfuscation is disabled by default.
+- When obfuscation is enabled, the regular Soulseek listen port must still be advertised. This keeps legacy clients able to connect by normal peer-message and distributed-message paths.
 - Outbound obfuscated dials are attempted only when `PeerObfuscationOptions.PreferOutbound` is enabled and the remote peer has advertised a compatible type-1 obfuscated endpoint.
-- Regular direct and indirect peer-message connection attempts remain available as fallback paths.
-- File-transfer and distributed-network traffic are not obfuscated by this fork and continue to use the existing transport behavior.
+- Regular direct and indirect peer/distributed/transfer connection attempts remain available as fallback paths.
 - Interest, recommendation, similar-user, item-recommendation, hated-interest, and multi-user private-message commands are only sent when the application explicitly calls the corresponding API.
 - Passive handling of `CannotCreateRoom` only changes local error reporting for a failed room join; it does not alter room join wire format.
 
@@ -47,9 +46,9 @@ The practical result is that legacy clients that do not understand obfuscation m
 
 ## Added Protocol APIs
 
-### Peer-message obfuscation
+### Peer/distributed-message obfuscation
 
-`PeerObfuscationOptions` controls Soulseek type-1 rotated peer-message obfuscation:
+`PeerObfuscationOptions` controls Soulseek type-1 rotated peer/distributed/transfer obfuscation:
 
 ```csharp
 var options = new SoulseekClientOptions(
@@ -60,14 +59,14 @@ var options = new SoulseekClientOptions(
         preferOutbound: true));
 ```
 
-This advertises the regular peer-message port and the type-1 obfuscated peer-message port. Incoming obfuscated peer-message handshakes are decoded by the dedicated obfuscated listener. Outbound peer-message connection setup can prefer a compatible cached obfuscated endpoint, while preserving regular direct and indirect fallback behavior.
+This advertises the regular Soulseek listen port and the type-1 obfuscated listen port. Incoming obfuscated peer-message (`P`), distributed-message (`D`), and file-transfer (`F`) handshakes are decoded by the dedicated obfuscated listener. Outbound peer/distributed/transfer connection setup can prefer a compatible cached obfuscated endpoint, while preserving regular direct and indirect fallback behavior.
 
 Operational notes:
 
-- Use a different port for the regular and obfuscated peer-message listeners.
+- Use a different port for the regular and obfuscated listeners.
 - Keep `advertiseRegularPort` enabled. The constructor rejects obfuscated-only advertising because it would break legacy-client reachability.
 - `preferOutbound` changes connection ordering only for peers that advertised compatible type-1 metadata.
-- Obfuscation applies to peer-message streams. Transfers still use the existing file-transfer connection behavior.
+- Obfuscation applies to peer-message (`P`), distributed-message (`D`), and file-transfer (`F`) streams. Regular paths remain available for fallback.
 
 ### Interests and recommendations
 

@@ -144,8 +144,10 @@ public class SoulseekOptionsValidationTests
         Assert.Equal("prefer", plan.Mode);
         Assert.Equal(1, plan.Type);
         Assert.Equal(50301, plan.EffectiveListenPort);
+        Assert.Equal(["P", "D", "F"], plan.SupportedConnectionTypes);
         Assert.True(plan.RuntimeSupported);
         Assert.Equal("active", plan.RuntimeState);
+        Assert.Contains("peer/distributed/transfer", plan.Summary);
     }
 
     private static void AssertRejectsUnsupportedOnlyMode(

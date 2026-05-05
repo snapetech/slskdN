@@ -39,6 +39,8 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
     private int? dataOverlayPort;
     private int? soulseekListenPort;
     private string apiHost = "127.0.0.1";
+    private string? vpnNamespaceName;
+    private string? vpnNamespaceHostIp;
     private bool isRunning;
 
     public SlskdnFullInstanceRunner(ILogger<SlskdnFullInstanceRunner> logger, string testId)
@@ -65,6 +67,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
     public int? DhtPort => dhtPort;
     public bool IsRunning => isRunning;
     public string ApiUrl => $"http://{apiHost}:{apiPort}";
+    public string OverlayAddress => apiHost;
 
     /// <summary>
     /// Start full slskdn instance.
@@ -136,6 +139,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
 
         // Wait for API to be ready
         await WaitForApiReadyAsync(ct);
+        await ConfigureVpnWrapperTestRouteAsync(ct);
 
         if (overlayPort.HasValue)
         {
@@ -334,7 +338,10 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
             var namespacePrefix = Environment.GetEnvironmentVariable("SLSKDN_FULL_INSTANCE_VPN_NAMESPACE_PREFIX") ?? "sln";
             var namespaceName = BuildVpnNamespaceName(namespacePrefix, index);
             var namespaceIp = $"10.{subnetOctet}.0.2";
+            var namespaceHostIp = $"10.{subnetOctet}.0.1";
             apiHost = namespaceIp;
+            vpnNamespaceName = namespaceName;
+            vpnNamespaceHostIp = namespaceHostIp;
 
             startInfo.FileName = wrapper;
             startInfo.ArgumentList.Add(namespaceName);
@@ -345,7 +352,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
             startInfo.ArgumentList.Add("--app-dir");
             startInfo.ArgumentList.Add(appDir);
 
-            startInfo.Environment["SLSKR_NETNS_HOST_IP"] = $"10.{subnetOctet}.0.1";
+            startInfo.Environment["SLSKR_NETNS_HOST_IP"] = namespaceHostIp;
             startInfo.Environment["SLSKR_NETNS_IP"] = namespaceIp;
             startInfo.Environment["SLSKR_NETNS_SUBNET"] = $"10.{subnetOctet}.0.0/24";
 
@@ -381,6 +388,46 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
         }
 
         return $"{safePrefix}{index:D2}";
+    }
+
+    private async Task ConfigureVpnWrapperTestRouteAsync(CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(vpnNamespaceName) || string.IsNullOrWhiteSpace(vpnNamespaceHostIp))
+        {
+            return;
+        }
+
+        var testCidr = Environment.GetEnvironmentVariable("SLSKDN_FULL_INSTANCE_VPN_TEST_CIDR") ?? "10.0.0.0/8";
+        var nsVeth = $"v-{vpnNamespaceName}n";
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "sudo",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+
+        startInfo.ArgumentList.Add("ip");
+        startInfo.ArgumentList.Add("netns");
+        startInfo.ArgumentList.Add("exec");
+        startInfo.ArgumentList.Add(vpnNamespaceName);
+        startInfo.ArgumentList.Add("ip");
+        startInfo.ArgumentList.Add("route");
+        startInfo.ArgumentList.Add("replace");
+        startInfo.ArgumentList.Add(testCidr);
+        startInfo.ArgumentList.Add("via");
+        startInfo.ArgumentList.Add(vpnNamespaceHostIp);
+        startInfo.ArgumentList.Add("dev");
+        startInfo.ArgumentList.Add(nsVeth);
+
+        using var process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Failed to start VPN test route command");
+        await process.WaitForExitAsync(ct);
+        if (process.ExitCode != 0)
+        {
+            var stderr = await process.StandardError.ReadToEndAsync(ct);
+            throw new InvalidOperationException($"Failed to configure VPN test route in namespace {vpnNamespaceName}: {stderr}");
+        }
     }
 
     private string? DiscoverSoulfindBinary()

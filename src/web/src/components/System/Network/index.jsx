@@ -495,6 +495,9 @@ const Network = ({ theme }) => {
               <Label color="blue">mode: {obfuscation.mode}</Label>
               <Label color="blue">type: {obfuscation.type}</Label>
               <Label color="blue">
+                streams: {(obfuscation.supportedConnectionTypes ?? []).join(', ') || 'unset'}
+              </Label>
+              <Label color="blue">
                 obfuscated port: {obfuscation.effectiveListenPort ?? 'unset'}
               </Label>
               <Label color={obfuscation.advertiseRegularPort ? 'green' : 'grey'}>

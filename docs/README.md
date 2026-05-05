@@ -46,7 +46,7 @@ Complete guide to all slskdn documentation.
 - [How It Works](HOW-IT-WORKS.md) - Technical architecture overview
 - [Features Overview](FEATURES.md) - Complete feature list and details
 - [Lidarr Integration](lidarr-integration.md) - First-class plugin-free Lidarr wanted sync, download handoff, and safe post-download import
-- [Soulseek Type-1 Obfuscation](soulseek-type1-obfuscation.md) - Peer-message obfuscation options and runtime activation plan
+- [Soulseek Type-1 Obfuscation](soulseek-type1-obfuscation.md) - Peer/distributed-message obfuscation options and runtime activation plan
 - [Soulseek Native Discovery](soulseek-native-discovery.md) - Backend API and Web UI integration for native Soulseek discovery protocol features
 - [VPN Agent](../src/slskdN.VpnAgent/README.md) - Host-side fail-closed VPN routing and forwarded-port integration
 - [System Admin Surfaces](system-surfaces.md) - Guided System UI and operator panels

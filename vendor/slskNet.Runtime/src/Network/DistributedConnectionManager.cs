@@ -269,13 +269,13 @@ namespace Soulseek.Network
 
                 var superseded = false;
 
-                var connection = ConnectionFactory.GetDistributedConnection(
+                var connection = CreateDistributedConnection(
                     username,
                     c.IPEndPoint,
-                    SoulseekClient.Options.DistributedConnectionOptions,
-                    c.HandoffTcpClient());
+                    c.HandoffTcpClient(),
+                    c.Obfuscated);
 
-                Diagnostic.Debug($"Inbound child connection to {username} ({connection.IPEndPoint}) handed off. (old: {c.Id}, new: {connection.Id})");
+                Diagnostic.Debug($"Inbound {(c.Obfuscated ? "obfuscated " : string.Empty)}child connection to {username} ({connection.IPEndPoint}) handed off. (old: {c.Id}, new: {connection.Id})");
                 c.Dispose();
 
                 connection.Type = ConnectionTypes.Inbound | ConnectionTypes.Direct;
@@ -610,12 +610,26 @@ namespace Soulseek.Network
             {
                 cached = false;
 
-                Diagnostic.Debug($"Attempting inbound indirect child connection to {r.Username} ({r.IPEndPoint}) for token {r.Token}");
+                var useObfuscated = ShouldUseObfuscatedEndpoint(r.HasObfuscatedEndpoint);
 
-                var connection = ConnectionFactory.GetDistributedConnection(
-                    r.Username,
-                    r.IPEndPoint,
-                    SoulseekClient.Options.DistributedConnectionOptions);
+                try
+                {
+                    return await GetConnectionAttempt(useObfuscated).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (useObfuscated && !(ex is OperationCanceledException))
+                {
+                    Diagnostic.Debug($"Falling back to regular inbound indirect child connection to {r.Username} ({r.IPEndPoint}) after obfuscated attempt failed: {ex.Message}");
+                    return await GetConnectionAttempt(useObfuscated: false).ConfigureAwait(false);
+                }
+            }
+
+            async Task<IMessageConnection> GetConnectionAttempt(bool useObfuscated)
+            {
+                var endPoint = useObfuscated ? r.ObfuscatedIPEndPoint : r.IPEndPoint;
+
+                Diagnostic.Debug($"Attempting {(useObfuscated ? "obfuscated " : string.Empty)}inbound indirect child connection to {r.Username} ({endPoint}) for token {r.Token}");
+
+                var connection = CreateDistributedConnection(r.Username, endPoint, obfuscated: useObfuscated);
 
                 connection.Type = ConnectionTypes.Inbound | ConnectionTypes.Indirect;
                 connection.MessageRead += SoulseekClient.DistributedMessageHandler.HandleChildMessageRead;
@@ -631,8 +645,8 @@ namespace Soulseek.Network
                     {
                         await connection.ConnectAsync(cts.Token).ConfigureAwait(false);
 
-                        var request = new PierceFirewall(r.Token);
-                        await connection.WriteAsync(request.ToByteArray(), cts.Token).ConfigureAwait(false);
+                        var request = new PierceFirewall(r.Token).ToByteArray();
+                        await connection.WriteAsync(useObfuscated ? RotatedObfuscation.Encode(request) : request, cts.Token).ConfigureAwait(false);
 
                         await connection.WriteAsync(GetBranchInformation(), cts.Token).ConfigureAwait(false);
                     }
@@ -852,6 +866,36 @@ namespace Soulseek.Network
             return payload.ToArray();
         }
 
+        private IMessageConnection CreateDistributedConnection(string username, IPEndPoint ipEndPoint, ITcpClient tcpClient = null, bool obfuscated = false)
+            => obfuscated
+                ? ConnectionFactory.GetObfuscatedDistributedConnection(
+                    username,
+                    ipEndPoint,
+                    SoulseekClient.Options.DistributedConnectionOptions,
+                    tcpClient)
+                : ConnectionFactory.GetDistributedConnection(
+                    username,
+                    ipEndPoint,
+                    SoulseekClient.Options.DistributedConnectionOptions,
+                    tcpClient);
+
+        private IPEndPoint GetPreferredObfuscatedEndPoint(string username, IPEndPoint regularEndPoint)
+        {
+            if (!ShouldUseObfuscatedEndpoint(true))
+            {
+                return null;
+            }
+
+            return SoulseekClient.TryGetObfuscatedPeerEndPoint(username, regularEndPoint.Address, out var obfuscatedEndPoint)
+                ? obfuscatedEndPoint
+                : null;
+        }
+
+        private bool ShouldUseObfuscatedEndpoint(bool hasObfuscatedEndpoint)
+            => SoulseekClient.Options.PeerObfuscationOptions.Enabled &&
+                SoulseekClient.Options.PeerObfuscationOptions.PreferOutbound &&
+                hasObfuscatedEndpoint;
+
         private async Task<(IMessageConnection Connection, int BranchLevel, string BranchRoot)> GetParentCandidateConnectionAsync(string username, IPEndPoint ipEndPoint, CancellationToken cancellationToken)
         {
             using var directCts = new CancellationTokenSource();
@@ -864,7 +908,22 @@ namespace Soulseek.Network
             var direct = GetParentCandidateConnectionDirectAsync(username, ipEndPoint, directLinkedCts.Token);
             var indirect = GetParentCandidateConnectionIndirectAsync(username, indirectLinkedCts.Token);
 
+            Task<IMessageConnection> obfuscated = null;
             var tasks = new[] { direct, indirect }.ToList();
+
+            var obfuscatedEndPoint = GetPreferredObfuscatedEndPoint(username, ipEndPoint);
+
+            if (obfuscatedEndPoint != null)
+            {
+                Diagnostic.Debug($"Adding obfuscated direct parent candidate path to {username} ({obfuscatedEndPoint}) while retaining regular direct and indirect fallback paths");
+                obfuscated = GetParentCandidateConnectionObfuscatedDirectAsync(username, obfuscatedEndPoint, directLinkedCts.Token);
+                tasks.Insert(0, obfuscated);
+            }
+            else
+            {
+                Diagnostic.Debug($"No compatible obfuscated distributed endpoint available for {username} ({ipEndPoint}); using regular direct and indirect parent candidate paths");
+            }
+
             Task<IMessageConnection> task;
 
             do
@@ -882,10 +941,20 @@ namespace Soulseek.Network
             }
 
             var connection = await task.ConfigureAwait(false);
-            var isDirect = task == direct;
+            var isDirect = task == direct || task == obfuscated;
+            var isObfuscated = obfuscated != null && task == obfuscated;
 
             Diagnostic.Debug($"{(isDirect ? "Direct" : "Indirect")} parent candidate connection to {username} ({ipEndPoint}) established first, attempting to cancel {(isDirect ? "indirect" : "direct")} connection.");
-            (isDirect ? indirectCts : directCts).Cancel();
+            if (isObfuscated)
+            {
+                Diagnostic.Debug($"Obfuscated direct parent candidate connection to {username} ({connection.IPEndPoint}) won; cancelling regular direct and indirect fallbacks");
+                directCts.Cancel();
+                indirectCts.Cancel();
+            }
+            else
+            {
+                (isDirect ? indirectCts : directCts).Cancel();
+            }
 
             int branchLevel;
             string branchRoot;
@@ -897,7 +966,8 @@ namespace Soulseek.Network
                 if (isDirect)
                 {
                     var request = new PeerInit(SoulseekClient.Username, Constants.ConnectionType.Distributed, SoulseekClient.GetNextToken());
-                    await connection.WriteAsync(request.ToByteArray(), cancellationToken).ConfigureAwait(false);
+                    var requestBytes = request.ToByteArray();
+                    await connection.WriteAsync(isObfuscated ? RotatedObfuscation.Encode(requestBytes) : requestBytes, cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
@@ -919,14 +989,17 @@ namespace Soulseek.Network
             return (connection, branchLevel, branchRoot);
         }
 
-        private async Task<IMessageConnection> GetParentCandidateConnectionDirectAsync(string username, IPEndPoint ipEndPoint, CancellationToken cancellationToken)
-        {
-            Diagnostic.Debug($"Attempting direct parent candidate connection to {username} ({ipEndPoint})");
+        private Task<IMessageConnection> GetParentCandidateConnectionDirectAsync(string username, IPEndPoint ipEndPoint, CancellationToken cancellationToken)
+            => GetParentCandidateConnectionDirectAttemptAsync(username, ipEndPoint, cancellationToken, obfuscated: false);
 
-            var connection = ConnectionFactory.GetDistributedConnection(
-                username,
-                ipEndPoint,
-                SoulseekClient.Options.DistributedConnectionOptions);
+        private Task<IMessageConnection> GetParentCandidateConnectionObfuscatedDirectAsync(string username, IPEndPoint ipEndPoint, CancellationToken cancellationToken)
+            => GetParentCandidateConnectionDirectAttemptAsync(username, ipEndPoint, cancellationToken, obfuscated: true);
+
+        private async Task<IMessageConnection> GetParentCandidateConnectionDirectAttemptAsync(string username, IPEndPoint ipEndPoint, CancellationToken cancellationToken, bool obfuscated)
+        {
+            Diagnostic.Debug($"Attempting {(obfuscated ? "obfuscated " : string.Empty)}direct parent candidate connection to {username} ({ipEndPoint})");
+
+            var connection = CreateDistributedConnection(username, ipEndPoint, obfuscated: obfuscated);
 
             connection.Type = ConnectionTypes.Outbound | ConnectionTypes.Direct;
             connection.Disconnected += ParentCandidateConnection_Disconnected;
@@ -937,12 +1010,12 @@ namespace Soulseek.Network
             }
             catch (Exception ex)
             {
-                Diagnostic.Debug($"Failed to establish a direct parent candidate connection to {username} ({ipEndPoint}): {ex.Message}");
+                Diagnostic.Debug($"Failed to establish a{(obfuscated ? "n obfuscated" : string.Empty)} direct parent candidate connection to {username} ({ipEndPoint}): {ex.Message}");
                 connection.Dispose();
                 throw;
             }
 
-            Diagnostic.Debug($"Direct parent candidate connection to {username} ({connection.IPEndPoint}) established. (type: {connection.Type}, id: {connection.Id})");
+            Diagnostic.Debug($"{(obfuscated ? "Obfuscated d" : "D")}irect parent candidate connection to {username} ({connection.IPEndPoint}) established. (type: {connection.Type}, id: {connection.Id})");
             return connection;
         }
 
@@ -964,13 +1037,13 @@ namespace Soulseek.Network
                     .Wait<IConnection>(new WaitKey(Constants.WaitKey.SolicitedDistributedConnection, username, solicitationToken), SoulseekClient.Options.DistributedConnectionOptions.ConnectTimeout, cancellationToken)
                     .ConfigureAwait(false);
 
-                var connection = ConnectionFactory.GetDistributedConnection(
+                var connection = CreateDistributedConnection(
                     username,
                     incomingConnection.IPEndPoint,
-                    SoulseekClient.Options.DistributedConnectionOptions,
-                    incomingConnection.HandoffTcpClient());
+                    incomingConnection.HandoffTcpClient(),
+                    incomingConnection.Obfuscated);
 
-                Diagnostic.Debug($"Indirect parent candidate connection to {username} ({incomingConnection.IPEndPoint}) handed off. (old: {incomingConnection.Id}, new: {connection.Id})");
+                Diagnostic.Debug($"Indirect {(incomingConnection.Obfuscated ? "obfuscated " : string.Empty)}parent candidate connection to {username} ({incomingConnection.IPEndPoint}) handed off. (old: {incomingConnection.Id}, new: {connection.Id})");
 
                 connection.Type = ConnectionTypes.Outbound | ConnectionTypes.Indirect;
                 connection.Disconnected += ParentCandidateConnection_Disconnected;

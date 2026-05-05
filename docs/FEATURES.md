@@ -77,12 +77,12 @@
   - fallback metadata seeds from search and MusicBrainz context
 - Semantic zoom stack (mini-map, drawer modal, atlas) lets SongID/MusicBrainz/search seeds share state while provenance/score-component overlays keep closeness explainable and actionable
 
-### Soulseek Type-1 Peer-Message Obfuscation
-- Runtime-backed type-1 obfuscated peer-message listener support through the vendored `slskNet.Runtime`
-- Default compatibility posture keeps the regular peer-message port available for legacy clients
-- Prefer mode can prioritize compatible obfuscated outbound peer-message dials while keeping regular direct and indirect fallback
+### Soulseek Type-1 Message Obfuscation
+- Runtime-backed type-1 obfuscated peer-message, distributed-message, and file-transfer listener support through the vendored `slskNet.Runtime`
+- Default compatibility posture keeps regular peer, distributed, and transfer paths available for legacy clients
+- Prefer mode can prioritize compatible obfuscated outbound peer, distributed, and transfer dials while keeping regular direct and indirect fallback
 - System → Network reports enablement, configured mode, effective obfuscated port, fallback posture, and runtime activation state
-- Scope is intentionally limited to peer-message streams; file transfers and distributed-network traffic keep normal Soulseek transport behavior
+- Scope includes peer-message, distributed-message, and file-transfer streams while regular Soulseek fallback remains available
 
 ### Soulseek Native Discovery
 - Search-page **Soulseek Discovery** panel for native liked/hated interests, personal/global recommendations, item recommendation branches, similar users, and user-interest lookup

@@ -134,7 +134,7 @@ namespace Soulseek.Network
                     {
                         if (obfuscated)
                         {
-                            throw new ConnectionException("Obfuscated listener does not accept transfer connections");
+                            Diagnostic.Debug($"Obfuscated transfer PeerInit accepted from {peerInit.Username} ({connection.IPEndPoint.Address}:{listenerPort}); handing off to transfer manager. (id: {connection.Id})");
                         }
 
                         // slightly misleading name; this hands the incoming connection off instead of establishing new
@@ -162,7 +162,7 @@ namespace Soulseek.Network
                     {
                         if (obfuscated)
                         {
-                            throw new ConnectionException("Obfuscated listener does not accept distributed connections");
+                            Diagnostic.Debug($"Obfuscated distributed PeerInit accepted from {peerInit.Username} ({connection.IPEndPoint.Address}:{listenerPort}); handing off to distributed child manager. (id: {connection.Id})");
                         }
 
                         await SoulseekClient.DistributedConnectionManager.AddOrUpdateChildConnectionAsync(
@@ -184,7 +184,7 @@ namespace Soulseek.Network
                     {
                         if (obfuscated)
                         {
-                            throw new ConnectionException($"Obfuscated listener does not accept distributed PierceFirewall with token {pierceFirewall.Token}");
+                            Diagnostic.Debug($"Obfuscated distributed PierceFirewall with token {pierceFirewall.Token} accepted from {distributedUsername} ({connection.IPEndPoint.Address}:{listenerPort}); completing solicited distributed wait. (id: {connection.Id})");
                         }
 
                         Diagnostic.Debug($"Distributed PierceFirewall with token {pierceFirewall.Token} received from {distributedUsername} ({connection.IPEndPoint.Address}:{listenerPort}) (id: {connection.Id})");

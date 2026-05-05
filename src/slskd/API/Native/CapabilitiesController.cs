@@ -56,7 +56,9 @@ public class CapabilitiesController : ControllerBase
             "job_manifests",
             "session_traces",
             "playback_aware",
-            "soulseek_type1_obfuscation_options"
+            "soulseek_type1_obfuscation_options",
+            "soulseek_type1_obfuscated_distributed_messages",
+            "soulseek_type1_obfuscated_file_transfers"
         };
 
         if (optionsMonitor.CurrentValue.Feature.ScenePodBridge)

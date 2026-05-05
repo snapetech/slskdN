@@ -1206,7 +1206,7 @@ namespace Soulseek.Tests.Unit.Network
             using (var newConn = await manager.GetTransferConnectionAsync(username, dendpoint, token, CancellationToken.None))
             {
                 mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.ContainsInsensitive("Attempting simultaneous direct and indirect transfer connections"))));
-                mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.ContainsInsensitive($"established first, attempting to cancel"))));
+                mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.ContainsInsensitive("established first, negotiating transfer setup"))));
                 mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.ContainsInsensitive("transfer connection to") && s.ContainsInsensitive("established."))));
             }
         }

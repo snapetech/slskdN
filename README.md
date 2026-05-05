@@ -347,15 +347,15 @@ Discover other slskdN users via BitTorrent DHT and form encrypted mesh overlay.
 📖 **Design docs**: [MeshCore research](docs/phase8-meshcore-research.md) • [Mesh architecture](docs/virtual-soulfind-mesh-architecture.md) • [Runtime sync notes](docs/slsknet-runtime-sync.md)
 
 ### 🕶️ Soulseek Type-1 Obfuscation Options
-First-class Soulseek peer-message obfuscation posture for compatible clients.
-- **Default-on compatibility mode** — keeps the regular peer-message path available and adds type-1 obfuscated reachability
-- **Prefer mode** — prefers obfuscated outbound peer-message dials only when peer metadata advertises a compatible type-1 endpoint
+First-class Soulseek peer-message, distributed-message, and file-transfer obfuscation posture for compatible clients.
+- **Default-on compatibility mode** — keeps regular peer, distributed, and transfer paths available and adds type-1 obfuscated reachability
+- **Prefer mode** — prefers obfuscated outbound peer, distributed, and transfer dials only when peer metadata advertises a compatible type-1 endpoint
 - **Only mode reserved** — obfuscated-only reachability is intentionally rejected while the runtime preserves legacy-client fallback
 - **Visible status** — System → Network reports enablement, mode, advertised ports, fallback posture, and runtime activation state
-- **Active runtime support** — slskdN’s vendored runtime now advertises type-1 metadata, accepts obfuscated peer-message listeners, and can prefer compatible outbound obfuscated peer-message dials
-- **Scoped transport** — obfuscation applies to Soulseek peer-message streams; file transfers and distributed-network traffic keep the normal Soulseek transport behavior
+- **Active runtime support** — slskdN’s vendored runtime now advertises type-1 metadata, accepts obfuscated peer, distributed, and transfer handshakes, and can prefer compatible outbound obfuscated dials
+- **Scoped transport** — obfuscation applies to Soulseek peer-message, distributed-message, and file-transfer streams while regular fallback stays available
 
-📖 **Guide**: [Soulseek type-1 obfuscation](docs/soulseek-type1-obfuscation.md) • [Configuration](docs/config.md#type-1-peer-message-obfuscation)
+📖 **Guide**: [Soulseek type-1 obfuscation](docs/soulseek-type1-obfuscation.md) • [Configuration](docs/config.md#type-1-peer-and-distributed-message-obfuscation)
 
 ### 🧭 Soulseek Native Discovery
 Native Soulseek interests, recommendations, similar users, and multi-recipient messages are available as explicit opt-in workflows.

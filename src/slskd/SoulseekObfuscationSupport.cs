@@ -5,19 +5,24 @@
 namespace slskd;
 
 /// <summary>
-///     Builds the first-class runtime plan for Soulseek type-1 peer-message obfuscation.
+///     Builds the first-class runtime plan for Soulseek type-1 peer, distributed, and transfer obfuscation.
 /// </summary>
 public static class SoulseekObfuscationSupport
 {
     /// <summary>
-    ///     Soulseek public-server obfuscation metadata type for rotated peer-message streams.
+    ///     Soulseek public-server obfuscation metadata type for rotated message streams.
     /// </summary>
     public const int Type1 = 1;
 
     /// <summary>
     ///     Indicates whether the current Soulseek.NET runtime exposes the type-1 listener and dialer hooks.
     /// </summary>
-    public static bool RuntimeSupportsType1PeerMessages => true;
+    public static bool RuntimeSupportsType1PeerDistributedAndTransfers => true;
+
+    /// <summary>
+    ///     Gets the Soulseek connection types currently supported by type-1 obfuscation.
+    /// </summary>
+    public static IReadOnlyList<string> SupportedConnectionTypes { get; } = ["P", "D", "F"];
 
     /// <summary>
     ///     Build a serializable runtime plan for configuration, diagnostics, and the web UI.
@@ -38,11 +43,12 @@ public static class SoulseekObfuscationSupport
         var limitations = new List<string>();
 
         limitations.Add("Type-1 obfuscation is a compatibility/privacy posture, not transport security or meaningful encryption.");
-        limitations.Add("Current research covers peer-message streams; file transfer and distributed-network paths remain regular-port based.");
+        limitations.Add("Current runtime support covers peer-message (P), distributed-message (D), and file-transfer (F) streams.");
+        limitations.Add("Regular transfer paths remain advertised and available for legacy-client compatibility.");
 
         if (mode == SoulseekObfuscationMode.Only)
         {
-            limitations.Add("Only mode is not supported by the current runtime because slskdN keeps the regular peer-message path advertised for legacy compatibility.");
+            limitations.Add("Only mode is not supported by the current runtime because slskdN keeps regular Soulseek paths advertised for legacy compatibility.");
         }
 
         return new SoulseekObfuscationPlan(
@@ -54,7 +60,8 @@ public static class SoulseekObfuscationSupport
             EffectiveListenPort: effectiveListenPort,
             AdvertiseRegularPort: options.AdvertiseRegularPort,
             PreferOutbound: options.PreferOutbound,
-            RuntimeSupported: RuntimeSupportsType1PeerMessages,
+            SupportedConnectionTypes: SupportedConnectionTypes,
+            RuntimeSupported: RuntimeSupportsType1PeerDistributedAndTransfers,
             RuntimeState: runtimeState,
             Summary: BuildSummary(options.Enabled, mode),
             Limitations: limitations);
@@ -84,15 +91,15 @@ public static class SoulseekObfuscationSupport
     {
         if (!enabled)
         {
-            return "Soulseek type-1 peer-message obfuscation is disabled.";
+            return "Soulseek type-1 peer/distributed/transfer obfuscation is disabled.";
         }
 
         var posture = mode switch
         {
-            SoulseekObfuscationMode.Compatibility => "Compatibility mode keeps the regular peer-message path available and adds obfuscated reachability.",
-            SoulseekObfuscationMode.Prefer => "Prefer mode uses obfuscated peer-message dials when peers advertise type-1 metadata and keeps regular fallback.",
-            SoulseekObfuscationMode.Only => "Only mode is not currently supported; the runtime keeps regular peer-message fallback for legacy compatibility.",
-            _ => "Soulseek type-1 peer-message obfuscation is configured.",
+            SoulseekObfuscationMode.Compatibility => "Compatibility mode keeps regular peer/distributed/transfer paths available and adds obfuscated reachability.",
+            SoulseekObfuscationMode.Prefer => "Prefer mode uses obfuscated peer/distributed/transfer dials when peers advertise type-1 metadata and keeps regular fallback.",
+            SoulseekObfuscationMode.Only => "Only mode is not currently supported; the runtime keeps regular Soulseek fallback for legacy compatibility.",
+            _ => "Soulseek type-1 peer/distributed/transfer obfuscation is configured.",
         };
 
         return posture;
@@ -109,8 +116,9 @@ public static class SoulseekObfuscationSupport
 /// <param name="RequestedListenPort">Configured obfuscated listen port, if explicitly set.</param>
 /// <param name="EffectiveListenPort">Effective obfuscated listen port when runtime support exists.</param>
 /// <param name="AdvertiseRegularPort">Whether regular-port metadata is advertised alongside obfuscation metadata.</param>
-/// <param name="PreferOutbound">Whether outbound peer-message dials prefer compatible obfuscated metadata.</param>
-/// <param name="RuntimeSupported">Whether the current runtime can activate type-1 peer-message obfuscation.</param>
+/// <param name="PreferOutbound">Whether outbound peer/distributed/transfer dials prefer compatible obfuscated metadata.</param>
+/// <param name="SupportedConnectionTypes">Soulseek connection types supported by the current type-1 obfuscation implementation.</param>
+/// <param name="RuntimeSupported">Whether the current runtime can activate type-1 peer/distributed/transfer obfuscation.</param>
 /// <param name="RuntimeState">Current activation state.</param>
 /// <param name="Summary">Human-readable status.</param>
 /// <param name="Limitations">Known limitations and compatibility warnings.</param>
@@ -123,6 +131,7 @@ public sealed record SoulseekObfuscationPlan(
     int? EffectiveListenPort,
     bool AdvertiseRegularPort,
     bool PreferOutbound,
+    IReadOnlyList<string> SupportedConnectionTypes,
     bool RuntimeSupported,
     string RuntimeState,
     string Summary,

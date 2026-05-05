@@ -705,27 +705,27 @@ soulseek:
   listen_port: 50300
 ```
 
-## Type-1 Peer-Message Obfuscation
+## Type-1 Peer and Distributed Message Obfuscation
 
-slskdN exposes Soulseek type-1 peer-message obfuscation as a first-class feature option. It defaults to `enabled: true` in `compatibility` mode, which means the regular peer-message path stays available and obfuscated reachability is added. The runtime advertises obfuscation metadata, accepts type-1 obfuscated peer-message connections, and can prefer compatible outbound obfuscated peer-message dials.
+slskdN exposes Soulseek type-1 peer-message, distributed-message, and file-transfer obfuscation as a first-class feature option. It defaults to `enabled: true` in `compatibility` mode, which means regular Soulseek paths stay available and obfuscated reachability is added for compatible peers. The runtime advertises obfuscation metadata, accepts type-1 obfuscated peer-message, distributed-message, and file-transfer connections, and can prefer compatible outbound obfuscated dials.
 
-This is obfuscation, not transport security. It should be treated as a compatibility and traffic-shaping posture, not encryption. Current research covers peer-message (`P`) streams; file transfer (`F`) and distributed-network (`D`) paths remain regular-port based until separate wire support is implemented and validated.
+This is obfuscation, not transport security. It should be treated as a compatibility and traffic-shaping posture, not encryption. Current runtime support covers peer-message (`P`) and distributed-network message (`D`) streams. File transfer (`F`) streams remain regular-port based for compatibility.
 
 Modes:
 
 | Mode | Intent |
 | ---- | ------ |
-| `compatibility` | Keep regular peer-message reachability available and add obfuscated peer-message reachability when runtime support exists. This is the default and safest broad-client posture. |
-| `prefer` | Prefer type-1 obfuscated outbound peer-message dials when compatible peer metadata is available, while preserving regular fallback. |
-| `only` | Reserved for obfuscated-only reachability. The current runtime rejects this mode because slskdN keeps regular peer-message fallback for legacy clients. |
+| `compatibility` | Keep regular peer/distributed/transfer reachability available and add obfuscated reachability when runtime support exists. This is the default and safest broad-client posture. |
+| `prefer` | Prefer type-1 obfuscated outbound peer/distributed/transfer dials when compatible peer metadata is available, while preserving regular fallback. |
+| `only` | Reserved for obfuscated-only reachability. The current runtime rejects this mode because slskdN keeps regular fallback for legacy clients. |
 
 | Command-Line                             | Environment Variable                         | Description |
 | ---------------------------------------- | -------------------------------------------- | ----------- |
 | `--slsk-obfuscation`                     | `SLSKD_SLSK_OBFUSCATION`                     | Enables the type-1 obfuscation feature option and status reporting |
 | `--slsk-obfuscation-mode`                | `SLSKD_SLSK_OBFUSCATION_MODE`                | Obfuscation posture: `compatibility`, `prefer`, or `only` |
-| `--slsk-obfuscation-listen-port`         | `SLSKD_SLSK_OBFUSCATION_LISTEN_PORT`         | Dedicated type-1 obfuscated peer-message listen port; `0` derives from `listen_port + 1` when runtime support exists |
-| `--slsk-obfuscation-advertise-regular-port` | `SLSKD_SLSK_OBFUSCATION_ADVERTISE_REGULAR_PORT` | Advertises the regular peer-message port alongside obfuscation metadata |
-| `--slsk-obfuscation-prefer-outbound`     | `SLSKD_SLSK_OBFUSCATION_PREFER_OUTBOUND`     | Prefers compatible type-1 obfuscated outbound peer-message dials |
+| `--slsk-obfuscation-listen-port`         | `SLSKD_SLSK_OBFUSCATION_LISTEN_PORT`         | Dedicated type-1 obfuscated peer/distributed/transfer listen port; `0` derives from `listen_port + 1` when runtime support exists |
+| `--slsk-obfuscation-advertise-regular-port` | `SLSKD_SLSK_OBFUSCATION_ADVERTISE_REGULAR_PORT` | Advertises the regular listen port alongside obfuscation metadata |
+| `--slsk-obfuscation-prefer-outbound`     | `SLSKD_SLSK_OBFUSCATION_PREFER_OUTBOUND`     | Prefers compatible type-1 obfuscated outbound peer/distributed/transfer dials |
 
 #### **YAML**
 ```yaml

@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Extended Soulseek type-1 obfuscation from peer-message streams to compatible
+  distributed-message streams while preserving regular direct/indirect fallback
+  and keeping file transfers on normal Soulseek transport.
 - Added logged-in and logged-out footer build metadata with a GitHub-backed
   slskdN release check that surfaces newer packaged builds from
   `snapetech/slskdn`.
@@ -169,7 +172,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Surfaced the current Soulseek type-1 obfuscation plan through native
   capabilities and System -> Network, including runtime support state and
   configured effective obfuscated port.
-- Added Soulseek type-1 peer-message obfuscation configuration options and
+- Added Soulseek type-1 peer/distributed/transfer obfuscation configuration options and
   validation, including explicit mode and dedicated obfuscated listen-port
   checks, plus a runtime-support plan that reports the current unsupported
   Soulseek.NET wire-path state.

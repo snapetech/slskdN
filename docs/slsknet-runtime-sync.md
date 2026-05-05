@@ -9,6 +9,7 @@ This repository vendors `slskNet.Runtime` under `vendor/slskNet.Runtime` and con
 - Mesh rendezvous helpers built on the public Soulseek interest graph and the `slskdn-mesh-v1` interest tag.
 - Wishlist scheduling primitives that honor server-provided wishlist interval information.
 - Protocol count hardening for variable-count server and peer payloads.
+- Type-1 obfuscated peer-message (`P`), distributed-message (`D`), and file-transfer (`F`) transport support with regular fallback retained.
 
 ## slskdN Integration Decisions
 
@@ -17,6 +18,7 @@ This repository vendors `slskNet.Runtime` under `vendor/slskNet.Runtime` and con
 - Mesh rendezvous API calls use the runtime `MeshRendezvousService` so the app and vendored runtime share one rendezvous implementation.
 - Wishlist searches now use the Soulseek wishlist search scope and prefer the server-provided interval when available.
 - The mesh UI uses the active rendezvous discovery endpoint and displays runtime capability records alongside similar-user candidates.
+- The System -> Network obfuscation surface now reports `P,D` runtime support, and runtime option reload patches `PeerObfuscationOptions` so prefer/fallback behavior stays aligned after configuration changes.
 
 ## Capability Descriptor Contract
 

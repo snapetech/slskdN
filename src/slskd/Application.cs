@@ -502,11 +502,25 @@ namespace slskd
             if (obfuscationPlan.Enabled)
             {
                 Log.Information(
-                    "Soulseek type-1 obfuscation configured in {Mode} mode on port {Port}; runtime state is {RuntimeState}: {Summary}",
+                    "Soulseek type-1 obfuscation configured in {Mode} mode on port {Port}; runtime state is {RuntimeState}; supported connection types: {SupportedConnectionTypes}; regular fallback advertised: {AdvertiseRegularPort}; prefer outbound: {PreferOutbound}. {Summary}",
                     obfuscationPlan.Mode,
                     obfuscationPlan.EffectiveListenPort,
                     obfuscationPlan.RuntimeState,
+                    string.Join(",", obfuscationPlan.SupportedConnectionTypes),
+                    obfuscationPlan.AdvertiseRegularPort,
+                    obfuscationPlan.PreferOutbound,
                     obfuscationPlan.Summary);
+
+                foreach (var limitation in obfuscationPlan.Limitations)
+                {
+                    Log.Debug("Soulseek type-1 obfuscation note: {Limitation}", limitation);
+                }
+            }
+            else
+            {
+                Log.Debug(
+                    "Soulseek type-1 obfuscation disabled; supported runtime connection types would be {SupportedConnectionTypes}",
+                    string.Join(",", obfuscationPlan.SupportedConnectionTypes));
             }
 
             if (OptionsAtStartup.Soulseek.Connection.Proxy.Enabled)
@@ -2000,6 +2014,7 @@ namespace slskd
                     ConnectionOptions? serverPatch = null;
                     ConnectionOptions? distributedPatch = null;
                     ConnectionOptions? transferPatch = null;
+                    PeerObfuscationOptions? peerObfuscationPatch = null;
 
                     if (connectionDiff.Any())
                     {
@@ -2047,6 +2062,35 @@ namespace slskd
                         }
                     }
 
+                    var obfuscationDiff = old.Obfuscation.DiffWith(update.Obfuscation);
+                    if (obfuscationDiff.Any() || old.ListenPort != update.ListenPort)
+                    {
+                        var previousPlan = SoulseekObfuscationSupport.BuildPlan(old);
+                        var currentPlan = SoulseekObfuscationSupport.BuildPlan(update);
+
+                        peerObfuscationPatch = SoulseekObfuscationSupport.BuildRuntimeOptions(update);
+
+                        Log.Information(
+                            "Soulseek type-1 obfuscation options changed: {PreviousMode}/{PreviousState} port {PreviousPort} -> {CurrentMode}/{CurrentState} port {CurrentPort}; supported connection types: {SupportedConnectionTypes}; regular fallback advertised: {AdvertiseRegularPort}; prefer outbound: {PreferOutbound}",
+                            previousPlan.Mode,
+                            previousPlan.RuntimeState,
+                            previousPlan.EffectiveListenPort,
+                            currentPlan.Mode,
+                            currentPlan.RuntimeState,
+                            currentPlan.EffectiveListenPort,
+                            string.Join(",", currentPlan.SupportedConnectionTypes),
+                            currentPlan.AdvertiseRegularPort,
+                            currentPlan.PreferOutbound);
+
+                        Log.Debug(
+                            "Soulseek type-1 obfuscation runtime patch: enabled={Enabled}, listenPort={ListenPort}, type={Type}, advertiseRegularPort={AdvertiseRegularPort}, preferOutbound={PreferOutbound}",
+                            peerObfuscationPatch.Enabled,
+                            peerObfuscationPatch.ListenPort,
+                            peerObfuscationPatch.Type,
+                            peerObfuscationPatch.AdvertiseRegularPort,
+                            peerObfuscationPatch.PreferOutbound);
+                    }
+
                     var patch = new SoulseekClientOptionsPatch(
                         listenIPAddress: updateListenIpAddress,
                         listenPort: old.ListenPort == update.ListenPort ? null : update.ListenPort,
@@ -2059,6 +2103,7 @@ namespace slskd
                         peerConnectionOptions: connectionPatch,
                         transferConnectionOptions: transferPatch,
                         incomingConnectionOptions: connectionPatch,
+                        peerObfuscationOptions: peerObfuscationPatch,
                         distributedConnectionOptions: distributedPatch);
 
                     soulseekRequiresReconnect = await Client.ReconfigureOptionsAsync(patch);

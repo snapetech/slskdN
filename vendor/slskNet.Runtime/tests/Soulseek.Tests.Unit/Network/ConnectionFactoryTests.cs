@@ -52,6 +52,22 @@ namespace Soulseek.Tests.Unit
             Assert.NotNull(c.Options);
         }
 
+        [Trait("Category", "GetObfuscatedTransferConnection")]
+        [Theory(DisplayName = "GetObfuscatedTransferConnection returns obfuscated connection"), AutoData]
+        internal void GetObfuscatedTransferConnection_Returns_Obfuscated_Connection(IPEndPoint endpoint)
+        {
+            var options = new ConnectionOptions();
+            var c = new ConnectionFactory().GetObfuscatedTransferConnection(endpoint, options);
+
+            Assert.Equal(endpoint.Address, c.IPEndPoint.Address);
+            Assert.Equal(endpoint.Port, c.IPEndPoint.Port);
+            Assert.True(c.Obfuscated);
+            Assert.Equal(options.ReadBufferSize, c.Options.ReadBufferSize);
+            Assert.Equal(options.WriteBufferSize, c.Options.WriteBufferSize);
+            Assert.Equal(options.ConnectTimeout, c.Options.ConnectTimeout);
+            Assert.Equal(options.InactivityTimeout, c.Options.InactivityTimeout);
+        }
+
         [Trait("Category", "GetServerConnection")]
         [Theory(DisplayName = "GetServerConnection returns the expected connection"), AutoData]
         internal void GetServerConneciton_Returns_The_Expected_Connection(IPEndPoint endpoint)

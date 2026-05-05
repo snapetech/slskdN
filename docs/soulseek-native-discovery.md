@@ -124,7 +124,7 @@ Native discovery is backward-compatible with legacy clients because all new comm
 
 Batch private messages use the Soulseek server's native multi-recipient command. This does not require each recipient to support new peer-message behavior; recipients receive ordinary private messages through the server path.
 
-Type-1 peer-message obfuscation is documented separately in [Soulseek Type-1 Obfuscation](soulseek-type1-obfuscation.md). Native discovery does not require obfuscation and does not change transfer traffic.
+Type-1 peer/distributed/transfer obfuscation is documented separately in [Soulseek Type-1 Obfuscation](soulseek-type1-obfuscation.md). Native discovery does not require obfuscation.
 
 Runtime capability messages are ignored by legacy clients that do not understand the reserved slskdN peer-message code. slskdN still falls back to the legacy `@@slskdn/__caps__.json` capability file when no runtime descriptor is available.
 
