@@ -121,6 +121,8 @@ var browseResult = await soulseekClient.BrowseAsync(username, cancellationToken:
 - `src/slskd/Integrations/MusicBrainz/MusicBrainzClient.cs`
 - `src/slskd/Integrations/MusicBrainz/ReleaseGraphService.cs`
 - `src/slskd/Integrations/Pushbullet/PushbulletService.cs`
+- `src/slskd/DhtRendezvous/NatDetectionService.cs`
+- `src/slskd/Common/GitHub.cs`
 
 **Wrong**:
 ```csharp
@@ -215,6 +217,12 @@ env:
 - `src/web/src/components/System/SwarmVisualization/index.jsx`
 - `src/web/src/components/Transfers/Transfers.jsx`
 - `src/web/src/components/System/MediaCore/index.jsx`
+- `src/web/src/components/Messaging/Messaging.jsx`
+- `src/web/src/components/Rooms/RoomJoinModal.jsx`
+- `src/web/src/components/System/Files/Explorer.jsx`
+- `src/web/src/components/System/Network/index.jsx`
+- `src/web/src/components/Search/SoulseekDiscoveryPanel.jsx`
+- `src/web/src/components/Pods/Pods.jsx`
 
 **Wrong**:
 ```js
