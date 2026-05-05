@@ -52,6 +52,29 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z306. Nested Array Fields Must Be Shape-Checked Before `map` Or `reduce`
+
+**The Bug**: Several UI paths validated the top-level payload but then called `.map()`, `.filter()`, or `.reduce()` on nested fields like `response.data`, `candidate.warnings`, `candidate.substitutionOptions`, `recommendation.reasons`, and `recommendation.sourceActors`.
+
+**Files Affected**:
+- `src/web/src/components/Search/Detail/SearchDetail.jsx`
+- `src/web/src/lib/albumDecisionRules.js`
+- `src/web/src/components/Search/FederatedTasteRecommendationsPanel.jsx`
+
+**Wrong**:
+```js
+const notes = response.data.reduce(...);
+const labels = (recommendation.reasons || []).map(...);
+```
+
+**Correct**:
+```js
+const notes = (Array.isArray(response.data) ? response.data : []).reduce(...);
+const labels = (Array.isArray(recommendation.reasons) ? recommendation.reasons : []).map(...);
+```
+
+**Why This Keeps Happening**: `|| []` does not protect truthy objects or strings, and optional chaining only prevents nullish access. Every nested field used as a list needs an `Array.isArray` check at the boundary or directly before list operations.
+
 ### 0z305. Browser Base64 Route Segments Need UTF-8 And URL Encoding
 
 **The Bug**: The Web file explorer used `btoa(path)` directly in API route segments. `btoa()` throws for Unicode filenames, and standard base64 can contain `/` or `+`, which are not safe inside path segments unless encoded.
