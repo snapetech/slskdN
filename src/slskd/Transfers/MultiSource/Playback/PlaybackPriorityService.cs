@@ -41,6 +41,9 @@ namespace slskd.Transfers.MultiSource.Playback
     /// </summary>
     public class PlaybackPriorityService : IPlaybackPriorityService
     {
+        private const long LowBufferThresholdMs = 5_000;
+        private const long ComfortableBufferThresholdMs = 30_000;
+
         private readonly ConcurrentDictionary<string, PlaybackFeedback> latest = new();
         private readonly ILogger<PlaybackPriorityService> logger;
 
@@ -58,12 +61,12 @@ namespace slskd.Transfers.MultiSource.Playback
 
                 if (isNew)
                 {
-                    logger.LogInformation("[Playback] Started tracking playback for job {JobId} (buffer target: {BufferMs}ms)",
+                    logger.LogInformation("[Playback] Started tracking playback for job {JobId} (buffer ahead: {BufferMs}ms)",
                         feedback.JobId, feedback.BufferAheadMs);
                 }
                 else
                 {
-                    logger.LogDebug("[Playback] Updated playback feedback for job {JobId} (buffer target: {BufferMs}ms)",
+                    logger.LogDebug("[Playback] Updated playback feedback for job {JobId} (buffer ahead: {BufferMs}ms)",
                         feedback.JobId, feedback.BufferAheadMs);
                 }
             }
@@ -78,34 +81,28 @@ namespace slskd.Transfers.MultiSource.Playback
                 return PriorityZone.Mid;
             }
 
-            // If buffer is less than desired, mark high priority; if 2x desired, mark low.
-            var desired = fb.BufferAheadMs;
-            var actual = fb.BufferAheadMs; // No actual buffer tracking; use desired as a proxy placeholder.
-
-            if (desired <= 0)
+            var bufferAheadMs = fb.BufferAheadMs;
+            if (bufferAheadMs <= 0)
             {
-                return PriorityZone.Mid;
+                logger.LogDebug("[Playback] Job {JobId} priority: HIGH (buffer empty)", jobId);
+                return PriorityZone.High;
             }
 
-            PriorityZone zone;
-            if (actual < desired)
+            if (bufferAheadMs < LowBufferThresholdMs)
             {
-                zone = PriorityZone.High;
-                logger.LogDebug("[Playback] Job {JobId} priority: HIGH (buffer {Actual}ms < target {Desired}ms)",
-                    jobId, actual, desired);
-            }
-            else if (actual >= desired * 2)
-            {
-                zone = PriorityZone.Low;
-                logger.LogDebug("[Playback] Job {JobId} priority: LOW (buffer {Actual}ms >= 2x target {Desired}ms)",
-                    jobId, actual, desired);
-            }
-            else
-            {
-                zone = PriorityZone.Mid;
+                logger.LogDebug("[Playback] Job {JobId} priority: HIGH (buffer {BufferAheadMs}ms < {Threshold}ms)",
+                    jobId, bufferAheadMs, LowBufferThresholdMs);
+                return PriorityZone.High;
             }
 
-            return zone;
+            if (bufferAheadMs >= ComfortableBufferThresholdMs)
+            {
+                logger.LogDebug("[Playback] Job {JobId} priority: LOW (buffer {BufferAheadMs}ms >= {Threshold}ms)",
+                    jobId, bufferAheadMs, ComfortableBufferThresholdMs);
+                return PriorityZone.Low;
+            }
+
+            return PriorityZone.Mid;
         }
 
         /// <summary>

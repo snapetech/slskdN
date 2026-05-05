@@ -48,3 +48,26 @@ This document records remediation rules for features that can publish data, disc
 | --- | --- |
 | MediaCore pod workflows | System > MediaCore now starts with a Pod Workflow Index that separates read-only diagnostics from publishing, signing, storage, routing, and key-material workflows. |
 | Operator safety | Pod controls remain available, but the UI now warns that the page mixes local diagnostics with operations that publish metadata, membership records, messages, opinions, or key material. |
+
+| MediaCore per-workflow notices | Each pod workflow card now labels whether the workflow is read-only, publishes metadata or membership state, mutates local storage, routes messages, changes pod structure, publishes opinions, or handles key material. |
+
+| Web API path lint | `scripts/check-web-api-paths.sh` checks that shared axios calls do not embed `/api` or `/api/v0`, preventing double-prefix routing bugs for security-sensitive admin surfaces. |
+
+| MediaCore workflow focus | System > MediaCore now includes a Workflow focus selector that lets operators narrow the page to one pod workflow while retaining the full surface behind "Show all pod workflows". |
+
+| MediaCore workflow card focus | Selecting a pod workflow card now applies the focus filter immediately, and focused mode includes a reset action to restore the full pod surface. |
+
+| MediaCore focused workflow label | Focused mode now names the selected pod workflow and visually highlights its index card, reducing accidental work in the wrong high-risk section. |
+
+| Direct fetch CSRF lint | `scripts/check-web-fetch-csrf.sh` checks mutating direct `fetch` calls for `session.authHeaders({ csrf: true })`, covering wrappers that bypass axios interceptors. |
+
+| Controller CSRF baseline | `scripts/check-controller-csrf.sh` fails when a mutating controller lacks `ValidateCsrfForCookiesOnly`. |
+| Anonymous endpoint allowlist | `scripts/check-anonymous-endpoints.sh` fails when a controller with `[AllowAnonymous]` is not documented in `docs/ANONYMOUS_ENDPOINT_ALLOWLIST.md`. |
+
+| Non-versioned route allowlist | `scripts/check-non-versioned-routes.sh` requires non-versioned-only controllers to be documented in `docs/NON_VERSIONED_ROUTE_ALLOWLIST.md`, keeping compatibility/protocol exceptions explicit. |
+
+| Allowlist drift check | `scripts/check-allowlist-drift.sh` fails stale anonymous/non-versioned allowlist entries when controllers are removed or migrated. |
+
+| Sensitive placeholder check | `scripts/check-sensitive-placeholders.sh` scans for high-confidence API token and private key patterns outside vendored/build artifacts. |
+
+| Remediation script registry | `scripts/check-remediation-script-registry.sh` prevents focused check scripts from being added without executable bits or baseline wiring. |

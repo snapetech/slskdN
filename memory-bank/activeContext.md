@@ -1,3 +1,17 @@
+## Update 2026-05-05 00:00:00Z
+
+- Current task: Project gap assessment fixes are complete locally.
+- Last activity:
+  - aligned CI/E2E PR triggers to `main` and kept enhanced CI off branch-push builds
+  - wired remediation baseline checks into the release gate and added npm script aliases for the check scripts
+  - documented vendored runtime test expectations, capability descriptor semantics, federation diagnostics, and corrected over-optimistic packaging TODO entries
+  - replaced Library Health album-completion placeholder job IDs with real missing-recording remediation download requests
+  - fixed playback buffer priority thresholding and documented ADR-0001 gotcha `0z278` in commit `bbb7bdcf9`
+  - split MediaCore workflow helpers/data into smaller modules without changing page behavior
+  - validation passed: remediation baseline checks, focused backend tests, focused MediaCore test/lint, frontend production build, `git diff --check`, and `bash ./bin/lint`
+- Next steps:
+  1. Review and commit the local implementation/doc changes when ready.
+
 ## Update 2026-05-03 00:00:00Z
 
 - Current task: AUR source package archive-root casing fix is complete locally.

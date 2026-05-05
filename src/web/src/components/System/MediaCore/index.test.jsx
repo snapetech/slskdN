@@ -5,7 +5,7 @@
 import * as mediacore from '../../../lib/mediacore';
 import MediaCore from './index';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../lib/mediacore', () => ({
@@ -41,14 +41,34 @@ describe('MediaCore', () => {
 
     expect(await screen.findByText('Pod Workflow Index')).toBeInTheDocument();
     expect(screen.getByText(/Pod workflows mix read-only diagnostics/)).toBeInTheDocument();
-    expect(screen.getByText('DHT Publishing')).toBeInTheDocument();
-    expect(screen.getByText('Verification')).toBeInTheDocument();
-    expect(screen.getByText('Signing')).toBeInTheDocument();
+    expect(screen.getByText('Workflow focus')).toBeInTheDocument();
+    expect(screen.getAllByText('Show all pod workflows').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('DHT Publishing').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Verification').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Signing').length).toBeGreaterThan(0);
     expect(screen.getByText('Publishes metadata')).toBeInTheDocument();
-    expect(screen.getByText('Handles key material')).toBeInTheDocument();
+    expect(screen.getAllByText('Handles key material').length).toBeGreaterThan(0);
+    expect(screen.getByText('Read-only verification')).toBeInTheDocument();
+    expect(screen.getByText('Publishes pod metadata')).toBeInTheDocument();
+    expect(screen.getByText('Mutates local message storage')).toBeInTheDocument();
+    expect(screen.getAllByText('Publishes opinion data').length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: /DHT Publishing/ })).toHaveAttribute(
       'href',
       '#podcore-dht-publishing',
     );
+  });
+
+  it('focuses a pod workflow from the index card', async () => {
+    render(<MediaCore />);
+
+    fireEvent.click(await screen.findByRole('link', { name: /DHT Publishing/ }));
+
+    expect(
+      screen.getByText(/Showing DHT Publishing/),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByText('Show all pod workflows').at(-1));
+
+    expect(screen.queryByText(/Showing DHT Publishing/)).not.toBeInTheDocument();
   });
 });

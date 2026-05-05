@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Closed project gap-assessment fixes: aligned PR workflows to `main`, added
+  remediation baseline checks to the release gate, documented vendored runtime
+  and federation diagnostics behavior, corrected incomplete packaging TODOs,
+  implemented Library Health album-completion remediation jobs, fixed playback
+  buffer priority classification, and split stable MediaCore workflow helpers
+  into smaller modules.
 - Documented the runtime capability and Soulseek mesh rendezvous additions in
   the README, API/config/native-discovery references, and a new documentation
   audit, alongside MediaCore/session surface follow-up coverage.

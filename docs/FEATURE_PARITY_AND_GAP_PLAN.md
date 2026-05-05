@@ -259,3 +259,48 @@ Status: pending.
 - Core slskd compatibility routes are checked against downstream expectations.
 - Mesh rendezvous is explicitly opt-in, visible, and reversible from the UI.
 - Full validation suite results are documented.
+
+## Implemented remediation baseline checks
+
+- `scripts/check-route-inventory.sh` verifies that `docs/system-surfaces-current.md` matches the current controller route attributes, ignoring only the generated timestamp.
+- `scripts/check-web-api-paths.sh` prevents shared web API client calls from embedding `/api` or `/api/v0` into paths that already use the `/api/v0` base URL.
+- `scripts/check-web-fetch-csrf.sh` prevents mutating direct fetch calls from using `session.authHeaders()` without CSRF opt-in.
+- `scripts/check-remediation-baseline.sh` runs both checks for route/API remediation reviews.
+
+## Remediation review workflow
+
+Use `docs/REMEDIATION_REVIEW_CHECKLIST.md` as the operator checklist for future remediation passes. The root package exposes `npm run check:remediation`, `npm run check:routes`, and `npm run check:web-api-paths` for the generated baseline checks.
+
+## Current remediation status snapshot
+
+Implemented:
+
+- Mesh rendezvous backend, client, System UI, privacy gate, and tests.
+- Federation diagnostics backend, client, System UI card, and tests.
+- Route inventory generation, freshness check, and web API path linting.
+- First active legacy route alias tranche for Library Health and job-specific controllers.
+- Library Health web client double-prefix fix and tests.
+- MediaCore pod route normalization and tests.
+- Direct fetch CSRF opt-in for mutating pod and port-forwarding helpers.
+- MediaCore pod workflow index, card-driven focus filtering, focused workflow label, active-card highlight, reset action, anchors, and per-workflow safety notices.
+
+Remaining:
+
+- Simplify individual MediaCore pod forms into task-focused panels or progressive disclosure.
+- Add versioned aliases for any additional active legacy-only backend surfaces discovered during feature work.
+- Decide whether compatibility-only or experimental pages should stay visible, move behind an experimental label, or be documented as admin-only.
+- Run full validation before release: backend build/tests, web unit tests, web build, and the remediation baseline check.
+- Add similar focused checks when a fixed regression is cheap to encode as a script.
+
+## Additional backend hardening checks
+
+- `scripts/check-controller-csrf.sh` gates mutating controller CSRF coverage.
+- `scripts/check-anonymous-endpoints.sh` gates anonymous controller documentation through `docs/ANONYMOUS_ENDPOINT_ALLOWLIST.md`.
+
+- `scripts/check-non-versioned-routes.sh` gates undocumented non-versioned controller routes through `docs/NON_VERSIONED_ROUTE_ALLOWLIST.md`.
+
+- `scripts/check-allowlist-drift.sh` keeps anonymous and non-versioned route allowlists synchronized with current controller files and attributes.
+
+- `scripts/check-sensitive-placeholders.sh` scans remediation docs/tests for high-confidence secret and private-key patterns.
+
+- `scripts/check-remediation-script-registry.sh` ensures focused remediation checks are executable and included in the combined baseline.

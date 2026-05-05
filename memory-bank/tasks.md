@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **maintenance**: Close project gap assessment fixes.
+ - Status: completed (2026-05-05)
+ - Priority: P1
+ - Notes: Aligned CI/E2E PR triggers with `main`, kept enhanced CI off branch-push builds, wired remediation baseline checks into the release gate, documented vendored runtime test expectations and descriptor semantics, added federation diagnostics user docs, corrected packaging TODO entries that lacked artifacts, replaced Library Health album-completion placeholder job IDs with verified-source remediation downloads, fixed playback buffer priority thresholds, documented the playback priority gotcha, and split stable MediaCore workflow helpers into separate modules. Validation passed for remediation baseline checks, focused backend tests, focused MediaCore tests/lint, frontend production build, `git diff --check`, and `bash ./bin/lint`.
+
 - [x] **network**: Share one UDP mesh port across DHT, UDP overlay, and QUIC.
  - Status: completed (2026-05-01)
  - Priority: P1

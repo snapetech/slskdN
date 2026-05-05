@@ -40,3 +40,19 @@ New web-consumed JSON APIs should be exposed under `/api/v{version:apiVersion}/.
 | 2026-05-05 | `LibraryHealthController`, `DiscographyJobsController`, `LabelCrateJobsController` | Library Health web client now uses `/library/health/*` through the shared `/api/v0` base; job-specific controllers now expose versioned aliases while preserving legacy `/api/jobs/*` routes. |
 
 | 2026-05-05 | MediaCore pod web helpers | MediaCore pod helper routes now use relative `/podcore/*` paths through the shared `/api/v0` client instead of incorrect `/mediacore/podcore/*` or absolute `apiBaseUrl` paths. |
+
+## Inventory freshness check
+
+Use `scripts/check-route-inventory.sh` before route-related remediation reviews. It regenerates the controller inventory into a temporary file, ignores the timestamp line, and fails if the checked-in `docs/system-surfaces-current.md` content is stale.
+
+## Web client path check
+
+Use `scripts/check-web-api-paths.sh` to catch shared axios calls that accidentally include `/api` or `/api/v0`. The web API client already uses `/api/v0` as its base URL, so module calls should pass paths like `/library/health/scans`, `/podcore/messages`, or `/soulseek/recommendations`.
+
+## MediaCore pod route check
+
+Use `scripts/check-web-mediacore-routes.sh` to prevent regressions to the incorrect `/mediacore/podcore/*` frontend route family. MediaCore pod helpers should target `/podcore/*` through the shared `/api/v0` axios base.
+
+## Non-versioned route allowlist check
+
+Use `scripts/check-non-versioned-routes.sh` or `npm run check:non-versioned-routes` after controller route changes. A controller with only non-versioned routes must be listed in `docs/NON_VERSIONED_ROUTE_ALLOWLIST.md` unless it also exposes a versioned alias.

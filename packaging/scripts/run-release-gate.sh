@@ -13,6 +13,9 @@ section() {
 section "Validate packaging metadata"
 bash packaging/scripts/validate-packaging-metadata.sh
 
+section "Run remediation baseline checks"
+bash scripts/check-remediation-baseline.sh
+
 section "Install frontend dependencies"
 npm --prefix src/web ci --legacy-peer-deps
 

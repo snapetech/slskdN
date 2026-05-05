@@ -1,3 +1,15 @@
+## 2026-05-05
+
+- Closed the project gap assessment items from the latest review.
+- CI workflow PR triggers now target `main`, `ci-enhancements.yml` no longer runs on branch pushes, and the release gate runs the remediation baseline checks.
+- Added/connected route/API remediation checks for generated route inventory, controller CSRF markers, anonymous endpoint allowlisting, relative shared Web API client paths, direct-fetch CSRF use, and MediaCore pod routes.
+- Documented vendored `slskNet.Runtime` test expectations, capability descriptor fields/feature strings/trust rules, and System -> Integrations federation diagnostics.
+- Corrected packaging TODOs that were marked complete without checked-in artifacts.
+- Replaced Library Health album-completion placeholder job IDs with real missing-recording remediation download job creation through MusicBrainz metadata, verified source selection, and multi-source download requests.
+- Fixed playback priority to classify current buffer-ahead feedback against concrete thresholds instead of comparing the value to itself; documented ADR-0001 gotcha `0z278` and committed it separately as `bbb7bdcf9`.
+- Split stable MediaCore workflow helpers/data into `MediaCoreButton.jsx`, `PodWorkflowNotice.jsx`, and `mediaCoreWorkflows.js`; kept the main component behavior unchanged.
+- Validation: `npm --prefix src/web run check:remediation`, focused backend tests for Library Health remediation and playback priority, focused MediaCore test, focused MediaCore lint, frontend production build, `git diff --check`, and `bash ./bin/lint` passed.
+
 ## 2026-05-01 20:33:13Z
 
 - Corrected the shared mesh UDP design after live log inspection: QUIC is an additional mesh transport and does not replace DHT rendezvous or the UDP overlay.

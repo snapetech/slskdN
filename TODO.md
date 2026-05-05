@@ -68,23 +68,23 @@ Expand slskdn availability beyond current channels (AUR, COPR, PPA, Docker/GHCR)
   - snapcraft.yaml at `packaging/snap/`
 - [x] **NixOS/Nix** - Growing declarative Linux distro ✅
   - flake.nix at root
-- [x] **Portainer Templates** - Docker GUI users
-  - JSON template, easy to add
-- [x] **QNAP App Center** - Another NAS vendor
-  - QPKG format
+- [ ] **Portainer Templates** - Docker GUI users
+  - No checked-in template artifact yet.
+- [ ] **QNAP App Center** - Another NAS vendor
+  - No checked-in QPKG artifact yet.
 - [x] **Helm Charts** (Kubernetes) - K8s deployments ✅
   - Generic chart at `packaging/helm/slskdn/` (T-014). For enterprise/homelab K8s users.
-- [x] **OpenMediaVault Plugins** - Debian-based NAS
-  - OMV plugin format
+- [ ] **OpenMediaVault Plugins** - Debian-based NAS
+  - No checked-in OMV plugin artifact yet.
 
 ### 🟢 Low Priority / Nice to Have
 - [x] **Chocolatey** (Windows) - Windows package manager ✅
   - nuspec at `packaging/chocolatey/slskdn.nuspec`
 - [x] **Winget** (Windows) - Microsoft's package manager ✅
   - Manifests at `packaging/winget/`
-- [x] **Scoop** (Windows) - Alternative Windows PM
-- [x] **AppImage** (Linux) - Portable Linux apps
-- [x] **FreeBSD Ports** - BSD systems
+- [ ] **Scoop** (Windows) - Alternative Windows PM
+- [ ] **AppImage** (Linux) - Portable Linux apps
+- [ ] **FreeBSD Ports** - BSD systems
 - [x] **Proxmox LXC Templates** - Proxmox users ✅
   - `packaging/proxmox-lxc/`: README, slskdn.conf.example, setup-inside-ct.sh (Debian 12/Ubuntu 22.04, .NET 8, GitHub zip, systemd)
 

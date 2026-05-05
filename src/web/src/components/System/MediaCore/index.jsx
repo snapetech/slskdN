@@ -1,8 +1,14 @@
 import * as mediacore from '../../../lib/mediacore';
+import Button from './MediaCoreButton';
+import PodWorkflowNotice from './PodWorkflowNotice';
+import {
+  contentExamples,
+  podWorkflowFilterOptions,
+  podWorkflowSections,
+} from './mediaCoreWorkflows';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import {
-  Button as SemanticButton,
   Card,
   Checkbox,
   Dropdown,
@@ -18,172 +24,13 @@ import {
   Segment,
   Statistic,
   TextArea,
-  Popup,
 } from 'semantic-ui-react';
-
-const getButtonText = (children) => {
-  if (typeof children === 'string') {
-    return children;
-  }
-
-  if (Array.isArray(children)) {
-    return children.filter((child) => typeof child === 'string').join(' ').trim();
-  }
-
-  return '';
-};
-
-const Button = ({
-  'aria-label': ariaLabel,
-  children,
-  title,
-  tooltip,
-  ...props
-}) => {
-  const label = ariaLabel || title || getButtonText(children) || undefined;
-  const button = (
-    <SemanticButton
-      aria-label={ariaLabel || label}
-      title={title}
-      {...props}
-    >
-      {children}
-    </SemanticButton>
-  );
-  const content = tooltip || title || label;
-
-  if (!content) {
-    return button;
-  }
-
-  return (
-    <Popup
-      content={content}
-      trigger={button}
-    />
-  );
-};
-
-Button.Group = SemanticButton.Group;
-Button.Or = SemanticButton.Or;
-
-// Predefined examples for different domains
-const contentExamples = {
-  audio: {
-    album: {
-      content: 'content:audio:album:mb-67890',
-      external: 'mb:release:67890',
-    },
-    artist: {
-      content: 'content:audio:artist:mb-abc123',
-      external: 'mb:artist:abc123',
-    },
-    track: {
-      content: 'content:audio:track:mb-12345',
-      external: 'mb:recording:12345',
-    },
-  },
-  image: {
-    artwork: {
-      content: 'content:image:artwork:discogs-11111',
-      external: 'discogs:release:11111',
-    },
-    photo: {
-      content: 'content:image:photo:flickr-67890',
-      external: 'flickr:photo:67890',
-    },
-  },
-  video: {
-    movie: {
-      content: 'content:video:movie:imdb-tt0111161',
-      external: 'imdb:tt0111161',
-    },
-    series: {
-      content: 'content:video:series:tvdb-12345',
-      external: 'tvdb:series:12345',
-    },
-  },
-};
-
-const podWorkflowSections = [
-  {
-    description: 'Publish or retrieve pod metadata through DHT workflows.',
-    href: '#podcore-dht-publishing',
-    label: 'DHT Publishing',
-    risk: 'Publishes metadata',
-  },
-  {
-    description: 'Manage signed membership records, bans, and roles.',
-    href: '#pod-membership-management',
-    label: 'Membership',
-    risk: 'Publishes membership state',
-  },
-  {
-    description: 'Verify membership, message authenticity, and role claims.',
-    href: '#pod-membership-verification',
-    label: 'Verification',
-    risk: 'Read-only checks',
-  },
-  {
-    description: 'Find listed pods by name, tag, content, or registry scan.',
-    href: '#pod-discovery',
-    label: 'Discovery',
-    risk: 'Read-only unless registering',
-  },
-  {
-    description: 'Request, accept, leave, and review pod membership flows.',
-    href: '#pod-join-leave',
-    label: 'Join/Leave',
-    risk: 'Publishes signed membership events',
-  },
-  {
-    description: 'Route messages, target peers, and review deduplication state.',
-    href: '#pod-message-routing',
-    label: 'Routing',
-    risk: 'Sends pod messages',
-  },
-  {
-    description: 'Search, count, clean up, rebuild, and vacuum pod messages.',
-    href: '#pod-message-storage',
-    label: 'Storage',
-    risk: 'Local storage operations',
-  },
-  {
-    description: 'Synchronize missed messages and last-seen timestamps.',
-    href: '#pod-message-backfill',
-    label: 'Backfill',
-    risk: 'Syncs pod state',
-  },
-  {
-    description: 'Create, inspect, update, and delete pod channels.',
-    href: '#pod-channel-management',
-    label: 'Channels',
-    risk: 'Mutates pod structure',
-  },
-  {
-    description: 'Search content and create content-linked pods.',
-    href: '#pod-content-linking',
-    label: 'Content Linking',
-    risk: 'Can create pods',
-  },
-  {
-    description: 'Publish, aggregate, and review pod opinions.',
-    href: '#pod-opinion-management',
-    label: 'Opinions',
-    risk: 'Publishes opinion data',
-  },
-  {
-    description: 'Sign messages, verify signatures, and generate key pairs.',
-    href: '#pod-message-signing',
-    label: 'Signing',
-    risk: 'Handles key material',
-  },
-];
 
 const MediaCore = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [podWorkflowFilter, setPodWorkflowFilter] = useState('all');
 
   // Form state
   const [externalId, setExternalId] = useState('');
@@ -2537,6 +2384,12 @@ const MediaCore = () => {
     }
   };
 
+  const isPodWorkflowVisible = (sectionId) =>
+    podWorkflowFilter === 'all' || podWorkflowFilter === sectionId;
+  const selectedPodWorkflow = podWorkflowSections.find(
+    (section) => section.href.slice(1) === podWorkflowFilter,
+  );
+
   if (loading && !stats) {
     return (
       <Segment>
@@ -2577,12 +2430,49 @@ const MediaCore = () => {
           Use this index to jump to the intended workflow before running an
           action.
         </Message>
+        <Form>
+          <Form.Field>
+            <label>Workflow focus</label>
+            <Dropdown
+              aria-label="Pod workflow focus"
+              onChange={(_, { value }) => setPodWorkflowFilter(value)}
+              options={podWorkflowFilterOptions}
+              selection
+              value={podWorkflowFilter}
+            />
+          </Form.Field>
+        </Form>
+        {podWorkflowFilter !== 'all' && (
+          <Message
+            info
+            size="small"
+          >
+            <Message.Content>
+              <Message.Header>Focused pod workflow</Message.Header>
+              Showing {selectedPodWorkflow?.label || 'one pod workflow'}. Choose
+              "Show all pod workflows" or use the reset action to return to the
+              complete MediaCore pod surface.
+              <div style={{ marginTop: '0.75em' }}>
+                <Button
+                  basic
+                  onClick={() => setPodWorkflowFilter('all')}
+                  size="tiny"
+                >
+                  Show all pod workflows
+                </Button>
+              </div>
+            </Message.Content>
+          </Message>
+        )}
         <Card.Group itemsPerRow={3} stackable>
           {podWorkflowSections.map((section) => (
             <Card
               as="a"
+              color={podWorkflowFilter === section.href.slice(1) ? 'blue' : undefined}
               href={section.href}
               key={section.href}
+              onClick={() => setPodWorkflowFilter(section.href.slice(1))}
+              raised={podWorkflowFilter === section.href.slice(1)}
             >
               <Card.Content>
                 <Card.Header>{section.label}</Card.Header>
@@ -5318,17 +5208,22 @@ const MediaCore = () => {
         </Grid.Column>
 
         {/* PodCore DHT Publishing */}
-        <Grid.Column width={16}>
+        <Grid.Column style={{ display: isPodWorkflowVisible("podcore-dht-publishing") ? undefined : "none" }} width={16}>
           <Card id="podcore-dht-publishing" fluid>
             <Card.Content>
               <Card.Header>
-                <Icon name="broadcast" />
+                <Icon name="podcast" />
                 PodCore DHT Publishing
               </Card.Header>
               <Card.Description>
                 Publish and manage pod metadata on the decentralized DHT for
                 discovery
               </Card.Description>
+              <PodWorkflowNotice title="Publishes pod metadata">
+                Publishing or updating a listed pod can make pod identifiers,
+                tags, focus content IDs, and descriptive metadata discoverable
+                by other mesh participants.
+              </PodWorkflowNotice>
             </Card.Content>
 
             {/* Publish Pod */}
@@ -5579,7 +5474,7 @@ const MediaCore = () => {
         </Grid.Column>
 
         {/* Pod Membership Management */}
-        <Grid.Column width={16}>
+        <Grid.Column style={{ display: isPodWorkflowVisible("pod-membership-management") ? undefined : "none" }} width={16}>
           <Card id="pod-membership-management" fluid>
             <Card.Content>
               <Card.Header>
@@ -5590,6 +5485,11 @@ const MediaCore = () => {
                 Manage signed membership records in DHT with role-based access
                 control
               </Card.Description>
+              <PodWorkflowNotice title="Publishes membership state">
+                Membership records can reveal peer IDs, roles, bans, public
+                keys, and pod participation history. Verify the record before
+                publishing it.
+              </PodWorkflowNotice>
             </Card.Content>
 
             {/* Publish Membership */}
@@ -5929,7 +5829,7 @@ const MediaCore = () => {
         </Grid.Column>
 
         {/* Pod Membership Verification */}
-        <Grid.Column width={16}>
+        <Grid.Column style={{ display: isPodWorkflowVisible("pod-membership-verification") ? undefined : "none" }} width={16}>
           <Card id="pod-membership-verification" fluid>
             <Card.Content>
               <Card.Header>
@@ -5940,6 +5840,15 @@ const MediaCore = () => {
                 Verify membership status, message authenticity, and role
                 permissions for pod security
               </Card.Description>
+              <PodWorkflowNotice
+                color="blue"
+                icon="check circle"
+                title="Read-only verification"
+              >
+                Verification checks should not mutate pod state, but pasted
+                messages and membership records can still contain sensitive
+                peer or signature data.
+              </PodWorkflowNotice>
             </Card.Content>
 
             {/* Membership Verification */}
@@ -6193,7 +6102,7 @@ const MediaCore = () => {
         </Grid.Column>
 
         {/* Pod Discovery */}
-        <Grid.Column width={16}>
+        <Grid.Column style={{ display: isPodWorkflowVisible("pod-discovery") ? undefined : "none" }} width={16}>
           <Card id="pod-discovery" fluid>
             <Card.Content>
               <Card.Header>
@@ -6204,6 +6113,15 @@ const MediaCore = () => {
                 Discover pods via DHT using name slugs, tags, and content
                 associations
               </Card.Description>
+              <PodWorkflowNotice
+                color="blue"
+                icon="info circle"
+                title="Mostly read-only discovery"
+              >
+                Search operations are read-only, but registering, updating,
+                unregistering, or refreshing discovery data changes public pod
+                discovery state.
+              </PodWorkflowNotice>
             </Card.Content>
 
             {/* Pod Registration */}
@@ -6570,7 +6488,7 @@ const MediaCore = () => {
         </Grid.Column>
 
         {/* Pod Join/Leave */}
-        <Grid.Column width={16}>
+        <Grid.Column style={{ display: isPodWorkflowVisible("pod-join-leave") ? undefined : "none" }} width={16}>
           <Card id="pod-join-leave" fluid>
             <Card.Content>
               <Card.Header>
@@ -6581,6 +6499,10 @@ const MediaCore = () => {
                 Manage signed pod membership operations with cryptographic
                 verification and role-based approvals
               </Card.Description>
+              <PodWorkflowNotice title="Publishes join and leave events">
+                Join and leave requests can expose peer IDs, requested roles,
+                public keys, signatures, and operator-provided messages.
+              </PodWorkflowNotice>
             </Card.Content>
 
             {/* Join Request */}
@@ -6818,7 +6740,7 @@ const MediaCore = () => {
         </Grid.Column>
 
         {/* Pod Message Routing */}
-        <Grid.Column width={16}>
+        <Grid.Column style={{ display: isPodWorkflowVisible("pod-message-routing") ? undefined : "none" }} width={16}>
           <Card id="pod-message-routing" fluid>
             <Card.Content>
               <Card.Header>
@@ -6829,6 +6751,11 @@ const MediaCore = () => {
                 Decentralized message routing via overlay network with fanout
                 and deduplication for reliable pod communication
               </Card.Description>
+              <PodWorkflowNotice title="Sends pod messages">
+                Routing actions can transmit message bodies and sender
+                identifiers to selected peers or overlay routes. Use
+                deduplication checks before resending.
+              </PodWorkflowNotice>
             </Card.Content>
 
             {/* Manual Message Routing */}
@@ -7104,7 +7031,7 @@ const MediaCore = () => {
         </Grid.Column>
 
         {/* Pod Message Storage */}
-        <Grid.Column width={16}>
+        <Grid.Column style={{ display: isPodWorkflowVisible("pod-message-storage") ? undefined : "none" }} width={16}>
           <Card id="pod-message-storage" fluid>
             <Card.Content>
               <Card.Header>
@@ -7115,6 +7042,10 @@ const MediaCore = () => {
                 SQLite-backed message storage with full-text search and
                 retention policies
               </Card.Description>
+              <PodWorkflowNotice title="Mutates local message storage">
+                Cleanup, rebuild, and vacuum actions affect local pod message
+                storage. Search and count actions are read-only.
+              </PodWorkflowNotice>
             </Card.Content>
 
             {/* Message Storage */}
@@ -7252,7 +7183,7 @@ const MediaCore = () => {
         </Grid.Column>
 
         {/* Pod Message Backfill */}
-        <Grid.Column width={16}>
+        <Grid.Column style={{ display: isPodWorkflowVisible("pod-message-backfill") ? undefined : "none" }} width={16}>
           <Card id="pod-message-backfill" fluid>
             <Card.Content>
               <Card.Header>
@@ -7262,6 +7193,10 @@ const MediaCore = () => {
               <Card.Description>
                 Synchronize missed messages when peers rejoin pods
               </Card.Description>
+              <PodWorkflowNotice title="Syncs local pod state">
+                Backfill sync uses last-seen timestamps to request missed
+                messages. Confirm the target pod before syncing all channels.
+              </PodWorkflowNotice>
             </Card.Content>
 
             {/* Message Backfill */}
@@ -7381,7 +7316,7 @@ const MediaCore = () => {
         </Grid.Column>
 
         {/* Pod Channel Management */}
-        <Grid.Column width={16}>
+        <Grid.Column style={{ display: isPodWorkflowVisible("pod-channel-management") ? undefined : "none" }} width={16}>
           <Card id="pod-channel-management" fluid>
             <Card.Content>
               <Card.Header>
@@ -7392,6 +7327,11 @@ const MediaCore = () => {
                 Create, update, and manage channels within pods for organized
                 messaging
               </Card.Description>
+              <PodWorkflowNotice title="Mutates pod structure">
+                Channel create, update, and delete actions change how pod
+                messages are organized. Deleting channels can disrupt routing
+                and history workflows.
+              </PodWorkflowNotice>
             </Card.Content>
 
             {/* Channel Management */}
@@ -7567,7 +7507,7 @@ const MediaCore = () => {
         </Grid.Column>
 
         {/* Pod Content Linking */}
-        <Grid.Column width={16}>
+        <Grid.Column style={{ display: isPodWorkflowVisible("pod-content-linking") ? undefined : "none" }} width={16}>
           <Card id="pod-content-linking" fluid>
             <Card.Content>
               <Card.Header>
@@ -7578,6 +7518,11 @@ const MediaCore = () => {
                 Create pods linked to specific content (music, videos, etc.) for
                 focused discussions
               </Card.Description>
+              <PodWorkflowNotice title="Can create content-linked pods">
+                Content search and validation are read-only. Creating a
+                content-linked pod can publish content identifiers and pod
+                metadata depending on visibility settings.
+              </PodWorkflowNotice>
             </Card.Content>
 
             {/* Content Linking */}
@@ -7720,7 +7665,7 @@ const MediaCore = () => {
         </Grid.Column>
 
         {/* Pod Opinion Management */}
-        <Grid.Column width={16}>
+        <Grid.Column style={{ display: isPodWorkflowVisible("pod-opinion-management") ? undefined : "none" }} width={16}>
           <Card id="pod-opinion-management" fluid>
             <Card.Content>
               <Card.Header>
@@ -7731,6 +7676,11 @@ const MediaCore = () => {
                 Publish and view opinions on content variants within pods for
                 quality assessment and community feedback
               </Card.Description>
+              <PodWorkflowNotice title="Publishes opinion data">
+                Opinion publishing can expose peer preferences, ratings,
+                confidence values, and content identifiers to other pod
+                participants.
+              </PodWorkflowNotice>
             </Card.Content>
 
             {/* Opinion Management */}
@@ -8091,7 +8041,7 @@ const MediaCore = () => {
         </Grid.Column>
 
         {/* Pod Message Signing */}
-        <Grid.Column width={16}>
+        <Grid.Column style={{ display: isPodWorkflowVisible("pod-message-signing") ? undefined : "none" }} width={16}>
           <Card id="pod-message-signing" fluid>
             <Card.Content>
               <Card.Header>
@@ -8102,6 +8052,11 @@ const MediaCore = () => {
                 Cryptographic signing and verification of pod messages for
                 authenticity and integrity
               </Card.Description>
+              <PodWorkflowNotice title="Handles key material">
+                Signing and key generation workflows may expose private keys or
+                signed payloads in the browser. Treat pasted keys and generated
+                output as sensitive.
+              </PodWorkflowNotice>
             </Card.Content>
 
             {/* Message Signing */}

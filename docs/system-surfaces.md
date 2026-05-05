@@ -66,9 +66,13 @@ change daemon configuration or execute any network/file action.
 - FTP completed-download upload settings.
 - Servarr readiness and media-server execution contracts for Plex,
   Jellyfin/Emby, and Navidrome.
+- Federation diagnostics for ActivityPub and pod-signing posture.
 
 Runtime apply actions are explicit. Provider credential checks and import/sync
 actions should remain user-triggered and visibly rate-limited.
+
+See [Federation Diagnostics](federation-diagnostics.md) for the read-only checks
+and privacy posture.
 
 ## Source Providers
 

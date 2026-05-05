@@ -68,6 +68,11 @@
   "private": true,
   "scripts": {
     "build": "vite build",
+    "check:anonymous-endpoints": "bash ../../scripts/check-anonymous-endpoints.sh",
+    "check:controller-csrf": "bash ../../scripts/check-controller-csrf.sh",
+    "check:remediation": "bash ../../scripts/check-remediation-baseline.sh",
+    "check:web-fetch-csrf": "bash ../../scripts/check-web-fetch-csrf.sh",
+    "check:web-mediacore-routes": "bash ../../scripts/check-web-mediacore-routes.sh",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "postinstall": "semantic-ui-css-patch",

@@ -77,10 +77,20 @@ This validates the current flake package by:
 - launching the packaged `bin/slskd`
 - evaluating a minimal NixOS `services.slskd` configuration with the required `domain`, `environmentFile`, and `settings.shares.directories = [ ]` inputs
 
+### 5. Vendored Runtime Checks
+
+Changes under `vendor/slskNet.Runtime`, `src/slskd/DhtRendezvous`, or runtime capability/rendezvous integration should run the focused app-side tests plus the vendored runtime suite when practical:
+
+- `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj -c Release --filter "FullyQualifiedName~SoulseekCapability|FullyQualifiedName~DhtRendezvous|FullyQualifiedName~SharedMeshUdp|FullyQualifiedName~PeerDescriptor"`
+- `dotnet test vendor/slskNet.Runtime/src/Soulseek.Tests/Soulseek.Tests.csproj -c Release`
+
+If the vendored runtime suite exposes analyzer/baseline failures unrelated to the touched runtime behavior, record the exact failing test and treat the result as a known baseline caveat rather than silently dropping runtime validation.
+
 ## CI Expectations
 
 - `ci.yml` should run the release gate on pull requests.
 - `ci.yml` should also run the Nix package smoke on pull requests.
+- Release gate should include `scripts/check-remediation-baseline.sh` so route inventory and shared Web API client path drift are caught before packaging.
 - `build-on-tag.yml` should run the same gate before packaging/publishing artifacts.
 - `build-on-tag.yml` should also run the Nix package smoke before publish, and again after stable flake metadata updates when the main-channel package pins change.
 - E2E remains separate because it is slower and more environment-sensitive.

@@ -215,8 +215,16 @@ namespace slskd.LibraryHealth.Remediation
                 targetDir = Path.GetDirectoryName(Path.GetFullPath(issues.First().FilePath));
             }
 
+            return await CreateRecordingDownloadJobsAsync(recordingIds, targetDir ?? string.Empty, ct).ConfigureAwait(false);
+        }
+
+        private async Task<string> CreateRecordingDownloadJobsAsync(
+            IReadOnlyCollection<string> recordingIds,
+            string targetDir,
+            CancellationToken ct)
+        {
             log.LogInformation(
-                "[LH-Remediation] Creating track redownload job for {Count} recordings to {Dir}",
+                "[LH-Remediation] Creating recording remediation jobs for {Count} recordings to {Dir}",
                 recordingIds.Count,
                 targetDir);
 
@@ -241,7 +249,7 @@ namespace slskd.LibraryHealth.Remediation
 
                     // Find verified sources using multi-source download service
                     // Note: We need a filename - use a constructed one based on metadata
-                    var constructedFilename = $"{trackMetadata.Artist} - {trackMetadata.Title}.flac";
+                    var constructedFilename = SanitizeFileName($"{trackMetadata.Artist} - {trackMetadata.Title}.flac");
 
                     // Try to find sources - this will search and verify
                     var verificationResult = await multiSourceDownloads.FindVerifiedSourcesAsync(
@@ -314,10 +322,8 @@ namespace slskd.LibraryHealth.Remediation
             return jobId;
         }
 
-        private Task<string> CreateAlbumCompletionJobAsync(List<LibraryIssue> issues, CancellationToken ct)
+        private async Task<string> CreateAlbumCompletionJobAsync(List<LibraryIssue> issues, CancellationToken ct)
         {
-            _ = ct;
-
             // Extract unique release ID
             var releaseIds = issues
                 .Where(i => !string.IsNullOrEmpty(i.MusicBrainzReleaseId))
@@ -332,28 +338,12 @@ namespace slskd.LibraryHealth.Remediation
 
             string releaseId = releaseIds.First();
 
-            // Extract missing recording IDs from issue metadata
-            var missingRecordingIds = new List<string>();
-            foreach (var issue in issues)
-            {
-                if (issue.Metadata != null && issue.Metadata.TryGetValue("missing_tracks", out var missingObj))
-                {
-                    if (missingObj is System.Text.Json.JsonElement jsonElement && jsonElement.ValueKind == System.Text.Json.JsonValueKind.Array)
-                    {
-                        foreach (var trackElement in jsonElement.EnumerateArray())
-                        {
-                            if (trackElement.TryGetProperty("recording_id", out var recIdProperty))
-                            {
-                                var recordingId = recIdProperty.GetString();
-                                if (!string.IsNullOrWhiteSpace(recordingId))
-                                {
-                                    missingRecordingIds.Add(recordingId);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            var missingRecordingIds = issues
+                .SelectMany(ExtractMissingRecordingIds)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
             if (missingRecordingIds.Count == 0)
             {
@@ -369,14 +359,13 @@ namespace slskd.LibraryHealth.Remediation
                 missingRecordingIds.Count,
                 targetDir);
 
-            // Return placeholder job ID
-            var jobId = Guid.NewGuid().ToString();
+            var jobId = await CreateRecordingDownloadJobsAsync(missingRecordingIds, targetDir, ct).ConfigureAwait(false);
 
             log.LogInformation(
-                "[LH-Remediation] Created album completion job {JobId} (placeholder - full integration pending)",
+                "[LH-Remediation] Created album completion remediation job {JobId}",
                 jobId);
 
-            return Task.FromResult(jobId);
+            return jobId;
         }
 
         private async Task<string> CreateCanonicalReplacementJobAsync(List<LibraryIssue> issues, CancellationToken ct)
@@ -398,6 +387,52 @@ namespace slskd.LibraryHealth.Remediation
             {
                 log.LogError(ex, "[LH-Remediation] Download failed for recording {RecordingId}", recordingId);
             }
+        }
+
+        private static IEnumerable<string> ExtractMissingRecordingIds(LibraryIssue issue)
+        {
+            if (issue.Metadata == null || !issue.Metadata.TryGetValue("missing_tracks", out var missingObj) || missingObj == null)
+            {
+                yield break;
+            }
+
+            if (missingObj is System.Text.Json.JsonElement jsonElement && jsonElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                foreach (var trackElement in jsonElement.EnumerateArray())
+                {
+                    if (trackElement.TryGetProperty("recording_id", out var recIdProperty))
+                    {
+                        var recordingId = recIdProperty.GetString();
+                        if (!string.IsNullOrWhiteSpace(recordingId))
+                        {
+                            yield return recordingId;
+                        }
+                    }
+                }
+
+                yield break;
+            }
+
+            if (missingObj is IEnumerable<Dictionary<string, object>> dictionaries)
+            {
+                foreach (var track in dictionaries)
+                {
+                    if (track.TryGetValue("recording_id", out var recordingId) && recordingId is string id)
+                    {
+                        yield return id;
+                    }
+                }
+            }
+        }
+
+        private static string SanitizeFileName(string filename)
+        {
+            foreach (var c in Path.GetInvalidFileNameChars())
+            {
+                filename = filename.Replace(c, '_');
+            }
+
+            return filename;
         }
     }
 }

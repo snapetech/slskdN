@@ -18,6 +18,7 @@ Complete guide to all slskdn documentation.
 
 - [SongID and Discovery](songid-discovery.md) - Native identification and Discovery Graph workflows
 - [System Admin Surfaces](system-surfaces.md) - Guided System UI for policies, integrations, diagnostics, source providers, and local preferences
+- [Federation Diagnostics](federation-diagnostics.md) - Read-only ActivityPub and pod-signing diagnostics in System -> Integrations
 - [Pods, Rooms, and Messages](pods-and-rooms.md) - Gold Star, pod rooms, unified messages, and listen-along boundaries
 - [Soulseek Type-1 Obfuscation](soulseek-type1-obfuscation.md) - Default-on compatibility posture, mode semantics, runtime status, and safety caveats
 - [Soulseek Native Discovery](soulseek-native-discovery.md) - UI and API guide for native interests, recommendations, similar users, item branching, user-interest lookup, and batch private messages

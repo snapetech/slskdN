@@ -21,12 +21,12 @@ The top-level README and primary references now cover the new `slskNet.Runtime` 
 
 | Priority | Gap | Evidence | Remediation |
 | --- | --- | --- | --- |
-| P0 | Route inventory is manually documented but not enforced in CI. | `docs/system-surfaces-current.md` and `scripts/generate-route-inventory.sh` exist, but there is no documented CI gate or update workflow. | Add a dev-doc section explaining how to regenerate route inventory and add a CI/check target that fails on unreviewed route drift. |
-| P0 | Full vendored runtime test expectations are not documented in the main testing policy. | Runtime-focused tests pass, but the full vendored runtime suite currently inherits analyzer behavior and has one known search-token baseline failure in this repo. | Update `docs/dev/testing-policy.md` or `docs/TESTING-STRATEGY.md` with the expected runtime test commands, known analyzer suppressions, and current baseline caveat. |
-| P1 | System -> Integrations federation diagnostics needs a user-facing doc. | `FederationDiagnosticsController`, `federationDiagnostics.js`, and UI tests exist; README only mentions integrations broadly. | Add a short `docs/federation-diagnostics.md` or extend `docs/system-surfaces.md` with what diagnostics check, what they do not mutate, and privacy posture. |
+| Done | Route inventory is checked before release packaging. | `scripts/check-route-inventory.sh` and `scripts/check-remediation-baseline.sh` compare generated route inventory against `docs/system-surfaces-current.md`. | Keep the release gate wired to the remediation baseline checks. |
+| Done | Full vendored runtime test expectations are documented in the main testing policy. | `docs/dev/testing-policy.md` lists focused app-side runtime tests, the vendored runtime suite, and baseline-caveat handling. | Keep this section current when the vendored runtime test baseline changes. |
+| Done | System -> Integrations federation diagnostics has a user-facing doc. | `docs/federation-diagnostics.md` and `docs/system-surfaces.md` describe read-only checks and privacy posture. | Keep the guide aligned with diagnostics fields. |
 | P1 | Library Health versioned alias changes are documented in route policy but not in user/API workflow depth. | `docs/api-route-versioning-policy.md` notes the alias tranche; API docs list Library Health but do not explain legacy versus versioned client behavior. | Add alias notes under Library Health API docs and link to route policy. |
 | P1 | Soulseek mesh rendezvous has privacy notes, but no troubleshooting section. | README/config/native-discovery cover opt-in; troubleshooting does not cover disabled controls, rate limits, no candidates, or missing signed descriptors. | Add a troubleshooting subsection for System -> Mesh rendezvous failures. |
-| P1 | Runtime capability descriptor format is documented only at a conceptual level. | `docs/slsknet-runtime-sync.md` lists features, but does not define fields, feature-name vocabulary, or signature validation semantics. | Extend runtime sync notes with descriptor fields, known feature strings, trust rules, and fallback behavior. |
+| Done | Runtime capability descriptor format is documented beyond the conceptual level. | `docs/slsknet-runtime-sync.md` now defines descriptor fields, known feature strings, trust rules, and fallback behavior. | Keep feature strings current with vendored runtime additions. |
 | P2 | README is feature-heavy and risks burying operational warnings. | New runtime features were added in existing sections, but privacy/security warnings are split across README, config, and native discovery guide. | Consider a compact "Network exposure and privacy quick reference" in README that links to `docs/network-privacy-security-surfaces.md`. |
 | P2 | Archive/planning docs include stale references to removed Discovery Inbox promotion paths. | Changelog and active docs mention removed paths; archive docs still contain old design language. | Leave archived files intact, but add a prominent archive disclaimer to `docs/archive/README.md` or equivalent index if one exists. |
 | P2 | API documentation is still hand-maintained. | `docs/api-documentation.md` relies on manual endpoint lists. | Generate API route tables from controller attributes and link stable user docs to generated route inventory. |
@@ -34,13 +34,10 @@ The top-level README and primary references now cover the new `slskNet.Runtime` 
 
 ## Suggested Remediation Order
 
-1. Add testing policy coverage for vendored runtime commands and known baseline behavior.
-2. Extend `docs/slsknet-runtime-sync.md` with descriptor schema, feature vocabulary, and trust semantics.
-3. Add System -> Mesh troubleshooting for rendezvous disabled/rate-limited/no candidates/no signed descriptors.
-4. Document federation diagnostics as a read-only System -> Integrations operator surface.
-5. Make route inventory generation a documented review step, then add CI enforcement when stable.
-6. Add Library Health route alias notes to API docs.
-7. Add an archive disclaimer so stale planning material is clearly historical.
+1. Add System -> Mesh troubleshooting for rendezvous disabled/rate-limited/no candidates/no signed descriptors.
+2. Add Library Health route alias notes to API docs.
+3. Add an archive disclaimer so stale planning material is clearly historical.
+4. Generate API route tables from controller attributes and link stable user docs to generated route inventory.
 
 ## Documentation Health Checks To Keep Running
 
