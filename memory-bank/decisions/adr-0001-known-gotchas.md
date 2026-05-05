@@ -13479,3 +13479,11 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 **Why it happened:** `run-release-gate.sh` chained dependency install, frontend tests/build, backend tests, and integration smoke commands without per-command timeouts or a workflow job timeout. If any test runner or child process hung, the entire release looked stuck at "Release Gate" instead of failing with a bounded, actionable section.
 
 **How to prevent it:** Release-gate orchestration must wrap each expensive command in a named timeout and keep workflow-level `timeout-minutes` on tag build jobs. Do not add new long-running release checks without a bounded runtime and a clear section label that will identify the failing command in CI logs.
+
+### 0z75. `bin/publish --output` Must Clean The Resolved Output Directory
+
+**What went wrong:** A manual linux-x64 publish used `--output ../../dist/linux-x64`, but `bin/publish` still cleaned `src/slskd/dist/linux-x64/*` instead of the resolved output directory. The published payload under the repo-level `dist/linux-x64` could therefore retain stale files from previous manual packaging attempts.
+
+**Why it happened:** The script computed a configurable `output` path, then ignored it during cleanup and removed the hard-coded `dist/$runtime` path relative to `src/slskd`. That only works for the default internal path shape and fails for explicit output paths.
+
+**How to prevent it:** Publish scripts must create and clean the exact resolved output directory they pass to `dotnet publish`. Do not mix a user-configurable output variable with a separate hard-coded cleanup path.
