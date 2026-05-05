@@ -65,6 +65,9 @@ This is not optional. This is the highest priority action after fixing a bug.
 - `src/web/src/lib/watchlists.js`
 - `src/web/src/components/Messaging/Messaging.jsx`
 - `src/web/src/components/Search/ArtistReleaseRadarPanel.jsx`
+- `src/web/src/components/System/Mesh/index.jsx`
+- `src/web/src/lib/realmSubjectIndexes.js`
+- `src/web/src/components/System/Mesh/RealmSubjectIndexConflicts.jsx`
 
 **Wrong**:
 ```js
@@ -127,6 +130,11 @@ api.get(`/files/${root}/directories/${encodeURIComponent(btoa(binary))}`);
 - `src/web/src/components/Chat/Chat.jsx`
 - `src/web/src/components/Rooms/Rooms.jsx`
 - `src/web/src/components/Search/ArtistReleaseRadarPanel.jsx`
+- `src/web/src/components/System/LibraryHealth/index.jsx`
+- `src/web/src/components/System/Jobs/index.jsx`
+- `src/web/src/components/System/Mesh/index.jsx`
+- `src/web/src/lib/realmSubjectIndexes.js`
+- `src/web/src/components/System/Mesh/RealmSubjectIndexConflicts.jsx`
 
 **Wrong**:
 ```js
