@@ -23,6 +23,9 @@ namespace Soulseek
     /// </summary>
     public sealed class PeerDescriptorSignature
     {
+        private readonly byte[] publicKey;
+        private readonly byte[] signature;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="PeerDescriptorSignature"/> class.
         /// </summary>
@@ -31,8 +34,8 @@ namespace Soulseek
         /// <param name="algorithm">The signature algorithm name.</param>
         public PeerDescriptorSignature(byte[] publicKey, byte[] signature, string algorithm = "Ed25519")
         {
-            PublicKey = publicKey?.ToArray() ?? throw new ArgumentNullException(nameof(publicKey));
-            Signature = signature?.ToArray() ?? throw new ArgumentNullException(nameof(signature));
+            this.publicKey = publicKey?.ToArray() ?? throw new ArgumentNullException(nameof(publicKey));
+            this.signature = signature?.ToArray() ?? throw new ArgumentNullException(nameof(signature));
             Algorithm = string.IsNullOrWhiteSpace(algorithm) ? throw new ArgumentException("Algorithm must not be empty", nameof(algorithm)) : algorithm;
         }
 
@@ -44,11 +47,11 @@ namespace Soulseek
         /// <summary>
         ///     Gets the raw public key.
         /// </summary>
-        public byte[] PublicKey { get; }
+        public byte[] PublicKey => publicKey.ToArray();
 
         /// <summary>
         ///     Gets the raw signature.
         /// </summary>
-        public byte[] Signature { get; }
+        public byte[] Signature => signature.ToArray();
     }
 }

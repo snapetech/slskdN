@@ -24,20 +24,23 @@
 namespace Soulseek
 {
     using System;
+    using System.Linq;
 
     /// <summary>
     ///     Uniquely identifies a Wait.
     /// </summary>
     internal sealed class WaitKey : IEquatable<WaitKey>
     {
+        private readonly object[] tokenParts;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="WaitKey"/> class.
         /// </summary>
         /// <param name="tokenParts">The parts which make up the key.</param>
         public WaitKey(params object[] tokenParts)
         {
-            TokenParts = tokenParts;
-            Token = string.Join(":", TokenParts);
+            this.tokenParts = tokenParts?.ToArray() ?? Array.Empty<object>();
+            Token = string.Join(":", this.tokenParts);
         }
 
         /// <summary>
@@ -48,16 +51,16 @@ namespace Soulseek
         /// <summary>
         ///     Gets the parts which make up the key.
         /// </summary>
-        public object[] TokenParts { get; }
+        public object[] TokenParts => tokenParts.ToArray();
 
         public static bool operator !=(WaitKey lhs, WaitKey rhs)
         {
-            return !lhs.Equals(rhs);
+            return !object.Equals(lhs, rhs);
         }
 
         public static bool operator ==(WaitKey lhs, WaitKey rhs)
         {
-            return lhs.Equals(rhs);
+            return object.Equals(lhs, rhs);
         }
 
         /// <summary>
@@ -67,14 +70,7 @@ namespace Soulseek
         /// <returns>A value indicating whether the specified object is equal to this instance.</returns>
         public override bool Equals(object obj)
         {
-            try
-            {
-                return Equals((WaitKey)obj);
-            }
-            catch (InvalidCastException)
-            {
-                return false;
-            }
+            return obj is WaitKey other && Equals(other);
         }
 
         /// <summary>
@@ -84,7 +80,7 @@ namespace Soulseek
         /// <returns>A value indicating whether the specified WaitKey is equal to this instance.</returns>
         public bool Equals(WaitKey other)
         {
-            return Token == other.Token;
+            return !ReferenceEquals(other, null) && Token == other.Token;
         }
 
         /// <summary>

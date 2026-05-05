@@ -68,7 +68,9 @@ namespace Soulseek.Network.Tcp
         /// <returns>A value indicating whether the specified ConnectionKey is equal to this instance.</returns>
         public bool Equals(ConnectionKey other)
         {
-            return GetHashCode() == other?.GetHashCode();
+            return !ReferenceEquals(other, null)
+                && string.Equals(Username, other.Username, StringComparison.CurrentCulture)
+                && object.Equals(IPEndPoint, other.IPEndPoint);
         }
 
         /// <summary>
@@ -78,14 +80,7 @@ namespace Soulseek.Network.Tcp
         /// <returns>A value indicating whether the specified object is equal to this instance.</returns>
         public override bool Equals(object obj)
         {
-            try
-            {
-                return Equals((ConnectionKey)obj);
-            }
-            catch (InvalidCastException)
-            {
-                return false;
-            }
+            return obj is ConnectionKey other && Equals(other);
         }
 
         /// <summary>

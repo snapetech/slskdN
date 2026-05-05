@@ -36,6 +36,19 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Equal(message, r.DistributedMessage);
         }
 
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "EmbeddedMessage snapshots message bytes")]
+        internal void EmbeddedMessage_Snapshots_Message_Bytes()
+        {
+            var message = new byte[] { 0x01, 0x02 };
+            var r = new EmbeddedMessage(MessageCode.Distributed.Ping, message);
+
+            message[0] = 0x03;
+            r.DistributedMessage[1] = 0x04;
+
+            Assert.Equal(new byte[] { 0x01, 0x02 }, r.DistributedMessage);
+        }
+
         [Trait("Category", "Parse")]
         [Fact(DisplayName = "Parse throws MessageExcepton on code mismatch")]
         public void Parse_Throws_MessageException_On_Code_Mismatch()

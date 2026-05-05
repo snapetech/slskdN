@@ -95,6 +95,22 @@ namespace Soulseek.Tests.Unit
             Assert.Empty(k.TokenParts);
         }
 
+        [Trait("Category", "Token Parts")]
+        [Fact(DisplayName = "TokenParts snapshots parts")]
+        public void TokenParts_Snapshots_Parts()
+        {
+            var parts = new object[] { "foo", 1 };
+            WaitKey k = new WaitKey(parts);
+
+            parts[0] = "bar";
+            var returnedParts = k.TokenParts;
+            returnedParts[1] = 2;
+
+            Assert.Equal("foo", k.TokenParts[0]);
+            Assert.Equal(1, k.TokenParts[1]);
+            Assert.Equal("foo:1", k.Token);
+        }
+
         [Trait("Category", "Token")]
         [Fact(DisplayName = "Token is blank given null parts")]
         public void Token_Is_Blank_Given_Null_Parts()
@@ -165,6 +181,16 @@ namespace Soulseek.Tests.Unit
             Assert.False(k2.Equals(k1));
         }
 
+        [Trait("Category", "Equals")]
+        [Fact(DisplayName = "Equals returns false when null")]
+        public void Equals_Returns_False_When_Null()
+        {
+            var k = new WaitKey("foo", 2);
+
+            Assert.False(k.Equals((WaitKey)null));
+            Assert.False(k.Equals((object)null));
+        }
+
         [Trait("Category", "!=")]
         [Fact(DisplayName = "!= returns false when not equal")]
         public void NotEqualOperator_Returns_False_When_Not_Equal()
@@ -174,6 +200,21 @@ namespace Soulseek.Tests.Unit
 
             Assert.True(k1 != k2);
             Assert.True(k2 != k1);
+        }
+
+        [Trait("Category", "Operators")]
+        [Fact(DisplayName = "Operators handle null")]
+        public void Operators_Handle_Null()
+        {
+            WaitKey k = new WaitKey("foo", 2);
+            WaitKey nullKey = null;
+
+            Assert.False(k == nullKey);
+            Assert.False(nullKey == k);
+            Assert.True(k != nullKey);
+            Assert.True(nullKey != k);
+            Assert.True(nullKey == null);
+            Assert.False(nullKey != null);
         }
 
         [Trait("Category", "Equals")]

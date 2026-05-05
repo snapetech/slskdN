@@ -54,7 +54,9 @@ require_absent_pattern() {
 }
 
 require_file "docs/dev/bug-burndown-ledger.md" "bug burndown ledger exists"
+require_file "docs/dev/bug-council-scan-registry.md" "bug council scan registry exists"
 require_file "scripts/check-remediation-baseline.sh" "remediation baseline script exists"
+require_file "scripts/scan-bug-council-candidates.sh" "bug council candidate scanner exists"
 
 require_pattern "ProtocolCountReader" "src/Messaging/Messages" "protocol parsers use centralized count reader"
 require_pattern "ReadValidatedCount" "src/Messaging/Messages/Server/ProtocolCountReader.cs" "protocol count validation is centralized"
@@ -187,6 +189,23 @@ require_pattern "exclusion == null" "src/SearchQuery.cs" "search queries reject 
 require_pattern "Rejects_Null_Terms_And_Exclusions" "tests/Soulseek.Tests.Unit/SearchQueryTests.cs" "search query null entry tests are registered"
 require_pattern "subjectList\\.AsReadOnly\\(\\)" "src/SearchScope.cs" "search scopes snapshot validated subjects"
 require_pattern "Snapshots_Subjects" "tests/Soulseek.Tests.Unit/SearchScopeTests.cs" "search scope snapshot test is registered"
+require_pattern "ReferenceEquals\\(other, null\\)" "src/Common/WaitKey.cs" "wait keys compare null safely"
+require_pattern "TokenParts => tokenParts\\.ToArray\\(\\)" "src/Common/WaitKey.cs" "wait key token parts are defensive copies"
+require_pattern "TokenParts_Snapshots_Parts" "tests/Soulseek.Tests.Unit/Common/WaitKeyTests.cs" "wait key token part snapshot test is registered"
+require_pattern "Operators_Handle_Null" "tests/Soulseek.Tests.Unit/Common/WaitKeyTests.cs" "wait key null operator tests are registered"
+require_pattern "Equals_Returns_False_When_Null" "tests/Soulseek.Tests.Unit/Common/WaitKeyTests.cs" "wait key null equality test is registered"
+require_pattern "Picture => picture == null \\? null : \\(byte\\[\\]\\)picture\\.Clone\\(\\)" "src/UserInfo.cs" "user info picture bytes are defensive copies"
+require_pattern "UserInfo_Snapshots_Picture" "tests/Soulseek.Tests.Unit/Messaging/Messages/Peer/UserInfoResponseFactoryTests.cs" "user info picture snapshot test is registered"
+require_pattern "object\\.Equals\\(IPEndPoint, other\\.IPEndPoint\\)" "src/Network/Tcp/ConnectionKey.cs" "connection keys compare endpoint values directly"
+require_absent_pattern "GetHashCode\\(\\) == other\\?\\.GetHashCode\\(\\)" "src/Network/Tcp/ConnectionKey.cs" "connection key equality does not depend on hash-code equality"
+require_pattern "PublicKey => publicKey\\.ToArray\\(\\)" "src/PeerDescriptorSignature.cs" "peer descriptor signature public key bytes are defensive copies"
+require_pattern "Signature => signature\\.ToArray\\(\\)" "src/PeerDescriptorSignature.cs" "peer descriptor signature bytes are defensive copies"
+require_pattern "DistributedMessage => distributedMessage\\?\\.ToArray\\(\\)" "src/Messaging/Messages/EmbeddedMessage.cs" "embedded distributed messages are defensive copies"
+require_pattern "Message => message\\?\\.ToArray\\(\\)" "src/Network/MessageConnectionEventArgs.cs" "message event bytes are defensive copies"
+require_pattern "Code => code\\?\\.ToArray\\(\\)" "src/Network/MessageConnectionEventArgs.cs" "message event code bytes are defensive copies"
+require_pattern "Peer_Descriptor_Signature_Snapshots_Byte_Arrays" "tests/Soulseek.Tests.Unit/Ed25519PeerDescriptorSignerTests.cs" "peer descriptor signature snapshot test is registered"
+require_pattern "EmbeddedMessage_Snapshots_Message_Bytes" "tests/Soulseek.Tests.Unit/Messaging/Messages/EmbeddedMessageTests.cs" "embedded message snapshot test is registered"
+require_pattern "Message(EventArgs|DataEventArgs|ReceivedEventArgs)_Snapshots_.*_Bytes" "tests/Soulseek.Tests.Unit/Network/MessageConnectionEventArgsTests.cs" "message event byte snapshot tests are registered"
 require_pattern "Enum\\.IsDefined\\(typeof\\(DiagnosticLevel\\)" "src/Diagnostics/DiagnosticEventArgs.cs" "diagnostic events validate defined levels"
 require_pattern "SoulseekClientStates ValidStates" "src/EventArgs/SoulseekClientStateChangedEventArgs.cs" "client state events validate defined flags"
 require_pattern "SearchStates ValidStates" "src/EventArgs/SearchStateChangedEventArgs.cs" "search state events validate defined flags"
@@ -228,6 +247,8 @@ require_absent_pattern "\"name\"\\s*:" "package.json" "repo root does not define
 
 require_pattern "bash scripts/check-remediation-baseline\.sh" "docs/dev/bug-burndown-ledger.md" "ledger references remediation baseline command"
 require_pattern "RT-001" "docs/dev/bug-burndown-ledger.md" "ledger contains finding registry"
+require_pattern "bash scripts/scan-bug-council-candidates\.sh" "docs/dev/bug-council-scan-registry.md" "scan registry references candidate scanner"
+require_pattern "Every hit must be ledgered" "scripts/scan-bug-council-candidates.sh" "candidate scanner documents ledger classification requirement"
 
 secret_pattern='-----BEGIN (RSA |DSA |EC |OPENSSH |PGP )?PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{36,}|xox[baprs]-[A-Za-z0-9-]{20,}|AKIA[0-9A-Z]{16}|(?i)(api[_-]?key|access[_-]?token|client[_-]?secret)["'\'']?\s*[:=]\s*["'\''][A-Za-z0-9_./+=-]{24,}["'\'']'
 require_absent_pattern "$secret_pattern" "." "tracked text files do not contain high-confidence secret patterns"

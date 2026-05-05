@@ -36,6 +36,19 @@ namespace Soulseek.Tests.Unit.Network
         }
 
         [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "MessageDataEventArgs snapshots code bytes")]
+        public void MessageDataEventArgs_Snapshots_Code_Bytes()
+        {
+            var code = new byte[] { 0x01, 0x02 };
+            var a = new MessageDataEventArgs(code, 1, 2);
+
+            code[0] = 0x03;
+            a.Code[1] = 0x04;
+
+            Assert.Equal(new byte[] { 0x01, 0x02 }, a.Code);
+        }
+
+        [Trait("Category", "Instantiation")]
         [Fact(DisplayName = "MessageEventArgs instantiates with the expected values")]
         public void MessageEventArgs_Instantiates_With_The_Expected_Values()
         {
@@ -47,6 +60,19 @@ namespace Soulseek.Tests.Unit.Network
         }
 
         [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "MessageEventArgs snapshots message bytes")]
+        public void MessageEventArgs_Snapshots_Message_Bytes()
+        {
+            var message = new byte[] { 0x01, 0x02 };
+            var a = new MessageEventArgs(message);
+
+            message[0] = 0x03;
+            a.Message[1] = 0x04;
+
+            Assert.Equal(new byte[] { 0x01, 0x02 }, a.Message);
+        }
+
+        [Trait("Category", "Instantiation")]
         [Theory(DisplayName = "MessageReceivedEventArgs instantiates with the expected values"), AutoData]
         public void MessageReceivedEventArgs_Instantiates_With_The_Expected_Values(long length, byte[] code)
         {
@@ -54,6 +80,19 @@ namespace Soulseek.Tests.Unit.Network
 
             Assert.Equal(code, a.Code);
             Assert.Equal(length, a.Length);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "MessageReceivedEventArgs snapshots code bytes")]
+        public void MessageReceivedEventArgs_Snapshots_Code_Bytes()
+        {
+            var code = new byte[] { 0x01, 0x02 };
+            var a = new MessageReceivedEventArgs(2, code);
+
+            code[0] = 0x03;
+            a.Code[1] = 0x04;
+
+            Assert.Equal(new byte[] { 0x01, 0x02 }, a.Code);
         }
     }
 }

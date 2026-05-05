@@ -30,6 +30,8 @@ namespace Soulseek
     /// </summary>
     public class UserInfo
     {
+        private readonly byte[] picture;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="UserInfo"/> class.
         /// </summary>
@@ -51,8 +53,8 @@ namespace Soulseek
             }
 
             Description = description;
-            HasPicture = picture != null;
-            Picture = picture;
+            this.picture = picture == null ? null : (byte[])picture.Clone();
+            HasPicture = this.picture != null;
             UploadSlots = uploadSlots;
             QueueLength = queueLength;
             HasFreeUploadSlot = hasFreeUploadSlot;
@@ -76,7 +78,7 @@ namespace Soulseek
         /// <summary>
         ///     Gets the picture data, if configured.
         /// </summary>
-        public byte[] Picture { get; }
+        public byte[] Picture => picture == null ? null : (byte[])picture.Clone();
 
         /// <summary>
         ///     Gets the current queue length.

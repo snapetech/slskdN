@@ -30,6 +30,8 @@ namespace Soulseek.Messaging.Messages
     /// </summary>
     internal sealed class EmbeddedMessage : IIncomingMessage
     {
+        private readonly byte[] distributedMessage;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="EmbeddedMessage"/> class.
         /// </summary>
@@ -38,7 +40,7 @@ namespace Soulseek.Messaging.Messages
         public EmbeddedMessage(MessageCode.Distributed distributedCode, byte[] distributedMessage)
         {
             DistributedCode = distributedCode;
-            DistributedMessage = distributedMessage;
+            this.distributedMessage = distributedMessage?.ToArray();
         }
 
         /// <summary>
@@ -49,7 +51,7 @@ namespace Soulseek.Messaging.Messages
         /// <summary>
         ///     Gets the embedded message.
         /// </summary>
-        public byte[] DistributedMessage { get; }
+        public byte[] DistributedMessage => distributedMessage?.ToArray();
 
         /// <summary>
         ///     Creates a new instance of <see cref="EmbeddedMessage"/> from the specified <paramref name="bytes"/>.

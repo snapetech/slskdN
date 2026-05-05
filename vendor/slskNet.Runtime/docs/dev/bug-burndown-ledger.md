@@ -89,12 +89,16 @@ Static discovery covered `src`, `tests`, `examples`, `bin`, and `.circleci`.
 | RT-060 | Peer response resolver lifecycle | Directory contents resolver output could contain null directories, letting `FolderContentsResponse` fail later during peer-message serialization and surface as a generic handler error. | `FolderContentsResponse`, `PeerMessageHandler`, and peer handler/message tests. | Fixed | Folder contents responses now reject null directory collections/elements up front, and invalid resolver output produces a targeted diagnostic without writing a malformed response. |
 | RT-061 | Search query validation | Collection-based `SearchQuery` construction accepted null terms and exclusions, allowing malformed search text and `SearchAsync` null dereferences during single-character term filtering. | `SearchQuery`, `SearchQueryTests`, and client search validation path review. | Fixed | Search query construction now rejects null term/exclusion entries while preserving existing null-list-as-empty behavior. |
 | RT-062 | Search scope validation | `SearchScope` validated the caller-provided params array and then retained that mutable array, allowing subjects to be changed to null or empty after construction before search messages are emitted. | `SearchScope`, `SearchScopeTests`, and client search message construction paths. | Fixed | Search scopes now snapshot validated subjects into an immutable collection before publishing them. |
+| RT-063 | Runtime value snapshots / waiter keys | `WaitKey` retained caller-owned token parts and its equality operators dereferenced null operands; `UserInfo` exposed caller-owned picture bytes. | `WaitKey`, `UserInfo`, wait-key tests, and user-info response tests. | Fixed | Wait keys now snapshot token parts and compare null safely; user info picture bytes are cloned on construction and access. |
+| RT-064 | Network value equality | `ConnectionKey.Equals` compared hash codes instead of key fields, so any hash collision could alias unrelated peer connections. | `ConnectionKey`, connection key tests, and equality-pattern scan. | Fixed | Connection keys now compare username and endpoint values directly, and the remediation baseline rejects hash-code equality for connection keys. |
+| RT-065 | Runtime value snapshots / protocol byte arrays | Additional protocol and network value objects published mutable byte arrays after construction, allowing callers or handlers to mutate signed descriptor material, embedded distributed messages, or message-event payloads. | `PeerDescriptorSignature`, `EmbeddedMessage`, `MessageConnectionEventArgs`, and snapshot regression tests. | Fixed | Byte-array inputs are now cloned on construction and access for descriptor signatures, embedded messages, and message connection event args. |
 
 ## Verification Commands
 
 Primary runtime verification:
 
 ```bash
+bash scripts/scan-bug-council-candidates.sh
 bash scripts/check-remediation-baseline.sh
 dotnet test tests/Soulseek.Tests.Unit/Soulseek.Tests.Unit.csproj --no-restore
 dotnet build slskNet.Runtime.sln --no-restore
@@ -104,6 +108,7 @@ dotnet list slskNet.Runtime.sln package --vulnerable --include-transitive
 Vendored runtime verification from `../slskdn/vendor/slskNet.Runtime`:
 
 ```bash
+bash scripts/scan-bug-council-candidates.sh
 bash scripts/check-remediation-baseline.sh
 dotnet test tests/Soulseek.Tests.Unit/Soulseek.Tests.Unit.csproj --no-restore
 dotnet build slskNet.Runtime.sln --no-restore

@@ -24,6 +24,7 @@
 namespace Soulseek.Network
 {
     using System;
+    using System.Linq;
 
     /// <summary>
     ///     EventArgs for <see cref="MessageConnection"/> events.
@@ -39,6 +40,8 @@ namespace Soulseek.Network
     /// </summary>
     internal sealed class MessageDataEventArgs : MessageConnectionEventArgs
     {
+        private readonly byte[] code;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="MessageDataEventArgs"/> class.
         /// </summary>
@@ -47,7 +50,7 @@ namespace Soulseek.Network
         /// <param name="totalLength">The total expected length of the data transfer.</param>
         public MessageDataEventArgs(byte[] code, long currentLength, long totalLength)
         {
-            Code = code;
+            this.code = code?.ToArray();
             CurrentLength = currentLength;
             TotalLength = totalLength;
 
@@ -57,7 +60,7 @@ namespace Soulseek.Network
         /// <summary>
         ///     Gets the message code, as a byte array.
         /// </summary>
-        public byte[] Code { get; }
+        public byte[] Code => code?.ToArray();
 
         /// <summary>
         ///     Gets the length of the event data.
@@ -80,19 +83,21 @@ namespace Soulseek.Network
     /// </summary>
     internal sealed class MessageEventArgs : MessageConnectionEventArgs
     {
+        private readonly byte[] message;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="MessageEventArgs"/> class.
         /// </summary>
         /// <param name="message">The message associated with the event.</param>
         public MessageEventArgs(byte[] message)
         {
-            Message = message;
+            this.message = message?.ToArray();
         }
 
         /// <summary>
         ///     Gets the message associated with the event.
         /// </summary>
-        public byte[] Message { get; }
+        public byte[] Message => message?.ToArray();
     }
 
     /// <summary>
@@ -100,6 +105,8 @@ namespace Soulseek.Network
     /// </summary>
     internal sealed class MessageReceivedEventArgs : MessageConnectionEventArgs
     {
+        private readonly byte[] code;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="MessageReceivedEventArgs"/> class.
         /// </summary>
@@ -108,13 +115,13 @@ namespace Soulseek.Network
         public MessageReceivedEventArgs(long length, byte[] code)
         {
             Length = length;
-            Code = code;
+            this.code = code?.ToArray();
         }
 
         /// <summary>
         ///     Gets the message code, as a byte array.
         /// </summary>
-        public byte[] Code { get; }
+        public byte[] Code => code?.ToArray();
 
         /// <summary>
         ///     Gets the message length.

@@ -41,6 +41,21 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Equal(hasFreeSlot, response.HasFreeUploadSlot);
         }
 
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "UserInfo snapshots picture")]
+        public void UserInfo_Snapshots_Picture()
+        {
+            var picture = new byte[] { 0x01, 0x02, 0x03 };
+            var response = new UserInfo("description", 1, 2, true, picture);
+
+            picture[0] = 0x04;
+            var returnedPicture = response.Picture;
+            returnedPicture[1] = 0x05;
+
+            Assert.Equal(new byte[] { 0x01, 0x02, 0x03 }, response.Picture);
+            Assert.True(response.HasPicture);
+        }
+
         [Trait("Category", "Parse")]
         [Fact(DisplayName = "Parse throws MessageExcepton on code mismatch")]
         public void Parse_Throws_MessageException_On_Code_Mismatch()

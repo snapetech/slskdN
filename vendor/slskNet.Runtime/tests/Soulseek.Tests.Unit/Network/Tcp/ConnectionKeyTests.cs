@@ -221,6 +221,7 @@ namespace Soulseek.Tests.Unit.Network.Tcp
             ConnectionKey b = null;
 
             Assert.False(a.Equals(b));
+            Assert.False(a.Equals((object)b));
         }
 
         [Trait("Category", "Equals")]

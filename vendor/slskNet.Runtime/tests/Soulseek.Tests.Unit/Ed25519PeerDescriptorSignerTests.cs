@@ -69,5 +69,21 @@ namespace Soulseek.Tests.Unit
                 Assert.False(signer.Verify(forged));
             }
         }
+
+        [Fact(DisplayName = "Peer descriptor signature snapshots byte arrays")]
+        public void Peer_Descriptor_Signature_Snapshots_Byte_Arrays()
+        {
+            var publicKey = new byte[] { 0x01, 0x02 };
+            var signature = new byte[] { 0x03, 0x04 };
+            var descriptorSignature = new PeerDescriptorSignature(publicKey, signature);
+
+            publicKey[0] = 0x05;
+            signature[0] = 0x06;
+            descriptorSignature.PublicKey[1] = 0x07;
+            descriptorSignature.Signature[1] = 0x08;
+
+            Assert.Equal(new byte[] { 0x01, 0x02 }, descriptorSignature.PublicKey);
+            Assert.Equal(new byte[] { 0x03, 0x04 }, descriptorSignature.Signature);
+        }
     }
 }

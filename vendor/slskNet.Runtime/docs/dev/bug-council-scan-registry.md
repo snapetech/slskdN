@@ -1,0 +1,33 @@
+# Bug Council Scan Registry
+
+The council workflow is inventory-first:
+
+1. Run `bash scripts/scan-bug-council-candidates.sh`.
+2. Group every candidate under a ledger row before fixing.
+3. Mark each row `New`, `Accepted`, `Fixed`, `Existing guard`, `False positive`, or `Out of scope`.
+4. Batch fixes by ownership area so one verification pass covers related behavior.
+5. Add or extend `scripts/check-remediation-baseline.sh` for every fixed bug class.
+
+The candidate scanner is intentionally noisy. It is not the pass/fail gate; it is the durable discovery queue. The remediation baseline is the pass/fail gate for fixed bug classes and must grow whenever the council burns down a confirmed finding.
+
+Current scan classes:
+
+| Class | Purpose |
+| --- | --- |
+| Mutable public arrays and array properties | Find byte arrays and arrays that can leak mutable state. |
+| Constructors accepting mutable collections or params arrays | Find DTOs that may retain caller-owned collections. |
+| Value equality and hash-code comparisons | Find equality implementations that dereference null or use hash equality. |
+| Non-idempotent task completion | Find race-prone `TaskCompletionSource.Set*` calls in runtime source. |
+| Task, cancellation, timer, and semaphore lifecycle | Find ownership and cancellation race candidates. |
+| Protocol count and length allocation | Find parser loops and allocations driven by untrusted payload fields. |
+| Protocol scalar emission | Find outbound message scalars that may need constructor guards. |
+| Resolver output and raw stream handling | Find application-supplied data that crosses peer serialization boundaries. |
+| Example Web API path/request/lifecycle | Find path containment, request validation, and disposable ownership issues in the example app. |
+| Security-sensitive material | Find high-confidence private keys and token patterns. |
+
+Sweep closure rules:
+
+- A scan is not closed while unclassified candidate hits remain in touched domains.
+- Confirmed runtime bugs get focused regression tests and remediation-baseline patterns.
+- False positives stay in the ledger only when they document a recurring scan hit that would otherwise be re-reviewed.
+- Integration-only risks are recorded explicitly when credentials or live Soulseek network access are unavailable.
