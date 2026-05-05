@@ -34,5 +34,18 @@ namespace Soulseek.Messaging.Messages
                 throw new MessageException($"Invalid {fieldName} port: {port}");
             }
         }
+
+        /// <summary>
+        ///     Validates that an advertised protocol port is usable for outbound connections.
+        /// </summary>
+        /// <param name="port">The port to validate.</param>
+        /// <param name="fieldName">The field name for diagnostics.</param>
+        public static void ValidateAdvertisedPort(int port, string fieldName)
+        {
+            if (port <= IPEndPoint.MinPort || port > IPEndPoint.MaxPort)
+            {
+                throw new MessageException($"Invalid {fieldName} port: {port}");
+            }
+        }
     }
 }

@@ -163,6 +163,11 @@ namespace Soulseek.Messaging.Messages
             {
                 obfuscationType = reader.ReadInteger();
                 obfuscatedPort = reader.ReadInteger();
+
+                if (obfuscationType == 1)
+                {
+                    ProtocolValueValidator.ValidateAdvertisedPort(obfuscatedPort, "connect-to-peer obfuscated");
+                }
             }
 
             return new ConnectToPeerResponse(username, type, ipAddress, port, token, isPrivileged, obfuscationType, obfuscatedPort);

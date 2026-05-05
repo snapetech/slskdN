@@ -139,6 +139,11 @@ namespace Soulseek.Messaging.Messages
 
                 // GetPeerAddress uses a 16-bit obfuscated port, unlike ConnectToPeer's 32-bit port field.
                 obfuscatedPort = BinaryPrimitives.ReadUInt16LittleEndian(reader.ReadBytes(2));
+
+                if (obfuscationType == 1)
+                {
+                    ProtocolValueValidator.ValidateAdvertisedPort(obfuscatedPort, "peer address obfuscated");
+                }
             }
 
             return new UserAddressResponse(username, ipAddress, port, obfuscationType, obfuscatedPort);

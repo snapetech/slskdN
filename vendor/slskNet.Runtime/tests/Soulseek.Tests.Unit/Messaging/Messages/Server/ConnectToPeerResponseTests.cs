@@ -122,5 +122,59 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.NotNull(ex);
             Assert.IsType<MessageException>(ex);
         }
+
+        [Trait("Category", "Parse")]
+        [Theory(DisplayName = "Parse returns obfuscated metadata"), AutoData]
+        public void Parse_Returns_Obfuscated_Metadata(string username, IPEndPoint endpoint, int token, bool isPrivileged)
+        {
+            var ipBytes = endpoint.Address.GetAddressBytes();
+            Array.Reverse(ipBytes);
+
+            var obfuscatedPort = endpoint.Port == IPEndPoint.MinPort ? 1 : endpoint.Port;
+
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.ConnectToPeer)
+                .WriteString(username)
+                .WriteString("P")
+                .WriteBytes(ipBytes)
+                .WriteInteger(endpoint.Port)
+                .WriteInteger(token)
+                .WriteByte((byte)(isPrivileged ? 1 : 0))
+                .WriteInteger(1)
+                .WriteInteger(obfuscatedPort)
+                .Build();
+
+            var response = ConnectToPeerResponse.FromByteArray(msg);
+
+            Assert.Equal(1, response.ObfuscationType);
+            Assert.Equal(obfuscatedPort, response.ObfuscatedPort);
+            Assert.True(response.HasObfuscatedEndpoint);
+            Assert.Equal(obfuscatedPort, response.ObfuscatedIPEndPoint.Port);
+        }
+
+        [Trait("Category", "Parse")]
+        [Theory(DisplayName = "Parse throws MessageException on invalid obfuscated port")]
+        [InlineData(-1)]
+        [InlineData(0)]
+        [InlineData(65536)]
+        public void Parse_Throws_MessageException_On_Invalid_Obfuscated_Port(int obfuscatedPort)
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.ConnectToPeer)
+                .WriteString("user")
+                .WriteString("P")
+                .WriteBytes(new byte[] { 1, 0, 0, 127 })
+                .WriteInteger(1)
+                .WriteInteger(1)
+                .WriteByte(0)
+                .WriteInteger(1)
+                .WriteInteger(obfuscatedPort)
+                .Build();
+
+            var ex = Record.Exception(() => ConnectToPeerResponse.FromByteArray(msg));
+
+            Assert.NotNull(ex);
+            Assert.IsType<MessageException>(ex);
+        }
     }
 }
