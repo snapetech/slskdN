@@ -52,6 +52,51 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z288. Preflight Security Checks Must Bind To The Actual Operation
+
+**The Bug**: Follow-up security fixes validated only metadata around an operation, not the operation that ultimately ran. Rate limiting treated any auth-looking header as authenticated before proving the principal, outbound SSRF guards checked only the first URI while default HTTP clients could follow redirects, and relay-agent downloads validated the controller serving path but still trusted the controller-supplied filename and stream size at the receiving agent.
+
+**Files Affected**:
+- `src/slskd/Program.cs`
+- `src/slskd/Common/Security/OutboundUriGuard.cs`
+- `src/slskd/Relay/RelayClient.cs`
+- `src/slskd/VirtualSoulfind/v2/Backends/HttpBackend.cs`
+- `src/slskd/VirtualSoulfind/v2/Backends/WebDavBackend.cs`
+- `src/slskd/Integrations/Webhooks/WebhookService.cs`
+- `src/slskd/SourceFeeds/SourceFeedImportService.cs`
+- `src/slskd/SongID/SongIdService.cs`
+- `src/slskd/Solid/SolidWebIdResolver.cs`
+
+**Wrong**:
+```csharp
+if (request.Headers.ContainsKey("Authorization"))
+{
+    return RateLimitPartition.GetNoLimiter("authenticated");
+}
+
+await OutboundUriGuard.CheckAsync(uri, ct);
+using var response = await httpClient.GetAsync(uri, ct);
+
+var destination = Path.Combine(downloadsDirectory, filename);
+await remoteStream.CopyToAsync(localStream);
+```
+
+**Correct**:
+```csharp
+if (context.User?.Identity?.IsAuthenticated == true)
+{
+    return RateLimitPartition.GetNoLimiter("authenticated");
+}
+
+await OutboundUriGuard.CheckAsync(uri, ct);
+using var response = await noRedirectHttpClient.GetAsync(uri, ct);
+
+var destination = PathGuard.NormalizeAndValidate(filename, downloadsDirectory);
+await CopyWithLimitAsync(remoteStream, localStream, maxBytes, ct);
+```
+
+**Why This Keeps Happening**: A guard beside the operation can look complete while the actual I/O path uses different trust inputs. For auth, trust the authenticated principal, not credential headers. For outbound HTTP, disable redirects or validate every hop. For file writes, validate the destination path on the side doing the write and bound the bytes copied, even if a paired controller already validates its own read path.
+
 ### 0z287. Mutating Methods Must Carry Explicit Role Requirements Even Under Class-Level Auth
 
 **The Bug**: Fork-specific API controllers used class-level `[Authorize(Policy = AuthPolicy.Any)]` and then added `POST`, `PUT`, `PATCH`, or `DELETE` methods without method-level role requirements. Read-only authenticated users could mutate state or trigger expensive/network-active work.
