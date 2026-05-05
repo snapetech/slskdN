@@ -9454,3 +9454,10 @@ Code quality improvements were completed as part of Option A:
 - Added an opt-in full-instance test harness wrapper (`SLSKDN_FULL_INSTANCE_VPN_WRAPPER` + `SLSKDN_FULL_INSTANCE_VPN_CONFIGS`) so each spawned daemon can use a separate VPN config/subnet while the host test talks to its namespace veth API address.
 - Ran a four-account by four-VPN login matrix. Proton config 1 (`72.251.215.10`) timed out for every account; Proton configs 2 (`103.108.229.251`), 3 (`79.127.185.205`), and 4 (`79.127.146.231`) logged in successfully for accounts A-D. Result file: `target/live-vpn-matrix/slskdn-login-matrix-20260504-204255.tsv`.
 - Reran the full live mesh smoke with configs 2 and 3; both alpha and beta logged in, but the overall smoke did not complete afterward and overlay connections remained empty. Stopped the hung run and cleaned up `sln*` namespaces.
+
+## 2026-05-05 03:12:00Z
+
+- Fixed the live VPN overlay peer issue in the full-instance harness: overlay connect requests now target the beta runner's reachable overlay address instead of hard-coded `127.0.0.1`, and wrapped namespaces install a local `10.0.0.0/8` test-fabric route via their veth host side so namespace peers can reach each other without sending overlay traffic into Proton.
+- Verified manually in the VPN-backed live smoke that alpha and beta both log in, alpha can connect to beta's overlay listener, and `/api/v0/overlay/connections` shows the outbound/inbound peer pair on both nodes.
+- The live smoke now moves past login/overlay/search and downloads the probe bytes into alpha's incomplete directory, but the xUnit request still did not return before manual stop. Remaining issue is download finalization/response completion, not overlay peer formation.
+- Validation: deterministic full-instance overlay tests still passed (`2` tests).

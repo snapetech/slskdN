@@ -2278,4 +2278,4 @@
 
 - [ ] Route optional live mesh smoke through explicit VPN/proxy egress
   - Status: partially complete
-  - Notes: Added an opt-in per-process VPN wrapper for full-instance tests and verified the slskR Proton namespace runner with the local account pool. Login matrix shows Proton config 1 times out for every account, while configs 2/3/4 all log in for accounts A-D. Remaining work: make the full live mesh smoke complete post-login; with configs 2/3 both daemons logged in but overlay connections stayed empty.
+  - Notes: Added an opt-in per-process VPN wrapper for full-instance tests and verified the slskR Proton namespace runner with the local account pool. Login matrix shows Proton config 1 times out for every account, while configs 2/3/4 all log in for accounts A-D. Overlay peers now form with configs 2/3 after routing namespace test traffic over the local veth fabric. Remaining work: make live mesh download finalization complete; the probe bytes reached alpha's incomplete directory but the API call did not return.

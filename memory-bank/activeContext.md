@@ -4874,3 +4874,15 @@ dotnet test
 - Next steps:
   1. Exclude Proton config 1 from live Soulseek test runs unless it recovers.
   2. Debug the post-login live mesh stall separately from login/IP throttling; login is no longer the blocker on configs 2/3/4.
+
+## Update 2026-05-05 03:12:00Z
+
+- Current task: VPN-backed overlay peer fix.
+- Last activity:
+  - changed overlay connect tests to use the target runner's reachable overlay address instead of `127.0.0.1`
+  - routed wrapped VPN test namespaces across the local veth test fabric so alpha can reach beta's overlay listener while retaining VPN default egress
+  - confirmed live alpha/beta overlay peers now appear on both nodes with Proton configs 2 and 3
+  - found the next blocker: the probe file reaches alpha's incomplete directory, but the download API call did not complete
+- Next steps:
+  1. Debug live mesh download finalization after successful overlay/search.
+  2. Keep Proton config 1 out of live smoke runs; configs 2/3/4 are viable for login.
