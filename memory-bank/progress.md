@@ -9510,3 +9510,10 @@ Code quality improvements were completed as part of Option A:
 - Documented the app-logo placement gotcha separately, then regenerated transparent icon derivatives from the light cube source and a wire-style transparent favicon/footer mark.
 - Increased the login brand treatment to use a larger lockup and switched the footer image to the wire-style transparent icon.
 - Added a high-visibility README callout to the `snapetech/slskr` GitHub repo for early testers of the independent Rust rewrite.
+
+## 2026-05-05 09:06:43Z
+
+- Fixed the non-bin AUR source package failure where Arch's .NET 10 SDK reported `NETSDK1226` missing ASP.NET Core prune package data during framework-dependent RID publish.
+- Added `-p:AllowMissingPrunePackageData=true` to `packaging/aur/PKGBUILD`, bumped the AUR source `pkgrel` to `4`, and added a packaging metadata validation guard so the publish workaround is retained.
+- Documented ADR-0001 gotcha `0z285` separately in commit `aa19d6f24`.
+- Validation passed: `bash packaging/scripts/validate-packaging-metadata.sh` and an AUR-shaped local `dotnet publish` to `/tmp/slskdn-aur-publish-test`.
