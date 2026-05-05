@@ -54,16 +54,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ### 0z291. JSON String Endpoints Need Explicit JSON.stringify From Web API Helpers
 
-**The Bug**: Room join/create calls posted a raw JavaScript string to an ASP.NET `[FromBody] string` endpoint that consumes `application/json`. Axios was configured with `Content-Type: application/json`, but a raw string body is not a JSON string literal, so model binding could reject or lose the room name before `RoomService.JoinAsync()` reached Soulseek. Existing room message sending worked because it explicitly used `JSON.stringify(message)`.
+**The Bug**: Room join/create calls, YAML config saves/validation, and Pod content ID validation posted raw JavaScript strings to ASP.NET `[FromBody] string` endpoints that consume `application/json`. Axios was configured with `Content-Type: application/json`, but a raw string body is not a JSON string literal, so model binding could reject or lose the value before the backend action reached the actual operation. Existing room message sending worked because it explicitly used `JSON.stringify(message)`.
 
 **Files Affected**:
 - `src/web/src/lib/rooms.js`
+- `src/web/src/lib/options.js`
+- `src/web/src/lib/mediacore.js`
 - `src/slskd/Messaging/API/Controllers/RoomsController.cs`
+- `src/slskd/Core/API/Controllers/OptionsController.cs`
+- `src/slskd/PodCore/API/Controllers/PodContentController.cs`
 
 **Wrong**:
 ```js
 export const join = async ({ roomName }) => {
   return api.post('/rooms/joined', roomName);
+};
+
+export const updateYaml = async ({ yaml }) => {
+  return api.put('/options/yaml', yaml);
 };
 ```
 
@@ -71,6 +79,10 @@ export const join = async ({ roomName }) => {
 ```js
 export const join = async ({ roomName }) => {
   return api.post('/rooms/joined', JSON.stringify(roomName));
+};
+
+export const updateYaml = async ({ yaml }) => {
+  return api.put('/options/yaml', JSON.stringify(yaml));
 };
 ```
 
