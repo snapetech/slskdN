@@ -52,6 +52,41 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z310. Background Soulseek Producers Need Budget, Cancellation, And Concurrency Guards
+
+**The Bug**: Several background or compatibility Soulseek paths still used older direct-call patterns after newer controllers and services gained network-health safeguards. Source discovery searched without consuming the shared search budget, native browse did not pass request cancellation, backfill candidate status lookup accepted unbounded limits and ignored cancellation, rescue downloads passed `CancellationToken.None`, and verification probes launched all candidates in parallel.
+
+**Files Affected**:
+- `src/slskd/Transfers/MultiSource/Discovery/SourceDiscoveryService.cs`
+- `src/slskd/Users/API/Controllers/UsersController.cs`
+- `src/slskd/Backfill/BackfillSchedulerService.cs`
+- `src/slskd/Transfers/Rescue/RescueService.cs`
+- `src/slskd/Transfers/MultiSource/ContentVerificationService.cs`
+
+**Wrong**:
+```csharp
+await client.SearchAsync(query, cancellationToken: cancellationToken);
+var result = await Client.BrowseAsync(username);
+var userStatus = await soulseekClient.GetUserStatusAsync(entry.PeerId);
+var result = await multiSource.DownloadAsync(request, CancellationToken.None);
+var verificationResults = await Task.WhenAll(allProbeTasks);
+```
+
+**Correct**:
+```csharp
+if (!safetyLimiter.TryConsumeSearch("source-discovery"))
+{
+    return;
+}
+
+var result = await Client.BrowseAsync(username, cancellationToken: cancellationToken);
+var userStatus = await soulseekClient.GetUserStatusAsync(entry.PeerId, cancellationToken);
+var result = await multiSource.DownloadAsync(request, ct);
+await verificationGate.WaitAsync(cancellationToken);
+```
+
+**Why This Keeps Happening**: Soulseek-facing work is spread across user controllers, compatibility routes, background discovery, backfill, rescue, and verification helpers. Fixing one entry point does not protect the others. Every path that searches, browses, probes, or downloads from peers needs an explicit budget/source label where applicable, caller cancellation, bounded fan-out, and focused tests proving exhausted or canceled work does not reach the network.
+
 ### 0z309. Compatibility Soulseek Endpoints Need The Same Safety Posture As Native Endpoints
 
 **The Bug**: The slskd compatibility browse endpoint called `ISoulseekClient.BrowseAsync()` directly without consuming the shared browse limiter or passing the request cancellation token. Native browse paths had newer network-health guardrails, but compatibility routes stayed on the old direct-call pattern.
