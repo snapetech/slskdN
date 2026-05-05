@@ -24,6 +24,7 @@
 namespace Soulseek
 {
     using System.Collections.Generic;
+    using System.Linq;
 
     /// <summary>
     ///     A list of recommendations and unrecommendations from the server.
@@ -37,8 +38,21 @@ namespace Soulseek
         /// <param name="unrecommendations">The unrecommendations.</param>
         public RecommendationList(IReadOnlyCollection<Recommendation> recommendations, IReadOnlyCollection<Recommendation> unrecommendations)
         {
-            Recommendations = recommendations;
-            Unrecommendations = unrecommendations;
+            var recommendationList = recommendations?.ToList() ?? new List<Recommendation>();
+            var unrecommendationList = unrecommendations?.ToList() ?? new List<Recommendation>();
+
+            if (recommendationList.Any(recommendation => recommendation == null))
+            {
+                throw new System.ArgumentException("The recommendation list must not contain null entries", nameof(recommendations));
+            }
+
+            if (unrecommendationList.Any(recommendation => recommendation == null))
+            {
+                throw new System.ArgumentException("The unrecommendation list must not contain null entries", nameof(unrecommendations));
+            }
+
+            Recommendations = recommendationList.AsReadOnly();
+            Unrecommendations = unrecommendationList.AsReadOnly();
         }
 
         /// <summary>

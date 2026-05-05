@@ -16,6 +16,7 @@
 namespace Soulseek
 {
     using System.Collections.Generic;
+    using System.Linq;
 
     /// <summary>
     ///     Mesh rendezvous discovery result.
@@ -33,9 +34,22 @@ namespace Soulseek
             IReadOnlyCollection<SimilarUser> similarUsers,
             IReadOnlyCollection<PeerCapabilityRecord> capabilityRecords)
         {
+            var users = similarUsers?.ToList() ?? new List<SimilarUser>();
+            var records = capabilityRecords?.ToList() ?? new List<PeerCapabilityRecord>();
+
+            if (users.Any(user => user == null))
+            {
+                throw new System.ArgumentException("The similar user list must not contain null entries", nameof(similarUsers));
+            }
+
+            if (records.Any(record => record == null))
+            {
+                throw new System.ArgumentException("The capability record list must not contain null entries", nameof(capabilityRecords));
+            }
+
             InterestTag = interestTag;
-            SimilarUsers = similarUsers ?? new List<SimilarUser>().AsReadOnly();
-            CapabilityRecords = capabilityRecords ?? new List<PeerCapabilityRecord>().AsReadOnly();
+            SimilarUsers = users.AsReadOnly();
+            CapabilityRecords = records.AsReadOnly();
         }
 
         /// <summary>

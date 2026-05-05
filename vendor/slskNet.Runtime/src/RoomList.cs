@@ -44,16 +44,41 @@ namespace Soulseek
             IEnumerable<RoomInfo> ownedList,
             IEnumerable<string> moderatedRoomNameList)
         {
-            Public = (publicList?.ToList() ?? new List<RoomInfo>()).AsReadOnly();
+            var publicRooms = publicList?.ToList() ?? new List<RoomInfo>();
+            var privateRooms = privateList?.ToList() ?? new List<RoomInfo>();
+            var ownedRooms = ownedList?.ToList() ?? new List<RoomInfo>();
+            var moderatedRoomNames = moderatedRoomNameList?.ToList() ?? new List<string>();
+
+            if (publicRooms.Any(room => room == null))
+            {
+                throw new System.ArgumentException("The public room list must not contain null entries", nameof(publicList));
+            }
+
+            if (privateRooms.Any(room => room == null))
+            {
+                throw new System.ArgumentException("The private room list must not contain null entries", nameof(privateList));
+            }
+
+            if (ownedRooms.Any(room => room == null))
+            {
+                throw new System.ArgumentException("The owned room list must not contain null entries", nameof(ownedList));
+            }
+
+            if (moderatedRoomNames.Any(roomName => roomName == null))
+            {
+                throw new System.ArgumentException("The moderated room name list must not contain null entries", nameof(moderatedRoomNameList));
+            }
+
+            Public = publicRooms.AsReadOnly();
             PublicCount = Public.Count;
 
-            Private = (privateList?.ToList() ?? new List<RoomInfo>()).AsReadOnly();
+            Private = privateRooms.AsReadOnly();
             PrivateCount = Private.Count;
 
-            Owned = (ownedList?.ToList() ?? new List<RoomInfo>()).AsReadOnly();
+            Owned = ownedRooms.AsReadOnly();
             OwnedCount = Owned.Count;
 
-            ModeratedRoomNames = (moderatedRoomNameList?.ToList() ?? new List<string>()).AsReadOnly();
+            ModeratedRoomNames = moderatedRoomNames.AsReadOnly();
             ModeratedRoomNameCount = ModeratedRoomNames.Count;
         }
 

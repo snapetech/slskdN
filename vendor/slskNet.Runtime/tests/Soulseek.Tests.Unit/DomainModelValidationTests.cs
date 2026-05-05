@@ -197,5 +197,74 @@ namespace Soulseek.Tests.Unit
         [InlineData(SoulseekClientStates.Connected, (SoulseekClientStates)64)]
         public void SoulseekClientStateChangedEventArgs_Rejects_Invalid_Flags(SoulseekClientStates previousState, SoulseekClientStates state)
             => Assert.Throws<ArgumentOutOfRangeException>(() => new SoulseekClientStateChangedEventArgs(previousState, state));
+
+        [Theory(DisplayName = "RoomList rejects null entries")]
+        [InlineData("public")]
+        [InlineData("private")]
+        [InlineData("owned")]
+        [InlineData("moderated")]
+        public void RoomList_Rejects_Null_Entries(string list)
+        {
+            var roomInfo = new RoomInfo("room", 0);
+
+            Assert.Throws<ArgumentException>(() => new RoomList(
+                list == "public" ? new RoomInfo[] { null } : new[] { roomInfo },
+                list == "private" ? new RoomInfo[] { null } : new[] { roomInfo },
+                list == "owned" ? new RoomInfo[] { null } : new[] { roomInfo },
+                list == "moderated" ? new string[] { null } : new[] { "room" }));
+        }
+
+        [Theory(DisplayName = "RoomData rejects null entries")]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void RoomData_Rejects_Null_Entries(bool operators)
+        {
+            if (operators)
+            {
+                Assert.Throws<ArgumentException>(() => new RoomData("room", null, isPrivate: true, operatorList: new string[] { null }));
+            }
+            else
+            {
+                Assert.Throws<ArgumentException>(() => new RoomData("room", new UserData[] { null }));
+            }
+        }
+
+        [Fact(DisplayName = "RoomTickerListReceivedEventArgs rejects null tickers")]
+        public void RoomTickerListReceivedEventArgs_Rejects_Null_Tickers()
+            => Assert.Throws<ArgumentException>(() => new RoomTickerListReceivedEventArgs("room", new RoomTicker[] { null }));
+
+        [Fact(DisplayName = "ItemSimilarUsers rejects null usernames")]
+        public void ItemSimilarUsers_Rejects_Null_Usernames()
+            => Assert.Throws<ArgumentException>(() => new ItemSimilarUsers("item", new string[] { null }));
+
+        [Theory(DisplayName = "RecommendationList rejects null entries")]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void RecommendationList_Rejects_Null_Entries(bool unrecommendations)
+        {
+            if (unrecommendations)
+            {
+                Assert.Throws<ArgumentException>(() => new RecommendationList(null, new Recommendation[] { null }));
+            }
+            else
+            {
+                Assert.Throws<ArgumentException>(() => new RecommendationList(new Recommendation[] { null }, null));
+            }
+        }
+
+        [Theory(DisplayName = "MeshRendezvousResult rejects null entries")]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void MeshRendezvousResult_Rejects_Null_Entries(bool records)
+        {
+            if (records)
+            {
+                Assert.Throws<ArgumentException>(() => new MeshRendezvousResult("tag", null, new PeerCapabilityRecord[] { null }));
+            }
+            else
+            {
+                Assert.Throws<ArgumentException>(() => new MeshRendezvousResult("tag", new SimilarUser[] { null }, null));
+            }
+        }
     }
 }

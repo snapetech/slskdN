@@ -24,6 +24,7 @@
 namespace Soulseek
 {
     using System.Collections.Generic;
+    using System.Linq;
 
     /// <summary>
     ///     Users similar to a specific item.
@@ -37,8 +38,15 @@ namespace Soulseek
         /// <param name="usernames">The similar usernames.</param>
         public ItemSimilarUsers(string item, IReadOnlyCollection<string> usernames)
         {
+            var usernameList = usernames?.ToList() ?? new List<string>();
+
+            if (usernameList.Any(username => username == null))
+            {
+                throw new System.ArgumentException("The username list must not contain null entries", nameof(usernames));
+            }
+
             Item = item;
-            Usernames = usernames;
+            Usernames = usernameList.AsReadOnly();
         }
 
         /// <summary>

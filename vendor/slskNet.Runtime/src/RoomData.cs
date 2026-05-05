@@ -41,12 +41,25 @@ namespace Soulseek
         /// <param name="operatorList">The operators in the room, if private.</param>
         public RoomData(string name, IEnumerable<UserData> userList, bool isPrivate = false, string owner = null, IEnumerable<string> operatorList = null)
         {
+            var users = userList?.ToList() ?? new List<UserData>();
+            var operators = operatorList?.ToList();
+
+            if (users.Any(user => user == null))
+            {
+                throw new System.ArgumentException("The user list must not contain null entries", nameof(userList));
+            }
+
+            if (operators?.Any(operatorName => operatorName == null) ?? false)
+            {
+                throw new System.ArgumentException("The operator list must not contain null entries", nameof(operatorList));
+            }
+
             Name = name;
-            Users = (userList?.ToList() ?? new List<UserData>()).AsReadOnly();
+            Users = users.AsReadOnly();
             UserCount = Users.Count;
             IsPrivate = isPrivate;
             Owner = owner;
-            Operators = operatorList?.ToList().AsReadOnly();
+            Operators = operators?.AsReadOnly();
             OperatorCount = Operators?.Count;
         }
 

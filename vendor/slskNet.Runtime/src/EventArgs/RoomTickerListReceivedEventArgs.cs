@@ -40,7 +40,14 @@ namespace Soulseek
         public RoomTickerListReceivedEventArgs(string roomName, IEnumerable<RoomTicker> tickers)
             : base(roomName)
         {
-            Tickers = (tickers?.ToList() ?? new List<RoomTicker>()).AsReadOnly();
+            var tickerList = tickers?.ToList() ?? new List<RoomTicker>();
+
+            if (tickerList.Any(ticker => ticker == null))
+            {
+                throw new System.ArgumentException("The ticker list must not contain null entries", nameof(tickers));
+            }
+
+            Tickers = tickerList.AsReadOnly();
             TickerCount = Tickers.Count;
         }
 
