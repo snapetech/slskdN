@@ -268,6 +268,24 @@ describe('App', () => {
     });
   });
 
+  it('ignores malformed navigation activity list payloads', async () => {
+    getConversations.mockResolvedValue({ conversations: [] });
+    getJoinedRooms.mockResolvedValue({ rooms: ['chill'] });
+    getRoomMessages.mockResolvedValue({ messages: [] });
+
+    render(
+      <MemoryRouter initialEntries={['/searches']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Searches')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('nav-chat-alert')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('nav-rooms-alert')).not.toBeInTheDocument();
+  });
+
   it('shows a dismissible network endpoint notice when ports are reported', async () => {
     render(
       <MemoryRouter>

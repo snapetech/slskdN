@@ -22,6 +22,7 @@ import {
 } from 'semantic-ui-react';
 
 let tabCounter = 0;
+const asArray = (value) => (Array.isArray(value) ? value : []);
 
 // Load tabs from localStorage
 const loadTabsFromStorage = () => {
@@ -122,7 +123,9 @@ const Chat = ({ state }) => {
   const hydrateConversations = useCallback(async () => {
     try {
       const serverConversations = await chat.getAll();
-      const activeConversations = (serverConversations || [])
+      const activeConversations = asArray(serverConversations)
+        .filter((conversation) =>
+          conversation && typeof conversation === 'object' && !Array.isArray(conversation))
         .filter((conversation) => conversation.username)
         .sort((a, b) => {
           if (a.hasUnAcknowledgedMessages !== b.hasUnAcknowledgedMessages) {

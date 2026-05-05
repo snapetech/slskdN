@@ -2439,3 +2439,7 @@
 - [x] Harden Messaging workspace server list hydration
   - Status: completed (2026-05-05)
   - Notes: Guarded chat conversation, joined room, pod, and pod channel payloads before Messaging workspace hydration. Added focused Messaging regression coverage and extended ADR-0001 gotcha `0z306`.
+
+- [x] Harden App, Chat, and Rooms API list payload shapes
+  - Status: completed (2026-05-05)
+  - Notes: Guarded App navigation activity, legacy Chat conversation hydration, and legacy Rooms joined/available room hydration against malformed non-array API payloads. Added focused App, Chat, and Rooms regression coverage and extended ADR-0001 gotcha `0z304`.

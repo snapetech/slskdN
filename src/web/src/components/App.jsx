@@ -77,6 +77,7 @@ const normalizeTheme = (theme) => {
 };
 
 const getSemanticTheme = (theme) => (theme === 'light' ? 'light' : 'dark');
+const asArray = (value) => (Array.isArray(value) ? value : []);
 
 const normalizePortForwardProtocol = (proto) =>
   `${proto || ''}`.trim().toUpperCase();
@@ -658,14 +659,14 @@ class App extends Component {
     }
 
     const conversations = await chat.getAll({ unAcknowledgedOnly: true });
-    return (conversations || []).length > 0;
+    return asArray(conversations).length > 0;
   };
 
   getRoomsActivity = async () => {
-    const joinedRooms = (await rooms.getJoined()) || [];
+    const joinedRooms = asArray(await rooms.getJoined());
     const roomMessages = await Promise.all(
       joinedRooms.filter(Boolean).map(async (roomName) => ({
-        messages: (await rooms.getMessages({ roomName })) || [],
+        messages: asArray(await rooms.getMessages({ roomName })),
         roomName,
       })),
     );

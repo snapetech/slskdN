@@ -9676,3 +9676,10 @@ Code quality improvements were completed as part of Option A:
 - Guarded server conversations, joined rooms, pods, and pod channels so malformed non-array payloads do not crash unified Messaging.
 - Extended ADR-0001 gotcha `0z306` in commit `c14d25ca1`.
 - Validation passed: focused Messaging Vitest coverage (`11` tests), Web lint, `git diff --check`, and `npm run check:remediation`.
+
+## 2026-05-05 20:12:00Z
+
+- Continued Web API list payload burn-down across App navigation badges and the legacy Chat/Rooms workflows.
+- Guarded unread chat activity, room activity polling, saved conversation hydration, joined room hydration, available room options, and join/leave refresh state against malformed non-array payloads.
+- Extended ADR-0001 gotcha `0z304` in commit `8e489ed2d`.
+- Validation passed: focused App, Chat, and Rooms Vitest coverage (`15` tests), Web lint, `git diff --check`, `npm run check:remediation`, `./bin/lint`, and `dotnet test slskd.sln --no-restore`.

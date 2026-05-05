@@ -1,3 +1,14 @@
+## Update 2026-05-05 20:12:00Z
+
+- Current task: App, Chat, and Rooms API list payload hardening is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-068` through `BUG-20260505-070` in `docs/dev/bug-burndown-ledger.md`
+  - guarded navigation activity, saved conversation tabs, joined room tabs, available room options, and join/leave refresh state before list operations
+  - extended ADR-0001 gotcha `0z304` in commit `8e489ed2d`
+  - validation passed: focused App, Chat, and Rooms Vitest suite (`15` tests), Web lint, `git diff --check`, `npm run check:remediation`, `./bin/lint`, and `dotnet test slskd.sln --no-restore`
+- Next steps:
+  1. Commit and push the full dirty tree per user request.
+
 ## Update 2026-05-05 20:00:00Z
 
 - Current task: Messaging workspace server list hydration hardening is complete locally.

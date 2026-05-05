@@ -35,4 +35,17 @@ describe('Rooms', () => {
 
     expect(await screen.findByText('New Room Tab')).toBeInTheDocument();
   });
+
+  it('ignores malformed joined room list payloads while hydrating', async () => {
+    rooms.getJoined.mockResolvedValue({ rooms: ['chill'] });
+
+    render(
+      <MemoryRouter initialEntries={['/rooms']}>
+        <Rooms />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('New Room Tab')).toBeInTheDocument();
+    expect(screen.queryByText('chill')).not.toBeInTheDocument();
+  });
 });

@@ -17,6 +17,7 @@ import {
 } from 'semantic-ui-react';
 
 let tabCounter = 0;
+const asArray = (value) => (Array.isArray(value) ? value : []);
 
 // Load tabs from localStorage
 const loadTabsFromStorage = () => {
@@ -124,7 +125,7 @@ const Rooms = () => {
   const hydrateJoinedRooms = useCallback(async () => {
     try {
       const joined = await rooms.getJoined();
-      const normalized = (joined || []).filter(Boolean).sort();
+      const normalized = asArray(joined).filter(Boolean).sort();
       setJoinedRooms(normalized);
       if (normalized.length > 0) {
         setTabs((previous) => {
@@ -155,7 +156,10 @@ const Rooms = () => {
     setRoomSearchLoading(true);
     try {
       const available = await rooms.getAvailable();
-      setAvailableRooms(available || []);
+      setAvailableRooms(
+        asArray(available)
+          .filter((room) => room && typeof room === 'object' && !Array.isArray(room)),
+      );
     } catch {
       setAvailableRooms([]);
     } finally {
@@ -169,7 +173,7 @@ const Rooms = () => {
 
       // Refresh joined rooms
       const joined = await rooms.getJoined();
-      setJoinedRooms(joined || []);
+      setJoinedRooms(asArray(joined).filter(Boolean).sort());
       openRoomTab(roomName);
     } catch (error) {
       console.error('Failed to join room:', error);
@@ -182,7 +186,7 @@ const Rooms = () => {
 
       // Refresh joined rooms
       const joined = await rooms.getJoined();
-      setJoinedRooms(joined || []);
+      setJoinedRooms(asArray(joined).filter(Boolean).sort());
 
       // Close the tab for this room
       const tabToClose = tabs.find((t) => t.roomName === roomName);

@@ -38,4 +38,17 @@ describe('Chat', () => {
 
     expect(await screen.findByText('New Chat')).toBeInTheDocument();
   });
+
+  it('ignores malformed conversation list payloads while hydrating', async () => {
+    chat.getAll.mockResolvedValue({ conversations: [{ username: 'alice' }] });
+
+    render(
+      <MemoryRouter initialEntries={['/chat']}>
+        <Chat />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('New Chat')).toBeInTheDocument();
+    expect(screen.queryByText('alice')).not.toBeInTheDocument();
+  });
 });
