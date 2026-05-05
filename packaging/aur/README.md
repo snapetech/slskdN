@@ -76,6 +76,42 @@ sudo systemctl enable --now slskd
 xdg-open http://localhost:5030
 ```
 
+## File Permissions
+
+The AUR packages run the service as the `slskd` system user and group. Package
+install/upgrade applies these defaults:
+
+- `/etc/slskd/slskd.yml` is owned by `slskd:slskd` with group write access so
+  the daemon can manage its configuration.
+- `/var/lib/slskd`, `/var/lib/slskd/downloads`, and
+  `/var/lib/slskd/incomplete` are owned by `slskd:slskd` with group write
+  access.
+- `slskd.service` uses `UMask=0002` so newly created files remain group
+  accessible.
+
+To edit the configuration or manage downloaded files as your normal user
+without `sudo`, add that user to the service group:
+
+```bash
+sudo usermod -aG slskd "$USER"
+```
+
+Then start a new login session, reboot, or run:
+
+```bash
+newgrp slskd
+```
+
+For existing installs that were created before these package permissions were
+fixed, this one-time repair matches the package defaults:
+
+```bash
+sudo chown slskd:slskd /etc/slskd/slskd.yml
+sudo chmod 664 /etc/slskd/slskd.yml
+sudo chown -R slskd:slskd /var/lib/slskd
+sudo chmod -R g+rwX /var/lib/slskd
+```
+
 ### Optional AUR extras for SongID workflows
 
 `slskdn` installs with only the core runtime dependencies. If you want full SongID workflows, install any of these optional packages separately.

@@ -1,3 +1,16 @@
+## Update 2026-05-05 09:34:00Z
+
+- Current task: Systemd package permission fix is complete locally.
+- Last activity:
+  - documented ADR-0001 gotcha `0z286` and committed it separately as `d5cee636a`
+  - added AUR `tmpfiles.d` rules for daemon-owned config/data paths
+  - added `UMask=0002` to packaged and release-installer systemd units
+  - updated the release installer to repair existing config/data ownership and group-write modes
+  - documented optional `slskd` group membership for non-root human access to config/download paths
+  - validation passed: AUR hash validation, packaging metadata validation, shell syntax checks, `git diff --check`, and repo lint
+- Next steps:
+  1. Commit/push the permission fix and publish updated AUR package metadata if desired.
+
 ## Update 2026-05-05 09:06:43Z
 
 - Current task: Non-bin AUR source package .NET prune metadata fix and release-channel hardening are complete locally.

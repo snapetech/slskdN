@@ -42,16 +42,16 @@ validate_pkgbuild() {
 
     read -r -a sums <<< "$(get_checksums "$pkgbuild")"
 
-    if [[ "${#sums[@]}" -lt 4 ]]; then
-        fail "${pkgbuild}: sha256sums must include archive + 3 static files"
+    if [[ "${#sums[@]}" -lt 5 ]]; then
+        fail "${pkgbuild}: sha256sums must include archive + 4 static files"
     fi
 
     if [[ "${sums[0]}" != "SKIP" ]]; then
         fail "${pkgbuild}: archive checksum must stay SKIP for mutable AUR release assets"
     fi
 
-    local -a release_files=("slskd.service" "slskd.yml" "slskd.sysusers")
-    for i in 0 1 2; do
+    local -a release_files=("slskd.service" "slskd.yml" "slskd.sysusers" "slskd.tmpfiles")
+    for i in 0 1 2 3; do
         expected="${sums[$((i + 1))]:-}"
         source_file="${dir}/${release_files[$i]}"
 

@@ -9522,3 +9522,10 @@ Code quality improvements were completed as part of Option A:
 
 - Hardened the shared `bin/publish` path and direct release-channel publish commands in tag, Linux, COPR, and PPA workflows with `-p:AllowMissingPrunePackageData=true`.
 - Added packaging metadata validation for the shared publish script so future release builds keep the prune metadata opt-out.
+
+## 2026-05-05 09:34:00Z
+
+- Fixed systemd package permissions for AUR installs by adding `slskd.tmpfiles` rules for `/var/lib/slskd`, downloads, incomplete files, and `/etc/slskd/slskd.yml`.
+- Added `UMask=0002` to packaged and release-installer systemd units so newly created files remain group accessible.
+- Updated the release installer to repair existing config/data ownership and group-write modes.
+- Documented the optional `sudo usermod -aG slskd "$USER"` workflow plus re-login/newgrp requirement for users who want non-root access to config and downloads.

@@ -132,6 +132,7 @@ ExecStart=/usr/bin/dotnet ${DEST}/slskd.dll --config ${CONFIG_FILE}
 WorkingDirectory=${DATA_DIR}
 Environment="HOME=${DATA_DIR}"
 Environment="DOTNET_ROOT=/usr/share/dotnet"
+UMask=0002
 Restart=on-failure
 RestartSec=10
 
@@ -189,9 +190,12 @@ main() {
   id -u "$USER" >/dev/null 2>&1 || useradd -r -s /usr/sbin/nologin -d "$DATA_DIR" "$USER"
   mkdir -p "$DATA_DIR" "$DATA_DIR/downloads" "$DATA_DIR/incomplete" "$CONFIG_DIR"
   chown -R "${USER}:${USER}" "$DATA_DIR" "$DEST"
+  chmod -R g+rwX "$DATA_DIR"
 
   echo "[5/7] Installing config..."
   write_default_config
+  chown "${USER}:${USER}" "$CONFIG_FILE"
+  chmod 664 "$CONFIG_FILE"
 
   echo "[6/7] Installing systemd unit..."
   write_systemd_unit

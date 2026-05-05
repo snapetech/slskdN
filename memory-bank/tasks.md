@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **packaging**: Fix systemd install permissions for config and data paths.
+ - Status: completed (2026-05-05)
+ - Priority: P1
+ - Notes: Added AUR `tmpfiles.d` rules so package installs/upgrades converge `/etc/slskd/slskd.yml` and `/var/lib/slskd` ownership/modes for the `slskd` daemon user/group, added `UMask=0002` to packaged and installer-created systemd units, bumped AUR source/bin package releases, made the release installer repair existing config/data permissions, and documented optional `usermod -aG slskd "$USER"` setup for non-root human access. Documented ADR-0001 gotcha `0z286`. Validation passed: AUR hash validation, packaging metadata validation, shell syntax checks, `git diff --check`, and repo lint.
+
 - [x] **packaging**: Fix non-bin AUR source package on Arch .NET 10 SDK.
  - Status: completed (2026-05-05)
  - Priority: P1

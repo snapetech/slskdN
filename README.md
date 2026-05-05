@@ -521,13 +521,23 @@ Experimental service layer for opt-in mesh-based applications.
 Getting started is simple.
 
 ### Arch Linux (AUR)
-**Drop-in replacement for slskd** — preserves your existing config at `/var/lib/slskd/`.
+**Drop-in replacement for slskd** — preserves your existing config at
+`/etc/slskd/slskd.yml` and data under `/var/lib/slskd/`.
 ```bash
 yay -S slskdn              # build from source (recommended)
 yay -S slskdn-bin          # Binary package
 sudo systemctl enable --now slskd
 ```
 Access at http://localhost:5030
+
+The packaged systemd service runs as `slskd:slskd`. To edit
+`/etc/slskd/slskd.yml` or manage `/var/lib/slskd/downloads` as your normal user
+without `sudo`, add your account to the service group and start a new session:
+
+```bash
+sudo usermod -aG slskd "$USER"
+newgrp slskd
+```
 
 If an Arch upgrade fails on `python-torchaudio` with `Cannot resume`, slskdn itself is fine — it was blocked only by an optional dependency workflow in AUR. Use the package helper documented at:
 - [packaging/aur/README.md#optional-fix-for-pythontorchaudio-download-failures](packaging/aur/README.md#optional-fix-for-python-torchaudio-download-failures)
@@ -544,6 +554,10 @@ sudo SLSKDN_VERSION=0.24.5-slskdn.133 bash install-linux-release.sh
 ```
 
 The installer places the release under `/opt/slskdn`, keeps config at `/etc/slskd/slskd.yml`, and points `slskd.service` at the extracted release.
+
+For non-AUR systemd installs, the same service-group model applies: the daemon
+runs as `slskd:slskd`, and adding your login to the `slskd` group gives you
+non-root access to the config and download paths after a new login session.
 
 ### Homebrew (macOS/Linux)
 ```bash
