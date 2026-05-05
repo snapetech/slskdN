@@ -52,6 +52,30 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z291. JSON String Endpoints Need Explicit JSON.stringify From Web API Helpers
+
+**The Bug**: Room join/create calls posted a raw JavaScript string to an ASP.NET `[FromBody] string` endpoint that consumes `application/json`. Axios was configured with `Content-Type: application/json`, but a raw string body is not a JSON string literal, so model binding could reject or lose the room name before `RoomService.JoinAsync()` reached Soulseek. Existing room message sending worked because it explicitly used `JSON.stringify(message)`.
+
+**Files Affected**:
+- `src/web/src/lib/rooms.js`
+- `src/slskd/Messaging/API/Controllers/RoomsController.cs`
+
+**Wrong**:
+```js
+export const join = async ({ roomName }) => {
+  return api.post('/rooms/joined', roomName);
+};
+```
+
+**Correct**:
+```js
+export const join = async ({ roomName }) => {
+  return api.post('/rooms/joined', JSON.stringify(roomName));
+};
+```
+
+**Why This Keeps Happening**: The shared Axios interceptor sets JSON content type, but it does not convert primitive string payloads into JSON string literals. For endpoints that intentionally bind `[FromBody] string`, Web helpers must call `JSON.stringify(value)` just like room messages do, or the server receives invalid JSON for the declared content type.
+
 ### 0z290. Links That Must Work In New Tabs Cannot Depend On Router State
 
 **The Bug**: Search result usernames linked to Browse using React Router state embedded in the `to` object. Same-tab navigation could appear to work in some versions, but opening the link in a new tab or refreshing `/browse` lost the username because router state is not part of the URL. Browse opened as a blank/new tab without starting the requested user browse.
