@@ -52,6 +52,31 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z286. System Packages Must Converge Runtime Path Ownership
+
+**The Bug**: AUR installs created the `slskd` daemon user but left `/var/lib/slskd` and the packaged `/etc/slskd/slskd.yml` with package-default root ownership/modes. The systemd service runs as `slskd:slskd`, so downloads, incomplete files, and any daemon-managed configuration writes could fail until the operator manually fixed ownership and group write permissions.
+
+**Files Affected**:
+- `packaging/aur/PKGBUILD`
+- `packaging/aur/PKGBUILD-bin`
+- `packaging/aur/slskd.install`
+- `packaging/aur/slskd.tmpfiles`
+- `packaging/aur/slskd.service`
+
+**Wrong**:
+```bash
+install -dm755 "${pkgdir}/var/lib/${_pkgname}"
+install -Dm644 "${srcdir}/slskd.yml" "${pkgdir}/etc/${_pkgname}/${_pkgname}.yml"
+```
+
+**Correct**:
+```bash
+install -Dm644 "${srcdir}/slskd.tmpfiles" "${pkgdir}/usr/lib/tmpfiles.d/${_pkgname}.conf"
+systemd-tmpfiles --create /usr/lib/tmpfiles.d/slskd.conf
+```
+
+**Why This Keeps Happening**: `systemd-sysusers` only creates the service account; it does not repair ownership or modes for package-created state/config paths. Any package that runs the daemon as an unprivileged user must also ship `tmpfiles.d` rules or equivalent post-install convergence for writable runtime directories and daemon-managed config files.
+
 ### 0z285. AUR Source Builds Need The .NET Prune Metadata Opt-Out
 
 **The Bug**: The non-bin AUR package completed the Web UI build, then failed during `dotnet publish` on Arch's .NET 10 SDK with `NETSDK1226: Prune Package data not found .NETCoreApp 10.0 Microsoft.AspNetCore.App`.
