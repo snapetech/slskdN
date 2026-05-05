@@ -419,7 +419,7 @@ Recommendation:
 ## Commands Used
 
 ```bash
-git ls-files '*.md' | rg -v '^(docs/archive|memory-bank|from-lack-workspace|node_modules|src/web/node_modules|tests/e2e/node_modules)/'
+git ls-files '*.md' | rg -v '^(docs/archive|memory-bank|node_modules|src/web/node_modules|tests/e2e/node_modules)/'
 python3 <markdown-link-scan>
 git grep -n 'kspls0\|kspld0\|/home/keith\|Documents/code\|Documents/Code'
 rg -n '2025-|2026-01|dev/40-fixes|placeholder|stub|TODO|Lidarr|VPN|Gold Star'
