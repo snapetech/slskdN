@@ -1018,6 +1018,69 @@ namespace Soulseek.Tests.Unit.Client
         }
 
         [Trait("Category", "UploadFromFileAsync")]
+        [Theory(DisplayName = "UploadFromFileAsync cancels write task when disconnect wins race"), AutoData]
+        public async Task UploadFromFileAsync_Cancels_Write_Task_When_Disconnect_Wins_Race(string username, IPEndPoint endpoint, string filename, int token, byte[] data)
+        {
+            var fileData = data.Length > 0 ? data : new byte[] { 0x1 };
+            var options = new SoulseekClientOptions(messageTimeout: 5);
+            var response = new TransferResponse(token, fileData.Length);
+            var responseWaitKey = new WaitKey(MessageCode.Peer.TransferResponse, username, token);
+
+            var writeStarted = new TaskCompletionSource<CancellationToken>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var writeCancelled = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var waiter = new Mock<IWaiter>();
+            waiter.Setup(m => m.Wait<TransferResponse>(It.Is<WaitKey>(w => w.Equals(responseWaitKey)), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(response));
+            waiter.Setup(m => m.Wait<UserAddressResponse>(It.IsAny<WaitKey>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(new UserAddressResponse(username, endpoint.Address, endpoint.Port)));
+
+            var conn = new Mock<IMessageConnection>();
+            conn.Setup(m => m.State)
+                .Returns(ConnectionState.Connected);
+
+            var transferConn = new Mock<IConnection>();
+            transferConn.Setup(m => m.ReadAsync(8, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(BitConverter.GetBytes(0L)));
+            transferConn.Setup(m => m.WriteAsync(It.IsAny<long>(), It.IsAny<Stream>(), It.IsAny<Func<int, CancellationToken, Task<int>>>(), It.IsAny<Action<int, int, int>>(), It.IsAny<CancellationToken>()))
+                .Returns<long, Stream, Func<int, CancellationToken, Task<int>>, Action<int, int, int>, CancellationToken>((length, inputStream, governor, reporter, cancellationToken) =>
+                {
+                    writeStarted.TrySetResult(cancellationToken);
+                    cancellationToken.Register(() => writeCancelled.TrySetResult(true));
+                    return Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
+                });
+
+            var connManager = new Mock<IPeerConnectionManager>();
+            connManager.Setup(m => m.GetOrAddMessageConnectionAsync(username, endpoint, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(conn.Object));
+            connManager.Setup(m => m.GetTransferConnectionAsync(username, endpoint, token, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(transferConn.Object));
+
+            var thrownEx = new Exception("some exception");
+
+            using (var testFile = new TestFile(fileData))
+            using (var s = new SoulseekClient(minorVersion: 9999, options: options, waiter: waiter.Object, serverConnection: conn.Object, peerConnectionManager: connManager.Object))
+            {
+                s.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+
+                var task = s.InvokeMethod<Task>("UploadFromFileAsync", username, filename, testFile.Path, token, new TransferOptions(), null);
+
+                var writeStartTask = await Task.WhenAny(writeStarted.Task, Task.Delay(TimeSpan.FromSeconds(1)));
+                Assert.Same(writeStarted.Task, writeStartTask);
+
+                transferConn.Raise(m => m.Disconnected += null, new ConnectionDisconnectedEventArgs("some exception", thrownEx));
+
+                var ex = await Record.ExceptionAsync(() => task);
+                var writeCancellationTask = await Task.WhenAny(writeCancelled.Task, Task.Delay(TimeSpan.FromSeconds(1)));
+
+                Assert.Same(writeCancelled.Task, writeCancellationTask);
+                Assert.NotNull(ex);
+                Assert.IsType<SoulseekClientException>(ex);
+                Assert.IsType<ConnectionException>(ex.InnerException);
+            }
+        }
+
+        [Trait("Category", "UploadFromFileAsync")]
         [Theory(DisplayName = "UploadFromFileAsync completes without Exception when transfer is allowed"), AutoData]
         public async Task UploadFromFileAsync_Completes_Without_Exception_When_Transfer_Is_Allowed(string username, IPEndPoint endpoint, string filename, byte[] data, int token, int size)
         {
