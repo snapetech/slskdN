@@ -147,6 +147,11 @@ namespace Soulseek.Messaging.Handlers
                         {
                             outgoingInfo = await SoulseekClient.Options
                                 .UserInfoResolver(connection.Username, connection.IPEndPoint).ConfigureAwait(false);
+
+                            if (outgoingInfo == null)
+                            {
+                                throw new InvalidOperationException("The user info resolver returned null");
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -539,7 +544,14 @@ namespace Soulseek.Messaging.Handlers
 
             if (placeInQueue.HasValue)
             {
-                await connection.WriteAsync(new PlaceInQueueResponse(filename, placeInQueue.Value)).ConfigureAwait(false);
+                try
+                {
+                    await connection.WriteAsync(new PlaceInQueueResponse(filename, placeInQueue.Value)).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Diagnostic.Warning($"Failed to send place in queue response for file {filename} from {connection.Username}: {ex.Message}", ex);
+                }
             }
         }
     }

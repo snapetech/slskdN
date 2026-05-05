@@ -10,7 +10,7 @@ scan() {
   shift 2
 
   printf '\n## %s\n' "$title"
-  rg -n --pcre2 --hidden --glob '!.git/**' "$pattern" "$@" || true
+  rg -n --with-filename --pcre2 --hidden --glob '!.git/**' "$pattern" "$@" || true
 }
 
 scan_multiline() {
@@ -19,7 +19,7 @@ scan_multiline() {
   shift 2
 
   printf '\n## %s\n' "$title"
-  rg -n -U --pcre2 --hidden --glob '!.git/**' "$pattern" "$@" || true
+  rg -n -U --with-filename --pcre2 --hidden --glob '!.git/**' "$pattern" "$@" || true
 }
 
 scan_protocol_scalar_guards() {
@@ -89,6 +89,18 @@ scan_protocol_scalar_guards
 scan "Resolver output and raw stream candidates" \
   'Resolver|Raw.*Response|Stream|WriteAsync\([^)]*Stream|ToByteArray\(\)' \
   src/Messaging src/Options src/SoulseekClient.cs
+
+scan "Resolver delegate surface candidates" \
+  'SearchResponseResolver|BrowseResponseResolver|DirectoryContentsResolver|UserInfoResolver|PlaceInQueueResolver|EnqueueDownload' \
+  src/Options src/SoulseekClient.cs src/Messaging/Handlers/PeerMessageHandler.cs
+
+scan "Peer resolver dispatch candidates" \
+  'Options\.(SearchResponseResolver|BrowseResponseResolver|DirectoryContentsResolver|UserInfoResolver|PlaceInQueueResolver)|WriteRaw(Search|Browse)ResponseAsync|Raw(Search|Browse)Response|TrySendPlaceInQueueAsync|new PlaceInQueueResponse' \
+  src/Messaging/Handlers/PeerMessageHandler.cs
+
+scan "Transfer stream factory candidates" \
+  'Func<Task<Stream>>|Func<long, Task<Stream>>|outputStreamFactory|inputStreamFactory|Dispose(Input|Output)StreamOnCompletion|Seek(Input|Output)StreamAutomatically' \
+  src/SoulseekClient.cs src/Options/TransferOptions.cs src/Network/Tcp
 
 scan "Example Web API path, request, and lifecycle candidates" \
   'Path|File\.|Directory\.|Request|CancellationTokenSource|Stream|IFormFile|FromBody|ActionResult|BadRequest|Ok\(' \

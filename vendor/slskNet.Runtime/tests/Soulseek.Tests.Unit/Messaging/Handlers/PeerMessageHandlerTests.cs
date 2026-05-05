@@ -467,6 +467,25 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
         }
 
         [Trait("Category", "Message")]
+        [Fact(DisplayName = "Sends default UserInfoResponse if resolver returns null")]
+        public async Task Sends_Default_UserInfoResponse_If_Resolver_Returns_Null()
+        {
+            var options = new SoulseekClientOptions(userInfoResolver: (u, i) => Task.FromResult<UserInfo>(null));
+
+            var defaultResponse = await new SoulseekClientOptions()
+                .UserInfoResolver(null, null);
+
+            var (handler, mocks) = GetFixture(options: options);
+
+            var msg = new UserInfoRequest().ToByteArray();
+
+            handler.HandleMessageRead(mocks.PeerConnection.Object, msg);
+
+            mocks.PeerConnection.Verify(m => m.WriteAsync(It.Is<byte[]>(o => o.Matches(defaultResponse.ToByteArray())), null), Times.Once);
+            mocks.Diagnostic.Verify(m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Failed to resolve user info response")), It.IsAny<InvalidOperationException>()), Times.Once);
+        }
+
+        [Trait("Category", "Message")]
         [Theory(DisplayName = "Sends resolved UserInfoResponse"), AutoData]
         public void Sends_Resolved_UserInfoResponse(string description, byte[] picture, int uploadSlots, int queueLength, bool hasFreeUploadSlot)
         {
@@ -1105,6 +1124,24 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
             handler.HandleMessageRead(mocks.PeerConnection.Object, message);
 
             mocks.Diagnostic.Verify(m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Failed to resolve place in Queue")), ex), Times.Once);
+        }
+
+        [Trait("Category", "Diagnostic")]
+        [Theory(DisplayName = "Creates diagnostic when PlaceInQueueResponseResolver returns invalid output"), AutoData]
+        public void Creates_Diagnostic_When_PlaceInQueueResponseResolver_Returns_Invalid_Output(string username, IPEndPoint endpoint, string filename)
+        {
+            var options = new SoulseekClientOptions(
+                enqueueDownload: (u, f, i) => Task.CompletedTask,
+                placeInQueueResolver: (u, f, i) => Task.FromResult<int?>(-1));
+
+            var (handler, mocks) = GetFixture(username, endpoint, options);
+
+            var message = new PlaceInQueueRequest(filename).ToByteArray();
+
+            handler.HandleMessageRead(mocks.PeerConnection.Object, message);
+
+            mocks.Diagnostic.Verify(m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Failed to send place in queue response")), It.IsAny<ArgumentOutOfRangeException>()), Times.Once);
+            mocks.PeerConnection.Verify(m => m.WriteAsync(It.IsAny<IOutgoingMessage>(), It.IsAny<CancellationToken?>()), Times.Never);
         }
 
         [Trait("Category", "Message")]
