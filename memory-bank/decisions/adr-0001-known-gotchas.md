@@ -52,6 +52,27 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z305. Browser Base64 Route Segments Need UTF-8 And URL Encoding
+
+**The Bug**: The Web file explorer used `btoa(path)` directly in API route segments. `btoa()` throws for Unicode filenames, and standard base64 can contain `/` or `+`, which are not safe inside path segments unless encoded.
+
+**Files Affected**:
+- `src/web/src/lib/files.js`
+
+**Wrong**:
+```js
+api.get(`/files/${root}/directories/${btoa(subdirectory)}`);
+```
+
+**Correct**:
+```js
+const bytes = new TextEncoder().encode(subdirectory);
+const binary = Array.from(bytes).map((byte) => String.fromCharCode(byte)).join('');
+api.get(`/files/${root}/directories/${encodeURIComponent(btoa(binary))}`);
+```
+
+**Why This Keeps Happening**: Browser `btoa()` works on Latin-1 binary strings, not arbitrary JavaScript Unicode strings. Any filename, directory, token, or descriptor that travels as base64 in a URL path segment needs UTF-8 conversion first and URL-encoding after base64.
+
 ### 0z304. Web API List Helpers Must Reject Non-Array Payloads
 
 **The Bug**: Web API helpers returned `response.data || []` for list endpoints. Truthy malformed payloads such as objects or strings escaped as “lists” and could crash callers that immediately map, filter, or render them.
