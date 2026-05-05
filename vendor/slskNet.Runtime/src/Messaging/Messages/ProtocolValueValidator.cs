@@ -47,5 +47,31 @@ namespace Soulseek.Messaging.Messages
                 throw new MessageException($"Invalid {fieldName} port: {port}");
             }
         }
+
+        /// <summary>
+        ///     Validates that a protocol scalar is not negative.
+        /// </summary>
+        /// <param name="value">The value to validate.</param>
+        /// <param name="fieldName">The field name for diagnostics.</param>
+        public static void ValidateNonNegative(int value, string fieldName)
+        {
+            if (value < 0)
+            {
+                throw new MessageException($"Invalid {fieldName}: {value}");
+            }
+        }
+
+        /// <summary>
+        ///     Validates that a protocol scalar is not negative.
+        /// </summary>
+        /// <param name="value">The value to validate.</param>
+        /// <param name="fieldName">The field name for diagnostics.</param>
+        public static void ValidateNonNegative(long value, string fieldName)
+        {
+            if (value < 0)
+            {
+                throw new MessageException($"Invalid {fieldName}: {value}");
+            }
+        }
     }
 }

@@ -67,6 +67,8 @@ namespace Soulseek.Messaging.Messages
             var filename = reader.ReadString();
             var placeInQueue = reader.ReadInteger();
 
+            ProtocolValueValidator.ValidateNonNegative(placeInQueue, "place in queue");
+
             return new PlaceInQueueResponse(filename, placeInQueue);
         }
 

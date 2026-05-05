@@ -82,6 +82,12 @@ namespace Soulseek.Messaging.Messages
             var slotsFree = reader.ReadInteger();
             string countryCode = reader.ReadString();
 
+            ProtocolValueValidator.ValidateNonNegative(averageSpeed, "average speed");
+            ProtocolValueValidator.ValidateNonNegative(downloadCount, "upload count");
+            ProtocolValueValidator.ValidateNonNegative(fileCount, "file count");
+            ProtocolValueValidator.ValidateNonNegative(directoryCount, "directory count");
+            ProtocolValueValidator.ValidateNonNegative(slotsFree, "free slot count");
+
             var userData = new UserData(username, status, averageSpeed, downloadCount, fileCount, directoryCount, countryCode, slotsFree);
 
             return new UserJoinedRoomNotification(roomName, username, userData);

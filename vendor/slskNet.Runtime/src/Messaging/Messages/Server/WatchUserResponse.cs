@@ -84,6 +84,12 @@ namespace Soulseek.Messaging.Messages
                 var downloadCount = reader.ReadLong();
                 var fileCount = reader.ReadInteger();
                 var directoryCount = reader.ReadInteger();
+
+                ProtocolValueValidator.ValidateNonNegative(averageSpeed, "average speed");
+                ProtocolValueValidator.ValidateNonNegative(downloadCount, "upload count");
+                ProtocolValueValidator.ValidateNonNegative(fileCount, "file count");
+                ProtocolValueValidator.ValidateNonNegative(directoryCount, "directory count");
+
                 string countryCode = null;
                 if (reader.HasMoreData)
                 {

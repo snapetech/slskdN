@@ -49,6 +49,11 @@ namespace Soulseek.Messaging.Messages
             var fileCount = reader.ReadInteger();
             var directoryCount = reader.ReadInteger();
 
+            ProtocolValueValidator.ValidateNonNegative(averageSpeed, "average speed");
+            ProtocolValueValidator.ValidateNonNegative(uploadCount, "upload count");
+            ProtocolValueValidator.ValidateNonNegative(fileCount, "file count");
+            ProtocolValueValidator.ValidateNonNegative(directoryCount, "directory count");
+
             return new UserStatistics(username, averageSpeed, uploadCount, fileCount, directoryCount);
         }
     }

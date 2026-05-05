@@ -59,6 +59,9 @@ namespace Soulseek.Messaging.Messages
             var uploadSpeed = reader.ReadInteger();
             var queueLength = reader.ReadInteger();
 
+            ProtocolValueValidator.ValidateNonNegative(uploadSpeed, "upload speed");
+            ProtocolValueValidator.ValidateNonNegative(queueLength, "queue length");
+
             if (reader.HasMoreData)
             {
                 // most clients send an unknown integer between queue length and the locked file count

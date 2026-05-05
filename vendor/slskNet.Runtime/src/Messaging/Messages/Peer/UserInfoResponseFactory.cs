@@ -24,6 +24,7 @@
 namespace Soulseek
 {
     using Soulseek.Messaging;
+    using Soulseek.Messaging.Messages;
 
     /// <summary>
     ///     The response to a user info request.
@@ -73,6 +74,9 @@ namespace Soulseek
             var uploadSlots = reader.ReadInteger();
             var queueLength = reader.ReadInteger();
             var hasFreeUploadSlot = reader.ReadByte() > 0;
+
+            ProtocolValueValidator.ValidateNonNegative(uploadSlots, "upload slot count");
+            ProtocolValueValidator.ValidateNonNegative(queueLength, "queue length");
 
             return new UserInfo(description, uploadSlots, queueLength, hasFreeUploadSlot, picture);
         }

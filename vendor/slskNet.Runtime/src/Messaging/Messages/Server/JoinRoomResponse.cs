@@ -75,6 +75,11 @@ namespace Soulseek.Messaging.Messages
                 var fileCount = reader.ReadInteger();
                 var directoryCount = reader.ReadInteger();
 
+                ProtocolValueValidator.ValidateNonNegative(averageSpeed, "average speed");
+                ProtocolValueValidator.ValidateNonNegative(downloadCount, "upload count");
+                ProtocolValueValidator.ValidateNonNegative(fileCount, "file count");
+                ProtocolValueValidator.ValidateNonNegative(directoryCount, "directory count");
+
                 datums.Add((averageSpeed, downloadCount, fileCount, directoryCount));
             }
 
@@ -84,7 +89,9 @@ namespace Soulseek.Messaging.Messages
 
             for (int i = 0; i < slotsFreeCount; i++)
             {
-                slots.Add(reader.ReadInteger());
+                var slotCount = reader.ReadInteger();
+                ProtocolValueValidator.ValidateNonNegative(slotCount, "free slot count");
+                slots.Add(slotCount);
             }
 
             var countryCount = ProtocolCountReader.ReadCount(reader, "room user country", minimumBytesPerItem: 4);
