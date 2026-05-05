@@ -3798,11 +3798,11 @@ namespace Soulseek
                 {
                     if (e.Exception is OperationCanceledException || e.Exception is TimeoutException)
                     {
-                        disconnectedTaskCancellationSource.SetException(e.Exception);
+                        disconnectedTaskCancellationSource.TrySetException(e.Exception);
                         return;
                     }
 
-                    disconnectedTaskCancellationSource.SetException(new ConnectionException($"Transfer failed: {e.Message}", e.Exception));
+                    disconnectedTaskCancellationSource.TrySetException(new ConnectionException($"Transfer failed: {e.Message}", e.Exception));
                 };
 
                 outputStream = await outputStreamFactory().ConfigureAwait(false);
@@ -5084,11 +5084,11 @@ namespace Soulseek
                 {
                     if (e.Exception is OperationCanceledException || e.Exception is TimeoutException)
                     {
-                        disconnectedTaskCancellationSource.SetException(e.Exception);
+                        disconnectedTaskCancellationSource.TrySetException(e.Exception);
                         return;
                     }
 
-                    disconnectedTaskCancellationSource.SetException(new ConnectionException($"Transfer failed: {e.Message}", e.Exception));
+                    disconnectedTaskCancellationSource.TrySetException(new ConnectionException($"Transfer failed: {e.Message}", e.Exception));
                 };
 
                 try

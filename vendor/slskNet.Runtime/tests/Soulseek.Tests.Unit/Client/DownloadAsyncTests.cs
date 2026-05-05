@@ -2354,9 +2354,11 @@ namespace Soulseek.Tests.Unit.Client
                 var thrownEx = new Exception("some exception");
 
                 transferConn.Raise(m => m.Disconnected += null, new ConnectionDisconnectedEventArgs("some exception", thrownEx));
+                var duplicateDisconnectEx = Record.Exception(() => transferConn.Raise(m => m.Disconnected += null, new ConnectionDisconnectedEventArgs("duplicate exception", new Exception("duplicate"))));
 
                 var ex = await Record.ExceptionAsync(() => task);
 
+                Assert.Null(duplicateDisconnectEx);
                 Assert.NotNull(ex);
                 Assert.IsType<SoulseekClientException>(ex);
                 Assert.Contains("Failed to download file", ex.Message, StringComparison.InvariantCultureIgnoreCase);

@@ -5,7 +5,7 @@
   - added `docs/dev/bug-burndown-ledger.md` with taxonomy, operating rules, discovery commands, accepted scanner rows, and expert council intake findings
   - added and registered targeted remediation baseline scripts for URL intent, primitive JSON string bodies, mutating endpoint roles, guarded outbound HTTP, path containment, Soulseek network health, workflow trigger policy, release asset names, config drift, and systemd permissions
   - tuned the new checks to pass only high-confidence known guardrails and leave broader inventories in the ledger for triage
-  - validation passed: `npm run check:remediation`
+  - validation passed: `npm run check:remediation`, `./bin/lint`, `dotnet test slskd.sln --no-restore`, packaging metadata/copy checks, and `git diff --check`
 - Next steps:
   1. Triage the `New` council intake rows in `docs/dev/bug-burndown-ledger.md`.
   2. Start the first fix batch with high-confidence High severity rows after adding focused repro tests.

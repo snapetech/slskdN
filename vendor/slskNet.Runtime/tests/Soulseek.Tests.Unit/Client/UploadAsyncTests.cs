@@ -1003,9 +1003,11 @@ namespace Soulseek.Tests.Unit.Client
                 var task = s.InvokeMethod<Task>("UploadFromFileAsync", username, filename, testFile.Path, token, new TransferOptions(), null);
 
                 transferConn.Raise(m => m.Disconnected += null, new ConnectionDisconnectedEventArgs("some exception", thrownEx));
+                var duplicateDisconnectEx = Record.Exception(() => transferConn.Raise(m => m.Disconnected += null, new ConnectionDisconnectedEventArgs("duplicate exception", new Exception("duplicate"))));
 
                 var ex = await Record.ExceptionAsync(() => task);
 
+                Assert.Null(duplicateDisconnectEx);
                 Assert.NotNull(ex);
                 Assert.IsType<SoulseekClientException>(ex);
                 Assert.Contains("Failed to upload file", ex.Message, StringComparison.InvariantCultureIgnoreCase);
