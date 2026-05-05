@@ -26,6 +26,8 @@ namespace Soulseek
     /// </summary>
     public sealed class WishlistSearchScheduler : IDisposable
     {
+        private static readonly TimeSpan MaximumDelayInterval = TimeSpan.FromMilliseconds(int.MaxValue);
+
         private readonly ISoulseekClient client;
         private readonly WishlistSearchSchedulerOptions options;
         private readonly object syncRoot = new object();
@@ -186,10 +188,15 @@ namespace Soulseek
 
         private TimeSpan GetInterval()
         {
-            var interval = options.IntervalOverride ??
-                TimeSpan.FromSeconds(client.ServerInfo.WishlistInterval.GetValueOrDefault((int)options.MinimumInterval.TotalSeconds));
+            var wishlistInterval = client.ServerInfo?.WishlistInterval ?? (int)options.MinimumInterval.TotalSeconds;
+            var interval = options.IntervalOverride ?? TimeSpan.FromSeconds(wishlistInterval);
 
-            return interval < options.MinimumInterval ? options.MinimumInterval : interval;
+            if (interval < options.MinimumInterval)
+            {
+                return options.MinimumInterval;
+            }
+
+            return interval > MaximumDelayInterval ? MaximumDelayInterval : interval;
         }
 
         private async Task RunAsync(CancellationToken cancellationToken)

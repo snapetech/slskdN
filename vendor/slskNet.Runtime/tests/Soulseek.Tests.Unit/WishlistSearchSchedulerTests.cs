@@ -210,6 +210,51 @@ namespace Soulseek.Tests.Unit
             Assert.Throws<ObjectDisposedException>(() => scheduler.Start());
         }
 
+        [Fact(DisplayName = "Wishlist scheduler uses minimum interval when ServerInfo is null")]
+        public async Task Wishlist_Scheduler_Uses_Minimum_Interval_When_ServerInfo_Is_Null()
+        {
+            var client = new Mock<ISoulseekClient>();
+            var callCount = 0;
+            client.SetupGet(m => m.ServerInfo).Returns((ServerInfo)null);
+            client.Setup(m => m.SearchAsync(
+                    It.IsAny<SearchQuery>(),
+                    It.IsAny<SearchScope>(),
+                    It.IsAny<int?>(),
+                    It.IsAny<SearchOptions>(),
+                    It.IsAny<CancellationToken?>()))
+                .Callback(() => callCount++)
+                .Returns(Task.FromResult((new Search(SearchQuery.FromText("x"), SearchScope.Wishlist, 1, SearchStates.Completed, 0, 0, 0), (IReadOnlyCollection<SearchResponse>)new List<SearchResponse>())));
+
+            using (var scheduler = new WishlistSearchScheduler(
+                client.Object,
+                new[] { "alpha" },
+                new WishlistSearchSchedulerOptions(minimumInterval: System.TimeSpan.FromMilliseconds(1))))
+            {
+                scheduler.Start();
+                await WaitForCallCountAsync(() => callCount, 2);
+                scheduler.Stop();
+
+                Assert.True(callCount >= 2);
+            }
+        }
+
+        [Fact(DisplayName = "Wishlist scheduler caps oversized server intervals")]
+        public void Wishlist_Scheduler_Caps_Oversized_Server_Intervals()
+        {
+            var client = new Mock<ISoulseekClient>();
+            client.SetupGet(m => m.ServerInfo).Returns(new ServerInfo(wishlistInterval: int.MaxValue));
+
+            using (var scheduler = new WishlistSearchScheduler(
+                client.Object,
+                new[] { "alpha" },
+                new WishlistSearchSchedulerOptions(minimumInterval: System.TimeSpan.FromMilliseconds(1))))
+            {
+                var interval = scheduler.InvokeMethod<System.TimeSpan>("GetInterval");
+
+                Assert.Equal(System.TimeSpan.FromMilliseconds(int.MaxValue), interval);
+            }
+        }
+
         [Theory(DisplayName = "Wishlist scheduler options reject non-positive intervals")]
         [InlineData(0, 1)]
         [InlineData(-1, 1)]
