@@ -52,6 +52,31 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z302. Render Paths Must Not Parse Event JSON Without Fallbacks
+
+**The Bug**: The System Events table called `JSON.parse(event.data)` during render. One malformed event payload could throw and take down the whole admin events view.
+
+**Files Affected**:
+- `src/web/src/components/System/Events/index.jsx`
+
+**Wrong**:
+```jsx
+{JSON.stringify(JSON.parse(event.data), null, 2)}
+```
+
+**Correct**:
+```jsx
+const formatEventData = (data) => {
+  try {
+    return JSON.stringify(JSON.parse(data), null, 2);
+  } catch {
+    return `${data || ''}`;
+  }
+};
+```
+
+**Why This Keeps Happening**: Backend/event payloads are not guaranteed to remain valid JSON forever, especially across migrations and diagnostic events. Render paths need formatting fallbacks so data inspection views never crash while showing bad data.
+
 ### 0z301. LocalStorage Object Maps Must Reject Arrays
 
 **The Bug**: Several browser-local settings restored JSON into object-map state without rejecting arrays. Arrays are objects in JavaScript, so spreading or key-comparing them can create numeric-key junk or treat malformed timestamps as real state.
