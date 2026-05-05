@@ -2277,5 +2277,5 @@
   - Notes: Added public build metadata for logged-out and logged-in footer display, switched release checks to `snapetech/slskdn`, handled slskdN date-versioned tags/manual builds, and added footer update labeling/linking when a newer GitHub release exists.
 
 - [ ] Route optional live mesh smoke through explicit VPN/proxy egress
-  - Status: follow-up
-  - Notes: Local live-account probes connect to the Soulseek server but are closed/reset before login on the workstation IP path. The optional smoke now supports a private account pool, but still needs explicit per-process VPN/proxy egress or an opt-in gate before it should block publish validation.
+  - Status: partially complete
+  - Notes: Added an opt-in per-process VPN wrapper for full-instance tests and verified the slskR Proton namespace runner with the local account pool. Login matrix shows Proton config 1 times out for every account, while configs 2/3/4 all log in for accounts A-D. Remaining work: make the full live mesh smoke complete post-login; with configs 2/3 both daemons logged in but overlay connections stayed empty.

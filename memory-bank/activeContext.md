@@ -4862,3 +4862,15 @@ dotnet test
 - Next steps:
   1. If live mesh smoke should remain in publish validation, route its two spawned processes through documented VPN/proxy egress or make it opt-in so external Soulseek policy does not fail local builds.
   2. Preserve child process logs in `SlskdnFullInstanceRunner` failure output so future live-account failures include the actual disconnect reason.
+
+## Update 2026-05-05 02:47:00Z
+
+- Current task: VPN-backed live mesh login matrix.
+- Last activity:
+  - found and used the four local Proton WireGuard configs from `slskR/.secrets`
+  - added an opt-in full-instance VPN wrapper path for integration children
+  - verified Proton config 1 fails Soulseek login for accounts A-D while configs 2, 3, and 4 all log in
+  - confirmed the full live mesh smoke gets past alpha/beta login when using configs 2 and 3, then stalls later with no overlay peers
+- Next steps:
+  1. Exclude Proton config 1 from live Soulseek test runs unless it recovers.
+  2. Debug the post-login live mesh stall separately from login/IP throttling; login is no longer the blocker on configs 2/3/4.

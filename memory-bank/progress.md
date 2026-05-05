@@ -9447,3 +9447,10 @@ Code quality improvements were completed as part of Option A:
 - A manual single-account probe reached `vps.slsknet.org` but was immediately closed/reset before login completed (`Remote connection closed` / `Connection reset by peer`), which points to server-side/IP-path rejection rather than the app's duplicate-username or invalid-credential branches.
 - Added a gitignored `local-mesh-account-pool.env` path and extended the live mesh test account loader to accept A-F and numbered account slots, then copied the four local slskR live test accounts into that private pool for rotation.
 - Validation: focused live mesh smoke still failed at login from this local IP path; deterministic non-live two-node full-instance mesh tests passed (`2` tests).
+
+## 2026-05-05 02:47:00Z
+
+- Found the documented Proton WireGuard test configs in `slskR/.secrets/proton-slskr-{1..4}.conf` and reused `slskR/scripts/run-in-proton-wg-netns.sh` to run slskdN full-instance children through isolated network namespaces.
+- Added an opt-in full-instance test harness wrapper (`SLSKDN_FULL_INSTANCE_VPN_WRAPPER` + `SLSKDN_FULL_INSTANCE_VPN_CONFIGS`) so each spawned daemon can use a separate VPN config/subnet while the host test talks to its namespace veth API address.
+- Ran a four-account by four-VPN login matrix. Proton config 1 (`72.251.215.10`) timed out for every account; Proton configs 2 (`103.108.229.251`), 3 (`79.127.185.205`), and 4 (`79.127.146.231`) logged in successfully for accounts A-D. Result file: `target/live-vpn-matrix/slskdn-login-matrix-20260504-204255.tsv`.
+- Reran the full live mesh smoke with configs 2 and 3; both alpha and beta logged in, but the overall smoke did not complete afterward and overlay connections remained empty. Stopped the hung run and cleaned up `sln*` namespaces.

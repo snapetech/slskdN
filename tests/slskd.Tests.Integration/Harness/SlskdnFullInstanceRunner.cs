@@ -24,6 +24,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
     private static readonly TimeSpan ApiStartupTimeout = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan ApiStartupProbeDelay = TimeSpan.FromMilliseconds(500);
     private const int CapturedLogLineLimit = 200;
+    private static int vpnWrapperIndex;
     private readonly ILogger<SlskdnFullInstanceRunner> logger;
     private readonly string testId;
     private readonly string appDir;
@@ -37,6 +38,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
     private int? udpOverlayPort;
     private int? dataOverlayPort;
     private int? soulseekListenPort;
+    private string apiHost = "127.0.0.1";
     private bool isRunning;
 
     public SlskdnFullInstanceRunner(ILogger<SlskdnFullInstanceRunner> logger, string testId)
@@ -62,7 +64,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
     public int? OverlayPort => overlayPort;
     public int? DhtPort => dhtPort;
     public bool IsRunning => isRunning;
-    public string ApiUrl => $"http://127.0.0.1:{apiPort}";
+    public string ApiUrl => $"http://{apiHost}:{apiPort}";
 
     /// <summary>
     /// Start full slskdn instance.
@@ -112,16 +114,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
         }
 
         // Start process
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = binaryPath,
-            Arguments = $"--config \"{configPath}\" --app-dir \"{appDir}\"",
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true,
-            WorkingDirectory = appDir
-        };
+        var startInfo = BuildStartInfo(binaryPath, configPath);
 
         if (enableBridge)
         {
@@ -219,7 +212,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
         var sb = new StringBuilder();
         sb.AppendLine("web:");
         sb.AppendLine($"  port: {apiPort}");
-        sb.AppendLine("  host: 127.0.0.1");
+        sb.AppendLine($"  address: {(IsVpnWrapperConfigured() ? "0.0.0.0" : "127.0.0.1")}");
         sb.AppendLine("  https:");
         sb.AppendLine("    disabled: true");
         sb.AppendLine("    force: false");
@@ -227,6 +220,13 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
         sb.AppendLine($"    disabled: {disableAuthentication.ToString().ToLowerInvariant()}");
         sb.AppendLine("    username: admin");
         sb.AppendLine("    password: admin");
+        if (disableAuthentication && IsVpnWrapperConfigured())
+        {
+            sb.AppendLine("    passthrough:");
+            sb.AppendLine("      allowed_cidrs: 10.0.0.0/8");
+            sb.AppendLine("  allow_remote_no_auth: true");
+        }
+
         sb.AppendLine("directories:");
         sb.AppendLine($"  downloads: {Path.Combine(appDir, "downloads")}");
         sb.AppendLine($"  incomplete: {Path.Combine(appDir, "incomplete")}");
@@ -240,7 +240,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
         sb.AppendLine("  collectionsSharing: true");
         sb.AppendLine("  scenePodBridge: true");
         sb.AppendLine("soulseek:");
-        sb.AppendLine("  address: vps.slsknet.org");
+        sb.AppendLine($"  address: {Environment.GetEnvironmentVariable("SLSKDN_TEST_SOULSEEK_ADDRESS") ?? "vps.slsknet.org"}");
         sb.AppendLine("  port: 2271");
         sb.AppendLine($"  username: {YamlEscape(soulseekUsername ?? testId)}");
         sb.AppendLine($"  password: {YamlEscape(soulseekPassword ?? "test-password")}");
@@ -309,6 +309,78 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
         }
 
         return null;
+    }
+
+    private ProcessStartInfo BuildStartInfo(string binaryPath, string configPath)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+            WorkingDirectory = appDir
+        };
+
+        var wrapper = Environment.GetEnvironmentVariable("SLSKDN_FULL_INSTANCE_VPN_WRAPPER");
+        var vpnConfigs = Environment.GetEnvironmentVariable("SLSKDN_FULL_INSTANCE_VPN_CONFIGS")?
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (!string.IsNullOrWhiteSpace(wrapper) && vpnConfigs is { Length: > 0 })
+        {
+            var index = Interlocked.Increment(ref vpnWrapperIndex) - 1;
+            var config = vpnConfigs[index % vpnConfigs.Length];
+            var subnetOctet = 230 + index;
+            var namespacePrefix = Environment.GetEnvironmentVariable("SLSKDN_FULL_INSTANCE_VPN_NAMESPACE_PREFIX") ?? "sln";
+            var namespaceName = BuildVpnNamespaceName(namespacePrefix, index);
+            var namespaceIp = $"10.{subnetOctet}.0.2";
+            apiHost = namespaceIp;
+
+            startInfo.FileName = wrapper;
+            startInfo.ArgumentList.Add(namespaceName);
+            startInfo.ArgumentList.Add(config);
+            startInfo.ArgumentList.Add(binaryPath);
+            startInfo.ArgumentList.Add("--config");
+            startInfo.ArgumentList.Add(configPath);
+            startInfo.ArgumentList.Add("--app-dir");
+            startInfo.ArgumentList.Add(appDir);
+
+            startInfo.Environment["SLSKR_NETNS_HOST_IP"] = $"10.{subnetOctet}.0.1";
+            startInfo.Environment["SLSKR_NETNS_IP"] = namespaceIp;
+            startInfo.Environment["SLSKR_NETNS_SUBNET"] = $"10.{subnetOctet}.0.0/24";
+
+            logger.LogInformation(
+                "[TEST-SLSKDN-FULL] Routing instance {TestId} through VPN namespace {Namespace} using config {Config}",
+                testId,
+                namespaceName,
+                Path.GetFileName(config));
+
+            return startInfo;
+        }
+
+        startInfo.FileName = binaryPath;
+        startInfo.ArgumentList.Add("--config");
+        startInfo.ArgumentList.Add(configPath);
+        startInfo.ArgumentList.Add("--app-dir");
+        startInfo.ArgumentList.Add(appDir);
+        return startInfo;
+    }
+
+    private static bool IsVpnWrapperConfigured()
+    {
+        return !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SLSKDN_FULL_INSTANCE_VPN_WRAPPER")) &&
+            !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SLSKDN_FULL_INSTANCE_VPN_CONFIGS"));
+    }
+
+    private static string BuildVpnNamespaceName(string prefix, int index)
+    {
+        var safePrefix = new string(prefix.Where(char.IsLetterOrDigit).Take(4).ToArray());
+        if (string.IsNullOrWhiteSpace(safePrefix))
+        {
+            safePrefix = "sln";
+        }
+
+        return $"{safePrefix}{index:D2}";
     }
 
     private string? DiscoverSoulfindBinary()
@@ -435,7 +507,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
             try
             {
                 using var client = new TcpClient();
-                await client.ConnectAsync(IPAddress.Loopback, port);
+                await client.ConnectAsync(IPAddress.Parse(apiHost), port);
                 client.Close();
                 logger.LogInformation("[TEST-SLSKDN-FULL] {ServiceName} ready after {Attempts} attempts", serviceName, attempt + 1);
                 return;
