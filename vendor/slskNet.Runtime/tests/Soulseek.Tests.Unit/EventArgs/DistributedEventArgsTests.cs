@@ -27,6 +27,8 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "DistributedParentEventArgs instantiates properly"), AutoData]
         public void DistributedParentEventArgs_Instantiates_Properly(string username, IPEndPoint ipEndPoint, int branchLevel, string branchRoot)
         {
+            branchLevel = System.Math.Max(0, branchLevel);
+
             var args = new DistributedParentEventArgs(username, ipEndPoint, branchLevel, branchRoot);
 
             Assert.Equal(username, args.Username);

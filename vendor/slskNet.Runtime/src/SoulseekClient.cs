@@ -3337,7 +3337,7 @@ namespace Soulseek
                     // wait for the receipt of the response message. this may come back on a connection different from the one
                     // which made the request.
                     (responseReceivedEventArgs, responseConnection) = await responseConnectionWait.ConfigureAwait(false);
-                    responseLength = responseReceivedEventArgs.Length - 4;
+                    responseLength = Math.Max(0, responseReceivedEventArgs.Length - 4);
 
                     responseConnection.Disconnected += (sender, args) =>
                         Waiter.Throw(browseWaitKey, new ConnectionException($"Peer connection disconnected unexpectedly: {args.Message}", args.Exception));

@@ -23,6 +23,7 @@
 
 namespace Soulseek
 {
+    using System;
     using System.Net;
 
     /// <summary>
@@ -39,6 +40,11 @@ namespace Soulseek
         /// <param name="branchRoot">The root of the distributed branch.</param>
         public DistributedParentEventArgs(string username, IPEndPoint ipEndPoint, int branchLevel, string branchRoot)
         {
+            if (branchLevel < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(branchLevel), "Must be greater than or equal to zero");
+            }
+
             Username = username;
             IPEndPoint = ipEndPoint;
             BranchLevel = branchLevel;

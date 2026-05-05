@@ -86,5 +86,47 @@ namespace Soulseek.Tests.Unit
                 startOffset,
                 bytesTransferred,
                 averageSpeed));
+
+        [Theory(DisplayName = "Search rejects invalid counters and states")]
+        [InlineData((SearchStates)512, 0, 0, 0)]
+        [InlineData(SearchStates.InProgress, -1, 0, 0)]
+        [InlineData(SearchStates.InProgress, 0, -1, 0)]
+        [InlineData(SearchStates.InProgress, 0, 0, -1)]
+        public void Search_Rejects_Invalid_Counters_And_States(SearchStates state, int responseCount, int fileCount, int lockedFileCount)
+            => Assert.Throws<ArgumentOutOfRangeException>(() => new Search(SearchQuery.FromText("query"), SearchScope.Network, 1, state, responseCount, fileCount, lockedFileCount));
+
+        [Fact(DisplayName = "UserStatus rejects invalid presence")]
+        public void UserStatus_Rejects_Invalid_Presence()
+            => Assert.Throws<ArgumentOutOfRangeException>(() => new UserStatus("user", (UserPresence)99, false));
+
+        [Fact(DisplayName = "RoomInfo rejects negative user count")]
+        public void RoomInfo_Rejects_Negative_User_Count()
+            => Assert.Throws<ArgumentOutOfRangeException>(() => new RoomInfo("room", -1));
+
+        [Theory(DisplayName = "Distributed network info rejects invalid topology metadata")]
+        [InlineData(-0.1d, 0, 0)]
+        [InlineData(0d, -1, 0)]
+        [InlineData(0d, 0, -1)]
+        public void DistributedNetworkInfo_Rejects_Invalid_Topology_Metadata(double averageBroadcastLatency, int branchLevel, int childLimit)
+            => Assert.Throws<ArgumentOutOfRangeException>(() => new DistributedNetworkInfo(
+                averageBroadcastLatency,
+                branchLevel,
+                "root",
+                false,
+                childLimit,
+                true,
+                null,
+                default,
+                false));
+
+        [Fact(DisplayName = "Distributed parent event args reject negative branch level")]
+        public void DistributedParentEventArgs_Rejects_Negative_Branch_Level()
+            => Assert.Throws<ArgumentOutOfRangeException>(() => new DistributedParentEventArgs("user", null, -1, "root"));
+
+        [Theory(DisplayName = "Browse progress event args reject invalid progress metadata")]
+        [InlineData(-1, 1)]
+        [InlineData(2, 1)]
+        public void BrowseProgressEventArgs_Reject_Invalid_Progress_Metadata(long bytesTransferred, long size)
+            => Assert.Throws<ArgumentOutOfRangeException>(() => new BrowseProgressUpdatedEventArgs("user", bytesTransferred, size));
     }
 }

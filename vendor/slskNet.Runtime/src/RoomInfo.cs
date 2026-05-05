@@ -23,6 +23,7 @@
 
 namespace Soulseek
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
 
@@ -38,6 +39,11 @@ namespace Soulseek
         /// <param name="userCount">The number of users in the room.</param>
         public RoomInfo(string name, int userCount)
         {
+            if (userCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(userCount), "Must be greater than or equal to zero");
+            }
+
             Name = name;
             Users = new List<string>().AsReadOnly();
             UserCount = userCount;

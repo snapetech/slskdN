@@ -23,6 +23,8 @@
 
 namespace Soulseek
 {
+    using System;
+
     /// <summary>
     ///     A single file search.
     /// </summary>
@@ -40,6 +42,37 @@ namespace Soulseek
         /// <param name="lockedFileCount">The total number of locked files contained within received responses.</param>
         public Search(SearchQuery query, SearchScope scope, int token, SearchStates state, int responseCount, int fileCount, int lockedFileCount)
         {
+            const SearchStates ValidStates =
+                SearchStates.Requested |
+                SearchStates.InProgress |
+                SearchStates.Completed |
+                SearchStates.Cancelled |
+                SearchStates.TimedOut |
+                SearchStates.ResponseLimitReached |
+                SearchStates.FileLimitReached |
+                SearchStates.Errored |
+                SearchStates.Queued;
+
+            if ((state & ~ValidStates) != 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(state), "Must contain only defined search state flags");
+            }
+
+            if (responseCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(responseCount), "Must be greater than or equal to zero");
+            }
+
+            if (fileCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(fileCount), "Must be greater than or equal to zero");
+            }
+
+            if (lockedFileCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(lockedFileCount), "Must be greater than or equal to zero");
+            }
+
             Query = query;
             Scope = scope;
             Token = token;

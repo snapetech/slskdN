@@ -38,6 +38,8 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "RoomInfo instantiates properly with count only"), AutoData]
         public void RoomInfo_Instantiates_Properly_With_Count_Only(string roomName, int count)
         {
+            count = System.Math.Max(0, count);
+
             var info = new RoomInfo(roomName, count);
 
             Assert.Equal(roomName, info.Name);

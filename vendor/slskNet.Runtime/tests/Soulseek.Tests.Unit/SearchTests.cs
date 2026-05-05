@@ -28,6 +28,11 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "Instantiates with expected data"), AutoData]
         public void Instantiates_With_Expected_Data(string searchText, int token, SearchStates state, int responseCount, int fileCount, int lockedFileCount)
         {
+            state = SearchStates.InProgress;
+            responseCount = System.Math.Max(0, responseCount);
+            fileCount = System.Math.Max(0, fileCount);
+            lockedFileCount = System.Math.Max(0, lockedFileCount);
+
             var s = new Search(new SearchQuery(searchText), SearchScope.Network, token, state, responseCount, fileCount, lockedFileCount);
 
             Assert.Equal(searchText, s.Query.SearchText);

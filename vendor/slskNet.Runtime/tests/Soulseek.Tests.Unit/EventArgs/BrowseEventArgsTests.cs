@@ -35,13 +35,28 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "BrowseProgressUpdatedEventArgs Instantiates with the given data"), AutoData]
         internal void BrowseProgressUpdatedEventArgs_Instantiates_With_The_Given_Data(string username, long bytes, long size)
         {
+            size = System.Math.Max(0, size);
+            bytes = System.Math.Min(System.Math.Max(0, bytes), size);
+
             var e = new BrowseProgressUpdatedEventArgs(username, bytes, size);
 
             Assert.Equal(username, e.Username);
             Assert.Equal(bytes, e.BytesTransferred);
             Assert.Equal(size, e.Size);
-            Assert.Equal(size - bytes, e.BytesRemaining);
-            Assert.Equal((bytes / (double)size) * 100, e.PercentComplete);
+            Assert.Equal(size <= 0 ? 0 : size - bytes, e.BytesRemaining);
+            Assert.Equal(size <= 0 ? 0 : (bytes / (double)size) * 100, e.PercentComplete);
+        }
+
+        [Trait("Category", "BrowseProgressUpdatedEventArgs Instantiation")]
+        [Fact(DisplayName = "BrowseProgressUpdatedEventArgs treats negative size as unknown")]
+        internal void BrowseProgressUpdatedEventArgs_Treats_Negative_Size_As_Unknown()
+        {
+            var e = new BrowseProgressUpdatedEventArgs("user", 10, -2);
+
+            Assert.Equal(10, e.BytesTransferred);
+            Assert.Equal(-2, e.Size);
+            Assert.Equal(0, e.BytesRemaining);
+            Assert.Equal(0, e.PercentComplete);
         }
     }
 }

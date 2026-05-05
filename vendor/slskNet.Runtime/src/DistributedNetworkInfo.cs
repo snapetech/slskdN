@@ -23,6 +23,7 @@
 
 namespace Soulseek
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
@@ -56,6 +57,21 @@ namespace Soulseek
             (string Username, IPEndPoint IPEndPoint) parent,
             bool hasParent)
         {
+            if (averageBroadcastLatency.HasValue && averageBroadcastLatency.Value < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(averageBroadcastLatency), "Must be greater than or equal to zero");
+            }
+
+            if (branchLevel < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(branchLevel), "Must be greater than or equal to zero");
+            }
+
+            if (childLimit < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(childLimit), "Must be greater than or equal to zero");
+            }
+
             AverageBroadcastLatency = averageBroadcastLatency;
             BranchLevel = branchLevel;
             BranchRoot = branchRoot;

@@ -23,6 +23,8 @@
 
 namespace Soulseek
 {
+    using System;
+
     /// <summary>
     ///     Event arguments for events raised by receipt of browse response data.
     /// </summary>
@@ -37,10 +39,20 @@ namespace Soulseek
         public BrowseProgressUpdatedEventArgs(string username, long bytesTransferred, long size)
             : base(username)
         {
+            if (bytesTransferred < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(bytesTransferred), "Must be greater than or equal to zero");
+            }
+
+            if (size >= 0 && bytesTransferred > size)
+            {
+                throw new ArgumentOutOfRangeException(nameof(bytesTransferred), "Must be less than or equal to size");
+            }
+
             BytesTransferred = bytesTransferred;
             Size = size;
-            BytesRemaining = Size - BytesTransferred;
-            PercentComplete = (BytesTransferred / (double)Size) * 100d;
+            BytesRemaining = Size <= 0 ? 0 : Size - BytesTransferred;
+            PercentComplete = Size <= 0 ? 0 : (BytesTransferred / (double)Size) * 100d;
         }
 
         /// <summary>
