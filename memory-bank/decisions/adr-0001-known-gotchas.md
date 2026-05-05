@@ -90,11 +90,18 @@ export const updateYaml = async ({ yaml }) => {
 
 ### 0z290. Links That Must Work In New Tabs Cannot Depend On Router State
 
-**The Bug**: Search result usernames linked to Browse using React Router state embedded in the `to` object. Same-tab navigation could appear to work in some versions, but opening the link in a new tab or refreshing `/browse` lost the username because router state is not part of the URL. Browse opened as a blank/new tab without starting the requested user browse.
+**The Bug**: Search result usernames and adjacent user actions linked to Browse, Users, or Chat using only React Router state. Same-tab navigation could appear to work in some versions, but opening the link in a new tab, refreshing, or arriving from a restored session lost the username because router state is not part of the URL. Browse opened as a blank/new tab without starting the requested user browse, and equivalent user-profile/chat actions had the same fragility.
 
 **Files Affected**:
 - `src/web/src/components/Search/Response.jsx`
 - `src/web/src/components/Browse/Browse.jsx`
+- `src/web/src/components/Users/Users.jsx`
+- `src/web/src/components/Chat/Chat.jsx`
+- `src/web/src/components/Messaging/Messaging.jsx`
+- `src/web/src/components/Contacts/Contacts.jsx`
+- `src/web/src/components/Rooms/Rooms.jsx`
+- `src/web/src/components/Shared/UserContextMenu.jsx`
+- `src/web/src/components/Transfers/TransferGroup.jsx`
 
 **Wrong**:
 ```jsx
@@ -104,6 +111,8 @@ export const updateYaml = async ({ yaml }) => {
     state: { user: response.username },
   }}
 />
+
+navigate('/users', { state: { user: username } });
 ```
 
 **Correct**:
@@ -112,6 +121,10 @@ export const updateYaml = async ({ yaml }) => {
   state={{ user: response.username }}
   to={`/browse?user=${encodeURIComponent(response.username)}`}
 />
+
+navigate(`/users?user=${encodeURIComponent(username)}`, {
+  state: { user: username },
+});
 ```
 
 **Why This Keeps Happening**: Router state is process-local browser history metadata. It is fine as a convenience for same-tab navigation, but it does not survive opening in a new tab, copying a URL, refreshing, service-worker reloads, or direct entry. Any page that needs an entity identifier to render must accept that identifier from the URL path or query string; router state can only be a secondary fast path.
