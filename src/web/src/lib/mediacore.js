@@ -1191,7 +1191,7 @@ const contentBaseUrl = '/podcore/content';
  * Validate a content ID for pod linking.
  */
 export const validateContentIdForPod = async (contentId) => {
-  return (await api.post(`${contentBaseUrl}/validate`, contentId)).data;
+  return (await api.post(`${contentBaseUrl}/validate`, JSON.stringify(contentId))).data;
 };
 
 /**

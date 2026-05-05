@@ -70,6 +70,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   including mesh rendezvous peer-message handling, capability envelopes, saved
   Wishlist search completion state, Browse action rendering, and room API
   response normalization.
+- Fixed remaining shared Web API helpers for MediaCore and options endpoints,
+  including response handling for JSON string bodies.
 - Made governance, pod, and ActivityPub signature handling fail closed unless
   signer identity can be verified, and replaced unstable hash-code identifiers
   with stable SHA-256-derived values.

@@ -131,7 +131,10 @@ describe('mediacore', () => {
     await mediacore.validateContentIdForPod('content:1');
     await mediacore.searchContent('artist', 'music', 5);
 
-    expect(api.post).toHaveBeenCalledWith('/podcore/content/validate', 'content:1');
+    expect(api.post).toHaveBeenCalledWith(
+      '/podcore/content/validate',
+      '"content:1"',
+    );
     expect(api.get).toHaveBeenCalledWith('/podcore/content/search', {
       params: {
         domain: 'music',
