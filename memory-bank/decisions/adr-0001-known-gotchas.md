@@ -13487,3 +13487,11 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 **Why it happened:** The script computed a configurable `output` path, then ignored it during cleanup and removed the hard-coded `dist/$runtime` path relative to `src/slskd`. That only works for the default internal path shape and fails for explicit output paths.
 
 **How to prevent it:** Publish scripts must create and clean the exact resolved output directory they pass to `dotnet publish`. Do not mix a user-configurable output variable with a separate hard-coded cleanup path.
+
+### 0z76. Favicon And Small Brand Marks Must Not Reuse Dark Square Mockup Crops
+
+**What went wrong:** The first logo replacement reused a dark square lockup/cube crop for favicon, PWA icons, footer, and login. It technically replaced the old assets, but the favicon read as a black box with tiny green details and the login logo displayed as a small thumbnail instead of a primary brand mark.
+
+**Why it happened:** The source PNGs were flattened mockups with no alpha channel, and the implementation resized a single dark square crop for every placement instead of deriving placement-specific assets and checking actual rendered scale.
+
+**How to prevent it:** Treat generated logo mockups as source material, not direct app assets. Derive transparent icons for favicon/PWA/footer use, reserve full lockups for large-brand placements, and verify login/mobile/footer rendering before deploying a branding change.
