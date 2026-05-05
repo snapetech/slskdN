@@ -77,6 +77,7 @@ Static discovery covered `src`, `tests`, `examples`, `bin`, and `.circleci`.
 | RT-048 | Runtime option validation | Client message timeout accepted zero or negative values that later caused immediate or invalid waiter timeout registrations. | `SoulseekClientOptions` and option tests. | Fixed | Message timeout must now be greater than or equal to one at option construction. |
 | RT-049 | Transfer streams | Transfer stream writes could spin indefinitely when the input stream ended before the declared transfer length. | `Connection.WriteInternalAsync` and connection stream-write tests. | Fixed | Stream writes now fail with `ConnectionWriteException` when `ReadAsync` returns zero before the expected length is written. |
 | RT-050 | Runtime option validation | Transfer maximum linger time accepted negative values that caused immediate forced disconnect behavior during upload cleanup. | `TransferOptions`, upload linger handling in `SoulseekClient`, and option tests. | Fixed | Transfer options now reject negative maximum linger values at construction. |
+| RT-051 | Transfer streams | Transfer stream reads could return success with partial data when the connection was disposed between chunks before the requested length was read. | `Connection.ReadInternalAsync` and connection stream-read tests. | Fixed | Stream reads now fail with `ConnectionReadException` if the loop exits before the expected byte count is read. |
 
 ## Verification Commands
 

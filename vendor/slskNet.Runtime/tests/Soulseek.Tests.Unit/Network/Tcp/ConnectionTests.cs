@@ -2158,6 +2158,35 @@ namespace Soulseek.Tests.Unit.Network.Tcp
         }
 
         [Trait("Category", "Read")]
+        [Theory(DisplayName = "Read throws if disposed before expected length"), AutoData]
+        public async Task Read_Throws_If_Disposed_Before_Expected_Length(IPEndPoint endpoint)
+        {
+            var s = new Mock<INetworkStream>();
+            s.Setup(m => m.ReadAsync(It.IsAny<Memory<byte>>(), It.IsAny<CancellationToken>()))
+                .Returns(ValueTask.FromResult(1));
+
+            var t = new Mock<ITcpClient>();
+
+            using (var socket = new Socket(SocketType.Stream, ProtocolType.IP))
+            {
+                t.Setup(m => m.Client).Returns(socket);
+                t.Setup(m => m.Connected).Returns(true);
+                t.Setup(m => m.GetStream()).Returns(s.Object);
+
+                using (var c = new Connection(endpoint, tcpClient: t.Object))
+                {
+                    c.DataRead += (sender, args) => c.Dispose();
+
+                    var ex = await Record.ExceptionAsync(() => c.ReadAsync(2));
+
+                    Assert.NotNull(ex);
+                    Assert.IsType<ConnectionReadException>(ex);
+                    s.Verify(m => m.ReadAsync(It.IsAny<Memory<byte>>(), It.IsAny<CancellationToken>()), Times.Once);
+                }
+            }
+        }
+
+        [Trait("Category", "Read")]
         [Theory(DisplayName = "Read raises DataRead event"), AutoData]
         public async Task Read_Raises_DataRead_Event(IPEndPoint endpoint)
         {

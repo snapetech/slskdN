@@ -706,6 +706,11 @@ namespace Soulseek.Network.Tcp
                     ResetInactivityTime();
                 }
 
+                if (totalBytesRead < length)
+                {
+                    throw new ConnectionReadException($"Read aborted after {totalBytesRead} bytes read; expected {length} bytes");
+                }
+
                 await outputStream.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)

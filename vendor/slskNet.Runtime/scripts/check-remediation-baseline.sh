@@ -175,6 +175,8 @@ require_pattern "maximumLingerTime < 0" "src/Options/TransferOptions.cs" "transf
 require_pattern "Throws_Given_Negative_Maximum_Linger_Time" "tests/Soulseek.Tests.Unit/Options/TransferOptionsTests.cs" "transfer linger validation tests are registered"
 require_pattern "bytesRead == 0" "src/Network/Tcp/Connection.cs" "stream writes reject early input EOF"
 require_pattern "Write_Stream_Throws_When_Input_Stream_Ends_Early" "tests/Soulseek.Tests.Unit/Network/Tcp/ConnectionTests.cs" "stream write early EOF regression test is registered"
+require_pattern "totalBytesRead < length" "src/Network/Tcp/Connection.cs" "stream reads reject partial completion"
+require_pattern "Read_Throws_If_Disposed_Before_Expected_Length" "tests/Soulseek.Tests.Unit/Network/Tcp/ConnectionTests.cs" "stream read partial completion regression test is registered"
 
 require_pattern "<PackageId>slskNet\.Runtime</PackageId>" "src/Soulseek.csproj" "package id uses fork branding"
 require_pattern "snapetech/slskNet\.Runtime" "src/Soulseek.csproj" "package metadata points to fork repository"
