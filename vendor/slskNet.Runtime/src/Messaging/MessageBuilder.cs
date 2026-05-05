@@ -216,6 +216,11 @@ namespace Soulseek.Messaging
         /// </exception>
         public MessageBuilder WriteString(string value, CharacterEncoding encoding = null)
         {
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value), "Invalid attempt to write a null string to message");
+            }
+
             encoding ??= CharacterEncoding.UTF8;
             byte[] bytes;
 

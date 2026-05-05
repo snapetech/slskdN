@@ -5461,3 +5461,14 @@ dotnet test
 - Next steps:
   1. Run remediation baseline and focused runtime tests.
   2. Commit and push the council-loop follow-up.
+
+## Update 2026-05-05 23:24:00Z
+
+- Current task: Runtime protocol scalar emission sweep is in validation.
+- Last activity:
+  - classified 145/145 protocol scalar emission candidates
+  - fixed accepted outbound token/id/version/day-count constructor guards before `WriteInteger`
+  - added focused scalar-emission regression tests and ledger row `RT-071`
+- Next steps:
+  1. Run runtime remediation baseline, focused runtime tests, and repo checks.
+  2. Commit and push the scalar-emission sweep.

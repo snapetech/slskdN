@@ -34,6 +34,8 @@ namespace Soulseek.Messaging.Messages
         /// <param name="token">The unique token for the response.</param>
         public DistributedPingResponse(int token)
         {
+            ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "distributed ping token");
+
             Token = token;
         }
 

@@ -224,6 +224,18 @@ namespace Soulseek.Tests.Unit.Messaging
         }
 
         [Trait("Category", "Write")]
+        [Fact(DisplayName = "WriteString throws ArgumentNullException given null string")]
+        public void WriteString_Throws_Given_Null_String()
+        {
+            var builder = new MessageBuilder();
+
+            var ex = Record.Exception(() => builder.WriteString(null));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentNullException>(ex);
+        }
+
+        [Trait("Category", "Write")]
         [Fact(DisplayName = "WriteBytes writes given bytes")]
         public void WriteBytes_Writes_Given_Bytes()
         {

@@ -36,6 +36,8 @@ namespace Soulseek.Messaging.Messages
         /// <param name="token">The unique token for the connection.</param>
         public PeerInit(string username, string connectionType, int token)
         {
+            ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "peer initialization token");
+
             Username = username;
             ConnectionType = connectionType;
             Token = token;

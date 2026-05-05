@@ -71,7 +71,7 @@ Remaining candidate classes:
 
 | Class | Current hits | Status | Next action |
 | --- | ---: | --- | --- |
-| Protocol scalar emission candidates | 145 | Queued | Classify outbound scalar constructors and burn down accepted gaps. |
+| Protocol scalar emission candidates | 145 | Fixed | Closed by `docs/dev/bug-council-sweep-protocol-scalar-2026-05-05.md`; accepted outbound scalar constructor and builder gaps were fixed. |
 | Resolver output and raw stream candidates | 341 | Queued | Classify application-supplied resolver and stream boundaries. |
 | Task, cancellation, timer, and semaphore lifecycle candidates | 201 | Queued | Classify lifecycle ownership and cancellation races. |
 | Example Web API path, request, and lifecycle candidates | 302 | Queued | Classify example API path/request/disposable boundaries. |

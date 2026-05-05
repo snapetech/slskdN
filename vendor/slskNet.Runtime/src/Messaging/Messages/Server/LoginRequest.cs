@@ -36,6 +36,8 @@ namespace Soulseek.Messaging.Messages
         /// <param name="password">The password.</param>
         public LoginRequest(int minorVersion, string username, string password)
         {
+            ProtocolArgumentValidator.RequireNonNegative(minorVersion, nameof(minorVersion), "minor version");
+
             MinorVersion = minorVersion;
 
             Username = username;

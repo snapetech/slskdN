@@ -36,6 +36,8 @@ namespace Soulseek.Messaging.Messages
         /// <param name="type">The connection type ('P' for message or 'F' for transfer).</param>
         public ConnectToPeerRequest(int token, string username, string type)
         {
+            ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "connection token");
+
             Token = token;
             Username = username;
             Type = type;

@@ -9754,3 +9754,9 @@ Code quality improvements were completed as part of Option A:
 - Re-ran the runtime bug council scanner, recorded the constructor section as 28/28 classified, classified the protocol count/length section as 221/221 with grouped counts, and added countable protocol loop/length/compression subgroup sweeps.
 - Fixed the accepted rotated-obfuscation null-input allocation candidate and documented ADR-0001 gotcha `0z82`.
 - Added a visible remaining candidate class queue and remediation-baseline assertions so future sweeps cannot close the section without the classification markers.
+
+## 2026-05-05 23:24:00Z
+
+- Continued the runtime council loop into the protocol scalar emission section and classified all 145 candidates.
+- Fixed accepted outbound scalar constructor gaps for negative tokens, acknowledgement ids, minor versions, and non-positive privilege day counts before message byte emission.
+- Added `ProtocolArgumentValidator`, focused scalar-emission regression tests, ledger row `RT-071`, and ADR-0001 gotcha `0z83`.

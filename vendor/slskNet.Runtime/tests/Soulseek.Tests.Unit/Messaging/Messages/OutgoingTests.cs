@@ -153,6 +153,12 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         }
 
         [Trait("Category", "Instantiation")]
+        [Trait("Request", "AcknowledgePrivateMessage")]
+        [Fact(DisplayName = "AcknowledgePrivateMessage rejects negative IDs")]
+        public void AcknowledgePrivateMessage_Rejects_Negative_Ids()
+            => Assert.Throws<ArgumentOutOfRangeException>(() => new AcknowledgePrivateMessageCommand(-1));
+
+        [Trait("Category", "Instantiation")]
         [Trait("Request", "UserAddressRequest")]
         [Fact(DisplayName = "UserAddressRequest instantiates properly")]
         public void UserAddressRequest_Instantiates_Properly()
@@ -759,6 +765,7 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "AcknowledgePrivilegeNotificationCommand constructs the correct message"), AutoData]
         public void AcknowledgePrivilegeNotificationCommand_Constructs_The_Correct_Message(int token)
         {
+            token = Math.Abs(token % 100000);
             var a = new AcknowledgePrivilegeNotificationCommand(token);
             var msg = a.ToByteArray();
 
@@ -768,6 +775,12 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Equal(MessageCode.Server.AcknowledgeNotifyPrivileges, code);
             Assert.Equal(token, reader.ReadInteger());
         }
+
+        [Trait("Category", "Instantiation")]
+        [Trait("Request", "AcknowledgePrivilegeNotificationCommand")]
+        [Fact(DisplayName = "AcknowledgePrivilegeNotificationCommand rejects negative IDs")]
+        public void AcknowledgePrivilegeNotificationCommand_Rejects_Negative_Ids()
+            => Assert.Throws<ArgumentOutOfRangeException>(() => new AcknowledgePrivilegeNotificationCommand(-1));
 
         [Trait("Category", "ToByteArray")]
         [Trait("Request", "CheckPrivilegesRequest")]
@@ -788,6 +801,7 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "GivePrivilegesCommand constructs the correct message"), AutoData]
         public void GivePrivilegesCommand_Constructs_The_Correct_Message(string username, int days)
         {
+            days = Math.Max(1, Math.Abs(days % 100000));
             var a = new GivePrivilegesCommand(username, days);
             var msg = a.ToByteArray();
 
@@ -798,6 +812,14 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Equal(username, reader.ReadString());
             Assert.Equal(days, reader.ReadInteger());
         }
+
+        [Trait("Category", "Instantiation")]
+        [Trait("Request", "GivePrivilegesCommand")]
+        [Theory(DisplayName = "GivePrivilegesCommand rejects non-positive days")]
+        [InlineData(0)]
+        [InlineData(-1)]
+        public void GivePrivilegesCommand_Rejects_Non_Positive_Days(int days)
+            => Assert.Throws<ArgumentOutOfRangeException>(() => new GivePrivilegesCommand("user", days));
 
         [Trait("Category", "ToByteArray")]
         [Trait("Request", "UserPrivilegesRequest")]

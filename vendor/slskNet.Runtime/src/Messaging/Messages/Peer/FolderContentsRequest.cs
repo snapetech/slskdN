@@ -35,6 +35,8 @@ namespace Soulseek.Messaging.Messages
         /// <param name="directoryName">The directory to fetch.</param>
         public FolderContentsRequest(int token, string directoryName)
         {
+            ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "folder contents token");
+
             DirectoryName = directoryName;
             Token = token;
         }

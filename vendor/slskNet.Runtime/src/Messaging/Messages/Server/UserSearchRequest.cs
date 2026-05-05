@@ -36,6 +36,8 @@ namespace Soulseek.Messaging.Messages
         /// <param name="token">The unique token for the search.</param>
         public UserSearchRequest(string username, string searchText, int token)
         {
+            ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "search token");
+
             Username = username;
             SearchText = searchText;
             Token = token;

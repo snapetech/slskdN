@@ -23,6 +23,8 @@
 
 namespace Soulseek.Messaging.Messages
 {
+    using System;
+
     /// <summary>
     ///     Acknowledges the reciept of a private message.
     /// </summary>
@@ -34,6 +36,11 @@ namespace Soulseek.Messaging.Messages
         /// <param name="id">The id of the private message to acknowledge.</param>
         public AcknowledgePrivateMessageCommand(int id)
         {
+            if (id < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(id), id, "The private message ID must be greater than or equal to zero");
+            }
+
             Id = id;
         }
 

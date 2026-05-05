@@ -23,6 +23,8 @@
 
 namespace Soulseek.Messaging.Messages
 {
+    using System;
+
     /// <summary>
     ///     Grants privileges to a user.
     /// </summary>
@@ -35,6 +37,11 @@ namespace Soulseek.Messaging.Messages
         /// <param name="days">The number of days of privileged status to grant.</param>
         public GivePrivilegesCommand(string username, int days)
         {
+            if (days <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(days), days, "The privilege grant duration must be greater than zero");
+            }
+
             Username = username;
             Days = days;
         }

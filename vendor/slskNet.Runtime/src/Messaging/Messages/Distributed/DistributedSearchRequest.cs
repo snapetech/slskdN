@@ -36,6 +36,8 @@ namespace Soulseek.Messaging.Messages
         /// <param name="query">The search query.</param>
         public DistributedSearchRequest(string username, int token, string query)
         {
+            ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "distributed search token");
+
             Username = username;
             Token = token;
             Query = query;

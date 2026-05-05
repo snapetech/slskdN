@@ -40,6 +40,8 @@ namespace Soulseek.Messaging.Messages
         /// <param name="directories">The directory contents.</param>
         public FolderContentsResponse(int token, string directoryName, IEnumerable<Directory> directories)
         {
+            ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "folder contents token");
+
             if (directories == null)
             {
                 throw new ArgumentNullException(nameof(directories));

@@ -22,6 +22,25 @@ scan_multiline() {
   rg -n -U --pcre2 --hidden --glob '!.git/**' "$pattern" "$@" || true
 }
 
+scan_protocol_scalar_guards() {
+  printf '\n## Protocol scalar constructor guard candidates\n'
+
+  find src/Messaging -name '*.cs' -print0 | sort -z | xargs -0 perl -0ne '
+    while (/^[ \t]*public[ \t]+(?:(?:[A-Za-z0-9_<>.]+[ \t]+)?[A-Za-z0-9_]+)[ \t]*\(([^)]*)\)/mg) {
+      my $declaration = $&;
+      my $arguments = $1;
+      my $start = $-[0];
+      next unless $declaration =~ /^[ \t]*public[ \t]+MessageBuilder[ \t]+Write(?:Byte|Bytes|Integer|Long|String)[ \t]*\(/
+        || $arguments =~ /\b(?:int|long|UserPresence|TransferDirection|MessageCode\.Server)\b/;
+
+      my $line = 1 + (substr($_, 0, $start) =~ tr/\n//);
+      $declaration =~ s/\s+/ /g;
+      $declaration =~ s/^\s+|\s+$//g;
+      print "$ARGV:$line:$declaration\n";
+    }
+  '
+}
+
 printf '# slskNet.Runtime bug council candidate scan\n'
 printf '# Generated: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
@@ -64,6 +83,8 @@ scan "Protocol compression boundary candidates" \
 scan "Protocol scalar emission candidates" \
   'Write(Integer|Long|Byte|String|Bytes)\(' \
   src/Messaging
+
+scan_protocol_scalar_guards
 
 scan "Resolver output and raw stream candidates" \
   'Resolver|Raw.*Response|Stream|WriteAsync\([^)]*Stream|ToByteArray\(\)' \

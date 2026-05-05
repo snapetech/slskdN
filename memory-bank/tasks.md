@@ -2490,3 +2490,7 @@
 - [x] Fix council loop whole-section classification flaw
   - Status: completed (2026-05-05)
   - Notes: Re-ran the runtime bug council scanner, closed the constructor section with 28/28 classified candidates, classified the full 221-hit protocol count/length section, added countable protocol loop/length/compression subgroup sweeps, fixed the accepted rotated-obfuscation null-input candidate, and added a visible remaining candidate class queue plus baseline checks.
+
+- [x] Burn down runtime protocol scalar emission sweep
+  - Status: completed (2026-05-05)
+  - Notes: Classified 145/145 protocol scalar emission candidates, fixed accepted outbound token/id/version/day-count constructor gaps, and added grouped scalar-emission regression coverage.

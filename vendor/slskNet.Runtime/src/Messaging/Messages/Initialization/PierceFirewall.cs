@@ -34,6 +34,8 @@ namespace Soulseek.Messaging.Messages
         /// <param name="token">The unique token for the connection.</param>
         public PierceFirewall(int token)
         {
+            ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "firewall token");
+
             Token = token;
         }
 

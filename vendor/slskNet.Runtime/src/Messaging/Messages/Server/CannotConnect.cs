@@ -35,6 +35,8 @@ namespace Soulseek.Messaging.Messages
         /// <param name="username">The username of the peer.</param>
         public CannotConnect(int token, string username = null)
         {
+            ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "connection token");
+
             Token = token;
             Username = username;
         }

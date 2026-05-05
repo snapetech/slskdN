@@ -39,6 +39,8 @@ namespace Soulseek.Messaging.Messages
         /// <param name="fileSize">The size of the file being transferred.</param>
         public TransferRequest(TransferDirection direction, int token, string filename, long fileSize = 0)
         {
+            ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "transfer token");
+
             if (!Enum.IsDefined(typeof(TransferDirection), direction))
             {
                 throw new ArgumentOutOfRangeException(nameof(direction), direction, "The transfer direction must be defined");

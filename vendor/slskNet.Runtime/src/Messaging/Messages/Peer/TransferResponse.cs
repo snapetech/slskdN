@@ -37,6 +37,8 @@ namespace Soulseek.Messaging.Messages
         /// <param name="message">The reason the transfer was disallowed.</param>
         public TransferResponse(int token, string message)
         {
+            ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "transfer token");
+
             Token = token;
             IsAllowed = false;
             Message = message;
@@ -49,6 +51,8 @@ namespace Soulseek.Messaging.Messages
         /// <param name="fileSize">The size of the file being transferred.</param>
         public TransferResponse(int token, long fileSize)
         {
+            ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "transfer token");
+
             if (fileSize < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(fileSize), fileSize, "The file size must be equal to or greater than zero");
@@ -65,6 +69,8 @@ namespace Soulseek.Messaging.Messages
         /// <param name="token">The unique token for the transfer.</param>
         public TransferResponse(int token)
         {
+            ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "transfer token");
+
             Token = token;
             IsAllowed = true;
         }
