@@ -40,6 +40,7 @@ Static discovery covered `src`, `tests`, `examples`, `bin`, and `.circleci`.
 | RT-011 | Sensitive material | Static audit should catch accidental embedded API tokens, private keys, or access tokens in runtime files. | `scripts/check-remediation-baseline.sh` secret scan over tracked text files. | Fixed | Baseline scans source, tests, examples, docs, scripts, bin, and `.circleci` for high-confidence key/token patterns. |
 | RT-012 | Integration environment | Live Soulseek integration tests require external credentials and network access. | `tests/Soulseek.Tests.Integration/Settings.cs`. | Out of scope | Unit and build verification are required for this sweep; live integration is attempted only when credentials/network are intentionally provided. |
 | RT-013 | App-only slskdN checks | slskdN app database, UI, auth, and deployment checks from app council workflows do not apply directly to this runtime library. | Runtime repo has no app database or deployment service surface. | Out of scope | Do not copy app-only remediation checks into this runtime. |
+| RT-014 | Protocol parsing | Room list parsing accepted negative per-room user counts from server payloads after collection count guards passed. | `src/Messaging/Messages/Server/RoomListResponseFactory.cs` and `tests/Soulseek.Tests.Unit/Messaging/Messages/ProtocolCountHardeningTests.cs`. | Fixed | Added `ProtocolCountReader.ValidateNonNegativeCount` and reject negative `RoomList` room user counts during parse. |
 
 ## Verification Commands
 

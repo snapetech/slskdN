@@ -66,6 +66,19 @@ namespace Soulseek.Messaging.Messages
             }
         }
 
+        /// <summary>
+        ///     Validates that a protocol count value is non-negative.
+        /// </summary>
+        /// <param name="count">The count to validate.</param>
+        /// <param name="collectionName">The name of the collection being validated.</param>
+        public static void ValidateNonNegativeCount(int count, string collectionName)
+        {
+            if (count < 0)
+            {
+                throw new MessageException($"Invalid {collectionName} count: {count}");
+            }
+        }
+
         private static int ReadValidatedCount(int count, int remaining, string collectionName, int minimumBytesPerItem)
         {
             if (count < 0)

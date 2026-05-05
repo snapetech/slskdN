@@ -58,6 +58,8 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "Parse returns expected data"), AutoData]
         public void Parse_Returns_Expected_Data(List<RoomInfo> rooms)
         {
+            rooms = rooms.ConvertAll(room => new RoomInfo(room.Name, System.Math.Max(0, room.UserCount)));
+
             var builder = new MessageBuilder()
                 .WriteCode(MessageCode.Server.RoomList);
 

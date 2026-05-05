@@ -68,6 +68,7 @@ namespace Soulseek.Messaging.Messages
             for (int i = 0; i < userCountCount; i++)
             {
                 var count = reader.ReadInteger();
+                ProtocolCountReader.ValidateNonNegativeCount(count, "room user");
                 rooms.Add(new RoomInfo(roomNames[i], count));
             }
 
