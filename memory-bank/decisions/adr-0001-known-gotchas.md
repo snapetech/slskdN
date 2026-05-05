@@ -68,6 +68,10 @@ This is not optional. This is the highest priority action after fixing a bug.
 - `src/web/src/components/System/Mesh/index.jsx`
 - `src/web/src/lib/realmSubjectIndexes.js`
 - `src/web/src/components/System/Mesh/RealmSubjectIndexConflicts.jsx`
+- `src/web/src/components/Messaging/Messaging.jsx`
+- `src/web/src/components/Pods/Pods.jsx`
+- `src/web/src/lib/searchCandidateRanking.js`
+- `src/web/src/components/Search/Response.jsx`
 
 **Wrong**:
 ```js
@@ -135,6 +139,13 @@ api.get(`/files/${root}/directories/${encodeURIComponent(btoa(binary))}`);
 - `src/web/src/components/System/Mesh/index.jsx`
 - `src/web/src/lib/realmSubjectIndexes.js`
 - `src/web/src/components/System/Mesh/RealmSubjectIndexConflicts.jsx`
+- `src/web/src/lib/pods.js`
+- `src/web/src/components/Pods/Pods.jsx`
+- `src/web/src/components/PortForwarding/PortForwarding.jsx`
+- `src/web/src/components/Pods/PortForwarding.jsx`
+- `src/web/src/lib/searchActionPreview.js`
+- `src/web/src/lib/searchCandidateRanking.js`
+- `src/web/src/components/Search/Response.jsx`
 
 **Wrong**:
 ```js
