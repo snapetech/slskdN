@@ -18,6 +18,7 @@
 namespace Soulseek.Tests.Unit
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using AutoFixture.Xunit2;
     using Xunit;
@@ -199,6 +200,41 @@ namespace Soulseek.Tests.Unit
 
                 Assert.True(true);
             }
+        }
+
+        [Trait("Category", "GetAsync")]
+        [Fact(DisplayName = "GetAsync observes cancellation while waiting for reset")]
+        public async Task GetAsync_Observes_Cancellation_While_Waiting_For_Reset()
+        {
+            using (var t = new TokenBucket(1, 1000000))
+            using (var cts = new CancellationTokenSource())
+            {
+                await t.GetAsync(1);
+
+                var task = t.GetAsync(1, cts.Token);
+                await cts.CancelAsync();
+
+                var ex = await Record.ExceptionAsync(() => task);
+
+                Assert.NotNull(ex);
+                Assert.IsType<TaskCanceledException>(ex);
+            }
+        }
+
+        [Trait("Category", "GetAsync")]
+        [Fact(DisplayName = "Dispose releases waiters waiting for reset")]
+        public async Task Dispose_Releases_Waiters_Waiting_For_Reset()
+        {
+            var t = new TokenBucket(1, 1000000);
+            await t.GetAsync(1);
+
+            var task = t.GetAsync(1);
+            t.Dispose();
+
+            var ex = await Record.ExceptionAsync(() => task);
+
+            Assert.NotNull(ex);
+            Assert.IsType<ObjectDisposedException>(ex);
         }
 
         [Trait("Category", "Return")]

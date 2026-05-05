@@ -90,6 +90,10 @@ require_absent_pattern "\.Set(Exception|Result|Canceled)\(" "src" "runtime sourc
 require_pattern "CreateLinkedTokenSource" "src/SoulseekClient.cs" "transfer races use linked cancellation"
 require_pattern "Task\.WhenAny\\([\\s\\S]*disconnectedTaskCancellationSource\.Task" "src/SoulseekClient.cs" "transfer races include disconnect task"
 require_pattern "RemoteTaskCompletionSource\.TrySetException" "src/SoulseekClient.cs" "remote transfer failures complete idempotently"
+require_pattern "WaitForResetAsync\\(cancellationToken\\)" "src/Common/TokenBucket.cs" "token bucket reset waits observe cancellation"
+require_pattern "TrySetException\\(new ObjectDisposedException\\(nameof\\(TokenBucket\\)\\)\\)" "src/Common/TokenBucket.cs" "token bucket disposal releases reset waiters"
+require_pattern "GetAsync_Observes_Cancellation_While_Waiting_For_Reset" "tests/Soulseek.Tests.Unit/Common/TokenBucketTests.cs" "token bucket cancellation regression test is registered"
+require_pattern "Dispose_Releases_Waiters_Waiting_For_Reset" "tests/Soulseek.Tests.Unit/Common/TokenBucketTests.cs" "token bucket disposal regression test is registered"
 
 require_pattern "return false" "src/Ed25519PeerDescriptorSigner.cs" "peer descriptor verification fails closed"
 require_pattern "catch[\\s\\S]*return false" "src/Ed25519PeerDescriptorSigner.cs" "peer descriptor verifier handles malformed signatures"

@@ -17,7 +17,7 @@ Run the local baseline before merging runtime hardening changes:
 bash scripts/check-remediation-baseline.sh
 ```
 
-The script verifies protocol parser count guards, frame and buffered-read limits, idempotent task completion, transfer cancellation/disconnect races, peer descriptor fail-closed behavior, Web API path containment, sensitive token/key pattern absence, fork branding metadata, and this command reference.
+The script verifies protocol parser count guards, frame and buffered-read limits, idempotent task completion, transfer cancellation/disconnect races, token bucket cancellation/disposal, peer descriptor fail-closed behavior, Web API path containment, sensitive token/key pattern absence, fork branding metadata, and this command reference.
 
 ## First Council Sweep
 
@@ -72,6 +72,7 @@ Static discovery covered `src`, `tests`, `examples`, `bin`, and `.circleci`.
 | RT-043 | Runtime event/diagnostic models | Diagnostic and state-change event argument constructors could expose undefined diagnostic levels or impossible previous/current state flags to subscribers. | `DiagnosticEventArgs`, `SoulseekClientStateChangedEventArgs`, `SearchStateChangedEventArgs`, `TransferStateChangedEventArgs`, and event/model tests. | Fixed | Event constructors now reject undefined diagnostic levels and state flags before publishing event snapshots. |
 | RT-044 | Transfer streams | Internal transfer progress could report infinite percentages for zero-size transfers, negative remaining bytes after over-complete progress, and accept negative peer upload start offsets. | `TransferInternal`, upload start-offset handling in `SoulseekClient`, and transfer/upload tests. | Fixed | Internal transfer progress is clamped to finite values and upload start offsets now fail before seeking or opening streams when peers send negative offsets. |
 | RT-045 | Example Web API lifecycle | Web API trackers accepted invalid room message limits and null tracker payloads, allowing normal update paths to fail later with incidental collection/null exceptions. | `RoomTracker`, `ConversationTracker`, `BrowseTracker`, and tracker tests. | Fixed | Trackers now reject invalid limits/null payloads and normalize missing room message/user lists before updates. |
+| RT-046 | Network lifecycle/concurrency | Empty token bucket waits ignored caller cancellation until the next timer reset and disposal could leave reset waiters unresolved. | `TokenBucket` and token bucket tests. | Fixed | Reset waits now race cancellation and disposal completes the pending reset signal with `ObjectDisposedException`. |
 
 ## Verification Commands
 

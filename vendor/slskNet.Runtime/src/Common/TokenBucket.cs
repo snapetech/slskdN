@@ -150,6 +150,8 @@ namespace Soulseek
                 if (disposing)
                 {
                     Clock.Dispose();
+                    Interlocked.Exchange(ref waitForReset, new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously))
+                        .TrySetException(new ObjectDisposedException(nameof(TokenBucket)));
                     SyncRoot.Dispose();
                 }
 
@@ -168,7 +170,7 @@ namespace Soulseek
                 // which is as close to a FIFO as .NET synchronization primitives will allow
                 if (CurrentCount == 0)
                 {
-                    await waitForReset.Task.ConfigureAwait(false);
+                    await WaitForResetAsync(cancellationToken).ConfigureAwait(false);
                 }
 
                 // take the minimum of requested count or CurrentCount, deduct it from
@@ -185,5 +187,22 @@ namespace Soulseek
 
         private void Reset()
             => Interlocked.Exchange(ref waitForReset, new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously)).TrySetResult(true);
+
+        private async Task WaitForResetAsync(CancellationToken cancellationToken)
+        {
+            if (!cancellationToken.CanBeCanceled)
+            {
+                await waitForReset.Task.ConfigureAwait(false);
+                return;
+            }
+
+            var cancellationTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            using (cancellationToken.Register(() => cancellationTaskCompletionSource.TrySetCanceled()))
+            {
+                var completedTask = await Task.WhenAny(waitForReset.Task, cancellationTaskCompletionSource.Task).ConfigureAwait(false);
+                await completedTask.ConfigureAwait(false);
+            }
+        }
     }
 }
