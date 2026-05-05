@@ -127,6 +127,40 @@ public class AnonymityTransportSelectionTests : IDisposable
     }
 
     [Fact]
+    public void IsTransportAllowedByPolicy_WithObfuscatedTransportAndPrivatePreference_ReturnsTrue()
+    {
+        // Arrange
+        var policy = new TransportPolicy
+        {
+            PreferPrivateTransports = true
+        };
+        var selector = new AnonymityTransportSelector(_adversarialOptions, _policyManager, _selectorLoggerMock.Object, _loggerFactory);
+
+        // Act
+        var method = typeof(AnonymityTransportSelector).GetMethod("IsTransportAllowedByPolicy",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var allowed = (bool)method.Invoke(selector, new object[] { AnonymityTransportType.Obfs4, policy });
+
+        // Assert
+        Assert.True(allowed);
+    }
+
+    [Fact]
+    public async Task SelectTransportTypeAsync_ReturnsAvailableTransportWithoutConnecting()
+    {
+        // Arrange
+        _adversarialOptions.AnonymityLayer.Mode = AnonymityMode.Direct;
+
+        var selector = new AnonymityTransportSelector(_adversarialOptions, _policyManager, _selectorLoggerMock.Object, _loggerFactory);
+
+        // Act
+        var selected = await selector.SelectTransportTypeAsync("test-peer", null, CancellationToken.None);
+
+        // Assert
+        Assert.Equal(AnonymityTransportType.Direct, selected);
+    }
+
+    [Fact]
     public void GetTransportStatuses_ReturnsAllTransportStatuses()
     {
         // Arrange

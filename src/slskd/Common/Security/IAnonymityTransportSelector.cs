@@ -27,6 +27,18 @@ public interface IAnonymityTransportSelector : IDisposable
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Selects the best available transport for a peer/pod context without opening a connection.
+    /// </summary>
+    /// <param name="peerId">The target peer ID for policy lookup.</param>
+    /// <param name="podId">The pod ID for policy lookup (optional).</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The selected transport type, or null if no transport is available.</returns>
+    Task<AnonymityTransportType?> SelectTransportTypeAsync(
+        string? peerId,
+        string? podId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Selects the best available transport for a connection (legacy method without policy).
     /// </summary>
     /// <param name="host">The target host.</param>

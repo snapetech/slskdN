@@ -284,7 +284,8 @@ public class DhtMeshService : IMeshService
             {
                 _logger.LogWarning(
                     "[DHT] Store request signature verification failed for key {KeyHex} from peer {PeerId}",
-                    Convert.ToHexString(request.Key), context.RemotePeerId);
+                    Common.Security.LoggingSanitizer.SanitizeHash(Convert.ToHexString(request.Key)),
+                    Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(context.RemotePeerId));
 
                 var errorResponse = new StoreResponse
                 {
@@ -321,7 +322,9 @@ public class DhtMeshService : IMeshService
 
             _logger.LogDebug(
                 "[DHT] Stored signed value for key {KeyHex} with TTL {TTL}s from peer {PeerId}",
-                Convert.ToHexString(request.Key), ttlSeconds, context.RemotePeerId);
+                Common.Security.LoggingSanitizer.SanitizeHash(Convert.ToHexString(request.Key)),
+                ttlSeconds,
+                Common.Security.LoggingSanitizer.SanitizeExternalIdentifier(context.RemotePeerId));
 
             return new ServiceReply
             {

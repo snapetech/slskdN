@@ -260,6 +260,22 @@ public class AnonymityTransportSelector : IAnonymityTransportSelector, IDisposab
     }
 
     /// <summary>
+    /// Selects the best available transport type for a peer/pod context without opening a connection.
+    /// </summary>
+    /// <param name="peerId">The peer ID for policy lookup.</param>
+    /// <param name="podId">The pod ID for policy lookup.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The selected transport type, or null if none are available.</returns>
+    public async Task<AnonymityTransportType?> SelectTransportTypeAsync(
+        string? peerId,
+        string? podId,
+        CancellationToken cancellationToken = default)
+    {
+        var transport = await SelectTransportAsync(peerId, podId, cancellationToken).ConfigureAwait(false);
+        return transport?.TransportType;
+    }
+
+    /// <summary>
     /// Tests connectivity for all transports.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
@@ -518,6 +534,11 @@ public class AnonymityTransportSelector : IAnonymityTransportSelector, IDisposab
 
     private bool IsTransportAllowedByPolicy(AnonymityTransportType transportType, TransportPolicy policy)
     {
+        if (IsObfuscatedTransport(transportType))
+        {
+            return !policy.DisableClearnet || policy.PreferPrivateTransports;
+        }
+
         // Convert anonymity transport type to mesh transport type for policy checking
         var meshTransportType = MapAnonymityTypeToTransportType(transportType);
         if (!meshTransportType.HasValue)
@@ -528,6 +549,12 @@ public class AnonymityTransportSelector : IAnonymityTransportSelector, IDisposab
         // Check if transport is allowed by policy
         return policy.IsTransportAllowed(meshTransportType.Value, _adversarialOptions.MeshTransportOptions);
     }
+
+    private static bool IsObfuscatedTransport(AnonymityTransportType transportType)
+        => transportType == AnonymityTransportType.WebSocket ||
+           transportType == AnonymityTransportType.HttpTunnel ||
+           transportType == AnonymityTransportType.Obfs4 ||
+           transportType == AnonymityTransportType.Meek;
 
     private static AnonymityTransportType? MapTransportTypeToAnonymityType(TransportType transportType)
     {

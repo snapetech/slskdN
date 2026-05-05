@@ -92,10 +92,9 @@ public class MeshTransportServiceIntegrationTests : IDisposable
         adversarialOptionsMock.Setup(o => o.Value).Returns(_adversarialOptions);
 
         // Mock successful Tor transport selection
-        var torTransport = new TorSocksTransport(_adversarialOptions.Anonymity.Tor, Mock.Of<ILogger<TorSocksTransport>>());
         _anonymitySelectorMock
-            .Setup(s => s.SelectAndConnectAsync("peer123", null, "dummy-host", 0, null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((torTransport, Mock.Of<Stream>()));
+            .Setup(s => s.SelectTransportTypeAsync("peer123", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(AnonymityTransportType.Tor);
 
         var service = new MeshTransportService(_loggerMock.Object, optionsMock.Object, _anonymitySelectorMock.Object, adversarialOptionsMock.Object);
 
@@ -120,7 +119,7 @@ public class MeshTransportServiceIntegrationTests : IDisposable
 
         // Mock failed Tor transport selection
         _anonymitySelectorMock
-            .Setup(s => s.SelectAndConnectAsync("peer123", null, "dummy-host", 0, null, It.IsAny<CancellationToken>()))
+            .Setup(s => s.SelectTransportTypeAsync("peer123", null, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("No transport available"));
 
         var service = new MeshTransportService(_loggerMock.Object, optionsMock.Object, _anonymitySelectorMock.Object, adversarialOptionsMock.Object);
@@ -144,10 +143,9 @@ public class MeshTransportServiceIntegrationTests : IDisposable
         var adversarialOptionsMock = new Mock<IOptions<AdversarialOptions>>();
         adversarialOptionsMock.Setup(o => o.Value).Returns(_adversarialOptions);
 
-        var torTransport = new TorSocksTransport(_adversarialOptions.Anonymity.Tor, Mock.Of<ILogger<TorSocksTransport>>());
         _anonymitySelectorMock
-            .Setup(s => s.SelectAndConnectAsync("peer123", "pod456", "dummy-host", 0, null, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((torTransport, Mock.Of<Stream>()));
+            .Setup(s => s.SelectTransportTypeAsync("peer123", "pod456", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(AnonymityTransportType.Tor);
 
         var service = new MeshTransportService(_loggerMock.Object, optionsMock.Object, _anonymitySelectorMock.Object, adversarialOptionsMock.Object);
 
@@ -157,7 +155,7 @@ public class MeshTransportServiceIntegrationTests : IDisposable
         // Assert
         Assert.Equal(MeshTransportPreference.OverlayFirst, decision.Preference);
         Assert.Equal(AnonymityTransportType.Tor, decision.AnonymityTransport);
-        _anonymitySelectorMock.Verify(s => s.SelectAndConnectAsync("peer123", "pod456", "dummy-host", 0, null, It.IsAny<CancellationToken>()), Times.Once);
+        _anonymitySelectorMock.Verify(s => s.SelectTransportTypeAsync("peer123", "pod456", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -187,7 +185,40 @@ public class MeshTransportServiceIntegrationTests : IDisposable
         // Assert - Direct mode doesn't trigger anonymity transport selection
         Assert.Equal(MeshTransportPreference.DhtFirst, decision.Preference);
         Assert.Null(decision.AnonymityTransport);
-        _anonymitySelectorMock.Verify(s => s.SelectAndConnectAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+        _anonymitySelectorMock.Verify(s => s.SelectTransportTypeAsync(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ChooseTransportAsync_WithObfuscatedTransportEnabled_SelectsObfuscatedTransport()
+    {
+        // Arrange
+        var optionsMock = new Mock<IOptions<MeshOptions>>();
+        optionsMock.Setup(o => o.Value).Returns(_meshOptions);
+
+        var adversarialOptionsMock = new Mock<IOptions<AdversarialOptions>>();
+        adversarialOptionsMock.Setup(o => o.Value).Returns(new AdversarialOptions
+        {
+            Transport = new ObfuscatedTransportOptions
+            {
+                Enabled = true,
+                Mode = ObfuscatedTransportMode.Obfs4,
+                Obfs4 = new Obfs4TransportOptions { Enabled = true }
+            }
+        });
+
+        _anonymitySelectorMock
+            .Setup(s => s.SelectTransportTypeAsync("peer123", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(AnonymityTransportType.Obfs4);
+
+        var service = new MeshTransportService(_loggerMock.Object, optionsMock.Object, _anonymitySelectorMock.Object, adversarialOptionsMock.Object);
+
+        // Act
+        var decision = await service.ChooseTransportAsync("peer123", null, "content123");
+
+        // Assert
+        Assert.Equal(MeshTransportPreference.OverlayFirst, decision.Preference);
+        Assert.Contains("Overlay-first with Obfs4 anonymity", decision.Reason);
+        Assert.Equal(AnonymityTransportType.Obfs4, decision.AnonymityTransport);
     }
 
     [Fact]

@@ -20,7 +20,7 @@ This document records remediation rules for features that can publish data, disc
 | --- | --- | --- | --- | --- |
 | Soulseek recommendations/interests | Interest strings and account identity through Soulseek protocol | Existing Soulseek behavior | Auth, relay-agent gate, safety limiter on reads/mutations | UI is search-adjacent and user initiated. |
 | Soulseek mesh rendezvous | Recognizable `slskdN` mesh interest tag on the Soulseek account | Disabled | `mesh.enableSoulseekRendezvous`, auth, relay-agent gate, safety limiter | System > Mesh shows warning and opt-in controls. |
-| Mesh transport/DHT | Peer descriptor and mesh transport metadata | Controlled by mesh config | Mesh options and transport services | Keep diagnostics operational, not topology-dumping. |
+| Mesh transport/DHT | Peer descriptor and mesh transport metadata | Controlled by mesh config | Mesh options, private/obfuscated transport selector, and transport services | Mesh routing can prefer configured Tor/I2P or anti-DPI transports while falling back to normal routing; diagnostics should stay operational, not topology-dumping. |
 | Federation/ActivityPub | Federated profile/activity data | Experimental/configured | Mesh/federation options | Needs admin diagnostics before broader UI exposure. |
 | Pods/native sharing | Pod metadata and membership state | Experimental/configured | Mesh options, controller policy, and federation diagnostics posture | MediaCore exposes extensive pod tooling; next step is stale route cleanup and UX consolidation. |
 | Swarm jobs | Source/job status inside local web UI | Local view | Authenticated APIs | Modal is tied to active jobs; no standalone exposure. |
@@ -41,6 +41,8 @@ This document records remediation rules for features that can publish data, disc
 | Direct fetch wrappers | Mutating direct-fetch wrappers must opt into `session.authHeaders({ csrf: true })` so cookie-auth requests carry `X-CSRF-TOKEN`. |
 | Shared axios client | Library modules should pass relative paths such as `/podcore/messages` or `/library/health/scans`; do not embed `/api` or `/api/v0` in shared-client calls. |
 | MediaCore pod helpers | Pod DHT, membership, discovery, routing, signing, verification, message storage, backfill, opinions, channels, and content helpers now target `/podcore/*` through the versioned client. |
+| Mesh metadata minimization | Bridge searches, bridge downloads, DHT store keys, and remote metadata searches log sanitized fingerprints or basename-only values instead of raw queries, full paths, full filenames, or full peer identifiers. |
+| Soulseek server transport wrapping | Deferred. Do not describe native type-1 obfuscation as covering the official server connection; any future SOCKS/pluggable-transport wrapper must be documented separately with fallback and leak-risk rules. |
 
 ## Pod UX consolidation notes
 

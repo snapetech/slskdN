@@ -9,6 +9,7 @@ namespace slskd.Mesh.Realm.Bridge
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
+    using slskd.Common.Security;
 
     /// <summary>
     ///     Metadata bridge for controlled cross-realm metadata sharing.
@@ -115,8 +116,10 @@ namespace slskd.Mesh.Realm.Bridge
                     // 3. Filter results to remove private/inappropriate content
                     // 4. Return search results with proper attribution
                     _logger.LogInformation(
-                        "[MetadataBridge] Searching content in realm '{RemoteRealm}' for local realm '{LocalRealm}' - Query: '{SearchTerm}'",
-                        remoteRealmId, localRealmId, searchQuery.SearchTerm);
+                        "[MetadataBridge] Searching content in realm '{RemoteRealm}' for local realm '{LocalRealm}' - Query: {SearchTerm}",
+                        remoteRealmId,
+                        localRealmId,
+                        LoggingSanitizer.SanitizeQueryText(searchQuery.SearchTerm));
 
                     // Validate search safety
                     if (!IsSearchSafe(searchQuery))

@@ -138,6 +138,34 @@ namespace slskd.Common.Security
         }
 
         /// <summary>
+        ///     Sanitizes user-supplied search text or metadata values for safe logging.
+        /// </summary>
+        /// <param name="value">The search text or metadata value.</param>
+        /// <returns>A stable short fingerprint and length, without the original value.</returns>
+        public static string SanitizeQueryText(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return "[empty]";
+            }
+
+            var normalized = value.Trim();
+
+            try
+            {
+                using var sha256 = SHA256.Create();
+                var bytes = Encoding.UTF8.GetBytes(normalized);
+                var hash = sha256.ComputeHash(bytes);
+                var fingerprint = BitConverter.ToString(hash).Replace("-", string.Empty).ToLowerInvariant().Substring(0, 12);
+                return $"query:{fingerprint} ({normalized.Length} chars)";
+            }
+            catch
+            {
+                return $"query:[redacted] ({normalized.Length} chars)";
+            }
+        }
+
+        /// <summary>
         ///     Sanitizes a URL for safe logging by removing sensitive components.
         /// </summary>
         /// <param name="url">The full URL.</param>

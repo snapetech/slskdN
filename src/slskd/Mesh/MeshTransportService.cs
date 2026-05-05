@@ -61,31 +61,36 @@ public class MeshTransportService : IMeshTransportService
         var opt = options.Value;
         var basePreference = Preference;
 
-        // Check if anonymity features are enabled and should override transport selection
+        // Check if anonymity or obfuscated transport features should override transport selection.
         AnonymityTransportType? anonymityTransport = null;
-        if (adversarialOptions?.Value.AnonymityLayer.Enabled == true && anonymitySelector != null)
+        if (anonymitySelector != null && ShouldPreferPrivateOrObfuscatedTransport(adversarialOptions?.Value))
         {
-            var anonymityMode = adversarialOptions.Value.AnonymityLayer.Mode;
-
-            // For non-direct anonymity modes, try to select an appropriate anonymity transport
-            if (anonymityMode != AnonymityMode.Direct)
+            try
             {
-                try
+                anonymityTransport = await anonymitySelector.SelectTransportTypeAsync(peerId ?? "unknown", podId, ct).ConfigureAwait(false);
+
+                if (anonymityTransport.HasValue && anonymityTransport.Value != AnonymityTransportType.Direct)
                 {
-                    // Use policy-aware transport selection if peer context is available
-                    var transportTuple = await anonymitySelector.SelectAndConnectAsync(peerId ?? "unknown", podId, "dummy-host", 0, cancellationToken: ct);
-                    anonymityTransport = transportTuple.Transport.TransportType;
+                    logger.LogDebug(
+                        "[MeshTransport] {ContentId}: Selected private/obfuscated transport {AnonymityTransport} for peer {PeerId}",
+                        LoggingSanitizer.SanitizeHash(contentId),
+                        anonymityTransport,
+                        LoggingSanitizer.SanitizeExternalIdentifier(peerId ?? "unknown"));
 
-                    logger.LogDebug("[MeshTransport] {ContentId}: Selected anonymity transport {AnonymityTransport} for peer {PeerId}",
-                        contentId, anonymityTransport, peerId ?? "unknown");
-
-                    // When using anonymity transports, prefer overlay routing to maintain privacy
+                    // Keep actual mesh payloads on the overlay when using private or anti-DPI transports.
                     basePreference = MeshTransportPreference.OverlayFirst;
                 }
-                catch (Exception ex)
+                else
                 {
-                    logger.LogWarning(ex, "[MeshTransport] Failed to select anonymity transport for {ContentId}, falling back to standard routing", contentId);
+                    anonymityTransport = null;
                 }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(
+                    ex,
+                    "[MeshTransport] Failed to select private/obfuscated transport for {ContentId}, falling back to standard routing",
+                    LoggingSanitizer.SanitizeHash(contentId));
             }
         }
 
@@ -103,7 +108,21 @@ public class MeshTransportService : IMeshTransportService
             _ => "Default"
         };
 
-        logger.LogDebug("[MeshTransport] {ContentId}: {Preference} ({Reason})", contentId, basePreference, reason);
+        logger.LogDebug("[MeshTransport] {ContentId}: {Preference} ({Reason})", LoggingSanitizer.SanitizeHash(contentId), basePreference, reason);
         return new MeshTransportDecision(basePreference, reason, anonymityTransport);
+    }
+
+    private static bool ShouldPreferPrivateOrObfuscatedTransport(AdversarialOptions? options)
+    {
+        if (options == null)
+        {
+            return false;
+        }
+
+        var anonymityEnabled = options.AnonymityLayer.Enabled && options.AnonymityLayer.Mode != AnonymityMode.Direct;
+        var obfuscatedEnabled = options.ObfuscatedTransports.Enabled &&
+            options.ObfuscatedTransports.Mode != ObfuscatedTransportMode.Direct;
+
+        return anonymityEnabled || obfuscatedEnabled;
     }
 }

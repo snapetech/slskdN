@@ -4,6 +4,7 @@
 namespace slskd.API.VirtualSoulfind;
 
 using Asp.Versioning;
+using slskd.Common.Security;
 using slskd.Core.Security;
 
 using Microsoft.AspNetCore.Mvc;
@@ -50,7 +51,7 @@ public class BridgeController : ControllerBase
         }
 
         var query = request.Query.Trim();
-        logger.LogDebug("Bridge search: {Query}", query);
+        logger.LogDebug("Bridge search: {Query}", LoggingSanitizer.SanitizeQueryText(query));
 
         try
         {
@@ -85,7 +86,10 @@ public class BridgeController : ControllerBase
             return BadRequest(new { error = "Username, filename, and targetPath are required" });
         }
 
-        logger.LogDebug("Bridge download: {Username}/{Filename}", username, filename);
+        logger.LogDebug(
+            "Bridge download: {Username}/{Filename}",
+            LoggingSanitizer.SanitizeExternalIdentifier(username),
+            LoggingSanitizer.SanitizeFilePath(filename));
 
         try
         {

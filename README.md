@@ -335,6 +335,7 @@ Understand swarm performance and make data-driven optimizations.
 Discover other slskdN users via BitTorrent DHT and form encrypted mesh overlay.
 - **DHT bootstrap** — 60+ bootstrap nodes for peer discovery
 - **Mesh overlay network** — TLS-encrypted P2P connections
+- **Private/obfuscated mesh transport selection** — mesh routing can prefer configured Tor/I2P or anti-DPI transports such as WebSocket, HTTP tunnel, obfs4, or meek while falling back to normal mesh routing when unavailable
 - **Hash database sync** — Epidemic protocol for content verification database
 - **Peer greeting service** — Auto-discovery and handshake
 - **Runtime capability handshakes** — slskdN peers can exchange signed capability descriptors over Soulseek peer-message connections, allowing mesh, swarm, and overlay support to be discovered before falling back to the legacy capability file.
@@ -354,6 +355,7 @@ First-class Soulseek peer-message, distributed-message, and file-transfer obfusc
 - **Visible status** — System → Network reports enablement, mode, advertised ports, fallback posture, and runtime activation state
 - **Active runtime support** — slskdN’s vendored runtime now advertises type-1 metadata, accepts obfuscated peer, distributed, and transfer handshakes, and can prefer compatible outbound obfuscated dials
 - **Scoped transport** — obfuscation applies to Soulseek peer-message, distributed-message, and file-transfer streams while regular fallback stays available
+- **Server transport wrapping deferred** — the official Soulseek server connection is not wrapped by type-1 obfuscation; future SOCKS/pluggable-transport work is tracked separately from native Soulseek `P/D/F` support
 
 📖 **Guide**: [Soulseek type-1 obfuscation](docs/soulseek-type1-obfuscation.md) • [Configuration](docs/config.md#type-1-peer-and-distributed-message-obfuscation)
 

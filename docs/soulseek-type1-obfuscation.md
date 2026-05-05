@@ -59,6 +59,18 @@ File transfer (`F`) streams can use type-1 obfuscated framing when compatible me
 
 The feature is not encryption. It should not be described as anonymous, secure, or confidential transport. The correct description is obfuscated peer/distributed/transfer connectivity for compatible peers with regular fallback.
 
+## Adjacent Mesh Privacy Work
+
+slskdN also has mesh/DHT transport privacy controls outside native Soulseek type-1 obfuscation. Mesh routing can now consult the configured anonymity/obfuscated transport selector without opening a throwaway connection, prefer overlay routing when Tor, I2P, WebSocket tunnel, HTTP tunnel, obfs4, or meek is selected, and fall back to normal mesh routing when none of those transports are available.
+
+This is not the same as Soulseek type-1 obfuscation. It applies to slskdN mesh/DHT paths, not to the official Soulseek server socket.
+
+Metadata minimization is part of this posture: bridge searches, bridge downloads, DHT store logs, and remote metadata-search logs should use sanitized fingerprints, short identifiers, or basename-only values rather than raw searches, full filenames, full paths, or full peer identifiers.
+
+## Deferred Server Transport Wrapping
+
+The official Soulseek server connection remains direct unless an operator supplies an external network wrapper such as a VPN. A future slskdN-managed SOCKS or pluggable-transport wrapper could be useful for local-network DPI resistance, but it would not hide activity from the Soulseek server and it must be designed separately from native `P`, `D`, and `F` type-1 support.
+
 ## Validation Work
 
-Runtime support is active. Ongoing validation should include public-server advertisement tests, direct compatible-peer tests, indirect compatible-peer tests, regular fallback tests, and negative tests proving plain traffic is rejected by the obfuscated listener.
+Runtime support is active. `ObfuscatedConnectionMatrixTests` uses loopback TCP sockets to prove obfuscated peer-message (`P`), distributed-message (`D`), and file-transfer (`F`) paths, plus regular peer-message, distributed-message, and transfer fallback. Ongoing validation should still include public-server advertisement tests, direct compatible-peer tests, indirect compatible-peer tests, and negative tests proving plain traffic is rejected by the obfuscated listener.

@@ -709,7 +709,7 @@ soulseek:
 
 slskdN exposes Soulseek type-1 peer-message, distributed-message, and file-transfer obfuscation as a first-class feature option. It defaults to `enabled: true` in `compatibility` mode, which means regular Soulseek paths stay available and obfuscated reachability is added for compatible peers. The runtime advertises obfuscation metadata, accepts type-1 obfuscated peer-message, distributed-message, and file-transfer connections, and can prefer compatible outbound obfuscated dials.
 
-This is obfuscation, not transport security. It should be treated as a compatibility and traffic-shaping posture, not encryption. Current runtime support covers peer-message (`P`) and distributed-network message (`D`) streams. File transfer (`F`) streams remain regular-port based for compatibility.
+This is obfuscation, not transport security. It should be treated as a compatibility and traffic-shaping posture, not encryption. Current runtime support covers peer-message (`P`), distributed-network message (`D`), and file-transfer (`F`) streams, with regular fallback retained for all three.
 
 Modes:
 
@@ -738,6 +738,8 @@ soulseek:
     advertise_regular_port: true
     prefer_outbound: true
 ```
+
+Mesh/DHT privacy uses the separate `security.adversarial` transport options. Those options can prefer Tor, I2P, WebSocket tunnel, HTTP tunnel, obfs4, or meek for slskdN mesh paths while falling back to normal mesh routing when private/obfuscated transports are unavailable. They do not wrap the official Soulseek server connection.
 
 ## Soulseek Mesh Rendezvous and Capability Handshakes
 

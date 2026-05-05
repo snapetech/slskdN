@@ -22,9 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
-- Extended Soulseek type-1 obfuscation from peer-message streams to compatible
-  distributed-message streams while preserving regular direct/indirect fallback
-  and keeping file transfers on normal Soulseek transport.
+- Extended Soulseek type-1 obfuscation across compatible peer-message,
+  distributed-message, and file-transfer streams while preserving regular
+  direct/indirect fallback.
+- Added mesh/DHT private and anti-DPI transport selection without dummy
+  connection attempts, plus sanitized logging for bridge searches/downloads,
+  DHT store keys, and remote metadata searches.
 - Added logged-in and logged-out footer build metadata with a GitHub-backed
   slskdN release check that surfaces newer packaged builds from
   `snapetech/slskdn`.
