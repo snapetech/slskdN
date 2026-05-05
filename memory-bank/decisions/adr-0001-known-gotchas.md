@@ -145,7 +145,11 @@ log.LogWarning("AcoustID lookup failed ({StatusCode}) for fingerprint id {Finger
 - `packaging/helm/slskdn/README.md`
 - `packaging/truenas-scale/charts/slskdn/values.yaml`
 - `packaging/truenas-scale/charts/slskdn/questions.yaml`
+- `packaging/homebrew/README.md`
+- `packaging/flatpak/README.md`
+- `docs/build.md`
 - `packaging/scripts/validate-packaging-metadata.sh`
+- `scripts/check-workflow-trigger-policy.sh`
 
 **Wrong**:
 ```yaml
@@ -210,6 +214,7 @@ env:
 - `src/web/src/components/System/SwarmAnalytics/index.jsx`
 - `src/web/src/components/System/SwarmVisualization/index.jsx`
 - `src/web/src/components/Transfers/Transfers.jsx`
+- `src/web/src/components/System/MediaCore/index.jsx`
 
 **Wrong**:
 ```js
