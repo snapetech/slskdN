@@ -92,7 +92,9 @@ api.get(`/files/${root}/directories/${encodeURIComponent(btoa(binary))}`);
 - `src/web/src/components/Search/DiscoveryGraphModal.jsx`
 - `src/web/src/lib/events.js`
 - `src/web/src/lib/bridge.js`
+- `src/web/src/components/Collections/Collections.jsx`
 - `src/web/src/components/Search/AlbumCompletionPanel.jsx`
+- `src/web/src/components/Search/FederatedTasteRecommendationsPanel.jsx`
 
 **Wrong**:
 ```js
