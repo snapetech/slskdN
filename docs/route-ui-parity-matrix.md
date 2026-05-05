@@ -18,7 +18,7 @@ This matrix tracks backend surface area against visible UI coverage. It is inten
 | Mesh evidence policy | Local UI policy storage | System > Mesh | Covered | Local-only by design; no backend sync without explicit privacy review. |
 | Realm subject conflicts | Mesh subject index APIs | System > Mesh | Covered | Keep stale conflict cleanup visible. |
 | DHT/bootstrap/NAT internals | Mesh services and health routes | Partial System visibility | Partial | Expose actionable NAT/bootstrap warnings without leaking internal topology. |
-| Pods/native federation | `/api/v0/pods`, native pod routes | Limited/legacy views | Gap | Inventory stale UI and decide whether to revive, hide, or document as experimental. |
+| Pods/native federation | `/api/v0/pods`, `/api/v0/podcore/*` | System > MediaCore pod workflow index | Partial | Workflow navigation and safety framing added; remaining work is task-focused simplification of individual forms. |
 | Social federation/ActivityPub | federation routes plus `/api/v0/federation/diagnostics` | System > Integrations diagnostics | Covered for diagnostics | Keep public actor routes separate; do not add mutation UI without explicit privacy review. |
 | VirtualSoulfind v2 | backend providers and native APIs | Search-adjacent only | Gap | Map provider capabilities into Search UI only after backend route inventory is stable. |
 | Swarm visualization | swarm job status and trace routes | System > Jobs modal | Covered | Keep tied to active swarm jobs; no standalone route needed. |
@@ -28,6 +28,6 @@ This matrix tracks backend surface area against visible UI coverage. It is inten
 
 1. Finish automated coverage for mesh rendezvous UI/API.
 2. Convert `docs/system-surfaces-current.md` into a generated baseline artifact used during remediation reviews.
-3. Consolidate pod-heavy MediaCore UX and document experimental pod workflows.
+3. Simplify individual MediaCore pod forms now that workflow navigation and safety framing are in place.
 4. Add versioned aliases for active legacy-only web client dependencies.
 5. Add explicit privacy/security notes for every surface that publishes data outside the local node.

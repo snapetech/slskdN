@@ -41,3 +41,10 @@ This document records remediation rules for features that can publish data, disc
 | Direct fetch wrappers | Mutating direct-fetch wrappers must opt into `session.authHeaders({ csrf: true })` so cookie-auth requests carry `X-CSRF-TOKEN`. |
 | Shared axios client | Library modules should pass relative paths such as `/podcore/messages` or `/library/health/scans`; do not embed `/api` or `/api/v0` in shared-client calls. |
 | MediaCore pod helpers | Pod DHT, membership, discovery, routing, signing, verification, message storage, backfill, opinions, channels, and content helpers now target `/podcore/*` through the versioned client. |
+
+## Pod UX consolidation notes
+
+| Area | Remediation |
+| --- | --- |
+| MediaCore pod workflows | System > MediaCore now starts with a Pod Workflow Index that separates read-only diagnostics from publishing, signing, storage, routing, and key-material workflows. |
+| Operator safety | Pod controls remain available, but the UI now warns that the page mixes local diagnostics with operations that publish metadata, membership records, messages, opinions, or key material. |
