@@ -52,6 +52,27 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z289. Saved Search Producers Must Use Normal Network Scope Unless They Intentionally Need Server Wishlist Semantics
+
+**The Bug**: slskdN Wishlist items executed through `SearchScope.Wishlist`, while manual reruns from the Search view used `SearchScope.Network`. The saved-search job could complete with zero responses even though immediately rerunning the same text as a normal search returned results.
+
+**Files Affected**:
+- `src/slskd/Wishlist/WishlistService.cs`
+
+**Wrong**:
+```csharp
+var scope = SearchScope.Wishlist;
+await SearchService.StartAsync(searchId, query, scope, searchOptions);
+```
+
+**Correct**:
+```csharp
+var scope = SearchScope.Network;
+await SearchService.StartAsync(searchId, query, scope, searchOptions, requestedProviders: null, safetySource: "wishlist");
+```
+
+**Why This Keeps Happening**: The product term "wishlist" describes a saved search in slskdN, but `SearchScope.Wishlist` is a distinct Soulseek protocol scope. Saved searches, Lidarr-promoted searches, replacement searches, and other local automations should behave like manual network searches unless a feature is explicitly using server-side wishlist behavior. Keep the producer identity in safety/logging metadata instead of changing the protocol search scope.
+
 ### 0z288. Preflight Security Checks Must Bind To The Actual Operation
 
 **The Bug**: Follow-up security fixes validated only metadata around an operation, not the operation that ultimately ran. Rate limiting treated any auth-looking header as authenticated before proving the principal, outbound SSRF guards checked only the first URI while default HTTP clients could follow redirects, and relay-agent downloads validated the controller serving path but still trusted the controller-supplied filename and stream size at the receiving agent.
