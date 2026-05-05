@@ -90,6 +90,9 @@ This is not optional. This is the highest priority action after fixing a bug.
 - `src/web/src/components/System/Bridge/index.jsx`
 - `src/web/src/components/System/Integrations/index.jsx`
 - `src/web/src/components/System/Security/AdversarialSettings.jsx`
+- `src/web/src/components/System/SwarmAnalytics/index.jsx`
+- `src/web/src/components/System/SwarmVisualization/index.jsx`
+- `src/web/src/components/Transfers/Transfers.jsx`
 
 **Wrong**:
 ```js
@@ -103,7 +106,7 @@ const notes = (Array.isArray(response.data) ? response.data : []).reduce(...);
 const labels = (Array.isArray(recommendation.reasons) ? recommendation.reasons : []).map(...);
 ```
 
-**Why This Keeps Happening**: `|| []` does not protect truthy objects or strings, and optional chaining only prevents nullish access. Every nested field used as a list needs an `Array.isArray` check at the boundary or directly before list operations. This includes persisted workflow-plan lists, user-interest lists, chat message lists, directory file lists, source-provider/tag metadata, provider suggestion lists, graph node lists, filter token lists, diagnostics warning lists, and settings arrays.
+**Why This Keeps Happening**: `|| []` does not protect truthy objects or strings, and optional chaining only prevents nullish access. Every nested field used as a list needs an `Array.isArray` check at the boundary or directly before list operations. This includes persisted workflow-plan lists, user-interest lists, chat message lists, directory file lists, transfer directory/file lists, source-provider/tag metadata, provider suggestion lists, graph node lists, filter token lists, diagnostics warning lists, swarm analytics/trace lists, and settings arrays.
 
 ### 0z305. Browser Base64 Route Segments Need UTF-8 And URL Encoding
 
@@ -143,6 +146,10 @@ api.get(`/files/${root}/directories/${encodeURIComponent(btoa(binary))}`);
 - `src/web/src/components/Search/DiscoveryGraphAtlas.jsx`
 - `src/web/src/components/Search/DiscoveryGraphAtlasPanel.jsx`
 - `src/web/src/components/Search/DiscoveryGraphModal.jsx`
+- `src/web/src/components/Browse/Browse.jsx`
+- `src/web/src/components/Chat/Chat.jsx`
+- `src/web/src/components/Rooms/Rooms.jsx`
+- `src/web/src/components/Browse/BrowseSession.jsx`
 - `src/web/src/lib/events.js`
 - `src/web/src/lib/bridge.js`
 - `src/web/src/components/Collections/Collections.jsx`
@@ -214,7 +221,7 @@ return Array.isArray(parsed)
 
 **Why This Keeps Happening**: Browser storage is external input at both the container and entry level. Array checks protect `.map()` and `.filter()`, but every consumer that reads object fields also needs item-shape validation before normalization, summaries, or save/replace flows run.
 
-Nested arrays need the same treatment. If a persisted playlist has `tracks: [null]`, or a watchlist has `expansionCandidates: [null]`, the top-level item can be valid while nested normalizers still crash. Filter nested collection items to strings or non-array objects before reading their fields.
+Nested arrays need the same treatment. If a persisted playlist has `tracks: [null]`, a watchlist has `expansionCandidates: [null]`, or a route tab cache has `tabs: ['bad']`, the top-level container can be valid while nested normalizers still crash. Filter nested collection items to strings or non-array objects before reading their fields, and reset counters from storage unless they are finite non-negative integers.
 
 ### 0z302. Render Paths Must Not Parse Event JSON Without Fallbacks
 
