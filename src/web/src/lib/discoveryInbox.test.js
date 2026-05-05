@@ -35,6 +35,20 @@ describe('discoveryInbox', () => {
     });
   });
 
+  it('ignores malformed persisted discovery items before normalizing', () => {
+    localStorage.setItem(
+      discoveryInboxStorageKey,
+      JSON.stringify([null, 'bad', ['bad'], { searchText: 'valid' }]),
+    );
+
+    expect(getDiscoveryInboxItems()).toEqual([
+      expect.objectContaining({
+        searchText: 'valid',
+        title: 'valid',
+      }),
+    ]);
+  });
+
   it('clears snooze due date when the item returns to review', () => {
     const item = addDiscoveryInboxItem({
       searchText: 'return me',

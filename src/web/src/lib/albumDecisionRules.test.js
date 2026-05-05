@@ -56,4 +56,53 @@ describe('albumDecisionRules', () => {
 
     expect(getAlbumDecisionRules()).toHaveLength(1);
   });
+
+  it('ignores malformed candidate nested arrays before building rules', () => {
+    const rule = buildAlbumDecisionRule({
+      candidate: {
+        albumTitle: 'Malformed Nested Album',
+        expectedTrackCount: 8,
+        formatMix: { format: 'FLAC', count: 8 },
+        substitutionOptions: 'track 2',
+        warnings: 'mixed formats',
+      },
+      searchText: 'malformed nested album',
+    });
+
+    expect(rule).toMatchObject({
+      formatPolicy: '',
+      notes: [],
+      substitutionTracks: [],
+      warningCount: 0,
+    });
+  });
+
+  it('ignores malformed persisted rule entries before saving replacements', () => {
+    localStorage.setItem(
+      'slskdn.albumDecisionRules',
+      JSON.stringify([
+        null,
+        'bad',
+        ['bad'],
+        {
+          albumTitle: 'Existing Album',
+          id: 'existing',
+        },
+      ]),
+    );
+
+    saveAlbumDecisionRule({
+      candidate: {
+        albumTitle: 'New Album',
+        expectedTrackCount: 4,
+        formatMix: [{ count: 4, format: 'FLAC' }],
+      },
+      searchText: 'new album',
+    });
+
+    expect(getAlbumDecisionRules()).toEqual([
+      expect.objectContaining({ albumTitle: 'New Album' }),
+      expect.objectContaining({ albumTitle: 'Existing Album' }),
+    ]);
+  });
 });

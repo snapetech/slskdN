@@ -21,6 +21,8 @@ import {
 const getValue = (value, camel, pascal, fallback = undefined) =>
   value?.[camel] ?? value?.[pascal] ?? fallback;
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const normalizeRecommendation = (recommendation) => ({
   item: getValue(recommendation, 'item', 'Item', ''),
   score: getValue(recommendation, 'score', 'Score', null),
@@ -139,11 +141,12 @@ const SoulseekDiscoveryPanel = ({ disabled, onSearch }) => {
   const loadSimilarUsers = () =>
     run('load similar users', async () => {
       const response = await soulseekDiscovery.getSimilarUsers();
+      const users = asArray(response.data);
 
       clearResults();
-      setSimilarUsers((response.data || []).map(normalizeUser).filter((user) => user.username));
+      setSimilarUsers(users.map(normalizeUser).filter((user) => user.username));
       setTitle('Similar users');
-      setStatus(`Loaded ${(response.data || []).length} similar user${(response.data || []).length === 1 ? '' : 's'}.`);
+      setStatus(`Loaded ${users.length} similar user${users.length === 1 ? '' : 's'}.`);
     });
 
   const loadItemSimilarUsers = () => {

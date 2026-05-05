@@ -225,7 +225,10 @@ const getVisualizerErrorMessage = (engineType, error) => {
 
 const readStoredNativePreset = () => {
   try {
-    return JSON.parse(getLocalStorageItem(nativePresetStorageKey, 'null'));
+    const preset = JSON.parse(getLocalStorageItem(nativePresetStorageKey, 'null'));
+    return preset && typeof preset === 'object' && !Array.isArray(preset)
+      ? preset
+      : null;
   } catch {
     return null;
   }

@@ -8,6 +8,14 @@ const PER_PAGE = 10;
 const replaceHyphensWithNonBreakingEquivalent = (string) =>
   string?.replaceAll('-', '‑');
 
+const formatEventData = (data) => {
+  try {
+    return JSON.stringify(JSON.parse(data), null, 2);
+  } catch {
+    return `${data || ''}`;
+  }
+};
+
 const Events = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
@@ -104,7 +112,7 @@ const Events = () => {
                 </Table.Cell>
                 <Table.Cell>{event.type}</Table.Cell>
                 <Table.Cell className="events-table-data">
-                  {JSON.stringify(JSON.parse(event.data), null, 2)}
+                  {formatEventData(event.data)}
                 </Table.Cell>
               </Table.Row>
             ))

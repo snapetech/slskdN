@@ -2,7 +2,10 @@
 // Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 
-import SourceProviders from '.';
+import SourceProviders, {
+  normalizeProfilePolicy,
+  normalizeProvider,
+} from '.';
 import * as sourceProvidersApi from '../../../lib/sourceProviders';
 import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
@@ -104,5 +107,22 @@ describe('SourceProviders', () => {
     await waitFor(() =>
       expect(sourceProvidersApi.getSourceProviders).toHaveBeenCalledTimes(1),
     );
+  });
+
+  it('normalizes malformed nested provider and policy arrays', () => {
+    expect(normalizeProvider({
+      capabilities: { search: true },
+      id: 'bad-provider',
+    })).toMatchObject({
+      capabilities: [],
+      id: 'bad-provider',
+    });
+    expect(normalizeProfilePolicy({
+      profileId: 'bad-policy',
+      providerPriority: { provider: 'Soulseek' },
+    })).toMatchObject({
+      profileId: 'bad-policy',
+      providerPriority: [],
+    });
   });
 });

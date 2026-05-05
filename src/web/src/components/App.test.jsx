@@ -239,6 +239,35 @@ describe('App', () => {
     expect(await screen.findByTestId('nav-rooms-alert')).toBeInTheDocument();
   });
 
+  it('ignores malformed stored room activity shapes before comparing timestamps', async () => {
+    localStorage.setItem(
+      'slskdn.rooms.lastSeenActivity',
+      JSON.stringify(['bad']),
+    );
+    getJoinedRooms.mockResolvedValue(['chill']);
+    getRoomMessages.mockResolvedValue([
+      {
+        message: 'first baseline',
+        self: false,
+        timestamp: '2026-04-30T00:01:00Z',
+        username: 'friend',
+      },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/searches']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('nav-rooms-alert')).not.toBeInTheDocument();
+    });
+    expect(JSON.parse(localStorage.getItem('slskdn.rooms.lastSeenActivity'))).toEqual({
+      chill: Date.parse('2026-04-30T00:01:00Z'),
+    });
+  });
+
   it('shows a dismissible network endpoint notice when ports are reported', async () => {
     render(
       <MemoryRouter>

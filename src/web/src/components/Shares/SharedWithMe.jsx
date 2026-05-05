@@ -15,6 +15,8 @@ import {
   Table,
 } from 'semantic-ui-react';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 export default class SharedWithMe extends Component {
   state = {
     backfilling: false,
@@ -56,7 +58,7 @@ export default class SharedWithMe extends Component {
 
       // Fetch collection details for each share
       const sharesWithCollections = await Promise.all(
-        (sharesRes.data || []).map(async (share) => {
+        asArray(sharesRes.data).map(async (share) => {
           try {
             const collectionRes = await collectionsAPI.getCollection(
               share.collectionId,
@@ -74,7 +76,7 @@ export default class SharedWithMe extends Component {
       );
 
       this.setState({
-        contacts: contactsRes.data || [],
+        contacts: asArray(contactsRes.data),
         loading: false,
         shares: sharesWithCollections,
       });

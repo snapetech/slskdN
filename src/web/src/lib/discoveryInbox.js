@@ -46,7 +46,11 @@ const normalizeItem = (item) => {
 export const getDiscoveryInboxItems = (getItem = getLocalStorageItem) => {
   try {
     const parsed = JSON.parse(getItem(discoveryInboxStorageKey, '[]'));
-    return Array.isArray(parsed) ? parsed.map(normalizeItem) : [];
+    return Array.isArray(parsed)
+      ? parsed
+        .filter((item) => item && typeof item === 'object' && !Array.isArray(item))
+        .map(normalizeItem)
+      : [];
   } catch {
     return [];
   }

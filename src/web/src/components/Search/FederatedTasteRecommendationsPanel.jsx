@@ -30,6 +30,8 @@ const getTitle = (workRef = {}) => workRef.title || workRef.Title || 'Untitled r
 const getSearchText = (workRef = {}) =>
   [getCreator(workRef), getTitle(workRef)].filter(Boolean).join(' ') || getTitle(workRef);
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const FederatedTasteRecommendationsPanel = ({ disabled }) => {
   const [error, setError] = useState('');
   const [graphPreview, setGraphPreview] = useState(null);
@@ -52,11 +54,12 @@ const FederatedTasteRecommendationsPanel = ({ disabled }) => {
         limit: Number(limit) || 20,
         minimumTrustedSources: Number(minimumTrustedSources) || 2,
       });
+      const nextRecommendations = asArray(response.data?.recommendations);
       setSummary(response.data);
-      setRecommendations(response.data?.recommendations || []);
+      setRecommendations(nextRecommendations);
       setStatus(
-        `Loaded ${response.data?.recommendations?.length || 0} privacy-filtered recommendation${
-          response.data?.recommendations?.length === 1 ? '' : 's'
+        `Loaded ${nextRecommendations.length} privacy-filtered recommendation${
+          nextRecommendations.length === 1 ? '' : 's'
         }.`,
       );
     } catch (loadError) {
@@ -209,12 +212,12 @@ const FederatedTasteRecommendationsPanel = ({ disabled }) => {
                 <List.Description>
                   {recommendation.trustedSourceCount} trusted sources · score {Math.round((recommendation.score || 0) * 100)}%
                 </List.Description>
-                {(recommendation.reasons || []).map((reason) => (
+                {asArray(recommendation.reasons).map((reason) => (
                   <Label basic key={reason}>{reason}</Label>
                 ))}
-                {includeSourceActors && recommendation.sourceActors?.length > 0 && (
+                {includeSourceActors && asArray(recommendation.sourceActors).length > 0 && (
                   <div className="search-acquisition-profile-summary">
-                    {recommendation.sourceActors.join(', ')}
+                    {asArray(recommendation.sourceActors).join(', ')}
                   </div>
                 )}
                 <Popup

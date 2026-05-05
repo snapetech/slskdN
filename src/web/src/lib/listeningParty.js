@@ -2,7 +2,8 @@ import api from './api';
 import { rootUrl } from '../config';
 
 export const getPartyDirectory = async () => {
-  return (await api.get('/listening-party')).data || [];
+  const { data } = await api.get('/listening-party');
+  return Array.isArray(data) ? data : [];
 };
 
 export const getPartyState = async (podId, channelId) => {

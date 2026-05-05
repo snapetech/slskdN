@@ -32,7 +32,10 @@ const readSignals = () => {
     const parsed = JSON.parse(
       storage.getItem(communityQualitySignalStorageKey) || '[]',
     );
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((signal) =>
+        signal && typeof signal === 'object' && !Array.isArray(signal))
+      : [];
   } catch (_error) {
     return [];
   }

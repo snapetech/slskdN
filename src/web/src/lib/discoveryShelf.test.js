@@ -67,6 +67,27 @@ describe('discoveryShelf', () => {
     expect(getDiscoveryShelfSummary().total).toBe(0);
   });
 
+  it('ignores malformed persisted shelf entries before summarizing', () => {
+    localStorage.setItem(
+      discoveryShelfStorageKey,
+      JSON.stringify([
+        null,
+        'bad',
+        ['bad'],
+        {
+          action: 'promote-preview',
+          key: 'content:valid',
+          title: 'Valid Track',
+        },
+      ]),
+    );
+
+    expect(getDiscoveryShelfSummary()).toMatchObject({
+      'promote-preview': 1,
+      total: 1,
+    });
+  });
+
   it('previews promote archive and expiry policy without enabling file actions', () => {
     upsertDiscoveryShelfItem({
       contentId: 'sha256:promote',

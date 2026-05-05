@@ -51,6 +51,24 @@ describe('createBatch', () => {
   });
 });
 
+describe('blocked users', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('ignores malformed stored blocked-user shapes before array operations', () => {
+    localStorage.setItem(
+      'slskdn_blocked_users',
+      JSON.stringify({ alice: true }),
+    );
+
+    expect(search.getBlockedUsers()).toEqual([]);
+    expect(search.blockUser('bob')).toEqual(['bob']);
+    expect(search.unblockUser('bob')).toEqual([]);
+    expect(search.isUserBlocked('alice')).toBe(false);
+  });
+});
+
 describe('filterResponse', () => {
   it('removes VBR files if "iscbr" is specified', () => {
     const response = {

@@ -16,6 +16,39 @@ using Xunit;
 public class MultiSourceControllerTests
 {
     [Fact]
+    public async Task GetTopUsers_WhenSearchSafetyBudgetExhausted_DoesNotSearchSoulseek()
+    {
+        var soulseekClient = new Mock<ISoulseekClient>();
+        var safetyLimiter = new Mock<slskd.Common.Security.ISoulseekSafetyLimiter>();
+        safetyLimiter
+            .Setup(limiter => limiter.TryConsumeSearch("multisource-users"))
+            .Returns(false);
+
+        var controller = new MultiSourceController(
+            Mock.Of<IMultiSourceDownloadService>(),
+            soulseekClient.Object,
+            Mock.Of<ITransferService>(),
+            Mock.Of<ISourceDiscoveryService>(),
+            Mock.Of<IContentVerificationService>(),
+            safetyLimiter.Object);
+
+        var result = await controller.GetTopUsers("hello");
+
+        var limited = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status429TooManyRequests, limited.StatusCode);
+        Assert.Contains("safety budget exhausted", limited.Value?.ToString() ?? string.Empty);
+        soulseekClient.Verify(
+            client => client.SearchAsync(
+                It.IsAny<SearchQuery>(),
+                It.IsAny<Action<SearchResponse>>(),
+                It.IsAny<SearchScope>(),
+                It.IsAny<int?>(),
+                It.IsAny<SearchOptions>(),
+                It.IsAny<CancellationToken?>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task GetTopUsers_TrimsSearchTextBeforeDispatch()
     {
         SearchQuery? capturedQuery = null;

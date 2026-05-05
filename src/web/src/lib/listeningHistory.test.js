@@ -158,6 +158,26 @@ describe('listeningHistory', () => {
     expect(getListeningHistory()).toHaveLength(1);
   });
 
+  it('ignores malformed persisted history entries before building stats', () => {
+    window.localStorage.setItem(
+      listeningHistoryStorageKey,
+      JSON.stringify([
+        null,
+        'bad',
+        ['bad'],
+        {
+          artist: 'Fixture Artist',
+          contentId: 'sha256:valid',
+          playedAt: '2026-04-30T20:00:00.000Z',
+          title: 'Valid Track',
+        },
+      ]),
+    );
+
+    expect(getListeningHistory()).toHaveLength(1);
+    expect(getListeningStats().totalPlays).toBe(1);
+  });
+
   it('imports media-server play history from CSV and skips duplicates', () => {
     const csv = [
       'playedAt,artist,album,title,genre',

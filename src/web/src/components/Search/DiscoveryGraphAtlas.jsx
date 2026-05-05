@@ -1,6 +1,10 @@
 import React from 'react';
 import { Header, Label, Segment } from 'semantic-ui-react';
 import DiscoveryGraphCanvas from './DiscoveryGraphCanvas';
+import {
+  getDiscoveryGraphEdges,
+  getDiscoveryGraphNodes,
+} from '../../lib/discoveryGraph';
 
 const DiscoveryGraphAtlas = ({
   edgeTypes = [],
@@ -9,12 +13,12 @@ const DiscoveryGraphAtlas = ({
   minNodeWeight = 0,
   onNodeClick,
 }) => {
-  const nodes = Array.isArray(graph?.nodes) ? graph.nodes : [];
+  const nodes = getDiscoveryGraphNodes(graph);
   const visibleNodes = nodes.filter(
     (node) => (node.depth || 0) <= maxDepth && (node.weight || 0) >= minNodeWeight,
   );
   const visibleNodeIds = new Set(visibleNodes.map((node) => node.nodeId));
-  const visibleEdges = (graph?.edges || []).filter(
+  const visibleEdges = getDiscoveryGraphEdges(graph).filter(
     (edge) =>
       visibleNodeIds.has(edge.sourceNodeId) &&
       visibleNodeIds.has(edge.targetNodeId) &&

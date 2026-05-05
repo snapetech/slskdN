@@ -15,6 +15,7 @@ import {
   formatPlaylistTagOrganizationReport,
   getDuePlaylistRefreshes,
   getPlaylistIntakes,
+  playlistIntakeStorageKey,
   previewPlaylistTagOrganizationPlan,
   previewPlaylistIntakeRefresh,
   scorePlaylistTrackCandidate,
@@ -102,6 +103,42 @@ describe('playlistIntake', () => {
     expect(getPlaylistIntakes()[0].tracks[0]).toMatchObject({
       state: 'Matched',
     });
+  });
+
+  it('ignores malformed persisted playlists and nested track entries', () => {
+    localStorage.setItem(
+      playlistIntakeStorageKey,
+      JSON.stringify([
+        null,
+        'bad',
+        ['bad'],
+        {
+          name: 'Valid playlist',
+          source: 'local:valid.txt',
+          tracks: [
+            null,
+            'bad',
+            ['bad'],
+            {
+              artist: 'Broadcast',
+              title: 'Come On Let\'s Go',
+            },
+          ],
+        },
+      ]),
+    );
+
+    expect(getPlaylistIntakes()).toEqual([
+      expect.objectContaining({
+        name: 'Valid playlist',
+        tracks: [
+          expect.objectContaining({
+            artist: 'Broadcast',
+            title: 'Come On Let\'s Go',
+          }),
+        ],
+      }),
+    ]);
   });
 
   it('previews mirrored playlist refresh diffs without mutating rows', () => {

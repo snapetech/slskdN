@@ -10,6 +10,7 @@ guarded_dirs=(
   "$repo_root/src/slskd/Solid"
   "$repo_root/src/slskd/VirtualSoulfind"
   "$repo_root/src/slskd/Relay"
+  "$repo_root/src/slskd/Integrations/Notifications"
   "$repo_root/src/slskd/Integrations/Webhooks"
 )
 

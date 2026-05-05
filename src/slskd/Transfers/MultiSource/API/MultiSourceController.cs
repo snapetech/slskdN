@@ -10,6 +10,7 @@ namespace slskd.Transfers.MultiSource.API
     using System.Threading.Tasks;
     using Asp.Versioning;
     using Microsoft.AspNetCore.Authorization;
+    using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Serilog;
     using slskd.Core.Security;
@@ -36,18 +37,21 @@ namespace slskd.Transfers.MultiSource.API
         /// <param name="transferService">The transfer service.</param>
         /// <param name="discoveryService">The source discovery service.</param>
         /// <param name="contentVerificationService">The content verification service.</param>
+        /// <param name="soulseekSafetyLimiter">The Soulseek network safety limiter.</param>
         public MultiSourceController(
             IMultiSourceDownloadService multiSourceService,
             ISoulseekClient soulseekClient,
             ITransferService transferService,
             ISourceDiscoveryService discoveryService,
-            IContentVerificationService contentVerificationService)
+            IContentVerificationService contentVerificationService,
+            slskd.Common.Security.ISoulseekSafetyLimiter? soulseekSafetyLimiter = null)
         {
             MultiSource = multiSourceService;
             Client = soulseekClient;
             Transfers = transferService;
             Discovery = discoveryService;
             ContentVerification = contentVerificationService;
+            SoulseekSafetyLimiter = soulseekSafetyLimiter;
         }
 
         private IMultiSourceDownloadService MultiSource { get; }
@@ -55,11 +59,27 @@ namespace slskd.Transfers.MultiSource.API
         private ITransferService Transfers { get; }
         private ISourceDiscoveryService Discovery { get; }
         private IContentVerificationService ContentVerification { get; }
+        private slskd.Common.Security.ISoulseekSafetyLimiter? SoulseekSafetyLimiter { get; }
         private ILogger Log { get; } = Serilog.Log.ForContext<MultiSourceController>();
 
         // Store last search results for drill-down
         private static List<SearchResponse> LastSearchResults { get; set; } = new();
         private static string LastSearchQuery { get; set; } = string.Empty;
+
+        private bool TryConsumeSearchBudget(string source, out IActionResult? result)
+        {
+            if (SoulseekSafetyLimiter?.TryConsumeSearch(source) == false)
+            {
+                Log.Warning("[MultiSource] Search safety limiter exhausted for {Source}", source);
+                result = StatusCode(
+                    StatusCodes.Status429TooManyRequests,
+                    new { error = "Soulseek search safety budget exhausted; try again later." });
+                return false;
+            }
+
+            result = null;
+            return true;
+        }
 
         /// <summary>
         ///     Step 1: Search and get top users ranked by quality.
@@ -79,6 +99,11 @@ namespace slskd.Transfers.MultiSource.API
             var cancellationToken = HttpContext?.RequestAborted ?? CancellationToken.None;
 
             Log.Information("[MultiSource] Searching for users: {SearchText}", searchText);
+
+            if (!TryConsumeSearchBudget("multisource-users", out var limitedResult))
+            {
+                return limitedResult!;
+            }
 
             var searchResults = new List<SearchResponse>();
 
@@ -241,6 +266,11 @@ namespace slskd.Transfers.MultiSource.API
             var searchTerm = IOPath.GetFileNameWithoutExtension(request.Filename);
             Log.Information("[MultiSource] Searching for file sources: {Filename} ({Size} bytes)", request.Filename, request.Size);
 
+            if (!TryConsumeSearchBudget("multisource-file-sources", out var limitedResult))
+            {
+                return limitedResult!;
+            }
+
             var searchResults = new List<SearchResponse>();
 
             // Use wider search for file-sources to find all matches
@@ -351,6 +381,11 @@ namespace slskd.Transfers.MultiSource.API
             // First find sources with wide search
             var searchTerm = IOPath.GetFileNameWithoutExtension(request.Filename);
             var searchResults = new List<SearchResponse>();
+
+            if (!TryConsumeSearchBudget("multisource-download-file", out var limitedResult))
+            {
+                return limitedResult!;
+            }
 
             try
             {
@@ -480,6 +515,11 @@ namespace slskd.Transfers.MultiSource.API
                 }
 
                 var searchResults = new List<SearchResponse>();
+
+                if (!TryConsumeSearchBudget("multisource-swarm", out var limitedResult))
+                {
+                    return limitedResult!;
+                }
 
                 try
                 {
@@ -843,12 +883,18 @@ namespace slskd.Transfers.MultiSource.API
                 minimumResponseFileCount: 1,
                 responseLimit: 100);
 
+            if (!TryConsumeSearchBudget("multisource-search", out var limitedResult))
+            {
+                return limitedResult!;
+            }
+
             try
             {
                 await Client.SearchAsync(
                     SearchQuery.FromText(searchText),
                     responseHandler: (response) => searchResults.Add(response),
-                    options: searchOptions);
+                    options: searchOptions,
+                    cancellationToken: HttpContext?.RequestAborted ?? CancellationToken.None);
             }
             catch (Exception ex)
             {
@@ -1058,6 +1104,12 @@ namespace slskd.Transfers.MultiSource.API
 
             // Step 1: Wide net search
             var searchResults = new List<SearchResponse>();
+            if (!TryConsumeSearchBudget("multisource-test", out var limitedResult))
+            {
+                testResult.Error = "Soulseek search safety budget exhausted; try again later.";
+                return StatusCode(StatusCodes.Status429TooManyRequests, testResult);
+            }
+
             try
             {
                 await Client.SearchAsync(

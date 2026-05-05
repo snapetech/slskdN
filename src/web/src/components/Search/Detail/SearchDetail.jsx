@@ -68,6 +68,15 @@ const sortDropdownOptions = [
   },
 ];
 
+export const mapUserNotesByUsername = (payload) =>
+  (Array.isArray(payload) ? payload : []).reduce((accumulator, note) => {
+    if (note?.username) {
+      accumulator[note.username] = note;
+    }
+
+    return accumulator;
+  }, {});
+
 // eslint-disable-next-line complexity
 const SearchDetail = ({
   creating,
@@ -118,11 +127,7 @@ const SearchDetail = ({
   const fetchUserNotes = useCallback(async () => {
     try {
       const response = await getAllNotes();
-      const notesMap = response.data.reduce((accumulator, note) => {
-        accumulator[note.username] = note;
-        return accumulator;
-      }, {});
-      setUserNotes(notesMap);
+      setUserNotes(mapUserNotesByUsername(response.data));
     } catch (error_) {
       console.error('Failed to fetch user notes', error_);
     }

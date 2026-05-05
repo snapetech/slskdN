@@ -18,6 +18,8 @@ import {
 
 const Button = TooltipButton;
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 export default class ShareGroups extends Component {
   state = {
     addMemberModalOpen: false,
@@ -57,9 +59,9 @@ export default class ShareGroups extends Component {
         identityAPI.getContacts().catch(() => ({ data: [] })), // Gracefully handle if Identity not enabled
       ]);
       this.setState({
-        contacts: contactsRes.data || [],
+        contacts: asArray(contactsRes.data),
         loading: false,
-        shareGroups: groupsRes.data || [],
+        shareGroups: asArray(groupsRes.data),
       });
     } catch (error) {
       // Extract error message from response
@@ -315,7 +317,7 @@ export default class ShareGroups extends Component {
                               group.id,
                               true,
                             );
-                          const members = membersRes.data || [];
+                          const members = asArray(membersRes.data);
                           alert(
                             `Members:\n${members
                               .map((m) => m.contactNickname || m.userId)

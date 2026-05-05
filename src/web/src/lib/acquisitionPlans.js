@@ -64,7 +64,11 @@ const normalizePlan = (plan) => {
 export const getAcquisitionPlans = (getItem = getLocalStorageItem) => {
   try {
     const parsed = JSON.parse(getItem(acquisitionPlanStorageKey, '[]'));
-    return Array.isArray(parsed) ? parsed.map(normalizePlan) : [];
+    return Array.isArray(parsed)
+      ? parsed
+        .filter((plan) => plan && typeof plan === 'object' && !Array.isArray(plan))
+        .map(normalizePlan)
+      : [];
   } catch {
     return [];
   }

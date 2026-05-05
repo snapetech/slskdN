@@ -1,3 +1,191 @@
+## Update 2026-05-05 19:49:00Z
+
+- Current task: Discography, Source Provider, and watchlist nested list hardening is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-064` through `BUG-20260505-066` in `docs/dev/bug-burndown-ledger.md`
+  - normalized Discography Coverage releases/tracks, Source Provider capability/priority lists, and watchlist expansion candidates before list operations
+  - extended ADR-0001 gotcha `0z306` in commit `ebf384d34`
+  - validation passed: focused Discography Coverage, Source Providers, and watchlists Vitest suite (`14` tests)
+- Next steps:
+  1. Run Web lint, remediation, and diff checks for this nested-list cycle.
+  2. Commit and push the accumulated dirty tree when the requested burn-down cycle is complete.
+
+## Update 2026-05-05 19:42:00Z
+
+- Current task: Nested array field shape hardening is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-061` through `BUG-20260505-063` in `docs/dev/bug-burndown-ledger.md`
+  - guarded Search Detail user notes, Album Decision rule candidate fields, and Federated Taste nested recommendation fields before map/reduce
+  - documented ADR-0001 gotcha `0z306` in commit `abbf1745c`
+  - validation passed: focused Search Detail, Album Decision Rules, and Federated Taste Vitest suite (`12` tests)
+- Next steps:
+  1. Run Web lint, remediation, and diff checks for this nested-array cycle.
+  2. Continue broad scans for remaining frontend workflow and release/network-health defects.
+
+## Update 2026-05-05 19:33:00Z
+
+- Current task: Remaining nested Web API list fallback hardening is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-059` and `BUG-20260505-060` in `docs/dev/bug-burndown-ledger.md`
+  - guarded Collections item search and Federated Taste recommendation arrays against malformed non-array payloads
+  - extended ADR-0001 gotcha `0z304` in commit `1ae1940ff`
+  - validation passed: focused Web API list-shape Vitest suite (`16` tests), and the `response.data?.x || []` scan is clean
+- Next steps:
+  1. Run Web lint, remediation, and diff checks for the completed list-shape cycle.
+  2. Continue broad scans for remaining frontend workflow and release/network-health defects.
+
+## Update 2026-05-05 19:28:00Z
+
+- Current task: Events, Bridge, and Album Completion API list-shape hardening is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-056` through `BUG-20260505-058` in `docs/dev/bug-burndown-ledger.md`
+  - guarded System Events lists, Bridge clients, and Album Completion albums/tracks against malformed non-array payloads
+  - extended ADR-0001 gotcha `0z304` in commit `2b85b1283`
+  - validation passed: focused events, Bridge, and Album Completion Vitest suite (`11` tests)
+- Next steps:
+  1. Run Web lint, remediation, and diff checks for this API list-shape cycle.
+  2. Continue broad scans for remaining frontend workflow and release/network-health defects.
+
+## Update 2026-05-05 19:20:00Z
+
+- Current task: Discovery Graph persisted-state and response-shape hardening is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-054` and `BUG-20260505-055` in `docs/dev/bug-burndown-ledger.md`
+  - centralized saved branch, node, and edge array guards in `src/web/src/lib/discoveryGraph.js`
+  - routed DiscoveryGraphAtlas, AtlasPanel, and Modal through those guards
+  - extended ADR-0001 gotchas in commits `0acc7e044` and `ae5d59f5e`
+  - validation passed: focused discoveryGraph Vitest suite (`6` tests)
+- Next steps:
+  1. Run Web lint, remediation, and diff checks for the Discovery Graph cycle.
+  2. Continue broad scans for remaining frontend workflow and release/network-health defects.
+
+## Update 2026-05-05 19:07:00Z
+
+- Current task: File Explorer Unicode/base64 route encoding fix is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-053` in `docs/dev/bug-burndown-ledger.md`
+  - changed File Explorer file/directory helpers to UTF-8 encode before base64 and URL-encode base64 route segments
+  - documented ADR-0001 gotcha `0z305` in commit `9bd03b5e8`
+  - validation passed: focused files helper Vitest suite (`2` tests)
+- Next steps:
+  1. Run Web lint, remediation, and diff checks for the File Explorer encoding cycle.
+  2. Continue broad scans for remaining frontend workflow and release/network-health defects.
+
+## Update 2026-05-05 19:01:00Z
+
+- Current task: Component-local Web API list payload hardening is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-049` through `BUG-20260505-052` in `docs/dev/bug-burndown-ledger.md`
+  - guarded Contacts, Collections, Shared With Me, Share Groups, Soulseek Discovery, and Player launcher/browser list state against malformed non-array payloads
+  - extended ADR-0001 gotcha `0z304` in commit `1b0fe6398`
+  - validation passed: focused Contacts, Soulseek Discovery, and PlayerBar Vitest suite (`23` tests)
+- Next steps:
+  1. Run Web lint, remediation, and diff checks for the component list payload cycle.
+  2. Continue broad scans for remaining frontend workflow and release/network-health defects.
+
+## Update 2026-05-05 18:48:00Z
+
+- Current task: Web API list helper shape hardening is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-047` and `BUG-20260505-048` in `docs/dev/bug-burndown-ledger.md`
+  - changed quarantine-jury and listening-party list helpers to return arrays only for array payloads
+  - documented ADR-0001 gotcha `0z304` in commit `710512576`
+  - validation passed: focused helper Vitest suite (`4` tests)
+- Next steps:
+  1. Run Web lint, remediation, and diff checks for the API helper cycle.
+  2. Continue broader API list payload review for component-local `response.data || []` call sites.
+
+## Update 2026-05-05 18:43:00Z
+
+- Current task: Nested playlist/watchlist persisted-state hardening is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-045` and `BUG-20260505-046` in `docs/dev/bug-burndown-ledger.md`
+  - hardened Playlist Intake and watchlists against malformed persisted playlist/watchlist entries plus nested track and expansion-candidate entries
+  - extended ADR-0001 gotcha `0z303` in commit `883bc625c`
+  - validation passed: focused Playlist Intake and watchlist Vitest suite (`26` tests)
+- Next steps:
+  1. Run Web lint, remediation, and diff checks for the second persisted-state cycle.
+  2. Continue broad bug-class scans across remaining localStorage readers and Web workflow helpers.
+
+## Update 2026-05-05 18:38:00Z
+
+- Current task: Browser-local array item shape hardening is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-039` through `BUG-20260505-044` in `docs/dev/bug-burndown-ledger.md`
+  - hardened community quality signals, Discovery Inbox, acquisition plans, Discovery Shelf, album decision rules, and listening history against malformed entries inside array-shaped localStorage values
+  - documented ADR-0001 gotcha `0z303` in commit `ddd55071c`
+  - validation passed: focused helper Vitest suite (`35` tests)
+- Next steps:
+  1. Run Web lint, remediation, and diff checks for the accumulated frontend persisted-state batch.
+  2. Continue broad bug-class scans instead of stopping at the first finding.
+
+## Update 2026-05-05 18:32:00Z
+
+- Current task: System Events malformed JSON fix is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-038` in `docs/dev/bug-burndown-ledger.md`
+  - changed System Events rendering to pretty-print valid JSON and show raw malformed data without crashing
+  - documented ADR-0001 gotcha `0z302` in commit `3be065865`
+  - validation passed: focused Events test
+- Next steps:
+  1. Continue broad bug-class scans and run aggregate Web validation after the next frontend batch.
+
+## Update 2026-05-05 18:26:00Z
+
+- Current task: Continued browser-local persisted-state burn-down is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-035` through `BUG-20260505-037` in `docs/dev/bug-burndown-ledger.md`
+  - hardened Messaging workspace, audio verification cache, and native visualizer active preset storage against malformed top-level JSON shapes
+  - extended ADR-0001 gotcha `0z301` in commit `fd82750b2`
+  - validation passed: focused audioVerification, Messaging, and Visualizer tests plus `git diff --check`
+- Next steps:
+  1. Continue broad bug-class scans instead of stopping at the first finding.
+
+## Update 2026-05-05 18:18:00Z
+
+- Current task: Browser-local object-map persisted-state batch is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-032` through `BUG-20260505-034` in `docs/dev/bug-burndown-ledger.md`
+  - hardened automation recipe state/inputs, System Experience preferences, and App room activity timestamps against array-shaped localStorage maps
+  - documented ADR-0001 gotcha in commit `d3a9e431b`
+  - validation passed: focused App, AutomationCenter, and ExperienceSettings tests plus `git diff --check`
+- Next steps:
+  1. Run Web lint and remediation baseline for the frontend persisted-state batch.
+
+## Update 2026-05-05 18:10:00Z
+
+- Current task: Search blocked-user persisted-state fix is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-031` in `docs/dev/bug-burndown-ledger.md`
+  - changed `getBlockedUsers()` to require an array after parsing localStorage
+  - added focused `searches.test.js` coverage for malformed blocked-user storage
+  - documented ADR-0001 gotcha in commit `82ea8afb9`
+- Next steps:
+  1. Run Web lint, remediation, and whitespace checks for the new frontend helper change.
+
+## Update 2026-05-05 18:02:00Z
+
+- Current task: Additional bug-council network-health fix is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-030` in `docs/dev/bug-burndown-ledger.md`
+  - gated all direct multi-source controller `Client.SearchAsync` paths through `TryConsumeSearchBudget`
+  - strengthened `scripts/check-soulseek-network-health.sh` for the new controller guardrails
+  - documented ADR-0001 gotchas in commits `7b08e99d8` and `b6c6299d0`
+  - validation passed: focused `MultiSourceControllerTests` and Soulseek network-health scanner
+- Next steps:
+  1. Run the broader remediation/lint/test gates for the combined implementation batch.
+
+## Update 2026-05-05 17:47:00Z
+
+- Current task: First bug-council fix batch is complete locally.
+- Last activity:
+  - fixed verified rows `BUG-20260505-011` through `BUG-20260505-029` in `docs/dev/bug-burndown-ledger.md`
+  - covered Web URL/state regressions, persisted tab shape validation, unsupported private room creation, room API malformed list responses, action labels/tooltips, Soulseek multi-source limiter use, backfill cancellation/probe fail-closed behavior, release tmpfiles/AUR drift, secret-safe logs, no-redirect notification/Spotify callers, stricter scanners, mounted Users URL changes, default Docker non-root execution, and vendored room-list negative count rejection
+  - documented ADR-0001 gotchas in commits `034c8ee83` and `fc2fdc737`
+  - validation passed: remediation baseline, packaging metadata/copy checks, Web lint, repo lint, `git diff --check`, focused Web/backend/vendor tests, and full `dotnet test slskd.sln --no-restore`
+- Next steps:
+  1. Review and commit the implementation batch.
+
 ## Update 2026-05-05 17:07:38Z
 
 - Current task: Bug council ledger and remediation scanner setup is complete locally.

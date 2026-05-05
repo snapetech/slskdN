@@ -46,8 +46,12 @@ export const watchlistAcquisitionProfileOptions = acquisitionProfiles.map((profi
 
 const now = () => new Date().toISOString();
 
+const isPlainObject = (value) =>
+  value && typeof value === 'object' && !Array.isArray(value);
+
 const normalizeReleaseTypes = (releaseTypes = []) =>
-  releaseTypes.filter((releaseType) => allowedReleaseTypes.includes(releaseType));
+  (Array.isArray(releaseTypes) ? releaseTypes : [])
+    .filter((releaseType) => allowedReleaseTypes.includes(releaseType));
 
 const normalizeCountry = (country) =>
   allowedCountries.includes(country) ? country : 'Any';
@@ -75,6 +79,7 @@ const normalizeExpansionCandidates = (candidates = []) => {
     .map((candidate) =>
       typeof candidate === 'string' ? { name: candidate } : candidate,
     )
+    .filter(isPlainObject)
     .map((candidate) => ({
       createdAt: candidate.createdAt || now(),
       decidedAt: candidate.decidedAt || '',
@@ -124,14 +129,16 @@ const normalizeWatchlist = (item = {}) => {
 const getWatchlistsWith = (getItem = getLocalStorageItem) => {
   try {
     const parsed = JSON.parse(getItem(watchlistStorageKey, '[]'));
-    return Array.isArray(parsed) ? parsed.map(normalizeWatchlist) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter(isPlainObject).map(normalizeWatchlist)
+      : [];
   } catch {
     return [];
   }
 };
 
 const saveWatchlistsWith = (items, setItem = setLocalStorageItem) => {
-  const normalized = items.map(normalizeWatchlist);
+  const normalized = items.filter(isPlainObject).map(normalizeWatchlist);
   setItem(watchlistStorageKey, JSON.stringify(normalized));
   return normalized;
 };
@@ -285,7 +292,7 @@ export const buildWatchlistSchedulePreview = (item) => {
 };
 
 export const buildWatchlistExpansionSummary = (item) =>
-  (item.expansionCandidates || []).reduce(
+  normalizeExpansionCandidates(item.expansionCandidates).reduce(
     (summary, candidate) => ({
       ...summary,
       [candidate.status]: (summary[candidate.status] || 0) + 1,

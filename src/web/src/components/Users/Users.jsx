@@ -47,8 +47,6 @@ const Users = () => {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    document.addEventListener('keyup', keyUp, false);
-
     const storedUsername =
       location.state?.user ||
       new URLSearchParams(location.search).get('user') ||
@@ -58,6 +56,11 @@ const Users = () => {
       setSelectedUsername(storedUsername);
       setInputText(storedUsername);
     }
+  }, [location.search, location.state]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    document.addEventListener('keyup', keyUp, false);
+    return () => document.removeEventListener('keyup', keyUp, false);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

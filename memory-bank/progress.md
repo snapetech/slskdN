@@ -1,5 +1,34 @@
 ## 2026-05-05
 
+- Fixed the first bug-council burn-down batch and moved `BUG-20260505-011` through `BUG-20260505-029` to fixed/verified status in `docs/dev/bug-burndown-ledger.md`.
+- Web fixes covered Search query double-decoding, duplicate URL-created searches, corrupted Browse/Chat/Rooms persisted tab state, unsupported private-room creation semantics, malformed room API list payloads, room/chat action discoverability, and mounted Users URL changes.
+- Backend/network fixes covered multi-source source-discovery safety limiter use, backfill semaphore cancellation accounting, invalid FLAC probe hash fail-closed behavior, CSRF/relay/Pushbullet secret-safe logging, and no-redirect notification/Spotify HTTP clients.
+- Release/ops fixes covered AUR tmpfiles checksum/path drift, Debian/RPM/COPR tmpfiles copy paths, stricter remediation scanners, and default Docker startup dropping to the `slskdn` user.
+- Vendored runtime hardening rejects negative room-list user counts before constructing `RoomInfo`.
+- Documented ADR-0001 gotchas for the non-obvious bug classes in commits `034c8ee83` and `fc2fdc737`.
+- Validation: focused Web tests for Search/Browse/Chat/Users/Rooms/RoomCreateModal/rooms helpers passed; focused unit tests for Backfill and MultiSource passed; focused vendored runtime protocol tests passed; packaging metadata/copy validation, remediation baseline, Web lint, repo lint, full `dotnet test slskd.sln --no-restore`, and `git diff --check` passed.
+
+- Fixed `BUG-20260505-030`: direct multi-source controller Soulseek searches now consume the shared search safety limiter before issuing wide user/source/download/swarm/search/test queries.
+- Strengthened `scripts/check-soulseek-network-health.sh` to require all direct multi-source controller search paths to use `TryConsumeSearchBudget`.
+- Documented ADR-0001 gotcha `0z298` for direct controller search budgets in commit `7b08e99d8` and `0z299` for shared DTO namespace collisions in commit `b6c6299d0`.
+- Validation: focused `MultiSourceControllerTests` passed, 11/11; `bash scripts/check-soulseek-network-health.sh` passed.
+
+- Fixed `BUG-20260505-031`: Search blocked-user helpers now treat malformed-but-valid localStorage values as empty arrays before calling array methods.
+- Documented ADR-0001 gotcha `0z300` for localStorage list shape validation in commit `82ea8afb9`.
+- Validation: focused `searches.test.js` passed, 29/29.
+
+- Fixed `BUG-20260505-032` through `BUG-20260505-034`: automation recipe state/inputs, System Experience preferences, and App room activity storage now reject array-shaped localStorage maps and fall back to safe defaults.
+- Documented ADR-0001 gotcha `0z301` for localStorage object-map shape validation in commit `d3a9e431b`.
+- Validation: focused App, AutomationCenter, and ExperienceSettings tests passed, 23/23; `git diff --check` passed.
+
+- Fixed `BUG-20260505-035` through `BUG-20260505-037`: Messaging workspace storage resets invalid panel counters, audio verification cache rejects arrays, and native visualizer active preset storage rejects non-object JSON.
+- Extended ADR-0001 gotcha `0z301` in commit `fd82750b2`.
+- Validation: focused audioVerification, Messaging, and Visualizer tests passed, 35/35; `git diff --check` passed.
+
+- Fixed `BUG-20260505-038`: System Events now renders malformed event JSON as raw text instead of throwing during render.
+- Documented ADR-0001 gotcha `0z302` in commit `3be065865`.
+- Validation: focused Events test passed, 2/2.
+
 - Added the bug council burn-down process and ledger at `docs/dev/bug-burndown-ledger.md`, including taxonomy, reproducible discovery commands, accepted scanner-coverage rows, and read-only expert council intake findings for frontend workflow, network health, release packaging, secret logging, and test false-negative risks.
 - Added targeted remediation baseline scripts for URL-addressable user navigation, primitive JSON string bodies, mutating controller role requirements, guarded outbound HTTP clients, path containment guardrails, Soulseek network-health posture, workflow trigger policy, release asset names, config option drift, and systemd permission convergence. Wired them into `scripts/check-remediation-baseline.sh` and root `package.json`.
 - Validation: `npm run check:remediation`, `./bin/lint`, `dotnet test slskd.sln --no-restore`, `bash packaging/scripts/validate-packaging-metadata.sh`, `bash packaging/scripts/validate-release-copy.sh`, and `git diff --check` passed.
@@ -9569,3 +9598,74 @@ Code quality improvements were completed as part of Option A:
 - Made adjacent user navigation URL-addressable: Chat and Users accept `?user=...`, and contacts, messaging panels, rooms, user context menus, and transfer groups include usernames in Browse/Users/Chat URLs while preserving router state.
 - Documented both repeated gotchas by extending ADR-0001 in separate commits `323950f89` and `87702b418`.
 - Validation passed: focused Vitest coverage for options, MediaCore, Browse, Chat, and Users; `cd src/web && npm run lint`; `./bin/lint`; `git diff --check`.
+
+## 2026-05-05 18:38:00Z
+
+- Continued the bug-council frontend persisted-state burn-down after the System Events crash fix.
+- Hardened array-backed browser-local helpers so community quality signals, Discovery Inbox items, acquisition plans, Discovery Shelf entries, album decision rules, and listening history ignore malformed entries before normalization, summaries, save/replace flows, or handoff generation.
+- Documented ADR-0001 gotcha `0z303` in commit `ddd55071c`.
+- Validation passed: focused Vitest coverage for all six hardened helpers (`35` tests).
+
+## 2026-05-05 18:43:00Z
+
+- Ran another persisted-state burn-down cycle for nested browser-local arrays.
+- Hardened Playlist Intake and watchlists so malformed persisted playlists/watchlists and nested track/expansion-candidate entries are ignored before normalization.
+- Extended ADR-0001 gotcha `0z303` in commit `883bc625c`.
+- Validation passed: focused Playlist Intake and watchlist Vitest coverage (`26` tests).
+
+## 2026-05-05 18:48:00Z
+
+- Switched the bug-council sweep to Web API list helper contracts.
+- Hardened quarantine-jury request and listening-party directory helpers so malformed truthy payloads return `[]` instead of object/string values.
+- Documented ADR-0001 gotcha `0z304` in commit `710512576`.
+- Validation passed: focused quarantine-jury and listening-party helper Vitest coverage (`4` tests).
+
+## 2026-05-05 19:01:00Z
+
+- Continued the Web API list payload sweep into component-local API call sites.
+- Hardened Contacts, Collections, Shared With Me, Share Groups, Soulseek Discovery, and Player launcher/browser list state so malformed truthy payloads are ignored before render-time `.map()`/`.filter()` use.
+- Extended ADR-0001 gotcha `0z304` in commit `1b0fe6398`.
+- Validation passed: focused Contacts, Soulseek Discovery, and PlayerBar Vitest coverage (`23` tests).
+
+## 2026-05-05 19:07:00Z
+
+- Ran another frontend workflow scan over render-time parsing and path transforms.
+- Fixed File Explorer API helpers so Unicode file/directory paths are converted to UTF-8 bytes before base64 and URL-encoded before being placed in route segments.
+- Documented ADR-0001 gotcha `0z305` in commit `9bd03b5e8`.
+- Validation passed: focused files helper Vitest coverage (`2` tests).
+
+## 2026-05-05 19:20:00Z
+
+- Continued frontend workflow burn-down into Discovery Graph persisted state and graph response rendering.
+- Centralized saved branch parsing so malformed browser-local branch entries are ignored before AtlasPanel/Modal rendering.
+- Centralized Discovery Graph node/edge list guards so malformed truthy non-array graph payloads do not crash Atlas, AtlasPanel, or Modal.
+- Extended ADR-0001 gotchas in commits `0acc7e044` and `ae5d59f5e`.
+- Validation passed: focused discoveryGraph helper Vitest coverage (`6` tests).
+
+## 2026-05-05 19:28:00Z
+
+- Continued Web API contract burn-down across System Events, Bridge, and MusicBrainz album completion.
+- Hardened event list, Bridge client list, and album completion album/track array handling against malformed truthy non-array API payloads.
+- Extended ADR-0001 gotcha `0z304` in commit `2b85b1283`.
+- Validation passed: focused events, Bridge, and Album Completion Vitest coverage (`11` tests).
+
+## 2026-05-05 19:33:00Z
+
+- Folded the remaining nested-list fallback scan hits into the same Web API contract batch.
+- Hardened Collections item search results and Federated Taste recommendations against malformed non-array API payloads.
+- Extended ADR-0001 gotcha `0z304` in commit `1ae1940ff`.
+- Validation passed: focused events, Bridge, Album Completion, and Federated Taste Vitest coverage (`16` tests), and the `response.data?.x || []` scan is clean.
+
+## 2026-05-05 19:42:00Z
+
+- Continued frontend shape-hardening into nested array fields used by map/reduce calls.
+- Hardened Search Detail user notes, Album Decision rule candidate arrays, and Federated Taste recommendation reasons/source actors against malformed list fields.
+- Documented ADR-0001 gotcha `0z306` in commit `abbf1745c`.
+- Validation passed: focused Search Detail, Album Decision Rules, and Federated Taste Vitest coverage (`12` tests).
+
+## 2026-05-05 19:49:00Z
+
+- Continued nested list-shape burn-down across Discography Coverage, Source Providers, and watchlists.
+- Normalized MusicBrainz discography releases/tracks, source provider capabilities/profile priority lists, and watchlist expansion candidates before list operations.
+- Extended ADR-0001 gotcha `0z306` in commit `ebf384d34`.
+- Validation passed: focused Discography Coverage, Source Providers, and watchlists Vitest coverage (`14` tests).

@@ -13,9 +13,11 @@ import {
   Statistic,
 } from 'semantic-ui-react';
 
-const normalizeProvider = (provider) => ({
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
+export const normalizeProvider = (provider = {}) => ({
   active: provider.active ?? provider.Active ?? false,
-  capabilities: provider.capabilities ?? provider.Capabilities ?? [],
+  capabilities: asArray(provider.capabilities ?? provider.Capabilities),
   description: provider.description ?? provider.Description ?? '',
   disabledReason: provider.disabledReason ?? provider.DisabledReason ?? '',
   domain: provider.domain ?? provider.Domain ?? 'Any',
@@ -29,13 +31,13 @@ const normalizeProvider = (provider) => ({
   sortOrder: provider.sortOrder ?? provider.SortOrder ?? 100,
 });
 
-const normalizeProfilePolicy = (policy) => ({
+export const normalizeProfilePolicy = (policy = {}) => ({
   autoDownloadEnabled:
     policy.autoDownloadEnabled ?? policy.AutoDownloadEnabled ?? false,
   notes: policy.notes ?? policy.Notes ?? '',
   profileId: policy.profileId ?? policy.ProfileId ?? '',
   profileName: policy.profileName ?? policy.ProfileName ?? '',
-  providerPriority: policy.providerPriority ?? policy.ProviderPriority ?? [],
+  providerPriority: asArray(policy.providerPriority ?? policy.ProviderPriority),
 });
 
 const riskColor = (riskLevel) => {
@@ -67,12 +69,15 @@ const SourceProviders = () => {
   const providers = useMemo(
     () =>
       catalog.providers
+        .filter((provider) => provider && typeof provider === 'object' && !Array.isArray(provider))
         .map(normalizeProvider)
         .sort((left, right) => left.sortOrder - right.sortOrder),
     [catalog.providers],
   );
   const profilePolicies = useMemo(
-    () => (catalog.profilePolicies ?? []).map(normalizeProfilePolicy),
+    () => asArray(catalog.profilePolicies)
+      .filter((policy) => policy && typeof policy === 'object' && !Array.isArray(policy))
+      .map(normalizeProfilePolicy),
     [catalog.profilePolicies],
   );
   const activeCount = providers.filter((provider) => provider.active).length;

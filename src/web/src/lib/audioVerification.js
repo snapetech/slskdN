@@ -54,7 +54,9 @@ const getCacheKey = (file) =>
 const readCache = (getItem = getLocalStorageItem) => {
   try {
     const parsed = JSON.parse(getItem(audioVerificationCacheStorageKey, '{}'));
-    return parsed && typeof parsed === 'object' ? parsed : {};
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed
+      : {};
   } catch {
     return {};
   }

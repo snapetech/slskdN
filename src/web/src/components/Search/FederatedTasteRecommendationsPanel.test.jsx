@@ -165,4 +165,45 @@ describe('FederatedTasteRecommendationsPanel', () => {
       ),
     );
   });
+
+  it('treats malformed recommendation payloads as an empty list', async () => {
+    fetchTasteRecommendations.mockResolvedValue({
+      data: {
+        candidateCount: 1,
+        recommendations: { workRef: recommendation.workRef },
+      },
+    });
+
+    render(<FederatedTasteRecommendationsPanel />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load Recommendations' }));
+
+    expect(
+      await screen.findByText('Loaded 0 privacy-filtered recommendations.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Taste Artist - Taste Track')).not.toBeInTheDocument();
+  });
+
+  it('ignores malformed nested recommendation reason and source actor lists', async () => {
+    fetchTasteRecommendations.mockResolvedValue({
+      data: {
+        recommendations: [
+          {
+            ...recommendation,
+            reasons: { reason: 'not-a-list' },
+            sourceActors: 'pod-a',
+          },
+        ],
+      },
+    });
+
+    render(<FederatedTasteRecommendationsPanel />);
+
+    fireEvent.click(screen.getByLabelText('Reveal federated recommendation source actors'));
+    fireEvent.click(screen.getByRole('button', { name: 'Load Recommendations' }));
+
+    expect(await screen.findByText('Taste Artist - Taste Track')).toBeInTheDocument();
+    expect(screen.queryByText('not-a-list')).not.toBeInTheDocument();
+    expect(screen.queryByText('pod-a')).not.toBeInTheDocument();
+  });
 });

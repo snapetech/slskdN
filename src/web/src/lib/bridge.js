@@ -21,7 +21,7 @@ export const getDashboard = async () => {
 
 export const getClients = async () => {
   const response = await api.get('/bridge/admin/clients');
-  return response.data?.clients || [];
+  return Array.isArray(response.data?.clients) ? response.data.clients : [];
 };
 
 export const getStats = async () => {

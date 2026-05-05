@@ -65,6 +65,28 @@ describe('acquisitionPlans', () => {
     expect(getAcquisitionPlans()).toHaveLength(1);
   });
 
+  it('ignores malformed persisted plan entries before normalizing', () => {
+    localStorage.setItem(
+      acquisitionPlanStorageKey,
+      JSON.stringify([
+        null,
+        'bad',
+        ['bad'],
+        {
+          searchText: 'valid',
+          title: 'valid',
+        },
+      ]),
+    );
+
+    expect(getAcquisitionPlans()).toEqual([
+      expect.objectContaining({
+        searchText: 'valid',
+        title: 'valid',
+      }),
+    ]);
+  });
+
   it('executes approved acquisition plans as bounded backend search jobs', async () => {
     const candidates = ['one', 'two', 'three', 'four'].map((title) => ({
       acquisitionProfile: 'mesh-preferred',

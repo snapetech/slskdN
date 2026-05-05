@@ -40,9 +40,17 @@ const loadPanels = () => {
     }
 
     const parsed = JSON.parse(saved);
-    panelCounter = parsed.panelCounter || 0;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      panelCounter = 0;
+      return [];
+    }
+
+    panelCounter = Number.isInteger(parsed.panelCounter) && parsed.panelCounter > 0
+      ? parsed.panelCounter
+      : 0;
     return Array.isArray(parsed.panels) ? parsed.panels : [];
   } catch {
+    panelCounter = 0;
     return [];
   }
 };

@@ -85,7 +85,9 @@ const options = {
 const readStoredPreferences = () => {
   try {
     const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    return { ...defaults, ...stored };
+    return stored && typeof stored === 'object' && !Array.isArray(stored)
+      ? { ...defaults, ...stored }
+      : defaults;
   } catch {
     return defaults;
   }

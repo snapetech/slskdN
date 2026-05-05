@@ -214,7 +214,12 @@ const storeDismissedVpnPortNotice = (signature, portForwards) => {
 
 const getStoredRoomActivity = () => {
   try {
-    return JSON.parse(getLocalStorageItem(ROOM_ACTIVITY_SEEN_STORAGE_KEY, '{}')) || {};
+    const parsed = JSON.parse(
+      getLocalStorageItem(ROOM_ACTIVITY_SEEN_STORAGE_KEY, '{}'),
+    );
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed
+      : {};
   } catch {
     return {};
   }

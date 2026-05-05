@@ -46,8 +46,7 @@ const DiscoveryGraphAtlasPanel = ({ disabled, persistRoute = false }) => {
   const loadSavedBranches = () => {
     try {
       const raw = getLocalStorageItem('slskdn.discoveryGraph.savedBranches');
-      const parsed = raw ? JSON.parse(raw) : [];
-      setSavedBranches(Array.isArray(parsed) ? parsed : []);
+      setSavedBranches(discoveryGraph.parseSavedDiscoveryGraphBranches(raw));
     } catch (error) {
       console.warn('Failed to load saved Discovery Graph branches', error);
       setSavedBranches([]);
@@ -201,13 +200,13 @@ const DiscoveryGraphAtlasPanel = ({ disabled, persistRoute = false }) => {
     }
   };
 
-  const nodes = Array.isArray(graph?.nodes) ? graph.nodes : [];
+  const nodes = discoveryGraph.getDiscoveryGraphNodes(graph);
   const nodeMap = nodes.reduce((accumulator, node) => {
     accumulator[node.nodeId] = node;
     return accumulator;
   }, {});
   const availableEdgeTypes = Array.from(
-    new Set((graph?.edges || []).map((edge) => edge.edgeType)),
+    new Set(discoveryGraph.getDiscoveryGraphEdges(graph).map((edge) => edge.edgeType)),
   ).sort();
   const visibleGraph = discoveryGraph.getVisibleDiscoveryGraph({
     edgeTypes: activeEdgeTypes,

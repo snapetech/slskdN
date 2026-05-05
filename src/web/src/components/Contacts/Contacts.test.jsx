@@ -67,6 +67,16 @@ describe('Contacts', () => {
     );
   });
 
+  it('ignores malformed contact and nearby list payloads', async () => {
+    identityAPI.getContacts.mockResolvedValue({ data: { contacts: [] } });
+    identityAPI.getNearby.mockResolvedValue({ data: { peers: [] } });
+
+    renderContacts();
+
+    expect(await screen.findByText('Create Invite')).toBeInTheDocument();
+    expect(screen.queryByText('contacts.map is not a function')).not.toBeInTheDocument();
+  });
+
   it('fills the invite input from a scanned QR image', async () => {
     const close = vi.fn();
     const detect = vi.fn().mockResolvedValue([

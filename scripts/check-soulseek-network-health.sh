@@ -23,6 +23,13 @@ expect_literal src/slskd/Wishlist/WishlistService.cs 'safetySource: "wishlist"'
 expect_literal src/slskd/Backfill/BackfillSchedulerService.cs 'SemaphoreSlim backfillLock = new(2, 2)'
 expect_literal src/slskd/Backfill/BackfillSchedulerService.cs 'config.MaxGlobalConnections'
 expect_literal src/slskd/Backfill/BackfillSchedulerService.cs 'cancellationToken'
+expect_literal src/slskd/Transfers/MultiSource/API/MultiSourceController.cs 'TryConsumeSearchBudget("multisource-users"'
+expect_literal src/slskd/Transfers/MultiSource/API/MultiSourceController.cs 'TryConsumeSearchBudget("multisource-file-sources"'
+expect_literal src/slskd/Transfers/MultiSource/API/MultiSourceController.cs 'TryConsumeSearchBudget("multisource-download-file"'
+expect_literal src/slskd/Transfers/MultiSource/API/MultiSourceController.cs 'TryConsumeSearchBudget("multisource-swarm"'
+expect_literal src/slskd/Transfers/MultiSource/API/MultiSourceController.cs 'TryConsumeSearchBudget("multisource-search"'
+expect_literal src/slskd/Transfers/MultiSource/API/MultiSourceController.cs 'TryConsumeSearchBudget("multisource-test"'
+expect_literal tests/slskd.Tests.Unit/Transfers/MultiSource/API/MultiSourceControllerTests.cs 'GetTopUsers_WhenSearchSafetyBudgetExhausted_DoesNotSearchSoulseek'
 
 if [ "$failed" -ne 0 ]; then
   cat >&2 <<'MSG'

@@ -44,6 +44,17 @@ describe('ExperienceSettings', () => {
     ).toBeInTheDocument();
   });
 
+  it('ignores malformed persisted preference shapes', () => {
+    localStorage.setItem(storageKey, JSON.stringify(['bad']));
+
+    render(<ExperienceSettings />);
+
+    expect(
+      screen.getByLabelText('Enable search duplicate folding preference'),
+    ).toBeChecked();
+    expect(screen.getByLabelText('Show unread message badges preference')).toBeChecked();
+  });
+
   it('copies a preference report', () => {
     render(<ExperienceSettings />);
 

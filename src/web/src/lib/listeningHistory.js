@@ -12,7 +12,10 @@ const normalizeText = (value = '') => String(value).trim();
 const readHistory = () => {
   try {
     const parsed = JSON.parse(getLocalStorageItem(listeningHistoryStorageKey, '[]'));
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((entry) =>
+        entry && typeof entry === 'object' && !Array.isArray(entry))
+      : [];
   } catch {
     return [];
   }

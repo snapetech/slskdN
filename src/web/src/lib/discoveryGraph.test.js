@@ -2,7 +2,10 @@ import {
   buildDiscoveryGraphBranchPlan,
   formatDiscoveryGraphBranchReport,
   fromQueryString,
+  getDiscoveryGraphEdges,
+  getDiscoveryGraphNodes,
   getVisibleDiscoveryGraph,
+  parseSavedDiscoveryGraphBranches,
   toQueryString,
 } from './discoveryGraph';
 
@@ -108,6 +111,38 @@ describe('discoveryGraph helpers', () => {
     expect(visible.visibleEdges).toHaveLength(1);
     expect(visible.edgeTypeCounts).toEqual({ metadata_similarity: 1 });
     expect(visible.nodeTypeCounts).toEqual({ track: 2 });
+  });
+
+  it('treats malformed graph node and edge payloads as empty lists', () => {
+    expect(getDiscoveryGraphNodes({ nodes: { nodeId: 'bad' } })).toEqual([]);
+    expect(getDiscoveryGraphEdges({ edges: { edgeType: 'bad' } })).toEqual([]);
+    expect(getVisibleDiscoveryGraph({
+      graph: {
+        edges: { edgeType: 'bad' },
+        nodes: { nodeId: 'bad' },
+      },
+    })).toMatchObject({
+      visibleEdges: [],
+      visibleNodes: [],
+    });
+  });
+
+  it('filters malformed saved branch entries before UI rendering', () => {
+    const branches = parseSavedDiscoveryGraphBranches(JSON.stringify([
+      null,
+      'bad',
+      ['bad'],
+      { id: 'missing-title' },
+      { id: 'branch-1', request: { scope: 'track' }, title: 'Valid Branch' },
+    ]));
+
+    expect(branches).toEqual([
+      {
+        id: 'branch-1',
+        request: { scope: 'track' },
+        title: 'Valid Branch',
+      },
+    ]);
   });
 
   it('builds branch plans with route suggestions and nearby search seeds', () => {

@@ -77,6 +77,8 @@ const visualTileStorageKey = 'slskdn.player.visualTileMode';
 const analyzerModeStorageKey = 'slskdn.player.analyzerMode';
 const playerBrowserPageSize = 80;
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const readStoredBoolean = (key) => {
   return getLocalStorageItem(key) === 'true';
 };
@@ -1389,7 +1391,7 @@ const PlayerLauncher = ({ compact = false, onPlayItem }) => {
     collectionsAPI
       .getCollections()
       .then((response) => {
-        if (!canceled) setCollections(response.data || []);
+        if (!canceled) setCollections(asArray(response.data));
       })
       .catch(() => {
         if (!canceled) setCollections([]);
@@ -1425,9 +1427,9 @@ const PlayerLauncher = ({ compact = false, onPlayItem }) => {
         })
         .then((response) => {
           if (!canceled) {
-            setItems(response.data?.files || []);
-            setBrowserDirectories(response.data?.directories || []);
-            setBrowserBreadcrumbs(response.data?.breadcrumbs || []);
+            setItems(asArray(response.data?.files));
+            setBrowserDirectories(asArray(response.data?.directories));
+            setBrowserBreadcrumbs(asArray(response.data?.breadcrumbs));
             setBrowserHasMore(Boolean(response.data?.hasMore));
             setBrowserStats({
               duplicatesRemoved: response.data?.duplicatesRemoved || 0,
@@ -1461,7 +1463,7 @@ const PlayerLauncher = ({ compact = false, onPlayItem }) => {
     setCollectionItemsLoading(true);
     collectionsAPI
       .getCollectionItems(collection.id)
-      .then((response) => setCollectionItems(response.data || []))
+      .then((response) => setCollectionItems(asArray(response.data)))
       .catch(() => setCollectionItems([]))
       .finally(() => setCollectionItemsLoading(false));
   };

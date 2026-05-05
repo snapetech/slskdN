@@ -7,6 +7,7 @@ import {
   recordWatchlistExpansionDecision,
   recordWatchlistManualScan,
   saveWatchlist,
+  watchlistStorageKey,
 } from './watchlists';
 
 describe('watchlists', () => {
@@ -97,6 +98,38 @@ describe('watchlists', () => {
     );
   });
 
+  it('ignores malformed persisted watchlists and expansion candidates', () => {
+    localStorage.setItem(
+      watchlistStorageKey,
+      JSON.stringify([
+        null,
+        'bad',
+        ['bad'],
+        {
+          expansionCandidates: [
+            null,
+            'Broadcast',
+            ['bad'],
+            { name: 'Pram', status: 'Approved' },
+          ],
+          releaseTypes: 'Album',
+          target: 'Stereolab',
+        },
+      ]),
+    );
+
+    expect(getWatchlists()).toEqual([
+      expect.objectContaining({
+        expansionCandidates: [
+          expect.objectContaining({ name: 'Broadcast' }),
+          expect.objectContaining({ name: 'Pram', status: 'Approved' }),
+        ],
+        releaseTypes: ['Album', 'EP', 'Single'],
+        target: 'Stereolab',
+      }),
+    ]);
+  });
+
   it('summarizes similar-artist expansion decisions', () => {
     expect(
       buildWatchlistExpansionSummary({
@@ -111,6 +144,17 @@ describe('watchlists', () => {
       Pending: 1,
       Rejected: 1,
       total: 3,
+    });
+  });
+
+  it('summarizes malformed expansion candidates as an empty set', () => {
+    expect(buildWatchlistExpansionSummary({
+      expansionCandidates: { name: 'Broadcast', status: 'Approved' },
+    })).toEqual({
+      Approved: 0,
+      Pending: 0,
+      Rejected: 0,
+      total: 0,
     });
   });
 

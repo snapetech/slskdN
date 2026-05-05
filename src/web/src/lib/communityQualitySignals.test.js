@@ -40,6 +40,19 @@ describe('communityQualitySignals', () => {
     expect(getCommunityQualitySignals()).toHaveLength(1);
   });
 
+  it('ignores malformed persisted signal entries before normalizing', () => {
+    localStorage.setItem(
+      communityQualitySignalStorageKey,
+      JSON.stringify([null, 'bad', ['bad'], { type: 'served-verified-content', username: 'peer-a' }]),
+    );
+
+    expect(getCommunityQualitySignals()).toEqual([
+      expect.objectContaining({
+        username: 'peer-a',
+      }),
+    ]);
+  });
+
   it('summarizes positive and negative signals without global punishment', () => {
     recordCommunityQualitySignal({
       type: 'served-verified-content',

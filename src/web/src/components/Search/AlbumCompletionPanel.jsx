@@ -19,6 +19,18 @@ const formatDuration = (durationMs) => {
   return `${minutes}:${seconds.toString().padStart(2, '0')} min`;
 };
 
+export const normalizeAlbumCompletionAlbums = (payload) =>
+  (Array.isArray(payload?.albums) ? payload.albums : [])
+    .filter((album) => album && typeof album === 'object' && !Array.isArray(album))
+    .map((album) => ({
+      ...album,
+      tracks: Array.isArray(album.tracks)
+        ? album.tracks.filter(
+          (track) => track && typeof track === 'object' && !Array.isArray(track),
+        )
+        : [],
+    }));
+
 const AlbumCompletionPanel = ({ disabled }) => {
   const [albums, setAlbums] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -35,7 +47,7 @@ const AlbumCompletionPanel = ({ disabled }) => {
 
     try {
       const response = await fetchAlbumCompletion();
-      setAlbums(response.data?.albums ?? []);
+      setAlbums(normalizeAlbumCompletionAlbums(response.data));
     } catch (loadError) {
       console.error(loadError);
       setError(

@@ -83,6 +83,9 @@ export const replayGainPolicies = [
 
 const now = () => new Date().toISOString();
 
+const isPlainObject = (value) =>
+  value && typeof value === 'object' && !Array.isArray(value);
+
 const normalizeState = (state) =>
   ['Imported', 'Mirrored', 'Rejected'].includes(state) ? state : 'Staged';
 
@@ -110,21 +113,28 @@ const normalizeCooldownDays = (days) => {
 const normalizeOptionValue = (value, options, fallback) =>
   options.some((option) => option.value === value) ? value : fallback;
 
-const normalizeOrganizationOptions = (options = {}) => ({
-  albumTitle: options.albumTitle || '',
-  coverArtPolicy: normalizeOptionValue(options.coverArtPolicy, coverArtPolicies, 'sidecar'),
-  multiArtistPolicy: normalizeOptionValue(
-    options.multiArtistPolicy,
-    multiArtistTagPolicies,
-    'preserve',
-  ),
-  pathTemplate: normalizeOptionValue(
-    options.pathTemplate,
-    organizationPathTemplates,
-    organizationPathTemplates[0].value,
-  ),
-  replayGainPolicy: normalizeOptionValue(options.replayGainPolicy, replayGainPolicies, 'skip'),
-});
+const normalizeOrganizationOptions = (options = {}) => {
+  const safeOptions = isPlainObject(options) ? options : {};
+  return {
+    albumTitle: safeOptions.albumTitle || '',
+    coverArtPolicy: normalizeOptionValue(safeOptions.coverArtPolicy, coverArtPolicies, 'sidecar'),
+    multiArtistPolicy: normalizeOptionValue(
+      safeOptions.multiArtistPolicy,
+      multiArtistTagPolicies,
+      'preserve',
+    ),
+    pathTemplate: normalizeOptionValue(
+      safeOptions.pathTemplate,
+      organizationPathTemplates,
+      organizationPathTemplates[0].value,
+    ),
+    replayGainPolicy: normalizeOptionValue(
+      safeOptions.replayGainPolicy,
+      replayGainPolicies,
+      'skip',
+    ),
+  };
+};
 
 const addDays = (timestamp, days) =>
   new Date(new Date(timestamp).getTime() + days * 24 * 60 * 60 * 1_000).toISOString();
@@ -191,7 +201,9 @@ const normalizeTrack = (track = {}, index = 0) => ({
 const normalizePlaylist = (playlist = {}) => {
   const timestamp = now();
   const tracks = Array.isArray(playlist.tracks)
-    ? playlist.tracks.map(normalizeTrack)
+    ? playlist.tracks
+      .filter(isPlainObject)
+      .map(normalizeTrack)
     : parsePlaylistRows(playlist.content);
 
   return {
@@ -231,14 +243,16 @@ const normalizePlaylist = (playlist = {}) => {
 const readPlaylists = (getItem = getLocalStorageItem) => {
   try {
     const parsed = JSON.parse(getItem(playlistIntakeStorageKey, '[]'));
-    return Array.isArray(parsed) ? parsed.map(normalizePlaylist) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter(isPlainObject).map(normalizePlaylist)
+      : [];
   } catch {
     return [];
   }
 };
 
 const savePlaylists = (playlists, setItem = setLocalStorageItem) => {
-  const normalized = playlists.map(normalizePlaylist);
+  const normalized = playlists.filter(isPlainObject).map(normalizePlaylist);
   setItem(playlistIntakeStorageKey, JSON.stringify(normalized));
   return normalized;
 };

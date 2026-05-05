@@ -29,7 +29,8 @@ const BLOCKED_USERS_KEY = 'slskdn_blocked_users';
 export const getBlockedUsers = () => {
   try {
     const blocked = getLocalStorageItem(BLOCKED_USERS_KEY);
-    return blocked ? JSON.parse(blocked) : [];
+    const parsed = blocked ? JSON.parse(blocked) : [];
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }

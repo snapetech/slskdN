@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import * as externalVisualizer from '../../lib/externalVisualizer';
+import * as collectionsAPI from '../../lib/collections';
 import * as searches from '../../lib/searches';
 import * as wishlistAPI from '../../lib/wishlist';
 
@@ -285,6 +286,35 @@ describe('PlayerBar', () => {
     expect(await screen.findByText('Downloads')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('player-file-folder-Downloads'));
     expect(await screen.findByText('Library stream.ogg')).toBeInTheDocument();
+  });
+
+  it('ignores malformed player collection and browser list payloads', async () => {
+    collectionsAPI.getCollections.mockResolvedValueOnce({ data: { items: [] } });
+    collectionsAPI.browseLibraryItems.mockResolvedValueOnce({
+      data: {
+        breadcrumbs: { path: '' },
+        directories: { name: 'Downloads' },
+        files: { fileName: 'Library stream.ogg' },
+      },
+    });
+
+    renderPlayer();
+
+    fireEvent.click(screen.getByTestId('player-open-collections-browser'));
+    expect(
+      screen.getByTestId('player-collection-browser-modal'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Favorites')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByText('Close')[0]);
+    fireEvent.click(screen.getByTestId('player-open-file-browser'));
+    expect(screen.getByTestId('player-file-browser-modal')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(collectionsAPI.browseLibraryItems).toHaveBeenCalled();
+    });
+    expect(screen.queryByText('Downloads')).not.toBeInTheDocument();
+    expect(screen.queryByText('Library stream.ogg')).not.toBeInTheDocument();
   });
 
   it('searches the local file browser as a deduplicated explorer', async () => {

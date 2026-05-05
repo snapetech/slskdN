@@ -20,6 +20,8 @@ import {
 
 const Button = TooltipButton;
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const withNavigate = (WrappedComponent) => {
   const RoutedComponent = (props) => {
     const navigate = useNavigate();
@@ -59,7 +61,7 @@ class Contacts extends Component {
     try {
       this.setState({ error: null, loading: true });
       const response = await identityAPI.getContacts();
-      this.setState({ contacts: response.data || [], loading: false });
+      this.setState({ contacts: asArray(response.data), loading: false });
     } catch (error) {
       // If 401/403/404, feature not enabled or not authenticated - return empty list
       if (
@@ -78,7 +80,7 @@ class Contacts extends Component {
     try {
       this.setState({ nearbyLoading: true });
       const response = await identityAPI.getNearby();
-      this.setState({ nearby: response.data || [], nearbyLoading: false });
+      this.setState({ nearby: asArray(response.data), nearbyLoading: false });
     } catch {
       this.setState({ nearbyLoading: false });
       // Nearby may fail if mDNS not available, don't show error

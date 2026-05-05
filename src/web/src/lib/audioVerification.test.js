@@ -86,4 +86,10 @@ describe('audioVerification', () => {
     clearAudioVerificationCache();
     expect(JSON.parse(localStorage.getItem(audioVerificationCacheStorageKey))).toEqual({});
   });
+
+  it('ignores malformed cache object-map shapes', () => {
+    localStorage.setItem(audioVerificationCacheStorageKey, JSON.stringify(['bad']));
+
+    expect(getAudioVerificationCache()).toEqual({});
+  });
 });

@@ -116,6 +116,29 @@ describe('Messaging', () => {
     expect(screen.getByText('Chat panel: new-user')).toBeInTheDocument();
   });
 
+  it('ignores malformed persisted workspace shapes before creating panels', async () => {
+    localStorage.setItem('slskd-messaging-workspace', JSON.stringify(['bad']));
+    chat.getAll.mockResolvedValue([]);
+    pods.list.mockResolvedValue([]);
+    rooms.getJoined.mockResolvedValue([]);
+
+    render(
+      <MemoryRouter>
+        <Messaging />
+      </MemoryRouter>,
+    );
+
+    fireEvent.change(await screen.findByLabelText('Chat username'), {
+      target: { value: 'new-user' },
+    });
+    fireEvent.click(screen.getByLabelText('Open direct-message panel'));
+
+    expect(screen.getByText('Chat panel: new-user')).toBeInTheDocument();
+    expect(localStorage.getItem('slskd-messaging-workspace')).toContain(
+      '"id":"chat-1"',
+    );
+  });
+
   it('sends one batch private message to multiple recipients', async () => {
     chat.getAll.mockResolvedValue([]);
     chat.sendBatch.mockResolvedValue({});

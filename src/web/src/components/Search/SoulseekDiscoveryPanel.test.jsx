@@ -82,4 +82,17 @@ describe('SoulseekDiscoveryPanel', () => {
       username: 'taste-peer',
     });
   });
+
+  it('treats malformed similar-user payloads as an empty list', async () => {
+    soulseekDiscovery.getSimilarUsers.mockResolvedValue({
+      data: { username: 'not-a-list' },
+    });
+
+    render(<SoulseekDiscoveryPanel />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Similar Users' }));
+
+    expect(await screen.findByText('Loaded 0 similar users.')).toBeInTheDocument();
+    expect(screen.queryByText('not-a-list')).not.toBeInTheDocument();
+  });
 });

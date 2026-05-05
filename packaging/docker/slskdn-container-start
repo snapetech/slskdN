@@ -32,8 +32,16 @@ fi
 
 if [ -z "${PUID:-}" ] && [ -z "${PGID:-}" ]; then
   mkdir -p "$app_dir"
+  if [ "$(stat -c '%u:%g' "$app_dir")" != "$(id -u slskdn):$(id -g slskdn)" ]; then
+    chown "$(id -u slskdn):$(id -g slskdn)" "$app_dir"
+  fi
+  gosu slskdn test -r "$app_dir" && gosu slskdn test -w "$app_dir" || {
+    echo "slskdN error: $app_dir must be readable and writable by slskdn." >&2
+    echo "slskdN hint: fix host ownership or run with PUID/PGID matching the directory owner." >&2
+    exit 1
+  }
   warn_ephemeral_app_dir
-  exec "$@"
+  exec gosu slskdn "$@"
 fi
 
 case "${PUID:-1000}" in

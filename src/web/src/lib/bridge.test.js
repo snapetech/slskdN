@@ -44,4 +44,12 @@ describe('bridge', () => {
 
     expect(result).toEqual([]);
   });
+
+  it('returns an empty client list when clients payload is malformed', async () => {
+    api.get.mockResolvedValue({ data: { clients: { id: 'not-a-list' } } });
+
+    const result = await bridge.getClients();
+
+    expect(result).toEqual([]);
+  });
 });

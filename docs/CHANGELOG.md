@@ -22,6 +22,43 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed the first bug-council burn-down batch across Web URL/state workflows,
+  Soulseek network-health guardrails, backfill probe accounting, secret-safe
+  logs, no-redirect outbound callers, release packaging metadata, and default
+  Docker non-root execution, plus vendored runtime room-list count validation.
+- Guarded multi-source controller search helpers with the shared Soulseek safety
+  limiter so wide source-discovery diagnostics cannot bypass network budgets.
+- Fixed blocked-user Search helper state so malformed localStorage list shapes
+  no longer crash block/unblock workflows.
+- Hardened browser-local automation, experience preference, and room activity
+  state so malformed object-map storage falls back to safe defaults.
+- Hardened Messaging workspace, audio verification cache, and native visualizer
+  preset storage against malformed browser-local object-map shapes.
+- Fixed the System Events table so malformed event JSON renders as raw text
+  instead of crashing the view.
+- Hardened browser-local community quality, Discovery Inbox, acquisition plan,
+  Discovery Shelf, album decision rule, and listening history arrays so malformed
+  item entries are ignored before normalization.
+- Hardened playlist intake and watchlist storage against malformed persisted
+  playlists, tracks, watchlists, and expansion candidates.
+- Hardened quarantine-jury and listening-party Web API list helpers so malformed
+  payloads return empty arrays instead of truthy non-list values.
+- Hardened Contacts, Collections, Shares, Share Groups, Soulseek Discovery, and
+  Player launcher list handling so malformed API payloads cannot enter list
+  render state.
+- Fixed File Explorer API path encoding so Unicode file and directory names are
+  UTF-8 base64 encoded and URL-safe in route segments.
+- Hardened Discovery Graph saved branches and graph node/edge rendering against
+  malformed browser-local storage and non-array API payloads.
+- Hardened System Events, Bridge clients, and Album Completion list handling
+  against malformed API payloads, including nested album track arrays.
+- Hardened Collections item search and Federated Taste recommendation lists
+  against malformed non-array API payloads.
+- Hardened Search Detail user notes, Album Decision rule candidates, and
+  Federated Taste nested reason/source actor lists against malformed list fields.
+- Hardened Discography Coverage, Source Providers, and watchlist expansion
+  summaries against malformed nested release, track, capability, priority, and
+  expansion-candidate lists.
 - Hardened non-versioned route checks and Pushbullet notification logging.
 - Synced the vendored `slskNet.Runtime` bug council ledger and remediation
   baseline checks.

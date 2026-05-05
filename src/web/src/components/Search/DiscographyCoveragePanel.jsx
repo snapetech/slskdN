@@ -50,6 +50,25 @@ const statusText = (status) => {
   }
 };
 
+export const normalizeDiscographyCoverage = (payload) => {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return null;
+  }
+
+  return {
+    ...payload,
+    releases: (Array.isArray(payload.releases) ? payload.releases : [])
+      .filter((release) =>
+        release && typeof release === 'object' && !Array.isArray(release))
+      .map((release) => ({
+        ...release,
+        tracks: (Array.isArray(release.tracks) ? release.tracks : [])
+          .filter((track) =>
+            track && typeof track === 'object' && !Array.isArray(track)),
+      })),
+  };
+};
+
 const DiscographyCoveragePanel = ({ disabled }) => {
   const [artistId, setArtistId] = useState('');
   const [coverage, setCoverage] = useState(null);
@@ -64,7 +83,7 @@ const DiscographyCoveragePanel = ({ disabled }) => {
       return 0;
     }
 
-    return coverage.releases
+    return normalizeDiscographyCoverage(coverage).releases
       .flatMap((release) => release.tracks || [])
       .filter((track) => track.status === 'Absent').length;
   }, [coverage]);
@@ -85,7 +104,7 @@ const DiscographyCoveragePanel = ({ disabled }) => {
         forceRefresh,
         profile,
       });
-      setCoverage(response.data);
+      setCoverage(normalizeDiscographyCoverage(response.data));
     } catch (loadError) {
       console.error(loadError);
       setError(
@@ -246,7 +265,7 @@ const DiscographyCoveragePanel = ({ disabled }) => {
             size="tiny"
           />
           <div className="discography-release-list">
-            {(coverage.releases || []).map((release) => (
+            {normalizeDiscographyCoverage(coverage).releases.map((release) => (
               <Segment
                 className="discography-release-card"
                 key={release.releaseId}
@@ -262,7 +281,7 @@ const DiscographyCoveragePanel = ({ disabled }) => {
                   divided
                   relaxed
                 >
-                  {(release.tracks || []).map((track) => (
+                  {release.tracks.map((track) => (
                     <List.Item
                       key={`${release.releaseId}-${track.position}-${track.recordingId || track.title}`}
                     >

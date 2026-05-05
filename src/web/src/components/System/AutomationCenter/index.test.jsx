@@ -54,6 +54,20 @@ describe('AutomationCenter', () => {
     expect(screen.getByText('Download approval')).toBeInTheDocument();
   });
 
+  it('ignores malformed persisted automation state and input shapes', () => {
+    localStorage.setItem(automationRecipeStorageKey, JSON.stringify(['bad']));
+    localStorage.setItem(automationRecipeInputStorageKey, JSON.stringify(['bad']));
+
+    render(<AutomationCenter />);
+
+    expect(screen.getAllByText('Local Diagnostics').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText('Enable Wishlist Retry')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Enable Wishlist Retry'));
+
+    const stored = JSON.parse(localStorage.getItem(automationRecipeStorageKey));
+    expect(stored['wishlist-retry'].enabled).toBe(true);
+  });
+
   it('persists recipe enablement from the visible toggle', () => {
     render(<AutomationCenter />);
 

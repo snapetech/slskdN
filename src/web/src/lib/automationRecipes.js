@@ -117,7 +117,10 @@ const readStoredState = () => {
   }
 
   try {
-    return JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed
+      : {};
   } catch {
     removeLocalStorageItem(storageKey);
     return {};
@@ -131,7 +134,10 @@ const readStoredInputs = () => {
   }
 
   try {
-    return JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed
+      : {};
   } catch {
     removeLocalStorageItem(inputStorageKey);
     return {};

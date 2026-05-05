@@ -11,6 +11,36 @@
 
 *No high priority tasks currently active
 
+- [x] **bug-council**: Fix first accepted burn-down batch.
+ - Status: completed (2026-05-05)
+ - Priority: P1
+ - Notes: Fixed and verified the first accepted bug-council batch: encoded Search URL intent, corrupted persisted tab state in Browse/Chat/Rooms, unsupported private room creation semantics, malformed room API list responses, chat/room action labels/tooltips, multi-source Soulseek search limiter use, backfill semaphore cancellation accounting, invalid FLAC probe hash fail-closed behavior, release AUR/tmpfiles workflow drift, CSRF/relay/Pushbullet secret log leakage, notification/Spotify no-redirect HTTP clients, stricter remediation scanners, mounted Users URL changes, default Docker non-root startup, and vendored room-list negative count rejection. Documented ADR-0001 gotchas in commits `034c8ee83` and `fc2fdc737`. Validation passed: focused Web/backend/vendor tests, packaging metadata/copy validation, remediation baseline, Web lint, repo lint, full `dotnet test slskd.sln --no-restore`, and `git diff --check`.
+
+- [x] **network**: Guard direct multi-source controller Soulseek searches.
+ - Status: completed (2026-05-05)
+ - Priority: P1
+ - Notes: Added `TryConsumeSearchBudget` to `MultiSourceController` and gated every direct wide `Client.SearchAsync` path for users, file-source lookup, download-file source discovery, swarm search, general multi-source search, and test diagnostics. Strengthened `scripts/check-soulseek-network-health.sh` and added focused controller coverage proving an exhausted limiter prevents a Soulseek search. Documented ADR-0001 gotchas in commits `7b08e99d8` and `b6c6299d0`. Validation passed: focused `MultiSourceControllerTests` and Soulseek network-health scanner.
+
+- [x] **web**: Harden Search blocked-user persisted state.
+ - Status: completed (2026-05-05)
+ - Priority: P2
+ - Notes: Changed `getBlockedUsers()` to ignore valid JSON with non-array shapes before block/unblock code calls array methods. Added focused Web helper coverage for malformed blocked-user storage. Documented ADR-0001 gotcha in commit `82ea8afb9`. Validation passed: focused `searches.test.js`.
+
+- [x] **web**: Harden browser-local object-map persisted state.
+ - Status: completed (2026-05-05)
+ - Priority: P2
+ - Notes: Changed automation recipe state/inputs, System Experience preferences, and App room activity timestamps to accept only non-array objects from localStorage. Added focused coverage for malformed automation, preference, and room activity shapes. Documented ADR-0001 gotcha in commit `d3a9e431b`. Validation passed: focused App, AutomationCenter, and ExperienceSettings tests plus `git diff --check`.
+
+- [x] **web**: Continue browser-local persisted-state hardening.
+ - Status: completed (2026-05-05)
+ - Priority: P2
+ - Notes: Changed Messaging workspace storage, audio verification cache storage, and native visualizer active preset storage to reject wrong top-level shapes before using them as maps or metadata. Extended ADR-0001 gotcha `0z301` in commit `fd82750b2`. Validation passed: focused audioVerification, Messaging, and Visualizer tests plus `git diff --check`.
+
+- [x] **web**: Prevent malformed event payloads from crashing System Events.
+ - Status: completed (2026-05-05)
+ - Priority: P2
+ - Notes: Added an event-data formatter that pretty-prints valid JSON and falls back to raw text for malformed event data. Added focused System Events coverage. Documented ADR-0001 gotcha `0z302` in commit `3be065865`. Validation passed: focused Events test.
+
 - [x] **tests/tooling**: Add bug council ledger and remediation scanners.
  - Status: completed (2026-05-05)
  - Priority: P1
@@ -2365,3 +2395,43 @@
 - [x] Fix adjacent string-body and router-state Web UI regressions
   - Status: completed (2026-05-05)
   - Notes: Extended the room join/create fix pattern to YAML config save/validation and Pod content ID validation, which also post to ASP.NET `[FromBody] string` endpoints under JSON content type. Extended the Browse new-tab URL fix to adjacent user actions for Browse, Users, and Chat from contacts, rooms, messaging panels, user context menus, transfer groups, and direct URLs.
+
+- [x] Harden browser-local array item storage
+  - Status: completed (2026-05-05)
+  - Notes: Filtered malformed item entries before normalization in community quality signals, Discovery Inbox, acquisition plans, Discovery Shelf, album decision rules, and listening history. Added focused Vitest coverage for each helper and documented ADR-0001 gotcha `0z303`.
+
+- [x] Harden nested browser-local playlist and watchlist storage
+  - Status: completed (2026-05-05)
+  - Notes: Filtered malformed persisted playlist/watchlist entries and nested track/expansion-candidate arrays before normalization. Added focused Playlist Intake and watchlist regression tests and extended ADR-0001 gotcha `0z303`.
+
+- [x] Harden Web API list helper payload shapes
+  - Status: completed (2026-05-05)
+  - Notes: Changed quarantine-jury request and listening-party directory helpers to return arrays only for array payloads. Added focused helper tests and documented ADR-0001 gotcha `0z304`.
+
+- [x] Harden component-local Web API list payload shapes
+  - Status: completed (2026-05-05)
+  - Notes: Guarded Contacts, Collections, Shared With Me, Share Groups, Soulseek Discovery, and Player launcher/browser list state against malformed non-array payloads. Added focused Contacts, Soulseek Discovery, and PlayerBar regressions and extended ADR-0001 gotcha `0z304`.
+
+- [x] Fix File Explorer Unicode/base64 route encoding
+  - Status: completed (2026-05-05)
+  - Notes: Replaced direct `btoa(path)` route segments with UTF-8 base64 plus URL encoding for File Explorer list/delete helpers. Added focused files helper tests and documented ADR-0001 gotcha `0z305`.
+
+- [x] Harden Discovery Graph saved branch and graph list shapes
+  - Status: completed (2026-05-05)
+  - Notes: Centralized saved-branch, node, and edge array guards in `discoveryGraph.js` and routed Atlas, AtlasPanel, and Modal through them. Added focused helper coverage and extended ADR-0001 gotchas `0z303` and `0z304`.
+
+- [x] Harden Events, Bridge, and Album Completion API list shapes
+  - Status: completed (2026-05-05)
+  - Notes: Guarded System Events API lists, Bridge clients, and MusicBrainz album completion albums/tracks against malformed non-array payloads. Added focused events, bridge, and Album Completion regressions and extended ADR-0001 gotcha `0z304`.
+
+- [x] Harden Collections and Federated Taste recommendation list shapes
+  - Status: completed (2026-05-05)
+  - Notes: Guarded collection item search and federated taste recommendation arrays against malformed non-array payloads. Added focused Federated Taste coverage, cleaned the remaining `response.data?.x || []` scan, and extended ADR-0001 gotcha `0z304`.
+
+- [x] Harden nested array fields before map/reduce
+  - Status: completed (2026-05-05)
+  - Notes: Guarded Search Detail user-note payloads, Album Decision rule candidate arrays, and Federated Taste recommendation reasons/source actors before list operations. Added focused Search Detail, Album Decision Rules, and Federated Taste regressions and documented ADR-0001 gotcha `0z306`.
+
+- [x] Harden Discography, Source Provider, and watchlist nested lists
+  - Status: completed (2026-05-05)
+  - Notes: Normalized Discography Coverage releases/tracks, Source Provider capabilities/profile priority lists, and watchlist expansion summaries before list operations. Added focused regressions and extended ADR-0001 gotcha `0z306`.

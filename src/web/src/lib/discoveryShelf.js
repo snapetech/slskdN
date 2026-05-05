@@ -18,7 +18,10 @@ const normalizePositiveInteger = (value, fallback) => {
 const readShelf = () => {
   try {
     const parsed = JSON.parse(getLocalStorageItem(discoveryShelfStorageKey, '[]'));
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((item) =>
+        item && typeof item === 'object' && !Array.isArray(item))
+      : [];
   } catch {
     return [];
   }
