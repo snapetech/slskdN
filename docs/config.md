@@ -739,6 +739,26 @@ soulseek:
     prefer_outbound: true
 ```
 
+## Soulseek Mesh Rendezvous and Capability Handshakes
+
+slskdN can use the native Soulseek interest graph as an explicit rendezvous path for finding other slskdN mesh peers. This is separate from DHT rendezvous and is disabled by default because enabling it publishes the recognizable `slskdn-mesh-v1` interest tag on the configured Soulseek account.
+
+Runtime capability handshakes are separate from rendezvous interest publishing. When enabled, slskdN peers can exchange signed capability descriptors over Soulseek peer-message connections. Capability file discovery still falls back to `@@slskdn/__caps__.json` when a runtime descriptor is unavailable.
+
+| YAML option | Default | Description |
+| ----------- | ------- | ----------- |
+| `mesh.enable_soulseek_capability_handshake` | `true` | Enables slskdN peer capability descriptor exchange over Soulseek peer-message connections. |
+| `mesh.enable_soulseek_rendezvous` | `false` | Allows System -> Mesh and API callers to publish/remove the public `slskdn-mesh-v1` rendezvous interest and query rendezvous candidates. |
+| `mesh.probe_soulseek_rendezvous_capabilities` | `true` | Probes rendezvous candidates for runtime peer capability descriptors when running active rendezvous discovery. |
+
+#### **YAML**
+```yaml
+mesh:
+  enable_soulseek_capability_handshake: true
+  enable_soulseek_rendezvous: false
+  probe_soulseek_rendezvous_capabilities: true
+```
+
 ## Other
 
 Users can configure "profile" information for other users on the network to view, including a description and a photo.  Note that Soulseek NS doesn't support .PNG,

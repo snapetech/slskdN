@@ -33,3 +33,11 @@ This document records remediation rules for features that can publish data, disc
 3. Add user-visible copy describing exactly what leaves the node.
 4. Add tests at the lowest useful level: client route, component behavior, and controller policy.
 5. Update `docs/route-ui-parity-matrix.md` with the UI entry point and status.
+
+## Web client transport hardening notes
+
+| Area | Remediation |
+| --- | --- |
+| Direct fetch wrappers | Mutating direct-fetch wrappers must opt into `session.authHeaders({ csrf: true })` so cookie-auth requests carry `X-CSRF-TOKEN`. |
+| Shared axios client | Library modules should pass relative paths such as `/podcore/messages` or `/library/health/scans`; do not embed `/api` or `/api/v0` in shared-client calls. |
+| MediaCore pod helpers | Pod DHT, membership, discovery, routing, signing, verification, message storage, backfill, opinions, channels, and content helpers now target `/podcore/*` through the versioned client. |

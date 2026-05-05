@@ -1,5 +1,5 @@
 import { tokenPassthroughValue } from '../config';
-import api from './api';
+import api, { getCsrfTokenFromCookieString } from './api';
 import { clearToken, getToken, setToken } from './token';
 
 export const getSecurityEnabled = async () => {
@@ -50,7 +50,13 @@ export const check = async () => {
   }
 };
 
-export const authHeaders = () => {
+export const authHeaders = ({ csrf = false } = {}) => {
   const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const csrfToken = csrf ? getCsrfTokenFromCookieString() : null;
+  if (csrfToken) {
+    headers['X-CSRF-TOKEN'] = csrfToken;
+  }
+
+  return headers;
 };

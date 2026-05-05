@@ -105,6 +105,81 @@ const contentExamples = {
   },
 };
 
+const podWorkflowSections = [
+  {
+    description: 'Publish or retrieve pod metadata through DHT workflows.',
+    href: '#podcore-dht-publishing',
+    label: 'DHT Publishing',
+    risk: 'Publishes metadata',
+  },
+  {
+    description: 'Manage signed membership records, bans, and roles.',
+    href: '#pod-membership-management',
+    label: 'Membership',
+    risk: 'Publishes membership state',
+  },
+  {
+    description: 'Verify membership, message authenticity, and role claims.',
+    href: '#pod-membership-verification',
+    label: 'Verification',
+    risk: 'Read-only checks',
+  },
+  {
+    description: 'Find listed pods by name, tag, content, or registry scan.',
+    href: '#pod-discovery',
+    label: 'Discovery',
+    risk: 'Read-only unless registering',
+  },
+  {
+    description: 'Request, accept, leave, and review pod membership flows.',
+    href: '#pod-join-leave',
+    label: 'Join/Leave',
+    risk: 'Publishes signed membership events',
+  },
+  {
+    description: 'Route messages, target peers, and review deduplication state.',
+    href: '#pod-message-routing',
+    label: 'Routing',
+    risk: 'Sends pod messages',
+  },
+  {
+    description: 'Search, count, clean up, rebuild, and vacuum pod messages.',
+    href: '#pod-message-storage',
+    label: 'Storage',
+    risk: 'Local storage operations',
+  },
+  {
+    description: 'Synchronize missed messages and last-seen timestamps.',
+    href: '#pod-message-backfill',
+    label: 'Backfill',
+    risk: 'Syncs pod state',
+  },
+  {
+    description: 'Create, inspect, update, and delete pod channels.',
+    href: '#pod-channel-management',
+    label: 'Channels',
+    risk: 'Mutates pod structure',
+  },
+  {
+    description: 'Search content and create content-linked pods.',
+    href: '#pod-content-linking',
+    label: 'Content Linking',
+    risk: 'Can create pods',
+  },
+  {
+    description: 'Publish, aggregate, and review pod opinions.',
+    href: '#pod-opinion-management',
+    label: 'Opinions',
+    risk: 'Publishes opinion data',
+  },
+  {
+    description: 'Sign messages, verify signatures, and generate key pairs.',
+    href: '#pod-message-signing',
+    label: 'Signing',
+    risk: 'Handles key material',
+  },
+];
+
 const MediaCore = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -2490,6 +2565,34 @@ const MediaCore = () => {
         <Icon name="database" />
         MediaCore ContentID Registry
       </Header>
+
+      <Segment>
+        <Header as="h3">
+          <Icon name="sitemap" />
+          Pod Workflow Index
+        </Header>
+        <Message warning>
+          Pod workflows mix read-only diagnostics with operations that publish
+          metadata, membership records, messages, opinions, or key material.
+          Use this index to jump to the intended workflow before running an
+          action.
+        </Message>
+        <Card.Group itemsPerRow={3} stackable>
+          {podWorkflowSections.map((section) => (
+            <Card
+              as="a"
+              href={section.href}
+              key={section.href}
+            >
+              <Card.Content>
+                <Card.Header>{section.label}</Card.Header>
+                <Card.Meta>{section.risk}</Card.Meta>
+                <Card.Description>{section.description}</Card.Description>
+              </Card.Content>
+            </Card>
+          ))}
+        </Card.Group>
+      </Segment>
 
       <Grid stackable>
         {/* Statistics Overview */}
@@ -5216,7 +5319,7 @@ const MediaCore = () => {
 
         {/* PodCore DHT Publishing */}
         <Grid.Column width={16}>
-          <Card fluid>
+          <Card id="podcore-dht-publishing" fluid>
             <Card.Content>
               <Card.Header>
                 <Icon name="broadcast" />
@@ -5477,7 +5580,7 @@ const MediaCore = () => {
 
         {/* Pod Membership Management */}
         <Grid.Column width={16}>
-          <Card fluid>
+          <Card id="pod-membership-management" fluid>
             <Card.Content>
               <Card.Header>
                 <Icon name="users" />
@@ -5827,7 +5930,7 @@ const MediaCore = () => {
 
         {/* Pod Membership Verification */}
         <Grid.Column width={16}>
-          <Card fluid>
+          <Card id="pod-membership-verification" fluid>
             <Card.Content>
               <Card.Header>
                 <Icon name="shield" />
@@ -6091,7 +6194,7 @@ const MediaCore = () => {
 
         {/* Pod Discovery */}
         <Grid.Column width={16}>
-          <Card fluid>
+          <Card id="pod-discovery" fluid>
             <Card.Content>
               <Card.Header>
                 <Icon name="search" />
@@ -6468,7 +6571,7 @@ const MediaCore = () => {
 
         {/* Pod Join/Leave */}
         <Grid.Column width={16}>
-          <Card fluid>
+          <Card id="pod-join-leave" fluid>
             <Card.Content>
               <Card.Header>
                 <Icon name="user plus" />
@@ -6716,7 +6819,7 @@ const MediaCore = () => {
 
         {/* Pod Message Routing */}
         <Grid.Column width={16}>
-          <Card fluid>
+          <Card id="pod-message-routing" fluid>
             <Card.Content>
               <Card.Header>
                 <Icon name="send" />
@@ -7002,7 +7105,7 @@ const MediaCore = () => {
 
         {/* Pod Message Storage */}
         <Grid.Column width={16}>
-          <Card fluid>
+          <Card id="pod-message-storage" fluid>
             <Card.Content>
               <Card.Header>
                 <Icon name="database" />
@@ -7150,7 +7253,7 @@ const MediaCore = () => {
 
         {/* Pod Message Backfill */}
         <Grid.Column width={16}>
-          <Card fluid>
+          <Card id="pod-message-backfill" fluid>
             <Card.Content>
               <Card.Header>
                 <Icon name="sync" />
@@ -7279,7 +7382,7 @@ const MediaCore = () => {
 
         {/* Pod Channel Management */}
         <Grid.Column width={16}>
-          <Card fluid>
+          <Card id="pod-channel-management" fluid>
             <Card.Content>
               <Card.Header>
                 <Icon name="hashtag" />
@@ -7465,7 +7568,7 @@ const MediaCore = () => {
 
         {/* Pod Content Linking */}
         <Grid.Column width={16}>
-          <Card fluid>
+          <Card id="pod-content-linking" fluid>
             <Card.Content>
               <Card.Header>
                 <Icon name="linkify" />
@@ -7618,7 +7721,7 @@ const MediaCore = () => {
 
         {/* Pod Opinion Management */}
         <Grid.Column width={16}>
-          <Card fluid>
+          <Card id="pod-opinion-management" fluid>
             <Card.Content>
               <Card.Header>
                 <Icon name="star" />
@@ -7989,7 +8092,7 @@ const MediaCore = () => {
 
         {/* Pod Message Signing */}
         <Grid.Column width={16}>
-          <Card fluid>
+          <Card id="pod-message-signing" fluid>
             <Card.Content>
               <Card.Header>
                 <Icon name="key" />

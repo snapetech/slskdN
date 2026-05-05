@@ -7,7 +7,7 @@ export const startForwarding = async (config) => {
   const response = await fetch(`${baseUrl}/start`, {
     body: JSON.stringify(config),
     headers: {
-      ...session.authHeaders(),
+      ...session.authHeaders({ csrf: true }),
       'Content-Type': 'application/json',
     },
     method: 'POST',
@@ -28,7 +28,7 @@ export const startForwarding = async (config) => {
 
 export const stopForwarding = async (localPort) => {
   const response = await fetch(`${baseUrl}/stop/${localPort}`, {
-    headers: session.authHeaders(),
+    headers: session.authHeaders({ csrf: true }),
     method: 'POST',
   });
 

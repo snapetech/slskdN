@@ -98,7 +98,9 @@ Use:
 
 - **System -> Network** for Soulseek/DHT/mesh health and public exposure notes.
 - **System -> Mesh** for mesh evidence, realm subject-index review, and
-  conflict surfaces.
+  conflict surfaces. It also includes Soulseek mesh rendezvous controls for the
+  opt-in `slskdn-mesh-v1` public interest tag and runtime peer capability
+  records discovered from signed slskdN descriptors.
 - **System -> Swarm Analytics** for multi-source/rescue performance review.
 
 ## Library Health

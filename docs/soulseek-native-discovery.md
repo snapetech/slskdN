@@ -15,6 +15,8 @@ slskdN exposes the native Soulseek interest and recommendation protocol through 
 | Item recommendations | Search → Soulseek Discovery, API | Branches from a raw item string into related item recommendations |
 | Item similar users | Search → Soulseek Discovery, API | Finds users associated with a raw item string |
 | Batch private messages | Messages toolbar, API | Sends one native multi-recipient private-message command and records local conversation rows per recipient |
+| Soulseek mesh rendezvous | System → Mesh, API | Publishes or removes the opt-in `slskdn-mesh-v1` interest tag and discovers similar-user mesh candidates |
+| Runtime peer capabilities | System → Mesh, API | Exchanges signed slskdN capability descriptors over peer messages and reports known peer features |
 
 Native item values are search/discovery seeds. They are not MusicBrainz IDs, verified releases, or trusted catalog identities.
 
@@ -41,6 +43,17 @@ Private messages:
 - `POST /api/v0/conversations/batch` with `{ "usernames": ["alice", "bob"], "message": "hello" }`
 
 Batch private messages are deduplicated case-insensitively by the runtime and capped at 100 unique recipients per call. slskdN stores one outbound message row per recipient so existing conversation views continue to work.
+
+Mesh rendezvous and runtime capabilities:
+
+- `GET /api/v0/soulseek/mesh-rendezvous/status`
+- `POST /api/v0/soulseek/mesh-rendezvous/interest`
+- `DELETE /api/v0/soulseek/mesh-rendezvous/interest`
+- `GET /api/v0/soulseek/mesh-rendezvous/users`
+- `GET /api/v0/soulseek/mesh-rendezvous/discover`
+- `GET /api/v0/soulseek/peer-capabilities`
+
+Rendezvous interest publishing is disabled unless `mesh.enable_soulseek_rendezvous` / `mesh.enableSoulseekRendezvous` is true. Capability handshakes are separate from interest publishing and can run without publishing the public rendezvous tag.
 
 ### Response Shapes
 
@@ -103,6 +116,8 @@ User cards expose a heart interest action. Interests are loaded only when the po
 
 Messages includes a **Batch Private Message** action in the workspace toolbar. It uses the native multi-recipient private-message command when available and persists one local conversation per recipient so legacy conversation views still behave normally.
 
+System → Mesh includes **Soulseek Mesh Rendezvous** controls. Operators can publish or remove the public rendezvous interest, load similar-user candidates, and inspect runtime capability records returned by signed slskdN peer descriptors.
+
 ## Compatibility
 
 Native discovery is backward-compatible with legacy clients because all new commands are server commands and are sent only after an explicit authenticated UI/API action. Existing search, browse, transfer, room, and one-to-one private-message flows keep their normal protocol paths.
@@ -110,6 +125,8 @@ Native discovery is backward-compatible with legacy clients because all new comm
 Batch private messages use the Soulseek server's native multi-recipient command. This does not require each recipient to support new peer-message behavior; recipients receive ordinary private messages through the server path.
 
 Type-1 peer-message obfuscation is documented separately in [Soulseek Type-1 Obfuscation](soulseek-type1-obfuscation.md). Native discovery does not require obfuscation and does not change transfer traffic.
+
+Runtime capability messages are ignored by legacy clients that do not understand the reserved slskdN peer-message code. slskdN still falls back to the legacy `@@slskdn/__caps__.json` capability file when no runtime descriptor is available.
 
 ## Safety
 
@@ -121,6 +138,7 @@ These calls share the existing Soulseek safety limiter using separate source buc
 - `soulseek-similar-users`
 - `soulseek-item-recommendations`
 - `soulseek-item-similar-users`
+- `soulseek-mesh-rendezvous`
 - `taste-recommendations-soulseek`
 
 This keeps discovery features from starving manual searches or browse requests.
@@ -132,3 +150,4 @@ Additional guardrails:
 - Batch private messages are capped at 100 unique recipients by the runtime.
 - User-card interest lookup is lazy to avoid sending one server request per rendered user.
 - Wishlist handoff is review-only and disabled by default so native recommendation strings do not auto-download.
+- Soulseek mesh rendezvous is disabled by default because publishing `slskdn-mesh-v1` makes the account visibly identifiable as a slskdN mesh participant.

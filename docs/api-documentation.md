@@ -213,6 +213,39 @@ User interests response:
 
 Native recommendation item strings are discovery/search seeds, not verified catalog identities. API clients should keep review steps before download automation.
 
+#### Mesh Rendezvous and Runtime Capabilities
+- `GET /api/v0/soulseek/mesh-rendezvous/status` - Get rendezvous enablement, interest tag, and privacy text
+- `POST /api/v0/soulseek/mesh-rendezvous/interest` - Publish the public `slskdn-mesh-v1` interest tag
+- `DELETE /api/v0/soulseek/mesh-rendezvous/interest` - Remove the public `slskdn-mesh-v1` interest tag
+- `GET /api/v0/soulseek/mesh-rendezvous/users` - Load Soulseek similar-user rendezvous candidates
+- `GET /api/v0/soulseek/mesh-rendezvous/discover` - Load rendezvous candidates and probe runtime capability descriptors
+- `GET /api/v0/soulseek/peer-capabilities` - Return known runtime peer capability records
+
+Rendezvous endpoints are disabled unless `mesh.enable_soulseek_rendezvous` / `mesh.enableSoulseekRendezvous` is enabled. Publishing the rendezvous interest intentionally makes the Soulseek account recognizable as a slskdN mesh participant. Runtime peer capability records come from signed slskdN capability descriptors exchanged over Soulseek peer-message connections when available.
+
+Discovery response:
+
+```json
+{
+  "interestTag": "slskdn-mesh-v1",
+  "users": [
+    { "username": "mesh-peer", "rating": 10 }
+  ],
+  "capabilityRecords": [
+    {
+      "username": "mesh-peer",
+      "peerId": "peer-id",
+      "features": ["mesh_sync", "swarm_download"],
+      "overlayPort": 50305,
+      "messageType": "Hello",
+      "nonce": "nonce",
+      "observedAt": "2026-05-05T00:00:00Z",
+      "signed": true
+    }
+  ]
+}
+```
+
 ### Pod APIs
 
 #### Pods

@@ -525,6 +525,9 @@
 # Mesh.Security (PR-01, §8). Binds to Mesh:Security when Mesh section is used.
 # mesh:
 #   enabled: true
+#   enable_soulseek_capability_handshake: true      # exchange signed slskdN runtime capabilities over Soulseek peer messages
+#   enable_soulseek_rendezvous: false              # opt-in only; publishes the public slskdn-mesh-v1 Soulseek interest tag
+#   probe_soulseek_rendezvous_capabilities: true   # probe rendezvous candidates for runtime capability descriptors
 #   dht:
 #     bootstrap_nodes: 60
 #   overlay:

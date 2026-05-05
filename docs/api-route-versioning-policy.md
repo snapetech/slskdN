@@ -38,3 +38,5 @@ New web-consumed JSON APIs should be exposed under `/api/v{version:apiVersion}/.
 | Date | Controllers | Client impact |
 | --- | --- | --- |
 | 2026-05-05 | `LibraryHealthController`, `DiscographyJobsController`, `LabelCrateJobsController` | Library Health web client now uses `/library/health/*` through the shared `/api/v0` base; job-specific controllers now expose versioned aliases while preserving legacy `/api/jobs/*` routes. |
+
+| 2026-05-05 | MediaCore pod web helpers | MediaCore pod helper routes now use relative `/podcore/*` paths through the shared `/api/v0` client instead of incorrect `/mediacore/podcore/*` or absolute `apiBaseUrl` paths. |

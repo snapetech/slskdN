@@ -1,4 +1,3 @@
-import { apiBaseUrl } from '../config';
 import api from './api';
 
 const baseUrl = '/mediacore/contentid';
@@ -9,12 +8,12 @@ const portabilityBaseUrl = '/mediacore/portability';
 const publishBaseUrl = '/mediacore/publish';
 const retrieveBaseUrl = '/mediacore/retrieve';
 const statsBaseUrl = '/mediacore/stats';
-const podDhtBaseUrl = '/mediacore/podcore/dht';
-const podMembershipBaseUrl = '/mediacore/podcore/membership';
-const podDiscoveryBaseUrl = '/mediacore/podcore/discovery';
-const podRoutingBaseUrl = '/mediacore/podcore/routing';
-const podSigningBaseUrl = '/mediacore/podcore/signing';
-const podVerificationBaseUrl = '/mediacore/podcore/verification';
+const podDhtBaseUrl = '/podcore/dht';
+const podMembershipBaseUrl = '/podcore/membership';
+const podDiscoveryBaseUrl = '/podcore/discovery';
+const podRoutingBaseUrl = '/podcore/routing';
+const podSigningBaseUrl = '/podcore/signing';
+const podVerificationBaseUrl = '/podcore/verification';
 
 /**
  * Register a mapping from external ID to ContentID.
@@ -933,7 +932,7 @@ export const getVerificationStats = async () => {
 /**
  * Message Storage API base URL
  */
-const storageBaseUrl = `${apiBaseUrl}/pods/messages`;
+const storageBaseUrl = '/podcore/messages';
 
 /**
  * Search messages in a pod.
@@ -1002,7 +1001,7 @@ export const vacuumDatabase = async () => {
 /**
  * Message Backfill API base URL
  */
-const backfillBaseUrl = `${apiBaseUrl}/pods/backfill`;
+const backfillBaseUrl = '/podcore/backfill';
 
 /**
  * Sync backfill for a pod on rejoin.
@@ -1049,7 +1048,7 @@ export const syncAllPodsBackfill = async () => {
 /**
  * Pod Opinion API base URL
  */
-const opinionBaseUrl = `${apiBaseUrl}/pods`;
+const opinionBaseUrl = '/podcore';
 
 /**
  * Publish an opinion on a content variant.
@@ -1142,7 +1141,7 @@ export const updateMemberAffinities = async (podId) => {
 /**
  * Pod Channel API base URL
  */
-const channelBaseUrl = `${apiBaseUrl}/pods`;
+const channelBaseUrl = '/podcore';
 
 /**
  * Create a new channel in a pod.
@@ -1186,7 +1185,7 @@ export const deleteChannel = async (podId, channelId) => {
 /**
  * Content API base URL
  */
-const contentBaseUrl = `${apiBaseUrl}/pods/content`;
+const contentBaseUrl = '/podcore/content';
 
 /**
  * Validate a content ID for pod linking.

@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Documented the runtime capability and Soulseek mesh rendezvous additions in
+  the README, API/config/native-discovery references, and a new documentation
+  audit, alongside MediaCore/session surface follow-up coverage.
 - Synced the vendored `slskNet.Runtime` fork with peer capability descriptors,
   signed slskdN capability handshakes, mesh rendezvous helpers, wishlist
   scheduling primitives, protocol-count hardening, and slskdN API/UI integration

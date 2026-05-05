@@ -337,11 +337,14 @@ Discover other slskdN users via BitTorrent DHT and form encrypted mesh overlay.
 - **Mesh overlay network** — TLS-encrypted P2P connections
 - **Hash database sync** — Epidemic protocol for content verification database
 - **Peer greeting service** — Auto-discovery and handshake
+- **Runtime capability handshakes** — slskdN peers can exchange signed capability descriptors over Soulseek peer-message connections, allowing mesh, swarm, and overlay support to be discovered before falling back to the legacy capability file.
+- **Soulseek mesh rendezvous** — an explicit opt-in can publish the public `slskdn-mesh-v1` Soulseek interest tag and use the native similar-user graph to find other mesh-capable slskdN accounts.
 - **NAT detection** — UPnP/NAT-PMP port mapping
+- **System -> Mesh discovery tools** — publish/remove the rendezvous interest, discover candidates, and inspect runtime peer capability records from the Web UI.
 - **Live status bar** — Real-time DHT nodes, mesh peers, hash counts in UI footer
 
 
-📖 **Design docs**: [MeshCore research](docs/phase8-meshcore-research.md) • [Mesh architecture](docs/virtual-soulfind-mesh-architecture.md)
+📖 **Design docs**: [MeshCore research](docs/phase8-meshcore-research.md) • [Mesh architecture](docs/virtual-soulfind-mesh-architecture.md) • [Runtime sync notes](docs/slsknet-runtime-sync.md)
 
 ### 🕶️ Soulseek Type-1 Obfuscation Options
 First-class Soulseek peer-message obfuscation posture for compatible clients.
@@ -357,10 +360,11 @@ First-class Soulseek peer-message obfuscation posture for compatible clients.
 ### 🧭 Soulseek Native Discovery
 Native Soulseek interests, recommendations, similar users, and multi-recipient messages are available as explicit opt-in workflows.
 - **Search → Soulseek Discovery** — manage interests, load personal/global recommendations, branch from item recommendations, inspect similar users, and send raw seeds into normal searches or review-only Wishlist entries
-- **Native discovery API** — exposes liked/hated interests, recommendations, global recommendations, user interests, similar users, item recommendations, and item-similar users under `/api/v0/soulseek/*`
+- **Native discovery API** — exposes liked/hated interests, recommendations, global recommendations, user interests, similar users, item recommendations, item-similar users, mesh rendezvous, and runtime peer capability records under `/api/v0/soulseek/*`
 - **Federated Taste toggle** — optionally folds native Soulseek recommendations into privacy-filtered taste recommendations without treating them as verified metadata
 - **User-card interests** — lazy-loads liked/hated native interests for a peer only when opened
 - **Messages batch send** — uses the native multi-recipient private-message command and persists one local conversation per recipient
+- **Runtime capability bridge** — capability lookup checks signed peer capability descriptors before falling back to `@@slskdn/__caps__.json`
 - **Backward-compatible behavior** — no native discovery command is emitted unless the UI or an authenticated API caller explicitly invokes it
 - **Safety limiter buckets** — discovery calls are rate-limited separately from manual searches, browse requests, transfers, and rooms
 
@@ -704,12 +708,17 @@ security:
   
 mesh:
   enabled: true
+  enable_soulseek_capability_handshake: true
+  enable_soulseek_rendezvous: false
+  probe_soulseek_rendezvous_capabilities: true
   dht:
     bootstrap_nodes: 60
   overlay:
     udp_port: 50301
     quic_port: 50302
 ```
+
+`mesh.enable_soulseek_rendezvous` intentionally defaults off because enabling it publishes the recognizable `slskdn-mesh-v1` interest tag on the configured Soulseek account. Runtime capability handshakes are separate and do not publish that interest by themselves.
 
 Detailed documentation for configuration options can be found in [docs/config.md](docs/config.md), and an example of the YAML configuration file can be reviewed in [config/slskd.example.yml](config/slskd.example.yml).
 
@@ -724,6 +733,8 @@ Detailed documentation for configuration options can be found in [docs/config.md
 | [How It Works](docs/HOW-IT-WORKS.md) | Technical architecture and design |
 | [Multi-Source Downloads](docs/multipart-downloads.md) | Network impact analysis |
 | [DHT Rendezvous Design](docs/DHT_RENDEZVOUS_DESIGN.md) | Peer discovery architecture |
+| [slskNet.Runtime Sync Notes](docs/slsknet-runtime-sync.md) | Vendored runtime features, slskdN integration decisions, and license impact |
+| [Documentation Audit](docs/dev/documentation-audit-2026-05-05.md) | Current documentation gaps and remediation priorities |
 | [Lidarr Integration](docs/lidarr-integration.md) | First-class plugin-free Lidarr wanted sync, download handoff, and safe post-download import |
 | [VPN Agent](src/slskdN.VpnAgent/README.md) | Fail-closed VPN routing, port forwarding, WireGuard/OpenVPN/Tailscale modes |
 | [System Admin Surfaces](docs/system-surfaces.md) | Guided System UI for policies, integrations, diagnostics, provider catalog, and local experience preferences |
@@ -757,6 +768,8 @@ Features in the `master` branch:
 | **User Score Badges** | ✅ Stable | Chat, rooms, transfers |
 | **Multi-Source Downloads** | 🟡 Beta | Conservative guardrails; verify current release behavior before broad use |
 | **DHT Peer Discovery** | 🟡 Experimental | Functional mesh overlay; operator exposure and network behavior require care |
+| **Soulseek Mesh Rendezvous** | 🟡 Experimental | Explicit opt-in via public `slskdn-mesh-v1` interest tag; capability probing is available in System -> Mesh |
+| **Runtime Capability Handshake** | 🟡 Experimental | Signed slskdN descriptors over Soulseek peer messages with legacy capability-file fallback |
 | **Security Hardening** | 🟡 Active hardening | Controls exist, with open audit follow-ups tracked in security docs |
 | **MusicBrainz Integration** | 🟡 Beta | Core lookup is available; fingerprinting/auto-tagging depend on optional tooling and third-party services |
 | **Discography Concierge** | 🟡 Experimental | Artist MBID coverage map and manual Wishlist seeding |
@@ -812,6 +825,8 @@ slskdN follows slskd's version numbers with a suffix: `0.24.1-slskdN.1` = First 
 - Source code must be made available when running the software over a network
 - Derivative works must also be AGPL-3.0 licensed
 - Copyright notices and license information must be preserved
+
+The vendored `slskNet.Runtime` sync adds `BouncyCastle.Cryptography` for Ed25519 peer descriptor signing. Its NuGet metadata declares MIT, and the package notes a modified Bzip2 component under Apache-2.0; these permissive dependencies do not change slskdN's AGPL-3.0 licensing.
 
 ---
 

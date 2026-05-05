@@ -32,7 +32,7 @@ export const create = async (pod, requestingPeerId = 'local-peer') => {
   const response = await fetch(baseUrl, {
     body: JSON.stringify({ pod, requestingPeerId }),
     headers: {
-      ...session.authHeaders(),
+      ...session.authHeaders({ csrf: true }),
       'Content-Type': 'application/json',
     },
     method: 'POST',
@@ -49,7 +49,7 @@ export const update = async (podId, pod, requestingPeerId = 'local-peer') => {
   const response = await fetch(`${baseUrl}/${podId}`, {
     body: JSON.stringify({ pod, requestingPeerId }),
     headers: {
-      ...session.authHeaders(),
+      ...session.authHeaders({ csrf: true }),
       'Content-Type': 'application/json',
     },
     method: 'PUT',
@@ -78,7 +78,7 @@ export const join = async (podId, peerId) => {
   const response = await fetch(`${baseUrl}/${podId}/join`, {
     body: JSON.stringify({ peerId }),
     headers: {
-      ...session.authHeaders(),
+      ...session.authHeaders({ csrf: true }),
       'Content-Type': 'application/json',
     },
     method: 'POST',
@@ -95,7 +95,7 @@ export const leave = async (podId, peerId) => {
   const response = await fetch(`${baseUrl}/${podId}/leave`, {
     body: JSON.stringify({ peerId }),
     headers: {
-      ...session.authHeaders(),
+      ...session.authHeaders({ csrf: true }),
       'Content-Type': 'application/json',
     },
     method: 'POST',
@@ -136,7 +136,7 @@ export const sendMessage = async (
     {
       body: JSON.stringify({ body, senderPeerId, signature }),
       headers: {
-        ...session.authHeaders(),
+        ...session.authHeaders({ csrf: true }),
         'Content-Type': 'application/json',
       },
       method: 'POST',
@@ -161,7 +161,7 @@ export const bindRoom = async (
     {
       body: JSON.stringify({ mode, roomName }),
       headers: {
-        ...session.authHeaders(),
+        ...session.authHeaders({ csrf: true }),
         'Content-Type': 'application/json',
       },
       method: 'POST',
@@ -179,7 +179,7 @@ export const unbindRoom = async (podId, channelId) => {
   const response = await fetch(
     `${baseUrl}/${podId}/channels/${channelId}/unbind`,
     {
-      headers: session.authHeaders(),
+      headers: session.authHeaders({ csrf: true }),
       method: 'POST',
     },
   );
@@ -228,7 +228,7 @@ export const discoverByTag = async (tag) => {
 
 export const refreshDiscovery = async () => {
   const response = await fetch(`${discoveryBaseUrl}/refresh`, {
-    headers: session.authHeaders(),
+    headers: session.authHeaders({ csrf: true }),
     method: 'POST',
   });
 
