@@ -52,6 +52,32 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z278. Playback Buffer Priority Must Not Compare A Value To Itself
+
+**The Bug**: Playback-aware multi-source scheduling accepted `BufferAheadMs` feedback but computed both the desired and actual buffer from the same property. That made the high-buffer and low-buffer branches unreachable for normal positive values, so playback priority collapsed to `Mid` and could not react to starving or comfortably buffered playback.
+
+**Files Affected**:
+- `src/slskd/Transfers/MultiSource/Playback/PlaybackFeedback.cs`
+- `src/slskd/Transfers/MultiSource/Playback/PlaybackPriorityService.cs`
+
+**Wrong**:
+```csharp
+var desired = fb.BufferAheadMs;
+var actual = fb.BufferAheadMs;
+if (actual < desired) return PriorityZone.High;
+if (actual >= desired * 2) return PriorityZone.Low;
+```
+
+**Correct**:
+```csharp
+var bufferAheadMs = fb.BufferAheadMs;
+if (bufferAheadMs < LowBufferThresholdMs) return PriorityZone.High;
+if (bufferAheadMs >= ComfortableBufferThresholdMs) return PriorityZone.Low;
+return PriorityZone.Mid;
+```
+
+**Why This Keeps Happening**: The feedback DTO originally described `BufferAheadMs` as a desired target, but callers use it as the current playable buffer ahead. When a DTO has only one buffer field, priority logic must treat it as the measured value and compare it to fixed policy thresholds, not invent a second variable from the same value.
+
 ### 0z277. AUR Source PKGBUILD Must Match GitHub Archive Repository Casing
 
 **The Bug**: The source AUR package downloaded the correct release tag tarball, but `build()` and `package()` tried to enter a lower-case `slskdn-<tag>` directory. GitHub archive tarballs preserve the repository display casing in the extracted root, so `snapetech/slskdN` extracts as `slskdN-<tag>`. Clean `yay` builds then failed before compiling with `cd: .../src/slskdn-<tag>: No such file or directory`.
