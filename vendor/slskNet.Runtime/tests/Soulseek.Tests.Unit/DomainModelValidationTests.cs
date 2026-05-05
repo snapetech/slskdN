@@ -285,5 +285,13 @@ namespace Soulseek.Tests.Unit
         [Fact(DisplayName = "ItemRecommendations rejects null recommendations")]
         public void ItemRecommendations_Rejects_Null_Recommendations()
             => Assert.Throws<ArgumentException>(() => new ItemRecommendations("item", new Recommendation[] { null }));
+
+        [Fact(DisplayName = "RoomInfo rejects null users")]
+        public void RoomInfo_Rejects_Null_Users()
+            => Assert.Throws<ArgumentException>(() => new RoomInfo("room", new string[] { null }));
+
+        [Fact(DisplayName = "WishlistSearchCompletedEventArgs rejects null responses")]
+        public void WishlistSearchCompletedEventArgs_Rejects_Null_Responses()
+            => Assert.Throws<ArgumentException>(() => new WishlistSearchCompletedEventArgs("term", null, new SearchResponse[] { null }, null));
     }
 }

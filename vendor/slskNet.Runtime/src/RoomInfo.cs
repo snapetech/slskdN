@@ -56,8 +56,15 @@ namespace Soulseek
         /// <param name="userList">The users in the room, if available.</param>
         public RoomInfo(string name, IEnumerable<string> userList)
         {
+            var users = userList?.ToList() ?? new List<string>();
+
+            if (users.Any(username => username == null))
+            {
+                throw new ArgumentException("The user list must not contain null entries", nameof(userList));
+            }
+
             Name = name;
-            Users = (userList?.ToList() ?? new List<string>()).AsReadOnly();
+            Users = users.AsReadOnly();
             UserCount = Users.Count;
         }
 

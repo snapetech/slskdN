@@ -17,6 +17,7 @@ namespace Soulseek
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
 
     /// <summary>
     ///     Event arguments for a completed wishlist search.
@@ -32,9 +33,16 @@ namespace Soulseek
         /// <param name="exception">The exception, if the search failed.</param>
         public WishlistSearchCompletedEventArgs(string term, Search search, IReadOnlyCollection<SearchResponse> responses, Exception exception)
         {
+            var responseList = responses?.ToList() ?? new List<SearchResponse>();
+
+            if (responseList.Any(response => response == null))
+            {
+                throw new ArgumentException("The response list must not contain null entries", nameof(responses));
+            }
+
             Term = term;
             Search = search;
-            Responses = responses ?? Array.Empty<SearchResponse>();
+            Responses = responseList.AsReadOnly();
             Exception = exception;
         }
 
