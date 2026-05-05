@@ -75,7 +75,7 @@ namespace Soulseek.Network
                 AutoReset = false,
             };
 
-            StatusDebounceTimer.Elapsed += (sender, e) => UpdateStatusAsync().ConfigureAwait(false);
+            StatusDebounceTimer.Elapsed += StatusDebounceTimer_Elapsed;
 
             WatchdogTimer = new SystemTimer()
             {
@@ -335,7 +335,7 @@ namespace Soulseek.Network
                     StateChanged?.Invoke(this, DistributedNetworkInfo.FromDistributedConnectionManager(this));
                 }
 
-                _ = UpdateStatusEventuallyAsync().ConfigureAwait(false);
+                QueueStatusUpdateEventually();
 
                 return connection;
             }
@@ -432,7 +432,7 @@ namespace Soulseek.Network
                     StateChanged?.Invoke(this, DistributedNetworkInfo.FromDistributedConnectionManager(this));
 
                     await UpdateStatusAsync().ConfigureAwait(false);
-                    _ = BroadcastMessageAsync(GetBranchInformation()).ConfigureAwait(false);
+                    QueueBroadcastMessage(GetBranchInformation());
 
                     successfulConnections.Remove((ParentConnection, ParentBranchLevel, ParentBranchRoot));
                     ParentCandidateList = successfulConnections.Select(c => (c.Connection.Username, c.Connection.IPEndPoint)).ToList();
@@ -672,7 +672,7 @@ namespace Soulseek.Network
                 ChildAdded?.Invoke(this, new DistributedChildEventArgs(connection.Username, connection.IPEndPoint));
                 StateChanged?.Invoke(this, DistributedNetworkInfo.FromDistributedConnectionManager(this));
 
-                _ = UpdateStatusEventuallyAsync().ConfigureAwait(false);
+                QueueStatusUpdateEventually();
 
                 return connection;
             }
@@ -746,7 +746,7 @@ namespace Soulseek.Network
         public void SetParentBranchLevel(int branchLevel)
         {
             ParentBranchLevel = branchLevel;
-            _ = UpdateStatusEventuallyAsync().ConfigureAwait(false);
+            QueueStatusUpdateEventually();
         }
 
         /// <summary>
@@ -756,7 +756,7 @@ namespace Soulseek.Network
         public void SetParentBranchRoot(string branchRoot)
         {
             ParentBranchRoot = branchRoot;
-            _ = UpdateStatusEventuallyAsync().ConfigureAwait(false);
+            QueueStatusUpdateEventually();
         }
 
         /// <summary>
@@ -844,7 +844,7 @@ namespace Soulseek.Network
 
             connection.Dispose();
 
-            _ = UpdateStatusEventuallyAsync().ConfigureAwait(false);
+            QueueStatusUpdateEventually();
         }
 
         private void Dispose(bool disposing)
@@ -1232,7 +1232,7 @@ namespace Soulseek.Network
             if (Enabled && !HasParent && !IsBranchRoot && SoulseekClient.State.HasFlag(SoulseekClientStates.Connected) && SoulseekClient.State.HasFlag(SoulseekClientStates.LoggedIn))
             {
                 Diagnostic.Warning("No distributed parent connected.  Requesting a list of candidates.");
-                UpdateStatusAsync().ConfigureAwait(false);
+                QueueStatusUpdate();
             }
         }
     }

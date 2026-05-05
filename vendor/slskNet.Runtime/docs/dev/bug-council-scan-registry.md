@@ -19,6 +19,9 @@ Current scan classes:
 | Value equality and hash-code comparisons | Find equality implementations that dereference null or use hash equality. |
 | Non-idempotent task completion | Find race-prone `TaskCompletionSource.Set*` calls in runtime source. |
 | Task, cancellation, timer, and semaphore lifecycle | Find ownership and cancellation race candidates. |
+| Lifecycle task completion and race | Find task completion, continuation, `Task.WhenAny`, and event-style async entry points. |
+| Lifecycle cancellation registration | Find cancellation source and token registration ownership points. |
+| Lifecycle timer and semaphore | Find timer and semaphore ownership/lifetime points. |
 | Protocol count and length allocation | Find parser loops and allocations driven by untrusted payload fields. |
 | Protocol scalar emission | Find outbound message scalars that may need constructor guards. |
 | Resolver output and raw stream handling | Find application-supplied data that crosses peer serialization boundaries. |

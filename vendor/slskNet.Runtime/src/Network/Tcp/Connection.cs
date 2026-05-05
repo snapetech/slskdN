@@ -478,10 +478,12 @@ namespace Soulseek.Network.Tcp
         /// <exception cref="Exception">Thrown when the connection is disconnected as the result of an Exception.</exception>
         public Task<string> WaitForDisconnect(CancellationToken? cancellationToken = null)
         {
-            cancellationToken?.Register(() =>
-                Disconnect(exception: new OperationCanceledException("Operation cancelled")));
+            if (!cancellationToken.HasValue || !cancellationToken.Value.CanBeCanceled)
+            {
+                return DisconnectTaskCompletionSource.Task;
+            }
 
-            return DisconnectTaskCompletionSource.Task;
+            return WaitForDisconnectInternalAsync(cancellationToken.Value);
         }
 
         /// <summary>
@@ -736,6 +738,15 @@ namespace Soulseek.Network.Tcp
         {
             InactivityTimer?.Reset();
             LastActivityTime = DateTime.UtcNow;
+        }
+
+        private async Task<string> WaitForDisconnectInternalAsync(CancellationToken cancellationToken)
+        {
+            using (cancellationToken.Register(() =>
+                Disconnect(exception: new OperationCanceledException("Operation cancelled"))))
+            {
+                return await DisconnectTaskCompletionSource.Task.ConfigureAwait(false);
+            }
         }
 
         private async Task WriteInternalAsync(byte[] bytes, CancellationToken cancellationToken)

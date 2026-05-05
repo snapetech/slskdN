@@ -64,6 +64,18 @@ scan "Task, cancellation, timer, and semaphore lifecycle candidates" \
   'TaskCompletionSource|CancellationTokenSource|SemaphoreSlim|Timer|Task\.WhenAny|ContinueWith|async void|Register\(' \
   src
 
+scan "Lifecycle task completion and race candidates" \
+  'TaskCompletionSource|Task\.WhenAny|ContinueWith|async void' \
+  src
+
+scan "Lifecycle cancellation registration candidates" \
+  'CancellationTokenSource|CreateLinkedTokenSource|Register\(' \
+  src
+
+scan "Lifecycle timer and semaphore candidates" \
+  'SemaphoreSlim|System\.Timers\.Timer|SystemTimer|Timer\(|\.Reset\(\)|\.Stop\(\)|\.Start\(\)' \
+  src
+
 scan "Protocol count and length allocation candidates" \
   'ReadInteger\(\)|ReadLong\(\)|ReadBytes\([^)]*\)|new byte\[[^]]+\]|for \(int i = 0; i < [^;]+; i\+\+\)|while \(' \
   src/Messaging src/Network

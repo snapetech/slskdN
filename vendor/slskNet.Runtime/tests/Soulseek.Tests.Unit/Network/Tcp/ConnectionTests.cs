@@ -659,6 +659,26 @@ namespace Soulseek.Tests.Unit.Network.Tcp
             }
         }
 
+        [Trait("Category", "WaitForDisconnect")]
+        [Theory(DisplayName = "WaitForDisconnect disposes cancellation registration after completion"), AutoData]
+        public async Task WaitForDisconnect_Disposes_Cancellation_Registration_After_Completion(IPEndPoint endpoint, string message)
+        {
+            using (var c = new Connection(endpoint))
+            using (var cts = new CancellationTokenSource())
+            {
+                c.SetProperty("State", ConnectionState.Connected);
+
+                var waitTask = c.WaitForDisconnect(cts.Token);
+                c.Disconnect(message);
+
+                var actualMessage = await waitTask;
+                var ex = Record.Exception(() => cts.Cancel());
+
+                Assert.Null(ex);
+                Assert.Equal(message, actualMessage);
+            }
+        }
+
         [Trait("Category", "Watchdog")]
         [Theory(DisplayName = "Watchdog disconnects when TcpClient disconnects"), AutoData]
         public async Task Watchdog_Disconnects_When_TcpClient_Disconnects(IPEndPoint endpoint)

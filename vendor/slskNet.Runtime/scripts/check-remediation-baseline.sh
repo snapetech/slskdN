@@ -59,6 +59,7 @@ require_file "docs/dev/bug-council-sweep-2026-05-05.md" "bug council active swee
 require_file "docs/dev/bug-council-sweep-protocol-length-2026-05-05.md" "bug council protocol length sweep register exists"
 require_file "docs/dev/bug-council-sweep-protocol-scalar-2026-05-05.md" "bug council protocol scalar sweep register exists"
 require_file "docs/dev/bug-council-sweep-resolver-stream-2026-05-05.md" "bug council resolver/raw stream sweep register exists"
+require_file "docs/dev/bug-council-sweep-lifecycle-2026-05-05.md" "bug council lifecycle sweep register exists"
 require_file "scripts/check-remediation-baseline.sh" "remediation baseline script exists"
 require_file "scripts/scan-bug-council-candidates.sh" "bug council candidate scanner exists"
 
@@ -315,6 +316,20 @@ require_pattern "outgoingInfo == null" "src/Messaging/Handlers/PeerMessageHandle
 require_pattern "Failed to send place in queue response" "src/Messaging/Handlers/PeerMessageHandler.cs" "place-in-queue resolver output has targeted diagnostics"
 require_pattern "Sends_Default_UserInfoResponse_If_Resolver_Returns_Null" "tests/Soulseek.Tests.Unit/Messaging/Handlers/PeerMessageHandlerTests.cs" "null user info resolver regression test is registered"
 require_pattern "Creates_Diagnostic_When_PlaceInQueueResponseResolver_Returns_Invalid_Output" "tests/Soulseek.Tests.Unit/Messaging/Handlers/PeerMessageHandlerTests.cs" "invalid place-in-queue resolver regression test is registered"
+require_pattern "Lifecycle task completion and race candidates" "scripts/scan-bug-council-candidates.sh" "scanner emits lifecycle task/race subgroup"
+require_pattern "Lifecycle cancellation registration candidates" "scripts/scan-bug-council-candidates.sh" "scanner emits lifecycle cancellation subgroup"
+require_pattern "Lifecycle timer and semaphore candidates" "scripts/scan-bug-council-candidates.sh" "scanner emits lifecycle timer/semaphore subgroup"
+require_pattern "Task, cancellation, timer, and semaphore lifecycle candidates: 202/202 classified" "docs/dev/bug-council-sweep-lifecycle-2026-05-05.md" "lifecycle broad sweep is closed"
+require_pattern "Lifecycle task completion and race candidates: 81/81 classified" "docs/dev/bug-council-sweep-lifecycle-2026-05-05.md" "lifecycle task/race subgroup sweep is closed"
+require_pattern "Lifecycle cancellation registration candidates: 51/51 classified" "docs/dev/bug-council-sweep-lifecycle-2026-05-05.md" "lifecycle cancellation subgroup sweep is closed"
+require_pattern "Lifecycle timer and semaphore candidates: 84/84 classified" "docs/dev/bug-council-sweep-lifecycle-2026-05-05.md" "lifecycle timer/semaphore subgroup sweep is closed"
+require_pattern "Unclassified candidates: 0" "docs/dev/bug-council-sweep-lifecycle-2026-05-05.md" "lifecycle sweep records zero unclassified candidates"
+require_absent_pattern "\\|[^|\n]*\\| Unclassified \\|" "docs/dev/bug-council-sweep-lifecycle-2026-05-05.md" "lifecycle sweep has no unclassified rows"
+require_pattern "RT-075" "docs/dev/bug-burndown-ledger.md" "ledger records lifecycle subgroup loop flaw"
+require_pattern "RT-076" "docs/dev/bug-burndown-ledger.md" "ledger records wait-for-disconnect registration hardening"
+require_pattern "WaitForDisconnectInternalAsync" "src/Network/Tcp/Connection.cs" "wait-for-disconnect uses scoped cancellation helper"
+require_pattern "using \\(cancellationToken\\.Register" "src/Network/Tcp/Connection.cs" "wait-for-disconnect disposes cancellation registration"
+require_pattern "WaitForDisconnect_Disposes_Cancellation_Registration_After_Completion" "tests/Soulseek.Tests.Unit/Network/Tcp/ConnectionTests.cs" "wait-for-disconnect cancellation registration regression test is registered"
 require_pattern "Every hit must be ledgered" "scripts/scan-bug-council-candidates.sh" "candidate scanner documents ledger classification requirement"
 
 secret_pattern='-----BEGIN (RSA |DSA |EC |OPENSSH |PGP )?PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{36,}|xox[baprs]-[A-Za-z0-9-]{20,}|AKIA[0-9A-Z]{16}|(?i)(api[_-]?key|access[_-]?token|client[_-]?secret)["'\'']?\s*[:=]\s*["'\''][A-Za-z0-9_./+=-]{24,}["'\'']'
