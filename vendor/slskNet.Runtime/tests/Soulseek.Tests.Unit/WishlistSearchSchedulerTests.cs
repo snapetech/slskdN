@@ -104,6 +104,58 @@ namespace Soulseek.Tests.Unit
                 Times.Exactly(2));
         }
 
+        [Fact(DisplayName = "Wishlist scheduler restarts after stop while previous loop is draining")]
+        public async Task Wishlist_Scheduler_Restarts_After_Stop_While_Previous_Loop_Is_Draining()
+        {
+            var client = new Mock<ISoulseekClient>();
+            var callCount = 0;
+            var firstSearchStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var releaseFirstSearch = new TaskCompletionSource<(Search Search, IReadOnlyCollection<SearchResponse> Responses)>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var secondSearchStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            client.SetupGet(m => m.ServerInfo).Returns(new ServerInfo(wishlistInterval: 1));
+            client.Setup(m => m.SearchAsync(
+                    It.IsAny<SearchQuery>(),
+                    It.IsAny<SearchScope>(),
+                    It.IsAny<int?>(),
+                    It.IsAny<SearchOptions>(),
+                    It.IsAny<CancellationToken?>()))
+                .Returns(() =>
+                {
+                    var current = Interlocked.Increment(ref callCount);
+
+                    if (current == 1)
+                    {
+                        firstSearchStarted.SetResult(true);
+                        return releaseFirstSearch.Task;
+                    }
+
+                    secondSearchStarted.TrySetResult(true);
+                    return Task.FromResult((new Search(SearchQuery.FromText("x"), SearchScope.Wishlist, 1, SearchStates.Completed, 0, 0, 0), (IReadOnlyCollection<SearchResponse>)new List<SearchResponse>()));
+                });
+
+            using (var scheduler = new WishlistSearchScheduler(
+                client.Object,
+                new[] { "alpha" },
+                new WishlistSearchSchedulerOptions(System.TimeSpan.FromSeconds(30), System.TimeSpan.Zero)))
+            {
+                scheduler.Start();
+                await firstSearchStarted.Task;
+
+                scheduler.Stop();
+                scheduler.Start();
+
+                releaseFirstSearch.SetResult((new Search(SearchQuery.FromText("x"), SearchScope.Wishlist, 1, SearchStates.Completed, 0, 0, 0), new List<SearchResponse>()));
+
+                var completed = await Task.WhenAny(secondSearchStarted.Task, Task.Delay(System.TimeSpan.FromSeconds(3)));
+                Assert.Equal(secondSearchStarted.Task, completed);
+
+                scheduler.Stop();
+            }
+
+            Assert.True(callCount >= 2);
+        }
+
         [Fact(DisplayName = "Wishlist scheduler rejects start after dispose")]
         public void Wishlist_Scheduler_Rejects_Start_After_Dispose()
         {

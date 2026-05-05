@@ -26,6 +26,7 @@ namespace Soulseek
     {
         /// <summary>
         ///     Gets canonical signing bytes for a descriptor. Signature bytes are deliberately excluded.
+        ///     Envelope metadata, including version, message type, and nonce, is not part of the descriptor identity.
         /// </summary>
         /// <param name="descriptor">The descriptor to canonicalize.</param>
         /// <returns>The canonical bytes.</returns>

@@ -175,7 +175,14 @@ namespace Soulseek.Messaging.Handlers
 
                             if (peerSearchResponse is RawSearchResponse rawSearchResponse)
                             {
-                                await WriteRawSearchResponseAsync(connection, rawSearchResponse).ConfigureAwait(false);
+                                try
+                                {
+                                    await WriteRawSearchResponseAsync(connection, rawSearchResponse).ConfigureAwait(false);
+                                }
+                                finally
+                                {
+                                    DisposeRawSearchResponseStream(rawSearchResponse);
+                                }
                             }
                             else if (peerSearchResponse != null && peerSearchResponse.FileCount + peerSearchResponse.LockedFileCount > 0)
                             {
@@ -208,7 +215,7 @@ namespace Soulseek.Messaging.Handlers
                         {
                             await WriteRawBrowseResponseAsync(connection, rawBrowseResponse).ConfigureAwait(false);
                         }
-                        else
+                        else if (browseResponse != null)
                         {
                             await connection.WriteAsync(browseResponse.ToByteArray()).ConfigureAwait(false);
                         }
@@ -473,14 +480,8 @@ namespace Soulseek.Messaging.Handlers
 
         private static async Task WriteRawSearchResponseAsync(IMessageConnection connection, RawSearchResponse rawSearchResponse)
         {
-            try
-            {
-                await connection.WriteAsync(rawSearchResponse.Length, rawSearchResponse.Stream).ConfigureAwait(false);
-            }
-            finally
-            {
-                DisposeRawSearchResponseStream(rawSearchResponse);
-            }
+            // Raw response streams are owned by the caller so disposal can be ordered with surrounding delivery handling.
+            await connection.WriteAsync(rawSearchResponse.Length, rawSearchResponse.Stream).ConfigureAwait(false);
         }
 
         private async Task<(bool Rejected, string RejectionMessage)> TryEnqueueDownloadAsync(string username, IPEndPoint ipEndPoint, string filename)

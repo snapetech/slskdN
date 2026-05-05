@@ -38,6 +38,10 @@ const Browse = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const closeTabRef = useRef(null);
   const updateTabRef = useRef(null);
+  const requestedUser =
+    location.state?.user ||
+    new URLSearchParams(location.search).get('user') ||
+    '';
 
   const closeTab = useCallback((tabKey) => {
     setTabs((previous) => {
@@ -96,9 +100,9 @@ const Browse = () => {
     }
   }, [tabs]);
 
-  // Handle navigation with user in state (quick browse from search)
+  // Handle navigation with user in state or URL (quick browse from search; URL supports new tabs)
   useEffect(() => {
-    const user = location.state?.user;
+    const user = requestedUser.trim();
 
     if (user) {
       const existingIndex = tabs.findIndex((t) => t.username === user);
@@ -115,10 +119,12 @@ const Browse = () => {
       }
 
       // Clear the state to prevent re-triggering
-      window.history.replaceState({}, document.title);
+      if (location.state?.user) {
+        window.history.replaceState({}, document.title);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.state]);
+  }, [requestedUser]);
 
   const handleAddTab = () => {
     setTabs((previous) => {

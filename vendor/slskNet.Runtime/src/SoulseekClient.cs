@@ -56,6 +56,7 @@ namespace Soulseek
         private const string DefaultAddress = "server.slsknet.org";
         private const int DefaultPort = 2271;
         private const int MaximumMessageUsersRecipients = 100;
+        private static readonly IPeerDescriptorVerifier PeerDescriptorVerifier = new Ed25519PeerDescriptorSigner();
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="SoulseekClient"/> class.
@@ -4803,7 +4804,20 @@ namespace Soulseek
 
         private async Task HandlePeerCapabilityMessageAsync(string username, IPEndPoint endpoint, byte[] payload)
         {
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                Diagnostic.Warning("Rejected peer capability message from an unnamed peer connection.");
+                return;
+            }
+
             var envelope = PeerCapabilityEnvelope.FromByteArray(payload);
+
+            if (!PeerDescriptorVerifier.Verify(envelope.Descriptor))
+            {
+                Diagnostic.Warning($"Rejected peer capability message from {username}: descriptor signature is invalid.");
+                return;
+            }
+
             var record = PeerCapabilities.Update(username, endpoint, envelope);
             PeerCapabilityReceived?.Invoke(this, new PeerCapabilityReceivedEventArgs(record));
 

@@ -1,5 +1,17 @@
 ## 2026-05-05
 
+- Fixed Soulseek room join/create from the Web UI by posting room names as JSON string literals to the `[FromBody] string` room join endpoint. Room creation delegates to join, so both existing-room joins and new public-room attempts use the fixed request shape. Documented ADR-0001 gotcha `0z291` in commit `836c32df2`.
+- Validation: focused Web `rooms.test.js` passed, 2/2; focused `RoomsControllerTests` passed, 4/4; Web lint passed; `git diff --check` passed.
+
+- Fixed Browse/search result peer links so they work in new tabs and on direct reload. Search result usernames now link to `/browse?user=...` and Browse accepts the requested user from either URL query or router state. Documented ADR-0001 gotcha `0z290` in commit `9e921bd17`.
+- Validation: focused Browse/Search Vitest passed, 8/8; Web lint passed; repo lint passed; `git diff --check` passed.
+
+- Fixed follow-up security audit findings: authenticated rate-limit bypass by raw headers, relay-agent download path traversal and unbounded writes, redirect/DNS gaps in guarded outbound HTTP callers, whole-file pod mesh download buffering, and missing YAML update size enforcement. Documented ADR-0001 gotcha `0z288` in commit `efda5cfcb`.
+- Validation: focused LLM/outbound/search unit tests passed; full `dotnet test slskd.sln --no-build` passed; `./bin/lint` passed; guarded-client/rate-limit/path scans passed; `git diff --check` passed.
+
+- Fixed Wishlist search execution so saved Wishlist items use the same normal network search scope as manual Search view reruns, while still tagging safety/logging source as `wishlist`. Manual/bulk Wishlist run callers now receive the completed search record, so returned response counts match persisted state. Checked adjacent Wishlist creators/callers: Lidarr wanted sync, MusicBrainz discography promotion, Library Bloom promotion, taste recommendation promotion, CSV import, Wishlist manual/bulk run, and Automation Center retry. Documented ADR-0001 gotcha `0z289` in commits `219d8a0f5` and `64c1d922d`.
+- Validation: focused `WishlistControllerTests` passed, 9/9; focused Wishlist/AutomationCenter Vitest passed, 13/13; `git diff --check` passed; `./bin/lint` passed. Full `dotnet test slskd.sln --no-restore` completed with one unrelated unit failure in `LlmModerationTests.HttpLlmModerationProvider_ParseFailure_DoesNotLeakParserDetails`; integration and non-unit test projects passed.
+
 - Gated the optional live Soulseek-account mesh smoke behind `SLSKDN_RUN_LIVE_MESH_ACCOUNT_TESTS` so ignored local credential files do not make normal release preflight depend on public Soulseek login availability. Documented ADR-0001 gotcha `0z283` and the opt-in flag in the integration test README.
 - Validation: focused `TwoNodeMeshFullInstanceTests` integration slice passed, 3/3.
 

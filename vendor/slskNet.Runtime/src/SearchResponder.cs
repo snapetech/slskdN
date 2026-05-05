@@ -142,6 +142,8 @@ namespace Soulseek
                 return false;
             }
 
+            var deliveryDeferred = false;
+
             try
             {
                 Diagnostic.Debug($"Resolved {searchResponse.FileCount} files for query '{query}' with token {token} from {username}");
@@ -167,6 +169,7 @@ namespace Soulseek
                         try
                         {
                             SoulseekClient.Options.SearchResponseCache.AddOrUpdate(responseToken, (username, token, query, searchResponse));
+                            deliveryDeferred = true;
                             Diagnostic.Debug($"Failed to connect to {username} with solicitation token {responseToken} to deliver search results for query '{query}' with token {token}.  Cached response for potential delayed delivery.");
                         }
                         catch (Exception ex)
@@ -188,6 +191,18 @@ namespace Soulseek
             catch (Exception ex)
             {
                 Diagnostic.Debug($"Failed to send search response to {username} for query '{query}' with token {token}: {ex.Message}", ex);
+
+                if (!deliveryDeferred)
+                {
+                    ResponseDeliveryFailed?.Invoke(this, new SearchRequestResponseEventArgs(username, token, query, searchResponse));
+                }
+            }
+            finally
+            {
+                if (!deliveryDeferred)
+                {
+                    DisposeRawSearchResponseStream(searchResponse);
+                }
             }
 
             return false;
@@ -236,14 +251,11 @@ namespace Soulseek
                     catch (Exception ex)
                     {
                         Diagnostic.Debug($"Failed to send cached search response {responseToken} to {username} for query '{query}' with token {token}: {ex.Message}", ex);
-                        try
-                        {
-                            ResponseDeliveryFailed?.Invoke(this, new SearchRequestResponseEventArgs(username, token, query, searchResponse));
-                        }
-                        finally
-                        {
-                            DisposeRawSearchResponseStream(searchResponse);
-                        }
+                        ResponseDeliveryFailed?.Invoke(this, new SearchRequestResponseEventArgs(username, token, query, searchResponse));
+                    }
+                    finally
+                    {
+                        DisposeRawSearchResponseStream(searchResponse);
                     }
                 }
             }
@@ -274,15 +286,7 @@ namespace Soulseek
             // Raw responses bypass serialization so callers can stream pre-serialized search data directly.
             if (searchResponse is RawSearchResponse rawSearchResponse)
             {
-                try
-                {
-                    await peerConnection.WriteAsync(rawSearchResponse.Length, rawSearchResponse.Stream).ConfigureAwait(false);
-                }
-                finally
-                {
-                    DisposeRawSearchResponseStream(rawSearchResponse);
-                }
-
+                await peerConnection.WriteAsync(rawSearchResponse.Length, rawSearchResponse.Stream).ConfigureAwait(false);
                 return;
             }
 

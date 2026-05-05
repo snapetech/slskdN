@@ -18,6 +18,7 @@ namespace Soulseek.Tests.Unit.Client
     using AutoFixture.Xunit2;
     using Moq;
     using Soulseek;
+    using Soulseek.Messaging;
     using Soulseek.Messaging.Handlers;
     using Soulseek.Messaging.Messages;
     using Soulseek.Network;
@@ -89,6 +90,125 @@ namespace Soulseek.Tests.Unit.Client
                 Assert.NotNull(receivedPayload);
                 Assert.Equal(payload, receivedPayload);
             }
+        }
+
+        [Trait("Category", "MeshRendezvous")]
+        [Theory, AutoData]
+        public void Signed_PeerCapability_Message_Updates_Registry(string username)
+        {
+            var endpoint = new IPEndPoint(IPAddress.Loopback, 5000);
+
+            using (var signer = new Ed25519PeerDescriptorSigner())
+            using (var receiver = new SoulseekClient(minorVersion: 9999))
+            {
+                var keys = signer.GenerateKeyPair();
+                var descriptor = signer.Sign(
+                    new PeerCapabilityDescriptor(features: new[] { "mesh" }),
+                    keys.PrivateKey,
+                    keys.PublicKey);
+
+                var connection = GetCapabilityConnection(username, endpoint);
+                var message = GetCapabilityMessage(new PeerCapabilityEnvelope(PeerCapabilityMessageType.Hello, descriptor, nonce: "n1"));
+
+                var receiverHandler = receiver.GetProperty<IPeerMessageHandler>("PeerMessageHandler");
+                receiverHandler.HandleMessageRead(connection.Object, message);
+
+                Assert.True(receiver.PeerCapabilities.TryGet(username, out var record));
+                Assert.Equal(descriptor.PeerId, record.Descriptor.PeerId);
+            }
+        }
+
+        [Trait("Category", "MeshRendezvous")]
+        [Theory, AutoData]
+        public void Unsigned_PeerCapability_Message_Does_Not_Update_Registry(string username)
+        {
+            var endpoint = new IPEndPoint(IPAddress.Loopback, 5000);
+
+            using (var receiver = new SoulseekClient(minorVersion: 9999))
+            {
+                var descriptor = new PeerCapabilityDescriptor(peerId: "forged-peer", features: new[] { "mesh" });
+                var connection = GetCapabilityConnection(username, endpoint);
+                var message = GetCapabilityMessage(new PeerCapabilityEnvelope(PeerCapabilityMessageType.Hello, descriptor, nonce: "n1"));
+
+                var receiverHandler = receiver.GetProperty<IPeerMessageHandler>("PeerMessageHandler");
+                receiverHandler.HandleMessageRead(connection.Object, message);
+
+                Assert.False(receiver.PeerCapabilities.TryGet(username, out _));
+            }
+        }
+
+        [Trait("Category", "MeshRendezvous")]
+        [Theory, AutoData]
+        public void Forged_PeerCapability_Message_Does_Not_Update_Registry(string username)
+        {
+            var endpoint = new IPEndPoint(IPAddress.Loopback, 5000);
+
+            using (var signer = new Ed25519PeerDescriptorSigner())
+            using (var receiver = new SoulseekClient(minorVersion: 9999))
+            {
+                var keys = signer.GenerateKeyPair();
+                var signed = signer.Sign(
+                    new PeerCapabilityDescriptor(features: new[] { "mesh" }),
+                    keys.PrivateKey,
+                    keys.PublicKey);
+                var forged = new PeerCapabilityDescriptor(
+                    signed.PeerId,
+                    new[] { "mesh", "forged-feature" },
+                    signed.OverlayPort,
+                    signed.MaxPayloadLength,
+                    signed.Signature);
+
+                var connection = GetCapabilityConnection(username, endpoint);
+                var message = GetCapabilityMessage(new PeerCapabilityEnvelope(PeerCapabilityMessageType.Hello, forged, nonce: "n1"));
+
+                var receiverHandler = receiver.GetProperty<IPeerMessageHandler>("PeerMessageHandler");
+                receiverHandler.HandleMessageRead(connection.Object, message);
+
+                Assert.False(receiver.PeerCapabilities.TryGet(username, out _));
+            }
+        }
+
+        [Trait("Category", "MeshRendezvous")]
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("   ")]
+        public void PeerCapability_Message_With_Empty_Username_Does_Not_Update_Registry(string username)
+        {
+            var endpoint = new IPEndPoint(IPAddress.Loopback, 5000);
+
+            using (var signer = new Ed25519PeerDescriptorSigner())
+            using (var receiver = new SoulseekClient(minorVersion: 9999))
+            {
+                var keys = signer.GenerateKeyPair();
+                var descriptor = signer.Sign(
+                    new PeerCapabilityDescriptor(features: new[] { "mesh" }),
+                    keys.PrivateKey,
+                    keys.PublicKey);
+                var connection = GetCapabilityConnection(username, endpoint);
+                var message = GetCapabilityMessage(new PeerCapabilityEnvelope(PeerCapabilityMessageType.Hello, descriptor, nonce: "n1"));
+
+                var receiverHandler = receiver.GetProperty<IPeerMessageHandler>("PeerMessageHandler");
+                receiverHandler.HandleMessageRead(connection.Object, message);
+
+                Assert.Empty(receiver.PeerCapabilities.Records);
+            }
+        }
+
+        private static Mock<IMessageConnection> GetCapabilityConnection(string username, IPEndPoint endpoint)
+        {
+            var connection = new Mock<IMessageConnection>();
+            connection.SetupGet(m => m.Username).Returns(username);
+            connection.SetupGet(m => m.IPEndPoint).Returns(endpoint);
+            return connection;
+        }
+
+        private static byte[] GetCapabilityMessage(PeerCapabilityEnvelope envelope)
+        {
+            return new MessageBuilder()
+                .WriteCode(PeerCapabilityEnvelope.MessageCode)
+                .WriteBytes(envelope.ToByteArray())
+                .Build();
         }
     }
 }

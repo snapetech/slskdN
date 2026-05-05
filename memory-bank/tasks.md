@@ -11,6 +11,26 @@
 
 *No high priority tasks currently active
 
+- [x] **rooms**: Fix Soulseek room join/create requests from Web UI.
+ - Status: completed (2026-05-05)
+ - Priority: P1
+ - Notes: Room join/create uses the shared join helper, which now posts the room name as a JSON string literal so ASP.NET `[FromBody] string` binding works with the JSON content type. Existing room message sending already used this pattern. Added focused Web API wrapper and controller tests. Documented ADR-0001 gotcha `0z291`. Validation passed: focused `rooms.test.js`, focused `RoomsControllerTests`, Web lint, `git diff --check`.
+
+- [x] **web**: Fix Browse/search-result links opening blank in new tabs.
+ - Status: completed (2026-05-05)
+ - Priority: P1
+ - Notes: Search result peer links now encode the Browse target as `/browse?user=...` while still passing router state for same-tab navigation. Browse now accepts the user from either router state or the URL query string, so direct loads, refreshes, copied URLs, and new tabs open the intended user browse tab. Added focused Browse URL/state regression coverage. Documented ADR-0001 gotcha `0z290`. Validation passed: focused Browse/Search Vitest, Web lint, repo lint, `git diff --check`.
+
+- [x] **security**: Fix comprehensive follow-up security audit findings.
+ - Status: completed (2026-05-05)
+ - Priority: P1
+ - Notes: Fixed anonymous API rate-limit bypass by raw auth headers, relay-agent download path/size handling, redirect/DNS gaps in guarded outbound HTTP callers, whole-file pod mesh download buffering, and YAML update sizing. Validation passed: focused LLM/outbound/search tests, full `dotnet test slskd.sln --no-build`, `./bin/lint`, targeted scans, and `git diff --check`.
+
+- [x] **wishlist**: Fix saved Wishlist searches returning zero results when manual reruns succeed.
+ - Status: completed (2026-05-05)
+ - Priority: P1
+ - Notes: Wishlist execution now starts normal Soulseek network searches through `SearchScope.Network` while tagging safety/logging source as `wishlist`, matching the manual Search view behavior without losing producer attribution. Manual/bulk run callers now receive the completed search record so UI response counts match persisted `LastMatchCount`. Checked adjacent creators/callers: Lidarr, MusicBrainz discography, Library Bloom, taste recommendations, CSV import, Wishlist manual/bulk run, and Automation Center retry. Documented ADR-0001 gotcha `0z289`. Validation passed: focused `WishlistControllerTests`, focused Wishlist/AutomationCenter Vitest, `git diff --check`, and repo lint.
+
 - [x] **packaging**: Fix systemd install permissions for config and data paths.
  - Status: completed (2026-05-05)
  - Priority: P1

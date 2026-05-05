@@ -1,3 +1,59 @@
+## Update 2026-05-05 16:43:30Z
+
+- Current task: Soulseek room join/create Web UI fix is complete locally.
+- Last activity:
+  - changed `rooms.join()` to post the room name as a JSON string literal for ASP.NET `[FromBody] string` binding
+  - confirmed room creation delegates to the same join path, so existing-room joins and new public-room attempts use the fixed request shape
+  - added focused Web API wrapper and backend controller coverage
+  - documented ADR-0001 gotcha `0z291` and committed it separately as `836c32df2`
+  - validation passed: focused Web `rooms.test.js`, 2/2; focused `RoomsControllerTests`, 4/4; Web lint; `git diff --check`
+- Next steps:
+  1. Review and commit the rooms code/test/memory-bank changes.
+  2. Continue the prior security-audit commit/push flow when ready.
+
+## Update 2026-05-05 16:38:00Z
+
+- Current task: Browse/search-result new-tab fix is complete locally.
+- Last activity:
+  - changed search result peer Browse links to encode the target as `/browse?user=...` while preserving router state for same-tab navigation
+  - changed Browse to open requested user tabs from either URL query or router state, so direct loads/new tabs no longer lose the username
+  - added focused Browse URL/state regression coverage
+  - documented ADR-0001 gotcha `0z290` and committed it separately as `9e921bd17`
+  - validation passed: focused Browse/Search Vitest, 8/8; Web lint; repo lint; `git diff --check`
+- Next steps:
+  1. Review and commit the Browse/Search code/test/memory-bank changes.
+  2. Continue the prior security-audit commit/push flow when ready.
+
+## Update 2026-05-05 16:34:13Z
+
+- Current task: Follow-up security audit fix batch is complete locally.
+- Last activity:
+  - documented ADR-0001 gotcha `0z288` in separate commit `efda5cfcb`
+  - fixed API rate limiting so raw `Authorization`/`X-API-Key` headers no longer bypass anonymous `/api` limits before authentication succeeds
+  - added a shared no-redirect guarded outbound HTTP client that validates connected IPs, and moved guarded webhook/source-feed/SongID/Solid/HTTP/WebDAV/moderation callers onto it where appropriate
+  - hardened relay-agent download notifications with destination `PathGuard` validation, no redirect-following, and a 1 GiB bounded copy
+  - bounded pod mesh downloads into small chunks instead of materializing whole remote files in memory, and added the missing YAML update size check
+  - validation passed: focused LLM/outbound/search unit tests, full `dotnet test slskd.sln --no-build`, `./bin/lint`, guarded-client/rate-limit/path scans, and `git diff --check`
+- Next steps:
+  1. Commit and push the security implementation changes.
+  2. Cut a new build tag only when explicitly ready for the release.
+
+## Update 2026-05-05 16:23:45Z
+
+- Current task: Wishlist search stability fix is complete locally.
+- Last activity:
+  - changed Wishlist execution to use normal `SearchScope.Network` searches so saved Wishlist runs match manual Search view reruns
+  - preserved producer attribution by passing safety/logging source `wishlist`
+  - changed manual/bulk Wishlist run responses to return the completed search record after polling, so UI callers see completed response counts
+  - checked adjacent Wishlist creators/callers: Lidarr wanted sync, MusicBrainz discography promotion, Library Bloom promotion, taste recommendation promotion, CSV import, Wishlist manual/bulk run, and Automation Center retry
+  - added focused unit coverage for the Wishlist search scope/source/result-count contract
+  - documented ADR-0001 gotcha `0z289` and committed it separately as `219d8a0f5`; amended the completion-result gotcha in `64c1d922d`
+  - validation passed: focused `WishlistControllerTests`, 9/9; focused Wishlist/AutomationCenter Vitest, 13/13; `git diff --check`; `./bin/lint`
+  - full `dotnet test slskd.sln --no-restore` completed with unrelated existing unit failure `LlmModerationTests.HttpLlmModerationProvider_ParseFailure_DoesNotLeakParserDetails` expecting `Failed to parse LLM response` but receiving `LLM service error`; integration and non-unit test projects passed
+- Next steps:
+  1. Review and commit the Wishlist code/test/memory-bank changes.
+  2. Continue the prior security-audit commit/push flow when ready.
+
 ## Update 2026-05-05 16:08:51Z
 
 - Current task: Comprehensive follow-up security audit fixes are complete locally.

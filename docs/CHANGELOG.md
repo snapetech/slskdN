@@ -66,6 +66,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
   limits to authenticated principals, disabling guarded HTTP redirects with
   public-IP connect validation, validating relay-agent download paths, and
   bounding relay and pod mesh download writes.
+- Fixed pending runtime, Wishlist, messaging, Browse, and room UI issues,
+  including mesh rendezvous peer-message handling, capability envelopes, saved
+  Wishlist search completion state, Browse action rendering, and room API
+  response normalization.
 - Made governance, pod, and ActivityPub signature handling fail closed unless
   signer identity can be verified, and replaced unstable hash-code identifiers
   with stable SHA-256-derived values.

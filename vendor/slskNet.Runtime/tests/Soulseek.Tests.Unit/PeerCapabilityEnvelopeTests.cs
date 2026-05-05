@@ -94,5 +94,21 @@ namespace Soulseek.Tests.Unit
             Assert.Equal(endpoint, record.EndPoint);
             Assert.Equal("n1", record.Nonce);
         }
+
+        [Theory(DisplayName = "Capability registry rejects empty usernames")]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("   ")]
+        public void Capability_Registry_Rejects_Empty_Usernames(string username)
+        {
+            var registry = new PeerCapabilityRegistry();
+            var endpoint = new IPEndPoint(IPAddress.Loopback, 1234);
+            var envelope = new PeerCapabilityEnvelope(
+                PeerCapabilityMessageType.Hello,
+                new PeerCapabilityDescriptor(features: new[] { "mesh" }),
+                nonce: "n1");
+
+            Assert.Throws<ArgumentException>(() => registry.Update(username, endpoint, envelope));
+        }
     }
 }

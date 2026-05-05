@@ -652,11 +652,9 @@ class Response extends Component {
               />
               <Link
                 className="result-card-user"
+                state={{ user: response.username }}
                 title="Browse files"
-                to={{
-                  pathname: '/browse',
-                  state: { user: response.username },
-                }}
+                to={`/browse?user=${encodeURIComponent(response.username)}`}
               >
                 <UserCard username={response.username}>
                   {response.username}

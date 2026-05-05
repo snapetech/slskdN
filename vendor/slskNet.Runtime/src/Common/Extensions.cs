@@ -99,7 +99,14 @@ namespace Soulseek
                 {
                     if (concurrentDictionary.TryRemove(key, out var value))
                     {
-                        value.Dispose();
+                        try
+                        {
+                            value.Dispose();
+                        }
+                        catch
+                        {
+                            // noop
+                        }
                     }
                 }
             }

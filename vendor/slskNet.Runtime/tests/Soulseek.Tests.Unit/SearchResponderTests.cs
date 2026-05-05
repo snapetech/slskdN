@@ -493,6 +493,44 @@ namespace Soulseek.Tests.Unit
         }
 
         [Trait("Category", "TryRespondAsync")]
+        [Theory(DisplayName = "TryRespondAsync raises ResponseDeliveryFailed when raw response write fails"), AutoData]
+        public async Task TryRespondAsync_Raises_ResponseDeliveryFailed_When_Raw_Response_Write_Fails(string username, int token, string query, IPEndPoint endpoint, int responseToken)
+        {
+            var stream = new System.IO.MemoryStream(new byte[] { 0x01, 0x02, 0x03 });
+            var searchResponse = new RawSearchResponse(stream.Length, stream);
+
+            var (responder, mocks) = GetFixture(new SoulseekClientOptions(searchResponseResolver: (u, t, q) => Task.FromResult<SearchResponse>(searchResponse)));
+
+            mocks.Client.Setup(m => m.GetUserEndPointAsync(username, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(endpoint));
+            mocks.Client.Setup(m => m.GetNextToken())
+                .Returns(responseToken);
+
+            var conn = new Mock<IMessageConnection>();
+            conn.Setup(m => m.WriteAsync(searchResponse.Length, stream, null, null, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromException(new ConnectionWriteException("failed")));
+
+            mocks.PeerConnectionManager.Setup(m => m.GetOrAddMessageConnectionAsync(username, endpoint, responseToken, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(conn.Object));
+
+            SearchRequestResponseEventArgs args = null;
+            var streamCanReadDuringEvent = false;
+            responder.ResponseDeliveryFailed += (sender, e) =>
+            {
+                args = e;
+                streamCanReadDuringEvent = searchResponse.Stream.CanRead;
+            };
+
+            var responded = await responder.TryRespondAsync(username, token, query);
+
+            Assert.False(responded);
+            Assert.NotNull(args);
+            Assert.Equal(searchResponse, args.SearchResponse);
+            Assert.True(streamCanReadDuringEvent);
+            Assert.False(stream.CanRead);
+        }
+
+        [Trait("Category", "TryRespondAsync")]
         [Theory(DisplayName = "TryRespondAsync generates warning on cache add failure"), AutoData]
         public async Task TryRespondAsync_Generates_Warning_On_Cache_Add_Failure(string username, int token, string query, SearchResponse searchResponse, IPEndPoint endpoint, int responseToken)
         {
@@ -660,6 +698,37 @@ namespace Soulseek.Tests.Unit
             Assert.False(stream.CanRead);
             conn.Verify(m => m.WriteAsync(searchResponse.Length, stream, null, null, It.IsAny<CancellationToken?>()), Times.Once);
             conn.Verify(m => m.WriteAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken?>()), Times.Never);
+        }
+
+        [Trait("Category", "TryRespondAsync")]
+        [Theory(DisplayName = "TryRespondAsync token raises ResponseDeliveryFailed before disposing raw response stream"), AutoData]
+        public async Task TryRespondAsync_Token_Raises_ResponseDeliveryFailed_Before_Disposing_Raw_Response_Stream(int responseToken, string username, int token, string query)
+        {
+            var stream = new System.IO.MemoryStream(new byte[] { 0x01, 0x02, 0x03 });
+            var searchResponse = new RawSearchResponse(stream.Length, stream);
+            var record = (username, token, query, (SearchResponse)searchResponse);
+
+            var cache = GetCacheMock();
+            cache.Setup(m => m.TryRemove(responseToken, out record))
+                .Returns(true);
+
+            var (responder, mocks) = GetFixture(new SoulseekClientOptions(searchResponseCache: cache.Object));
+
+            var conn = new Mock<IMessageConnection>();
+            conn.Setup(m => m.WriteAsync(searchResponse.Length, stream, null, null, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromException(new ConnectionWriteException("failed")));
+
+            mocks.PeerConnectionManager.Setup(m => m.GetCachedMessageConnectionAsync(username))
+                .Returns(Task.FromResult(conn.Object));
+
+            var streamCanReadDuringEvent = false;
+            responder.ResponseDeliveryFailed += (sender, e) => streamCanReadDuringEvent = ((RawSearchResponse)e.SearchResponse).Stream.CanRead;
+
+            var responded = await responder.TryRespondAsync(responseToken);
+
+            Assert.False(responded);
+            Assert.True(streamCanReadDuringEvent);
+            Assert.False(stream.CanRead);
         }
 
         [Trait("Category", "TryRespondAsync")]

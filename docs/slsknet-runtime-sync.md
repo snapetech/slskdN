@@ -10,6 +10,8 @@ This repository vendors `slskNet.Runtime` under `vendor/slskNet.Runtime` and con
 - Wishlist scheduling primitives that honor server-provided wishlist interval information.
 - Protocol count hardening for variable-count server and peer payloads.
 - Type-1 obfuscated peer-message (`P`), distributed-message (`D`), and file-transfer (`F`) transport support with regular fallback retained.
+- Runtime responder hardening for null browse resolver results, raw search response delivery-failure events, raw response stream disposal ordering, and stop/start races in wishlist scheduling.
+- Runtime capability messages are verified with the Ed25519 descriptor verifier before they update the peer capability registry; unsigned or forged descriptors are rejected.
 
 ## slskdN Integration Decisions
 

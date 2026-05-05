@@ -73,6 +73,11 @@ namespace Soulseek
         /// <returns>The updated record.</returns>
         public PeerCapabilityRecord Update(string username, IPEndPoint endpoint, PeerCapabilityEnvelope envelope)
         {
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                throw new ArgumentException("Username must not be empty.", nameof(username));
+            }
+
             if (envelope == null)
             {
                 throw new ArgumentNullException(nameof(envelope));

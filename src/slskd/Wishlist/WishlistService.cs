@@ -460,14 +460,14 @@ namespace slskd.Wishlist
 
             var searchId = Guid.NewGuid();
             var query = new SearchQuery(item.SearchText);
-            var scope = SearchScope.Wishlist;
+            var scope = SearchScope.Network;
 
             var searchOptions = new SearchOptions(
                 searchTimeout: 15000,
                 responseLimit: item.MaxResults,
                 filterResponses: !string.IsNullOrEmpty(item.Filter));
 
-            var search = await SearchService.StartAsync(searchId, query, scope, searchOptions);
+            var search = await SearchService.StartAsync(searchId, query, scope, searchOptions, requestedProviders: null, safetySource: "wishlist");
 
             // Poll for search completion (up to 20 seconds)
             var maxWait = TimeSpan.FromSeconds(20);
@@ -508,7 +508,7 @@ namespace slskd.Wishlist
                 await AutoDownloadBestResultsAsync(searchWithResponses, cancellationToken);
             }
 
-            return search;
+            return searchWithResponses ?? search;
         }
 
         private async Task AutoDownloadBestResultsAsync(SlskdSearch search, CancellationToken cancellationToken)

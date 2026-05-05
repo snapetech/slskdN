@@ -3,14 +3,41 @@
 // </copyright>
 namespace slskd.Tests.Unit.Wishlist;
 
+using System.Linq.Expressions;
+using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Moq;
+using slskd.Search;
+using slskd.Tests.Unit;
+using slskd.Transfers.Downloads;
+using slskd.Transfers.Ranking;
 using slskd.Wishlist;
 using slskd.Wishlist.API;
+using Soulseek;
+using SlskdSearch = slskd.Search.Search;
 using Xunit;
 
-public class WishlistControllerTests
+public class WishlistControllerTests : IDisposable
 {
+    private readonly SqliteConnection _connection;
+    private readonly WishlistDbContextFactory _contextFactory;
+
+    public WishlistControllerTests()
+    {
+        _connection = new SqliteConnection("Data Source=:memory:");
+        _connection.Open();
+        _contextFactory = new WishlistDbContextFactory(_connection);
+
+        using var context = _contextFactory.CreateDbContext();
+        context.Database.EnsureCreated();
+    }
+
+    public void Dispose()
+    {
+        _connection.Dispose();
+    }
+
     [Fact]
     public async Task Create_TrimsSearchTextAndFilterBeforePersisting()
     {
@@ -164,5 +191,89 @@ public class WishlistControllerTests
         Assert.Equal(2, tracks.Count);
         Assert.Equal(string.Empty, tracks[0].SearchText);
         Assert.Equal("Artist Title", tracks[1].SearchText);
+    }
+
+    [Fact]
+    public async Task RunSearch_UsesNetworkScopeAndWishlistSafetySource()
+    {
+        var itemId = Guid.NewGuid();
+        await using (var context = _contextFactory.CreateDbContext())
+        {
+            context.WishlistItems.Add(new WishlistItem
+            {
+                Id = itemId,
+                SearchText = "artist title",
+                MaxResults = 25,
+            });
+            await context.SaveChangesAsync();
+        }
+
+        SearchScope? capturedScope = null;
+        string? capturedSafetySource = null;
+        SearchOptions? capturedOptions = null;
+        var searchService = new Mock<ISearchService>();
+        searchService
+            .Setup(service => service.StartAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<SearchQuery>(),
+                It.IsAny<SearchScope>(),
+                It.IsAny<SearchOptions?>(),
+                It.IsAny<List<string>?>(),
+                It.IsAny<string>()))
+            .Callback<Guid, SearchQuery, SearchScope, SearchOptions?, List<string>?, string>((id, query, scope, options, providers, safetySource) =>
+            {
+                capturedScope = scope;
+                capturedSafetySource = safetySource;
+                capturedOptions = options;
+            })
+            .ReturnsAsync((Guid id, SearchQuery query, SearchScope scope, SearchOptions? options, List<string>? providers, string safetySource) =>
+                new SlskdSearch
+                {
+                    Id = id,
+                    SearchText = query.SearchText,
+                    State = SearchStates.Requested,
+                });
+        searchService
+            .Setup(service => service.FindAsync(It.IsAny<Expression<Func<SlskdSearch, bool>>>(), true))
+            .ReturnsAsync((Expression<Func<SlskdSearch, bool>> expression, bool includeResponses) =>
+                new SlskdSearch
+                {
+                    Id = itemId,
+                    SearchText = "artist title",
+                    State = SearchStates.Completed,
+                    ResponseCount = 3,
+                });
+
+        var service = new WishlistService(
+            _contextFactory,
+            searchService.Object,
+            Mock.Of<ISoulseekClient>(),
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            Mock.Of<ISourceRankingService>(),
+            Mock.Of<IDownloadService>());
+
+        var result = await service.RunSearchAsync(itemId);
+
+        Assert.Equal(SearchScopeType.Network, capturedScope?.Type);
+        Assert.Equal("wishlist", capturedSafetySource);
+        Assert.Equal(25, capturedOptions?.ResponseLimit);
+        Assert.Equal(3, result.ResponseCount);
+    }
+
+    private sealed class WishlistDbContextFactory : IDbContextFactory<WishlistDbContext>
+    {
+        private readonly DbContextOptions<WishlistDbContext> _options;
+
+        public WishlistDbContextFactory(SqliteConnection connection)
+        {
+            _options = new DbContextOptionsBuilder<WishlistDbContext>()
+                .UseSqlite(connection)
+                .Options;
+        }
+
+        public WishlistDbContext CreateDbContext() => new(_options);
+
+        public ValueTask<WishlistDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult(CreateDbContext());
     }
 }

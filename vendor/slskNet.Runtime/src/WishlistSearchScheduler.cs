@@ -88,6 +88,36 @@ namespace Soulseek
 
                 if (loopTask != null && !loopTask.IsCompleted)
                 {
+                    if (cancellationTokenSource == null || !cancellationTokenSource.IsCancellationRequested)
+                    {
+                        return;
+                    }
+
+                    var previousTask = loopTask;
+                    var previousSource = cancellationTokenSource;
+                    var nextSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+                    cancellationTokenSource = nextSource;
+                    loopTask = previousTask.ContinueWith(
+                        _ =>
+                        {
+                            previousSource?.Dispose();
+
+                            lock (syncRoot)
+                            {
+                                if (disposed || cancellationTokenSource != nextSource || nextSource.IsCancellationRequested)
+                                {
+                                    nextSource.Dispose();
+                                    return Task.CompletedTask;
+                                }
+                            }
+
+                            return RunAsync(nextSource.Token);
+                        },
+                        CancellationToken.None,
+                        TaskContinuationOptions.ExecuteSynchronously,
+                        TaskScheduler.Default).Unwrap();
+
                     return;
                 }
 

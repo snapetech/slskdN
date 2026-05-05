@@ -82,6 +82,7 @@ namespace Soulseek
 
             foreach (var key in keys)
             {
+                // CancelAll is used during teardown, when no new waits should be created for the same key.
                 while (HasWait(key))
                 {
                     Cancel(key);

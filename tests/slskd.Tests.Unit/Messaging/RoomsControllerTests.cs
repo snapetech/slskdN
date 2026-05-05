@@ -44,6 +44,22 @@ public class RoomsControllerTests
     }
 
     [Fact]
+    public async Task JoinRoom_Trims_Room_Before_Dispatch()
+    {
+        var roomService = new Mock<IRoomService>();
+        roomService
+            .Setup(x => x.JoinAsync("ambient"))
+            .ReturnsAsync(new RoomData("ambient", Array.Empty<UserData>(), isPrivate: false));
+        var controller = CreateController(roomService: roomService.Object);
+
+        var result = await controller.JoinRoom(" ambient ");
+
+        var created = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(201, created.StatusCode);
+        roomService.Verify(x => x.JoinAsync("ambient"), Times.Once);
+    }
+
+    [Fact]
     public void GetByRoomName_With_Blank_Name_Returns_BadRequest()
     {
         var controller = CreateController();

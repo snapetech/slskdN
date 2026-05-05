@@ -738,6 +738,23 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
         }
 
         [Trait("Category", "BrowseRequest")]
+        [Theory(DisplayName = "Ignores BrowseRequest if browse response resolver returns null"), AutoData]
+        public void Ignores_BrowseRequest_If_Browse_Response_Resolver_Returns_Null(string username, IPEndPoint endpoint)
+        {
+            var options = new SoulseekClientOptions(
+                browseResponseResolver: (u, i) => Task.FromResult<BrowseResponse>(null));
+
+            var (handler, mocks) = GetFixture(username, endpoint, options);
+
+            var message = new BrowseRequest().ToByteArray();
+
+            var ex = Record.Exception(() => handler.HandleMessageRead(mocks.PeerConnection.Object, message));
+
+            Assert.Null(ex);
+            mocks.PeerConnection.Verify(m => m.WriteAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken?>()), Times.Never);
+        }
+
+        [Trait("Category", "BrowseRequest")]
         [Theory(DisplayName = "Writes RawBrowseResponse with expected length"), AutoData]
         public void Writes_RawBrowseResponse_With_Expected_Length(string username, IPEndPoint endpoint, int token, string query)
         {
