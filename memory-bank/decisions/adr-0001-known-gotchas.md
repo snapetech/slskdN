@@ -52,6 +52,38 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z298. Direct Soulseek Controller Searches Need Safety Budgets
+
+**The Bug**: Multi-source API controller actions called `ISoulseekClient.SearchAsync()` directly for wide candidate searches without first consuming the shared Soulseek safety limiter. Service-level limiters did not protect these controller-only paths.
+
+**Files Affected**:
+- `src/slskd/Transfers/MultiSource/API/MultiSourceController.cs`
+
+**Wrong**:
+```csharp
+await Client.SearchAsync(
+    SearchQuery.FromText(searchText),
+    responseHandler: response => searchResults.Add(response),
+    options: searchOptions,
+    cancellationToken: cancellationToken);
+```
+
+**Correct**:
+```csharp
+if (!TryConsumeSearchBudget("multisource-users", out var limitedResult))
+{
+    return limitedResult!;
+}
+
+await Client.SearchAsync(
+    SearchQuery.FromText(searchText),
+    responseHandler: response => searchResults.Add(response),
+    options: searchOptions,
+    cancellationToken: cancellationToken);
+```
+
+**Why This Keeps Happening**: Network-health checks are often added to shared services first, while diagnostic or helper controller actions keep direct protocol calls for convenience. Every direct Soulseek call path needs its own budget, cancellation, and manual-trigger posture.
+
 ### 0z297. Protocol Count Guards Must Cover Item Counts Too
 
 **The Bug**: Runtime room-list parsing validated the number of room names but accepted negative per-room user counts from the same server payload. A malformed room list could produce impossible `RoomInfo` values after the collection-count guard had already passed.
