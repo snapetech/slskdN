@@ -46,32 +46,32 @@ namespace Soulseek
 
             Type = type;
 
-            subjects ??= Array.Empty<string>();
+            var subjectList = (subjects ?? Array.Empty<string>()).ToList();
 
-            if ((Type == SearchScopeType.Network || Type == SearchScopeType.Wishlist) && subjects.Length > 0)
+            if ((Type == SearchScopeType.Network || Type == SearchScopeType.Wishlist) && subjectList.Count > 0)
             {
                 throw new ArgumentException($"The {Type} search scope can not be used with subjects", nameof(subjects));
             }
 
-            if (Type == SearchScopeType.Room && (subjects.Length != 1 || string.IsNullOrEmpty(subjects[0])))
+            if (Type == SearchScopeType.Room && (subjectList.Count != 1 || string.IsNullOrEmpty(subjectList[0])))
             {
                 throw new ArgumentException($"The Room search scope requires a single, non null and non empty subject", nameof(subjects));
             }
 
             if (Type == SearchScopeType.User)
             {
-                if (subjects.Length == 0)
+                if (subjectList.Count == 0)
                 {
                     throw new ArgumentException($"The User search scope requires at least one subject", nameof(subjects));
                 }
 
-                if (subjects.Any(s => string.IsNullOrEmpty(s)))
+                if (subjectList.Any(s => string.IsNullOrEmpty(s)))
                 {
                     throw new ArgumentException($"One or more of the supplied User scope subjects is null or empty", nameof(subjects));
                 }
             }
 
-            Subjects = subjects;
+            Subjects = subjectList.AsReadOnly();
         }
 
         /// <summary>

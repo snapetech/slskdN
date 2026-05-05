@@ -219,6 +219,19 @@ namespace Soulseek.Tests.Unit
             Assert.Equal(users, s.Subjects);
         }
 
+        [Trait("Category", "Instantiation")]
+        [Theory(DisplayName = "Snapshots subjects"), AutoData]
+        public void Snapshots_Subjects(string[] users)
+        {
+            var first = users[0];
+            var s = new SearchScope(SearchScopeType.User, users);
+
+            users[0] = null;
+
+            Assert.Equal(first, s.Subjects.First());
+            Assert.DoesNotContain(null, s.Subjects);
+        }
+
         [Trait("Category", "Factories")]
         [Fact(DisplayName = "Network returns Network scope")]
         public void Network_Returns_Network_Scope()

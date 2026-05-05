@@ -185,6 +185,8 @@ require_pattern "placeInQueue < 0" "src/Messaging/Messages/Peer/PlaceInQueueResp
 require_pattern "term == null" "src/SearchQuery.cs" "search queries reject null terms"
 require_pattern "exclusion == null" "src/SearchQuery.cs" "search queries reject null exclusions"
 require_pattern "Rejects_Null_Terms_And_Exclusions" "tests/Soulseek.Tests.Unit/SearchQueryTests.cs" "search query null entry tests are registered"
+require_pattern "subjectList\\.AsReadOnly\\(\\)" "src/SearchScope.cs" "search scopes snapshot validated subjects"
+require_pattern "Snapshots_Subjects" "tests/Soulseek.Tests.Unit/SearchScopeTests.cs" "search scope snapshot test is registered"
 require_pattern "Enum\\.IsDefined\\(typeof\\(DiagnosticLevel\\)" "src/Diagnostics/DiagnosticEventArgs.cs" "diagnostic events validate defined levels"
 require_pattern "SoulseekClientStates ValidStates" "src/EventArgs/SoulseekClientStateChangedEventArgs.cs" "client state events validate defined flags"
 require_pattern "SearchStates ValidStates" "src/EventArgs/SearchStateChangedEventArgs.cs" "search state events validate defined flags"
