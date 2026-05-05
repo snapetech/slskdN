@@ -52,6 +52,38 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z287. Mutating Methods Must Carry Explicit Role Requirements Even Under Class-Level Auth
+
+**The Bug**: Fork-specific API controllers used class-level `[Authorize(Policy = AuthPolicy.Any)]` and then added `POST`, `PUT`, `PATCH`, or `DELETE` methods without method-level role requirements. Read-only authenticated users could mutate state or trigger expensive/network-active work.
+
+**Files Affected**:
+- `src/slskd/*/API/*Controller.cs`
+- `src/slskd/API/Native/*Controller.cs`
+- `src/slskd/API/Compatibility/*Controller.cs`
+
+**Wrong**:
+```csharp
+[Authorize(Policy = AuthPolicy.Any)]
+public sealed class ExampleController : ControllerBase
+{
+    [HttpPost("runs")]
+    public Task<IActionResult> CreateRun(...) => ...
+}
+```
+
+**Correct**:
+```csharp
+[Authorize(Policy = AuthPolicy.Any)]
+public sealed class ExampleController : ControllerBase
+{
+    [HttpPost("runs")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
+    public Task<IActionResult> CreateRun(...) => ...
+}
+```
+
+**Why This Keeps Happening**: Class-level authentication proves only that a caller is logged in; it does not express authorization for side effects. Any mutating endpoint must declare its role at the method level so read-only users cannot inherit write privileges from the controller default.
+
 ### 0z286. System Packages Must Converge Runtime Path Ownership
 
 **The Bug**: AUR installs created the `slskd` daemon user but left `/var/lib/slskd` and the packaged `/etc/slskd/slskd.yml` with package-default root ownership/modes. The systemd service runs as `slskd:slskd`, so downloads, incomplete files, and any daemon-managed configuration writes could fail until the operator manually fixed ownership and group write permissions.
