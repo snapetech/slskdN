@@ -5091,10 +5091,12 @@ namespace Soulseek
                     disconnectedTaskCancellationSource.TrySetException(new ConnectionException($"Transfer failed: {e.Message}", e.Exception));
                 };
 
+                long startOffset;
+
                 try
                 {
                     var startOffsetBytes = await upload.Connection.ReadAsync(8, cancellationToken).ConfigureAwait(false);
-                    upload.StartOffset = BitConverter.ToInt64(startOffsetBytes, 0);
+                    startOffset = BitConverter.ToInt64(startOffsetBytes, 0);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException && ex is not TimeoutException)
                 {
@@ -5102,10 +5104,17 @@ namespace Soulseek
                     throw new MessageReadException($"Failed to read transfer start offset: {ex.Message}", ex);
                 }
 
-                if (upload.StartOffset > upload.Size)
+                if (startOffset < 0)
                 {
-                    throw new TransferException($"Requested start offset of {upload.StartOffset} bytes exceeds file length of {upload.Size} bytes");
+                    throw new TransferException($"Requested start offset of {startOffset} bytes is invalid");
                 }
+
+                if (startOffset > upload.Size)
+                {
+                    throw new TransferException($"Requested start offset of {startOffset} bytes exceeds file length of {upload.Size} bytes");
+                }
+
+                upload.StartOffset = startOffset;
 
                 Diagnostic.Debug($"Resolving input stream for upload of {Path.GetFileName(upload.Filename)} to {username}");
                 inputStream = await inputStreamFactory(upload.StartOffset).ConfigureAwait(false);

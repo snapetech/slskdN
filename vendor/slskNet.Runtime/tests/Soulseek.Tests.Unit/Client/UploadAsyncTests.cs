@@ -1695,6 +1695,54 @@ namespace Soulseek.Tests.Unit.Client
         }
 
         [Trait("Category", "UploadFromStreamAsync")]
+        [Theory(DisplayName = "UploadFromStreamAsync throws SoulseekClientException if peer sends negative start offset"), AutoData]
+        public async Task UploadFromStreamAsync_Throws_SoulseekClientException_If_Peer_Sends_Negative_StartOffset(string username, IPEndPoint endpoint, string filename, int token)
+        {
+            var options = new SoulseekClientOptions(messageTimeout: 5);
+            const long Size = 100;
+            const long Offset = -1;
+
+            var response = new TransferResponse(token, Size);
+            var responseWaitKey = new WaitKey(MessageCode.Peer.TransferResponse, username, token);
+
+            var waiter = new Mock<IWaiter>();
+            waiter.Setup(m => m.Wait<TransferResponse>(It.Is<WaitKey>(w => w.Equals(responseWaitKey)), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(response));
+            waiter.Setup(m => m.Wait<UserAddressResponse>(It.IsAny<WaitKey>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(new UserAddressResponse(username, endpoint.Address, endpoint.Port)));
+
+            var conn = new Mock<IMessageConnection>();
+            conn.Setup(m => m.State)
+                .Returns(ConnectionState.Connected);
+
+            var transferConn = new Mock<IConnection>();
+            transferConn.Setup(m => m.ReadAsync(8, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(BitConverter.GetBytes(Offset)));
+
+            var connManager = new Mock<IPeerConnectionManager>();
+            connManager.Setup(m => m.GetOrAddMessageConnectionAsync(username, endpoint, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(conn.Object));
+            connManager.Setup(m => m.GetTransferConnectionAsync(username, endpoint, token, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(transferConn.Object));
+
+            using (var stream = new MemoryStream(new byte[Size]))
+            using (var s = new SoulseekClient(minorVersion: 9999, options: options, waiter: waiter.Object, serverConnection: conn.Object, peerConnectionManager: connManager.Object))
+            {
+                s.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+
+                var txoptions = new TransferOptions(disposeInputStreamOnCompletion: false, maximumLingerTime: 0);
+
+                var ex = await Record.ExceptionAsync(() => s.InvokeMethod<Task>("UploadFromStreamAsync", username, filename, Size, new Func<long, Task<Stream>>((_) => Task.FromResult((Stream)stream)), token, txoptions, null));
+
+                Assert.NotNull(ex);
+                Assert.IsType<SoulseekClientException>(ex);
+                Assert.IsType<TransferException>(ex.InnerException);
+            }
+
+            transferConn.Verify(m => m.Disconnect(It.IsAny<string>(), It.Is<TransferException>(ex => ex.Message.ContainsInsensitive("start offset") && ex.Message.ContainsInsensitive("invalid"))), Times.Once);
+        }
+
+        [Trait("Category", "UploadFromStreamAsync")]
         [Theory(DisplayName = "UploadFromStreamAsync writes correct length given nonzero offset value"), AutoData]
         public async Task UploadFromStreamAsync_Writes_Correct_Length_Given_Offset_Value(string username, IPEndPoint endpoint, string filename, int token)
         {

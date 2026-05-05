@@ -69,7 +69,7 @@ namespace Soulseek
         /// <summary>
         ///     Gets the number of remaining bytes to be transferred.
         /// </summary>
-        public long BytesRemaining => (Size ?? 0) - BytesTransferred;
+        public long BytesRemaining => Math.Max(0, (Size ?? 0) - BytesTransferred);
 
         /// <summary>
         ///     Gets the total number of bytes transferred.
@@ -123,12 +123,14 @@ namespace Soulseek
         /// <summary>
         ///     Gets the current progress in percent.
         /// </summary>
-        public double PercentComplete => Size.HasValue ? (BytesTransferred / (double)Size) * 100 : 0;
+        public double PercentComplete => Size.HasValue && Size.Value > 0
+            ? Math.Min(100, Math.Max(0, (BytesTransferred / (double)Size.Value) * 100))
+            : 0;
 
         /// <summary>
         ///     Gets the projected remaining duration of the transfer.
         /// </summary>
-        public TimeSpan? RemainingTime => AverageSpeed == 0 ? null : (TimeSpan?)TimeSpan.FromSeconds(BytesRemaining / AverageSpeed);
+        public TimeSpan? RemainingTime => AverageSpeed <= 0 ? null : (TimeSpan?)TimeSpan.FromSeconds(BytesRemaining / AverageSpeed);
 
         /// <summary>
         ///     Gets or sets the remote unique token for the transfer.
@@ -151,6 +153,11 @@ namespace Soulseek
             }
             set
             {
+                if (value < 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(value), "Must be greater than or equal to zero");
+                }
+
                 startOffset = value;
 
                 // fast-forward the transfer up to StartOffset so percent completion

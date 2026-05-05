@@ -293,6 +293,34 @@ namespace Soulseek.Tests.Unit
         }
 
         [Trait("Category", "State")]
+        [Fact(DisplayName = "PercentComplete returns 0 when Size is 0")]
+        internal void PercentComplete_Returns_0_When_Size_Is_0()
+        {
+            var d = new TransferInternal(TransferDirection.Download, string.Empty, string.Empty, 0)
+            {
+                Size = 0,
+            };
+
+            d.SetProperty("BytesTransferred", 1);
+
+            Assert.Equal(0, d.PercentComplete);
+        }
+
+        [Trait("Category", "State")]
+        [Fact(DisplayName = "BytesRemaining returns 0 when transferred bytes exceed size")]
+        internal void BytesRemaining_Returns_0_When_Transferred_Bytes_Exceed_Size()
+        {
+            var d = new TransferInternal(TransferDirection.Download, string.Empty, string.Empty, 0)
+            {
+                Size = 1,
+            };
+
+            d.SetProperty("BytesTransferred", 2);
+
+            Assert.Equal(0, d.BytesRemaining);
+        }
+
+        [Trait("Category", "State")]
         [Fact(DisplayName = "Exception works")]
         internal void Exception_Works()
         {
@@ -310,6 +338,8 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "StartOffset setter sets BytesTransferred and other vars"), AutoData]
         internal void StartOffset_Setter_Sets_BytesTransferred_And_Other_Vars(long startOffset)
         {
+            startOffset = Math.Max(0, startOffset);
+
             var d = new TransferInternal(TransferDirection.Download, string.Empty, string.Empty, 0);
 
             Assert.Equal(0, d.StartOffset);
@@ -320,6 +350,18 @@ namespace Soulseek.Tests.Unit
             Assert.Equal(startOffset, d.BytesTransferred);
             Assert.Equal(startOffset, d.GetField<long>("startOffset"));
             Assert.Equal(startOffset, d.GetField<double>("lastProgressBytes"));
+        }
+
+        [Trait("Category", "StartOffset")]
+        [Fact(DisplayName = "StartOffset rejects negative values")]
+        internal void StartOffset_Rejects_Negative_Values()
+        {
+            var d = new TransferInternal(TransferDirection.Download, string.Empty, string.Empty, 0);
+
+            var ex = Record.Exception(() => d.StartOffset = -1);
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentOutOfRangeException>(ex);
         }
 
         [Trait("Category", "UpdateProgress")]
