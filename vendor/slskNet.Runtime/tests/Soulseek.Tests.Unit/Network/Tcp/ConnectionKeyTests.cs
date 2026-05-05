@@ -247,6 +247,18 @@ namespace Soulseek.Tests.Unit.Network.Tcp
         }
 
         [Trait("Category", "Equals")]
+        [Fact(DisplayName = "Equals treats embedded null usernames as different")]
+        public void Equals_Treats_Embedded_Null_Usernames_As_Different()
+        {
+            var endpoint = new IPEndPoint(new IPAddress(0x0), 1);
+            var a = new ConnectionKey("user", endpoint);
+            var b = new ConnectionKey("u\0ser", endpoint);
+
+            Assert.False(a.Equals(b));
+            Assert.False(b.Equals(a));
+        }
+
+        [Trait("Category", "Equals")]
         [Fact(DisplayName = "Equals handles both null IPEndPoints")]
         public void Equals_Handles_Both_Null_IPEndPoints()
         {

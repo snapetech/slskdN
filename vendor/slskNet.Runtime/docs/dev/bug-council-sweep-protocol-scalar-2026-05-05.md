@@ -50,6 +50,6 @@ The remaining scalar emission hits are already covered by domain model construct
 | Resolver output and raw stream candidates | 341 | Fixed | Closed by `docs/dev/bug-council-sweep-resolver-stream-2026-05-05.md`. |
 | Task, cancellation, timer, and semaphore lifecycle candidates | 203 | Fixed | Closed by `docs/dev/bug-council-sweep-lifecycle-2026-05-05.md`. |
 | Example Web API path, request, and lifecycle candidates | 390 | Fixed | Closed by `docs/dev/bug-council-sweep-webapi-2026-05-05.md`. |
-| Mutable public byte arrays and array properties | 12 | Mostly fixed | Reclassify residual public array hits after snapshot fixes. |
-| Value equality and hash-code comparisons | 4 | Mostly fixed | Reclassify residual equality operator hits after `WaitKey` and `ConnectionKey` fixes. |
-| Security-sensitive material candidates | 2 | Baseline gated | Confirm scanner self-hits only and keep high-confidence secret scan active. |
+| Mutable public byte arrays and array properties | 12 | Fixed | Closed by `docs/dev/bug-council-sweep-residual-small-2026-05-05.md`; residual hits are defensive copies, internal compression buffers, or tests. |
+| Value equality and hash-code comparisons | 4 | Fixed | Closed by `docs/dev/bug-council-sweep-residual-small-2026-05-05.md`; accepted ordinal identity gaps were fixed. |
+| Security-sensitive material candidates | 2 | Fixed | Closed by `docs/dev/bug-council-sweep-residual-small-2026-05-05.md`; both hits are scanner/baseline regex self-hits and the high-confidence secret gate remains active. |

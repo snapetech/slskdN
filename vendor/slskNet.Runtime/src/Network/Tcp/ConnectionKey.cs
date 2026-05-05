@@ -69,7 +69,7 @@ namespace Soulseek.Network.Tcp
         public bool Equals(ConnectionKey other)
         {
             return !ReferenceEquals(other, null)
-                && string.Equals(Username, other.Username, StringComparison.CurrentCulture)
+                && string.Equals(Username, other.Username, StringComparison.Ordinal)
                 && object.Equals(IPEndPoint, other.IPEndPoint);
         }
 
@@ -93,7 +93,7 @@ namespace Soulseek.Network.Tcp
 #if NETSTANDARD2_0
             return str.GetHashCode();
 #else
-            return str.GetHashCode(StringComparison.CurrentCulture);
+            return str.GetHashCode(StringComparison.Ordinal);
 #endif
         }
     }

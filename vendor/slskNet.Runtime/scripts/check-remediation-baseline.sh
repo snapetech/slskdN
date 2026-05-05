@@ -60,6 +60,7 @@ require_file "docs/dev/bug-council-sweep-protocol-length-2026-05-05.md" "bug cou
 require_file "docs/dev/bug-council-sweep-protocol-scalar-2026-05-05.md" "bug council protocol scalar sweep register exists"
 require_file "docs/dev/bug-council-sweep-resolver-stream-2026-05-05.md" "bug council resolver/raw stream sweep register exists"
 require_file "docs/dev/bug-council-sweep-lifecycle-2026-05-05.md" "bug council lifecycle sweep register exists"
+require_file "docs/dev/bug-council-sweep-residual-small-2026-05-05.md" "bug council residual small sweep register exists"
 require_file "scripts/check-remediation-baseline.sh" "remediation baseline script exists"
 require_file "scripts/scan-bug-council-candidates.sh" "bug council candidate scanner exists"
 
@@ -377,6 +378,15 @@ require_pattern "RT-081" "docs/dev/bug-burndown-ledger.md" "ledger records examp
 require_pattern "RT-082" "docs/dev/bug-burndown-ledger.md" "ledger records example shared cache lifecycle hardening"
 require_pattern "RT-083" "docs/dev/bug-burndown-ledger.md" "ledger records example route validation hardening"
 require_pattern "RT-084" "docs/dev/bug-burndown-ledger.md" "ledger records example upload lookup hardening"
+require_pattern "Mutable public byte arrays and array properties: 12/12 classified" "docs/dev/bug-council-sweep-residual-small-2026-05-05.md" "residual mutable byte-array sweep is closed"
+require_pattern "Value equality and hash-code comparisons: 4/4 classified" "docs/dev/bug-council-sweep-residual-small-2026-05-05.md" "residual value equality sweep is closed"
+require_pattern "Security-sensitive material candidates: 2/2 classified" "docs/dev/bug-council-sweep-residual-small-2026-05-05.md" "residual secret-pattern sweep is closed"
+require_pattern "Unclassified candidates: 0" "docs/dev/bug-council-sweep-residual-small-2026-05-05.md" "residual small sweep records zero unclassified candidates"
+require_absent_pattern "\\|[^|\n]*\\| Unclassified \\|" "docs/dev/bug-council-sweep-residual-small-2026-05-05.md" "residual small sweep has no unclassified rows"
+require_pattern "RT-085" "docs/dev/bug-burndown-ledger.md" "ledger records residual small-section loop closure"
+require_pattern "RT-086" "docs/dev/bug-burndown-ledger.md" "ledger records ordinal connection identity hardening"
+require_pattern "StringComparison\\.Ordinal" "src/Network/Tcp/ConnectionKey.cs" "connection keys use ordinal string identity"
+require_pattern "Equals_Treats_Embedded_Null_Usernames_As_Different" "tests/Soulseek.Tests.Unit/Network/Tcp/ConnectionKeyTests.cs" "connection key embedded-null regression test is registered"
 require_pattern "Every hit must be ledgered" "scripts/scan-bug-council-candidates.sh" "candidate scanner documents ledger classification requirement"
 
 secret_pattern='-----BEGIN (RSA |DSA |EC |OPENSSH |PGP )?PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{36,}|xox[baprs]-[A-Za-z0-9-]{20,}|AKIA[0-9A-Z]{16}|(?i)(api[_-]?key|access[_-]?token|client[_-]?secret)["'\'']?\s*[:=]\s*["'\''][A-Za-z0-9_./+=-]{24,}["'\'']'
