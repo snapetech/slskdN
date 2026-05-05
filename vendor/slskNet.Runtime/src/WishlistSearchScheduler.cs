@@ -108,6 +108,12 @@ namespace Soulseek
                                 if (disposed || cancellationTokenSource != nextSource || nextSource.IsCancellationRequested)
                                 {
                                     nextSource.Dispose();
+
+                                    if (cancellationTokenSource == nextSource)
+                                    {
+                                        cancellationTokenSource = null;
+                                    }
+
                                     return Task.CompletedTask;
                                 }
                             }

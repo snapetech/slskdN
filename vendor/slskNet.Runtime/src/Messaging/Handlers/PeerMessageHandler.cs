@@ -220,7 +220,10 @@ namespace Soulseek.Messaging.Handlers
                             await connection.WriteAsync(browseResponse.ToByteArray()).ConfigureAwait(false);
                         }
 
-                        Diagnostic.Info($"Share contents sent to {connection.Username}");
+                        if (browseResponse != null)
+                        {
+                            Diagnostic.Info($"Share contents sent to {connection.Username}");
+                        }
 
                         break;
 

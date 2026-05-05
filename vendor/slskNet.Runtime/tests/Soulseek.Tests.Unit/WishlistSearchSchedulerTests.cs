@@ -156,6 +156,48 @@ namespace Soulseek.Tests.Unit
             Assert.True(callCount >= 2);
         }
 
+        [Fact(DisplayName = "Wishlist scheduler can stop and dispose after canceled restart drains")]
+        public async Task Wishlist_Scheduler_Can_Stop_And_Dispose_After_Canceled_Restart_Drains()
+        {
+            var client = new Mock<ISoulseekClient>();
+            var firstSearchStarted = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var releaseFirstSearch = new TaskCompletionSource<(Search Search, IReadOnlyCollection<SearchResponse> Responses)>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            client.SetupGet(m => m.ServerInfo).Returns(new ServerInfo(wishlistInterval: 1));
+            client.Setup(m => m.SearchAsync(
+                    It.IsAny<SearchQuery>(),
+                    It.IsAny<SearchScope>(),
+                    It.IsAny<int?>(),
+                    It.IsAny<SearchOptions>(),
+                    It.IsAny<CancellationToken?>()))
+                .Returns(() =>
+                {
+                    firstSearchStarted.TrySetResult(true);
+                    return releaseFirstSearch.Task;
+                });
+
+            var scheduler = new WishlistSearchScheduler(
+                client.Object,
+                new[] { "alpha" },
+                new WishlistSearchSchedulerOptions(System.TimeSpan.FromSeconds(30), System.TimeSpan.Zero));
+
+            scheduler.Start();
+            await firstSearchStarted.Task;
+
+            scheduler.Stop();
+            scheduler.Start();
+            scheduler.Stop();
+
+            releaseFirstSearch.SetResult((new Search(SearchQuery.FromText("x"), SearchScope.Wishlist, 1, SearchStates.Completed, 0, 0, 0), new List<SearchResponse>()));
+            await WaitForStoppedAsync(scheduler);
+
+            var stopException = Record.Exception(() => scheduler.Stop());
+            var disposeException = Record.Exception(() => scheduler.Dispose());
+
+            Assert.Null(stopException);
+            Assert.Null(disposeException);
+        }
+
         [Fact(DisplayName = "Wishlist scheduler rejects start after dispose")]
         public void Wishlist_Scheduler_Rejects_Start_After_Dispose()
         {

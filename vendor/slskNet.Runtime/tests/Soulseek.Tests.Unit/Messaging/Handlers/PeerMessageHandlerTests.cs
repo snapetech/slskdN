@@ -752,6 +752,7 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
 
             Assert.Null(ex);
             mocks.PeerConnection.Verify(m => m.WriteAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken?>()), Times.Never);
+            mocks.Diagnostic.Verify(m => m.Info(It.Is<string>(s => s.ContainsInsensitive("Share contents sent"))), Times.Never);
         }
 
         [Trait("Category", "BrowseRequest")]
