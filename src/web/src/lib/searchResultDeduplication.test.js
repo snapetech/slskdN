@@ -75,4 +75,27 @@ describe('deduplicateSearchResponses', () => {
     expect(result.responses).toBe(responses);
     expect(result.foldedCount).toBe(0);
   });
+
+  it('ignores malformed source provider lists while folding duplicates', () => {
+    const result = deduplicateSearchResponses({
+      responses: [
+        {
+          files: [{ filename: 'Artist/Album/01 Track.flac', size: 24_000_000 }],
+          primarySource: 'mesh',
+          sourceProviders: { 0: 'bad', length: 1 },
+          username: 'best-peer',
+        },
+        {
+          files: [{ filename: 'Other Root/01 Track.flac', size: 24_000_000 }],
+          primarySource: 'soulseek',
+          username: 'backup-peer',
+        },
+      ],
+    });
+
+    expect(result.responses[0].duplicateGroup.providers).toEqual([
+      'mesh',
+      'soulseek',
+    ]);
+  });
 });

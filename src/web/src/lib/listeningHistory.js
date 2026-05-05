@@ -42,6 +42,8 @@ const incrementCount = (map, key) => {
   map.set(key, (map.get(key) || 0) + 1);
 };
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const getGenreValues = (track = {}) => [
   normalizeText(track.genre),
   ...(Array.isArray(track.genres) ? track.genres.map(normalizeText) : []),
@@ -300,7 +302,7 @@ export const exportListeningHistoryCsv = () => {
       entry.artist,
       entry.album,
       entry.title,
-      (entry.genres || []).join('; '),
+      asArray(entry.genres).join('; '),
       entry.contentId,
       entry.source,
     ].map(escapeCell).join(',')),
@@ -343,7 +345,7 @@ export const getListeningRecommendationSeeds = (stats = {}, limit = 5) => {
   const seeds = [];
   const seen = new Set();
 
-  (stats.forgottenFavorites || []).forEach((track) => {
+  asArray(stats.forgottenFavorites).forEach((track) => {
     addRecommendationSeed(seeds, seen, {
       basis: `${track.plays} older plays`,
       label: track.title,
@@ -352,7 +354,7 @@ export const getListeningRecommendationSeeds = (stats = {}, limit = 5) => {
     });
   });
 
-  (stats.topArtists || []).forEach((artist) => {
+  asArray(stats.topArtists).forEach((artist) => {
     addRecommendationSeed(seeds, seen, {
       basis: `${artist.plays} local plays`,
       label: artist.label,
@@ -361,7 +363,7 @@ export const getListeningRecommendationSeeds = (stats = {}, limit = 5) => {
     });
   });
 
-  (stats.topGenres || []).forEach((genre) => {
+  asArray(stats.topGenres).forEach((genre) => {
     addRecommendationSeed(seeds, seen, {
       basis: `${genre.plays} tagged plays`,
       label: genre.label,
@@ -370,7 +372,7 @@ export const getListeningRecommendationSeeds = (stats = {}, limit = 5) => {
     });
   });
 
-  (stats.topTracks || []).forEach((track) => {
+  asArray(stats.topTracks).forEach((track) => {
     addRecommendationSeed(seeds, seen, {
       basis: `${track.plays} local plays`,
       label: track.label,

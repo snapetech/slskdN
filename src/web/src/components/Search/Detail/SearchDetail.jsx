@@ -68,6 +68,8 @@ const sortDropdownOptions = [
   },
 ];
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 export const mapUserNotesByUsername = (payload) =>
   (Array.isArray(payload) ? payload : []).reduce((accumulator, note) => {
     if (note?.username) {
@@ -402,7 +404,7 @@ const SearchDetail = ({
   };
 
   const handleQueueNearby = async (graph) => {
-    const queries = (graph?.nodes || [])
+    const queries = asArray(graph?.nodes)
       .filter((node) => node.nodeType === 'track')
       .map((node) => node.label || '')
       .filter(Boolean)

@@ -39,6 +39,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Hardened browser-local community quality, Discovery Inbox, acquisition plan,
   Discovery Shelf, album decision rule, and listening history arrays so malformed
   item entries are ignored before normalization.
+- Hardened listening stats, Smart Radio, playlist intake refresh previews,
+  search folding, player badges, Browse/Transfers, Chat/UserCard panels, search
+  graph handoffs, filters, and admin diagnostics against malformed list fields.
 - Hardened playlist intake and watchlist storage against malformed persisted
   playlists, tracks, watchlists, and expansion candidates.
 - Hardened quarantine-jury and listening-party Web API list helpers so malformed

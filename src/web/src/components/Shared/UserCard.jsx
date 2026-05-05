@@ -5,6 +5,8 @@ import * as users from '../../lib/users';
 import React, { Component } from 'react';
 import { Icon, Popup } from 'semantic-ui-react';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 class UserCard extends Component {
   constructor(props) {
     super(props);
@@ -72,9 +74,13 @@ class UserCard extends Component {
       const response = await soulseekDiscovery.getUserInterests({
         username,
       });
+      const responseInterests =
+        response.data && typeof response.data === 'object' && !Array.isArray(response.data)
+          ? response.data
+          : {};
 
       this.setState({
-        interests: response.data || {},
+        interests: responseInterests,
         interestsLoading: false,
       });
     } catch (error) {
@@ -118,8 +124,8 @@ class UserCard extends Component {
       return <span>{interestsError}</span>;
     }
 
-    const liked = interests?.liked || interests?.Liked || [];
-    const hated = interests?.hated || interests?.Hated || [];
+    const liked = asArray(interests?.liked ?? interests?.Liked);
+    const hated = asArray(interests?.hated ?? interests?.Hated);
 
     if (!interests) {
       return <span>Click to load native Soulseek interests for {username}.</span>;

@@ -54,6 +54,8 @@ const getIdentityVerdictColor = (verdict) => {
 
 const formatPercent = (value) => Math.round((value || 0) * 100);
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const getStatusColor = (status) => {
   switch (status) {
     case 'completed':
@@ -499,7 +501,9 @@ const SongIDPanel = ({ disabled }) => {
       .filter((node) => node.nodeType === 'track')
       .map((node) => {
         const recordingId = node.nodeId.split(':')[1];
-        const candidate = (run?.tracks || []).find((item) => item.recordingId === recordingId);
+        const candidate = asArray(run?.tracks).find(
+          (item) => item.recordingId === recordingId,
+        );
         if (candidate?.searchText) {
           return candidate.searchText;
         }
@@ -1175,7 +1179,7 @@ const SongIDPanel = ({ disabled }) => {
                 ) : null}
               </div>
               <List bulleted>
-                {(run.provenance.signals || []).map((signal) => (
+                {asArray(run.provenance.signals).map((signal) => (
                   <List.Item key={signal}>{signal}</List.Item>
                 ))}
               </List>

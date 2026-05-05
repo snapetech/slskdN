@@ -145,6 +145,31 @@ describe('listeningHistory', () => {
     ]);
   });
 
+  it('ignores malformed recommendation stat and exported genre list fields', () => {
+    window.localStorage.setItem(
+      listeningHistoryStorageKey,
+      JSON.stringify([
+        {
+          artist: 'Fixture Artist',
+          contentId: 'sha256:fixture',
+          genres: { 0: 'Not a real list', length: 1 },
+          playedAt: '2026-04-30T20:00:00.000Z',
+          title: 'Fixture Track',
+        },
+      ]),
+    );
+
+    expect(exportListeningHistoryCsv()).toContain('Fixture Artist');
+    expect(
+      getListeningRecommendationSeeds({
+        forgottenFavorites: { 0: { title: 'Bad' }, length: 1 },
+        topArtists: { 0: { label: 'Bad Artist' }, length: 1 },
+        topGenres: { 0: { label: 'Bad Genre' }, length: 1 },
+        topTracks: { 0: { label: 'Bad Track' }, length: 1 },
+      }),
+    ).toEqual([]);
+  });
+
   it('deduplicates immediate duplicate plays for the same track', () => {
     const track = {
       artist: 'Fixture Artist',

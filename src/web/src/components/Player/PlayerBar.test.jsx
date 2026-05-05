@@ -181,6 +181,20 @@ const TestHarness = () => {
       <button
         onClick={() =>
           playItem({
+            contentId: 'sha256:malformed',
+            fileName: 'Malformed stream.ogg',
+            sourceProviders: { 0: 'mesh', length: 1 },
+            tags: { 0: 'tag', length: 1 },
+            title: 'Malformed stream',
+          })
+        }
+        type="button"
+      >
+        Play malformed fixture
+      </button>
+      <button
+        onClick={() =>
+          playItem({
             contentId: 'sha256:second',
             fileName: 'Second stream.ogg',
             title: 'Second stream',
@@ -510,6 +524,15 @@ describe('PlayerBar', () => {
     expect(screen.getByTestId('player-rating-controls')).toHaveTextContent(
       'Not rated',
     );
+  });
+
+  it('ignores malformed now-playing source and tag lists', async () => {
+    renderPlayer();
+
+    fireEvent.click(screen.getByText('Play malformed fixture'));
+
+    expect(await screen.findByText('Malformed stream')).toBeInTheDocument();
+    expect(screen.queryByTestId('player-badge-source-Mesh')).not.toBeInTheDocument();
   });
 
   it('handles player keyboard shortcuts without stealing input typing', async () => {

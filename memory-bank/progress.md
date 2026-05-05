@@ -9697,3 +9697,10 @@ Code quality improvements were completed as part of Option A:
 - Hardened Library Health, Jobs, Mesh rendezvous, realm subject-index conflicts, Pods, Messaging pod channels, port forwarding dashboards, search source-provider handling, and shared stream/pod path segments.
 - Documented repeated list-shape gotchas in commits `46af76599` and `4208eca44`.
 - Validation passed: focused admin/pod/search Vitest batch (`51` tests), backend/security/network-health scanner lane, Web lint, `git diff --check`, `npm run check:remediation`, and `./bin/lint`.
+
+## 2026-05-05 21:36:00Z
+
+- Continued the broad frontend list-shape burn-down instead of stopping at the first remaining hit.
+- Hardened listening stats exports/seeds, Smart Radio plans, playlist provider refresh previews, search result folding, player metadata, Browse/Transfer directory lists, ChatSession conversations, UserCard interests, search graph handoffs, filter token lists, Bridge/integration diagnostics, and adversarial settings arrays.
+- Documented repeated list-shape gotchas in commits `bee9ac2a8` and `7107de805`.
+- Validation passed: focused frontend Vitest batch (`54` tests) and Web lint.

@@ -5,6 +5,8 @@ import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Card, Icon } from 'semantic-ui-react';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 class TransferGroup extends Component {
   constructor(props) {
     super(props);
@@ -137,7 +139,7 @@ class TransferGroup extends Component {
               <TransferList
                 direction={this.props.direction}
                 directoryName={directory.directory}
-                files={(directory.files || []).map((f) => ({
+                files={asArray(directory.files).map((f) => ({
                   ...f,
                   selected: this.isSelected(directory.directory, f),
                 }))}

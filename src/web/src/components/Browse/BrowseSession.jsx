@@ -37,6 +37,8 @@ const initialState = {
   userNote: null,
 };
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const MAX_BROWSE_CACHE_ENTRIES = 50;
 const BROWSE_CACHE_PREFIX = 'slskd-browse-state-';
 
@@ -384,12 +386,12 @@ class BrowseSession extends Component {
 
     // Collect all files recursively
     const collectFiles = (folder) => {
-      let collected = (folder.files || []).map((f) => ({
+      let collected = asArray(folder.files).map((f) => ({
         filename: `${folder.name}${separator}${f.filename}`,
         size: f.size,
       }));
 
-      if (folder.children) {
+      if (Array.isArray(folder.children)) {
         for (const child of folder.children) {
           collected = collected.concat(collectFiles(child));
         }
@@ -440,7 +442,7 @@ class BrowseSession extends Component {
     const finished = ['complete', 'error'].includes(browseState);
     const emptyTree = finished && tree.length === 0;
 
-    const files = (selectedDirectory.files || []).map((f) => ({
+    const files = asArray(selectedDirectory.files).map((f) => ({
       ...f,
       filename: `${name}${separator}${f.filename}`,
     }));

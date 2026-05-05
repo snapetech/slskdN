@@ -25,6 +25,8 @@ export const PlayerContext = createContext({
   setAudioElement: () => {},
 });
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 export const PlayerProvider = ({ children }) => {
   const [audioElement, setAudioElement] = useState(null);
   const [current, setCurrent] = useState(null);
@@ -54,9 +56,9 @@ export const PlayerProvider = ({ children }) => {
         fileName: item.fileName || item.title || item.contentId,
         genre: item.genre || '',
         positionSeconds: options.positionSeconds || 0,
-        sourceProviders: item.sourceProviders || item.providers || [],
+        sourceProviders: asArray(item.sourceProviders || item.providers),
         streamUrl: item.streamUrl || options.streamUrl || '',
-        tags: item.tags || item.genres || [],
+        tags: asArray(item.tags || item.genres),
         title: item.title || item.fileName || item.contentId,
         verified: Boolean(
           item.verified ||

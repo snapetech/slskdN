@@ -304,6 +304,11 @@ describe('playlistIntake', () => {
         ],
       }),
     ).toBe('Stereolab - French Disko\nUntitled Provider Row');
+    expect(
+      buildPlaylistProviderRefreshContent({
+        suggestions: { 0: { searchText: 'Not a real list' }, length: 1 },
+      }),
+    ).toBe('');
 
     expect(
       buildPlaylistCollectionItems({

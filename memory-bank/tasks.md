@@ -2451,3 +2451,7 @@
 - [x] Broad admin, pod, search, and URL-intent hardening batch
   - Status: completed (2026-05-05)
   - Notes: Guarded Library Health, Jobs, Mesh rendezvous, realm subject-index conflicts, Pods, Messaging pod channels, port forwarding, search source-provider fields, and shared stream/pod path segments. Added focused admin/helper regressions and extended ADR-0001 gotchas `0z304` and `0z306`.
+
+- [x] Continue broad frontend list-shape burn-down
+  - Status: completed (2026-05-05)
+  - Notes: Guarded listening history, Smart Radio, playlist intake refresh content, search result folding, player metadata, Browse/Transfer directory lists, ChatSession messages, UserCard interests, search graph handoffs, filter token lists, Bridge/integration diagnostics, and adversarial security settings against malformed non-array list fields. Added focused lib/player/chat regressions and extended ADR-0001 gotcha `0z306` in commits `bee9ac2a8` and `7107de805`. Validation passed: focused Vitest batch (`54` tests) and Web lint.

@@ -93,6 +93,19 @@ describe('playerRadio', () => {
     ]);
   });
 
+  it('ignores malformed persisted radio query lists', () => {
+    const plan = {
+      primaryQuery: 'Fixture Artist',
+      queries: { 0: { query: 'bad' }, length: 1 },
+      ready: true,
+      seedLabel: 'Fixture Artist',
+    };
+
+    expect(getPlayerRadioQueries(plan)).toEqual([]);
+    expect(buildPlayerRadioDiscoveryItems(plan)).toEqual([]);
+    expect(getPlayerRadioCopyText(plan)).toBe('Smart radio seed: Fixture Artist');
+  });
+
   it('returns an inert plan without a selected track', () => {
     expect(buildPlayerRadioPlan(null)).toEqual({
       basis: [],

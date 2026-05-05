@@ -1,6 +1,7 @@
 const normalizeText = (value = '') => String(value).trim();
 
 const unique = (values) => [...new Set(values.filter(Boolean))];
+const asArray = (value) => (Array.isArray(value) ? value : []);
 
 const quoteIfNeeded = (value) => {
   const normalized = normalizeText(value);
@@ -77,7 +78,7 @@ export const buildPlayerRadioSearchPath = (query) => {
 };
 
 export const getPlayerRadioQueries = (plan = {}, { limit = 3 } = {}) =>
-  (plan.queries || [])
+  asArray(plan.queries)
     .map((item) => item.query)
     .filter(Boolean)
     .filter((query, index, queries) =>
@@ -89,7 +90,7 @@ export const buildPlayerRadioDiscoveryItems = (
   plan = {},
   { acquisitionProfile = 'mesh-preferred', limit = 4 } = {},
 ) =>
-  (plan.queries || []).slice(0, limit).map((item) => ({
+  asArray(plan.queries).slice(0, limit).map((item) => ({
     acquisitionProfile,
     evidenceKey: `smart-radio:${normalizeText(item.reason).toLowerCase()}:${normalizeText(item.query).toLowerCase()}`,
     networkImpact:
@@ -106,6 +107,6 @@ export const getPlayerRadioCopyText = (plan) => {
 
   return [
     `Smart radio seed: ${plan.seedLabel}`,
-    ...plan.queries.map((item) => `${item.reason}: ${quoteIfNeeded(item.query)}`),
+    ...asArray(plan.queries).map((item) => `${item.reason}: ${quoteIfNeeded(item.query)}`),
   ].join('\n');
 };

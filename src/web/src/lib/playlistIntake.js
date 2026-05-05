@@ -563,7 +563,7 @@ export const getDuePlaylistRefreshes = (
   });
 
 export const buildPlaylistProviderRefreshContent = (result = {}) =>
-  (result.suggestions || [])
+  (Array.isArray(result.suggestions) ? result.suggestions : [])
     .map((suggestion) =>
       [suggestion.artist, suggestion.title || suggestion.searchText]
         .filter(Boolean)

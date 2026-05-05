@@ -14,6 +14,8 @@ import {
   Segment,
 } from 'semantic-ui-react';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 class ChatSession extends Component {
   constructor(props) {
     super(props);
@@ -98,13 +100,17 @@ class ChatSession extends Component {
 
     try {
       const conversation = await chat.get({ username });
+      const normalizedConversation =
+        conversation && typeof conversation === 'object' && !Array.isArray(conversation)
+          ? conversation
+          : null;
 
       // Acknowledge unread messages only when the user is looking at this tab.
-      if (this.props.active !== false && conversation?.hasUnAcknowledgedMessages) {
+      if (this.props.active !== false && normalizedConversation?.hasUnAcknowledgedMessages) {
         await chat.acknowledge({ username });
       }
 
-      this.setState({ conversation, loading: false }, () => {
+      this.setState({ conversation: normalizedConversation, loading: false }, () => {
         // Scroll to bottom
         try {
           if (this.listRef.current?.lastChild) {
@@ -179,7 +185,9 @@ class ChatSession extends Component {
   render() {
     const { user, username } = this.props;
     const { conversation, loading, message } = this.state;
-    const messages = conversation?.messages || [];
+    const messages = asArray(conversation?.messages).filter(
+      (item) => item && typeof item === 'object' && !Array.isArray(item),
+    );
 
     if (!username) {
       return (

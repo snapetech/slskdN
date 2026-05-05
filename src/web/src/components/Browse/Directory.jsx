@@ -9,20 +9,22 @@ const initialState = {
   downloadRequest: undefined,
 };
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 class Directory extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
       ...initialState,
-      files: this.props.files.map((f) => ({ selected: false, ...f })),
+      files: asArray(this.props.files).map((f) => ({ selected: false, ...f })),
     };
   }
 
   componentDidUpdate(previousProps) {
     if (this.props.name !== previousProps.name) {
       this.setState({
-        files: this.props.files.map((f) => ({ selected: false, ...f })),
+        files: asArray(this.props.files).map((f) => ({ selected: false, ...f })),
       });
     }
   }
@@ -39,7 +41,7 @@ class Directory extends Component {
   download = (username, files) => {
     this.setState({ downloadRequest: 'inProgress' }, async () => {
       try {
-        const requests = (files || []).map(({ filename, size }) => ({
+        const requests = asArray(files).map(({ filename, size }) => ({
           filename,
           size,
         }));

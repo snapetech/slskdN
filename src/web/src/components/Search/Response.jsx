@@ -25,8 +25,8 @@ import { Button, Card, Icon, Label, List, Modal, Popup } from 'semantic-ui-react
 const asArray = (value) => (Array.isArray(value) ? value : []);
 
 const buildTree = (response) => {
-  let { files = [] } = response;
-  const { lockedFiles = [] } = response;
+  let files = asArray(response.files);
+  const lockedFiles = asArray(response.lockedFiles);
   files = files.concat(lockedFiles.map((file) => ({ ...file, locked: true })));
 
   return files.reduce((dict, file) => {
@@ -178,7 +178,7 @@ class Response extends Component {
           await Promise.all(downloadPromises);
         } else {
           // Use existing download method for non-bridged searches
-          const requests = (files || []).map(({ filename, size }) => ({
+          const requests = asArray(files).map(({ filename, size }) => ({
             filename,
             size,
           }));
@@ -353,7 +353,7 @@ class Response extends Component {
   };
 
   handleQueueNearbyFromGraph = async (graph) => {
-    const queries = (graph?.nodes || [])
+    const queries = asArray(graph?.nodes)
       .filter((node) => node.nodeType === 'track')
       .map((node) => node.label || '')
       .filter(Boolean)
@@ -891,7 +891,7 @@ class Response extends Component {
               Slot: {free ? 'YES' : 'NO'}, Queue Length: {response.queueLength}
             </span>
           </Card.Meta>
-          {((!isFolded && Object.keys(tree)) || []).map((directory) => (
+          {(isFolded ? [] : Object.keys(tree)).map((directory) => (
             <FileList
               directoryName={directory}
               disabled={downloadRequest === 'inProgress'}

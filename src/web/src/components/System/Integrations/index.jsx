@@ -33,6 +33,8 @@ import {
   Table,
 } from 'semantic-ui-react';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const getOption = (source, ...keys) => {
   for (const key of keys) {
     if (source && Object.prototype.hasOwnProperty.call(source, key)) {
@@ -3426,7 +3428,7 @@ const FederationDiagnosticsPanel = () => {
   const publishing = diagnostics?.publishing || {};
   const pods = diagnostics?.pods || {};
   const mesh = diagnostics?.mesh || {};
-  const warnings = diagnostics?.warnings || [];
+  const warnings = asArray(diagnostics?.warnings);
 
   return (
     <Card fluid>

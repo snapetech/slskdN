@@ -1,3 +1,15 @@
+## Update 2026-05-05 21:36:00Z
+
+- Current task: Continued broad frontend list-shape burn-down is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-081` through `BUG-20260505-085` in `docs/dev/bug-burndown-ledger.md`
+  - guarded listening/player/playlist/search helper lists, player/Browse/Transfers metadata lists, ChatSession/UserCard payloads, search graph handoff lists, filter arrays, and admin diagnostics/settings arrays
+  - documented ADR-0001 gotcha extensions in commits `bee9ac2a8` and `7107de805`
+  - validation passed: focused frontend Vitest batch (`54` tests) and Web lint
+- Next steps:
+  1. Run broader remediation/diff/repo lint gates.
+  2. Commit and push the full dirty tree.
+
 ## Update 2026-05-05 21:24:00Z
 
 - Current task: Broad admin, pod, search, and URL-intent hardening batch is complete locally.

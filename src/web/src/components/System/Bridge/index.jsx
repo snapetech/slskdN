@@ -18,6 +18,8 @@ import {
   Table,
 } from 'semantic-ui-react';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const Bridge = () => {
   const [config, setConfig] = useState(null);
   const [dashboard, setDashboard] = useState(null);
@@ -121,7 +123,7 @@ const Bridge = () => {
 
   const health = dashboard?.health;
   const stats = dashboard?.stats;
-  const clients = dashboard?.connectedClients || [];
+  const clients = asArray(dashboard?.connectedClients);
   const meshBenefits = dashboard?.meshBenefits;
 
   return (

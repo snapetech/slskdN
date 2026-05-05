@@ -14,6 +14,8 @@ import {
 } from 'semantic-ui-react';
 import DiscoveryGraphModal from './DiscoveryGraphModal';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const MusicBrainzLookup = ({ disabled }) => {
   const [releaseInput, setReleaseInput] = useState('');
   const [recordingInput, setRecordingInput] = useState('');
@@ -170,7 +172,7 @@ const MusicBrainzLookup = ({ disabled }) => {
   };
 
   const handleQueueNearby = async (graph) => {
-    const queries = (graph?.nodes || [])
+    const queries = asArray(graph?.nodes)
       .filter((node) => node.nodeType === 'track')
       .map((node) => node.label || '')
       .filter(Boolean)

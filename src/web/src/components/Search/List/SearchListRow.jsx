@@ -8,6 +8,8 @@ import { Link } from 'react-router-dom';
 import { Icon, Popup, Table } from 'semantic-ui-react';
 import { toast } from 'react-toastify';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const SearchListRow = ({ onRemove, onStop, search }) => {
   const [working, setWorking] = useState(false);
   const [graphData, setGraphData] = useState(null);
@@ -90,7 +92,7 @@ const SearchListRow = ({ onRemove, onStop, search }) => {
   };
 
   const handleQueueNearby = async (graph) => {
-    const queries = (graph?.nodes || [])
+    const queries = asArray(graph?.nodes)
       .filter((node) => node.nodeType === 'track')
       .map((node) => node.label || '')
       .filter(Boolean)

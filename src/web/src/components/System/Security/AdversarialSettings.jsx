@@ -20,6 +20,8 @@ import {
   TextArea,
 } from 'semantic-ui-react';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const AdversarialSettings = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -623,7 +625,7 @@ const AdversarialSettings = () => {
                   <>
                     <Form.Field>
                       <label>Bucket Sizes (bytes)</label>
-                      {(settings.Privacy.Padding?.BucketSizes || []).map(
+                      {asArray(settings.Privacy.Padding?.BucketSizes).map(
                         (size, index) => (
                           <Input
                             key={index}
@@ -1043,9 +1045,7 @@ const AdversarialSettings = () => {
                         }}
                         placeholder="obfs4 192.0.2.1:443 1234567890ABCDEF..."
                         rows={4}
-                        value={(
-                          settings.Transport.Obfs4?.BridgeLines || []
-                        ).join('\n')}
+                        value={asArray(settings.Transport.Obfs4?.BridgeLines).join('\n')}
                       />
                     </Form.Field>
                   </>
@@ -1056,7 +1056,7 @@ const AdversarialSettings = () => {
                     <Header as="h5">Obfs4 Configuration</Header>
                     <Form.Field>
                       <label>Bridge Lines</label>
-                      {(settings.Transport.Obfs4?.BridgeLines || []).map(
+                      {asArray(settings.Transport.Obfs4?.BridgeLines).map(
                         (line, index) => (
                           <div
                             key={index}

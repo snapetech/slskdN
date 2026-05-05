@@ -5,6 +5,8 @@ import {
 import React, { useEffect, useState } from 'react';
 import { Button, Form, Header, Icon, Modal, Segment } from 'semantic-ui-react';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const SearchFilterModal = ({ filterString, onChange, trigger }) => {
   const [open, setOpen] = useState(false);
   const [filters, setFilters] = useState({});
@@ -234,7 +236,7 @@ const SearchFilterModal = ({ filterString, onChange, trigger }) => {
                 )
               }
               placeholder="remix instrumental"
-              value={(filters.include || []).join(' ')}
+              value={asArray(filters.include).join(' ')}
             />
             <Form.Input
               label="Must Exclude (space separated)"
@@ -245,7 +247,7 @@ const SearchFilterModal = ({ filterString, onChange, trigger }) => {
                 )
               }
               placeholder="live demo"
-              value={(filters.exclude || []).join(' ')}
+              value={asArray(filters.exclude).join(' ')}
             />
           </Segment>
 
@@ -265,7 +267,7 @@ const SearchFilterModal = ({ filterString, onChange, trigger }) => {
                     )
                   }
                   placeholder="flac mp3 wav"
-                  value={(filters.extensions || []).join(' ')}
+                  value={asArray(filters.extensions).join(' ')}
                 />
                 <label style={{ fontSize: '0.9em', opacity: 0.8 }}>
                   Filter by file extension (e.g., flac, mp3, wav, m4a)
@@ -289,7 +291,7 @@ const SearchFilterModal = ({ filterString, onChange, trigger }) => {
                   )
                 }
                 placeholder="flac wav"
-                value={(filters.preferExtensions || []).join(' ')}
+                value={asArray(filters.preferExtensions).join(' ')}
               />
               <Form.Input
                 label="Prefer Min Bitrate (kbps)"

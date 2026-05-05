@@ -41,7 +41,9 @@ const getFiles = (response = {}) => [
 ];
 
 const getProviderLabels = (response = {}) => {
-  const providers = new Set(response.sourceProviders || []);
+  const providers = new Set(
+    Array.isArray(response.sourceProviders) ? response.sourceProviders : [],
+  );
 
   if (response.primarySource) {
     providers.add(response.primarySource);
