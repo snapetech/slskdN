@@ -114,5 +114,24 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.True(response.HasObfuscatedEndpoint);
             Assert.Equal(0x1234, response.ObfuscatedIPEndPoint.Port);
         }
+
+        [Trait("Category", "Parse")]
+        [Theory(DisplayName = "Parse throws MessageException on invalid port")]
+        [InlineData(-1)]
+        [InlineData(65536)]
+        public void Parse_Throws_MessageException_On_Invalid_Port(int port)
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.GetPeerAddress)
+                .WriteString("user")
+                .WriteBytes(new byte[] { 1, 0, 0, 127 })
+                .WriteInteger(port)
+                .Build();
+
+            var ex = Record.Exception(() => UserAddressResponse.FromByteArray(msg));
+
+            Assert.NotNull(ex);
+            Assert.IsType<MessageException>(ex);
+        }
     }
 }

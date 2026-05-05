@@ -128,6 +128,8 @@ namespace Soulseek.Messaging.Messages
             var ipAddress = new IPAddress(ipBytes);
 
             var port = reader.ReadInteger();
+            ProtocolValueValidator.ValidatePort(port, "peer address");
+
             var obfuscationType = 0;
             var obfuscatedPort = 0;
 

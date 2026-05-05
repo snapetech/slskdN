@@ -100,5 +100,27 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Equal(token, response.Token);
             Assert.Equal(isPrivileged, response.IsPrivileged);
         }
+
+        [Trait("Category", "Parse")]
+        [Theory(DisplayName = "Parse throws MessageException on invalid port")]
+        [InlineData(-1)]
+        [InlineData(65536)]
+        public void Parse_Throws_MessageException_On_Invalid_Port(int port)
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.ConnectToPeer)
+                .WriteString("user")
+                .WriteString("P")
+                .WriteBytes(new byte[] { 1, 0, 0, 127 })
+                .WriteInteger(port)
+                .WriteInteger(1)
+                .WriteByte(0)
+                .Build();
+
+            var ex = Record.Exception(() => ConnectToPeerResponse.FromByteArray(msg));
+
+            Assert.NotNull(ex);
+            Assert.IsType<MessageException>(ex);
+        }
     }
 }

@@ -152,6 +152,8 @@ namespace Soulseek.Messaging.Messages
             var ipAddress = new IPAddress(ipBytes);
 
             var port = reader.ReadInteger();
+            ProtocolValueValidator.ValidatePort(port, "connect-to-peer");
+
             var token = reader.ReadInteger();
             var isPrivileged = reader.ReadByte() > 0;
             var obfuscationType = 0;

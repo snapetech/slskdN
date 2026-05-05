@@ -81,6 +81,7 @@ namespace Soulseek.Messaging.Messages
                 var ipAddress = new IPAddress(ipBytes);
 
                 var port = reader.ReadInteger();
+                ProtocolValueValidator.ValidatePort(port, "distributed parent");
 
                 parents.Add((username, ipAddress, port));
             }

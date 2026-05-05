@@ -73,6 +73,8 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "Parse returns expected data on failure"), AutoData]
         public void Parse_Returns_Expected_Data_On_Failure(List<(string Username, IPAddress IPAddress, int Port)> parents)
         {
+            parents = parents.ConvertAll(parent => (parent.Username, parent.IPAddress, System.Math.Abs(parent.Port % (IPEndPoint.MaxPort + 1))));
+
             var builder = new MessageBuilder()
                 .WriteCode(MessageCode.Server.NetInfo)
                 .WriteInteger(parents.Count);
@@ -92,6 +94,26 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
 
             Assert.Equal(parents.Count, response.ParentCount);
             Assert.Equal(parents, response.Parents);
+        }
+
+        [Trait("Category", "Parse")]
+        [Theory(DisplayName = "Parse throws MessageException on invalid port")]
+        [InlineData(-1)]
+        [InlineData(65536)]
+        public void Parse_Throws_MessageException_On_Invalid_Port(int port)
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.NetInfo)
+                .WriteInteger(1)
+                .WriteString("user")
+                .WriteBytes(new byte[] { 1, 0, 0, 127 })
+                .WriteInteger(port)
+                .Build();
+
+            var ex = Record.Exception(() => NetInfoNotification.FromByteArray(msg));
+
+            Assert.NotNull(ex);
+            Assert.IsType<MessageException>(ex);
         }
     }
 }

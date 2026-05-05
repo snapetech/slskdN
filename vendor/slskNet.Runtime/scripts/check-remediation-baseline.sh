@@ -64,6 +64,7 @@ require_pattern "ValidateMatchingCount" "src/Messaging/Messages" "parallel proto
 require_pattern "ValidateNonNegativeCount" "src/Messaging/Messages/Server/RoomListResponseFactory.cs" "room list user counts reject negative values"
 require_pattern "Invalid file size" "src/Messaging/MessageReaderExtensions.cs" "file parsers reject invalid negative sizes"
 require_pattern "Invalid transfer file size" "src/Messaging/Messages/Peer" "transfer parsers reject invalid negative sizes"
+require_pattern "ValidatePort" "src/Messaging/Messages/Server" "server endpoint parsers validate ports"
 require_pattern "ProtocolCountHardeningTests" "tests/Soulseek.Tests.Unit/Messaging/Messages/ProtocolCountHardeningTests.cs" "protocol count regression tests are registered"
 
 require_pattern "ValidateMessageLength" "src/Network" "message frame length validation is wired"
