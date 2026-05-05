@@ -4886,3 +4886,16 @@ dotnet test
 - Next steps:
   1. Debug live mesh download finalization after successful overlay/search.
   2. Keep Proton config 1 out of live smoke runs; configs 2/3/4 are viable for login.
+
+## Update 2026-05-05 03:37:00Z
+
+- Current task: VPN-backed live mesh download finalization fix.
+- Last activity:
+  - narrowed the VPN namespace test-fabric route to `10.224.0.0/11` so peer namespaces can reach each other without capturing Proton/private DNS routes
+  - host-resolved the Soulseek server address for VPN-wrapped full-instance children so namespace DNS does not block login
+  - preserved full child stdout/stderr logs under each temp app directory for failed full-instance runs
+  - fixed wrapper cleanup to kill the whole process tree and remove the VPN namespace explicitly
+  - confirmed the live smoke now completes login, overlay, search, pod download, HTTP response, and cleanup
+- Next steps:
+  1. Keep Proton config 1 out of live smoke runs unless it recovers.
+  2. Use configs 2/3/4 for optional live-account mesh validation.

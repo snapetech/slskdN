@@ -2276,6 +2276,6 @@
   - Status: completed (2026-05-05)
   - Notes: Added public build metadata for logged-out and logged-in footer display, switched release checks to `snapetech/slskdn`, handled slskdN date-versioned tags/manual builds, and added footer update labeling/linking when a newer GitHub release exists.
 
-- [ ] Route optional live mesh smoke through explicit VPN/proxy egress
-  - Status: partially complete
-  - Notes: Added an opt-in per-process VPN wrapper for full-instance tests and verified the slskR Proton namespace runner with the local account pool. Login matrix shows Proton config 1 times out for every account, while configs 2/3/4 all log in for accounts A-D. Overlay peers now form with configs 2/3 after routing namespace test traffic over the local veth fabric. Remaining work: make live mesh download finalization complete; the probe bytes reached alpha's incomplete directory but the API call did not return.
+- [x] Route optional live mesh smoke through explicit VPN/proxy egress
+  - Status: completed (2026-05-05)
+  - Notes: Added an opt-in per-process VPN wrapper for full-instance tests and verified the slskR Proton namespace runner with the local account pool. Login matrix shows Proton config 1 times out for every account, while configs 2/3/4 all log in for accounts A-D. The live smoke now passes with configs 2/3 after host-resolving the Soulseek server for VPN-wrapped children, routing only the high test namespace range locally, using beta's reachable overlay address, and cleaning up the full wrapper process tree plus namespace.

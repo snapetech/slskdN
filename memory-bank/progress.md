@@ -9461,3 +9461,10 @@ Code quality improvements were completed as part of Option A:
 - Verified manually in the VPN-backed live smoke that alpha and beta both log in, alpha can connect to beta's overlay listener, and `/api/v0/overlay/connections` shows the outbound/inbound peer pair on both nodes.
 - The live smoke now moves past login/overlay/search and downloads the probe bytes into alpha's incomplete directory, but the xUnit request still did not return before manual stop. Remaining issue is download finalization/response completion, not overlay peer formation.
 - Validation: deterministic full-instance overlay tests still passed (`2` tests).
+
+## 2026-05-05 03:37:00Z
+
+- Fixed the remaining VPN-backed live mesh smoke failures. The apparent download finalization hang was a cleanup/namespace issue after the endpoint had already returned; the runner now kills the whole wrapper process tree and removes the VPN namespace explicitly.
+- Narrowed the namespace test route from broad private ranges to `10.224.0.0/11` and host-resolved the Soulseek server for VPN-wrapped children so Proton/private DNS paths are not captured or required inside the namespace.
+- Added persisted child stdout/stderr logs for full-instance runs so future live smoke failures leave actionable daemon logs under `/tmp/slskdn-test/<test-id>/`.
+- Validation passed: VPN live smoke with Proton configs 2 and 3 (`1` test) and deterministic full-instance overlay/search/download tests (`2` tests).

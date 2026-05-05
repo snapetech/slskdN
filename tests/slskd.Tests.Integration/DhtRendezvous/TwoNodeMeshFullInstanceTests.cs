@@ -214,6 +214,7 @@ public class TwoNodeMeshFullInstanceTests
         }
 
         using var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        var testLogger = loggerFactory.CreateLogger<TwoNodeMeshFullInstanceTests>();
         await using var alpha = new SlskdnFullInstanceRunner(
             loggerFactory.CreateLogger<SlskdnFullInstanceRunner>(),
             $"mesh-live-alpha-{Guid.NewGuid():N}"[..24]);
@@ -238,31 +239,37 @@ public class TwoNodeMeshFullInstanceTests
             soulseekUsername: accounts.BetaUsername,
             soulseekPassword: accounts.BetaPassword);
 
-        using var alphaClient = new HttpClient { BaseAddress = new Uri(alpha.ApiUrl) };
-        using var betaClient = new HttpClient { BaseAddress = new Uri(beta.ApiUrl) };
+        using var alphaClient = new HttpClient { BaseAddress = new Uri(alpha.ApiUrl), Timeout = TimeSpan.FromSeconds(45) };
+        using var betaClient = new HttpClient { BaseAddress = new Uri(beta.ApiUrl), Timeout = TimeSpan.FromSeconds(45) };
         alphaClient.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", "integration-test");
         betaClient.DefaultRequestHeaders.TryAddWithoutValidation("X-API-Key", "integration-test");
 
+        testLogger.LogInformation("[LIVE-MESH] Waiting for Soulseek login");
         await WaitForSoulseekLoggedInAsync(alphaClient, "alpha");
         await WaitForSoulseekLoggedInAsync(betaClient, "beta");
+        testLogger.LogInformation("[LIVE-MESH] Both Soulseek sessions are logged in");
 
+        testLogger.LogInformation("[LIVE-MESH] Scanning beta shares");
         var scanResponse = await betaClient.PutAsync("/api/v0/shares", content: null);
         Assert.True(
             scanResponse.IsSuccessStatusCode,
             $"Share scan request failed: {(int)scanResponse.StatusCode} {await scanResponse.Content.ReadAsStringAsync()}");
 
         var contentId = $"content:live-test:{probeId}";
+        testLogger.LogInformation("[LIVE-MESH] Seeding content item {ContentId}", contentId);
         await WaitForAsync(
             () => TrySeedContentItemAsync(beta, probeFilename, contentId),
             TimeSpan.FromSeconds(20),
             () => "beta live-account share repository did not index the probe file");
 
+        testLogger.LogInformation("[LIVE-MESH] Connecting alpha overlay to beta at {Address}:{Port}", beta.OverlayAddress, beta.OverlayPort!.Value);
         await WaitForOverlayConnectAsync(
             alphaClient,
             beta.OverlayAddress,
             beta.OverlayPort!.Value,
             TimeSpan.FromSeconds(20));
 
+        testLogger.LogInformation("[LIVE-MESH] Waiting for alpha overlay neighbor");
         await WaitForAsync(
             async () =>
             {
@@ -273,6 +280,7 @@ public class TwoNodeMeshFullInstanceTests
             TimeSpan.FromSeconds(20),
             () => "alpha did not keep an outbound overlay connection to beta using live accounts");
 
+        testLogger.LogInformation("[LIVE-MESH] Searching for {ProbeFilename}", probeFilename);
         var searchResponse = await alphaClient.PostAsJsonAsync(
             "/api/v0/searches",
             new
@@ -289,7 +297,9 @@ public class TwoNodeMeshFullInstanceTests
         using var searchJson = JsonDocument.Parse(await searchResponse.Content.ReadAsStringAsync());
         var searchId = searchJson.RootElement.GetProperty("id").GetGuid();
 
+        testLogger.LogInformation("[LIVE-MESH] Waiting for mesh search result");
         var itemId = await WaitForMeshSearchResultAsync(alphaClient, searchId, probeFilename, contentId, accounts.BetaUsername);
+        testLogger.LogInformation("[LIVE-MESH] Downloading search item {ItemId}", itemId);
         var downloadResponse = await alphaClient.PostAsync($"/api/v0/searches/{searchId}/items/{itemId}/download", content: null);
         Assert.True(
             downloadResponse.IsSuccessStatusCode,
@@ -304,6 +314,7 @@ public class TwoNodeMeshFullInstanceTests
         Assert.False(string.IsNullOrWhiteSpace(localPath));
         Assert.True(File.Exists(localPath), $"Downloaded file not found: {localPath}");
         Assert.Equal(probeBytes, await File.ReadAllBytesAsync(localPath!));
+        testLogger.LogInformation("[LIVE-MESH] Download completed at {LocalPath}", localPath);
     }
 
     private static async Task WaitForAsync(Func<Task<bool>> predicate, TimeSpan timeout, Func<string> failureMessageFactory)
