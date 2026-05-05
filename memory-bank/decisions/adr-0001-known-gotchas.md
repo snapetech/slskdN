@@ -81,6 +81,15 @@ This is not optional. This is the highest priority action after fixing a bug.
 - `src/web/src/components/Transfers/TransferGroup.jsx`
 - `src/web/src/components/Shared/UserCard.jsx`
 - `src/web/src/components/Chat/ChatSession.jsx`
+- `src/web/src/components/Browse/Directory.jsx`
+- `src/web/src/components/Search/MusicBrainzLookup.jsx`
+- `src/web/src/components/Search/List/SearchListRow.jsx`
+- `src/web/src/components/Search/Detail/SearchDetail.jsx`
+- `src/web/src/components/Search/Detail/SearchFilterModal.jsx`
+- `src/web/src/components/Search/SongIDPanel.jsx`
+- `src/web/src/components/System/Bridge/index.jsx`
+- `src/web/src/components/System/Integrations/index.jsx`
+- `src/web/src/components/System/Security/AdversarialSettings.jsx`
 
 **Wrong**:
 ```js
@@ -94,7 +103,7 @@ const notes = (Array.isArray(response.data) ? response.data : []).reduce(...);
 const labels = (Array.isArray(recommendation.reasons) ? recommendation.reasons : []).map(...);
 ```
 
-**Why This Keeps Happening**: `|| []` does not protect truthy objects or strings, and optional chaining only prevents nullish access. Every nested field used as a list needs an `Array.isArray` check at the boundary or directly before list operations. This includes persisted workflow-plan lists, user-interest lists, chat message lists, directory file lists, source-provider/tag metadata, and provider suggestion lists.
+**Why This Keeps Happening**: `|| []` does not protect truthy objects or strings, and optional chaining only prevents nullish access. Every nested field used as a list needs an `Array.isArray` check at the boundary or directly before list operations. This includes persisted workflow-plan lists, user-interest lists, chat message lists, directory file lists, source-provider/tag metadata, provider suggestion lists, graph node lists, filter token lists, diagnostics warning lists, and settings arrays.
 
 ### 0z305. Browser Base64 Route Segments Need UTF-8 And URL Encoding
 
