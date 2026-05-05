@@ -52,6 +52,29 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z297. Protocol Count Guards Must Cover Item Counts Too
+
+**The Bug**: Runtime room-list parsing validated the number of room names but accepted negative per-room user counts from the same server payload. A malformed room list could produce impossible `RoomInfo` values after the collection-count guard had already passed.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/src/Messaging/Messages/Server/RoomListResponseFactory.cs`
+- `vendor/slskNet.Runtime/src/Messaging/Messages/Server/ProtocolCountReader.cs`
+
+**Wrong**:
+```csharp
+var count = reader.ReadInteger();
+rooms.Add(new RoomInfo(roomNames[i], count));
+```
+
+**Correct**:
+```csharp
+var count = reader.ReadInteger();
+ProtocolCountReader.ValidateNonNegativeCount(count, "room user");
+rooms.Add(new RoomInfo(roomNames[i], count));
+```
+
+**Why This Keeps Happening**: Protocol hardening often starts at collection lengths, but payload item counts also cross the trust boundary. Validate every server-provided count before constructing domain objects.
+
 ### 0z296. URLSearchParams Already Decodes Query Values
 
 **The Bug**: Search URL handling read `q` with `URLSearchParams.get()` and then called `decodeURIComponent()` again. Values like `?q=100%25` could throw `URIError`, and literal encoded text like `%2520` could be collapsed to a space.
