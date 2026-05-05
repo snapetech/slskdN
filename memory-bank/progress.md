@@ -1,10 +1,10 @@
 ## 2026-05-05
 
 - Continued the vendored runtime bug-council lifecycle sweep without stopping at the prior `WaitForDisconnect` fix.
-- Fixed `RT-077`: distributed status debounce/watchdog callbacks, status update scheduling, branch-info rebroadcasts, and distributed search rebroadcasts no longer drop background async work behind ignored `ConfigureAwait(false)` awaitables.
+- Fixed `RT-077`/`RT-078`/`RT-079`: the scan now has a fire-and-forget subgroup, and distributed status debounce/watchdog callbacks, status update scheduling, branch-info rebroadcasts, and distributed search rebroadcasts no longer drop background async work behind ignored `ConfigureAwait(false)` awaitables.
 - Added guarded queue helpers, a fire-and-forget misuse scanner section, remediation-baseline absence checks, and focused coverage proving background distributed broadcast failures are diagnosed.
 - Documented ADR-0001 gotcha `0z317` in commit `9afa5f8ae`.
-- Validation: focused runtime lifecycle tests passed (`294/294`), root and vendored remediation baselines passed, Web lint passed, repo lint passed, `git diff --check` passed, and full `dotnet test slskd.sln --no-restore` passed (`47` backend tests, `3909` unit tests, `276` integration tests).
+- Validation passed: focused runtime lifecycle tests (`294/294`), standalone/root/vendored remediation baselines and scans, Web lint, repo lint, `git diff --check`, parent `dotnet build slskd.sln --no-restore`, and full `dotnet test slskd.sln --no-restore` (`47` backend tests, `3909` unit tests, `276` integration tests).
 
 - Continued the broad council cycle into adjacent frontend list-shape and redirect-client findings.
 - Fixed `BUG-20260505-105` and `BUG-20260505-106`: Messaging room search, RoomJoinModal, System Files Explorer, System Network capabilities, Soulseek Discovery, Pods list fields, NAT public-IP HTTP redirects, and GitHub release helper HTTP redirects.

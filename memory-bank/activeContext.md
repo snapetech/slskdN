@@ -3,11 +3,11 @@
 - Current task: Vendored runtime lifecycle fire-and-forget council sweep is implemented and verified locally.
 - Last activity:
   - preserved the prior lifecycle sweep commit for `RT-076`
-  - added `RT-077` for ignored `ConfigureAwait(false)` fire-and-forget async calls in distributed status timers and distributed message rebroadcasts
+  - added `RT-077` for the fire-and-forget subgroup loop fix, `RT-078` for distributed status/broadcast callback hardening, and `RT-079` for distributed message rebroadcast hardening
   - added guarded queue helpers, scanner/baseline enforcement, focused distributed message handler coverage, and ADR-0001 gotcha `0z317`
-  - validation passed: focused runtime lifecycle tests (`294/294`), root and vendored remediation baselines, Web lint, repo lint, `git diff --check`, and full `dotnet test slskd.sln --no-restore`
+  - validation passed: focused runtime lifecycle tests (`294/294`), standalone/root/vendored remediation baselines and scans, Web lint, repo lint, `git diff --check`, parent `dotnet build slskd.sln --no-restore`, and full `dotnet test slskd.sln --no-restore`
 - Next steps:
-  1. Commit and push the implementation batch.
+  1. Commit and push the final memory-bank sync.
   2. Continue the next council scan section after push.
 
 ## Update 2026-05-05 22:38:00Z

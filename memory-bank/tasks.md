@@ -14,7 +14,7 @@
 - [x] **bug-council-runtime**: Continue lifecycle fire-and-forget burn-down.
  - Status: completed (2026-05-05)
  - Priority: P1
- - Notes: Extended the vendored runtime lifecycle sweep with `RT-077`: distributed status timers, status scheduling, branch-info rebroadcasts, and distributed search rebroadcasts now use guarded async queue helpers or try/catch async event handlers instead of ignored `ConfigureAwait(false)` awaitables. Added scanner/baseline enforcement for fire-and-forget misuse and focused distributed message handler coverage for background broadcast failure diagnostics. Documented ADR-0001 gotcha `0z317`. Validation passed: vendored remediation baseline and focused runtime lifecycle tests.
+ - Notes: Extended the vendored runtime lifecycle sweep with `RT-077`/`RT-078`/`RT-079`: the scan now has a fire-and-forget subgroup, and distributed status timers, status scheduling, branch-info rebroadcasts, and distributed search rebroadcasts now use guarded async queue helpers or try/catch async event handlers instead of ignored `ConfigureAwait(false)` awaitables. Added scanner/baseline enforcement plus focused distributed manager/message-handler coverage for background failure diagnostics. Documented ADR-0001 gotcha `0z317`. Validation passed: focused runtime lifecycle tests, standalone/root/vendored remediation baselines and scans, Web lint, repo lint, `git diff --check`, parent build, and full solution tests.
 
 - [x] **bug-council**: Continue frontend list and redirect-client burn-down.
  - Status: completed (2026-05-05)
