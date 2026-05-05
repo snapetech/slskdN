@@ -289,7 +289,7 @@ public class ContentInterfacesTests
     {
         public ContentWorkId Id { get; init; }
         public ContentDomain Domain { get; init; }
-        public string Title { get; init; }
+        public string Title { get; init; } = string.Empty;
         public string? Creator { get; init; }
         public int? Year { get; init; }
     }
@@ -300,7 +300,7 @@ public class ContentInterfacesTests
         public ContentItemId Id { get; init; }
         public ContentDomain Domain { get; init; }
         public ContentWorkId? WorkId { get; init; }
-        public string Title { get; init; }
+        public string Title { get; init; } = string.Empty;
         public int? Position { get; init; }
         public TimeSpan? Duration { get; init; }
         public bool IsAdvertisable { get; init; } // T-MCP03

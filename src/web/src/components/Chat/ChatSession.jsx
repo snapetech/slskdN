@@ -22,6 +22,7 @@ class ChatSession extends Component {
       conversation: null,
       interval: undefined,
       loading: false,
+      message: '',
     };
 
     this.listRef = createRef();
@@ -29,11 +30,34 @@ class ChatSession extends Component {
   }
 
   componentDidMount() {
+    if (this.props.active === false) {
+      return;
+    }
+
+    this.startPolling();
+  }
+
+  startPolling = () => {
+    if (this.state.interval) {
+      return;
+    }
+
     const interval = window.setInterval(this.fetchConversation, 5_000);
     this.setState({ interval }, () => {
       this.fetchConversation();
     });
-  }
+  };
+
+  stopPolling = (updateState = true) => {
+    if (!this.state.interval) {
+      return;
+    }
+
+    clearInterval(this.state.interval);
+    if (updateState) {
+      this.setState({ interval: undefined });
+    }
+  };
 
   componentDidUpdate(previousProps) {
     // If username changed, fetch new conversation
@@ -41,14 +65,26 @@ class ChatSession extends Component {
       previousProps.username !== this.props.username ||
       (!previousProps.active && this.props.active)
     ) {
-      this.fetchConversation();
+      const usernameChanged = previousProps.username !== this.props.username;
+      this.setState(usernameChanged ? { message: '' } : {}, () => {
+        this.fetchConversation();
+        if (this.props.active !== false) {
+          this.focusInput();
+        }
+      });
+    }
+
+    if (previousProps.active === false && this.props.active !== false) {
+      this.startPolling();
+    }
+
+    if (previousProps.active !== false && this.props.active === false) {
+      this.stopPolling();
     }
   }
 
   componentWillUnmount() {
-    if (this.state.interval) {
-      clearInterval(this.state.interval);
-    }
+    this.stopPolling(false);
   }
 
   fetchConversation = async () => {
@@ -89,14 +125,14 @@ class ChatSession extends Component {
     if (!username || !message) return;
 
     await chat.send({ message, username });
-    this.messageRef.current.value = '';
+    this.setState({ message: '' });
 
     // Refresh to show new message
     await this.fetchConversation();
   };
 
   sendReply = async () => {
-    const message = this.messageRef?.current?.value;
+    const { message } = this.state;
     if (!message || !message.trim()) return;
 
     await this.sendMessage(message.trim());
@@ -104,7 +140,7 @@ class ChatSession extends Component {
 
   validInput = () => {
     const { username } = this.props;
-    const message = this.messageRef?.current?.value;
+    const { message } = this.state;
     return username && message && message.trim().length > 0;
   };
 
@@ -142,7 +178,7 @@ class ChatSession extends Component {
 
   render() {
     const { user, username } = this.props;
-    const { conversation, loading } = this.state;
+    const { conversation, loading, message } = this.state;
     const messages = conversation?.messages || [];
 
     if (!username) {
@@ -232,11 +268,15 @@ class ChatSession extends Component {
                         type="text"
                       />
                     }
+                    onChange={(event, { value }) =>
+                      this.setState({ message: value })
+                    }
                     onKeyUp={(event) =>
                       event.key === 'Enter' ? this.sendReply() : ''
                     }
                     ref={(input) => (this.messageRef = input && input.inputRef)}
                     transparent
+                    value={message}
                   />
                 </Segment>
               </Segment.Group>

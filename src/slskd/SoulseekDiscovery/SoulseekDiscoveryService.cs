@@ -4,6 +4,8 @@
 
 namespace slskd.SoulseekDiscovery;
 
+using Microsoft.Extensions.Options;
+using slskd.Mesh;
 using Soulseek;
 
 public interface ISoulseekDiscoveryService
@@ -24,6 +26,16 @@ public interface ISoulseekDiscoveryService
 
     Task<IReadOnlyCollection<SimilarUser>> GetSimilarUsersAsync(CancellationToken cancellationToken = default);
 
+    Task AddMeshRendezvousInterestAsync(CancellationToken cancellationToken = default);
+
+    Task RemoveMeshRendezvousInterestAsync(CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<SimilarUser>> GetMeshRendezvousUsersAsync(CancellationToken cancellationToken = default);
+
+    Task<MeshRendezvousResult> DiscoverMeshRendezvousAsync(CancellationToken cancellationToken = default);
+
+    IReadOnlyCollection<PeerCapabilityRecord> GetPeerCapabilityRecords();
+
     Task<ItemRecommendations> GetItemRecommendationsAsync(string item, CancellationToken cancellationToken = default);
 
     Task<ItemSimilarUsers> GetItemSimilarUsersAsync(string item, CancellationToken cancellationToken = default);
@@ -31,12 +43,14 @@ public interface ISoulseekDiscoveryService
 
 public sealed class SoulseekDiscoveryService : ISoulseekDiscoveryService
 {
-    public SoulseekDiscoveryService(ISoulseekClient client)
+    public SoulseekDiscoveryService(ISoulseekClient client, IOptionsMonitor<MeshOptions>? meshOptions = null)
     {
         Client = client;
+        MeshOptions = meshOptions;
     }
 
     private ISoulseekClient Client { get; }
+    private IOptionsMonitor<MeshOptions>? MeshOptions { get; }
 
     public Task AddInterestAsync(string item, CancellationToken cancellationToken = default)
         => Client.AddInterestAsync(NormalizeItem(item), cancellationToken);
@@ -61,6 +75,23 @@ public sealed class SoulseekDiscoveryService : ISoulseekDiscoveryService
 
     public Task<IReadOnlyCollection<SimilarUser>> GetSimilarUsersAsync(CancellationToken cancellationToken = default)
         => Client.GetSimilarUsersAsync(cancellationToken);
+
+    public Task AddMeshRendezvousInterestAsync(CancellationToken cancellationToken = default)
+        => CreateMeshRendezvousService(probePeerCapabilities: false).RegisterAsync(cancellationToken);
+
+    public Task RemoveMeshRendezvousInterestAsync(CancellationToken cancellationToken = default)
+        => CreateMeshRendezvousService(probePeerCapabilities: false).UnregisterAsync(cancellationToken);
+
+    public Task<IReadOnlyCollection<SimilarUser>> GetMeshRendezvousUsersAsync(CancellationToken cancellationToken = default)
+        => Client.GetMeshRendezvousUsersAsync(cancellationToken);
+
+    public Task<MeshRendezvousResult> DiscoverMeshRendezvousAsync(CancellationToken cancellationToken = default)
+        => CreateMeshRendezvousService(
+            probePeerCapabilities: MeshOptions?.CurrentValue.ProbeSoulseekRendezvousCapabilities ?? true)
+        .DiscoverAsync(cancellationToken);
+
+    public IReadOnlyCollection<PeerCapabilityRecord> GetPeerCapabilityRecords()
+        => Client.PeerCapabilities.Records;
 
     public Task<ItemRecommendations> GetItemRecommendationsAsync(string item, CancellationToken cancellationToken = default)
         => Client.GetItemRecommendationsAsync(NormalizeItem(item), cancellationToken);
@@ -91,4 +122,11 @@ public sealed class SoulseekDiscoveryService : ISoulseekDiscoveryService
 
         return username;
     }
+
+    private MeshRendezvousService CreateMeshRendezvousService(bool probePeerCapabilities)
+        => new MeshRendezvousService(
+            Client,
+            new MeshRendezvousOptions(
+                SoulseekClient.MeshRendezvousInterestTag,
+                probePeerCapabilities));
 }

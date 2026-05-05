@@ -22,6 +22,7 @@ const initialState = {
     y: 0,
   },
   loading: false,
+  message: '',
   room: {
     messages: [],
     users: [],
@@ -55,12 +56,14 @@ class RoomSession extends Component {
       this.setState(initialState, () => {
         if (this.props.active !== false) {
           this.fetchRoom();
+          this.focusInput();
         }
       });
     }
 
     if (previousProps.active === false && this.props.active !== false) {
       this.startPolling();
+      this.focusInput();
     }
 
     if (previousProps.active !== false && this.props.active === false) {
@@ -110,12 +113,7 @@ class RoomSession extends Component {
 
   validInput = () =>
     (this.props.roomName || '').length > 0 &&
-    (
-      (this.messageRef &&
-        this.messageRef.current &&
-        this.messageRef.current.value) ||
-      ''
-    ).length > 0;
+    (this.state.message || '').trim().length > 0;
 
   focusInput = () => {
     if (this.messageRef && this.messageRef.current) {
@@ -137,15 +135,15 @@ class RoomSession extends Component {
 
   sendMessage = async () => {
     const { roomName } = this.props;
-    const message = this.messageRef.current.value;
+    const { message } = this.state;
 
     if (!this.validInput()) {
       return;
     }
 
     try {
-      await rooms.sendMessage({ message, roomName });
-      this.messageRef.current.value = '';
+      await rooms.sendMessage({ message: message.trim(), roomName });
+      this.setState({ message: '' });
     } catch (error) {
       console.error('Failed to send message:', error);
     }
@@ -173,8 +171,12 @@ class RoomSession extends Component {
   };
 
   handleReply = () => {
-    if (this.messageRef && this.messageRef.current) {
-      this.messageRef.current.value = `[${this.state.contextMenu.message.username}] ${this.state.contextMenu.message.message} --> `;
+    const selectedMessage = this.state.contextMenu.message;
+
+    if (this.messageRef && this.messageRef.current && selectedMessage) {
+      this.setState({
+        message: `[${selectedMessage.username}] ${selectedMessage.message} --> `,
+      });
       this.focusInput();
     }
   };
@@ -229,7 +231,7 @@ class RoomSession extends Component {
   render() {
     const { onLeaveRoom, roomName } = this.props;
 
-    const { contextMenu, loading, room } = this.state;
+    const { contextMenu, loading, message, room } = this.state;
 
     if (!roomName || roomName.length === 0) {
       return (
@@ -328,6 +330,9 @@ class RoomSession extends Component {
                             type="text"
                           />
                         }
+                        onChange={(event, { value }) =>
+                          this.setState({ message: value })
+                        }
                         onKeyUp={(event) =>
                           event.key === 'Enter' ? this.sendMessage() : ''
                         }
@@ -335,6 +340,7 @@ class RoomSession extends Component {
                           (this.messageRef = input && input.inputRef)
                         }
                         transparent
+                        value={message}
                       />
                     </Segment>
                   </Segment.Group>

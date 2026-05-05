@@ -2383,6 +2383,7 @@ namespace slskd
 
             // Capabilities - tracks available features per peer
             services.AddSingleton<Capabilities.ICapabilityService, Capabilities.CapabilityService>();
+            services.AddHostedService<Capabilities.SoulseekCapabilityBridgeService>();
 
             // DhtRendezvous services (BitTorrent DHT peer discovery)
             services.AddSingleton(OptionsAtStartup.DhtRendezvous);

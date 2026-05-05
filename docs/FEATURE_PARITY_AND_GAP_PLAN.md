@@ -1,0 +1,261 @@
+# slskdN feature parity and gap plan
+
+Date: 2026-05-04
+
+This document records the current feature/function/network/UI assessment and the implementation plan for closing identified parity, UX, documentation, and validation gaps.
+
+## Current baseline
+
+- Backend build passes with zero warnings.
+- Unit tests pass: 3836 tests.
+- Web production build passes.
+- Full frontend unit tests, backend integration tests, E2E browser tests, and live Soulseek/mesh network interop tests still need to be run after the current remediation series.
+
+## Product parity summary
+
+slskdN is not a minimal slskd fork. It contains the base slskd Soulseek daemon surface plus a large set of native subsystems: mesh/DHT, VirtualSoulfind, SongID, MediaCore, Discovery Graph, collections/sharing, integrated player, social/federated surfaces, Solid, telemetry, automation, and source integrations.
+
+Core slskd parity appears strong:
+
+- Search, browse, downloads, uploads, shares, users, rooms, private messages, options, server state, logs, events, sessions, and compatibility APIs are present.
+- Dedicated compatibility controllers exist for downloads, library, rooms, search, server, and users.
+- Web UI exposes the common slskd flows as first-class navigation.
+
+slskdN-native breadth is high, but UX parity is uneven:
+
+- Backend/API coverage is broader than first-class UI coverage.
+- Advanced features are often available through System panels or APIs rather than guided product flows.
+- Some older UI modules appear superseded or orphaned and should be cleaned up or intentionally restored.
+
+## Feature/function inventory
+
+### Core Soulseek
+
+Status: strong.
+
+Implemented surfaces:
+
+- Search API/UI and search SignalR hub.
+- Browse API/UI with tabbed browsing.
+- Transfer API/UI for downloads and uploads.
+- Shares API/UI and share scan state.
+- Rooms, private conversations, and unified Messages workspace.
+- Users, notes, user cards, user stats, and reputation badges.
+- Options/session/server/logs/events.
+
+Risks:
+
+- Real protocol compatibility still needs live/stub Soulseek interop testing after the vendored runtime sync.
+- Compatibility APIs should be route-inventoried and compared against downstream client expectations.
+
+### Transfers and acquisition
+
+Status: strong for common flows, advanced for specialist flows.
+
+Implemented:
+
+- Downloads/uploads.
+- Auto-replace.
+- Accelerated/multisource downloads.
+- Rescue mode.
+- Source ranking.
+- Fairness, tracing, playback-aware scheduling, swarm analytics.
+
+Risks:
+
+- Rescue and multisource behavior should get targeted integration tests with degraded peers.
+- Advanced APIs are not all surfaced as user-friendly workflows.
+
+### Search/discovery
+
+Status: strong.
+
+Implemented:
+
+- Search filters and ranking.
+- Wishlist/background search.
+- SongID.
+- MusicBrainz panels.
+- Discovery Graph.
+- Soulseek native discovery.
+- Federated taste recommendations.
+
+Risks:
+
+- Native Soulseek mesh rendezvous was API-only after the runtime update. It now needs explicit UI, privacy language, and tests.
+- Discovery surfaces should consistently explain source trust and whether they trigger network calls.
+
+### Player/media UX
+
+Status: strong but complex.
+
+Implemented:
+
+- Footer-safe player drawer.
+- Queue, transport controls, media session support.
+- Local streaming through `/api/v0/streams/{contentId}`.
+- Equalizer, lyrics, spectrum/scope analyzer.
+- Butterchurn/MilkDrop visualizer and experimental native WebGL2/WebGPU engines.
+- External visualizer launcher.
+- ListenBrainz now-playing/scrobble with browser-local token.
+- Listening history, ratings, discovery shelf, radio, crossfade, karaoke/vocal reduction, and Document Picture-in-Picture.
+
+Risks:
+
+- External visualizer is a host process launch surface and must stay opt-in/configured.
+- Browser-local tokens are convenient but not strong secret storage.
+- Streaming and visualizer flows need browser/E2E testing across supported browsers.
+- Native MilkDrop engines should remain labeled experimental until broader device parity is proven.
+
+### Network/mesh
+
+Status: broad and high-risk.
+
+Implemented:
+
+- Soulseek listener and peer/file transfer paths.
+- Web HTTP/HTTPS/UDS.
+- SignalR hubs.
+- DHT rendezvous.
+- Shared UDP listener.
+- UDP/QUIC mesh overlay.
+- Relay controller/agent mode.
+- Mesh service fabric.
+- NAT detection and network health surfaces.
+
+Risks:
+
+- Mesh/DHT/QUIC/service fabric is the highest-complexity area and needs dedicated adverse-network tests.
+- Public discovery paths must remain explicit and documented.
+- Anonymous network endpoints need an allowlist and abuse-control review.
+
+### Security/privacy
+
+Status: broad controls, needs endpoint-level audit artifact.
+
+Good current properties:
+
+- Mutating controller files use `ValidateCsrfForCookiesOnly`.
+- Auth policies and admin-only/JWT-only paths exist.
+- Hardening validator exists for dangerous startup combinations.
+- Port-scoped CSRF token cookies are used.
+- Soulseek mesh rendezvous publication now has an explicit default-off option.
+
+Risks:
+
+- Anonymous endpoints need a documented allowlist.
+- Mesh service fabric and HTTP gateway need a focused threat model.
+- Source integrations and MediaCore retrieval paths need SSRF/path traversal verification.
+- Logs, diagnostics, reports, metrics, and route debugging must avoid leaking sensitive environment details.
+
+## Identified gaps
+
+### G1. Mesh rendezvous UX
+
+Problem: Backend/client functions existed for Soulseek interest-based mesh rendezvous, but there was no obvious UI for status, privacy warning, add/remove interest, or discovered users.
+
+Plan:
+
+- Add backend status endpoint.
+- Add web client helper.
+- Add System -> Mesh panel card with privacy warning, status, add/remove controls, and user list.
+- Add tests.
+
+Status: backend status endpoint and System -> Mesh UI controls implemented. Tests still pending.
+
+### G2. Generated route inventory
+
+Problem: The backend has more than 100 controller files. Manual route review is fragile.
+
+Plan:
+
+- Add a script or build target that emits route, method, auth, CSRF, anonymous, and versioning metadata.
+- Commit generated `docs/system-surfaces-current.md`.
+- Mark each route as UI-called, external/API-only, or anonymous-public.
+
+Status: pending.
+
+### G3. API version consistency
+
+Problem: Most APIs are under `/api/v0`, but some are plain `/api/...`.
+
+Plan:
+
+- Inventory non-versioned APIs.
+- Classify as legacy compatibility or inconsistency.
+- Add versioned aliases for inconsistent routes.
+- Preserve old routes where compatibility matters.
+
+Status: pending.
+
+### G4. Stale/orphan UI modules
+
+Problem: Some components appear superseded or disconnected, including older pod/chat/room menu modules and SwarmVisualization.
+
+Plan:
+
+- Generate import graph.
+- Remove truly orphaned code.
+- Reconnect intentionally hidden surfaces.
+- Add route smoke tests for all top-level routes.
+
+Status: pending.
+
+### G5. Advanced-feature UX productization
+
+Problem: Several powerful features are admin/API-first.
+
+Plan:
+
+- Add guided “Network Health”, “Improve Downloads”, “Discover Music”, “Share Collection”, “Play Local Files”, and “Join Listening Party” flows.
+- Reduce cognitive load in System by grouping experimental/admin panels.
+- Add clear “experimental” labels where behavior is not mature.
+
+Status: pending.
+
+### G6. Full validation pass
+
+Problem: Build/unit/web-build are clean, but full frontend, integration, E2E, and network interop are not yet validated in this pass.
+
+Plan:
+
+- Run full `npm test`.
+- Run integration tests.
+- Run E2E smoke for navigation, search, transfers, messages, player streaming, and System panels.
+- Run Soulseek runtime interop contract tests.
+- Run mesh/DHT adverse-network smoke tests.
+
+Status: pending.
+
+### G7. Security allowlist and threat model
+
+Problem: Public/anonymous endpoints and mesh/service-fabric surfaces need a current operator-readable audit artifact.
+
+Plan:
+
+- Document all anonymous routes and why they are public.
+- Document rate limits and payload limits per public route family.
+- Threat-model mesh service fabric, relay, streaming tickets, source feeds, ActivityPub/WebFinger, Solid, and external visualizer.
+- Add tests for expected auth/CSRF behavior.
+
+Status: pending.
+
+## Implementation order
+
+1. Implement Mesh rendezvous UX and tests.
+2. Generate route inventory and current surface documentation.
+3. Add route/UI parity matrix.
+4. Clean or reconnect stale UI modules.
+5. Normalize or document API version exceptions.
+6. Add full-route smoke tests and run full frontend test suite.
+7. Run backend integration/E2E/network validation.
+8. Complete security allowlist and threat model.
+
+## Completion criteria
+
+- Every top-level feature has backend/API status, web UI status, test status, and doc status.
+- All public/anonymous routes are documented with abuse controls.
+- All top-level web routes have smoke coverage.
+- Core slskd compatibility routes are checked against downstream expectations.
+- Mesh rendezvous is explicitly opt-in, visible, and reversible from the UI.
+- Full validation suite results are documented.

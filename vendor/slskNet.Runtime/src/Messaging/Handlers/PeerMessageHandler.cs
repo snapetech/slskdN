@@ -24,6 +24,7 @@
 namespace Soulseek.Messaging.Handlers
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
@@ -38,6 +39,11 @@ namespace Soulseek.Messaging.Handlers
     internal sealed class PeerMessageHandler : IPeerMessageHandler
     {
         /// <summary>
+        ///     A callback used for handling custom peer messages.
+        /// </summary>
+        private delegate Task CustomPeerMessageHandler(IMessageConnection connection, byte[] payload);
+
+        /// <summary>
         ///     Initializes a new instance of the <see cref="PeerMessageHandler"/> class.
         /// </summary>
         /// <param name="soulseekClient">The ISoulseekClient instance to use.</param>
@@ -49,6 +55,7 @@ namespace Soulseek.Messaging.Handlers
             SoulseekClient = soulseekClient ?? throw new ArgumentNullException(nameof(soulseekClient));
             Diagnostic = diagnosticFactory ??
                 new DiagnosticFactory(SoulseekClient.Options.MinimumDiagnosticLevel, (e) => DiagnosticGenerated?.Invoke(this, e));
+            CustomPeerMessageHandlers = new ConcurrentDictionary<int, CustomPeerMessageHandler>();
         }
 
         /// <summary>
@@ -68,6 +75,7 @@ namespace Soulseek.Messaging.Handlers
 
         private IDiagnosticFactory Diagnostic { get; }
         private SoulseekClient SoulseekClient { get; }
+        private ConcurrentDictionary<int, CustomPeerMessageHandler> CustomPeerMessageHandlers { get; }
 
         /// <summary>
         ///     Handles incoming messages.
@@ -87,12 +95,29 @@ namespace Soulseek.Messaging.Handlers
         public async void HandleMessageRead(object sender, byte[] message)
         {
             var connection = (IMessageConnection)sender;
-            var code = new MessageReader<MessageCode.Peer>(message).ReadCode();
-
-            Diagnostic.Debug($"Peer message received: {code} from {connection.Username} ({connection.IPEndPoint}) (id: {connection.Id})");
+            var displayCode = "unknown";
 
             try
             {
+                if (message.Length < 8)
+                {
+                    throw new MessageReadException("The peer message payload must include a 4-byte code and body length prefix");
+                }
+
+                var codeInt = BitConverter.ToInt32(message, 4);
+                var isKnownCode = Enum.IsDefined(typeof(MessageCode.Peer), codeInt);
+                var code = isKnownCode ? (MessageCode.Peer)codeInt : default;
+                var payload = message.Skip(8).ToArray();
+                displayCode = isKnownCode ? code.ToString() : codeInt.ToString();
+
+                Diagnostic.Debug($"Peer message received: {displayCode} from {connection.Username} ({connection.IPEndPoint}) (id: {connection.Id})");
+
+                if (!isKnownCode && CustomPeerMessageHandlers.TryGetValue(codeInt, out var handler))
+                {
+                    await handler(connection, payload).ConfigureAwait(false);
+                    return;
+                }
+
                 switch (code)
                 {
                     case MessageCode.Peer.SearchResponse:
@@ -339,14 +364,57 @@ namespace Soulseek.Messaging.Handlers
                         break;
 
                     default:
-                        Diagnostic.Debug($"Unhandled peer message: {code} from {connection.Username} ({connection.IPEndPoint}); {message.Length} bytes");
+                        Diagnostic.Debug($"Unhandled peer message: {displayCode} from {connection.Username} ({connection.IPEndPoint}); {message.Length} bytes");
                         break;
                 }
             }
             catch (Exception ex)
             {
-                Diagnostic.Warning($"Error handling peer message: {code} from {connection.Username} ({connection.IPEndPoint}); {ex.Message}", ex);
+                Diagnostic.Warning($"Error handling peer message: {displayCode} from {connection.Username} ({connection.IPEndPoint}); {ex.Message}", ex);
             }
+        }
+
+        /// <summary>
+        ///     Registers a handler for a custom peer message code.
+        /// </summary>
+        /// <param name="messageCode">The peer message code.</param>
+        /// <param name="handler">The handler invoked when the custom peer message is received.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="messageCode"/> is less than zero.</exception>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="handler"/> is null.</exception>
+        public void RegisterPeerMessageHandler(int messageCode, Func<string, IPEndPoint, byte[], Task> handler)
+        {
+            if (messageCode < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(messageCode), "The peer message code must be greater than or equal to zero.");
+            }
+
+            if (handler == null)
+            {
+                throw new ArgumentNullException(nameof(handler));
+            }
+
+            CustomPeerMessageHandlers.AddOrUpdate(
+                messageCode,
+                _ => new CustomPeerMessageHandler((connection, data) => handler(connection.Username, connection.IPEndPoint, data)),
+                (_, __) => new CustomPeerMessageHandler((connection, data) => handler(connection.Username, connection.IPEndPoint, data)));
+        }
+
+        /// <summary>
+        ///     Unregisters a handler for a custom peer message code.
+        /// </summary>
+        /// <param name="messageCode">The peer message code.</param>
+        /// <returns>
+        ///     A value indicating whether a handler was removed.
+        /// </returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="messageCode"/> is less than zero.</exception>
+        public bool UnregisterPeerMessageHandler(int messageCode)
+        {
+            if (messageCode < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(messageCode), "The peer message code must be greater than or equal to zero.");
+            }
+
+            return CustomPeerMessageHandlers.TryRemove(messageCode, out _);
         }
 
         /// <summary>

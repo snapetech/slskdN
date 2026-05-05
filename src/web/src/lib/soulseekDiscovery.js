@@ -26,6 +26,24 @@ export const getUserInterests = ({ username }) =>
 
 export const getSimilarUsers = () => api.get('/soulseek/users/similar');
 
+export const getMeshRendezvousStatus = () =>
+  api.get('/soulseek/mesh-rendezvous/status');
+
+export const addMeshRendezvousInterest = () =>
+  api.post('/soulseek/mesh-rendezvous/interest');
+
+export const removeMeshRendezvousInterest = () =>
+  api.delete('/soulseek/mesh-rendezvous/interest');
+
+export const getMeshRendezvousUsers = () =>
+  api.get('/soulseek/mesh-rendezvous/users');
+
+export const discoverMeshRendezvous = () =>
+  api.get('/soulseek/mesh-rendezvous/discover');
+
+export const getPeerCapabilities = () =>
+  api.get('/soulseek/peer-capabilities');
+
 export const getItemRecommendations = ({ item }) =>
   api.get(`/soulseek/items/${encodeURIComponent(item)}/recommendations`);
 

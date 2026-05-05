@@ -117,6 +117,12 @@ public sealed class CapabilityFileService
             }
         }
 
+        var runtimeCapabilities = await TryGetRuntimeCapabilitiesAsync(username, cancellationToken).ConfigureAwait(false);
+        if (runtimeCapabilities is not null)
+        {
+            return runtimeCapabilities;
+        }
+
         // Try each path until one works
         var pathsToTry = new[] { CapabilityFilePath }.Concat(AlternativePaths);
 
@@ -190,6 +196,93 @@ public sealed class CapabilityFileService
 
         _logger.LogDebug("No capability file available from {Username}", username);
         return null;
+    }
+
+    private async Task<CapabilityFileContent?> TryGetRuntimeCapabilitiesAsync(
+        string username,
+        CancellationToken cancellationToken)
+    {
+        var fromRegistry = BuildCapabilityFileFromRuntimeRecord(username);
+        if (fromRegistry is not null)
+        {
+            return fromRegistry;
+        }
+
+        if (!_soulseekClient.State.HasFlag(SoulseekClientStates.Connected) ||
+            !_soulseekClient.State.HasFlag(SoulseekClientStates.LoggedIn) ||
+            _soulseekClient.PeerCapabilityDescriptor is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            void Handler(object? sender, PeerCapabilityReceivedEventArgs e)
+            {
+                if (string.Equals(e.Record.Username, username, StringComparison.OrdinalIgnoreCase))
+                {
+                    completion.TrySetResult(true);
+                }
+            }
+
+            _soulseekClient.PeerCapabilityReceived += Handler;
+            try
+            {
+                await _soulseekClient.SendPeerCapabilityAsync(username, cancellationToken: cancellationToken).ConfigureAwait(false);
+                var completed = await Task.WhenAny(completion.Task, Task.Delay(TimeSpan.FromSeconds(2), cancellationToken)).ConfigureAwait(false);
+                if (completed == completion.Task)
+                {
+                    return BuildCapabilityFileFromRuntimeRecord(username);
+                }
+            }
+            finally
+            {
+                _soulseekClient.PeerCapabilityReceived -= Handler;
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogDebug(ex, "Runtime capability probe failed for {Username}", username);
+        }
+
+        return null;
+    }
+
+    private CapabilityFileContent? BuildCapabilityFileFromRuntimeRecord(string username)
+    {
+        var registry = _soulseekClient.PeerCapabilities;
+        if (registry is null || !registry.TryGet(username, out var record))
+        {
+            return null;
+        }
+
+        var content = new CapabilityFileContent
+        {
+            Client = "slskdn",
+            Version = "runtime-capability-v1",
+            ProtocolVersion = 1,
+            Capabilities = ParseCapabilitiesFromFeatures(record.Descriptor.Features),
+            Features = record.Descriptor.Features.ToArray(),
+            OverlayPort = record.Descriptor.OverlayPort ?? 0,
+            Timestamp = record.ObservedAt,
+        };
+
+        var peerCaps = new PeerCapabilities
+        {
+            Username = username,
+            Flags = content.Capabilities,
+            ClientVersion = $"{content.Client}/{content.Version}",
+            ProtocolVersion = 1,
+        };
+        _capabilityService.SetPeerCapabilities(username, peerCaps);
+        _cache[username] = new CachedCapabilityFile
+        {
+            Content = content,
+            FetchedAt = DateTimeOffset.UtcNow,
+        };
+
+        return content;
     }
 
     private async Task<byte[]?> DownloadSmallFileWithTimeoutAsync(

@@ -13,6 +13,39 @@ using Xunit;
 public sealed class CapabilityFileServiceTests
 {
     [Fact]
+    public async Task RequestCapabilityFileAsync_UsesRuntimeCapabilityRegistryBeforeBrowse()
+    {
+        var registry = new PeerCapabilityRegistry();
+        registry.Update(
+            "alice",
+            null!,
+            new PeerCapabilityEnvelope(
+                PeerCapabilityMessageType.Hello,
+                new PeerCapabilityDescriptor("peer-id", new[] { "mesh_sync", "swarm_download" }, overlayPort: 50305)));
+        var client = new Mock<ISoulseekClient>();
+        client.SetupGet(soulseekClient => soulseekClient.PeerCapabilities).Returns(registry);
+        var capabilityService = new Mock<ICapabilityService>();
+        var service = new CapabilityFileService(
+            Mock.Of<ILogger<CapabilityFileService>>(),
+            capabilityService.Object,
+            client.Object);
+
+        var content = await service.RequestCapabilityFileAsync("alice");
+
+        Assert.NotNull(content);
+        Assert.Equal("runtime-capability-v1", content!.Version);
+        Assert.True(content.Capabilities.HasFlag(PeerCapabilityFlags.SupportsMeshSync));
+        Assert.True(content.Capabilities.HasFlag(PeerCapabilityFlags.SupportsSwarm));
+        client.Verify(soulseekClient => soulseekClient.BrowseAsync(
+            It.IsAny<string>(),
+            It.IsAny<BrowseOptions>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        capabilityService.Verify(service => service.SetPeerCapabilities(
+            "alice",
+            It.Is<PeerCapabilities>(capabilities => capabilities.CanMeshSync && capabilities.CanSwarm)), Times.Once);
+    }
+
+    [Fact]
     public void ParseCapabilityFile_AcceptsTrimmedIdentityWithoutFlags()
     {
         var service = new CapabilityFileService(

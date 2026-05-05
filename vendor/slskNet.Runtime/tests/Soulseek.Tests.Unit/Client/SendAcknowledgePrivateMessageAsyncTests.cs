@@ -18,9 +18,11 @@
 namespace Soulseek.Tests.Unit.Client
 {
     using System;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Moq;
+    using Soulseek.Messaging;
     using Soulseek.Messaging.Messages;
     using Soulseek.Network;
     using Soulseek.Network.Tcp;
@@ -208,6 +210,66 @@ namespace Soulseek.Tests.Unit.Client
                 var ex = await Record.ExceptionAsync(() => s.SendPrivateMessageAsync("foo", "bar"));
 
                 Assert.Null(ex);
+            }
+        }
+
+        [Trait("Category", "SendPrivateMessageAsync")]
+        [Fact(DisplayName = "SendPrivateMessageAsync to multiple users deduplicates recipients")]
+        public async Task SendPrivateMessageAsync_To_Multiple_Users_Deduplicates_Recipients()
+        {
+            IOutgoingMessage capturedMessage = null;
+            var conn = new Mock<IMessageConnection>();
+            conn.Setup(m => m.State)
+                .Returns(ConnectionState.Connected);
+            conn.Setup(m => m.WriteAsync(It.IsAny<IOutgoingMessage>(), It.IsAny<CancellationToken>()))
+                .Callback<IOutgoingMessage, CancellationToken?>((message, _) => capturedMessage = message)
+                .Returns(Task.CompletedTask);
+
+            using (var s = new SoulseekClient(minorVersion: 9999, serverConnection: conn.Object))
+            {
+                s.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+
+                await s.SendPrivateMessageAsync(new[] { "foo", "FOO", "bar" }, "message");
+            }
+
+            var reader = new MessageReader<MessageCode.Server>(capturedMessage.ToByteArray());
+
+            Assert.Equal(MessageCode.Server.MessageUsers, reader.ReadCode());
+            Assert.Equal(2, reader.ReadInteger());
+            Assert.Equal("foo", reader.ReadString());
+            Assert.Equal("bar", reader.ReadString());
+            Assert.Equal("message", reader.ReadString());
+        }
+
+        [Trait("Category", "SendPrivateMessageAsync")]
+        [Fact(DisplayName = "SendPrivateMessageAsync to multiple users validates null entries before deduplication")]
+        public async Task SendPrivateMessageAsync_To_Multiple_Users_Validates_Null_Entries_Before_Deduplication()
+        {
+            using (var s = new SoulseekClient(minorVersion: 9999))
+            {
+                s.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+
+                var ex = await Record.ExceptionAsync(() => s.SendPrivateMessageAsync(new[] { "foo", null }, "message"));
+
+                Assert.NotNull(ex);
+                Assert.IsType<ArgumentException>(ex);
+            }
+        }
+
+        [Trait("Category", "SendPrivateMessageAsync")]
+        [Fact(DisplayName = "SendPrivateMessageAsync to multiple users throws given too many recipients")]
+        public async Task SendPrivateMessageAsync_To_Multiple_Users_Throws_Given_Too_Many_Recipients()
+        {
+            var usernames = Enumerable.Range(0, 101).Select(i => $"user{i}");
+
+            using (var s = new SoulseekClient(minorVersion: 9999))
+            {
+                s.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+
+                var ex = await Record.ExceptionAsync(() => s.SendPrivateMessageAsync(usernames, "message"));
+
+                Assert.NotNull(ex);
+                Assert.IsType<ArgumentException>(ex);
             }
         }
 

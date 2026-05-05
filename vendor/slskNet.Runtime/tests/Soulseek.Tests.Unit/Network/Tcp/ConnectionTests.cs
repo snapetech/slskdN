@@ -170,7 +170,7 @@ namespace Soulseek.Tests.Unit.Network.Tcp
         [Theory(DisplayName = "Instantiates with started InactivityTimer if timeout is > 0 and TcpClient is connected"), AutoData]
         public void Instantiates_With_Started_InactivityTimer_If_Timeout_Is_GT_0_And_TcpClient_Is_Connected(IPEndPoint endpoint)
         {
-            var options = new ConnectionOptions(1, 1, 1, inactivityTimeout: 1);
+            var options = new ConnectionOptions(1, 1, 1, inactivityTimeout: 1000);
 
             using (var socket = new Socket(SocketType.Stream, ProtocolType.IP))
             {

@@ -24,6 +24,8 @@
 namespace Soulseek.Messaging.Handlers
 {
     using System;
+    using System.Net;
+    using System.Threading.Tasks;
     using Soulseek.Network;
 
     /// <summary>
@@ -40,6 +42,23 @@ namespace Soulseek.Messaging.Handlers
         ///     Occurs when a user reports that a download has failed.
         /// </summary>
         event EventHandler<DownloadFailedEventArgs> DownloadFailed;
+
+        /// <summary>
+        ///     Registers a handler for custom peer message codes.
+        /// </summary>
+        /// <param name="messageCode">The peer message code.</param>
+        /// <param name="handler">A handler invoked with sender username, sender endpoint, and peer payload.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="handler"/> is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="messageCode"/> is less than zero.</exception>
+        void RegisterPeerMessageHandler(int messageCode, Func<string, IPEndPoint, byte[], Task> handler);
+
+        /// <summary>
+        ///     Unregisters a custom peer message handler.
+        /// </summary>
+        /// <param name="messageCode">The peer message code.</param>
+        /// <returns>A value indicating whether a handler was removed.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="messageCode"/> is less than zero.</exception>
+        bool UnregisterPeerMessageHandler(int messageCode);
 
         /// <summary>
         ///     Handles the receipt of incoming messages, prior to the body having been read and parsed.

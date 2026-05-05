@@ -172,6 +172,35 @@ namespace Soulseek.Tests.Unit.Client
         }
 
         [Trait("Category", "GetUserEndPointAsync")]
+        [Theory(DisplayName = "GetUserEndPointAsync returns regular endpoint when obfuscated endpoint is preferred"), AutoData]
+        public async Task GetUserEndPointAsync_Returns_Regular_Endpoint_When_Obfuscated_Endpoint_Is_Preferred(string username, IPAddress ip, int port)
+        {
+            port = Math.Abs(port % 40000) + 1024;
+            var obfuscatedPort = port + 1;
+            var waiter = new Mock<IWaiter>();
+            waiter.Setup(m => m.Wait<UserAddressResponse>(It.IsAny<WaitKey>(), null, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(new UserAddressResponse(username, ip, port, obfuscationType: 1, obfuscatedPort: obfuscatedPort)));
+
+            var conn = new Mock<IMessageConnection>();
+            conn.Setup(m => m.WriteAsync(It.IsAny<IOutgoingMessage>(), It.IsAny<CancellationToken?>()))
+                .Returns(Task.CompletedTask);
+
+            var options = new SoulseekClientOptions(peerObfuscationOptions: new PeerObfuscationOptions(enabled: true, listenPort: 24000, preferOutbound: true));
+
+            using (var s = new SoulseekClient(minorVersion: 9999, serverConnection: conn.Object, waiter: waiter.Object, options: options))
+            {
+                s.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+
+                var addr = await s.GetUserEndPointAsync(username);
+
+                Assert.Equal(ip, addr.Address);
+                Assert.Equal(port, addr.Port);
+                Assert.True(s.TryGetObfuscatedPeerEndPoint(username, ip, out var obfuscatedEndPoint));
+                Assert.Equal(obfuscatedPort, obfuscatedEndPoint.Port);
+            }
+        }
+
+        [Trait("Category", "GetUserEndPointAsync")]
         [Theory(DisplayName = "GetUserEndPointAsync returns cached endpoint if cached"), AutoData]
         public async Task GetUserEndPointAsync_Returns_Cached_Endpoint_If_Cached(string username, IPEndPoint endpoint)
         {

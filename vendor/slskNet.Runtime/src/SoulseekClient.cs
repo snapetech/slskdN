@@ -48,6 +48,11 @@ namespace Soulseek
     /// </summary>
     public class SoulseekClient : ISoulseekClient
     {
+        /// <summary>
+        ///     Magic interest tag used by slskdN peers for interest-based mesh rendezvous.
+        /// </summary>
+        public const string MeshRendezvousInterestTag = "slskdn-mesh-v1";
+
         private const string DefaultAddress = "server.slsknet.org";
         private const int DefaultPort = 2271;
         private const int MaximumMessageUsersRecipients = 100;
@@ -163,6 +168,7 @@ namespace Soulseek
 
             PeerMessageHandler = peerMessageHandler ?? new PeerMessageHandler(this);
             PeerMessageHandler.DiagnosticGenerated += (sender, e) => DiagnosticGenerated?.Invoke(sender, e);
+            PeerMessageHandler.RegisterPeerMessageHandler(PeerCapabilityEnvelope.MessageCode, HandlePeerCapabilityMessageAsync);
             PeerMessageHandler.DownloadFailed += (sender, e) =>
             {
                 // this is also handled in PeerMessageHandler, but the logic in there throws a wait, and we're not guaranteed
@@ -477,6 +483,11 @@ namespace Soulseek
         public event EventHandler<SearchResponseReceivedEventArgs> SearchResponseReceived;
 
         /// <summary>
+        ///     Occurs when a slskdN peer capability descriptor is received.
+        /// </summary>
+        public event EventHandler<PeerCapabilityReceivedEventArgs> PeerCapabilityReceived;
+
+        /// <summary>
         ///     Occurs when a search changes state.
         /// </summary>
         public event EventHandler<SearchStateChangedEventArgs> SearchStateChanged;
@@ -561,6 +572,16 @@ namespace Soulseek
         ///     Gets information sent by the server upon login.
         /// </summary>
         public ServerInfo ServerInfo { get; private set; } = new ServerInfo(parentMinSpeed: null, parentSpeedRatio: null, wishlistInterval: null, isSupporter: null);
+
+        /// <summary>
+        ///     Gets the known slskdN peer capability registry.
+        /// </summary>
+        public PeerCapabilityRegistry PeerCapabilities { get; } = new PeerCapabilityRegistry();
+
+        /// <summary>
+        ///     Gets the local slskdN peer capability descriptor advertised in capability acknowledgements.
+        /// </summary>
+        public PeerCapabilityDescriptor PeerCapabilityDescriptor { get; private set; }
 
         /// <summary>
         ///     Gets the current state of the underlying TCP connection.
@@ -1994,6 +2015,48 @@ namespace Soulseek
         }
 
         /// <summary>
+        ///     Asynchronously adds the standardized mesh rendezvous interest tag to the current user's liked interests.
+        /// </summary>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <returns>The Task representing the asynchronous operation.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the client is not connected or logged in.</exception>
+        /// <exception cref="TimeoutException">Thrown when the operation has timed out.</exception>
+        /// <exception cref="OperationCanceledException">Thrown when the operation has been canceled.</exception>
+        /// <exception cref="SoulseekClientException">Thrown when an exception is encountered during the operation.</exception>
+        public Task AddMeshRendezvousInterestAsync(CancellationToken? cancellationToken = null)
+        {
+            return AddInterestAsync(MeshRendezvousInterestTag, cancellationToken);
+        }
+
+        /// <summary>
+        ///     Asynchronously removes the standardized mesh rendezvous interest tag from the current user's liked interests.
+        /// </summary>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <returns>The Task representing the asynchronous operation.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the client is not connected or logged in.</exception>
+        /// <exception cref="TimeoutException">Thrown when the operation has timed out.</exception>
+        /// <exception cref="OperationCanceledException">Thrown when the operation has been canceled.</exception>
+        /// <exception cref="SoulseekClientException">Thrown when an exception is encountered during the operation.</exception>
+        public Task RemoveMeshRendezvousInterestAsync(CancellationToken? cancellationToken = null)
+        {
+            return RemoveInterestAsync(MeshRendezvousInterestTag, cancellationToken);
+        }
+
+        /// <summary>
+        ///     Asynchronously returns users with interests similar to the current user's interests.
+        /// </summary>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <returns>The Task representing the asynchronous operation, including the response.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the client is not connected or logged in.</exception>
+        /// <exception cref="TimeoutException">Thrown when the operation has timed out.</exception>
+        /// <exception cref="OperationCanceledException">Thrown when the operation has been canceled.</exception>
+        /// <exception cref="SoulseekClientException">Thrown when an exception is encountered during the operation.</exception>
+        public Task<IReadOnlyCollection<SimilarUser>> GetMeshRendezvousUsersAsync(CancellationToken? cancellationToken = null)
+        {
+            return GetSimilarUsersAsync(cancellationToken);
+        }
+
+        /// <summary>
         ///     Asynchronously adds the specified <paramref name="item"/> to the current user's hated interests.
         /// </summary>
         /// <param name="item">The interest item to add.</param>
@@ -2556,6 +2619,102 @@ namespace Soulseek
             }
 
             return SendPrivateMessageInternalAsync(usernameList.AsReadOnly(), message, cancellationToken ?? CancellationToken.None);
+        }
+
+        /// <summary>
+        ///     Asynchronously sends a peer message with a custom code and payload to the specified <paramref name="username"/> over the peer connection.
+        /// </summary>
+        /// <param name="username">The user to which the message is to be sent.</param>
+        /// <param name="messageCode">The 32-bit peer message code.</param>
+        /// <param name="payload">The peer message payload bytes.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <returns>The Task representing the asynchronous operation.</returns>
+        /// <exception cref="ArgumentException">
+        ///     Thrown when the <paramref name="username"/> is null or empty.
+        /// </exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="messageCode"/> is less than zero.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the client is not connected or logged in.</exception>
+        /// <exception cref="TimeoutException">Thrown when the operation has timed out.</exception>
+        /// <exception cref="OperationCanceledException">Thrown when the operation has been cancelled.</exception>
+        /// <exception cref="SoulseekClientException">Thrown when an exception is encountered during the operation.</exception>
+        public Task SendPeerMessageAsync(string username, int messageCode, byte[] payload, CancellationToken? cancellationToken = null)
+        {
+            ValidateUsername(username);
+            ValidatePeerMessageCode(messageCode);
+            EnsureConnectedAndLoggedIn("send a peer message");
+
+            return SendPeerMessageInternalAsync(username, messageCode, payload, cancellationToken ?? CancellationToken.None);
+        }
+
+        /// <summary>
+        ///     Asynchronously sends the local or supplied slskdN peer capability descriptor to the specified <paramref name="username"/>.
+        /// </summary>
+        /// <param name="username">The user to which the capability descriptor is to be sent.</param>
+        /// <param name="descriptor">The descriptor to send, or null to use <see cref="PeerCapabilityDescriptor"/>.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <returns>The Task representing the asynchronous operation.</returns>
+        public Task SendPeerCapabilityAsync(string username, PeerCapabilityDescriptor descriptor = null, CancellationToken? cancellationToken = null)
+        {
+            ValidateUsername(username);
+            EnsureConnectedAndLoggedIn("send a peer capability hello");
+
+            descriptor ??= PeerCapabilityDescriptor;
+
+            if (descriptor == null)
+            {
+                throw new InvalidOperationException("A peer capability descriptor must be supplied or configured before it can be sent.");
+            }
+
+            var envelope = new PeerCapabilityEnvelope(PeerCapabilityMessageType.Hello, descriptor);
+            return SendPeerMessageInternalAsync(username, PeerCapabilityEnvelope.MessageCode, envelope.ToByteArray(), cancellationToken ?? CancellationToken.None);
+        }
+
+        /// <summary>
+        ///     Registers a handler for custom peer message codes.
+        /// </summary>
+        /// <param name="messageCode">The peer message code.</param>
+        /// <param name="handler">A handler invoked with sender username, sender endpoint, and peer payload.</param>
+        public void RegisterPeerMessageHandler(int messageCode, Func<string, IPEndPoint, byte[], Task> handler)
+        {
+            ValidatePeerMessageCode(messageCode);
+
+            if (messageCode == PeerCapabilityEnvelope.MessageCode)
+            {
+                throw new ArgumentException("The peer capability message handler is reserved by the runtime.", nameof(messageCode));
+            }
+
+            if (handler == null)
+            {
+                throw new ArgumentNullException(nameof(handler));
+            }
+
+            PeerMessageHandler.RegisterPeerMessageHandler(messageCode, handler);
+        }
+
+        /// <summary>
+        ///     Unregisters a custom peer message handler.
+        /// </summary>
+        /// <param name="messageCode">The peer message code.</param>
+        /// <returns>A value indicating whether the handler was removed.</returns>
+        public bool UnregisterPeerMessageHandler(int messageCode)
+        {
+            ValidatePeerMessageCode(messageCode);
+
+            if (messageCode == PeerCapabilityEnvelope.MessageCode)
+            {
+                throw new ArgumentException("The peer capability message handler is reserved by the runtime.", nameof(messageCode));
+            }
+
+            return PeerMessageHandler.UnregisterPeerMessageHandler(messageCode);
+        }
+
+        /// <summary>
+        ///     Configures the local slskdN peer capability descriptor advertised in capability acknowledgements.
+        /// </summary>
+        /// <param name="descriptor">The descriptor to advertise.</param>
+        public void SetPeerCapabilityDescriptor(PeerCapabilityDescriptor descriptor)
+        {
+            PeerCapabilityDescriptor = descriptor ?? throw new ArgumentNullException(nameof(descriptor));
         }
 
         /// <summary>
@@ -4607,6 +4766,53 @@ namespace Soulseek
             catch (Exception ex) when (!(ex is OperationCanceledException) && !(ex is TimeoutException))
             {
                 throw new SoulseekClientException($"Failed to send private message to {usernames.Count} users: {ex.Message}", ex);
+            }
+        }
+
+        private async Task SendPeerMessageInternalAsync(string username, int messageCode, byte[] payload, CancellationToken cancellationToken)
+        {
+            payload ??= Array.Empty<byte>();
+
+            var endpoint = await GetUserEndPointAsync(username, cancellationToken).ConfigureAwait(false);
+            var connection = await PeerConnectionManager.GetOrAddMessageConnectionAsync(username, endpoint, cancellationToken).ConfigureAwait(false);
+
+            try
+            {
+                var message = new MessageBuilder()
+                    .WriteCode(messageCode)
+                    .WriteBytes(payload)
+                    .Build();
+
+                await connection.WriteAsync(message, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (!(ex is OperationCanceledException) && !(ex is TimeoutException))
+            {
+                throw new SoulseekClientException($"Failed to send peer message to user {username}: {ex.Message}", ex);
+            }
+        }
+
+        private async Task HandlePeerCapabilityMessageAsync(string username, IPEndPoint endpoint, byte[] payload)
+        {
+            var envelope = PeerCapabilityEnvelope.FromByteArray(payload);
+            var record = PeerCapabilities.Update(username, endpoint, envelope);
+            PeerCapabilityReceived?.Invoke(this, new PeerCapabilityReceivedEventArgs(record));
+
+            if (envelope.MessageType == PeerCapabilityMessageType.Hello && PeerCapabilityDescriptor != null)
+            {
+                var response = new PeerCapabilityEnvelope(
+                    PeerCapabilityMessageType.Acknowledgement,
+                    PeerCapabilityDescriptor,
+                    envelope.Nonce);
+
+                await SendPeerMessageInternalAsync(username, PeerCapabilityEnvelope.MessageCode, response.ToByteArray(), CancellationToken.None).ConfigureAwait(false);
+            }
+        }
+
+        private static void ValidatePeerMessageCode(int messageCode)
+        {
+            if (messageCode < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(messageCode), "The peer message code must be greater than or equal to zero.");
             }
         }
 

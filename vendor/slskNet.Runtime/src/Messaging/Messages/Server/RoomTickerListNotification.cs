@@ -78,7 +78,7 @@ namespace Soulseek.Messaging.Messages
             }
 
             var roomName = reader.ReadString();
-            var tickerCount = reader.ReadInteger();
+            var tickerCount = ProtocolCountReader.ReadCount(reader, "room ticker", minimumBytesPerItem: 8);
             var tickers = new List<RoomTicker>();
 
             for (int i = 0; i < tickerCount; i++)

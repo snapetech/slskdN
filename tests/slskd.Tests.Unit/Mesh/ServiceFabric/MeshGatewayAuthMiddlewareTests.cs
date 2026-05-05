@@ -295,10 +295,8 @@ public class MeshGatewayAuthMiddlewareTests
         var logger = NullLoggerFactory.Instance.CreateLogger<MeshGatewayAuthMiddleware>();
         var optionsWrapper = Microsoft.Extensions.Options.Options.Create(options);
 
-        var nextCalled = false;
         RequestDelegate next = (HttpContext ctx) =>
         {
-            nextCalled = true;
             ctx.Response.StatusCode = 200;
             return Task.CompletedTask;
         };

@@ -30,6 +30,9 @@
         [EnvironmentVariable("SLSK_PASSWORD")]
         private static string Password { get; set; }
 
+        [Argument('m', "mesh-target")]
+        private static string MeshTargetUser { get; set; }
+
         private static ConcurrentDictionary<(string Username, string Filename, int Token), (TransferStates State, Spinner Spinner, ProgressBar ProgressBar)> Downloads { get; set; }
             = new ConcurrentDictionary<(string Username, string Filename, int Token), (TransferStates State, Spinner Spinner, ProgressBar ProgressBar)>();
 
@@ -82,6 +85,11 @@
 
                     o($"\nDownload{(response.Files.Count() > 1 ? "s" : string.Empty)} complete.");
                 }
+                else if (!string.IsNullOrEmpty(MeshTargetUser))
+                {
+                    await ConnectAndLogin(client);
+                    await SendMeshPeerPingExample(client, MeshTargetUser, 4096);
+                }
                 else if (!string.IsNullOrEmpty(Artist))
                 {
                     var artist = await SelectArtist(Artist);
@@ -108,6 +116,37 @@
                 }
 
                 client.StateChanged -= Client_ServerStateChanged;
+            }
+        }
+
+        private static async Task SendMeshPeerPingExample(SoulseekClient client, string targetUsername, int messageCode)
+        {
+            o($"\nRegistering mesh ping handler and sending slskdN ping to {targetUsername}...");
+
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            client.RegisterPeerMessageHandler(messageCode, (username, endpoint, payload) =>
+            {
+                var text = Encoding.UTF8.GetString(payload);
+                o($"\nMesh ping response from {username} ({endpoint}): {text}");
+                tcs.TrySetResult(true);
+                return Task.CompletedTask;
+            });
+
+            try
+            {
+                await client.SendPeerMessageAsync(targetUsername, messageCode, Encoding.UTF8.GetBytes("mesh ping"));
+                o("\nMesh ping sent. Waiting briefly for response...");
+
+                var result = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+                if (!tcs.Task.IsCompleted)
+                {
+                    o("\nNo mesh ping response received in the timeout window.");
+                }
+            }
+            finally
+            {
+                client.UnregisterPeerMessageHandler(messageCode);
             }
         }
 

@@ -51,7 +51,7 @@ namespace Soulseek.Messaging.Messages
 
             var username = reader.ReadString();
             var token = reader.ReadInteger();
-            var fileCount = reader.ReadInteger();
+            var fileCount = ProtocolCountReader.ReadCount(reader, "file", minimumBytesPerItem: 4);
 
             var fileList = reader.ReadFiles(fileCount);
 
@@ -69,7 +69,7 @@ namespace Soulseek.Messaging.Messages
 
             if (reader.HasMoreData)
             {
-                var count = reader.ReadInteger();
+                var count = ProtocolCountReader.ReadCount(reader, "locked file", minimumBytesPerItem: 4);
                 lockedFileList = reader.ReadFiles(count);
             }
 

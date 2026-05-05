@@ -7,6 +7,7 @@ namespace slskd.LibraryHealth.API
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Asp.Versioning;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Logging;
@@ -17,6 +18,8 @@ namespace slskd.LibraryHealth.API
     /// </summary>
     [ApiController]
     [Route("api/library/health")]
+    [Route("api/v{version:apiVersion}/library/health")]
+    [ApiVersion("0")]
     [Produces("application/json")]
     [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
     public class LibraryHealthController : ControllerBase

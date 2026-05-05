@@ -61,7 +61,8 @@ namespace Soulseek.Messaging.Messages
         {
             var roomNames = ReadRoomNameList(reader);
 
-            var userCountCount = reader.ReadInteger();
+            var userCountCount = ProtocolCountReader.ReadCount(reader, "room user count", minimumBytesPerItem: 4);
+            ProtocolCountReader.ValidateMatchingCount(roomNames.Count, userCountCount, "room user count");
             var rooms = new List<RoomInfo>();
 
             for (int i = 0; i < userCountCount; i++)
@@ -76,6 +77,12 @@ namespace Soulseek.Messaging.Messages
         private static List<string> ReadRoomNameList(MessageReader<MessageCode.Server> reader)
         {
             var roomCount = reader.ReadInteger();
+
+            if (roomCount < 0)
+            {
+                throw new MessageException($"Invalid room name count: {roomCount}");
+            }
+
             var roomNames = new List<string>();
 
             for (int i = 0; i < roomCount; i++)

@@ -104,15 +104,15 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
                 .WriteBytes(ipBytes)
                 .WriteInteger(endpoint.Port)
                 .WriteInteger(1)
-                .WriteBytes(BitConverter.GetBytes((ushort)(endpoint.Port + 1)))
+                .WriteBytes(new byte[] { 0x34, 0x12 })
                 .Build();
 
             var response = UserAddressResponse.FromByteArray(msg);
 
             Assert.Equal(1, response.ObfuscationType);
-            Assert.Equal(endpoint.Port + 1, response.ObfuscatedPort);
+            Assert.Equal(0x1234, response.ObfuscatedPort);
             Assert.True(response.HasObfuscatedEndpoint);
-            Assert.Equal(endpoint.Port + 1, response.ObfuscatedIPEndPoint.Port);
+            Assert.Equal(0x1234, response.ObfuscatedIPEndPoint.Port);
         }
     }
 }

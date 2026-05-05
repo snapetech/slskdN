@@ -160,6 +160,16 @@ namespace Soulseek.Messaging
         /// </summary>
         /// <param name="code">The desired message code.</param>
         /// <returns>This MessageBuilder.</returns>
+        public MessageBuilder WriteCode(int code)
+        {
+            return WriteCode(BitConverter.GetBytes(code));
+        }
+
+        /// <summary>
+        ///     Sets the message code.
+        /// </summary>
+        /// <param name="code">The desired message code.</param>
+        /// <returns>This MessageBuilder.</returns>
         public MessageBuilder WriteCode(MessageCode.Peer code)
         {
             return WriteCode(BitConverter.GetBytes((int)code));

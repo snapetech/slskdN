@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Synced the vendored `slskNet.Runtime` fork with peer capability descriptors,
+  signed slskdN capability handshakes, mesh rendezvous helpers, wishlist
+  scheduling primitives, protocol-count hardening, and slskdN API/UI integration
+  for runtime peer capability discovery.
 - Shortened the logged-out browser title, description, and PWA name to
   `slskdN`, removing the old unofficial-fork tagline.
 - Fixed admin restart argument forwarding, streaming limiter cleanup during

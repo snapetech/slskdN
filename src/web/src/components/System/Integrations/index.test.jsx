@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom';
+import * as federationDiagnostics from '../../../lib/federationDiagnostics';
 import * as lidarr from '../../../lib/lidarr';
 import * as optionsApi from '../../../lib/options';
 import Integrations from './index';
@@ -13,6 +14,10 @@ vi.mock('../../../lib/lidarr', () => ({
   syncWanted: vi.fn(),
 }));
 
+vi.mock('../../../lib/federationDiagnostics', () => ({
+  getDiagnostics: vi.fn(),
+}));
+
 vi.mock('../../../lib/options', () => ({
   applyOverlay: vi.fn(),
   getYaml: vi.fn(),
@@ -25,6 +30,31 @@ describe('Integrations', () => {
     Object.assign(navigator, {
       clipboard: {
         writeText: vi.fn().mockResolvedValue(undefined),
+      },
+    });
+    federationDiagnostics.getDiagnostics.mockResolvedValue({
+      data: {
+        federation: {
+          baseUrlConfigured: false,
+          domainConfigured: true,
+          enabled: true,
+          exposure: 'Public',
+          verifySignatures: false,
+        },
+        mesh: {
+          selfPeerIdConfigured: true,
+          soulseekRendezvousEnabled: false,
+        },
+        pods: {
+          joinSignatureMode: 'Off',
+          messageSignatureMode: 'Warn',
+        },
+        publishing: {
+          defaultVisibility: 'public',
+          enabled: true,
+          publishableDomains: ['music'],
+        },
+        warnings: ['Public federation is enabled while HTTP signature verification is disabled.'],
       },
     });
   });
@@ -69,6 +99,21 @@ describe('Integrations', () => {
     expect(screen.getByText('http://lidarr.local:8686')).toBeInTheDocument();
     expect(screen.getByText('API Key Configured')).toBeInTheDocument();
     expect(screen.queryByText('secret-key')).not.toBeInTheDocument();
+  });
+
+  it('shows read-only federation and pod diagnostics', async () => {
+    render(<Integrations />);
+
+    expect(await screen.findByText('Federation and Pod Diagnostics')).toBeInTheDocument();
+    expect(screen.getByText('Exposure: Public')).toBeInTheDocument();
+    expect(screen.getByText('HTTP Signatures Off')).toBeInTheDocument();
+    expect(screen.getByText('Pod join signatures')).toBeInTheDocument();
+    expect(screen.getByText('Off')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Public federation is enabled while HTTP signature verification is disabled.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('runs Lidarr admin actions', async () => {

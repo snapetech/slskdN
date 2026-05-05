@@ -37,8 +37,37 @@ namespace Soulseek.Messaging.Messages
         /// <returns>The validated count.</returns>
         public static int ReadCount(MessageReader<MessageCode.Server> reader, string collectionName, int minimumBytesPerItem)
         {
-            var count = reader.ReadInteger();
+            return ReadValidatedCount(reader.ReadInteger(), reader.Remaining, collectionName, minimumBytesPerItem);
+        }
 
+        /// <summary>
+        ///     Reads a protocol collection count from the specified <paramref name="reader"/>.
+        /// </summary>
+        /// <param name="reader">The reader from which to read.</param>
+        /// <param name="collectionName">The name of the collection being read.</param>
+        /// <param name="minimumBytesPerItem">The minimum encoded bytes required for each collection item.</param>
+        /// <returns>The validated count.</returns>
+        public static int ReadCount(MessageReader<MessageCode.Peer> reader, string collectionName, int minimumBytesPerItem)
+        {
+            return ReadValidatedCount(reader.ReadInteger(), reader.Remaining, collectionName, minimumBytesPerItem);
+        }
+
+        /// <summary>
+        ///     Validates that two parallel protocol collections have matching counts.
+        /// </summary>
+        /// <param name="expected">The expected count.</param>
+        /// <param name="actual">The actual count.</param>
+        /// <param name="collectionName">The name of the collection being validated.</param>
+        public static void ValidateMatchingCount(int expected, int actual, string collectionName)
+        {
+            if (actual != expected)
+            {
+                throw new MessageException($"Invalid {collectionName} count: expected {expected}, received {actual}");
+            }
+        }
+
+        private static int ReadValidatedCount(int count, int remaining, string collectionName, int minimumBytesPerItem)
+        {
             if (count < 0)
             {
                 throw new MessageException($"Invalid {collectionName} count: {count}");
@@ -49,7 +78,7 @@ namespace Soulseek.Messaging.Messages
                 throw new MessageException($"Invalid minimum item size for {collectionName}: {minimumBytesPerItem}");
             }
 
-            var maximumPossibleCount = reader.Remaining / minimumBytesPerItem;
+            var maximumPossibleCount = remaining / minimumBytesPerItem;
 
             if (count > maximumPossibleCount)
             {

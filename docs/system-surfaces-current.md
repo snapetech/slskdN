@@ -1,0 +1,243 @@
+# Current API surface inventory
+
+Generated: 2026-05-05T00:34:14Z
+
+This inventory is generated from controller attributes. It is intended for parity/security review, not as a replacement for Swagger or integration tests.
+
+## Summary
+
+- Controller files: 112
+- Versioned API controllers: 93
+- Legacy or compatibility API controllers: 16
+- Protocol controllers outside versioned API routing: 3
+- Other route buckets: 0
+- Controllers with mutating HTTP methods and CSRF attribute missing: 0
+- Controller files containing AllowAnonymous endpoints: 10
+
+Route bucket policy: new web-consumed JSON APIs should be versioned. Non-versioned routes should be compatibility shims, protocol-required endpoints, or explicitly documented exceptions.
+
+## Controllers
+
+| Controller | Class route | Bucket | Auth markers | CSRF | AllowAnonymous | HTTP actions |
+|---|---|---|---|---|---|---:|
+| `src/slskd/API/Compatibility/CompatibilityController.cs` | `"api"` | legacy-or-compatibility | [Authorize] | yes | no | 1 |
+| `src/slskd/API/Compatibility/DownloadsCompatibilityController.cs` | `"api"` | legacy-or-compatibility | [Authorize] [Authorize] [Authorize] | yes | no | 3 |
+| `src/slskd/API/Compatibility/LibraryCompatibilityController.cs` | `"api/library"` | legacy-or-compatibility | [Authorize] | yes | no | 1 |
+| `src/slskd/API/Compatibility/RoomsCompatibilityController.cs` | `"api/rooms"` | legacy-or-compatibility | [Authorize] [Authorize] | yes | no | 2 |
+| `src/slskd/API/Compatibility/SearchCompatibilityController.cs` | `"api"` | legacy-or-compatibility | [Authorize] | yes | no | 1 |
+| `src/slskd/API/Compatibility/ServerCompatibilityController.cs` | `"api/server"` | legacy-or-compatibility | [Authorize] | yes | no | 1 |
+| `src/slskd/API/Compatibility/UsersCompatibilityController.cs` | `"api/compatibility/users"` | legacy-or-compatibility | [Authorize] | yes | no | 1 |
+| `src/slskd/API/Mesh/MeshGatewayController.cs` | `"mesh/http"` | mesh-protocol | [Authorize] | yes | no | 2 |
+| `src/slskd/API/Native/CapabilitiesController.cs` | `"api/slskdn"` | legacy-or-compatibility | [Authorize] | yes | no | 1 |
+| `src/slskd/API/Native/JobsController.cs` | `"api/jobs"<br>"api/v{version:apiVersion}/jobs"` | versioned | [Authorize] [Authorize] [Authorize] [Authorize] [Authorize] | yes | no | 5 |
+| `src/slskd/API/Native/LibraryHealthController.cs` | `"api/slskdn/library"` | legacy-or-compatibility | [Authorize] [Authorize] | yes | no | 2 |
+| `src/slskd/API/Native/LibraryItemsController.cs` | `"api/v{version:apiVersion}/library/items"` | versioned | [Authorize] [Authorize] [Authorize] | yes | no | 3 |
+| `src/slskd/API/Native/MeshStatsController.cs` | `"api/v0/mesh"` | versioned | [Authorize] | yes | no | 1 |
+| `src/slskd/API/Native/PodsController.cs` | `"api/v{version:apiVersion}/pods"` | versioned | [Authorize] | yes | no | 13 |
+| `src/slskd/API/Native/PortForwardingController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize] | yes | no | 6 |
+| `src/slskd/API/Native/SignalSystemController.cs` | `"api/v0/signals"` | versioned | [Authorize] [Authorize] | yes | no | 2 |
+| `src/slskd/API/Native/SourceProvidersController.cs` | `"api/source-providers"<br>"api/v{version:apiVersion}/source-providers"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
+| `src/slskd/API/Native/WarmCacheController.cs` | `"api/slskdn/warm-cache"` | legacy-or-compatibility | [Authorize] | yes | no | 1 |
+| `src/slskd/API/VirtualSoulfind/BridgeAdminController.cs` | `"api/bridge/admin"<br>"api/v{version:apiVersion}/bridge/admin"` | versioned | [Authorize] [Authorize] [Authorize] [Authorize] [Authorize] | yes | no | 5 |
+| `src/slskd/API/VirtualSoulfind/BridgeController.cs` | `"api/bridge"<br>"api/v{version:apiVersion}/bridge"` | versioned | [Authorize] [Authorize] [Authorize] [Authorize] [Authorize] [Authorize] [Authorize] | yes | no | 7 |
+| `src/slskd/API/VirtualSoulfind/CanonicalController.cs` | `"api/virtualsoulfind/canonical"` | legacy-or-compatibility | [Authorize] | yes | no | 1 |
+| `src/slskd/API/VirtualSoulfind/DisasterModeController.cs` | `"api/virtualsoulfind/disaster-mode"` | legacy-or-compatibility | [Authorize] | yes | no | 1 |
+| `src/slskd/API/VirtualSoulfind/ShadowIndexController.cs` | `"api/virtualsoulfind/shadow-index"` | legacy-or-compatibility | [Authorize] | yes | no | 1 |
+| `src/slskd/Audio/API/AnalyzerMigrationController.cs` | `"api/audio/analyzers/migrate"` | legacy-or-compatibility | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
+| `src/slskd/Audio/API/CanonicalController.cs` | `"api/audio/canonical"` | legacy-or-compatibility | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
+| `src/slskd/Audio/API/DedupeController.cs` | `"api/audio/variants/dedupe"` | legacy-or-compatibility | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
+| `src/slskd/Backfill/API/BackfillController.cs` | `"api/v{version:apiVersion}/backfill"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 8 |
+| `src/slskd/Capabilities/API/CapabilitiesController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 5 |
+| `src/slskd/Common/Security/API/SecurityController.cs` | `"api/v{version:apiVersion}/security"` | versioned | [Authorize] [Authorize(Roles = "Administrator")] [Authorize(Roles = "Administrator")] [Authorize(Roles = "Administrator")] [Authorize(Roles = "Administrator")] [Authorize(Roles = "Administrator")] [Authorize(Roles = "Administrator")] | yes | no | 34 |
+| `src/slskd/Core/API/Controllers/ApplicationController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 8 |
+| `src/slskd/Core/API/Controllers/LogsController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
+| `src/slskd/Core/API/Controllers/OptionsController.cs` | `"api/v{version:apiVersion}/[controller]"<br>"startup"<br>"debug"<br>"yaml/location"<br>"yaml"<br>"yaml"<br>"yaml/validate"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 8 |
+| `src/slskd/Core/API/Controllers/ServerController.cs` | `"api/v{version:apiVersion}/[controller]"<br>""<br>""<br>""` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 3 |
+| `src/slskd/Core/API/Controllers/SessionController.cs` | `"api/v{version:apiVersion}/[controller]"<br>""<br>"enabled"<br>""<br>""` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | yes | 4 |
+| `src/slskd/Destinations/API/Controllers/DestinationsController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 3 |
+| `src/slskd/DhtRendezvous/API/DhtRendezvousController.cs` | `"api/v{version:apiVersion}"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Roles = "Administrator")] | yes | no | 11 |
+| `src/slskd/DiscoveryGraph/API/DiscoveryGraphController.cs` | `"api/v{version:apiVersion}/discovery-graph"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
+| `src/slskd/Events/API/EventsController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 2 |
+| `src/slskd/Files/API/FilesController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 8 |
+| `src/slskd/HashDb/API/HashDbController.cs` | `"api/v{version:apiVersion}/hashdb"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 18 |
+| `src/slskd/Identity/API/ContactsController.cs` | `"api/v{version:apiVersion}/contacts"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 7 |
+| `src/slskd/Identity/API/ProfileController.cs` | `"api/v{version:apiVersion}/profile"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | yes | 4 |
+| `src/slskd/Integrations/Lidarr/API/LidarrController.cs` | `"api/v{version:apiVersion}/integrations/lidarr"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 4 |
+| `src/slskd/Integrations/MusicBrainz/API/ArtistReleaseRadarController.cs` | `"api/v{version:apiVersion}/musicbrainz/release-radar"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 6 |
+| `src/slskd/Integrations/MusicBrainz/API/LibraryBloomDiffController.cs` | `"api/v{version:apiVersion}/musicbrainz/library-bloom"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 3 |
+| `src/slskd/Integrations/MusicBrainz/API/MusicBrainzController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 5 |
+| `src/slskd/Integrations/MusicBrainz/API/MusicBrainzOverlayController.cs` | `"api/v{version:apiVersion}/musicbrainz/overlays"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 6 |
+| `src/slskd/Jobs/API/DiscographyJobsController.cs` | `"api/jobs/discography"<br>"api/v{version:apiVersion}/jobs/discography"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 2 |
+| `src/slskd/Jobs/API/LabelCrateJobsController.cs` | `"api/jobs/label-crate"<br>"api/v{version:apiVersion}/jobs/label-crate"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 2 |
+| `src/slskd/LibraryHealth/API/LibraryHealthController.cs` | `"api/library/health"<br>"api/v{version:apiVersion}/library/health"` | versioned | [Authorize] [Authorize] [Authorize] [Authorize] [Authorize] [Authorize] [Authorize] [Authorize] [Authorize] [Authorize] | yes | no | 10 |
+| `src/slskd/ListeningParty/API/ListeningPartyController.cs` | `"api/v{version:apiVersion}/listening-party"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | yes | 4 |
+| `src/slskd/MediaCore/API/Controllers/ContentDescriptorPublisherController.cs` | `"api/v{version:apiVersion}/mediacore/publish"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 6 |
+| `src/slskd/MediaCore/API/Controllers/ContentIdController.cs` | `"api/v{version:apiVersion}/mediacore/contentid"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 8 |
+| `src/slskd/MediaCore/API/Controllers/DescriptorRetrieverController.cs` | `"api/v{version:apiVersion}/mediacore/retrieve"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 6 |
+| `src/slskd/MediaCore/API/Controllers/FuzzyMatcherController.cs` | `"api/v{version:apiVersion}/mediacore/fuzzymatch"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 3 |
+| `src/slskd/MediaCore/API/Controllers/IpldController.cs` | `"api/v{version:apiVersion}/mediacore/ipld"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 5 |
+| `src/slskd/MediaCore/API/Controllers/MediaCoreStatsController.cs` | `"api/v{version:apiVersion}/mediacore/stats"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 9 |
+| `src/slskd/MediaCore/API/Controllers/MetadataPortabilityController.cs` | `"api/v{version:apiVersion}/mediacore/portability"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 5 |
+| `src/slskd/MediaCore/API/Controllers/PerceptualHashController.cs` | `"api/v{version:apiVersion}/mediacore/perceptualhash"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 4 |
+| `src/slskd/Mesh/API/MeshController.cs` | `"api/v{version:apiVersion}/mesh"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 11 |
+| `src/slskd/Mesh/API/MeshHealthController.cs` | `"api/v0/mesh/health"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
+| `src/slskd/Mesh/Realm/SubjectIndex/API/RealmSubjectIndexesController.cs` | `"api/v{version:apiVersion}/realm-subject-indexes"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 5 |
+| `src/slskd/Messaging/API/Controllers/ConversationsController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 8 |
+| `src/slskd/Messaging/API/Controllers/RoomsController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 10 |
+| `src/slskd/NowPlaying/API/NowPlayingController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 4 |
+| `src/slskd/Player/API/ExternalVisualizerController.cs` | `"api/v{version:apiVersion}/player/external-visualizer"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 2 |
+| `src/slskd/PodCore/API/Controllers/PodChannelController.cs` | `"api/v{version:apiVersion}/podcore/{podId}/channels"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 5 |
+| `src/slskd/PodCore/API/Controllers/PodContentController.cs` | `"api/v{version:apiVersion}/podcore/content"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 4 |
+| `src/slskd/PodCore/API/Controllers/PodDhtController.cs` | `"api/v{version:apiVersion}/podcore/dht"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | yes | 6 |
+| `src/slskd/PodCore/API/Controllers/PodDiscoveryController.cs` | `"api/v{version:apiVersion}/podcore/discovery"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | yes | 10 |
+| `src/slskd/PodCore/API/Controllers/PodJoinLeaveController.cs` | `"api/v{version:apiVersion}/podcore/membership"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 8 |
+| `src/slskd/PodCore/API/Controllers/PodMembershipController.cs` | `"api/v{version:apiVersion}/podcore/membership"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 10 |
+| `src/slskd/PodCore/API/Controllers/PodMessageBackfillController.cs` | `"api/v{version:apiVersion}/podcore/backfill"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 5 |
+| `src/slskd/PodCore/API/Controllers/PodMessageRoutingController.cs` | `"api/v{version:apiVersion}/podcore/routing"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 6 |
+| `src/slskd/PodCore/API/Controllers/PodMessageSigningController.cs` | `"api/v{version:apiVersion}/podcore/signing"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 4 |
+| `src/slskd/PodCore/API/Controllers/PodMessageStorageController.cs` | `"api/v{version:apiVersion}/podcore/messages"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 7 |
+| `src/slskd/PodCore/API/Controllers/PodOpinionController.cs` | `"api/v{version:apiVersion}/podcore/{podId}/opinions"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 9 |
+| `src/slskd/PodCore/API/Controllers/PodVerificationController.cs` | `"api/v{version:apiVersion}/podcore/verification"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | yes | 4 |
+| `src/slskd/QuarantineJury/API/QuarantineJuryController.cs` | `"api/v{version:apiVersion}/quarantine-jury"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 11 |
+| `src/slskd/Relay/API/Controllers/RelayController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.ApiKeyOnly, Roles = AuthRole.Any)] [Authorize(Policy = AuthPolicy.ApiKeyOnly, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.ApiKeyOnly, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 6 |
+| `src/slskd/Search/API/Controllers/SearchActionsController.cs` | `"api/v{version:apiVersion}/searches"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 2 |
+| `src/slskd/Search/API/Controllers/SearchesController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 7 |
+| `src/slskd/Shares/API/Controllers/SharesController.cs` | `"api/v{version:apiVersion}/[controller]"<br>""<br>""` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 6 |
+| `src/slskd/Sharing/API/CollectionsController.cs` | `"api/v{version:apiVersion}/collections"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 10 |
+| `src/slskd/Sharing/API/ShareGroupsController.cs` | `"api/v{version:apiVersion}/sharegroups"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 8 |
+| `src/slskd/Sharing/API/SharesController.cs` | `"api/v{version:apiVersion}/share-grants"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 10 |
+| `src/slskd/SocialFederation/API/ActivityPubController.cs` | `"actors"` | federation-protocol | [Authorize(Policy = AuthPolicy.Any)] | yes | yes | 7 |
+| `src/slskd/SocialFederation/API/FederationDiagnosticsController.cs` | `"api/v{version:apiVersion}/federation/diagnostics"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
+| `src/slskd/SocialFederation/API/TasteRecommendationsController.cs` | `"api/v{version:apiVersion}/taste-recommendations"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 4 |
+| `src/slskd/SocialFederation/API/WebFingerController.cs` | `".well-known"` | federation-protocol | [Authorize(Policy = AuthPolicy.Any)] | yes | yes | 1 |
+| `src/slskd/Solid/API/SolidController.cs` | `"api/v{version:apiVersion}/solid"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 2 |
+| `src/slskd/SongID/API/SongIdController.cs` | `"api/v{version:apiVersion}/songid"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 6 |
+| `src/slskd/SoulseekDiscovery/API/SoulseekDiscoveryController.cs` | `"api/v{version:apiVersion}/soulseek"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 16 |
+| `src/slskd/SourceFeeds/API/SourceFeedImportsController.cs` | `"api/source-feed-imports"<br>"api/v{version:apiVersion}/source-feed-imports"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 3 |
+| `src/slskd/SourceFeeds/API/SpotifyConnectionController.cs` | `"api/integrations/spotify"<br>"api/v{version:apiVersion}/integrations/spotify"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | yes | 4 |
+| `src/slskd/Streaming/StreamsController.cs` | `"api/v{version:apiVersion}/streams"` | versioned | [Authorize(Policy = AuthPolicy.Any)] /// <summary>Stream content by ID. Auth: ?ticket=, ?token=, Authorization: Bearer (share:token), or normal [Authorize]. Single byte-range only; multi-range returns 400.</summary> | yes | yes | 2 |
+| `src/slskd/Telemetry/API/MetricsController.cs` | `"api/v{version:apiVersion}/telemetry/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 2 |
+| `src/slskd/Telemetry/API/ReportsController.cs` | `"api/v{version:apiVersion}/telemetry/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 7 |
+| `src/slskd/Telemetry/API/TelemetryController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 2 |
+| `src/slskd/Transfers/API/Controllers/TransfersController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 22 |
+| `src/slskd/Transfers/AutoReplace/API/AutoReplaceController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 3 |
+| `src/slskd/Transfers/MultiSource/API/AnalyticsController.cs` | `"api/v{version:apiVersion}/swarm/analytics"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 5 |
+| `src/slskd/Transfers/MultiSource/API/FairnessController.cs` | `"api/v{version:apiVersion}/fairness"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
+| `src/slskd/Transfers/MultiSource/API/MultiSourceController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 12 |
+| `src/slskd/Transfers/MultiSource/API/PlaybackController.cs` | `"api/v{version:apiVersion}/playback"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 2 |
+| `src/slskd/Transfers/MultiSource/API/TracingController.cs` | `"api/v{version:apiVersion}/traces"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
+| `src/slskd/Transfers/MultiSource/Discovery/API/DiscoveryController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 8 |
+| `src/slskd/Transfers/Ranking/API/RankingController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 3 |
+| `src/slskd/Users/API/Controllers/UsersController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 7 |
+| `src/slskd/Users/Notes/API/UserNotesController.cs` | `"api/v{version:apiVersion}/users/notes"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 4 |
+| `src/slskd/VirtualSoulfind/v2/API/VirtualSoulfindV2Controller.cs` | `"api/v1/virtualsoulfind/v2"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 14 |
+| `src/slskd/Wishlist/API/Controllers/WishlistController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 7 |
+
+## Non-versioned or protocol routes
+
+| Controller | Class route | Bucket | Review note |
+|---|---|---|---|
+| `src/slskd/API/Compatibility/CompatibilityController.cs` | `"api"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
+| `src/slskd/API/Compatibility/DownloadsCompatibilityController.cs` | `"api"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
+| `src/slskd/API/Compatibility/LibraryCompatibilityController.cs` | `"api/library"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
+| `src/slskd/API/Compatibility/RoomsCompatibilityController.cs` | `"api/rooms"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
+| `src/slskd/API/Compatibility/SearchCompatibilityController.cs` | `"api"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
+| `src/slskd/API/Compatibility/ServerCompatibilityController.cs` | `"api/server"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
+| `src/slskd/API/Compatibility/UsersCompatibilityController.cs` | `"api/compatibility/users"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
+| `src/slskd/API/Mesh/MeshGatewayController.cs` | `"mesh/http"` | mesh-protocol | Mesh transport protocol route; keep outside public web API versioning. |
+| `src/slskd/API/Native/CapabilitiesController.cs` | `"api/slskdn"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
+| `src/slskd/API/Native/LibraryHealthController.cs` | `"api/slskdn/library"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
+| `src/slskd/API/Native/WarmCacheController.cs` | `"api/slskdn/warm-cache"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
+| `src/slskd/API/VirtualSoulfind/CanonicalController.cs` | `"api/virtualsoulfind/canonical"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
+| `src/slskd/API/VirtualSoulfind/DisasterModeController.cs` | `"api/virtualsoulfind/disaster-mode"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
+| `src/slskd/API/VirtualSoulfind/ShadowIndexController.cs` | `"api/virtualsoulfind/shadow-index"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
+| `src/slskd/Audio/API/AnalyzerMigrationController.cs` | `"api/audio/analyzers/migrate"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
+| `src/slskd/Audio/API/CanonicalController.cs` | `"api/audio/canonical"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
+| `src/slskd/Audio/API/DedupeController.cs` | `"api/audio/variants/dedupe"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
+| `src/slskd/SocialFederation/API/ActivityPubController.cs` | `"actors"` | federation-protocol | Protocol-required ActivityPub/WebFinger route; keep outside /api/v0. |
+| `src/slskd/SocialFederation/API/WebFingerController.cs` | `".well-known"` | federation-protocol | Protocol-required ActivityPub/WebFinger route; keep outside /api/v0. |
+
+## Mutating controllers missing CSRF
+
+
+None found.
+
+## Controllers with anonymous endpoints
+
+- src/slskd/Core/API/Controllers/SessionController.cs
+  - 71:        [HttpGet]
+  - 86:        [HttpGet]
+  - 88:        [AllowAnonymous]
+  - 100:        [HttpDelete]
+  - 123:        [HttpPost]
+  - 125:        [AllowAnonymous]
+- src/slskd/Identity/API/ProfileController.cs
+  - 40:    [HttpGet("me")]
+  - 51:    [HttpPut("me")]
+  - 86:    [HttpGet("{peerId}")]
+  - 87:    [AllowAnonymous]
+  - 120:    [HttpPost("invite")]
+- src/slskd/ListeningParty/API/ListeningPartyController.cs
+  - 52:    [HttpGet]
+  - 60:    [HttpGet("{podId}/{channelId}")]
+  - 69:    [HttpPost("{podId}/{channelId}")]
+  - 101:    [HttpGet("radio/{partyId}/{contentId}")]
+  - 102:    [AllowAnonymous]
+- src/slskd/PodCore/API/Controllers/PodDhtController.cs
+  - 48:    [HttpPost("publish")]
+  - 96:    [HttpPost("update")]
+  - 144:    [HttpDelete("unpublish/{*podId}")]
+  - 181:    [HttpGet("metadata/{*podId}")]
+  - 182:    [AllowAnonymous]
+  - 217:    [HttpPost("refresh/{*podId}")]
+  - 253:    [HttpGet("stats")]
+- src/slskd/PodCore/API/Controllers/PodDiscoveryController.cs
+  - 42:    [HttpPost("register")]
+  - 90:    [HttpDelete("unregister/{podId}")]
+  - 127:    [HttpPost("update")]
+  - 175:    [HttpGet("name/{name}")]
+  - 176:    [AllowAnonymous]
+  - 203:    [HttpGet("tag/{tag}")]
+  - 204:    [AllowAnonymous]
+  - 231:    [HttpGet("tags/{tags}")]
+  - 232:    [AllowAnonymous]
+  - 271:    [HttpGet("all")]
+  - 272:    [AllowAnonymous]
+  - 298:    [HttpGet("content/{*contentId}")]
+  - 324:    [HttpGet("stats")]
+  - 344:    [HttpPost("refresh")]
+- src/slskd/PodCore/API/Controllers/PodVerificationController.cs
+  - 43:    [HttpGet("membership/{podId}/{peerId}")]
+  - 44:    [AllowAnonymous]
+  - 73:    [HttpPost("message")]
+  - 74:    [AllowAnonymous]
+  - 113:    [HttpGet("role/{podId}/{peerId}/{requiredRole}")]
+  - 114:    [AllowAnonymous]
+  - 143:    [HttpGet("stats")]
+- src/slskd/SocialFederation/API/ActivityPubController.cs
+  - 98:        [HttpGet("{actorName}")]
+  - 99:        [AllowAnonymous]
+  - 151:        [HttpGet("{actorName}/inbox")]
+  - 152:        [AllowAnonymous]
+  - 200:        [HttpPost("{actorName}/inbox")]
+  - 201:        [AllowAnonymous]
+  - 285:        [HttpGet("{actorName}/outbox")]
+  - 286:        [AllowAnonymous]
+  - 345:        [HttpGet("{actorName}/followers")]
+  - 346:        [AllowAnonymous]
+  - 372:        [HttpGet("{actorName}/following")]
+  - 373:        [AllowAnonymous]
+  - 410:        [HttpPost("{actorName}/outbox")]
+- src/slskd/SocialFederation/API/WebFingerController.cs
+  - 60:        [HttpGet("webfinger")]
+  - 61:        [AllowAnonymous]
+- src/slskd/SourceFeeds/API/SpotifyConnectionController.cs
+  - 33:    [HttpGet("status")]
+  - 41:    [HttpPost("authorize")]
+  - 58:    [HttpGet("callback")]
+  - 59:    [AllowAnonymous]
+  - 90:    [HttpDelete]
+- src/slskd/Streaming/StreamsController.cs
+  - 56:    [HttpPost("{contentId}/ticket")]
+  - 79:    [HttpGet("{contentId}")]
+  - 80:    [AllowAnonymous]

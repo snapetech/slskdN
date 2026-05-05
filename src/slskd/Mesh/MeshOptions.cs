@@ -24,6 +24,25 @@ public class MeshOptions
     public bool EnableMirrored { get; set; } = false;
 
     /// <summary>
+    /// Advertise and discover slskdN mesh peers through the public Soulseek interest graph.
+    /// This intentionally defaults to false because enabling it publishes a recognizable
+    /// slskdN mesh interest tag on the user's Soulseek account.
+    /// </summary>
+    public bool EnableSoulseekRendezvous { get; set; } = false;
+
+    /// <summary>
+    /// Enable slskdN peer capability handshakes over Soulseek peer-message connections.
+    /// This does not publish an interest tag by itself.
+    /// </summary>
+    public bool EnableSoulseekCapabilityHandshake { get; set; } = true;
+
+    /// <summary>
+    /// Probe Soulseek rendezvous users for runtime peer capability descriptors.
+    /// Requires <see cref="EnableSoulseekRendezvous"/>.
+    /// </summary>
+    public bool ProbeSoulseekRendezvousCapabilities { get; set; } = true;
+
+    /// <summary>
     /// Bootstrap nodes for DHT join (host:port).
     /// </summary>
     public List<string> BootstrapNodes { get; set; } = new();

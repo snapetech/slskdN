@@ -183,6 +183,7 @@ namespace Soulseek.Network.Tcp
             return new NetworkStreamAdapter(TcpClient.GetStream());
         }
 
+        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The stream adapter wraps the TcpClient stream used after SOCKS negotiation; disposing it here closes the connection.")]
         private async Task<(string ProxyAddress, int ProxyPort)> ConnectThroughProxyInternalAsync(
             IPAddress proxyAddress,
             int proxyPort,

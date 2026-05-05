@@ -47,7 +47,7 @@ namespace Soulseek.Messaging.Messages
 
             var roomName = reader.ReadString();
 
-            var userCount = reader.ReadInteger();
+            var userCount = ProtocolCountReader.ReadCount(reader, "room user", minimumBytesPerItem: 4);
             var userNames = new List<string>();
 
             for (int i = 0; i < userCount; i++)
@@ -55,7 +55,8 @@ namespace Soulseek.Messaging.Messages
                 userNames.Add(reader.ReadString());
             }
 
-            var statusCount = reader.ReadInteger();
+            var statusCount = ProtocolCountReader.ReadCount(reader, "room user status", minimumBytesPerItem: 4);
+            ProtocolCountReader.ValidateMatchingCount(userCount, statusCount, "room user status");
             var statuses = new List<UserPresence>();
 
             for (int i = 0; i < statusCount; i++)
@@ -63,7 +64,8 @@ namespace Soulseek.Messaging.Messages
                 statuses.Add((UserPresence)reader.ReadInteger());
             }
 
-            var dataCount = reader.ReadInteger();
+            var dataCount = ProtocolCountReader.ReadCount(reader, "room user data", minimumBytesPerItem: 20);
+            ProtocolCountReader.ValidateMatchingCount(userCount, dataCount, "room user data");
             var datums = new List<(int AverageSpeed, long DownloadCount, int FileCount, int DirectoryCount)>();
 
             for (int i = 0; i < dataCount; i++)
@@ -76,7 +78,8 @@ namespace Soulseek.Messaging.Messages
                 datums.Add((averageSpeed, downloadCount, fileCount, directoryCount));
             }
 
-            var slotsFreeCount = reader.ReadInteger();
+            var slotsFreeCount = ProtocolCountReader.ReadCount(reader, "room user slot", minimumBytesPerItem: 4);
+            ProtocolCountReader.ValidateMatchingCount(userCount, slotsFreeCount, "room user slot");
             var slots = new List<int>();
 
             for (int i = 0; i < slotsFreeCount; i++)
@@ -84,7 +87,8 @@ namespace Soulseek.Messaging.Messages
                 slots.Add(reader.ReadInteger());
             }
 
-            var countryCount = reader.ReadInteger();
+            var countryCount = ProtocolCountReader.ReadCount(reader, "room user country", minimumBytesPerItem: 4);
+            ProtocolCountReader.ValidateMatchingCount(userCount, countryCount, "room user country");
             var countries = new List<string>();
 
             for (int i = 0; i < countryCount; i++)
@@ -112,7 +116,7 @@ namespace Soulseek.Messaging.Messages
             if (reader.HasMoreData)
             {
                 owner = reader.ReadString();
-                operatorCount = reader.ReadInteger();
+                operatorCount = ProtocolCountReader.ReadCount(reader, "room operator", minimumBytesPerItem: 4);
                 operatorList = new List<string>();
 
                 for (int i = 0; i < operatorCount; i++)

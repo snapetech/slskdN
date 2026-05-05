@@ -1785,6 +1785,34 @@ namespace Soulseek.Tests.Unit.Network
             mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.ContainsInsensitive("Failed to establish an indirect message connection"))), Times.Once);
         }
 
+        [Trait("Category", "GetMessageConnectionOutboundIndirectAsync")]
+        [Theory(DisplayName = "GetMessageConnectionOutboundIndirectAsync preserves obfuscated incoming connection"), AutoData]
+        public async Task GetMessageConnectionOutboundIndirectAsync_Preserves_Obfuscated_Incoming_Connection(IPEndPoint endpoint, string username, int solicitationToken)
+        {
+            var incoming = GetConnectionMock(endpoint);
+            incoming.Setup(m => m.Obfuscated).Returns(true);
+            incoming.Setup(m => m.HandoffTcpClient()).Returns((ITcpClient)null);
+
+            var msgConn = GetMessageConnectionMock(username, endpoint);
+
+            var (manager, mocks) = GetFixture();
+
+            mocks.Waiter.Setup(m => m.Wait<IConnection>(It.IsAny<WaitKey>(), It.IsAny<int>(), It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(incoming.Object));
+            mocks.ConnectionFactory.Setup(m => m.GetObfuscatedMessageConnection(username, endpoint, It.IsAny<ConnectionOptions>(), null))
+                .Returns(msgConn.Object);
+
+            using (manager)
+            {
+                var connection = await manager.InvokeMethod<Task<IMessageConnection>>("GetMessageConnectionOutboundIndirectAsync", username, solicitationToken, CancellationToken.None);
+
+                Assert.Equal(msgConn.Object, connection);
+            }
+
+            mocks.ConnectionFactory.Verify(m => m.GetObfuscatedMessageConnection(username, endpoint, It.IsAny<ConnectionOptions>(), null), Times.Once);
+            mocks.ConnectionFactory.Verify(m => m.GetMessageConnection(username, endpoint, It.IsAny<ConnectionOptions>(), null), Times.Never);
+        }
+
         [Trait("Category", "GetOrAddMessageConnectionAsync")]
         [Theory(DisplayName = "GetOrAddMessageConnectionAsync returns existing connection if exists"), AutoData]
         internal async Task GetOrAddMessageConnectionAsyncCTPR_Returns_Existing_Connection_If_Exists(string username, IPEndPoint endpoint, int token)
@@ -1866,6 +1894,40 @@ namespace Soulseek.Tests.Unit.Network
                     Assert.Equal(conn.Object, newConn);
                 }
             }
+        }
+
+        [Trait("Category", "GetOrAddMessageConnectionAsync")]
+        [Theory(DisplayName = "GetOrAddMessageConnectionAsync prefers cached obfuscated endpoint for outbound direct connection"), AutoData]
+        internal async Task GetOrAddMessageConnectionAsync_Prefers_Cached_Obfuscated_Endpoint_For_Outbound_Direct_Connection(string username, IPEndPoint endpoint, int token)
+        {
+            var obfuscatedEndpoint = new IPEndPoint(endpoint.Address, endpoint.Port == IPEndPoint.MaxPort ? endpoint.Port - 1 : endpoint.Port + 1);
+            var options = new SoulseekClientOptions(peerObfuscationOptions: new PeerObfuscationOptions(enabled: true, listenPort: 24000, preferOutbound: true));
+            var conn = GetMessageConnectionMock(username, obfuscatedEndpoint);
+            conn.Setup(m => m.ConnectAsync(It.IsAny<CancellationToken?>()))
+                .Returns(Task.CompletedTask);
+            conn.Setup(m => m.WriteAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken?>()))
+                .Returns(Task.CompletedTask);
+
+            var (manager, mocks) = GetFixture(options: options);
+
+            mocks.Client.Setup(m => m.Username).Returns(username);
+            mocks.Client.Setup(m => m.TryGetObfuscatedPeerEndPoint(username, endpoint.Address, out obfuscatedEndpoint))
+                .Returns(true);
+            mocks.ConnectionFactory.Setup(m => m.GetObfuscatedMessageConnection(username, obfuscatedEndpoint, It.IsAny<ConnectionOptions>(), null))
+                .Returns(conn.Object);
+            mocks.ConnectionFactory.Setup(m => m.GetMessageConnection(username, endpoint, It.IsAny<ConnectionOptions>(), null))
+                .Throws(new Exception("regular direct should not be selected"));
+            mocks.Waiter.Setup(m => m.Wait<IConnection>(It.IsAny<WaitKey>(), It.IsAny<int>(), It.IsAny<CancellationToken?>()))
+                .Throws(new Exception("indirect should not be selected"));
+
+            using (manager)
+            {
+                var newConn = await manager.GetOrAddMessageConnectionAsync(username, endpoint, token, CancellationToken.None);
+
+                Assert.Equal(conn.Object, newConn);
+            }
+
+            mocks.ConnectionFactory.Verify(m => m.GetObfuscatedMessageConnection(username, obfuscatedEndpoint, It.IsAny<ConnectionOptions>(), null), Times.Once);
         }
 
         [Trait("Category", "GetOrAddMessageConnectionAsync")]

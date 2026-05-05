@@ -164,7 +164,7 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
             handler.HandleMessageRead(mocks.PeerConnection.Object, message);
 
             Assert.Contains(messages, m => m.IndexOf("peer message received", StringComparison.InvariantCultureIgnoreCase) > -1);
-            Assert.Contains(messages, m => m.IndexOf("upload", StringComparison.InvariantCultureIgnoreCase) > -1 && m.IndexOf("failed", StringComparison.InvariantCultureIgnoreCase) > -1);
+            Assert.Contains(messages, m => m.IndexOf("download", StringComparison.InvariantCultureIgnoreCase) > -1 && m.IndexOf("failed", StringComparison.InvariantCultureIgnoreCase) > -1);
         }
 
         [Trait("Category", "Message")]
@@ -210,6 +210,51 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
             handler.HandleMessageRead(mocks.PeerConnection.Object, message);
 
             Assert.Contains(messages, m => m.IndexOf("error handling peer message", StringComparison.InvariantCultureIgnoreCase) > -1);
+        }
+
+        [Trait("Category", "Message")]
+        [Theory(DisplayName = "Invokes registered custom peer message handler"), AutoData]
+        public async Task Invokes_Registered_Custom_Peer_Message_Handler(string username, IPEndPoint endpoint, byte[] payload)
+        {
+            const int customMessageCode = 4096;
+
+            var (handler, mocks) = GetFixture(username, endpoint);
+
+            var invocationTask = new TaskCompletionSource<(string Username, IPEndPoint EndPoint, byte[] Payload)>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+
+            if (payload == null)
+            {
+                payload = Array.Empty<byte>();
+            }
+
+            handler.RegisterPeerMessageHandler(customMessageCode, (user, endpointFromMessage, data) =>
+            {
+                invocationTask.TrySetResult((user, endpointFromMessage, data));
+                return Task.CompletedTask;
+            });
+
+            handler.HandleMessageRead(mocks.PeerConnection.Object, new MessageBuilder().WriteCode(customMessageCode).WriteBytes(payload).Build());
+
+            var (actualUsername, actualEndpoint, actualPayload) = await invocationTask.Task;
+
+            Assert.Equal(username, actualUsername);
+            Assert.Equal(endpoint, actualEndpoint);
+            Assert.Equal(payload, actualPayload);
+        }
+
+        [Trait("Category", "Message")]
+        [Fact(DisplayName = "Ignores unregistered custom peer message code")]
+        public void Ignores_Unregistered_Custom_Peer_Message_Code()
+        {
+            var (handler, mocks) = GetFixture();
+            var payload = new byte[] { 1, 2, 3 };
+
+            var message = new MessageBuilder().WriteCode(4097).WriteBytes(payload).Build();
+
+            var ex = Record.Exception(() => handler.HandleMessageRead(mocks.PeerConnection.Object, message));
+
+            Assert.Null(ex);
         }
 
         [Trait("Category", "Message")]

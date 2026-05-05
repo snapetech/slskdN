@@ -254,7 +254,9 @@ namespace slskd.Wishlist
             while (!stoppingToken.IsCancellationRequested)
             {
                 var options = OptionsMonitor.CurrentValue;
-                var intervalSeconds = options.Wishlist?.IntervalSeconds ?? 3600;
+                var intervalSeconds = Client.ServerInfo.WishlistInterval ??
+                    options.Wishlist?.IntervalSeconds ??
+                    3600;
 
                 try
                 {
@@ -458,7 +460,7 @@ namespace slskd.Wishlist
 
             var searchId = Guid.NewGuid();
             var query = new SearchQuery(item.SearchText);
-            var scope = SearchScope.Network;
+            var scope = SearchScope.Wishlist;
 
             var searchOptions = new SearchOptions(
                 searchTimeout: 15000,

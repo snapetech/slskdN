@@ -1,8 +1,10 @@
 import * as mesh from '../../../lib/mesh';
+import * as soulseekDiscovery from '../../../lib/soulseekDiscovery';
 import MeshEvidencePolicy from './MeshEvidencePolicy';
 import RealmSubjectIndexConflicts from './RealmSubjectIndexConflicts';
 import React, { useEffect, useState } from 'react';
 import {
+  Button,
   Card,
   Grid,
   Header,
@@ -19,6 +21,19 @@ const Mesh = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [rendezvousStatus, setRendezvousStatus] = useState(null);
+  const [rendezvousUsers, setRendezvousUsers] = useState([]);
+  const [capabilityRecords, setCapabilityRecords] = useState([]);
+  const [rendezvousLoading, setRendezvousLoading] = useState(false);
+  const [rendezvousMessage, setRendezvousMessage] = useState(null);
+
+  const getRendezvousErrorText = (error_, fallback) => {
+    const data = error_?.response?.data;
+    if (typeof data === 'string') return data;
+    if (data?.error) return data.error;
+    if (data?.title) return data.title;
+    return error_?.message || fallback;
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -40,6 +55,95 @@ const Mesh = () => {
     const interval = setInterval(fetchStats, 30_000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const fetchRendezvousStatus = async () => {
+      try {
+        const response = await soulseekDiscovery.getMeshRendezvousStatus();
+        setRendezvousStatus(response.data || {});
+      } catch (error_) {
+        setRendezvousStatus({
+          enabled: false,
+          error: error_?.response?.data || error_.message,
+        });
+      }
+    };
+
+    fetchRendezvousStatus();
+  }, []);
+
+  const handleAddRendezvousInterest = async () => {
+    setRendezvousLoading(true);
+    setRendezvousMessage(null);
+    try {
+      await soulseekDiscovery.addMeshRendezvousInterest();
+      setRendezvousMessage({
+        positive: true,
+        text: 'Published the slskdN mesh rendezvous interest on this Soulseek account.',
+      });
+    } catch (error_) {
+      setRendezvousMessage({
+        negative: true,
+        text:
+          error_?.response?.status === 403
+            ? 'Soulseek rendezvous is disabled in configuration. Enable mesh.enableSoulseekRendezvous before publishing this public interest.'
+            : getRendezvousErrorText(error_, 'Unable to publish rendezvous interest.'),
+      });
+    } finally {
+      setRendezvousLoading(false);
+    }
+  };
+
+  const handleRemoveRendezvousInterest = async () => {
+    setRendezvousLoading(true);
+    setRendezvousMessage(null);
+    try {
+      await soulseekDiscovery.removeMeshRendezvousInterest();
+      setRendezvousMessage({
+        positive: true,
+        text: 'Removed the slskdN mesh rendezvous interest from this Soulseek account.',
+      });
+    } catch (error_) {
+      setRendezvousMessage({
+        negative: true,
+        text:
+          error_?.response?.status === 403
+            ? 'Soulseek rendezvous is disabled in configuration. Enable mesh.enableSoulseekRendezvous to manage this public interest from the UI.'
+            : getRendezvousErrorText(error_, 'Unable to remove rendezvous interest.'),
+      });
+    } finally {
+      setRendezvousLoading(false);
+    }
+  };
+
+  const handleLoadRendezvousUsers = async () => {
+    setRendezvousLoading(true);
+    setRendezvousMessage(null);
+    try {
+      const response = await soulseekDiscovery.discoverMeshRendezvous();
+      const data = response.data || {};
+      const users = data.users || [];
+      const records = data.capabilityRecords || [];
+      setRendezvousUsers(users);
+      setCapabilityRecords(records);
+      setRendezvousMessage({
+        positive: true,
+        text: `Discovered ${users.length} Soulseek rendezvous candidate(s) and ${records.length} runtime capability record(s).`,
+      });
+    } catch (error_) {
+      setRendezvousUsers([]);
+      setCapabilityRecords([]);
+      setRendezvousMessage({
+        negative: true,
+        text:
+          error_?.response?.status === 403
+            ? 'Soulseek rendezvous is disabled in configuration. Enable mesh.enableSoulseekRendezvous before querying candidates.'
+            : getRendezvousErrorText(error_, 'Unable to load rendezvous users.'),
+      });
+    } finally {
+      setRendezvousLoading(false);
+    }
+  };
 
   const getHealthColor = (status) => {
     switch (status) {
@@ -302,6 +406,127 @@ const Mesh = () => {
                 </List>
               </Grid.Column>
             </Grid>
+          </Segment>
+        </Grid.Column>
+
+        <Grid.Column width={16}>
+          <Segment>
+            <Header as="h3">
+              <Icon name="users" />
+              Soulseek Mesh Rendezvous
+            </Header>
+            <Message
+              icon
+              warning={!rendezvousStatus?.enabled}
+            >
+              <Icon name={rendezvousStatus?.enabled ? 'privacy' : 'lock'} />
+              <Message.Content>
+                <Message.Header>
+                  {rendezvousStatus?.enabled
+                    ? 'Opt-in public rendezvous is enabled'
+                    : 'Opt-in public rendezvous is disabled'}
+                </Message.Header>
+                <p>
+                  This feature uses the native Soulseek interest graph to find
+                  other slskdN mesh-capable accounts. Publishing the interest
+                  tag makes this account visibly identifiable as a slskdN mesh
+                  participant.
+                </p>
+                <p>
+                  Interest tag:{' '}
+                  <code>{rendezvousStatus?.interestTag || 'slskdn-mesh-v1'}</code>
+                </p>
+                {!rendezvousStatus?.enabled && (
+                  <p>
+                    Enable <code>mesh.enableSoulseekRendezvous</code> in
+                    configuration before using these controls.
+                  </p>
+                )}
+              </Message.Content>
+            </Message>
+            {rendezvousMessage && (
+              <Message
+                negative={rendezvousMessage.negative}
+                positive={rendezvousMessage.positive}
+              >
+                {rendezvousMessage.text}
+              </Message>
+            )}
+            <Button.Group>
+              <Button
+                disabled={!rendezvousStatus?.enabled || rendezvousLoading}
+                loading={rendezvousLoading}
+                onClick={handleAddRendezvousInterest}
+                positive
+              >
+                <Icon name="bullhorn" />
+                Publish Interest
+              </Button>
+              <Button
+                disabled={!rendezvousStatus?.enabled || rendezvousLoading}
+                loading={rendezvousLoading}
+                onClick={handleRemoveRendezvousInterest}
+              >
+                <Icon name="remove circle" />
+                Remove Interest
+              </Button>
+              <Button
+                disabled={!rendezvousStatus?.enabled || rendezvousLoading}
+                loading={rendezvousLoading}
+                onClick={handleLoadRendezvousUsers}
+                primary
+              >
+                <Icon name="search" />
+                Load Candidates
+              </Button>
+            </Button.Group>
+            {rendezvousUsers.length > 0 && (
+              <List
+                divided
+                relaxed
+                style={{ marginTop: '1rem' }}
+              >
+                {rendezvousUsers.map((user) => (
+                  <List.Item key={user.username || user.Username}>
+                    <List.Icon
+                      name="user"
+                      verticalAlign="middle"
+                    />
+                    <List.Content>
+                      <List.Header>{user.username || user.Username}</List.Header>
+                      <List.Description>
+                        Similarity rating:{' '}
+                        {user.rating ?? user.Rating ?? 'not reported'}
+                      </List.Description>
+                    </List.Content>
+                  </List.Item>
+                ))}
+              </List>
+            )}
+            {capabilityRecords.length > 0 && (
+              <List
+                divided
+                relaxed
+                style={{ marginTop: '1rem' }}
+              >
+                {capabilityRecords.map((record) => (
+                  <List.Item key={`${record.username}-${record.nonce}`}>
+                    <List.Icon
+                      name={record.signed ? 'certificate' : 'id card outline'}
+                      verticalAlign="middle"
+                    />
+                    <List.Content>
+                      <List.Header>{record.username}</List.Header>
+                      <List.Description>
+                        {record.peerId || 'unsigned peer'}, {' '}
+                        {(record.features || []).join(', ') || 'no features'}, {' '}
+                        overlay port {record.overlayPort || 'not advertised'}
+                      </List.Description>
+                    </List.Content>
+                  </List.Item>
+                ))}
+              </List>
+            )}
           </Segment>
         </Grid.Column>
 

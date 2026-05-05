@@ -43,5 +43,7 @@ public class BrowseTrackerTests
     }
 
     private static BrowseProgressUpdatedEventArgs CreateProgress()
+#pragma warning disable SYSLIB0050
         => (BrowseProgressUpdatedEventArgs)FormatterServices.GetUninitializedObject(typeof(BrowseProgressUpdatedEventArgs));
+#pragma warning restore SYSLIB0050
 }

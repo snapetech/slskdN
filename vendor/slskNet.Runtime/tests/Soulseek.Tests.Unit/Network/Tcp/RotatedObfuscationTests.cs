@@ -31,6 +31,13 @@ namespace Soulseek.Tests.Unit.Network.Tcp
             Assert.Equal(plain, RotatedObfuscation.Decode(encoded));
         }
 
+        [Fact]
+        public void Length_Caps_Are_Bounded_For_Protocol_Use()
+        {
+            Assert.Equal(1024, RotatedObfuscation.MaxInitMessageLength);
+            Assert.Equal(8 * 1024 * 1024, RotatedObfuscation.MaxMessageLength);
+        }
+
         private static byte[] Hex(string input)
         {
             var bytes = new byte[input.Length / 2];

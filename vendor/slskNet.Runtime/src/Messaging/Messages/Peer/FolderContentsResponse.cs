@@ -86,7 +86,7 @@ namespace Soulseek.Messaging.Messages
 
             var token = reader.ReadInteger();
             var rootDirectory = reader.ReadString(); // directory name, should always match that of the first directory
-            var directoryCount = reader.ReadInteger(); // directory count, should always be 1
+            var directoryCount = ProtocolCountReader.ReadCount(reader, "directory", minimumBytesPerItem: 4); // directory count, should always be 1
             var directoryList = new List<Directory>();
 
             for (int i = 0; i < directoryCount; i++)

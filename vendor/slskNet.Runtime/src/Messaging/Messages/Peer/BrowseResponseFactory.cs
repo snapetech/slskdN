@@ -48,7 +48,7 @@ namespace Soulseek.Messaging.Messages
 
             reader.Decompress();
 
-            var directoryCount = reader.ReadInteger();
+            var directoryCount = ProtocolCountReader.ReadCount(reader, "directory", minimumBytesPerItem: 4);
             var directoryList = new List<Directory>();
             var lockedDirectoryList = new List<Directory>();
 
@@ -63,7 +63,7 @@ namespace Soulseek.Messaging.Messages
 
                 if (reader.HasMoreData)
                 {
-                    var lockedDirectoryCount = reader.ReadInteger();
+                    var lockedDirectoryCount = ProtocolCountReader.ReadCount(reader, "locked directory", minimumBytesPerItem: 4);
 
                     for (int i = 0; i < lockedDirectoryCount; i++)
                     {

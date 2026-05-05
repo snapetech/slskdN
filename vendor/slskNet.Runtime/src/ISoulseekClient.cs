@@ -223,6 +223,11 @@ namespace Soulseek
         event EventHandler<SearchResponseReceivedEventArgs> SearchResponseReceived;
 
         /// <summary>
+        ///     Occurs when a slskdN peer capability descriptor is received.
+        /// </summary>
+        event EventHandler<PeerCapabilityReceivedEventArgs> PeerCapabilityReceived;
+
+        /// <summary>
         ///     Occurs when a search changes state.
         /// </summary>
         event EventHandler<SearchStateChangedEventArgs> SearchStateChanged;
@@ -302,6 +307,16 @@ namespace Soulseek
         ///     Gets information sent by the server upon login.
         /// </summary>
         ServerInfo ServerInfo { get; }
+
+        /// <summary>
+        ///     Gets the known slskdN peer capability registry.
+        /// </summary>
+        PeerCapabilityRegistry PeerCapabilities { get; }
+
+        /// <summary>
+        ///     Gets the local slskdN peer capability descriptor advertised in capability acknowledgements.
+        /// </summary>
+        PeerCapabilityDescriptor PeerCapabilityDescriptor { get; }
 
         /// <summary>
         ///     Gets the current state of the underlying TCP connection.
@@ -1207,6 +1222,39 @@ namespace Soulseek
         Task RemoveInterestAsync(string item, CancellationToken? cancellationToken = null);
 
         /// <summary>
+        ///     Asynchronously adds the standardized mesh rendezvous interest tag to the current user's liked interests.
+        /// </summary>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <returns>The Task representing the asynchronous operation.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the client is not connected or logged in.</exception>
+        /// <exception cref="TimeoutException">Thrown when the operation has timed out.</exception>
+        /// <exception cref="OperationCanceledException">Thrown when the operation has been canceled.</exception>
+        /// <exception cref="SoulseekClientException">Thrown when an exception is encountered during the operation.</exception>
+        Task AddMeshRendezvousInterestAsync(CancellationToken? cancellationToken = null);
+
+        /// <summary>
+        ///     Asynchronously removes the standardized mesh rendezvous interest tag from the current user's liked interests.
+        /// </summary>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <returns>The Task representing the asynchronous operation.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the client is not connected or logged in.</exception>
+        /// <exception cref="TimeoutException">Thrown when the operation has timed out.</exception>
+        /// <exception cref="OperationCanceledException">Thrown when the operation has been canceled.</exception>
+        /// <exception cref="SoulseekClientException">Thrown when an exception is encountered during the operation.</exception>
+        Task RemoveMeshRendezvousInterestAsync(CancellationToken? cancellationToken = null);
+
+        /// <summary>
+        ///     Asynchronously returns users with interests similar to the current user's interests.
+        /// </summary>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <returns>The Task representing the asynchronous operation, including the response.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the client is not connected or logged in.</exception>
+        /// <exception cref="TimeoutException">Thrown when the operation has timed out.</exception>
+        /// <exception cref="OperationCanceledException">Thrown when the operation has been canceled.</exception>
+        /// <exception cref="SoulseekClientException">Thrown when an exception is encountered during the operation.</exception>
+        Task<IReadOnlyCollection<SimilarUser>> GetMeshRendezvousUsersAsync(CancellationToken? cancellationToken = null);
+
+        /// <summary>
         ///     Asynchronously searches for the specified <paramref name="query"/> using the specified unique
         ///     <paramref name="token"/> and with the optionally specified <paramref name="options"/> and <paramref name="cancellationToken"/>.
         /// </summary>
@@ -1276,6 +1324,58 @@ namespace Soulseek
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>The Task representing the asynchronous operation.</returns>
         Task SendPrivateMessageAsync(IEnumerable<string> usernames, string message, CancellationToken? cancellationToken = null);
+
+        /// <summary>
+        ///     Asynchronously sends a peer message with a custom code and payload to the specified <paramref name="username"/> over the peer connection.
+        /// </summary>
+        /// <param name="username">The user to which the message is to be sent.</param>
+        /// <param name="messageCode">The 32-bit peer message code.</param>
+        /// <param name="payload">The peer message payload bytes.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <returns>The Task representing the asynchronous operation.</returns>
+        /// <exception cref="ArgumentException">
+        ///     Thrown when the <paramref name="username"/> is null or empty.
+        /// </exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="messageCode"/> is less than zero.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the client is not connected or logged in.</exception>
+        /// <exception cref="TimeoutException">Thrown when the operation has timed out.</exception>
+        /// <exception cref="OperationCanceledException">Thrown when the operation has been canceled.</exception>
+        /// <exception cref="SoulseekClientException">Thrown when an exception is encountered during the operation.</exception>
+        Task SendPeerMessageAsync(string username, int messageCode, byte[] payload, CancellationToken? cancellationToken = null);
+
+        /// <summary>
+        ///     Asynchronously sends the local or supplied slskdN peer capability descriptor to the specified <paramref name="username"/>.
+        /// </summary>
+        /// <param name="username">The user to which the capability descriptor is to be sent.</param>
+        /// <param name="descriptor">The descriptor to send, or null to use <see cref="PeerCapabilityDescriptor"/>.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <returns>The Task representing the asynchronous operation.</returns>
+        Task SendPeerCapabilityAsync(string username, PeerCapabilityDescriptor descriptor = null, CancellationToken? cancellationToken = null);
+
+        /// <summary>
+        ///     Registers a handler for custom peer message codes.
+        /// </summary>
+        /// <param name="messageCode">The peer message code.</param>
+        /// <param name="handler">A handler invoked with sender username, sender endpoint, and peer payload.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="handler"/> is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="messageCode"/> is less than zero.</exception>
+        void RegisterPeerMessageHandler(int messageCode, Func<string, IPEndPoint, byte[], Task> handler);
+
+        /// <summary>
+        ///     Unregisters a custom peer message handler.
+        /// </summary>
+        /// <param name="messageCode">The peer message code.</param>
+        /// <returns>
+        ///     A value indicating whether a handler was removed.
+        /// </returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="messageCode"/> is less than zero.</exception>
+        bool UnregisterPeerMessageHandler(int messageCode);
+
+        /// <summary>
+        ///     Configures the local slskdN peer capability descriptor advertised in capability acknowledgements.
+        /// </summary>
+        /// <param name="descriptor">The descriptor to advertise.</param>
+        void SetPeerCapabilityDescriptor(PeerCapabilityDescriptor descriptor);
 
         /// <summary>
         ///     Asynchronously sends the specified chat room <paramref name="message"/> to the specified <paramref name="roomName"/>.
