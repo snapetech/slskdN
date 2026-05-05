@@ -52,6 +52,32 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z283. Live Soulseek Account Smokes Must Require Explicit Opt-In
+
+**The Bug**: The optional live-account mesh smoke skipped only when no local account pool was present. On developer machines that keep ignored credential files for manual testing, normal `dotnet test` release preflight tried to log two test instances into the public Soulseek service. If that external login path was unavailable or rate-limited, the whole integration suite failed even though the deterministic local mesh tests were healthy.
+
+**Files Affected**:
+- `tests/slskd.Tests.Integration/DhtRendezvous/TwoNodeMeshFullInstanceTests.cs`
+- `tests/slskd.Tests.Integration/README.md`
+
+**Wrong**:
+```csharp
+if (!TryLoadLocalMeshAccounts(out var accounts))
+{
+    return;
+}
+```
+
+**Correct**:
+```csharp
+if (!ShouldRunLiveMeshAccountSmoke() || !TryLoadLocalMeshAccounts(out var accounts))
+{
+    return;
+}
+```
+
+**Why This Keeps Happening**: Local ignored credential files are convenient for manual network testing, but their mere presence must not change the release test contract. Any test that depends on public network state, third-party login, VPN egress, or mutable external account reputation needs an explicit opt-in environment variable in addition to credentials.
+
 ### 0z282. Port Migration UI Must Read Effective Options, Not Default Port Constants
 
 **The Bug**: The VPN ingress migration banner displayed `50300` and `50305` as the "Need now" ports even when the running instance could be configured with different `soulseek.listen_port`, `dht.overlay_port`, and `dht.dht_port` values. That made default ports look like universal Soulseek network facts and could mislead operators with custom forwards.
