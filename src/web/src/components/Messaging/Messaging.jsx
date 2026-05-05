@@ -82,6 +82,7 @@ const channelLabel = (channel) =>
     .join(' / ');
 
 const normalizeConversationName = (value) => `${value || ''}`.trim().toLowerCase();
+const asArray = (value) => (Array.isArray(value) ? value : []);
 
 const isPodDirectChannel = (channel) => {
   const channelKind = normalizeConversationName(channel.channelKind);
@@ -313,7 +314,9 @@ const Messaging = ({ initialKind = 'mixed', state }) => {
       pods.list().catch(() => []),
     ]);
     const podDetails = await Promise.all(
-      (serverPods || []).map(async (pod) => {
+      asArray(serverPods)
+        .filter((pod) => pod && typeof pod === 'object' && !Array.isArray(pod))
+        .map(async (pod) => {
         try {
           return await pods.get(pod.podId);
         } catch {
@@ -323,7 +326,9 @@ const Messaging = ({ initialKind = 'mixed', state }) => {
     );
 
     setConversations(
-      (serverConversations || [])
+      asArray(serverConversations)
+        .filter((conversation) =>
+          conversation && typeof conversation === 'object' && !Array.isArray(conversation))
         .filter((conversation) => conversation.username)
         .sort((a, b) => {
           if (a.hasUnAcknowledgedMessages !== b.hasUnAcknowledgedMessages) {
@@ -333,18 +338,21 @@ const Messaging = ({ initialKind = 'mixed', state }) => {
           return a.username.localeCompare(b.username);
         }),
     );
-    setJoinedRooms((serverJoinedRooms || []).filter(Boolean).sort());
+    setJoinedRooms(asArray(serverJoinedRooms).filter(Boolean).sort());
     setPodChannels(
       podDetails
         .flatMap((pod) =>
-          (pod.channels || []).map((channel) => ({
-            channelId: channel.channelId,
-            channelKind: channel.kind,
-            channelName: channel.name,
-            podId: pod.podId,
-            podName: pod.name || pod.podId,
-            target: encodePodTarget(pod.podId, channel.channelId),
-          })),
+          asArray(pod.channels)
+            .filter((channel) =>
+              channel && typeof channel === 'object' && !Array.isArray(channel))
+            .map((channel) => ({
+              channelId: channel.channelId,
+              channelKind: channel.kind,
+              channelName: channel.name,
+              podId: pod.podId,
+              podName: pod.name || pod.podId,
+              target: encodePodTarget(pod.podId, channel.channelId),
+            })),
         )
         .sort((a, b) => channelLabel(a).localeCompare(channelLabel(b))),
     );

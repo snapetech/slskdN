@@ -2435,3 +2435,7 @@
 - [x] Harden Discography, Source Provider, and watchlist nested lists
   - Status: completed (2026-05-05)
   - Notes: Normalized Discography Coverage releases/tracks, Source Provider capabilities/profile priority lists, and watchlist expansion summaries before list operations. Added focused regressions and extended ADR-0001 gotcha `0z306`.
+
+- [x] Harden Messaging workspace server list hydration
+  - Status: completed (2026-05-05)
+  - Notes: Guarded chat conversation, joined room, pod, and pod channel payloads before Messaging workspace hydration. Added focused Messaging regression coverage and extended ADR-0001 gotcha `0z306`.

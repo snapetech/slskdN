@@ -1,3 +1,14 @@
+## Update 2026-05-05 20:00:00Z
+
+- Current task: Messaging workspace server list hydration hardening is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-067` in `docs/dev/bug-burndown-ledger.md`
+  - guarded conversations, joined rooms, pods, and pod channels before Messaging workspace state updates
+  - extended ADR-0001 gotcha `0z306` in commit `c14d25ca1`
+  - validation passed: focused Messaging Vitest suite (`11` tests), Web lint, `git diff --check`, and `npm run check:remediation`
+- Next steps:
+  1. Commit and push the full dirty tree per user request.
+
 ## Update 2026-05-05 19:49:00Z
 
 - Current task: Discography, Source Provider, and watchlist nested list hardening is complete locally.

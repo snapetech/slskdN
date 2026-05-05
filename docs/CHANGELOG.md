@@ -59,6 +59,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Hardened Discography Coverage, Source Providers, and watchlist expansion
   summaries against malformed nested release, track, capability, priority, and
   expansion-candidate lists.
+- Hardened Messaging workspace hydration against malformed conversations,
+  joined rooms, pods, and pod channel lists.
 - Hardened non-versioned route checks and Pushbullet notification logging.
 - Synced the vendored `slskNet.Runtime` bug council ledger and remediation
   baseline checks.

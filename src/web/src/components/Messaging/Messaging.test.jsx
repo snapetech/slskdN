@@ -116,6 +116,35 @@ describe('Messaging', () => {
     expect(screen.getByText('Chat panel: new-user')).toBeInTheDocument();
   });
 
+  it('ignores malformed server list payloads while hydrating', async () => {
+    chat.getAll.mockResolvedValue({ conversations: [] });
+    rooms.getJoined.mockResolvedValue({ rooms: [] });
+    pods.list.mockResolvedValue([
+      null,
+      'bad',
+      ['bad'],
+      {
+        channels: { channelId: 'general' },
+        name: 'Broken Pod',
+        podId: 'pod-1',
+      },
+    ]);
+    pods.get.mockResolvedValue({
+      channels: { channelId: 'general' },
+      name: 'Broken Pod',
+      podId: 'pod-1',
+    });
+
+    render(
+      <MemoryRouter>
+        <Messaging />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Workspace')).toBeInTheDocument();
+    expect(screen.queryByText('Broken Pod / general')).not.toBeInTheDocument();
+  });
+
   it('ignores malformed persisted workspace shapes before creating panels', async () => {
     localStorage.setItem('slskd-messaging-workspace', JSON.stringify(['bad']));
     chat.getAll.mockResolvedValue([]);

@@ -9669,3 +9669,10 @@ Code quality improvements were completed as part of Option A:
 - Normalized MusicBrainz discography releases/tracks, source provider capabilities/profile priority lists, and watchlist expansion candidates before list operations.
 - Extended ADR-0001 gotcha `0z306` in commit `ebf384d34`.
 - Validation passed: focused Discography Coverage, Source Providers, and watchlists Vitest coverage (`14` tests).
+
+## 2026-05-05 20:00:00Z
+
+- Continued frontend workflow shape-hardening into Messaging workspace hydration.
+- Guarded server conversations, joined rooms, pods, and pod channels so malformed non-array payloads do not crash unified Messaging.
+- Extended ADR-0001 gotcha `0z306` in commit `c14d25ca1`.
+- Validation passed: focused Messaging Vitest coverage (`11` tests), Web lint, `git diff --check`, and `npm run check:remediation`.
