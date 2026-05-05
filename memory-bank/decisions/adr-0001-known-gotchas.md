@@ -86,6 +86,10 @@ api.get(`/files/${root}/directories/${encodeURIComponent(btoa(binary))}`);
 - `src/web/src/components/ShareGroups/ShareGroups.jsx`
 - `src/web/src/components/Search/SoulseekDiscoveryPanel.jsx`
 - `src/web/src/components/Player/PlayerBar.jsx`
+- `src/web/src/lib/discoveryGraph.js`
+- `src/web/src/components/Search/DiscoveryGraphAtlas.jsx`
+- `src/web/src/components/Search/DiscoveryGraphAtlasPanel.jsx`
+- `src/web/src/components/Search/DiscoveryGraphModal.jsx`
 
 **Wrong**:
 ```js
