@@ -52,6 +52,33 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z279. Passthrough AllowedCidrs Is A Comma-Separated String, Not A YAML List
+
+**The Bug**: A generated full-instance test config wrote `web.authentication.passthrough.allowed_cidrs` as a YAML sequence while `Options.Web.Authentication.Passthrough.AllowedCidrs` is a `string?`. The .NET configuration binder then failed process startup with `Cannot create instance of type 'System.String' because it has multiple public parameterized constructors`.
+
+**Files Affected**:
+- `tests/slskd.Tests.Integration/Harness/SlskdnFullInstanceRunner.cs`
+- `src/slskd/Core/Options.cs`
+
+**Wrong**:
+```yaml
+web:
+  authentication:
+    passthrough:
+      allowed_cidrs:
+        - 10.0.0.0/8
+```
+
+**Correct**:
+```yaml
+web:
+  authentication:
+    passthrough:
+      allowed_cidrs: 10.0.0.0/8
+```
+
+**Why This Keeps Happening**: CIDR allowlists are often modeled as arrays, but this option intentionally stores a comma-separated string for CLI/env/config compatibility. Generated YAML must match the exact option type unless the option model is changed and migration-tested.
+
 ### 0z278. Playback Buffer Priority Must Not Compare A Value To Itself
 
 **The Bug**: Playback-aware multi-source scheduling accepted `BufferAheadMs` feedback but computed both the desired and actual buffer from the same property. That made the high-buffer and low-buffer branches unreachable for normal positive values, so playback priority collapsed to `Mid` and could not react to starving or comfortably buffered playback.
