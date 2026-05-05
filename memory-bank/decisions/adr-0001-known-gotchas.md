@@ -60,6 +60,9 @@ This is not optional. This is the highest priority action after fixing a bug.
 - `src/web/src/components/Search/Detail/SearchDetail.jsx`
 - `src/web/src/lib/albumDecisionRules.js`
 - `src/web/src/components/Search/FederatedTasteRecommendationsPanel.jsx`
+- `src/web/src/components/Search/DiscographyCoveragePanel.jsx`
+- `src/web/src/components/System/SourceProviders/index.jsx`
+- `src/web/src/lib/watchlists.js`
 
 **Wrong**:
 ```js
