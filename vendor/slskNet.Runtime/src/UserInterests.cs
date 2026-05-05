@@ -24,6 +24,7 @@
 namespace Soulseek
 {
     using System.Collections.Generic;
+    using System.Linq;
 
     /// <summary>
     ///     A user's liked and hated interests.
@@ -38,9 +39,22 @@ namespace Soulseek
         /// <param name="hated">The hated interests.</param>
         public UserInterests(string username, IReadOnlyCollection<string> liked, IReadOnlyCollection<string> hated)
         {
+            var likedList = liked?.ToList() ?? new List<string>();
+            var hatedList = hated?.ToList() ?? new List<string>();
+
+            if (likedList.Any(interest => interest == null))
+            {
+                throw new System.ArgumentException("The liked interest list must not contain null entries", nameof(liked));
+            }
+
+            if (hatedList.Any(interest => interest == null))
+            {
+                throw new System.ArgumentException("The hated interest list must not contain null entries", nameof(hated));
+            }
+
             Username = username;
-            Liked = liked;
-            Hated = hated;
+            Liked = likedList.AsReadOnly();
+            Hated = hatedList.AsReadOnly();
         }
 
         /// <summary>

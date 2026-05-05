@@ -266,5 +266,24 @@ namespace Soulseek.Tests.Unit
                 Assert.Throws<ArgumentException>(() => new MeshRendezvousResult("tag", new SimilarUser[] { null }, null));
             }
         }
+
+        [Theory(DisplayName = "UserInterests rejects null entries")]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void UserInterests_Rejects_Null_Entries(bool hated)
+        {
+            if (hated)
+            {
+                Assert.Throws<ArgumentException>(() => new UserInterests("user", null, new string[] { null }));
+            }
+            else
+            {
+                Assert.Throws<ArgumentException>(() => new UserInterests("user", new string[] { null }, null));
+            }
+        }
+
+        [Fact(DisplayName = "ItemRecommendations rejects null recommendations")]
+        public void ItemRecommendations_Rejects_Null_Recommendations()
+            => Assert.Throws<ArgumentException>(() => new ItemRecommendations("item", new Recommendation[] { null }));
     }
 }

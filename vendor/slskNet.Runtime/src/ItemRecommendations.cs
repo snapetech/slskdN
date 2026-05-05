@@ -24,6 +24,7 @@
 namespace Soulseek
 {
     using System.Collections.Generic;
+    using System.Linq;
 
     /// <summary>
     ///     Recommendations related to a specific item.
@@ -37,8 +38,15 @@ namespace Soulseek
         /// <param name="recommendations">The recommendations.</param>
         public ItemRecommendations(string item, IReadOnlyCollection<Recommendation> recommendations)
         {
+            var recommendationList = recommendations?.ToList() ?? new List<Recommendation>();
+
+            if (recommendationList.Any(recommendation => recommendation == null))
+            {
+                throw new System.ArgumentException("The recommendation list must not contain null entries", nameof(recommendations));
+            }
+
             Item = item;
-            Recommendations = recommendations;
+            Recommendations = recommendationList.AsReadOnly();
         }
 
         /// <summary>
