@@ -2486,3 +2486,7 @@
 - [x] Run broad council cycle and burn down accepted app/package findings
   - Status: completed (2026-05-05)
   - Notes: Fixed mesh gateway validation/auth, POST-only memory dumps, option log redaction, no-redirect tunnel transports, pod/search route encoding, Quarantine Jury/MediaCore payload guards, AUR/PPA/Snap/release-note drift, and strengthened outbound/path scanners.
+
+- [x] Fix council loop whole-section classification flaw
+  - Status: completed (2026-05-05)
+  - Notes: Re-ran the runtime bug council scanner, closed the constructor section with 28/28 classified candidates, classified the full 221-hit protocol count/length section, and added a visible remaining candidate class queue plus baseline checks.

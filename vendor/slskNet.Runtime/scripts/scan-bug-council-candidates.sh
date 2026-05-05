@@ -49,6 +49,18 @@ scan "Protocol count and length allocation candidates" \
   'ReadInteger\(\)|ReadLong\(\)|ReadBytes\([^)]*\)|new byte\[[^]]+\]|for \(int i = 0; i < [^;]+; i\+\+\)|while \(' \
   src/Messaging src/Network
 
+scan "Protocol counted collection loops" \
+  'ProtocolCountReader\.ReadCount|for \(int i = 0; i < [A-Za-z0-9_]*(Count|count); i\+\+\)|for \(int j = 0; j < [A-Za-z0-9_]*(Count|count); j\+\+\)|ReadFiles\([^)]*count' \
+  src/Messaging src/Network
+
+scan "Protocol length-prefixed reads and payload allocations" \
+  'ReadStringAndEncoding|ReadBytes\(int count\)|var length = ReadInteger\(\)|var pictureLen = reader\.ReadInteger\(\)|new byte\[8 \+ length\]|new byte\[checked\(\(int\)length\)\]|new byte\[FrameLengthBytes \+ payload\.Length\]|new byte\[4 \+ input\.Length\]|new byte\[input\.Length - 4\]' \
+  src/Messaging src/Network
+
+scan "Protocol compression boundary candidates" \
+  'Decompress\(|MaximumDecompressedPayloadLength|BoundedMemoryStream|new byte\[bufsize\]|new byte\[len\]|window = new byte|pending_buf = new byte' \
+  src/Messaging
+
 scan "Protocol scalar emission candidates" \
   'Write(Integer|Long|Byte|String|Bytes)\(' \
   src/Messaging

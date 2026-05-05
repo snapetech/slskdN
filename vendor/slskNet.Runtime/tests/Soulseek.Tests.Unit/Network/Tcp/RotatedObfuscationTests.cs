@@ -4,6 +4,7 @@
 
 namespace Soulseek.Tests.Unit.Network.Tcp
 {
+    using System;
     using Soulseek.Network.Tcp;
     using Xunit;
 
@@ -36,6 +37,14 @@ namespace Soulseek.Tests.Unit.Network.Tcp
         {
             Assert.Equal(1024, RotatedObfuscation.MaxInitMessageLength);
             Assert.Equal(8 * 1024 * 1024, RotatedObfuscation.MaxMessageLength);
+        }
+
+        [Fact]
+        public void Encode_And_Decode_Reject_Null_Input()
+        {
+            Assert.Throws<ArgumentNullException>(() => RotatedObfuscation.Encode(null));
+            Assert.Throws<ArgumentNullException>(() => RotatedObfuscation.Encode(null, 0x1020_3040));
+            Assert.Throws<ArgumentNullException>(() => RotatedObfuscation.Decode(null));
         }
 
         private static byte[] Hex(string input)

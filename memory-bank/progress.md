@@ -9747,3 +9747,9 @@ Code quality improvements were completed as part of Option A:
 - Fixed accepted app/package findings for mesh gateway fail-closed validation, POST-only memory dumps, option log redaction, no-redirect tunnel/meek transports, pod/search route encoding, Quarantine Jury and MediaCore list-shape guards, AUR/PPA tmpfiles drift, Snap version drift, and release-note asset drift.
 - Strengthened outbound HTTP and relay path-containment scanners so those fixed classes are covered by remediation baseline.
 - Documented ADR-0001 gotchas `0z312` through `0z316`; focused backend, Web, packaging, release asset, outbound HTTP, and path-containment validations passed.
+
+## 2026-05-05 22:58:00Z
+
+- Fixed the remaining council-loop flaw by making whole-section classification explicit instead of stopping after the constructor batch.
+- Re-ran the runtime bug council scanner, recorded the constructor section as 28/28 classified, and classified the protocol count/length section as 221/221 with grouped counts that add to the scanner output.
+- Added a visible remaining candidate class queue and remediation-baseline assertions so future sweeps cannot close the section without the classification markers.

@@ -41,6 +41,11 @@ namespace Soulseek.Network.Tcp
 
         public static byte[] Encode(byte[] input)
         {
+            if (input == null)
+            {
+                throw new ArgumentNullException(nameof(input));
+            }
+
             var keyBytes = new byte[4];
             using (var rng = RandomNumberGenerator.Create())
             {
@@ -52,6 +57,11 @@ namespace Soulseek.Network.Tcp
 
         public static byte[] Encode(byte[] input, uint key)
         {
+            if (input == null)
+            {
+                throw new ArgumentNullException(nameof(input));
+            }
+
             var output = new byte[4 + input.Length];
             BinaryPrimitives.WriteUInt32LittleEndian(output, key);
             Buffer.BlockCopy(input, 0, output, 4, input.Length);
@@ -61,6 +71,11 @@ namespace Soulseek.Network.Tcp
 
         public static byte[] Decode(byte[] input)
         {
+            if (input == null)
+            {
+                throw new ArgumentNullException(nameof(input));
+            }
+
             if (input.Length < 4)
             {
                 throw new ArgumentException("Obfuscated frame must include a four-byte key", nameof(input));

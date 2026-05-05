@@ -5449,3 +5449,14 @@ dotnet test
 - Next steps:
   1. Commit implementation/docs batch.
   2. Verify GitHub target and push `main`.
+
+## Update 2026-05-05 22:58:00Z
+
+- Current task: Bug council loop fix and second scanner pass are in validation.
+- Last activity:
+  - re-ran the runtime council scanner
+  - recorded 28/28 constructor candidates and 221/221 protocol count/length candidates as classified in the active sweep register
+  - added the remaining candidate class queue and baseline assertions for whole-section closure
+- Next steps:
+  1. Run remediation baseline and focused runtime tests.
+  2. Commit and push the council-loop follow-up.

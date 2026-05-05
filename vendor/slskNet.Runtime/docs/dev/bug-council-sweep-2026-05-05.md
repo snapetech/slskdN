@@ -47,6 +47,35 @@ This sweep fixes the loop flaws that allowed the council to stop after one or tw
 | `src/Messaging/Messages/Peer/FolderContentsResponse.cs:41` | Fixed | RT-060 | Directory collections are copied into immutable snapshots and null directories are rejected. |
 | `src/Messaging/Messages/Server/NetInfoNotification.cs:41` | Fixed | RT-066 | Parent metadata is copied, count-matched, and validated for null endpoints, usernames, and invalid ports. |
 
-Next queued section:
+Second selected scan section:
 
 `Protocol count and length allocation candidates`
+
+Candidate count: 221
+Classification marker: 221/221 classified
+Unclassified candidates: 0
+New accepted candidates from this section: 0
+
+This section was classified as a whole section after re-running `bash scripts/scan-bug-council-candidates.sh` at `2026-05-05T22:48:47Z`. Counts below are grouped by file families because the scanner intentionally reports every count read, loop, allocation, and fixed-size buffer candidate; the grouped totals add to the scanner count of 221.
+
+| Candidate group | Hits | Classification | Ledger | Rationale |
+| --- | ---: | --- | --- | --- |
+| `src/Messaging/Compression/*` zlib internals | 80 | Existing guard | RT-002, RT-007 | These are internal compression buffers and loops. Protocol decompression is bounded by `MessageReader.BoundedMemoryStream` and frame limits before payload publication. |
+| `MessageReader`, `MessageBuilder`, `MessageReaderExtensions`, `ProtocolCountReader` primitives | 15 | Fixed | RT-001, RT-003, RT-015 | String/byte reads reject negative and overrun lengths, file attribute/file counts use `ProtocolCountReader`, and buffered reads are capped. |
+| `src/Network/*` frame, transfer, and socket buffer candidates | 34 | Existing guard | RT-002, RT-003, RT-007, RT-049, RT-051 | Message and obfuscated frame lengths are bounded; buffered reads are capped; transfer stream loops fail on premature EOF instead of silently succeeding. |
+| Distributed and initialization token/scalar readers | 7 | Existing guard | RT-031 | These hits are fixed-size token, branch, depth, and ping scalar reads with no untrusted allocation loop; invalid topology scalars are already rejected. |
+| Peer protocol parser candidates | 21 | Fixed | RT-001, RT-015, RT-018, RT-028 | Browse/search/folder collection counts use `ProtocolCountReader`; picture bytes are bounded against remaining payload; peer transfer and queue scalars are validated. |
+| Server protocol parser candidates | 64 | Fixed | RT-001, RT-014, RT-016, RT-018, RT-032, RT-033, RT-068 | Server list counts use `ProtocolCountReader`, parallel counts are matched, endpoint ports and booleans are validated, and room ticker count metadata is now validated. |
+
+Remaining candidate classes:
+
+| Class | Current hits | Status | Next action |
+| --- | ---: | --- | --- |
+| Protocol scalar emission candidates | 145 | Queued | Classify outbound scalar constructors and burn down accepted gaps. |
+| Resolver output and raw stream candidates | 341 | Queued | Classify application-supplied resolver and stream boundaries. |
+| Task, cancellation, timer, and semaphore lifecycle candidates | 201 | Queued | Classify lifecycle ownership and cancellation races. |
+| Example Web API path, request, and lifecycle candidates | 302 | Queued | Classify example API path/request/disposable boundaries. |
+| Mutable public byte arrays and array properties | 12 | Mostly fixed | Reclassify residual public array hits after snapshot fixes. |
+| Value equality and hash-code comparisons | 4 | Mostly fixed | Reclassify residual equality operator hits after `WaitKey` and `ConnectionKey` fixes. |
+| Security-sensitive material candidates | 2 | Baseline gated | Confirm scanner self-hits only and keep high-confidence secret scan active. |
+| Non-idempotent task completion candidates | 0 | Closed | Keep baseline rejecting `.SetResult`, `.SetException`, and `.SetCanceled` in runtime source. |

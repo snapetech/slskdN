@@ -56,6 +56,7 @@ require_absent_pattern() {
 require_file "docs/dev/bug-burndown-ledger.md" "bug burndown ledger exists"
 require_file "docs/dev/bug-council-scan-registry.md" "bug council scan registry exists"
 require_file "docs/dev/bug-council-sweep-2026-05-05.md" "bug council active sweep register exists"
+require_file "docs/dev/bug-council-sweep-protocol-length-2026-05-05.md" "bug council protocol length sweep register exists"
 require_file "scripts/check-remediation-baseline.sh" "remediation baseline script exists"
 require_file "scripts/scan-bug-council-candidates.sh" "bug council candidate scanner exists"
 
@@ -269,6 +270,18 @@ require_pattern "RT-068" "docs/dev/bug-burndown-ledger.md" "ledger records multi
 require_pattern "tickerCount != tickerList\\.Count" "src/Messaging/Messages/Server/RoomTickerListNotification.cs" "room ticker list notifications validate ticker count metadata"
 require_pattern "ticker == null" "src/Messaging/Messages/Server/RoomTickerListNotification.cs" "room ticker list notifications reject null tickers"
 require_pattern "Instantiation_Rejects_Invalid_Ticker_Metadata" "tests/Soulseek.Tests.Unit/Messaging/Messages/Server/RoomTickerListNotificationTests.cs" "room ticker metadata regression test is registered"
+require_pattern "Protocol counted collection loops" "scripts/scan-bug-council-candidates.sh" "scanner emits protocol counted-loop subgroup"
+require_pattern "Protocol length-prefixed reads and payload allocations" "scripts/scan-bug-council-candidates.sh" "scanner emits protocol length/allocation subgroup"
+require_pattern "Protocol compression boundary candidates" "scripts/scan-bug-council-candidates.sh" "scanner emits protocol compression-boundary subgroup"
+require_pattern "Protocol counted collection loops: 54/54 classified" "docs/dev/bug-council-sweep-protocol-length-2026-05-05.md" "protocol counted-loop sweep is closed"
+require_pattern "Protocol length-prefixed reads and payload allocations: 12/12 classified" "docs/dev/bug-council-sweep-protocol-length-2026-05-05.md" "protocol length/allocation sweep is closed"
+require_pattern "Protocol compression boundary candidates: 16/16 classified" "docs/dev/bug-council-sweep-protocol-length-2026-05-05.md" "protocol compression-boundary sweep is closed"
+require_pattern "Unclassified candidates: 0" "docs/dev/bug-council-sweep-protocol-length-2026-05-05.md" "protocol sweep records zero unclassified candidates"
+require_absent_pattern "\\|[^|\n]*\\| Unclassified \\|" "docs/dev/bug-council-sweep-protocol-length-2026-05-05.md" "protocol sweep has no unclassified rows"
+require_pattern "RT-069" "docs/dev/bug-burndown-ledger.md" "ledger records protocol subgroup loop flaw"
+require_pattern "RT-070" "docs/dev/bug-burndown-ledger.md" "ledger records obfuscation null input hardening"
+require_pattern "input == null" "src/Network/Tcp/RotatedObfuscation.cs" "rotated obfuscation rejects null inputs"
+require_pattern "Encode_And_Decode_Reject_Null_Input" "tests/Soulseek.Tests.Unit/Network/Tcp/RotatedObfuscationTests.cs" "rotated obfuscation null input test is registered"
 require_pattern "Every hit must be ledgered" "scripts/scan-bug-council-candidates.sh" "candidate scanner documents ledger classification requirement"
 
 secret_pattern='-----BEGIN (RSA |DSA |EC |OPENSSH |PGP )?PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{36,}|xox[baprs]-[A-Za-z0-9-]{20,}|AKIA[0-9A-Z]{16}|(?i)(api[_-]?key|access[_-]?token|client[_-]?secret)["'\'']?\s*[:=]\s*["'\''][A-Za-z0-9_./+=-]{24,}["'\'']'
