@@ -52,6 +52,31 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z282. Port Migration UI Must Read Effective Options, Not Default Port Constants
+
+**The Bug**: The VPN ingress migration banner displayed `50300` and `50305` as the "Need now" ports even when the running instance could be configured with different `soulseek.listen_port`, `dht.overlay_port`, and `dht.dht_port` values. That made default ports look like universal Soulseek network facts and could mislead operators with custom forwards.
+
+**Files Affected**:
+- `src/web/src/components/App.jsx`
+- `src/web/src/components/App.test.jsx`
+
+**Wrong**:
+```jsx
+const CURRENT_INGRESS_PORTS = [
+  { config: 'soulseek.listen_port', port: 50300, proto: 'TCP' },
+  { config: 'dht.overlay_port + dht.dht_port', port: 50305, proto: 'TCP/UDP' },
+];
+```
+
+**Correct**:
+```jsx
+const soulseekListenPort = getOption(options.soulseek, 'listenPort') ?? 50300;
+const dhtOverlayPort = getOption(options.dht, 'overlayPort') ?? 50305;
+const dhtPort = getOption(options.dht, 'dhtPort') ?? 50305;
+```
+
+**Why This Keeps Happening**: Migration copy is easy to write from the default config, but the Web UI has access to redacted runtime options and should treat defaults only as fallbacks. Any operator-facing port, path, host, or public endpoint guidance must be derived from loaded options/state when available, and split combined protocol rows when the configured TCP and UDP ports differ.
+
 ### 0z281. VPN Wrapper Test Processes Need Whole-Tree Cleanup
 
 **The Bug**: The full-instance test runner started slskd through a VPN namespace wrapper, then stopped only the direct wrapper shell process. Child `sudo`, `runuser`, and `slskd` processes could remain alive inside the namespace, leaving xUnit runs hanging after the download endpoint had already returned and leaving stale `sldl*` namespaces behind.
