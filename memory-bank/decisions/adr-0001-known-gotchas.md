@@ -58,6 +58,9 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 **Files Affected**:
 - `src/web/src/lib/automationRecipes.js`
+- `src/web/src/lib/audioVerification.js`
+- `src/web/src/components/Messaging/Messaging.jsx`
+- `src/web/src/components/Player/Visualizer.jsx`
 - `src/web/src/components/System/ExperienceSettings/index.jsx`
 - `src/web/src/components/App.jsx`
 
