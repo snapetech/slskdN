@@ -52,6 +52,29 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z284. Release Gates Must Provision Their Script Dependencies
+
+**The Bug**: The tag-driven release workflow failed in the release gate before any build work because `scripts/generate-route-inventory.sh` uses `rg`, but the GitHub runner image used by the workflow did not have ripgrep installed. Local validation passed because developer machines usually have `rg`.
+
+**Files Affected**:
+- `packaging/scripts/run-release-gate.sh`
+- `scripts/generate-route-inventory.sh`
+
+**Wrong**:
+```bash
+section "Run remediation baseline checks"
+bash scripts/check-remediation-baseline.sh
+```
+
+**Correct**:
+```bash
+ensure_tool rg ripgrep
+section "Run remediation baseline checks"
+bash scripts/check-remediation-baseline.sh
+```
+
+**Why This Keeps Happening**: Release gates often call helper scripts that assume developer-machine tools. Tag workflows run on clean hosted images, so release-gate scripts must either provision required command-line tools or fail early with a clear dependency error before entering nested scripts.
+
 ### 0z283. Live Soulseek Account Smokes Must Require Explicit Opt-In
 
 **The Bug**: The optional live-account mesh smoke skipped only when no local account pool was present. On developer machines that keep ignored credential files for manual testing, normal `dotnet test` release preflight tried to log two test instances into the public Soulseek service. If that external login path was unavailable or rate-limited, the whole integration suite failed even though the deterministic local mesh tests were healthy.
