@@ -31,6 +31,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Added logged-in and logged-out footer build metadata with a GitHub-backed
   slskdN release check that surfaces newer packaged builds from
   `snapetech/slskdn`.
+- Replaced the Web UI ASCII/logo placeholders with generated slskdN favicon,
+  PWA, login, and footer logo assets.
+- Bounded release-gate commands and tag build jobs with explicit timeouts so a
+  stalled test or child process fails with an actionable gate section.
 - Fixed the VPN ingress migration banner so current Soulseek and mesh/DHT
   ports come from loaded configuration instead of hard-coded defaults.
 - Kept live Soulseek-account mesh smoke tests out of normal release preflight

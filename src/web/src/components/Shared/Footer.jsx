@@ -1,4 +1,5 @@
 import './Footer.css';
+import footerLogo from '../../assets/brand/slskdn-icon.png';
 import * as application from '../../lib/application';
 import * as mesh from '../../lib/mesh';
 import * as session from '../../lib/session';
@@ -212,6 +213,19 @@ class Footer extends Component {
         <div className="slskdn-footer-content">
           <div className="slskdn-footer-left">
             <div className="slskdn-footer-brand">
+              <a
+                className="slskdn-footer-logo"
+                href={GITHUB_BASE}
+                rel="noopener noreferrer"
+                target="_blank"
+                title="Open the slskdN GitHub project"
+              >
+                <img
+                  alt="slskdN"
+                  src={footerLogo}
+                />
+              </a>
+
               <a
                 className="slskdn-footer-sponsor"
                 href="https://github.com/sponsors/snapetech"

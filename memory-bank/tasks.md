@@ -2298,3 +2298,11 @@
 - [x] Port applicable Web UI integration polish
   - Status: completed (2026-05-05)
   - Notes: Reviewed the adjacent implementation for portable Web UI and third-party integration fixes, then ported the applicable Spotify redirect guidance, authorization launch behavior, and readiness report wording. Existing backend controllers already cover the comparable Spotify, Lidarr, and library-health API surfaces.
+
+- [x] Replace Web UI placeholder branding with generated slskdN logo assets
+  - Status: completed (2026-05-05)
+  - Notes: Derived app-ready logo assets from the local PNG handoff, replaced favicon/PWA icons, updated the login screen from ASCII art to a branded lockup, and added a footer GitHub logo link.
+
+- [x] Bound release gate runtime and rerun release with branding assets
+  - Status: completed (2026-05-05)
+  - Notes: Cancelled the stuck `.222` tag run, documented the release-gate hang gotcha, added command-level release-gate timeouts plus workflow job timeouts, and prepared the next release tag with the new logo assets.

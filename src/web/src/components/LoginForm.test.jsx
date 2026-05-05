@@ -5,7 +5,6 @@ import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 
 vi.mock('./Shared/Footer', () => ({ default: () => <div>Footer</div> }));
-vi.mock('./Shared/Logo', () => ({ default: ['LOGO'] }));
 
 describe('LoginForm', () => {
   afterEach(() => {

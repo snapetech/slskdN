@@ -9484,3 +9484,17 @@ Code quality improvements were completed as part of Option A:
 - Ported applicable frontend integration polish: Spotify redirect URI display in the integrations panel, automatic navigation from Spotify authorization responses, compatibility with camelCase and snake_case authorization URL payloads, and `PENDING` readiness report wording for media-server and Servarr reports.
 - Confirmed comparable backend surfaces are already first-class in slskdN: Spotify has a PKCE/state callback controller, Lidarr has status/wanted/sync/manual-import controllers, and library-health already uses the correct versioned API-client paths.
 - Validation passed: `cd src/web && npm run lint`, focused Vitest integration/lib tests (`31` tests), and `cd src/web && npm run build`.
+
+## 2026-05-05 06:54:55Z
+
+- Reviewed the newly added local logo PNG batch and selected the clean dark lockup/cube source instead of flattened checkerboard mockups.
+- Generated derived Web UI assets for favicon/PWA icons, the login lockup, and a small footer GitHub mark under slskdN asset names.
+- Replaced the login ASCII logo with the image lockup and added a footer logo link to the `snapetech/slskdn` GitHub project.
+- Validation passed: focused LoginForm/Footer Vitest coverage, `cd src/web && npm run lint`, and `cd src/web && npm run build`.
+
+## 2026-05-05 07:00:33Z
+
+- Cancelled the stuck `build-main-2026050500-slskdn.222` release run after it remained inside the opaque Release Gate step.
+- Documented the release-gate hang gotcha separately, then added command-level timeouts around each release-gate command and 120-minute workflow job timeouts for tag/CI build jobs.
+- Local full `dotnet test` was stopped after the required unit and smoke projects passed because the full integration project hung; the release gate now runs only the bounded release integration smoke slice.
+- Validation passed for the release-gate script syntax and the full bounded release gate: frontend tests/build/smokes, backend Release unit tests, backend smoke/regression tests, and release integration smoke.

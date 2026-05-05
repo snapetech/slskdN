@@ -23,6 +23,7 @@ jobs:
     name: Build and Test
     # Uses self-hosted if available (set PREFER_SELF_HOSTED=false to use GitHub-hosted)
     runs-on: ${{ vars.PREFER_SELF_HOSTED != 'false' && 'self-hosted' || 'ubuntu-latest' }}
+    timeout-minutes: 120
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:

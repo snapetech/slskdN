@@ -1,5 +1,5 @@
 import Footer from './Shared/Footer';
-import Logos from './Shared/Logo';
+import brandLogo from '../assets/brand/slskdn-logo-lockup.png';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Button,
@@ -37,10 +37,6 @@ const LoginForm = ({ error, loading, onLoginAttempt }) => {
   const usernameInput = useRef();
   const [state, setState] = useState(initialState);
   const [ready, setReady] = useState(false);
-  const logo = useMemo(
-    () => Logos[Math.floor(Math.random() * Logos.length)],
-    [],
-  );
   const httpsUrl = useMemo(() => {
     if (typeof window === 'undefined') {
       return null;
@@ -80,16 +76,14 @@ const LoginForm = ({ error, loading, onLoginAttempt }) => {
         <Grid.Column style={{ maxWidth: 460 }}>
           <Header
             as="h2"
-            style={{
-              fontFamily: 'monospace',
-              fontSize: 'inherit',
-              letterSpacing: -1,
-              lineHeight: 1.1,
-              whiteSpace: 'pre',
-            }}
+            className="login-brand"
             textAlign="center"
           >
-            {logo}
+            <img
+              alt="slskdN"
+              className="login-brand-logo"
+              src={brandLogo}
+            />
           </Header>
           <Form size="large">
             <Segment raised>

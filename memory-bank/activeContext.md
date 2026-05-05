@@ -4948,3 +4948,27 @@ dotnet test
 - Next steps:
   1. Commit these frontend integration polish changes when ready.
   2. If broader endpoint parity is desired, run a dedicated route inventory comparison against the Web UI API client calls rather than importing placeholder/stub endpoints.
+
+## Update 2026-05-05 06:54:55Z
+
+- Current task: Web UI logo replacement from local PNG handoff is complete.
+- Last activity:
+  - selected the dark square lockup/cube assets from the local PNG batch and ignored flattened production-sheet/checkerboard mockups
+  - generated favicon/PWA PNGs plus importable React assets under `src/web/src/assets/brand/`
+  - replaced the login ASCII mark with the lockup image and added a footer GitHub logo link
+  - verified focused login/footer tests, web lint, and web production build
+- Next steps:
+  1. Push the branding change after final repository lint passes.
+  2. For future refinements, request a transparent-background icon/lockup export if the footer or light-mode treatment needs less dark-box framing.
+
+## Update 2026-05-05 07:00:33Z
+
+- Current task: Replacement release after the stuck tag gate is in progress.
+- Last activity:
+  - cancelled the stuck `.222` GitHub Actions release run
+  - documented the gotcha for opaque release-gate hangs
+  - added per-command release-gate timeouts and workflow-level build job timeouts
+  - confirmed the release-gate shell script parses cleanly and the full bounded release gate passes locally
+- Next steps:
+  1. Commit/push the logo and release-gate changes.
+  2. Push a new build-main tag and monitor the replacement release run.

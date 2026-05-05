@@ -67,6 +67,7 @@
 }
 
 .slskdn-footer-sponsor,
+.slskdn-footer-logo,
 .slskdn-footer-build,
 .slskdn-footer-network,
 .slskdn-footer-copyright a {
@@ -75,6 +76,32 @@
         background-color 0.2s ease,
         border-color 0.2s ease,
         box-shadow 0.2s ease;
+}
+
+.slskdn-footer-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 24px;
+    width: 24px;
+    height: 24px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 206, 201, 0.38);
+    border-radius: 5px;
+    background: #06090d;
+    box-shadow: 0 0 12px rgba(0, 206, 201, 0.16);
+}
+
+.slskdn-footer-logo:hover {
+    border-color: rgba(0, 238, 224, 0.72);
+    box-shadow: 0 0 16px rgba(0, 206, 201, 0.34);
+}
+
+.slskdn-footer-logo img {
+    display: block;
+    width: 30px;
+    height: 30px;
+    object-fit: cover;
 }
 
 .slskdn-footer-sponsor {
