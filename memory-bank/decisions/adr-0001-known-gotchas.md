@@ -122,6 +122,9 @@ api.get(`/files/${root}/directories/${encodeURIComponent(btoa(binary))}`);
 - `src/web/src/components/Collections/Collections.jsx`
 - `src/web/src/components/Search/AlbumCompletionPanel.jsx`
 - `src/web/src/components/Search/FederatedTasteRecommendationsPanel.jsx`
+- `src/web/src/components/App.jsx`
+- `src/web/src/components/Chat/Chat.jsx`
+- `src/web/src/components/Rooms/Rooms.jsx`
 
 **Wrong**:
 ```js
