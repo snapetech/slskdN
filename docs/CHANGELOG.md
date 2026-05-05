@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Added network-health guardrails across background discovery, native browse,
+  backfill candidate lookup, rescue downloads, and content verification probe
+  fan-out.
+- Hardened MediaCore and Integrations System panels against malformed list
+  payloads, and corrected package/build docs for current env vars and dev build
+  tags.
 - Hardened Browse, Chat, Rooms, System, Swarm Analytics/Visualization, and
   Transfers against malformed persisted state and nested list payloads.
 - Added Soulseek safety limiter and cancellation propagation to the compatibility

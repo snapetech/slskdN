@@ -190,18 +190,24 @@ namespace slskd.Backfill
         /// <inheritdoc/>
         public async Task<IEnumerable<BackfillCandidate>> GetCandidatesAsync(int limit = 10, CancellationToken cancellationToken = default)
         {
-            var entries = await hashDb.GetBackfillCandidatesAsync(limit, cancellationToken);
+            var clampedLimit = Math.Clamp(limit, 1, 100);
+            var entries = await hashDb.GetBackfillCandidatesAsync(clampedLimit, cancellationToken);
 
             var candidates = new List<BackfillCandidate>();
             foreach (var entry in entries)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var backfillsToday = await hashDb.GetPeerBackfillCountTodayAsync(entry.PeerId, cancellationToken);
                 var isPeerOnline = false;
 
                 try
                 {
-                    var userStatus = await soulseekClient.GetUserStatusAsync(entry.PeerId);
+                    var userStatus = await soulseekClient.GetUserStatusAsync(entry.PeerId, cancellationToken);
                     isPeerOnline = !string.Equals(userStatus.Presence.ToString(), "Offline", StringComparison.OrdinalIgnoreCase);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
                 }
                 catch (Exception ex)
                 {

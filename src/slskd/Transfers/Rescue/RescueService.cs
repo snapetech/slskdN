@@ -191,7 +191,7 @@ namespace slskd.Transfers.Rescue
                     _ = ObserveBackgroundTaskAsync(
                         Task.Run(async () =>
                         {
-                            var result = await multiSource.DownloadAsync(multiSourceRequest, CancellationToken.None).ConfigureAwait(false);
+                            var result = await multiSource.DownloadAsync(multiSourceRequest, ct).ConfigureAwait(false);
                             if (result.Success)
                             {
                                 log.Information("[RESCUE] Multi-source download completed successfully: {File}, {Bytes} bytes in {TimeMs}ms",
@@ -204,7 +204,7 @@ namespace slskd.Transfers.Rescue
                                 log.Warning("[RESCUE] Multi-source download failed: {File}, error: {Error}",
                                     result.Filename, result.Error);
                             }
-                        }, CancellationToken.None),
+                        }, ct),
                         "[RESCUE] Multi-source download threw exception: {Message}");
 
                     log.Information("[RESCUE] Rescue mode activated: job {JobId}, {PeerCount} overlay peers, multi-source download started",

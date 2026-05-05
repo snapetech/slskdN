@@ -11,6 +11,69 @@ using Xunit;
 public class ContentVerificationServiceTests
 {
     [Fact]
+    public async Task VerifySourcesAsync_BoundsConcurrentSoulseekProbes()
+    {
+        var active = 0;
+        var maxActive = 0;
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient
+            .Setup(client => client.DownloadAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<Task<Stream>>>(),
+                It.IsAny<long>(),
+                It.IsAny<long>(),
+                It.IsAny<int?>(),
+                It.IsAny<TransferOptions>(),
+                It.IsAny<CancellationToken?>()))
+            .Returns(async (
+                string username,
+                string remoteFilename,
+                Func<Task<Stream>> outputStreamFactory,
+                long size,
+                long startOffset,
+                int? token,
+                TransferOptions options,
+                CancellationToken? cancellationToken) =>
+            {
+                var current = Interlocked.Increment(ref active);
+                int observed;
+                do
+                {
+                    observed = Volatile.Read(ref maxActive);
+                    if (current <= observed)
+                    {
+                        break;
+                    }
+                }
+                while (Interlocked.CompareExchange(ref maxActive, current, observed) != observed);
+
+                await Task.Delay(50, cancellationToken ?? CancellationToken.None);
+                var stream = await outputStreamFactory();
+                await stream.WriteAsync(new byte[ContentVerificationService.VerificationChunkSize], cancellationToken ?? CancellationToken.None);
+                Interlocked.Decrement(ref active);
+                return new Transfer(TransferDirection.Download, username, remoteFilename, token ?? 1, TransferStates.Completed, size, 0, ContentVerificationService.VerificationChunkSize);
+            });
+
+        var service = new ContentVerificationService(soulseekClient.Object);
+        var request = new ContentVerificationRequest
+        {
+            Filename = "song.flac",
+            FileSize = ContentVerificationService.VerificationChunkSize + 1,
+            TimeoutMs = 5000,
+        };
+
+        for (var i = 0; i < 10; i++)
+        {
+            request.CandidateSources[$"concurrency-peer-{Guid.NewGuid():N}-{i}"] = $"song-{i}.flac";
+        }
+
+        await service.VerifySourcesAsync(request, CancellationToken.None);
+
+        Assert.InRange(maxActive, 1, ContentVerificationService.MaxConcurrentVerificationProbes);
+    }
+
+    [Fact]
     public async Task VerifySourcesAsync_WhenDownloadThrows_ReturnsSanitizedFailureReason()
     {
         var username = $"test-peer-{Guid.NewGuid():N}";

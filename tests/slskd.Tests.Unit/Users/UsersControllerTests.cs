@@ -207,6 +207,55 @@ namespace slskd.Tests.Unit.Users
         }
 
         [Fact]
+        public async Task Browse_WhenRequestIsCanceled_PropagatesCancellationToSoulseekClient()
+        {
+            using var cts = new CancellationTokenSource();
+            await cts.CancelAsync();
+
+            var soulseekClientMock = new Mock<ISoulseekClient>(MockBehavior.Strict);
+            soulseekClientMock
+                .Setup(client => client.BrowseAsync("testuser", It.IsAny<BrowseOptions>(), cts.Token))
+                .ThrowsAsync(new OperationCanceledException(cts.Token));
+
+            var safetyLimiterMock = new Mock<ISoulseekSafetyLimiter>();
+            safetyLimiterMock
+                .Setup(limiter => limiter.TryConsumeBrowse("user"))
+                .Returns(true);
+
+            var controller = new UsersController(
+                soulseekClient: soulseekClientMock.Object,
+                browseTracker: Mock.Of<IBrowseTracker>(),
+                userService: Mock.Of<IUserService>(),
+                safetyLimiter: safetyLimiterMock.Object,
+                optionsSnapshot: Mock.Of<Microsoft.Extensions.Options.IOptionsSnapshot<slskd.Options>>());
+
+            await Assert.ThrowsAsync<OperationCanceledException>(() => controller.Browse("testuser", cts.Token));
+        }
+
+        [Fact]
+        public async Task Browse_WhenLimiterRejects_DoesNotBrowseNetwork()
+        {
+            var soulseekClientMock = new Mock<ISoulseekClient>(MockBehavior.Strict);
+            var safetyLimiterMock = new Mock<ISoulseekSafetyLimiter>();
+            safetyLimiterMock
+                .Setup(limiter => limiter.TryConsumeBrowse("user"))
+                .Returns(false);
+
+            var controller = new UsersController(
+                soulseekClient: soulseekClientMock.Object,
+                browseTracker: Mock.Of<IBrowseTracker>(),
+                userService: Mock.Of<IUserService>(),
+                safetyLimiter: safetyLimiterMock.Object,
+                optionsSnapshot: Mock.Of<Microsoft.Extensions.Options.IOptionsSnapshot<slskd.Options>>());
+
+            var result = await controller.Browse("testuser", CancellationToken.None);
+
+            var rejected = Assert.IsType<ObjectResult>(result);
+            Assert.Equal(429, rejected.StatusCode);
+            soulseekClientMock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
         public async Task Directory_WhenSoulseekIsNotLoggedIn_ReturnsServiceUnavailable()
         {
             var soulseekClientMock = new Mock<ISoulseekClient>();

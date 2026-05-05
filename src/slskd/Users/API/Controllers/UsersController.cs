@@ -114,12 +114,15 @@ namespace slskd.Users.API
         ///     Retrieves the files shared by the specified <paramref name="username"/>.
         /// </summary>
         /// <param name="username">The username of the user.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns></returns>
         [HttpGet("{username}/browse")]
         [Authorize(Policy = AuthPolicy.Any)]
         [ProducesResponseType(typeof(IEnumerable<Directory>), 200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> Browse([FromRoute, Required] string username)
+        public async Task<IActionResult> Browse(
+            [FromRoute, Required] string username,
+            CancellationToken cancellationToken = default)
         {
             if (Program.IsRelayAgent)
             {
@@ -141,12 +144,16 @@ namespace slskd.Users.API
 
             try
             {
-                var result = await Client.BrowseAsync(username);
+                var result = await Client.BrowseAsync(username, cancellationToken: cancellationToken);
                 BrowseTracker.TryGet(username, out var completedProgress);
 
                 _ = ObserveBrowseCleanupAsync(username, completedProgress);
 
                 return Ok(result);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (UserOfflineException ex)
             {

@@ -76,7 +76,7 @@ If your platform is missing, review the automated build configuration in the `.g
 ### Build Triggers
 
 The CI workflow (`ci.yml`) is configured to:
-- ✅ **Run on tags**: Version tags and `build-main-*`
+- ✅ **Run on tags**: Version tags, `build-main-*`, and `build-dev-*`
 - ✅ **Run on pull requests**: For testing (does not publish)
 - ✅ **Run on manual dispatch**: `workflow_dispatch`
 - ❌ **NOT run on pushes to main**: Prevents unwanted builds on documentation/code updates
@@ -89,6 +89,10 @@ To trigger a build, create and push a tag:
 # Main/stable release
 git tag build-main-0.24.1-slskdn.41
 git push origin build-main-0.24.1-slskdn.41
+
+# Dev release
+git tag build-dev-0.24.1.dev.20260505
+git push origin build-dev-0.24.1.dev.20260505
 ```
 
 See `memory-bank/decisions/adr-0005-tagging-system.md` for complete tag format details.
@@ -109,10 +113,16 @@ git tag build-main-0.24.1-slskdn.41
 git push origin build-main-0.24.1-slskdn.41
 ```
 
+**For dev releases:**
+```bash
+git tag build-dev-0.24.1.dev.20260505
+git push origin build-dev-0.24.1.dev.20260505
+```
+
 ### Build Workflows
 
 - **CI Workflow** (`ci.yml`): Runs on tags only (not on code pushes)
-- **Build on Tag** (`build-on-tag.yml`): Full release with packages
+- **Build on Tag** (`build-on-tag.yml`): Full release with packages for `build-main-*` and `build-dev-*`
 
 See `memory-bank/decisions/adr-0005-tagging-system.md` for historical tag format details.
 

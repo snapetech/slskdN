@@ -85,7 +85,7 @@ Override configuration using environment variables:
 
 ```bash
 # Set custom web UI port
-flatpak run --env=SLSKD_LISTEN_PORT=8080 io.github.slskd.slskdn
+flatpak run --env=SLSKD_HTTP_PORT=8080 io.github.slskd.slskdn
 
 # Enable debug logging
 flatpak run --env=SLSKD_LOG_LEVEL=debug io.github.slskd.slskdn

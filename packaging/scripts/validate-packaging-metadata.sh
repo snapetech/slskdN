@@ -84,6 +84,12 @@ expect_line packaging/winget/snapetech.slskdn.locale.en-US.yaml '^Moniker: slskd
 expect_line packaging/winget/snapetech.slskdn.locale.en-US.yaml '^PackageName: slskdN$'
 
 expect_line packaging/homebrew/Formula/slskdn.rb '^class Slskdn < Formula$'
+expect_literal packaging/homebrew/README.md 'export SLSKD_HTTP_PORT=8080'
+expect_literal packaging/homebrew/README.md 'export SLSKD_SLSK_LISTEN_PORT=2235'
+expect_literal packaging/flatpak/README.md '--env=SLSKD_HTTP_PORT=8080'
+reject_literal packaging/homebrew/README.md 'export SLSKD_LISTEN_PORT=8080'
+reject_literal packaging/homebrew/README.md 'export SLSKD_SOULSEEK_LISTEN_PORT=2235'
+reject_literal packaging/flatpak/README.md '--env=SLSKD_LISTEN_PORT=8080'
 
 expect_literal packaging/helm/slskdn/values.yaml 'repository: ghcr.io/snapetech/slskdn'
 expect_literal packaging/helm/slskdn/values.yaml 'SLSKD_SLSK_USERNAME: ""'

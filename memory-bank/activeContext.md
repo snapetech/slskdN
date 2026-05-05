@@ -1,3 +1,16 @@
+## Update 2026-05-05 22:30:00Z
+
+- Current task: Broad network-health/docs drift bug-council batch is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-098` through `BUG-20260505-104` in `docs/dev/bug-burndown-ledger.md`
+  - guarded SourceDiscovery, Users browse, Backfill candidates, Rescue, and ContentVerification peer-facing work with budgets/cancellation/concurrency limits
+  - hardened MediaCore/Integrations list payloads and corrected Homebrew/Flatpak/build docs for current env/tag names
+  - documented ADR-0001 gotchas in commits `2d9061ec9` and `c9ea8f5bb`
+  - validation passed: focused backend unit slice (`21` tests), focused System Web tests (`16` tests), Soulseek network-health scanner, workflow trigger scanner, packaging metadata validation, and focused Web lint
+- Next steps:
+  1. Run broad remediation/lint/diff/full test gates.
+  2. Commit and push the full dirty tree per user request.
+
 ## Update 2026-05-05 22:05:00Z
 
 - Current task: Broad frontend/backend/release bug-council burn-down batch is complete locally.

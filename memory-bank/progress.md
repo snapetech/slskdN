@@ -1,5 +1,10 @@
 ## 2026-05-05
 
+- Continued the broad council cycle into backend/network-health and docs drift instead of stopping after the previous frontend/release batch.
+- Fixed `BUG-20260505-098` through `BUG-20260505-104`: source-discovery search budgets, native browse cancellation, backfill candidate clamping/status cancellation, rescue download cancellation, bounded content-verification probe concurrency, MediaCore/Integrations list guards, and Homebrew/Flatpak/build doc drift.
+- Documented repeated gotchas in ADR-0001 with commits `2d9061ec9` and `c9ea8f5bb`.
+- Validation: focused backend unit slice passed (`21` tests); focused System Web tests passed (`16` tests); `bash scripts/check-soulseek-network-health.sh`, `bash scripts/check-workflow-trigger-policy.sh`, `bash packaging/scripts/validate-packaging-metadata.sh`, and focused Web lint passed.
+
 - Continued the broad bug-council burn-down instead of stopping at the first class of findings.
 - Fixed `BUG-20260505-086` through `BUG-20260505-097`: Browse/Chat/Rooms persisted tab hydration, BrowseSession directory/cache normalization, Swarm Analytics/Visualization payload shape guards, invalid System tab redirect recovery, recursive Transfers queue normalization, compatibility browse safety limiter/cancellation, no-redirect integration HTTP clients, AcoustID fingerprint log redaction, build-dev tag trigger support, glob-safe CI tag filters, and Helm/TrueNAS image/env alignment.
 - Documented new gotchas in ADR-0001 with commits `0288a045c` and `2c6f6a3d6`.

@@ -112,7 +112,7 @@ const toNumber = (value, fallback) => {
 };
 
 const portForwards = (vpn = {}) =>
-  getOption(vpn, 'portForwards', 'PortForwards') || [];
+  asArray(getOption(vpn, 'portForwards', 'PortForwards'));
 
 const buildSourceFeedForm = (options = {}) => {
   const spotify = getSpotifyOptions(options);

@@ -2425,7 +2425,8 @@ namespace slskd
             services.AddSingleton<ISourceDiscoveryService>(sp => new SourceDiscoveryService(
                 Program.AppDirectory,
                 sp.GetRequiredService<ISoulseekClient>(),
-                sp.GetRequiredService<Transfers.MultiSource.IContentVerificationService>()));
+                sp.GetRequiredService<Transfers.MultiSource.IContentVerificationService>(),
+                sp.GetRequiredService<Common.Security.ISoulseekSafetyLimiter>()));
             services.AddSingleton<Transfers.MultiSource.IMultiSourceDownloadService, Transfers.MultiSource.MultiSourceDownloadService>();
             services.AddSingleton<Transfers.MultiSource.Analytics.ISwarmAnalyticsService, Transfers.MultiSource.Analytics.SwarmAnalyticsService>();
             services.AddSingleton<Transfers.MultiSource.Discovery.IAdvancedDiscoveryService, Transfers.MultiSource.Discovery.AdvancedDiscoveryService>();

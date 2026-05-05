@@ -16,6 +16,85 @@ using Xunit;
 public class BackfillSchedulerServiceTests
 {
     [Fact]
+    public async Task GetCandidatesAsync_ClampsLimitAndPropagatesStatusCancellation()
+    {
+        using var cts = new CancellationTokenSource();
+        var hashDb = CreateHashDb();
+        hashDb
+            .Setup(service => service.GetBackfillCandidatesAsync(100, cts.Token))
+            .ReturnsAsync(new[]
+            {
+                new FlacInventoryEntry
+                {
+                    FileId = "file-1",
+                    PeerId = "alice",
+                    Path = "song.flac",
+                    Size = 1234,
+                    DiscoveredAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                },
+            });
+        hashDb
+            .Setup(service => service.GetPeerBackfillCountTodayAsync("alice", cts.Token))
+            .ReturnsAsync(3);
+
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient
+            .Setup(client => client.GetUserStatusAsync("alice", cts.Token))
+            .ReturnsAsync(new UserStatus("alice", UserPresence.Online, false));
+
+        var service = new BackfillSchedulerService(
+            hashDb.Object,
+            Mock.Of<IMeshSyncService>(),
+            soulseekClient.Object,
+            Mock.Of<ICapabilityService?>(),
+            NullLogger<BackfillSchedulerService>.Instance);
+
+        var candidates = (await service.GetCandidatesAsync(5000, cts.Token)).ToList();
+
+        var candidate = Assert.Single(candidates);
+        Assert.True(candidate.IsPeerOnline);
+        Assert.Equal(3, candidate.PeerBackfillsToday);
+    }
+
+    [Fact]
+    public async Task GetCandidatesAsync_WhenStatusLookupIsCanceled_PropagatesCancellation()
+    {
+        using var cts = new CancellationTokenSource();
+        var hashDb = CreateHashDb();
+        hashDb
+            .Setup(service => service.GetBackfillCandidatesAsync(10, cts.Token))
+            .ReturnsAsync(new[]
+            {
+                new FlacInventoryEntry
+                {
+                    FileId = "file-1",
+                    PeerId = "alice",
+                    Path = "song.flac",
+                    Size = 1234,
+                    DiscoveredAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                },
+            });
+        hashDb
+            .Setup(service => service.GetPeerBackfillCountTodayAsync("alice", cts.Token))
+            .ReturnsAsync(0);
+
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient
+            .Setup(client => client.GetUserStatusAsync("alice", cts.Token))
+            .Callback(() => cts.Cancel())
+            .ThrowsAsync(new OperationCanceledException(cts.Token));
+
+        var service = new BackfillSchedulerService(
+            hashDb.Object,
+            Mock.Of<IMeshSyncService>(),
+            soulseekClient.Object,
+            Mock.Of<ICapabilityService?>(),
+            NullLogger<BackfillSchedulerService>.Instance);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => service.GetCandidatesAsync(10, cts.Token));
+    }
+
+    [Fact]
     public async Task BackfillFileAsync_WhenHeaderDownloadThrows_ReturnsSanitizedErrorMessage()
     {
         var hashDb = new Mock<IHashDbService>();

@@ -13,6 +13,7 @@ namespace slskd.Transfers.MultiSource.Discovery
     using Microsoft.Extensions.Hosting;
     using Serilog;
     using Soulseek;
+    using slskd.Common.Security;
 
     /// <summary>
     ///     Service for continuous background discovery of file sources.
@@ -30,6 +31,7 @@ namespace slskd.Transfers.MultiSource.Discovery
         private const int CyclePauseMs = 1000;
 
         private readonly ISoulseekClient client;
+        private readonly ISoulseekSafetyLimiter safetyLimiter;
         private readonly IContentVerificationService verificationService;
         private readonly string dbPath;
         private readonly ILogger log = Log.ForContext<SourceDiscoveryService>();
@@ -46,13 +48,16 @@ namespace slskd.Transfers.MultiSource.Discovery
         /// <param name="appDirectory">The application data directory.</param>
         /// <param name="soulseekClient">The Soulseek client.</param>
         /// <param name="verificationService">The content verification service.</param>
+        /// <param name="safetyLimiter">The shared Soulseek safety limiter.</param>
         public SourceDiscoveryService(
             string appDirectory,
             ISoulseekClient soulseekClient,
-            IContentVerificationService verificationService)
+            IContentVerificationService verificationService,
+            ISoulseekSafetyLimiter safetyLimiter)
         {
             client = soulseekClient;
             this.verificationService = verificationService;
+            this.safetyLimiter = safetyLimiter;
             CurrentSearchTerm = string.Empty;
 
             // Store DB in the app data directory (not LocalApplicationData which can be /slskd in containers)
@@ -354,6 +359,13 @@ namespace slskd.Transfers.MultiSource.Discovery
                     // Collect responses during the search window
                     var responses = new List<SearchResponse>();
                     var searchStarted = DateTime.UtcNow;
+
+                    if (!safetyLimiter.TryConsumeSearch("source-discovery"))
+                    {
+                        log.Warning("[SAFETY] Discovery search cycle #{Cycle} skipped: rate limit exceeded", cycle);
+                        await Task.Delay(CyclePauseMs, cancellationToken);
+                        continue;
+                    }
 
                     try
                     {

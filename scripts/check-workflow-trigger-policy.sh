@@ -28,6 +28,11 @@ if ! rg -q "build-dev-\*" "$repo_root/.github/workflows/build-on-tag.yml"; then
   failed=1
 fi
 
+if ! rg -q "build-dev-\*" "$repo_root/docs/build.md"; then
+  printf 'docs/build.md must document build-dev-* tag builds\n' >&2
+  failed=1
+fi
+
 if rg -n 'branches:\s*\[.*(master|main).*\]' "$repo_root/.github/workflows/build-on-tag.yml" >&2; then
   printf 'build-on-tag.yml must not run release builds on branch pushes\n' >&2
   failed=1

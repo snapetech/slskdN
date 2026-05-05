@@ -81,13 +81,13 @@ You can override configuration using environment variables:
 
 ```bash
 # Set custom web UI port
-export SLSKD_LISTEN_PORT=8080
+export SLSKD_HTTP_PORT=8080
 
 # Enable HTTPS (requires certificate configuration)
 export SLSKD_WEBUI_HTTPS=true
 
 # Set Soulseek listen port
-export SLSKD_SOULSEEK_LISTEN_PORT=2235
+export SLSKD_SLSK_LISTEN_PORT=2235
 
 # Configure data directories
 export SLSKD_SHARED_DIR="/path/to/shared"

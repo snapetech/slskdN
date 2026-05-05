@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **bug-council**: Continue network-health and docs drift burn-down.
+ - Status: completed (2026-05-05)
+ - Priority: P1
+ - Notes: Fixed and verified `BUG-20260505-098` through `BUG-20260505-104`: SourceDiscovery search budget use, native Browse cancellation, backfill candidate limit/status cancellation, rescue download cancellation, bounded content-verification probes, MediaCore/Integrations list-shape guards, and Homebrew/Flatpak/build doc drift. Documented ADR-0001 gotchas in commits `2d9061ec9` and `c9ea8f5bb`. Validation passed: focused backend unit slice (`21` tests), focused System Web tests (`16` tests), Soulseek network-health scanner, workflow trigger scanner, packaging metadata validation, and focused Web lint.
+
 - [x] **bug-council**: Continue broad frontend/backend/release burn-down.
  - Status: completed (2026-05-05)
  - Priority: P1

@@ -26,6 +26,8 @@ import {
   TextArea,
 } from 'semantic-ui-react';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const MediaCore = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -3069,11 +3071,11 @@ const MediaCore = () => {
                     <Dropdown
                       onChange={(e, { value }) => setAudioAlgorithm(value)}
                       options={
-                        supportedAlgorithms?.algorithms?.map((alg) => ({
+                        asArray(supportedAlgorithms?.algorithms).map((alg) => ({
                           key: alg,
                           text: alg,
                           value: alg,
-                        })) || []
+                        }))
                       }
                       selection
                       value={audioAlgorithm}
@@ -3152,13 +3154,13 @@ const MediaCore = () => {
                     <Dropdown
                       onChange={(e, { value }) => setImageAlgorithm(value)}
                       options={
-                        supportedAlgorithms?.algorithms
-                          ?.filter((alg) => alg !== 'ChromaPrint')
+                        asArray(supportedAlgorithms?.algorithms)
+                          .filter((alg) => alg !== 'ChromaPrint')
                           .map((alg) => ({
                             key: alg,
                             text: alg,
                             value: alg,
-                          })) || []
+                          }))
                       }
                       selection
                       value={imageAlgorithm}
@@ -3696,13 +3698,13 @@ const MediaCore = () => {
                   <label>Conflict Resolution Strategy</label>
                   <Dropdown
                     onChange={(e, { value }) => setConflictStrategy(value)}
-                    options={
-                      availableStrategies?.strategies?.map((s) => ({
+                      options={
+                      asArray(availableStrategies?.strategies).map((s) => ({
                         description: s.description,
                         key: s.strategy,
                         text: s.name,
                         value: s.strategy,
-                      })) || []
+                      }))
                     }
                     selection
                     value={conflictStrategy}

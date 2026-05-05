@@ -36,6 +36,11 @@ namespace slskd.Transfers.MultiSource
         /// </summary>
         public const int MaxProbesPerPeerPerDay = 10;
 
+        /// <summary>
+        ///     Global per-request cap for simultaneous verification probes.
+        /// </summary>
+        public const int MaxConcurrentVerificationProbes = 4;
+
         private static readonly object ProbeBudgetSyncRoot = new();
         private static readonly Dictionary<string, ProbeBudgetEntry> ProbeBudget = new(StringComparer.OrdinalIgnoreCase);
         private static bool probeBudgetLoaded;
@@ -273,8 +278,9 @@ namespace slskd.Transfers.MultiSource
                 return result;
             }
 
-            // Verify all candidates in parallel (skipping any that exceed the per-peer-per-day probe budget).
+            // Verify candidates with a bounded concurrency cap (skipping any that exceed the per-peer-per-day probe budget).
             var verificationTasks = new List<Task<(string Username, string? Hash, VerificationMethod Method, long TimeMs, string? Error)>>();
+            using var verificationGate = new SemaphoreSlim(MaxConcurrentVerificationProbes, MaxConcurrentVerificationProbes);
 
             foreach (var kvp in sourcesToVerify)
             {
@@ -293,7 +299,8 @@ namespace slskd.Transfers.MultiSource
                     continue;
                 }
 
-                verificationTasks.Add(VerifySingleSourceAsync(
+                verificationTasks.Add(VerifySingleSourceWithGateAsync(
+                    verificationGate,
                     kvp.Key,       // username
                     kvp.Value,     // each user's specific filename
                     request.FileSize,
@@ -354,6 +361,25 @@ namespace slskd.Transfers.MultiSource
 
             SetBestSemanticKey(result);
             return result;
+        }
+
+        private async Task<(string Username, string? Hash, VerificationMethod Method, long TimeMs, string? Error)> VerifySingleSourceWithGateAsync(
+            SemaphoreSlim verificationGate,
+            string username,
+            string filename,
+            long fileSize,
+            int timeoutMs,
+            CancellationToken cancellationToken)
+        {
+            await verificationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                return await VerifySingleSourceAsync(username, filename, fileSize, timeoutMs, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                verificationGate.Release();
+            }
         }
 
         private static void AddSemanticSource(ContentVerificationResult result, VerifiedSource source)
