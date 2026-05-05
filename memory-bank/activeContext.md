@@ -5400,3 +5400,15 @@ dotnet test
   1. Re-run web tests/lint/build.
   2. Commit and push the branding correction.
   3. Publish and redeploy the corrected manual build to `kspls0`.
+
+## Update 2026-05-05 21:55:00Z
+
+- Current task: Broad bug council burn-down cycle is validated and ready to push.
+- Last activity:
+  - fixed MediaCore primitive timestamp request bodies and pod/channel/content route encoding
+  - restored descriptor verification result rendering to the descriptor panel
+  - guarded remaining nested list render paths in Shares, Search, Network, and MediaCore
+  - included vendor runtime RT-058 DTO collection validation work
+- Next steps:
+  1. Commit implementation/docs batch.
+  2. Verify GitHub target and push `main`.

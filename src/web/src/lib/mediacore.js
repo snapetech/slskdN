@@ -14,6 +14,7 @@ const podDiscoveryBaseUrl = '/podcore/discovery';
 const podRoutingBaseUrl = '/podcore/routing';
 const podSigningBaseUrl = '/podcore/signing';
 const podVerificationBaseUrl = '/podcore/verification';
+const segment = (value) => encodeURIComponent(value);
 
 /**
  * Register a mapping from external ID to ContentID.
@@ -946,7 +947,7 @@ export const searchMessages = async (
   const parameters = { limit, query };
   if (channelId) parameters.channelId = channelId;
   return (
-    await api.get(`${storageBaseUrl}/${podId}/search`, { params: parameters })
+    await api.get(`${storageBaseUrl}/${segment(podId)}/search`, { params: parameters })
   ).data;
 };
 
@@ -971,7 +972,7 @@ export const cleanupMessages = async (olderThan) => {
  */
 export const cleanupChannelMessages = async (podId, channelId, olderThan) => {
   return (
-    await api.delete(`${storageBaseUrl}/${podId}/${channelId}/cleanup`, {
+    await api.delete(`${storageBaseUrl}/${segment(podId)}/${segment(channelId)}/cleanup`, {
       params: { olderThan },
     })
   ).data;
@@ -981,7 +982,7 @@ export const cleanupChannelMessages = async (podId, channelId, olderThan) => {
  * Get message count for a pod and channel.
  */
 export const getMessageCount = async (podId, channelId) => {
-  return (await api.get(`${storageBaseUrl}/${podId}/${channelId}/count`)).data;
+  return (await api.get(`${storageBaseUrl}/${segment(podId)}/${segment(channelId)}/count`)).data;
 };
 
 /**
@@ -1008,7 +1009,7 @@ const backfillBaseUrl = '/podcore/backfill';
  */
 export const syncPodBackfill = async (podId, lastSeenTimestamps) => {
   return (
-    await api.post(`${backfillBaseUrl}/${podId}/sync`, lastSeenTimestamps)
+    await api.post(`${backfillBaseUrl}/${segment(podId)}/sync`, lastSeenTimestamps)
   ).data;
 };
 
@@ -1016,7 +1017,7 @@ export const syncPodBackfill = async (podId, lastSeenTimestamps) => {
  * Get last seen timestamps for a pod.
  */
 export const getLastSeenTimestamps = async (podId) => {
-  return (await api.get(`${backfillBaseUrl}/${podId}/last-seen`)).data;
+  return (await api.get(`${backfillBaseUrl}/${segment(podId)}/last-seen`)).data;
 };
 
 /**
@@ -1025,8 +1026,8 @@ export const getLastSeenTimestamps = async (podId) => {
 export const updateLastSeenTimestamp = async (podId, channelId, timestamp) => {
   return (
     await api.put(
-      `${backfillBaseUrl}/${podId}/${channelId}/last-seen`,
-      timestamp,
+      `${backfillBaseUrl}/${segment(podId)}/${segment(channelId)}/last-seen`,
+      JSON.stringify(timestamp),
     )
   ).data;
 };
@@ -1054,7 +1055,7 @@ const opinionBaseUrl = '/podcore';
  * Publish an opinion on a content variant.
  */
 export const publishOpinion = async (podId, opinion) => {
-  return (await api.post(`${opinionBaseUrl}/${podId}/opinions`, opinion)).data;
+  return (await api.post(`${opinionBaseUrl}/${segment(podId)}/opinions`, opinion)).data;
 };
 
 /**
@@ -1063,7 +1064,7 @@ export const publishOpinion = async (podId, opinion) => {
 export const getContentOpinions = async (podId, contentId) => {
   return (
     await api.get(
-      `${opinionBaseUrl}/${podId}/opinions/content/${encodeURIComponent(contentId)}`,
+      `${opinionBaseUrl}/${segment(podId)}/opinions/content/${segment(contentId)}`,
     )
   ).data;
 };
@@ -1074,7 +1075,7 @@ export const getContentOpinions = async (podId, contentId) => {
 export const getVariantOpinions = async (podId, contentId, variantHash) => {
   return (
     await api.get(
-      `${opinionBaseUrl}/${podId}/opinions/content/${encodeURIComponent(contentId)}/variant/${variantHash}`,
+      `${opinionBaseUrl}/${segment(podId)}/opinions/content/${segment(contentId)}/variant/${segment(variantHash)}`,
     )
   ).data;
 };
@@ -1085,7 +1086,7 @@ export const getVariantOpinions = async (podId, contentId, variantHash) => {
 export const getOpinionStatistics = async (podId, contentId) => {
   return (
     await api.get(
-      `${opinionBaseUrl}/${podId}/opinions/content/${encodeURIComponent(contentId)}/stats`,
+      `${opinionBaseUrl}/${segment(podId)}/opinions/content/${segment(contentId)}/stats`,
     )
   ).data;
 };
@@ -1094,7 +1095,7 @@ export const getOpinionStatistics = async (podId, contentId) => {
  * Refresh opinions for a pod from DHT.
  */
 export const refreshPodOpinions = async (podId) => {
-  return (await api.post(`${opinionBaseUrl}/${podId}/opinions/refresh`)).data;
+  return (await api.post(`${opinionBaseUrl}/${segment(podId)}/opinions/refresh`)).data;
 };
 
 /**
@@ -1103,7 +1104,7 @@ export const refreshPodOpinions = async (podId) => {
 export const getAggregatedOpinions = async (podId, contentId) => {
   return (
     await api.get(
-      `${opinionBaseUrl}/${podId}/opinions/content/${encodeURIComponent(contentId)}/aggregated`,
+      `${opinionBaseUrl}/${segment(podId)}/opinions/content/${segment(contentId)}/aggregated`,
     )
   ).data;
 };
@@ -1112,7 +1113,7 @@ export const getAggregatedOpinions = async (podId, contentId) => {
  * Get member affinity scores.
  */
 export const getMemberAffinities = async (podId) => {
-  return (await api.get(`${opinionBaseUrl}/${podId}/opinions/members/affinity`))
+  return (await api.get(`${opinionBaseUrl}/${segment(podId)}/opinions/members/affinity`))
     .data;
 };
 
@@ -1122,7 +1123,7 @@ export const getMemberAffinities = async (podId) => {
 export const getConsensusRecommendations = async (podId, contentId) => {
   return (
     await api.get(
-      `${opinionBaseUrl}/${podId}/opinions/content/${encodeURIComponent(contentId)}/recommendations`,
+      `${opinionBaseUrl}/${segment(podId)}/opinions/content/${segment(contentId)}/recommendations`,
     )
   ).data;
 };
@@ -1133,7 +1134,7 @@ export const getConsensusRecommendations = async (podId, contentId) => {
 export const updateMemberAffinities = async (podId) => {
   return (
     await api.post(
-      `${opinionBaseUrl}/${podId}/opinions/members/affinity/update`,
+      `${opinionBaseUrl}/${segment(podId)}/opinions/members/affinity/update`,
     )
   ).data;
 };
@@ -1147,21 +1148,21 @@ const channelBaseUrl = '/podcore';
  * Create a new channel in a pod.
  */
 export const createChannel = async (podId, channel) => {
-  return (await api.post(`${channelBaseUrl}/${podId}/channels`, channel)).data;
+  return (await api.post(`${channelBaseUrl}/${segment(podId)}/channels`, channel)).data;
 };
 
 /**
  * Get all channels in a pod.
  */
 export const getChannels = async (podId) => {
-  return (await api.get(`${channelBaseUrl}/${podId}/channels`)).data;
+  return (await api.get(`${channelBaseUrl}/${segment(podId)}/channels`)).data;
 };
 
 /**
  * Get a specific channel in a pod.
  */
 export const getChannel = async (podId, channelId) => {
-  return (await api.get(`${channelBaseUrl}/${podId}/channels/${channelId}`))
+  return (await api.get(`${channelBaseUrl}/${segment(podId)}/channels/${segment(channelId)}`))
     .data;
 };
 
@@ -1170,7 +1171,7 @@ export const getChannel = async (podId, channelId) => {
  */
 export const updateChannel = async (podId, channelId, channel) => {
   return (
-    await api.put(`${channelBaseUrl}/${podId}/channels/${channelId}`, channel)
+    await api.put(`${channelBaseUrl}/${segment(podId)}/channels/${segment(channelId)}`, channel)
   ).data;
 };
 
@@ -1178,7 +1179,7 @@ export const updateChannel = async (podId, channelId, channel) => {
  * Delete a channel from a pod.
  */
 export const deleteChannel = async (podId, channelId) => {
-  return (await api.delete(`${channelBaseUrl}/${podId}/channels/${channelId}`))
+  return (await api.delete(`${channelBaseUrl}/${segment(podId)}/channels/${segment(channelId)}`))
     .data;
 };
 

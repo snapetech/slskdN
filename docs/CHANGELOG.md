@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed MediaCore pod workflow route encoding and primitive timestamp request
+  bodies, restored descriptor verification result rendering, and hardened more
+  admin/search/share panels against malformed nested list payloads.
 - Hardened more room, files, network, Soulseek discovery, and pod Web views
   against malformed list payloads, and disabled redirects for direct NAT/GitHub
   helper HTTP clients.

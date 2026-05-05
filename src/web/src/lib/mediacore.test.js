@@ -107,7 +107,7 @@ describe('mediacore', () => {
     });
     expect(api.put).toHaveBeenCalledWith(
       '/podcore/backfill/pod-1/general/last-seen',
-      456,
+      '456',
     );
   });
 
@@ -122,6 +122,45 @@ describe('mediacore', () => {
       contentId: 'cid-1',
     });
     expect(api.delete).toHaveBeenCalledWith('/podcore/pod-1/channels/general');
+  });
+
+  it('encodes pod workflow route segments', async () => {
+    api.delete.mockResolvedValue({ data: { deleted: true } });
+    api.get.mockResolvedValue({ data: {} });
+    api.post.mockResolvedValue({ data: {} });
+    api.put.mockResolvedValue({ data: {} });
+
+    await mediacore.searchMessages('pod/1', 'hello', 'chan/1');
+    await mediacore.cleanupChannelMessages('pod/1', 'chan/1', 123);
+    await mediacore.getMessageCount('pod/1', 'chan/1');
+    await mediacore.syncPodBackfill('pod/1', { 'chan/1': 123 });
+    await mediacore.updateLastSeenTimestamp('pod/1', 'chan/1', 456);
+    await mediacore.getVariantOpinions('pod/1', 'content/1', 'variant/1');
+    await mediacore.updateChannel('pod/1', 'chan/1', { name: 'chan/1' });
+    await mediacore.deleteChannel('pod/1', 'chan/1');
+
+    expect(api.get).toHaveBeenCalledWith('/podcore/messages/pod%2F1/search', {
+      params: { channelId: 'chan/1', limit: 50, query: 'hello' },
+    });
+    expect(api.delete).toHaveBeenCalledWith(
+      '/podcore/messages/pod%2F1/chan%2F1/cleanup',
+      { params: { olderThan: 123 } },
+    );
+    expect(api.get).toHaveBeenCalledWith('/podcore/messages/pod%2F1/chan%2F1/count');
+    expect(api.post).toHaveBeenCalledWith('/podcore/backfill/pod%2F1/sync', {
+      'chan/1': 123,
+    });
+    expect(api.put).toHaveBeenCalledWith(
+      '/podcore/backfill/pod%2F1/chan%2F1/last-seen',
+      '456',
+    );
+    expect(api.get).toHaveBeenCalledWith(
+      '/podcore/pod%2F1/opinions/content/content%2F1/variant/variant%2F1',
+    );
+    expect(api.put).toHaveBeenCalledWith('/podcore/pod%2F1/channels/chan%2F1', {
+      name: 'chan/1',
+    });
+    expect(api.delete).toHaveBeenCalledWith('/podcore/pod%2F1/channels/chan%2F1');
   });
 
   it('uses relative pod content paths', async () => {

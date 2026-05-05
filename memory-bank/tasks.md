@@ -2470,3 +2470,7 @@
 - [x] Continue broad frontend list-shape burn-down
   - Status: completed (2026-05-05)
   - Notes: Guarded listening history, Smart Radio, playlist intake refresh content, search result folding, player metadata, Browse/Transfer directory lists, ChatSession messages, UserCard interests, search graph handoffs, filter token lists, Bridge/integration diagnostics, and adversarial security settings against malformed non-array list fields. Added focused lib/player/chat regressions and extended ADR-0001 gotcha `0z306` in commits `bee9ac2a8` and `7107de805`. Validation passed: focused Vitest batch (`54` tests) and Web lint.
+
+- [x] Continue MediaCore route/body and nested panel burn-down
+  - Status: completed (2026-05-05)
+  - Notes: Fixed pod backfill primitive timestamp bodies, encoded MediaCore pod/channel/content route segments, restored descriptor verification result rendering, and guarded Shares/Search/Network/MediaCore nested lists. Included the vendor runtime interest/recommendation DTO validation batch.

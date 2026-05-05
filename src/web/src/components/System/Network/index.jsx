@@ -663,7 +663,7 @@ const Network = ({ theme }) => {
             </Header.Subheader>
           </Header.Content>
         </Header>
-        {mesh?.warnings?.length > 0 && (
+        {asArray(mesh?.warnings).length > 0 && (
           <Message
             attached="top"
             negative
@@ -677,7 +677,7 @@ const Network = ({ theme }) => {
               bulleted
               size="small"
             >
-              {mesh.warnings.map((w, index) => (
+              {asArray(mesh?.warnings).map((w, index) => (
                 <List.Item key={index}>{w}</List.Item>
               ))}
             </List>
@@ -949,12 +949,12 @@ const Network = ({ theme }) => {
                   progress
                   size="small"
                 />
-                {job.workers && job.workers.length > 0 && (
+                {asArray(job.workers).length > 0 && (
                   <List
                     horizontal
                     size="small"
                   >
-                    {job.workers.slice(0, 5).map((worker) => (
+                    {asArray(job.workers).slice(0, 5).map((worker) => (
                       <List.Item key={worker.username}>
                         <Label size="tiny">
                           <Icon name="user" />

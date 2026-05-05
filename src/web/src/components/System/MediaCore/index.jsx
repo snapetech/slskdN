@@ -885,7 +885,7 @@ const MediaCore = () => {
 
     try {
       setVerifyingDescriptor(true);
-      setVerificationResult(null);
+      setDescriptorVerificationResult(null);
 
       let descriptor;
       try {
@@ -895,9 +895,9 @@ const MediaCore = () => {
       }
 
       const result = await mediacore.verifyContentDescriptor(descriptor);
-      setVerificationResult(result);
+      setDescriptorVerificationResult(result);
     } catch (error_) {
-      setVerificationResult({ error: error_.message });
+      setDescriptorVerificationResult({ error: error_.message });
     } finally {
       setVerifyingDescriptor(false);
     }
@@ -4246,7 +4246,7 @@ const MediaCore = () => {
                         <br />
                         <strong>Verified:</strong>{' '}
                         {retrievalResult.verification?.isValid ? 'Yes' : 'No'}
-                        {retrievalResult.verification?.warnings?.length > 0 && (
+                        {asArray(retrievalResult.verification?.warnings).length > 0 && (
                           <span> (with warnings)</span>
                         )}
                       </p>
@@ -4501,11 +4501,11 @@ const MediaCore = () => {
                         )}{' '}
                         minutes
                       </p>
-                      {descriptorVerificationResult.warnings?.length > 0 && (
+                      {asArray(descriptorVerificationResult.warnings).length > 0 && (
                         <div>
                           <strong>Warnings:</strong>
                           <List bulleted>
-                            {descriptorVerificationResult.warnings.map(
+                            {asArray(descriptorVerificationResult.warnings).map(
                               (warning, index) => (
                                 <List.Item key={index}>{warning}</List.Item>
                               ),

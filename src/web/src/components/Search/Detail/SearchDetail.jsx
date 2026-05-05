@@ -764,7 +764,7 @@ const SearchDetail = ({
                       </div>
                     )}
                     <div className="search-album-candidate-labels">
-                      {candidate.reasons.map((reason) => (
+                      {asArray(candidate.reasons).map((reason) => (
                         <Label
                           key={reason}
                           size="tiny"
@@ -772,7 +772,7 @@ const SearchDetail = ({
                           {reason}
                         </Label>
                       ))}
-                      {candidate.warnings.map((warning) => (
+                      {asArray(candidate.warnings).map((warning) => (
                         <Popup
                           content="This is a local confidence warning from visible search result metadata only; it does not reject the candidate or contact peers."
                           key={warning}

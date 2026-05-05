@@ -3,6 +3,9 @@ import { CodeEditor, LoaderSegment, Switch } from '../../Shared';
 import React, { useEffect, useState } from 'react';
 import { Button, Icon, Modal } from 'semantic-ui-react';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+const asText = (value) => (typeof value === 'string' ? value : '');
+
 const ContentsModal = ({ onClose, share, theme }) => {
   const [loading, setLoading] = useState(true);
   const [contents, setContents] = useState();
@@ -15,14 +18,15 @@ const ContentsModal = ({ onClose, share, theme }) => {
 
       const result = await browse({ id });
 
-      const directories = result.map((directory) => {
-        const lines = [directory.name.replace(remotePath, localPath)];
-        const directoryFilesOrderedByFilename = directory.files.sort(
-          (file1, file2) => file1.filename.localeCompare(file2.filename),
+      const directories = asArray(result).map((directory) => {
+        const directoryName = asText(directory?.name);
+        const lines = [directoryName.replace(remotePath, localPath)];
+        const directoryFilesOrderedByFilename = asArray(directory?.files).sort(
+          (file1, file2) => asText(file1?.filename).localeCompare(asText(file2?.filename)),
         );
 
         for (const file of directoryFilesOrderedByFilename) {
-          lines.push('\t' + file.filename.replace(remotePath, ''));
+          lines.push('\t' + asText(file?.filename).replace(remotePath, ''));
         }
 
         lines.push('');

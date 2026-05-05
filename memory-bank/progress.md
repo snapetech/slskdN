@@ -9719,3 +9719,10 @@ Code quality improvements were completed as part of Option A:
 - Hardened listening stats exports/seeds, Smart Radio plans, playlist provider refresh previews, search result folding, player metadata, Browse/Transfer directory lists, ChatSession conversations, UserCard interests, search graph handoffs, filter token lists, Bridge/integration diagnostics, and adversarial settings arrays.
 - Documented repeated list-shape gotchas in commits `bee9ac2a8` and `7107de805`.
 - Validation passed: focused frontend Vitest batch (`54` tests) and Web lint.
+
+## 2026-05-05 21:55:00Z
+
+- Continued the broad council pass across primitive Web bodies, route-boundary intent, UI result wiring, nested list rendering, and vendor runtime domain models.
+- Fixed MediaCore pod last-seen timestamp serialization, encoded pod/channel/content route segments, restored descriptor verification result rendering, and guarded Shares/Search/Network/MediaCore nested lists.
+- Included vendor RT-058 for `UserInterests` and `ItemRecommendations` null-entry/mutable-alias validation.
+- Documented ADR-0001 gotchas `0z79`, `0z80`, and `0z81`; focused Web validation passed (`20` tests), scanner resweeps were clean for the touched classes, Web lint/test passed (`625` tests), vendor runtime domain tests passed (`61` tests), and full `dotnet test slskd.sln --no-restore` passed.

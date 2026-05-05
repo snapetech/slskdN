@@ -416,9 +416,9 @@ class Response extends Component {
             </List.Item>
           )}
         </List>
-        {preview.warnings.length > 0 && (
+        {asArray(preview.warnings).length > 0 && (
           <div className="search-action-preview-warnings">
-            {preview.warnings.map((warning) => (
+            {asArray(preview.warnings).map((warning) => (
               <Label
                 color="orange"
                 key={warning}
