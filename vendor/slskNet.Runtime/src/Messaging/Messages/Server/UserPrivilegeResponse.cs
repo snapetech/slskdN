@@ -65,7 +65,10 @@ namespace Soulseek.Messaging.Messages
             }
 
             var username = reader.ReadString();
-            var privileged = reader.ReadByte() > 0;
+            var privilegedByte = reader.ReadByte();
+            ProtocolValueValidator.ValidateBooleanFlag(privilegedByte, "user privilege flag");
+
+            var privileged = privilegedByte == 1;
 
             return new UserPrivilegeResponse(username, privileged);
         }

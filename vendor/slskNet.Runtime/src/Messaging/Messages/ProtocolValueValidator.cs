@@ -15,6 +15,7 @@
 
 namespace Soulseek.Messaging.Messages
 {
+    using System;
     using System.Net;
 
     /// <summary>
@@ -69,6 +70,34 @@ namespace Soulseek.Messaging.Messages
         public static void ValidateNonNegative(long value, string fieldName)
         {
             if (value < 0)
+            {
+                throw new MessageException($"Invalid {fieldName}: {value}");
+            }
+        }
+
+        /// <summary>
+        ///     Validates that a protocol enum value is defined.
+        /// </summary>
+        /// <typeparam name="TEnum">The enum type.</typeparam>
+        /// <param name="value">The enum value to validate.</param>
+        /// <param name="fieldName">The field name for diagnostics.</param>
+        public static void ValidateDefinedEnum<TEnum>(TEnum value, string fieldName)
+            where TEnum : struct
+        {
+            if (!Enum.IsDefined(typeof(TEnum), value))
+            {
+                throw new MessageException($"Invalid {fieldName}: {value}");
+            }
+        }
+
+        /// <summary>
+        ///     Validates that a protocol byte is a boolean flag.
+        /// </summary>
+        /// <param name="value">The flag value to validate.</param>
+        /// <param name="fieldName">The field name for diagnostics.</param>
+        public static void ValidateBooleanFlag(int value, string fieldName)
+        {
+            if (value != 0 && value != 1)
             {
                 throw new MessageException($"Invalid {fieldName}: {value}");
             }

@@ -155,7 +155,10 @@ namespace Soulseek.Messaging.Messages
             ProtocolValueValidator.ValidatePort(port, "connect-to-peer");
 
             var token = reader.ReadInteger();
-            var isPrivileged = reader.ReadByte() > 0;
+            var isPrivilegedByte = reader.ReadByte();
+            ProtocolValueValidator.ValidateBooleanFlag(isPrivilegedByte, "connect-to-peer privileged flag");
+
+            var isPrivileged = isPrivilegedByte == 1;
             var obfuscationType = 0;
             var obfuscatedPort = 0;
 

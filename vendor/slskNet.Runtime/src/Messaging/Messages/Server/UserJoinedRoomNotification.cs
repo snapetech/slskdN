@@ -75,6 +75,8 @@ namespace Soulseek.Messaging.Messages
             var username = reader.ReadString();
 
             var status = (UserPresence)reader.ReadInteger();
+            ProtocolValueValidator.ValidateDefinedEnum(status, "user presence");
+
             var averageSpeed = reader.ReadInteger();
             var downloadCount = reader.ReadLong();
             var fileCount = reader.ReadInteger();

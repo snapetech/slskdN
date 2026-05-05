@@ -49,7 +49,10 @@ namespace Soulseek
             }
 
             var description = reader.ReadString();
-            var hasPicture = reader.ReadByte() > 0;
+            var hasPictureByte = reader.ReadByte();
+            ProtocolValueValidator.ValidateBooleanFlag(hasPictureByte, "user info picture flag");
+
+            var hasPicture = hasPictureByte == 1;
             byte[] picture = null;
 
             if (hasPicture)
@@ -73,7 +76,10 @@ namespace Soulseek
 
             var uploadSlots = reader.ReadInteger();
             var queueLength = reader.ReadInteger();
-            var hasFreeUploadSlot = reader.ReadByte() > 0;
+            var hasFreeUploadSlotByte = reader.ReadByte();
+            ProtocolValueValidator.ValidateBooleanFlag(hasFreeUploadSlotByte, "user info free upload slot flag");
+
+            var hasFreeUploadSlot = hasFreeUploadSlotByte == 1;
 
             ProtocolValueValidator.ValidateNonNegative(uploadSlots, "upload slot count");
             ProtocolValueValidator.ValidateNonNegative(queueLength, "queue length");

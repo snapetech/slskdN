@@ -76,9 +76,15 @@
         [HttpPost("joined/{roomName}/messages")]
         [Authorize]
         [ProducesResponseType(201)]
+        [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> SendMessage([FromRoute]string roomName, [FromBody]string message)
         {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return BadRequest("Message is required");
+            }
+
             if (Tracker.TryGet(roomName, out var _))
             {
                 await Client.SendRoomMessageAsync(roomName, message);
@@ -99,9 +105,15 @@
         [HttpPost("joined/{roomName}/ticker")]
         [Authorize]
         [ProducesResponseType(201)]
+        [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> SetTicker([FromRoute] string roomName, [FromBody] string message)
         {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return BadRequest("Message is required");
+            }
+
             if (Tracker.TryGet(roomName, out var _))
             {
                 await Client.SetRoomTickerAsync(roomName, message);
@@ -122,9 +134,15 @@
         [HttpPost("joined/{roomName}/members")]
         [Authorize]
         [ProducesResponseType(201)]
+        [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> AddRoomMember([FromRoute]string roomName, [FromBody]string username)
         {
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                return BadRequest("Username is required");
+            }
+
             if (Tracker.TryGet(roomName, out  var _))
             {
                 await Client.AddPrivateRoomMemberAsync(roomName, username);

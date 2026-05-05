@@ -35,12 +35,12 @@
         /// <summary>
         ///     Gets the value of the Name claim from the Access Token.
         /// </summary>
-        public string Name => JwtSecurityToken.Claims.Where(c => c.Type == ClaimTypes.Name).SingleOrDefault().Value;
+        public string Name => JwtSecurityToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
 
         /// <summary>
         ///     Gets the value of the Not Before claim from the Access Token.
         /// </summary>
-        public long NotBefore => long.Parse(JwtSecurityToken.Claims.Where(c => c.Type == "nbf").SingleOrDefault().Value);
+        public long NotBefore => ((DateTimeOffset)JwtSecurityToken.ValidFrom).ToUnixTimeSeconds();
 
         /// <summary>
         ///     Gets the Token type.

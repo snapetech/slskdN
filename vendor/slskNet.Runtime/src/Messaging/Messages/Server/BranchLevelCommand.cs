@@ -23,6 +23,8 @@
 
 namespace Soulseek.Messaging.Messages
 {
+    using System;
+
     /// <summary>
     ///     Informs the server of the current distributed branch level.
     /// </summary>
@@ -34,6 +36,11 @@ namespace Soulseek.Messaging.Messages
         /// <param name="level">The current distributed branch level.</param>
         public BranchLevelCommand(int level)
         {
+            if (level < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(level), level, "The branch level must be equal to or greater than zero");
+            }
+
             Level = level;
         }
 

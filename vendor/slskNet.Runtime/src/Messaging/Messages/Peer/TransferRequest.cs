@@ -23,6 +23,8 @@
 
 namespace Soulseek.Messaging.Messages
 {
+    using System;
+
     /// <summary>
     ///     A request to transfer a file.
     /// </summary>
@@ -37,6 +39,16 @@ namespace Soulseek.Messaging.Messages
         /// <param name="fileSize">The size of the file being transferred.</param>
         public TransferRequest(TransferDirection direction, int token, string filename, long fileSize = 0)
         {
+            if (!Enum.IsDefined(typeof(TransferDirection), direction))
+            {
+                throw new ArgumentOutOfRangeException(nameof(direction), direction, "The transfer direction must be defined");
+            }
+
+            if (fileSize < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(fileSize), fileSize, "The file size must be equal to or greater than zero");
+            }
+
             Direction = direction;
             Token = token;
             Filename = filename;
@@ -79,6 +91,8 @@ namespace Soulseek.Messaging.Messages
             }
 
             var direction = (TransferDirection)reader.ReadInteger();
+            ProtocolValueValidator.ValidateDefinedEnum(direction, "transfer direction");
+
             var token = reader.ReadInteger();
             var filename = reader.ReadString();
 

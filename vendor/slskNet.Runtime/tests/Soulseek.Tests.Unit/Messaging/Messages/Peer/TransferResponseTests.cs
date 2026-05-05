@@ -46,6 +46,8 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "Instantiates with the proper data when allowed"), AutoData]
         public void Instantiates_With_The_Proper_Data_When_Allowed(int token, long size)
         {
+            size = Math.Abs(size == long.MinValue ? 0 : size);
+
             TransferResponse response = null;
             Exception ex = null;
 
@@ -123,6 +125,32 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.IsType<MessageException>(ex);
         }
 
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Instantiation throws on negative allowed file size")]
+        public void Instantiation_Throws_On_Negative_Allowed_File_Size()
+        {
+            var ex = Record.Exception(() => new TransferResponse(1, -1));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentOutOfRangeException>(ex);
+        }
+
+        [Trait("Category", "Parse")]
+        [Fact(DisplayName = "Parse throws MessageException on invalid allowed flag")]
+        public void Parse_Throws_MessageException_On_Invalid_Allowed_Flag()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Peer.TransferResponse)
+                .WriteInteger(1)
+                .WriteByte(0x2)
+                .Build();
+
+            var ex = Record.Exception(() => TransferResponse.FromByteArray(msg));
+
+            Assert.NotNull(ex);
+            Assert.IsType<MessageException>(ex);
+        }
+
         [Trait("Category", "Parse")]
         [Theory(DisplayName = "Parse returns expected data when upload allowed"), AutoData]
         public void Parse_Returns_Expected_Data_When_Upload_Allowed(int token)
@@ -161,6 +189,8 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "ToByteArray constructs the correct Message when allowed"), AutoData]
         public void ToByteArray_Constructs_The_Correct_Message_When_Allowed(int token, long size)
         {
+            size = Math.Abs(size == long.MinValue ? 0 : size);
+
             var a = new TransferResponse(token, size);
             var msg = a.ToByteArray();
 

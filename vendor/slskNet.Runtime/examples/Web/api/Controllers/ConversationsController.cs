@@ -177,9 +177,14 @@
         [ProducesResponseType(400)]
         public async Task<IActionResult> Send([FromRoute]string username, [FromBody]string message)
         {
-            if (string.IsNullOrEmpty(message))
+            if (string.IsNullOrWhiteSpace(username))
             {
-                return BadRequest();
+                return BadRequest("Username is required");
+            }
+
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return BadRequest("Message is required");
             }
 
             await Client.SendPrivateMessageAsync(username, message);

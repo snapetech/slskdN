@@ -142,10 +142,49 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.IsType<MessageException>(ex);
         }
 
+        [Trait("Category", "Parse")]
+        [Fact(DisplayName = "Parse throws MessageException on invalid direction")]
+        public void Parse_Throws_MessageException_On_Invalid_Direction()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Peer.TransferRequest)
+                .WriteInteger(2)
+                .WriteInteger(1)
+                .WriteString("file")
+                .Build();
+
+            var ex = Record.Exception(() => TransferRequest.FromByteArray(msg));
+
+            Assert.NotNull(ex);
+            Assert.IsType<MessageException>(ex);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Instantiation throws on invalid direction")]
+        public void Instantiation_Throws_On_Invalid_Direction()
+        {
+            var ex = Record.Exception(() => new TransferRequest((TransferDirection)2, 1, "file"));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentOutOfRangeException>(ex);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Instantiation throws on negative file size")]
+        public void Instantiation_Throws_On_Negative_File_Size()
+        {
+            var ex = Record.Exception(() => new TransferRequest(TransferDirection.Download, 1, "file", -1));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentOutOfRangeException>(ex);
+        }
+
         [Trait("Category", "ToByteArray")]
         [Theory(DisplayName = "ToByteArray constructs the correct Message"), AutoData]
         public void ToByteArray_Constructs_The_Correct_Message(TransferDirection dir, int token, string file, long size)
         {
+            size = Math.Abs(size == long.MinValue ? 0 : size);
+
             var a = new TransferRequest(dir, token, file, size);
             var msg = a.ToByteArray();
 
@@ -156,7 +195,7 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
 
             // length + code + direction + token + file length + filename + size
             Assert.Equal(4 + 4 + 4 + 4 + 4 + file.Length + 8, msg.Length);
-            Assert.Equal(0, reader.ReadInteger()); // direction
+            Assert.Equal((int)dir, reader.ReadInteger());
             Assert.Equal(token, reader.ReadInteger());
             Assert.Equal(file, reader.ReadString());
             Assert.Equal(size, reader.ReadLong());

@@ -17,6 +17,7 @@
 
 namespace Soulseek.Tests.Unit.Messaging.Messages
 {
+    using System;
     using AutoFixture.Xunit2;
     using Soulseek.Messaging;
     using Soulseek.Messaging.Messages;
@@ -28,15 +29,29 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "Instantiates with the given data"), AutoData]
         public void Instantiates_With_The_Given_Data(int level)
         {
+            level = Math.Abs(level == int.MinValue ? 0 : level);
+
             var r = new DistributedBranchLevel(level);
 
             Assert.Equal(level, r.Level);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Instantiation throws on negative level")]
+        public void Instantiation_Throws_On_Negative_Level()
+        {
+            var ex = Record.Exception(() => new DistributedBranchLevel(-1));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentOutOfRangeException>(ex);
         }
 
         [Trait("Category", "ToByteArray")]
         [Theory(DisplayName = "ToByteArray Constructs the correct Message"), AutoData]
         public void ToByteArray_Constructs_The_Correct_Message(int level)
         {
+            level = Math.Abs(level == int.MinValue ? 0 : level);
+
             var msg = new DistributedBranchLevel(level).ToByteArray();
 
             var reader = new MessageReader<MessageCode.Distributed>(msg);
@@ -52,6 +67,8 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "FromByteArray returns the expected data"), AutoData]
         public void FromByteArray_Returns_Expected_Data(int level)
         {
+            level = Math.Abs(level == int.MinValue ? 0 : level);
+
             var msg = new MessageBuilder()
                 .WriteCode(MessageCode.Distributed.BranchLevel)
                 .WriteInteger(level)
@@ -60,6 +77,21 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             var response = DistributedBranchLevel.FromByteArray(msg);
 
             Assert.Equal(level, response.Level);
+        }
+
+        [Trait("Category", "FromByteArray")]
+        [Fact(DisplayName = "FromByteArray throws MessageException on negative level")]
+        public void FromByteArray_Throws_MessageException_On_Negative_Level()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Distributed.BranchLevel)
+                .WriteInteger(-1)
+                .Build();
+
+            var ex = Record.Exception(() => DistributedBranchLevel.FromByteArray(msg));
+
+            Assert.NotNull(ex);
+            Assert.IsType<MessageException>(ex);
         }
 
         [Trait("Category", "FromByteArray")]

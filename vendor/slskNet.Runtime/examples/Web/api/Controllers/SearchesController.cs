@@ -50,6 +50,11 @@
         [ProducesResponseType(typeof(string), 500)]
         public async Task<IActionResult> Post([FromBody] SearchRequest request)
         {
+            if (!TryNormalizeSearchRequest(request, out var searchText, out var badRequest))
+            {
+                return badRequest;
+            }
+
             var id = request.Id ?? Guid.NewGuid();
 
             var options = request.ToSearchOptions(
@@ -57,8 +62,6 @@
                 stateChanged: (e) => Tracker.AddOrUpdate(id, e.Search));
 
             var results = new ConcurrentBag<SearchResponse>();
-
-            var searchText = string.Join(' ', request.SearchText.Split(' ').Where(term => term.Length > 1));
 
             try
             {
@@ -92,6 +95,16 @@
         [ProducesResponseType(typeof(string), 500)]
         public async Task<IActionResult> PostUsers([FromBody] SearchRequest request, [FromRoute] string username)
         {
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                return BadRequest("Username is required");
+            }
+
+            if (!TryNormalizeSearchRequest(request, out var searchText, out var badRequest))
+            {
+                return badRequest;
+            }
+
             var id = request.Id ?? Guid.NewGuid();
 
             var options = request.ToSearchOptions(
@@ -99,8 +112,6 @@
                 stateChanged: (e) => Tracker.AddOrUpdate(id, e.Search));
 
             var results = new ConcurrentBag<SearchResponse>();
-
-            var searchText = string.Join(' ', request.SearchText.Split(' ').Where(term => term.Length > 1));
 
             try
             {
@@ -139,6 +150,34 @@
             }
 
             return Ok(search);
+        }
+
+        private bool TryNormalizeSearchRequest(SearchRequest request, out string searchText, out IActionResult badRequest)
+        {
+            searchText = null;
+            badRequest = null;
+
+            if (request == null)
+            {
+                badRequest = BadRequest("Request body is required");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(request.SearchText))
+            {
+                badRequest = BadRequest("Search text is required");
+                return false;
+            }
+
+            searchText = string.Join(' ', request.SearchText.Split(' ').Where(term => term.Length > 1));
+
+            if (string.IsNullOrWhiteSpace(searchText))
+            {
+                badRequest = BadRequest("Search text must contain at least one term longer than one character");
+                return false;
+            }
+
+            return true;
         }
     }
 }

@@ -62,6 +62,7 @@ namespace Soulseek.Messaging.Messages
             for (int i = 0; i < statusCount; i++)
             {
                 statuses.Add((UserPresence)reader.ReadInteger());
+                ProtocolValueValidator.ValidateDefinedEnum(statuses[statuses.Count - 1], "user presence");
             }
 
             var dataCount = ProtocolCountReader.ReadCount(reader, "room user data", minimumBytesPerItem: 20);

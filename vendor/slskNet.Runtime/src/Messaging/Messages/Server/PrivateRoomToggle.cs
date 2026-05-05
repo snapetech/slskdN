@@ -57,7 +57,10 @@ namespace Soulseek.Messaging.Messages
                 throw new MessageException($"Message Code mismatch creating {nameof(MessageCode.Server.PrivateRoomToggle)} (expected: {(int)MessageCode.Server.PrivateRoomToggle}, received: {(int)code})");
             }
 
-            var acceptInvitations = reader.ReadByte() > 0;
+            var acceptInvitationsByte = reader.ReadByte();
+            ProtocolValueValidator.ValidateBooleanFlag(acceptInvitationsByte, "private room toggle flag");
+
+            var acceptInvitations = acceptInvitationsByte == 1;
 
             return new PrivateRoomToggle(acceptInvitations);
         }

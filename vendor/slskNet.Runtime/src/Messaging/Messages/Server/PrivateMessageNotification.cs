@@ -95,7 +95,10 @@ namespace Soulseek.Messaging.Messages
             var username = reader.ReadString();
             var msg = reader.ReadString();
 
-            var replayed = reader.ReadByte() != 1;
+            var replayedByte = reader.ReadByte();
+            ProtocolValueValidator.ValidateBooleanFlag(replayedByte, "private message replayed flag");
+
+            var replayed = replayedByte != 1;
 
             return new PrivateMessageNotification(id, timestamp, username, msg, replayed);
         }

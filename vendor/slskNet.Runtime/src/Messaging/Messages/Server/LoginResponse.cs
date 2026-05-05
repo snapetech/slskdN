@@ -92,7 +92,10 @@ namespace Soulseek.Messaging.Messages
                 throw new MessageException($"Message Code mismatch creating {nameof(LoginResponse)} (expected: {(int)MessageCode.Server.Login}, received: {(int)code}");
             }
 
-            var succeeded = reader.ReadByte() == 1;
+            var succeededByte = reader.ReadByte();
+            ProtocolValueValidator.ValidateBooleanFlag(succeededByte, "login succeeded flag");
+
+            var succeeded = succeededByte == 1;
             var msg = reader.ReadString();
 
             var ipAddress = default(IPAddress);
@@ -106,7 +109,9 @@ namespace Soulseek.Messaging.Messages
                 ipAddress = new IPAddress(ipBytes);
 
                 hash = reader.ReadString();
-                isSupporter = reader.ReadByte() == 1;
+                var isSupporterByte = reader.ReadByte();
+                ProtocolValueValidator.ValidateBooleanFlag(isSupporterByte, "login supporter flag");
+                isSupporter = isSupporterByte == 1;
             }
 
             return new LoginResponse(succeeded, msg, ipAddress, hash, isSupporter);

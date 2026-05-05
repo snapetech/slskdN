@@ -164,5 +164,197 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
 
             Assert.Throws<MessageException>(() => SearchResponseFactory.FromByteArray(msg));
         }
+
+        [Fact(DisplayName = "User status rejects invalid presence")]
+        public void User_Status_Rejects_Invalid_Presence()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.GetStatus)
+                .WriteString("user")
+                .WriteInteger(99)
+                .WriteByte(0)
+                .Build();
+
+            Assert.Throws<MessageException>(() => UserStatusResponseFactory.FromByteArray(msg));
+        }
+
+        [Fact(DisplayName = "Joined room user rejects invalid presence")]
+        public void Joined_Room_User_Rejects_Invalid_Presence()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.UserJoinedRoom)
+                .WriteString("room")
+                .WriteString("user")
+                .WriteInteger(99)
+                .WriteInteger(1)
+                .WriteLong(1)
+                .WriteInteger(1)
+                .WriteInteger(1)
+                .WriteInteger(1)
+                .WriteString("US")
+                .Build();
+
+            Assert.Throws<MessageException>(() => UserJoinedRoomNotification.FromByteArray(msg));
+        }
+
+        [Fact(DisplayName = "Join room rejects invalid presence")]
+        public void Join_Room_Rejects_Invalid_Presence()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.JoinRoom)
+                .WriteString("room")
+                .WriteInteger(1)
+                .WriteString("user")
+                .WriteInteger(1)
+                .WriteInteger(99)
+                .WriteInteger(1)
+                .WriteInteger(1)
+                .WriteLong(1)
+                .WriteInteger(1)
+                .WriteInteger(1)
+                .WriteInteger(1)
+                .WriteInteger(1)
+                .WriteInteger(1)
+                .WriteString("US")
+                .Build();
+
+            Assert.Throws<MessageException>(() => JoinRoomResponse.FromByteArray(msg));
+        }
+
+        [Fact(DisplayName = "Watch user rejects invalid exists flag")]
+        public void Watch_User_Rejects_Invalid_Exists_Flag()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.WatchUser)
+                .WriteString("user")
+                .WriteByte(2)
+                .Build();
+
+            Assert.Throws<MessageException>(() => WatchUserResponse.FromByteArray(msg));
+        }
+
+        [Fact(DisplayName = "Watch user rejects invalid presence")]
+        public void Watch_User_Rejects_Invalid_Presence()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.WatchUser)
+                .WriteString("user")
+                .WriteByte(1)
+                .WriteInteger(99)
+                .WriteInteger(1)
+                .WriteLong(1)
+                .WriteInteger(1)
+                .WriteInteger(1)
+                .Build();
+
+            Assert.Throws<MessageException>(() => WatchUserResponse.FromByteArray(msg));
+        }
+
+        [Fact(DisplayName = "Login rejects invalid success flag")]
+        public void Login_Rejects_Invalid_Success_Flag()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.Login)
+                .WriteByte(2)
+                .Build();
+
+            Assert.Throws<MessageException>(() => LoginResponse.FromByteArray(msg));
+        }
+
+        [Fact(DisplayName = "Login rejects invalid supporter flag")]
+        public void Login_Rejects_Invalid_Supporter_Flag()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.Login)
+                .WriteByte(1)
+                .WriteString("ok")
+                .WriteBytes(new byte[] { 127, 0, 0, 1 })
+                .WriteString("hash")
+                .WriteByte(2)
+                .Build();
+
+            Assert.Throws<MessageException>(() => LoginResponse.FromByteArray(msg));
+        }
+
+        [Fact(DisplayName = "User info rejects invalid picture flag")]
+        public void User_Info_Rejects_Invalid_Picture_Flag()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Peer.InfoResponse)
+                .WriteString("description")
+                .WriteByte(2)
+                .Build();
+
+            Assert.Throws<MessageException>(() => UserInfoResponseFactory.FromByteArray(msg));
+        }
+
+        [Fact(DisplayName = "User info rejects invalid free slot flag")]
+        public void User_Info_Rejects_Invalid_Free_Slot_Flag()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Peer.InfoResponse)
+                .WriteString("description")
+                .WriteByte(0)
+                .WriteInteger(1)
+                .WriteInteger(1)
+                .WriteByte(2)
+                .Build();
+
+            Assert.Throws<MessageException>(() => UserInfoResponseFactory.FromByteArray(msg));
+        }
+
+        [Fact(DisplayName = "Connect to peer rejects invalid privileged flag")]
+        public void Connect_To_Peer_Rejects_Invalid_Privileged_Flag()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.ConnectToPeer)
+                .WriteString("user")
+                .WriteString("P")
+                .WriteBytes(new byte[] { 127, 0, 0, 1 })
+                .WriteInteger(2234)
+                .WriteInteger(1)
+                .WriteByte(2)
+                .Build();
+
+            Assert.Throws<MessageException>(() => ConnectToPeerResponse.FromByteArray(msg));
+        }
+
+        [Fact(DisplayName = "User privilege rejects invalid privileged flag")]
+        public void User_Privilege_Rejects_Invalid_Privileged_Flag()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.UserPrivileges)
+                .WriteString("user")
+                .WriteByte(2)
+                .Build();
+
+            Assert.Throws<MessageException>(() => UserPrivilegeResponse.FromByteArray(msg));
+        }
+
+        [Fact(DisplayName = "Private room toggle rejects invalid flag")]
+        public void Private_Room_Toggle_Rejects_Invalid_Flag()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.PrivateRoomToggle)
+                .WriteByte(2)
+                .Build();
+
+            Assert.Throws<MessageException>(() => PrivateRoomToggle.FromByteArray(msg));
+        }
+
+        [Fact(DisplayName = "Private message rejects invalid replay flag")]
+        public void Private_Message_Rejects_Invalid_Replay_Flag()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.PrivateMessage)
+                .WriteInteger(1)
+                .WriteInteger(0)
+                .WriteString("user")
+                .WriteString("message")
+                .WriteByte(2)
+                .Build();
+
+            Assert.Throws<MessageException>(() => PrivateMessageNotification.FromByteArray(msg));
+        }
     }
 }

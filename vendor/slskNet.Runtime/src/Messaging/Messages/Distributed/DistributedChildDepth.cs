@@ -23,6 +23,8 @@
 
 namespace Soulseek.Messaging.Messages
 {
+    using System;
+
     /// <summary>
     ///     Informs distributed parents of a child's child depth.
     /// </summary>
@@ -34,6 +36,11 @@ namespace Soulseek.Messaging.Messages
         /// <param name="depth">The current depth of the child.</param>
         public DistributedChildDepth(int depth)
         {
+            if (depth < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(depth), depth, "The child depth must be equal to or greater than zero");
+            }
+
             Depth = depth;
         }
 
@@ -58,6 +65,7 @@ namespace Soulseek.Messaging.Messages
             }
 
             var depth = reader.ReadInteger();
+            ProtocolValueValidator.ValidateNonNegative(depth, "child depth");
 
             return new DistributedChildDepth(depth);
         }

@@ -23,6 +23,8 @@
 
 namespace Soulseek.Messaging.Messages
 {
+    using System;
+
     /// <summary>
     ///     An incoming response to a peer transfer request.
     /// </summary>
@@ -47,6 +49,11 @@ namespace Soulseek.Messaging.Messages
         /// <param name="fileSize">The size of the file being transferred.</param>
         public TransferResponse(int token, long fileSize)
         {
+            if (fileSize < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(fileSize), fileSize, "The file size must be equal to or greater than zero");
+            }
+
             Token = token;
             IsAllowed = true;
             FileSize = fileSize;
@@ -98,7 +105,10 @@ namespace Soulseek.Messaging.Messages
             }
 
             var token = reader.ReadInteger();
-            var allowed = reader.ReadByte() == 1;
+            var allowedByte = reader.ReadByte();
+            ProtocolValueValidator.ValidateBooleanFlag(allowedByte, "transfer response allowed flag");
+
+            var allowed = allowedByte == 1;
 
             if (allowed && reader.HasMoreData)
             {

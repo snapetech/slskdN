@@ -23,6 +23,8 @@
 
 namespace Soulseek.Messaging.Messages
 {
+    using System;
+
     /// <summary>
     ///     Informs the server of the current user status.
     /// </summary>
@@ -34,6 +36,11 @@ namespace Soulseek.Messaging.Messages
         /// <param name="status">The current status.</param>
         public SetOnlineStatusCommand(UserPresence status)
         {
+            if (!Enum.IsDefined(typeof(UserPresence), status))
+            {
+                throw new ArgumentOutOfRangeException(nameof(status), status, "The user presence must be defined");
+            }
+
             Status = status;
         }
 

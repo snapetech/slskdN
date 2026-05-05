@@ -17,6 +17,7 @@
 
 namespace Soulseek.Tests.Unit.Messaging.Messages
 {
+    using System;
     using AutoFixture.Xunit2;
     using Soulseek.Messaging;
     using Soulseek.Messaging.Messages;
@@ -28,15 +29,29 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "Instantiates with the given data"), AutoData]
         public void Instantiates_With_The_Given_Data(int depth)
         {
+            depth = Math.Abs(depth == int.MinValue ? 0 : depth);
+
             var r = new DistributedChildDepth(depth);
 
             Assert.Equal(depth, r.Depth);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Instantiation throws on negative depth")]
+        public void Instantiation_Throws_On_Negative_Depth()
+        {
+            var ex = Record.Exception(() => new DistributedChildDepth(-1));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentOutOfRangeException>(ex);
         }
 
         [Trait("Category", "ToByteArray")]
         [Theory(DisplayName = "ToByteArray Constructs the correct Message"), AutoData]
         public void ToByteArray_Constructs_The_Correct_Message(int depth)
         {
+            depth = Math.Abs(depth == int.MinValue ? 0 : depth);
+
             var msg = new DistributedChildDepth(depth).ToByteArray();
 
             var reader = new MessageReader<MessageCode.Distributed>(msg);
@@ -52,6 +67,8 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "FromByteArray returns the expected data"), AutoData]
         public void FromByteArray_Returns_Expected_Data(int depth)
         {
+            depth = Math.Abs(depth == int.MinValue ? 0 : depth);
+
             var msg = new MessageBuilder()
                 .WriteCode(MessageCode.Distributed.ChildDepth)
                 .WriteInteger(depth)
@@ -60,6 +77,21 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             var response = DistributedChildDepth.FromByteArray(msg);
 
             Assert.Equal(depth, response.Depth);
+        }
+
+        [Trait("Category", "FromByteArray")]
+        [Fact(DisplayName = "FromByteArray throws MessageException on negative depth")]
+        public void FromByteArray_Throws_MessageException_On_Negative_Depth()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Distributed.ChildDepth)
+                .WriteInteger(-1)
+                .Build();
+
+            var ex = Record.Exception(() => DistributedChildDepth.FromByteArray(msg));
+
+            Assert.NotNull(ex);
+            Assert.IsType<MessageException>(ex);
         }
 
         [Trait("Category", "FromByteArray")]

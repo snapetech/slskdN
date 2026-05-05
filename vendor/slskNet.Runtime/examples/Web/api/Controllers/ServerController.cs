@@ -45,6 +45,11 @@
         [Authorize]
         public async Task<IActionResult> Connect([FromBody]ConnectRequest req)
         {
+            if (req == null)
+            {
+                return BadRequest("Request body is required");
+            }
+
             var addr = !string.IsNullOrEmpty(req.Address);
             var port = req.Port.HasValue;
             var un = !string.IsNullOrEmpty(req.Username);

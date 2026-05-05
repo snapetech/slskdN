@@ -87,6 +87,8 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "ChildDepthCommand instantiates properly"), AutoData]
         public void ChildDepthCommand_Instantiates_Properly(int depth)
         {
+            depth = Math.Abs(depth == int.MinValue ? 0 : depth);
+
             var msg = new ChildDepthCommand(depth);
 
             Assert.Equal(depth, msg.Depth);
@@ -94,9 +96,22 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
 
         [Trait("Category", "Instantiation")]
         [Trait("Request", "ChildDepthCommand")]
+        [Fact(DisplayName = "ChildDepthCommand throws when depth is negative")]
+        public void ChildDepthCommand_Throws_When_Depth_Is_Negative()
+        {
+            var ex = Record.Exception(() => new ChildDepthCommand(-1));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentOutOfRangeException>(ex);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Trait("Request", "ChildDepthCommand")]
         [Theory(DisplayName = "ChildDepthCommand constructs the correct message"), AutoData]
         public void ChildDepthCommand_Constructs_The_Correct_Message(int depth)
         {
+            depth = Math.Abs(depth == int.MinValue ? 0 : depth);
+
             var msg = new ChildDepthCommand(depth).ToByteArray();
 
             var reader = new MessageReader<MessageCode.Server>(msg);
@@ -526,6 +541,17 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             var a = new SetOnlineStatusCommand(status);
 
             Assert.Equal(status, a.Status);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Trait("Request", "SetOnlineStatus")]
+        [Fact(DisplayName = "SetOnlineStatus throws when status is undefined")]
+        public void SetOnlineStatus_Throws_When_Status_Is_Undefined()
+        {
+            var ex = Record.Exception(() => new SetOnlineStatusCommand((UserPresence)99));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentOutOfRangeException>(ex);
         }
 
         [Trait("Category", "ToByteArray")]
