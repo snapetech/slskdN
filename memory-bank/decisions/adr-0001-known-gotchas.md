@@ -52,6 +52,41 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z311. Relay Download Controllers Must Serve Server-Bound Filenames
+
+**The Bug**: The relay download endpoint validated a token and credential but then used the caller-provided `X-Relay-Filename-Base64` header as the filename passed into path containment and `PhysicalFile()`. The relay cache key tied the token to a filename, but the sensitive file-serving path still depended on request-controlled input and triggered CodeQL `cs/user-controlled-bypass`.
+
+**Files Affected**:
+- `src/slskd/Relay/API/Controllers/RelayController.cs`
+- `src/slskd/Relay/RelayService.cs`
+- `tests/slskd.Tests.Unit/Relay/API/RelayControllerModerationTests.cs`
+- `tests/slskd.Tests.Unit/Relay/RelayServiceTests.cs`
+
+**Wrong**:
+```csharp
+var filename = Request.Headers["X-Relay-Filename-Base64"].FirstOrDefault()?.FromBase64();
+if (!Relay.TryValidateFileDownloadCredential(token, filename, credential, out var agent))
+{
+    return Unauthorized();
+}
+
+var sourceFile = PathGuard.NormalizeAndValidate(filename, downloadsRoot);
+return PhysicalFile(sourceFile, "application/octet-stream");
+```
+
+**Correct**:
+```csharp
+if (!Relay.TryValidateFileDownloadCredential(token, credential, out var agent, out var trustedFilename))
+{
+    return Unauthorized();
+}
+
+var sourceFile = PathGuard.NormalizeAndValidate(trustedFilename, downloadsRoot);
+return PhysicalFile(sourceFile, "application/octet-stream");
+```
+
+**Why This Keeps Happening**: Relay workflows pass filenames through both SignalR notifications and HTTP headers, so it is easy to treat a header as a restatement of trusted state. File-serving endpoints must select files from token-bound server state, then use request headers only for compatibility or diagnostics.
+
 ### 0z310. Background Soulseek Producers Need Budget, Cancellation, And Concurrency Guards
 
 **The Bug**: Several background or compatibility Soulseek paths still used older direct-call patterns after newer controllers and services gained network-health safeguards. Source discovery searched without consuming the shared search budget, native browse did not pass request cancellation, backfill candidate status lookup accepted unbounded limits and ignored cancellation, rescue downloads passed `CancellationToken.None`, and verification probes launched all candidates in parallel.
