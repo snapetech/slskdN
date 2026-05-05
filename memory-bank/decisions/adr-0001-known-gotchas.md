@@ -54,7 +54,7 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ### 0z289. Saved Search Producers Must Use Normal Network Scope Unless They Intentionally Need Server Wishlist Semantics
 
-**The Bug**: slskdN Wishlist items executed through `SearchScope.Wishlist`, while manual reruns from the Search view used `SearchScope.Network`. The saved-search job could complete with zero responses even though immediately rerunning the same text as a normal search returned results.
+**The Bug**: slskdN Wishlist items executed through `SearchScope.Wishlist`, while manual reruns from the Search view used `SearchScope.Network`. The saved-search job could complete with zero responses even though immediately rerunning the same text as a normal search returned results. The manual Wishlist run path also waited for completion but returned the original just-started search object, so UI callers could still display `0` even after the persisted search had responses.
 
 **Files Affected**:
 - `src/slskd/Wishlist/WishlistService.cs`
@@ -62,16 +62,18 @@ This is not optional. This is the highest priority action after fixing a bug.
 **Wrong**:
 ```csharp
 var scope = SearchScope.Wishlist;
-await SearchService.StartAsync(searchId, query, scope, searchOptions);
+var search = await SearchService.StartAsync(searchId, query, scope, searchOptions);
+return search;
 ```
 
 **Correct**:
 ```csharp
 var scope = SearchScope.Network;
 await SearchService.StartAsync(searchId, query, scope, searchOptions, requestedProviders: null, safetySource: "wishlist");
+return searchWithResponses ?? search;
 ```
 
-**Why This Keeps Happening**: The product term "wishlist" describes a saved search in slskdN, but `SearchScope.Wishlist` is a distinct Soulseek protocol scope. Saved searches, Lidarr-promoted searches, replacement searches, and other local automations should behave like manual network searches unless a feature is explicitly using server-side wishlist behavior. Keep the producer identity in safety/logging metadata instead of changing the protocol search scope.
+**Why This Keeps Happening**: The product term "wishlist" describes a saved search in slskdN, but `SearchScope.Wishlist` is a distinct Soulseek protocol scope. Saved searches, Lidarr-promoted searches, replacement searches, and other local automations should behave like manual network searches unless a feature is explicitly using server-side wishlist behavior. Keep the producer identity in safety/logging metadata instead of changing the protocol search scope. When a wrapper waits for async search completion, return the completed record, not the initial search shell, so API callers and UI status messages observe the same counts as persisted state.
 
 ### 0z288. Preflight Security Checks Must Bind To The Actual Operation
 
