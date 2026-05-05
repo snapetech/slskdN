@@ -52,6 +52,63 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z313. Security Options Need Runtime Enforcement, Not Only Validation Helpers
+
+**The Bug**: Mesh gateway options had `Validate()` and `MeshGatewayConfigValidator.ValidateOnStartup()` checks requiring API keys for non-localhost binding, but the app only bound the options and never enforced the validator at startup. The auth middleware also allowed non-localhost requests through when no API key was configured.
+
+**Files Affected**:
+- `src/slskd/Program.cs`
+- `src/slskd/Mesh/ServiceFabric/MeshGatewayAuthMiddleware.cs`
+- `tests/slskd.Tests.Unit/Mesh/ServiceFabric/MeshGatewayAuthMiddlewareTests.cs`
+
+**Wrong**:
+```csharp
+services.AddOptions<MeshGatewayOptions>().Bind(section);
+
+if (!isLocalhost && !string.IsNullOrWhiteSpace(options.ApiKey))
+{
+    // validate supplied key
+}
+```
+
+**Correct**:
+```csharp
+services.AddOptions<MeshGatewayOptions>()
+    .Bind(section)
+    .Validate(options => options.Validate().IsValid, "MeshGateway configuration is invalid.")
+    .ValidateOnStart();
+
+if (!isLocalhost && string.IsNullOrWhiteSpace(options.ApiKey))
+{
+    return Unauthorized();
+}
+```
+
+**Why This Keeps Happening**: Security validators can look complete in unit tests while production DI only binds options. Any option whose invalid state changes an auth, filesystem, network, or public-surface boundary needs both startup validation registration and a runtime fail-closed check at the boundary.
+
+### 0z312. Dynamic Web Route Segments Must Be Encoded At Every Boundary
+
+**The Bug**: Search action routes encoded search IDs in some helpers but still interpolated raw `searchId` and `itemId` values in bridged download/stream action URLs and search-result navigation.
+
+**Files Affected**:
+- `src/web/src/components/Search/Response.jsx`
+- `src/web/src/components/Search/Searches.jsx`
+- `src/web/src/components/Search/Response.test.jsx`
+
+**Wrong**:
+```jsx
+api.post(`/searches/${searchId}/items/${itemId}/download`);
+routerNavigate(`/searches/${id}`);
+```
+
+**Correct**:
+```jsx
+api.post(`/searches/${encodeURIComponent(searchId)}/items/${encodeURIComponent(itemId)}/download`);
+routerNavigate(`/searches/${encodeURIComponent(id)}`);
+```
+
+**Why This Keeps Happening**: Route helpers get fixed one file at a time, while adjacent components keep building URLs directly. Any identifier crossing a URL path boundary must go through `encodeURIComponent()` or a local `segment()` helper, including generated IDs that are currently UUIDs.
+
 ### 0z311. Relay Download Controllers Must Serve Server-Bound Filenames
 
 **The Bug**: The relay download endpoint validated a token and credential but then used the caller-provided `X-Relay-Filename-Base64` header as the filename passed into path containment and `PhysicalFile()`. The relay cache key tied the token to a filename, but the sensitive file-serving path still depended on request-controlled input and triggered CodeQL `cs/user-controlled-bypass`.
