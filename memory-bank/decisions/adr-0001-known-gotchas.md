@@ -52,6 +52,29 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z319. Shared File Responses Must Advertise Root-Relative Remote Paths
+
+**The Bug**: Example Web API search and browse responses used local absolute filesystem paths as shared file/directory names, leaking host path layout and coupling remote protocol names to the server's local root.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/examples/Web/api/SharedFileCache.cs`
+- `vendor/slskNet.Runtime/examples/Web/api/Startup.cs`
+- `vendor/slskNet.Runtime/examples/Web/api/Extensions.cs`
+
+**Wrong**:
+```csharp
+new Soulseek.File(1, f.Replace("/", @"\"), new FileInfo(f).Length, Path.GetExtension(f));
+new Soulseek.Directory(dir.Replace("/", @"\"), files);
+```
+
+**Correct**:
+```csharp
+new Soulseek.File(1, Extensions.GetSharedRemotePath(root, f), new FileInfo(f).Length, Path.GetExtension(f));
+new Soulseek.Directory(Extensions.GetSharedRemotePath(root, dir), files);
+```
+
+**Why This Keeps Happening**: Path containment fixes usually focus on inbound path traversal, but outbound protocol responses can still disclose local paths. Any advertised Soulseek file or directory name derived from disk must be converted to a root-relative remote path after containment validation.
+
 ### 0z318. Example API Route Parameters Need Explicit Blank Checks
 
 **The Bug**: Example Web API controllers relied on `[FromRoute, Required]` for route string values, but direct controller paths and whitespace route segments could still reach runtime calls or tracker lookups. One upload lookup dereferenced the default transfer record instead of returning `404`.
