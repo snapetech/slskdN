@@ -464,7 +464,8 @@ public sealed class NatDetectionService : IAsyncDisposable
             "https://checkip.amazonaws.com",
         };
 
-        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+        using var handler = new HttpClientHandler { AllowAutoRedirect = false };
+        using var http = new HttpClient(handler, disposeHandler: true) { Timeout = TimeSpan.FromSeconds(5) };
 
         foreach (var service in services)
         {

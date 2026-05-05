@@ -4,6 +4,8 @@ import { LoaderSegment } from '../../Shared';
 import React, { useEffect, useState } from 'react';
 import { Header, Icon, Modal, Table } from 'semantic-ui-react';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const FileRow = ({
   fullName,
   length,
@@ -217,7 +219,7 @@ const Explorer = ({ remoteFileManagement, root }) => {
                   subdirectory={subdirectory}
                 />
               )}
-              {directory?.directories?.map((d) => (
+              {asArray(directory?.directories).map((d) => (
                 <DirectoryRow
                   key={d.name}
                   onClick={() => select({ path: d.name })}
@@ -227,7 +229,7 @@ const Explorer = ({ remoteFileManagement, root }) => {
                   {...d}
                 />
               ))}
-              {directory?.files?.map((f) => (
+              {asArray(directory?.files).map((f) => (
                 <FileRow
                   key={f.name}
                   remoteFileManagement={remoteFileManagement}

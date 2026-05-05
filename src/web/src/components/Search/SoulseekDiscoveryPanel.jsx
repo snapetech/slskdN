@@ -40,17 +40,17 @@ const normalizeUser = (user) => {
 };
 
 const getRecommendations = (payload) =>
-  (getValue(payload, 'recommendations', 'Recommendations', []) || [])
+  asArray(getValue(payload, 'recommendations', 'Recommendations', []))
     .map(normalizeRecommendation)
     .filter((recommendation) => recommendation.item);
 
 const getUnrecommendations = (payload) =>
-  (getValue(payload, 'unrecommendations', 'Unrecommendations', []) || [])
+  asArray(getValue(payload, 'unrecommendations', 'Unrecommendations', []))
     .map(normalizeRecommendation)
     .filter((recommendation) => recommendation.item);
 
 const getUsernames = (payload) =>
-  (getValue(payload, 'usernames', 'Usernames', []) || [])
+  asArray(getValue(payload, 'usernames', 'Usernames', []))
     .map(normalizeUser)
     .filter((user) => user.username);
 
@@ -322,8 +322,8 @@ const SoulseekDiscoveryPanel = ({ disabled, onSearch }) => {
     );
   }
 
-  const liked = getValue(userInterests, 'liked', 'Liked', []) || [];
-  const hated = getValue(userInterests, 'hated', 'Hated', []) || [];
+  const liked = asArray(getValue(userInterests, 'liked', 'Liked', []));
+  const hated = asArray(getValue(userInterests, 'hated', 'Hated', []));
 
   return (
     <Segment loading={loading}>

@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **bug-council**: Continue frontend list and redirect-client burn-down.
+ - Status: completed (2026-05-05)
+ - Priority: P1
+ - Notes: Fixed and verified `BUG-20260505-105` and `BUG-20260505-106`: guarded Messaging room search, RoomJoinModal, System Files Explorer, System Network capabilities, Soulseek Discovery, and Pods list fields against malformed non-array payloads, and disabled redirect-following in NAT public-IP and GitHub release helper clients. Extended ADR-0001 gotchas in commit `ccf0cc14f`. Validation passed: focused Web tests (`18` tests), focused Web lint for all touched components, focused backend unit slice (`2` tests), and direct scans for the touched list/HTTP patterns.
+
 - [x] **bug-council**: Continue network-health and docs drift burn-down.
  - Status: completed (2026-05-05)
  - Priority: P1

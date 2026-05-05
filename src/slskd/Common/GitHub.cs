@@ -61,7 +61,8 @@ namespace slskd
 
             try
             {
-                using var http = new HttpClient();
+                using var handler = new HttpClientHandler { AllowAutoRedirect = false };
+                using var http = new HttpClient(handler, disposeHandler: true);
                 http.DefaultRequestHeaders.UserAgent.TryParseAdd(userAgent);
 
                 var response = await http.GetFromJsonAsync<JsonDocument>(url)

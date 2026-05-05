@@ -336,7 +336,7 @@ class Pods extends Component {
       const discovered = query
         ? await pods.discoverByName(query)
         : await pods.discoverAll(50);
-      this.setState({ discoveryResults: discovered || [] });
+      this.setState({ discoveryResults: asArray(discovered).filter(isObject) });
     } catch (error) {
       console.error('Failed to discover pods:', error);
       toast.error(`Failed to discover pods: ${error.message}`);
@@ -348,7 +348,7 @@ class Pods extends Component {
   handleSaveDiscoveredPod = async (pod) => {
     const podId = pod.podId || pod.PodId;
     const name = pod.name || pod.Name || podId;
-    const tags = pod.tags || pod.Tags || [];
+    const tags = asArray(pod.tags || pod.Tags);
     const visibility = pod.visibility || pod.Visibility || 'Unlisted';
     const focusContentId = pod.focusContentId || pod.FocusContentId || null;
 
@@ -428,7 +428,7 @@ class Pods extends Component {
 
     const currentMessages =
       activePodId && activeChannelId
-        ? messages[`${activePodId}:${activeChannelId}`] || []
+        ? asArray(messages[`${activePodId}:${activeChannelId}`])
         : [];
     const localPeerId = this.getLocalPeerId();
     const isMember = members.some((member) => member.peerId === localPeerId);
@@ -492,7 +492,7 @@ class Pods extends Component {
                 {discoveryResults.slice(0, 6).map((pod) => {
                   const podId = pod.podId || pod.PodId;
                   const name = pod.name || pod.Name || podId;
-                  const tags = pod.tags || pod.Tags || [];
+                  const tags = asArray(pod.tags || pod.Tags);
                   const local = podsList.some((item) => item.podId === podId);
 
                   return (

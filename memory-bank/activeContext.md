@@ -1,3 +1,16 @@
+## Update 2026-05-05 22:45:00Z
+
+- Current task: Frontend list-shape and redirect-client bug-council batch is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-105` and `BUG-20260505-106` in `docs/dev/bug-burndown-ledger.md`
+  - guarded Messaging, RoomJoinModal, System Files, System Network, Soulseek Discovery, and Pods list fields
+  - changed NAT public-IP and GitHub release helper direct HTTP clients to disable redirects
+  - extended ADR-0001 gotchas in commit `ccf0cc14f`
+  - validation passed: focused Web tests (`18` tests), focused Web lint, focused backend unit slice (`2` tests), and direct pattern scans
+- Next steps:
+  1. Run broad remediation/lint/diff/full test gates.
+  2. Commit and push the full dirty tree per user request.
+
 ## Update 2026-05-05 22:30:00Z
 
 - Current task: Broad network-health/docs drift bug-council batch is complete locally.

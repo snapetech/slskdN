@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Hardened more room, files, network, Soulseek discovery, and pod Web views
+  against malformed list payloads, and disabled redirects for direct NAT/GitHub
+  helper HTTP clients.
 - Added network-health guardrails across background discovery, native browse,
   backfill candidate lookup, rescue downloads, and content verification probe
   fan-out.

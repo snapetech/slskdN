@@ -14,6 +14,8 @@ import {
   Table,
 } from 'semantic-ui-react';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const RoomJoinModal = ({ joinRoom: parentJoinRoom, ...modalOptions }) => {
   const [open, setOpen] = useState(false);
   const [available, setAvailable] = useState([]);
@@ -28,7 +30,7 @@ const RoomJoinModal = ({ joinRoom: parentJoinRoom, ...modalOptions }) => {
       setLoading(true);
       try {
         const availableResult = await rooms.getAvailable();
-        setAvailable(availableResult || []);
+        setAvailable(asArray(availableResult));
       } catch {
         toast.error('Failed to load room list');
         setAvailable([]);

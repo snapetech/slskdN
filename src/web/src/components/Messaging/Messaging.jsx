@@ -458,7 +458,7 @@ const Messaging = ({ initialKind = 'mixed', state }) => {
   const fetchAvailableRooms = async () => {
     setRoomSearchLoading(true);
     try {
-      setAvailableRooms((await rooms.getAvailable()) || []);
+      setAvailableRooms(asArray(await rooms.getAvailable()));
     } catch {
       setAvailableRooms([]);
     } finally {

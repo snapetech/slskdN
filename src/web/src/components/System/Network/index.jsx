@@ -26,6 +26,8 @@ import {
 
 const DHT_EXPOSURE_CONSENT_KEY = 'slskdn:ui:dht-public-exposure:consent-v1';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const formatBytes = (bytes) => {
   if (bytes === 0 || bytes === undefined || bytes === null) return '0 B';
   const k = 1_024;
@@ -455,7 +457,7 @@ const Network = ({ theme }) => {
             <Icon name="code branch" />
             {capabilities?.version ?? 'slskdN'}
           </Label>
-          {capabilities?.features?.map((feature) => (
+          {asArray(capabilities?.features).map((feature) => (
             <Label
               color="teal"
               key={feature}

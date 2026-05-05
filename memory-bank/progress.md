@@ -1,5 +1,10 @@
 ## 2026-05-05
 
+- Continued the broad council cycle into adjacent frontend list-shape and redirect-client findings.
+- Fixed `BUG-20260505-105` and `BUG-20260505-106`: Messaging room search, RoomJoinModal, System Files Explorer, System Network capabilities, Soulseek Discovery, Pods list fields, NAT public-IP HTTP redirects, and GitHub release helper HTTP redirects.
+- Extended ADR-0001 gotchas in commit `ccf0cc14f`.
+- Validation: focused Web tests passed (`18` tests), focused Web lint passed for touched components, focused backend unit slice passed (`2` tests), and direct scans for the touched list/HTTP patterns were clean.
+
 - Continued the broad council cycle into backend/network-health and docs drift instead of stopping after the previous frontend/release batch.
 - Fixed `BUG-20260505-098` through `BUG-20260505-104`: source-discovery search budgets, native browse cancellation, backfill candidate clamping/status cancellation, rescue download cancellation, bounded content-verification probe concurrency, MediaCore/Integrations list guards, and Homebrew/Flatpak/build doc drift.
 - Documented repeated gotchas in ADR-0001 with commits `2d9061ec9` and `c9ea8f5bb`.
