@@ -43,6 +43,15 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Equal(dirList, a.Directories);
         }
 
+        [Trait("Category", "Instantiation")]
+        [Trait("Response", "FolderContentsResponse")]
+        [Fact(DisplayName = "Instantiation rejects null directories")]
+        public void Instantiation_Rejects_Null_Directories()
+        {
+            Assert.Throws<ArgumentNullException>(() => new FolderContentsResponse(1, "dir", null));
+            Assert.Throws<ArgumentException>(() => new FolderContentsResponse(1, "dir", new Directory[] { null }));
+        }
+
         [Trait("Category", "Parse")]
         [Trait("Response", "FolderContentsResponse")]
         [Fact(DisplayName = "Parse throws MessageException on code mismatch")]

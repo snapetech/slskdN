@@ -908,6 +908,26 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
         }
 
         [Trait("Category", "Diagnostic")]
+        [Theory(DisplayName = "Creates diagnostic on invalid FolderContentsResponse resolver output"), AutoData]
+        public void Creates_Diagnostic_On_Invalid_FolderContentsResponse_Resolver_Output(string username, IPEndPoint endpoint, int token, string dirname)
+        {
+            var options = new SoulseekClientOptions(directoryContentsResolver: (u, i, t, d) => Task.FromResult(new Directory[] { null }.AsEnumerable()));
+            List<string> messages = new List<string>();
+
+            var (handler, mocks) = GetFixture(username, endpoint, options);
+
+            mocks.Diagnostic.Setup(m => m.Warning(It.IsAny<string>(), It.IsAny<Exception>()))
+                .Callback<string, Exception>((msg, ex) => messages.Add(msg));
+
+            var message = new FolderContentsRequest(token, dirname).ToByteArray();
+
+            handler.HandleMessageRead(mocks.PeerConnection.Object, message);
+
+            Assert.Contains(messages, m => m.IndexOf("Failed to send directory contents response", StringComparison.InvariantCultureIgnoreCase) > -1);
+            mocks.PeerConnection.Verify(m => m.WriteAsync(It.IsAny<IOutgoingMessage>(), It.IsAny<CancellationToken?>()), Times.Never);
+        }
+
+        [Trait("Category", "Diagnostic")]
         [Theory(DisplayName = "Creates diagnostic on failed QueueDownload invocation via QueueDownload"), AutoData]
         public void Creates_Diagnostic_On_Failed_QueueDownload_Invocation_Via_QueueDownload(string username, IPEndPoint endpoint, string filename)
         {

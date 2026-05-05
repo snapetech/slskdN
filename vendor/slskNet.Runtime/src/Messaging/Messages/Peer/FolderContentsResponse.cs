@@ -23,6 +23,7 @@
 
 namespace Soulseek.Messaging.Messages
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
 
@@ -39,11 +40,23 @@ namespace Soulseek.Messaging.Messages
         /// <param name="directories">The directory contents.</param>
         public FolderContentsResponse(int token, string directoryName, IEnumerable<Directory> directories)
         {
+            if (directories == null)
+            {
+                throw new ArgumentNullException(nameof(directories));
+            }
+
+            var directoryList = directories.ToList();
+
+            if (directoryList.Any(directory => directory == null))
+            {
+                throw new ArgumentException("The directory list must not contain null entries", nameof(directories));
+            }
+
             Token = token;
 
             DirectoryName = directoryName;
 
-            Directories = directories.ToList().AsReadOnly();
+            Directories = directoryList.AsReadOnly();
             DirectoryCount = Directories.Count;
         }
 

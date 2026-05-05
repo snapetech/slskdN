@@ -246,10 +246,17 @@ namespace Soulseek.Messaging.Handlers
 
                         if (outgoingFolderContents != null)
                         {
-                            var folderContentsResponseMessage = new FolderContentsResponse(folderContentsRequest.Token, folderContentsRequest.DirectoryName, outgoingFolderContents);
+                            try
+                            {
+                                var folderContentsResponseMessage = new FolderContentsResponse(folderContentsRequest.Token, folderContentsRequest.DirectoryName, outgoingFolderContents);
 
-                            await connection.WriteAsync(folderContentsResponseMessage).ConfigureAwait(false);
-                            Diagnostic.Info($"Folder contents for {folderContentsRequest.DirectoryName} sent to {connection.Username}");
+                                await connection.WriteAsync(folderContentsResponseMessage).ConfigureAwait(false);
+                                Diagnostic.Info($"Folder contents for {folderContentsRequest.DirectoryName} sent to {connection.Username}");
+                            }
+                            catch (Exception ex)
+                            {
+                                Diagnostic.Warning($"Failed to send directory contents response: {ex.Message}", ex);
+                            }
                         }
 
                         break;
