@@ -52,6 +52,31 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z301. LocalStorage Object Maps Must Reject Arrays
+
+**The Bug**: Several browser-local settings restored JSON into object-map state without rejecting arrays. Arrays are objects in JavaScript, so spreading or key-comparing them can create numeric-key junk or treat malformed timestamps as real state.
+
+**Files Affected**:
+- `src/web/src/lib/automationRecipes.js`
+- `src/web/src/components/System/ExperienceSettings/index.jsx`
+- `src/web/src/components/App.jsx`
+
+**Wrong**:
+```js
+const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
+return { ...defaults, ...stored };
+```
+
+**Correct**:
+```js
+const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
+return stored && typeof stored === 'object' && !Array.isArray(stored)
+  ? { ...defaults, ...stored }
+  : defaults;
+```
+
+**Why This Keeps Happening**: `typeof [] === 'object'`, but arrays are not valid map-shaped state. Persisted maps need both object and non-array checks before merging, comparing keys, or reading named fields.
+
 ### 0z300. LocalStorage Lists Must Validate Arrays Before Array Methods
 
 **The Bug**: Blocked-search user state parsed localStorage JSON and returned it directly. Valid JSON with the wrong shape, such as `{"alice":true}`, made `blockUser()` and `unblockUser()` call `.includes()` or `.filter()` on a non-array.
