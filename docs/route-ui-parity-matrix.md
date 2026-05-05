@@ -10,7 +10,7 @@ This matrix tracks backend surface area against visible UI coverage. It is inten
 | Browse/user metadata | `/api/v0/users`, browse endpoints | Users, Browse, Search detail flows | Covered | Add regression tests around bad peer data and null responses. |
 | Chat and rooms | `/api/v0/conversations`, `/api/v0/rooms` | Chat and Rooms | Covered | Message input behavior is manually ported; keep implementation distinct from upstream slskd. |
 | Shares/library | `/api/v0/shares`, scan endpoints | Shares/config pages | Covered | Confirm scan status wording after backend changes. |
-| Configuration | `/api/v0/options`, system config surfaces | Options/System pages | Mostly covered | Route policy, inventory generator, inventory freshness check, and first active legacy alias tranche are implemented. |
+| Configuration | `/api/v0/options`, system config surfaces | Options/System pages | Mostly covered | Route policy, inventory generator, inventory freshness check, baseline gates, and active legacy alias tranches are implemented. |
 | Logs/diagnostics | `/api/v0/logs`, health/status routes | System pages | Mostly covered | Add consolidated diagnostics card for mesh/runtime warnings. |
 | Player | local audio queue/state plus file endpoints | Persistent player bar | Covered locally | Document browser-only limitations; backend streaming parity remains bounded by available file APIs. |
 | Mesh transport | `/api/v0/mesh/*`, `/api/v0/mesh/health/*` | System > Mesh | Covered | Continue unit coverage for transport preference display and error states. |
@@ -29,5 +29,5 @@ This matrix tracks backend surface area against visible UI coverage. It is inten
 1. Finish automated coverage for mesh rendezvous UI/API.
 2. Keep `docs/system-surfaces-current.md` current with `scripts/check-route-inventory.sh` during route remediation reviews.
 3. Simplify individual MediaCore pod forms now that workflow navigation, focus filtering, and safety framing are in place.
-4. Add versioned aliases for active legacy-only web client dependencies.
+4. Run validation and fix any concrete failures from the completed route alias tranche.
 5. Add explicit privacy/security notes for every surface that publishes data outside the local node.

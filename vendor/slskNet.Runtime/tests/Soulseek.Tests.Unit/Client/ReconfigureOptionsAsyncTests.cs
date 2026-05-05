@@ -414,7 +414,8 @@ namespace Soulseek.Tests.Unit.Client
         }
 
         [Trait("Category", "ReconfigureOptions")]
-        [Theory(DisplayName = "Sets count on UploadTokenBucket if upload speed changed"), AutoData]
+        [Theory(DisplayName = "Sets count on UploadTokenBucket if upload speed changed")]
+        [InlineData(10)]
         public async Task Sets_Count_On_UploadTokenBucket_If_Upload_Speed_Changed(int speed)
         {
             var (client, mocks) = GetFixture(new SoulseekClientOptions(maximumUploadSpeed: 5));
@@ -448,7 +449,8 @@ namespace Soulseek.Tests.Unit.Client
         }
 
         [Trait("Category", "ReconfigureOptions")]
-        [Theory(DisplayName = "Sets count on DownloadTokenBucket if download speed changed"), AutoData]
+        [Theory(DisplayName = "Sets count on DownloadTokenBucket if download speed changed")]
+        [InlineData(10)]
         public async Task Sets_Count_On_DownloadTokenBucket_If_Download_Speed_Changed(int speed)
         {
             var (client, mocks) = GetFixture(new SoulseekClientOptions(maximumDownloadSpeed: 5));

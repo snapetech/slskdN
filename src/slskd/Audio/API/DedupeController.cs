@@ -5,12 +5,15 @@ namespace slskd.Audio.API
 {
     using System.Threading;
     using System.Threading.Tasks;
+    using Asp.Versioning;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using slskd.Core.Security;
 
     [ApiController]
     [Route("api/audio/variants/dedupe")]
+    [Route("api/v{version:apiVersion}/audio/variants/dedupe")]
+    [ApiVersion("0")]
     [Authorize(Policy = AuthPolicy.Any)]
     [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
     public class DedupeController : ControllerBase

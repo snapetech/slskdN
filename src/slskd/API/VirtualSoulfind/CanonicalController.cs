@@ -5,6 +5,7 @@ namespace slskd.API.VirtualSoulfind;
 
 using slskd.Core.Security;
 
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,6 +14,8 @@ using Microsoft.AspNetCore.Mvc;
 /// </summary>
 [ApiController]
 [Route("api/virtualsoulfind/canonical")]
+[Route("api/v{version:apiVersion}/virtualsoulfind/canonical")]
+[ApiVersion("0")]
 [Produces("application/json")]
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
 public class CanonicalController : ControllerBase

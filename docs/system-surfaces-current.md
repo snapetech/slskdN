@@ -1,14 +1,14 @@
 # Current API surface inventory
 
-Generated: 2026-05-05T00:34:14Z
+Generated: 2026-05-05T01:02:11Z
 
 This inventory is generated from controller attributes. It is intended for parity/security review, not as a replacement for Swagger or integration tests.
 
 ## Summary
 
 - Controller files: 112
-- Versioned API controllers: 93
-- Legacy or compatibility API controllers: 16
+- Versioned API controllers: 102
+- Legacy or compatibility API controllers: 7
 - Protocol controllers outside versioned API routing: 3
 - Other route buckets: 0
 - Controllers with mutating HTTP methods and CSRF attribute missing: 0
@@ -28,24 +28,24 @@ Route bucket policy: new web-consumed JSON APIs should be versioned. Non-version
 | `src/slskd/API/Compatibility/ServerCompatibilityController.cs` | `"api/server"` | legacy-or-compatibility | [Authorize] | yes | no | 1 |
 | `src/slskd/API/Compatibility/UsersCompatibilityController.cs` | `"api/compatibility/users"` | legacy-or-compatibility | [Authorize] | yes | no | 1 |
 | `src/slskd/API/Mesh/MeshGatewayController.cs` | `"mesh/http"` | mesh-protocol | [Authorize] | yes | no | 2 |
-| `src/slskd/API/Native/CapabilitiesController.cs` | `"api/slskdn"` | legacy-or-compatibility | [Authorize] | yes | no | 1 |
+| `src/slskd/API/Native/CapabilitiesController.cs` | `"api/slskdn"<br>"api/v{version:apiVersion}/slskdn"` | versioned | [Authorize] | yes | no | 1 |
 | `src/slskd/API/Native/JobsController.cs` | `"api/jobs"<br>"api/v{version:apiVersion}/jobs"` | versioned | [Authorize] [Authorize] [Authorize] [Authorize] [Authorize] | yes | no | 5 |
-| `src/slskd/API/Native/LibraryHealthController.cs` | `"api/slskdn/library"` | legacy-or-compatibility | [Authorize] [Authorize] | yes | no | 2 |
+| `src/slskd/API/Native/LibraryHealthController.cs` | `"api/slskdn/library"<br>"api/v{version:apiVersion}/slskdn/library"` | versioned | [Authorize] [Authorize] | yes | no | 2 |
 | `src/slskd/API/Native/LibraryItemsController.cs` | `"api/v{version:apiVersion}/library/items"` | versioned | [Authorize] [Authorize] [Authorize] | yes | no | 3 |
 | `src/slskd/API/Native/MeshStatsController.cs` | `"api/v0/mesh"` | versioned | [Authorize] | yes | no | 1 |
 | `src/slskd/API/Native/PodsController.cs` | `"api/v{version:apiVersion}/pods"` | versioned | [Authorize] | yes | no | 13 |
 | `src/slskd/API/Native/PortForwardingController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize] | yes | no | 6 |
 | `src/slskd/API/Native/SignalSystemController.cs` | `"api/v0/signals"` | versioned | [Authorize] [Authorize] | yes | no | 2 |
 | `src/slskd/API/Native/SourceProvidersController.cs` | `"api/source-providers"<br>"api/v{version:apiVersion}/source-providers"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
-| `src/slskd/API/Native/WarmCacheController.cs` | `"api/slskdn/warm-cache"` | legacy-or-compatibility | [Authorize] | yes | no | 1 |
+| `src/slskd/API/Native/WarmCacheController.cs` | `"api/slskdn/warm-cache"<br>"api/v{version:apiVersion}/slskdn/warm-cache"` | versioned | [Authorize] | yes | no | 1 |
 | `src/slskd/API/VirtualSoulfind/BridgeAdminController.cs` | `"api/bridge/admin"<br>"api/v{version:apiVersion}/bridge/admin"` | versioned | [Authorize] [Authorize] [Authorize] [Authorize] [Authorize] | yes | no | 5 |
 | `src/slskd/API/VirtualSoulfind/BridgeController.cs` | `"api/bridge"<br>"api/v{version:apiVersion}/bridge"` | versioned | [Authorize] [Authorize] [Authorize] [Authorize] [Authorize] [Authorize] [Authorize] | yes | no | 7 |
-| `src/slskd/API/VirtualSoulfind/CanonicalController.cs` | `"api/virtualsoulfind/canonical"` | legacy-or-compatibility | [Authorize] | yes | no | 1 |
-| `src/slskd/API/VirtualSoulfind/DisasterModeController.cs` | `"api/virtualsoulfind/disaster-mode"` | legacy-or-compatibility | [Authorize] | yes | no | 1 |
-| `src/slskd/API/VirtualSoulfind/ShadowIndexController.cs` | `"api/virtualsoulfind/shadow-index"` | legacy-or-compatibility | [Authorize] | yes | no | 1 |
-| `src/slskd/Audio/API/AnalyzerMigrationController.cs` | `"api/audio/analyzers/migrate"` | legacy-or-compatibility | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
-| `src/slskd/Audio/API/CanonicalController.cs` | `"api/audio/canonical"` | legacy-or-compatibility | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
-| `src/slskd/Audio/API/DedupeController.cs` | `"api/audio/variants/dedupe"` | legacy-or-compatibility | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
+| `src/slskd/API/VirtualSoulfind/CanonicalController.cs` | `"api/virtualsoulfind/canonical"<br>"api/v{version:apiVersion}/virtualsoulfind/canonical"` | versioned | [Authorize] | yes | no | 1 |
+| `src/slskd/API/VirtualSoulfind/DisasterModeController.cs` | `"api/virtualsoulfind/disaster-mode"<br>"api/v{version:apiVersion}/virtualsoulfind/disaster-mode"` | versioned | [Authorize] | yes | no | 1 |
+| `src/slskd/API/VirtualSoulfind/ShadowIndexController.cs` | `"api/virtualsoulfind/shadow-index"<br>"api/v{version:apiVersion}/virtualsoulfind/shadow-index"` | versioned | [Authorize] | yes | no | 1 |
+| `src/slskd/Audio/API/AnalyzerMigrationController.cs` | `"api/audio/analyzers/migrate"<br>"api/v{version:apiVersion}/audio/analyzers/migrate"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
+| `src/slskd/Audio/API/CanonicalController.cs` | `"api/audio/canonical"<br>"api/v{version:apiVersion}/audio/canonical"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
+| `src/slskd/Audio/API/DedupeController.cs` | `"api/audio/variants/dedupe"<br>"api/v{version:apiVersion}/audio/variants/dedupe"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
 | `src/slskd/Backfill/API/BackfillController.cs` | `"api/v{version:apiVersion}/backfill"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 8 |
 | `src/slskd/Capabilities/API/CapabilitiesController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 5 |
 | `src/slskd/Common/Security/API/SecurityController.cs` | `"api/v{version:apiVersion}/security"` | versioned | [Authorize] [Authorize(Roles = "Administrator")] [Authorize(Roles = "Administrator")] [Authorize(Roles = "Administrator")] [Authorize(Roles = "Administrator")] [Authorize(Roles = "Administrator")] [Authorize(Roles = "Administrator")] | yes | no | 34 |
@@ -145,15 +145,6 @@ Route bucket policy: new web-consumed JSON APIs should be versioned. Non-version
 | `src/slskd/API/Compatibility/ServerCompatibilityController.cs` | `"api/server"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
 | `src/slskd/API/Compatibility/UsersCompatibilityController.cs` | `"api/compatibility/users"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
 | `src/slskd/API/Mesh/MeshGatewayController.cs` | `"mesh/http"` | mesh-protocol | Mesh transport protocol route; keep outside public web API versioning. |
-| `src/slskd/API/Native/CapabilitiesController.cs` | `"api/slskdn"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
-| `src/slskd/API/Native/LibraryHealthController.cs` | `"api/slskdn/library"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
-| `src/slskd/API/Native/WarmCacheController.cs` | `"api/slskdn/warm-cache"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
-| `src/slskd/API/VirtualSoulfind/CanonicalController.cs` | `"api/virtualsoulfind/canonical"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
-| `src/slskd/API/VirtualSoulfind/DisasterModeController.cs` | `"api/virtualsoulfind/disaster-mode"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
-| `src/slskd/API/VirtualSoulfind/ShadowIndexController.cs` | `"api/virtualsoulfind/shadow-index"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
-| `src/slskd/Audio/API/AnalyzerMigrationController.cs` | `"api/audio/analyzers/migrate"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
-| `src/slskd/Audio/API/CanonicalController.cs` | `"api/audio/canonical"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
-| `src/slskd/Audio/API/DedupeController.cs` | `"api/audio/variants/dedupe"` | legacy-or-compatibility | Legacy/compatibility route; prefer versioned alias for new UI clients. |
 | `src/slskd/SocialFederation/API/ActivityPubController.cs` | `"actors"` | federation-protocol | Protocol-required ActivityPub/WebFinger route; keep outside /api/v0. |
 | `src/slskd/SocialFederation/API/WebFingerController.cs` | `".well-known"` | federation-protocol | Protocol-required ActivityPub/WebFinger route; keep outside /api/v0. |
 

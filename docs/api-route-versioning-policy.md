@@ -56,3 +56,5 @@ Use `scripts/check-web-mediacore-routes.sh` to prevent regressions to the incorr
 ## Non-versioned route allowlist check
 
 Use `scripts/check-non-versioned-routes.sh` or `npm run check:non-versioned-routes` after controller route changes. A controller with only non-versioned routes must be listed in `docs/NON_VERSIONED_ROUTE_ALLOWLIST.md` unless it also exposes a versioned alias.
+
+| 2026-05-05 | Native slskdN, VirtualSoulfind, and Audio legacy controllers | Added versioned aliases for active legacy-only native capabilities/library/warm-cache routes, VirtualSoulfind canonical/disaster/shadow-index routes, and audio analyzer/canonical/dedupe routes while preserving legacy compatibility routes. |

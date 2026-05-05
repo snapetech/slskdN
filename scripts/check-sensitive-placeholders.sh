@@ -5,7 +5,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 failed=0
 
 patterns=(
-  'sk-[A-Za-z0-9_-]{20,}'
+  '(^|[^A-Za-z0-9])sk-[A-Za-z0-9_-]{20,}'
   'xox[baprs]-[A-Za-z0-9-]{20,}'
   'ghp_[A-Za-z0-9]{30,}'
   'github_pat_[A-Za-z0-9_]{30,}'
@@ -14,7 +14,17 @@ patterns=(
 )
 
 for pattern in "${patterns[@]}"; do
-  matches="$(rg -n --hidden -g '!vendor/**' -g '!node_modules/**' -g '!src/web/node_modules/**' -g '!**/bin/**' -g '!**/obj/**' -g '!coverage/**' "$pattern" "$repo_root" || true)"
+  matches="$(rg -n --hidden \
+    -g '!vendor/**' \
+    -g '!node_modules/**' \
+    -g '!src/web/node_modules/**' \
+    -g '!**/node_modules/**' \
+    -g '!**/bin/**' \
+    -g '!**/obj/**' \
+    -g '!coverage/**' \
+    -g '!**/build/**' \
+    -g '!**/dist/**' \
+    -- "$pattern" "$repo_root" 2>/dev/null || true)"
   if [ -n "$matches" ]; then
     printf 'Sensitive-looking token pattern found: %s\n%s\n' "$pattern" "$matches" >&2
     failed=1

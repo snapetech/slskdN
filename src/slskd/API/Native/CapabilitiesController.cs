@@ -6,6 +6,7 @@ namespace slskd.API.Native;
 using slskd.Core.Security;
 
 using System.Reflection;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -17,6 +18,8 @@ using OptionsModel = slskd.Options;
 /// </summary>
 [ApiController]
 [Route("api/slskdn")]
+[Route("api/v{version:apiVersion}/slskdn")]
+[ApiVersion("0")]
 [Produces("application/json")]
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
 public class CapabilitiesController : ControllerBase

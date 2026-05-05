@@ -89,3 +89,8 @@ Update these files when relevant:
 - Every `scripts/check-*.sh` file should be executable.
 - Every focused check script should be referenced by `scripts/check-remediation-baseline.sh` unless it is the combined baseline script itself.
 - Run `npm run check:remediation-registry` after adding or renaming remediation check scripts.
+
+## Remediation docs command review
+
+- Run `npm run check:remediation-docs` after editing remediation docs that mention `npm run check:*` or `scripts/check-*.sh` commands.
+- The check fails when docs reference removed npm aliases or missing check scripts.

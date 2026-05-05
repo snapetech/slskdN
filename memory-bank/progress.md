@@ -9424,3 +9424,11 @@ Code quality improvements were completed as part of Option A:
 - Documented ADR-0001 gotcha `0z277` and committed it separately before changing packaging code.
 - Fixed `packaging/aur/PKGBUILD` to use a case-correct `_archive_root` for `build()` and `package()`, added validation coverage to reject the lower-case path regression, and updated AUR packaging docs and changelog.
 - Bumped the source package to `2026050100.slskdn.218-3`, regenerated `.SRCINFO`, and pushed live AUR `slskdn` commit `9ee2fb6` so AUR helpers see the corrected PKGBUILD as a package update.
+
+## 2026-05-05 01:25:00Z
+
+- Committed and pushed the project gap assessment fixes plus the final remediation completion pass to `snapetech/slskdn`.
+- Added versioned aliases for the remaining active legacy native slskdN, VirtualSoulfind, and Audio controllers, extended route alias tests, regenerated the API route inventory, and added the remediation docs command-reference check to the baseline.
+- Validated the current tree with `npm run check:remediation`, full `dotnet test`, and full `./bin/build`; all passed.
+- Published and deployed `0.0.0-slskdn.manual.20260505010919.48e7e08771f8` to `kspls0` at `/usr/lib/slskd/releases/manual-20260505010919.48e7e08771f8`.
+- Restarted `slskd.service` on `kspls0` and verified the live process logs the new version, executable path, host bindings on `5030`/`5031`, and application initialization completion.

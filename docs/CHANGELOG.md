@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Completed the route remediation closeout by adding versioned aliases for the
+  remaining active native slskdN, VirtualSoulfind, and Audio legacy routes,
+  extending route alias tests, and enforcing remediation documentation command
+  references in the combined baseline.
 - Closed project gap-assessment fixes: aligned PR workflows to `main`, added
   remediation baseline checks to the release gate, documented vendored runtime
   and federation diagnostics behavior, corrected incomplete packaging TODOs,

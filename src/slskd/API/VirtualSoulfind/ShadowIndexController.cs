@@ -6,6 +6,7 @@ namespace slskd.API.VirtualSoulfind;
 using slskd.Core.Security;
 using slskd.VirtualSoulfind.ShadowIndex;
 
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,6 +15,8 @@ using Microsoft.AspNetCore.Mvc;
 /// </summary>
 [ApiController]
 [Route("api/virtualsoulfind/shadow-index")]
+[Route("api/v{version:apiVersion}/virtualsoulfind/shadow-index")]
+[ApiVersion("0")]
 [Produces("application/json")]
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
 public class ShadowIndexController : ControllerBase

@@ -2267,3 +2267,7 @@
 - [x] Fix AUR source archive root casing
   - Status: completed (2026-05-03)
   - Notes: Tester feedback showed clean `yay` source builds failing with `cd: .../src/slskdn-2026050100-slskdn.218: No such file or directory`. GitHub tag archives for `snapetech/slskdN` extract as `slskdN-<tag>`, so the source PKGBUILD now uses a case-correct `_archive_root` and packaging metadata validation rejects the lower-case path regression. The live AUR `slskdn` package was published as `2026050100.slskdn.218-3` at commit `9ee2fb6`.
+
+- [x] Commit, validate, and deploy project gap assessment fixes
+  - Status: completed (2026-05-05)
+  - Notes: Pushed the requested dirty tree, completed the final route alias/remediation baseline pass, validated with `npm run check:remediation`, full `dotnet test`, and full `./bin/build`, then deployed manual build `0.0.0-slskdn.manual.20260505010919.48e7e08771f8` to `kspls0` for user testing.

@@ -71,3 +71,5 @@ This document records remediation rules for features that can publish data, disc
 | Sensitive placeholder check | `scripts/check-sensitive-placeholders.sh` scans for high-confidence API token and private key patterns outside vendored/build artifacts. |
 
 | Remediation script registry | `scripts/check-remediation-script-registry.sh` prevents focused check scripts from being added without executable bits or baseline wiring. |
+
+| Remediation docs command check | `scripts/check-remediation-doc-commands.sh` fails stale `npm run check:*` and `scripts/check-*.sh` references in remediation docs. |

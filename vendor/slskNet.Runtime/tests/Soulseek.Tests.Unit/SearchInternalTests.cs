@@ -194,7 +194,7 @@ namespace Soulseek.Tests.Unit
         }
 
         [Trait("Category", "TryAddResponse")]
-        [Fact(DisplayName = "TryAddResponse throws DataMisalignedException when token does not match")]
+        [Fact(DisplayName = "TryAddResponse ignores response when token does not match")]
         public void TryAddResponse_Ignores_Response_When_Token_Does_Not_Match()
         {
             var s = new SearchInternal(new SearchQuery("foo"), SearchScope.Network, 42);
@@ -205,9 +205,7 @@ namespace Soulseek.Tests.Unit
             var invoked = false;
             s.ResponseReceived = (r) => invoked = true;
 
-            Assert.NotNull(ex);
-            Assert.IsType<DataMisalignedException>(ex);
-            Assert.Contains($"with token {42} received response with search token {24}", ex.Message);
+            Assert.Null(ex);
             Assert.False(invoked);
 
             s.Dispose();

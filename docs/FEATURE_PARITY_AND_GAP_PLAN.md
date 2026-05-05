@@ -304,3 +304,25 @@ Remaining:
 - `scripts/check-sensitive-placeholders.sh` scans remediation docs/tests for high-confidence secret and private-key patterns.
 
 - `scripts/check-remediation-script-registry.sh` ensures focused remediation checks are executable and included in the combined baseline.
+
+- `scripts/check-remediation-doc-commands.sh` verifies remediation docs reference existing check scripts and npm aliases.
+
+## Completion pass status
+
+Completed in the final remediation pass:
+
+- Fixed combined remediation baseline script wiring so all focused checks run through the repository root.
+- Added versioned aliases for the remaining active legacy-only native slskdN, VirtualSoulfind, and Audio controllers.
+- Extended route alias tests to cover all active legacy route aliases.
+- Regenerated `docs/system-surfaces-current.md` after the alias tranche.
+
+Intentional remaining non-versioned routes are now compatibility shims, protocol-required surfaces, OAuth callback compatibility, or documented legacy compatibility routes retained alongside versioned aliases.
+
+Work left before release is validation, not feature remediation:
+
+- Run backend build and unit tests.
+- Run web unit tests and web build.
+- Run `npm run check:remediation`.
+- Review any failures from validation and fix them as discrete defects.
+
+See `docs/REMEDIATION_COMPLETION_REPORT.md` for the consolidated completion status across feature parity, route parity, security hardening, UI safety, and remediation baseline checks.

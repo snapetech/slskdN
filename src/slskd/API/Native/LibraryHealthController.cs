@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.API.Native;
 
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -16,6 +17,8 @@ using OptionsModel = slskd.Options;
 /// </summary>
 [ApiController]
 [Route("api/slskdn/library")]
+[Route("api/v{version:apiVersion}/slskdn/library")]
+[ApiVersion("0")]
 [Produces("application/json")]
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
 public class LibraryHealthController : ControllerBase

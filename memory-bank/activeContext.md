@@ -1,3 +1,16 @@
+## Update 2026-05-05 01:25:00Z
+
+- Current task: Project gap assessment fixes are committed, pushed, validated, and deployed to `kspls0`.
+- Last activity:
+  - pushed the full dirty tree requested by the user, including unrelated local changes
+  - added the final versioned route alias tranche for active legacy native slskdN, VirtualSoulfind, and Audio controllers
+  - wired the remediation docs command-reference check into the combined remediation baseline
+  - validation passed: `npm run check:remediation`, full `dotnet test`, and full `./bin/build`
+  - deployed `0.0.0-slskdn.manual.20260505010919.48e7e08771f8` to `/usr/lib/slskd/releases/manual-20260505010919.48e7e08771f8` on `kspls0`
+  - restarted `slskd.service` and verified fresh logs show the new release path, version, host binding, and initialization completion
+- Next steps:
+  1. User testing on `http://kspls0:5030/`.
+
 ## Update 2026-05-05 00:00:00Z
 
 - Current task: Project gap assessment fixes are complete locally.
