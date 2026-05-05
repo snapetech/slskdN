@@ -9683,3 +9683,10 @@ Code quality improvements were completed as part of Option A:
 - Guarded unread chat activity, room activity polling, saved conversation hydration, joined room hydration, available room options, and join/leave refresh state against malformed non-array payloads.
 - Extended ADR-0001 gotcha `0z304` in commit `8e489ed2d`.
 - Validation passed: focused App, Chat, and Rooms Vitest coverage (`15` tests), Web lint, `git diff --check`, `npm run check:remediation`, `./bin/lint`, and `dotnet test slskd.sln --no-restore`.
+
+## 2026-05-05 21:11:00Z
+
+- Continued Web API list payload burn-down into Artist Release Radar.
+- Guarded radar subscriptions, notifications, and nested muted release group lists before render-time list operations and counts.
+- Extended ADR-0001 gotchas `0z304` and `0z306` in commit `52975a792`.
+- Validation passed: focused Artist Release Radar Vitest coverage (`4` tests), Web lint, `git diff --check`, direct `response.data || []` scan, and `npm run check:remediation`.

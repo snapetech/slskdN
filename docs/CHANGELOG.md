@@ -63,6 +63,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   joined rooms, pods, and pod channel lists.
 - Hardened App navigation activity, legacy Chat, and legacy Rooms list handling
   against malformed conversation and room API payloads.
+- Hardened Artist Release Radar subscriptions, notifications, and muted release
+  group counts against malformed list payloads.
 - Hardened non-versioned route checks and Pushbullet notification logging.
 - Synced the vendored `slskNet.Runtime` bug council ledger and remediation
   baseline checks.

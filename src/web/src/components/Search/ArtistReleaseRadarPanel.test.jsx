@@ -66,6 +66,60 @@ describe('ArtistReleaseRadarPanel', () => {
     ).toBeInTheDocument();
   });
 
+  it('ignores malformed radar list payloads while loading', async () => {
+    fetchArtistReleaseRadarSubscriptions.mockResolvedValue({
+      data: {
+        subscriptions: [
+          {
+            artistId: 'artist-1',
+            artistName: 'Fixture Artist',
+          },
+        ],
+      },
+    });
+    fetchArtistReleaseRadarNotifications.mockResolvedValue({
+      data: {
+        notifications: [
+          {
+            id: 'notification-1',
+            workRef: {
+              title: 'New Radar Track',
+            },
+          },
+        ],
+      },
+    });
+
+    render(<ArtistReleaseRadarPanel />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Subscriptions')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Fixture Artist')).not.toBeInTheDocument();
+    expect(screen.queryByText('New Radar Track')).not.toBeInTheDocument();
+  });
+
+  it('ignores malformed subscription entries and muted release group lists', async () => {
+    fetchArtistReleaseRadarSubscriptions.mockResolvedValue({
+      data: [
+        null,
+        'bad',
+        ['bad'],
+        {
+          artistId: 'artist-1',
+          artistName: 'Fixture Artist',
+          mutedReleaseGroupIds: { muted: ['rg-muted'] },
+          scope: 'trusted',
+        },
+      ],
+    });
+
+    render(<ArtistReleaseRadarPanel />);
+
+    expect(await screen.findByText('Fixture Artist')).toBeInTheDocument();
+    expect(screen.getByText('trusted scope · muted 0')).toBeInTheDocument();
+  });
+
   it('saves artist radar subscriptions and routes notifications explicitly', async () => {
     render(<ArtistReleaseRadarPanel />);
 

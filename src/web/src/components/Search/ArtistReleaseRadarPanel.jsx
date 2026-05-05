@@ -42,6 +42,9 @@ const parseList = (value = '') =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+
 const ArtistReleaseRadarPanel = ({ disabled }) => {
   const [artistId, setArtistId] = useState('');
   const [artistName, setArtistName] = useState('');
@@ -64,8 +67,8 @@ const ArtistReleaseRadarPanel = ({ disabled }) => {
         fetchArtistReleaseRadarSubscriptions(),
         fetchArtistReleaseRadarNotifications({ unreadOnly }),
       ]);
-      setSubscriptions(subscriptionsResponse.data || []);
-      setNotifications(notificationsResponse.data || []);
+      setSubscriptions(asArray(subscriptionsResponse.data).filter(isObject));
+      setNotifications(asArray(notificationsResponse.data).filter(isObject));
     } catch (loadError) {
       setError(
         loadError?.response?.data ||
@@ -240,7 +243,7 @@ const ArtistReleaseRadarPanel = ({ disabled }) => {
             <List.Content>
               <List.Header>{subscription.artistName || subscription.artistId}</List.Header>
               <List.Description>
-                {subscription.scope} scope · muted {(subscription.mutedReleaseGroupIds || []).length}
+                {subscription.scope} scope · muted {asArray(subscription.mutedReleaseGroupIds).length}
               </List.Description>
             </List.Content>
           </List.Item>

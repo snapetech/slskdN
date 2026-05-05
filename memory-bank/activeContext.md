@@ -1,3 +1,14 @@
+## Update 2026-05-05 21:11:00Z
+
+- Current task: Artist Release Radar API list payload hardening is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-071` in `docs/dev/bug-burndown-ledger.md`
+  - guarded subscriptions, notifications, and nested muted release group arrays before render state/counts
+  - extended ADR-0001 gotchas `0z304` and `0z306` in commit `52975a792`
+  - validation passed: focused Artist Release Radar Vitest suite (`4` tests), Web lint, `git diff --check`, direct `response.data || []` scan, and `npm run check:remediation`
+- Next steps:
+  1. Commit and push the full dirty tree.
+
 ## Update 2026-05-05 20:12:00Z
 
 - Current task: App, Chat, and Rooms API list payload hardening is complete locally.

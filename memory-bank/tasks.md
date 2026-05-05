@@ -2443,3 +2443,7 @@
 - [x] Harden App, Chat, and Rooms API list payload shapes
   - Status: completed (2026-05-05)
   - Notes: Guarded App navigation activity, legacy Chat conversation hydration, and legacy Rooms joined/available room hydration against malformed non-array API payloads. Added focused App, Chat, and Rooms regression coverage and extended ADR-0001 gotcha `0z304`.
+
+- [x] Harden Artist Release Radar list payload shapes
+  - Status: completed (2026-05-05)
+  - Notes: Guarded radar subscriptions, notifications, and nested muted release group arrays against malformed non-array payloads. Added focused Artist Release Radar regression coverage and extended ADR-0001 gotchas `0z304` and `0z306`.
