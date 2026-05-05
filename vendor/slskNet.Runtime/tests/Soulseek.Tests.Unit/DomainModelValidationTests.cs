@@ -145,5 +145,15 @@ namespace Soulseek.Tests.Unit
         [InlineData(FileAttributeType.BitRate, -1)]
         public void FileAttribute_Rejects_Invalid_Metadata(FileAttributeType type, int value)
             => Assert.Throws<ArgumentOutOfRangeException>(() => new FileAttribute(type, value));
+
+        [Fact(DisplayName = "Diagnostic event args reject invalid level")]
+        public void DiagnosticEventArgs_Rejects_Invalid_Level()
+            => Assert.Throws<ArgumentOutOfRangeException>(() => new Diagnostics.DiagnosticEventArgs((Diagnostics.DiagnosticLevel)99, "message"));
+
+        [Theory(DisplayName = "Client state changed event args reject invalid flags")]
+        [InlineData((SoulseekClientStates)64, SoulseekClientStates.Connected)]
+        [InlineData(SoulseekClientStates.Connected, (SoulseekClientStates)64)]
+        public void SoulseekClientStateChangedEventArgs_Rejects_Invalid_Flags(SoulseekClientStates previousState, SoulseekClientStates state)
+            => Assert.Throws<ArgumentOutOfRangeException>(() => new SoulseekClientStateChangedEventArgs(previousState, state));
     }
 }

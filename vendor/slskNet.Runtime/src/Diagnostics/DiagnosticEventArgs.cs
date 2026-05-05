@@ -38,6 +38,11 @@ namespace Soulseek.Diagnostics
         /// <param name="exception">The Exception associated with the event, if applicable.</param>
         public DiagnosticEventArgs(DiagnosticLevel level, string message, Exception exception = null)
         {
+            if (!Enum.IsDefined(typeof(DiagnosticLevel), level))
+            {
+                throw new ArgumentOutOfRangeException(nameof(level), "Must be a defined diagnostic level");
+            }
+
             Level = level;
             Message = message;
             Exception = exception;

@@ -66,6 +66,19 @@ namespace Soulseek.Tests.Unit
         }
 
         [Trait("Category", "Instantiation")]
+        [Trait("Class", "SearchStateChangedEventArgs")]
+        [Fact(DisplayName = "Rejects invalid previous state")]
+        public void SearchStateChangedEventArgs_Rejects_Invalid_Previous_State()
+        {
+            var search = new Search(SearchQuery.FromText("query"), SearchScope.Network, 1, SearchStates.InProgress, 0, 0, 0);
+
+            var ex = Record.Exception(() => new SearchStateChangedEventArgs((SearchStates)512, search));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentOutOfRangeException>(ex);
+        }
+
+        [Trait("Category", "Instantiation")]
         [Trait("Class", "SearchRequestEventArgs")]
         [Theory(DisplayName = "Instantiates with context"), AutoData]
         public void SearchRequestEventArgs_Instantiates_With_Context(string username, int token, string query)

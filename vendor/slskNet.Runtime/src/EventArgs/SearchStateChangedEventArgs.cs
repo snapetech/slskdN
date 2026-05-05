@@ -23,6 +23,8 @@
 
 namespace Soulseek
 {
+    using System;
+
     /// <summary>
     ///     Event arguments for events raised by a change in search state.
     /// </summary>
@@ -36,6 +38,22 @@ namespace Soulseek
         internal SearchStateChangedEventArgs(SearchStates previousState, Search search)
             : base(search)
         {
+            const SearchStates ValidStates =
+                SearchStates.Requested |
+                SearchStates.InProgress |
+                SearchStates.Completed |
+                SearchStates.Cancelled |
+                SearchStates.TimedOut |
+                SearchStates.ResponseLimitReached |
+                SearchStates.FileLimitReached |
+                SearchStates.Errored |
+                SearchStates.Queued;
+
+            if ((previousState & ~ValidStates) != 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(previousState), "Must contain only defined search state flags");
+            }
+
             PreviousState = previousState;
         }
 

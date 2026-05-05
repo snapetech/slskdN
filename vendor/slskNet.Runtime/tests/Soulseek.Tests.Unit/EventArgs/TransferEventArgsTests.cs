@@ -17,6 +17,7 @@
 
 namespace Soulseek.Tests.Unit
 {
+    using System;
     using AutoFixture.Xunit2;
     using Xunit;
 
@@ -51,10 +52,24 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "TransferStateChangedEventArgs Instantiates with the given data"), AutoData]
         internal void TransferStateChangedEventArgs_Instantiates_With_The_Given_Data(string username, string filename, int token, TransferStates transferStates)
         {
+            transferStates = TransferStates.InProgress;
+
             var dl = new TransferInternal(TransferDirection.Download, username, filename, token);
             var d = new TransferStateChangedEventArgs(transferStates, new Transfer(dl));
 
             Assert.Equal(transferStates, d.PreviousState);
+        }
+
+        [Trait("Category", "TransferStateChangedEventArgs Instantiation")]
+        [Fact(DisplayName = "TransferStateChangedEventArgs rejects invalid previous state")]
+        internal void TransferStateChangedEventArgs_Rejects_Invalid_Previous_State()
+        {
+            var dl = new TransferInternal(TransferDirection.Download, "user", "file", 1);
+
+            var ex = Record.Exception(() => new TransferStateChangedEventArgs((TransferStates)8192, new Transfer(dl)));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentOutOfRangeException>(ex);
         }
     }
 }

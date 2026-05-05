@@ -27,6 +27,8 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "DiagnosticEventArgs Instantiates with the given data"), AutoFixture.Xunit2.AutoData]
         public void Instantiates_With_The_Given_Data(DiagnosticLevel level, string message, Exception exception)
         {
+            level = DiagnosticLevel.Info;
+
             var e = new DiagnosticEventArgs(level, message, exception);
 
             Assert.Equal(level, e.Level);
@@ -40,6 +42,8 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "DiagnosticEventArgs Instantiates with null Exception given null"), AutoFixture.Xunit2.AutoData]
         public void Instantiates_With_Null_Exception_Given_Null(DiagnosticLevel level, string message)
         {
+            level = DiagnosticLevel.Info;
+
             var e = new DiagnosticEventArgs(level, message);
 
             Assert.Equal(level, e.Level);
@@ -51,9 +55,21 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "DiagnosticEventArgs IncludesException returns false given null Exception"), AutoFixture.Xunit2.AutoData]
         public void IncludesException_Returns_False_Given_Null_Exception(DiagnosticLevel level, string message)
         {
+            level = DiagnosticLevel.Info;
+
             var e = new DiagnosticEventArgs(level, message);
 
             Assert.False(e.IncludesException);
+        }
+
+        [Trait("Category", "DiagnosticEventArgs Instantiation")]
+        [Fact(DisplayName = "DiagnosticEventArgs rejects invalid level")]
+        public void Rejects_Invalid_Level()
+        {
+            var ex = Record.Exception(() => new DiagnosticEventArgs((DiagnosticLevel)99, "message"));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentOutOfRangeException>(ex);
         }
     }
 }

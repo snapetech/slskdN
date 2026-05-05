@@ -39,6 +39,24 @@ namespace Soulseek
         /// <param name="exception">The Exception associated with the change in state, if applicable.</param>
         public SoulseekClientStateChangedEventArgs(SoulseekClientStates previousState, SoulseekClientStates state, string message = null, Exception exception = null)
         {
+            const SoulseekClientStates ValidStates =
+                SoulseekClientStates.Disconnected |
+                SoulseekClientStates.Connected |
+                SoulseekClientStates.LoggedIn |
+                SoulseekClientStates.Connecting |
+                SoulseekClientStates.LoggingIn |
+                SoulseekClientStates.Disconnecting;
+
+            if ((previousState & ~ValidStates) != 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(previousState), "Must contain only defined client state flags");
+            }
+
+            if ((state & ~ValidStates) != 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(state), "Must contain only defined client state flags");
+            }
+
             PreviousState = previousState;
             State = state;
             Message = message;

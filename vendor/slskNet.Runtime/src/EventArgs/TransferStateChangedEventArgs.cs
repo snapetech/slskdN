@@ -23,6 +23,8 @@
 
 namespace Soulseek
 {
+    using System;
+
     /// <summary>
     ///     Event arguments for events raised by a change in transfer state.
     /// </summary>
@@ -36,6 +38,26 @@ namespace Soulseek
         internal TransferStateChangedEventArgs(TransferStates previousState, Transfer transfer)
             : base(transfer)
         {
+            const TransferStates ValidStates =
+                TransferStates.Requested |
+                TransferStates.Queued |
+                TransferStates.Initializing |
+                TransferStates.InProgress |
+                TransferStates.Completed |
+                TransferStates.Succeeded |
+                TransferStates.Cancelled |
+                TransferStates.TimedOut |
+                TransferStates.Errored |
+                TransferStates.Rejected |
+                TransferStates.Aborted |
+                TransferStates.Locally |
+                TransferStates.Remotely;
+
+            if ((previousState & ~ValidStates) != 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(previousState), "Must contain only defined transfer state flags");
+            }
+
             PreviousState = previousState;
         }
 

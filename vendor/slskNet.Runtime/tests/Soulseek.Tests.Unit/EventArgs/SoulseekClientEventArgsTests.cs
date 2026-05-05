@@ -27,6 +27,9 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "Instantiates with the given data"), AutoData]
         public void SoulseekClientStateChangedEventArgs_Instantiates_With_The_Given_Data(SoulseekClientStates previousState, SoulseekClientStates state, string message)
         {
+            previousState = SoulseekClientStates.Connected;
+            state = SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn;
+
             var s = new SoulseekClientStateChangedEventArgs(previousState, state, message);
 
             Assert.Equal(previousState, s.PreviousState);
@@ -39,12 +42,28 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "Instantiates with the given data and Exception"), AutoData]
         public void SoulseekClientStateChangedEventArgs_Instantiates_With_The_Given_Data_And_Exception(SoulseekClientStates previousState, SoulseekClientStates state, string message, Exception ex)
         {
+            previousState = SoulseekClientStates.Connected;
+            state = SoulseekClientStates.Disconnected;
+
             var s = new SoulseekClientStateChangedEventArgs(previousState, state, message, ex);
 
             Assert.Equal(previousState, s.PreviousState);
             Assert.Equal(state, s.State);
             Assert.Equal(message, s.Message);
             Assert.Equal(ex, s.Exception);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Trait("Class", "SoulseekClientStateChangedEventArgs")]
+        [Theory(DisplayName = "Rejects invalid state flags")]
+        [InlineData((SoulseekClientStates)64, SoulseekClientStates.Connected)]
+        [InlineData(SoulseekClientStates.Connected, (SoulseekClientStates)64)]
+        public void SoulseekClientStateChangedEventArgs_Rejects_Invalid_State_Flags(SoulseekClientStates previousState, SoulseekClientStates state)
+        {
+            var ex = Record.Exception(() => new SoulseekClientStateChangedEventArgs(previousState, state));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentOutOfRangeException>(ex);
         }
 
         [Trait("Category", "Instantiation")]
