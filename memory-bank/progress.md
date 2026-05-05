@@ -9498,3 +9498,8 @@ Code quality improvements were completed as part of Option A:
 - Documented the release-gate hang gotcha separately, then added command-level timeouts around each release-gate command and 120-minute workflow job timeouts for tag/CI build jobs.
 - Local full `dotnet test` was stopped after the required unit and smoke projects passed because the full integration project hung; the release gate now runs only the bounded release integration smoke slice.
 - Validation passed for the release-gate script syntax and the full bounded release gate: frontend tests/build/smokes, backend Release unit tests, backend smoke/regression tests, and release integration smoke.
+
+## 2026-05-05 07:14:30Z
+
+- While preparing the manual `kspls0` install, found `bin/publish --output` cleaned the wrong hard-coded output path and could leave stale files in the requested publish directory.
+- Documented the publish-output cleanup gotcha separately, then changed `bin/publish` to remove and recreate the actual configured output directory before `dotnet publish`.

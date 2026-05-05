@@ -98,7 +98,8 @@ cd src/slskd
 echo $'\n\t📍  '$(pwd)$'\n'
 
 echo $'\n\t🛠️  dotnet publish ... --runtime '$runtime$' -p:Version '$dotnet_version$' -p:InformationalVersion '$public_version$' --output '$output$'\n'
-rm -rf dist/$runtime/*
+rm -rf "$output"
+mkdir -p "$output"
 
 dotnet publish \
     --configuration Release \

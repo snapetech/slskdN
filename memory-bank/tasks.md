@@ -2306,3 +2306,7 @@
 - [x] Bound release gate runtime and rerun release with branding assets
   - Status: completed (2026-05-05)
   - Notes: Cancelled the stuck `.222` tag run, documented the release-gate hang gotcha, added command-level release-gate timeouts plus workflow job timeouts, and prepared the next release tag with the new logo assets.
+
+- [x] Fix manual publish output cleanup before kspls0 deployment
+  - Status: completed (2026-05-05)
+  - Notes: `bin/publish --output` now cleans the resolved output path instead of a separate hard-coded runtime directory, preventing stale files from leaking into manual install payloads.
