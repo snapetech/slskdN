@@ -14346,3 +14346,11 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 **Why it happened:** The component has several adjacent verification workflows with similar handler names and result state names. A copied handler updated the generic `verificationResult` instead of `descriptorVerificationResult`, and the UI still compiled because both state setters existed.
 
 **How to prevent it:** When adding adjacent workflow actions, name handler/result pairs by the rendered panel and assert the user-visible result in a component test or focused manual test. Avoid sharing generic result state across unrelated cards unless the card is intentionally shared.
+
+### 0z81. Pod, Channel, And Content Identifiers Must Be Encoded Per Route Segment
+
+**What went wrong:** MediaCore pod workflow helpers interpolated `podId`, `channelId`, and variant identifiers directly into API paths. Slash-bearing identifiers could cross route boundaries, call the wrong endpoint, or lose the intended channel/content target even though similar pod messaging helpers had already been hardened.
+
+**Why it happened:** Identifiers commonly contain colon-delimited values, so manual testing did not exercise route separator characters. Some content IDs were encoded while the surrounding pod/channel segments stayed raw, leaving the helper in a partially hardened state.
+
+**How to prevent it:** Every dynamic path segment in Web API helpers must pass through `encodeURIComponent`, including pod/channel/container IDs around already-encoded content IDs. Add helper tests with `/`, `?`, and `%` in identifiers when touching route construction.
