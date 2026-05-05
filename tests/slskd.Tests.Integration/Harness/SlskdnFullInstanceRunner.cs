@@ -177,12 +177,16 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
             {
                 slskdnProcess.CancelOutputRead();
                 slskdnProcess.CancelErrorRead();
-                slskdnProcess.Kill();
+                slskdnProcess.Kill(entireProcessTree: true);
                 await slskdnProcess.WaitForExitAsync();
             }
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "[TEST-SLSKDN-FULL] Error stopping process");
+            }
+            finally
+            {
+                await CleanupVpnNamespaceAsync(CancellationToken.None);
             }
 
             slskdnProcess.Dispose();
@@ -446,6 +450,70 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
             var stderr = await process.StandardError.ReadToEndAsync(ct);
             throw new InvalidOperationException($"Failed to configure VPN test route in namespace {vpnNamespaceName}: {stderr}");
         }
+    }
+
+    private async Task CleanupVpnNamespaceAsync(CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(vpnNamespaceName))
+        {
+            return;
+        }
+
+        var namespacePids = await RunBestEffortWithOutputAsync("sudo", ["ip", "netns", "pids", vpnNamespaceName], ct);
+        foreach (var pid in namespacePids.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            await RunBestEffortAsync("sudo", ["kill", pid], ct);
+        }
+
+        await RunBestEffortAsync("sudo", ["ip", "netns", "delete", vpnNamespaceName], ct);
+    }
+
+    private static async Task RunBestEffortAsync(string fileName, string[] arguments, CancellationToken ct)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = fileName,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+
+        foreach (var argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        using var process = Process.Start(startInfo);
+        if (process != null)
+        {
+            await process.WaitForExitAsync(ct);
+        }
+    }
+
+    private static async Task<string> RunBestEffortWithOutputAsync(string fileName, string[] arguments, CancellationToken ct)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = fileName,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+
+        foreach (var argument in arguments)
+        {
+            startInfo.ArgumentList.Add(argument);
+        }
+
+        using var process = Process.Start(startInfo);
+        if (process == null)
+        {
+            return string.Empty;
+        }
+
+        var output = await process.StandardOutput.ReadToEndAsync(ct);
+        await process.WaitForExitAsync(ct);
+        return output;
     }
 
     private string? DiscoverSoulfindBinary()

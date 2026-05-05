@@ -52,6 +52,28 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z281. VPN Wrapper Test Processes Need Whole-Tree Cleanup
+
+**The Bug**: The full-instance test runner started slskd through a VPN namespace wrapper, then stopped only the direct wrapper shell process. Child `sudo`, `runuser`, and `slskd` processes could remain alive inside the namespace, leaving xUnit runs hanging after the download endpoint had already returned and leaving stale `sldl*` namespaces behind.
+
+**Files Affected**:
+- `tests/slskd.Tests.Integration/Harness/SlskdnFullInstanceRunner.cs`
+
+**Wrong**:
+```csharp
+slskdnProcess.Kill();
+await slskdnProcess.WaitForExitAsync();
+```
+
+**Correct**:
+```csharp
+slskdnProcess.Kill(entireProcessTree: true);
+await slskdnProcess.WaitForExitAsync();
+await CleanupVpnNamespaceAsync(CancellationToken.None);
+```
+
+**Why This Keeps Happening**: The process object points at the wrapper script, not the daemon that ultimately runs under `ip netns exec` and `runuser`. Any test harness that wraps the daemon must clean up the whole process tree and remove the namespace explicitly; otherwise successful tests can look like hung download/API calls.
+
 ### 0z280. VPN Namespace Test Routes Must Cover Every Peer Namespace Without Hijacking VPN DNS
 
 **The Bug**: The full-instance VPN test wrapper first added a local route for `10.230.0.0/16`, assuming it covered alpha and beta test namespaces. It only covers `10.230.*`; beta used `10.231.0.2`, so alpha still routed beta overlay traffic through the WireGuard default route and overlay peer connection attempts timed out. The follow-up route of `10.0.0.0/8` covered the peers but hijacked Proton's private DNS routes, causing live instances to fail resolving `vps.slsknet.org`. Even after narrowing the route, namespaces inherited LAN DNS servers that were unreachable through Proton, so VPN-wrapped tests must host-resolve the Soulseek server before writing child config.
