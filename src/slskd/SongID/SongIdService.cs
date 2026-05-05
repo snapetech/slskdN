@@ -609,7 +609,7 @@ public sealed class SongIdService : ISongIdService
                 throw new InvalidOperationException($"Spotify URL blocked by outbound guard: {reason}");
             }
 
-            using var httpClient = _httpClientFactory.CreateClient();
+            using var httpClient = _httpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
             using var request = new HttpRequestMessage(HttpMethod.Get, spotifyUri);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
             using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
@@ -2091,7 +2091,7 @@ public sealed class SongIdService : ISongIdService
             }
 
             var audioPath = Path.Combine(workspace, "spotify-preview.mp3");
-            using var client = _httpClientFactory.CreateClient();
+            using var client = _httpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
             using var request = new HttpRequestMessage(HttpMethod.Get, previewUri);
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();

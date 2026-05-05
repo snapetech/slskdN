@@ -171,7 +171,7 @@ public sealed class LidarrClient : ILidarrClient
     private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var options = OptionsMonitor.CurrentValue.Integration.Lidarr;
-        var client = HttpClientFactory.CreateClient(nameof(LidarrClient));
+        var client = HttpClientFactory.CreateClient(slskd.Common.Security.OutboundUriGuard.NoRedirectHttpClientName);
         client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
         var response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();

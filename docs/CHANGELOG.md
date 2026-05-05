@@ -62,6 +62,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
   source-feed outbound fetches, anonymous pod verification/discovery bounds,
   release-installer checksum verification, script logging, and ListenBrainz
   token storage.
+- Hardened follow-up outbound and relay security by binding anonymous API rate
+  limits to authenticated principals, disabling guarded HTTP redirects with
+  public-IP connect validation, validating relay-agent download paths, and
+  bounding relay and pod mesh download writes.
 - Made governance, pod, and ActivityPub signature handling fail closed unless
   signer identity can be verified, and replaced unstable hash-code identifiers
   with stable SHA-256-derived values.

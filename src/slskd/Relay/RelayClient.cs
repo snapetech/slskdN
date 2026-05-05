@@ -19,6 +19,7 @@
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 using Microsoft.Extensions.Options;
+using slskd.Common.Security;
 using slskd.Files;
 
 namespace slskd.Relay
@@ -44,6 +45,8 @@ namespace slskd.Relay
     /// </summary>
     public class RelayClient : IRelayClient
     {
+        private const long MaxRelayDownloadBytes = 1024L * 1024L * 1024L;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="RelayClient"/> class.
         /// </summary>
@@ -395,6 +398,7 @@ namespace slskd.Relay
                 // IgnoreCertificateErrors no longer matter for the file-upload HTTP client either.
                 var handler = new HttpClientHandler
                 {
+                    AllowAutoRedirect = false,
                     ClientCertificateOptions = ClientCertificateOption.Manual,
                     ServerCertificateCustomValidationCallback = (_, cert, chain, errors) =>
                         IsAllowedRelayPinnedCertificate(cert, chain, errors, pinnedSpkiPins),
@@ -406,6 +410,7 @@ namespace slskd.Relay
             {
                 var handler = new HttpClientHandler
                 {
+                    AllowAutoRedirect = false,
                     ClientCertificateOptions = ClientCertificateOption.Manual,
                     ServerCertificateCustomValidationCallback = (_, cert, chain, errors) =>
                         IsAllowedInsecureRelayCertificate(cert, chain, errors),
@@ -415,7 +420,12 @@ namespace slskd.Relay
             }
             else
             {
-                client = new HttpClient();
+                var handler = new HttpClientHandler
+                {
+                    AllowAutoRedirect = false,
+                };
+                client = new HttpClient(handler, disposeHandler: true);
+                handler = null!;
             }
 
             client.Timeout = TimeSpan.FromMilliseconds(int.MaxValue);
@@ -643,18 +653,23 @@ namespace slskd.Relay
             {
                 try
                 {
-                    var destinationFile = Path.Combine(OptionsMonitor.CurrentValue.Directories.Downloads, filename);
+                    var downloadsDirectory = OptionsMonitor.CurrentValue.Directories.Downloads;
+                    var destinationFile = PathGuard.NormalizeAndValidate(filename, downloadsDirectory);
+                    if (destinationFile == null)
+                    {
+                        throw new InvalidOperationException("Relay download filename is outside the downloads directory.");
+                    }
 
                     if (OptionsMonitor.CurrentValue.Relay.Mode.ToEnum<RelayMode>() == RelayMode.Debug)
                     {
                         // if we're debugging, we're referencing the same file for both the controller and agent which will lead to an
                         // access violation. prefix the destination file to avoid this.
-                        destinationFile = Path.Combine(OptionsMonitor.CurrentValue.Directories.Downloads, $"{filename}.relayed");
+                        destinationFile = PathGuard.NormalizeAndValidate($"{filename}.relayed", downloadsDirectory);
+                        if (destinationFile == null)
+                        {
+                            throw new InvalidOperationException("Relay debug download filename is outside the downloads directory.");
+                        }
                     }
-
-                    // if the controller is Windows and the agent is Linux or vice versa, we need to translate the filename to the
-                    // local OS or we're going to get funny results when we go to write the file
-                    destinationFile = destinationFile.LocalizePath();
 
                     await Retry.Do(task: async () =>
                     {
@@ -669,6 +684,10 @@ namespace slskd.Relay
                         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
 
                         response.EnsureSuccessStatusCode();
+                        if (response.Content.Headers.ContentLength is long contentLength && contentLength > MaxRelayDownloadBytes)
+                        {
+                            throw new InvalidOperationException("Relay download exceeds the maximum allowed size.");
+                        }
 
                         using var remoteStream = await response.Content.ReadAsStreamAsync();
 
@@ -676,7 +695,7 @@ namespace slskd.Relay
                             ?? throw new IOException($"Failed to determine destination directory for download {destinationFile}");
                         Directory.CreateDirectory(destinationDirectory);
                         using var localStream = new FileStream(destinationFile, FileMode.Create);
-                        await remoteStream.CopyToAsync(localStream);
+                        await CopyWithLimitAsync(remoteStream, localStream, MaxRelayDownloadBytes);
                     },
                     isRetryable: (_, _) => true,
                     onFailure: (_, ex) => Log.Error(ex, "Failed to handle file download notification for {Filename} ({Token})", filename, GetRelayTokenLogId(token)),
@@ -692,6 +711,23 @@ namespace slskd.Relay
             });
 
             return Task.CompletedTask;
+        }
+
+        private static async Task CopyWithLimitAsync(Stream source, Stream destination, long maxBytes)
+        {
+            var buffer = new byte[81920];
+            long total = 0;
+            int read;
+            while ((read = await source.ReadAsync(buffer)) > 0)
+            {
+                total += read;
+                if (total > maxBytes)
+                {
+                    throw new InvalidOperationException("Relay download exceeds the maximum allowed size.");
+                }
+
+                await destination.WriteAsync(buffer.AsMemory(0, read));
+            }
         }
 
         private Task HubConnection_Closed(Exception? arg)

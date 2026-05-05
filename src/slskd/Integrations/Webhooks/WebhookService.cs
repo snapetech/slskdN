@@ -165,7 +165,7 @@ public class WebhookService
     {
         if (!call.IgnoreCertificateErrors)
         {
-            return HttpClientFactory.CreateClient();
+            return HttpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
         }
 
         Log.Warning(
@@ -173,13 +173,10 @@ public class WebhookService
             "— allowing only self-signed/untrusted-root certificates for this destination.",
             webhookName);
 
-#pragma warning disable CA2000 // Call System.IDisposable.Dispose on object created by 'new HttpClientHandler' before all references to it are out of scope
-        var handler = new HttpClientHandler
-        {
-            ServerCertificateCustomValidationCallback = (_, certificate, chain, errors) =>
-                IsAllowedInsecureWebhookCertificate(certificate, chain, errors),
-        };
-#pragma warning restore CA2000 // Call System.IDisposable.Dispose on object created by 'new HttpClientHandler' before all references to it are out of scope
+#pragma warning disable CA2000 // Handler ownership is transferred to HttpClient.
+        var handler = OutboundUriGuard.CreateNoRedirectHandler((_, certificate, chain, errors) =>
+            IsAllowedInsecureWebhookCertificate(certificate, chain, errors));
+#pragma warning restore CA2000
         return new HttpClient(handler, disposeHandler: true);
     }
 

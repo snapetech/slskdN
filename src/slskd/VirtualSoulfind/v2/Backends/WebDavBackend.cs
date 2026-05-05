@@ -13,6 +13,7 @@ namespace slskd.VirtualSoulfind.v2.Backends
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
+    using slskd.Common.Security;
     using slskd.VirtualSoulfind.Core;
     using slskd.VirtualSoulfind.v2.Sources;
 
@@ -123,9 +124,15 @@ namespace slskd.VirtualSoulfind.v2.Backends
                 return SourceCandidateValidationResult.Invalid($"Domain {host} not in allowlist");
             }
 
+            var (safe, reason) = await OutboundUriGuard.CheckAsync(uri, cancellationToken).ConfigureAwait(false);
+            if (!safe)
+            {
+                return SourceCandidateValidationResult.Invalid($"URL blocked by outbound guard: {reason}");
+            }
+
             try
             {
-                using var http = _httpClientFactory.CreateClient();
+                using var http = _httpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
                 http.Timeout = TimeSpan.FromSeconds(opts.ValidationTimeoutSeconds);
 
                 using var request = new HttpRequestMessage(HttpMethod.Head, uri);
@@ -199,7 +206,11 @@ namespace slskd.VirtualSoulfind.v2.Backends
             if (!opts.DomainAllowlist.Any(d => host == d.ToLowerInvariant() || host.EndsWith("." + d.ToLowerInvariant(), StringComparison.Ordinal)))
                 throw new InvalidOperationException($"Domain {host} not in allowlist");
 
-            using var http = _httpClientFactory.CreateClient();
+            var (safe, reason) = await OutboundUriGuard.CheckAsync(uri, cancellationToken).ConfigureAwait(false);
+            if (!safe)
+                throw new InvalidOperationException($"URL blocked by outbound guard: {reason}");
+
+            using var http = _httpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
             http.Timeout = TimeSpan.FromSeconds(Math.Max(opts.ValidationTimeoutSeconds * 3, 60));
 
             using var request = new HttpRequestMessage(HttpMethod.Get, uri);

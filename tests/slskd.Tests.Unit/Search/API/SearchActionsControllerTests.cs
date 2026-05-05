@@ -4,6 +4,7 @@
 namespace slskd.Tests.Unit.Search.API;
 
 using System;
+using System.IO;
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -253,6 +254,62 @@ public class SearchActionsControllerTests
     }
 
     [Fact]
+    public async Task HandlePodDownloadAsync_FetchesPodContentInBoundedChunks()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "slskdn-search-actions-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var calls = new List<(long Offset, int Length)>();
+        var meshFetcher = new Mock<IMeshContentFetcher>();
+        meshFetcher
+            .Setup(fetcher => fetcher.FetchAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<long?>(),
+                It.IsAny<string?>(),
+                It.IsAny<long>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string peerId, string contentId, long? expectedSize, string? expectedHash, long offset, int length, CancellationToken ct) =>
+            {
+                calls.Add((offset, length));
+                return new MeshContentFetchResult
+                {
+                    Data = new MemoryStream(new byte[length]),
+                    Size = length,
+                    SizeValid = true,
+                    HashValid = true,
+                };
+            });
+
+        try
+        {
+            var controller = CreateController(meshFetcher: meshFetcher, incompleteDir: tempDir);
+            var method = typeof(SearchActionsController).GetMethod("HandlePodDownloadAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.NotNull(method);
+
+            var task = (Task<IActionResult>)method!.Invoke(
+                controller,
+                new object[]
+                {
+                    "sha256:test",
+                    new slskd.Search.File { Filename = "song.flac", Size = 4097 },
+                    "peer-1",
+                    CancellationToken.None
+                })!;
+
+            var result = await task;
+
+            Assert.IsType<OkObjectResult>(result);
+            Assert.Equal(new[] { 0L, 2048L, 4096L }, calls.Select(call => call.Offset).ToArray());
+            Assert.Equal(new[] { 2048, 2048, 1 }, calls.Select(call => call.Length).ToArray());
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task HandleSceneDownloadAsync_WhenEnqueueThrows_DoesNotLeakExceptionMessage()
     {
         var downloadService = new Mock<IDownloadService>();
@@ -319,12 +376,17 @@ public class SearchActionsControllerTests
         Mock<ISearchService>? searchService = null,
         Mock<IMeshContentFetcher>? meshFetcher = null,
         Mock<IDownloadService>? downloadService = null,
-        Mock<IMeshDirectory>? meshDirectory = null)
+        Mock<IMeshDirectory>? meshDirectory = null,
+        string? incompleteDir = null)
     {
         var options = new Mock<IOptionsMonitor<slskd.Options>>();
         options.SetupGet(x => x.CurrentValue).Returns(new slskd.Options
         {
-            Directories = new slskd.Options.DirectoriesOptions { Downloads = "/tmp" }
+            Directories = new slskd.Options.DirectoriesOptions
+            {
+                Downloads = "/tmp",
+                Incomplete = incompleteDir ?? "/tmp",
+            }
         });
 
         return new SearchActionsController(

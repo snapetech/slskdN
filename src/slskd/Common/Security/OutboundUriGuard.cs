@@ -4,8 +4,12 @@
 namespace slskd.Common.Security;
 
 using System;
+using System.IO;
 using System.Net;
+using System.Net.Http;
+using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,6 +24,34 @@ using System.Threading.Tasks;
 /// </remarks>
 public static class OutboundUriGuard
 {
+    /// <summary>
+    ///     Named HTTP client for guarded outbound requests. Handlers using this name must not follow redirects.
+    /// </summary>
+    public const string NoRedirectHttpClientName = "OutboundNoRedirect";
+
+    /// <summary>
+    ///     Creates an HTTP handler that refuses redirects and connects only to public routed addresses.
+    /// </summary>
+    public static SocketsHttpHandler CreateNoRedirectHandler()
+    {
+        return new SocketsHttpHandler
+        {
+            AllowAutoRedirect = false,
+            ConnectCallback = ConnectWithIpGuardAsync,
+        };
+    }
+
+    /// <summary>
+    ///     Creates an HTTP handler that refuses redirects, connects only to public routed addresses,
+    ///     and uses a caller-supplied certificate validator.
+    /// </summary>
+    public static SocketsHttpHandler CreateNoRedirectHandler(RemoteCertificateValidationCallback certificateValidator)
+    {
+        var handler = CreateNoRedirectHandler();
+        handler.SslOptions.RemoteCertificateValidationCallback = certificateValidator;
+        return handler;
+    }
+
     /// <summary>
     ///     Checks whether the URL is safe to fetch. Only http/https are permitted;
     ///     the host must not be empty, and every resolved IP must be in a routable
@@ -103,5 +135,63 @@ public static class OutboundUriGuard
     {
         var (safe, _) = await CheckAsync(uri, cancellationToken).ConfigureAwait(false);
         return safe;
+    }
+
+    private static async ValueTask<Stream> ConnectWithIpGuardAsync(SocketsHttpConnectionContext context, CancellationToken cancellationToken)
+    {
+        var host = context.DnsEndPoint.Host;
+        var port = context.DnsEndPoint.Port;
+
+        var addresses = await ResolveAddressesAsync(host, cancellationToken).ConfigureAwait(false);
+        if (addresses.Length == 0)
+        {
+            throw new HttpRequestException($"DNS returned no addresses for '{host}'");
+        }
+
+        foreach (var address in addresses)
+        {
+            if (IpRangeClassifier.IsBlocked(address) || IpRangeClassifier.IsPrivate(address))
+            {
+                throw new HttpRequestException($"host '{host}' resolves to non-public address {address}");
+            }
+        }
+
+        Exception? lastError = null;
+        foreach (var address in addresses)
+        {
+            Socket? socket = null;
+
+            try
+            {
+                socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp)
+                {
+                    NoDelay = true,
+                };
+                await socket.ConnectAsync(new IPEndPoint(address, port), cancellationToken).ConfigureAwait(false);
+                var stream = new NetworkStream(socket, ownsSocket: true);
+                socket = null;
+                return stream;
+            }
+            catch (Exception ex)
+            {
+                lastError = ex;
+            }
+            finally
+            {
+                socket?.Dispose();
+            }
+        }
+
+        throw new HttpRequestException($"Failed to connect to '{host}'", lastError);
+    }
+
+    private static async Task<IPAddress[]> ResolveAddressesAsync(string host, CancellationToken cancellationToken)
+    {
+        if (IPAddress.TryParse(host, out var literal))
+        {
+            return new[] { literal };
+        }
+
+        return await Dns.GetHostAddressesAsync(host, cancellationToken).ConfigureAwait(false);
     }
 }

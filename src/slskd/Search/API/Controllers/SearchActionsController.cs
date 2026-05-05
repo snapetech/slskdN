@@ -33,6 +33,9 @@ using Search = slskd.Search;
 [ValidateCsrfForCookiesOnly]
 public class SearchActionsController : ControllerBase
 {
+    private const int PodDownloadChunkBytes = 2048;
+    private const long MaxPodDownloadBytes = 512L * 1024L * 1024L;
+
     private readonly ISearchService _searchService;
     private readonly IDownloadService _downloadService;
     private readonly IContentLocator _contentLocator;
@@ -282,38 +285,17 @@ public class SearchActionsController : ControllerBase
                 _logger.LogDebug("[SearchActions] Using peer {PeerId} from mesh directory lookup", targetPeerId);
             }
 
-            // Fetch content from mesh peer
-            var fetchResult = await _meshContentFetcher.FetchAsync(
-                peerId: targetPeerId,
-                contentId: contentId,
-                expectedSize: file.Size > 0 ? file.Size : null,
-                expectedHash: null, // Hash validation can be added later if needed
-                offset: 0,
-                length: 0, // Fetch entire file
-                cancellationToken: ct);
-
-            if (fetchResult.Error != null || fetchResult.Data == null)
+            if (file.Size <= 0 || file.Size > MaxPodDownloadBytes)
             {
-                _logger.LogWarning("[SearchActions] Failed to fetch pod content {ContentId} from peer {PeerId}: {Error}",
-                    contentId, targetPeerId, fetchResult.Error ?? "Unknown error");
-                return StatusCode(502, new ProblemDetails
+                _logger.LogWarning("[SearchActions] Refusing pod download {ContentId} with unsupported size {Size}", contentId, file.Size);
+                return BadRequest(new ProblemDetails
                 {
-                    Type = "pod_fetch_failed",
-                    Title = "Pod content fetch failed",
-                    Detail = "Failed to fetch content from pod peer"
+                    Type = "pod_download_size_invalid",
+                    Title = "Pod download size invalid",
+                    Detail = "Pod download size is missing or too large"
                 });
             }
 
-            // Validate size if expected size was provided
-            if (file.Size > 0 && fetchResult.Size != file.Size)
-            {
-                _logger.LogWarning("[SearchActions] Size mismatch for pod content {ContentId}: expected {Expected}, got {Actual}",
-                    contentId, file.Size, fetchResult.Size);
-
-                // Continue anyway - size mismatch might be acceptable
-            }
-
-            // Write content to incomplete downloads directory
             var incompleteDir = _optionsMonitor.CurrentValue.Directories.Incomplete;
             var localFilename = file.Filename.ToLocalFilename(baseDirectory: incompleteDir);
             var localDirectory = System.IO.Path.GetDirectoryName(localFilename);
@@ -322,12 +304,47 @@ public class SearchActionsController : ControllerBase
                 System.IO.Directory.CreateDirectory(localDirectory);
             }
 
+            IActionResult? fetchFailure = null;
             using (var fileStream = System.IO.File.Create(localFilename))
             {
-                await fetchResult.Data.CopyToAsync(fileStream, ct);
+                var offset = 0L;
+                while (offset < file.Size && fetchFailure == null)
+                {
+                    var chunkLength = (int)Math.Min(PodDownloadChunkBytes, file.Size - offset);
+                    var fetchResult = await _meshContentFetcher.FetchAsync(
+                        peerId: targetPeerId,
+                        contentId: contentId,
+                        expectedSize: chunkLength,
+                        expectedHash: null,
+                        offset: offset,
+                        length: chunkLength,
+                        cancellationToken: ct);
+
+                    if (fetchResult.Error != null || fetchResult.Data == null || fetchResult.Size != chunkLength)
+                    {
+                        _logger.LogWarning("[SearchActions] Failed to fetch pod content {ContentId} from peer {PeerId}: {Error}",
+                            contentId, targetPeerId, fetchResult.Error ?? "Invalid chunk response");
+                        fetchResult.Data?.Dispose();
+                        fetchFailure = StatusCode(502, new ProblemDetails
+                        {
+                            Type = "pod_fetch_failed",
+                            Title = "Pod content fetch failed",
+                            Detail = "Failed to fetch content from pod peer"
+                        });
+                        continue;
+                    }
+
+                    await fetchResult.Data.CopyToAsync(fileStream, ct);
+                    fetchResult.Data.Dispose();
+                    offset += chunkLength;
+                }
             }
 
-            fetchResult.Data.Dispose();
+            if (fetchFailure != null)
+            {
+                TryDeletePartialPodDownload(localFilename);
+                return fetchFailure;
+            }
 
             _logger.LogInformation("[SearchActions] Successfully downloaded pod content {ContentId} from peer {PeerId} to {Path}",
                 contentId, targetPeerId, localFilename);
@@ -351,6 +368,17 @@ public class SearchActionsController : ControllerBase
                 Title = "Pod download exception",
                 Detail = "Pod download failed"
             });
+        }
+    }
+
+    private static void TryDeletePartialPodDownload(string localFilename)
+    {
+        try
+        {
+            System.IO.File.Delete(localFilename);
+        }
+        catch
+        {
         }
     }
 

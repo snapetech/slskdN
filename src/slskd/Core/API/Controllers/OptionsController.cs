@@ -201,6 +201,11 @@ namespace slskd.Core.API
                 return BadRequest("YAML is required");
             }
 
+            if (System.Text.Encoding.UTF8.GetByteCount(yaml) > MaxYamlValidationBytes)
+            {
+                return StatusCode(413, "YAML is too large");
+            }
+
             if (!TryValidateYaml(yaml, out var error))
             {
                 Log.Error("Failed to validate YAML configuration: {Error}", error);

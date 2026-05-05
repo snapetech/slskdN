@@ -7,6 +7,7 @@ namespace slskd.Common.Moderation
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
+    using System.Net;
     using System.Net.Http;
     using System.Net.Http.Json;
     using System.Text.Json;
@@ -15,6 +16,7 @@ namespace slskd.Common.Moderation
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
+    using slskd.Common.Security;
 
     /// <summary>
     ///     HTTP-based LLM moderation provider for external AI services.
@@ -228,8 +230,19 @@ namespace slskd.Common.Moderation
                 MaxTokens = 500
             };
 
+            var endpoint = _options.CurrentValue.Endpoint.TrimEnd('/') + "/chat/completions";
+            if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var endpointUri))
+            {
+                throw new InvalidOperationException("LLM moderation endpoint is invalid");
+            }
+
+            if (!IsSafeEndpoint(endpointUri, out var endpointError))
+            {
+                throw new InvalidOperationException($"LLM moderation endpoint blocked: {endpointError}");
+            }
+
             using var response = await _httpClient.PostAsJsonAsync(
-                _options.CurrentValue.Endpoint.TrimEnd('/') + "/chat/completions",
+                endpointUri,
                 openAiRequest,
                 cancellationToken);
 
@@ -258,6 +271,42 @@ namespace slskd.Common.Moderation
                 Timestamp = DateTimeOffset.UtcNow,
                 FromCache = false
             };
+        }
+
+        private static bool IsSafeEndpoint(Uri endpointUri, out string error)
+        {
+            error = string.Empty;
+
+            if (endpointUri.Scheme != Uri.UriSchemeHttps && endpointUri.Scheme != Uri.UriSchemeHttp)
+            {
+                error = "only http/https endpoints are allowed";
+                return false;
+            }
+
+            var host = endpointUri.DnsSafeHost?.Trim();
+            if (string.IsNullOrWhiteSpace(host))
+            {
+                error = "host is empty";
+                return false;
+            }
+
+            if (host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+                host.EndsWith(".local", StringComparison.OrdinalIgnoreCase) ||
+                host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase) ||
+                host.EndsWith(".internal", StringComparison.OrdinalIgnoreCase))
+            {
+                error = "local/internal host names are not allowed";
+                return false;
+            }
+
+            if (IPAddress.TryParse(host, out var literal) &&
+                (IpRangeClassifier.IsBlocked(literal) || IpRangeClassifier.IsPrivate(literal)))
+            {
+                error = "non-public IP literals are not allowed";
+                return false;
+            }
+
+            return true;
         }
 
         private string GetSystemPrompt(LlmModeration.ContentType contentType)

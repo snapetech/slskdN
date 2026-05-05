@@ -792,7 +792,7 @@ public sealed class SourceFeedImportService : ISourceFeedImportService
     private async Task<HttpResponseMessage> SendSpotifyAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var options = OptionsMonitor.CurrentValue.Integration.Spotify;
-        var client = HttpClientFactory.CreateClient(nameof(SourceFeedImportService));
+        var client = HttpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(options.TimeoutSeconds));
         var response = await client.SendAsync(request, timeout.Token).ConfigureAwait(false);
@@ -831,7 +831,7 @@ public sealed class SourceFeedImportService : ISourceFeedImportService
         }
 
         var options = OptionsMonitor.CurrentValue.Integration.Spotify;
-        var client = HttpClientFactory.CreateClient(nameof(SourceFeedImportService));
+        var client = HttpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(options.TimeoutSeconds));
         request.Headers.UserAgent.ParseAdd("slskdN-source-feed-import/1.0");

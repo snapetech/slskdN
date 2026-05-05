@@ -60,7 +60,7 @@ public class Gluetun : IVPNClient
     /// <returns>A value indicating whether the VPN is connected.</returns>
     public async Task<VPNStatus> GetStatusAsync()
     {
-        using var http = HttpClientFactory.CreateClient();
+        using var http = HttpClientFactory.CreateClient(slskd.Common.Security.OutboundUriGuard.NoRedirectHttpClientName);
 
         http.Timeout = TimeSpan.FromMilliseconds(Options.Timeout);
 

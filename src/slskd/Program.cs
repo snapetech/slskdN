@@ -1088,6 +1088,10 @@ namespace slskd
             // use through 'using var http = HttpClientFactory.CreateClient()' wherever HTTP calls will be made
             // this is important to prevent memory leaks
             services.AddHttpClient();
+            services.AddHttpClient(Common.Security.OutboundUriGuard.NoRedirectHttpClientName)
+                .ConfigurePrimaryHttpMessageHandler(Common.Security.OutboundUriGuard.CreateNoRedirectHandler);
+            services.AddHttpClient("ExternalModeration")
+                .ConfigurePrimaryHttpMessageHandler(Common.Security.OutboundUriGuard.CreateNoRedirectHandler);
 
             // PR-14: SSRF-safe key fetcher for ActivityPub HTTP Signature (timeout 3s, no redirects to prevent SSRF)
             services.AddHttpClient<SocialFederation.IHttpSignatureKeyFetcher, SocialFederation.HttpSignatureKeyFetcher>(c => c.Timeout = TimeSpan.FromSeconds(3))
@@ -3057,7 +3061,7 @@ namespace slskd
                             return RateLimitPartition.GetFixedWindowLimiter("fed:" + ip, _ => new FixedWindowRateLimiterOptions { PermitLimit = fedPermit, Window = fedWindow });
                         }
 
-                        if (context.Request.Headers.ContainsKey("Authorization") || context.Request.Headers.ContainsKey("X-API-Key"))
+                        if (context.User?.Identity?.IsAuthenticated == true)
                         {
                             return RateLimitPartition.GetNoLimiter("authenticated");
                         }
