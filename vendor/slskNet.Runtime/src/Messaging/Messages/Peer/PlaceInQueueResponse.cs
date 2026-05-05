@@ -23,6 +23,8 @@
 
 namespace Soulseek.Messaging.Messages
 {
+    using System;
+
     /// <summary>
     ///     The response received when an attempt to queue a file for downloading has failed.
     /// </summary>
@@ -35,6 +37,11 @@ namespace Soulseek.Messaging.Messages
         /// <param name="placeInQueue">The current place in the peer's queue.</param>
         public PlaceInQueueResponse(string filename, int placeInQueue)
         {
+            if (placeInQueue < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(placeInQueue), "Must be greater than or equal to zero");
+            }
+
             Filename = filename;
             PlaceInQueue = placeInQueue;
         }

@@ -60,6 +60,8 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "BitDepth attribute returns matching value when value"), AutoData]
         public void BitDepth_Attribute_Returns_Matching_Value_When_Value(int code, string filename, long size, string extension, int value)
         {
+            value = System.Math.Max(0, value);
+
             var list = new List<FileAttribute>() { new FileAttribute(FileAttributeType.BitDepth, value) };
 
             var f = new File(code, filename, size, extension, list);
@@ -82,6 +84,8 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "BitRate attribute returns matching value when value"), AutoData]
         public void BitRate_Attribute_Returns_Matching_Value_When_Value(int code, string filename, long size, string extension, int value)
         {
+            value = System.Math.Max(0, value);
+
             var list = new List<FileAttribute>() { new FileAttribute(FileAttributeType.BitRate, value) };
 
             var f = new File(code, filename, size, extension, list);
@@ -104,6 +108,8 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "SampleRate attribute returns matching value when value"), AutoData]
         public void SampleRate_Attribute_Returns_Matching_Value_When_Value(int code, string filename, long size, string extension, int value)
         {
+            value = System.Math.Max(0, value);
+
             var list = new List<FileAttribute>() { new FileAttribute(FileAttributeType.SampleRate, value) };
 
             var f = new File(code, filename, size, extension, list);
@@ -126,6 +132,8 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "Length attribute returns matching value when value"), AutoData]
         public void Length_Attribute_Returns_Matching_Value_When_Value(int code, string filename, long size, string extension, int value)
         {
+            value = System.Math.Max(0, value);
+
             var list = new List<FileAttribute>() { new FileAttribute(FileAttributeType.Length, value) };
 
             var f = new File(code, filename, size, extension, list);

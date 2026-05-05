@@ -87,6 +87,17 @@ namespace Soulseek.Tests.Unit
                 bytesTransferred,
                 averageSpeed));
 
+        [Fact(DisplayName = "Transfer rejects invalid state flags")]
+        public void Transfer_Rejects_Invalid_State_Flags()
+            => Assert.Throws<ArgumentOutOfRangeException>(() => new Transfer(
+                TransferDirection.Download,
+                "user",
+                "file.mp3",
+                1,
+                (TransferStates)8192,
+                1,
+                0));
+
         [Theory(DisplayName = "Search rejects invalid counters and states")]
         [InlineData((SearchStates)512, 0, 0, 0)]
         [InlineData(SearchStates.InProgress, -1, 0, 0)]
@@ -128,5 +139,11 @@ namespace Soulseek.Tests.Unit
         [InlineData(2, 1)]
         public void BrowseProgressEventArgs_Reject_Invalid_Progress_Metadata(long bytesTransferred, long size)
             => Assert.Throws<ArgumentOutOfRangeException>(() => new BrowseProgressUpdatedEventArgs("user", bytesTransferred, size));
+
+        [Theory(DisplayName = "File attribute rejects invalid metadata")]
+        [InlineData((FileAttributeType)99, 0)]
+        [InlineData(FileAttributeType.BitRate, -1)]
+        public void FileAttribute_Rejects_Invalid_Metadata(FileAttributeType type, int value)
+            => Assert.Throws<ArgumentOutOfRangeException>(() => new FileAttribute(type, value));
     }
 }

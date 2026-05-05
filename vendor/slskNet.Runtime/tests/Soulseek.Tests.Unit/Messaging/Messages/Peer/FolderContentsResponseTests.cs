@@ -347,8 +347,17 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
 
         private FileAttribute GetRandomFileAttribute()
         {
+            var types = new[]
+            {
+                FileAttributeType.BitRate,
+                FileAttributeType.Length,
+                FileAttributeType.VariableBitRate,
+                FileAttributeType.SampleRate,
+                FileAttributeType.BitDepth,
+            };
+
             return new FileAttribute(
-                type: (FileAttributeType)Random.Next(6),
+                type: types[Random.Next(types.Length)],
                 value: Random.Next());
         }
 

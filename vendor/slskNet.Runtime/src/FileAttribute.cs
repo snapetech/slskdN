@@ -23,6 +23,8 @@
 
 namespace Soulseek
 {
+    using System;
+
     /// <summary>
     ///     A file attribute.
     /// </summary>
@@ -35,6 +37,16 @@ namespace Soulseek
         /// <param name="value">The attribute value.</param>
         public FileAttribute(FileAttributeType type, int value)
         {
+            if (!Enum.IsDefined(typeof(FileAttributeType), type))
+            {
+                throw new ArgumentOutOfRangeException(nameof(type), "Must be a defined file attribute type");
+            }
+
+            if (value < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), "Must be greater than or equal to zero");
+            }
+
             Type = type;
             Value = value;
         }

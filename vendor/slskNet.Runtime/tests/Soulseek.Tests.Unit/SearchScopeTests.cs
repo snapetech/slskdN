@@ -39,6 +39,16 @@ namespace Soulseek.Tests.Unit
         }
 
         [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Throws on undefined scope type")]
+        public void Throws_On_Undefined_Scope_Type()
+        {
+            var ex = Record.Exception(() => new SearchScope((SearchScopeType)99));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentOutOfRangeException>(ex);
+        }
+
+        [Trait("Category", "Instantiation")]
         [Theory(DisplayName = "Throws on Network when subjects is not empty"), AutoData]
         public void Throws_On_Network_When_Subjects_Is_Not_Empty(string[] subjects)
         {

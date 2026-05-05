@@ -132,6 +132,26 @@ namespace Soulseek
                 throw new ArgumentOutOfRangeException(nameof(direction), "Must be a defined transfer direction");
             }
 
+            const TransferStates ValidStates =
+                TransferStates.Requested |
+                TransferStates.Queued |
+                TransferStates.Initializing |
+                TransferStates.InProgress |
+                TransferStates.Completed |
+                TransferStates.Succeeded |
+                TransferStates.Cancelled |
+                TransferStates.TimedOut |
+                TransferStates.Errored |
+                TransferStates.Rejected |
+                TransferStates.Aborted |
+                TransferStates.Locally |
+                TransferStates.Remotely;
+
+            if (validate && (state & ~ValidStates) != 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(state), "Must contain only defined transfer state flags");
+            }
+
             if (validate && size < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(size), "Must be greater than or equal to zero");

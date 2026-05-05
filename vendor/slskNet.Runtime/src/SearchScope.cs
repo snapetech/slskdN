@@ -39,6 +39,11 @@ namespace Soulseek
         /// <param name="subjects">The scope subjects, if applicable.</param>
         public SearchScope(SearchScopeType type, params string[] subjects)
         {
+            if (!Enum.IsDefined(typeof(SearchScopeType), type))
+            {
+                throw new ArgumentOutOfRangeException(nameof(type), "Must be a defined search scope type");
+            }
+
             Type = type;
 
             subjects ??= Array.Empty<string>();

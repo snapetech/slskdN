@@ -17,6 +17,7 @@
 
 namespace Soulseek.Tests.Unit.Messaging.Messages
 {
+    using System;
     using AutoFixture.Xunit2;
     using Soulseek.Messaging;
     using Soulseek.Messaging.Messages;
@@ -28,10 +29,22 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "Instantiates with the given data"), AutoData]
         public void Instantiates_With_The_Given_Data(string filename, int placeInQueue)
         {
+            placeInQueue = System.Math.Max(0, placeInQueue);
+
             var a = new PlaceInQueueResponse(filename, placeInQueue);
 
             Assert.Equal(filename, a.Filename);
             Assert.Equal(placeInQueue, a.PlaceInQueue);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Instantiation rejects negative place in queue")]
+        public void Instantiation_Rejects_Negative_Place_In_Queue()
+        {
+            var ex = Record.Exception(() => new PlaceInQueueResponse("file", -1));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentOutOfRangeException>(ex);
         }
 
         [Trait("Category", "Parse")]
@@ -66,6 +79,8 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "Parse returns expected data"), AutoData]
         public void Parse_Returns_Expected_Data(string filename, int placeInQueue)
         {
+            placeInQueue = System.Math.Max(0, placeInQueue);
+
             var msg = new MessageBuilder()
                 .WriteCode(MessageCode.Peer.PlaceInQueueResponse)
                 .WriteString(filename)
@@ -82,6 +97,8 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "ToByteArray constructs the correct message"), AutoData]
         public void ToByteArray_Constructs_The_Correct_Message(string filename, int placeInQueue)
         {
+            placeInQueue = System.Math.Max(0, placeInQueue);
+
             var res = new PlaceInQueueResponse(filename, placeInQueue).ToByteArray();
             var reader = new MessageReader<MessageCode.Peer>(res);
 
