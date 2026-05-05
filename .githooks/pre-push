@@ -89,7 +89,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
       if ! blob=$(git show "${commit}:${path}" 2>/dev/null); then
         continue
       fi
-      if ! printf '%s' "$blob" | grep -Iq .; then
+      if ! grep -Iq . <<<"$blob"; then
         continue
       fi
 
@@ -101,7 +101,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
       blocked=1
       printf 'hit:file:%s\n' "$path" >> "$report_file"
       printf '  commit:%s\n' "$commit" >> "$report_file"
-      printf '%s\n' "$filtered" | head -n 5 | redact_line | sed 's/^/  /' >> "$report_file"
+      awk 'NR <= 5' <<<"$filtered" | redact_line | sed 's/^/  /' >> "$report_file"
     done < <(git diff-tree --no-commit-id --name-only -r --diff-filter=ACMR "$commit")
   done
 done

@@ -132,7 +132,7 @@ for path in "${paths[@]}"; do
   if ! staged=$(git show ":$path" 2>/dev/null); then
     continue
   fi
-  if ! printf '%s' "$staged" | grep -Iq .; then
+  if ! grep -Iq . <<<"$staged"; then
     continue
   fi
 
@@ -148,7 +148,7 @@ for path in "${paths[@]}"; do
 
   blocked=1
   printf 'hit:file:%s\n' "$path" >> "$report_file"
-  printf '%s\n' "$filtered" | head -n 5 | redact_line | sed 's/^/  /' >> "$report_file"
+  awk 'NR <= 5' <<<"$filtered" | redact_line | sed 's/^/  /' >> "$report_file"
 
 done
 
