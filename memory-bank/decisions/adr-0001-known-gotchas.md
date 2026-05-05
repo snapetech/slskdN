@@ -90,6 +90,9 @@ api.get(`/files/${root}/directories/${encodeURIComponent(btoa(binary))}`);
 - `src/web/src/components/Search/DiscoveryGraphAtlas.jsx`
 - `src/web/src/components/Search/DiscoveryGraphAtlasPanel.jsx`
 - `src/web/src/components/Search/DiscoveryGraphModal.jsx`
+- `src/web/src/lib/events.js`
+- `src/web/src/lib/bridge.js`
+- `src/web/src/components/Search/AlbumCompletionPanel.jsx`
 
 **Wrong**:
 ```js
@@ -102,7 +105,7 @@ const { data } = await api.get('/items');
 return Array.isArray(data) ? data : [];
 ```
 
-**Why This Keeps Happening**: `|| []` only handles nullish or falsey responses. API helper contracts need shape checks at the boundary so component code can trust list helpers and does not need to repeat defensive `Array.isArray` checks everywhere. When a component calls APIs directly and stores response data in list state, apply the same boundary check before setting state.
+**Why This Keeps Happening**: `|| []` only handles nullish or falsey responses. API helper contracts need shape checks at the boundary so component code can trust list helpers and does not need to repeat defensive `Array.isArray` checks everywhere. When a component calls APIs directly and stores response data in list state, apply the same boundary check before setting state. Nested API arrays, such as album tracks, need their own item-shape checks before render-time filters or maps.
 
 ### 0z303. LocalStorage Arrays Must Validate Item Shapes
 
