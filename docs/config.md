@@ -705,7 +705,7 @@ soulseek:
   listen_port: 50300
 ```
 
-## Type-1 Peer and Distributed Message Obfuscation
+## Type-1 Peer, Distributed, and File Transfer Obfuscation
 
 slskdN exposes Soulseek type-1 peer-message, distributed-message, and file-transfer obfuscation as a first-class feature option. It defaults to `enabled: true` in `compatibility` mode, which means regular Soulseek paths stay available and obfuscated reachability is added for compatible peers. The runtime advertises obfuscation metadata, accepts type-1 obfuscated peer-message, distributed-message, and file-transfer connections, and can prefer compatible outbound obfuscated dials.
 

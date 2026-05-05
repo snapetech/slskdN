@@ -358,7 +358,7 @@ First-class Soulseek peer-message, distributed-message, and file-transfer obfusc
 - **Scoped transport** — obfuscation applies to Soulseek peer-message, distributed-message, and file-transfer streams while regular fallback stays available
 - **Server transport wrapping deferred** — the official Soulseek server connection is not wrapped by type-1 obfuscation; future SOCKS/pluggable-transport work is tracked separately from native Soulseek `P/D/F` support
 
-📖 **Guide**: [Soulseek type-1 obfuscation](docs/soulseek-type1-obfuscation.md) • [Configuration](docs/config.md#type-1-peer-and-distributed-message-obfuscation)
+📖 **Guide**: [Soulseek type-1 obfuscation](docs/soulseek-type1-obfuscation.md) • [Configuration](docs/config.md#type-1-peer-distributed-and-file-transfer-obfuscation)
 
 ### 🧭 Soulseek Native Discovery
 Native Soulseek interests, recommendations, similar users, and multi-recipient messages are available as explicit opt-in workflows.
@@ -639,6 +639,9 @@ dotnet run --project src/slskd/slskd.csproj
 | Conservative queue-position refresh | ❌ | ✅ |
 | **Multi-source downloads** | ❌ | ✅ |
 | **DHT mesh networking** | ❌ | ✅ |
+| **Soulseek native discovery** | ❌ | ✅ |
+| **Runtime capability handshakes** | ❌ | ✅ 🧪 |
+| **Soulseek P/D/F type-1 obfuscation** | ❌ | ✅ 🧪 |
 | **Security hardening** | ❌ | ✅ |
 | **MusicBrainz integration** | ❌ | ✅ |
 | **Built-in Lidarr integration** | ❌ | ✅ |
@@ -773,6 +776,8 @@ Features in the `master` branch:
 | **DHT Peer Discovery** | 🟡 Experimental | Functional mesh overlay; operator exposure and network behavior require care |
 | **Soulseek Mesh Rendezvous** | 🟡 Experimental | Explicit opt-in via public `slskdn-mesh-v1` interest tag; capability probing is available in System -> Mesh |
 | **Runtime Capability Handshake** | 🟡 Experimental | Signed slskdN descriptors over Soulseek peer messages with legacy capability-file fallback |
+| **Soulseek Native Discovery** | 🟡 Experimental | Opt-in interests, recommendations, similar users, item discovery, and batch private messages through native Soulseek commands |
+| **Soulseek Type-1 Obfuscation** | 🟡 Experimental | Peer-message (`P`), distributed-message (`D`), and file-transfer (`F`) streams can use type-1 obfuscation with regular fallback retained |
 | **Security Hardening** | 🟡 Active hardening | Controls exist, with open audit follow-ups tracked in security docs |
 | **MusicBrainz Integration** | 🟡 Beta | Core lookup is available; fingerprinting/auto-tagging depend on optional tooling and third-party services |
 | **Discography Concierge** | 🟡 Experimental | Artist MBID coverage map and manual Wishlist seeding |
