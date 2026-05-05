@@ -63,6 +63,8 @@ This is not optional. This is the highest priority action after fixing a bug.
 - `src/web/src/lib/discoveryShelf.js`
 - `src/web/src/lib/albumDecisionRules.js`
 - `src/web/src/lib/listeningHistory.js`
+- `src/web/src/lib/playlistIntake.js`
+- `src/web/src/lib/watchlists.js`
 
 **Wrong**:
 ```js
@@ -80,6 +82,8 @@ return Array.isArray(parsed)
 ```
 
 **Why This Keeps Happening**: Browser storage is external input at both the container and entry level. Array checks protect `.map()` and `.filter()`, but every consumer that reads object fields also needs item-shape validation before normalization, summaries, or save/replace flows run.
+
+Nested arrays need the same treatment. If a persisted playlist has `tracks: [null]`, or a watchlist has `expansionCandidates: [null]`, the top-level item can be valid while nested normalizers still crash. Filter nested collection items to strings or non-array objects before reading their fields.
 
 ### 0z302. Render Paths Must Not Parse Event JSON Without Fallbacks
 
