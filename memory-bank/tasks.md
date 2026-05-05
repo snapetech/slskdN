@@ -2271,3 +2271,11 @@
 - [x] Commit, validate, and deploy project gap assessment fixes
   - Status: completed (2026-05-05)
   - Notes: Pushed the requested dirty tree, completed the final route alias/remediation baseline pass, validated with `npm run check:remediation`, full `dotnet test`, and full `./bin/build`, then deployed manual build `0.0.0-slskdn.manual.20260505010919.48e7e08771f8` to `kspls0` for user testing.
+
+- [x] Add footer build info and GitHub update alert
+  - Status: completed (2026-05-05)
+  - Notes: Added public build metadata for logged-out and logged-in footer display, switched release checks to `snapetech/slskdn`, handled slskdN date-versioned tags/manual builds, and added footer update labeling/linking when a newer GitHub release exists.
+
+- [ ] Route optional live mesh smoke through explicit VPN/proxy egress
+  - Status: follow-up
+  - Notes: Local live-account probes connect to the Soulseek server but are closed/reset before login on the workstation IP path. The optional smoke now supports a private account pool, but still needs explicit per-process VPN/proxy egress or an opt-in gate before it should block publish validation.

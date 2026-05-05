@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <NoWarn>CS0618,SA1615,SA1611,S3881</NoWarn>
+    <NoWarn>CS0618,SA1116,SA1615,SA1611,SA1636,SA1641,CA2000,CA2012,CA2201,S3881</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

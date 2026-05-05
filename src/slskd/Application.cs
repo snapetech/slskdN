@@ -331,12 +331,6 @@ namespace slskd
         /// <returns>The operation context.</returns>
         public async Task CheckVersionAsync()
         {
-            if (Program.IsDevelopment)
-            {
-                Log.Information("Skipping version check for Development build");
-                return;
-            }
-
             if (Program.IsCanary)
             {
                 // todo: use the docker hub API to find the latest canary tag
@@ -348,13 +342,14 @@ namespace slskd
 
             try
             {
-                var latestVersion = await GitHub.GetLatestReleaseVersion(
-                    organization: Program.AppName,
-                    repository: Program.AppName,
-                    userAgent: $"{Program.AppName} v{Program.FullVersion}");
+                var latestRelease = await GitHub.GetLatestReleaseInfo(
+                    organization: "snapetech",
+                    repository: "slskdn",
+                    userAgent: $"slskdN v{Program.FullVersion}");
+                var result = GitHub.CreateVersionCheckResult(latestRelease, DateTimeOffset.UtcNow);
 
-                // Skip comparison if the returned version string contains dev/canary markers
-                var latestVersionString = latestVersion.ToString();
+                // Skip comparison if the returned version string contains dev/canary markers.
+                var latestVersionString = result.Latest;
                 if (latestVersionString.Contains("-dev-", StringComparison.OrdinalIgnoreCase) ||
                     latestVersionString.Contains("-canary-", StringComparison.OrdinalIgnoreCase))
                 {
@@ -362,14 +357,24 @@ namespace slskd
                     return;
                 }
 
-                if (latestVersion > Version.Parse(Program.SemanticVersion))
+                State.SetValue(state => state with
                 {
-                    State.SetValue(state => state with { Version = state.Version with { Latest = latestVersion.ToString(), IsUpdateAvailable = true } });
-                    Log.Information("A new version is available! {CurrentVersion} -> {LatestVersion}", Program.SemanticVersion, latestVersion);
+                    Version = state.Version with
+                    {
+                        CheckedAt = result.CheckedAt,
+                        IsUpdateAvailable = result.IsUpdateAvailable,
+                        Latest = result.Latest,
+                        LatestTag = result.LatestTag,
+                        LatestUrl = result.LatestUrl,
+                    },
+                });
+
+                if (result.IsUpdateAvailable)
+                {
+                    Log.Information("A new version is available! {CurrentVersion} -> {LatestVersion}", Program.SemanticVersion, result.Latest);
                 }
                 else
                 {
-                    State.SetValue(state => state with { Version = state.Version with { Latest = Program.SemanticVersion, IsUpdateAvailable = false } });
                     Log.Information("Version {CurrentVersion} is up to date.", Program.SemanticVersion);
                 }
             }
@@ -389,6 +394,14 @@ namespace slskd
             }
             catch (Exception ex)
             {
+                State.SetValue(state => state with
+                {
+                    Version = state.Version with
+                    {
+                        CheckedAt = DateTimeOffset.UtcNow,
+                        IsUpdateAvailable = null,
+                    },
+                });
                 Log.Warning("Failed to check version: {Message}", ex.Message);
             }
         }

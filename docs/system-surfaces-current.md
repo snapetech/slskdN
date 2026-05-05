@@ -1,6 +1,6 @@
 # Current API surface inventory
 
-Generated: 2026-05-05T01:02:11Z
+Generated: 2026-05-05T01:33:01Z
 
 This inventory is generated from controller attributes. It is intended for parity/security review, not as a replacement for Swagger or integration tests.
 
@@ -12,7 +12,7 @@ This inventory is generated from controller attributes. It is intended for parit
 - Protocol controllers outside versioned API routing: 3
 - Other route buckets: 0
 - Controllers with mutating HTTP methods and CSRF attribute missing: 0
-- Controller files containing AllowAnonymous endpoints: 10
+- Controller files containing AllowAnonymous endpoints: 11
 
 Route bucket policy: new web-consumed JSON APIs should be versioned. Non-versioned routes should be compatibility shims, protocol-required endpoints, or explicitly documented exceptions.
 
@@ -49,7 +49,7 @@ Route bucket policy: new web-consumed JSON APIs should be versioned. Non-version
 | `src/slskd/Backfill/API/BackfillController.cs` | `"api/v{version:apiVersion}/backfill"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 8 |
 | `src/slskd/Capabilities/API/CapabilitiesController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 5 |
 | `src/slskd/Common/Security/API/SecurityController.cs` | `"api/v{version:apiVersion}/security"` | versioned | [Authorize] [Authorize(Roles = "Administrator")] [Authorize(Roles = "Administrator")] [Authorize(Roles = "Administrator")] [Authorize(Roles = "Administrator")] [Authorize(Roles = "Administrator")] [Authorize(Roles = "Administrator")] | yes | no | 34 |
-| `src/slskd/Core/API/Controllers/ApplicationController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 8 |
+| `src/slskd/Core/API/Controllers/ApplicationController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any)] | yes | yes | 9 |
 | `src/slskd/Core/API/Controllers/LogsController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
 | `src/slskd/Core/API/Controllers/OptionsController.cs` | `"api/v{version:apiVersion}/[controller]"<br>"startup"<br>"debug"<br>"yaml/location"<br>"yaml"<br>"yaml"<br>"yaml/validate"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 8 |
 | `src/slskd/Core/API/Controllers/ServerController.cs` | `"api/v{version:apiVersion}/[controller]"<br>""<br>""<br>""` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 3 |
@@ -155,6 +155,17 @@ None found.
 
 ## Controllers with anonymous endpoints
 
+- src/slskd/Core/API/Controllers/ApplicationController.cs
+  - 71:        [HttpGet]
+  - 82:        [HttpDelete]
+  - 102:        [HttpPut]
+  - 127:        [HttpGet("version")]
+  - 138:        [HttpGet("build")]
+  - 139:        [AllowAnonymous]
+  - 155:        [HttpGet("version/latest")]
+  - 171:        [HttpPost("gc")]
+  - 183:        [HttpGet("dump")]
+  - 234:        [HttpPost("loopback")]
 - src/slskd/Core/API/Controllers/SessionController.cs
   - 71:        [HttpGet]
   - 86:        [HttpGet]

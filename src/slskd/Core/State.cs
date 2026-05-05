@@ -72,6 +72,9 @@ namespace slskd
         public string Full { get; init; } = Program.FullVersion;
         public string Current { get; init; } = Program.SemanticVersion;
         public string Latest { get; init; } = string.Empty;
+        public string LatestTag { get; init; } = string.Empty;
+        public string LatestUrl { get; init; } = string.Empty;
+        public DateTimeOffset? CheckedAt { get; init; }
         public bool? IsUpdateAvailable { get; init; }
         public bool IsCanary { get; init; } = Program.IsCanary;
         public bool IsDevelopment { get; init; } = Program.IsDevelopment;

@@ -4,6 +4,7 @@ Anonymous endpoints must be deliberate and reviewed. This allowlist is file-scop
 
 | Controller | Rationale |
 | --- | --- |
+| `src/slskd/Core/API/Controllers/ApplicationController.cs` | Public build/version metadata supports logged-out footer display and does not expose control-plane mutation. |
 | `src/slskd/Core/API/Controllers/SessionController.cs` | Login/session bootstrap endpoints must be reachable before authentication. |
 | `src/slskd/Identity/API/ProfileController.cs` | Public peer profile lookup is an intentional identity discovery surface. |
 | `src/slskd/ListeningParty/API/ListeningPartyController.cs` | Radio stream access supports explicit unauthenticated playback paths. |

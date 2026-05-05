@@ -3,8 +3,10 @@
 // </copyright>
 namespace slskd.Tests.Unit.Core.API;
 
+using System;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -52,6 +54,63 @@ public class ApplicationControllerTests
     }
 
     [Fact]
+    public async Task GetBuild_ReturnsPublicVersionStateWithoutForcingWhenAlreadyChecked()
+    {
+        var application = new Mock<IApplication>();
+        var controller = CreateController(
+            application: application,
+            state: new State
+            {
+                Version = new VersionState
+                {
+                    CheckedAt = DateTimeOffset.UtcNow,
+                    IsUpdateAvailable = true,
+                    Latest = "2026050500-slskdn.221",
+                    LatestTag = "build-main-2026050500-slskdn.221",
+                    LatestUrl = "https://github.com/snapetech/slskdn/releases/tag/build-main-2026050500-slskdn.221",
+                },
+            });
+
+        var result = await controller.GetBuild();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var version = Assert.IsType<VersionState>(ok.Value);
+        Assert.Equal(Program.SemanticVersion, version.Current);
+        Assert.Equal("2026050500-slskdn.221", version.Latest);
+        Assert.True(version.IsUpdateAvailable);
+        application.Verify(a => a.CheckVersionAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetBuild_ChecksGitHubWhenNoCachedCheckExists()
+    {
+        var application = new Mock<IApplication>();
+        var controller = CreateController(application: application);
+
+        await controller.GetBuild();
+
+        application.Verify(a => a.CheckVersionAsync(), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("build-main-2026050500-slskdn.221", "2026050500-slskdn.221")]
+    [InlineData("v0.24.5-slskdn.186", "0.24.5-slskdn.186")]
+    [InlineData("0.0.0-slskdn.manual.20260505010919.48e7e08771f8+abc", "0.0.0-slskdn.manual.20260505010919.48e7e08771f8")]
+    public void NormalizeReleaseVersion_RemovesReleaseTagDecorations(string tag, string expected)
+    {
+        Assert.Equal(expected, GitHub.NormalizeReleaseVersion(tag));
+    }
+
+    [Theory]
+    [InlineData("2026050400-slskdn.220", "2026050500-slskdn.221", true)]
+    [InlineData("2026050500-slskdn.221", "2026050500-slskdn.221", false)]
+    [InlineData("0.0.0-slskdn.manual.local", "2026050500-slskdn.221", true)]
+    public void IsNewerVersionAvailable_HandlesSlskdnAndManualBuilds(string current, string latest, bool expected)
+    {
+        Assert.Equal(expected, GitHub.IsNewerVersionAvailable(current, latest));
+    }
+
+    [Fact]
     public void Loopback_WithNullBody_ReturnsBadRequest()
     {
         var controller = CreateController();
@@ -72,19 +131,20 @@ public class ApplicationControllerTests
         setter!.Invoke(null, new object[] { value });
     }
 
-    private static ApplicationController CreateController()
+    private static ApplicationController CreateController(
+        Mock<IApplication>? application = null,
+        State? state = null)
     {
         var optionsMonitor = new Mock<IOptionsMonitor<slskd.Options>>();
         optionsMonitor.SetupGet(m => m.CurrentValue).Returns(new slskd.Options());
 
-        var application = new Mock<IApplication>();
         var lifetime = new Mock<IHostApplicationLifetime>();
         var stateMonitor = new Mock<IStateMonitor<State>>();
-        stateMonitor.SetupGet(m => m.CurrentValue).Returns(new State());
+        stateMonitor.SetupGet(m => m.CurrentValue).Returns(state ?? new State());
 
         return new ApplicationController(
             lifetime.Object,
-            application.Object,
+            (application ?? new Mock<IApplication>()).Object,
             optionsMonitor.Object,
             stateMonitor.Object);
     }

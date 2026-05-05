@@ -26,6 +26,14 @@ public class PublicProtocolAnonymousActionTests
     }
 
     [Fact]
+    public void ApplicationController_OnlyPublicBuildMetadata_IsAnonymous()
+    {
+        AssertAnonymousActions(
+            typeof(ApplicationController),
+            nameof(ApplicationController.GetBuild));
+    }
+
+    [Fact]
     public void ProfileController_OnlyPublicProfileLookup_IsAnonymous()
     {
         AssertAnonymousActions(

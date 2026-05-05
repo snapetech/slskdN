@@ -480,42 +480,29 @@ public class TwoNodeMeshFullInstanceTests
     private static bool TryLoadLocalMeshAccounts(out LocalMeshAccounts accounts)
     {
         var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var envPath = Path.Combine(AppContext.BaseDirectory, "local-mesh-accounts.env");
-        if (!File.Exists(envPath))
+        foreach (var envPath in GetLocalMeshAccountEnvPaths())
         {
-            envPath = Path.Combine(FindRepositoryRoot(), "tests", "slskd.Tests.Integration", "local-mesh-accounts.env");
-        }
-
-        if (File.Exists(envPath))
-        {
-            foreach (var line in File.ReadAllLines(envPath))
+            if (!File.Exists(envPath))
             {
-                var trimmed = line.Trim();
-                if (trimmed.Length == 0 || trimmed.StartsWith("#", StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                var separatorIndex = trimmed.IndexOf('=');
-                if (separatorIndex <= 0)
-                {
-                    continue;
-                }
-
-                values[trimmed[..separatorIndex].Trim()] = trimmed[(separatorIndex + 1)..].Trim();
+                continue;
             }
+
+            ReadEnvFile(values, envPath);
         }
 
-        var alphaUsername = ReadCredential(values, "SLSKDN_MESH_ACCOUNT_A_USERNAME");
-        var alphaPassword = ReadCredential(values, "SLSKDN_MESH_ACCOUNT_A_PASSWORD");
-        var betaUsername = ReadCredential(values, "SLSKDN_MESH_ACCOUNT_B_USERNAME");
-        var betaPassword = ReadCredential(values, "SLSKDN_MESH_ACCOUNT_B_PASSWORD");
+        var pool = LoadLocalMeshAccountPool(values);
+        if (pool.Count < 2)
+        {
+            accounts = new LocalMeshAccounts(string.Empty, string.Empty, string.Empty, string.Empty);
+            return false;
+        }
 
-        accounts = new LocalMeshAccounts(alphaUsername, alphaPassword, betaUsername, betaPassword);
-        return !string.IsNullOrWhiteSpace(alphaUsername) &&
-            !string.IsNullOrWhiteSpace(alphaPassword) &&
-            !string.IsNullOrWhiteSpace(betaUsername) &&
-            !string.IsNullOrWhiteSpace(betaPassword);
+        accounts = new LocalMeshAccounts(
+            pool[0].Username,
+            pool[0].Password,
+            pool[1].Username,
+            pool[1].Password);
+        return true;
     }
 
     private static string ReadCredential(Dictionary<string, string> values, string key)
@@ -527,6 +514,66 @@ public class TwoNodeMeshFullInstanceTests
         }
 
         return values.TryGetValue(key, out var fileValue) ? fileValue : string.Empty;
+    }
+
+    private static IEnumerable<string> GetLocalMeshAccountEnvPaths()
+    {
+        yield return Path.Combine(AppContext.BaseDirectory, "local-mesh-accounts.env");
+        yield return Path.Combine(AppContext.BaseDirectory, "local-mesh-account-pool.env");
+
+        var repositoryTestDirectory = Path.Combine(FindRepositoryRoot(), "tests", "slskd.Tests.Integration");
+        yield return Path.Combine(repositoryTestDirectory, "local-mesh-accounts.env");
+        yield return Path.Combine(repositoryTestDirectory, "local-mesh-account-pool.env");
+    }
+
+    private static void ReadEnvFile(Dictionary<string, string> values, string envPath)
+    {
+        foreach (var line in File.ReadAllLines(envPath))
+        {
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0 || trimmed.StartsWith("#", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var separatorIndex = trimmed.IndexOf('=');
+            if (separatorIndex <= 0)
+            {
+                continue;
+            }
+
+            values[trimmed[..separatorIndex].Trim()] = trimmed[(separatorIndex + 1)..].Trim();
+        }
+    }
+
+    private static List<LocalMeshAccount> LoadLocalMeshAccountPool(Dictionary<string, string> values)
+    {
+        var accounts = new List<LocalMeshAccount>();
+        foreach (var suffix in new[] { "A", "B", "C", "D", "E", "F" })
+        {
+            AddAccountIfComplete(values, accounts, suffix);
+        }
+
+        for (var index = 1; index <= 16; index++)
+        {
+            AddAccountIfComplete(values, accounts, index.ToString());
+        }
+
+        return accounts
+            .GroupBy(account => account.Username, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .Take(16)
+            .ToList();
+    }
+
+    private static void AddAccountIfComplete(Dictionary<string, string> values, List<LocalMeshAccount> accounts, string suffix)
+    {
+        var username = ReadCredential(values, $"SLSKDN_MESH_ACCOUNT_{suffix}_USERNAME");
+        var password = ReadCredential(values, $"SLSKDN_MESH_ACCOUNT_{suffix}_PASSWORD");
+        if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
+        {
+            accounts.Add(new LocalMeshAccount(username, password));
+        }
     }
 
     private static string FindRepositoryRoot()
@@ -550,6 +597,8 @@ public class TwoNodeMeshFullInstanceTests
         string AlphaPassword,
         string BetaUsername,
         string BetaPassword);
+
+    private sealed record LocalMeshAccount(string Username, string Password);
 
     private static Task<bool> TrySeedContentItemAsync(SlskdnFullInstanceRunner runner, string filename, string contentId)
     {

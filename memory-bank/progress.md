@@ -9432,3 +9432,18 @@ Code quality improvements were completed as part of Option A:
 - Validated the current tree with `npm run check:remediation`, full `dotnet test`, and full `./bin/build`; all passed.
 - Published and deployed `0.0.0-slskdn.manual.20260505010919.48e7e08771f8` to `kspls0` at `/usr/lib/slskd/releases/manual-20260505010919.48e7e08771f8`.
 - Restarted `slskd.service` on `kspls0` and verified the live process logs the new version, executable path, host bindings on `5030`/`5031`, and application initialization completion.
+
+## 2026-05-05 01:40:00Z
+
+- Added public application build metadata for footer display, including current/full version, latest GitHub release tag/url, checked timestamp, and update availability.
+- Changed update checks to target `snapetech/slskdn` release metadata and handle slskdN date-versioned tags plus manual builds instead of only upstream-style `System.Version` tags.
+- Updated the shared footer so logged-in and logged-out screens show build info; when GitHub reports a newer release, the build pill links to that release and shows an update label.
+- Documented the public build endpoint in the anonymous endpoint allowlist and regenerated the API route inventory.
+- Validation passed: focused backend API/security tests, focused footer test, `npm run check:remediation`, `dotnet build src/slskd/slskd.csproj --no-restore`, `cd src/web && npm run lint`, `cd src/web && npm run build`, and `bash ./bin/lint`.
+
+## 2026-05-05 01:57:00Z
+
+- Investigated the live mesh smoke login failure from the manual publish run. The failing test starts two local Debug `slskd` processes from this workstation with no VPN/proxy config, not the deployed `kspls0` service or its VPN path.
+- A manual single-account probe reached `vps.slsknet.org` but was immediately closed/reset before login completed (`Remote connection closed` / `Connection reset by peer`), which points to server-side/IP-path rejection rather than the app's duplicate-username or invalid-credential branches.
+- Added a gitignored `local-mesh-account-pool.env` path and extended the live mesh test account loader to accept A-F and numbered account slots, then copied the four local slskR live test accounts into that private pool for rotation.
+- Validation: focused live mesh smoke still failed at login from this local IP path; deterministic non-live two-node full-instance mesh tests passed (`2` tests).

@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Added logged-in and logged-out footer build metadata with a GitHub-backed
+  slskdN release check that surfaces newer packaged builds from
+  `snapetech/slskdn`.
 - Completed the route remediation closeout by adding versioned aliases for the
   remaining active native slskdN, VirtualSoulfind, and Audio legacy routes,
   extending route alias tests, and enforcing remediation documentation command

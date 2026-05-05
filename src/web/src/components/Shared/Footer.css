@@ -67,6 +67,7 @@
 }
 
 .slskdn-footer-sponsor,
+.slskdn-footer-build,
 .slskdn-footer-network,
 .slskdn-footer-copyright a {
     transition:
@@ -126,6 +127,64 @@
 }
 
 .slskdn-footer-copyright a[title="slskd upstream project"]:hover {
+    color: var(--slskdn-accent-warm-hover, #efbc85);
+}
+
+.slskdn-footer-build {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 340px;
+    min-height: 24px;
+    padding: 3px 8px;
+    overflow: hidden;
+    color: rgba(238, 233, 227, 0.66);
+    background: rgba(16, 13, 18, 0.34);
+    border: 1px solid rgba(184, 154, 246, 0.18);
+    border-radius: 5px;
+    font-size: 11px;
+    line-height: 1;
+    text-decoration: none;
+}
+
+.slskdn-footer-build:hover {
+    color: var(--slskdn-accent-primary-hover, #d2c1ff);
+    border-color: rgba(184, 154, 246, 0.44);
+    background: rgba(55, 43, 72, 0.68);
+    text-decoration: none;
+}
+
+.slskdn-footer-build.update-available {
+    color: rgba(255, 232, 179, 0.94);
+    border-color: rgba(215, 161, 107, 0.58);
+    background: rgba(93, 60, 22, 0.42);
+}
+
+.slskdn-footer-build .icon {
+    margin: 0 !important;
+}
+
+.slskdn-footer-build code {
+    display: inline-block;
+    max-width: 190px;
+    overflow: hidden;
+    color: inherit;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.slskdn-footer-build-label,
+.slskdn-footer-update-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.slskdn-footer-update-label {
     color: var(--slskdn-accent-warm-hover, #efbc85);
 }
 
@@ -293,6 +352,27 @@ html:not(.dark) .slskdn-footer-group-label {
     color: #9a6336;
 }
 
+html:not(.dark) .slskdn-footer-build {
+    color: rgba(39, 35, 32, 0.62);
+    background: rgba(255, 255, 255, 0.68);
+    border-color: rgba(99, 78, 129, 0.24);
+}
+
+html:not(.dark) .slskdn-footer-build:hover {
+    color: #6f5796;
+    background: rgba(235, 227, 244, 0.88);
+}
+
+html:not(.dark) .slskdn-footer-build.update-available {
+    color: #80501e;
+    background: rgba(255, 244, 214, 0.9);
+    border-color: rgba(154, 99, 54, 0.38);
+}
+
+html:not(.dark) .slskdn-footer-update-label {
+    color: #9a6336;
+}
+
 html:not(.dark) .slskdn-footer-speeds,
 html:not(.dark) .slskdn-footer-network,
 html:not(.dark) .slskdn-footer-stats {
@@ -392,6 +472,10 @@ html:not(.dark) .slskdn-footer-sponsor .icon {
     .slskdn-footer-brand {
         flex: 0 0 auto;
         gap: 8px;
+    }
+
+    .slskdn-footer-build {
+        max-width: 260px;
     }
 
     .slskdn-footer-note {

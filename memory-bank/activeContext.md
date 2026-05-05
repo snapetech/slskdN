@@ -1,3 +1,15 @@
+## Update 2026-05-05 01:40:00Z
+
+- Current task: Footer build info and GitHub update check are complete locally.
+- Last activity:
+  - added a public `/api/v0/application/build` payload for logged-out footer build metadata
+  - changed GitHub release checks to use `snapetech/slskdn` and compare slskdN date-versioned release tags plus manual builds
+  - updated the shared footer to display the current build for both auth states and show an update link when GitHub has a newer release
+  - documented the anonymous build metadata endpoint and regenerated route inventory
+  - validation passed: focused backend tests, focused footer test, remediation baseline, backend build, web lint/build, and repo lint via `bash ./bin/lint`
+- Next steps:
+  1. Commit and push the footer/update-check changes if desired.
+
 ## Update 2026-05-05 01:25:00Z
 
 - Current task: Project gap assessment fixes are committed, pushed, validated, and deployed to `kspls0`.
@@ -4838,3 +4850,15 @@ dotnet test
 - Next steps:
   1. Retry the original tag workflow's failed PPA job with the known-good FTP configuration.
   2. If FTP still fails, inspect whether this is a transient GitHub/Launchpad network issue or a changed runner/network policy.
+
+## Update 2026-05-05 01:57:00Z
+
+- Current task: Manual deployment follow-up and live mesh login diagnosis.
+- Last activity:
+  - deployed the dirty manual build to `kspls0` and verified the service is active, reporting the new build info, and logged in to Soulseek as the configured live service account
+  - investigated the failed publish integration smoke; it used local Debug child processes without VPN/proxy egress
+  - confirmed a single-account local probe can connect TCP to Soulseek but is closed/reset before login completes, so the failure is the local egress/server path rather than the deployed service
+  - added ignored local account-pool support for the optional live mesh smoke and loaded four extra local test accounts into the private pool file
+- Next steps:
+  1. If live mesh smoke should remain in publish validation, route its two spawned processes through documented VPN/proxy egress or make it opt-in so external Soulseek policy does not fail local builds.
+  2. Preserve child process logs in `SlskdnFullInstanceRunner` failure output so future live-account failures include the actual disconnect reason.

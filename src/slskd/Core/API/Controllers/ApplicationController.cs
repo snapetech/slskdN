@@ -132,6 +132,23 @@ namespace slskd.Core.API
         }
 
         /// <summary>
+        ///     Gets public build and update-check metadata for footer display.
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("build")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetBuild([FromQuery] bool checkForUpdates = true)
+        {
+            var checkedAt = ApplicationStateMonitor.CurrentValue.Version.CheckedAt;
+            if (checkForUpdates && (checkedAt == null || checkedAt < DateTimeOffset.UtcNow.AddHours(-1)))
+            {
+                await Application.CheckVersionAsync().ConfigureAwait(false);
+            }
+
+            return Ok(ApplicationStateMonitor.CurrentValue.Version);
+        }
+
+        /// <summary>
         ///     Checks for updates.
         /// </summary>
         /// <returns></returns>

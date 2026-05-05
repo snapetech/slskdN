@@ -16,3 +16,9 @@ export const getVersion = async ({ forceCheck = false }) => {
   return (await api.get(`/application/version/latest?forceCheck=${forceCheck}`))
     .data;
 };
+
+export const getBuild = async ({ checkForUpdates = true } = {}) => {
+  return (
+    await api.get(`/application/build?checkForUpdates=${checkForUpdates}`)
+  ).data;
+};

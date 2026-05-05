@@ -1,4 +1,5 @@
 import './Footer.css';
+import * as application from '../../lib/application';
 import * as mesh from '../../lib/mesh';
 import * as session from '../../lib/session';
 import * as slskdnAPI from '../../lib/slskdn';
@@ -56,6 +57,7 @@ class Footer extends Component {
   constructor(props) {
     super(props);
     this.state = {
+      buildInfo: null,
       interval: null,
       slskdnStats: null,
       speeds: null,
@@ -77,6 +79,8 @@ class Footer extends Component {
       );
       this.footerResizeObserver.observe(this.footerRef.current);
     }
+
+    this.fetchBuildInfo();
 
     if (session.isLoggedIn()) {
       this.fetchStats();
@@ -144,10 +148,25 @@ class Footer extends Component {
     }
   };
 
+  fetchBuildInfo = async () => {
+    try {
+      const buildInfo = await application.getBuild({ checkForUpdates: true });
+      this.setState({ buildInfo });
+    } catch (error) {
+      console.debug('Failed to fetch build info:', error);
+    }
+  };
+
   render() {
     const year = new Date().getFullYear();
-    const { slskdnStats, speeds, stats } = this.state;
+    const { buildInfo, slskdnStats, speeds, stats } = this.state;
     const isLoggedIn = session.isLoggedIn();
+    const currentBuild = buildInfo?.current || buildInfo?.full || 'unknown';
+    const fullBuild = buildInfo?.full || currentBuild;
+    const latestBuild = buildInfo?.latest || '';
+    const latestTag = buildInfo?.latestTag || latestBuild;
+    const latestUrl = buildInfo?.latestUrl || `${GITHUB_BASE}/releases`;
+    const isUpdateAvailable = buildInfo?.isUpdateAvailable === true;
     const dht = slskdnStats?.dht || {};
     const hashDb = slskdnStats?.hashDb || {};
     const meshStats = slskdnStats?.mesh || {};
@@ -223,6 +242,26 @@ class Footer extends Component {
                   slskd
                 </a>
               </span>
+              <a
+                className={`slskdn-footer-build ${isUpdateAvailable ? 'update-available' : ''}`}
+                href={isUpdateAvailable ? latestUrl : `${GITHUB_BASE}/releases`}
+                rel="noopener noreferrer"
+                target="_blank"
+                title={
+                  isUpdateAvailable
+                    ? `Running ${fullBuild}; GitHub has ${latestTag || latestBuild}`
+                    : `Running ${fullBuild}`
+                }
+              >
+                <Icon name={isUpdateAvailable ? 'bullhorn' : 'code branch'} />
+                <span className="slskdn-footer-build-label">Build</span>
+                <code>{currentBuild}</code>
+                {isUpdateAvailable && (
+                  <span className="slskdn-footer-update-label">
+                    update {latestBuild}
+                  </span>
+                )}
+              </a>
             </div>
           </div>
 
