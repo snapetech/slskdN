@@ -63,6 +63,7 @@ This is not optional. This is the highest priority action after fixing a bug.
 - `src/web/src/components/Search/DiscographyCoveragePanel.jsx`
 - `src/web/src/components/System/SourceProviders/index.jsx`
 - `src/web/src/lib/watchlists.js`
+- `src/web/src/components/Messaging/Messaging.jsx`
 
 **Wrong**:
 ```js
