@@ -28,6 +28,8 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
     private readonly ILogger<SlskdnFullInstanceRunner> logger;
     private readonly string testId;
     private readonly string appDir;
+    private readonly string stdoutLogPath;
+    private readonly string stderrLogPath;
     private readonly ConcurrentQueue<string> stdoutLines = new();
     private readonly ConcurrentQueue<string> stderrLines = new();
     private Process? slskdnProcess;
@@ -48,6 +50,8 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
         this.logger = logger;
         this.testId = testId;
         this.appDir = Path.Combine(Path.GetTempPath(), "slskdn-test", testId);
+        stdoutLogPath = Path.Combine(appDir, "slskd.stdout.log");
+        stderrLogPath = Path.Combine(appDir, "slskd.stderr.log");
 
         Directory.CreateDirectory(appDir);
         Directory.CreateDirectory(Path.Combine(appDir, "config"));
@@ -132,8 +136,8 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
             throw new InvalidOperationException($"Failed to start slskdn process: {binaryPath}");
         }
 
-        slskdnProcess.OutputDataReceived += (_, args) => CaptureProcessLogLine(stdoutLines, args.Data);
-        slskdnProcess.ErrorDataReceived += (_, args) => CaptureProcessLogLine(stderrLines, args.Data);
+        slskdnProcess.OutputDataReceived += (_, args) => CaptureProcessLogLine(stdoutLines, stdoutLogPath, args.Data);
+        slskdnProcess.ErrorDataReceived += (_, args) => CaptureProcessLogLine(stderrLines, stderrLogPath, args.Data);
         slskdnProcess.BeginOutputReadLine();
         slskdnProcess.BeginErrorReadLine();
 
@@ -227,7 +231,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
         if (disableAuthentication && IsVpnWrapperConfigured())
         {
             sb.AppendLine("    passthrough:");
-            sb.AppendLine("      allowed_cidrs: 10.0.0.0/8");
+            sb.AppendLine("      allowed_cidrs: 10.224.0.0/11");
             sb.AppendLine("  allow_remote_no_auth: true");
         }
 
@@ -397,7 +401,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
             return;
         }
 
-        var testCidr = Environment.GetEnvironmentVariable("SLSKDN_FULL_INSTANCE_VPN_TEST_CIDR") ?? "10.0.0.0/8";
+        var testCidr = Environment.GetEnvironmentVariable("SLSKDN_FULL_INSTANCE_VPN_TEST_CIDR") ?? "10.224.0.0/11";
         var nsVeth = $"v-{vpnNamespaceName}n";
         var startInfo = new ProcessStartInfo
         {
@@ -590,13 +594,14 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
     {
         return "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
     }
-    private static void CaptureProcessLogLine(ConcurrentQueue<string> lines, string? line)
+    private static void CaptureProcessLogLine(ConcurrentQueue<string> lines, string logPath, string? line)
     {
         if (string.IsNullOrWhiteSpace(line))
         {
             return;
         }
 
+        File.AppendAllText(logPath, line + Environment.NewLine);
         lines.Enqueue(line);
         while (lines.Count > CapturedLogLineLimit && lines.TryDequeue(out _))
         {

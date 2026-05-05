@@ -52,9 +52,9 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
-### 0z280. VPN Namespace Test Routes Must Cover Every Peer Namespace
+### 0z280. VPN Namespace Test Routes Must Cover Every Peer Namespace Without Hijacking VPN DNS
 
-**The Bug**: The full-instance VPN test wrapper added a local route for `10.230.0.0/16`, assuming it covered alpha and beta test namespaces. It only covers `10.230.*`; beta used `10.231.0.2`, so alpha still routed beta overlay traffic through the WireGuard default route and overlay peer connection attempts timed out.
+**The Bug**: The full-instance VPN test wrapper first added a local route for `10.230.0.0/16`, assuming it covered alpha and beta test namespaces. It only covers `10.230.*`; beta used `10.231.0.2`, so alpha still routed beta overlay traffic through the WireGuard default route and overlay peer connection attempts timed out. The follow-up route of `10.0.0.0/8` covered the peers but hijacked Proton's private DNS routes, causing live instances to fail resolving `vps.slsknet.org`.
 
 **Files Affected**:
 - `tests/slskd.Tests.Integration/Harness/SlskdnFullInstanceRunner.cs`
@@ -63,14 +63,15 @@ This is not optional. This is the highest priority action after fixing a bug.
 **Wrong**:
 ```csharp
 var testCidr = "10.230.0.0/16";
+var testCidr = "10.0.0.0/8";
 ```
 
 **Correct**:
 ```csharp
-var testCidr = "10.0.0.0/8";
+var testCidr = "10.224.0.0/11";
 ```
 
-**Why This Keeps Happening**: CIDR boundaries are easy to misread when using adjacent second-octet namespace ranges. If test namespaces are `10.230.0.2`, `10.231.0.2`, `10.232.0.2`, and `10.233.0.2`, use a route broad enough for all test peer subnets or compute exact per-peer routes.
+**Why This Keeps Happening**: CIDR boundaries are easy to misread when using adjacent second-octet namespace ranges, and VPN providers often use private `10.x` infrastructure internally. If test namespaces are `10.230.0.2`, `10.231.0.2`, `10.232.0.2`, and `10.233.0.2`, use a route broad enough for all test peer subnets but narrow enough not to capture the VPN provider's DNS/control routes, or compute exact per-peer routes.
 
 ### 0z279. Passthrough AllowedCidrs Is A Comma-Separated String, Not A YAML List
 
