@@ -64,6 +64,7 @@ This is not optional. This is the highest priority action after fixing a bug.
 - `src/web/src/components/System/SourceProviders/index.jsx`
 - `src/web/src/lib/watchlists.js`
 - `src/web/src/components/Messaging/Messaging.jsx`
+- `src/web/src/components/Search/ArtistReleaseRadarPanel.jsx`
 
 **Wrong**:
 ```js
@@ -125,6 +126,7 @@ api.get(`/files/${root}/directories/${encodeURIComponent(btoa(binary))}`);
 - `src/web/src/components/App.jsx`
 - `src/web/src/components/Chat/Chat.jsx`
 - `src/web/src/components/Rooms/Rooms.jsx`
+- `src/web/src/components/Search/ArtistReleaseRadarPanel.jsx`
 
 **Wrong**:
 ```js
