@@ -52,6 +52,30 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z317. Fire-And-Forget Async Calls Must Observe The Task
+
+**The Bug**: Distributed network timer and message callbacks launched async work with `.ConfigureAwait(false)` but never awaited or observed the returned task, so background status updates and rebroadcast failures could disappear without diagnostics.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/src/Network/DistributedConnectionManager.cs`
+- `vendor/slskNet.Runtime/src/Messaging/Handlers/DistributedMessageHandler.cs`
+
+**Wrong**:
+```csharp
+_ = UpdateStatusEventuallyAsync().ConfigureAwait(false);
+UpdateStatusAsync().ConfigureAwait(false);
+_ = DistributedConnectionManager.BroadcastMessageAsync(message).ConfigureAwait(false);
+```
+
+**Correct**:
+```csharp
+QueueStatusUpdateEventually();
+QueueStatusUpdate();
+QueueBroadcastMessage(message);
+```
+
+**Why This Keeps Happening**: `.ConfigureAwait(false)` configures an await; it is not a fire-and-forget helper. Event and timer callbacks that intentionally launch background async work need a small guarded wrapper that awaits the task and catches/logs exceptions.
+
 ### 0z316. Release Workflows Must Copy Every Package Source Declared By Metadata
 
 **The Bug**: Legacy release workflows copied AUR and PPA packaging files without `slskd.tmpfiles`, while the package metadata declared or expected tmpfiles rules. Snap metadata and release-note asset names also drifted from the current release asset matrix.
