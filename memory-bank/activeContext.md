@@ -1,3 +1,16 @@
+## Update 2026-05-05 22:19:00Z
+
+- Current task: CodeQL relay download user-controlled bypass alert #2552 is fixed locally.
+- Last activity:
+  - confirmed the alert is in app code, not the .NET runtime
+  - changed relay download validation to return a token-bound server filename
+  - changed `RelayController.DownloadFile` to ignore the request filename header for file selection
+  - added focused controller/service regressions for invalid and tampered filename headers
+  - documented ADR-0001 gotcha `0z311` in commit `44efb888a`
+  - validation passed: focused relay unit tests (`12` tests), `git diff --check`, `./bin/lint`, and full `dotnet test slskd.sln --no-restore`
+- Next steps:
+  1. Commit and push the implementation/docs fix.
+
 ## Update 2026-05-05 22:45:00Z
 
 - Current task: Frontend list-shape and redirect-client bug-council batch is complete locally.

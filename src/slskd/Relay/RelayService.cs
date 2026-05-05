@@ -251,14 +251,14 @@ namespace slskd.Relay
         bool TryValidateFileDownloadCredential(Guid token, string agentName, string filename, string credential);
 
         /// <summary>
-        ///     Attempts to validate the file download response credential and returns the trusted agent name from server state.
+        ///     Attempts to validate the file download response credential and returns the trusted agent name and filename from server state.
         /// </summary>
         /// <param name="token">The token.</param>
-        /// <param name="filename">The name of the file being downloaded.</param>
         /// <param name="credential">The response credential.</param>
         /// <param name="validatedAgentName">The trusted agent name if validation succeeds.</param>
+        /// <param name="validatedFilename">The trusted filename if validation succeeds.</param>
         /// <returns>A value indicating whether the credential is valid.</returns>
-        bool TryValidateFileDownloadCredential(Guid token, string filename, string credential, out string validatedAgentName);
+        bool TryValidateFileDownloadCredential(Guid token, string credential, out string validatedAgentName, out string validatedFilename);
 
         /// <summary>
         ///     Attempts to validate the file stream response credential associated with the specified <paramref name="token"/>.
@@ -304,6 +304,8 @@ namespace slskd.Relay
     /// </summary>
     public class RelayService : IRelayService
     {
+        private sealed record RelayFileDownloadToken(string Filename, string ConnectionId);
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="RelayService"/> class.
         /// </summary>
@@ -689,7 +691,7 @@ namespace slskd.Relay
                 {
                     var id = Guid.NewGuid();
 
-                    MemoryCache.Set(GetDownloadTokenCacheKey(filename, id), record.ConnectionId, TimeSpan.FromMinutes(10));
+                    MemoryCache.Set(GetDownloadTokenCacheKey(id), new RelayFileDownloadToken(filename, record.ConnectionId), TimeSpan.FromMinutes(10));
                     Log.Debug("Cached file download token id {TokenId} for agent {Agent}", GetRelayTokenLogId(id), GetAgentLogId(record.Agent.Name));
 
                     await RelayHub.Clients.Client(record.ConnectionId).NotifyFileDownloadCompleted(filename, id);
@@ -832,12 +834,40 @@ namespace slskd.Relay
         /// <returns>A value indicating whether the credential is valid.</returns>
         public bool TryValidateFileDownloadCredential(Guid token, string agentName, string filename, string credential)
         {
-            return TryValidateCredential(token.ToString(), agentName, credential, GetDownloadTokenCacheKey(filename, token), out _, suppressRemoval: true);
+            if (!TryValidateFileDownloadCredential(token, credential, out var validatedAgentName, out var validatedFilename))
+            {
+                return false;
+            }
+
+            return string.Equals(validatedAgentName, agentName, StringComparison.Ordinal)
+                && string.Equals(validatedFilename, filename, StringComparison.Ordinal);
         }
 
-        public bool TryValidateFileDownloadCredential(Guid token, string filename, string credential, out string validatedAgentName)
+        public bool TryValidateFileDownloadCredential(Guid token, string credential, out string validatedAgentName, out string validatedFilename)
         {
-            return TryValidateCredential(token.ToString(), credential, GetDownloadTokenCacheKey(filename, token), out validatedAgentName, suppressRemoval: true);
+            validatedAgentName = string.Empty;
+            validatedFilename = string.Empty;
+
+            var cacheKey = GetDownloadTokenCacheKey(token);
+            if (!MemoryCache.TryGetValue((object)cacheKey, out var cachedToken) || cachedToken is not RelayFileDownloadToken trustedToken)
+            {
+                Log.Debug("Validation failed: Cache key {Key} not cached", cacheKey);
+                return false;
+            }
+
+            if (!TryGetAgentRegistration(trustedToken.ConnectionId, out var trustedRecord))
+            {
+                Log.Debug("Validation failed: No registration for cached relay connection {ConnectionId}", GetConnectionLogId(trustedToken.ConnectionId));
+                return false;
+            }
+
+            if (!TryValidateCredentialForTrustedAgent(token.ToString(), trustedRecord.Agent.Name, credential, out validatedAgentName))
+            {
+                return false;
+            }
+
+            validatedFilename = trustedToken.Filename;
+            return true;
         }
 
         /// <summary>
@@ -969,11 +999,43 @@ namespace slskd.Relay
 
         private string GetAuthTokenCacheKey(string connectionId) => $"{connectionId}.auth";
 
-        private string GetDownloadTokenCacheKey(string filename, Guid token) => $"{filename}.{token}.download";
+        private string GetDownloadTokenCacheKey(Guid token) => $"{token}.download";
 
         private string GetFileTokenCacheKey(string filename, Guid token) => $"{filename}.{token}.file";
 
         private string GetShareTokenCacheKey(Guid token) => $"{token}.share";
+
+        private bool TryValidateCredentialForTrustedAgent(string token, string agentName, string credential, out string validatedAgentName)
+        {
+            validatedAgentName = string.Empty;
+
+            var agentOptions = OptionsMonitor.CurrentValue.Relay.Agents.Values.SingleOrDefault(a => a.InstanceName == agentName);
+
+            if (agentOptions == default)
+            {
+                Log.Debug("Validation failed: Agent {Agent} not configured", GetAgentLogId(agentName));
+                return false;
+            }
+
+            if (!RegisteredAgentDictionary.TryGetValue(agentName, out _))
+            {
+                Log.Debug("Validation failed: Agent {Agent} not registered", GetAgentLogId(agentName));
+                return false;
+            }
+
+            var key = Pbkdf2.GetKey(password: agentOptions.Secret, salt: agentName, length: 48);
+            var tokenBytes = System.Text.Encoding.UTF8.GetBytes(token);
+            var expectedCredential = Convert.ToBase64String(System.Security.Cryptography.HMACSHA256.HashData(key, tokenBytes));
+
+            if (expectedCredential != credential)
+            {
+                Log.Debug("Validation failed: Supplied response credential does not match expected credential for agent {Agent}", GetAgentLogId(agentName));
+                return false;
+            }
+
+            validatedAgentName = agentName;
+            return true;
+        }
 
         private bool TryValidateCredential(string token, string agentName, string credential, string cacheKey, out string validatedAgentName, bool suppressRemoval = false)
         {

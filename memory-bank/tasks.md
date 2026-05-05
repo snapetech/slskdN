@@ -2478,3 +2478,7 @@
 - [x] Continue Web route-boundary and MediaCore result-panel burn-down
   - Status: completed (2026-05-05)
   - Notes: Encoded slskdN mesh/swarm, library-health, collections/share grants, identity contact, wishlist, and bridge dynamic route segments, and guarded additional MediaCore result-panel lists/maps before count/render operations.
+
+- [x] Fix CodeQL relay download user-controlled bypass alert
+  - Status: completed (2026-05-05)
+  - Notes: Fixed CodeQL alert #2552 by binding relay download tokens to server-side filenames and serving only the trusted filename returned by credential validation. Added controller and relay-service regressions for invalid/tampered filename headers.

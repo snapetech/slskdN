@@ -2,13 +2,17 @@
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using Moq;
+using slskd.Cryptography;
 using slskd.Files;
 using slskd.Relay;
 using slskd.Shares;
@@ -90,7 +94,46 @@ public class RelayServiceTests
         Assert.True(client.Disposed);
     }
 
-    private static RelayService CreateService(IOptionsMonitor<Options> optionsMonitor, IRelayClient relayClient)
+    [Fact]
+    public async Task TryValidateFileDownloadCredential_ReturnsTrustedFilenameFromTokenCache()
+    {
+        const string agentName = "test-agent";
+        const string connectionId = "connection-1";
+        const string secret = "0123456789abcdef";
+
+        var notifiedToken = Guid.Empty;
+        var relayClient = new Mock<IRelayHub>();
+        relayClient
+            .Setup(x => x.NotifyFileDownloadCompleted("trusted.mp3", It.IsAny<Guid>()))
+            .Callback<string, Guid>((_, token) => notifiedToken = token)
+            .Returns(Task.CompletedTask);
+
+        var hubClients = new Mock<IHubClients<IRelayHub>>();
+        hubClients
+            .Setup(x => x.Client(connectionId))
+            .Returns(relayClient.Object);
+
+        var relayHub = new Mock<IHubContext<RelayHub, IRelayHub>>();
+        relayHub
+            .Setup(x => x.Clients)
+            .Returns(hubClients.Object);
+
+        var options = CreateOptions(enabled: true, RelayMode.Controller, agentName, secret);
+        var service = CreateService(CreateOptionsMonitor(options), new NullRelayClient(), relayHub.Object);
+        service.RegisterAgent(connectionId, new Agent { Name = agentName, IPAddress = "127.0.0.1" });
+
+        await service.NotifyFileDownloadCompleteAsync("trusted.mp3");
+
+        var credential = ComputeCredential(notifiedToken, agentName, secret);
+        var validated = service.TryValidateFileDownloadCredential(notifiedToken, credential, out var validatedAgentName, out var validatedFilename);
+
+        Assert.True(validated);
+        Assert.Equal(agentName, validatedAgentName);
+        Assert.Equal("trusted.mp3", validatedFilename);
+        Assert.False(service.TryValidateFileDownloadCredential(notifiedToken, agentName, "evil.mp3", credential));
+    }
+
+    private static RelayService CreateService(IOptionsMonitor<Options> optionsMonitor, IRelayClient relayClient, IHubContext<RelayHub, IRelayHub>? relayHub = null)
     {
         return new RelayService(
             Mock.Of<IWaiter>(),
@@ -98,7 +141,7 @@ public class RelayServiceTests
             Mock.Of<IShareService>(),
             Mock.Of<IShareRepositoryFactory>(),
             optionsMonitor,
-            Mock.Of<IHubContext<RelayHub, IRelayHub>>(),
+            relayHub ?? Mock.Of<IHubContext<RelayHub, IRelayHub>>(),
             Mock.Of<IHttpClientFactory>(),
             relayClient);
     }
@@ -111,7 +154,7 @@ public class RelayServiceTests
         return optionsMonitor.Object;
     }
 
-    private static Options CreateOptions(bool enabled, RelayMode mode)
+    private static Options CreateOptions(bool enabled, RelayMode mode, string? agentName = null, string? agentSecret = null)
     {
         return new Options
         {
@@ -119,6 +162,16 @@ public class RelayServiceTests
             {
                 Enabled = enabled,
                 Mode = mode.ToString(),
+                Agents = agentName == null
+                    ? new Dictionary<string, Options.RelayOptions.RelayAgentConfigurationOptions>()
+                    : new Dictionary<string, Options.RelayOptions.RelayAgentConfigurationOptions>
+                    {
+                        [agentName] = new()
+                        {
+                            InstanceName = agentName,
+                            Secret = agentSecret ?? "0123456789abcdef",
+                        },
+                    },
                 Controller = new Options.RelayOptions.RelayControllerConfigurationOptions
                 {
                     Address = "https://relay.example",
@@ -127,6 +180,13 @@ public class RelayServiceTests
                 },
             },
         };
+    }
+
+    private static string ComputeCredential(Guid token, string agentName, string secret)
+    {
+        var key = Pbkdf2.GetKey(password: secret, salt: agentName, length: 48);
+        var tokenBytes = Encoding.UTF8.GetBytes(token.ToString());
+        return Convert.ToBase64String(HMACSHA256.HashData(key, tokenBytes));
     }
 
     private static void InvokeConfigure(RelayService service, Options options)

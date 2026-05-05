@@ -160,46 +160,26 @@ namespace slskd.Relay
 
             var agentName = Request.Headers["X-Relay-Agent"].FirstOrDefault()?.Trim();
             var credential = Request.Headers["X-Relay-Credential"].FirstOrDefault()?.Trim();
-            var encodedFilename = Request.Headers["X-Relay-Filename-Base64"].FirstOrDefault()?.Trim();
-            string? filename;
-
-            try
-            {
-                filename = encodedFilename?.FromBase64();
-            }
-            catch (FormatException)
-            {
-                return Task.FromResult<IActionResult>(BadRequest("Filename is not in a valid format"));
-            }
-            catch (ArgumentException)
-            {
-                return Task.FromResult<IActionResult>(BadRequest("Filename is not in a valid format"));
-            }
 
             if (string.IsNullOrEmpty(credential))
             {
                 return Task.FromResult<IActionResult>(Unauthorized());
             }
 
-            if (string.IsNullOrEmpty(filename))
-            {
-                return Task.FromResult<IActionResult>(BadRequest());
-            }
-
-            Log.Information("Handling file download of {Filename} for token {Token} from a caller claiming to be agent {Agent}", filename, GetRelayTokenLogId(guid), GetAgentLogId(agentName ?? string.Empty));
+            Log.Information("Handling file download for token {Token} from a caller claiming to be agent {Agent}", GetRelayTokenLogId(guid), GetAgentLogId(agentName ?? string.Empty));
 
             // note: the token remains valid after the validation attempt, unlike most other endpoints.
             // this is done to support retries
-            if (!Relay.TryValidateFileDownloadCredential(token: guid, filename, credential, out var validatedAgentName))
+            if (!Relay.TryValidateFileDownloadCredential(token: guid, credential, out var validatedAgentName, out var validatedFilename))
             {
                 Log.Warning("Failed to authenticate relay download token {Token} from a caller claiming to be agent {Agent}", GetRelayTokenLogId(guid), GetAgentLogId(agentName ?? string.Empty));
                 return Task.FromResult<IActionResult>(Unauthorized());
             }
 
-            var sourceFile = PathGuard.NormalizeAndValidate(filename, OptionsMonitor.CurrentValue.Directories.Downloads);
+            var sourceFile = PathGuard.NormalizeAndValidate(validatedFilename, OptionsMonitor.CurrentValue.Directories.Downloads);
             if (sourceFile == null)
             {
-                Log.Warning("[SECURITY] Blocked relay download outside downloads root | Filename={Filename}", filename);
+                Log.Warning("[SECURITY] Blocked relay download outside downloads root | Filename={Filename}", validatedFilename);
                 return Task.FromResult<IActionResult>(BadRequest("Invalid filename"));
             }
 
@@ -216,12 +196,12 @@ namespace slskd.Relay
                 {
                     Log.Warning(
                         "[SECURITY] MCP blocked relay download | Filename={Filename} | Reason=Content not advertisable",
-                        filename);
+                        validatedFilename);
                     return Task.FromResult<IActionResult>(Unauthorized());
                 }
             }
 
-            Log.Information("Agent {Agent} authenticated for relay token {Token}. Sending file {Filename}", GetAgentLogId(validatedAgentName), GetRelayTokenLogId(guid), filename);
+            Log.Information("Agent {Agent} authenticated for relay token {Token}. Sending file {Filename}", GetAgentLogId(validatedAgentName), GetRelayTokenLogId(guid), validatedFilename);
 
             return Task.FromResult<IActionResult>(PhysicalFile(sourceFile, "application/octet-stream"));
         }

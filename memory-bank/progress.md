@@ -9733,3 +9733,10 @@ Code quality improvements were completed as part of Option A:
 - Encoded slskdN mesh/swarm, library-health, collections/share grants, identity contact, wishlist, and bridge dynamic route segments.
 - Guarded additional MediaCore result-panel counts and maps for malformed list/object payloads.
 - Validation passed: route-segment rescan, MediaCore optional-length rescan, `npm run check:remediation`, Web API/security/release scanner lane, `git diff --check`, Web lint, full Web tests (`630` tests), `./bin/lint`, and full `dotnet test slskd.sln --no-restore`.
+
+## 2026-05-05 22:19:00Z
+
+- Fixed GitHub CodeQL alert #2552 in the relay download endpoint.
+- Changed relay download token caching to store the trusted filename with the token and updated the controller to serve only that server-side filename.
+- Documented ADR-0001 gotcha `0z311` in commit `44efb888a`.
+- Validation passed: focused relay controller/service unit tests (`12` tests), `git diff --check`, `./bin/lint`, and full `dotnet test slskd.sln --no-restore`.
