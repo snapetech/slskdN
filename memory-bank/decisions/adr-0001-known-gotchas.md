@@ -54,7 +54,7 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ### 0z280. VPN Namespace Test Routes Must Cover Every Peer Namespace Without Hijacking VPN DNS
 
-**The Bug**: The full-instance VPN test wrapper first added a local route for `10.230.0.0/16`, assuming it covered alpha and beta test namespaces. It only covers `10.230.*`; beta used `10.231.0.2`, so alpha still routed beta overlay traffic through the WireGuard default route and overlay peer connection attempts timed out. The follow-up route of `10.0.0.0/8` covered the peers but hijacked Proton's private DNS routes, causing live instances to fail resolving `vps.slsknet.org`.
+**The Bug**: The full-instance VPN test wrapper first added a local route for `10.230.0.0/16`, assuming it covered alpha and beta test namespaces. It only covers `10.230.*`; beta used `10.231.0.2`, so alpha still routed beta overlay traffic through the WireGuard default route and overlay peer connection attempts timed out. The follow-up route of `10.0.0.0/8` covered the peers but hijacked Proton's private DNS routes, causing live instances to fail resolving `vps.slsknet.org`. Even after narrowing the route, namespaces inherited LAN DNS servers that were unreachable through Proton, so VPN-wrapped tests must host-resolve the Soulseek server before writing child config.
 
 **Files Affected**:
 - `tests/slskd.Tests.Integration/Harness/SlskdnFullInstanceRunner.cs`
@@ -69,9 +69,12 @@ var testCidr = "10.0.0.0/8";
 **Correct**:
 ```csharp
 var testCidr = "10.224.0.0/11";
+var soulseekAddress = Dns.GetHostAddresses("vps.slsknet.org")
+    .First(candidate => candidate.AddressFamily == AddressFamily.InterNetwork)
+    .ToString();
 ```
 
-**Why This Keeps Happening**: CIDR boundaries are easy to misread when using adjacent second-octet namespace ranges, and VPN providers often use private `10.x` infrastructure internally. If test namespaces are `10.230.0.2`, `10.231.0.2`, `10.232.0.2`, and `10.233.0.2`, use a route broad enough for all test peer subnets but narrow enough not to capture the VPN provider's DNS/control routes, or compute exact per-peer routes.
+**Why This Keeps Happening**: CIDR boundaries are easy to misread when using adjacent second-octet namespace ranges, and VPN providers often use private `10.x` infrastructure internally. If test namespaces are `10.230.0.2`, `10.231.0.2`, `10.232.0.2`, and `10.233.0.2`, use a route broad enough for all test peer subnets but narrow enough not to capture the VPN provider's DNS/control routes, or compute exact per-peer routes. Do not assume `ip netns exec` has working DNS; resolve externally or configure namespace resolvers explicitly.
 
 ### 0z279. Passthrough AllowedCidrs Is A Comma-Separated String, Not A YAML List
 

@@ -248,7 +248,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
         sb.AppendLine("  collectionsSharing: true");
         sb.AppendLine("  scenePodBridge: true");
         sb.AppendLine("soulseek:");
-        sb.AppendLine($"  address: {Environment.GetEnvironmentVariable("SLSKDN_TEST_SOULSEEK_ADDRESS") ?? "vps.slsknet.org"}");
+        sb.AppendLine($"  address: {GetSoulseekAddressForConfig()}");
         sb.AppendLine("  port: 2271");
         sb.AppendLine($"  username: {YamlEscape(soulseekUsername ?? testId)}");
         sb.AppendLine($"  password: {YamlEscape(soulseekPassword ?? "test-password")}");
@@ -381,6 +381,20 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
     {
         return !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SLSKDN_FULL_INSTANCE_VPN_WRAPPER")) &&
             !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SLSKDN_FULL_INSTANCE_VPN_CONFIGS"));
+    }
+
+    private static string GetSoulseekAddressForConfig()
+    {
+        var configuredAddress = Environment.GetEnvironmentVariable("SLSKDN_TEST_SOULSEEK_ADDRESS") ?? "vps.slsknet.org";
+        if (!IsVpnWrapperConfigured() || IPAddress.TryParse(configuredAddress, out _))
+        {
+            return configuredAddress;
+        }
+
+        var address = Dns.GetHostAddresses(configuredAddress)
+            .FirstOrDefault(candidate => candidate.AddressFamily == AddressFamily.InterNetwork);
+
+        return address?.ToString() ?? configuredAddress;
     }
 
     private static string BuildVpnNamespaceName(string prefix, int index)
