@@ -17,6 +17,7 @@
 
 namespace Soulseek.Tests.Unit
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using AutoFixture.Xunit2;
@@ -68,6 +69,22 @@ namespace Soulseek.Tests.Unit
             Assert.Empty(s.Exclusions);
             Assert.Equal(string.Empty, s.Query);
             Assert.Equal(string.Empty, s.SearchText);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Theory(DisplayName = "Rejects null terms and exclusions")]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Rejects_Null_Terms_And_Exclusions(bool exclusion)
+        {
+            if (exclusion)
+            {
+                Assert.Throws<ArgumentException>(() => new SearchQuery(new[] { "foo" }, new string[] { null }));
+            }
+            else
+            {
+                Assert.Throws<ArgumentException>(() => new SearchQuery(new string[] { null }));
+            }
         }
 
         [Trait("Category", "Instantiation")]

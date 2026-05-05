@@ -42,8 +42,21 @@ namespace Soulseek
         /// <param name="exclusions">The list of excluded terms.</param>
         public SearchQuery(IEnumerable<string> terms, IEnumerable<string> exclusions = null)
         {
-            Terms = (terms?.ToList() ?? new List<string>()).AsReadOnly();
-            Exclusions = (exclusions?.ToList() ?? new List<string>()).AsReadOnly();
+            var termList = terms?.ToList() ?? new List<string>();
+            var exclusionList = exclusions?.ToList() ?? new List<string>();
+
+            if (termList.Any(term => term == null))
+            {
+                throw new ArgumentException("The term list must not contain null entries", nameof(terms));
+            }
+
+            if (exclusionList.Any(exclusion => exclusion == null))
+            {
+                throw new ArgumentException("The exclusion list must not contain null entries", nameof(exclusions));
+            }
+
+            Terms = termList.AsReadOnly();
+            Exclusions = exclusionList.AsReadOnly();
         }
 
         /// <summary>
