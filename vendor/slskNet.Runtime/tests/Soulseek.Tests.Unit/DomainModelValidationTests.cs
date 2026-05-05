@@ -26,11 +26,53 @@ namespace Soulseek.Tests.Unit
         public void File_Rejects_Negative_Size()
             => Assert.Throws<ArgumentOutOfRangeException>(() => new File(1, "file.mp3", -1, ".mp3"));
 
+        [Fact(DisplayName = "File rejects null attributes")]
+        public void File_Rejects_Null_Attributes()
+            => Assert.Throws<ArgumentException>(() => new File(1, "file.mp3", 1, ".mp3", new FileAttribute[] { null }));
+
+        [Fact(DisplayName = "Directory rejects null files")]
+        public void Directory_Rejects_Null_Files()
+            => Assert.Throws<ArgumentException>(() => new Directory("dir", new File[] { null }));
+
+        [Theory(DisplayName = "BrowseResponse rejects null directories")]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void BrowseResponse_Rejects_Null_Directories(bool locked)
+        {
+            var directories = new Directory[] { null };
+
+            if (locked)
+            {
+                Assert.Throws<ArgumentException>(() => new BrowseResponse(lockedDirectoryList: directories));
+            }
+            else
+            {
+                Assert.Throws<ArgumentException>(() => new BrowseResponse(directoryList: directories));
+            }
+        }
+
         [Theory(DisplayName = "SearchResponse rejects negative peer metadata")]
         [InlineData(-1, 0)]
         [InlineData(0, -1)]
         public void SearchResponse_Rejects_Negative_Peer_Metadata(int uploadSpeed, int queueLength)
             => Assert.Throws<ArgumentOutOfRangeException>(() => new SearchResponse("user", 1, true, uploadSpeed, queueLength, null));
+
+        [Theory(DisplayName = "SearchResponse rejects null files")]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void SearchResponse_Rejects_Null_Files(bool locked)
+        {
+            var files = new File[] { null };
+
+            if (locked)
+            {
+                Assert.Throws<ArgumentException>(() => new SearchResponse("user", 1, true, 0, 0, null, files));
+            }
+            else
+            {
+                Assert.Throws<ArgumentException>(() => new SearchResponse("user", 1, true, 0, 0, files));
+            }
+        }
 
         [Theory(DisplayName = "UserInfo rejects negative peer metadata")]
         [InlineData(-1, 0)]

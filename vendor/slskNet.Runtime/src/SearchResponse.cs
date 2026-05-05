@@ -63,10 +63,24 @@ namespace Soulseek
 
             HasFreeUploadSlot = hasFreeUploadSlot;
 
-            Files = (fileList?.ToList() ?? new List<File>()).AsReadOnly();
+            var files = fileList?.ToList() ?? new List<File>();
+
+            if (files.Any(file => file == null))
+            {
+                throw new ArgumentException("The file list must not contain null entries", nameof(fileList));
+            }
+
+            Files = files.AsReadOnly();
             FileCount = Files.Count;
 
-            LockedFiles = (lockedFileList?.ToList() ?? new List<File>()).AsReadOnly();
+            var lockedFiles = lockedFileList?.ToList() ?? new List<File>();
+
+            if (lockedFiles.Any(file => file == null))
+            {
+                throw new ArgumentException("The locked file list must not contain null entries", nameof(lockedFileList));
+            }
+
+            LockedFiles = lockedFiles.AsReadOnly();
             LockedFileCount = LockedFiles.Count;
         }
 

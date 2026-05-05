@@ -23,6 +23,7 @@
 
 namespace Soulseek
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
 
@@ -40,7 +41,14 @@ namespace Soulseek
         {
             Name = name;
 
-            Files = (fileList?.ToList() ?? new List<File>()).AsReadOnly();
+            var files = fileList?.ToList() ?? new List<File>();
+
+            if (files.Any(file => file == null))
+            {
+                throw new ArgumentException("The file list must not contain null entries", nameof(fileList));
+            }
+
+            Files = files.AsReadOnly();
             FileCount = Files.Count;
         }
 

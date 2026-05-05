@@ -41,10 +41,24 @@ namespace Soulseek
         /// <param name="lockedDirectoryList">The optional locked directory list.</param>
         public BrowseResponse(IEnumerable<Directory> directoryList = null, IEnumerable<Directory> lockedDirectoryList = null)
         {
-            Directories = (directoryList?.ToList() ?? new List<Directory>()).AsReadOnly();
+            var directories = directoryList?.ToList() ?? new List<Directory>();
+
+            if (directories.Any(directory => directory == null))
+            {
+                throw new ArgumentException("The directory list must not contain null entries", nameof(directoryList));
+            }
+
+            Directories = directories.AsReadOnly();
             DirectoryCount = Directories.Count;
 
-            LockedDirectories = (lockedDirectoryList?.ToList() ?? new List<Directory>()).AsReadOnly();
+            var lockedDirectories = lockedDirectoryList?.ToList() ?? new List<Directory>();
+
+            if (lockedDirectories.Any(directory => directory == null))
+            {
+                throw new ArgumentException("The locked directory list must not contain null entries", nameof(lockedDirectoryList));
+            }
+
+            LockedDirectories = lockedDirectories.AsReadOnly();
             LockedDirectoryCount = LockedDirectories.Count;
         }
 

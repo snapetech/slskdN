@@ -52,7 +52,14 @@ namespace Soulseek
             Size = size;
             Extension = extension;
 
-            Attributes = (attributeList?.ToList() ?? new List<FileAttribute>()).AsReadOnly();
+            var attributes = attributeList?.ToList() ?? new List<FileAttribute>();
+
+            if (attributes.Any(attribute => attribute == null))
+            {
+                throw new ArgumentException("The file attribute list must not contain null entries", nameof(attributeList));
+            }
+
+            Attributes = attributes.AsReadOnly();
             AttributeCount = Attributes.Count;
 
             foreach (var attribute in Attributes)
