@@ -52,6 +52,34 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z290. Links That Must Work In New Tabs Cannot Depend On Router State
+
+**The Bug**: Search result usernames linked to Browse using React Router state embedded in the `to` object. Same-tab navigation could appear to work in some versions, but opening the link in a new tab or refreshing `/browse` lost the username because router state is not part of the URL. Browse opened as a blank/new tab without starting the requested user browse.
+
+**Files Affected**:
+- `src/web/src/components/Search/Response.jsx`
+- `src/web/src/components/Browse/Browse.jsx`
+
+**Wrong**:
+```jsx
+<Link
+  to={{
+    pathname: '/browse',
+    state: { user: response.username },
+  }}
+/>
+```
+
+**Correct**:
+```jsx
+<Link
+  state={{ user: response.username }}
+  to={`/browse?user=${encodeURIComponent(response.username)}`}
+/>
+```
+
+**Why This Keeps Happening**: Router state is process-local browser history metadata. It is fine as a convenience for same-tab navigation, but it does not survive opening in a new tab, copying a URL, refreshing, service-worker reloads, or direct entry. Any page that needs an entity identifier to render must accept that identifier from the URL path or query string; router state can only be a secondary fast path.
+
 ### 0z289. Saved Search Producers Must Use Normal Network Scope Unless They Intentionally Need Server Wishlist Semantics
 
 **The Bug**: slskdN Wishlist items executed through `SearchScope.Wishlist`, while manual reruns from the Search view used `SearchScope.Network`. The saved-search job could complete with zero responses even though immediately rerunning the same text as a normal search returned results. The manual Wishlist run path also waited for completion but returned the original just-started search object, so UI callers could still display `0` even after the persisted search had responses.
