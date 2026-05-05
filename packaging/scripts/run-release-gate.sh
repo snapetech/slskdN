@@ -10,6 +10,27 @@ section() {
     echo "==> $1"
 }
 
+ensure_tool() {
+    local command_name="$1"
+    local package_name="$2"
+
+    if command -v "$command_name" >/dev/null 2>&1; then
+        return
+    fi
+
+    if command -v apt-get >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
+        section "Install ${package_name}"
+        sudo apt-get update
+        sudo apt-get install -y "$package_name"
+        return
+    fi
+
+    echo "ERROR: required command '${command_name}' is not installed; install package '${package_name}' and rerun." >&2
+    exit 127
+}
+
+ensure_tool rg ripgrep
+
 section "Validate packaging metadata"
 bash packaging/scripts/validate-packaging-metadata.sh
 
