@@ -187,6 +187,8 @@ namespace Soulseek
         /// <returns>A Task representing the wait.</returns>
         public Task<T> Wait<T>(WaitKey key, int? timeout = null, CancellationToken? cancellationToken = null)
         {
+            ThrowIfDisposed();
+
             timeout ??= DefaultTimeout;
             cancellationToken ??= CancellationToken.None;
 
@@ -245,6 +247,14 @@ namespace Soulseek
         public Task<T> WaitIndefinitely<T>(WaitKey key, CancellationToken? cancellationToken = null)
         {
             return Wait<T>(key, int.MaxValue, cancellationToken);
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (Disposed)
+            {
+                throw new ObjectDisposedException(nameof(Waiter));
+            }
         }
 
         private void Disposition(WaitKey key, Action<PendingWait> action)

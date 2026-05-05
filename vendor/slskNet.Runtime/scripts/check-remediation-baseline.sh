@@ -100,6 +100,8 @@ require_pattern "WaitForResetAsync\\(cancellationToken\\)" "src/Common/TokenBuck
 require_pattern "TrySetException\\(new ObjectDisposedException\\(nameof\\(TokenBucket\\)\\)\\)" "src/Common/TokenBucket.cs" "token bucket disposal releases reset waiters"
 require_pattern "GetAsync_Observes_Cancellation_While_Waiting_For_Reset" "tests/Soulseek.Tests.Unit/Common/TokenBucketTests.cs" "token bucket cancellation regression test is registered"
 require_pattern "Dispose_Releases_Waiters_Waiting_For_Reset" "tests/Soulseek.Tests.Unit/Common/TokenBucketTests.cs" "token bucket disposal regression test is registered"
+require_pattern "ThrowIfDisposed\\(\\)" "src/Common/Waiter.cs" "waiter rejects wait creation after disposal"
+require_pattern "Wait_Throws_ObjectDisposedException_After_Dispose" "tests/Soulseek.Tests.Unit/Common/WaiterTests.cs" "waiter disposed creation regression test is registered"
 require_pattern "DisposeCompletedConnection\\(connection\\)" "src/Network/PeerConnectionManager.cs" "peer message cache invalidation disposes completed connections"
 require_pattern "TryInvalidateMessageConnectionCache_Disposes_Completed_Cached_Connection" "tests/Soulseek.Tests.Unit/Network/PeerConnectionManagerTests.cs" "peer message cache disposal regression test is registered"
 

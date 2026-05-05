@@ -594,6 +594,19 @@ namespace Soulseek.Tests.Unit
             }
         }
 
+        [Trait("Category", "Wait Creation")]
+        [Fact(DisplayName = "Wait throws ObjectDisposedException after dispose")]
+        public void Wait_Throws_ObjectDisposedException_After_Dispose()
+        {
+            var waiter = new Waiter();
+            waiter.Dispose();
+
+            Assert.Throws<ObjectDisposedException>(() => { _ = waiter.Wait(new WaitKey(MessageCode.Server.Login)); });
+            Assert.Throws<ObjectDisposedException>(() => { _ = waiter.Wait<object>(new WaitKey(MessageCode.Server.Login)); });
+            Assert.Throws<ObjectDisposedException>(() => { _ = waiter.WaitIndefinitely(new WaitKey(MessageCode.Server.Login)); });
+            Assert.Throws<ObjectDisposedException>(() => { _ = waiter.WaitIndefinitely<object>(new WaitKey(MessageCode.Server.Login)); });
+        }
+
         [Trait("Category", "PendingWait")]
         [Fact(DisplayName = "PendingWait Dispose() does not throw if not Registered")]
         public void PendingWait_Dispose_Does_Not_Throw_If_Not_Registered()
