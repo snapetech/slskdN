@@ -52,6 +52,35 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z318. Example API Route Parameters Need Explicit Blank Checks
+
+**The Bug**: Example Web API controllers relied on `[FromRoute, Required]` for route string values, but direct controller paths and whitespace route segments could still reach runtime calls or tracker lookups. One upload lookup dereferenced the default transfer record instead of returning `404`.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/examples/Web/api/Controllers/UserController.cs`
+- `vendor/slskNet.Runtime/examples/Web/api/Controllers/RoomsController.cs`
+- `vendor/slskNet.Runtime/examples/Web/api/Controllers/ConversationsController.cs`
+- `vendor/slskNet.Runtime/examples/Web/api/Controllers/TransfersController.cs`
+
+**Wrong**:
+```csharp
+public async Task<IActionResult> Browse([FromRoute, Required] string username)
+{
+    var result = await Client.BrowseAsync(username);
+    return Ok(result);
+}
+```
+
+**Correct**:
+```csharp
+if (ControllerValidation.IsMissing(username))
+{
+    return BadRequest("Username is required");
+}
+```
+
+**Why This Keeps Happening**: Attribute validation looks like a complete boundary, but route strings can still be whitespace and unit/direct invocation bypasses model-state behavior. Any example endpoint that passes route values to runtime calls or tracker lookups should explicitly reject blank route strings.
+
 ### 0z317. Fire-And-Forget Async Calls Must Observe The Task
 
 **The Bug**: Distributed network timer and message callbacks launched async work with `.ConfigureAwait(false)` but never awaited or observed the returned task, so background status updates and rebroadcast failures could disappear without diagnostics.
