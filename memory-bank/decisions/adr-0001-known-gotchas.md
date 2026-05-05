@@ -13471,3 +13471,11 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 **Why it happened:** The implementation treated event sender metadata as required protocol state. In practice, the accepted `IConnection` is the required input and the listener sender is only extra context for listener address, port, and obfuscation mode.
 
 **How to prevent it:** Listener handlers must default to cleartext behavior unless `sender is IListener listener && listener.Obfuscated`. Use null-safe listener metadata in diagnostics, and add focused tests for direct handler invocation plus obfuscated-listener invocation when adding new listener-specific behavior.
+
+### 0z74. Release Gate Steps Need Command-Level Timeouts And Visible Boundaries
+
+**What went wrong:** The `build-main-2026050500-slskdn.222` tag run entered the Build job's single `Release Gate` step and stayed in progress until it was manually cancelled. The workflow exposed only that one shell step as running, so the stalled command inside the gate was not visible from the Actions job summary.
+
+**Why it happened:** `run-release-gate.sh` chained dependency install, frontend tests/build, backend tests, and integration smoke commands without per-command timeouts or a workflow job timeout. If any test runner or child process hung, the entire release looked stuck at "Release Gate" instead of failing with a bounded, actionable section.
+
+**How to prevent it:** Release-gate orchestration must wrap each expensive command in a named timeout and keep workflow-level `timeout-minutes` on tag build jobs. Do not add new long-running release checks without a bounded runtime and a clear section label that will identify the failing command in CI logs.
