@@ -52,6 +52,27 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z304. Web API List Helpers Must Reject Non-Array Payloads
+
+**The Bug**: Web API helpers returned `response.data || []` for list endpoints. Truthy malformed payloads such as objects or strings escaped as “lists” and could crash callers that immediately map, filter, or render them.
+
+**Files Affected**:
+- `src/web/src/lib/quarantineJury.js`
+- `src/web/src/lib/listeningParty.js`
+
+**Wrong**:
+```js
+return (await api.get('/items')).data || [];
+```
+
+**Correct**:
+```js
+const { data } = await api.get('/items');
+return Array.isArray(data) ? data : [];
+```
+
+**Why This Keeps Happening**: `|| []` only handles nullish or falsey responses. API helper contracts need shape checks at the boundary so component code can trust list helpers and does not need to repeat defensive `Array.isArray` checks everywhere.
+
 ### 0z303. LocalStorage Arrays Must Validate Item Shapes
 
 **The Bug**: Browser-local arrays accepted any parsed array entries and passed strings, `null`, or nested arrays into normalization code. Valid JSON with invalid item shapes could crash dashboards and workflow handoffs even though the top-level container was an array.
