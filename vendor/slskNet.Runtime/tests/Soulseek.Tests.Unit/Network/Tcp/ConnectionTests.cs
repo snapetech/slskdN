@@ -627,6 +627,22 @@ namespace Soulseek.Tests.Unit.Network.Tcp
         }
 
         [Trait("Category", "WaitForDisconnect")]
+        [Theory(DisplayName = "WaitForDisconnect completion is idempotent"), AutoData]
+        public async Task WaitForDisconnect_Completion_Is_Idempotent(IPEndPoint endpoint, string message)
+        {
+            using (var c = new Connection(endpoint))
+            {
+                c.InvokeMethod("ChangeState", ConnectionState.Disconnected, message, null);
+
+                var ex = Record.Exception(() => c.InvokeMethod("ChangeState", ConnectionState.Disconnected, message, null));
+                var actualMessage = await c.WaitForDisconnect();
+
+                Assert.Null(ex);
+                Assert.Equal(message, actualMessage);
+            }
+        }
+
+        [Trait("Category", "WaitForDisconnect")]
         [Theory(DisplayName = "WaitForDisconnect throws OperationCanceledException when cancelled"), AutoData]
         public async Task WaitForDisconnect_Throws_OperationCanceledException_When_Canceled(IPEndPoint endpoint)
         {

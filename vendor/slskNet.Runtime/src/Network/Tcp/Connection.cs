@@ -595,11 +595,11 @@ namespace Soulseek.Network.Tcp
 
                 if (exception != null)
                 {
-                    DisconnectTaskCompletionSource.SetException(exception);
+                    DisconnectTaskCompletionSource.TrySetException(exception);
                 }
                 else
                 {
-                    DisconnectTaskCompletionSource.SetResult(message);
+                    DisconnectTaskCompletionSource.TrySetResult(message);
                 }
             }
         }

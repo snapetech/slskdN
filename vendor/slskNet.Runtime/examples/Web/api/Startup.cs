@@ -503,6 +503,8 @@ namespace WebAPI
                 fileList: System.IO.Directory.GetFiles(dir)
                     .Select(f => new Soulseek.File(1, Path.GetFileName(f), new FileInfo(f).Length, Path.GetExtension(f))));
 
+            directory = Extensions.GetFullPathInsideRoot(SharedDirectory, directory);
+
             var list = new List<Soulseek.Directory>()
             {
                 MakeDirectory(directory)
@@ -601,7 +603,7 @@ namespace WebAPI
         private Task EnqueueDownloadAction(string username, IPEndPoint endpoint, string filename, ITransferTracker tracker)
         {
             _ = endpoint;
-            var localFilename = filename.ToLocalOSPath();
+            var localFilename = Extensions.GetFullPathInsideRoot(SharedDirectory, filename);
             var fileInfo = new FileInfo(localFilename);
             var enqueuedTimestamp = DateTime.UtcNow;
 

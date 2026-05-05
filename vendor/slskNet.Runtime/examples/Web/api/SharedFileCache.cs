@@ -101,7 +101,8 @@
 
         private void InsertFilename(string filename)
         {
-            using var cmd = new SqliteCommand($"INSERT INTO cache(filename) VALUES('{filename.Replace("'", "''")}')", SQLite);
+            using var cmd = new SqliteCommand("INSERT INTO cache(filename) VALUES($filename)", SQLite);
+            cmd.Parameters.AddWithValue("$filename", filename);
             cmd.ExecuteNonQuery();
         }
 
@@ -114,13 +115,14 @@
                 .Replace(":", " ")
                 .Replace("\"", " ");
 
-            var query = $"SELECT * FROM cache WHERE cache MATCH '\"{text.Replace("'", "''")}\"'";
+            var query = "SELECT * FROM cache WHERE cache MATCH $query";
 
             SyncRoot.EnterReadLock();
 
             try
             {
                 using var cmd = new SqliteCommand(query, SQLite);
+                cmd.Parameters.AddWithValue("$query", $"\"{text}\"");
                 var results = new List<string>();
                 var reader = cmd.ExecuteReader();
 

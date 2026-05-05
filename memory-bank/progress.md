@@ -1,5 +1,9 @@
 ## 2026-05-05
 
+- Added the bug council burn-down process and ledger at `docs/dev/bug-burndown-ledger.md`, including taxonomy, reproducible discovery commands, accepted scanner-coverage rows, and read-only expert council intake findings for frontend workflow, network health, release packaging, secret logging, and test false-negative risks.
+- Added targeted remediation baseline scripts for URL-addressable user navigation, primitive JSON string bodies, mutating controller role requirements, guarded outbound HTTP clients, path containment guardrails, Soulseek network-health posture, workflow trigger policy, release asset names, config option drift, and systemd permission convergence. Wired them into `scripts/check-remediation-baseline.sh` and root `package.json`.
+- Validation: `npm run check:remediation` passed.
+
 - Fixed Soulseek room join/create from the Web UI by posting room names as JSON string literals to the `[FromBody] string` room join endpoint. Room creation delegates to join, so both existing-room joins and new public-room attempts use the fixed request shape. Documented ADR-0001 gotcha `0z291` in commit `836c32df2`.
 - Validation: focused Web `rooms.test.js` passed, 2/2; focused `RoomsControllerTests` passed, 4/4; Web lint passed; `git diff --check` passed.
 

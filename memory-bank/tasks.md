@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **tests/tooling**: Add bug council ledger and remediation scanners.
+ - Status: completed (2026-05-05)
+ - Priority: P1
+ - Notes: Added `docs/dev/bug-burndown-ledger.md` as the canonical bug burn-down queue, seeded accepted scanner-coverage rows, and recorded read-only expert council intake findings for frontend workflow, network health, release packaging, secret logging, and test false-negative risks. Added targeted remediation baseline checks for URL intent, primitive JSON string bodies, mutating endpoint roles, guarded outbound HTTP, path containment, Soulseek network-health guardrails, workflow trigger policy, release asset matrix, config drift, and systemd permissions. Validation passed: `npm run check:remediation`.
+
 - [x] **rooms**: Fix Soulseek room join/create requests from Web UI.
  - Status: completed (2026-05-05)
  - Priority: P1

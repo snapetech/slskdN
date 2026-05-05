@@ -6,6 +6,7 @@
     using Soulseek;
     using System;
     using System.ComponentModel.DataAnnotations;
+    using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Linq;
     using System.Threading;
@@ -243,24 +244,16 @@
                 .WithId(id).Transfer);
         }
 
+        [SuppressMessage("Security", "CA3003:Review code for file path injection vulnerabilities", Justification = "The remote file name is normalized to a relative path and confined to the configured output directory by Extensions.GetSafeOutputPath.")]
         private static FileStream GetLocalFileStream(string remoteFilename, string saveDirectory)
         {
-            var localFilename = remoteFilename.ToLocalOSPath();
-            var path = $"{saveDirectory}{Path.DirectorySeparatorChar}{Path.GetDirectoryName(localFilename).Replace(Path.GetDirectoryName(Path.GetDirectoryName(localFilename)), "")}";
+            var localFilename = Extensions.GetSafeOutputPath(saveDirectory, remoteFilename);
+            var path = Path.GetDirectoryName(localFilename);
 
             if (!System.IO.Directory.Exists(path))
             {
                 System.IO.Directory.CreateDirectory(path);
             }
-
-            var sanitizedFilename = Path.GetFileName(localFilename);
-
-            foreach (var c in Path.GetInvalidFileNameChars())
-            {
-                sanitizedFilename = sanitizedFilename.Replace(c, '_');
-            }
-
-            localFilename = Path.Combine(path, sanitizedFilename);
 
             return new FileStream(localFilename, FileMode.Create);
         }

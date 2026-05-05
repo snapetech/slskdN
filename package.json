@@ -12,6 +12,16 @@
     "check:sensitive-placeholders": "bash scripts/check-sensitive-placeholders.sh",
     "check:web-api-paths": "bash scripts/check-web-api-paths.sh",
     "check:web-fetch-csrf": "bash scripts/check-web-fetch-csrf.sh",
-    "check:web-mediacore-routes": "bash scripts/check-web-mediacore-routes.sh"
+    "check:web-mediacore-routes": "bash scripts/check-web-mediacore-routes.sh",
+    "check:web-url-intent": "bash scripts/check-web-url-intent.sh",
+    "check:web-json-string-bodies": "bash scripts/check-web-json-string-bodies.sh",
+    "check:mutating-role-requirements": "bash scripts/check-mutating-role-requirements.sh",
+    "check:outbound-http-guards": "bash scripts/check-outbound-http-guards.sh",
+    "check:path-containment": "bash scripts/check-path-containment.sh",
+    "check:soulseek-network-health": "bash scripts/check-soulseek-network-health.sh",
+    "check:workflow-trigger-policy": "bash scripts/check-workflow-trigger-policy.sh",
+    "check:release-asset-matrix": "bash scripts/check-release-asset-matrix.sh",
+    "check:config-option-drift": "bash scripts/check-config-option-drift.sh",
+    "check:systemd-permission-matrix": "bash scripts/check-systemd-permission-matrix.sh"
   }
 }
