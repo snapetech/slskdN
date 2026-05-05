@@ -41,6 +41,7 @@ public class PodMessageSigningController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The signed message.</returns>
     [HttpPost("sign")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> SignMessage([FromBody] MessageSigningRequest request, CancellationToken cancellationToken = default)
     {
         if (request?.Message == null)
@@ -79,6 +80,7 @@ public class PodMessageSigningController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The verification result.</returns>
     [HttpPost("verify")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> VerifyMessage([FromBody] PodMessage message, CancellationToken cancellationToken = default)
     {
         var normalizedMessage = message == null ? null : NormalizeMessage(message);
@@ -106,6 +108,7 @@ public class PodMessageSigningController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The generated key pair.</returns>
     [HttpPost("generate-keypair")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> GenerateKeyPair(CancellationToken cancellationToken = default)
     {
         try

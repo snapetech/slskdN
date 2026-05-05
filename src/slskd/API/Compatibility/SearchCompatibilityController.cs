@@ -35,6 +35,7 @@ public class SearchCompatibilityController : ControllerBase
     /// Perform a Soulseek search (slskd compatibility).
     /// </summary>
     [HttpPost("search")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [Authorize]
     public async Task<IActionResult> Search(
         [FromBody] SearchRequest request,

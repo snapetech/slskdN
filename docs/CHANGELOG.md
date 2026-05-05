@@ -58,6 +58,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Hardened remote path handling, relay transfers, streaming tickets, multi-source
   output paths, config writes/debug redaction, memory dump cleanup, login attempt
   tracking, and mutating API role checks from the security audit.
+- Added follow-up security hardening for fork-specific mutating APIs, SongID and
+  source-feed outbound fetches, anonymous pod verification/discovery bounds,
+  release-installer checksum verification, script logging, and ListenBrainz
+  token storage.
 - Made governance, pod, and ActivityPub signature handling fail closed unless
   signer identity can be verified, and replaced unstable hash-code identifiers
   with stable SHA-256-derived values.

@@ -42,6 +42,7 @@ public class DownloadsCompatibilityController : ControllerBase
     /// Create downloads (slskd compatibility).
     /// </summary>
     [HttpPost("downloads")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [Authorize]
     public async Task<IActionResult> CreateDownloads(
         [FromBody] DownloadRequest request,

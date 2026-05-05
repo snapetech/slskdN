@@ -42,6 +42,7 @@ public class BridgeController : ControllerBase
     /// Bridge search endpoint (legacy client → mesh).
     /// </summary>
     [HttpPost("search")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [Authorize]
     public async Task<IActionResult> Search([FromBody] BridgeSearchRequest request, CancellationToken ct)
     {
@@ -69,6 +70,7 @@ public class BridgeController : ControllerBase
     /// Bridge download endpoint (legacy client → mesh).
     /// </summary>
     [HttpPost("download")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [Authorize]
     public async Task<IActionResult> Download([FromBody] BridgeDownloadRequest request, CancellationToken ct)
     {
@@ -156,6 +158,7 @@ public class BridgeController : ControllerBase
     /// Start bridge service.
     /// </summary>
     [HttpPost("start")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [Authorize]
     public async Task<IActionResult> Start(CancellationToken ct)
     {
@@ -177,6 +180,7 @@ public class BridgeController : ControllerBase
     /// Stop bridge service.
     /// </summary>
     [HttpPost("stop")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [Authorize]
     public async Task<IActionResult> Stop(CancellationToken ct)
     {

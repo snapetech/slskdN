@@ -46,6 +46,7 @@ public class PodDhtController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The publish result.</returns>
     [HttpPost("publish")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> PublishPod([FromBody] PublishPodRequest request, CancellationToken cancellationToken = default)
     {
         if (request?.Pod == null)
@@ -94,6 +95,7 @@ public class PodDhtController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The update result.</returns>
     [HttpPost("update")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> UpdatePod([FromBody] UpdatePodRequest request, CancellationToken cancellationToken = default)
     {
         if (request?.Pod == null)
@@ -142,6 +144,7 @@ public class PodDhtController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The unpublish result.</returns>
     [HttpDelete("unpublish/{*podId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> UnpublishPod(string podId, CancellationToken cancellationToken = default)
     {
         podId = podId?.Trim() ?? string.Empty;
@@ -215,6 +218,7 @@ public class PodDhtController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The refresh result.</returns>
     [HttpPost("refresh/{*podId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> RefreshPod(string podId, CancellationToken cancellationToken = default)
     {
         podId = podId?.Trim() ?? string.Empty;

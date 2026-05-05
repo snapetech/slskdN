@@ -24,6 +24,7 @@ public sealed class ExternalVisualizerController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     [ProducesResponseType(typeof(ExternalVisualizerStatus), 200)]
     public IActionResult Get()
     {

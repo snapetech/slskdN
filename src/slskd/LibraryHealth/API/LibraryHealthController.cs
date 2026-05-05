@@ -42,6 +42,7 @@ namespace slskd.LibraryHealth.API
         /// <param name="ct">Cancellation token.</param>
         /// <returns>Scan ID.</returns>
         [HttpPost("scans")]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [Authorize]
         public async Task<ActionResult<StartScanResponse>> StartScan(
             [FromBody] LibraryHealthScanRequest request,
@@ -296,6 +297,7 @@ namespace slskd.LibraryHealth.API
         /// <param name="ct">Cancellation token.</param>
         /// <returns>No content on success.</returns>
         [HttpPatch("issues/{issueId}")]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [Authorize]
         public async Task<IActionResult> UpdateIssueStatus(
             string issueId,
@@ -316,6 +318,7 @@ namespace slskd.LibraryHealth.API
         /// <param name="ct">Cancellation token.</param>
         /// <returns>Job ID.</returns>
         [HttpPost("issues/fix")]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [Authorize]
         public async Task<ActionResult<RemediationResponse>> CreateRemediationJob(
             [FromBody] RemediationRequest request,

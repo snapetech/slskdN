@@ -24,6 +24,7 @@ internal class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptio
     {
         var identity = new ClaimsIdentity("Test");
         identity.AddClaim(new Claim(ClaimTypes.Name, "test-user"));
+        identity.AddClaim(new Claim(ClaimTypes.Role, slskd.Authentication.Role.Administrator.ToString()));
         var principal = new ClaimsPrincipal(identity);
         var ticket = new AuthenticationTicket(principal, "Test");
         return Task.FromResult(AuthenticateResult.Success(ticket));

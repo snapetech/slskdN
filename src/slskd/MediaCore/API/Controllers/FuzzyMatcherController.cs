@@ -45,6 +45,7 @@ public class FuzzyMatcherController : ControllerBase
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Similarity analysis result</returns>
     [HttpPost("perceptual")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> ComputePerceptualSimilarity([FromBody] PerceptualSimilarityRequest request, CancellationToken cancellationToken = default)
     {
         var contentIdA = request?.ContentIdA?.Trim() ?? string.Empty;
@@ -90,6 +91,7 @@ public class FuzzyMatcherController : ControllerBase
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of similar content matches</returns>
     [HttpPost("find/{*contentId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> FindSimilarContent(string contentId, [FromBody] FindSimilarRequest? request = null, CancellationToken cancellationToken = default)
     {
         contentId = contentId?.Trim() ?? string.Empty;
@@ -150,6 +152,7 @@ public class FuzzyMatcherController : ControllerBase
     /// <param name="request">Text similarity request</param>
     /// <returns>Similarity score</returns>
     [HttpPost("text")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public IActionResult ComputeTextSimilarity([FromBody] TextSimilarityRequest request)
     {
         var textA = request?.TextA?.Trim() ?? string.Empty;

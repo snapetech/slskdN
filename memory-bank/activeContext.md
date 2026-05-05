@@ -1,3 +1,17 @@
+## Update 2026-05-05 16:08:51Z
+
+- Current task: Comprehensive follow-up security audit fixes are complete locally.
+- Last activity:
+  - documented ADR-0001 gotcha `0z287` in separate commit `29514712e`
+  - added explicit role requirements to every non-anonymous mutating controller action
+  - made SongID run creation admin-only, limited local-file analysis to configured media roots, and guarded/capped Spotify fetches
+  - hardened source-feed provider URL handling with exact host matches, outbound guard checks, and response-size caps
+  - bounded anonymous pod verification/discovery inputs, tightened security diagnostic roles, removed script argument logging, required release installer checksum verification, and moved ListenBrainz tokens to session storage
+  - validation passed: backend build, full `dotnet test slskd.sln --no-build`, `./bin/lint`, focused PlayerBar Vitest, Web lint, mutating endpoint role scan, source-feed/SongID/script risky-pattern scan, packaging metadata validation, and `git diff --check`
+- Next steps:
+  1. Commit and push the implementation changes.
+  2. Cut a new build tag only when explicitly ready for the release.
+
 ## Update 2026-05-05 10:28:00Z
 
 - Current task: Security and bug-hunt fix batch is complete locally.

@@ -85,6 +85,7 @@ public class DescriptorRetrieverController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Batch retrieval results.</returns>
     [HttpPost("batch")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> RetrieveBatch([FromBody] BatchRetrievalRequest request, CancellationToken cancellationToken = default)
     {
         var contentIds = request?.ContentIds?
@@ -218,6 +219,7 @@ public class DescriptorRetrieverController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Cache clearing result.</returns>
     [HttpPost("cache/clear")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> ClearCache(CancellationToken cancellationToken = default)
     {
         try

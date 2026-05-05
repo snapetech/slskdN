@@ -26,6 +26,7 @@ public sealed class DiscoveryGraphController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> Build([FromBody] DiscoveryGraphRequest request, CancellationToken cancellationToken)
     {
         if (Program.IsRelayAgent)

@@ -15,6 +15,7 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using slskd.Common.Security;
 
 public sealed class SourceFeedImportService : ISourceFeedImportService
 {
@@ -22,6 +23,7 @@ public sealed class SourceFeedImportService : ISourceFeedImportService
     private const int MaxHistorySuggestions = 25;
     private const int MaxHistorySkippedRows = 25;
     private const int MaxSourcePreviewLength = 160;
+    private const int MaxProviderResponseBytes = 512 * 1024;
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -159,24 +161,21 @@ public sealed class SourceFeedImportService : ISourceFeedImportService
 
     private static bool LooksLikeProviderUrl(string sourceText, string sourceKind)
     {
-        if (sourceKind is "apple" or "itunes" or "youtube" or "bandcamp" or "listenbrainz" or "lastfm" or "last.fm")
-        {
-            return true;
-        }
-
         if (!Uri.TryCreate(sourceText, UriKind.Absolute, out var uri))
         {
             return false;
         }
 
-        var host = uri.Host.ToLowerInvariant();
-        return host.Contains("music.apple.com", StringComparison.OrdinalIgnoreCase) ||
-            host.Contains("itunes.apple.com", StringComparison.OrdinalIgnoreCase) ||
-            host.Contains("youtube.com", StringComparison.OrdinalIgnoreCase) ||
-            host.Contains("youtu.be", StringComparison.OrdinalIgnoreCase) ||
-            host.Contains("bandcamp.com", StringComparison.OrdinalIgnoreCase) ||
-            host.Contains("listenbrainz.org", StringComparison.OrdinalIgnoreCase) ||
-            host.Contains("last.fm", StringComparison.OrdinalIgnoreCase);
+        if (sourceKind is not "auto")
+        {
+            return HostMatchesProvider(uri.Host, sourceKind);
+        }
+
+        return HostMatchesProvider(uri.Host, "apple") ||
+            HostMatchesProvider(uri.Host, "youtube") ||
+            HostMatchesProvider(uri.Host, "bandcamp") ||
+            HostMatchesProvider(uri.Host, "listenbrainz") ||
+            HostMatchesProvider(uri.Host, "lastfm");
     }
 
     private SourceFeedImportResult PreviewLocalText(string sourceText, string sourceKind, bool includeAlbum, int limit)
@@ -234,28 +233,48 @@ public sealed class SourceFeedImportService : ISourceFeedImportService
             return "url";
         }
 
-        var host = uri.Host.ToLowerInvariant();
-        if (host.Contains("apple.com", StringComparison.OrdinalIgnoreCase) || host.Contains("itunes.apple.com", StringComparison.OrdinalIgnoreCase))
+        var host = uri.Host;
+        if (HostMatchesProvider(host, "apple"))
         {
             return "apple";
         }
 
-        if (host.Contains("youtube.com", StringComparison.OrdinalIgnoreCase) || host.Contains("youtu.be", StringComparison.OrdinalIgnoreCase))
+        if (HostMatchesProvider(host, "youtube"))
         {
             return "youtube";
         }
 
-        if (host.Contains("bandcamp.com", StringComparison.OrdinalIgnoreCase))
+        if (HostMatchesProvider(host, "bandcamp"))
         {
             return "bandcamp";
         }
 
-        if (host.Contains("listenbrainz.org", StringComparison.OrdinalIgnoreCase))
+        if (HostMatchesProvider(host, "listenbrainz"))
         {
             return "listenbrainz";
         }
 
-        return host.Contains("last.fm", StringComparison.OrdinalIgnoreCase) ? "lastfm" : "url";
+        return HostMatchesProvider(host, "lastfm") ? "lastfm" : "url";
+    }
+
+    private static bool HostMatchesProvider(string host, string sourceKind)
+    {
+        var provider = sourceKind.Replace(".", string.Empty, StringComparison.OrdinalIgnoreCase);
+        return provider switch
+        {
+            "apple" or "itunes" => IsHostOrSubdomain(host, "music.apple.com") || IsHostOrSubdomain(host, "itunes.apple.com"),
+            "youtube" => IsHostOrSubdomain(host, "youtube.com") || IsHostOrSubdomain(host, "youtu.be"),
+            "bandcamp" => IsHostOrSubdomain(host, "bandcamp.com"),
+            "listenbrainz" => IsHostOrSubdomain(host, "listenbrainz.org"),
+            "lastfm" => IsHostOrSubdomain(host, "last.fm"),
+            _ => false,
+        };
+    }
+
+    private static bool IsHostOrSubdomain(string host, string domain)
+    {
+        return host.Equals(domain, StringComparison.OrdinalIgnoreCase) ||
+            host.EndsWith("." + domain, StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task<int> FetchAppleMusicRowsAsync(string sourceText, List<SourceFeedRow> rows, int limit, CancellationToken cancellationToken)
@@ -785,7 +804,7 @@ public sealed class SourceFeedImportService : ISourceFeedImportService
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, uri);
         using var response = await SendProviderAsync(request, cancellationToken).ConfigureAwait(false);
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        await using var stream = await ReadProviderResponseAsync(response, cancellationToken).ConfigureAwait(false);
         return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, cancellationToken).ConfigureAwait(false);
     }
 
@@ -793,19 +812,61 @@ public sealed class SourceFeedImportService : ISourceFeedImportService
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, uri);
         using var response = await SendProviderAsync(request, cancellationToken).ConfigureAwait(false);
-        return await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        await using var stream = await ReadProviderResponseAsync(response, cancellationToken).ConfigureAwait(false);
+        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false);
+        return await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<HttpResponseMessage> SendProviderAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        if (request.RequestUri == null || !request.RequestUri.IsAbsoluteUri)
+        {
+            throw new InvalidOperationException("Provider URL must be absolute.");
+        }
+
+        var (safe, reason) = await OutboundUriGuard.CheckAsync(request.RequestUri, cancellationToken).ConfigureAwait(false);
+        if (!safe)
+        {
+            throw new InvalidOperationException($"Provider URL blocked by outbound guard: {reason}");
+        }
+
         var options = OptionsMonitor.CurrentValue.Integration.Spotify;
         var client = HttpClientFactory.CreateClient(nameof(SourceFeedImportService));
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(options.TimeoutSeconds));
         request.Headers.UserAgent.ParseAdd("slskdN-source-feed-import/1.0");
-        var response = await client.SendAsync(request, timeout.Token).ConfigureAwait(false);
+        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
+        if (response.Content.Headers.ContentLength is long contentLength && contentLength > MaxProviderResponseBytes)
+        {
+            response.Dispose();
+            throw new InvalidOperationException("Provider response was too large.");
+        }
+
         return response;
+    }
+
+    private static async Task<Stream> ReadProviderResponseAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        var buffer = new byte[8192];
+        var memory = new MemoryStream();
+        var total = 0;
+        int read;
+        while ((read = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            total += read;
+            if (total > MaxProviderResponseBytes)
+            {
+                memory.Dispose();
+                throw new InvalidOperationException("Provider response was too large.");
+            }
+
+            await memory.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+        }
+
+        memory.Position = 0;
+        return memory;
     }
 
     private static SpotifyTarget ParseSpotifyTarget(string sourceText)

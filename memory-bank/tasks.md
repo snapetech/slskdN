@@ -2332,3 +2332,7 @@
 - [x] Fix security and bug-hunt findings before next release
   - Status: completed (2026-05-05)
   - Notes: Hardened remote filename/path handling, mutating API authorization, config/dump/secret handling, relay upload/download limits, streaming ticket/content lookup behavior, multi-source output paths, governance/federation/pod signature handling, stable content IDs/seeds, and affected release packaging workflows. Validation passed with full `dotnet test slskd.sln --no-build`, `./bin/lint`, controller CSRF/anonymous endpoint checks, packaging metadata validation, sensitive placeholder scan, and web fetch CSRF scan.
+
+- [x] Fix comprehensive follow-up security audit findings
+  - Status: completed (2026-05-05)
+  - Notes: Added explicit roles to all non-anonymous mutating controller actions, restricted SongID heavy analysis to administrators and allowed local media roots, guarded/capped SongID and source-feed outbound fetches, bounded anonymous pod verification/discovery inputs, enforced stricter security-diagnostic roles, removed script argument logging, required release-installer checksum verification, and moved ListenBrainz tokens to session storage.

@@ -40,6 +40,7 @@ public class PodJoinLeaveController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The join result.</returns>
     [HttpPost("join")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> RequestJoin([FromBody] PodJoinRequest joinRequest, CancellationToken cancellationToken = default)
     {
         if (joinRequest == null)
@@ -92,6 +93,7 @@ public class PodJoinLeaveController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The acceptance result.</returns>
     [HttpPost("join/accept")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> AcceptJoin([FromBody] PodJoinAcceptance acceptance, CancellationToken cancellationToken = default)
     {
         if (acceptance == null)
@@ -144,6 +146,7 @@ public class PodJoinLeaveController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The leave result.</returns>
     [HttpPost("leave")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> RequestLeave([FromBody] PodLeaveRequest leaveRequest, CancellationToken cancellationToken = default)
     {
         if (leaveRequest == null)
@@ -194,6 +197,7 @@ public class PodJoinLeaveController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The acceptance result.</returns>
     [HttpPost("leave/accept")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> AcceptLeave([FromBody] PodLeaveAcceptance acceptance, CancellationToken cancellationToken = default)
     {
         if (acceptance == null)
@@ -300,6 +304,7 @@ public class PodJoinLeaveController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The cancellation result.</returns>
     [HttpDelete("join/{podId}/{peerId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> CancelJoinRequest(string podId, string peerId, CancellationToken cancellationToken = default)
     {
         podId = podId?.Trim() ?? string.Empty;
@@ -338,6 +343,7 @@ public class PodJoinLeaveController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The cancellation result.</returns>
     [HttpDelete("leave/{podId}/{peerId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> CancelLeaveRequest(string podId, string peerId, CancellationToken cancellationToken = default)
     {
         podId = podId?.Trim() ?? string.Empty;

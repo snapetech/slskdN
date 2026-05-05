@@ -2876,7 +2876,7 @@ const PlayerBar = () => {
         <Modal.Header>Player Integrations</Modal.Header>
         <Modal.Content>
           <p className="player-modal-copy">
-            ListenBrainz submissions are opt-in and stored only in this browser.
+            ListenBrainz submissions are opt-in and the token is kept for this browser session.
           </p>
           <Input
             aria-label="ListenBrainz user token"
@@ -2911,7 +2911,7 @@ const PlayerBar = () => {
             data-testid="player-listenbrainz-save-state"
           >
             <Icon name="check circle outline" />
-            Token changes are saved automatically in this browser.
+            Token changes are saved automatically for this session.
           </div>
           <div
             className="player-external-visualizer"

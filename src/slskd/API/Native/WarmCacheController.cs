@@ -43,6 +43,7 @@ public class WarmCacheController : ControllerBase
     /// Submit popularity hints for warm cache prefetching.
     /// </summary>
     [HttpPost("hints")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [Authorize]
     public async Task<IActionResult> SubmitHints(
         [FromBody] WarmCacheHintsRequest request,

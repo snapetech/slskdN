@@ -35,8 +35,8 @@ namespace slskd.Tests.Unit.Common.Moderation
             _optionsMock.Setup(x => x.CurrentValue).Returns(new ExternalModerationOptions
             {
                 Mode = "Remote",
-                Endpoint = "https://api.example.com/v1",
-                AllowedDomains = new[] { "api.example.com" },
+                Endpoint = "https://93.184.216.34/v1",
+                AllowedDomains = new[] { "93.184.216.34" },
                 TimeoutSeconds = 5
             });
         }

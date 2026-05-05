@@ -375,6 +375,7 @@ public class SecurityController : ControllerBase
     /// Run entropy health check.
     /// </summary>
     [HttpPost("entropy/check")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     public ActionResult<RngHealthCheck> RunEntropyCheck()
     {
         var result = _security?.EntropyMonitor?.TestRngHealth();
@@ -401,6 +402,7 @@ public class SecurityController : ControllerBase
     /// Set trust tier for a peer.
     /// </summary>
     [HttpPut("disclosure/{username}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     public ActionResult SetTrustTier(string username, [FromBody] SetTrustTierRequest request)
     {
         username = NormalizeRequiredValue(username);
@@ -500,6 +502,7 @@ public class SecurityController : ControllerBase
     }
 
     [HttpPost("tor/test")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     public async Task<ActionResult<AnonymityTransportStatus>> TestTorConnectivity()
     {
         var torTransport = _transportSelector?.GetTorTransport();
@@ -664,6 +667,7 @@ public class SecurityController : ControllerBase
     }
 
     [HttpPost("transports/test")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     public async Task<ActionResult> TestTransportConnectivity()
     {
         if (_transportSelector == null)
@@ -707,6 +711,7 @@ public class SecurityController : ControllerBase
     }
 
     [HttpPost("circuits")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     public async Task<ActionResult<CircuitInfo>> BuildCircuit([FromBody] BuildCircuitRequest request)
     {
         if (_circuitBuilder == null)
@@ -746,6 +751,7 @@ public class SecurityController : ControllerBase
     }
 
     [HttpDelete("circuits/{circuitId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     public ActionResult DestroyCircuit(string circuitId)
     {
         if (_circuitBuilder == null)

@@ -169,6 +169,7 @@ public class IpldController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The operation result.</returns>
     [HttpPost("links/{*contentId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> AddLinks(
         string contentId,
         [FromBody] AddLinksRequest request,

@@ -96,6 +96,7 @@ public class ShareGroupsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(ShareGroup), 201)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> Create([FromBody] CreateShareGroupRequest req, CancellationToken ct)
@@ -132,6 +133,7 @@ public class ShareGroupsController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateShareGroupRequest req, CancellationToken ct)
@@ -160,6 +162,7 @@ public class ShareGroupsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(204)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken ct)
@@ -196,6 +199,7 @@ public class ShareGroupsController : ControllerBase
     }
 
     [HttpPost("{id}/members")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(204)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
@@ -231,6 +235,7 @@ public class ShareGroupsController : ControllerBase
     }
 
     [HttpDelete("{id}/members/{userId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(204)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> RemoveMember([FromRoute] Guid id, [FromRoute] string userId, CancellationToken ct)

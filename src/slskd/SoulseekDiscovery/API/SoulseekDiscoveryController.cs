@@ -40,6 +40,7 @@ public sealed class SoulseekDiscoveryController : ControllerBase
     private ISoulseekSafetyLimiter SafetyLimiter { get; }
 
     [HttpPost("interests")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(204)]
     [ProducesResponseType(400)]
     [ProducesResponseType(429)]
@@ -66,6 +67,7 @@ public sealed class SoulseekDiscoveryController : ControllerBase
     }
 
     [HttpDelete("interests/{item}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(204)]
     [ProducesResponseType(400)]
     [ProducesResponseType(429)]
@@ -92,6 +94,7 @@ public sealed class SoulseekDiscoveryController : ControllerBase
     }
 
     [HttpPost("hated-interests")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(204)]
     [ProducesResponseType(400)]
     [ProducesResponseType(429)]
@@ -118,6 +121,7 @@ public sealed class SoulseekDiscoveryController : ControllerBase
     }
 
     [HttpDelete("hated-interests/{item}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(204)]
     [ProducesResponseType(400)]
     [ProducesResponseType(429)]
@@ -223,6 +227,7 @@ public sealed class SoulseekDiscoveryController : ControllerBase
     }
 
     [HttpPost("mesh-rendezvous/interest")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(204)]
     [ProducesResponseType(429)]
     public async Task<IActionResult> AddMeshRendezvousInterest(CancellationToken cancellationToken)
@@ -247,6 +252,7 @@ public sealed class SoulseekDiscoveryController : ControllerBase
     }
 
     [HttpDelete("mesh-rendezvous/interest")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(204)]
     [ProducesResponseType(429)]
     public async Task<IActionResult> RemoveMeshRendezvousInterest(CancellationToken cancellationToken)

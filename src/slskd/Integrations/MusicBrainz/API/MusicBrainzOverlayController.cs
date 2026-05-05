@@ -31,6 +31,7 @@ public sealed class MusicBrainzOverlayController : ControllerBase
     }
 
     [HttpPost("edits")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(MusicBrainzOverlayValidationResult), 200)]
     public async Task<IActionResult> StoreEdit(
         [FromBody] MusicBrainzOverlayEdit edit,
@@ -64,6 +65,7 @@ public sealed class MusicBrainzOverlayController : ControllerBase
     }
 
     [HttpPost("edits/{editId}/approve-export")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(MusicBrainzOverlayExportApprovalResult), 200)]
     public async Task<IActionResult> ApproveExport(
         string editId,
@@ -88,6 +90,7 @@ public sealed class MusicBrainzOverlayController : ControllerBase
     }
 
     [HttpPost("edits/{editId}/routes")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(MusicBrainzOverlayRouteAttempt), 200)]
     public async Task<IActionResult> RouteEdit(
         string editId,

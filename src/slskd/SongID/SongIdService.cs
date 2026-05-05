@@ -22,6 +22,7 @@ using slskd.Integrations.Chromaprint;
 using slskd.Integrations.MetadataFacade;
 using slskd.Integrations.MusicBrainz;
 using slskd.Integrations.MusicBrainz.Models;
+using slskd.Common.Security;
 using slskd.SongID.API;
 
 public interface ISongIdService
@@ -47,6 +48,8 @@ public sealed class SongIdService : ISongIdService
     private const int MaxSegmentGroups = 6;
     private const int MaxSegmentCandidatesPerGroup = 4;
     private static readonly TimeSpan ArtistGraphFetchTimeout = TimeSpan.FromSeconds(15);
+    private const int MaxMetadataPageBytes = 512 * 1024;
+    private const int MaxSpotifyPreviewBytes = 8 * 1024 * 1024;
     private const int WhisperExcerptSeconds = 180;
     private const int DemucsExcerptSeconds = 180;
     private const int PerturbationExcerptSeconds = 75;
@@ -158,6 +161,11 @@ public sealed class SongIdService : ISongIdService
         }
 
         var normalizedSource = source.Trim();
+        if (File.Exists(normalizedSource) && !IsAllowedLocalAnalysisFile(normalizedSource))
+        {
+            throw new InvalidOperationException("Local SongID analysis is limited to configured shares, downloads, and incomplete directories.");
+        }
+
         var runId = Guid.NewGuid();
         var run = new SongIdRun
         {
@@ -590,13 +598,28 @@ public sealed class SongIdService : ISongIdService
 
         try
         {
-            using var httpClient = _httpClientFactory.CreateClient();
-            using var request = new HttpRequestMessage(HttpMethod.Get, source);
-            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
-            using var response = await httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
+            if (!Uri.TryCreate(source, UriKind.Absolute, out var spotifyUri))
+            {
+                throw new InvalidOperationException("Spotify URL is invalid.");
+            }
 
-            var html = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            var (safe, reason) = await OutboundUriGuard.CheckAsync(spotifyUri, cancellationToken).ConfigureAwait(false);
+            if (!safe)
+            {
+                throw new InvalidOperationException($"Spotify URL blocked by outbound guard: {reason}");
+            }
+
+            using var httpClient = _httpClientFactory.CreateClient();
+            using var request = new HttpRequestMessage(HttpMethod.Get, spotifyUri);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
+            using var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            if (response.Content.Headers.ContentLength is long contentLength && contentLength > MaxMetadataPageBytes)
+            {
+                throw new InvalidOperationException("Spotify metadata page is too large.");
+            }
+
+            var html = await ReadBoundedStringAsync(response.Content, MaxMetadataPageBytes, cancellationToken).ConfigureAwait(false);
             var metadata = ExtractOgMeta(html);
             var title = metadata.TryGetValue("og:title", out var ogTitle) ? ogTitle : null;
             var description = metadata.TryGetValue("og:description", out var ogDescription) ? ogDescription : null;
@@ -2056,10 +2079,43 @@ public sealed class SongIdService : ISongIdService
 
         if (!string.IsNullOrWhiteSpace(run.Metadata.PreviewUrl))
         {
+            if (!Uri.TryCreate(run.Metadata.PreviewUrl, UriKind.Absolute, out var previewUri))
+            {
+                throw new InvalidOperationException("Spotify preview URL is invalid.");
+            }
+
+            var (safe, reason) = await OutboundUriGuard.CheckAsync(previewUri, cancellationToken).ConfigureAwait(false);
+            if (!safe)
+            {
+                throw new InvalidOperationException($"Spotify preview URL blocked by outbound guard: {reason}");
+            }
+
             var audioPath = Path.Combine(workspace, "spotify-preview.mp3");
             using var client = _httpClientFactory.CreateClient();
-            var bytes = await client.GetByteArrayAsync(run.Metadata.PreviewUrl!, cancellationToken).ConfigureAwait(false);
-            await File.WriteAllBytesAsync(audioPath, bytes, cancellationToken).ConfigureAwait(false);
+            using var request = new HttpRequestMessage(HttpMethod.Get, previewUri);
+            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            if (response.Content.Headers.ContentLength is long contentLength && contentLength > MaxSpotifyPreviewBytes)
+            {
+                throw new InvalidOperationException("Spotify preview audio is too large.");
+            }
+
+            await using var source = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            await using var destination = File.Create(audioPath);
+            var buffer = new byte[8192];
+            var total = 0;
+            int read;
+            while ((read = await source.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false)) > 0)
+            {
+                total += read;
+                if (total > MaxSpotifyPreviewBytes)
+                {
+                    throw new InvalidOperationException("Spotify preview audio is too large.");
+                }
+
+                await destination.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+            }
+
             return new PreparedAnalysisAssets
             {
                 WorkspacePath = workspace,
@@ -3874,6 +3930,58 @@ public sealed class SongIdService : ISongIdService
         }
 
         return "text_query";
+    }
+
+    private static async Task<string> ReadBoundedStringAsync(HttpContent content, int maxBytes, CancellationToken cancellationToken)
+    {
+        await using var stream = await content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        var buffer = new byte[8192];
+        using var memory = new MemoryStream();
+        var total = 0;
+        int read;
+        while ((read = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            total += read;
+            if (total > maxBytes)
+            {
+                throw new InvalidOperationException("HTTP response is too large.");
+            }
+
+            await memory.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+        }
+
+        return System.Text.Encoding.UTF8.GetString(memory.ToArray());
+    }
+
+    private bool IsAllowedLocalAnalysisFile(string source)
+    {
+        var fullPath = Path.GetFullPath(source);
+        var options = _optionsMonitor.CurrentValue;
+        var allowedRoots = new List<string>
+        {
+            options.Directories.Downloads,
+            options.Directories.Incomplete,
+        };
+
+        allowedRoots.AddRange(options.Shares.Directories.Select(GetSharePath));
+        return allowedRoots
+            .Where(root => !string.IsNullOrWhiteSpace(root))
+            .Select(Path.GetFullPath)
+            .Any(root => IsPathUnderRoot(fullPath, root));
+    }
+
+    private static string GetSharePath(string share)
+    {
+        var match = Regex.Match(share, @"^(!|-){0,1}\[(.*)\](.*)$");
+        return match.Success ? match.Groups[3].Value : share;
+    }
+
+    private static bool IsPathUnderRoot(string path, string root)
+    {
+        var normalizedRoot = Path.TrimEndingDirectorySeparator(root);
+        return path.Equals(normalizedRoot, StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith(normalizedRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith(normalizedRoot + Path.AltDirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string BuildBestQuery(params string?[] parts)

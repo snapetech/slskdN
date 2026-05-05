@@ -104,6 +104,7 @@ public class PodsController : ControllerBase
     /// Deletes a pod and its members, membership history, and messages.
     /// </summary>
     [HttpDelete("{podId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> DeletePod(string podId, CancellationToken ct = default)
     {
         podId = podId?.Trim() ?? string.Empty;
@@ -130,6 +131,7 @@ public class PodsController : ControllerBase
     /// Creates a new pod.
     /// </summary>
     [HttpPost]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> CreatePod([FromBody] CreatePodRequest request, CancellationToken ct = default)
     {
         try
@@ -188,6 +190,7 @@ public class PodsController : ControllerBase
     /// Updates an existing pod.
     /// </summary>
     [HttpPut("{podId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> UpdatePod(
         string podId,
         [FromBody] UpdatePodRequest request,
@@ -301,6 +304,7 @@ public class PodsController : ControllerBase
     /// Joins a pod.
     /// </summary>
     [HttpPost("{podId}/join")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> JoinPod(
         string podId,
         [FromBody] JoinPodRequest request,
@@ -348,6 +352,7 @@ public class PodsController : ControllerBase
     /// Leaves a pod.
     /// </summary>
     [HttpPost("{podId}/leave")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> LeavePod(
         string podId,
         [FromBody] LeavePodRequest request,
@@ -394,6 +399,7 @@ public class PodsController : ControllerBase
     /// Bans a member from a pod.
     /// </summary>
     [HttpPost("{podId}/ban")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> BanMember(
         string podId,
         [FromBody] BanMemberRequest request,
@@ -487,6 +493,7 @@ public class PodsController : ControllerBase
     /// Sends a message to a pod channel.
     /// </summary>
     [HttpPost("{podId}/channels/{channelId}/messages")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> SendMessage(
         string podId,
         string channelId,
@@ -564,6 +571,7 @@ public class PodsController : ControllerBase
     /// Binds a pod channel to a Soulseek room.
     /// </summary>
     [HttpPost("{podId}/channels/{channelId}/bind")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> BindRoom(
         string podId,
         string channelId,
@@ -612,6 +620,7 @@ public class PodsController : ControllerBase
     /// Unbinds a pod channel from a Soulseek room.
     /// </summary>
     [HttpPost("{podId}/channels/{channelId}/unbind")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> UnbindRoom(
             string podId,
             string channelId,

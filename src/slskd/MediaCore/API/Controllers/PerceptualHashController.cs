@@ -25,6 +25,9 @@ using slskd.Core.Security;
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
 public class PerceptualHashController : ControllerBase
 {
+    private const int MaxAudioSamples = 60 * 60 * 48_000;
+    private const int MaxImagePixels = 16_777_216;
+    private const int MaxImageBytes = MaxImagePixels * 4;
     private readonly ILogger<PerceptualHashController> _logger;
     private readonly IPerceptualHasher _hasher;
 
@@ -43,11 +46,18 @@ public class PerceptualHashController : ControllerBase
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Computed perceptual hash</returns>
     [HttpPost("audio")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
+    [RequestSizeLimit(768 * 1024 * 1024)]
     public Task<IActionResult> ComputeAudioHash([FromBody] AudioHashRequest request, CancellationToken cancellationToken = default)
     {
         if (request?.Samples == null || request.Samples.Length == 0)
         {
             return Task.FromResult<IActionResult>(BadRequest("Audio samples are required"));
+        }
+
+        if (request.Samples.Length > MaxAudioSamples)
+        {
+            return Task.FromResult<IActionResult>(BadRequest("Audio sample count exceeds the one-hour analysis limit"));
         }
 
         if (request.SampleRate <= 0)
@@ -85,6 +95,8 @@ public class PerceptualHashController : ControllerBase
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Computed perceptual hash</returns>
     [HttpPost("image")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
+    [RequestSizeLimit(MaxImageBytes)]
     public Task<IActionResult> ComputeImageHash([FromBody] ImageHashRequest request, CancellationToken cancellationToken = default)
     {
         if (request?.Pixels == null || request.Pixels.Length == 0)
@@ -95,6 +107,17 @@ public class PerceptualHashController : ControllerBase
         if (request.Width <= 0 || request.Height <= 0)
         {
             return Task.FromResult<IActionResult>(BadRequest("Valid image dimensions are required"));
+        }
+
+        var pixelCount = (long)request.Width * request.Height;
+        if (pixelCount > MaxImagePixels)
+        {
+            return Task.FromResult<IActionResult>(BadRequest("Image dimensions exceed the analysis limit"));
+        }
+
+        if (request.Pixels.Length != pixelCount * 4 && request.Pixels.Length != pixelCount * 3 && request.Pixels.Length != pixelCount)
+        {
+            return Task.FromResult<IActionResult>(BadRequest("Pixel buffer length must match width and height"));
         }
 
         try
@@ -126,6 +149,7 @@ public class PerceptualHashController : ControllerBase
     /// <param name="request">Similarity computation request</param>
     /// <returns>Similarity analysis result</returns>
     [HttpPost("similarity")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public IActionResult ComputeSimilarity([FromBody] SimilarityRequest request)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.HashA) || string.IsNullOrWhiteSpace(request.HashB))

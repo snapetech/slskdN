@@ -9537,3 +9537,11 @@ Code quality improvements were completed as part of Option A:
 - Hardened release-channel packaging follow-through by adding passive FTP to PPA upload config, carrying `slskd.tmpfiles` checksums into upstream release metadata, and removing conflicting RPM directory ownership entries.
 - Documented two ADR-0001 gotchas separately in commits `40770fe6d` and `3c33ceea6`.
 - Validation passed: full `dotnet test slskd.sln --no-build`, `./bin/lint`, `bash scripts/check-controller-csrf.sh`, `bash scripts/check-anonymous-endpoints.sh`, `bash packaging/scripts/validate-packaging-metadata.sh`, `bash scripts/check-sensitive-placeholders.sh`, and `bash scripts/check-web-fetch-csrf.sh`.
+
+## 2026-05-05 16:08:51Z
+
+- Completed the comprehensive follow-up security fix pass after the audit list.
+- Added method-level role requirements to all non-anonymous mutating controller actions and documented the class-level `AuthPolicy.Any` gotcha separately in commit `29514712e`.
+- Hardened high-risk work triggers and outbound fetches: SongID local-file analysis is admin-only and limited to configured media roots, Spotify/source-feed HTTP reads use outbound guards and byte caps, source-feed provider hosts require exact domain/subdomain matches, and external moderation endpoint validation now uses the shared outbound guard.
+- Bounded anonymous pod verification/discovery inputs, tightened security-diagnostic role requirements, removed script argument logging, made the release installer verify `SHA256SUMS.txt`, and moved ListenBrainz tokens from local storage to session storage.
+- Validation passed: `dotnet build slskd.sln --no-restore`, full `dotnet test slskd.sln --no-build`, `./bin/lint`, focused PlayerBar Vitest, `cd src/web && npm run lint`, mutating endpoint role scan, source-feed/SongID/script risky-pattern scan, `bash packaging/scripts/validate-packaging-metadata.sh`, and `git diff --check`.

@@ -52,6 +52,7 @@ namespace slskd.Integrations.MusicBrainz.API
         ///     Resolves album or track metadata.
         /// </summary>
         [HttpPost("targets")]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> ResolveTarget(
             [FromBody] MusicBrainzTargetRequest request,
             CancellationToken cancellationToken)
@@ -248,6 +249,7 @@ namespace slskd.Integrations.MusicBrainz.API
         ///     Seeds missing artist coverage tracks into the Wishlist without running searches.
         /// </summary>
         [HttpPost("artist/{artistId}/discography-coverage/wishlist")]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<ActionResult<DiscographyWishlistPromotionResult>> PromoteDiscographyCoverageToWishlist(
             string artistId,
             [FromBody] DiscographyWishlistPromotionRequest request,

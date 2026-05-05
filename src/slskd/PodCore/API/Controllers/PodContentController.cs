@@ -49,6 +49,7 @@ public class PodContentController : ControllerBase
     /// <response code="400">The request is malformed.</response>
     /// <response code="500">An unexpected error occurred.</response>
     [HttpPost("validate")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(ContentValidationResult), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(500)]
@@ -167,6 +168,7 @@ public class PodContentController : ControllerBase
     /// <response code="400">The request is malformed or content link is invalid.</response>
     /// <response code="500">An unexpected error occurred.</response>
     [HttpPost("create-pod")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(Pod), 201)]
     [ProducesResponseType(400)]
     [ProducesResponseType(500)]

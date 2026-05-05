@@ -30,6 +30,7 @@ namespace slskd.Jobs.API
         ///     Creates a label crate job.
         /// </summary>
         [HttpPost]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<ActionResult<object>> Create([FromBody] LabelCrateJobRequest request, CancellationToken ct)
         {
             if (request == null)

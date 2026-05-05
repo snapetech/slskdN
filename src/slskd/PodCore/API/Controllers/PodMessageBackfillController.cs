@@ -55,6 +55,7 @@ public class PodMessageBackfillController : ControllerBase
     /// <response code="400">The request is malformed.</response>
     /// <response code="500">An unexpected error occurred.</response>
     [HttpPost("{podId}/sync")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(PodBackfillResult), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(500)]
@@ -151,6 +152,7 @@ public class PodMessageBackfillController : ControllerBase
     /// <response code="400">The request is malformed.</response>
     /// <response code="500">An unexpected error occurred.</response>
     [HttpPut("{podId}/{channelId}/last-seen")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(500)]
@@ -221,6 +223,7 @@ public class PodMessageBackfillController : ControllerBase
     /// <response code="200">The backfill operations completed.</response>
     /// <response code="500">An unexpected error occurred.</response>
     [HttpPost("sync-all")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(List<PodBackfillResult>), 200)]
     [ProducesResponseType(500)]
     public async Task<IActionResult> SyncAllPods(CancellationToken cancellationToken = default)

@@ -27,6 +27,7 @@ public sealed class ArtistReleaseRadarController : ControllerBase
     }
 
     [HttpPost("subscriptions")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(ArtistRadarSubscription), 200)]
     public async Task<IActionResult> Subscribe(
         [FromBody] ArtistRadarSubscription subscription,
@@ -60,6 +61,7 @@ public sealed class ArtistReleaseRadarController : ControllerBase
     }
 
     [HttpPost("observations")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(ArtistRadarObservationResult), 200)]
     public async Task<IActionResult> RecordObservation(
         [FromBody] ArtistRadarObservation observation,
@@ -100,6 +102,7 @@ public sealed class ArtistReleaseRadarController : ControllerBase
     }
 
     [HttpPost("notifications/{notificationId}/routes")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(ArtistRadarRouteAttempt), 200)]
     public async Task<IActionResult> RouteNotification(
         string notificationId,

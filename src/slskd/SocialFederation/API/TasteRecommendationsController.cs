@@ -27,6 +27,7 @@ public sealed class TasteRecommendationsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(TasteRecommendationResult), 200)]
     public async Task<IActionResult> GetRecommendations(
         [FromBody] TasteRecommendationRequest? request,
@@ -44,6 +45,7 @@ public sealed class TasteRecommendationsController : ControllerBase
     }
 
     [HttpPost("wishlist")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(TasteRecommendationWishlistPromotionResult), 200)]
     public async Task<IActionResult> PromoteToWishlist(
         [FromBody] TasteRecommendationWishlistPromotionRequest? request,
@@ -69,6 +71,7 @@ public sealed class TasteRecommendationsController : ControllerBase
     }
 
     [HttpPost("release-radar")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(TasteRecommendationRadarSubscriptionResult), 200)]
     public async Task<IActionResult> SubscribeReleaseRadar(
         [FromBody] TasteRecommendationRadarSubscriptionRequest? request,
@@ -94,6 +97,7 @@ public sealed class TasteRecommendationsController : ControllerBase
     }
 
     [HttpPost("graph-preview")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(TasteRecommendationGraphPreviewResult), 200)]
     public async Task<IActionResult> PreviewDiscoveryGraph(
         [FromBody] TasteRecommendationGraphPreviewRequest? request,

@@ -105,6 +105,7 @@ public class DhtRendezvousController : ControllerBase
     /// Force a DHT announcement (beacon mode only).
     /// </summary>
     [HttpPost("dht/announce")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<ActionResult> Announce(CancellationToken cancellationToken)
     {
         if (!_dhtService.IsBeaconCapable)
@@ -120,6 +121,7 @@ public class DhtRendezvousController : ControllerBase
     /// Force a DHT discovery cycle.
     /// </summary>
     [HttpPost("dht/discover")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<ActionResult<DiscoveryResultResponse>> Discover(CancellationToken cancellationToken)
     {
         var newConnections = await _dhtService.DiscoverPeersAsync(cancellationToken);
@@ -312,6 +314,7 @@ public class DhtRendezvousController : ControllerBase
     /// Add an IP to the blocklist.
     /// </summary>
     [HttpPost("overlay/blocklist/ip")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public ActionResult BlockIp([FromBody] BlockIpRequest request)
     {
         var ipText = request.Ip?.Trim() ?? string.Empty;
@@ -335,6 +338,7 @@ public class DhtRendezvousController : ControllerBase
     /// Add a username to the blocklist.
     /// </summary>
     [HttpPost("overlay/blocklist/username")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public ActionResult BlockUsername([FromBody] BlockUsernameRequest request)
     {
         var username = request.Username?.Trim() ?? string.Empty;
@@ -358,6 +362,7 @@ public class DhtRendezvousController : ControllerBase
     /// Remove an entry from the blocklist.
     /// </summary>
     [HttpDelete("overlay/blocklist/{type}/{target}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public ActionResult Unblock(string type, string target)
     {
         type = type?.Trim() ?? string.Empty;

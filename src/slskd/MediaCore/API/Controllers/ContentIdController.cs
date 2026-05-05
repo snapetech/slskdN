@@ -41,6 +41,7 @@ public class ContentIdController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The registration result.</returns>
     [HttpPost("register")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> Register([FromBody] ContentIdRegistrationRequest request, CancellationToken cancellationToken)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.ExternalId) || string.IsNullOrWhiteSpace(request.ContentId))

@@ -41,6 +41,7 @@ public class PodMembershipController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The publish result.</returns>
     [HttpPost("{podId}/members")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> PublishMembership(string podId, [FromBody] PodMember member, CancellationToken cancellationToken = default)
     {
         podId = podId?.Trim() ?? string.Empty;
@@ -87,6 +88,7 @@ public class PodMembershipController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The update result.</returns>
     [HttpPut("{podId}/members/{peerId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> UpdateMembership(string podId, string peerId, [FromBody] PodMember member, CancellationToken cancellationToken = default)
     {
         podId = podId?.Trim() ?? string.Empty;
@@ -132,6 +134,7 @@ public class PodMembershipController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The removal result.</returns>
     [HttpDelete("{podId}/{peerId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> RemoveMembership(string podId, string peerId, CancellationToken cancellationToken = default)
     {
         podId = podId?.Trim() ?? string.Empty;
@@ -241,6 +244,7 @@ public class PodMembershipController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The ban result.</returns>
     [HttpPost("{podId}/{peerId}/ban")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> BanMember(string podId, string peerId, [FromBody] BanRequest request, CancellationToken cancellationToken = default)
     {
         podId = podId?.Trim() ?? string.Empty;
@@ -282,6 +286,7 @@ public class PodMembershipController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The unban result.</returns>
     [HttpPost("{podId}/{peerId}/unban")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> UnbanMember(string podId, string peerId, CancellationToken cancellationToken = default)
     {
         podId = podId?.Trim() ?? string.Empty;
@@ -323,6 +328,7 @@ public class PodMembershipController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The role change result.</returns>
     [HttpPost("{podId}/{peerId}/role")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> ChangeRole(string podId, string peerId, [FromBody] ChangeRoleRequest request, CancellationToken cancellationToken = default)
     {
         podId = podId?.Trim() ?? string.Empty;
@@ -382,6 +388,7 @@ public class PodMembershipController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The cleanup result.</returns>
     [HttpPost("cleanup")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> CleanupExpiredMemberships(CancellationToken cancellationToken = default)
     {
         try

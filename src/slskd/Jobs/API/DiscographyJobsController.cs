@@ -31,6 +31,7 @@ namespace slskd.Jobs.API
         ///     Creates a discography job for an artist.
         /// </summary>
         [HttpPost]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<ActionResult<object>> Create([FromBody] DiscographyJobRequest request, CancellationToken ct)
         {
             if (request == null)

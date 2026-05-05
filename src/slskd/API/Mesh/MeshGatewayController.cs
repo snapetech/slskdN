@@ -56,6 +56,7 @@ public class MeshGatewayController : ControllerBase
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Service reply</returns>
     [HttpPost("{serviceName}/{method}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> CallService(
             string serviceName,
             string method,

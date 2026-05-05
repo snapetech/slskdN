@@ -41,6 +41,7 @@ public class ContentDescriptorPublisherController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Publishing result.</returns>
     [HttpPost("descriptor")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> PublishDescriptor([FromBody] PublishDescriptorRequest request, CancellationToken cancellationToken = default)
     {
         if (request?.Descriptor == null)
@@ -89,6 +90,7 @@ public class ContentDescriptorPublisherController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Batch publishing results.</returns>
     [HttpPost("batch")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> PublishBatch([FromBody] PublishBatchRequest request, CancellationToken cancellationToken = default)
     {
         if (request?.Descriptors == null || !request.Descriptors.Any())
@@ -136,6 +138,7 @@ public class ContentDescriptorPublisherController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Update result.</returns>
     [HttpPut("descriptor/{*contentId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> UpdateDescriptor(string contentId, [FromBody] UpdateDescriptorRequest request, CancellationToken cancellationToken = default)
     {
         contentId = contentId?.Trim() ?? string.Empty;
@@ -182,6 +185,7 @@ public class ContentDescriptorPublisherController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Republish results.</returns>
     [HttpPost("republish")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> RepublishExpiring([FromBody] RepublishRequest? request = null, CancellationToken cancellationToken = default)
     {
         var contentIds = request?.ContentIds?
@@ -219,6 +223,7 @@ public class ContentDescriptorPublisherController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Unpublish result.</returns>
     [HttpDelete("descriptor/{*contentId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> UnpublishDescriptor(string contentId, CancellationToken cancellationToken = default)
     {
         contentId = contentId?.Trim() ?? string.Empty;

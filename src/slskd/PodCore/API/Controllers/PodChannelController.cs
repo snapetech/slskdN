@@ -49,6 +49,7 @@ public class PodChannelController : ControllerBase
     /// <response code="404">The pod does not exist.</response>
     /// <response code="500">An unexpected error occurred.</response>
     [HttpPost]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(PodChannel), 201)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
@@ -222,6 +223,7 @@ public class PodChannelController : ControllerBase
     /// <response code="404">The pod or channel does not exist.</response>
     /// <response code="500">An unexpected error occurred.</response>
     [HttpPut("{channelId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
@@ -317,6 +319,7 @@ public class PodChannelController : ControllerBase
     /// <response code="404">The pod or channel does not exist.</response>
     /// <response code="500">An unexpected error occurred.</response>
     [HttpDelete("{channelId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]

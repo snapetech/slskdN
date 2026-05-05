@@ -397,13 +397,13 @@ describe('PlayerBar', () => {
     expect(screen.getByTestId('player-listenbrainz-save-state')).toHaveTextContent(
       'saved automatically',
     );
-    expect(window.localStorage.getItem('slskdn.listenbrainz.token')).toBe('token-1');
+    expect(window.sessionStorage.getItem('slskdn.listenbrainz.token')).toBe('token-1');
     expect(screen.getByTestId('player-close-integrations')).toHaveTextContent('Done');
 
     fireEvent.click(screen.getByTestId('player-clear-listenbrainz-token'));
 
     expect(tokenInput).toHaveValue('');
-    expect(window.localStorage.getItem('slskdn.listenbrainz.token')).toBeNull();
+    expect(window.sessionStorage.getItem('slskdn.listenbrainz.token')).toBeNull();
   });
 
   it('shows and launches the configured external visualizer', async () => {
@@ -669,7 +669,7 @@ describe('PlayerBar', () => {
     });
     expect(screen.getByText(/Added .* listening seeds to Wishlist/)).toBeInTheDocument();
 
-    window.localStorage.setItem('slskdn.listenbrainz.token', 'token-1');
+    window.sessionStorage.setItem('slskdn.listenbrainz.token', 'token-1');
     fireEvent.click(screen.getByTestId('player-listening-history-scrobble-recent'));
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(

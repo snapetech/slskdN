@@ -61,6 +61,7 @@ public class BridgeAdminController : ControllerBase
     /// Update bridge configuration.
     /// </summary>
     [HttpPut("config")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [Authorize]
     public IActionResult UpdateConfig([FromBody] BridgeConfigUpdate update)
     {

@@ -109,6 +109,7 @@ public class CollectionsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(Collection), 201)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> Create([FromBody] CreateCollectionRequest req, CancellationToken ct)
@@ -133,6 +134,7 @@ public class CollectionsController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateCollectionRequest req, CancellationToken ct)
@@ -156,6 +158,7 @@ public class CollectionsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(204)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken ct)
@@ -182,6 +185,7 @@ public class CollectionsController : ControllerBase
     }
 
     [HttpPost("{id}/items")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(CollectionItem), 201)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
@@ -209,6 +213,7 @@ public class CollectionsController : ControllerBase
     }
 
     [HttpPut("{id}/items/{itemId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> UpdateItem([FromRoute] Guid id, [FromRoute] Guid itemId, [FromBody] UpdateCollectionItemRequest req, CancellationToken ct)
@@ -268,6 +273,7 @@ public class CollectionsController : ControllerBase
     }
 
     [HttpDelete("{id}/items/{itemId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(204)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> RemoveItem([FromRoute] Guid id, [FromRoute] Guid itemId, CancellationToken ct)
@@ -282,6 +288,7 @@ public class CollectionsController : ControllerBase
     }
 
     [HttpPost("{id}/items/reorder")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(204)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]

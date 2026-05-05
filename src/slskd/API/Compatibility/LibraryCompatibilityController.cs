@@ -33,6 +33,7 @@ public class LibraryCompatibilityController : ControllerBase
     /// Trigger a library health scan (slskd compatibility).
     /// </summary>
     [HttpPost("scan")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [Authorize]
     public async Task<IActionResult> StartScan(
         [FromBody] LibraryHealthScanRequest? request = null,

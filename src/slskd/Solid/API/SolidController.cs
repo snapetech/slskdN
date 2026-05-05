@@ -72,6 +72,7 @@ public sealed class SolidController : ControllerBase
     ///     Resolves a WebID and extracts OIDC issuer information.
     /// </summary>
     [HttpPost("resolve-webid")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]

@@ -40,6 +40,7 @@ public class PodMessageRoutingController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The routing result.</returns>
     [HttpPost("route")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> RouteMessage([FromBody] PodMessage message, CancellationToken cancellationToken = default)
     {
         if (message == null)
@@ -90,6 +91,7 @@ public class PodMessageRoutingController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The routing result.</returns>
     [HttpPost("route-to-peers")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> RouteMessageToPeers([FromBody] PodMessagePeerRoutingRequest request, CancellationToken cancellationToken = default)
     {
         if (request?.Message == null || request.TargetPeerIds == null || !request.TargetPeerIds.Any())
@@ -197,6 +199,7 @@ public class PodMessageRoutingController : ControllerBase
     /// <param name="podId">The pod ID.</param>
     /// <returns>The registration result.</returns>
     [HttpPost("seen/{messageId}/{podId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public IActionResult RegisterMessageSeen(string messageId, string podId)
     {
         messageId = messageId?.Trim() ?? string.Empty;
@@ -225,6 +228,7 @@ public class PodMessageRoutingController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The cleanup result.</returns>
     [HttpPost("cleanup")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> CleanupSeenMessages(CancellationToken cancellationToken = default)
     {
         try

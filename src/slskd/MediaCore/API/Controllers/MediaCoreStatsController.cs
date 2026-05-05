@@ -200,6 +200,7 @@ public class MediaCoreStatsController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Reset operation result.</returns>
     [HttpPost("reset")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> ResetStats(CancellationToken cancellationToken = default)
     {
         try

@@ -92,7 +92,14 @@ public class MeshGatewayTestHostFactory : WebApplicationFactory<ProgramStub>
                                 o.AllowRemoteNoAuth = true;
                                 o.AllowedCidrs = "127.0.0.1/32,::1/128";
                             });
-                    services.AddAuthorization();
+                    services.AddAuthorization(options =>
+                    {
+                        options.AddPolicy(AuthPolicy.Any, policy =>
+                        {
+                            policy.AuthenticationSchemes.Add(PassthroughAuthentication.AuthenticationScheme);
+                            policy.RequireAuthenticatedUser();
+                        });
+                    });
 
                     services.AddControllers()
                         .ConfigureApplicationPartManager(manager =>

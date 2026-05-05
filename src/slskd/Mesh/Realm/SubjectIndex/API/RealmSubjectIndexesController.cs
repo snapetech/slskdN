@@ -81,6 +81,7 @@ public sealed class RealmSubjectIndexesController : ControllerBase
     }
 
     [HttpPost("{realmId}/{indexId}/authority-decision")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(RealmSubjectIndexAuthorityDecision), 200)]
     public async Task<IActionResult> SetAuthorityDecision(
         string realmId,

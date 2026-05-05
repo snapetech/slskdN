@@ -29,6 +29,7 @@ public class RoomsCompatibilityController : ControllerBase
     /// Join a room (slskd compatibility).
     /// </summary>
     [HttpPost]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [Authorize]
     public async Task<IActionResult> JoinRoom(
         [FromBody] JoinRoomRequest? request,
@@ -80,6 +81,7 @@ public class RoomsCompatibilityController : ControllerBase
     /// Leave a room (slskd compatibility).
     /// </summary>
     [HttpDelete("{roomName}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [Authorize]
     public async Task<IActionResult> LeaveRoom(
             string roomName,

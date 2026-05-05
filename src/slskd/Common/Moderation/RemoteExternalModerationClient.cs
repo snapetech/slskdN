@@ -13,6 +13,7 @@ namespace slskd.Common.Moderation
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
+    using slskd.Common.Security;
 
     /// <summary>
     ///     Remote external moderation client for LLM-powered content analysis.
@@ -68,9 +69,8 @@ namespace slskd.Common.Moderation
             }
 
             // Validate endpoint and domain allowlist
-            if (!ValidateEndpoint(opts, out var endpointError))
+            if (!await ValidateEndpointAsync(opts, ct))
             {
-                _logger.LogWarning("[RemoteLlm] Endpoint validation failed: {Error}", endpointError);
                 return ModerationDecision.Unknown("endpoint_configuration_invalid");
             }
 
@@ -109,25 +109,23 @@ namespace slskd.Common.Moderation
             }
         }
 
-        private bool ValidateEndpoint(ExternalModerationOptions opts, out string error)
+        private async Task<bool> ValidateEndpointAsync(ExternalModerationOptions opts, CancellationToken cancellationToken)
         {
-            error = string.Empty;
-
             if (string.IsNullOrWhiteSpace(opts.Endpoint))
             {
-                error = "Endpoint is not configured";
+                _logger.LogWarning("[RemoteLlm] Endpoint validation failed: Endpoint is not configured");
                 return false;
             }
 
             if (!Uri.TryCreate(opts.Endpoint, UriKind.Absolute, out var uri))
             {
-                error = $"Endpoint is not a valid absolute URI: {opts.Endpoint}";
+                _logger.LogWarning("[RemoteLlm] Endpoint validation failed: Endpoint is not a valid absolute URI");
                 return false;
             }
 
             if (uri.Scheme != "https")
             {
-                error = $"Endpoint must use HTTPS: {opts.Endpoint}";
+                _logger.LogWarning("[RemoteLlm] Endpoint validation failed: Endpoint must use HTTPS");
                 return false;
             }
 
@@ -137,7 +135,14 @@ namespace slskd.Common.Moderation
                 allowed.Equals(host, StringComparison.OrdinalIgnoreCase) ||
                 host.EndsWith("." + allowed, StringComparison.OrdinalIgnoreCase)))
             {
-                error = $"Domain '{host}' is not in allowed domains list";
+                _logger.LogWarning("[RemoteLlm] Endpoint validation failed: Domain '{Host}' is not in allowed domains list", host);
+                return false;
+            }
+
+            var (safe, reason) = await OutboundUriGuard.CheckAsync(uri, cancellationToken).ConfigureAwait(false);
+            if (!safe)
+            {
+                _logger.LogWarning("[RemoteLlm] Endpoint validation failed: {Reason}", reason);
                 return false;
             }
 

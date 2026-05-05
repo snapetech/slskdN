@@ -124,7 +124,7 @@ public class ScriptService
                         {
                             var dangerous = new[] { '&', '|', ';', '`', '$', '(', ')', '<', '>', '\n', '\r' };
                             if (run.Command.Any(c => dangerous.Contains(c)))
-                                throw new ArgumentException($"Command contains disallowed shell metacharacters: {run.Command}");
+                                throw new ArgumentException("Command contains disallowed shell metacharacters");
                         }
 
                         // 'command' mode takes precedence over 'executable' mode
@@ -190,7 +190,7 @@ public class ScriptService
                         };
                     }
 
-                    Log.Debug("Running script '{Script}': \"{Executable}\" {Args} (id: {ProcessId})", script.Key, executable, run.Args ?? string.Join(' ', run.Arglist ?? []), processId);
+                    Log.Debug("Running script '{Script}': \"{Executable}\" with {ArgCount} argument(s) (id: {ProcessId})", script.Key, executable, run.Arglist?.Length ?? (string.IsNullOrWhiteSpace(run.Args) ? 0 : 1), processId);
                     var sw = Stopwatch.StartNew();
 
                     process.StartInfo.EnvironmentVariables["SLSKD_SCRIPT_DATA"] = JsonSerializer.Serialize(

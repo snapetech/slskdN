@@ -49,6 +49,7 @@ public class ProfileController : ControllerBase
 
     /// <summary>Update this peer's profile (re-signs).</summary>
     [HttpPut("me")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(PeerProfile), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
@@ -118,6 +119,7 @@ public class ProfileController : ControllerBase
 
     /// <summary>Generate an invite link/QR.</summary>
     [HttpPost("invite")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(InviteResponse), 200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> CreateInvite([FromBody] CreateInviteRequest req, CancellationToken ct)

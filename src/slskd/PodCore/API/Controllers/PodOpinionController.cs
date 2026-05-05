@@ -51,6 +51,7 @@ public class PodOpinionController : ControllerBase
     /// <response code="400">The request is malformed or opinion is invalid.</response>
     /// <response code="500">An unexpected error occurred.</response>
     [HttpPost]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(OpinionPublishResult), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(500)]
@@ -246,6 +247,7 @@ public class PodOpinionController : ControllerBase
     /// <response code="400">The request is malformed.</response>
     /// <response code="500">An unexpected error occurred.</response>
     [HttpPost("refresh")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(OpinionRefreshResult), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(500)]
@@ -402,6 +404,7 @@ public class PodOpinionController : ControllerBase
     /// <response code="400">The request is malformed.</response>
     /// <response code="500">An unexpected error occurred.</response>
     [HttpPost("members/affinity/update")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(AffinityUpdateResult), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(500)]

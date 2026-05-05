@@ -37,6 +37,7 @@ public class PortForwardingController : ControllerBase
     /// <param name="request">The port forwarding configuration.</param>
     /// <returns>A success response.</returns>
     [HttpPost("start")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> StartForwarding([FromBody] StartPortForwardingRequest request)
     {
         if (request == null)
@@ -90,6 +91,7 @@ public class PortForwardingController : ControllerBase
     /// <param name="localPort">The local port to stop forwarding.</param>
     /// <returns>A success response.</returns>
     [HttpPost("stop/{localPort:int}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> StopForwarding(int localPort)
     {
         try

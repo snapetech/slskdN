@@ -1,18 +1,18 @@
-import { getLocalStorageItem, removeLocalStorageItem, setLocalStorageItem } from './storage';
+import { getSessionStorageItem, removeSessionStorageItem, setSessionStorageItem } from './storage';
 
 const tokenStorageKey = 'slskdn.listenbrainz.token';
 
 export const getListenBrainzToken = () =>
-  getLocalStorageItem(tokenStorageKey, '');
+  getSessionStorageItem(tokenStorageKey, '');
 
 export const setListenBrainzToken = (token) => {
   const normalized = token.trim();
   if (!normalized) {
-    removeLocalStorageItem(tokenStorageKey);
+    removeSessionStorageItem(tokenStorageKey);
     return;
   }
 
-  setLocalStorageItem(tokenStorageKey, normalized);
+  setSessionStorageItem(tokenStorageKey, normalized);
 };
 
 export const submitListen = async (listenType, track) => {

@@ -27,6 +27,7 @@ public sealed class SongIdController : ControllerBase
     }
 
     [HttpPost("runs")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     public async Task<IActionResult> CreateRun([FromBody, Required] SongIdRunRequest request, CancellationToken cancellationToken)
     {
         if (Program.IsRelayAgent)
@@ -45,8 +46,19 @@ public sealed class SongIdController : ControllerBase
             return BadRequest("SongID source is required.");
         }
 
-        var run = await _songIdService.QueueAnalyzeAsync(request.Source, cancellationToken).ConfigureAwait(false);
-        return Accepted(run);
+        try
+        {
+            var run = await _songIdService.QueueAnalyzeAsync(request.Source, cancellationToken).ConfigureAwait(false);
+            return Accepted(run);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpGet("runs")]

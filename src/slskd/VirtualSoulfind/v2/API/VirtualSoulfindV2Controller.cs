@@ -70,6 +70,7 @@ namespace slskd.VirtualSoulfind.v2.API
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The created intent.</returns>
         [HttpPost("intents/tracks")]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(typeof(DesiredTrack), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> EnqueueTrack(
@@ -130,6 +131,7 @@ namespace slskd.VirtualSoulfind.v2.API
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The created intent.</returns>
         [HttpPost("intents/releases")]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(typeof(DesiredRelease), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> EnqueueRelease(
@@ -263,6 +265,7 @@ namespace slskd.VirtualSoulfind.v2.API
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>No content on success.</returns>
         [HttpPatch("intents/tracks/{intentId}")]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateTrackIntent(
@@ -444,6 +447,7 @@ namespace slskd.VirtualSoulfind.v2.API
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The acquisition plan.</returns>
         [HttpPost("plans")]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(typeof(TrackAcquisitionPlan), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreatePlan(
@@ -538,6 +542,7 @@ namespace slskd.VirtualSoulfind.v2.API
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Processing result.</returns>
         [HttpPost("intents/tracks/{intentId}/process")]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(StatusCodes.Status202Accepted)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> ProcessIntent(

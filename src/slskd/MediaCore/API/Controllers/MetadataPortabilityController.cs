@@ -42,6 +42,7 @@ public class MetadataPortabilityController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Metadata package for download.</returns>
     [HttpPost("export")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> Export([FromBody] MetadataExportRequest request, CancellationToken cancellationToken = default)
     {
         var contentIds = request?.ContentIds?
@@ -84,6 +85,7 @@ public class MetadataPortabilityController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Import operation results.</returns>
     [HttpPost("import")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> Import([FromBody] MetadataImportRequest request, CancellationToken cancellationToken = default)
     {
         if (request?.Package == null)
@@ -119,6 +121,7 @@ public class MetadataPortabilityController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Conflict analysis results.</returns>
     [HttpPost("analyze")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> AnalyzeConflicts([FromBody] MetadataAnalyzeRequest request, CancellationToken cancellationToken = default)
     {
         if (request?.Package == null)

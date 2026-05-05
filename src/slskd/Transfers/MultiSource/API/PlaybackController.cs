@@ -37,6 +37,7 @@ namespace slskd.Transfers.MultiSource.API
         ///     Submit playback feedback for a job/track.
         /// </summary>
         [HttpPost("feedback")]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> PostFeedback([FromBody] PlaybackFeedback payload, CancellationToken ct)
         {
             if (payload == null || string.IsNullOrWhiteSpace(payload.JobId))

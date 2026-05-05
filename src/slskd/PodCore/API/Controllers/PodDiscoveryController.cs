@@ -22,6 +22,9 @@ using slskd.Core.Security;
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
 public class PodDiscoveryController : ControllerBase
 {
+    private const int MaxAnonymousQueryLength = 128;
+    private const int MaxAnonymousTags = 16;
+    private const int MaxAnonymousDiscoverAllLimit = 100;
     private readonly ILogger<PodDiscoveryController> _logger;
     private readonly IPodDiscoveryService _discoveryService;
 
@@ -40,6 +43,7 @@ public class PodDiscoveryController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The registration result.</returns>
     [HttpPost("register")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> RegisterPod([FromBody] Pod pod, CancellationToken cancellationToken = default)
     {
         if (pod != null)
@@ -88,6 +92,7 @@ public class PodDiscoveryController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The unregistration result.</returns>
     [HttpDelete("unregister/{podId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> UnregisterPod(string podId, CancellationToken cancellationToken = default)
     {
         podId = podId?.Trim() ?? string.Empty;
@@ -125,6 +130,7 @@ public class PodDiscoveryController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The update result.</returns>
     [HttpPost("update")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> UpdatePod([FromBody] Pod pod, CancellationToken cancellationToken = default)
     {
         if (pod != null)
@@ -177,9 +183,9 @@ public class PodDiscoveryController : ControllerBase
     public async Task<IActionResult> DiscoverPodsByName(string name, CancellationToken cancellationToken = default)
     {
         name = name?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(name))
+        if (string.IsNullOrWhiteSpace(name) || name.Length > MaxAnonymousQueryLength)
         {
-            return BadRequest(new { error = "Name is required" });
+            return BadRequest(new { error = "Name is required and must be within length limits" });
         }
 
         try
@@ -205,9 +211,9 @@ public class PodDiscoveryController : ControllerBase
     public async Task<IActionResult> DiscoverPodsByTag(string tag, CancellationToken cancellationToken = default)
     {
         tag = tag?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(tag))
+        if (string.IsNullOrWhiteSpace(tag) || tag.Length > MaxAnonymousQueryLength)
         {
-            return BadRequest(new { error = "Tag is required" });
+            return BadRequest(new { error = "Tag is required and must be within length limits" });
         }
 
         try
@@ -233,9 +239,9 @@ public class PodDiscoveryController : ControllerBase
     public async Task<IActionResult> DiscoverPodsByTags(string tags, CancellationToken cancellationToken = default)
     {
         tags = tags?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(tags))
+        if (string.IsNullOrWhiteSpace(tags) || tags.Length > MaxAnonymousQueryLength * MaxAnonymousTags)
         {
-            return BadRequest(new { error = "Tags are required" });
+            return BadRequest(new { error = "Tags are required and must be within length limits" });
         }
 
         try
@@ -247,9 +253,9 @@ public class PodDiscoveryController : ControllerBase
                 .Distinct()
                 .ToList();
 
-            if (tagList.Count == 0)
+            if (tagList.Count == 0 || tagList.Count > MaxAnonymousTags || tagList.Any(tag => tag.Length > MaxAnonymousQueryLength))
             {
-                return BadRequest(new { error = "At least one non-empty tag is required" });
+                return BadRequest(new { error = "At least one non-empty tag is required and tag count/length limits must be respected" });
             }
 
             var result = await _discoveryService.DiscoverPodsByTagsAsync(tagList, cancellationToken);
@@ -272,9 +278,9 @@ public class PodDiscoveryController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> DiscoverAllPods([FromQuery] int limit = 50, CancellationToken cancellationToken = default)
     {
-        if (limit <= 0 || limit > 1000)
+        if (limit <= 0 || limit > MaxAnonymousDiscoverAllLimit)
         {
-            return BadRequest(new { error = "Limit must be between 1 and 1000" });
+            return BadRequest(new { error = $"Limit must be between 1 and {MaxAnonymousDiscoverAllLimit}" });
         }
 
         try
@@ -342,6 +348,7 @@ public class PodDiscoveryController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The refresh result.</returns>
     [HttpPost("refresh")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> RefreshDiscovery(CancellationToken cancellationToken = default)
     {
         try

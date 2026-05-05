@@ -27,6 +27,7 @@ public sealed class LibraryBloomDiffController : ControllerBase
     }
 
     [HttpPost("snapshots/preview")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(LibraryBloomSnapshot), 200)]
     public async Task<IActionResult> PreviewSnapshot(
         [FromBody] LibraryBloomSnapshotRequest request,
@@ -44,6 +45,7 @@ public sealed class LibraryBloomDiffController : ControllerBase
     }
 
     [HttpPost("diffs")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(LibraryBloomDiffResult), 200)]
     public async Task<IActionResult> Compare(
         [FromBody] LibraryBloomDiffRequest request,
@@ -64,6 +66,7 @@ public sealed class LibraryBloomDiffController : ControllerBase
     }
 
     [HttpPost("wishlist")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(LibraryBloomWishlistPromotionResult), 200)]
     public async Task<IActionResult> PromoteSuggestions(
         [FromBody] LibraryBloomWishlistPromotionRequest request,

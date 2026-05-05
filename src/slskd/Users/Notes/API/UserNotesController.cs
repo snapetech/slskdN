@@ -75,6 +75,7 @@ namespace slskd.Users.Notes.API
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The updated note.</returns>
         [HttpPost]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<ActionResult<UserNote>> Set([FromBody] UserNote note, CancellationToken cancellationToken)
         {
             note.Username = note.Username?.Trim() ?? string.Empty;
@@ -94,6 +95,7 @@ namespace slskd.Users.Notes.API
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>No content.</returns>
         [HttpDelete("{username}")]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<ActionResult> Delete(string username, CancellationToken cancellationToken)
         {
             username = username?.Trim() ?? string.Empty;

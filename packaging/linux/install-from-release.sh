@@ -73,6 +73,31 @@ download_asset() {
   return 1
 }
 
+download_checksums() {
+  local release_tag="$1"
+  local destination="$2"
+  local url="https://github.com/snapetech/slskdn/releases/download/${release_tag}/SHA256SUMS.txt"
+
+  wget -q -O "$destination" "$url"
+}
+
+verify_asset_checksum() {
+  local checksum_file="$1"
+  local asset_name="$2"
+
+  if [ ! -s "$checksum_file" ]; then
+    echo "Missing SHA256SUMS.txt for release ${SLSKDN_VERSION}; refusing to install unverified artifact." >&2
+    exit 1
+  fi
+
+  if ! grep -Eq "^[0-9a-fA-F]{64}[[:space:]]+\\*?${asset_name//./\\.}$" "$checksum_file"; then
+    echo "SHA256SUMS.txt does not contain ${asset_name}; refusing to install unverified artifact." >&2
+    exit 1
+  fi
+
+  sha256sum --check --ignore-missing "$checksum_file"
+}
+
 install_dotnet_runtime() {
   . /etc/os-release
 
@@ -162,10 +187,12 @@ main() {
 
   local zip=""
   local release_tag
+  local resolved_release_tag=""
   for release_tag in "$SLSKDN_VERSION" "${SLSKDN_VERSION//.slskdn./-slskdn.}"; do
     while IFS= read -r candidate; do
       if download_asset "$release_tag" "$candidate" "$candidate" >/dev/null; then
         zip="$candidate"
+        resolved_release_tag="$release_tag"
         break 2
       fi
     done < <(detect_asset_candidates)
@@ -175,6 +202,10 @@ main() {
     echo "Download failed for ${SLSKDN_VERSION}: no matching Linux release asset found" >&2
     exit 1
   fi
+
+  local checksum_file="SHA256SUMS.txt"
+  download_checksums "$resolved_release_tag" "$checksum_file"
+  verify_asset_checksum "$checksum_file" "$zip"
 
   echo "[3/7] Replacing installed tree at ${DEST}..."
   systemctl stop slskd 2>/dev/null || true

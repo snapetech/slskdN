@@ -66,6 +66,7 @@ public class ContactsController : ControllerBase
 
     /// <summary>Add a contact from an invite link.</summary>
     [HttpPost("from-invite")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(Contact), 201)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
@@ -106,6 +107,7 @@ public class ContactsController : ControllerBase
 
     /// <summary>Add a contact from LAN discovery (by PeerId, after fetching profile).</summary>
     [HttpPost("from-discovery")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(Contact), 201)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
@@ -134,6 +136,7 @@ public class ContactsController : ControllerBase
 
     /// <summary>Update contact nickname.</summary>
     [HttpPut("{id}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(Contact), 200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateContactRequest req, CancellationToken ct)
@@ -159,6 +162,7 @@ public class ContactsController : ControllerBase
 
     /// <summary>Remove a contact.</summary>
     [HttpDelete("{id}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(204)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken ct)

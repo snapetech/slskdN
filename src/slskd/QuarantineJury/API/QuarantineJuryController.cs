@@ -26,6 +26,7 @@ public sealed class QuarantineJuryController : ControllerBase
     }
 
     [HttpPost("requests")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(QuarantineJuryValidationResult), 200)]
     public async Task<IActionResult> CreateRequest(
         [FromBody] QuarantineJuryRequest request,
@@ -72,6 +73,7 @@ public sealed class QuarantineJuryController : ControllerBase
     }
 
     [HttpPost("verdicts")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(QuarantineJuryValidationResult), 200)]
     public async Task<IActionResult> SubmitVerdict(
         [FromBody] QuarantineJuryVerdictRecord verdict,
@@ -133,6 +135,7 @@ public sealed class QuarantineJuryController : ControllerBase
     }
 
     [HttpPost("requests/{requestId}/accept-release-candidate")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(QuarantineJuryAcceptanceResult), 200)]
     public async Task<IActionResult> AcceptReleaseCandidate(
         string requestId,
@@ -175,6 +178,7 @@ public sealed class QuarantineJuryController : ControllerBase
     }
 
     [HttpPost("requests/{requestId}/routes")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(QuarantineJuryRouteAttempt), 200)]
     public async Task<IActionResult> RouteRequest(
         string requestId,

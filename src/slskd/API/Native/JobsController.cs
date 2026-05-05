@@ -49,6 +49,7 @@ public class JobsController : ControllerBase
     /// </summary>
     /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
     [HttpPost("mb-release")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [Authorize]
     public async Task<IActionResult> CreateMbReleaseJob(
         [FromBody] MbReleaseJobRequest request,
@@ -97,6 +98,7 @@ public class JobsController : ControllerBase
     /// </summary>
     /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
     [HttpPost("discography")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [Authorize]
     public async Task<IActionResult> CreateDiscographyJob(
         [FromBody] DiscographyJobRequest request,
@@ -136,6 +138,7 @@ public class JobsController : ControllerBase
     /// </summary>
     /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
     [HttpPost("label-crate")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [Authorize]
     public async Task<IActionResult> CreateLabelCrateJob(
         [FromBody] LabelCrateJobRequest request,

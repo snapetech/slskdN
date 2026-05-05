@@ -67,6 +67,7 @@ public sealed class ListeningPartyController : ControllerBase
     }
 
     [HttpPost("{podId}/{channelId}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(ListeningPartyEvent), 200)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> Publish(

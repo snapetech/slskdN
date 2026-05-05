@@ -29,6 +29,7 @@ namespace slskd.Audio.API
         ///     Recompute analyzer outputs for variants missing/stale analyzer_version. Use force=true to recompute all.
         /// </summary>
         [HttpPost]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<ActionResult<object>> Migrate([FromQuery] string targetVersion = "audioqa-1", [FromQuery] bool force = false, CancellationToken ct = default)
         {
             targetVersion = targetVersion?.Trim() ?? string.Empty;

@@ -88,6 +88,7 @@ public class LibraryHealthController : ControllerBase
     /// Create a remediation job for library issues.
     /// </summary>
     [HttpPost("remediate")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [Authorize]
     public async Task<IActionResult> CreateRemediationJob(
         [FromBody] LibraryRemediationRequest request,

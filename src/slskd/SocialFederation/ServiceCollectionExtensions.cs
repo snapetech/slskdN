@@ -4,6 +4,7 @@
 namespace slskd.SocialFederation
 {
     using System;
+    using System.Net.Http;
     using Microsoft.AspNetCore.DataProtection;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -48,6 +49,9 @@ namespace slskd.SocialFederation
                 sp.GetService<slskd.SoulseekDiscovery.ISoulseekDiscoveryService>(),
                 sp.GetService<slskd.Common.Security.ISoulseekSafetyLimiter>(),
                 sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<TasteRecommendationService>>()));
+
+            services.AddHttpClient("FederationDelivery")
+                .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
 
             // Register activity delivery service
             services.AddSingleton<ActivityDeliveryService>(sp =>

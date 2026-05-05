@@ -22,6 +22,8 @@ using slskd.Core.Security;
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
 public class PodVerificationController : ControllerBase
 {
+    private const int MaxPodRouteValueLength = 128;
+    private const int MaxMessageValueLength = 512;
     private readonly ILogger<PodVerificationController> _logger;
     private readonly IPodMembershipVerifier _membershipVerifier;
 
@@ -47,9 +49,10 @@ public class PodVerificationController : ControllerBase
         podId = podId?.Trim() ?? string.Empty;
         peerId = peerId?.Trim() ?? string.Empty;
 
-        if (string.IsNullOrWhiteSpace(podId) || string.IsNullOrWhiteSpace(peerId))
+        if (string.IsNullOrWhiteSpace(podId) || string.IsNullOrWhiteSpace(peerId) ||
+            podId.Length > MaxPodRouteValueLength || peerId.Length > MaxPodRouteValueLength)
         {
-            return BadRequest(new { error = "PodId and PeerId are required" });
+            return BadRequest(new { error = "PodId and PeerId are required and must be within length limits" });
         }
 
         try
@@ -72,6 +75,7 @@ public class PodVerificationController : ControllerBase
     /// <returns>The message verification result.</returns>
     [HttpPost("message")]
     [AllowAnonymous]
+    [RequestSizeLimit(32 * 1024)]
     public async Task<IActionResult> VerifyMessage([FromBody] PodMessage message, CancellationToken cancellationToken = default)
     {
         if (message == null)
@@ -85,9 +89,14 @@ public class PodVerificationController : ControllerBase
         message.SenderPeerId = message.SenderPeerId?.Trim() ?? string.Empty;
         message.Signature = message.Signature?.Trim() ?? string.Empty;
 
-        if (string.IsNullOrWhiteSpace(message.MessageId) || string.IsNullOrWhiteSpace(message.PodId))
+        if (string.IsNullOrWhiteSpace(message.MessageId) || string.IsNullOrWhiteSpace(message.PodId) ||
+            message.MessageId.Length > MaxMessageValueLength ||
+            message.PodId.Length > MaxMessageValueLength ||
+            message.ChannelId.Length > MaxMessageValueLength ||
+            message.SenderPeerId.Length > MaxMessageValueLength ||
+            message.Signature.Length > MaxMessageValueLength)
         {
-            return BadRequest(new { error = "MessageId and PodId are required" });
+            return BadRequest(new { error = "Message fields are required and must be within length limits" });
         }
 
         try
@@ -118,9 +127,10 @@ public class PodVerificationController : ControllerBase
         peerId = peerId?.Trim() ?? string.Empty;
         requiredRole = requiredRole?.Trim() ?? string.Empty;
 
-        if (string.IsNullOrWhiteSpace(podId) || string.IsNullOrWhiteSpace(peerId) || string.IsNullOrWhiteSpace(requiredRole))
+        if (string.IsNullOrWhiteSpace(podId) || string.IsNullOrWhiteSpace(peerId) || string.IsNullOrWhiteSpace(requiredRole) ||
+            podId.Length > MaxPodRouteValueLength || peerId.Length > MaxPodRouteValueLength || requiredRole.Length > MaxPodRouteValueLength)
         {
-            return BadRequest(new { error = "PodId, PeerId, and RequiredRole are required" });
+            return BadRequest(new { error = "PodId, PeerId, and RequiredRole are required and must be within length limits" });
         }
 
         try

@@ -124,6 +124,7 @@ public class PodMessageStorageController : ControllerBase
     /// <response code="400">The request is malformed.</response>
     /// <response code="500">An unexpected error occurred.</response>
     [HttpDelete("cleanup")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(long), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(500)]
@@ -160,6 +161,7 @@ public class PodMessageStorageController : ControllerBase
     /// <response code="400">The request is malformed.</response>
     /// <response code="500">An unexpected error occurred.</response>
     [HttpDelete("{podId}/{channelId}/cleanup")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(long), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(500)]
@@ -250,6 +252,7 @@ public class PodMessageStorageController : ControllerBase
     /// <response code="200">The rebuild result.</response>
     /// <response code="500">An unexpected error occurred.</response>
     [HttpPost("rebuild-index")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(bool), 200)]
     [ProducesResponseType(500)]
     public async Task<IActionResult> RebuildSearchIndex(CancellationToken cancellationToken = default)
@@ -274,6 +277,7 @@ public class PodMessageStorageController : ControllerBase
     /// <response code="200">The vacuum result.</response>
     /// <response code="500">An unexpected error occurred.</response>
     [HttpPost("vacuum")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(bool), 200)]
     [ProducesResponseType(500)]
     public async Task<IActionResult> VacuumDatabase(CancellationToken cancellationToken = default)
