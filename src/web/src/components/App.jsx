@@ -81,6 +81,21 @@ const getSemanticTheme = (theme) => (theme === 'light' ? 'light' : 'dark');
 const normalizePortForwardProtocol = (proto) =>
   `${proto || ''}`.trim().toUpperCase();
 
+const getOption = (source, ...keys) => {
+  for (const key of keys) {
+    if (source && Object.prototype.hasOwnProperty.call(source, key)) {
+      return source[key];
+    }
+  }
+
+  return undefined;
+};
+
+const toConfiguredPort = (value, fallback) => {
+  const port = Number(value);
+  return Number.isInteger(port) && port > 0 ? port : fallback;
+};
+
 const getVpnPortForwards = (vpn = {}) => {
   if (Array.isArray(vpn.portForwards) && vpn.portForwards.length > 0) {
     return vpn.portForwards
@@ -276,20 +291,54 @@ const LEGACY_INGRESS_PORTS = [
   },
 ];
 
-const CURRENT_INGRESS_PORTS = [
-  {
+const buildCurrentIngressPorts = (options = {}) => {
+  const soulseek = getOption(options, 'soulseek', 'Soulseek') || {};
+  const dht = getOption(options, 'dht', 'dhtRendezvous', 'DhtRendezvous') || {};
+  const soulseekListenPort = toConfiguredPort(
+    getOption(soulseek, 'listenPort', 'listen_port', 'ListenPort'),
+    50300,
+  );
+  const dhtOverlayPort = toConfiguredPort(
+    getOption(dht, 'overlayPort', 'overlay_port', 'OverlayPort'),
+    50305,
+  );
+  const dhtPort = toConfiguredPort(
+    getOption(dht, 'dhtPort', 'dht_port', 'DhtPort'),
+    50305,
+  );
+  const ports = [{
     config: 'soulseek.listen_port',
     label: 'Soulseek peer/file transfers',
-    port: 50300,
+    port: soulseekListenPort,
     proto: 'TCP',
-  },
-  {
-    config: 'dht.overlay_port + dht.dht_port',
-    label: 'slskdN mesh overlay and DHT rendezvous',
-    port: 50305,
-    proto: 'TCP/UDP',
-  },
-];
+  }];
+
+  if (dhtOverlayPort === dhtPort) {
+    ports.push({
+      config: 'dht.overlay_port + dht.dht_port',
+      label: 'slskdN mesh overlay and DHT rendezvous',
+      port: dhtOverlayPort,
+      proto: 'TCP/UDP',
+    });
+  } else {
+    ports.push(
+      {
+        config: 'dht.overlay_port',
+        label: 'slskdN mesh overlay',
+        port: dhtOverlayPort,
+        proto: 'TCP',
+      },
+      {
+        config: 'dht.dht_port',
+        label: 'DHT rendezvous',
+        port: dhtPort,
+        proto: 'UDP',
+      },
+    );
+  }
+
+  return ports;
+};
 
 const IngressPortList = ({ expectedPorts, title }) => {
   if (!expectedPorts?.length) {
@@ -319,7 +368,7 @@ const IngressPortList = ({ expectedPorts, title }) => {
   );
 };
 
-const VpnPortChangeNotice = ({ onDismiss, portForwards }) => {
+const VpnPortChangeNotice = ({ onDismiss, options, portForwards }) => {
   if (!portForwards.length) {
     return null;
   }
@@ -342,7 +391,7 @@ const VpnPortChangeNotice = ({ onDismiss, portForwards }) => {
             title="Used to need"
           />
           <IngressPortList
-            expectedPorts={CURRENT_INGRESS_PORTS}
+            expectedPorts={buildCurrentIngressPorts(options)}
             title="Need now"
           />
         </div>
@@ -1231,6 +1280,7 @@ class App extends Component {
                   onDismiss={() =>
                     this.dismissVpnPortNotice(vpnPortSignature, vpnPortForwards)
                   }
+                  options={applicationOptions}
                   portForwards={vpnPortForwards}
                 />
               )}

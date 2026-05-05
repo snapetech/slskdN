@@ -1,5 +1,8 @@
 ## 2026-05-05
 
+- Fixed the VPN ingress migration banner to derive current ports from loaded options rather than fixed defaults: Soulseek peer/file transfer uses `soulseek.listen_port`, mesh overlay uses `dht.overlay_port`, and DHT rendezvous uses `dht.dht_port`. When the mesh overlay and DHT ports differ, the banner now shows separate TCP and UDP rows. Documented the gotcha in ADR-0001 as `0z282`.
+- Validation: focused `App.test.jsx` and App lint passed.
+
 - Cleaned up the follow-up project assessment findings: remediation docs command validation is cwd-independent, documented root npm remediation scripts are tracked in a minimal root `package.json`, `bin/lint` is executable, stale audit entries for T-1405/T-1410/Phase 8 are reconciled, and build docs now state exactly when frontend assets are copied into backend `wwwroot`.
 - Validation: root and `src/web` `npm run check:remediation`, direct `./bin/lint`, `git diff --check`, and focused `ChunkReassignmentTests`/`JobsControllerPaginationTests` passed.
 

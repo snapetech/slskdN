@@ -1,3 +1,15 @@
+## Update 2026-05-05 06:12:38Z
+
+- Current task: VPN ingress banner port-source correction is complete locally.
+- Last activity:
+  - confirmed the banner was using hard-coded default constants for current ports
+  - changed current ingress rows to derive Soulseek peer/file transfer from `soulseek.listen_port`
+  - changed mesh/DHT rows to derive from `dht.overlay_port` and `dht.dht_port`, splitting TCP and UDP rows when configured ports differ
+  - documented ADR-0001 gotcha `0z282` and committed it separately as `cf6743cda`
+  - validation passed: focused `App.test.jsx` and App lint
+- Next steps:
+  1. Commit and push the UI fix.
+
 ## Update 2026-05-05 05:59:50Z
 
 - Current task: Project assessment cleanup follow-up is complete locally.

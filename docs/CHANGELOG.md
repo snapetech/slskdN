@@ -31,6 +31,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Added logged-in and logged-out footer build metadata with a GitHub-backed
   slskdN release check that surfaces newer packaged builds from
   `snapetech/slskdn`.
+- Fixed the VPN ingress migration banner so current Soulseek and mesh/DHT
+  ports come from loaded configuration instead of hard-coded defaults.
 - Fixed remediation check invocation from both the repo root and `src/web`,
   restored direct `./bin/lint` execution, reconciled stale project audit
   entries, and clarified how frontend build assets are copied into backend

@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **web**: Derive VPN ingress banner ports from loaded configuration.
+ - Status: completed (2026-05-05)
+ - Priority: P1
+ - Notes: Changed the port migration banner to read `soulseek.listen_port`, `dht.overlay_port`, and `dht.dht_port` from application options, with documented defaults only as fallbacks. The banner now splits mesh overlay TCP and DHT UDP rows when those configured ports differ. Documented ADR-0001 gotcha `0z282`. Validation passed: focused `App.test.jsx` and App lint.
+
 - [x] **maintenance**: Clean up follow-up project assessment findings.
  - Status: completed (2026-05-05)
  - Priority: P1

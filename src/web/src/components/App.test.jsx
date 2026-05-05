@@ -306,4 +306,68 @@ describe('App', () => {
       ).not.toBeInTheDocument();
     });
   });
+
+  it('uses configured ingress ports in the network endpoint notice', async () => {
+    render(
+      <MemoryRouter>
+        <App />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Searches')).toBeInTheDocument();
+    });
+
+    hubHandlers.options({
+      dht: {
+        dhtPort: 62010,
+        overlayPort: 62000,
+      },
+      soulseek: {
+        listenPort: 61000,
+      },
+    });
+    hubHandlers.state({
+      server: { isConnected: true },
+      vpn: {
+        isReady: true,
+        portForwards: [
+          {
+            localPort: 61000,
+            proto: 'tcp',
+            publicIPAddress: '203.0.113.10',
+            publicPort: 61000,
+            slot: 0,
+            targetPort: 61000,
+          },
+          {
+            localPort: 62000,
+            proto: 'tcp',
+            publicIPAddress: '203.0.113.20',
+            publicPort: 62000,
+            slot: 1,
+            targetPort: 62000,
+          },
+          {
+            localPort: 62010,
+            proto: 'udp',
+            publicIPAddress: '203.0.113.20',
+            publicPort: 62010,
+            slot: 2,
+            targetPort: 62010,
+          },
+        ],
+      },
+    });
+
+    expect(
+      await screen.findByTestId('vpn-port-change-notice'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('TCP 61000')).toBeInTheDocument();
+    expect(screen.getByText('slskdN mesh overlay')).toBeInTheDocument();
+    expect(screen.getByText('TCP 62000')).toBeInTheDocument();
+    expect(screen.getByText('DHT rendezvous')).toBeInTheDocument();
+    expect(screen.getByText('UDP 62010')).toBeInTheDocument();
+    expect(screen.getAllByText('TCP/UDP 50305')).toHaveLength(1);
+  });
 });
