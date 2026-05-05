@@ -2,6 +2,7 @@ const getTotalSize = (files) =>
   files.reduce((total, file) => total + (file.size || 0), 0);
 
 const unique = (values) => [...new Set(values.filter(Boolean))];
+const asArray = (value) => (Array.isArray(value) ? value : []);
 
 export const buildSearchActionPreview = ({
   candidateRank,
@@ -11,8 +12,9 @@ export const buildSearchActionPreview = ({
   route = 'download',
 } = {}) => {
   const selectedFiles = Array.isArray(files) ? files : [];
-  const providerLabels = response.sourceProviders?.length
-    ? response.sourceProviders
+  const sourceProviders = asArray(response.sourceProviders).filter(Boolean);
+  const providerLabels = sourceProviders.length
+    ? sourceProviders
     : ['soulseek'];
   const lockedCount = selectedFiles.filter((file) => file.locked).length;
   const warnings = [];

@@ -142,9 +142,10 @@ export default class SharedWithMe extends Component {
   };
 
   handleStreamItem = (contentId, token) => {
+    const encodedContentId = encodeURIComponent(contentId);
     const url = token
-      ? `/api/v0/streams/${contentId}?token=${encodeURIComponent(token)}`
-      : `/api/v0/streams/${contentId}`;
+      ? `/api/v0/streams/${encodedContentId}?token=${encodeURIComponent(token)}`
+      : `/api/v0/streams/${encodedContentId}`;
     window.open(url, '_blank');
   };
 

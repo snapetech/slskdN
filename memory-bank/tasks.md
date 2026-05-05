@@ -2447,3 +2447,7 @@
 - [x] Harden Artist Release Radar list payload shapes
   - Status: completed (2026-05-05)
   - Notes: Guarded radar subscriptions, notifications, and nested muted release group arrays against malformed non-array payloads. Added focused Artist Release Radar regression coverage and extended ADR-0001 gotchas `0z304` and `0z306`.
+
+- [x] Broad admin, pod, search, and URL-intent hardening batch
+  - Status: completed (2026-05-05)
+  - Notes: Guarded Library Health, Jobs, Mesh rendezvous, realm subject-index conflicts, Pods, Messaging pod channels, port forwarding, search source-provider fields, and shared stream/pod path segments. Added focused admin/helper regressions and extended ADR-0001 gotchas `0z304` and `0z306`.

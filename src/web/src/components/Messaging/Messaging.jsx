@@ -118,8 +118,9 @@ const PodChannelSession = ({ channel, state }) => {
       pods.getMembers(channel.podId).catch(() => []),
     ]);
 
-    setMessages(channelMessages || []);
-    setMembers(podMembers || []);
+    setMessages(asArray(channelMessages));
+    setMembers(asArray(podMembers).filter((member) =>
+      member && typeof member === 'object' && !Array.isArray(member)));
   }, [channel?.channelId, channel?.podId]);
 
   useEffect(() => {

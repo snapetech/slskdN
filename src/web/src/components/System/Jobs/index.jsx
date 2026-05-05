@@ -24,6 +24,9 @@ import {
   Table,
 } from 'semantic-ui-react';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+
 const Jobs = () => {
   const [jobs, setJobs] = useState([]);
   const [swarmJobs, setSwarmJobs] = useState([]);
@@ -55,11 +58,11 @@ const Jobs = () => {
         status: filters.status || undefined,
         type: filters.type || undefined,
       });
-      setJobs(response.jobs || []);
+      setJobs(asArray(response?.jobs).filter(isObject));
       setPagination((previous) => ({
         ...previous,
-        hasMore: response.has_more || false,
-        total: response.total || 0,
+        hasMore: response?.has_more || false,
+        total: response?.total || 0,
       }));
     } catch (error) {
       toast.error(
@@ -77,7 +80,7 @@ const Jobs = () => {
     try {
       setSwarmLoading(true);
       const jobs = await jobsLibrary.getActiveSwarmJobs();
-      setSwarmJobs(jobs);
+      setSwarmJobs(asArray(jobs).filter(isObject));
     } catch (error) {
       console.debug('Failed to fetch swarm jobs:', error);
       setSwarmJobs([]);

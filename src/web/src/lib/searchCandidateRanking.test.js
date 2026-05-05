@@ -183,6 +183,23 @@ describe('rankSearchCandidate', () => {
       ]),
     );
   });
+
+  it('ignores malformed source providers and preferred extension lists', () => {
+    const rank = rankSearchCandidate({
+      preferredConditions: {
+        preferExtensions: { 0: 'flac', length: 1 },
+      },
+      response: {
+        files: [{ filename: 'Artist/Track.flac', size: 20_000_000 }],
+        hasFreeUploadSlot: true,
+        sourceProviders: { 0: 'local', length: 1 },
+      },
+      searchText: 'artist track',
+    });
+
+    expect(rank.reasons).not.toContain('local source available');
+    expect(rank.reasons).not.toContain('preferred extension match');
+  });
 });
 
 describe('rankSearchResponses', () => {

@@ -5,6 +5,7 @@ const lossyExtensions = new Set(['aac', 'm4a', 'mp3', 'ogg', 'opus', 'wma']);
 const artworkExtensions = new Set(['gif', 'jpeg', 'jpg', 'png', 'webp']);
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+const asArray = (value) => (Array.isArray(value) ? value : []);
 
 const getExtension = (filename = '') => {
   const lastSegment = filename.split(/[\\/]/u).pop() || '';
@@ -179,7 +180,7 @@ const scoreHistory = (downloadStats) => {
 };
 
 const scoreProvider = (response = {}) => {
-  const providers = response.sourceProviders || [];
+  const providers = asArray(response.sourceProviders);
   if (providers.includes('local')) {
     return { points: 8, reason: 'local source available' };
   }
@@ -223,7 +224,7 @@ const scorePreferredConditions = (files, preferredConditions = {}) => {
   const reasons = [];
   let points = 0;
 
-  const preferredExtensions = preferredConditions.preferExtensions || [];
+  const preferredExtensions = asArray(preferredConditions.preferExtensions);
   if (preferredExtensions.length > 0 && files.length > 0) {
     const matching = files.filter((file) =>
       preferredExtensions.includes(getExtension(file.filename)),

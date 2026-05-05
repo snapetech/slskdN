@@ -126,4 +126,32 @@ describe('System Mesh', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/peer-id/)).toBeInTheDocument();
   });
+
+  it('ignores malformed rendezvous discovery list payloads', async () => {
+    soulseekDiscovery.getMeshRendezvousStatus.mockResolvedValue({
+      data: {
+        enabled: true,
+        interestTag: 'slskdn-mesh-v1',
+      },
+    });
+    soulseekDiscovery.discoverMeshRendezvous.mockResolvedValue({
+      data: {
+        capabilityRecords: { peerId: 'peer-id' },
+        users: { username: 'mesh-peer' },
+      },
+    });
+
+    render(<Mesh />);
+
+    expect(await screen.findByText('Soulseek Mesh Rendezvous')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Load Candidates/i }));
+
+    expect(
+      await screen.findByText(
+        'Discovered 0 Soulseek rendezvous candidate(s) and 0 runtime capability record(s).',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('mesh-peer')).not.toBeInTheDocument();
+    expect(screen.queryByText(/peer-id/)).not.toBeInTheDocument();
+  });
 });

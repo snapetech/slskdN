@@ -4,6 +4,8 @@
 
 import {
   fetchRealmSubjectIndexConflicts,
+  getRealmSubjectIndexConflictValues,
+  getRealmSubjectIndexConflicts,
   formatRealmSubjectIndexConflictReport,
   summarizeRealmSubjectIndexConflicts,
 } from '../../../lib/realmSubjectIndexes';
@@ -31,7 +33,7 @@ const RealmSubjectIndexConflicts = () => {
   const [loading, setLoading] = useState(false);
   const [realmId, setRealmId] = useState('scene-realm');
   const [report, setReport] = useState(null);
-  const conflicts = report?.conflicts || report?.Conflicts || [];
+  const conflicts = getRealmSubjectIndexConflicts(report || {});
   const summary = useMemo(
     () => summarizeRealmSubjectIndexConflicts(report || {}),
     [report],
@@ -229,7 +231,7 @@ const RealmSubjectIndexConflicts = () => {
                       </div>
                     </Table.Cell>
                     <Table.Cell>
-                      {(conflict.values || conflict.Values || []).map((value) => {
+                      {getRealmSubjectIndexConflictValues(conflict).map((value) => {
                         const authorityKey = get(
                           value,
                           'authorityKey',

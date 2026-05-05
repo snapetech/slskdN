@@ -17,6 +17,9 @@ import {
   Statistic,
 } from 'semantic-ui-react';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+
 const Mesh = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -60,7 +63,7 @@ const Mesh = () => {
     const fetchRendezvousStatus = async () => {
       try {
         const response = await soulseekDiscovery.getMeshRendezvousStatus();
-        setRendezvousStatus(response.data || {});
+        setRendezvousStatus(isObject(response.data) ? response.data : {});
       } catch (error_) {
         setRendezvousStatus({
           enabled: false,
@@ -121,9 +124,9 @@ const Mesh = () => {
     setRendezvousMessage(null);
     try {
       const response = await soulseekDiscovery.discoverMeshRendezvous();
-      const data = response.data || {};
-      const users = data.users || [];
-      const records = data.capabilityRecords || [];
+      const data = isObject(response.data) ? response.data : {};
+      const users = asArray(data.users).filter(isObject);
+      const records = asArray(data.capabilityRecords).filter(isObject);
       setRendezvousUsers(users);
       setCapabilityRecords(records);
       setRendezvousMessage({
@@ -519,7 +522,7 @@ const Mesh = () => {
                       <List.Header>{record.username}</List.Header>
                       <List.Description>
                         {record.peerId || 'unsigned peer'}, {' '}
-                        {(record.features || []).join(', ') || 'no features'}, {' '}
+                        {asArray(record.features).join(', ') || 'no features'}, {' '}
                         overlay port {record.overlayPort || 'not advertised'}
                       </List.Description>
                     </List.Content>

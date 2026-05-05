@@ -7,9 +7,18 @@ import api from './api';
 export const fetchRealmSubjectIndexConflicts = ({ realmId }) =>
   api.get(`/realm-subject-indexes/${encodeURIComponent(realmId)}/conflicts`);
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+
+export const getRealmSubjectIndexConflicts = (report = {}) =>
+  asArray(report.conflicts ?? report.Conflicts).filter(isObject);
+
+export const getRealmSubjectIndexConflictValues = (conflict = {}) =>
+  asArray(conflict.values ?? conflict.Values).filter(isObject);
+
 export const summarizeRealmSubjectIndexConflicts = (report = {}) => {
-  const conflicts = report.conflicts || report.Conflicts || [];
-  const values = conflicts.flatMap((conflict) => conflict.values || conflict.Values || []);
+  const conflicts = getRealmSubjectIndexConflicts(report);
+  const values = conflicts.flatMap(getRealmSubjectIndexConflictValues);
   const authorityKeys = new Set(
     values
       .map((value) => value.authorityKey || value.AuthorityKey)
@@ -32,7 +41,7 @@ export const formatRealmSubjectIndexConflictReport = ({
   disabledAuthorities = [],
   report = {},
 } = {}) => {
-  const conflicts = report.conflicts || report.Conflicts || [];
+  const conflicts = getRealmSubjectIndexConflicts(report);
   const lines = [
     'slskdN realm subject-index conflict review',
     `Realm: ${report.realmId || report.RealmId || '-'}`,
@@ -51,7 +60,7 @@ export const formatRealmSubjectIndexConflictReport = ({
     );
     lines.push(`Subject: ${conflict.subjectId || conflict.SubjectId || '-'}`);
     lines.push(`Description: ${conflict.description || conflict.Description || '-'}`);
-    (conflict.values || conflict.Values || []).forEach((value) => {
+    getRealmSubjectIndexConflictValues(conflict).forEach((value) => {
       const authorityKey = value.authorityKey || value.AuthorityKey || '-';
       lines.push(
         `- ${disabledAuthorities.includes(authorityKey) ? 'DISABLED' : 'ACTIVE'} ${authorityKey}: ${

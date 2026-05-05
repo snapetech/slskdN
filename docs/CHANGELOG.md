@@ -65,6 +65,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   against malformed conversation and room API payloads.
 - Hardened Artist Release Radar subscriptions, notifications, and muted release
   group counts against malformed list payloads.
+- Hardened Library Health, Jobs, Mesh, realm conflict review, Pods, Messaging pod
+  channels, port forwarding, search provider badges/ranking, and shared stream
+  URL handling against malformed lists and unsafe path segments.
 - Hardened non-versioned route checks and Pushbullet notification logging.
 - Synced the vendored `slskNet.Runtime` bug council ledger and remediation
   baseline checks.

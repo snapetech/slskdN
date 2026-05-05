@@ -1,3 +1,14 @@
+## Update 2026-05-05 21:24:00Z
+
+- Current task: Broad admin, pod, search, and URL-intent hardening batch is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-072` through `BUG-20260505-080` in `docs/dev/bug-burndown-ledger.md`
+  - guarded admin dashboard lists, mesh/realm conflict payloads, pod/member/message/discovery lists, port forwarding lists, search source-provider arrays, and shared stream/pod route path segments
+  - documented ADR-0001 gotcha extensions in commits `46af76599` and `4208eca44`
+  - validation passed: focused admin/pod/search Vitest batch (`51` tests), Web lint, `git diff --check`, `npm run check:remediation`, and `./bin/lint`
+- Next steps:
+  1. Commit and push the full dirty tree.
+
 ## Update 2026-05-05 21:11:00Z
 
 - Current task: Artist Release Radar API list payload hardening is complete locally.

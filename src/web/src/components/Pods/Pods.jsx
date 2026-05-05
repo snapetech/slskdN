@@ -51,6 +51,8 @@ const initialState = {
 };
 
 const GOLD_STAR_CLUB_POD_ID = 'pod:901d57a2c1bb4e5d90d57a2c1bb4e5d0';
+const asArray = (value) => (Array.isArray(value) ? value : []);
+const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
 const withRouter = (WrappedComponent) => {
   const RoutedComponent = (props) => {
@@ -132,7 +134,7 @@ class Pods extends Component {
   fetchPods = async () => {
     try {
       const podsList = await pods.list();
-      this.setState({ pods: podsList || [] });
+      this.setState({ pods: asArray(podsList).filter(isObject) });
     } catch (error) {
       console.error('Failed to fetch pods:', error);
       this.setState({ pods: [] });
@@ -147,7 +149,7 @@ class Pods extends Component {
     try {
       const detail = await pods.get(podId);
       const members = await pods.getMembers(podId);
-      this.setState({ members: members || [], podDetail: detail });
+      this.setState({ members: asArray(members).filter(isObject), podDetail: detail });
     } catch (error) {
       console.error('Failed to fetch pod detail:', error);
     }
@@ -168,7 +170,7 @@ class Pods extends Component {
       this.setState({
         messages: {
           ...messages,
-          [`${activePodId}:${activeChannelId}`]: channelMessages || [],
+          [`${activePodId}:${activeChannelId}`]: asArray(channelMessages).filter(isObject),
         },
       });
     } catch (error) {
@@ -213,9 +215,9 @@ class Pods extends Component {
     const currentChannelId = this.props.params?.channelId;
     if (podId !== currentPodId || channelId !== currentChannelId) {
       if (channelId) {
-        this.props.navigate(`${urlBase}/pods/${podId}/channels/${channelId}`);
+        this.props.navigate(`${urlBase}/pods/${encodeURIComponent(podId)}/channels/${encodeURIComponent(channelId)}`);
       } else {
-        this.props.navigate(`${urlBase}/pods/${podId}`);
+        this.props.navigate(`${urlBase}/pods/${encodeURIComponent(podId)}`);
       }
     }
 

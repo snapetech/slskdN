@@ -182,4 +182,29 @@ describe('LibraryHealth', () => {
       'Queued remediation job for 1 auto-fixable issue.',
     );
   });
+
+  it('ignores malformed Library Health group and issue list payloads', async () => {
+    vi.useFakeTimers();
+    libraryHealth.getIssuesByType.mockResolvedValue({
+      data: { groups: { type: 'SuspectedTranscode' } },
+    });
+    libraryHealth.getIssuesByArtist.mockResolvedValue({
+      data: { groups: { artist: 'Fixture Artist' } },
+    });
+    libraryHealth.getIssues.mockResolvedValue({
+      data: { issues: { issueId: 'issue-1', title: 'Fixture Track' } },
+    });
+
+    render(<LibraryHealth />);
+
+    fireEvent.change(screen.getByPlaceholderText('Enter library path (e.g., /music or C:\\Music)'), {
+      target: { value: '/fixture/music' },
+    });
+    fireEvent.click(screen.getByText('Start Scan'));
+
+    await vi.advanceTimersByTimeAsync(2_000);
+    await waitFor(() => expect(libraryHealth.getSummary).toHaveBeenCalledWith('/fixture/music'));
+    expect(screen.queryByText('Fixture Track')).not.toBeInTheDocument();
+    expect(screen.getAllByText('No issues detected').length).toBeGreaterThan(0);
+  });
 });

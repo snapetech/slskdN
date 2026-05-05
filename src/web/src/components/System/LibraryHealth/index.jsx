@@ -27,6 +27,9 @@ import {
   Table,
 } from 'semantic-ui-react';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+
 const LibraryHealth = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [libraryPath, setLibraryPath] = useState('');
@@ -54,11 +57,11 @@ const LibraryHealth = () => {
           libraryHealth.getIssuesByType(path),
           libraryHealth.getIssuesByArtist(10),
           libraryHealth.getIssues({ libraryPath: path, limit: 100 }),
-        ]);
+      ]);
       setSummary(summaryResp.data);
-      setIssuesByType(byTypeResp.data.groups || []);
-      setIssuesByArtist(byArtistResp.data.groups || []);
-      setIssues(issuesResp.data.issues || []);
+      setIssuesByType(asArray(byTypeResp.data?.groups).filter(isObject));
+      setIssuesByArtist(asArray(byArtistResp.data?.groups).filter(isObject));
+      setIssues(asArray(issuesResp.data?.issues).filter(isObject));
       setReportMessage('');
     } catch (error_) {
       setError(

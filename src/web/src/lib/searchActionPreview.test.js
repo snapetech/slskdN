@@ -46,6 +46,17 @@ describe('buildSearchActionPreview', () => {
       ]),
     );
   });
+
+  it('falls back when source providers are malformed', () => {
+    const preview = buildSearchActionPreview({
+      response: {
+        sourceProviders: { length: 1 },
+      },
+    });
+
+    expect(preview.providerLabels).toEqual(['soulseek']);
+    expect(formatSearchActionPreview(preview)).toContain('Providers: soulseek');
+  });
 });
 
 describe('formatSearchActionPreview', () => {

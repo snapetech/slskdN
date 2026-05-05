@@ -258,4 +258,23 @@ describe('Jobs', () => {
       expect(jobsLibrary.getJobs).toHaveBeenCalled();
     });
   });
+
+  it('ignores malformed jobs and swarm jobs payloads', async () => {
+    jobsLibrary.getJobs.mockResolvedValue({
+      has_more: true,
+      jobs: { id: 'job-1', type: 'discography' },
+      total: 1,
+    });
+    jobsLibrary.getActiveSwarmJobs.mockResolvedValue({
+      jobs: [{ jobId: 'swarm-1' }],
+    });
+
+    render(<Jobs />);
+
+    await waitFor(() => {
+      expect(jobsLibrary.getJobs).toHaveBeenCalled();
+    });
+    expect(screen.queryByText('job-1')).not.toBeInTheDocument();
+    expect(screen.queryByText(/swarm-1/)).not.toBeInTheDocument();
+  });
 });

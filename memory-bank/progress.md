@@ -9690,3 +9690,10 @@ Code quality improvements were completed as part of Option A:
 - Guarded radar subscriptions, notifications, and nested muted release group lists before render-time list operations and counts.
 - Extended ADR-0001 gotchas `0z304` and `0z306` in commit `52975a792`.
 - Validation passed: focused Artist Release Radar Vitest coverage (`4` tests), Web lint, `git diff --check`, direct `response.data || []` scan, and `npm run check:remediation`.
+
+## 2026-05-05 21:24:00Z
+
+- Ran a broader council cycle across frontend workflow, backend/security/network-health gates, and release/config drift gates instead of stopping at the first hit.
+- Hardened Library Health, Jobs, Mesh rendezvous, realm subject-index conflicts, Pods, Messaging pod channels, port forwarding dashboards, search source-provider handling, and shared stream/pod path segments.
+- Documented repeated list-shape gotchas in commits `46af76599` and `4208eca44`.
+- Validation passed: focused admin/pod/search Vitest batch (`51` tests), backend/security/network-health scanner lane, Web lint, `git diff --check`, `npm run check:remediation`, and `./bin/lint`.

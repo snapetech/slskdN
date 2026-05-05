@@ -49,6 +49,9 @@ const initialState = {
   vpnPodStatus: {},
 };
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+
 class PortForwarding extends Component {
   constructor(props) {
     super(props);
@@ -94,7 +97,7 @@ class PortForwarding extends Component {
   fetchPods = async () => {
     try {
       const podsList = await pods.list();
-      this.setState({ pods: podsList || [] });
+      this.setState({ pods: asArray(podsList).filter(isObject) });
     } catch (error) {
       console.error('Failed to fetch pods:', error);
       this.setState({ pods: [] });
@@ -104,7 +107,7 @@ class PortForwarding extends Component {
   fetchAvailablePorts = async () => {
     try {
       const result = await portForwarding.getAvailablePorts();
-      this.setState({ availablePorts: result.availablePorts || [] });
+      this.setState({ availablePorts: asArray(result?.availablePorts) });
     } catch (error) {
       console.error('Failed to fetch available ports:', error);
       this.setState({ availablePorts: [] });
@@ -114,7 +117,7 @@ class PortForwarding extends Component {
   fetchForwardingStatus = async () => {
     try {
       const status = await portForwarding.getForwardingStatus();
-      this.setState({ forwardingStatus: status || [] });
+      this.setState({ forwardingStatus: asArray(status).filter(isObject) });
     } catch (error) {
       console.error('Failed to fetch forwarding status:', error);
       this.setState({ forwardingStatus: [] });

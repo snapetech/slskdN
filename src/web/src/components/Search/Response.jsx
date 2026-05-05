@@ -22,6 +22,8 @@ import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Button, Card, Icon, Label, List, Modal, Popup } from 'semantic-ui-react';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const buildTree = (response) => {
   let { files = [] } = response;
   const { lockedFiles = [] } = response;
@@ -149,11 +151,11 @@ class Response extends Component {
     this.setState({ downloadRequest: 'inProgress' }, async () => {
       try {
         const { response, responseIndex, searchId } = this.props;
+        const sourceProviders = asArray(response.sourceProviders);
 
         // Check if this is a bridged search result (has provenance) and we have searchId
         if (
-          response.sourceProviders &&
-          response.sourceProviders.length > 0 &&
+          sourceProviders.length > 0 &&
           searchId
         ) {
           // Use new action routing endpoint for bridged searches
@@ -458,7 +460,8 @@ class Response extends Component {
     const noSelection = selectedFiles.length === 0;
     const { candidateRank, response } = this.props;
     const { qualitySummary } = this.state;
-    const hasPodSource = response.sourceProviders?.includes('pod');
+    const sourceProviders = asArray(response.sourceProviders);
+    const hasPodSource = sourceProviders.includes('pod');
     const primarySource = response.primarySource || 'scene';
     const preview = buildSearchActionPreview({
       candidateRank,
@@ -630,6 +633,7 @@ class Response extends Component {
     const badgeColor = getBadgeColor(downloadStats);
     const activeQualitySummary = response.communityQualitySummary || qualitySummary;
     const qualityLabel = getCommunityQualityLabel(activeQualitySummary);
+    const sourceProviders = asArray(response.sourceProviders);
 
     return (
       <>
@@ -758,10 +762,9 @@ class Response extends Component {
                     }
                   />
                 )}
-                {response.sourceProviders &&
-                  response.sourceProviders.length > 0 && (
+                {sourceProviders.length > 0 && (
                     <>
-                      {response.sourceProviders.includes('pod') && (
+                      {sourceProviders.includes('pod') && (
                         <Popup
                           content="Available from Pod/Mesh network"
                           position="top center"
@@ -775,7 +778,7 @@ class Response extends Component {
                           }
                         />
                       )}
-                      {response.sourceProviders.includes('scene') && (
+                      {sourceProviders.includes('scene') && (
                         <Popup
                           content="Available from Soulseek Scene"
                           position="top center"
@@ -789,7 +792,7 @@ class Response extends Component {
                           }
                         />
                       )}
-                      {response.sourceProviders.length > 1 && (
+                      {sourceProviders.length > 1 && (
                         <Popup
                           content={`Available from both Pod and Scene. Preferred: ${response.primarySource?.toUpperCase() || 'POD'}`}
                           position="top center"

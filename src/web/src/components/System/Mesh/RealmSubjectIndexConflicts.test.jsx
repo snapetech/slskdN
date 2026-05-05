@@ -87,4 +87,34 @@ describe('RealmSubjectIndexConflicts', () => {
       );
     });
   });
+
+  it('ignores malformed conflict and value list payloads while rendering', async () => {
+    fetchRealmSubjectIndexConflicts.mockResolvedValue({
+      data: {
+        conflicts: [
+          null,
+          'bad',
+          ['bad'],
+          {
+            id: 'conflict-1',
+            key: 'musicbrainz:recording',
+            type: 'external-id',
+            values: { authorityKey: 'scene-realm:index-a:r1', value: 'mbid-a' },
+          },
+        ],
+        entryCount: 7,
+        indexCount: 2,
+        realmId: 'scene-realm',
+      },
+    });
+
+    render(<RealmSubjectIndexConflicts />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Load realm subject-index conflicts' }),
+    );
+
+    expect(await screen.findByText('musicbrainz:recording')).toBeInTheDocument();
+    expect(screen.queryByText('mbid-a')).not.toBeInTheDocument();
+  });
 });

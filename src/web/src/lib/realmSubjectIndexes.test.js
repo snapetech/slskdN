@@ -68,4 +68,29 @@ describe('realmSubjectIndexes', () => {
       'Provenance: realm:realm-a:subject-index:index-b:r2',
     );
   });
+
+  it('ignores malformed conflict and nested value list payloads', () => {
+    const malformedReport = {
+      conflicts: {
+        values: [
+          {
+            authorityKey: 'realm-a:index-a:r1',
+          },
+        ],
+      },
+      entryCount: 4,
+      indexCount: 1,
+    };
+
+    expect(summarizeRealmSubjectIndexConflicts(malformedReport)).toEqual({
+      authorityCount: 0,
+      conflictCount: 0,
+      conflictTypeCount: 0,
+      entryCount: 4,
+      indexCount: 1,
+    });
+    expect(formatRealmSubjectIndexConflictReport({ report: malformedReport })).toContain(
+      'Conflicts: 0',
+    );
+  });
 });
