@@ -52,6 +52,29 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z299. Avoid Broad Usings For Namespaces With Shared DTO Names
+
+**The Bug**: Adding `using slskd.Common.Security;` to `MultiSourceController` imported a different `ContentVerificationResult` type and shadowed `slskd.Transfers.MultiSource.ContentVerificationResult`, causing compile errors far away from the new limiter field.
+
+**Files Affected**:
+- `src/slskd/Transfers/MultiSource/API/MultiSourceController.cs`
+
+**Wrong**:
+```csharp
+using slskd.Common.Security;
+
+private ISoulseekSafetyLimiter? SoulseekSafetyLimiter { get; }
+ContentVerificationResult? verificationResult = null;
+```
+
+**Correct**:
+```csharp
+private slskd.Common.Security.ISoulseekSafetyLimiter? SoulseekSafetyLimiter { get; }
+ContentVerificationResult? verificationResult = null;
+```
+
+**Why This Keeps Happening**: Some fork namespaces contain infrastructure and DTO names that overlap with feature-domain DTOs. When adding one helper type to an existing controller, prefer a qualified type or alias if the namespace also contains common result/model names.
+
 ### 0z298. Direct Soulseek Controller Searches Need Safety Budgets
 
 **The Bug**: Multi-source API controller actions called `ISoulseekClient.SearchAsync()` directly for wide candidate searches without first consuming the shared Soulseek safety limiter. Service-level limiters did not protect these controller-only paths.
