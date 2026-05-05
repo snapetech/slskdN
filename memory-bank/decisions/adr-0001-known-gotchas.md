@@ -13547,3 +13547,11 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 **Why it happened:** The source PNGs were flattened mockups with no alpha channel, and the implementation resized a single dark square crop for every placement instead of deriving placement-specific assets and checking actual rendered scale.
 
 **How to prevent it:** Treat generated logo mockups as source material, not direct app assets. Derive transparent icons for favicon/PWA/footer use, reserve full lockups for large-brand placements, and verify login/mobile/footer rendering before deploying a branding change.
+
+### 0z77. Remote Filenames Must Reject Traversal Before Sanitizing Components
+
+**What went wrong:** Remote Soulseek filenames were localized and had invalid filename characters replaced, but `.` and `..` are valid filename components on Unix. A peer path containing traversal components could therefore survive sanitization and later be combined with the downloads or incomplete directory.
+
+**Why it happened:** The converter treated filename sanitization as equivalent to path validation. It only kept the parent directory and file name, but never rejected rooted paths, Windows drive prefixes, `.` components, or `..` components before calling `Path.Combine`.
+
+**How to prevent it:** Any peer-supplied path must reject traversal/rooted components before component sanitization. After combining with a trusted root, resolve with `Path.GetFullPath` and verify the result is still contained in the trusted root using a separator-aware comparison.
