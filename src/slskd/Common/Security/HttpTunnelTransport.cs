@@ -38,7 +38,8 @@ public class HttpTunnelTransport : IAnonymityTransport, IDisposable
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        _httpClient = new HttpClient(OutboundUriGuard.CreateNoRedirectHandler(), disposeHandler: true)
+        var handler = OutboundUriGuard.CreateNoRedirectHandler();
+        _httpClient = new HttpClient(handler, disposeHandler: true)
         {
             Timeout = TimeSpan.FromSeconds(30)
         };

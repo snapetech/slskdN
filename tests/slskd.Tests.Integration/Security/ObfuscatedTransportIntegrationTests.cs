@@ -196,7 +196,7 @@ public class ObfuscatedTransportIntegrationTests : IDisposable
         for (var i = 0; i < 3; i++)
         {
             var isolationKey = i == 1 ? "peer2" : "peer1";
-            using var stream = await transport.ConnectAsync("example.com", 80, isolationKey, CancellationToken.None);
+            await Assert.ThrowsAnyAsync<Exception>(() => transport.ConnectAsync("example.com", 80, isolationKey, CancellationToken.None));
         }
 
         // Assert

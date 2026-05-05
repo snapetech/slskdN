@@ -9740,3 +9740,10 @@ Code quality improvements were completed as part of Option A:
 - Changed relay download token caching to store the trusted filename with the token and updated the controller to serve only that server-side filename.
 - Documented ADR-0001 gotcha `0z311` in commit `44efb888a`.
 - Validation passed: focused relay controller/service unit tests (`12` tests), `git diff --check`, `./bin/lint`, and full `dotnet test slskd.sln --no-restore`.
+
+## 2026-05-05 22:38:00Z
+
+- Ran a fresh broad council cycle across backend/security, frontend/workflow, network-health, release/ops, and scanner-design lanes.
+- Fixed accepted app/package findings for mesh gateway fail-closed validation, POST-only memory dumps, option log redaction, no-redirect tunnel/meek transports, pod/search route encoding, Quarantine Jury and MediaCore list-shape guards, AUR/PPA tmpfiles drift, Snap version drift, and release-note asset drift.
+- Strengthened outbound HTTP and relay path-containment scanners so those fixed classes are covered by remediation baseline.
+- Documented ADR-0001 gotchas `0z312` through `0z316`; focused backend, Web, packaging, release asset, outbound HTTP, and path-containment validations passed.

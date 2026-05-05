@@ -1,6 +1,6 @@
 # Current API surface inventory
 
-Generated: 2026-05-05T16:36:19Z
+Generated: 2026-05-05T22:39:53Z
 
 This inventory is generated from controller attributes. It is intended for parity/security review, not as a replacement for Swagger or integration tests.
 
@@ -164,7 +164,7 @@ None found.
   - 139:        [AllowAnonymous]
   - 155:        [HttpGet("version/latest")]
   - 171:        [HttpPost("gc")]
-  - 183:        [HttpGet("dump")]
+  - 183:        [HttpPost("dump")]
   - 248:        [HttpPost("loopback")]
 - src/slskd/Core/API/Controllers/SessionController.cs
   - 72:        [HttpGet]

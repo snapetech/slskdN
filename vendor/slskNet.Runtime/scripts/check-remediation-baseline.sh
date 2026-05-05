@@ -259,11 +259,16 @@ require_pattern "RT-001" "docs/dev/bug-burndown-ledger.md" "ledger contains find
 require_pattern "bash scripts/scan-bug-council-candidates\.sh" "docs/dev/bug-council-scan-registry.md" "scan registry references candidate scanner"
 require_pattern "dated sweep register records the candidate count" "docs/dev/bug-council-scan-registry.md" "scan registry requires whole-section sweep registers"
 require_pattern "Constructors accepting mutable collections or params arrays" "docs/dev/bug-council-sweep-2026-05-05.md" "active sweep records constructor section"
-require_pattern "Candidate count: 20" "docs/dev/bug-council-sweep-2026-05-05.md" "active sweep records constructor candidate count"
-require_pattern "20/20 classified" "docs/dev/bug-council-sweep-2026-05-05.md" "active sweep records complete classification marker"
+require_pattern "Candidate count: 28" "docs/dev/bug-council-sweep-2026-05-05.md" "active sweep records constructor candidate count"
+require_pattern "28/28 classified" "docs/dev/bug-council-sweep-2026-05-05.md" "active sweep records complete classification marker"
 require_pattern "Unclassified candidates: 0" "docs/dev/bug-council-sweep-2026-05-05.md" "active sweep records zero unclassified candidates"
 require_absent_pattern "\\|[^|\n]*\\| Unclassified \\|" "docs/dev/bug-council-sweep-2026-05-05.md" "active sweep has no unclassified rows"
 require_pattern "RT-067" "docs/dev/bug-burndown-ledger.md" "ledger records council loop closure flaw"
+require_pattern "scan_multiline" "scripts/scan-bug-council-candidates.sh" "constructor scanner handles multiline candidates"
+require_pattern "RT-068" "docs/dev/bug-burndown-ledger.md" "ledger records multiline constructor scan miss"
+require_pattern "tickerCount != tickerList\\.Count" "src/Messaging/Messages/Server/RoomTickerListNotification.cs" "room ticker list notifications validate ticker count metadata"
+require_pattern "ticker == null" "src/Messaging/Messages/Server/RoomTickerListNotification.cs" "room ticker list notifications reject null tickers"
+require_pattern "Instantiation_Rejects_Invalid_Ticker_Metadata" "tests/Soulseek.Tests.Unit/Messaging/Messages/Server/RoomTickerListNotificationTests.cs" "room ticker metadata regression test is registered"
 require_pattern "Every hit must be ledgered" "scripts/scan-bug-council-candidates.sh" "candidate scanner documents ledger classification requirement"
 
 secret_pattern='-----BEGIN (RSA |DSA |EC |OPENSSH |PGP )?PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{36,}|xox[baprs]-[A-Za-z0-9-]{20,}|AKIA[0-9A-Z]{16}|(?i)(api[_-]?key|access[_-]?token|client[_-]?secret)["'\'']?\s*[:=]\s*["'\''][A-Za-z0-9_./+=-]{24,}["'\'']'

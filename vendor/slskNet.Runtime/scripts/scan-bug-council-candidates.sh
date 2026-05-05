@@ -13,6 +13,15 @@ scan() {
   rg -n --pcre2 --hidden --glob '!.git/**' "$pattern" "$@" || true
 }
 
+scan_multiline() {
+  local title="$1"
+  local pattern="$2"
+  shift 2
+
+  printf '\n## %s\n' "$title"
+  rg -n -U --pcre2 --hidden --glob '!.git/**' "$pattern" "$@" || true
+}
+
 printf '# slskNet.Runtime bug council candidate scan\n'
 printf '# Generated: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
@@ -20,8 +29,8 @@ scan "Mutable public byte arrays and array properties" \
   'public [^;\n=]*\[\][^{;\n]*(\{|=>|;)|\bbyte\[\]\s+[A-Z][A-Za-z0-9_]*\s*\{' \
   src tests/Soulseek.Tests.Unit
 
-scan "Constructors accepting mutable collections or params arrays" \
-  '\bpublic [A-Za-z0-9_]+\([^)]*(IEnumerable<|IReadOnlyCollection<|ICollection<|IList<|List<|Dictionary<|HashSet<|params )' \
+scan_multiline "Constructors accepting mutable collections or params arrays" \
+  '\b(public|internal) [A-Za-z0-9_]+\s*\([^)]*(IEnumerable<|IReadOnlyCollection<|ICollection<|IList<|List<|Dictionary<|HashSet<|params )' \
   src
 
 scan "Value equality and hash-code comparisons" \

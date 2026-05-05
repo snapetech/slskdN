@@ -17,6 +17,7 @@
 
 namespace Soulseek.Tests.Unit.Messaging.Messages
 {
+    using System;
     using System.Collections.Generic;
     using AutoFixture.Xunit2;
     using Soulseek.Messaging;
@@ -79,6 +80,26 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             {
                 Assert.Contains(response.Tickers, t => ticker.Username == t.Username && ticker.Message == t.Message);
             }
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Theory(DisplayName = "Instantiation snapshots tickers"), AutoData]
+        public void Instantiation_Snapshots_Tickers(string roomName, List<RoomTicker> tickers)
+        {
+            var response = new RoomTickerListNotification(roomName, tickers.Count, tickers);
+            tickers.Add(new RoomTicker("late", "late"));
+
+            Assert.Equal(response.TickerCount, response.Tickers.Count);
+            Assert.NotEqual(tickers.Count, response.Tickers.Count);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Theory(DisplayName = "Instantiation rejects invalid ticker metadata"), AutoData]
+        public void Instantiation_Rejects_Invalid_Ticker_Metadata(string roomName, List<RoomTicker> tickers)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new RoomTickerListNotification(roomName, -1, tickers));
+            Assert.Throws<ArgumentException>(() => new RoomTickerListNotification(roomName, tickers.Count + 1, tickers));
+            Assert.Throws<ArgumentException>(() => new RoomTickerListNotification(roomName, 1, new RoomTicker[] { null }));
         }
     }
 }

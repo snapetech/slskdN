@@ -1930,23 +1930,23 @@ namespace slskd
 
                 Log.Debug("Diff of previous and new options contains {Count} changed properties: {Properties}", diff.Count(), diff.Select(p => p.FQN));
 
-	                foreach (var (property, fqn, left, right) in diff)
-	                {
-	                    static bool HasAttribute<T>(PropertyInfo? property) => property?.CustomAttributes.Any(a => a.AttributeType == typeof(T)) ?? false;
-	                    static string FormatOptionLogValue(PropertyInfo? property, object? value)
-	                    {
-	                        if (HasAttribute<SecretAttribute>(property))
-	                        {
-	                            return "*****";
-	                        }
+                foreach (var (property, fqn, left, right) in diff)
+                {
+                    static bool HasAttribute<T>(PropertyInfo? property) => property?.CustomAttributes.Any(a => a.AttributeType == typeof(T)) ?? false;
+                    static string FormatOptionLogValue(PropertyInfo? property, object? value)
+                    {
+                        if (HasAttribute<SecretAttribute>(property))
+                        {
+                            return "*****";
+                        }
 
-	                        return value?.ToJson() ?? "<null>";
-	                    }
+                        return value?.ToJson() ?? "<null>";
+                    }
 
-	                    var requiresRestart = HasAttribute<RequiresRestartAttribute>(property);
-	                    var requiresReconnect = HasAttribute<RequiresReconnectAttribute>(property);
+                    var requiresRestart = HasAttribute<RequiresRestartAttribute>(property);
+                    var requiresReconnect = HasAttribute<RequiresReconnectAttribute>(property);
 
-	                    Log.Debug($"{fqn} changed from '{FormatOptionLogValue(property, left)}' to '{FormatOptionLogValue(property, right)}'{(requiresRestart ? ". Restart required to take effect." : string.Empty)}{(requiresReconnect ? "; Reconnect required to take effect." : string.Empty)}");
+                    Log.Debug($"{fqn} changed from '{FormatOptionLogValue(property, left)}' to '{FormatOptionLogValue(property, right)}'{(requiresRestart ? ". Restart required to take effect." : string.Empty)}{(requiresReconnect ? "; Reconnect required to take effect." : string.Empty)}");
 
                     pendingRestart |= requiresRestart;
                     pendingReconnect |= requiresReconnect;
@@ -2012,7 +2012,7 @@ namespace slskd
                     var old = PreviousOptions.Soulseek;
                     var update = newOptions.Soulseek;
 
-	                    Log.Debug("Soulseek options changed from {Previous} to {Current}", PreviousOptions.Redact().Soulseek.ToJson(), newOptions.Redact().Soulseek.ToJson());
+                    Log.Debug("Soulseek options changed from {Previous} to {Current}", PreviousOptions.Redact().Soulseek.ToJson(), newOptions.Redact().Soulseek.ToJson());
 
                     // determine whether any Connection options changed. if so, replace the whole object. Soulseek.NET doesn't
                     // offer a way to patch parts of connection options. the updates only affect new connections, so a partial

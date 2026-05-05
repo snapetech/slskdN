@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Ran a broader council cycle across backend security, frontend workflows,
+  release packaging, and scanner coverage: fail-closed mesh gateway auth,
+  POST-only memory dumps, redacted option logs, no-redirect tunnel transports,
+  encoded pod/search routes, hardened review/MediaCore list payloads, and
+  corrected AUR/PPA/Snap/release-note package drift.
 - Synced the vendored slskNet.Runtime council workflow with a whole-section
   sweep register so constructor candidate scans cannot close with unclassified
   hits.

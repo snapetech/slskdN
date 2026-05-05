@@ -23,6 +23,7 @@
 
 namespace Soulseek.Messaging.Messages
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
 
@@ -42,9 +43,26 @@ namespace Soulseek.Messaging.Messages
             int tickerCount,
             IEnumerable<RoomTicker> tickers)
         {
+            if (tickerCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(tickerCount), "Ticker count must be greater than or equal to zero");
+            }
+
+            var tickerList = tickers?.ToList() ?? new List<RoomTicker>();
+
+            if (tickerCount != tickerList.Count)
+            {
+                throw new ArgumentException($"Ticker count mismatch: expected {tickerCount}, received {tickerList.Count}", nameof(tickers));
+            }
+
+            if (tickerList.Any(ticker => ticker == null))
+            {
+                throw new ArgumentException("The ticker list must not contain null entries", nameof(tickers));
+            }
+
             RoomName = roomName;
             TickerCount = tickerCount;
-            Tickers = tickers.ToList().AsReadOnly();
+            Tickers = tickerList.AsReadOnly();
         }
 
         /// <summary>

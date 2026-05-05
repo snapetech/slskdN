@@ -2482,3 +2482,7 @@
 - [x] Fix CodeQL relay download user-controlled bypass alert
   - Status: completed (2026-05-05)
   - Notes: Fixed CodeQL alert #2552 by binding relay download tokens to server-side filenames and serving only the trusted filename returned by credential validation. Added controller and relay-service regressions for invalid/tampered filename headers.
+
+- [x] Run broad council cycle and burn down accepted app/package findings
+  - Status: completed (2026-05-05)
+  - Notes: Fixed mesh gateway validation/auth, POST-only memory dumps, option log redaction, no-redirect tunnel transports, pod/search route encoding, Quarantine Jury/MediaCore payload guards, AUR/PPA/Snap/release-note drift, and strengthened outbound/path scanners.

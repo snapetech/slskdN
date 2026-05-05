@@ -1,3 +1,16 @@
+## Update 2026-05-05 22:38:00Z
+
+- Current task: Broad council cycle app/package burn-down is implemented locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-113` through `BUG-20260505-123` in `docs/dev/bug-burndown-ledger.md`
+  - fixed mesh gateway validation/auth, POST-only memory dumps, option log redaction, no-redirect tunnel/meek transports, pod/search route encoding, Quarantine Jury and MediaCore list guards, AUR/PPA tmpfiles drift, Snap version drift, and release-note asset drift
+  - strengthened outbound HTTP and relay path-containment scanners
+  - documented ADR-0001 gotchas `0z312` through `0z316`
+  - validation passed: focused backend/Web tests and packaging/release/outbound/path scanner lane
+- Next steps:
+  1. Run broad remediation/lint/diff/full test gates.
+  2. Commit and push current local commits.
+
 ## Update 2026-05-05 22:19:00Z
 
 - Current task: CodeQL relay download user-controlled bypass alert #2552 is fixed locally.
