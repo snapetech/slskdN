@@ -9751,5 +9751,6 @@ Code quality improvements were completed as part of Option A:
 ## 2026-05-05 22:58:00Z
 
 - Fixed the remaining council-loop flaw by making whole-section classification explicit instead of stopping after the constructor batch.
-- Re-ran the runtime bug council scanner, recorded the constructor section as 28/28 classified, and classified the protocol count/length section as 221/221 with grouped counts that add to the scanner output.
+- Re-ran the runtime bug council scanner, recorded the constructor section as 28/28 classified, classified the protocol count/length section as 221/221 with grouped counts, and added countable protocol loop/length/compression subgroup sweeps.
+- Fixed the accepted rotated-obfuscation null-input allocation candidate and documented ADR-0001 gotcha `0z82`.
 - Added a visible remaining candidate class queue and remediation-baseline assertions so future sweeps cannot close the section without the classification markers.

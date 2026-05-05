@@ -5455,7 +5455,8 @@ dotnet test
 - Current task: Bug council loop fix and second scanner pass are in validation.
 - Last activity:
   - re-ran the runtime council scanner
-  - recorded 28/28 constructor candidates and 221/221 protocol count/length candidates as classified in the active sweep register
+  - recorded 28/28 constructor candidates, 221/221 protocol count/length candidates, and countable protocol loop/length/compression subgroups as classified in sweep registers
+  - fixed the accepted rotated-obfuscation null-input allocation candidate
   - added the remaining candidate class queue and baseline assertions for whole-section closure
 - Next steps:
   1. Run remediation baseline and focused runtime tests.

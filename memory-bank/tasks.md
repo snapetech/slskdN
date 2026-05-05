@@ -2489,4 +2489,4 @@
 
 - [x] Fix council loop whole-section classification flaw
   - Status: completed (2026-05-05)
-  - Notes: Re-ran the runtime bug council scanner, closed the constructor section with 28/28 classified candidates, classified the full 221-hit protocol count/length section, and added a visible remaining candidate class queue plus baseline checks.
+  - Notes: Re-ran the runtime bug council scanner, closed the constructor section with 28/28 classified candidates, classified the full 221-hit protocol count/length section, added countable protocol loop/length/compression subgroup sweeps, fixed the accepted rotated-obfuscation null-input candidate, and added a visible remaining candidate class queue plus baseline checks.
