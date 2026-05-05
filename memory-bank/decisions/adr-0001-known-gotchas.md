@@ -13555,3 +13555,11 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 **Why it happened:** The converter treated filename sanitization as equivalent to path validation. It only kept the parent directory and file name, but never rejected rooted paths, Windows drive prefixes, `.` components, or `..` components before calling `Path.Combine`.
 
 **How to prevent it:** Any peer-supplied path must reject traversal/rooted components before component sanitization. After combining with a trusted root, resolve with `Path.GetFullPath` and verify the result is still contained in the trusted root using a separator-aware comparison.
+
+### 0z78. Path Containment Fixes Must Preserve Legacy Empty-Base Behavior
+
+**What went wrong:** The remote filename traversal fix changed `ToLocalFilename()` to resolve and containment-check the base directory directly. Unit tests that construct default `Options` instances pass an empty downloads/incomplete base directory, and the old `Path.Combine("", relativePath)` behavior treated that as a relative path under the current working directory. The new guard called `Path.GetFullPath("")`, which threw before download background tasks could reach the mocked Soulseek client.
+
+**Why it happened:** The security fix correctly added post-combine containment checks, but it treated an empty base directory as invalid input instead of preserving the helper's existing relative-path compatibility. That broke test and legacy call paths independent of traversal handling.
+
+**How to prevent it:** When hardening path helpers, identify and preserve documented or existing compatibility inputs before adding containment checks. For `ToLocalFilename()`, normalize an empty base directory to `"."`, then resolve both the candidate path and effective base path before checking containment.
