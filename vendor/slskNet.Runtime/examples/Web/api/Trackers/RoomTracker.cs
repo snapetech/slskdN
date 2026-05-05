@@ -1,6 +1,7 @@
 ﻿namespace WebAPI.Trackers
 {
     using Soulseek;
+    using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
@@ -17,6 +18,11 @@
         /// <param name="messageLimit"></param>
         public RoomTracker(int messageLimit = 25)
         {
+            if (messageLimit < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(messageLimit), "Must be greater than or equal to one");
+            }
+
             MessageLimit = messageLimit;
         }
 
@@ -34,8 +40,15 @@
         /// <param name="message"></param>
         public void AddOrUpdateMessage(string roomName, RoomMessage message)
         {
+            if (message == null)
+            {
+                throw new ArgumentNullException(nameof(message));
+            }
+
             Rooms.AddOrUpdate(roomName, new Room() { Messages = new List<RoomMessage>() { message } }, (_, room) =>
             {
+                room.Messages ??= new List<RoomMessage>();
+
                 if (room.Messages.Count >= MessageLimit)
                 {
                     room.Messages = room.Messages.TakeLast(MessageLimit - 1).ToList();
@@ -51,7 +64,15 @@
         /// </summary>
         /// <param name="roomName"></param>
         /// <param name="room"></param>
-        public void TryAdd(string roomName, Room room) => Rooms.TryAdd(roomName, room);
+        public void TryAdd(string roomName, Room room)
+        {
+            if (room == null)
+            {
+                throw new ArgumentNullException(nameof(room));
+            }
+
+            Rooms.TryAdd(roomName, room);
+        }
 
         /// <summary>
         ///     Adds the specified <paramref name="userData"/> to the specified room.
@@ -60,8 +81,14 @@
         /// <param name="userData"></param>
         public void TryAddUser(string roomName, UserData userData)
         {
+            if (userData == null)
+            {
+                throw new ArgumentNullException(nameof(userData));
+            }
+
             if (Rooms.TryGetValue(roomName, out var room))
             {
+                room.Users ??= new List<UserData>();
                 room.Users.Add(userData);
             }
         }
@@ -89,6 +116,11 @@
         {
             if (Rooms.TryGetValue(roomName, out var room))
             {
+                if (room.Users == null)
+                {
+                    return;
+                }
+
                 room.Users = room.Users.Where(u => u.Username != username).ToList();
             }
         }

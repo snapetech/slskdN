@@ -1,5 +1,6 @@
 ﻿namespace WebAPI.Trackers
 {
+    using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using WebAPI.Entities;
@@ -22,8 +23,14 @@
         /// <param name="message"></param>
         public void AddOrUpdate(string username, PrivateMessage message)
         {
+            if (message == null)
+            {
+                throw new ArgumentNullException(nameof(message));
+            }
+
             Conversations.AddOrUpdate(username, new List<PrivateMessage>() { message }, (_, messageList) =>
             {
+                messageList ??= new List<PrivateMessage>();
                 messageList.Add(message);
                 return messageList;
             });

@@ -1,6 +1,7 @@
 ﻿namespace WebAPI.Trackers
 {
     using Soulseek;
+    using System;
     using System.Collections.Concurrent;
 
     /// <summary>
@@ -19,7 +20,14 @@
         /// <param name="username"></param>
         /// <param name="progress"></param>
         public void AddOrUpdate(string username, BrowseProgressUpdatedEventArgs progress)
-            => Browses.AddOrUpdate(username, progress, (user, oldprogress) => progress);
+        {
+            if (progress == null)
+            {
+                throw new ArgumentNullException(nameof(progress));
+            }
+
+            Browses.AddOrUpdate(username, progress, (user, oldprogress) => progress);
+        }
 
         /// <summary>
         ///     Removes a tracked browse operation for the specified user.
