@@ -158,15 +158,15 @@ namespace slskd.Integrations.Pushbullet
                     maxAttempts: PushbulletOptions.RetryAttempts,
                     maxDelayInMilliseconds: 30000);
 
-                Log.LogInformation("Sent Pushbullet notification {Title} {Body}", title, body);
+                Log.LogInformation("Sent Pushbullet notification {Title}", title);
             }
             catch (RetryException ex)
             {
-                Log.LogError(ex, "Fatal error retrying send of Pushbullet notification {Title} {Body}: {Message}", title, body, ex.Message);
+                Log.LogError(ex, "Fatal error retrying send of Pushbullet notification {Title}: {Message}", title, ex.Message);
             }
             catch (Exception ex)
             {
-                Log.LogWarning("Failed to send Pushbullet notification {Title} {Body} after {Attempts} attempts: {Message}", title, body, PushbulletOptions.RetryAttempts, ex.Message);
+                Log.LogWarning("Failed to send Pushbullet notification {Title} after {Attempts} attempts: {Message}", title, PushbulletOptions.RetryAttempts, ex.Message);
             }
         }
     }

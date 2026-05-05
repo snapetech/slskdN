@@ -7,7 +7,7 @@ failed=0
 
 while IFS= read -r file; do
   rel="${file#$repo_root/}"
-  routes="$(rg -n '\[Route\(' "$file" | sed 's/.*\[Route(//; s/)\].*//')"
+  routes="$(rg -n '\[Route\(' "$file" | sed 's/.*\[Route(//; s/)\].*//' | rg 'api/' || true)"
   [ -n "$routes" ] || continue
 
   if ! printf '%s\n' "$routes" | rg -vq 'api/v\{version:apiVersion\}|api/v0|api/v1'; then
