@@ -52,6 +52,85 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z309. Compatibility Soulseek Endpoints Need The Same Safety Posture As Native Endpoints
+
+**The Bug**: The slskd compatibility browse endpoint called `ISoulseekClient.BrowseAsync()` directly without consuming the shared browse limiter or passing the request cancellation token. Native browse paths had newer network-health guardrails, but compatibility routes stayed on the old direct-call pattern.
+
+**Files Affected**:
+- `src/slskd/API/Compatibility/UsersCompatibilityController.cs`
+- `tests/slskd.Tests.Unit/API/Compatibility/UsersCompatibilityControllerTests.cs`
+
+**Wrong**:
+```csharp
+var browseResult = await soulseekClient.BrowseAsync(username);
+```
+
+**Correct**:
+```csharp
+if (!safetyLimiter.TryConsumeBrowse("compatibility"))
+{
+    return StatusCode(429, new { error = "Browse rate limit exceeded. See Soulseek safety configuration." });
+}
+
+var browseResult = await soulseekClient.BrowseAsync(username, cancellationToken: cancellationToken);
+```
+
+**Why This Keeps Happening**: Compatibility controllers can look like thin API shims, so safety and lifecycle fixes land in newer native controllers first. Any endpoint that contacts remote Soulseek peers must be audited independently for limiter use, cancellation propagation, and expected peer-failure handling.
+
+### 0z308. Outbound Integration Clients Must Use The No-Redirect Client And Avoid Secret-Derived Log Values
+
+**The Bug**: The AcoustID client used the default `IHttpClientFactory.CreateClient()` handler, which follows redirects, and logged the full audio fingerprint when a lookup failed or returned no result.
+
+**Files Affected**:
+- `src/slskd/Integrations/AcoustId/AcoustIdClient.cs`
+
+**Wrong**:
+```csharp
+using var client = httpClientFactory.CreateClient();
+log.LogWarning("AcoustID lookup failed ({StatusCode}) for fingerprint {Fingerprint}", response.StatusCode, fingerprint);
+```
+
+**Correct**:
+```csharp
+using var client = httpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
+log.LogWarning("AcoustID lookup failed ({StatusCode}) for fingerprint id {FingerprintId}", response.StatusCode, fingerprintId);
+```
+
+**Why This Keeps Happening**: Integration code often starts as a small vendor API wrapper and misses the repo-wide SSRF/logging posture. Any external HTTP integration should default to the named no-redirect client when redirects are not required, and logs should use stable redacted identifiers for fingerprints, tokens, URLs with credentials, or other secret-derived values.
+
+### 0z307. Packaging Templates Must Use Real Runtime Env Var Names And Published Image Repositories
+
+**The Bug**: Helm and TrueNAS chart defaults pointed at `slskd/slskdn` and exposed ignored environment variables such as `SLSKD_USERNAME`, `SLSKD_PASSWORD`, `SLSKD_LISTEN_PORT`, and `SLSKD_SOULSEEK_LISTEN_PORT`. The app reads prefixed option names like `SLSKD_SLSK_USERNAME`, `SLSKD_SLSK_PASSWORD`, `SLSKD_HTTP_PORT`, and `SLSKD_SLSK_LISTEN_PORT`, while release workflows publish `ghcr.io/snapetech/slskdn`.
+
+**Files Affected**:
+- `packaging/helm/slskdn/values.yaml`
+- `packaging/helm/slskdn/README.md`
+- `packaging/truenas-scale/charts/slskdn/values.yaml`
+- `packaging/truenas-scale/charts/slskdn/questions.yaml`
+- `packaging/scripts/validate-packaging-metadata.sh`
+
+**Wrong**:
+```yaml
+image:
+  repository: slskd/slskdn
+env:
+  SLSKD_USERNAME: ""
+  SLSKD_LISTEN_PORT: "5030"
+  SLSKD_SOULSEEK_LISTEN_PORT: "2234"
+```
+
+**Correct**:
+```yaml
+image:
+  repository: ghcr.io/snapetech/slskdn
+env:
+  SLSKD_SLSK_USERNAME: ""
+  SLSKD_HTTP_PORT: "5030"
+  SLSKD_SLSK_LISTEN_PORT: "2234"
+```
+
+**Why This Keeps Happening**: Chart values drift from the actual `Options` environment-variable attributes and from the image repository that release workflows publish. Packaging changes must cross-check runtime option names and add validator assertions for both expected current names and rejected legacy names.
+
 ### 0z306. Nested Array Fields Must Be Shape-Checked Before `map` Or `reduce`
 
 **The Bug**: Several UI paths validated the top-level payload but then called `.map()`, `.filter()`, or `.reduce()` on nested fields like `response.data`, `candidate.warnings`, `candidate.substitutionOptions`, `recommendation.reasons`, and `recommendation.sourceActors`.
