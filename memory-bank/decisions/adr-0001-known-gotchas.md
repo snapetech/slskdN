@@ -52,6 +52,28 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z300. LocalStorage Lists Must Validate Arrays Before Array Methods
+
+**The Bug**: Blocked-search user state parsed localStorage JSON and returned it directly. Valid JSON with the wrong shape, such as `{"alice":true}`, made `blockUser()` and `unblockUser()` call `.includes()` or `.filter()` on a non-array.
+
+**Files Affected**:
+- `src/web/src/lib/searches.js`
+
+**Wrong**:
+```js
+const blocked = getLocalStorageItem(BLOCKED_USERS_KEY);
+return blocked ? JSON.parse(blocked) : [];
+```
+
+**Correct**:
+```js
+const blocked = getLocalStorageItem(BLOCKED_USERS_KEY);
+const parsed = blocked ? JSON.parse(blocked) : [];
+return Array.isArray(parsed) ? parsed : [];
+```
+
+**Why This Keeps Happening**: Browser storage is external input. Catching invalid JSON is not enough; valid JSON must also be checked for the container type required by the next operation.
+
 ### 0z299. Avoid Broad Usings For Namespaces With Shared DTO Names
 
 **The Bug**: Adding `using slskd.Common.Security;` to `MultiSourceController` imported a different `ContentVerificationResult` type and shadowed `slskd.Transfers.MultiSource.ContentVerificationResult`, causing compile errors far away from the new limiter field.
