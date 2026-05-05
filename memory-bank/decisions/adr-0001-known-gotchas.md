@@ -72,6 +72,15 @@ This is not optional. This is the highest priority action after fixing a bug.
 - `src/web/src/components/Pods/Pods.jsx`
 - `src/web/src/lib/searchCandidateRanking.js`
 - `src/web/src/components/Search/Response.jsx`
+- `src/web/src/lib/listeningHistory.js`
+- `src/web/src/lib/playerRadio.js`
+- `src/web/src/lib/searchResultDeduplication.js`
+- `src/web/src/lib/playlistIntake.js`
+- `src/web/src/components/Player/PlayerContext.jsx`
+- `src/web/src/components/Browse/BrowseSession.jsx`
+- `src/web/src/components/Transfers/TransferGroup.jsx`
+- `src/web/src/components/Shared/UserCard.jsx`
+- `src/web/src/components/Chat/ChatSession.jsx`
 
 **Wrong**:
 ```js
@@ -85,7 +94,7 @@ const notes = (Array.isArray(response.data) ? response.data : []).reduce(...);
 const labels = (Array.isArray(recommendation.reasons) ? recommendation.reasons : []).map(...);
 ```
 
-**Why This Keeps Happening**: `|| []` does not protect truthy objects or strings, and optional chaining only prevents nullish access. Every nested field used as a list needs an `Array.isArray` check at the boundary or directly before list operations.
+**Why This Keeps Happening**: `|| []` does not protect truthy objects or strings, and optional chaining only prevents nullish access. Every nested field used as a list needs an `Array.isArray` check at the boundary or directly before list operations. This includes persisted workflow-plan lists, user-interest lists, chat message lists, directory file lists, source-provider/tag metadata, and provider suggestion lists.
 
 ### 0z305. Browser Base64 Route Segments Need UTF-8 And URL Encoding
 
@@ -146,6 +155,8 @@ api.get(`/files/${root}/directories/${encodeURIComponent(btoa(binary))}`);
 - `src/web/src/lib/searchActionPreview.js`
 - `src/web/src/lib/searchCandidateRanking.js`
 - `src/web/src/components/Search/Response.jsx`
+- `src/web/src/components/Shared/UserCard.jsx`
+- `src/web/src/components/Chat/ChatSession.jsx`
 
 **Wrong**:
 ```js
