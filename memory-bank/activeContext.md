@@ -5412,3 +5412,14 @@ dotnet test
 - Next steps:
   1. Commit implementation/docs batch.
   2. Verify GitHub target and push `main`.
+
+## Update 2026-05-05 22:05:00Z
+
+- Current task: Broad route-boundary and MediaCore result-panel burn-down is validated and ready to push.
+- Last activity:
+  - encoded dynamic route segments across slskdN, library-health, collections/share grants, identity, wishlist, and bridge helpers
+  - added focused helper tests for slash-bearing IDs
+  - guarded additional MediaCore result-panel list counts and renders
+- Next steps:
+  1. Commit implementation/docs batch.
+  2. Verify GitHub target and push `main`.

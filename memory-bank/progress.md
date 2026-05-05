@@ -9726,3 +9726,10 @@ Code quality improvements were completed as part of Option A:
 - Fixed MediaCore pod last-seen timestamp serialization, encoded pod/channel/content route segments, restored descriptor verification result rendering, and guarded Shares/Search/Network/MediaCore nested lists.
 - Included vendor RT-058 for `UserInterests` and `ItemRecommendations` null-entry/mutable-alias validation.
 - Documented ADR-0001 gotchas `0z79`, `0z80`, and `0z81`; focused Web validation passed (`20` tests), scanner resweeps were clean for the touched classes, Web lint/test passed (`625` tests), vendor runtime domain tests passed (`61` tests), and full `dotnet test slskd.sln --no-restore` passed.
+
+## 2026-05-05 22:05:00Z
+
+- Continued broad route-boundary and result-shape scans instead of stopping at the first route interpolation hit.
+- Encoded slskdN mesh/swarm, library-health, collections/share grants, identity contact, wishlist, and bridge dynamic route segments.
+- Guarded additional MediaCore result-panel counts and maps for malformed list/object payloads.
+- Validation passed: route-segment rescan, MediaCore optional-length rescan, `npm run check:remediation`, Web API/security/release scanner lane, `git diff --check`, Web lint, full Web tests (`630` tests), `./bin/lint`, and full `dotnet test slskd.sln --no-restore`.

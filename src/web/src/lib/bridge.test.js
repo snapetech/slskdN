@@ -52,4 +52,13 @@ describe('bridge', () => {
 
     expect(result).toEqual([]);
   });
+
+  it('encodes transfer progress route segments', async () => {
+    api.get.mockResolvedValue({ data: { percentComplete: 10 } });
+
+    const result = await bridge.getTransferProgress('transfer/1');
+
+    expect(api.get).toHaveBeenCalledWith('/bridge/transfer/transfer%2F1/progress');
+    expect(result).toEqual({ percentComplete: 10 });
+  });
 });

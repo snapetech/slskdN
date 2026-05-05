@@ -33,9 +33,9 @@ describe('libraryHealth', () => {
   it('loads scan status without embedding an extra api prefix', async () => {
     api.get.mockResolvedValue({ data: { status: 'Completed' } });
 
-    await libraryHealth.getScanStatus('scan-1');
+    await libraryHealth.getScanStatus('scan/1');
 
-    expect(api.get).toHaveBeenCalledWith('/library/health/scans/scan-1');
+    expect(api.get).toHaveBeenCalledWith('/library/health/scans/scan%2F1');
   });
 
   it('loads summary and issues with encoded query parameters', async () => {
@@ -56,10 +56,10 @@ describe('libraryHealth', () => {
     api.patch.mockResolvedValue({});
     api.post.mockResolvedValue({});
 
-    await libraryHealth.updateIssueStatus('issue-1', 'Ignored');
+    await libraryHealth.updateIssueStatus('issue/1', 'Ignored');
     await libraryHealth.createRemediationJob(['issue-1']);
 
-    expect(api.patch).toHaveBeenCalledWith('/library/health/issues/issue-1', {
+    expect(api.patch).toHaveBeenCalledWith('/library/health/issues/issue%2F1', {
       status: 'Ignored',
     });
     expect(api.post).toHaveBeenCalledWith('/library/health/issues/fix', {

@@ -5,7 +5,7 @@ export const getAll = async () => {
 };
 
 export const get = async (id) => {
-  return (await api.get(`/wishlist/${id}`)).data;
+  return (await api.get(`/wishlist/${encodeURIComponent(id)}`)).data;
 };
 
 export const create = async ({
@@ -31,7 +31,7 @@ export const update = async (
   { searchText, filter, enabled, autoDownload, maxResults },
 ) => {
   return (
-    await api.put(`/wishlist/${id}`, {
+    await api.put(`/wishlist/${encodeURIComponent(id)}`, {
       autoDownload,
       enabled,
       filter,
@@ -42,11 +42,11 @@ export const update = async (
 };
 
 export const remove = async (id) => {
-  await api.delete(`/wishlist/${id}`);
+  await api.delete(`/wishlist/${encodeURIComponent(id)}`);
 };
 
 export const runSearch = async (id) => {
-  return (await api.post(`/wishlist/${id}/search`)).data;
+  return (await api.post(`/wishlist/${encodeURIComponent(id)}/search`)).data;
 };
 
 export const importCsv = async ({

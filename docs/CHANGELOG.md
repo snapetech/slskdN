@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Encoded additional Web helper route segments for slskdN, library-health,
+  collections, identity, wishlist, and bridge APIs, and hardened more MediaCore
+  result panels against malformed nested payloads.
 - Fixed MediaCore pod workflow route encoding and primitive timestamp request
   bodies, restored descriptor verification result rendering, and hardened more
   admin/search/share panels against malformed nested list payloads.

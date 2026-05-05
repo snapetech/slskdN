@@ -45,6 +45,6 @@ export const stopBridge = async () => {
 };
 
 export const getTransferProgress = async (transferId) => {
-  const response = await api.get(`/bridge/transfer/${transferId}/progress`);
+  const response = await api.get(`/bridge/transfer/${encodeURIComponent(transferId)}/progress`);
   return response.data;
 };

@@ -2474,3 +2474,7 @@
 - [x] Continue MediaCore route/body and nested panel burn-down
   - Status: completed (2026-05-05)
   - Notes: Fixed pod backfill primitive timestamp bodies, encoded MediaCore pod/channel/content route segments, restored descriptor verification result rendering, and guarded Shares/Search/Network/MediaCore nested lists. Included the vendor runtime interest/recommendation DTO validation batch.
+
+- [x] Continue Web route-boundary and MediaCore result-panel burn-down
+  - Status: completed (2026-05-05)
+  - Notes: Encoded slskdN mesh/swarm, library-health, collections/share grants, identity contact, wishlist, and bridge dynamic route segments, and guarded additional MediaCore result-panel lists/maps before count/render operations.

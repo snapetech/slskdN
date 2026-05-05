@@ -2507,7 +2507,7 @@ const MediaCore = () => {
                 <div style={{ marginTop: '1em' }}>
                   <Header as="h4">Mappings by Domain</Header>
                   <List horizontal>
-                    {Object.entries(stats.mappingsByDomain).map(
+                    {Object.entries(stats.mappingsByDomain || {}).map(
                       ([domain, count]) => (
                         <List.Item key={domain}>
                           <Label>
@@ -2744,17 +2744,17 @@ const MediaCore = () => {
                     <div>
                       <p>
                         <strong>
-                          Found {domainResults.contentIds?.length || 0}{' '}
+                          Found {asArray(domainResults.contentIds).length}{' '}
                           ContentIDs
                         </strong>
                       </p>
-                      {domainResults.contentIds?.length > 0 && (
+                      {asArray(domainResults.contentIds).length > 0 && (
                         <List
                           divided
                           relaxed
                           style={{ maxHeight: '200px', overflow: 'auto' }}
                         >
-                          {domainResults.contentIds.map((id, index) => (
+                          {asArray(domainResults.contentIds).map((id, index) => (
                             <List.Item key={index}>
                               <List.Content>
                                 <code>{id}</code>
@@ -2855,17 +2855,17 @@ const MediaCore = () => {
                       </p>
                       <p>
                         <strong>
-                          Visited {traversalResults.visitedNodes?.length || 0}{' '}
+                          Visited {asArray(traversalResults.visitedNodes).length}{' '}
                           nodes
                         </strong>
                       </p>
-                      {traversalResults.visitedNodes?.length > 0 && (
+                      {asArray(traversalResults.visitedNodes).length > 0 && (
                         <List
                           divided
                           relaxed
                           style={{ maxHeight: '150px', overflow: 'auto' }}
                         >
-                          {traversalResults.visitedNodes.map((node, index) => (
+                          {asArray(traversalResults.visitedNodes).map((node, index) => (
                             <List.Item key={index}>
                               <List.Content>
                                 <List.Header>{node.contentId}</List.Header>
@@ -2933,19 +2933,19 @@ const MediaCore = () => {
                       </p>
                       <p>
                         <strong>Nodes:</strong>{' '}
-                        {graphResults.nodes?.length || 0}
+                        {asArray(graphResults.nodes).length}
                       </p>
                       <p>
                         <strong>Paths:</strong>{' '}
                         {graphResults.paths?.length || 0}
                       </p>
-                      {graphResults.nodes?.length > 0 && (
+                      {asArray(graphResults.nodes).length > 0 && (
                         <List
                           divided
                           relaxed
                           style={{ maxHeight: '150px', overflow: 'auto' }}
                         >
-                          {graphResults.nodes.slice(0, 5).map((node, index) => (
+                          {asArray(graphResults.nodes).slice(0, 5).map((node, index) => (
                             <List.Item key={index}>
                               <List.Content>
                                 <List.Header style={{ fontSize: '0.9em' }}>
@@ -3022,17 +3022,17 @@ const MediaCore = () => {
                     <div>
                       <p>
                         <strong>
-                          Found {inboundResults.inboundLinks?.length || 0}{' '}
+                          Found {asArray(inboundResults.inboundLinks).length}{' '}
                           inbound links
                         </strong>
                       </p>
-                      {inboundResults.inboundLinks?.length > 0 && (
+                      {asArray(inboundResults.inboundLinks).length > 0 && (
                         <List
                           divided
                           relaxed
                           style={{ maxHeight: '150px', overflow: 'auto' }}
                         >
-                          {inboundResults.inboundLinks.map((link, index) => (
+                          {asArray(inboundResults.inboundLinks).map((link, index) => (
                             <List.Item key={index}>
                               <List.Content>
                                 <code style={{ fontSize: '0.9em' }}>
@@ -3387,16 +3387,16 @@ const MediaCore = () => {
                       </p>
                       <p>
                         <strong>
-                          Found {findSimilarResult.matches?.length || 0} matches
+                          Found {asArray(findSimilarResult.matches).length} matches
                         </strong>
                       </p>
-                      {findSimilarResult.matches?.length > 0 && (
+                      {asArray(findSimilarResult.matches).length > 0 && (
                         <List
                           divided
                           relaxed
                           style={{ maxHeight: '200px', overflow: 'auto' }}
                         >
-                          {findSimilarResult.matches.map((match, index) => (
+                          {asArray(findSimilarResult.matches).map((match, index) => (
                             <List.Item key={index}>
                               <List.Content>
                                 <List.Header style={{ fontSize: '0.9em' }}>
@@ -3807,13 +3807,13 @@ const MediaCore = () => {
                         <strong>Duration:</strong>{' '}
                         {importResult.duration?.TotalSeconds.toFixed(2)}s
                       </p>
-                      {importResult.errors?.length > 0 && (
+                      {asArray(importResult.errors).length > 0 && (
                         <details>
                           <summary>
-                            Errors ({importResult.errors.length})
+                            Errors ({asArray(importResult.errors).length})
                           </summary>
                           <List bulleted>
-                            {importResult.errors.map((error, index) => (
+                            {asArray(importResult.errors).map((error, index) => (
                               <List.Item key={index}>{error}</List.Item>
                             ))}
                           </List>
@@ -7289,7 +7289,7 @@ const MediaCore = () => {
                       Last Seen Timestamps for Pod {backfillPodId}
                     </Message.Header>
                     <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
-                      {Object.entries(lastSeenTimestamps).map(
+                      {Object.entries(lastSeenTimestamps || {}).map(
                         ([channelId, timestamp]) => (
                           <div
                             key={channelId}
@@ -7919,7 +7919,7 @@ const MediaCore = () => {
                   {aggregatedOpinions.variantAggregates.length > 0 && (
                     <div style={{ marginTop: '1em' }}>
                       <Header size="tiny">Variant Analysis</Header>
-                      {aggregatedOpinions.variantAggregates.map(
+                      {asArray(aggregatedOpinions.variantAggregates).map(
                         (variant, index) => (
                           <Card
                             key={index}
@@ -8007,7 +8007,7 @@ const MediaCore = () => {
                   <Header size="tiny">
                     Member Affinities ({Object.keys(memberAffinities).length})
                   </Header>
-                  {Object.entries(memberAffinities).map(
+                  {Object.entries(memberAffinities || {}).map(
                     ([peerId, affinity], index) => (
                       <Card
                         key={index}
@@ -8277,12 +8277,12 @@ const MediaCore = () => {
                 divided
                 relaxed
               >
-                {supportedAlgorithms.algorithms.map((alg) => (
+                {asArray(supportedAlgorithms.algorithms).map((alg) => (
                   <List.Item key={alg}>
                     <List.Content>
                       <List.Header>{alg}</List.Header>
                       <List.Description>
-                        {supportedAlgorithms.descriptions[alg]}
+                        {(supportedAlgorithms.descriptions || {})[alg]}
                       </List.Description>
                     </List.Content>
                   </List.Item>
