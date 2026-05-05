@@ -52,6 +52,35 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z303. LocalStorage Arrays Must Validate Item Shapes
+
+**The Bug**: Browser-local arrays accepted any parsed array entries and passed strings, `null`, or nested arrays into normalization code. Valid JSON with invalid item shapes could crash dashboards and workflow handoffs even though the top-level container was an array.
+
+**Files Affected**:
+- `src/web/src/lib/communityQualitySignals.js`
+- `src/web/src/lib/discoveryInbox.js`
+- `src/web/src/lib/acquisitionPlans.js`
+- `src/web/src/lib/discoveryShelf.js`
+- `src/web/src/lib/albumDecisionRules.js`
+- `src/web/src/lib/listeningHistory.js`
+
+**Wrong**:
+```js
+const parsed = JSON.parse(getLocalStorageItem(storageKey, '[]'));
+return Array.isArray(parsed) ? parsed : [];
+```
+
+**Correct**:
+```js
+const parsed = JSON.parse(getLocalStorageItem(storageKey, '[]'));
+return Array.isArray(parsed)
+  ? parsed.filter((item) =>
+    item && typeof item === 'object' && !Array.isArray(item))
+  : [];
+```
+
+**Why This Keeps Happening**: Browser storage is external input at both the container and entry level. Array checks protect `.map()` and `.filter()`, but every consumer that reads object fields also needs item-shape validation before normalization, summaries, or save/replace flows run.
+
 ### 0z302. Render Paths Must Not Parse Event JSON Without Fallbacks
 
 **The Bug**: The System Events table called `JSON.parse(event.data)` during render. One malformed event payload could throw and take down the whole admin events view.
