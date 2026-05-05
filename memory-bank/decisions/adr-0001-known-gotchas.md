@@ -52,6 +52,26 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z280. VPN Namespace Test Routes Must Cover Every Peer Namespace
+
+**The Bug**: The full-instance VPN test wrapper added a local route for `10.230.0.0/16`, assuming it covered alpha and beta test namespaces. It only covers `10.230.*`; beta used `10.231.0.2`, so alpha still routed beta overlay traffic through the WireGuard default route and overlay peer connection attempts timed out.
+
+**Files Affected**:
+- `tests/slskd.Tests.Integration/Harness/SlskdnFullInstanceRunner.cs`
+- `tests/slskd.Tests.Integration/DhtRendezvous/TwoNodeMeshFullInstanceTests.cs`
+
+**Wrong**:
+```csharp
+var testCidr = "10.230.0.0/16";
+```
+
+**Correct**:
+```csharp
+var testCidr = "10.0.0.0/8";
+```
+
+**Why This Keeps Happening**: CIDR boundaries are easy to misread when using adjacent second-octet namespace ranges. If test namespaces are `10.230.0.2`, `10.231.0.2`, `10.232.0.2`, and `10.233.0.2`, use a route broad enough for all test peer subnets or compute exact per-peer routes.
+
 ### 0z279. Passthrough AllowedCidrs Is A Comma-Separated String, Not A YAML List
 
 **The Bug**: A generated full-instance test config wrote `web.authentication.passthrough.allowed_cidrs` as a YAML sequence while `Options.Web.Authentication.Passthrough.AllowedCidrs` is a `string?`. The .NET configuration binder then failed process startup with `Cannot create instance of type 'System.String' because it has multiple public parameterized constructors`.
