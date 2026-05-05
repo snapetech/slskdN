@@ -52,6 +52,82 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z316. Release Workflows Must Copy Every Package Source Declared By Metadata
+
+**The Bug**: Legacy release workflows copied AUR and PPA packaging files without `slskd.tmpfiles`, while the package metadata declared or expected tmpfiles rules. Snap metadata and release-note asset names also drifted from the current release asset matrix.
+
+**Files Affected**:
+- `.github/workflows/release-linux.yml`
+- `.github/workflows/release-ppa.yml`
+- `.github/release-notes/main.md.tmpl`
+- `packaging/snap/snapcraft.yaml`
+- `packaging/scripts/validate-packaging-metadata.sh`
+- `scripts/check-release-asset-matrix.sh`
+
+**Wrong**:
+```yaml
+cp ../packaging/aur/slskd.sysusers .
+cp ../packaging/aur/slskd.install .
+```
+
+**Correct**:
+```yaml
+cp ../packaging/aur/slskd.sysusers .
+cp ../packaging/aur/slskd.tmpfiles .
+cp ../packaging/aur/slskd.install .
+```
+
+**Why This Keeps Happening**: Package-manager metadata and release workflows evolve independently. Any workflow that publishes package repos or source trees must be validated against the package source lists, install rules, and current release asset names.
+
+### 0z315. Sensitive Operations Must Not Use Safe HTTP Methods
+
+**The Bug**: The memory dump endpoint created and returned a full process dump through `GET /api/v0/application/dump`. The action was admin-gated and option-gated, but it was still a stateful, expensive, secret-bearing operation exposed through a safe method.
+
+**Files Affected**:
+- `src/slskd/Core/API/Controllers/ApplicationController.cs`
+- `tests/slskd.Tests/DumpTests.cs`
+
+**Wrong**:
+```csharp
+[HttpGet("dump")]
+public async Task<IActionResult> DumpMemory()
+{
+    return PhysicalFile(path, "application/octet-stream", "slskd.dmp");
+}
+```
+
+**Correct**:
+```csharp
+[HttpPost("dump")]
+public async Task<IActionResult> DumpMemory()
+{
+    return PhysicalFile(path, "application/octet-stream", "slskd.dmp");
+}
+```
+
+**Why This Keeps Happening**: Download-like responses can hide that the action first mutates server state or creates sensitive artifacts. If an endpoint triggers work, writes files, probes peers, changes state, or creates secret-bearing diagnostics, it must not be a GET.
+
+### 0z314. Option Logs Must Redact Secret-Attributed Values
+
+**The Bug**: Option reload logging serialized raw old/new option values and full Soulseek option objects with `ToJson()`, including fields marked with `[Secret]`.
+
+**Files Affected**:
+- `src/slskd/Application.cs`
+
+**Wrong**:
+```csharp
+Log.Debug("{Name} changed from {Old} to {New}", fqn, left.ToJson(), right.ToJson());
+Log.Debug("Soulseek options changed from {Previous} to {Current}", old.ToJson(), update.ToJson());
+```
+
+**Correct**:
+```csharp
+Log.Debug("{Name} changed from {Old} to {New}", fqn, RedactIfSecret(property, left), RedactIfSecret(property, right));
+Log.Debug("Soulseek options changed from {Previous} to {Current}", PreviousOptions.Redact().Soulseek.ToJson(), newOptions.Redact().Soulseek.ToJson());
+```
+
+**Why This Keeps Happening**: Diff/debug logs are treated as developer-only diagnostics, but configuration values include passwords, API keys, and tokens. Any option logging must use `[Secret]` metadata or `Options.Redact()` before serialization.
+
 ### 0z313. Security Options Need Runtime Enforcement, Not Only Validation Helpers
 
 **The Bug**: Mesh gateway options had `Validate()` and `MeshGatewayConfigValidator.ValidateOnStartup()` checks requiring API keys for non-localhost binding, but the app only bound the options and never enforced the validator at startup. The auth middleware also allowed non-localhost requests through when no API key was configured.
