@@ -13,9 +13,13 @@ const loadTabsFromStorage = () => {
 
     if (saved) {
       const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed.tabs)) {
+        return [];
+      }
+
       // Restore tabCounter to avoid key collisions
       tabCounter = parsed.tabCounter || 0;
-      return parsed.tabs || [];
+      return parsed.tabs;
     }
   } catch {
     // ignore

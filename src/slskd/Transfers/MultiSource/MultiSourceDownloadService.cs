@@ -61,6 +61,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
     private readonly IMediaCoreSwarmService? _mediaCoreSwarmService;
     private readonly IPlaybackPriorityService? _playbackPriorityService;
     private readonly Optimization.IChunkSizeOptimizer? _chunkSizeOptimizer;
+    private readonly ISoulseekSafetyLimiter? _soulseekSafetyLimiter;
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="MultiSourceDownloadService"/> class.
@@ -78,6 +79,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
     /// <param name="mediaCoreSwarmService">The MediaCore swarm service (optional).</param>
     /// <param name="playbackPriorityService">The playback priority service (optional).</param>
     /// <param name="chunkSizeOptimizer">The chunk size optimizer (optional).</param>
+    /// <param name="soulseekSafetyLimiter">The Soulseek network safety limiter (optional).</param>
     public MultiSourceDownloadService(
         ILogger<MultiSourceDownloadService> logger,
         ISoulseekClient soulseekClient,
@@ -91,7 +93,8 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         ICanonicalStatsService? canonicalStatsService = null,
         IMediaCoreSwarmService? mediaCoreSwarmService = null,
         IPlaybackPriorityService? playbackPriorityService = null,
-        Optimization.IChunkSizeOptimizer? chunkSizeOptimizer = null)
+        Optimization.IChunkSizeOptimizer? chunkSizeOptimizer = null,
+        ISoulseekSafetyLimiter? soulseekSafetyLimiter = null)
     {
         _logger = logger;
         _client = soulseekClient;
@@ -106,6 +109,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         _mediaCoreSwarmService = mediaCoreSwarmService;
         _playbackPriorityService = playbackPriorityService;
         _chunkSizeOptimizer = chunkSizeOptimizer;
+        _soulseekSafetyLimiter = soulseekSafetyLimiter;
     }
 
     /// <inheritdoc/>
@@ -326,6 +330,16 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
 
         try
         {
+            if (_soulseekSafetyLimiter?.TryConsumeSearch("multisource-source-discovery") == false)
+            {
+                _logger.LogWarning("Search skipped by Soulseek safety limiter: {SearchTerm}", searchTerm);
+                return new ContentVerificationResult
+                {
+                    Filename = filename,
+                    FileSize = fileSize,
+                };
+            }
+
             await _client.SearchAsync(
                 SearchQuery.FromText(searchTerm),
                 responseHandler: (response) => searchResults.Add(response),

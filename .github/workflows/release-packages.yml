@@ -78,11 +78,13 @@ jobs:
           mkdir -p pkg/lib/systemd/system
           mkdir -p pkg/etc/slskd
           mkdir -p pkg/usr/lib/sysusers.d
+          mkdir -p pkg/usr/lib/tmpfiles.d
           
           cp -r slskdn-build/* pkg/usr/lib/slskd/
           cp packaging/aur/slskd.service pkg/lib/systemd/system/
           cp packaging/aur/slskd.yml pkg/etc/slskd/
           cp packaging/aur/slskd.sysusers pkg/usr/lib/sysusers.d/slskd.conf
+          cp packaging/aur/slskd.tmpfiles pkg/usr/lib/tmpfiles.d/slskd.conf
           
           # Copy debian files
           cp -r packaging/debian pkg/
@@ -168,6 +170,7 @@ jobs:
           cp packaging/aur/slskd.service ~/rpmbuild/SOURCES/
           cp packaging/aur/slskd.yml ~/rpmbuild/SOURCES/
           cp packaging/aur/slskd.sysusers ~/rpmbuild/SOURCES/slskd.conf
+          cp packaging/aur/slskd.tmpfiles ~/rpmbuild/SOURCES/
 
       - name: Update Spec Version and Build
         run: |

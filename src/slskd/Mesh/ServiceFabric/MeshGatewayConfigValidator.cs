@@ -83,9 +83,9 @@ public class MeshGatewayConfigValidator
             _options.CsrfToken = GenerateSecureToken();
 
             _logger.LogInformation(
-                "[GatewayConfig] Generated CSRF token: {Token}", _options.CsrfToken);
+                "[GatewayConfig] Generated session CSRF token for localhost gateway.");
             _logger.LogInformation(
-                "[GatewayConfig] Clients must include header: X-Slskdn-Csrf: {Token}", _options.CsrfToken);
+                "[GatewayConfig] Clients must include the configured X-Slskdn-Csrf header value.");
         }
 
         if (_options.AllowedServices.Count == 0)

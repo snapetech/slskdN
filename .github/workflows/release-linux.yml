@@ -150,21 +150,23 @@ jobs:
           SVC_SUM=$(sha256sum slskd.service | awk '{print $1}')
           YML_SUM=$(sha256sum slskd.yml     | awk '{print $1}')
           SYS_SUM=$(sha256sum slskd.sysusers | awk '{print $1}')
+          TMP_SUM=$(sha256sum slskd.tmpfiles | awk '{print $1}')
           echo "slskd.service : $SVC_SUM"
           echo "slskd.yml     : $YML_SUM"
           echo "slskd.sysusers: $SYS_SUM"
+          echo "slskd.tmpfiles: $TMP_SUM"
 
           # Update binary package PKGBUILD
-          # source=() order: zip slskd.service slskd.yml slskd.sysusers
+          # source=() order: zip slskd.service slskd.yml slskd.sysusers slskd.tmpfiles
           sed -i "s/^pkgver=.*/pkgver=${{ steps.version.outputs.pkgver }}/" PKGBUILD-bin
           # keep binary archive hash on SKIP since release assets are mutable and can be replaced in-place
-          sed -i "s/^sha256sums=.*/sha256sums=('SKIP' '$SVC_SUM' '$YML_SUM' '$SYS_SUM')/" PKGBUILD-bin
+          sed -i "s/^sha256sums=.*/sha256sums=('SKIP' '$SVC_SUM' '$YML_SUM' '$SYS_SUM' '$TMP_SUM')/" PKGBUILD-bin
 
           # Update source package PKGBUILD (tarball is SKIP, static file hashes are the same)
           sed -i "s/^pkgver=.*/pkgver=${{ steps.version.outputs.pkgver }}/" PKGBUILD
-          sed -i "s/^sha256sums=.*/sha256sums=('SKIP' '$SVC_SUM' '$YML_SUM' '$SYS_SUM')/" PKGBUILD
+          sed -i "s/^sha256sums=.*/sha256sums=('SKIP' '$SVC_SUM' '$YML_SUM' '$SYS_SUM' '$TMP_SUM')/" PKGBUILD
 
-          bash ../packaging/scripts/validate-aur-pkgbuild-hashes.sh PKGBUILD PKGBUILD-bin
+          bash ../scripts/validate-aur-pkgbuild-hashes.sh PKGBUILD PKGBUILD-bin
 
       - name: Setup and Push to AUR
         env:

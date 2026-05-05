@@ -10,7 +10,7 @@ while IFS= read -r file; do
   routes="$(rg -n '\[Route\(' "$file" | sed 's/.*\[Route(//; s/)\].*//')"
   [ -n "$routes" ] || continue
 
-  if printf '%s\n' "$routes" | rg -q 'api/v\{version:apiVersion\}|api/v0|api/v1'; then
+  if ! printf '%s\n' "$routes" | rg -vq 'api/v\{version:apiVersion\}|api/v0|api/v1'; then
     continue
   fi
 

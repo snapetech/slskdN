@@ -5,7 +5,7 @@ export const getAvailable = async () => {
 
   if (!Array.isArray(response)) {
     console.warn('got non-array response from rooms API', response);
-    return undefined;
+    return [];
   }
 
   return response;
@@ -16,7 +16,7 @@ export const getJoined = async () => {
 
   if (!Array.isArray(response)) {
     console.warn('got non-array response from rooms API', response);
-    return undefined;
+    return [];
   }
 
   return response;
@@ -29,7 +29,7 @@ export const getMessages = async ({ roomName }) => {
 
   if (!Array.isArray(response)) {
     console.warn('got non-array response from rooms API', response);
-    return undefined;
+    return [];
   }
 
   return response;
@@ -42,7 +42,7 @@ export const getUsers = async ({ roomName }) => {
 
   if (!Array.isArray(response)) {
     console.warn('got non-array response from rooms API', response);
-    return undefined;
+    return [];
   }
 
   return response;

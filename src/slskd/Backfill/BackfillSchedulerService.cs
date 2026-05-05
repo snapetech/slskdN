@@ -143,6 +143,12 @@ namespace slskd.Backfill
                         continue;
                     }
 
+                    if (!candidate.IsPeerOnline)
+                    {
+                        logger.LogDebug("[BACKFILL] Skipping offline peer {PeerId}", candidate.PeerId);
+                        continue;
+                    }
+
                     // Attempt backfill
                     result.BackfillsAttempted++;
                     var backfillResult = await BackfillFileAsync(candidate.PeerId, candidate.Path, candidate.Size, cancellationToken);
@@ -241,9 +247,12 @@ namespace slskd.Backfill
                 HashStatusStr = "pending",
             }, cancellationToken);
 
+            var lockAcquired = false;
+
             try
             {
                 await backfillLock.WaitAsync(cancellationToken);
+                lockAcquired = true;
                 Interlocked.Increment(ref activeBackfills);
 
                 logger.LogDebug("[BACKFILL] Probing {Peer}/{Path} ({Size} bytes)", peerId, path, size);
@@ -309,7 +318,7 @@ namespace slskd.Backfill
 
                 // Parse FLAC header to get hash
                 var hash = ParseFlacHeader(buffer, bytesRead);
-                if (hash != null)
+                if (!string.IsNullOrWhiteSpace(hash))
                 {
                     result.Success = true;
                     result.Hash = hash;
@@ -345,8 +354,11 @@ namespace slskd.Backfill
             }
             finally
             {
-                Interlocked.Decrement(ref activeBackfills);
-                backfillLock.Release();
+                if (lockAcquired)
+                {
+                    Interlocked.Decrement(ref activeBackfills);
+                    backfillLock.Release();
+                }
             }
 
             result.DurationMs = sw.ElapsedMilliseconds;
@@ -404,17 +416,17 @@ namespace slskd.Backfill
             return idleDuration.TotalSeconds >= config.MinIdleTimeSeconds;
         }
 
-        private static string ParseFlacHeader(byte[] buffer, int length)
+        private static string? ParseFlacHeader(byte[] buffer, int length)
         {
             if (length < 42)
             {
-                return string.Empty;
+                return null;
             }
 
             // Check FLAC magic
             if (buffer[0] != 'f' || buffer[1] != 'L' || buffer[2] != 'a' || buffer[3] != 'C')
             {
-                return string.Empty;
+                return null;
             }
 
             // STREAMINFO block should be at offset 4
@@ -422,14 +434,14 @@ namespace slskd.Backfill
             var blockType = buffer[4] & 0x7F;
             if (blockType != 0)
             {
-                return string.Empty;
+                return null;
             }
 
             // Block length in next 3 bytes
             var blockLength = (buffer[5] << 16) | (buffer[6] << 8) | buffer[7];
             if (blockLength < 34 || 8 + blockLength > length)
             {
-                return string.Empty;
+                return null;
             }
 
             // STREAMINFO is 34 bytes, MD5 is last 16 bytes

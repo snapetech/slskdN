@@ -115,6 +115,7 @@ jobs:
           cp packaging/aur/slskd.service ~/rpmbuild/SOURCES/
           cp packaging/aur/slskd.yml ~/rpmbuild/SOURCES/
           cp packaging/aur/slskd.sysusers ~/rpmbuild/SOURCES/slskd.conf
+          cp packaging/aur/slskd.tmpfiles ~/rpmbuild/SOURCES/
           cp packaging/rpm/slskdn.spec ~/rpmbuild/SPECS/
           
           # Build SRPM

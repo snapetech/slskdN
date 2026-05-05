@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Synced the vendored `slskNet.Runtime` bug council ledger and remediation
+  baseline checks.
 - Extended Soulseek type-1 obfuscation across compatible peer-message,
   distributed-message, and file-transfer streams while preserving regular
   direct/indirect fallback.

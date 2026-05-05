@@ -10,6 +10,10 @@ This is a modified version of Soulseek.NET. It is not maintained by, endorsed by
 - Optional Soulseek type-1 peer/distributed/transfer obfuscation metadata is supported in `SetListenPort`, peer-address responses, and `ConnectToPeer` responses.
 - A dedicated type-1 obfuscated peer/distributed/transfer listener can be configured.
 - Outbound peer/distributed/transfer dials can prefer compatible obfuscated endpoints while keeping regular direct and indirect fallback paths.
+- slskdN peer capability descriptors can be exchanged over reserved peer-message envelopes and tracked in a runtime registry.
+- Ed25519 descriptor signing and verification helpers are available for applications that need signed slskdN capability metadata.
+- Mesh rendezvous helpers can use native Soulseek interests and similar-user lookups without adding a new distributed wire format.
+- Wishlist search scheduling can honor server-provided wishlist interval information.
 - Server interest and recommendation protocol messages are exposed through first-class client APIs.
 - Multi-user private-message sends are exposed through a bounded, deduplicated client API.
 - `CannotCreateRoom` server responses are surfaced as room join failures instead of being ignored.
@@ -22,6 +26,10 @@ Type-1 obfuscation is not encryption. It is a compatibility/privacy posture for 
 | Area | Public API / Type | Wire behavior | Default impact |
 | ---- | ----------------- | ------------- | -------------- |
 | Type-1 peer/distributed/transfer obfuscation | `PeerObfuscationOptions`, `SoulseekClientOptions.PeerObfuscationOptions` | Advertises type-1 metadata, opens a dedicated obfuscated peer/distributed/transfer listener, and can prefer compatible obfuscated peer/distributed/transfer dials | Off by default in this runtime; regular fallback is mandatory when enabled |
+| slskdN capability handshake | `PeerCapabilityEnvelope`, `PeerCapabilityDescriptor`, `PeerCapabilityRegistry`, `SendPeerCapabilityAsync`, `PeerCapabilityReceived` | Sends and receives reserved slskdN peer-message envelopes after normal Soulseek peer connection setup | No descriptor is advertised unless the application configures one and sends or enables the handshake |
+| Descriptor signing | `IPeerDescriptorSigner`, `IPeerDescriptorVerifier`, `Ed25519PeerDescriptorSigner` | Signs and verifies canonical slskdN capability descriptors outside the Soulseek server protocol | Optional helper; key custody remains with the application |
+| Mesh rendezvous helper | `MeshRendezvousService` | Uses ordinary Soulseek interest and similar-user commands around the public `slskdn-mesh-v1` rendezvous tag | No interest is published or probed unless the application calls the helper |
+| Wishlist scheduling | Wishlist-scoped search helpers and interval models | Uses server wishlist search semantics and server-provided interval information where available | Normal searches are unchanged |
 | User interests | `AddInterestAsync`, `RemoveInterestAsync`, `AddHatedInterestAsync`, `RemoveHatedInterestAsync` | Sends the native Soulseek interest management server commands | No command is sent unless the application calls the API |
 | Recommendations | `GetRecommendationsAsync`, `GetGlobalRecommendationsAsync`, `RecommendationList`, `Recommendation` | Requests personal/global recommendation lists from the Soulseek server | Read-only request; no effect on search/browse/transfer behavior |
 | User interest lookup | `GetUserInterestsAsync`, `UserInterests` | Requests another user's liked and hated interest strings | Read-only request; caller controls when it runs |
@@ -40,6 +48,8 @@ The forked runtime remains wire-compatible with legacy Soulseek clients when def
 - Outbound obfuscated dials are attempted only when `PeerObfuscationOptions.PreferOutbound` is enabled and the remote peer has advertised a compatible type-1 obfuscated endpoint.
 - Regular direct and indirect peer/distributed/transfer connection attempts remain available as fallback paths.
 - If an obfuscated distributed or transfer candidate connects first but fails setup negotiation, regular fallback candidates are still allowed to complete before the operation fails.
+- slskdN capability envelopes use a reserved custom peer-message code. They are sent only by slskdN-aware callers, and capability records are discovery hints rather than authorization decisions.
+- Mesh rendezvous uses the normal Soulseek interest graph. Publishing the public `slskdn-mesh-v1` interest is an application choice and is not implied by constructing the runtime client.
 - Interest, recommendation, similar-user, item-recommendation, hated-interest, and multi-user private-message commands are only sent when the application explicitly calls the corresponding API.
 - Passive handling of `CannotCreateRoom` only changes local error reporting for a failed room join; it does not alter room join wire format.
 
@@ -103,6 +113,21 @@ Returned values are deliberately close to the Soulseek protocol:
 - `ItemRecommendations.Item` and `ItemSimilarUsers.Item` echo the requested item string after server response parsing.
 
 Parser implementations reject negative or impossible collection counts before building result lists, so malformed server responses fail closed instead of silently producing partial data.
+
+### slskdN capability descriptors and rendezvous
+
+The runtime includes the protocol pieces slskdN uses to discover compatible peers without changing standard Soulseek search, browse, room, or transfer messages.
+
+`PeerCapabilityEnvelope` reserves a slskdN-only peer-message code for descriptor exchange. `PeerCapabilityDescriptor` carries a signed feature statement, endpoint hints, and validity timestamps, while `PeerCapabilityRegistry` records the latest descriptor seen per Soulseek username.
+
+Applications that opt into this path can:
+
+- Configure a local descriptor and send a capability hello over a normal peer-message connection.
+- Subscribe to `PeerCapabilityReceived` or inspect `SoulseekClient.PeerCapabilities`.
+- Sign and verify descriptors with the runtime Ed25519 helpers while keeping key storage and trust policy outside the runtime.
+- Fall back to any application-level legacy capability discovery when no signed descriptor is available.
+
+`MeshRendezvousService` is a helper over existing Soulseek interest and similar-user messages. It can publish the public `slskdn-mesh-v1` interest tag and discover similar users who may be slskdN peers. Publishing the tag is explicit and should be presented as a privacy-visible operation by applications.
 
 ### Multi-user private messages
 

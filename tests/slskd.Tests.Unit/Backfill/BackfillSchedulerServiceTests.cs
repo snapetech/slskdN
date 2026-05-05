@@ -52,4 +52,152 @@ public class BackfillSchedulerServiceTests
         Assert.Equal("Failed to read FLAC header", result.Error);
         Assert.DoesNotContain("sensitive", result.Error, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public async Task BackfillFileAsync_WhenWaitingCancellationFires_DoesNotReleaseUnacquiredSemaphore()
+    {
+        var hashDb = CreateHashDb();
+        var soulseekClient = new Mock<ISoulseekClient>();
+        var releaseDownloads = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var downloadsStarted = 0;
+
+        soulseekClient
+            .Setup(client => client.DownloadAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<Task<System.IO.Stream>>>(),
+                It.IsAny<long>(),
+                It.IsAny<long>(),
+                It.IsAny<int?>(),
+                It.IsAny<TransferOptions>(),
+                It.IsAny<CancellationToken?>()))
+            .Returns(async () =>
+            {
+                Interlocked.Increment(ref downloadsStarted);
+                await releaseDownloads.Task;
+                return new Transfer(TransferDirection.Download, "peer", "file", 1, TransferStates.Completed, 1, 0, 1);
+            });
+
+        var service = new BackfillSchedulerService(
+            hashDb.Object,
+            Mock.Of<IMeshSyncService>(),
+            soulseekClient.Object,
+            Mock.Of<ICapabilityService?>(),
+            NullLogger<BackfillSchedulerService>.Instance);
+
+        var first = service.BackfillFileAsync("alice", "one.flac", 100, CancellationToken.None);
+        var second = service.BackfillFileAsync("bob", "two.flac", 100, CancellationToken.None);
+
+        while (Volatile.Read(ref downloadsStarted) < 2)
+        {
+            await Task.Delay(10);
+        }
+
+        using var cts = new CancellationTokenSource();
+        var third = service.BackfillFileAsync("carol", "three.flac", 100, cts.Token);
+        cts.Cancel();
+        var thirdResult = await third;
+
+        Assert.False(thirdResult.Success);
+        Assert.Equal(2, service.ActiveBackfillCount);
+
+        releaseDownloads.SetResult();
+        await Task.WhenAll(first, second);
+        Assert.Equal(0, service.ActiveBackfillCount);
+    }
+
+    [Fact]
+    public async Task BackfillFileAsync_WhenHeaderIsNotFlac_DoesNotStoreEmptyHash()
+    {
+        var hashDb = CreateHashDb();
+        var soulseekClient = new Mock<ISoulseekClient>();
+
+        soulseekClient
+            .Setup(client => client.DownloadAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<Task<System.IO.Stream>>>(),
+                It.IsAny<long>(),
+                It.IsAny<long>(),
+                It.IsAny<int?>(),
+                It.IsAny<TransferOptions>(),
+                It.IsAny<CancellationToken?>()))
+            .Returns(async (
+                string username,
+                string remoteFilename,
+                Func<Task<System.IO.Stream>> outputStreamFactory,
+                long size,
+                long startOffset,
+                int? token,
+                TransferOptions options,
+                CancellationToken? cancellationToken) =>
+            {
+                var stream = await outputStreamFactory();
+                var invalidHeader = new byte[42];
+                await stream.WriteAsync(invalidHeader, cancellationToken ?? CancellationToken.None);
+                return new Transfer(TransferDirection.Download, username, remoteFilename, token ?? 1, TransferStates.Completed, size, 0, 42);
+            });
+
+        var service = new BackfillSchedulerService(
+            hashDb.Object,
+            Mock.Of<IMeshSyncService>(),
+            soulseekClient.Object,
+            Mock.Of<ICapabilityService?>(),
+            NullLogger<BackfillSchedulerService>.Instance);
+
+        var result = await service.BackfillFileAsync("alice", "bad.flac", 100, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal("Failed to parse FLAC header", result.Error);
+        hashDb.Verify(
+            service => service.UpdateFlacHashAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<HashSource>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        hashDb.Verify(
+            service => service.StoreHashFromVerificationAsync(
+                It.IsAny<string>(),
+                It.IsAny<long>(),
+                It.IsAny<string>(),
+                It.IsAny<int?>(),
+                It.IsAny<int?>(),
+                It.IsAny<int?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    private static Mock<IHashDbService> CreateHashDb()
+    {
+        var hashDb = new Mock<IHashDbService>();
+        hashDb
+            .Setup(service => service.UpsertFlacEntryAsync(It.IsAny<FlacInventoryEntry>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        hashDb
+            .Setup(service => service.MarkFlacHashFailedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        hashDb
+            .Setup(service => service.UpdateFlacHashAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<HashSource>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        hashDb
+            .Setup(service => service.StoreHashFromVerificationAsync(
+                It.IsAny<string>(),
+                It.IsAny<long>(),
+                It.IsAny<string>(),
+                It.IsAny<int?>(),
+                It.IsAny<int?>(),
+                It.IsAny<int?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        hashDb
+            .Setup(service => service.IncrementPeerBackfillCountAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        return hashDb;
+    }
 }

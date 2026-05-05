@@ -145,7 +145,7 @@ namespace slskd.Integrations.Pushbullet
 
                 http.DefaultRequestHeaders.UserAgent.TryParseAdd($"{Program.AppName} v{Program.FullVersion}");
 
-                Log.LogDebug("Sending Pushbullet notification {Title} {Body}", title, body);
+                Log.LogDebug("Sending Pushbullet notification {Title}", title);
 
                 await Retry.Do(
                     task: async () =>
@@ -154,7 +154,7 @@ namespace slskd.Integrations.Pushbullet
                         response.EnsureSuccessStatusCode();
                     },
                     isRetryable: (attempts, ex) => true,
-                    onFailure: (attempts, ex) => Log.LogWarning("Failed attempt #{Attempts} to send Pushbullet notification {Title} {Body}: {Message}", attempts, title, body, ex.Message),
+                    onFailure: (attempts, ex) => Log.LogWarning("Failed attempt #{Attempts} to send Pushbullet notification {Title}: {Message}", attempts, title, ex.Message),
                     maxAttempts: PushbulletOptions.RetryAttempts,
                     maxDelayInMilliseconds: 30000);
 

@@ -25,9 +25,13 @@ const loadTabsFromStorage = () => {
 
     if (saved) {
       const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed.tabs)) {
+        return [];
+      }
+
       // Restore tabCounter to avoid key collisions
       tabCounter = parsed.tabCounter || 0;
-      return parsed.tabs || [];
+      return parsed.tabs;
     }
   } catch {
     // ignore
@@ -191,8 +195,10 @@ const Rooms = () => {
   };
 
   const createRoom = async (roomName, isPrivate) => {
-    // For now, private room creation isn't directly supported by Soulseek protocol
-    // We just attempt to join the room, which may create it if it doesn't exist
+    if (isPrivate) {
+      throw new Error('Private room creation is not supported by this server API');
+    }
+
     await joinRoom(roomName);
   };
 

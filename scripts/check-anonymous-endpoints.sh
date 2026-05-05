@@ -11,7 +11,7 @@ while IFS= read -r file; do
     printf '%s\n' "$rel" >&2
     failed=1
   fi
-done < <(for f in $(find "$repo_root/src/slskd" \( -path '*/API/*Controller.cs' -o -name '*Controller.cs' \) -type f | sort); do rg -q '\[AllowAnonymous\]' "$f" && printf '%s\n' "$f"; done)
+done < <(for f in $(find "$repo_root/src/slskd" \( -path '*/API/*Controller.cs' -o -name '*Controller.cs' \) -type f | sort); do rg -q '^[[:space:]]*\[AllowAnonymous\]' "$f" && printf '%s\n' "$f"; done)
 
 if [ "$failed" -ne 0 ]; then
   cat >&2 <<'MSG'

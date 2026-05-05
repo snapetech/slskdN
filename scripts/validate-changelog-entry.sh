@@ -47,7 +47,7 @@ is_placeholder_unreleased() {
 
 has_changelog_bullets() {
   local section="$1"
-  printf '%s\n' "$section" | rg -q '^[[:space:]]*-[[:space:]]+\S'
+  rg -q '^[[:space:]]*-[[:space:]]+\S' <<<"$section"
 }
 
 is_release_worthy_path() {

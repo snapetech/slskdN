@@ -249,6 +249,7 @@ class ChatSession extends Component {
                 <Segment className="chat-input">
                   <Input
                     action={{
+                      'aria-label': 'Send chat message',
                       className: 'chat-message-button',
                       disabled: !this.validInput(),
                       icon: (
@@ -258,6 +259,7 @@ class ChatSession extends Component {
                         />
                       ),
                       onClick: this.sendReply,
+                      title: 'Send chat message to this user',
                     }}
                     fluid
                     input={

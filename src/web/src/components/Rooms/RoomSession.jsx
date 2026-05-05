@@ -10,6 +10,7 @@ import {
   List,
   Loader,
   Portal,
+  Popup,
   Ref,
   Segment,
 } from 'semantic-ui-react';
@@ -205,24 +206,42 @@ class RoomSession extends Component {
             top: contextMenu.y,
           }}
         >
-          <Button
-            className="ui compact button popup-option"
-            onClick={this.handleReply}
-          >
-            Reply
-          </Button>
-          <Button
-            className="ui compact button popup-option"
-            onClick={this.handleUserProfile}
-          >
-            User Profile
-          </Button>
-          <Button
-            className="ui compact button popup-option"
-            onClick={this.handleBrowseShares}
-          >
-            Browse Shares
-          </Button>
+          <Popup
+            content="Quote this room message in the composer."
+            trigger={
+              <Button
+                className="ui compact button popup-option"
+                onClick={this.handleReply}
+                title="Reply to this message"
+              >
+                Reply
+              </Button>
+            }
+          />
+          <Popup
+            content="Open this user's profile page."
+            trigger={
+              <Button
+                className="ui compact button popup-option"
+                onClick={this.handleUserProfile}
+                title="Open user profile"
+              >
+                User Profile
+              </Button>
+            }
+          />
+          <Popup
+            content="Browse this user's shared files."
+            trigger={
+              <Button
+                className="ui compact button popup-option"
+                onClick={this.handleBrowseShares}
+                title="Browse user shares"
+              >
+                Browse Shares
+              </Button>
+            }
+          />
         </div>
       </Portal>
     );
@@ -311,6 +330,7 @@ class RoomSession extends Component {
                     <Segment className="room-input">
                       <Input
                         action={{
+                          'aria-label': 'Send room message',
                           className: 'room-message-button',
                           disabled: !this.validInput(),
                           icon: (
@@ -320,6 +340,7 @@ class RoomSession extends Component {
                             />
                           ),
                           onClick: this.sendMessage,
+                          title: 'Send message to this room',
                         }}
                         fluid
                         input={

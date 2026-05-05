@@ -36,7 +36,10 @@ vi.mock('./List/SearchList', () => ({ default: () => null }));
 
 const callbacks = {};
 
-const renderSearches = async ({ waitForInput = true } = {}) => {
+const renderSearches = async ({
+  initialEntries = ['/searches'],
+  waitForInput = true,
+} = {}) => {
   callbacks.list = undefined;
   createSearchHubConnection.mockReturnValue({
     on: vi.fn((eventName, callback) => {
@@ -52,7 +55,7 @@ const renderSearches = async ({ waitForInput = true } = {}) => {
   });
 
   render(
-    <MemoryRouter initialEntries={['/searches']}>
+    <MemoryRouter initialEntries={initialEntries}>
       <Searches server={{ isConnected: true }} />
     </MemoryRouter>,
   );
@@ -165,5 +168,20 @@ describe('Searches', () => {
     expect(
       screen.queryByRole('button', { name: 'Add search phrase to Discovery Inbox' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('creates searches from URL query text without double-decoding percent sequences', async () => {
+    library.create.mockResolvedValue('search-1');
+
+    await renderSearches({
+      initialEntries: ['/searches?q=100%25%20encoded%2520literal'],
+    });
+
+    await waitFor(() => expect(library.create).toHaveBeenCalledTimes(1));
+    expect(library.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        searchText: '100% encoded%20literal',
+      }),
+    );
   });
 });

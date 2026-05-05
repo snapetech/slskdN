@@ -13,6 +13,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Options;
+using slskd.Common.Security;
 
 public sealed class SpotifyConnectionService : ISpotifyConnectionService
 {
@@ -227,7 +228,7 @@ public sealed class SpotifyConnectionService : ISpotifyConnectionService
     private async Task<HttpResponseMessage> SendSpotifyAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var options = OptionsMonitor.CurrentValue.Integration.Spotify;
-        var client = HttpClientFactory.CreateClient(nameof(SpotifyConnectionService));
+        var client = HttpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(options.TimeoutSeconds));
         var response = await client.SendAsync(request, timeout.Token).ConfigureAwait(false);

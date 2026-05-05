@@ -399,7 +399,7 @@ namespace slskd.Relay
 
             // this token is only valid for this connection id for a short time this is important to prevent replay-type attacks.
             MemoryCache.Set(GetAuthTokenCacheKey(connectionId), token, TimeSpan.FromSeconds(10));
-            Log.Debug("Cached auth token {Token} for ID {Id}", token, connectionId);
+            Log.Debug("Cached auth token id {TokenId} for ID {Id}", GetRelayTokenLogId(token), GetConnectionLogId(connectionId));
             return token;
         }
 
@@ -437,7 +437,7 @@ namespace slskd.Relay
 
             // allow a generous amount of time, in case it takes a while to upload the response
             MemoryCache.Set(GetShareTokenCacheKey(token), record.ConnectionId, TimeSpan.FromMinutes(5));
-            Log.Debug("Cached share upload token {Token} for agent {Agent}", token, GetAgentLogId(agentName));
+            Log.Debug("Cached share upload token id {TokenId} for agent {Agent}", GetRelayTokenLogId(token), GetAgentLogId(agentName));
 
             return token;
         }
@@ -546,7 +546,7 @@ namespace slskd.Relay
             // to the wait using only the id, however caching the agent name along with the other elements of the request allows
             // us to ensure that tokens are used only by the agent they were intended for.
             MemoryCache.Set(GetFileTokenCacheKey(filename, id), record.ConnectionId, TimeSpan.FromMilliseconds(timeout));
-            Log.Debug("Cached file upload token {Token} for agent {Agent}", id, GetAgentLogId(agentName));
+            Log.Debug("Cached file upload token id {TokenId} for agent {Agent}", GetRelayTokenLogId(id), GetAgentLogId(agentName));
 
             // create a wait for the agent response. this wait will be completed in the response handler, ultimately called from
             // the API controller when the agent makes an HTTP request to return the file
@@ -690,7 +690,7 @@ namespace slskd.Relay
                     var id = Guid.NewGuid();
 
                     MemoryCache.Set(GetDownloadTokenCacheKey(filename, id), record.ConnectionId, TimeSpan.FromMinutes(10));
-                    Log.Debug("Cached file download token {Token} for agent {Agent}", id, GetAgentLogId(record.Agent.Name));
+                    Log.Debug("Cached file download token id {TokenId} for agent {Agent}", GetRelayTokenLogId(id), GetAgentLogId(record.Agent.Name));
 
                     await RelayHub.Clients.Client(record.ConnectionId).NotifyFileDownloadCompleted(filename, id);
                 }
@@ -1064,6 +1064,23 @@ namespace slskd.Relay
 
             var digest = SHA256.HashData(Encoding.UTF8.GetBytes(agentName));
             return $"agent:{Convert.ToHexString(digest.AsSpan(0, 6)).ToLowerInvariant()}";
+        }
+
+        private static string GetRelayTokenLogId(Guid token)
+        {
+            var digest = SHA256.HashData(Encoding.UTF8.GetBytes(token.ToString()));
+            return $"relay-token:{Convert.ToHexString(digest.AsSpan(0, 6)).ToLowerInvariant()}";
+        }
+
+        private static string GetRelayTokenLogId(string token)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return "relay-token:unknown";
+            }
+
+            var digest = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+            return $"relay-token:{Convert.ToHexString(digest.AsSpan(0, 6)).ToLowerInvariant()}";
         }
 
         private static string GetConnectionLogId(string connectionId)

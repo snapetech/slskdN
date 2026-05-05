@@ -31,6 +31,11 @@ for pattern in "${patterns[@]}"; do
   fi
 done
 
+if rg -n 'Generated CSRF token:|X-Slskdn-Csrf: \{Token\}|Cached (auth|share upload|file upload|file download) token \{Token\}|Pushbullet notification \{Title\} \{Body\}' \
+  "$repo_root/src/slskd" >&2; then
+  failed=1
+fi
+
 if [ "$failed" -ne 0 ]; then
   cat >&2 <<'MSG'
 

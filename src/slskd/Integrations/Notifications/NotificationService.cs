@@ -12,6 +12,7 @@ namespace slskd.Integrations.Notifications
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
+    using slskd.Common.Security;
     using slskd.Integrations.Pushbullet;
 
     public class NotificationService : INotificationService
@@ -117,7 +118,7 @@ namespace slskd.Integrations.Notifications
         {
             try
             {
-                using var client = HttpClientFactory.CreateClient();
+                using var client = HttpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
                 using var request = new HttpRequestMessage(HttpMethod.Post, options.Url);
 
                 if (!string.IsNullOrWhiteSpace(options.AccessToken))
@@ -141,7 +142,7 @@ namespace slskd.Integrations.Notifications
         {
             try
             {
-                using var client = HttpClientFactory.CreateClient();
+                using var client = HttpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
                 using var content = new FormUrlEncodedContent(new[]
                 {
                     new KeyValuePair<string, string>("token", options.Token),

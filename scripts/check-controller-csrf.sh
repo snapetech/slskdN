@@ -5,7 +5,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 failed=0
 
 while IFS= read -r file; do
-  if rg -q '\[Http(Post|Put|Delete|Patch)' "$file" && ! rg -q 'ValidateCsrfForCookiesOnly' "$file"; then
+  if rg -q '^[[:space:]]*\[Http(Post|Put|Delete|Patch)' "$file" && ! rg -q '^[[:space:]]*\[ValidateCsrfForCookiesOnly\]' "$file"; then
     printf '%s\n' "${file#$repo_root/}" >&2
     failed=1
   fi

@@ -79,6 +79,15 @@ const RoomJoinModal = ({ joinRoom: parentJoinRoom, ...modalOptions }) => {
   };
 
   const isSelected = (room) => selected === room.name;
+  const changeSort = (nextSortBy) => {
+    if (sortBy === nextSortBy) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+      return;
+    }
+
+    setSortBy(nextSortBy);
+    setSortOrder('asc');
+  };
 
   return (
     <Modal
@@ -129,7 +138,7 @@ const RoomJoinModal = ({ joinRoom: parentJoinRoom, ...modalOptions }) => {
               >
                 <Table.Header>
                   <Table.Row>
-                    <Table.HeaderCell onClick={() => setSortBy('name')}>
+                    <Table.HeaderCell onClick={() => changeSort('name')}>
                       Name
                       <Icon
                         link={sortBy === 'name'}
@@ -137,21 +146,15 @@ const RoomJoinModal = ({ joinRoom: parentJoinRoom, ...modalOptions }) => {
                           sortBy === 'name' &&
                           (sortOrder === 'asc' ? 'chevron up' : 'chevron down')
                         }
-                        onClick={() =>
-                          setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
-                        }
                       />
                     </Table.HeaderCell>
-                    <Table.HeaderCell onClick={() => setSortBy('userCount')}>
+                    <Table.HeaderCell onClick={() => changeSort('userCount')}>
                       Users
                       <Icon
                         link={sortBy === 'userCount'}
                         name={
                           sortBy === 'userCount' &&
                           (sortOrder === 'asc' ? 'chevron up' : 'chevron down')
-                        }
-                        onClick={() =>
-                          setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
                         }
                       />
                     </Table.HeaderCell>

@@ -5,6 +5,7 @@ namespace slskd.Tests.Unit.Transfers.MultiSource;
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using slskd.Common.Security;
 using slskd.Transfers.MultiSource;
 using Soulseek;
 using Xunit;
@@ -144,5 +145,38 @@ public class MultiSourceDownloadServiceSanitizationTests
         Assert.False(result.Success);
         Assert.Equal("Output path is outside allowed download or temporary directories", result.Error);
         Assert.DoesNotContain("invalid", result.Error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task FindVerifiedSourcesAsync_WhenSafetyLimiterExhausted_DoesNotSearchSoulseek()
+    {
+        var client = new Mock<ISoulseekClient>(MockBehavior.Strict);
+        var safetyLimiter = new Mock<ISoulseekSafetyLimiter>();
+        safetyLimiter
+            .Setup(limiter => limiter.TryConsumeSearch("multisource-source-discovery"))
+            .Returns(false);
+
+        var service = new MultiSourceDownloadService(
+            NullLogger<MultiSourceDownloadService>.Instance,
+            client.Object,
+            Mock.Of<IContentVerificationService>(),
+            soulseekSafetyLimiter: safetyLimiter.Object);
+
+        var result = await service.FindVerifiedSourcesAsync(
+            @"Music\song.flac",
+            1234,
+            cancellationToken: CancellationToken.None);
+
+        Assert.Equal(@"Music\song.flac", result.Filename);
+        Assert.Equal(1234, result.FileSize);
+        client.Verify(
+            c => c.SearchAsync(
+                It.IsAny<SearchQuery>(),
+                It.IsAny<Action<SearchResponse>>(),
+                It.IsAny<SearchScope>(),
+                It.IsAny<int?>(),
+                It.IsAny<SearchOptions>(),
+                It.IsAny<CancellationToken?>()),
+            Times.Never);
     }
 }

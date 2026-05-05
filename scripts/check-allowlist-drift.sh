@@ -19,7 +19,7 @@ check_allowlist_paths_exist "$repo_root/docs/ANONYMOUS_ENDPOINT_ALLOWLIST.md" "A
 check_allowlist_paths_exist "$repo_root/docs/NON_VERSIONED_ROUTE_ALLOWLIST.md" "NON_VERSIONED_ROUTE_ALLOWLIST.md"
 
 # Anonymous allowlist entries should still contain AllowAnonymous.
-stale_anonymous="$(rg -o '`src/slskd/[^`]+Controller\.cs`' "$repo_root/docs/ANONYMOUS_ENDPOINT_ALLOWLIST.md" | tr -d '`' | while IFS= read -r rel; do if [ -f "$repo_root/$rel" ] && ! rg -q '\[AllowAnonymous\]' "$repo_root/$rel"; then printf '%s\n' "$rel"; fi; done)"
+stale_anonymous="$(rg -o '`src/slskd/[^`]+Controller\.cs`' "$repo_root/docs/ANONYMOUS_ENDPOINT_ALLOWLIST.md" | tr -d '`' | while IFS= read -r rel; do if [ -f "$repo_root/$rel" ] && ! rg -q '^[[:space:]]*\[AllowAnonymous\]' "$repo_root/$rel"; then printf '%s\n' "$rel"; fi; done)"
 if [ -n "$stale_anonymous" ]; then
   printf 'Anonymous allowlist entries no longer contain AllowAnonymous:\n%s\n' "$stale_anonymous" >&2
   failed=1

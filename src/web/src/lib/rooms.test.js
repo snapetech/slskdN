@@ -37,4 +37,13 @@ describe('rooms api', () => {
       '"hello"',
     );
   });
+
+  it('returns empty arrays for malformed room list payloads', async () => {
+    api.get.mockResolvedValue({ data: { unexpected: true } });
+
+    await expect(rooms.getAvailable()).resolves.toEqual([]);
+    await expect(rooms.getJoined()).resolves.toEqual([]);
+    await expect(rooms.getMessages({ roomName: 'ambient' })).resolves.toEqual([]);
+    await expect(rooms.getUsers({ roomName: 'ambient' })).resolves.toEqual([]);
+  });
 });

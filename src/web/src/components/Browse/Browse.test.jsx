@@ -33,4 +33,16 @@ describe('Browse', () => {
 
     expect(screen.getByText('bob')).toBeInTheDocument();
   });
+
+  it('ignores corrupted persisted tab shapes instead of crashing', () => {
+    localStorage.setItem('slskd-browse-tabs', JSON.stringify({ tabs: {} }));
+
+    render(
+      <MemoryRouter initialEntries={['/browse']}>
+        <Browse />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('New Tab')).toBeInTheDocument();
+  });
 });

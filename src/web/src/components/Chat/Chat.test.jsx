@@ -26,4 +26,16 @@ describe('Chat', () => {
 
     expect(await screen.findByText('alice')).toBeInTheDocument();
   });
+
+  it('ignores corrupted persisted tab shapes instead of crashing', async () => {
+    localStorage.setItem('slskd-chat-tabs', JSON.stringify({ tabs: {} }));
+
+    render(
+      <MemoryRouter initialEntries={['/chat']}>
+        <Chat />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('New Chat')).toBeInTheDocument();
+  });
 });

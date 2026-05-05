@@ -133,6 +133,7 @@ const Searches = ({ server } = {}) => {
   );
 
   const inputRef = useRef();
+  const processedUrlSearchRef = useRef(new Set());
 
   const location = useLocation();
   const routerNavigate = useNavigate();
@@ -164,11 +165,17 @@ const Searches = ({ server } = {}) => {
     const urlParameters = new URLSearchParams(location.search);
     const queryParameter = urlParameters.get('q');
 
-    if (queryParameter && !creating && !searchId) {
+    if (
+      queryParameter &&
+      !creating &&
+      !searchId &&
+      !processedUrlSearchRef.current.has(location.search)
+    ) {
+      processedUrlSearchRef.current.add(location.search);
       // Automatically create a search from the URL query parameter
       create({
         navigate: false,
-        search: decodeURIComponent(queryParameter),
+        search: queryParameter,
       }).then((id) => {
         if (id) {
           routerNavigate(`/searches/${id}`, { replace: true });

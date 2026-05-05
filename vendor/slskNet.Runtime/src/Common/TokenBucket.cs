@@ -184,6 +184,6 @@ namespace Soulseek
         }
 
         private void Reset()
-            => Interlocked.Exchange(ref waitForReset, new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously)).SetResult(true);
+            => Interlocked.Exchange(ref waitForReset, new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously)).TrySetResult(true);
     }
 }
