@@ -14530,3 +14530,11 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 **Why it happened:** The helpers are normally fed by network buffers, so earlier scanner passes focused on count/length bounds and missed the null contract around the same allocation math. The length-prefixed allocation subgroup made the unchecked `input.Length` sites visible.
 
 **How to prevent it:** Any protocol transformer that sizes buffers from caller-supplied byte arrays must reject null at method entry before reading `.Length` or allocating output. Add focused null-input tests when touching encode/decode helpers.
+
+### 0z83. Outbound Protocol Scalars Need Constructor Guards Before `WriteInteger`
+
+**What went wrong:** Several runtime outbound message constructors accepted negative tokens, acknowledgement ids, privilege day counts, and minor-version values, then serialized them directly with `WriteInteger`. Public callers usually get non-negative tokens from `TokenFactory`, but tests, mocks, or direct internal call paths could still emit impossible protocol scalars.
+
+**Why it happened:** Parser hardening had focused on rejecting malformed inbound scalar values, while outbound constructors were treated as simple DTOs. The scalar-emission scan showed that `WriteInteger` sinks need the same invariant enforcement before bytes are built.
+
+**How to prevent it:** Any outbound message constructor that owns a protocol token, id, count, version, enum, port, or size must validate the value before `ToByteArray` can emit it. Keep scalar-emission sweep tests covering constructor rejection, not just parser rejection.
