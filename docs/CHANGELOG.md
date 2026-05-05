@@ -31,6 +31,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Added logged-in and logged-out footer build metadata with a GitHub-backed
   slskdN release check that surfaces newer packaged builds from
   `snapetech/slskdn`.
+- Fixed remediation check invocation from both the repo root and `src/web`,
+  restored direct `./bin/lint` execution, reconciled stale project audit
+  entries, and clarified how frontend build assets are copied into backend
+  publish output.
 - Completed the route remediation closeout by adding versioned aliases for the
   remaining active native slskdN, VirtualSoulfind, and Audio legacy routes,
   extending route alias tests, and enforcing remediation documentation command

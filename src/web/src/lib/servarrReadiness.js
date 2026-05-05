@@ -103,7 +103,7 @@ export const formatServarrCompatibilityReport = (preview) => {
   ];
 
   preview.checks.forEach((check) => {
-    lines.push(`- ${check.ready ? 'READY' : 'TODO'}: ${check.title}`);
+    lines.push(`- ${check.ready ? 'READY' : 'PENDING'}: ${check.title}`);
   });
 
   lines.push('', 'Actions:');

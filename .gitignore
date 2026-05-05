@@ -17,7 +17,6 @@
 /publish/
 /logs/
 /node_modules/
-/package.json
 /package-lock.json
 coverage.json
 /test-artifacts/

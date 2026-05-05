@@ -99,8 +99,8 @@ describe('mediaServerIntegrations', () => {
 
     expect(report).toContain('slskdN media-server sync review');
     expect(report).toContain('Adapter: Navidrome');
-    expect(report).toContain('TODO: Base URL configured');
-    expect(report).toContain('TODO: Path mapping ready');
+    expect(report).toContain('PENDING: Base URL configured');
+    expect(report).toContain('PENDING: Path mapping ready');
   });
 
   it('builds a live execution contract from adapter readiness and automation gates', () => {

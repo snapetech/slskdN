@@ -1,0 +1,17 @@
+{
+  "private": true,
+  "scripts": {
+    "check:allowlist-drift": "bash scripts/check-allowlist-drift.sh",
+    "check:anonymous-endpoints": "bash scripts/check-anonymous-endpoints.sh",
+    "check:controller-csrf": "bash scripts/check-controller-csrf.sh",
+    "check:non-versioned-routes": "bash scripts/check-non-versioned-routes.sh",
+    "check:remediation": "bash scripts/check-remediation-baseline.sh",
+    "check:remediation-docs": "bash scripts/check-remediation-doc-commands.sh",
+    "check:remediation-registry": "bash scripts/check-remediation-script-registry.sh",
+    "check:routes": "bash scripts/check-route-inventory.sh",
+    "check:sensitive-placeholders": "bash scripts/check-sensitive-placeholders.sh",
+    "check:web-api-paths": "bash scripts/check-web-api-paths.sh",
+    "check:web-fetch-csrf": "bash scripts/check-web-fetch-csrf.sh",
+    "check:web-mediacore-routes": "bash scripts/check-web-mediacore-routes.sh"
+  }
+}

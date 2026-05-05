@@ -2009,6 +2009,11 @@ const SourceFeedIntegrationsPanel = ({ options }) => {
       !form.lastFmApiKey.trim() &&
       'Last.fm needs an API key before loved/recent/top imports can run.',
   ].filter(Boolean);
+  const inferredSpotifyRedirectUri =
+    form.spotifyRedirectUri.trim() ||
+    (typeof window !== 'undefined'
+      ? `${window.location.origin}/api/v0/integrations/spotify/callback`
+      : '/api/v0/integrations/spotify/callback');
 
   const buildOverlay = () => {
     const spotifyPatch = {
@@ -2218,6 +2223,14 @@ const SourceFeedIntegrationsPanel = ({ options }) => {
               <Icon name="spotify" />
               Spotify
             </Header>
+            <Message
+              info
+              size="small"
+            >
+              <Message.Header>Spotify authorization redirect URI</Message.Header>
+              Register this Redirect URI in the Spotify developer dashboard:{' '}
+              <code>{inferredSpotifyRedirectUri}</code>
+            </Message>
             <Popup
               content="Turns on Spotify source-feed imports and account connection. Private liked/saved/followed feeds still require a connected Spotify account or bearer token."
               trigger={
@@ -2261,7 +2274,7 @@ const SourceFeedIntegrationsPanel = ({ options }) => {
                 disabled={!remoteConfiguration || saving}
                 label="Redirect URI"
                 onChange={(_, { value }) => update('spotifyRedirectUri', value)}
-                placeholder="Infer from current host"
+                placeholder={inferredSpotifyRedirectUri}
                 value={form.spotifyRedirectUri}
               />
               <Form.Input

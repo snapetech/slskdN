@@ -1,3 +1,16 @@
+## Update 2026-05-05 05:59:50Z
+
+- Current task: Project assessment cleanup follow-up is complete locally.
+- Last activity:
+  - fixed the remediation docs command checker to validate root package scripts by absolute repo path instead of caller cwd
+  - made the root remediation npm command surface a tracked minimal `package.json` instead of an ignored local spillover file
+  - made `bin/lint` executable so documented `./bin/lint` usage works
+  - reconciled stale audit entries for T-1405, T-1410, and Phase 8 implementation status
+  - clarified build docs so manual deploys use `bin/build`/`bin/publish` or explicitly copy `src/web/build` into backend `wwwroot`
+  - validation passed: root and `src/web` remediation baseline checks, direct `./bin/lint`, `git diff --check`, and focused chunk reassignment/jobs pagination unit tests
+- Next steps:
+  1. Commit the cleanup changes on `main`.
+
 ## Update 2026-05-05 01:40:00Z
 
 - Current task: Footer build info and GitHub update check are complete locally.
@@ -4867,7 +4880,7 @@ dotnet test
 
 - Current task: VPN-backed live mesh login matrix.
 - Last activity:
-  - found and used the four local Proton WireGuard configs from `slskR/.secrets`
+  - found and used the four local Proton WireGuard configs from the private credential pool
   - added an opt-in full-instance VPN wrapper path for integration children
   - verified Proton config 1 fails Soulseek login for accounts A-D while configs 2, 3, and 4 all log in
   - confirmed the full live mesh smoke gets past alpha/beta login when using configs 2 and 3, then stalls later with no overlay peers
@@ -4899,3 +4912,15 @@ dotnet test
 - Next steps:
   1. Keep Proton config 1 out of live smoke runs unless it recovers.
   2. Use configs 2/3/4 for optional live-account mesh validation.
+
+## Update 2026-05-05 05:49:00Z
+
+- Current task: Adjacent rewrite evaluation for portable Web UI and integration fixes is complete.
+- Last activity:
+  - ported the applicable Spotify redirect URI panel guidance and authorization navigation behavior
+  - changed media-server and Servarr readiness reports from `TODO` to `PENDING` for blocked checks
+  - added focused Spotify integration helper tests and updated media-server report tests
+  - verified existing slskdN backend controllers already cover the comparable Spotify, Lidarr, and library-health API surfaces
+- Next steps:
+  1. Commit these frontend integration polish changes when ready.
+  2. If broader endpoint parity is desired, run a dedicated route inventory comparison against the Web UI API client calls rather than importing placeholder/stub endpoints.

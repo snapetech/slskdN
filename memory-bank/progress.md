@@ -1,5 +1,8 @@
 ## 2026-05-05
 
+- Cleaned up the follow-up project assessment findings: remediation docs command validation is cwd-independent, documented root npm remediation scripts are tracked in a minimal root `package.json`, `bin/lint` is executable, stale audit entries for T-1405/T-1410/Phase 8 are reconciled, and build docs now state exactly when frontend assets are copied into backend `wwwroot`.
+- Validation: root and `src/web` `npm run check:remediation`, direct `./bin/lint`, `git diff --check`, and focused `ChunkReassignmentTests`/`JobsControllerPaginationTests` passed.
+
 - Closed the project gap assessment items from the latest review.
 - CI workflow PR triggers now target `main`, `ci-enhancements.yml` no longer runs on branch pushes, and the release gate runs the remediation baseline checks.
 - Added/connected route/API remediation checks for generated route inventory, controller CSRF markers, anonymous endpoint allowlisting, relative shared Web API client paths, direct-fetch CSRF use, and MediaCore pod routes.
@@ -9445,12 +9448,12 @@ Code quality improvements were completed as part of Option A:
 
 - Investigated the live mesh smoke login failure from the manual publish run. The failing test starts two local Debug `slskd` processes from this workstation with no VPN/proxy config, not the deployed `kspls0` service or its VPN path.
 - A manual single-account probe reached `vps.slsknet.org` but was immediately closed/reset before login completed (`Remote connection closed` / `Connection reset by peer`), which points to server-side/IP-path rejection rather than the app's duplicate-username or invalid-credential branches.
-- Added a gitignored `local-mesh-account-pool.env` path and extended the live mesh test account loader to accept A-F and numbered account slots, then copied the four local slskR live test accounts into that private pool for rotation.
+- Added a gitignored `local-mesh-account-pool.env` path and extended the live mesh test account loader to accept A-F and numbered account slots, then copied four local live test accounts into that private pool for rotation.
 - Validation: focused live mesh smoke still failed at login from this local IP path; deterministic non-live two-node full-instance mesh tests passed (`2` tests).
 
 ## 2026-05-05 02:47:00Z
 
-- Found the documented Proton WireGuard test configs in `slskR/.secrets/proton-slskr-{1..4}.conf` and reused `slskR/scripts/run-in-proton-wg-netns.sh` to run slskdN full-instance children through isolated network namespaces.
+- Found the documented Proton WireGuard test configs and reused the local namespace runner to run slskdN full-instance children through isolated network namespaces.
 - Added an opt-in full-instance test harness wrapper (`SLSKDN_FULL_INSTANCE_VPN_WRAPPER` + `SLSKDN_FULL_INSTANCE_VPN_CONFIGS`) so each spawned daemon can use a separate VPN config/subnet while the host test talks to its namespace veth API address.
 - Ran a four-account by four-VPN login matrix. Proton config 1 (`72.251.215.10`) timed out for every account; Proton configs 2 (`103.108.229.251`), 3 (`79.127.185.205`), and 4 (`79.127.146.231`) logged in successfully for accounts A-D. Result file: `target/live-vpn-matrix/slskdn-login-matrix-20260504-204255.tsv`.
 - Reran the full live mesh smoke with configs 2 and 3; both alpha and beta logged in, but the overall smoke did not complete afterward and overlay connections remained empty. Stopped the hung run and cleaned up `sln*` namespaces.
@@ -9468,3 +9471,10 @@ Code quality improvements were completed as part of Option A:
 - Narrowed the namespace test route from broad private ranges to `10.224.0.0/11` and host-resolved the Soulseek server for VPN-wrapped children so Proton/private DNS paths are not captured or required inside the namespace.
 - Added persisted child stdout/stderr logs for full-instance runs so future live smoke failures leave actionable daemon logs under `/tmp/slskdn-test/<test-id>/`.
 - Validation passed: VPN live smoke with Proton configs 2 and 3 (`1` test) and deterministic full-instance overlay/search/download tests (`2` tests).
+
+## 2026-05-05 05:49:00Z
+
+- Reviewed the adjacent rewrite for changes that map cleanly into slskdN without bringing over incompatible runtime stubs.
+- Ported applicable frontend integration polish: Spotify redirect URI display in the integrations panel, automatic navigation from Spotify authorization responses, compatibility with camelCase and snake_case authorization URL payloads, and `PENDING` readiness report wording for media-server and Servarr reports.
+- Confirmed comparable backend surfaces are already first-class in slskdN: Spotify has a PKCE/state callback controller, Lidarr has status/wanted/sync/manual-import controllers, and library-health already uses the correct versioned API-client paths.
+- Validation passed: `cd src/web && npm run lint`, focused Vitest integration/lib tests (`31` tests), and `cd src/web && npm run build`.

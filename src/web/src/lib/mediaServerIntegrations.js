@@ -274,7 +274,7 @@ export const formatMediaServerSyncReport = (preview) => {
 
   lines.push('', 'Checks:');
   preview.checks.forEach((check) => {
-    lines.push(`- ${check.ready ? 'READY' : 'TODO'}: ${check.label}`);
+    lines.push(`- ${check.ready ? 'READY' : 'PENDING'}: ${check.label}`);
     if (!check.ready) {
       lines.push(`  Action: ${check.action}`);
     }

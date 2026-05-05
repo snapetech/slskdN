@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **maintenance**: Clean up follow-up project assessment findings.
+ - Status: completed (2026-05-05)
+ - Priority: P1
+ - Notes: Fixed the remediation docs command checker so it validates the root package scripts independent of caller cwd, made `bin/lint` executable to match documented usage, tracked a minimal root `package.json` command surface for remediation checks, reconciled stale audit entries for T-1405/T-1410 and Phase 8, and clarified that `bin/build`/`bin/publish` copy frontend assets into backend `wwwroot` while standalone `npm run build` does not. Validation passed: root and `src/web` remediation baseline checks, direct `./bin/lint`, `git diff --check`, and focused unit tests for chunk reassignment plus jobs pagination/sorting.
+
 - [x] **maintenance**: Close project gap assessment fixes.
  - Status: completed (2026-05-05)
  - Priority: P1
@@ -2278,4 +2283,8 @@
 
 - [x] Route optional live mesh smoke through explicit VPN/proxy egress
   - Status: completed (2026-05-05)
-  - Notes: Added an opt-in per-process VPN wrapper for full-instance tests and verified the slskR Proton namespace runner with the local account pool. Login matrix shows Proton config 1 times out for every account, while configs 2/3/4 all log in for accounts A-D. The live smoke now passes with configs 2/3 after host-resolving the Soulseek server for VPN-wrapped children, routing only the high test namespace range locally, using beta's reachable overlay address, and cleaning up the full wrapper process tree plus namespace.
+  - Notes: Added an opt-in per-process VPN wrapper for full-instance tests and verified the Proton namespace runner with the local account pool. Login matrix shows Proton config 1 times out for every account, while configs 2/3/4 all log in for accounts A-D. The live smoke now passes with configs 2/3 after host-resolving the Soulseek server for VPN-wrapped children, routing only the high test namespace range locally, using beta's reachable overlay address, and cleaning up the full wrapper process tree plus namespace.
+
+- [x] Port applicable Web UI integration polish
+  - Status: completed (2026-05-05)
+  - Notes: Reviewed the adjacent implementation for portable Web UI and third-party integration fixes, then ported the applicable Spotify redirect guidance, authorization launch behavior, and readiness report wording. Existing backend controllers already cover the comparable Spotify, Lidarr, and library-health API surfaces.

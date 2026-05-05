@@ -19,9 +19,9 @@
 - T-1427 (MeshSyncService "Query mesh neighbors"): ✅ Implemented - `GetMeshPeers()` method exists and returns mesh-capable peers
 - T-1428 (MeshSyncService "Get actual username"): ✅ Implemented - `GenerateHelloMessage()` gets username from `appState.CurrentValue.User.Username` with fallback
 
-All Phase 8 items are complete. Previous audit was outdated.
+All Phase 8 items are complete. Previous audit entries that still said "Not started" were reconciled on 2026-05-05.
 
-**Phases 1–6, 9–10:** Re-verified (2026-01-27). See verification summary below. Most items are complete.
+**Phases 1–6, 9–10:** Re-verified (2026-01-27 and 2026-05-05). See verification summary below. Most items are complete.
 
 ---
 
@@ -36,7 +36,7 @@ All Phase 8 items are complete. Previous audit was outdated.
 
 ## Phase 2 Gap Tasks
 
-**Status**: ✅ **MOSTLY COMPLETE** (2026-01-27)
+**Status**: ✅ **COMPLETE** (reconciled 2026-05-05)
 
 - [x] **T-1401**: Implement full library health scanning
   - Status: ✅ Complete
@@ -55,8 +55,8 @@ All Phase 8 items are complete. Previous audit was outdated.
   - Notes: SwarmDownloadOrchestrator fully implemented with chunk scheduling, downloads, verification. Uses IChunkScheduler for peer assignment.
 
 - [x] **T-1405**: Implement chunk reassignment logic
-  - Status: ⚠️ Partial (TODO remains)
-  - Notes: ChunkScheduler.HandlePeerDegradationAsync logs degradation but has TODO: "In full implementation, trigger chunk reassignment to better peers". Basic reassignment exists via retry logic in MultiSourceDownloadService.
+  - Status: ✅ Complete
+  - Notes: `ChunkScheduler.HandlePeerDegradationAsync` and `MediaCoreChunkScheduler.HandlePeerDegradationAsync` find active chunks assigned to a degraded peer, unregister those assignments, and return the chunk indices for the orchestrator to re-queue. `SwarmDownloadOrchestrator` consumes that list and re-queues chunks for reassignment.
 
 - [x] **T-1406**: Integrate playback feedback with scheduling
   - Status: ✅ Complete
@@ -70,7 +70,7 @@ All Phase 8 items are complete. Previous audit was outdated.
 
 ## Phase 5 Gap Tasks
 
-**Status**: ✅ **MOSTLY COMPLETE** (2026-01-27)
+**Status**: ✅ **COMPLETE** (reconciled 2026-05-05)
 
 - [x] **T-1408**: Implement real search compatibility endpoint
   - Status: ✅ Complete
@@ -81,8 +81,8 @@ All Phase 8 items are complete. Previous audit was outdated.
   - Notes: DownloadsCompatibilityController uses IDownloadService to create/list/get real downloads via EnqueueAsync, List, Find methods.
 
 - [x] **T-1410**: Add jobs API filtering/pagination/sorting
-  - Status: ⏸️ Deferred (low priority)
-  - Notes: JobsController basic functionality works. Advanced filtering/pagination/sorting would be nice-to-have but not critical.
+  - Status: ✅ Complete
+  - Notes: `API/Native/JobsController.GetJobs` supports type/status filtering, sorting by status/created/id, default newest-first ordering, and bounded limit/offset pagination.
 
 ---
 
@@ -135,58 +135,40 @@ All Phase 8 items are complete. Previous audit was outdated.
 ## Phase 8 Gap Tasks
 
 - [x] **T-1421**: Implement real Ed25519 keypair generation
-  - Status: Not started
-  - Priority: P1
-  - Branch: experimental/brainz
-  - Notes: KeyStore.cs Ed25519KeyPair.Generate() currently generates random bytes instead of real Ed25519 keypairs. Critical security issue.
+  - Status: ✅ Complete
+  - Notes: `Ed25519KeyPair.Generate()` uses NSec `Key.Create(SignatureAlgorithm.Ed25519)` and exports real raw public/private key material.
 
 - [x] **T-1422**: Implement real Ed25519 signature verification
-  - Status: Not started
-  - Priority: P1
-  - Branch: experimental/brainz
-  - Notes: KeyedSigner.cs Verify() always returns true. ComputeSignature() returns stub signature. Critical security issue.
+  - Status: ✅ Complete
+  - Notes: `ControlSigner` signs canonical envelope data and verifies canonical plus legacy signatures with NSec Ed25519.
 
 - [x] **T-1423**: Implement QUIC overlay server
-  - Status: Not started
-  - Priority: P1
-  - Branch: experimental/brainz
-  - Notes: QuicOverlayServer.cs is completely disabled stub. Need real QUIC server implementation.
+  - Status: ✅ Complete
+  - Notes: `QuicOverlayServer` accepts QUIC connections and dispatches overlay control envelopes with payload limits and shutdown handling.
 
 - [x] **T-1424**: Implement QUIC overlay client
-  - Status: Not started
-  - Priority: P1
-  - Branch: experimental/brainz
-  - Notes: QuicOverlayClient.cs is completely disabled stub. Need real QUIC client implementation.
+  - Status: ✅ Complete
+  - Notes: `QuicOverlayClient` opens outbound QUIC streams and sends overlay control envelopes with connection reuse and disposal.
 
 - [x] **T-1425**: Implement QUIC data-plane server
-  - Status: Not started
-  - Priority: P1
-  - Branch: experimental/brainz
-  - Notes: QuicDataServer.cs is completely disabled stub. Need real QUIC data server.
+  - Status: ✅ Complete
+  - Notes: `QuicDataServer` accepts QUIC data-plane streams, enforces payload limits, and supports relay data handling.
 
 - [x] **T-1426**: Implement QUIC data-plane client
-  - Status: Not started
-  - Priority: P1
-  - Branch: experimental/brainz
-  - Notes: QuicDataClient.cs is completely disabled stub. Need real QUIC data client.
+  - Status: ✅ Complete
+  - Notes: `QuicDataClient` sends data-plane payloads over outbound QUIC streams with connection reuse and disposal.
 
 - [x] **T-1427**: Implement mesh neighbor queries
-  - Status: Not started
-  - Priority: P2
-  - Branch: experimental/brainz
-  - Notes: MeshSyncService.cs line 276 has TODO: "Query mesh neighbors". Currently returns null for mesh queries.
+  - Status: ✅ Complete
+  - Notes: `MeshSyncService.GetMeshPeers()` and the DHT rendezvous mesh-peer path expose known mesh-capable peers.
 
 - [x] **T-1428**: Get actual username in mesh sync
-  - Status: Not started
-  - Priority: P3
-  - Branch: experimental/brainz
-  - Notes: MeshSyncService.cs line 324 has TODO: "Get actual username". Currently hardcoded to "slskdn".
+  - Status: ✅ Complete
+  - Notes: `MeshSyncService.GenerateHelloMessage()` derives the username from current application state with a fallback.
 
 - [x] **T-1429**: Verify and fix control dispatcher signature verification
-  - Status: Not started
-  - Priority: P2
-  - Branch: experimental/brainz
-  - Notes: ControlDispatcher.cs comment indicates signature verification is stub. Need to verify and fix.
+  - Status: ✅ Complete
+  - Notes: `ControlDispatcher` validates incoming envelopes through `IControlEnvelopeValidator` before dispatch.
 
 ---
 
@@ -203,4 +185,3 @@ All Phase 8 items are complete. Previous audit was outdated.
 ---
 
 *Total: 49 new tasks identified from comprehensive audits*
-

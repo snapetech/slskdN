@@ -7,7 +7,7 @@ failed=0
 npm_commands="$(rg --no-filename -o 'npm run check:[A-Za-z0-9:-]+' "$repo_root/docs" | awk -F'npm run ' '{print $2}' | sort -u)"
 while IFS= read -r command; do
   [ -n "$command" ] || continue
-  if ! node -e "const pkg=require('./package.json'); process.exit(pkg.scripts && pkg.scripts[process.argv[1]] ? 0 : 1)" "$command" 2>/dev/null; then
+  if ! node -e "const pkg=require(process.argv[1]); process.exit(pkg.scripts && pkg.scripts[process.argv[2]] ? 0 : 1)" "$repo_root/package.json" "$command" 2>/dev/null; then
     printf 'docs reference missing npm script: npm run %s\n' "$command" >&2
     failed=1
   fi
