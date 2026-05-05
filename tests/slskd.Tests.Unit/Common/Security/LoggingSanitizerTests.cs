@@ -169,6 +169,34 @@ namespace slskd.Tests.Unit.Common.Security
         }
 
         [Fact]
+        public void SanitizeQueryText_WithSearchText_ReturnsStableFingerprintWithoutOriginalText()
+        {
+            // Arrange
+            var query = "private artist unreleased track";
+
+            // Act
+            var result1 = LoggingSanitizer.SanitizeQueryText(query);
+            var result2 = LoggingSanitizer.SanitizeQueryText($"  {query}  ");
+
+            // Assert
+            Assert.Equal(result1, result2);
+            Assert.DoesNotContain("private", result1, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("artist", result1, StringComparison.OrdinalIgnoreCase);
+            Assert.StartsWith("query:", result1, StringComparison.Ordinal);
+            Assert.EndsWith("(31 chars)", result1, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void SanitizeQueryText_WithEmptyText_ReturnsPlaceholder()
+        {
+            // Act
+            var result = LoggingSanitizer.SanitizeQueryText("   ");
+
+            // Assert
+            Assert.Equal("[empty]", result);
+        }
+
+        [Fact]
         public void SafeContext_CreatesSafeLoggingObject()
         {
             // Arrange

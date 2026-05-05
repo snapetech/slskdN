@@ -169,6 +169,37 @@ namespace Soulseek.Tests.Unit.Network
         }
 
         [Trait("Category", "AddTransferConnectionAsync")]
+        [Theory(DisplayName = "AddTransferConnectionAsync preserves obfuscated incoming connection"), AutoData]
+        internal async Task AddTransferConnectionAsync_Preserves_Obfuscated_Incoming_Connection(string username, IPEndPoint endpoint, int token)
+        {
+            var conn = GetConnectionMock(endpoint);
+            conn.Setup(m => m.ReadAsync(4, null))
+                .Returns(Task.FromResult(BitConverter.GetBytes(token)));
+
+            var (manager, mocks) = GetFixture();
+
+            mocks.ConnectionFactory.Setup(m => m.GetObfuscatedTransferConnection(endpoint, It.IsAny<ConnectionOptions>(), It.IsAny<ITcpClient>()))
+                .Returns(conn.Object);
+
+            var incomingConn = GetConnectionMock(endpoint);
+            incomingConn.Setup(m => m.Obfuscated)
+                .Returns(true);
+            incomingConn.Setup(m => m.HandoffTcpClient())
+                .Returns(mocks.TcpClient.Object);
+
+            using (manager)
+            {
+                var (connection, remoteToken) = await manager.GetTransferConnectionAsync(username, token, incomingConn.Object);
+
+                Assert.Equal(conn.Object, connection);
+                Assert.Equal(token, remoteToken);
+            }
+
+            mocks.ConnectionFactory.Verify(m => m.GetObfuscatedTransferConnection(endpoint, It.IsAny<ConnectionOptions>(), mocks.TcpClient.Object), Times.Once);
+            mocks.ConnectionFactory.Verify(m => m.GetTransferConnection(It.IsAny<IPEndPoint>(), It.IsAny<ConnectionOptions>(), It.IsAny<ITcpClient>()), Times.Never);
+        }
+
+        [Trait("Category", "AddTransferConnectionAsync")]
         [Theory(DisplayName = "AddTransferConnectionAsync disposes connection on exception"), AutoData]
         internal async Task AddTransferConnectionAsync_Disposes_Connection_On_Exception(string username, IPEndPoint endpoint, int token)
         {
@@ -651,6 +682,47 @@ namespace Soulseek.Tests.Unit.Network
 
             conn.Verify(m => m.ConnectAsync(It.IsAny<CancellationToken?>()), Times.Once);
             conn.Verify(m => m.WriteAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken?>()), Times.Once);
+        }
+
+        [Trait("Category", "GetTransferConnectionAsync")]
+        [Theory(DisplayName = "GetTransferConnectionAsync CTPR falls back to regular endpoint when obfuscated attempt fails"), AutoData]
+        internal async Task GetTransferConnectionAsync_CTPR_Falls_Back_To_Regular_Endpoint_When_Obfuscated_Attempt_Fails(string username, IPAddress ipAddress, int port, int token)
+        {
+            var obfuscatedPort = port == IPEndPoint.MaxPort ? port - 1 : port + 1;
+            var endpoint = new IPEndPoint(ipAddress, port);
+            var obfuscatedEndpoint = new IPEndPoint(ipAddress, obfuscatedPort);
+            var options = new SoulseekClientOptions(peerObfuscationOptions: new PeerObfuscationOptions(enabled: true, listenPort: 24000, preferOutbound: true));
+            var ctpr = new ConnectToPeerResponse(username, "F", endpoint, token, false, obfuscationType: 1, obfuscatedPort: obfuscatedPort);
+
+            var obfuscatedConn = GetConnectionMock(obfuscatedEndpoint);
+            obfuscatedConn.Setup(m => m.ConnectAsync(It.IsAny<CancellationToken?>()))
+                .Throws(new Exception("obfuscated unavailable"));
+
+            var regularConn = GetConnectionMock(endpoint);
+            regularConn.Setup(m => m.ConnectAsync(It.IsAny<CancellationToken?>()))
+                .Returns(Task.CompletedTask);
+            regularConn.Setup(m => m.WriteAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken?>()))
+                .Returns(Task.CompletedTask);
+            regularConn.Setup(m => m.ReadAsync(4, null))
+                .Returns(Task.FromResult(BitConverter.GetBytes(token)));
+
+            var (manager, mocks) = GetFixture(options: options);
+
+            mocks.ConnectionFactory.Setup(m => m.GetObfuscatedTransferConnection(obfuscatedEndpoint, It.IsAny<ConnectionOptions>(), null))
+                .Returns(obfuscatedConn.Object);
+            mocks.ConnectionFactory.Setup(m => m.GetTransferConnection(endpoint, It.IsAny<ConnectionOptions>(), null))
+                .Returns(regularConn.Object);
+
+            using (manager)
+            {
+                var newConn = await manager.GetTransferConnectionAsync(ctpr);
+
+                Assert.Equal(regularConn.Object, newConn.Connection);
+                Assert.Equal(token, newConn.RemoteToken);
+            }
+
+            obfuscatedConn.Verify(m => m.Dispose(), Times.Once);
+            regularConn.Verify(m => m.WriteAsync(It.Is<byte[]>(b => b.Matches(new PierceFirewall(token).ToByteArray())), It.IsAny<CancellationToken?>()), Times.Once);
         }
 
         [Trait("Category", "GetTransferConnectionAsync")]
@@ -1361,6 +1433,84 @@ namespace Soulseek.Tests.Unit.Network
 
                 direct.Verify(m => m.WriteAsync(It.Is<byte[]>(b => b.Matches(BitConverter.GetBytes(token))), It.IsAny<CancellationToken?>()), Times.Once);
             }
+        }
+
+        [Trait("Category", "GetTransferConnectionAsync")]
+        [Theory(DisplayName = "GetTransferConnectionAsync prefers cached obfuscated endpoint for outbound direct transfer"), AutoData]
+        internal async Task GetTransferConnectionAsync_Prefers_Cached_Obfuscated_Endpoint_For_Outbound_Direct_Transfer(string localUsername, string username, IPAddress ipAddress, int directPort, int token)
+        {
+            var directEndpoint = new IPEndPoint(ipAddress, directPort);
+            var obfuscatedEndpoint = new IPEndPoint(ipAddress, directPort == IPEndPoint.MaxPort ? directPort - 1 : directPort + 1);
+            var options = new SoulseekClientOptions(peerObfuscationOptions: new PeerObfuscationOptions(enabled: true, listenPort: 24000, preferOutbound: true));
+
+            var obfuscated = GetConnectionMock(obfuscatedEndpoint);
+            obfuscated.Setup(m => m.ConnectAsync(It.IsAny<CancellationToken?>()))
+                .Returns(Task.CompletedTask);
+            obfuscated.Setup(m => m.WriteAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken?>()))
+                .Returns(Task.CompletedTask);
+
+            var (manager, mocks) = GetFixture(options: options);
+
+            mocks.Client.Setup(m => m.Username).Returns(localUsername);
+            mocks.Client.Setup(m => m.TryGetObfuscatedPeerEndPoint(username, directEndpoint.Address, out obfuscatedEndpoint))
+                .Returns(true);
+            mocks.ConnectionFactory.Setup(m => m.GetObfuscatedTransferConnection(obfuscatedEndpoint, It.IsAny<ConnectionOptions>(), null))
+                .Returns(obfuscated.Object);
+            mocks.ConnectionFactory.Setup(m => m.GetTransferConnection(It.Is<IPEndPoint>(e => e.Port == directPort), It.IsAny<ConnectionOptions>(), null))
+                .Throws(new Exception("regular direct should not be selected"));
+            mocks.Waiter.Setup(m => m.Wait<IConnection>(It.IsAny<WaitKey>(), It.IsAny<int?>(), It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromException<IConnection>(new Exception("indirect should not be selected")));
+
+            using (manager)
+            using (var newConn = await manager.GetTransferConnectionAsync(username, directEndpoint, token, CancellationToken.None))
+            {
+                Assert.Equal(obfuscated.Object, newConn);
+            }
+
+            mocks.ConnectionFactory.Verify(m => m.GetObfuscatedTransferConnection(obfuscatedEndpoint, It.IsAny<ConnectionOptions>(), null), Times.Once);
+        }
+
+        [Trait("Category", "GetTransferConnectionAsync")]
+        [Theory(DisplayName = "GetTransferConnectionAsync falls back to regular direct transfer when obfuscated negotiation fails"), AutoData]
+        internal async Task GetTransferConnectionAsync_Falls_Back_To_Regular_Direct_Transfer_When_Obfuscated_Negotiation_Fails(string localUsername, string username, IPAddress ipAddress, int directPort, int token)
+        {
+            var directEndpoint = new IPEndPoint(ipAddress, directPort);
+            var obfuscatedEndpoint = new IPEndPoint(ipAddress, directPort == IPEndPoint.MaxPort ? directPort - 1 : directPort + 1);
+            var options = new SoulseekClientOptions(peerObfuscationOptions: new PeerObfuscationOptions(enabled: true, listenPort: 24000, preferOutbound: true));
+
+            var direct = GetConnectionMock(directEndpoint);
+            direct.Setup(m => m.ConnectAsync(It.IsAny<CancellationToken?>()))
+                .Returns(async () => await Task.Delay(25));
+            direct.Setup(m => m.WriteAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken?>()))
+                .Returns(Task.CompletedTask);
+
+            var obfuscated = GetConnectionMock(obfuscatedEndpoint);
+            obfuscated.Setup(m => m.ConnectAsync(It.IsAny<CancellationToken?>()))
+                .Returns(Task.CompletedTask);
+            obfuscated.Setup(m => m.WriteAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken?>()))
+                .Throws(new Exception("obfuscated negotiation failed"));
+
+            var (manager, mocks) = GetFixture(options: options);
+
+            mocks.Client.Setup(m => m.Username).Returns(localUsername);
+            mocks.Client.Setup(m => m.TryGetObfuscatedPeerEndPoint(username, directEndpoint.Address, out obfuscatedEndpoint))
+                .Returns(true);
+            mocks.ConnectionFactory.Setup(m => m.GetTransferConnection(directEndpoint, It.IsAny<ConnectionOptions>(), null))
+                .Returns(direct.Object);
+            mocks.ConnectionFactory.Setup(m => m.GetObfuscatedTransferConnection(obfuscatedEndpoint, It.IsAny<ConnectionOptions>(), null))
+                .Returns(obfuscated.Object);
+            mocks.Waiter.Setup(m => m.Wait<IConnection>(It.IsAny<WaitKey>(), It.IsAny<int?>(), It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromException<IConnection>(new Exception("indirect unavailable")));
+
+            using (manager)
+            using (var newConn = await manager.GetTransferConnectionAsync(username, directEndpoint, token, CancellationToken.None))
+            {
+                Assert.Equal(direct.Object, newConn);
+            }
+
+            obfuscated.Verify(m => m.Dispose(), Times.Once);
+            direct.Verify(m => m.WriteAsync(It.Is<byte[]>(b => b.Matches(new PeerInit(localUsername, Constants.ConnectionType.Transfer, token).ToByteArray())), It.IsAny<CancellationToken?>()), Times.Once);
+            direct.Verify(m => m.WriteAsync(It.Is<byte[]>(b => b.Matches(BitConverter.GetBytes(token))), It.IsAny<CancellationToken?>()), Times.Once);
         }
 
         [Trait("Category", "MessageConnectionProvisional_Disconnected")]

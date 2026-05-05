@@ -940,53 +940,70 @@ namespace Soulseek.Network
                 throw new ConnectionException(msg);
             }
 
-            var connection = await task.ConfigureAwait(false);
-            var isDirect = task == direct || task == obfuscated;
-            var isObfuscated = obfuscated != null && task == obfuscated;
-
-            Diagnostic.Debug($"{(isDirect ? "Direct" : "Indirect")} parent candidate connection to {username} ({ipEndPoint}) established first, attempting to cancel {(isDirect ? "indirect" : "direct")} connection.");
-            if (isObfuscated)
+            while (true)
             {
-                Diagnostic.Debug($"Obfuscated direct parent candidate connection to {username} ({connection.IPEndPoint}) won; cancelling regular direct and indirect fallbacks");
+                var connection = await task.ConfigureAwait(false);
+                var isDirect = task == direct || task == obfuscated;
+                var isObfuscated = obfuscated != null && task == obfuscated;
+
+                Diagnostic.Debug($"{(isDirect ? "Direct" : "Indirect")} parent candidate connection to {username} ({ipEndPoint}) established first, negotiating parent setup before cancelling remaining candidates.");
+
+                int branchLevel;
+                string branchRoot;
+
+                try
+                {
+                    var initWait = WaitForParentCandidateConnectionInitializationAsync(connection, cancellationToken);
+
+                    if (isDirect)
+                    {
+                        var request = new PeerInit(SoulseekClient.Username, Constants.ConnectionType.Distributed, SoulseekClient.GetNextToken());
+                        var requestBytes = request.ToByteArray();
+                        await connection.WriteAsync(isObfuscated ? RotatedObfuscation.Encode(requestBytes) : requestBytes, cancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        connection.StartReadingContinuously();
+                    }
+
+                    Diagnostic.Debug($"{(isDirect ? "Direct" : "Indirect")} parent candidate connection to {username} ({ipEndPoint}) initialized.  Waiting for branch information and first search request. (id: {connection.Id})");
+                    (branchLevel, branchRoot) = await initWait.ConfigureAwait(false);
+                }
+                catch (Exception ex) when (isObfuscated && tasks.Count > 0)
+                {
+                    Diagnostic.Debug($"Failed to negotiate obfuscated parent candidate connection to {username} ({connection.IPEndPoint}); preserving regular fallback candidates: {ex.Message}");
+                    connection.Dispose();
+
+                    do
+                    {
+                        task = await Task.WhenAny(tasks).ConfigureAwait(false);
+                        tasks.Remove(task);
+                    }
+                    while (task.Status != TaskStatus.RanToCompletion && tasks.Count > 0);
+
+                    if (task.Status != TaskStatus.RanToCompletion)
+                    {
+                        var fallbackMsg = $"Failed to establish a regular fallback parent candidate connection to {username} ({ipEndPoint}) after obfuscated distributed negotiation failed";
+                        Diagnostic.Debug(fallbackMsg);
+                        throw new ConnectionException(fallbackMsg, ex);
+                    }
+
+                    continue;
+                }
+                catch (Exception ex)
+                {
+                    var msg = $"Failed to negotiate parent candidate connection to {username} ({ipEndPoint}): {ex.Message}";
+                    Diagnostic.Debug($"{msg} (type: {connection.Type}, id: {connection.Id})");
+                    connection.Dispose();
+                    throw new ConnectionException(msg, ex);
+                }
+
                 directCts.Cancel();
                 indirectCts.Cancel();
+
+                Diagnostic.Debug($"Parent candidate connection to {username} ({ipEndPoint}) established. (type: {connection.Type}, id: {connection.Id})");
+                return (connection, branchLevel, branchRoot);
             }
-            else
-            {
-                (isDirect ? indirectCts : directCts).Cancel();
-            }
-
-            int branchLevel;
-            string branchRoot;
-
-            try
-            {
-                var initWait = WaitForParentCandidateConnectionInitializationAsync(connection, cancellationToken);
-
-                if (isDirect)
-                {
-                    var request = new PeerInit(SoulseekClient.Username, Constants.ConnectionType.Distributed, SoulseekClient.GetNextToken());
-                    var requestBytes = request.ToByteArray();
-                    await connection.WriteAsync(isObfuscated ? RotatedObfuscation.Encode(requestBytes) : requestBytes, cancellationToken).ConfigureAwait(false);
-                }
-                else
-                {
-                    connection.StartReadingContinuously();
-                }
-
-                Diagnostic.Debug($"{(isDirect ? "Direct" : "Indirect")} parent candidate connection to {username} ({ipEndPoint}) initialized.  Waiting for branch information and first search request. (id: {connection.Id})");
-                (branchLevel, branchRoot) = await initWait.ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                var msg = $"Failed to negotiate parent candidate connection to {username} ({ipEndPoint}): {ex.Message}";
-                Diagnostic.Debug($"{msg} (type: {connection.Type}, id: {connection.Id})");
-                connection.Dispose();
-                throw new ConnectionException(msg, ex);
-            }
-
-            Diagnostic.Debug($"Parent candidate connection to {username} ({ipEndPoint}) established. (type: {connection.Type}, id: {connection.Id})");
-            return (connection, branchLevel, branchRoot);
         }
 
         private Task<IMessageConnection> GetParentCandidateConnectionDirectAsync(string username, IPEndPoint ipEndPoint, CancellationToken cancellationToken)

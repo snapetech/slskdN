@@ -53,7 +53,7 @@ CLI and environment equivalents are documented in `docs/config.md`.
 
 ## Network Health Rules
 
-Type-1 obfuscation is enabled for Soulseek peer-message (`P`), distributed-message (`D`), and file-transfer (`F`) streams. Implementations must preserve regular fallback in `compatibility` and `prefer` modes and rate-limit connection retries. Distributed parent selection and transfer setup keep regular direct and indirect candidates active while adding an obfuscated direct candidate only when compatible metadata is known.
+Type-1 obfuscation is enabled for Soulseek peer-message (`P`), distributed-message (`D`), and file-transfer (`F`) streams. Implementations must preserve regular fallback in `compatibility` and `prefer` modes and rate-limit connection retries. Distributed parent selection and transfer setup keep regular direct and indirect candidates active while adding an obfuscated direct candidate only when compatible metadata is known. If an obfuscated distributed or transfer candidate connects first but fails setup negotiation, the runtime keeps the regular candidates alive and falls back before failing the operation.
 
 File transfer (`F`) streams can use type-1 obfuscated framing when compatible metadata is available. Regular transfer paths remain advertised and available, so legacy clients that do not support obfuscation continue to use normal Soulseek transfers.
 
@@ -73,4 +73,4 @@ The official Soulseek server connection remains direct unless an operator suppli
 
 ## Validation Work
 
-Runtime support is active. `ObfuscatedConnectionMatrixTests` uses loopback TCP sockets to prove obfuscated peer-message (`P`), distributed-message (`D`), and file-transfer (`F`) paths, plus regular peer-message, distributed-message, and transfer fallback. Ongoing validation should still include public-server advertisement tests, direct compatible-peer tests, indirect compatible-peer tests, and negative tests proving plain traffic is rejected by the obfuscated listener.
+Runtime support is active. `ObfuscatedConnectionMatrixTests` uses loopback TCP sockets to prove obfuscated peer-message (`P`), distributed-message (`D`), and file-transfer (`F`) paths, plus regular peer-message, distributed-message, and transfer fallback. Manager-level tests also cover obfuscated inbound transfer handoff, inbound indirect transfer fallback, outbound transfer preference/fallback, distributed parent preference/fallback, mesh private/anti-DPI transport selection, and sanitized metadata logging. Ongoing validation should still include public-server advertisement tests, direct compatible-peer tests, indirect compatible-peer tests, and negative tests proving plain traffic is rejected by the obfuscated listener.

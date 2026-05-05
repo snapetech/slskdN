@@ -221,6 +221,47 @@ public class MeshTransportServiceIntegrationTests : IDisposable
         Assert.Equal(AnonymityTransportType.Obfs4, decision.AnonymityTransport);
     }
 
+    [Theory]
+    [InlineData(AnonymityTransportType.WebSocket, ObfuscatedTransportMode.WebSocket, "WebSocket")]
+    [InlineData(AnonymityTransportType.HttpTunnel, ObfuscatedTransportMode.HttpTunnel, "HttpTunnel")]
+    [InlineData(AnonymityTransportType.Meek, ObfuscatedTransportMode.Meek, "Meek")]
+    public async Task ChooseTransportAsync_WithObfuscatedTransportMatrix_SelectsOverlayFirst(
+        AnonymityTransportType selectedTransport,
+        ObfuscatedTransportMode mode,
+        string reasonName)
+    {
+        // Arrange
+        var optionsMock = new Mock<IOptions<MeshOptions>>();
+        optionsMock.Setup(o => o.Value).Returns(_meshOptions);
+
+        var adversarialOptionsMock = new Mock<IOptions<AdversarialOptions>>();
+        adversarialOptionsMock.Setup(o => o.Value).Returns(new AdversarialOptions
+        {
+            Transport = new ObfuscatedTransportOptions
+            {
+                Enabled = true,
+                Mode = mode,
+                WebSocket = new WebSocketTransportOptions { Enabled = true },
+                HttpTunnel = new HttpTunnelTransportOptions { Enabled = true },
+                Meek = new MeekTransportOptions { Enabled = true }
+            }
+        });
+
+        _anonymitySelectorMock
+            .Setup(s => s.SelectTransportTypeAsync("peer123", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(selectedTransport);
+
+        var service = new MeshTransportService(_loggerMock.Object, optionsMock.Object, _anonymitySelectorMock.Object, adversarialOptionsMock.Object);
+
+        // Act
+        var decision = await service.ChooseTransportAsync("peer123", null, "content123");
+
+        // Assert
+        Assert.Equal(MeshTransportPreference.OverlayFirst, decision.Preference);
+        Assert.Contains($"Overlay-first with {reasonName} anonymity", decision.Reason);
+        Assert.Equal(selectedTransport, decision.AnonymityTransport);
+    }
+
     [Fact]
     public void Preference_ReturnsConfiguredTransportPreference()
     {

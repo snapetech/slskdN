@@ -2732,6 +2732,65 @@ namespace Soulseek.Tests.Unit.Network
         }
 
         [Trait("Category", "GetParentCandidateConnectionAsync")]
+        [Theory(DisplayName = "GetParentCandidateConnectionAsync falls back to regular direct when obfuscated negotiation fails"), AutoData]
+        internal async Task GetParentCandidateConnectionAsync_Falls_Back_To_Regular_Direct_When_Obfuscated_Negotiation_Fails(string localUser, string username, IPEndPoint endpoint, int branchLevel, string branchRoot, Guid regularId, Guid obfuscatedId, int token)
+        {
+            var obfuscatedEndpoint = new IPEndPoint(endpoint.Address, endpoint.Port == IPEndPoint.MaxPort ? endpoint.Port - 1 : endpoint.Port + 1);
+            var options = new SoulseekClientOptions(peerObfuscationOptions: new PeerObfuscationOptions(enabled: true, listenPort: 24000, preferOutbound: true));
+            var (manager, mocks) = GetFixture(options: options);
+
+            mocks.Client.Setup(m => m.Username)
+                .Returns(localUser);
+            mocks.Client.Setup(m => m.GetNextToken())
+                .Returns(token);
+            mocks.Client.Setup(m => m.TryGetObfuscatedPeerEndPoint(username, endpoint.Address, out obfuscatedEndpoint))
+                .Returns(true);
+
+            var regularConn = GetMessageConnectionMock(username, endpoint);
+            regularConn.Setup(m => m.Id)
+                .Returns(regularId);
+            regularConn.Setup(m => m.ConnectAsync(It.IsAny<CancellationToken?>()))
+                .Returns(async () => await Task.Delay(25));
+
+            var obfuscatedConn = GetMessageConnectionMock(username, obfuscatedEndpoint);
+            obfuscatedConn.Setup(m => m.Id)
+                .Returns(obfuscatedId);
+            obfuscatedConn.Setup(m => m.ConnectAsync(It.IsAny<CancellationToken?>()))
+                .Returns(Task.CompletedTask);
+            obfuscatedConn.Setup(m => m.WriteAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken?>()))
+                .Throws(new Exception("obfuscated negotiation failed"));
+
+            mocks.ConnectionFactory.Setup(m => m.GetDistributedConnection(username, endpoint, It.IsAny<ConnectionOptions>(), null))
+                .Returns(regularConn.Object);
+            mocks.ConnectionFactory.Setup(m => m.GetObfuscatedDistributedConnection(username, obfuscatedEndpoint, It.IsAny<ConnectionOptions>(), null))
+                .Returns(obfuscatedConn.Object);
+            mocks.Waiter.Setup(m => m.Wait<IConnection>(It.IsAny<WaitKey>(), It.IsAny<int?>(), It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromException<IConnection>(new Exception("indirect unavailable")));
+
+            var branchLevelWaitKey = new WaitKey(Constants.WaitKey.BranchLevelMessage, regularConn.Object.Id);
+            var branchRootWaitKey = new WaitKey(Constants.WaitKey.BranchRootMessage, regularConn.Object.Id);
+            var searchWaitKey = new WaitKey(Constants.WaitKey.SearchRequestMessage, regularConn.Object.Id);
+            mocks.Waiter.Setup(m => m.Wait<int>(branchLevelWaitKey, It.IsAny<int?>(), It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(branchLevel));
+            mocks.Waiter.Setup(m => m.Wait<string>(branchRootWaitKey, It.IsAny<int?>(), It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(branchRoot));
+            mocks.Waiter.Setup(m => m.Wait(searchWaitKey, It.IsAny<int?>(), It.IsAny<CancellationToken?>()))
+                .Returns(Task.CompletedTask);
+
+            using (manager)
+            {
+                var actual = await manager.InvokeMethod<Task<(IMessageConnection Connection, int BranchLevel, string BranchRoot)>>("GetParentCandidateConnectionAsync", username, endpoint, CancellationToken.None);
+
+                Assert.Equal(regularConn.Object, actual.Connection);
+                Assert.Equal(branchLevel, actual.BranchLevel);
+                Assert.Equal(branchRoot, actual.BranchRoot);
+            }
+
+            obfuscatedConn.Verify(m => m.Dispose(), Times.Once);
+            regularConn.Verify(m => m.WriteAsync(It.Is<byte[]>(o => o.Matches(new PeerInit(localUser, Constants.ConnectionType.Distributed, token).ToByteArray())), It.IsAny<CancellationToken>()));
+        }
+
+        [Trait("Category", "GetParentCandidateConnectionAsync")]
         [Theory(DisplayName = "GetParentCandidateConnectionAsync returns indirect when indirect connects first"), AutoData]
         internal async Task GetParentCandidateConnectionAsync_Returns_Indirect_When_Inirect_Connects_First(string localUser, string username, IPEndPoint endpoint, int branchLevel, string branchRoot, Guid id)
         {

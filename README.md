@@ -351,6 +351,7 @@ Discover other slskdN users via BitTorrent DHT and form encrypted mesh overlay.
 First-class Soulseek peer-message, distributed-message, and file-transfer obfuscation posture for compatible clients.
 - **Default-on compatibility mode** — keeps regular peer, distributed, and transfer paths available and adds type-1 obfuscated reachability
 - **Prefer mode** — prefers obfuscated outbound peer, distributed, and transfer dials only when peer metadata advertises a compatible type-1 endpoint
+- **Negotiation fallback** — if an obfuscated distributed or transfer candidate connects but fails setup, regular direct/indirect candidates remain available before the operation fails
 - **Only mode reserved** — obfuscated-only reachability is intentionally rejected while the runtime preserves legacy-client fallback
 - **Visible status** — System → Network reports enablement, mode, advertised ports, fallback posture, and runtime activation state
 - **Active runtime support** — slskdN’s vendored runtime now advertises type-1 metadata, accepts obfuscated peer, distributed, and transfer handshakes, and can prefer compatible outbound obfuscated dials

@@ -146,6 +146,46 @@ public class AnonymityTransportSelectionTests : IDisposable
     }
 
     [Fact]
+    public void IsTransportAllowedByPolicy_WithObfuscatedTransportAndClearnetAllowed_ReturnsTrue()
+    {
+        // Arrange
+        var policy = new TransportPolicy
+        {
+            DisableClearnet = false,
+            PreferPrivateTransports = false
+        };
+        var selector = new AnonymityTransportSelector(_adversarialOptions, _policyManager, _selectorLoggerMock.Object, _loggerFactory);
+
+        // Act
+        var method = typeof(AnonymityTransportSelector).GetMethod("IsTransportAllowedByPolicy",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var allowed = (bool)method.Invoke(selector, new object[] { AnonymityTransportType.Meek, policy });
+
+        // Assert
+        Assert.True(allowed);
+    }
+
+    [Fact]
+    public void IsTransportAllowedByPolicy_WithObfuscatedTransportDisableClearnetAndNoPrivatePreference_ReturnsFalse()
+    {
+        // Arrange
+        var policy = new TransportPolicy
+        {
+            DisableClearnet = true,
+            PreferPrivateTransports = false
+        };
+        var selector = new AnonymityTransportSelector(_adversarialOptions, _policyManager, _selectorLoggerMock.Object, _loggerFactory);
+
+        // Act
+        var method = typeof(AnonymityTransportSelector).GetMethod("IsTransportAllowedByPolicy",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var allowed = (bool)method.Invoke(selector, new object[] { AnonymityTransportType.Obfs4, policy });
+
+        // Assert
+        Assert.False(allowed);
+    }
+
+    [Fact]
     public async Task SelectTransportTypeAsync_ReturnsAvailableTransportWithoutConnecting()
     {
         // Arrange
