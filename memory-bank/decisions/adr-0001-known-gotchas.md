@@ -52,6 +52,142 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z296. URLSearchParams Already Decodes Query Values
+
+**The Bug**: Search URL handling read `q` with `URLSearchParams.get()` and then called `decodeURIComponent()` again. Values like `?q=100%25` could throw `URIError`, and literal encoded text like `%2520` could be collapsed to a space.
+
+**Files Affected**:
+- `src/web/src/components/Search/Searches.jsx`
+
+**Wrong**:
+```js
+const queryParameter = urlParameters.get('q');
+create({ search: decodeURIComponent(queryParameter) });
+```
+
+**Correct**:
+```js
+const queryParameter = urlParameters.get('q');
+create({ search: queryParameter });
+```
+
+**Why This Keeps Happening**: URL APIs look like string helpers, but `URLSearchParams` returns decoded values. Apply decoding exactly once at the boundary and add regression coverage for literal percent signs.
+
+### 0z295. Persisted UI State Must Validate Container Shapes
+
+**The Bug**: Browse, Chat, and Rooms restored `parsed.tabs || []` from localStorage and then called `.map()` on it. Valid JSON with the wrong shape, such as `{"tabs":{}}`, crashed the page on load.
+
+**Files Affected**:
+- `src/web/src/components/Browse/Browse.jsx`
+- `src/web/src/components/Chat/Chat.jsx`
+- `src/web/src/components/Rooms/Rooms.jsx`
+
+**Wrong**:
+```js
+const parsed = JSON.parse(saved);
+return parsed.tabs || [];
+```
+
+**Correct**:
+```js
+const parsed = JSON.parse(saved);
+return Array.isArray(parsed.tabs) ? parsed.tabs : [];
+```
+
+**Why This Keeps Happening**: Browser storage is external input, even when the app wrote it originally. Users, extensions, old builds, and test fixtures can leave shape-compatible JSON that is still not type-compatible.
+
+### 0z294. Probe Hash Parsers Must Fail Closed On Invalid Headers
+
+**The Bug**: Backfill FLAC header parsing returned `string.Empty` for invalid data, while the caller accepted any non-null string as a successful hash. Failed probes could be stored and published as empty hashes.
+
+**Files Affected**:
+- `src/slskd/Backfill/BackfillSchedulerService.cs`
+
+**Wrong**:
+```csharp
+return string.Empty;
+...
+if (hash != null)
+{
+    await hashDb.UpdateFlacHashAsync(fileId, hash, HashSource.BackfillSniff, cancellationToken);
+}
+```
+
+**Correct**:
+```csharp
+return null;
+...
+if (!string.IsNullOrWhiteSpace(hash))
+{
+    await hashDb.UpdateFlacHashAsync(fileId, hash, HashSource.BackfillSniff, cancellationToken);
+}
+```
+
+**Why This Keeps Happening**: Sentinel strings look harmless until callers test only for null. Parser failure should use a single unambiguous failure value and storage/publish paths must reject blank identifiers.
+
+### 0z293. Semaphore Accounting Must Track Acquisition
+
+**The Bug**: Backfill cancellation while waiting on `SemaphoreSlim.WaitAsync(cancellationToken)` still ran a `finally` block that decremented active counters and released the semaphore. A waiter that never acquired the semaphore could over-release concurrency.
+
+**Files Affected**:
+- `src/slskd/Backfill/BackfillSchedulerService.cs`
+
+**Wrong**:
+```csharp
+await backfillLock.WaitAsync(cancellationToken);
+Interlocked.Increment(ref activeBackfills);
+...
+finally
+{
+    Interlocked.Decrement(ref activeBackfills);
+    backfillLock.Release();
+}
+```
+
+**Correct**:
+```csharp
+var lockAcquired = false;
+await backfillLock.WaitAsync(cancellationToken);
+lockAcquired = true;
+Interlocked.Increment(ref activeBackfills);
+...
+finally
+{
+    if (lockAcquired)
+    {
+        Interlocked.Decrement(ref activeBackfills);
+        backfillLock.Release();
+    }
+}
+```
+
+**Why This Keeps Happening**: `WaitAsync` with cancellation can throw before ownership transfers. Cleanup must be conditional on acquired ownership, not just lexical position inside a `try`.
+
+### 0z292. Logs Must Use Token Fingerprints, Not Replayable Tokens
+
+**The Bug**: Mesh gateway and relay logs emitted generated CSRF/auth/share tokens, and Pushbullet logs included full notification bodies. Debug logs could become replay material or private message storage.
+
+**Files Affected**:
+- `src/slskd/Mesh/ServiceFabric/MeshGatewayConfigValidator.cs`
+- `src/slskd/Relay/RelayService.cs`
+- `src/slskd/Integrations/Pushbullet/PushbulletService.cs`
+
+**Wrong**:
+```csharp
+Log.Debug("Cached auth token {Token}", token);
+_logger.LogInformation("Generated CSRF token: {Token}", csrfToken);
+Log.LogDebug("Sending Pushbullet notification {Title} {Body}", title, body);
+```
+
+**Correct**:
+```csharp
+Log.Debug("Cached auth token id {TokenId}", GetRelayTokenLogId(token));
+_logger.LogInformation("Generated session CSRF token for localhost gateway.");
+Log.LogDebug("Sending Pushbullet notification {Title}", title);
+```
+
+**Why This Keeps Happening**: Tokens and notification bodies are convenient diagnostics, but logs have different retention and access boundaries than in-memory workflows. Log only stable fingerprints or non-sensitive metadata.
+
 ### 0z291. JSON String Endpoints Need Explicit JSON.stringify From Web API Helpers
 
 **The Bug**: Room join/create calls, YAML config saves/validation, and Pod content ID validation posted raw JavaScript strings to ASP.NET `[FromBody] string` endpoints that consume `application/json`. Axios was configured with `Content-Type: application/json`, but a raw string body is not a JSON string literal, so model binding could reject or lose the value before the backend action reached the actual operation. Existing room message sending worked because it explicitly used `JSON.stringify(message)`.
