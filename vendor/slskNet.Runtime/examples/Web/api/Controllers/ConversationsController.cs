@@ -51,6 +51,11 @@
         [ProducesResponseType(404)]
         public async Task<IActionResult> Acknowledge([FromRoute]string username, [FromRoute]int id)
         {
+            if (ControllerValidation.IsMissing(username))
+            {
+                return BadRequest("Username is required");
+            }
+
             Tracker.Conversations.TryGetValue(username, out var conversation);
 
             if (conversation == default || !conversation.Any(p => p.Id == id))
@@ -75,6 +80,11 @@
         [ProducesResponseType(404)]
         public async Task<IActionResult> AcknowledgeAll([FromRoute]string username)
         {
+            if (ControllerValidation.IsMissing(username))
+            {
+                return BadRequest("Username is required");
+            }
+
             Tracker.Conversations.TryGetValue(username, out var conversation);
 
             if (conversation == default)
@@ -109,6 +119,11 @@
         [ProducesResponseType(204)]
         public IActionResult Delete([FromRoute]string username)
         {
+            if (ControllerValidation.IsMissing(username))
+            {
+                return BadRequest("Username is required");
+            }
+
             var deleted = Tracker.Conversations.TryRemove(username, out _);
 
             if (deleted)
@@ -151,6 +166,11 @@
         [ProducesResponseType(404)]
         public IActionResult GetByUsername([FromRoute]string username)
         {            
+            if (ControllerValidation.IsMissing(username))
+            {
+                return BadRequest("Username is required");
+            }
+
             if (Tracker.TryGet(username, out var conversation))
             {
                 var response = conversation
@@ -177,7 +197,7 @@
         [ProducesResponseType(400)]
         public async Task<IActionResult> Send([FromRoute]string username, [FromBody]string message)
         {
-            if (string.IsNullOrWhiteSpace(username))
+            if (ControllerValidation.IsMissing(username))
             {
                 return BadRequest("Username is required");
             }

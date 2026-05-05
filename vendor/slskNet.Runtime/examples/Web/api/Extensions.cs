@@ -66,6 +66,20 @@
             return fullPath;
         }
 
+        public static string GetSharedRemotePath(string root, string path)
+        {
+            var rootPath = NormalizeRootPath(root);
+            var fullPath = GetFullPathInsideRoot(rootPath, path);
+            var relativePath = Path.GetRelativePath(rootPath, fullPath);
+
+            if (string.IsNullOrWhiteSpace(relativePath) || relativePath == ".")
+            {
+                throw new ArgumentException("Path does not contain a usable shared name", nameof(path));
+            }
+
+            return relativePath.ToLocalOSPath().TrimStart(Path.DirectorySeparatorChar);
+        }
+
         /// <summary>
         ///     Returns the directory from the given path, regardless of separator format.
         /// </summary>

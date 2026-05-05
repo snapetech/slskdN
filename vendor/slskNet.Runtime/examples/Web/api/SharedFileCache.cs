@@ -53,7 +53,7 @@
                 var directoryCount = System.IO.Directory.GetDirectories(Directory, "*", SearchOption.AllDirectories).Length;
 
                 Files = System.IO.Directory.GetFiles(Directory, "*", SearchOption.AllDirectories)
-                    .Select(f => new Soulseek.File(1, f.Replace("/", @"\"), new FileInfo(f).Length, Path.GetExtension(f)))
+                    .Select(f => new Soulseek.File(1, Extensions.GetSharedRemotePath(Directory, f), new FileInfo(f).Length, Path.GetExtension(f)))
                     .ToDictionary(f => f.Filename, f => f);
 
                 // potentially optimize with multi-valued insert https://stackoverflow.com/questions/16055566/insert-multiple-rows-in-sqlite
@@ -92,6 +92,7 @@
 
         private void CreateTable()
         {
+            SQLite?.Dispose();
             SQLite = new SqliteConnection("Data Source=:memory:");
             SQLite.Open();
 

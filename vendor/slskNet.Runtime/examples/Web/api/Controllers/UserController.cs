@@ -45,6 +45,11 @@
         [ProducesResponseType(404)]
         public async Task<IActionResult> Address([FromRoute, Required] string username)
         {
+            if (ControllerValidation.IsMissing(username))
+            {
+                return BadRequest("Username is required");
+            }
+
             try
             {
                 var endpoint = await Client.GetUserEndPointAsync(username);
@@ -67,6 +72,11 @@
         [ProducesResponseType(404)]
         public async Task<IActionResult> Browse([FromRoute, Required] string username)
         {
+            if (ControllerValidation.IsMissing(username))
+            {
+                return BadRequest("Username is required");
+            }
+
             try
             {
                 var result = await Client.BrowseAsync(username);
@@ -97,6 +107,16 @@
         [ProducesResponseType(404)]
         public async Task<IActionResult> FolderContents([FromRoute, Required] string username, [FromRoute, Required] string folderName)
         {
+            if (ControllerValidation.IsMissing(username))
+            {
+                return BadRequest("Username is required");
+            }
+
+            if (ControllerValidation.IsMissing(folderName))
+            {
+                return BadRequest("Folder name is required");
+            }
+
             try
             {
                 var result = await Client.GetDirectoryContentsAsync(username, folderName);
@@ -124,6 +144,11 @@
         [ProducesResponseType(404)]
         public IActionResult BrowseStatus([FromRoute, Required] string username)
         {
+            if (ControllerValidation.IsMissing(username))
+            {
+                return BadRequest("Username is required");
+            }
+
             if (BrowseTracker.TryGet(username, out var progress))
             {
                 return Ok(progress);
@@ -143,6 +168,11 @@
         [ProducesResponseType(404)]
         public async Task<IActionResult> Info([FromRoute, Required] string username)
         {
+            if (ControllerValidation.IsMissing(username))
+            {
+                return BadRequest("Username is required");
+            }
+
             try
             {
                 var response = await Client.GetUserInfoAsync(username);
@@ -165,6 +195,11 @@
         [ProducesResponseType(404)]
         public async Task<IActionResult> Status([FromRoute, Required] string username)
         {
+            if (ControllerValidation.IsMissing(username))
+            {
+                return BadRequest("Username is required");
+            }
+
             try
             {
                 var response = await Client.GetUserStatusAsync(username);
@@ -187,6 +222,11 @@
         [ProducesResponseType(404)]
         public async Task<IActionResult> Statistics([FromRoute, Required] string username)
         {
+            if (ControllerValidation.IsMissing(username))
+            {
+                return BadRequest("Username is required");
+            }
+
             try
             {
                 var response = await Client.GetUserStatisticsAsync(username);

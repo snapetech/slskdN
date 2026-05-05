@@ -56,6 +56,16 @@
         [ProducesResponseType(404)]
         public IActionResult CancelDownload([FromRoute, Required] string username, [FromRoute, Required] string id, [FromQuery] bool remove = false)
         {
+            if (ControllerValidation.IsMissing(username))
+            {
+                return BadRequest("Username is required");
+            }
+
+            if (ControllerValidation.IsMissing(id))
+            {
+                return BadRequest("Transfer id is required");
+            }
+
             return CancelTransfer(TransferDirection.Download, username, id, remove);
         }
 
@@ -74,6 +84,16 @@
         [ProducesResponseType(404)]
         public IActionResult CancelUpload([FromRoute, Required] string username, [FromRoute, Required] string id, [FromQuery] bool remove = false)
         {
+            if (ControllerValidation.IsMissing(username))
+            {
+                return BadRequest("Username is required");
+            }
+
+            if (ControllerValidation.IsMissing(id))
+            {
+                return BadRequest("Transfer id is required");
+            }
+
             return CancelTransfer(TransferDirection.Upload, username, id, remove);
         }
 
@@ -95,6 +115,11 @@
         [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The cancellation token source is owned by the tracker after the first state/progress callback; untracked setup failures are disposed before returning.")]
         public async Task<IActionResult> Enqueue([FromRoute, Required] string username, [FromBody] QueueDownloadRequest request)
         {
+            if (ControllerValidation.IsMissing(username))
+            {
+                return BadRequest("Username is required");
+            }
+
             CancellationTokenSource cts = null;
             var isTracked = 0;
 
@@ -189,6 +214,11 @@
         [ProducesResponseType(200)]
         public IActionResult GetDownloads([FromRoute, Required] string username)
         {
+            if (ControllerValidation.IsMissing(username))
+            {
+                return BadRequest("Username is required");
+            }
+
             return Ok(Tracker.Transfers
                 .WithDirection(TransferDirection.Download)
                 .FromUser(username)
@@ -210,6 +240,16 @@
         [ProducesResponseType(404)]
         public async Task<IActionResult> GetPlaceInQueue([FromRoute, Required] string username, [FromRoute, Required] string id)
         {
+            if (ControllerValidation.IsMissing(username))
+            {
+                return BadRequest("Username is required");
+            }
+
+            if (ControllerValidation.IsMissing(id))
+            {
+                return BadRequest("Transfer id is required");
+            }
+
             var record = Tracker.Transfers.WithDirection(TransferDirection.Download).FromUser(username).WithId(id);
 
             if (record == default)
@@ -247,6 +287,11 @@
         [ProducesResponseType(200)]
         public IActionResult GetUploads([FromRoute, Required] string username)
         {
+            if (ControllerValidation.IsMissing(username))
+            {
+                return BadRequest("Username is required");
+            }
+
             return Ok(Tracker.Transfers
                 .WithDirection(TransferDirection.Upload)
                 .FromUser(username)
@@ -263,12 +308,30 @@
         [HttpGet("uploads/{username}/{id}")]
         [Authorize]
         [ProducesResponseType(200)]
+        [ProducesResponseType(404)]
         public IActionResult GetUploads([FromRoute, Required] string username, [FromRoute, Required] string id)
         {
-            return Ok(Tracker.Transfers
+            if (ControllerValidation.IsMissing(username))
+            {
+                return BadRequest("Username is required");
+            }
+
+            if (ControllerValidation.IsMissing(id))
+            {
+                return BadRequest("Transfer id is required");
+            }
+
+            var record = Tracker.Transfers
                 .WithDirection(TransferDirection.Upload)
                 .FromUser(username)
-                .WithId(id).Transfer);
+                .WithId(id);
+
+            if (record == default)
+            {
+                return NotFound();
+            }
+
+            return Ok(record.Transfer);
         }
 
         [SuppressMessage("Security", "CA3003:Review code for file path injection vulnerabilities", Justification = "The remote file name is normalized to a relative path and confined to the configured output directory by Extensions.GetSafeOutputPath.")]

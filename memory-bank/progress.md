@@ -1,5 +1,10 @@
 ## 2026-05-05
 
+- Continued into the next runtime council section instead of stopping after lifecycle: `Example Web API path, request, and lifecycle candidates`.
+- Fixed `RT-080` through `RT-084`: the example Web API broad section and subgroups now classify `390/390`, `177/177`, `268/268`, `158/158`, and `212/212` hits with zero unclassified candidates; shared search/browse/directory responses advertise root-relative paths; shared-cache refresh disposes replaced SQLite connections; user/room/conversation/transfer route strings reject blanks before runtime/tracker calls; and missing upload lookup returns `404` instead of dereferencing a default record.
+- Added `ControllerValidation`, `GetSharedRemotePath`, focused Web API path/request/upload lookup regressions, scanner subgroup/baseline gates, and ADR-0001 gotchas `0z318` and `0z319`.
+- Validation: focused Web API tests passed (`58/58`), vendored/root remediation baselines passed, Web lint passed, repo lint passed, full `dotnet test slskd.sln --no-restore` passed, and `git diff --check` passed.
+
 - Continued the vendored runtime bug-council lifecycle sweep without stopping at the prior `WaitForDisconnect` fix.
 - Fixed `RT-077`/`RT-078`/`RT-079`: the scan now has a fire-and-forget subgroup, and distributed status debounce/watchdog callbacks, status update scheduling, branch-info rebroadcasts, and distributed search rebroadcasts no longer drop background async work behind ignored `ConfigureAwait(false)` awaitables.
 - Added guarded queue helpers, a fire-and-forget misuse scanner section, remediation-baseline absence checks, and focused coverage proving background distributed broadcast failures are diagnosed.

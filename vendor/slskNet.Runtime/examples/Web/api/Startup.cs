@@ -490,7 +490,7 @@ namespace WebAPI
             var directories = System.IO.Directory
                 .GetDirectories(SharedDirectory, "*", SearchOption.AllDirectories)
                 .Select(dir => new Soulseek.Directory(
-                    dir.Replace("/", @"\"),
+                    Extensions.GetSharedRemotePath(SharedDirectory, dir),
                     System.IO.Directory.GetFiles(dir)
                         .Select(f => new Soulseek.File(1, Path.GetFileName(f), new FileInfo(f).Length, Path.GetExtension(f)))));
 
@@ -507,8 +507,8 @@ namespace WebAPI
         /// <returns>A Task resolving an instance of Soulseek.Directory containing the contents of the requested directory.</returns>
         private Task<IEnumerable<Soulseek.Directory>> DirectoryContentsResponseResolver(string username, IPEndPoint endpoint, int token, string directory)
         {
-            static Soulseek.Directory MakeDirectory(string dir) => new Soulseek.Directory(
-                name: dir.Replace("/", @"\"),
+            static Soulseek.Directory MakeDirectory(string root, string dir) => new Soulseek.Directory(
+                name: Extensions.GetSharedRemotePath(root, dir),
                 fileList: System.IO.Directory.GetFiles(dir)
                     .Select(f => new Soulseek.File(1, Path.GetFileName(f), new FileInfo(f).Length, Path.GetExtension(f))));
 
@@ -516,12 +516,12 @@ namespace WebAPI
 
             var list = new List<Soulseek.Directory>()
             {
-                MakeDirectory(directory)
+                MakeDirectory(SharedDirectory, directory)
             };
 
             foreach (var subDirectory in System.IO.Directory.GetDirectories(directory))
             {
-                list.Add(MakeDirectory(subDirectory));
+                list.Add(MakeDirectory(SharedDirectory, subDirectory));
             }
 
             return Task.FromResult(list.AsEnumerable());

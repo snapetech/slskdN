@@ -21,6 +21,7 @@ namespace Soulseek.Tests.Unit
     using System.Collections.Generic;
     using System.IdentityModel.Tokens.Jwt;
     using System.IO;
+    using System.Linq;
     using System.Net;
     using System.Reflection;
     using System.Threading.Tasks;
@@ -229,6 +230,59 @@ namespace Soulseek.Tests.Unit
             finally
             {
                 Directory.SetCurrentDirectory(originalDirectory);
+                Directory.Delete(temp, recursive: true);
+            }
+        }
+
+        [Fact(DisplayName = "Browse response resolver advertises relative directory names")]
+        public async Task Browse_Response_Resolver_Advertises_Relative_Directory_Names()
+        {
+            var temp = Path.Combine(Path.GetTempPath(), "slsknet-runtime-tests", Guid.NewGuid().ToString("N"));
+            var album = Path.Combine(temp, "album");
+            Directory.CreateDirectory(album);
+            File.WriteAllText(Path.Combine(album, "track.mp3"), "test");
+
+            try
+            {
+                var startup = new Startup(BuildConfiguration(temp));
+                var method = typeof(Startup).GetMethod("BrowseResponseResolver", BindingFlags.Instance | BindingFlags.NonPublic);
+
+                var task = (Task<BrowseResponse>)method.Invoke(startup, new object[] { "user", new IPEndPoint(IPAddress.Loopback, 1) });
+                var response = await task;
+
+                var directory = Assert.Single(response.Directories);
+                Assert.Equal("album", directory.Name);
+                Assert.DoesNotContain(Path.GetFullPath(temp), directory.Name, StringComparison.Ordinal);
+            }
+            finally
+            {
+                Directory.Delete(temp, recursive: true);
+            }
+        }
+
+        [Fact(DisplayName = "Directory contents resolver advertises relative directory names")]
+        public async Task Directory_Contents_Resolver_Advertises_Relative_Directory_Names()
+        {
+            var temp = Path.Combine(Path.GetTempPath(), "slsknet-runtime-tests", Guid.NewGuid().ToString("N"));
+            var album = Path.Combine(temp, "album");
+            var disc = Path.Combine(album, "disc1");
+            Directory.CreateDirectory(disc);
+            File.WriteAllText(Path.Combine(album, "track.mp3"), "test");
+
+            try
+            {
+                var startup = new Startup(BuildConfiguration(temp));
+                var method = typeof(Startup).GetMethod("DirectoryContentsResponseResolver", BindingFlags.Instance | BindingFlags.NonPublic);
+
+                var task = (Task<IEnumerable<Soulseek.Directory>>)method.Invoke(startup, new object[] { "user", new IPEndPoint(IPAddress.Loopback, 1), 1, "album" });
+                var response = (await task).ToList();
+
+                Assert.Contains(response, directory => directory.Name == "album");
+                Assert.Contains(response, directory => directory.Name == Path.Combine("album", "disc1"));
+                Assert.All(response, directory => Assert.DoesNotContain(Path.GetFullPath(temp), directory.Name, StringComparison.Ordinal));
+            }
+            finally
+            {
                 Directory.Delete(temp, recursive: true);
             }
         }

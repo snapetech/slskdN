@@ -122,6 +122,22 @@ scan "Example Web API path, request, and lifecycle candidates" \
   'Path|File\.|Directory\.|Request|CancellationTokenSource|Stream|IFormFile|FromBody|ActionResult|BadRequest|Ok\(' \
   examples/Web/api tests/Soulseek.Tests.Unit/WebApi*
 
+scan "Example Web API path and shared-file candidates" \
+  'Path|File\.|Directory\.|GetFullPathInsideRoot|GetSafeOutputPath|GetSharedRemotePath|SharedFileCache|BrowseResponseResolver|DirectoryContentsResponseResolver|SearchResponseResolver' \
+  examples/Web/api tests/Soulseek.Tests.Unit/WebApi*
+
+scan "Example Web API controller request-validation candidates" \
+  'FromBody|FromRoute|ActionResult|BadRequest|StatusCode\(|Ok\(|NotFound\(|ProducesResponseType|Request body|is required|must be greater' \
+  examples/Web/api/Controllers tests/Soulseek.Tests.Unit/WebApi*
+
+scan "Example Web API transfer lifecycle candidates" \
+  'CancellationTokenSource|Dispose|Cancel\(|TaskCompletionSource|Task\.Run|ContinueWith|Stream|TransferOptions|AddOrUpdate|TryRemove' \
+  examples/Web/api tests/Soulseek.Tests.Unit/WebApi*
+
+scan "Example Web API tracker state candidates" \
+  'ConcurrentDictionary|Tracker|AddOrUpdate|TryGet|TryAdd|TryRemove|Clear\(|Messages|Users|Conversations|Searches|Browses|Transfers' \
+  examples/Web/api/Trackers tests/Soulseek.Tests.Unit/WebApi*
+
 scan "Security-sensitive material candidates" \
   'PRIVATE KEY|gh[pousr]_|xox[baprs]-|AKIA[0-9A-Z]{16}|(?i)(api[_-]?key|access[_-]?token|client[_-]?secret)' \
   .

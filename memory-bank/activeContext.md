@@ -1,3 +1,16 @@
+## Update 2026-05-05 23:55:00Z
+
+- Current task: Vendored runtime example Web API council sweep is implemented and broadly validated locally.
+- Last activity:
+  - added `RT-080` for closing the broad example Web API loop with narrower scanner subgroups
+  - added `RT-081` through `RT-084` for shared path leakage, shared-cache SQLite lifecycle, explicit blank route validation, and missing upload lookup `404` handling
+  - classified `390/390`, `177/177`, `268/268`, `158/158`, and `212/212` example Web API subgroup candidates with zero unclassified candidates
+  - documented ADR-0001 gotchas `0z318` and `0z319`
+  - validation passed: focused Web API tests (`58/58`), vendored/root remediation baselines, Web lint, repo lint, full `dotnet test slskd.sln --no-restore`, and `git diff --check`
+- Next steps:
+  1. Commit and push the implementation batch.
+  2. Continue the next council scan section after push.
+
 ## Update 2026-05-05 23:28:00Z
 
 - Current task: Vendored runtime lifecycle fire-and-forget council sweep is implemented and verified locally.

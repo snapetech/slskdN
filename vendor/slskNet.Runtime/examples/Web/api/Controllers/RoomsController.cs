@@ -57,6 +57,11 @@
         [ProducesResponseType(404)]
         public IActionResult GetByRoomName([FromRoute]string roomName)
         {
+            if (ControllerValidation.IsMissing(roomName))
+            {
+                return BadRequest("Room name is required");
+            }
+
             if (Tracker.TryGet(roomName, out var room))
             {
                 return Ok(MapRoomToRoomResponse(room));
@@ -80,6 +85,11 @@
         [ProducesResponseType(404)]
         public async Task<IActionResult> SendMessage([FromRoute]string roomName, [FromBody]string message)
         {
+            if (ControllerValidation.IsMissing(roomName))
+            {
+                return BadRequest("Room name is required");
+            }
+
             if (string.IsNullOrWhiteSpace(message))
             {
                 return BadRequest("Message is required");
@@ -109,6 +119,11 @@
         [ProducesResponseType(404)]
         public async Task<IActionResult> SetTicker([FromRoute] string roomName, [FromBody] string message)
         {
+            if (ControllerValidation.IsMissing(roomName))
+            {
+                return BadRequest("Room name is required");
+            }
+
             if (string.IsNullOrWhiteSpace(message))
             {
                 return BadRequest("Message is required");
@@ -138,6 +153,11 @@
         [ProducesResponseType(404)]
         public async Task<IActionResult> AddRoomMember([FromRoute]string roomName, [FromBody]string username)
         {
+            if (ControllerValidation.IsMissing(roomName))
+            {
+                return BadRequest("Room name is required");
+            }
+
             if (string.IsNullOrWhiteSpace(username))
             {
                 return BadRequest("Username is required");
@@ -165,6 +185,11 @@
         [ProducesResponseType(404)]
         public IActionResult GetUsersByRoomName([FromRoute]string roomName)
         {
+            if (ControllerValidation.IsMissing(roomName))
+            {
+                return BadRequest("Room name is required");
+            }
+
             if (Tracker.TryGet(roomName, out var room))
             {
                 var response = room.Users
@@ -189,6 +214,11 @@
         [ProducesResponseType(404)]
         public IActionResult GetMessagesByRoomName([FromRoute]string roomName)
         {
+            if (ControllerValidation.IsMissing(roomName))
+            {
+                return BadRequest("Room name is required");
+            }
+
             if (Tracker.TryGet(roomName, out var room))
             {
                 var response = room.Messages
@@ -238,6 +268,11 @@
         [ProducesResponseType(304)]
         public async Task<IActionResult> JoinRoom([FromRoute]string roomName)
         {
+            if (ControllerValidation.IsMissing(roomName))
+            {
+                return BadRequest("Room name is required");
+            }
+
             if (Tracker.Rooms.ContainsKey(roomName))
             {
                 return StatusCode(StatusCodes.Status304NotModified);
@@ -275,6 +310,11 @@
         [ProducesResponseType(404)]
         public async Task<IActionResult> LeaveRoom([FromRoute]string roomName)
         {
+            if (ControllerValidation.IsMissing(roomName))
+            {
+                return BadRequest("Room name is required");
+            }
+
             if (!Tracker.Rooms.ContainsKey(roomName))
             {
                 return StatusCode(StatusCodes.Status404NotFound);

@@ -107,6 +107,34 @@ namespace Soulseek.Tests.Unit
             Assert.IsType<BadRequestObjectResult>(response);
         }
 
+        [Fact(DisplayName = "Transfer endpoints reject blank route values")]
+        public async Task Transfer_Endpoints_Reject_Blank_Route_Values()
+        {
+            var controller = new TransfersController(CreateConfiguration(Path.GetTempPath()), Mock.Of<ISoulseekClient>(), new TransferTracker());
+
+            Assert.IsType<BadRequestObjectResult>(controller.CancelDownload(" ", "id"));
+            Assert.IsType<BadRequestObjectResult>(controller.CancelDownload("user", " "));
+            Assert.IsType<BadRequestObjectResult>(controller.CancelUpload(" ", "id"));
+            Assert.IsType<BadRequestObjectResult>(controller.CancelUpload("user", " "));
+            Assert.IsType<BadRequestObjectResult>(await controller.Enqueue(" ", new QueueDownloadRequest { Filename = "file.mp3", Size = 1 }));
+            Assert.IsType<BadRequestObjectResult>(controller.GetDownloads(" "));
+            Assert.IsType<BadRequestObjectResult>(await controller.GetPlaceInQueue(" ", "id"));
+            Assert.IsType<BadRequestObjectResult>(await controller.GetPlaceInQueue("user", " "));
+            Assert.IsType<BadRequestObjectResult>(controller.GetUploads(" "));
+            Assert.IsType<BadRequestObjectResult>(controller.GetUploads(" ", "id"));
+            Assert.IsType<BadRequestObjectResult>(controller.GetUploads("user", " "));
+        }
+
+        [Fact(DisplayName = "Transfer upload lookup returns not found for missing id")]
+        public void Transfer_Upload_Lookup_Returns_Not_Found_For_Missing_Id()
+        {
+            var controller = new TransfersController(CreateConfiguration(Path.GetTempPath()), Mock.Of<ISoulseekClient>(), new TransferTracker());
+
+            var response = controller.GetUploads("user", "missing");
+
+            Assert.IsType<NotFoundResult>(response);
+        }
+
         [Fact(DisplayName = "Transfer enqueue defers output file creation until stream factory is invoked")]
         public async Task Transfer_Enqueue_Defers_Output_File_Creation_Until_Stream_Factory_Is_Invoked()
         {

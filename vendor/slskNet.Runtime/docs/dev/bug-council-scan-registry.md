@@ -30,6 +30,10 @@ Current scan classes:
 | Peer resolver dispatch | Find peer handler points that turn resolver output into peer messages. |
 | Transfer stream factory | Find transfer input/output stream factory ownership and lifecycle paths. |
 | Example Web API path/request/lifecycle | Find path containment, request validation, and disposable ownership issues in the example app. |
+| Example Web API path/shared files | Find shared-file path advertisement, containment, and resolver output issues in the example app. |
+| Example Web API controller request validation | Find controller request-body, route, and response validation boundaries in the example app. |
+| Example Web API transfer lifecycle | Find transfer cancellation, stream, and background task ownership in the example app. |
+| Example Web API tracker state | Find tracker dictionary/list update and null-shape assumptions in the example app. |
 | Security-sensitive material | Find high-confidence private keys and token patterns. |
 
 Sweep closure rules:
