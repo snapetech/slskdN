@@ -79,10 +79,13 @@ var browseResult = await soulseekClient.BrowseAsync(username, cancellationToken:
 
 ### 0z308. Outbound Integration Clients Must Use The No-Redirect Client And Avoid Secret-Derived Log Values
 
-**The Bug**: The AcoustID client used the default `IHttpClientFactory.CreateClient()` handler, which follows redirects, and logged the full audio fingerprint when a lookup failed or returned no result.
+**The Bug**: External integration clients used the default `IHttpClientFactory.CreateClient()` handler, which follows redirects. The AcoustID client also logged the full audio fingerprint when a lookup failed or returned no result.
 
 **Files Affected**:
 - `src/slskd/Integrations/AcoustId/AcoustIdClient.cs`
+- `src/slskd/Integrations/MusicBrainz/MusicBrainzClient.cs`
+- `src/slskd/Integrations/MusicBrainz/ReleaseGraphService.cs`
+- `src/slskd/Integrations/Pushbullet/PushbulletService.cs`
 
 **Wrong**:
 ```csharp
