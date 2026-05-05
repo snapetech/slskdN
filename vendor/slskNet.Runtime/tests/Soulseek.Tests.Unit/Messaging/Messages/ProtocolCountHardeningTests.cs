@@ -29,6 +29,54 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Throws<MessageException>(() => SearchResponseFactory.FromByteArray(bytes));
         }
 
+        [Fact(DisplayName = "Search response rejects invalid negative file size")]
+        public void Search_Response_Rejects_Invalid_Negative_File_Size()
+        {
+            var bytes = new MessageBuilder()
+                .WriteCode(MessageCode.Peer.SearchResponse)
+                .WriteString("user")
+                .WriteInteger(1)
+                .WriteInteger(1)
+                .WriteByte(0x2)
+                .WriteString("file")
+                .WriteLong(long.MinValue)
+                .WriteString("ext")
+                .WriteInteger(0)
+                .WriteByte(0)
+                .WriteInteger(0)
+                .WriteLong(0)
+                .WriteBytes(new byte[4])
+                .Compress()
+                .Build();
+
+            Assert.Throws<MessageException>(() => SearchResponseFactory.FromByteArray(bytes));
+        }
+
+        [Fact(DisplayName = "Search response accepts legacy sign-extended unsigned file size")]
+        public void Search_Response_Accepts_Legacy_Sign_Extended_Unsigned_File_Size()
+        {
+            var bytes = new MessageBuilder()
+                .WriteCode(MessageCode.Peer.SearchResponse)
+                .WriteString("user")
+                .WriteInteger(1)
+                .WriteInteger(1)
+                .WriteByte(0x2)
+                .WriteString("file")
+                .WriteLong(-1)
+                .WriteString("ext")
+                .WriteInteger(0)
+                .WriteByte(0)
+                .WriteInteger(0)
+                .WriteLong(0)
+                .WriteBytes(new byte[4])
+                .Compress()
+                .Build();
+
+            var response = SearchResponseFactory.FromByteArray(bytes);
+
+            Assert.Contains(response.Files, file => file.Size == uint.MaxValue);
+        }
+
         [Fact(DisplayName = "Join room rejects mismatched parallel counts")]
         public void Join_Room_Rejects_Mismatched_Parallel_Counts()
         {

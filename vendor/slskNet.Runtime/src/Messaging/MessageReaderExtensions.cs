@@ -60,6 +60,11 @@ namespace Soulseek.Messaging
                 }
             }
 
+            if (size < 0)
+            {
+                throw new MessageException($"Invalid file size: {size}");
+            }
+
             var attributeCount = ProtocolCountReader.ReadCount(reader, "file attribute", minimumBytesPerItem: 8);
             var attributeList = new List<FileAttribute>();
 

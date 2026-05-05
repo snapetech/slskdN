@@ -124,6 +124,24 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Equal(0, response.FileSize);
         }
 
+        [Trait("Category", "Parse")]
+        [Fact(DisplayName = "Parse throws MessageException on negative file size")]
+        public void Parse_Throws_MessageException_On_Negative_File_Size()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Peer.TransferRequest)
+                .WriteInteger((int)TransferDirection.Download)
+                .WriteInteger(1)
+                .WriteString("file")
+                .WriteLong(-1)
+                .Build();
+
+            var ex = Record.Exception(() => TransferRequest.FromByteArray(msg));
+
+            Assert.NotNull(ex);
+            Assert.IsType<MessageException>(ex);
+        }
+
         [Trait("Category", "ToByteArray")]
         [Theory(DisplayName = "ToByteArray constructs the correct Message"), AutoData]
         public void ToByteArray_Constructs_The_Correct_Message(TransferDirection dir, int token, string file, long size)

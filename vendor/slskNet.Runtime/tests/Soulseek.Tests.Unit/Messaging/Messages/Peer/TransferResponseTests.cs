@@ -90,6 +90,8 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "Parse returns expected data when allowed"), AutoData]
         public void Parse_Returns_Expected_Data_When_Allowed(int token, long size)
         {
+            size = Math.Abs(size == long.MinValue ? 0 : size);
+
             var msg = new MessageBuilder()
                 .WriteCode(MessageCode.Peer.TransferResponse)
                 .WriteInteger(token)
@@ -102,6 +104,23 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Equal(token, response.Token);
             Assert.True(response.IsAllowed);
             Assert.Equal(size, response.FileSize);
+        }
+
+        [Trait("Category", "Parse")]
+        [Fact(DisplayName = "Parse throws MessageException on negative allowed file size")]
+        public void Parse_Throws_MessageException_On_Negative_Allowed_File_Size()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Peer.TransferResponse)
+                .WriteInteger(1)
+                .WriteByte(0x1)
+                .WriteLong(-1)
+                .Build();
+
+            var ex = Record.Exception(() => TransferResponse.FromByteArray(msg));
+
+            Assert.NotNull(ex);
+            Assert.IsType<MessageException>(ex);
         }
 
         [Trait("Category", "Parse")]

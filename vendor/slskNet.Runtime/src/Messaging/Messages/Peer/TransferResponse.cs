@@ -103,6 +103,12 @@ namespace Soulseek.Messaging.Messages
             if (allowed && reader.HasMoreData)
             {
                 var fileSize = reader.ReadLong();
+
+                if (fileSize < 0)
+                {
+                    throw new MessageException($"Invalid transfer file size: {fileSize}");
+                }
+
                 return new TransferResponse(token, fileSize);
             }
             else if (!allowed)
