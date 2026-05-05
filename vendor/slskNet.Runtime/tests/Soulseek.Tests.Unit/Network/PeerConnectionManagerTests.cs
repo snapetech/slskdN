@@ -3136,6 +3136,28 @@ namespace Soulseek.Tests.Unit.Network
         }
 
         [Trait("Category", "TryInvalidateMessageConnectionCache")]
+        [Theory(DisplayName = "TryInvalidateMessageConnectionCache disposes completed cached connection"), AutoData]
+        internal void TryInvalidateMessageConnectionCache_Disposes_Completed_Cached_Connection(string username)
+        {
+            var (manager, _) = GetFixture();
+            var connection = new Mock<IMessageConnection>();
+            var lazyConnection = new Lazy<Task<IMessageConnection>>(() => Task.FromResult(connection.Object));
+
+            using (manager)
+            {
+                var dict = new ConcurrentDictionary<string, Lazy<Task<IMessageConnection>>>();
+                _ = lazyConnection.Value;
+                dict.GetOrAdd(username, lazyConnection);
+
+                manager.SetProperty("MessageConnectionDictionary", dict);
+
+                manager.TryInvalidateMessageConnectionCache(username);
+
+                connection.Verify(m => m.Dispose(), Times.Once);
+            }
+        }
+
+        [Trait("Category", "TryInvalidateMessageConnectionCache")]
         [Theory(DisplayName = "TryInvalidateMessageConnectionCache returns false if cache is missed"), AutoData]
         internal void TryInvalidateMessageConnectionCache_Returns_False_If_Cache_Is_Missed(string username)
         {

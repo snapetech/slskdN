@@ -94,6 +94,8 @@ require_pattern "WaitForResetAsync\\(cancellationToken\\)" "src/Common/TokenBuck
 require_pattern "TrySetException\\(new ObjectDisposedException\\(nameof\\(TokenBucket\\)\\)\\)" "src/Common/TokenBucket.cs" "token bucket disposal releases reset waiters"
 require_pattern "GetAsync_Observes_Cancellation_While_Waiting_For_Reset" "tests/Soulseek.Tests.Unit/Common/TokenBucketTests.cs" "token bucket cancellation regression test is registered"
 require_pattern "Dispose_Releases_Waiters_Waiting_For_Reset" "tests/Soulseek.Tests.Unit/Common/TokenBucketTests.cs" "token bucket disposal regression test is registered"
+require_pattern "DisposeCompletedConnection\\(connection\\)" "src/Network/PeerConnectionManager.cs" "peer message cache invalidation disposes completed connections"
+require_pattern "TryInvalidateMessageConnectionCache_Disposes_Completed_Cached_Connection" "tests/Soulseek.Tests.Unit/Network/PeerConnectionManagerTests.cs" "peer message cache disposal regression test is registered"
 
 require_pattern "return false" "src/Ed25519PeerDescriptorSigner.cs" "peer descriptor verification fails closed"
 require_pattern "catch[\\s\\S]*return false" "src/Ed25519PeerDescriptorSigner.cs" "peer descriptor verifier handles malformed signatures"

@@ -820,7 +820,13 @@ namespace Soulseek.Network
         /// <returns>A value indicating whether a connection record was invalidated.</returns>
         public bool TryInvalidateMessageConnectionCache(string username)
         {
-            return MessageConnectionDictionary.TryRemove(username, out _);
+            if (!MessageConnectionDictionary.TryRemove(username, out var connection))
+            {
+                return false;
+            }
+
+            DisposeCompletedConnection(connection);
+            return true;
         }
 
         private void Dispose(bool disposing)
@@ -1055,6 +1061,16 @@ namespace Soulseek.Network
             }
 
             Diagnostic.Debug($"Message connection cache now contains {MessageConnectionDictionary.Count} connections.");
+        }
+
+        private void DisposeCompletedConnection(Lazy<Task<IMessageConnection>> connection)
+        {
+            if (connection == null || !connection.IsValueCreated || connection.Value.Status != TaskStatus.RanToCompletion)
+            {
+                return;
+            }
+
+            connection.Value.Result?.Dispose();
         }
     }
 }
