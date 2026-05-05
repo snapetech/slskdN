@@ -52,6 +52,33 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z285. AUR Source Builds Need The .NET Prune Metadata Opt-Out
+
+**The Bug**: The non-bin AUR package completed the Web UI build, then failed during `dotnet publish` on Arch's .NET 10 SDK with `NETSDK1226: Prune Package data not found .NETCoreApp 10.0 Microsoft.AspNetCore.App`.
+
+**Files Affected**:
+- `packaging/aur/PKGBUILD`
+- `packaging/scripts/validate-packaging-metadata.sh`
+
+**Wrong**:
+```bash
+dotnet publish src/slskd/slskd.csproj \
+    --self-contained false \
+    -r "${_rid}" \
+    -p:PackageVersion="$_dotnet_version"
+```
+
+**Correct**:
+```bash
+dotnet publish src/slskd/slskd.csproj \
+    --self-contained false \
+    -r "${_rid}" \
+    -p:PackageVersion="$_dotnet_version" \
+    -p:AllowMissingPrunePackageData=true
+```
+
+**Why This Keeps Happening**: Framework-dependent RID publishes still run SDK publish/restore optimization paths that expect installed framework prune metadata. Rolling Arch SDK/runtime package combinations can expose missing metadata before upstream packaging catches up, so source packaging must carry the explicit opt-out property and metadata validation must prevent it from being dropped.
+
 ### 0z284. Release Gates Must Provision Their Script Dependencies
 
 **The Bug**: The tag-driven release workflow failed in the release gate before any build work because `scripts/generate-route-inventory.sh` uses `rg`, but the GitHub runner image used by the workflow did not have ripgrep installed. Local validation passed because developer machines usually have `rg`.
