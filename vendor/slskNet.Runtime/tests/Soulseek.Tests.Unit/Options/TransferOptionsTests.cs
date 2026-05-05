@@ -40,6 +40,8 @@ namespace Soulseek.Tests.Unit.Options
             Action<Transfer, int, int, int> reporter,
             Action<Transfer> slotReleased)
         {
+            maximumLingerTime = Math.Abs(maximumLingerTime % 10000);
+
             var o = new TransferOptions(
                 governor,
                 stateChanged,
@@ -64,6 +66,17 @@ namespace Soulseek.Tests.Unit.Options
             Assert.Equal(acquireSlot, o.SlotAwaiter);
             Assert.Equal(slotReleased, o.SlotReleased);
             Assert.Equal(reporter, o.Reporter);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Throws given negative maximum linger time")]
+        public void Throws_Given_Negative_Maximum_Linger_Time()
+        {
+            var ex = Record.Exception(() => new TransferOptions(maximumLingerTime: -1));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentOutOfRangeException>(ex);
+            Assert.Equal("maximumLingerTime", ((ArgumentOutOfRangeException)ex).ParamName);
         }
 
         [Trait("Category", "Instantiation")]
@@ -100,6 +113,8 @@ namespace Soulseek.Tests.Unit.Options
             Func<Transfer, CancellationToken, Task> acquireSlot,
             Action<Transfer> slotReleased)
         {
+            maximumLingerTime = Math.Abs(maximumLingerTime % 10000);
+
             var n = new TransferOptions(
                 governor: governor,
                 stateChanged: stateChanged,
@@ -168,6 +183,8 @@ namespace Soulseek.Tests.Unit.Options
             Func<Transfer, CancellationToken, Task> acquireSlot,
             Action<Transfer> slotReleased)
         {
+            maximumLingerTime = Math.Abs(maximumLingerTime % 10000);
+
             var n = new TransferOptions(
                 governor: governor,
                 stateChanged: stateChanged,
@@ -205,6 +222,8 @@ namespace Soulseek.Tests.Unit.Options
             Func<Transfer, CancellationToken, Task> acquireSlot,
             Action<Transfer> slotReleased)
         {
+            maximumLingerTime = Math.Abs(maximumLingerTime % 10000);
+
             var n = new TransferOptions(
                 governor: governor,
                 stateChanged: stateChanged,

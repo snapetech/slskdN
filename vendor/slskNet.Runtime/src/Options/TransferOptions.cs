@@ -81,6 +81,11 @@ namespace Soulseek
             bool disposeInputStreamOnCompletion = true,
             bool disposeOutputStreamOnCompletion = true)
         {
+            if (maximumLingerTime < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maximumLingerTime), "Must be greater than or equal to zero");
+            }
+
             SeekInputStreamAutomatically = seekInputStreamAutomatically;
             SeekOutputStreamAutomatically = seekOutputStreamAutomatically;
             DisposeInputStreamOnCompletion = disposeInputStreamOnCompletion;

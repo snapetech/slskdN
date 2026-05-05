@@ -171,6 +171,10 @@ require_pattern "MaximumUploadSpeed\\.HasValue && MaximumUploadSpeed\\.Value < 1
 require_pattern "Throws_If_Maximum_Speed_Is_Less_Than_One" "tests/Soulseek.Tests.Unit/Options" "client option speed validation tests are registered"
 require_pattern "MessageTimeout < 1" "src/Options/SoulseekClientOptions.cs" "client options reject invalid message timeout values"
 require_pattern "Throws_If_Message_Timeout_Is_Less_Than_One" "tests/Soulseek.Tests.Unit/Options/SoulseekClientOptionsTests.cs" "client option message timeout validation tests are registered"
+require_pattern "maximumLingerTime < 0" "src/Options/TransferOptions.cs" "transfer options reject invalid linger times"
+require_pattern "Throws_Given_Negative_Maximum_Linger_Time" "tests/Soulseek.Tests.Unit/Options/TransferOptionsTests.cs" "transfer linger validation tests are registered"
+require_pattern "bytesRead == 0" "src/Network/Tcp/Connection.cs" "stream writes reject early input EOF"
+require_pattern "Write_Stream_Throws_When_Input_Stream_Ends_Early" "tests/Soulseek.Tests.Unit/Network/Tcp/ConnectionTests.cs" "stream write early EOF regression test is registered"
 
 require_pattern "<PackageId>slskNet\.Runtime</PackageId>" "src/Soulseek.csproj" "package id uses fork branding"
 require_pattern "snapetech/slskNet\.Runtime" "src/Soulseek.csproj" "package metadata points to fork repository"

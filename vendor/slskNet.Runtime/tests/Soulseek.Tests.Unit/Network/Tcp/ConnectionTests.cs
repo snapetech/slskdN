@@ -1184,6 +1184,34 @@ namespace Soulseek.Tests.Unit.Network.Tcp
         }
 
         [Trait("Category", "Write")]
+        [Theory(DisplayName = "Write stream throws when input stream ends early"), AutoData]
+        public async Task Write_Stream_Throws_When_Input_Stream_Ends_Early(IPEndPoint endpoint)
+        {
+            var s = new Mock<INetworkStream>();
+            var t = new Mock<ITcpClient>();
+
+            var data = new byte[] { 0x0 };
+
+            using (var stream = new MemoryStream(data))
+            using (var socket = new Socket(SocketType.Stream, ProtocolType.IP))
+            {
+                t.Setup(m => m.Client).Returns(socket);
+                t.Setup(m => m.Connected).Returns(true);
+                t.Setup(m => m.GetStream()).Returns(s.Object);
+
+                using (var c = new Connection(endpoint, tcpClient: t.Object, options: new ConnectionOptions(writeBufferSize: 1)))
+                {
+                    var ex = await Record.ExceptionAsync(() => c.WriteAsync(2, stream, governor: (x, y) => Task.FromResult(int.MaxValue)));
+
+                    Assert.NotNull(ex);
+                    Assert.IsType<ConnectionWriteException>(ex);
+                    Assert.Equal(ConnectionState.Disconnected, c.State);
+                    s.Verify(m => m.WriteAsync(It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<CancellationToken>()), Times.Once);
+                }
+            }
+        }
+
+        [Trait("Category", "Write")]
         [Theory(DisplayName = "Write stream does not throw given null reporter"), AutoData]
         public async Task Write_Stream_Handles_Null_Reporter(IPEndPoint endpoint)
         {

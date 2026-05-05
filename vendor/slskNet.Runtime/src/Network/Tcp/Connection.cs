@@ -802,9 +802,18 @@ namespace Soulseek.Network.Tcp
 
 #if NETSTANDARD2_0
                     var bytesRead = await inputStream.ReadAsync(buffer, 0, bytesGranted, cancellationToken).ConfigureAwait(false);
-                    await Stream.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
 #else
                     var bytesRead = await inputStream.ReadAsync(new Memory<byte>(buffer, 0, bytesGranted), cancellationToken).ConfigureAwait(false);
+#endif
+
+                    if (bytesRead == 0)
+                    {
+                        throw new ConnectionWriteException($"Input stream ended after {totalBytesWritten} bytes; expected {length} bytes");
+                    }
+
+#if NETSTANDARD2_0
+                    await Stream.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
+#else
                     await Stream.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead), cancellationToken).ConfigureAwait(false);
 #endif
 
