@@ -18,13 +18,14 @@
 namespace Soulseek.Tests.Unit.Options
 {
     using System;
-    using AutoFixture.Xunit2;
     using Xunit;
 
     public class SearchOptionsTests
     {
         [Trait("Category", "Instantiation")]
-        [Theory(DisplayName = "Instantiates with given data"), AutoData]
+        [Theory(DisplayName = "Instantiates with given data")]
+        [InlineData(1, 1, true, 0, 0, 0, 1, true)]
+        [InlineData(15000, 250, false, 1, 100, 10, 25000, false)]
         public void Instantiates_With_Defaults(
             int searchTimeout,
             int responseLimit,
@@ -32,13 +33,14 @@ namespace Soulseek.Tests.Unit.Options
             int minimumResponseFileCount,
             int maximumPeerQueueLength,
             int minimumPeerUploadSpeed,
-            Func<SearchResponse, bool> responseFilter,
             int fileLimit,
-            bool removeSingleCharacterSearchTerms,
-            Func<File, bool> fileFilter,
-            Action<(SearchStates PreviousState, Search Search)> stateChanged,
-            Action<(Search Search, SearchResponse Response)> responseReceived)
+            bool removeSingleCharacterSearchTerms)
         {
+            Func<SearchResponse, bool> responseFilter = _ => true;
+            Func<File, bool> fileFilter = _ => true;
+            Action<(SearchStates PreviousState, Search Search)> stateChanged = _ => { };
+            Action<(Search Search, SearchResponse Response)> responseReceived = _ => { };
+
             var o = new SearchOptions(
                 searchTimeout,
                 responseLimit,
@@ -65,6 +67,30 @@ namespace Soulseek.Tests.Unit.Options
             Assert.Equal(fileFilter, o.FileFilter);
             Assert.Equal(stateChanged, o.StateChanged);
             Assert.Equal(responseReceived, o.ResponseReceived);
+        }
+
+        [Theory(DisplayName = "Throws on invalid scalar options")]
+        [InlineData(0, 1, 0, 0, 0, 1)]
+        [InlineData(1, 0, 0, 0, 0, 1)]
+        [InlineData(1, 1, -1, 0, 0, 1)]
+        [InlineData(1, 1, 0, -1, 0, 1)]
+        [InlineData(1, 1, 0, 0, -1, 1)]
+        [InlineData(1, 1, 0, 0, 0, 0)]
+        public void Throws_On_Invalid_Scalar_Options(
+            int searchTimeout,
+            int responseLimit,
+            int minimumResponseFileCount,
+            int maximumPeerQueueLength,
+            int minimumPeerUploadSpeed,
+            int fileLimit)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new SearchOptions(
+                searchTimeout: searchTimeout,
+                responseLimit: responseLimit,
+                minimumResponseFileCount: minimumResponseFileCount,
+                maximumPeerQueueLength: maximumPeerQueueLength,
+                minimumPeerUploadSpeed: minimumPeerUploadSpeed,
+                fileLimit: fileLimit));
         }
     }
 }

@@ -17,13 +17,15 @@
 
 namespace Soulseek.Tests.Unit.Options
 {
-    using AutoFixture.Xunit2;
+    using System;
     using Xunit;
 
     public class BrowseOptionsTests
     {
         [Trait("Category", "Instantiation")]
-        [Theory(DisplayName = "Instantiates properly"), AutoData]
+        [Theory(DisplayName = "Instantiates properly")]
+        [InlineData(1)]
+        [InlineData(60000)]
         public void Instantiates_Properly(int timeout)
         {
             void Action((string Username, long BytesTransferred, long BytesRemaining, double PercentComplete, long Size) args)
@@ -40,6 +42,14 @@ namespace Soulseek.Tests.Unit.Options
 
             Assert.Equal(timeout, o.ResponseTimeout);
             Assert.Equal(Action, o.ProgressUpdated);
+        }
+
+        [Theory(DisplayName = "Throws on invalid response timeout")]
+        [InlineData(0)]
+        [InlineData(-1)]
+        public void Throws_On_Invalid_Response_Timeout(int timeout)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new BrowseOptions(timeout));
         }
     }
 }

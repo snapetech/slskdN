@@ -33,6 +33,16 @@ namespace Soulseek
             TimeSpan? minimumInterval = null,
             Func<string, SearchOptions> searchOptionsFactory = null)
         {
+            if (intervalOverride.HasValue && intervalOverride.Value <= TimeSpan.Zero)
+            {
+                throw new ArgumentOutOfRangeException(nameof(intervalOverride), "Must be greater than zero");
+            }
+
+            if (minimumInterval.HasValue && minimumInterval.Value <= TimeSpan.Zero)
+            {
+                throw new ArgumentOutOfRangeException(nameof(minimumInterval), "Must be greater than zero");
+            }
+
             IntervalOverride = intervalOverride;
             MinimumInterval = minimumInterval ?? TimeSpan.FromSeconds(30);
             SearchOptionsFactory = searchOptionsFactory;

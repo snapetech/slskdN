@@ -53,6 +53,31 @@ namespace Soulseek
             ProxyOptions proxyOptions = null,
             Action<Socket> configureSocket = null)
         {
+            if (readBufferSize < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(readBufferSize), "Must be greater than or equal to one");
+            }
+
+            if (writeBufferSize < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(writeBufferSize), "Must be greater than or equal to one");
+            }
+
+            if (writeQueueSize < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(writeQueueSize), "Must be greater than or equal to one");
+            }
+
+            if (connectTimeout < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(connectTimeout), "Must be greater than or equal to zero");
+            }
+
+            if (inactivityTimeout < -1 || inactivityTimeout == 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(inactivityTimeout), "Must be -1 or greater than or equal to one");
+            }
+
             ReadBufferSize = readBufferSize;
             WriteBufferSize = writeBufferSize;
             WriteQueueSize = writeQueueSize;

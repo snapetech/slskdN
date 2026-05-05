@@ -136,7 +136,18 @@ namespace Soulseek
             }
 
             MaximumUploadSpeed = maximumUploadSpeed;
+
+            if (MaximumUploadSpeed.HasValue && MaximumUploadSpeed.Value < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maximumUploadSpeed), "Must be greater than or equal to one");
+            }
+
             MaximumDownloadSpeed = maximumDownloadSpeed;
+
+            if (MaximumDownloadSpeed.HasValue && MaximumDownloadSpeed.Value < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maximumDownloadSpeed), "Must be greater than or equal to one");
+            }
 
             DeduplicateSearchRequests = deduplicateSearchRequests;
 

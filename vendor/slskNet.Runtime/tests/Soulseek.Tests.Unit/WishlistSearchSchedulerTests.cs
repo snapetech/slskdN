@@ -38,7 +38,7 @@ namespace Soulseek.Tests.Unit
             using (var scheduler = new WishlistSearchScheduler(
                 client.Object,
                 new[] { "alpha", "beta" },
-                new WishlistSearchSchedulerOptions(System.TimeSpan.FromMilliseconds(250), System.TimeSpan.Zero)))
+                new WishlistSearchSchedulerOptions(System.TimeSpan.FromMilliseconds(250), System.TimeSpan.FromMilliseconds(1))))
             {
                 scheduler.SearchCompleted += (_, __) =>
                 {
@@ -81,7 +81,7 @@ namespace Soulseek.Tests.Unit
             using (var scheduler = new WishlistSearchScheduler(
                 client.Object,
                 new[] { "alpha" },
-                new WishlistSearchSchedulerOptions(System.TimeSpan.FromSeconds(30), System.TimeSpan.Zero)))
+                new WishlistSearchSchedulerOptions(System.TimeSpan.FromSeconds(30), System.TimeSpan.FromMilliseconds(1))))
             {
                 scheduler.Start();
                 await WaitForCallCountAsync(() => callCount, 1);
@@ -137,7 +137,7 @@ namespace Soulseek.Tests.Unit
             using (var scheduler = new WishlistSearchScheduler(
                 client.Object,
                 new[] { "alpha" },
-                new WishlistSearchSchedulerOptions(System.TimeSpan.FromSeconds(30), System.TimeSpan.Zero)))
+                new WishlistSearchSchedulerOptions(System.TimeSpan.FromSeconds(30), System.TimeSpan.FromMilliseconds(1))))
             {
                 scheduler.Start();
                 await firstSearchStarted.Task;
@@ -179,7 +179,7 @@ namespace Soulseek.Tests.Unit
             var scheduler = new WishlistSearchScheduler(
                 client.Object,
                 new[] { "alpha" },
-                new WishlistSearchSchedulerOptions(System.TimeSpan.FromSeconds(30), System.TimeSpan.Zero));
+                new WishlistSearchSchedulerOptions(System.TimeSpan.FromSeconds(30), System.TimeSpan.FromMilliseconds(1)));
 
             scheduler.Start();
             await firstSearchStarted.Task;
@@ -208,6 +208,19 @@ namespace Soulseek.Tests.Unit
             scheduler.Dispose();
 
             Assert.Throws<ObjectDisposedException>(() => scheduler.Start());
+        }
+
+        [Theory(DisplayName = "Wishlist scheduler options reject non-positive intervals")]
+        [InlineData(0, 1)]
+        [InlineData(-1, 1)]
+        [InlineData(1, 0)]
+        [InlineData(1, -1)]
+        public void Wishlist_Scheduler_Options_Reject_Non_Positive_Intervals(int overrideMilliseconds, int minimumMilliseconds)
+        {
+            TimeSpan? intervalOverride = overrideMilliseconds == 1 ? System.TimeSpan.FromMilliseconds(1) : System.TimeSpan.FromMilliseconds(overrideMilliseconds);
+            TimeSpan? minimumInterval = minimumMilliseconds == 1 ? System.TimeSpan.FromMilliseconds(1) : System.TimeSpan.FromMilliseconds(minimumMilliseconds);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => new WishlistSearchSchedulerOptions(intervalOverride, minimumInterval));
         }
 
         private static async Task WaitForCallCountAsync(System.Func<int> getCallCount, int expected)

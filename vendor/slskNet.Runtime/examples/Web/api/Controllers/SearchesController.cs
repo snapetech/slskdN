@@ -177,6 +177,42 @@
                 return false;
             }
 
+            if (request.SearchTimeout.HasValue && request.SearchTimeout.Value < 1)
+            {
+                badRequest = BadRequest("Search timeout must be greater than or equal to one");
+                return false;
+            }
+
+            if (request.ResponseLimit.HasValue && request.ResponseLimit.Value < 1)
+            {
+                badRequest = BadRequest("Response limit must be greater than or equal to one");
+                return false;
+            }
+
+            if (request.FileLimit.HasValue && request.FileLimit.Value < 1)
+            {
+                badRequest = BadRequest("File limit must be greater than or equal to one");
+                return false;
+            }
+
+            if (request.MinimumResponseFileCount.HasValue && request.MinimumResponseFileCount.Value < 0)
+            {
+                badRequest = BadRequest("Minimum response file count must be greater than or equal to zero");
+                return false;
+            }
+
+            if (request.MaximumPeerQueueLength.HasValue && request.MaximumPeerQueueLength.Value < 0)
+            {
+                badRequest = BadRequest("Maximum peer queue length must be greater than or equal to zero");
+                return false;
+            }
+
+            if (request.MinimumPeerUploadSpeed.HasValue && request.MinimumPeerUploadSpeed.Value < 0)
+            {
+                badRequest = BadRequest("Minimum peer upload speed must be greater than or equal to zero");
+                return false;
+            }
+
             return true;
         }
     }

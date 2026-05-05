@@ -42,6 +42,13 @@ namespace Soulseek.Tests.Unit
             IPEndPoint endpoint,
             Exception exception)
         {
+            direction = TransferDirection.Download;
+            state = TransferStates.InProgress;
+            size = Math.Max(1, size);
+            startOffset = Math.Min(Math.Max(0, startOffset), size);
+            bytesTransferred = Math.Min(Math.Max(0, bytesTransferred), size);
+            averageSpeed = Math.Max(1, averageSpeed);
+
             var t = new Transfer(
                 direction,
                 username,

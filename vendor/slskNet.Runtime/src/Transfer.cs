@@ -67,26 +67,23 @@ namespace Soulseek
             int? remoteToken = null,
             IPEndPoint ipEndPoint = null,
             Exception exception = null)
+            : this(
+                direction,
+                username,
+                filename,
+                token,
+                state,
+                size,
+                startOffset,
+                bytesTransferred,
+                averageSpeed,
+                startTime,
+                endTime,
+                remoteToken,
+                ipEndPoint,
+                exception,
+                validate: true)
         {
-            Direction = direction;
-            Username = username;
-            Filename = filename;
-            Token = token;
-            State = state;
-            Size = size;
-            StartOffset = startOffset;
-            BytesTransferred = bytesTransferred;
-            AverageSpeed = averageSpeed;
-            StartTime = startTime;
-            EndTime = endTime;
-            RemoteToken = remoteToken;
-            IPEndPoint = ipEndPoint;
-            Exception = exception;
-
-            BytesRemaining = Size - BytesTransferred;
-            ElapsedTime = StartTime == null ? null : (TimeSpan?)((EndTime ?? DateTime.UtcNow) - StartTime.Value);
-            PercentComplete = Size == 0 ? 0 : (BytesTransferred / (double)Size) * 100;
-            RemainingTime = AverageSpeed == 0 ? null : (TimeSpan?)TimeSpan.FromSeconds(BytesRemaining / AverageSpeed);
         }
 
         /// <summary>
@@ -108,8 +105,82 @@ namespace Soulseek
                 transferInternal.EndTime,
                 transferInternal.RemoteToken,
                 transferInternal.IPEndPoint,
-                transferInternal.Exception)
+                transferInternal.Exception,
+                validate: false)
         {
+        }
+
+        private Transfer(
+            TransferDirection direction,
+            string username,
+            string filename,
+            int token,
+            TransferStates state,
+            long size,
+            long startOffset,
+            long bytesTransferred = 0,
+            double averageSpeed = 0,
+            DateTime? startTime = null,
+            DateTime? endTime = null,
+            int? remoteToken = null,
+            IPEndPoint ipEndPoint = null,
+            Exception exception = null,
+            bool validate = true)
+        {
+            if (validate && !Enum.IsDefined(typeof(TransferDirection), direction))
+            {
+                throw new ArgumentOutOfRangeException(nameof(direction), "Must be a defined transfer direction");
+            }
+
+            if (validate && size < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(size), "Must be greater than or equal to zero");
+            }
+
+            if (validate && startOffset < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(startOffset), "Must be greater than or equal to zero");
+            }
+
+            if (validate && startOffset > size)
+            {
+                throw new ArgumentOutOfRangeException(nameof(startOffset), "Must be less than or equal to size");
+            }
+
+            if (validate && bytesTransferred < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(bytesTransferred), "Must be greater than or equal to zero");
+            }
+
+            if (validate && bytesTransferred > size)
+            {
+                throw new ArgumentOutOfRangeException(nameof(bytesTransferred), "Must be less than or equal to size");
+            }
+
+            if (validate && averageSpeed < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(averageSpeed), "Must be greater than or equal to zero");
+            }
+
+            Direction = direction;
+            Username = username;
+            Filename = filename;
+            Token = token;
+            State = state;
+            Size = size;
+            StartOffset = startOffset;
+            BytesTransferred = bytesTransferred;
+            AverageSpeed = averageSpeed;
+            StartTime = startTime;
+            EndTime = endTime;
+            RemoteToken = remoteToken;
+            IPEndPoint = ipEndPoint;
+            Exception = exception;
+
+            BytesRemaining = Size - BytesTransferred;
+            ElapsedTime = StartTime == null ? null : (TimeSpan?)((EndTime ?? DateTime.UtcNow) - StartTime.Value);
+            PercentComplete = Size == 0 ? 0 : (BytesTransferred / (double)Size) * 100;
+            RemainingTime = AverageSpeed == 0 ? null : (TimeSpan?)TimeSpan.FromSeconds(BytesRemaining / AverageSpeed);
         }
 
         /// <summary>

@@ -23,6 +23,8 @@
 
 namespace Soulseek
 {
+    using System;
+
     /// <summary>
     ///     User data.
     /// </summary>
@@ -41,6 +43,36 @@ namespace Soulseek
         /// <param name="slotsFree">The number of the user's free download slots, if provided.</param>
         public UserData(string username, UserPresence status, int averageSpeed, long uploadCount, int fileCount, int directoryCount, string countryCode, int? slotsFree = null)
         {
+            if (!Enum.IsDefined(typeof(UserPresence), status))
+            {
+                throw new ArgumentOutOfRangeException(nameof(status), "Must be a defined user presence");
+            }
+
+            if (averageSpeed < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(averageSpeed), "Must be greater than or equal to zero");
+            }
+
+            if (uploadCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(uploadCount), "Must be greater than or equal to zero");
+            }
+
+            if (fileCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(fileCount), "Must be greater than or equal to zero");
+            }
+
+            if (directoryCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(directoryCount), "Must be greater than or equal to zero");
+            }
+
+            if (slotsFree.HasValue && slotsFree.Value < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(slotsFree), "Must be greater than or equal to zero");
+            }
+
             Username = username;
             Status = status;
             AverageSpeed = averageSpeed;

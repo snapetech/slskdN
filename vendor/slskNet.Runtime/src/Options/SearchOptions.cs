@@ -63,6 +63,36 @@ namespace Soulseek
             Action<(SearchStates PreviousState, Search Search)> stateChanged = null,
             Action<(Search Search, SearchResponse Response)> responseReceived = null)
         {
+            if (searchTimeout < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(searchTimeout), "Must be greater than or equal to one");
+            }
+
+            if (responseLimit < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(responseLimit), "Must be greater than or equal to one");
+            }
+
+            if (minimumResponseFileCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(minimumResponseFileCount), "Must be greater than or equal to zero");
+            }
+
+            if (maximumPeerQueueLength < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maximumPeerQueueLength), "Must be greater than or equal to zero");
+            }
+
+            if (minimumPeerUploadSpeed < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(minimumPeerUploadSpeed), "Must be greater than or equal to zero");
+            }
+
+            if (fileLimit < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(fileLimit), "Must be greater than or equal to one");
+            }
+
             SearchTimeout = searchTimeout;
             ResponseLimit = responseLimit;
             FileLimit = fileLimit;

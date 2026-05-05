@@ -17,13 +17,15 @@
 
 namespace Soulseek.Tests.Unit.Options
 {
-    using AutoFixture.Xunit2;
+    using System;
     using Xunit;
 
     public class ConnectionOptionsTests
     {
         [Trait("Category", "Instantiation")]
-        [Theory(DisplayName = "Instantiates properly"), AutoData]
+        [Theory(DisplayName = "Instantiates properly")]
+        [InlineData(1, 1, 1, 0, -1)]
+        [InlineData(16384, 16384, 250, 10000, 15000)]
         public void Instantiates_Properly(int read, int write, int depth, int timeout, int inactivity)
         {
             ConnectionOptions o = null;
@@ -38,6 +40,18 @@ namespace Soulseek.Tests.Unit.Options
             Assert.Equal(depth, o.WriteQueueSize);
             Assert.Equal(timeout, o.ConnectTimeout);
             Assert.Equal(inactivity, o.InactivityTimeout);
+        }
+
+        [Theory(DisplayName = "Throws on invalid scalar options")]
+        [InlineData(0, 1, 1, 1, 1)]
+        [InlineData(1, 0, 1, 1, 1)]
+        [InlineData(1, 1, 0, 1, 1)]
+        [InlineData(1, 1, 1, -1, 1)]
+        [InlineData(1, 1, 1, 1, -2)]
+        [InlineData(1, 1, 1, 1, 0)]
+        public void Throws_On_Invalid_Scalar_Options(int read, int write, int depth, int timeout, int inactivity)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new ConnectionOptions(read, write, depth, timeout, inactivity));
         }
 
         [Trait("Category", "WithoutInactivityTimeout")]

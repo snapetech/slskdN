@@ -49,6 +49,8 @@ namespace Soulseek.Tests.Unit.Options
 
             var userEndPointCache = new Mock<IUserEndPointCache>();
             var searchResponseCache = new Mock<ISearchResponseCache>();
+            maximumUploadSpeed = NormalizePositive(maximumUploadSpeed);
+            maximumDownloadSpeed = NormalizePositive(maximumDownloadSpeed);
 
             var searchResponseResolver = new Func<string, int, SearchQuery, Task<SearchResponse>>((s, i, q) => Task.FromResult<SearchResponse>(null));
             var browseResponseResolver = new Func<string, IPEndPoint, Task<BrowseResponse>>((s, i) => Task.FromResult<BrowseResponse>(null));
@@ -193,5 +195,19 @@ namespace Soulseek.Tests.Unit.Options
             Assert.NotNull(ex);
             Assert.IsType<ArgumentOutOfRangeException>(ex);
         }
+
+        [Theory(DisplayName = "Throws if maximum speed is less than one")]
+        [InlineData(0, 1)]
+        [InlineData(-1, 1)]
+        [InlineData(1, 0)]
+        [InlineData(1, -1)]
+        public void Throws_If_Maximum_Speed_Is_Less_Than_One(int maximumUploadSpeed, int maximumDownloadSpeed)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new SoulseekClientOptionsPatch(
+                maximumUploadSpeed: maximumUploadSpeed,
+                maximumDownloadSpeed: maximumDownloadSpeed));
+        }
+
+        private static int? NormalizePositive(int? value) => value.HasValue ? Math.Max(1, value.Value) : value;
     }
 }

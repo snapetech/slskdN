@@ -3,6 +3,7 @@
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Soulseek;
+    using System.Net;
     using System.Threading.Tasks;
     using WebAPI.DTO;
 
@@ -57,6 +58,11 @@
 
             if (addr && port && un && pw)
             {
+                if (req.Port.Value < IPEndPoint.MinPort || req.Port.Value > IPEndPoint.MaxPort)
+                {
+                    return BadRequest($"Port must be between {IPEndPoint.MinPort} and {IPEndPoint.MaxPort}");
+                }
+
                 await Client.ConnectAsync(req.Address, req.Port.Value, req.Username, req.Password);
                 return Ok();
             }

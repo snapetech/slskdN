@@ -181,6 +181,11 @@ namespace Soulseek
 
             MaximumUploadSpeed = maximumUploadSpeed;
 
+            if (MaximumUploadSpeed < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maximumUploadSpeed), "Must be greater than or equal to one");
+            }
+
             MaximumConcurrentDownloads = maximumConcurrentDownloads;
 
             if (MaximumConcurrentDownloads < 1)
@@ -189,6 +194,11 @@ namespace Soulseek
             }
 
             MaximumDownloadSpeed = maximumDownloadSpeed;
+
+            if (MaximumDownloadSpeed < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maximumDownloadSpeed), "Must be greater than or equal to one");
+            }
 
             DeduplicateSearchRequests = deduplicateSearchRequests;
 

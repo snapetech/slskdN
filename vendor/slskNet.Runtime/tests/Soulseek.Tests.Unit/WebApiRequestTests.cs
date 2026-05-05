@@ -18,10 +18,16 @@
 namespace Soulseek.Tests.Unit
 {
     using System;
+    using System.Collections.Generic;
     using System.IdentityModel.Tokens.Jwt;
+    using System.IO;
+    using System.Net;
+    using System.Reflection;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.Extensions.Configuration;
     using Moq;
+    using WebAPI;
     using WebAPI.Controllers;
     using WebAPI.DTO;
     using WebAPI.Trackers;
@@ -69,6 +75,55 @@ namespace Soulseek.Tests.Unit
             var controller = new ServerController(Mock.Of<ISoulseekClient>());
 
             var response = await controller.Connect(null);
+
+            Assert.IsType<BadRequestObjectResult>(response);
+        }
+
+        [Theory(DisplayName = "Connect endpoint rejects invalid port")]
+        [InlineData(-1)]
+        [InlineData(65536)]
+        public async Task Connect_Endpoint_Rejects_Invalid_Port(int port)
+        {
+            var controller = new ServerController(Mock.Of<ISoulseekClient>());
+
+            var response = await controller.Connect(new ConnectRequest
+            {
+                Address = "127.0.0.1",
+                Port = port,
+                Username = "user",
+                Password = "pass",
+            });
+
+            Assert.IsType<BadRequestObjectResult>(response);
+        }
+
+        [Theory(DisplayName = "Search endpoint rejects invalid option values")]
+        [InlineData(0, null, null, null, null, null)]
+        [InlineData(null, 0, null, null, null, null)]
+        [InlineData(null, null, 0, null, null, null)]
+        [InlineData(null, null, null, -1, null, null)]
+        [InlineData(null, null, null, null, -1, null)]
+        [InlineData(null, null, null, null, null, -1)]
+        public async Task Search_Endpoint_Rejects_Invalid_Option_Values(
+            int? searchTimeout,
+            int? responseLimit,
+            int? fileLimit,
+            int? minimumResponseFileCount,
+            int? maximumPeerQueueLength,
+            int? minimumPeerUploadSpeed)
+        {
+            var controller = new SearchesController(Mock.Of<ISoulseekClient>(), new SearchTracker());
+
+            var response = await controller.Post(new SearchRequest
+            {
+                SearchText = "music",
+                SearchTimeout = searchTimeout,
+                ResponseLimit = responseLimit,
+                FileLimit = fileLimit,
+                MinimumResponseFileCount = minimumResponseFileCount,
+                MaximumPeerQueueLength = maximumPeerQueueLength,
+                MinimumPeerUploadSpeed = minimumPeerUploadSpeed,
+            });
 
             Assert.IsType<BadRequestObjectResult>(response);
         }
@@ -150,6 +205,45 @@ namespace Soulseek.Tests.Unit
 
             Assert.Null(response.Name);
             Assert.Equal(((DateTimeOffset)token.ValidFrom).ToUnixTimeSeconds(), response.NotBefore);
+        }
+
+        [Fact(DisplayName = "User info resolver tolerates missing sample picture")]
+        public async Task User_Info_Resolver_Tolerates_Missing_Sample_Picture()
+        {
+            var originalDirectory = Directory.GetCurrentDirectory();
+            var temp = Path.Combine(Path.GetTempPath(), "slsknet-runtime-tests", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(temp);
+
+            try
+            {
+                Directory.SetCurrentDirectory(temp);
+                var startup = new Startup(BuildConfiguration(temp));
+                var method = typeof(Startup).GetMethod("UserInfoResponseResolver", BindingFlags.Instance | BindingFlags.NonPublic);
+
+                var task = (Task<UserInfo>)method.Invoke(startup, new object[] { "user", new IPEndPoint(IPAddress.Loopback, 1) });
+                var response = await task;
+
+                Assert.False(response.HasPicture);
+                Assert.Null(response.Picture);
+            }
+            finally
+            {
+                Directory.SetCurrentDirectory(originalDirectory);
+                Directory.Delete(temp, recursive: true);
+            }
+        }
+
+        private static IConfiguration BuildConfiguration(string directory)
+        {
+            return new ConfigurationBuilder()
+                .AddInMemoryCollection(new[]
+                {
+                    new KeyValuePair<string, string>("USERNAME", "user"),
+                    new KeyValuePair<string, string>("PASSWORD", "password"),
+                    new KeyValuePair<string, string>("SHARED_DIR", directory),
+                    new KeyValuePair<string, string>("OUTPUT_DIR", directory),
+                })
+                .Build();
         }
     }
 }

@@ -39,6 +39,11 @@ namespace Soulseek
             int responseTimeout = 60000,
             Action<(string Username, long BytesTransferred, long BytesRemaining, double PercentComplete, long Size)> progressUpdated = null)
         {
+            if (responseTimeout < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(responseTimeout), "Must be greater than or equal to one");
+            }
+
             ResponseTimeout = responseTimeout;
             ProgressUpdated = progressUpdated;
         }

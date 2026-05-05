@@ -461,9 +461,17 @@ namespace WebAPI
         /// <returns>A Task resolving the UserInfo instance.</returns>
         private Task<UserInfo> UserInfoResponseResolver(string username, IPEndPoint endpoint)
         {
+            byte[] picture = null;
+            const string PicturePath = "slsk_bird.jpg";
+
+            if (System.IO.File.Exists(PicturePath))
+            {
+                picture = System.IO.File.ReadAllBytes(PicturePath);
+            }
+
             var info = new UserInfo(
                 description: $"Soulseek.NET Web Example! also, your username is {username}, and IP endpoint is {endpoint}",
-                picture: System.IO.File.ReadAllBytes(@"slsk_bird.jpg"),
+                picture: picture,
                 uploadSlots: 1,
                 queueLength: 0,
                 hasFreeUploadSlot: false);

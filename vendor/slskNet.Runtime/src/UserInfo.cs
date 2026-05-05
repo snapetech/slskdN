@@ -23,6 +23,8 @@
 
 namespace Soulseek
 {
+    using System;
+
     /// <summary>
     ///     The response to a user info request.
     /// </summary>
@@ -38,6 +40,16 @@ namespace Soulseek
         /// <param name="hasFreeUploadSlot">A value indicating whether an upload slot is free.</param>
         public UserInfo(string description, int uploadSlots, int queueLength, bool hasFreeUploadSlot, byte[] picture = null)
         {
+            if (uploadSlots < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(uploadSlots), "Must be greater than or equal to zero");
+            }
+
+            if (queueLength < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(queueLength), "Must be greater than or equal to zero");
+            }
+
             Description = description;
             HasPicture = picture != null;
             Picture = picture;
