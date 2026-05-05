@@ -2310,3 +2310,11 @@
 - [x] Fix manual publish output cleanup before kspls0 deployment
   - Status: completed (2026-05-05)
   - Notes: `bin/publish --output` now cleans the resolved output path instead of a separate hard-coded runtime directory, preventing stale files from leaking into manual install payloads.
+
+- [x] Correct generated logo placement and transparent icon assets
+  - Status: completed (2026-05-05)
+  - Notes: Replaced dark square icon crops with transparent app/PWA/favicon/footer derivatives, switched the footer to a wire-style mark, and enlarged the login lockup so the brand reads correctly on the sign-in screen.
+
+- [x] Add README tester funnel for slskr Rust rewrite
+  - Status: completed (2026-05-05)
+  - Notes: Added a prominent top-of-README callout linking to `snapetech/slskr` and positioning it as an independent Rust implementation targeting slskdN feature parity and Soulseek-network compatibility.

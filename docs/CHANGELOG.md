@@ -33,6 +33,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
   `snapetech/slskdn`.
 - Replaced the Web UI ASCII/logo placeholders with generated slskdN favicon,
   PWA, login, and footer logo assets.
+- Refined generated logo usage with a larger login lockup and transparent
+  favicon/PWA/footer icons so small app marks no longer render as dark boxes.
+- Added a prominent README funnel for early testers of the independent Rust
+  `slskr` rewrite targeting slskdN feature parity and Soulseek-network
+  compatibility.
 - Bounded release-gate commands and tag build jobs with explicit timeouts so a
   stalled test or child process fails with an actionable gate section.
 - Fixed manual publish cleanup so `bin/publish --output` clears the configured

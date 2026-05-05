@@ -1,5 +1,5 @@
 import './Footer.css';
-import footerLogo from '../../assets/brand/slskdn-icon.png';
+import footerLogo from '../../assets/brand/slskdn-icon-wire.png';
 import * as application from '../../lib/application';
 import * as mesh from '../../lib/mesh';
 import * as session from '../../lib/session';

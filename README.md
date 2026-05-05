@@ -7,6 +7,7 @@
 </p>
 <p align="center">
   <a href="https://github.com/snapetech/slskdn/releases">Releases</a> •
+  <a href="https://github.com/snapetech/slskr">Rust Rewrite Preview</a> •
   <a href="https://github.com/snapetech/slskdn/issues">Issues</a> •
   <a href="#features">Features</a> •
   <a href="#quick-start">Quick Start</a> •
@@ -28,6 +29,11 @@
   <a href="https://github.com/snapetech/slskdn/blob/main/LICENSE"><img src="https://img.shields.io/github/license/snapetech/slskdn" alt="License"></a>
   <a href="https://discord.gg/NRzj8xycQZ"><img src="https://img.shields.io/badge/Discord-Join%20Chat-5865F2?logo=discord&logoColor=white" alt="Discord"></a>
 </p>
+
+---
+
+> [!IMPORTANT]
+> **Rust rewrite testers wanted:** [`slskr`](https://github.com/snapetech/slskr) is an independent Rust implementation targeting slskdN feature parity and Soulseek-network compatibility. It is the forward-looking runtime for people who want to test the next-generation daemon/API/Web UI stack early. If you can run live searches, browse peers, transfer files, or stress a long-lived node, please try it and report findings in [`snapetech/slskr`](https://github.com/snapetech/slskr) or join the [Discord](https://discord.gg/5PyXBfvS6T).
 
 ---
 

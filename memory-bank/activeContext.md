@@ -4972,3 +4972,16 @@ dotnet test
 - Next steps:
   1. Commit/push the logo and release-gate changes.
   2. Push a new build-main tag and monitor the replacement release run.
+
+## Update 2026-05-05 07:37:55Z
+
+- Current task: Logo asset correction and kspls0 redeploy is in progress.
+- Last activity:
+  - replaced the dark square app-icon derivatives with transparent icon assets
+  - added a wire-style transparent icon for favicon/footer use
+  - enlarged the login lockup and widened the login column
+  - documented the branding placement gotcha separately
+- Next steps:
+  1. Re-run web tests/lint/build.
+  2. Commit and push the branding correction.
+  3. Publish and redeploy the corrected manual build to `kspls0`.

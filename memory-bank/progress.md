@@ -9503,3 +9503,10 @@ Code quality improvements were completed as part of Option A:
 
 - While preparing the manual `kspls0` install, found `bin/publish --output` cleaned the wrong hard-coded output path and could leave stale files in the requested publish directory.
 - Documented the publish-output cleanup gotcha separately, then changed `bin/publish` to remove and recreate the actual configured output directory before `dotnet publish`.
+
+## 2026-05-05 07:37:55Z
+
+- Reviewed the first logo replacement in context and found the login lockup was undersized while favicon/PWA/footer icons reused a flattened dark square crop with no alpha.
+- Documented the app-logo placement gotcha separately, then regenerated transparent icon derivatives from the light cube source and a wire-style transparent favicon/footer mark.
+- Increased the login brand treatment to use a larger lockup and switched the footer image to the wire-style transparent icon.
+- Added a high-visibility README callout to the `snapetech/slskr` GitHub repo for early testers of the independent Rust rewrite.

@@ -73,7 +73,7 @@ const LoginForm = ({ error, loading, onLoginAttempt }) => {
         textAlign="center"
         verticalAlign="middle"
       >
-        <Grid.Column style={{ maxWidth: 460 }}>
+        <Grid.Column style={{ maxWidth: 520 }}>
           <Header
             as="h2"
             className="login-brand"

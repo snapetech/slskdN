@@ -86,10 +86,10 @@
     width: 24px;
     height: 24px;
     overflow: hidden;
-    border: 1px solid rgba(0, 206, 201, 0.38);
+    border: 1px solid rgba(0, 206, 201, 0.28);
     border-radius: 5px;
-    background: #06090d;
-    box-shadow: 0 0 12px rgba(0, 206, 201, 0.16);
+    background: rgba(0, 206, 201, 0.04);
+    box-shadow: 0 0 12px rgba(0, 206, 201, 0.12);
 }
 
 .slskdn-footer-logo:hover {
@@ -99,9 +99,9 @@
 
 .slskdn-footer-logo img {
     display: block;
-    width: 30px;
-    height: 30px;
-    object-fit: cover;
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
 }
 
 .slskdn-footer-sponsor {
