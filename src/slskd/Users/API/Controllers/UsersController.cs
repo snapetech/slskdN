@@ -212,7 +212,7 @@ namespace slskd.Users.API
         /// <param name="request">The directory contents request.</param>
         /// <returns></returns>
         [HttpPost("{username}/directory")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(typeof(IEnumerable<Directory>), 200)]
         [ProducesResponseType(404)]
         [ProducesResponseType(503)]

@@ -59,7 +59,7 @@ namespace slskd.Transfers.Ranking.API
         /// <param name="usernames">The usernames to get history for.</param>
         /// <returns>A dictionary of username to download history.</returns>
         [HttpPost("history")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(typeof(IDictionary<string, UserDownloadHistory>), 200)]
         public async Task<IActionResult> GetHistories([FromBody] List<string> usernames)
         {
@@ -89,7 +89,7 @@ namespace slskd.Transfers.Ranking.API
         /// <param name="candidates">The candidates to rank.</param>
         /// <returns>The ranked candidates, best first.</returns>
         [HttpPost("rank")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(typeof(IEnumerable<RankedSource>), 200)]
         public async Task<IActionResult> RankSources([FromBody] List<SourceCandidate> candidates)
         {

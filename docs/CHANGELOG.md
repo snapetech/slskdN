@@ -55,6 +55,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
   user membership in the `slskd` group.
 - Carried the same tmpfiles-based permission metadata through tag-release AUR,
   RPM, and PPA packaging.
+- Hardened remote path handling, relay transfers, streaming tickets, multi-source
+  output paths, config writes/debug redaction, memory dump cleanup, login attempt
+  tracking, and mutating API role checks from the security audit.
+- Made governance, pod, and ActivityPub signature handling fail closed unless
+  signer identity can be verified, and replaced unstable hash-code identifiers
+  with stable SHA-256-derived values.
+- Tightened release packaging metadata with passive PPA FTP settings, upstream
+  tmpfiles checksums, and RPM directory ownership cleanup.
 - Fixed remediation check invocation from both the repo root and `src/web`,
   restored direct `./bin/lint` execution, reconciled stale project audit
   entries, and clarified how frontend build assets are copied into backend

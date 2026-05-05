@@ -1,3 +1,14 @@
+## Update 2026-05-05 10:28:00Z
+
+- Current task: Security and bug-hunt fix batch is complete locally.
+- Last activity:
+  - fixed remote-path traversal, relay path/upload limits, mutating API authorization, config/dump/secret handling, streaming ticket/content lookup limits, multi-source path containment, stable IDs/seeds, FTS parameterization, login attempt pruning, governance/pod/federation signature fail-closed behavior, and affected PPA/RPM/upstream release metadata
+  - documented ADR-0001 gotchas in separate commits `40770fe6d` and `3c33ceea6`
+  - validation passed: full `dotnet test slskd.sln --no-build`, `./bin/lint`, controller CSRF check, anonymous endpoint check, packaging metadata validation, sensitive placeholder scan, and web fetch CSRF scan
+- Next steps:
+  1. Review and commit/push the implementation changes.
+  2. Create a new build tag only when ready to cut the requested release.
+
 ## Update 2026-05-05 09:34:00Z
 
 - Current task: Systemd package permission fix is complete locally.

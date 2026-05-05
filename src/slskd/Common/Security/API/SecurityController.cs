@@ -29,7 +29,7 @@ using IOFile = System.IO.File;
 [ApiController]
 [Route("api/v{version:apiVersion}/security")]
 [ApiVersion("0")]
-[Authorize]
+[Authorize(Policy = AuthPolicy.Any)]
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
 public class SecurityController : ControllerBase
 {
@@ -522,7 +522,7 @@ public class SecurityController : ControllerBase
     }
 
     [HttpPut("adversarial")]
-    [Authorize(Roles = "Administrator")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     public ActionResult UpdateAdversarialSettings([FromBody] AdversarialOptions settings)
     {
         if (settings == null)
@@ -570,8 +570,8 @@ public class SecurityController : ControllerBase
             {
                 var rootNode = (YamlMappingNode)yamlStream.Documents[0].RootNode;
 
-                // Get or create Security node
-                var securityKey = new YamlScalarNode("Security");
+                // Get or create security node
+                var securityKey = new YamlScalarNode("security");
                 if (!rootNode.Children.ContainsKey(securityKey))
                 {
                     rootNode.Children[securityKey] = new YamlMappingNode();
@@ -579,8 +579,8 @@ public class SecurityController : ControllerBase
 
                 var securityNode = (YamlMappingNode)rootNode.Children[securityKey];
 
-                // Get or create Adversarial node
-                var adversarialKey = new YamlScalarNode("Adversarial");
+                // Get or create adversarial node
+                var adversarialKey = new YamlScalarNode("adversarial");
                 if (!securityNode.Children.ContainsKey(adversarialKey))
                 {
                     securityNode.Children[adversarialKey] = new YamlMappingNode();
@@ -604,7 +604,9 @@ public class SecurityController : ControllerBase
             using (var writer = new StringWriter())
             {
                 yamlStream.Save(writer, false);
-                IOFile.WriteAllText(configFile, writer.ToString());
+                var tempFile = $"{configFile}.{Guid.NewGuid():N}.tmp";
+                IOFile.WriteAllText(tempFile, writer.ToString());
+                IOFile.Move(tempFile, configFile, overwrite: true);
             }
 
             // Check if config watch is disabled (requires restart)

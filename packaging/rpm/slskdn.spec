@@ -138,9 +138,6 @@ echo ""
 %dir %attr(0775,slskd,slskd) %{_sharedstatedir}/slskd/downloads
 %dir %attr(0775,slskd,slskd) %{_sharedstatedir}/slskd/incomplete
 %{_sysusersdir}/slskd.conf
-%dir %attr(755,slskd,slskd) %{_sharedstatedir}/slskd
-%dir %attr(755,slskd,slskd) %{_sharedstatedir}/slskd/downloads
-%dir %attr(755,slskd,slskd) %{_sharedstatedir}/slskd/incomplete
 
 %changelog
 * Sat Mar 23 2026 snapetech <slskdn@proton.me> - 0.24.5.slskdn.97-1

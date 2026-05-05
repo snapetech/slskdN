@@ -534,7 +534,7 @@ public class LibraryItemsController : ControllerBase
             // Generate stable contentId: prefer sha256, fallback to path-based
             var contentId = !string.IsNullOrEmpty(sha256)
                 ? $"sha256:{sha256}"
-                : $"path:{filename.GetHashCode():X8}:{size}";
+                : $"path:{slskd.Compute.Sha256Hash($"{filename}|{size}")}";
 
             try
             {

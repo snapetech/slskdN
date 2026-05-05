@@ -169,7 +169,7 @@ namespace slskd.Core.API
         /// </summary>
         /// <returns></returns>
         [HttpPost("gc")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public IActionResult CollectGarbage()
         {
             Application.CollectGarbage();
@@ -228,11 +228,25 @@ namespace slskd.Core.API
                 return StatusCode(501, "Memory dump creation failed.");
             }
 
+            Response.OnCompleted(() =>
+            {
+                try
+                {
+                    System.IO.File.Delete(path!);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Failed to delete temporary memory dump {Path}", path);
+                }
+
+                return Task.CompletedTask;
+            });
+
             return PhysicalFile(path!, "application/octet-stream", "slskd.dmp");
         }
 
         [HttpPost("loopback")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public IActionResult Loopback([FromBody] object body)
         {
             if (body == null)

@@ -226,7 +226,7 @@ namespace slskd.Transfers.MultiSource.API
         /// <param name="request">The file to search for.</param>
         /// <returns>All sources that have this exact file.</returns>
         [HttpPost("file-sources")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> FindFileSources([FromBody] FileSourceRequest request)
         {
             if (string.IsNullOrWhiteSpace(request?.Filename))
@@ -336,7 +336,7 @@ namespace slskd.Transfers.MultiSource.API
         /// <param name="request">The download request.</param>
         /// <returns>Download result.</returns>
         [HttpPost("download-file")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> DownloadFile([FromBody] FileSourceRequest request)
         {
             if (string.IsNullOrWhiteSpace(request?.Filename) || request.Size == 0)
@@ -436,7 +436,7 @@ namespace slskd.Transfers.MultiSource.API
         /// <param name="request">The swarm download request.</param>
         /// <returns>Download result with per-source stats.</returns>
         [HttpPost("swarm")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> SwarmDownload([FromBody] SwarmDownloadRequest request)
         {
             if (request == null)
@@ -646,7 +646,7 @@ namespace slskd.Transfers.MultiSource.API
         /// <param name="request">The swarm download request.</param>
         /// <returns>Job ID and initial status.</returns>
         [HttpPost("swarm/async")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> SwarmDownloadAsync([FromBody] SwarmDownloadRequest request)
         {
             if (request == null)
@@ -926,7 +926,7 @@ namespace slskd.Transfers.MultiSource.API
         /// <param name="request">The verification request.</param>
         /// <returns>Verification results with sources grouped by content hash.</returns>
         [HttpPost("verify")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> VerifySources([FromBody] VerifyRequest request)
         {
             if (request == null || string.IsNullOrWhiteSpace(request.Filename))
@@ -965,7 +965,7 @@ namespace slskd.Transfers.MultiSource.API
         /// <param name="request">The download request.</param>
         /// <returns>Download result.</returns>
         [HttpPost("download")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> Download([FromBody] DownloadRequest request)
         {
             if (request == null || string.IsNullOrWhiteSpace(request.Filename))
@@ -1038,7 +1038,7 @@ namespace slskd.Transfers.MultiSource.API
         /// <param name="request">The test request.</param>
         /// <returns>Complete test results.</returns>
         [HttpPost("test")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> RunTest([FromBody] TestRequest request)
         {
             if (request == null || string.IsNullOrWhiteSpace(request.SearchText))

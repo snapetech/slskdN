@@ -37,6 +37,7 @@ using Soulseek;
 public class SharesController : ControllerBase
 {
     private const long MaxBackfillHttpDownloadBytes = 512L * 1024L * 1024L;
+    private static readonly TimeSpan MaxShareTokenLifetime = TimeSpan.FromDays(30);
 
     private readonly ISharingService _sharing;
     private readonly IShareTokenService _tokens;
@@ -147,7 +148,7 @@ public class SharesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Policy = AuthPolicy.Any)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(ShareGrant), 201)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
@@ -283,7 +284,7 @@ public class SharesController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Policy = AuthPolicy.Any)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody, Required] UpdateShareGrantRequest req, CancellationToken ct)
@@ -306,7 +307,7 @@ public class SharesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Policy = AuthPolicy.Any)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(204)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken ct)
@@ -323,7 +324,7 @@ public class SharesController : ControllerBase
 
     /// <summary>Ingest a share-grant announcement directly (E2E only).</summary>
     [HttpPost("announce")]
-    [Authorize(Policy = AuthPolicy.Any)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> Announce([FromBody] ShareGrantAnnouncement req, CancellationToken ct)
@@ -352,7 +353,7 @@ public class SharesController : ControllerBase
 
     /// <summary>Create a share token for this grant. Caller must own the collection. Requires Sharing:TokenSigningKey.</summary>
     [HttpPost("{id}/token")]
-    [Authorize(Policy = AuthPolicy.Any)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(TokenResponse), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
@@ -368,6 +369,11 @@ public class SharesController : ControllerBase
         var expiresIn = req.ExpiresInSeconds.HasValue && req.ExpiresInSeconds.Value > 0
             ? TimeSpan.FromSeconds(req.ExpiresInSeconds.Value)
             : TimeSpan.FromHours(24);
+        if (expiresIn > MaxShareTokenLifetime)
+        {
+            return BadRequest($"Token lifetime cannot exceed {(int)MaxShareTokenLifetime.TotalDays} days.");
+        }
+
         try
         {
             var token = await _sharing.CreateTokenAsync(id, expiresIn, ct);
@@ -418,7 +424,7 @@ public class SharesController : ControllerBase
     /// Supports both HTTP downloads (for cross-node shares, no Soulseek required) and Soulseek downloads (if owner is a Soulseek user).
     /// </summary>
     [HttpPost("{id}/backfill")]
-    [Authorize(Policy = AuthPolicy.Any)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(BackfillResponse), 200)]
     [ProducesResponseType(403)]
     [ProducesResponseType(404)]
@@ -689,11 +695,6 @@ public class SharesController : ControllerBase
 
     private static bool TryBuildBackfillUri(string streamUrl, string? ownerEndpoint, out Uri uri)
     {
-        if (Uri.TryCreate(streamUrl, UriKind.Absolute, out uri!))
-        {
-            return true;
-        }
-
         if (string.IsNullOrWhiteSpace(ownerEndpoint))
         {
             uri = null!;
@@ -706,7 +707,13 @@ public class SharesController : ControllerBase
             return false;
         }
 
-        return Uri.TryCreate(ownerUri, streamUrl, out uri!);
+        if (!Uri.TryCreate(ownerUri, streamUrl, out uri!))
+        {
+            return false;
+        }
+
+        return string.Equals(uri.Scheme, ownerUri.Scheme, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(uri.Authority, ownerUri.Authority, StringComparison.OrdinalIgnoreCase);
     }
 
     private static void TryDeletePartialBackfillFile(string filePath)

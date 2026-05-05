@@ -11,10 +11,18 @@ using System.Security.Cryptography;
 /// </summary>
 public sealed class StreamTicketService : IStreamTicketService
 {
+    private const int MaxTickets = 10000;
+
     private readonly ConcurrentDictionary<string, StreamTicketClaims> _tickets = new();
 
     public string Create(string contentId, string ownerKey, TimeSpan lifetime)
     {
+        CleanupExpired();
+        if (_tickets.Count >= MaxTickets)
+        {
+            throw new InvalidOperationException("Too many active stream tickets.");
+        }
+
         var ticket = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
             .TrimEnd('=')
             .Replace('+', '-')

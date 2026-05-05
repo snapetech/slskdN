@@ -603,9 +603,10 @@ namespace slskd.Shares
             var match = string.Join(" AND ", query.Terms.Select(token => $"\"{Clean(token)}\""));
             var exclusions = string.Join(" OR ", query.Exclusions.Select(exclusion => $"\"{Clean(exclusion)}\""));
 
-            var sql = $"SELECT files.maskedFilename, files.code, files.size, files.extension, files.attributeJson FROM filenames " +
+            var ftsQuery = $"({match}) {(query.Exclusions.Any() ? $"NOT ({exclusions})" : string.Empty)}";
+            var sql = "SELECT files.maskedFilename, files.code, files.size, files.extension, files.attributeJson FROM filenames " +
                 "INNER JOIN files ON filenames.maskedFilename = files.maskedFilename " +
-                $"WHERE filenames MATCH '({match}) {(query.Exclusions.Any() ? $"NOT ({exclusions})" : string.Empty)}' " +
+                "WHERE filenames MATCH @match " +
                 $"ORDER BY filenames.maskedFilename ASC {(limit.HasValue ? $"LIMIT {limit.Value}" : string.Empty)};";
 
             var results = new List<Soulseek.File>();
@@ -614,6 +615,7 @@ namespace slskd.Shares
             {
                 using var conn = GetConnection();
                 using var cmd = new SqliteCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@match", ftsQuery);
                 using var reader = cmd.ExecuteReader();
 
                 while (reader.Read())

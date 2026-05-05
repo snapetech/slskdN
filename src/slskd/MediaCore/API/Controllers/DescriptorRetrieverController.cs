@@ -168,7 +168,7 @@ public class DescriptorRetrieverController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Verification result.</returns>
     [HttpPost("verify")]
-    [Authorize(Policy = AuthPolicy.Any)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> VerifyDescriptor([FromBody] VerifyDescriptorRequest request, CancellationToken cancellationToken = default)
     {
         if (request?.Descriptor == null)

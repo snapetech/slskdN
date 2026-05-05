@@ -43,6 +43,7 @@ namespace slskd.Core.API
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (int Failures, DateTimeOffset LastFailure, DateTimeOffset? LockoutUntil)> _loginAttempts = new();
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (int Failures, DateTimeOffset LastFailure, DateTimeOffset? LockoutUntil)> _userLoginAttempts = new(StringComparer.OrdinalIgnoreCase);
         private const int MaxFailures = 5;
+        private const int MaxTrackedLoginAttempts = 10000;
         private static readonly TimeSpan LockoutDuration = TimeSpan.FromHours(1);
         private static readonly TimeSpan WindowDuration = TimeSpan.FromMinutes(15);
 
@@ -99,7 +100,7 @@ namespace slskd.Core.API
         /// <response code="204">Logout successful.</response>
         [HttpDelete]
         [Route("")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(204)]
         public IActionResult Logout()
         {
@@ -135,7 +136,7 @@ namespace slskd.Core.API
             }
 
             login.Username = login.Username?.Trim() ?? string.Empty;
-            login.Password = login.Password?.Trim() ?? string.Empty;
+            login.Password ??= string.Empty;
 
             if (OptionsAtStartup.Headless)
             {
@@ -151,6 +152,7 @@ namespace slskd.Core.API
             var normalizedUsername = login.Username;
             var normalizedPassword = login.Password;
             var remoteIp = HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "unknown";
+            PruneLoginAttempts();
 
             // Check for active lockout by IP (defends single-source spam)
             if (_loginAttempts.TryGetValue(remoteIp, out var existing) && existing.LockoutUntil.HasValue && existing.LockoutUntil.Value > DateTimeOffset.UtcNow)
@@ -199,6 +201,35 @@ namespace slskd.Core.API
                 });
 
             return Unauthorized();
+        }
+
+        private static void PruneLoginAttempts()
+        {
+            Prune(_loginAttempts);
+            Prune(_userLoginAttempts);
+        }
+
+        private static void Prune(System.Collections.Concurrent.ConcurrentDictionary<string, (int Failures, DateTimeOffset LastFailure, DateTimeOffset? LockoutUntil)> attempts)
+        {
+            var now = DateTimeOffset.UtcNow;
+            foreach (var item in attempts)
+            {
+                if ((!item.Value.LockoutUntil.HasValue && now - item.Value.LastFailure > WindowDuration) ||
+                    (item.Value.LockoutUntil.HasValue && item.Value.LockoutUntil.Value <= now))
+                {
+                    attempts.TryRemove(item.Key, out _);
+                }
+            }
+
+            if (attempts.Count <= MaxTrackedLoginAttempts)
+            {
+                return;
+            }
+
+            foreach (var item in attempts.OrderBy(x => x.Value.LastFailure).Take(attempts.Count - MaxTrackedLoginAttempts))
+            {
+                attempts.TryRemove(item.Key, out _);
+            }
         }
     }
 }

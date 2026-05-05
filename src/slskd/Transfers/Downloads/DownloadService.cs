@@ -20,6 +20,7 @@
 // </copyright>
 using Microsoft.Extensions.Options;
 using Soulseek;
+using slskd.Common.Security;
 using slskd.Transfers.MultiSource.Metrics;
 
 namespace slskd.Transfers.Downloads
@@ -856,7 +857,7 @@ namespace slskd.Transfers.Downloads
                                    System.IO.Directory.Exists(directory) &&
                                    !System.IO.Directory.EnumerateFileSystemEntries(directory).Any() &&
                                    System.IO.Path.GetFullPath(directory) != normalizedBase &&
-                                   System.IO.Path.GetFullPath(directory).StartsWith(normalizedBase))
+                                   PathGuard.IsContainedIn(System.IO.Path.GetFullPath(directory), normalizedBase))
                             {
                                 System.IO.Directory.Delete(directory);
                                 Log.Debug("Deleted empty directory {Directory}", directory);

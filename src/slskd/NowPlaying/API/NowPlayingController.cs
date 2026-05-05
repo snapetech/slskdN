@@ -44,7 +44,7 @@ public class NowPlayingController : ControllerBase
     ///     Body: { "artist": "...", "title": "...", "album": "..." }
     /// </summary>
     [HttpPut]
-    [Authorize(Policy = AuthPolicy.Any)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public IActionResult Put([FromBody] NowPlayingRequest request)
     {
         if (request == null)
@@ -69,7 +69,7 @@ public class NowPlayingController : ControllerBase
     ///     Clears the currently playing track.
     /// </summary>
     [HttpDelete]
-    [Authorize(Policy = AuthPolicy.Any)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public IActionResult Delete()
     {
         NowPlaying.Clear();
@@ -89,7 +89,7 @@ public class NowPlayingController : ControllerBase
     ///     (the default) still works unchanged.
     /// </remarks>
     [HttpPost("webhook")]
-    [Authorize(Policy = AuthPolicy.Any)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [RequireScope("nowplaying")]
     [Consumes("application/json", "multipart/form-data", "application/x-www-form-urlencoded")]
     public async Task<IActionResult> Webhook()

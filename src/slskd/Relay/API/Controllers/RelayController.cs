@@ -37,8 +37,9 @@ namespace slskd.Relay
     using Microsoft.AspNetCore.WebUtilities;
     using Microsoft.Net.Http.Headers;
     using Serilog;
-    using slskd.Shares;
+    using slskd.Common.Security;
     using slskd.Core.Security;
+    using slskd.Shares;
     using slskd.Streaming;
 
     /// <summary>
@@ -52,6 +53,7 @@ namespace slskd.Relay
     {
         private const long ONE_GIBIBYTE = 1L * 1024L * 1024L * 1024L; // 1073741824
         private const long ONE_TEBIBYTE = 1024L * ONE_GIBIBYTE; // 1099511627776
+        private const long MaxShareUploadBytes = ONE_GIBIBYTE;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="RelayController"/> class.
@@ -194,11 +196,18 @@ namespace slskd.Relay
                 return Task.FromResult<IActionResult>(Unauthorized());
             }
 
-            var sourceFile = Path.Combine(OptionsMonitor.CurrentValue.Directories.Downloads, filename);
+            var sourceFile = PathGuard.NormalizeAndValidate(filename, OptionsMonitor.CurrentValue.Directories.Downloads);
+            if (sourceFile == null)
+            {
+                Log.Warning("[SECURITY] Blocked relay download outside downloads root | Filename={Filename}", filename);
+                return Task.FromResult<IActionResult>(BadRequest("Invalid filename"));
+            }
+
+            var relativeFilename = Path.GetRelativePath(OptionsMonitor.CurrentValue.Directories.Downloads, sourceFile);
 
             // H-MCP01: Check if content is advertisable before serving via relay
             // Use ListContentItemsForFile to check all content items associated with this file
-            var contentItems = ShareRepository.ListContentItemsForFile(filename);
+            var contentItems = ShareRepository.ListContentItemsForFile(relativeFilename);
             if (contentItems.Any())
             {
                 // If any content items exist, at least one must be advertisable
@@ -343,8 +352,8 @@ namespace slskd.Relay
         /// <param name="token">The unique identifier for the request.</param>
         /// <returns></returns>
         [HttpPost("controller/shares/{token}")]
-        [RequestSizeLimit(ONE_TEBIBYTE)]
-        [RequestFormLimits(MultipartBodyLengthLimit = ONE_TEBIBYTE)]
+        [RequestSizeLimit(MaxShareUploadBytes)]
+        [RequestFormLimits(MultipartBodyLengthLimit = MaxShareUploadBytes)]
         [Authorize(Policy = AuthPolicy.ApiKeyOnly, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> UploadShares(string token)
         {
@@ -374,6 +383,14 @@ namespace slskd.Relay
                 return Unauthorized();
             }
 
+            Log.Information("Handling share upload for relay token {Token} from a caller claiming to be agent {Agent}", GetRelayTokenLogId(guid), GetAgentLogId(agentName ?? string.Empty));
+
+            if (!Relay.TryValidateShareUploadCredential(token: guid, credential, out var validatedAgentName))
+            {
+                Log.Warning("Failed to authenticate share upload from caller claiming to be agent {Agent} using relay token {Token}", GetAgentLogId(agentName ?? string.Empty), GetRelayTokenLogId(guid));
+                return Unauthorized();
+            }
+
             IEnumerable<Share> shares;
             IFormFile database;
 
@@ -387,14 +404,6 @@ namespace slskd.Relay
                 Log.Warning("Failed to handle share upload from caller claiming to be agent {Agent}", GetAgentLogId(agentName ?? string.Empty));
                 Log.Debug(ex, "Failed to handle share upload");
                 return BadRequest();
-            }
-
-            Log.Information("Handling share upload for relay token {Token} from a caller claiming to be agent {Agent}", GetRelayTokenLogId(guid), GetAgentLogId(agentName ?? string.Empty));
-
-            if (!Relay.TryValidateShareUploadCredential(token: guid, credential, out var validatedAgentName))
-            {
-                Log.Warning("Failed to authenticate share upload from caller claiming to be agent {Agent} using relay token {Token}", GetAgentLogId(agentName ?? string.Empty), GetRelayTokenLogId(guid));
-                return Unauthorized();
             }
 
             Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), Program.AppName));

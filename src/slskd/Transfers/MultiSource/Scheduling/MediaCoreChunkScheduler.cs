@@ -7,6 +7,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -371,8 +373,8 @@ public class MediaCoreChunkScheduler : IChunkScheduler
         // - Geographic proximity
 
         // For now, use a hash-based pseudo-random but deterministic score
-        var hash = username.GetHashCode() + request.ChunkIndex.GetHashCode();
-        var random = new Random(hash);
+        var seed = BitConverter.ToInt32(SHA256.HashData(Encoding.UTF8.GetBytes($"{username}:{request.ChunkIndex}")), 0);
+        var random = new Random(seed);
         return 0.3 + (random.NextDouble() * 0.7); // 0.3-1.0 range
     }
 

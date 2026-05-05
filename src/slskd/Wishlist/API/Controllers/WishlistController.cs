@@ -77,7 +77,7 @@ namespace slskd.Wishlist.API
         /// <response code="201">The wishlist item was created successfully.</response>
         /// <response code="400">The request was invalid.</response>
         [HttpPost]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(typeof(WishlistItem), 201)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> Create([FromBody, Required] CreateWishlistRequest request)
@@ -121,7 +121,7 @@ namespace slskd.Wishlist.API
         /// <response code="200">The wishlist item was updated successfully.</response>
         /// <response code="404">The wishlist item was not found.</response>
         [HttpPut("{id}")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(typeof(WishlistItem), 200)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> Update(
@@ -173,7 +173,7 @@ namespace slskd.Wishlist.API
         /// <returns>No content.</returns>
         /// <response code="204">The wishlist item was deleted successfully.</response>
         [HttpDelete("{id}")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(204)]
         public async Task<IActionResult> Delete([FromRoute, Required] Guid id)
         {
@@ -190,7 +190,7 @@ namespace slskd.Wishlist.API
         /// <response code="200">The search was executed successfully.</response>
         /// <response code="404">The wishlist item was not found.</response>
         [HttpPost("{id}/search")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(typeof(Search.Search), 200)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> RunSearch(
@@ -217,7 +217,7 @@ namespace slskd.Wishlist.API
         /// <response code="200">The CSV was imported successfully.</response>
         /// <response code="400">The request was invalid.</response>
         [HttpPost("import/csv")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(typeof(WishlistCsvImportResult), 200)]
         [ProducesResponseType(400)]
         public async Task<IActionResult> ImportCsv(

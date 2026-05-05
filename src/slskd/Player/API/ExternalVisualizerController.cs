@@ -31,6 +31,7 @@ public sealed class ExternalVisualizerController : ControllerBase
     }
 
     [HttpPost("launch")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     [ProducesResponseType(typeof(ExternalVisualizerLaunchResult), 200)]
     [ProducesResponseType(typeof(ExternalVisualizerLaunchResult), 400)]
     public IActionResult Launch()

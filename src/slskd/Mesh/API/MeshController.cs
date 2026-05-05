@@ -75,7 +75,7 @@ namespace slskd.Mesh.API
         ///     Performs NAT type detection using STUN.
         /// </summary>
         [HttpPost("nat/detect")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> DetectNatType()
         {
             try
@@ -121,7 +121,7 @@ namespace slskd.Mesh.API
         ///     Triggers a sync with a specific peer.
         /// </summary>
         [HttpPost("sync/{username}")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> SyncWithPeer(string username)
         {
             username = username?.Trim() ?? string.Empty;
@@ -187,7 +187,7 @@ namespace slskd.Mesh.API
         ///     Publishes a hash to the mesh.
         /// </summary>
         [HttpPost("publish")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> PublishHash([FromBody] PublishHashRequest request)
         {
             if (request == null)
@@ -211,7 +211,7 @@ namespace slskd.Mesh.API
         ///     Handles an incoming mesh message (simulates peer-to-peer communication).
         /// </summary>
         [HttpPost("message")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> HandleMessage([FromQuery] string fromUser, [FromBody] JsonElement messageJson)
         {
             fromUser = fromUser?.Trim() ?? string.Empty;
@@ -260,7 +260,7 @@ namespace slskd.Mesh.API
         ///     Merges entries from a peer (simulates receiving PUSH_DELTA).
         /// </summary>
         [HttpPost("merge")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> MergeEntries([FromQuery] string fromUser, [FromBody] MergeEntriesRequest request)
         {
             fromUser = fromUser?.Trim() ?? string.Empty;

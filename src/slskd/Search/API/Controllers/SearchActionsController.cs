@@ -67,7 +67,7 @@ public class SearchActionsController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Download result.</returns>
     [HttpPost("{searchId}/items/{itemId}/download")]
-    [Authorize(Policy = AuthPolicy.Any)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
@@ -165,7 +165,7 @@ public class SearchActionsController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Stream URL or error.</returns>
     [HttpPost("{searchId}/items/{itemId}/stream")]
-    [Authorize(Policy = AuthPolicy.Any)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]

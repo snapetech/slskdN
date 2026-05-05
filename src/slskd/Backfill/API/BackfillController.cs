@@ -71,7 +71,7 @@ namespace slskd.Backfill.API
         ///     Enables or disables the backfill scheduler.
         /// </summary>
         [HttpPost("enable")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public IActionResult SetEnabled([FromQuery] bool enabled = true)
         {
             Backfill.SetEnabled(enabled);
@@ -82,7 +82,7 @@ namespace slskd.Backfill.API
         ///     Manually triggers a backfill cycle.
         /// </summary>
         [HttpPost("trigger")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> TriggerCycle()
         {
             var result = await Backfill.TriggerCycleAsync();
@@ -93,7 +93,7 @@ namespace slskd.Backfill.API
         ///     Manually backfills a specific file.
         /// </summary>
         [HttpPost("file")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> BackfillFile([FromBody] BackfillFileRequest request)
         {
             if (request == null)
@@ -117,7 +117,7 @@ namespace slskd.Backfill.API
         ///     Reports system as idle (for testing).
         /// </summary>
         [HttpPost("idle")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public IActionResult ReportIdle()
         {
             Backfill.ReportIdle();
@@ -128,7 +128,7 @@ namespace slskd.Backfill.API
         ///     Reports system as busy (for testing).
         /// </summary>
         [HttpPost("busy")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public IActionResult ReportBusy()
         {
             Backfill.ReportBusy();

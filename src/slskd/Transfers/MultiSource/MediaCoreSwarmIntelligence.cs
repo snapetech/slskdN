@@ -6,6 +6,8 @@ namespace slskd.Transfers.MultiSource;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -239,7 +241,7 @@ public class MediaCoreSwarmIntelligence : IMediaCoreSwarmIntelligence
         foreach (var peer in activePeers)
         {
             // Random recommendations for demonstration - in practice, use real metrics
-            var random = new Random(peer.GetHashCode());
+            var random = new Random(StableSeed(peer));
             var action = random.Next(10) switch
             {
                 < 7 => PeerRecommendationAction.Keep,
@@ -641,6 +643,11 @@ public class MediaCoreSwarmIntelligence : IMediaCoreSwarmIntelligence
     {
         return $"Predicted configuration for {contentType} content with {analysis.CompatiblePeerCount} compatible peers. " +
                $"Selected {peerCount} peers from {analysis.FastPeers} fast peers and {analysis.ReliablePeers} reliable peers.";
+    }
+
+    private static int StableSeed(string value)
+    {
+        return BitConverter.ToInt32(SHA256.HashData(Encoding.UTF8.GetBytes(value ?? string.Empty)), 0);
     }
 
     private enum ContentType

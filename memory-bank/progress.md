@@ -9530,3 +9530,10 @@ Code quality improvements were completed as part of Option A:
 - Updated the release installer to repair existing config/data ownership and group-write modes.
 - Documented the optional `sudo usermod -aG slskd "$USER"` workflow plus re-login/newgrp requirement for users who want non-root access to config and downloads.
 - Extended tag-release packaging so AUR, RPM, PPA, and release checksums carry the new `slskd.tmpfiles` metadata.
+
+## 2026-05-05 10:28:00Z
+
+- Fixed the security and bug-hunt batch across backend and release packaging: remote filename traversal, relay download traversal and upload limits, mutating endpoint role requirements, debug config redaction, atomic config writes, temporary memory dump cleanup, stream ticket bounds, content-locator fallback throttling, share-token TTLs, multi-source output path containment, stable hash-based identifiers, FTS query parameterization, login attempt pruning, governance signature fail-closed behavior, pod signature verification, and ActivityPub actor/signature binding.
+- Hardened release-channel packaging follow-through by adding passive FTP to PPA upload config, carrying `slskd.tmpfiles` checksums into upstream release metadata, and removing conflicting RPM directory ownership entries.
+- Documented two ADR-0001 gotchas separately in commits `40770fe6d` and `3c33ceea6`.
+- Validation passed: full `dotnet test slskd.sln --no-build`, `./bin/lint`, `bash scripts/check-controller-csrf.sh`, `bash scripts/check-anonymous-endpoints.sh`, `bash packaging/scripts/validate-packaging-metadata.sh`, `bash scripts/check-sensitive-placeholders.sh`, and `bash scripts/check-web-fetch-csrf.sh`.

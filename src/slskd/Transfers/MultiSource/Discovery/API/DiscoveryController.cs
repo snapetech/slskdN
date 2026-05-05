@@ -57,7 +57,7 @@ namespace slskd.Transfers.MultiSource.Discovery.API
         /// <param name="request">The discovery request.</param>
         /// <returns>Status.</returns>
         [HttpPost("start")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> Start([FromBody] DiscoveryStartRequest request)
         {
             if (request == null)
@@ -103,7 +103,7 @@ namespace slskd.Transfers.MultiSource.Discovery.API
         /// </summary>
         /// <returns>Status.</returns>
         [HttpPost("stop")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> Stop()
         {
             if (!Discovery.IsRunning)
@@ -223,7 +223,7 @@ namespace slskd.Transfers.MultiSource.Discovery.API
         /// </summary>
         /// <returns>Confirmation.</returns>
         [HttpPost("reset-partial-flags")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public IActionResult ResetPartialFlags()
         {
             var beforeCount = Discovery.GetNoPartialSupportCount();

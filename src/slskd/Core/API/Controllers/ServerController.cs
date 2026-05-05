@@ -63,7 +63,7 @@ namespace slskd.Core.API
         /// <returns></returns>
         [HttpPut]
         [Route("")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(200)]
         [ProducesResponseType(StatusCodes.Status205ResetContent)]
         [ProducesResponseType(403)]
@@ -99,7 +99,7 @@ namespace slskd.Core.API
         /// <returns></returns>
         [HttpDelete]
         [Route("")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(204)]
         [ProducesResponseType(403)]
         public IActionResult Disconnect([FromBody] string message)

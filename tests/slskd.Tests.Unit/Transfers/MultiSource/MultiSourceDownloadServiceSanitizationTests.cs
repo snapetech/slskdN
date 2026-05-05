@@ -142,7 +142,7 @@ public class MultiSourceDownloadServiceSanitizationTests
             CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal("Multi-source download failed", result.Error);
+        Assert.Equal("Output path is outside allowed download or temporary directories", result.Error);
         Assert.DoesNotContain("invalid", result.Error, StringComparison.OrdinalIgnoreCase);
     }
 }

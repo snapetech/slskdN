@@ -117,7 +117,7 @@ namespace slskd.Capabilities.API
         /// <param name="request">The parse request.</param>
         /// <returns>Parsed capabilities or null if not slskdn.</returns>
         [HttpPost("parse")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public IActionResult ParseCapabilities([FromBody] ParseRequest request)
         {
             var description = request?.Description?.Trim();

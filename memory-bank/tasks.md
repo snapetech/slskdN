@@ -2328,3 +2328,7 @@
 - [x] Add README tester funnel for slskr Rust rewrite
   - Status: completed (2026-05-05)
   - Notes: Added a prominent top-of-README callout linking to `snapetech/slskr` and positioning it as an independent Rust implementation targeting slskdN feature parity and Soulseek-network compatibility.
+
+- [x] Fix security and bug-hunt findings before next release
+  - Status: completed (2026-05-05)
+  - Notes: Hardened remote filename/path handling, mutating API authorization, config/dump/secret handling, relay upload/download limits, streaming ticket/content lookup behavior, multi-source output paths, governance/federation/pod signature handling, stable content IDs/seeds, and affected release packaging workflows. Validation passed with full `dotnet test slskd.sln --no-build`, `./bin/lint`, controller CSRF/anonymous endpoint checks, packaging metadata validation, sensitive placeholder scan, and web fetch CSRF scan.

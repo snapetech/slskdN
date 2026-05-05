@@ -522,7 +522,7 @@ public class MediaCoreSwarmService : IMediaCoreSwarmService
         cancellationToken.ThrowIfCancellationRequested();
 
         // Fallback grouping when MediaCore integration fails
-        var fallbackContentId = $"fallback:{verificationResult.Filename.GetHashCode():X8}";
+        var fallbackContentId = $"fallback:{slskd.Compute.Sha256Hash(verificationResult.Filename)[..16]}";
         var allSources = verificationResult.SourcesByHash.SelectMany(kvp => kvp.Value).ToList();
 
         var fallbackGroup = new SwarmGroup(

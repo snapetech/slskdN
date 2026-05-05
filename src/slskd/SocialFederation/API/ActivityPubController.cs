@@ -235,7 +235,8 @@ namespace slskd.SocialFederation.API
                     "HTTP signature verification is always enforced (HARDENING-2026-04-20 H4).");
             }
 
-            if (!await VerifyHttpSignatureAsync(bodyBytes, cancellationToken))
+            var (signatureVerified, verifiedKeyId) = await VerifyHttpSignatureAsync(bodyBytes, cancellationToken);
+            if (!signatureVerified)
             {
                 _logger.LogWarning("[ActivityPub] HTTP signature verification failed");
                 return Unauthorized();
@@ -259,6 +260,12 @@ namespace slskd.SocialFederation.API
 
             if (activity == null)
                 return BadRequest("Invalid activity");
+
+            if (!IsActivityActorBoundToSignature(activity, verifiedKeyId))
+            {
+                _logger.LogWarning("[ActivityPub] Activity actor is not bound to the verified HTTP signature key");
+                return Unauthorized();
+            }
 
             await _inboxStore.StoreAsync(actorName, MapActivity(activity), json, cancellationToken);
             var (processed, error) = await ProcessActivityAsync(actorName, activity, cancellationToken);
@@ -479,35 +486,35 @@ namespace slskd.SocialFederation.API
         private static bool IsLoopback(IPAddress? a) => a != null && IPAddress.IsLoopback(a);
 
         /// <summary>PR-14: Verify HTTP Signature (Date ±5min, Digest, Ed25519).</summary>
-        private async Task<bool> VerifyHttpSignatureAsync(byte[] bodyBytes, CancellationToken cancellationToken)
+        private async Task<(bool Verified, string KeyId)> VerifyHttpSignatureAsync(byte[] bodyBytes, CancellationToken cancellationToken)
         {
             var sig = Request.Headers["Signature"].FirstOrDefault();
             if (string.IsNullOrEmpty(sig))
-                return false;
+                return (false, string.Empty);
 
             if (!TryParseSignature(sig, out var keyId, out var algorithm, out var headersList, out var signatureB64))
-                return false;
+                return (false, string.Empty);
             if (_federationOptions.CurrentValue.IsFriendsOnly && !IsApprovedKeyHost(keyId))
-                return false;
+                return (false, string.Empty);
             if (!string.Equals(algorithm, "ed25519", StringComparison.OrdinalIgnoreCase) && !string.Equals(algorithm, "hs2019", StringComparison.OrdinalIgnoreCase))
-                return false;
+                return (false, string.Empty);
 
             var date = Request.Headers["Date"].FirstOrDefault();
             if (string.IsNullOrEmpty(date) || !DateTimeOffset.TryParse(date, out var dt) || Math.Abs((DateTimeOffset.UtcNow - dt).TotalMinutes) > 5)
-                return false;
+                return (false, string.Empty);
 
             var digest = Request.Headers["Digest"].FirstOrDefault();
             var expectedDigest = "SHA-256=" + Convert.ToBase64String(SHA256.HashData(bodyBytes));
             if (string.IsNullOrEmpty(digest) || !string.Equals(digest, expectedDigest, StringComparison.Ordinal))
-                return false;
+                return (false, string.Empty);
 
             var signingString = BuildSigningString(headersList);
             if (signingString == null)
-                return false;
+                return (false, string.Empty);
 
             var pkix = await _keyFetcher.FetchPublicKeyPkixAsync(keyId, cancellationToken);
             if (pkix == null || pkix.Length == 0)
-                return false;
+                return (false, string.Empty);
 
             byte[] signatureBytes;
             try
@@ -516,19 +523,38 @@ namespace slskd.SocialFederation.API
             }
             catch
             {
-                return false;
+                return (false, string.Empty);
             }
 
             try
             {
                 var alg = SignatureAlgorithm.Ed25519;
                 using var key = Key.Import(alg, pkix, KeyBlobFormat.PkixPublicKey);
-                return alg.Verify(key.PublicKey, Encoding.UTF8.GetBytes(signingString), signatureBytes);
+                var verified = alg.Verify(key.PublicKey, Encoding.UTF8.GetBytes(signingString), signatureBytes);
+                if (verified)
+                {
+                    return (true, keyId);
+                }
+
+                return (false, string.Empty);
             }
             catch
             {
+                return (false, string.Empty);
+            }
+        }
+
+        private static bool IsActivityActorBoundToSignature(ActivityPubActivity activity, string verifiedKeyId)
+        {
+            var actor = activity.Actor?.ToString();
+            if (string.IsNullOrWhiteSpace(actor) || string.IsNullOrWhiteSpace(verifiedKeyId))
+            {
                 return false;
             }
+
+            return string.Equals(actor, verifiedKeyId, StringComparison.OrdinalIgnoreCase) ||
+                verifiedKeyId.StartsWith(actor + "#", StringComparison.OrdinalIgnoreCase) ||
+                verifiedKeyId.StartsWith(actor + "/", StringComparison.OrdinalIgnoreCase);
         }
 
         private bool IsApprovedKeyHost(string keyId)

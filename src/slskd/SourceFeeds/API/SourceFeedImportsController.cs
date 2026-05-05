@@ -25,7 +25,7 @@ public sealed class SourceFeedImportsController : ControllerBase
     private ISourceFeedImportService SourceFeedImportService { get; }
 
     [HttpPost("preview")]
-    [Authorize(Policy = AuthPolicy.Any)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(SourceFeedImportResult), 200)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> Preview(

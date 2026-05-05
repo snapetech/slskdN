@@ -7,8 +7,6 @@ namespace slskd.Mesh.Governance
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Security.Cryptography;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
@@ -247,16 +245,15 @@ namespace slskd.Mesh.Governance
         {
             try
             {
-                // Create the data to sign (exclude signature field)
-                var dataToSign = $"{document.Id}|{document.Type}|{document.Version}|{document.Created:O}|{document.RealmId}|{document.Signer}";
+                if (string.IsNullOrWhiteSpace(document.Signature))
+                {
+                    return Task.FromResult(false);
+                }
 
-                // For now, use a simple HMAC validation
-                // In production, this would use proper cryptographic signature verification
-                using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes("governance-signing-key"));
-                var expectedSignature = Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(dataToSign)));
-                var isValid = string.Equals(document.Signature, expectedSignature, StringComparison.Ordinal);
-
-                return Task.FromResult(isValid);
+                _logger.LogWarning(
+                    "[Governance] Rejecting document '{DocumentId}': cryptographic governance signatures are not configured",
+                    document.Id);
+                return Task.FromResult(false);
             }
             catch (Exception ex)
             {

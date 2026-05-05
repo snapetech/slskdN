@@ -6,12 +6,14 @@ namespace slskd.Streaming;
 using System;
 using System.IO;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using slskd.Authentication;
 using slskd.Core.Security;
 using slskd.Sharing;
 
@@ -54,6 +56,7 @@ public class StreamsController : ControllerBase
 
     /// <summary>Creates a short-lived stream ticket for browser media element playback.</summary>
     [HttpPost("{contentId}/ticket")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
@@ -70,7 +73,7 @@ public class StreamsController : ControllerBase
         var resolved = _locator.Resolve(contentId, HttpContext.RequestAborted);
         if (resolved == null) return NotFound();
 
-        var ownerKey = "user:" + CurrentUserId;
+        var ownerKey = "user:" + GetAuthenticatedOwnerKey();
         var ticket = _tickets.Create(contentId, ownerKey, TimeSpan.FromMinutes(2));
         return Ok(new { ticket, expiresInSeconds = 120 });
     }
@@ -134,6 +137,11 @@ public class StreamsController : ControllerBase
         else
         {
             if (!authenticatedNormally) return Unauthorized();
+            if (User?.IsInRole(Role.ReadWrite.ToString()) != true &&
+                User?.IsInRole(Role.Administrator.ToString()) != true)
+            {
+                return Forbid();
+            }
         }
 
         var resolved = _locator.Resolve(contentId, ct);
@@ -153,7 +161,7 @@ public class StreamsController : ControllerBase
         }
         else
         {
-            limiterKey = "user:" + CurrentUserId;
+            limiterKey = "user:" + GetAuthenticatedOwnerKey();
             maxConcurrent = NormalUserMaxConcurrentStreams;
         }
 
@@ -198,5 +206,10 @@ public class StreamsController : ControllerBase
         {
             stream?.Dispose();
         }
+    }
+
+    private string GetAuthenticatedOwnerKey()
+    {
+        return User.FindFirstValue(ClaimTypes.Name) ?? CurrentUserId;
     }
 }

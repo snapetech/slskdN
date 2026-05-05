@@ -25,6 +25,7 @@ namespace slskd.Core.API
     using System;
     using System.IO;
     using System.Reflection;
+    using System.Text.RegularExpressions;
     using Asp.Versioning;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
@@ -45,6 +46,8 @@ namespace slskd.Core.API
     [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
     public class OptionsController : ControllerBase
     {
+        private const int MaxYamlValidationBytes = 1024 * 1024;
+
         public OptionsController(
             OptionsAtStartup optionsAtStartup,
             IOptionsSnapshot<Options> optionsSnapshot,
@@ -148,7 +151,7 @@ namespace slskd.Core.API
                 return StatusCode(500, "Configuration root is unavailable");
             }
 
-            return Ok(configurationRoot.GetDebugView());
+            return Ok(RedactConfigurationDebugView(configurationRoot.GetDebugView()));
         }
 
         [HttpGet]
@@ -208,7 +211,9 @@ namespace slskd.Core.API
             {
                 IOFile.Copy(Program.ConfigurationFile, $"{Program.ConfigurationFile}.bak", overwrite: true);
 
-                IOFile.WriteAllText(Program.ConfigurationFile, yaml);
+                var tempFile = $"{Program.ConfigurationFile}.{Guid.NewGuid():N}.tmp";
+                IOFile.WriteAllText(tempFile, yaml);
+                IOFile.Move(tempFile, Program.ConfigurationFile, overwrite: true);
 
                 if (OptionsSnapshot.Value.Flags.NoConfigWatch)
                 {
@@ -226,7 +231,7 @@ namespace slskd.Core.API
         }
 
         [HttpPost]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [Route("yaml/validate")]
         public IActionResult ValidateYamlFile([FromBody] string yaml)
         {
@@ -238,6 +243,11 @@ namespace slskd.Core.API
             if (yaml is null)
             {
                 return BadRequest("YAML is required");
+            }
+
+            if (System.Text.Encoding.UTF8.GetByteCount(yaml) > MaxYamlValidationBytes)
+            {
+                return StatusCode(413, "YAML is too large");
             }
 
             if (!TryValidateYaml(yaml, out var error))
@@ -277,6 +287,14 @@ namespace slskd.Core.API
             }
 
             return true;
+        }
+
+        private static string RedactConfigurationDebugView(string debugView)
+        {
+            return Regex.Replace(
+                debugView ?? string.Empty,
+                @"(?im)^(\s*[^=\r\n]*(?:password|passwd|pwd|secret|token|apikey|api_key|key)\s*=\s*).*$",
+                "$1*****");
         }
     }
 }

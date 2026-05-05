@@ -856,6 +856,7 @@ jobs:
           fqdn = ppa.launchpad.net
           method = ftp
           incoming = ~keefshape/ubuntu/slskdn/
+          passive_ftp = 1
           login = anonymous
           allow_unsigned_uploads = 0
           EOF

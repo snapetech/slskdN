@@ -32,12 +32,12 @@ public class SessionControllerTests
     }
 
     [Fact]
-    public void Login_TrimsCredentialsBeforeAuthenticationAndJwtCreation()
+    public void Login_TrimsUsernameButPreservesPasswordBeforeAuthenticationAndJwtCreation()
     {
         ResetLoginState();
         var security = new Mock<ISecurityService>();
         security
-            .Setup(service => service.AuthenticateAdminCredentials("admin", "secret"))
+            .Setup(service => service.AuthenticateAdminCredentials("admin", " secret "))
             .Returns(true);
         security
             .Setup(service => service.GenerateJwt(It.IsAny<string>(), It.IsAny<Role>(), It.IsAny<int?>()))
@@ -52,7 +52,7 @@ public class SessionControllerTests
         });
 
         Assert.IsType<OkObjectResult>(result);
-        security.Verify(service => service.AuthenticateAdminCredentials("admin", "secret"), Times.Once);
+        security.Verify(service => service.AuthenticateAdminCredentials("admin", " secret "), Times.Once);
         security.Verify(service => service.GenerateJwt("admin", Role.Administrator, null), Times.Once);
     }
 

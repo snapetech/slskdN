@@ -50,7 +50,7 @@ public sealed class LidarrController : ControllerBase
     }
 
     [HttpPost("wanted/sync")]
-    [Authorize(Policy = AuthPolicy.Any)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> SyncWanted(CancellationToken cancellationToken = default)
     {
         var result = await LidarrSyncService.SyncWantedToWishlistAsync(cancellationToken).ConfigureAwait(false);
@@ -58,7 +58,7 @@ public sealed class LidarrController : ControllerBase
     }
 
     [HttpPost("manualimport")]
-    [Authorize(Policy = AuthPolicy.Any)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public async Task<IActionResult> ImportCompletedDirectory([FromBody] LidarrImportRequest request, CancellationToken cancellationToken = default)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.Directory))

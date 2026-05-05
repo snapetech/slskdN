@@ -45,7 +45,7 @@ namespace slskd.Transfers.AutoReplace.API
         /// </summary>
         /// <returns>The updated status.</returns>
         [HttpPut("enable")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public IActionResult Enable()
         {
             BackgroundService.Enable();
@@ -57,7 +57,7 @@ namespace slskd.Transfers.AutoReplace.API
         /// </summary>
         /// <returns>The updated status.</returns>
         [HttpPut("disable")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public IActionResult Disable()
         {
             BackgroundService.Disable();

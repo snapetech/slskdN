@@ -17,6 +17,7 @@ using Microsoft.Extensions.Options;
 using Soulseek;
 using slskd;
 using slskd.Audio;
+using slskd.Common.Security;
 using slskd.HashDb;
 using slskd.HashDb.Models;
 using slskd.Integrations.AcoustId;
@@ -417,6 +418,13 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             Filename = request.Filename,
             OutputPath = request.OutputPath,
         };
+
+        if (!IsAllowedOutputPath(request.OutputPath))
+        {
+            result.Success = false;
+            result.Error = "Output path is outside allowed download or temporary directories";
+            return result;
+        }
 
         var stopwatch = Stopwatch.StartNew();
 
@@ -1201,7 +1209,8 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
 
                 // Use unique temp file per worker to avoid race conditions
                 // Then atomically move to final path only if we're first to complete
-                var workerTempPath = IOPath.Combine(tempDir, $"chunk_{chunk.Index:D4}_{username.GetHashCode():X8}.tmp");
+                var usernameHash = Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(username))).Substring(0, 16);
+                var workerTempPath = IOPath.Combine(tempDir, $"chunk_{chunk.Index:D4}_{usernameHash}.tmp");
                 var chunkPath = IOPath.Combine(tempDir, $"chunk_{chunk.Index:D4}.bin");
 
                 try
@@ -1718,6 +1727,11 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
 
     private async Task AssembleChunksAsync(string tempDir, int chunkCount, string outputPath, CancellationToken cancellationToken)
     {
+        if (!IsAllowedOutputPath(outputPath))
+        {
+            throw new InvalidOperationException("Output path is outside allowed download or temporary directories");
+        }
+
         var outputDir = IOPath.GetDirectoryName(outputPath);
         if (!string.IsNullOrEmpty(outputDir))
         {
@@ -1731,6 +1745,39 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             var chunkPath = IOPath.Combine(tempDir, $"chunk_{i:D4}.bin");
             using var chunkStream = new FileStream(chunkPath, FileMode.Open, FileAccess.Read);
             await chunkStream.CopyToAsync(outputStream, cancellationToken);
+        }
+    }
+
+    private bool IsAllowedOutputPath(string? outputPath)
+    {
+        if (string.IsNullOrWhiteSpace(outputPath))
+        {
+            return false;
+        }
+
+        var roots = new List<string> { IOPath.GetTempPath() };
+        var options = optionsMonitor?.CurrentValue;
+        if (!string.IsNullOrWhiteSpace(options?.Directories.Downloads))
+        {
+            roots.Add(options.Directories.Downloads);
+        }
+
+        if (!string.IsNullOrWhiteSpace(options?.Directories.Incomplete))
+        {
+            roots.Add(options.Directories.Incomplete);
+        }
+
+        try
+        {
+            return PathGuard.NormalizeAbsolutePathWithinRoots(IOPath.GetFullPath(outputPath), roots) != null;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+        catch (NotSupportedException)
+        {
+            return false;
         }
     }
 

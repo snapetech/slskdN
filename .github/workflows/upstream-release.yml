@@ -131,16 +131,17 @@ jobs:
           SVC_SUM=$(sha256sum packaging/aur/slskd.service  | awk '{print $1}')
           YML_SUM=$(sha256sum packaging/aur/slskd.yml      | awk '{print $1}')
           SYS_SUM=$(sha256sum packaging/aur/slskd.sysusers | awk '{print $1}')
+          TMP_SUM=$(sha256sum packaging/aur/slskd.tmpfiles | awk '{print $1}')
           
           # Update PKGBUILD-bin
           sed -i "s/^pkgver=.*/pkgver=${PKGVER}/" packaging/aur/PKGBUILD-bin
           sed -i "s/^pkgrel=.*/pkgrel=1/" packaging/aur/PKGBUILD-bin
-          sed -i "s/^sha256sums=.*/sha256sums=('SKIP' '$SVC_SUM' '$YML_SUM' '$SYS_SUM')/" packaging/aur/PKGBUILD-bin
+          sed -i "s/^sha256sums=.*/sha256sums=('SKIP' '$SVC_SUM' '$YML_SUM' '$SYS_SUM' '$TMP_SUM')/" packaging/aur/PKGBUILD-bin
           
           # Update PKGBUILD (source)
           sed -i "s/^pkgver=.*/pkgver=${PKGVER}/" packaging/aur/PKGBUILD
           sed -i "s/^pkgrel=.*/pkgrel=1/" packaging/aur/PKGBUILD
-          sed -i "s/^sha256sums=.*/sha256sums=('SKIP' '$SVC_SUM' '$YML_SUM' '$SYS_SUM')/" packaging/aur/PKGBUILD
+          sed -i "s/^sha256sums=.*/sha256sums=('SKIP' '$SVC_SUM' '$YML_SUM' '$SYS_SUM' '$TMP_SUM')/" packaging/aur/PKGBUILD
 
           bash packaging/scripts/validate-aur-pkgbuild-hashes.sh \
             packaging/aur/PKGBUILD \

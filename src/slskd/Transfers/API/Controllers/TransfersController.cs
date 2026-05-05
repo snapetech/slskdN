@@ -100,7 +100,7 @@ namespace slskd.Transfers.API
         /// <param name="request">The requested accelerated download mode state.</param>
         /// <returns>The updated accelerated download mode state.</returns>
         [HttpPut("downloads/accelerated")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(typeof(AcceleratedDownloadState), 200)]
         [ProducesResponseType(typeof(string), 400)]
         public IActionResult SetAcceleratedDownloadMode([FromBody, Required] AcceleratedDownloadModeRequest request)
@@ -124,7 +124,7 @@ namespace slskd.Transfers.API
         /// <response code="204">The download was cancelled successfully.</response>
         /// <response code="404">The specified download was not found.</response>
         [HttpDelete("downloads/{username}/{id}")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         public IActionResult CancelDownloadAsync([FromRoute, Required] string username, [FromRoute, Required] string id, [FromQuery] bool remove = false, [FromQuery] bool deleteFile = false)
@@ -171,7 +171,7 @@ namespace slskd.Transfers.API
         /// <returns></returns>
         /// <response code="204">The downloads were removed successfully.</response>
         [HttpDelete("downloads/all/completed")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(204)]
         public IActionResult ClearCompletedDownloads()
         {
@@ -200,7 +200,7 @@ namespace slskd.Transfers.API
         /// <response code="204">The upload was cancelled successfully.</response>
         /// <response code="404">The specified upload was not found.</response>
         [HttpDelete("uploads/{username}/{id}")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         public IActionResult CancelUpload([FromRoute, Required] string username, [FromRoute, Required] string id, [FromQuery] bool remove = false)
@@ -247,7 +247,7 @@ namespace slskd.Transfers.API
         /// <returns></returns>
         /// <response code="204">The uploads were removed successfully.</response>
         [HttpDelete("uploads/all/completed")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(204)]
         public IActionResult ClearCompletedUploads()
         {
@@ -372,7 +372,7 @@ namespace slskd.Transfers.API
         /// <response code="403">The download was rejected.</response>
         /// <response code="500">An unexpected error was encountered.</response>
         [HttpPost("downloads/{username}")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(201)]
         [ProducesResponseType(typeof(string), 403)]
         [ProducesResponseType(typeof(string), 500)]
@@ -847,7 +847,7 @@ namespace slskd.Transfers.API
         /// <returns></returns>
         /// <response code="200">Alternatives were found successfully.</response>
         [HttpPost("downloads/find-alternative")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(200)]
         public async Task<IActionResult> FindAlternativeAsync(
             [FromBody] FindAlternativeRequest request,
@@ -876,7 +876,7 @@ namespace slskd.Transfers.API
         /// <response code="200">The download was replaced successfully.</response>
         /// <response code="500">Failed to replace the download.</response>
         [HttpPost("downloads/replace")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(200)]
         [ProducesResponseType(500)]
         public async Task<IActionResult> ReplaceDownloadAsync(
@@ -910,7 +910,7 @@ namespace slskd.Transfers.API
         /// <returns></returns>
         /// <response code="200">The auto-replace process completed.</response>
         [HttpPost("downloads/auto-replace")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(typeof(AutoReplaceResult), 200)]
         public async Task<IActionResult> AutoReplaceAsync(
             [FromBody] AutoReplaceRequest request,

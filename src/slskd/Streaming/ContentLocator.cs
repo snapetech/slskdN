@@ -4,6 +4,7 @@
 namespace slskd.Streaming;
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -19,6 +20,8 @@ using slskd.Shares;
 public sealed class ContentLocator : IContentLocator
 {
     private const int MaxFallbackFilesToScan = 5000;
+    private static readonly ConcurrentDictionary<string, DateTimeOffset> FallbackMissCache = new(StringComparer.Ordinal);
+    private static DateTimeOffset _nextFallbackScanUtc = DateTimeOffset.MinValue;
 
     private readonly IShareService _shareService;
     private readonly ILogger<ContentLocator> _log;
@@ -87,6 +90,15 @@ public sealed class ContentLocator : IContentLocator
             return null;
         }
 
+        if (!contentId.StartsWith("path:", StringComparison.Ordinal) ||
+            (FallbackMissCache.TryGetValue(contentId, out var cachedMissUntil) && cachedMissUntil > DateTimeOffset.UtcNow) ||
+            DateTimeOffset.UtcNow < _nextFallbackScanUtc)
+        {
+            return null;
+        }
+
+        _nextFallbackScanUtc = DateTimeOffset.UtcNow.AddSeconds(5);
+
         var roots = GetAllowedLocalRoots();
         if (roots.Count == 0)
         {
@@ -116,6 +128,7 @@ public sealed class ContentLocator : IContentLocator
             return new ResolvedContent(path, info.Length, GetContentType(path));
         }
 
+        FallbackMissCache[contentId] = DateTimeOffset.UtcNow.AddMinutes(5);
         return null;
     }
 
@@ -129,7 +142,7 @@ public sealed class ContentLocator : IContentLocator
             .Concat(new[] { options.Directories.Downloads })
             .Where(path => !string.IsNullOrWhiteSpace(path) && Directory.Exists(path))
             .Select(Path.GetFullPath)
-            .Distinct(StringComparer.Ordinal)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         return roots;
@@ -169,8 +182,8 @@ public sealed class ContentLocator : IContentLocator
 
         var fullPath = Path.GetFullPath(path);
         return GetAllowedLocalRoots().Any(root =>
-            fullPath.StartsWith(root.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.Ordinal)
-            || string.Equals(fullPath, root, StringComparison.Ordinal));
+            fullPath.StartsWith(root.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(fullPath, root, StringComparison.OrdinalIgnoreCase));
     }
 
     private static string GetContentType(string path)

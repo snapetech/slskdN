@@ -33,7 +33,7 @@ namespace slskd.Tests.Unit.Common.Extensions
             }
             else
             {
-                Assert.Equal(@"path/file.ext", @"C:\deeply\nested\path\file.ext".ToLocalRelativeFilename());
+                Assert.Equal(@"path/file.ext", "deeply/nested/path/file.ext".ToLocalRelativeFilename());
             }
 
         }
@@ -55,6 +55,19 @@ namespace slskd.Tests.Unit.Common.Extensions
             {
                 Assert.Equal(@"_", $"{'\0'}".ToLocalRelativeFilename());
             }
+        }
+
+        [Theory]
+        [InlineData("../file.ext")]
+        [InlineData("path/../file.ext")]
+        [InlineData("/path/file.ext")]
+        [InlineData(@"C:\path\file.ext")]
+        public void Throws_ArgumentException_Given_Traversal_Or_Rooted_Path(string filename)
+        {
+            var ex = Record.Exception(() => filename.ToLocalRelativeFilename());
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentException>(ex);
         }
     }
 }

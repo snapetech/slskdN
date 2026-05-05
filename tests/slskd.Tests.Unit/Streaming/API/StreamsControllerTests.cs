@@ -15,6 +15,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using slskd;
+using slskd.Authentication;
 using slskd.Sharing;
 using slskd.Streaming;
 using Xunit;
@@ -51,7 +52,13 @@ public class StreamsControllerTests
         if (range != null) c.HttpContext.Request.Headers.Range = range;
         if (authBearer != null) c.HttpContext.Request.Headers.Authorization = "Bearer " + authBearer;
         if (authenticated)
-            c.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "u") }, "Test"));
+            c.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
+                new[]
+                {
+                    new Claim(ClaimTypes.Name, "alice"),
+                    new Claim(ClaimTypes.Role, Role.ReadWrite.ToString()),
+                },
+                "Test"));
     }
 
     [Fact]

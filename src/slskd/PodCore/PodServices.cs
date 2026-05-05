@@ -843,11 +843,8 @@ public class PodMessaging : IPodMessaging
             // Check if public key is available
             if (string.IsNullOrWhiteSpace(senderMember.PublicKey))
             {
-                logger.LogWarning("[PodMessaging] Sender {PeerId} has no public key stored - signature verification skipped", message.SenderPeerId);
-
-                // For backward compatibility, accept messages from members without public keys
-                // but log a warning
-                return true;
+                logger.LogWarning("[PodMessaging] Sender {PeerId} has no public key stored - rejecting unsigned pod message", message.SenderPeerId);
+                return false;
             }
 
             // Verify signature using Ed25519

@@ -39,7 +39,7 @@ public sealed class SpotifyConnectionController : ControllerBase
     }
 
     [HttpPost("authorize")]
-    [Authorize(Policy = AuthPolicy.Any)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [ProducesResponseType(typeof(SpotifyAuthorizationStart), 200)]
     [ProducesResponseType(400)]
     public IActionResult Authorize()
@@ -88,7 +88,7 @@ public sealed class SpotifyConnectionController : ControllerBase
     }
 
     [HttpDelete]
-    [Authorize(Policy = AuthPolicy.Any)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     public IActionResult Disconnect()
     {
         SpotifyConnectionService.Disconnect();

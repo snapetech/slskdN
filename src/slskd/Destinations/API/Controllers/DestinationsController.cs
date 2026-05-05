@@ -131,7 +131,7 @@ namespace slskd.Destinations.API
         /// <returns>Validation result.</returns>
         /// <response code="200">The validation completed.</response>
         [HttpPost("validate")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(typeof(ValidateDestinationResponse), 200)]
         public IActionResult Validate([FromBody] ValidateDestinationRequest request)
         {

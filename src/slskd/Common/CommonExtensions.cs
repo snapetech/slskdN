@@ -410,7 +410,22 @@ namespace slskd
         /// <returns>The converted filename.</returns>
         public static string ToLocalFilename(this string remoteFilename, string baseDirectory)
         {
-            return Path.Combine(baseDirectory, remoteFilename.ToLocalRelativeFilename());
+            var effectiveBaseDirectory = string.IsNullOrEmpty(baseDirectory) ? "." : baseDirectory;
+            var localRelativeFilename = remoteFilename.ToLocalRelativeFilename();
+            var fullPath = Path.GetFullPath(Path.Combine(effectiveBaseDirectory, localRelativeFilename));
+            var fullBaseDirectory = Path.GetFullPath(effectiveBaseDirectory);
+
+            if (!fullBaseDirectory.EndsWith(Path.DirectorySeparatorChar))
+            {
+                fullBaseDirectory += Path.DirectorySeparatorChar;
+            }
+
+            if (!fullPath.StartsWith(fullBaseDirectory, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("Remote filename resolves outside of the target directory", nameof(remoteFilename));
+            }
+
+            return fullPath;
         }
 
         /// <summary>
@@ -470,10 +485,20 @@ namespace slskd
                 throw new ArgumentException($"Invalid remote filename; expected a non-whitespace value, received '{remoteFilename}'", nameof(remoteFilename));
             }
 
+            if (Path.IsPathRooted(remoteFilename) || Regex.IsMatch(remoteFilename, @"^[a-zA-Z]:"))
+            {
+                throw new ArgumentException("Remote filename must be relative", nameof(remoteFilename));
+            }
+
             // normalize path separators
             var localizedRemoteFilename = remoteFilename.LocalizePath();
 
-            var parts = localizedRemoteFilename.Split(Path.DirectorySeparatorChar);
+            var parts = localizedRemoteFilename.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Any(IsUnsafeRemotePathPart))
+            {
+                throw new ArgumentException("Remote filename contains an unsafe path component", nameof(remoteFilename));
+            }
 
             if (parts.Length == 1)
             {
@@ -484,6 +509,13 @@ namespace slskd
             var directory = parts.Reverse().Skip(1).Take(1).Single().ReplaceInvalidFileNameCharacters();
 
             return Path.Combine(directory, file);
+        }
+
+        private static bool IsUnsafeRemotePathPart(string part)
+        {
+            return string.IsNullOrWhiteSpace(part) ||
+                string.Equals(part, ".", StringComparison.Ordinal) ||
+                string.Equals(part, "..", StringComparison.Ordinal);
         }
 
         /// <summary>

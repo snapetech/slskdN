@@ -220,7 +220,7 @@ namespace slskd.HashDb.API
         ///     Receives entries from mesh sync.
         /// </summary>
         [HttpPost("sync/merge")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> MergeEntries([FromBody] MergeRequest request)
         {
             if (request == null || request.Entries == null || !request.Entries.Any())
@@ -243,7 +243,7 @@ namespace slskd.HashDb.API
         ///     Stores a hash from verification result.
         /// </summary>
         [HttpPost("hash")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> StoreHash([FromBody] StoreHashRequest request)
         {
             if (request == null)
@@ -278,7 +278,7 @@ namespace slskd.HashDb.API
         /// <param name="batchSize">Number of searches to process per call (default 50, max 500).</param>
         /// <param name="reset">If true, resets progress and starts from the beginning.</param>
         [HttpPost("backfill/from-history")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> BackfillFromHistory([FromQuery] int batchSize = 50, [FromQuery] bool reset = false)
         {
             // Clamp batch size to reasonable values
@@ -367,7 +367,7 @@ namespace slskd.HashDb.API
         ///     Optimizes database indexes.
         /// </summary>
         [HttpPost("optimize/indexes")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> OptimizeIndexes()
         {
             if (OptimizationService == null)
@@ -415,7 +415,7 @@ namespace slskd.HashDb.API
         ///     Runs VACUUM and ANALYZE to optimize database.
         /// </summary>
         [HttpPost("optimize/vacuum")]
-        [Authorize(Policy = AuthPolicy.Any)]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         public async Task<IActionResult> VacuumAndAnalyze()
         {
             if (OptimizationService == null)
