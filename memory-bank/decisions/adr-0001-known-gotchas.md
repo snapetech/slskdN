@@ -14330,3 +14330,19 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 **Why it happened:** The security fix correctly added post-combine containment checks, but it treated an empty base directory as invalid input instead of preserving the helper's existing relative-path compatibility. That broke test and legacy call paths independent of traversal handling.
 
 **How to prevent it:** When hardening path helpers, identify and preserve documented or existing compatibility inputs before adding containment checks. For `ToLocalFilename()`, normalize an empty base directory to `"."`, then resolve both the candidate path and effective base path before checking containment.
+
+### 0z79. Primitive JSON Bodies Must Be Explicitly Serialized At Web API Boundaries
+
+**What went wrong:** Most Web helpers that call backend actions with `[FromBody] string` already sent `JSON.stringify(value)`, but the pod backfill last-seen helper sent a bare numeric timestamp to an action expecting `[FromBody] long`. That left the request body/content-type shape dependent on the HTTP client serializer instead of the API contract.
+
+**Why it happened:** Primitive JSON bodies are easy to miss because object payloads work naturally through Axios, while strings and numbers need the literal JSON primitive on the wire. Similar endpoints had already been fixed, but the newer pod backfill helper was not included in the primitive-body scan.
+
+**How to prevent it:** Any Web helper that targets a primitive `[FromBody]` action must pass `JSON.stringify(value)` and have a focused API helper test asserting the exact request body. Keep scanner coverage for string and numeric primitive body actions, not only object DTO actions.
+
+### 0z80. UI Result State Must Match The Rendered Result Panel
+
+**What went wrong:** MediaCore descriptor verification called the correct API but wrote the response into the pod-message signature verification state. The descriptor verification panel rendered a different state variable, so successful or failed descriptor checks did not appear in the intended workflow.
+
+**Why it happened:** The component has several adjacent verification workflows with similar handler names and result state names. A copied handler updated the generic `verificationResult` instead of `descriptorVerificationResult`, and the UI still compiled because both state setters existed.
+
+**How to prevent it:** When adding adjacent workflow actions, name handler/result pairs by the rendered panel and assert the user-visible result in a component test or focused manual test. Avoid sharing generic result state across unrelated cards unless the card is intentionally shared.
