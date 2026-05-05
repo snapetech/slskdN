@@ -14349,7 +14349,7 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 
 ### 0z81. Pod, Channel, And Content Identifiers Must Be Encoded Per Route Segment
 
-**What went wrong:** MediaCore pod workflow helpers interpolated `podId`, `channelId`, and variant identifiers directly into API paths. Slash-bearing identifiers could cross route boundaries, call the wrong endpoint, or lose the intended channel/content target even though similar pod messaging helpers had already been hardened.
+**What went wrong:** MediaCore pod workflow helpers interpolated `podId`, `channelId`, and variant identifiers directly into API paths. The slskdN mesh sync and swarm job helpers later had the same issue for usernames and job ids. Slash-bearing identifiers could cross route boundaries, call the wrong endpoint, or lose the intended target even though similar pod messaging helpers had already been hardened.
 
 **Why it happened:** Identifiers commonly contain colon-delimited values, so manual testing did not exercise route separator characters. Some content IDs were encoded while the surrounding pod/channel segments stayed raw, leaving the helper in a partially hardened state.
 
