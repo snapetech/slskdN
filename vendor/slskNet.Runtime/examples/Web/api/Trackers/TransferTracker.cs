@@ -114,7 +114,16 @@
             direction.AddOrUpdate(transfer.Username, GetNewDictionaryForUser(transfer, cancellationTokenSource), (user, dict) =>
             {
                 var tx = DTO.Transfer.FromSoulseekTransfer(transfer);
-                dict.AddOrUpdate(tx.Id, (tx, cancellationTokenSource), (id, record) => (tx, cancellationTokenSource));
+                dict.AddOrUpdate(tx.Id, (tx, cancellationTokenSource), (id, record) =>
+                {
+                    if (!ReferenceEquals(record.CancellationTokenSource, cancellationTokenSource))
+                    {
+                        record.CancellationTokenSource?.Dispose();
+                    }
+
+                    return (tx, cancellationTokenSource);
+                });
+
                 return dict;
             });
         }
@@ -125,16 +134,32 @@
         /// <remarks>Omitting an id will remove ALL transfers associated with the specified username.</remarks>
         public void TryRemove(TransferDirection direction, string username, string id = null)
         {
-            Transfers.TryGetValue(direction, out var directionDict);
+            if (!Transfers.TryGetValue(direction, out var directionDict))
+            {
+                return;
+            }
 
             if (string.IsNullOrEmpty(id))
             {
-                directionDict.TryRemove(username, out _);
+                if (directionDict.TryRemove(username, out var removedTransfers))
+                {
+                    foreach (var transfer in removedTransfers.Values)
+                    {
+                        transfer.CancellationTokenSource?.Dispose();
+                    }
+                }
             }
             else
             {
-                directionDict.TryGetValue(username, out var userDict);
-                userDict.TryRemove(id, out _);
+                if (!directionDict.TryGetValue(username, out var userDict))
+                {
+                    return;
+                }
+
+                if (userDict.TryRemove(id, out var removedTransfer))
+                {
+                    removedTransfer.CancellationTokenSource?.Dispose();
+                }
 
                 if (userDict.IsEmpty)
                 {

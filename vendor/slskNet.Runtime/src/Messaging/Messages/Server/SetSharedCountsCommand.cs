@@ -23,6 +23,8 @@
 
 namespace Soulseek.Messaging.Messages
 {
+    using System;
+
     /// <summary>
     ///     Informs the server of the current number of shared directories and files.
     /// </summary>
@@ -35,6 +37,16 @@ namespace Soulseek.Messaging.Messages
         /// <param name="fileCount">The number of shared files.</param>
         public SetSharedCountsCommand(int directoryCount, int fileCount)
         {
+            if (directoryCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(directoryCount), directoryCount, "The directory count must be equal to or greater than zero");
+            }
+
+            if (fileCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(fileCount), fileCount, "The file count must be equal to or greater than zero");
+            }
+
             DirectoryCount = directoryCount;
             FileCount = fileCount;
         }

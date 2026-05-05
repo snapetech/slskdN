@@ -21,6 +21,7 @@ namespace Soulseek.Tests.Unit.Client
     using System.Collections.Generic;
 
     using System.Net;
+    using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks;
     using AutoFixture.Xunit2;
@@ -54,7 +55,7 @@ namespace Soulseek.Tests.Unit.Client
         {
             var (client, _) = GetFixture();
 
-            var port = Mocks.Port;
+            var port = GetAvailablePort();
             var patch = new SoulseekClientOptionsPatch(listenPort: port);
 
             Listener listener = null;
@@ -300,11 +301,11 @@ namespace Soulseek.Tests.Unit.Client
         [Fact(DisplayName = "Reconfigures listener if ListenPort changed")]
         public async Task Reconfigures_Listener_If_ListenPort_Changed()
         {
-            var (client, mocks) = GetFixture(new SoulseekClientOptions(listenPort: Mocks.Port));
+            var (client, mocks) = GetFixture(new SoulseekClientOptions(listenPort: GetAvailablePort()));
 
             mocks.Listener.Setup(m => m.Listening).Returns(true);
 
-            var patch = new SoulseekClientOptionsPatch(listenPort: Mocks.Port);
+            var patch = new SoulseekClientOptionsPatch(listenPort: GetAvailablePort());
 
             using (client)
             {
@@ -320,7 +321,7 @@ namespace Soulseek.Tests.Unit.Client
         [Fact(DisplayName = "Reconfigures listener if ListenIPAddress changed")]
         public async Task Reconfigures_Listener_If_ListenIPAddress_Changed()
         {
-            var (client, mocks) = GetFixture(new SoulseekClientOptions(listenIPAddress: IPAddress.Parse("0.0.0.0")));
+            var (client, mocks) = GetFixture(new SoulseekClientOptions(listenIPAddress: IPAddress.Parse("0.0.0.0"), listenPort: GetAvailablePort()));
 
             mocks.Listener.Setup(m => m.Listening).Returns(true);
 
@@ -340,7 +341,7 @@ namespace Soulseek.Tests.Unit.Client
         [Fact(DisplayName = "Reconfigures listener if IncomingConnectionOptions changed")]
         public async Task Reconfigures_Listener_If_IncomingConnectionOptions_Changed()
         {
-            var (client, mocks) = GetFixture(new SoulseekClientOptions(incomingConnectionOptions: new ConnectionOptions()));
+            var (client, mocks) = GetFixture(new SoulseekClientOptions(listenPort: GetAvailablePort(), incomingConnectionOptions: new ConnectionOptions()));
 
             mocks.Listener.Setup(m => m.Listening).Returns(true);
 
@@ -489,7 +490,7 @@ namespace Soulseek.Tests.Unit.Client
         {
             var (client, _) = GetFixture(new SoulseekClientOptions(
                 enableListener: false,
-                listenPort: Mocks.Port,
+                listenPort: GetAvailablePort(),
                 enableDistributedNetwork: false,
                 acceptDistributedChildren: false,
                 distributedChildLimit: 5,
@@ -515,7 +516,7 @@ namespace Soulseek.Tests.Unit.Client
 
             var patch = new SoulseekClientOptionsPatch(
                 enableListener: true,
-                listenPort: Mocks.Port,
+                listenPort: GetAvailablePort(),
                 enableDistributedNetwork: true,
                 acceptDistributedChildren: true,
                 distributedChildLimit: 10,
@@ -655,6 +656,21 @@ namespace Soulseek.Tests.Unit.Client
             return (client, mocks);
         }
 
+        private static int GetAvailablePort()
+        {
+            var listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+
+            try
+            {
+                return ((IPEndPoint)listener.LocalEndpoint).Port;
+            }
+            finally
+            {
+                listener.Stop();
+            }
+        }
+
         private class Mocks
         {
             public Mocks()
@@ -674,9 +690,6 @@ namespace Soulseek.Tests.Unit.Client
                 DistributedConnectionManager.Setup(m => m.BranchLevel).Returns(0);
                 DistributedConnectionManager.Setup(m => m.BranchRoot).Returns(string.Empty);
             }
-
-            private static readonly Random Rng = new Random();
-            public static int Port => Rng.Next(1024, IPEndPoint.MaxPort);
 
             public Mock<IMessageConnection> ServerConnection { get; } = new Mock<IMessageConnection>();
             public Mock<IConnectionFactory> ConnectionFactory { get; }

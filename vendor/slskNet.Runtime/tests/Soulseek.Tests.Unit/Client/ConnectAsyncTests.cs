@@ -21,6 +21,7 @@ namespace Soulseek.Tests.Unit.Client
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
+    using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks;
     using AutoFixture.Xunit2;
@@ -69,7 +70,7 @@ namespace Soulseek.Tests.Unit.Client
         [Fact(DisplayName = "Throws ListenException on bad listen port")]
         public async Task Address_Throws_ListenException_On_Bad_Listen_Port()
         {
-            var port = Mocks.Port;
+            var port = GetAvailablePort();
 
             using (var s = new SoulseekClient(minorVersion: 9999, new SoulseekClientOptions(enableListener: true, listenPort: port)))
             {
@@ -448,7 +449,7 @@ namespace Soulseek.Tests.Unit.Client
         [Theory(DisplayName = "Starts listener on success"), AutoData]
         public async Task Starts_Listener_On_Success(string user, string password)
         {
-            var port = Mocks.Port;
+            var port = GetAvailablePort();
             var (client, _) = GetFixture(new SoulseekClientOptions(listenPort: port));
 
             using (client)
@@ -465,7 +466,7 @@ namespace Soulseek.Tests.Unit.Client
         [Theory(DisplayName = "Sets listen port on success"), AutoData]
         public async Task Sets_Listen_Port_On_Success(string user, string password)
         {
-            var port = Mocks.Port;
+            var port = GetAvailablePort();
             var (client, mocks) = GetFixture(new SoulseekClientOptions(listenPort: port));
 
             using (client)
@@ -601,6 +602,21 @@ namespace Soulseek.Tests.Unit.Client
             return (client, mocks);
         }
 
+        private static int GetAvailablePort()
+        {
+            var listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+
+            try
+            {
+                return ((IPEndPoint)listener.LocalEndpoint).Port;
+            }
+            finally
+            {
+                listener.Stop();
+            }
+        }
+
         private class Mocks
         {
             public Mocks()
@@ -623,9 +639,6 @@ namespace Soulseek.Tests.Unit.Client
                 Waiter.Setup(m => m.Wait<LoginResponse>(It.IsAny<WaitKey>(), null, It.IsAny<CancellationToken>()))
                     .Returns(Task.FromResult(new LoginResponse(true, string.Empty)));
             }
-
-            private static readonly Random Rng = new Random();
-            public static int Port => Rng.Next(1024, IPEndPoint.MaxPort);
 
             public Mock<IMessageConnection> ServerConnection { get; } = new Mock<IMessageConnection>();
             public Mock<IWaiter> Waiter { get; } = new Mock<IWaiter>();

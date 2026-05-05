@@ -3,6 +3,7 @@ namespace WebAPI
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Linq;
     using System.Net;
@@ -600,6 +601,7 @@ namespace WebAPI
         /// <returns>A Task representing the asynchronous operation.</returns>
         /// <exception cref="DownloadEnqueueException">Thrown when the download is rejected.  The Exception message will be passed to the remote user.</exception>
         /// <exception cref="Exception">Thrown on any other Exception other than a rejection.  A generic message will be passed to the remote user for security reasons.</exception>
+        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The upload task owns and disposes the cancellation token source in a finally block.")]
         private Task EnqueueDownloadAction(string username, IPEndPoint endpoint, string filename, ITransferTracker tracker)
         {
             _ = endpoint;
@@ -656,10 +658,15 @@ namespace WebAPI
             // normally there would be an internal queue, and uploads would be handled separately.
             Task.Run(async () =>
             {
-                using var stream = new FileStream(fileInfo.FullName, FileMode.Open, FileAccess.Read);
-                await Client.UploadAsync(username, filename, fileInfo.Length, (_) => Task.FromResult((Stream)stream), options: topts, cancellationToken: cts.Token);
-
-                cts.Dispose();
+                try
+                {
+                    using var stream = new FileStream(fileInfo.FullName, FileMode.Open, FileAccess.Read);
+                    await Client.UploadAsync(username, filename, fileInfo.Length, (_) => Task.FromResult((Stream)stream), options: topts, cancellationToken: cts.Token);
+                }
+                finally
+                {
+                    cts.Dispose();
+                }
             }).ContinueWith(t =>
             {
                 Console.WriteLine($"[UPLOAD FAILED] {t.Exception}");

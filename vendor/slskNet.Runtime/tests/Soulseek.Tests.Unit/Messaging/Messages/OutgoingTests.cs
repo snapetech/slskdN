@@ -477,10 +477,26 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "SetSharedCounts instantiates properly"), AutoData]
         public void SetSharedCounts_Instantiates_Properly(int dirs, int files)
         {
+            dirs = Math.Abs(dirs);
+            files = Math.Abs(files);
+
             var a = new SetSharedCountsCommand(dirs, files);
 
             Assert.Equal(dirs, a.DirectoryCount);
             Assert.Equal(files, a.FileCount);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Trait("Request", "SetSharedCounts")]
+        [Theory(DisplayName = "SetSharedCounts throws when counts are negative")]
+        [InlineData(-1, 0)]
+        [InlineData(0, -1)]
+        public void SetSharedCounts_Throws_When_Counts_Are_Negative(int dirs, int files)
+        {
+            var ex = Record.Exception(() => new SetSharedCountsCommand(dirs, files));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentOutOfRangeException>(ex);
         }
 
         [Trait("Category", "ToByteArray")]
@@ -488,6 +504,9 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "SetSharedCounts constructs the correct message"), AutoData]
         public void SetSharedCounts_Constructs_The_Correct_Message(int dirs, int files)
         {
+            dirs = Math.Abs(dirs);
+            files = Math.Abs(files);
+
             var a = new SetSharedCountsCommand(dirs, files);
             var msg = a.ToByteArray();
 
@@ -529,9 +548,24 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "SendUploadSpeed instantiates properly"), AutoData]
         public void SendUploadSpeed_Instantiates_Properly(int speed)
         {
+            speed = Math.Max(1, Math.Abs(speed));
+
             var a = new SendUploadSpeedCommand(speed);
 
             Assert.Equal(speed, a.Speed);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Trait("Request", "SendUploadSpeed")]
+        [Theory(DisplayName = "SendUploadSpeed throws when speed is not positive")]
+        [InlineData(0)]
+        [InlineData(-1)]
+        public void SendUploadSpeed_Throws_When_Speed_Is_Not_Positive(int speed)
+        {
+            var ex = Record.Exception(() => new SendUploadSpeedCommand(speed));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentOutOfRangeException>(ex);
         }
 
         [Trait("Category", "ToByteArray")]
@@ -539,6 +573,8 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "SendUploadSpeed constructs the correct message"), AutoData]
         public void SendUploadSpeed_Constructs_The_Correct_Message(int speed)
         {
+            speed = Math.Max(1, Math.Abs(speed));
+
             var a = new SendUploadSpeedCommand(speed);
             var msg = a.ToByteArray();
 

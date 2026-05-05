@@ -23,6 +23,8 @@
 
 namespace Soulseek.Messaging.Messages
 {
+    using System;
+
     /// <summary>
     ///     Informs the server of the most recent upload transfer speed.
     /// </summary>
@@ -34,6 +36,11 @@ namespace Soulseek.Messaging.Messages
         /// <param name="speed">The most recent upload transfer speed, in bytes per second.</param>
         public SendUploadSpeedCommand(int speed)
         {
+            if (speed <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(speed), speed, "The upload speed must be greater than zero");
+            }
+
             Speed = speed;
         }
 

@@ -89,26 +89,50 @@
         [HttpPost("downloads/{username}")]
         [Authorize]
         [ProducesResponseType(201)]
+        [ProducesResponseType(typeof(string), 400)]
         [ProducesResponseType(typeof(string), 403)]
         [ProducesResponseType(typeof(string), 500)]
+        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The cancellation token source is owned by the tracker after the first state/progress callback; untracked setup failures are disposed before returning.")]
         public async Task<IActionResult> Enqueue([FromRoute, Required] string username, [FromBody] QueueDownloadRequest request)
         {
+            CancellationTokenSource cts = null;
+            var isTracked = 0;
+
             try
             {
+                if (request == null)
+                {
+                    return BadRequest("Request body is required");
+                }
+
+                if (string.IsNullOrWhiteSpace(request.Filename))
+                {
+                    return BadRequest("Filename is required");
+                }
+
+                if (request.Size < 0)
+                {
+                    return BadRequest("Size must be greater than or equal to zero");
+                }
+
                 var waitUntilEnqueue = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-                var stream = GetLocalFileStream(request.Filename, OutputDirectory);
 
-                var cts = new CancellationTokenSource();
+                cts = new CancellationTokenSource();
 
-                var downloadTask = Client.DownloadAsync(username, request.Filename, () => Task.FromResult((Stream)stream), request.Size, 0, request.Token, new TransferOptions(disposeOutputStreamOnCompletion: true, stateChanged: (e) =>
+                var downloadTask = Client.DownloadAsync(username, request.Filename, () => Task.FromResult((Stream)GetLocalFileStream(request.Filename, OutputDirectory)), request.Size, 0, request.Token, new TransferOptions(disposeOutputStreamOnCompletion: true, stateChanged: (e) =>
                 {
                     Tracker.AddOrUpdate(e.Transfer, cts);
+                    Interlocked.Exchange(ref isTracked, 1);
 
                     if (e.Transfer.State.HasFlag(TransferStates.Queued) || e.Transfer.State == TransferStates.Initializing)
                     {
                         waitUntilEnqueue.TrySetResult(true);
                     }
-                }, progressUpdated: (e) => Tracker.AddOrUpdate(e.Transfer, cts)), cts.Token);
+                }, progressUpdated: (e) =>
+                {
+                    Tracker.AddOrUpdate(e.Transfer, cts);
+                    Interlocked.Exchange(ref isTracked, 1);
+                }), cts.Token);
 
                 // wait until either the waitUntilEnqueue task completes because the download was successfully queued, or the
                 // downloadTask throws due to an error prior to successfully queueing.
@@ -116,6 +140,8 @@
 
                 if (task == downloadTask && downloadTask.Exception is AggregateException)
                 {
+                    DisposeUntrackedCancellationTokenSource(cts, isTracked);
+
                     var rejected = downloadTask.Exception?.InnerExceptions.Where(e => e is TransferRejectedException) ?? Enumerable.Empty<Exception>();
 
                     if (rejected.Any())
@@ -131,6 +157,7 @@
             }
             catch (Exception ex)
             {
+                DisposeUntrackedCancellationTokenSource(cts, isTracked);
                 Console.WriteLine(ex);
                 return StatusCode(500, ex.Message);
             }
@@ -256,6 +283,14 @@
             }
 
             return new FileStream(localFilename, FileMode.Create);
+        }
+
+        private static void DisposeUntrackedCancellationTokenSource(CancellationTokenSource cts, int isTracked)
+        {
+            if (cts != null && isTracked == 0)
+            {
+                cts.Dispose();
+            }
         }
 
         private IActionResult CancelTransfer(TransferDirection direction, string username, string id, bool remove = false)
