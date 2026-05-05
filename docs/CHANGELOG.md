@@ -33,6 +33,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   `snapetech/slskdn`.
 - Fixed the VPN ingress migration banner so current Soulseek and mesh/DHT
   ports come from loaded configuration instead of hard-coded defaults.
+- Kept live Soulseek-account mesh smoke tests out of normal release preflight
+  unless `SLSKDN_RUN_LIVE_MESH_ACCOUNT_TESTS` is explicitly enabled.
 - Fixed remediation check invocation from both the repo root and `src/web`,
   restored direct `./bin/lint` execution, reconciled stale project audit
   entries, and clarified how frontend build assets are copied into backend

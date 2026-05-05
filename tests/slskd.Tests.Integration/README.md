@@ -120,6 +120,7 @@ jobs:
 - `SOULFIND_PATH`: Path to Soulfind binary (auto-discovered if not set)
 - `SLSKDN_TEST_TIMEOUT`: Test timeout in seconds (default: 300)
 - `SLSKDN_TEST_LOG_LEVEL`: Logging level (Debug, Information, Warning, Error)
+- `SLSKDN_RUN_LIVE_MESH_ACCOUNT_TESTS`: Set to `1`, `true`, or `yes` to run the live Soulseek-account mesh smoke. This test also requires two configured `SLSKDN_MESH_ACCOUNT_*` username/password pairs or the local ignored `local-mesh-account*.env` files. Leave unset for release preflight; the normal full-instance mesh tests do not require Soulseek login.
 
 ## Test Data
 

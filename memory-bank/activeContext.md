@@ -1,3 +1,15 @@
+## Update 2026-05-05 06:17:11Z
+
+- Current task: Release-preflight live mesh test gate is complete locally.
+- Last activity:
+  - found the broad test blocker was the optional live-account mesh smoke running because ignored local credential files exist
+  - added explicit `SLSKDN_RUN_LIVE_MESH_ACCOUNT_TESTS` opt-in before the test can attempt public Soulseek login
+  - documented the live-smoke gotcha in ADR-0001 as `0z283` and committed it separately as `e61cac61b`
+  - documented the opt-in flag in the integration test README
+  - validation passed: focused `TwoNodeMeshFullInstanceTests` integration slice, 3/3 passed
+- Next steps:
+  1. Run broader release preflight checks and commit/push the test-gate fix.
+
 ## Update 2026-05-05 06:12:38Z
 
 - Current task: VPN ingress banner port-source correction is complete locally.

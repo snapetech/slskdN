@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **tests**: Gate live Soulseek-account mesh smoke outside normal release preflight.
+ - Status: completed (2026-05-05)
+ - Priority: P1
+ - Notes: Changed `OptionalLiveAccounts_CanSearchAndDownloadHostedProbeOverOverlayMesh` to require explicit `SLSKDN_RUN_LIVE_MESH_ACCOUNT_TESTS` opt-in before reading local account pools. Release/default `dotnet test` no longer fails just because ignored live credentials exist and the external Soulseek login path is unavailable. Documented ADR-0001 gotcha `0z283`. Validation passed: focused `TwoNodeMeshFullInstanceTests` integration slice, 3/3 passed.
+
 - [x] **web**: Derive VPN ingress banner ports from loaded configuration.
  - Status: completed (2026-05-05)
  - Priority: P1

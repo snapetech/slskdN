@@ -208,6 +208,11 @@ public class TwoNodeMeshFullInstanceTests
     [Fact]
     public async Task OptionalLiveAccounts_CanSearchAndDownloadHostedProbeOverOverlayMesh()
     {
+        if (!ShouldRunLiveMeshAccountSmoke())
+        {
+            return;
+        }
+
         if (!TryLoadLocalMeshAccounts(out var accounts))
         {
             return;
@@ -518,6 +523,14 @@ public class TwoNodeMeshFullInstanceTests
             pool[1].Username,
             pool[1].Password);
         return true;
+    }
+
+    private static bool ShouldRunLiveMeshAccountSmoke()
+    {
+        var value = Environment.GetEnvironmentVariable("SLSKDN_RUN_LIVE_MESH_ACCOUNT_TESTS");
+        return string.Equals(value, "1", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string ReadCredential(Dictionary<string, string> values, string key)

@@ -1,5 +1,8 @@
 ## 2026-05-05
 
+- Gated the optional live Soulseek-account mesh smoke behind `SLSKDN_RUN_LIVE_MESH_ACCOUNT_TESTS` so ignored local credential files do not make normal release preflight depend on public Soulseek login availability. Documented ADR-0001 gotcha `0z283` and the opt-in flag in the integration test README.
+- Validation: focused `TwoNodeMeshFullInstanceTests` integration slice passed, 3/3.
+
 - Fixed the VPN ingress migration banner to derive current ports from loaded options rather than fixed defaults: Soulseek peer/file transfer uses `soulseek.listen_port`, mesh overlay uses `dht.overlay_port`, and DHT rendezvous uses `dht.dht_port`. When the mesh overlay and DHT ports differ, the banner now shows separate TCP and UDP rows. Documented the gotcha in ADR-0001 as `0z282`.
 - Validation: focused `App.test.jsx` and App lint passed.
 
