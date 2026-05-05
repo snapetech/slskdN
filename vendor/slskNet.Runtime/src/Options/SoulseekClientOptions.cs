@@ -203,6 +203,12 @@ namespace Soulseek
             DeduplicateSearchRequests = deduplicateSearchRequests;
 
             MessageTimeout = messageTimeout;
+
+            if (MessageTimeout < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(messageTimeout), "Must be greater than or equal to one");
+            }
+
             AutoAcknowledgePrivateMessages = autoAcknowledgePrivateMessages;
             AutoAcknowledgePrivilegeNotifications = autoAcknowledgePrivilegeNotifications;
             AcceptPrivateRoomInvitations = acceptPrivateRoomInvitations;

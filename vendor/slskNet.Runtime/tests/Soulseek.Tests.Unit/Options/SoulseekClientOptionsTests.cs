@@ -568,6 +568,14 @@ namespace Soulseek.Tests.Unit.Options
                 maximumDownloadSpeed: maximumDownloadSpeed));
         }
 
+        [Theory(DisplayName = "Throws if message timeout is less than one")]
+        [InlineData(0)]
+        [InlineData(-1)]
+        public void Throws_If_Message_Timeout_Is_Less_Than_One(int messageTimeout)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new SoulseekClientOptions(messageTimeout: messageTimeout));
+        }
+
         private static int? NormalizePositive(int? value) => value.HasValue ? Math.Max(1, value.Value) : value;
 
         private class UserEndPointCache : IUserEndPointCache

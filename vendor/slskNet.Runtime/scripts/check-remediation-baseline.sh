@@ -169,6 +169,8 @@ require_pattern "MaximumUploadSpeed < 1" "src/Options/SoulseekClientOptions.cs" 
 require_pattern "MaximumDownloadSpeed < 1" "src/Options/SoulseekClientOptions.cs" "client options reject invalid download speed capacity"
 require_pattern "MaximumUploadSpeed\\.HasValue && MaximumUploadSpeed\\.Value < 1" "src/Options/SoulseekClientOptionsPatch.cs" "client option patches reject invalid upload speed capacity"
 require_pattern "Throws_If_Maximum_Speed_Is_Less_Than_One" "tests/Soulseek.Tests.Unit/Options" "client option speed validation tests are registered"
+require_pattern "MessageTimeout < 1" "src/Options/SoulseekClientOptions.cs" "client options reject invalid message timeout values"
+require_pattern "Throws_If_Message_Timeout_Is_Less_Than_One" "tests/Soulseek.Tests.Unit/Options/SoulseekClientOptionsTests.cs" "client option message timeout validation tests are registered"
 
 require_pattern "<PackageId>slskNet\.Runtime</PackageId>" "src/Soulseek.csproj" "package id uses fork branding"
 require_pattern "snapetech/slskNet\.Runtime" "src/Soulseek.csproj" "package metadata points to fork repository"
