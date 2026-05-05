@@ -177,10 +177,10 @@ jobs:
         run: |
           mkdir -p release
           find artifacts -name "*.zip" -exec cp {} release/ \;
-          cp packaging/aur/slskd.service packaging/aur/slskd.yml packaging/aur/slskd.sysusers release/
+          cp packaging/aur/slskd.service packaging/aur/slskd.yml packaging/aur/slskd.sysusers packaging/aur/slskd.tmpfiles release/
           cp packaging/linux/install-from-release.sh release/install-linux-release.sh
           chmod +x release/install-linux-release.sh
-          cd release && sha256sum *.zip slskd.service slskd.yml slskd.sysusers install-linux-release.sh > SHA256SUMS.txt && cd ..
+          cd release && sha256sum *.zip slskd.service slskd.yml slskd.sysusers slskd.tmpfiles install-linux-release.sh > SHA256SUMS.txt && cd ..
           ls -lh release/
           echo "=== SHA256SUMS.txt ==="
           cat release/SHA256SUMS.txt
@@ -419,6 +419,7 @@ jobs:
           SVC_SUM=$(sha256sum packaging/aur/slskd.service  | awk '{print $1}')
           YML_SUM=$(sha256sum packaging/aur/slskd.yml      | awk '{print $1}')
           SYS_SUM=$(sha256sum packaging/aur/slskd.sysusers | awk '{print $1}')
+          TMP_SUM=$(sha256sum packaging/aur/slskd.tmpfiles | awk '{print $1}')
 
           cd aur-pkg-source
 
@@ -428,14 +429,15 @@ jobs:
           cp ../packaging/aur/slskd.service slskd.service
           cp ../packaging/aur/slskd.yml slskd.yml
           cp ../packaging/aur/slskd.sysusers slskd.sysusers
+          cp ../packaging/aur/slskd.tmpfiles slskd.tmpfiles
 
           # Version for main (convert dots if needed, e.g. 0.25.0)
           ARCH_VERSION=$(echo "${{ needs.parse.outputs.version }}" | sed 's/-/./g')
 
           # Update version and static file hashes (tarball stays SKIP)
-          # source=() order: tarball slskd.service slskd.yml slskd.sysusers
+          # source=() order: tarball slskd.service slskd.yml slskd.sysusers slskd.tmpfiles
           sed -i "s/^pkgver=.*/pkgver=${ARCH_VERSION}/" PKGBUILD
-          sed -i "s/^sha256sums=.*/sha256sums=('SKIP' '${SVC_SUM}' '${YML_SUM}' '${SYS_SUM}')/" PKGBUILD
+          sed -i "s/^sha256sums=.*/sha256sums=('SKIP' '${SVC_SUM}' '${YML_SUM}' '${SYS_SUM}' '${TMP_SUM}')/" PKGBUILD
           bash ../packaging/scripts/validate-aur-pkgbuild-hashes.sh PKGBUILD
           
           # Generate .SRCINFO
@@ -458,7 +460,7 @@ jobs:
           if [ -z "$AUR_SSH_KEY" ]; then exit 0; fi
           
           cd aur-pkg-source
-          git add PKGBUILD .SRCINFO slskd.install slskd.service slskd.yml slskd.sysusers
+          git add PKGBUILD .SRCINFO slskd.install slskd.service slskd.yml slskd.sysusers slskd.tmpfiles
           bash ../packaging/scripts/push-aur-repo.sh . slskdn "Update to ${{ needs.parse.outputs.version }}"
 
       # Publish slskdn-bin (binary package)
@@ -481,9 +483,11 @@ jobs:
           SVC_SUM=$(sha256sum packaging/aur/slskd.service  | awk '{print $1}')
           YML_SUM=$(sha256sum packaging/aur/slskd.yml      | awk '{print $1}')
           SYS_SUM=$(sha256sum packaging/aur/slskd.sysusers | awk '{print $1}')
+          TMP_SUM=$(sha256sum packaging/aur/slskd.tmpfiles | awk '{print $1}')
           echo "slskd.service: $SVC_SUM"
           echo "slskd.yml    : $YML_SUM"
           echo "slskd.sysusers: $SYS_SUM"
+          echo "slskd.tmpfiles: $TMP_SUM"
 
           cd aur-pkg-bin
 
@@ -493,14 +497,15 @@ jobs:
           cp ../packaging/aur/slskd.service slskd.service
           cp ../packaging/aur/slskd.yml slskd.yml
           cp ../packaging/aur/slskd.sysusers slskd.sysusers
+          cp ../packaging/aur/slskd.tmpfiles slskd.tmpfiles
 
           # Version for main
           ARCH_VERSION=$(echo "${{ needs.parse.outputs.version }}" | sed 's/-/./g')
 
           # Update version and static file hashes only.
-          # source=() order: zip slskd.service slskd.yml slskd.sysusers
+          # source=() order: zip slskd.service slskd.yml slskd.sysusers slskd.tmpfiles
           sed -i "s/^pkgver=.*/pkgver=${ARCH_VERSION}/" PKGBUILD
-          sed -i "s/^sha256sums=.*/sha256sums=('SKIP' '${SVC_SUM}' '${YML_SUM}' '${SYS_SUM}')/" PKGBUILD
+          sed -i "s/^sha256sums=.*/sha256sums=('SKIP' '${SVC_SUM}' '${YML_SUM}' '${SYS_SUM}' '${TMP_SUM}')/" PKGBUILD
           bash ../packaging/scripts/validate-aur-pkgbuild-hashes.sh PKGBUILD
           
           # Generate .SRCINFO
@@ -523,7 +528,7 @@ jobs:
           if [ -z "$AUR_SSH_KEY" ]; then exit 0; fi
           
           cd aur-pkg-bin
-          git add PKGBUILD .SRCINFO slskd.install slskd.service slskd.yml slskd.sysusers
+          git add PKGBUILD .SRCINFO slskd.install slskd.service slskd.yml slskd.sysusers slskd.tmpfiles
           bash ../packaging/scripts/push-aur-repo.sh . slskdn-bin "Update to ${{ needs.parse.outputs.version }}"
 
   copr-main:
@@ -561,6 +566,7 @@ jobs:
           cp packaging/aur/slskd.service ~/rpmbuild/SOURCES/
           cp packaging/aur/slskd.yml ~/rpmbuild/SOURCES/
           cp packaging/aur/slskd.sysusers ~/rpmbuild/SOURCES/slskd.conf
+          cp packaging/aur/slskd.tmpfiles ~/rpmbuild/SOURCES/
 
       - name: Update Spec File
         run: |
@@ -665,6 +671,7 @@ jobs:
           mkdir -p slskdn-${VERSION}/lib/systemd/system
           mkdir -p slskdn-${VERSION}/etc/slskd
           mkdir -p slskdn-${VERSION}/usr/lib/sysusers.d
+          mkdir -p slskdn-${VERSION}/usr/lib/tmpfiles.d
           
           # Copy binary files from our build
           cp -r publish-linux-x64/* slskdn-${VERSION}/usr/lib/slskd/
@@ -673,6 +680,7 @@ jobs:
           cp packaging/aur/slskd.service slskdn-${VERSION}/lib/systemd/system/
           cp packaging/aur/slskd.yml slskdn-${VERSION}/etc/slskd/
           cp packaging/aur/slskd.sysusers slskdn-${VERSION}/usr/lib/sysusers.d/slskd.conf
+          cp packaging/aur/slskd.tmpfiles slskdn-${VERSION}/usr/lib/tmpfiles.d/slskd.conf
 
       - name: Prepare Source Package
         run: |

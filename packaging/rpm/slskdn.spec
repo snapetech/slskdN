@@ -10,6 +10,7 @@ Source0:        https://github.com/snapetech/slskdn/releases/download/2026050500
 Source1:        slskd.service
 Source2:        slskd.yml
 Source3:        slskd.conf
+Source4:        slskd.tmpfiles
 
 BuildArch:      x86_64
 BuildRequires:  systemd-rpm-macros
@@ -93,15 +94,19 @@ install -Dm644 %{SOURCE2} %{buildroot}%{_sysconfdir}/slskd/slskd.yml
 # Install sysusers
 install -Dm644 %{SOURCE3} %{buildroot}%{_sysusersdir}/slskd.conf
 
+# Install tmpfiles
+install -Dm644 %{SOURCE4} %{buildroot}%{_tmpfilesdir}/slskd.conf
+
 # Create data directories
-install -dm755 %{buildroot}%{_sharedstatedir}/slskd
-install -dm755 %{buildroot}%{_sharedstatedir}/slskd/downloads
-install -dm755 %{buildroot}%{_sharedstatedir}/slskd/incomplete
+install -dm775 %{buildroot}%{_sharedstatedir}/slskd
+install -dm775 %{buildroot}%{_sharedstatedir}/slskd/downloads
+install -dm775 %{buildroot}%{_sharedstatedir}/slskd/incomplete
 
 %pre
 getent passwd slskd >/dev/null || useradd -r -s /sbin/nologin -d %{_sharedstatedir}/slskd -c "slskd service account" slskd
 
 %post
+%tmpfiles_create %{_tmpfilesdir}/slskd.conf
 %systemd_post slskd.service
 echo ""
 echo "🔋 slskdn has been installed!"
@@ -127,7 +132,11 @@ echo ""
 %{slskd_appdir}/
 %{_bindir}/slskd
 %{_unitdir}/slskd.service
-%config(noreplace) %{_sysconfdir}/slskd/slskd.yml
+%{_tmpfilesdir}/slskd.conf
+%config(noreplace) %attr(0664,slskd,slskd) %{_sysconfdir}/slskd/slskd.yml
+%dir %attr(0775,slskd,slskd) %{_sharedstatedir}/slskd
+%dir %attr(0775,slskd,slskd) %{_sharedstatedir}/slskd/downloads
+%dir %attr(0775,slskd,slskd) %{_sharedstatedir}/slskd/incomplete
 %{_sysusersdir}/slskd.conf
 %dir %attr(755,slskd,slskd) %{_sharedstatedir}/slskd
 %dir %attr(755,slskd,slskd) %{_sharedstatedir}/slskd/downloads

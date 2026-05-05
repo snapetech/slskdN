@@ -9529,3 +9529,4 @@ Code quality improvements were completed as part of Option A:
 - Added `UMask=0002` to packaged and release-installer systemd units so newly created files remain group accessible.
 - Updated the release installer to repair existing config/data ownership and group-write modes.
 - Documented the optional `sudo usermod -aG slskd "$USER"` workflow plus re-login/newgrp requirement for users who want non-root access to config and downloads.
+- Extended tag-release packaging so AUR, RPM, PPA, and release checksums carry the new `slskd.tmpfiles` metadata.

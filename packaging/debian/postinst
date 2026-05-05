@@ -9,9 +9,13 @@ case "$1" in
         fi
         
         # Create directories
-        install -dm755 -o slskd -g slskd /var/lib/slskd
-        install -dm755 -o slskd -g slskd /var/lib/slskd/downloads
-        install -dm755 -o slskd -g slskd /var/lib/slskd/incomplete
+        install -dm775 -o slskd -g slskd /var/lib/slskd
+        install -dm775 -o slskd -g slskd /var/lib/slskd/downloads
+        install -dm775 -o slskd -g slskd /var/lib/slskd/incomplete
+        if [ -f /etc/slskd/slskd.yml ]; then
+            chown slskd:slskd /etc/slskd/slskd.yml || true
+            chmod 664 /etc/slskd/slskd.yml || true
+        fi
         
         # Reload systemd
         systemctl daemon-reload || true
@@ -34,7 +38,6 @@ esac
 #DEBHELPER#
 
 exit 0
-
 
 
 

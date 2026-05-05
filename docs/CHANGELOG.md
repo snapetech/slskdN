@@ -53,6 +53,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Fixed systemd package permissions so the `slskd` daemon owns its config/state
   paths, new files remain group accessible, and setup docs explain optional
   user membership in the `slskd` group.
+- Carried the same tmpfiles-based permission metadata through tag-release AUR,
+  RPM, and PPA packaging.
 - Fixed remediation check invocation from both the repo root and `src/web`,
   restored direct `./bin/lint` execution, reconciled stale project audit
   entries, and clarified how frontend build assets are copied into backend

@@ -32,9 +32,11 @@ override_dh_auto_install:
 	# Install sysusers
 	install -Dm644 usr/lib/sysusers.d/slskd.conf debian/slskdn/usr/lib/sysusers.d/slskd.conf
 
+	# Install tmpfiles rules
+	install -Dm644 usr/lib/tmpfiles.d/slskd.conf debian/slskdn/usr/lib/tmpfiles.d/slskd.conf
+
 override_dh_strip:
 	# Don't strip .NET binaries
 
 override_dh_shlibdeps:
 	@echo "Skipping shlibdeps for bundled .NET runtime"
-

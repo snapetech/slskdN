@@ -6,8 +6,9 @@
   - added AUR `tmpfiles.d` rules for daemon-owned config/data paths
   - added `UMask=0002` to packaged and release-installer systemd units
   - updated the release installer to repair existing config/data ownership and group-write modes
+  - extended tag-release AUR/RPM/PPA packaging to carry `slskd.tmpfiles`
   - documented optional `slskd` group membership for non-root human access to config/download paths
-  - validation passed: AUR hash validation, packaging metadata validation, shell syntax checks, `git diff --check`, and repo lint
+  - validation passed: AUR hash validation, packaging metadata validation, release workflow YAML parse, shell syntax checks, `git diff --check`, and repo lint
 - Next steps:
   1. Commit/push the permission fix and publish updated AUR package metadata if desired.
 
