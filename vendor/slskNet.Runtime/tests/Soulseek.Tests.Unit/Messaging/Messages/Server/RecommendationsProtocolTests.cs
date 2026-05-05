@@ -18,6 +18,7 @@
 namespace Soulseek.Tests.Unit.Messaging.Messages
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using AutoFixture.Xunit2;
     using Soulseek.Messaging;
@@ -192,6 +193,27 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Equal(username, reader.ReadString());
             Assert.Equal(otherUsername, reader.ReadString());
             Assert.Equal(message, reader.ReadString());
+        }
+
+        [Trait("Category", "ToByteArray")]
+        [Fact(DisplayName = "MessageUsersCommand snapshots usernames")]
+        public void MessageUsersCommand_Snapshots_Usernames()
+        {
+            var usernames = new List<string> { "alice", "bob" };
+            var command = new MessageUsersCommand(usernames, "hello");
+
+            usernames[0] = "carol";
+
+            Assert.Equal(new[] { "alice", "bob" }, command.Usernames);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "MessageUsersCommand rejects null inputs")]
+        public void MessageUsersCommand_Rejects_Null_Inputs()
+        {
+            Assert.Throws<ArgumentNullException>(() => new MessageUsersCommand(null, "hello"));
+            Assert.Throws<ArgumentNullException>(() => new MessageUsersCommand(new[] { "alice" }, null));
+            Assert.Throws<ArgumentException>(() => new MessageUsersCommand(new[] { "alice", null }, "hello"));
         }
     }
 }

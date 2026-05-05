@@ -31,6 +31,7 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Theory(DisplayName = "Instantiates with the given data"), AutoData]
         public void Instantiates_With_The_Given_Data(List<(string Username, IPAddress IPAddress, int Port)> parents)
         {
+            parents = parents.ConvertAll(parent => (parent.Username, parent.IPAddress, System.Math.Abs(parent.Port % (IPEndPoint.MaxPort + 1))));
             NetInfoNotification response = null;
 
             var ex = Record.Exception(() => response = new NetInfoNotification(parents.Count, parents));
@@ -39,6 +40,38 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
 
             Assert.Equal(parents.Count, response.ParentCount);
             Assert.Equal(parents, response.Parents);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Instantiation snapshots parents")]
+        public void Instantiation_Snapshots_Parents()
+        {
+            var parents = new List<(string Username, IPAddress IPAddress, int Port)>
+            {
+                ("alice", IPAddress.Loopback, 1),
+            };
+
+            var response = new NetInfoNotification(parents.Count, parents);
+
+            parents[0] = ("bob", IPAddress.Any, 2);
+
+            var parent = Assert.Single(response.Parents);
+            Assert.Equal("alice", parent.Username);
+            Assert.Equal(IPAddress.Loopback, parent.IPAddress);
+            Assert.Equal(1, parent.Port);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Instantiation rejects invalid parent metadata")]
+        public void Instantiation_Rejects_Invalid_Parent_Metadata()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new NetInfoNotification(-1, Array.Empty<(string Username, IPAddress IPAddress, int Port)>()));
+            Assert.Throws<ArgumentNullException>(() => new NetInfoNotification(0, null));
+            Assert.Throws<ArgumentException>(() => new NetInfoNotification(2, new[] { ("alice", IPAddress.Loopback, 1) }));
+            Assert.Throws<ArgumentException>(() => new NetInfoNotification(1, new[] { ((string)null, IPAddress.Loopback, 1) }));
+            Assert.Throws<ArgumentException>(() => new NetInfoNotification(1, new[] { ("alice", (IPAddress)null, 1) }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new NetInfoNotification(1, new[] { ("alice", IPAddress.Loopback, -1) }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new NetInfoNotification(1, new[] { ("alice", IPAddress.Loopback, 65536) }));
         }
 
         [Trait("Category", "Parse")]

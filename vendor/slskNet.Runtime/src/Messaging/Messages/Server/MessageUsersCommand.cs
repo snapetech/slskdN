@@ -23,7 +23,9 @@
 
 namespace Soulseek.Messaging.Messages
 {
+    using System;
     using System.Collections.Generic;
+    using System.Linq;
 
     /// <summary>
     ///     Sends a private message to multiple users.
@@ -37,8 +39,15 @@ namespace Soulseek.Messaging.Messages
         /// <param name="message">The message to send.</param>
         public MessageUsersCommand(IEnumerable<string> usernames, string message)
         {
-            Usernames = usernames;
-            Message = message;
+            var usernameList = (usernames ?? throw new ArgumentNullException(nameof(usernames))).ToList();
+
+            if (usernameList.Any(username => username == null))
+            {
+                throw new ArgumentException("Usernames must not contain null values.", nameof(usernames));
+            }
+
+            Usernames = usernameList.AsReadOnly();
+            Message = message ?? throw new ArgumentNullException(nameof(message));
         }
 
         /// <summary>
@@ -49,7 +58,7 @@ namespace Soulseek.Messaging.Messages
         /// <summary>
         ///     Gets the users to which the message is to be sent.
         /// </summary>
-        public IEnumerable<string> Usernames { get; }
+        public IReadOnlyCollection<string> Usernames { get; }
 
         /// <summary>
         ///     Constructs a <see cref="byte"/> array from this message.
@@ -57,12 +66,11 @@ namespace Soulseek.Messaging.Messages
         /// <returns>The constructed byte array.</returns>
         public byte[] ToByteArray()
         {
-            var usernames = new List<string>(Usernames);
             var builder = new MessageBuilder()
                 .WriteCode(MessageCode.Server.MessageUsers)
-                .WriteInteger(usernames.Count);
+                .WriteInteger(Usernames.Count);
 
-            foreach (var username in usernames)
+            foreach (var username in Usernames)
             {
                 builder.WriteString(username);
             }

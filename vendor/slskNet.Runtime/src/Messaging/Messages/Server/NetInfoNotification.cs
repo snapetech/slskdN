@@ -40,8 +40,38 @@ namespace Soulseek.Messaging.Messages
         /// <param name="parents">The list of parent candidates.</param>
         public NetInfoNotification(int parentCount, IEnumerable<(string Username, IPAddress IPAddress, int Port)> parents)
         {
+            if (parentCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(parentCount), "Must be greater than or equal to zero");
+            }
+
+            var parentList = (parents ?? throw new ArgumentNullException(nameof(parents))).ToList();
+
+            if (parentCount != parentList.Count)
+            {
+                throw new ArgumentException("Parent count must match the number of parent entries.", nameof(parentCount));
+            }
+
+            if (parentList.Any(parent => parent.Username == null))
+            {
+                throw new ArgumentException("Parent usernames must not contain null values.", nameof(parents));
+            }
+
+            if (parentList.Any(parent => parent.IPAddress == null))
+            {
+                throw new ArgumentException("Parent IP addresses must not contain null values.", nameof(parents));
+            }
+
+            foreach (var parent in parentList)
+            {
+                if (parent.Port < IPEndPoint.MinPort || parent.Port > IPEndPoint.MaxPort)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(parents), "Parent ports must be between 0 and 65535.");
+                }
+            }
+
             ParentCount = parentCount;
-            Parents = parents.ToList().AsReadOnly();
+            Parents = parentList.AsReadOnly();
         }
 
         /// <summary>
