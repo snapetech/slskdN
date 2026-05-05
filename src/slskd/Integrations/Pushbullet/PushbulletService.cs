@@ -29,6 +29,7 @@ namespace slskd.Integrations.Pushbullet
     using System.Threading.Tasks;
     using Microsoft.Extensions.Caching.Memory;
     using Microsoft.Extensions.Logging;
+    using slskd.Common.Security;
     using static slskd.Options.IntegrationOptions;
 
     /// <summary>
@@ -141,7 +142,7 @@ namespace slskd.Integrations.Pushbullet
                 content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
                 content.Headers.Add("Access-Token", PushbulletOptions.AccessToken);
 
-                using var http = HttpClientFactory.CreateClient();
+                using var http = HttpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
 
                 http.DefaultRequestHeaders.UserAgent.TryParseAdd($"{Program.AppName} v{Program.FullVersion}");
 

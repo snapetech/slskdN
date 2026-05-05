@@ -212,6 +212,19 @@ describe('SwarmAnalytics', () => {
     });
   });
 
+  it('ignores malformed list payloads from rankings and recommendations', async () => {
+    swarmAnalyticsLibrary.getPeerRankings.mockResolvedValue({ peers: mockPeerRankings });
+    swarmAnalyticsLibrary.getRecommendations.mockResolvedValue('bad');
+
+    render(<SwarmAnalytics />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Performance Metrics')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('peer-1')).not.toBeInTheDocument();
+    expect(screen.queryByText('Optimization Recommendations')).not.toBeInTheDocument();
+  });
+
   it('handles API errors gracefully', async () => {
     const error = new Error('Network error');
     swarmAnalyticsLibrary.getPerformanceMetrics.mockRejectedValue(error);

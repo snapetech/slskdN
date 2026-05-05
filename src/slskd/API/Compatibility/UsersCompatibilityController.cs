@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.API.Compatibility;
 
+using slskd.Common.Security;
 using slskd.Core.Security;
 using Soulseek;
 
@@ -19,14 +20,17 @@ using Microsoft.AspNetCore.Mvc;
 public class UsersCompatibilityController : ControllerBase
 {
     private readonly ILogger<UsersCompatibilityController> logger;
+    private readonly ISoulseekSafetyLimiter safetyLimiter;
     private readonly ISoulseekClient soulseekClient;
 
     public UsersCompatibilityController(
         ILogger<UsersCompatibilityController> logger,
-        ISoulseekClient soulseekClient)
+        ISoulseekClient soulseekClient,
+        ISoulseekSafetyLimiter safetyLimiter)
     {
         this.logger = logger;
         this.soulseekClient = soulseekClient;
+        this.safetyLimiter = safetyLimiter;
     }
 
     /// <summary>
@@ -46,9 +50,15 @@ public class UsersCompatibilityController : ControllerBase
 
         logger.LogInformation("Browse user requested: {Username}", username);
 
+        if (!safetyLimiter.TryConsumeBrowse("compatibility"))
+        {
+            logger.LogWarning("[SAFETY] Compatibility browse rejected for user='{Username}': rate limit exceeded", username);
+            return StatusCode(429, new { error = "Browse rate limit exceeded. See Soulseek safety configuration." });
+        }
+
         try
         {
-            var browseResult = await soulseekClient.BrowseAsync(username);
+            var browseResult = await soulseekClient.BrowseAsync(username, cancellationToken: cancellationToken);
 
             // Convert Soulseek browse result to compatibility format
             var directories = browseResult.Directories.Select(dir => new
@@ -67,6 +77,10 @@ public class UsersCompatibilityController : ControllerBase
                 username = username,
                 directories = directories
             });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

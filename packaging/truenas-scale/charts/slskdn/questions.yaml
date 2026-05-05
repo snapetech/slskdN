@@ -16,7 +16,7 @@ questions:
       default: "/mnt/{{ .Release.Namespace }}/slskdn"
       required: true
 
-  - variable: env/SLSKD_USERNAME
+  - variable: env/SLSKD_SLSK_USERNAME
     label: "Soulseek Username"
     description: "Your Soulseek network username"
     schema:
@@ -24,7 +24,7 @@ questions:
       required: true
       private: true
 
-  - variable: env/SLSKD_PASSWORD
+  - variable: env/SLSKD_SLSK_PASSWORD
     label: "Soulseek Password"
     description: "Your Soulseek network password"
     schema:
@@ -32,7 +32,7 @@ questions:
       required: true
       private: true
 
-  - variable: env/SLSKD_LISTEN_PORT
+  - variable: env/SLSKD_HTTP_PORT
     label: "Web UI Port"
     description: "Port for the web interface (default: 5030)"
     schema:
@@ -41,7 +41,7 @@ questions:
       min: 1
       max: 65535
 
-  - variable: env/SLSKD_SOULSEEK_LISTEN_PORT
+  - variable: env/SLSKD_SLSK_LISTEN_PORT
     label: "Soulseek Listen Port"
     description: "Port for Soulseek network connections (default: 2234)"
     schema:
@@ -218,7 +218,7 @@ questions:
           label: "Repository"
           schema:
             type: string
-            default: "slskd/slskdn"
+            default: "ghcr.io/snapetech/slskdn"
         - variable: tag
           label: "Tag"
           schema:

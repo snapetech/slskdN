@@ -19,6 +19,7 @@ namespace slskd.Integrations.MusicBrainz
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
     using slskd;
+    using slskd.Common.Security;
     using slskd.Integrations.MusicBrainz.Models;
 
     /// <summary>
@@ -152,7 +153,7 @@ namespace slskd.Integrations.MusicBrainz
                 request.Headers.AcceptLanguage.Add(new StringWithQualityHeaderValue("en"));
                 request.Headers.UserAgent.ParseAdd(options.UserAgent);
 
-                using var http = httpClientFactory.CreateClient();
+                using var http = httpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
                 http.Timeout = options.Timeout;
 
                 try

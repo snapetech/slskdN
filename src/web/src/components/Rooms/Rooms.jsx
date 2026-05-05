@@ -18,6 +18,14 @@ import {
 
 let tabCounter = 0;
 const asArray = (value) => (Array.isArray(value) ? value : []);
+const isTab = (tab) =>
+  tab && typeof tab === 'object' && !Array.isArray(tab) && typeof tab.key === 'string';
+
+const normalizeTab = (tab) => ({
+  key: tab.key,
+  label: typeof tab.label === 'string' && tab.label ? tab.label : 'New Room Tab',
+  roomName: typeof tab.roomName === 'string' ? tab.roomName : '',
+});
 
 // Load tabs from localStorage
 const loadTabsFromStorage = () => {
@@ -31,8 +39,10 @@ const loadTabsFromStorage = () => {
       }
 
       // Restore tabCounter to avoid key collisions
-      tabCounter = parsed.tabCounter || 0;
-      return parsed.tabs;
+      tabCounter = Number.isInteger(parsed.tabCounter) && parsed.tabCounter >= 0
+        ? parsed.tabCounter
+        : 0;
+      return parsed.tabs.filter(isTab).map(normalizeTab);
     }
   } catch {
     // ignore
@@ -125,7 +135,9 @@ const Rooms = () => {
   const hydrateJoinedRooms = useCallback(async () => {
     try {
       const joined = await rooms.getJoined();
-      const normalized = asArray(joined).filter(Boolean).sort();
+      const normalized = asArray(joined)
+        .filter((roomName) => typeof roomName === 'string' && roomName)
+        .sort();
       setJoinedRooms(normalized);
       if (normalized.length > 0) {
         setTabs((previous) => {
@@ -173,7 +185,11 @@ const Rooms = () => {
 
       // Refresh joined rooms
       const joined = await rooms.getJoined();
-      setJoinedRooms(asArray(joined).filter(Boolean).sort());
+      setJoinedRooms(
+        asArray(joined)
+          .filter((joinedRoomName) => typeof joinedRoomName === 'string' && joinedRoomName)
+          .sort(),
+      );
       openRoomTab(roomName);
     } catch (error) {
       console.error('Failed to join room:', error);

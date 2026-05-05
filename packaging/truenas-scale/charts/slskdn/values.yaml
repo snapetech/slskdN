@@ -6,7 +6,7 @@ TC: true
 
 # Image configuration
 image:
-  repository: slskd/slskdn
+  repository: ghcr.io/snapetech/slskdn
   pullPolicy: IfNotPresent
   tag: "latest"
 
@@ -57,9 +57,9 @@ hostPath: "/mnt/{{ .Release.Namespace }}/slskdn"
 # Environment variables
 env:
   # Basic configuration
-  SLSKD_USERNAME: ""
-  SLSKD_PASSWORD: ""
-  SLSKD_LISTEN_PORT: "5030"
+  SLSKD_SLSK_USERNAME: ""
+  SLSKD_SLSK_PASSWORD: ""
+  SLSKD_HTTP_PORT: "5030"
 
   # Data directories
   SLSKD_SHARED_DIR: "/app/shared"
@@ -71,8 +71,7 @@ env:
   SLSKD_WEBUI_HTTPS: "false"
 
   # Soulseek network
-  SLSKD_SOULSEEK_NO_LISTEN_PORT: "false"
-  SLSKD_SOULSEEK_LISTEN_PORT: "2234"
+  SLSKD_SLSK_LISTEN_PORT: "2234"
 
   # Security
   SLSKD_API_KEYS: ""

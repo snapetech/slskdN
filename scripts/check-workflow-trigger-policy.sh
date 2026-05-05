@@ -23,6 +23,11 @@ if ! rg -q "build-main-\*" "$repo_root/.github/workflows/build-on-tag.yml"; then
   failed=1
 fi
 
+if ! rg -q "build-dev-\*" "$repo_root/.github/workflows/build-on-tag.yml"; then
+  printf '.github/workflows/build-on-tag.yml must trigger on build-dev-* tags\n' >&2
+  failed=1
+fi
+
 if rg -n 'branches:\s*\[.*(master|main).*\]' "$repo_root/.github/workflows/build-on-tag.yml" >&2; then
   printf 'build-on-tag.yml must not run release builds on branch pushes\n' >&2
   failed=1
@@ -30,6 +35,11 @@ fi
 
 if ! rg -q 'build-dev-\*|build-main-\*|[0-9]\{8,10\}-slskdn' "$repo_root/.github/workflows/ci.yml"; then
   printf '.github/workflows/ci.yml must keep release builds tag-addressable\n' >&2
+  failed=1
+fi
+
+if rg -n '\[0-9\]\+\.\[0-9\]\+\.\[0-9\]\+' "$repo_root/.github/workflows/ci.yml" "$repo_root/.github/workflows/ci-enhancements.yml" >&2; then
+  printf 'GitHub tag filters are globs; do not use regex + quantifiers in release tag patterns\n' >&2
   failed=1
 fi
 

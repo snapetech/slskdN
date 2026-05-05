@@ -14,6 +14,7 @@ namespace slskd.Integrations.MusicBrainz
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
+    using slskd.Common.Security;
     using slskd.HashDb;
     using slskd.Integrations.MusicBrainz.Models;
 
@@ -73,7 +74,7 @@ namespace slskd.Integrations.MusicBrainz
             var baseUrl = options.BaseUrl.TrimEnd('/');
             var userAgent = options.UserAgent;
 
-            using var http = httpClientFactory.CreateClient();
+            using var http = httpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
             http.Timeout = options.Timeout;
 
             log.LogInformation("[MusicBrainz] Fetching artist metadata from MusicBrainz API: {ArtistId}", artistId);

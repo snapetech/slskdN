@@ -166,6 +166,21 @@ describe('SwarmVisualization', () => {
     expect(screen.getByText(/50 \/ 100/)).toBeInTheDocument();
   });
 
+  it('ignores malformed trace summary list and map fields', async () => {
+    jobsLibrary.getSwarmTraceSummary.mockResolvedValue({
+      bytesBySource: ['bad'],
+      peers: 'bad',
+    });
+
+    render(<SwarmVisualization jobId="swarm-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Swarm Download Status')).toBeInTheDocument();
+    });
+    expect(screen.getByText(/50 \/ 100/)).toBeInTheDocument();
+    expect(screen.queryByText('bad')).not.toBeInTheDocument();
+  });
+
   it('displays progress bar with correct percentage', async () => {
     render(<SwarmVisualization jobId="swarm-1" />);
 

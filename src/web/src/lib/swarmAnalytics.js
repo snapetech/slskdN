@@ -4,6 +4,8 @@
 
 import api from './api';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 /**
  * Get swarm performance metrics.
  * @param {number} timeWindowHours - Time window in hours (default: 24)
@@ -31,7 +33,7 @@ export const getPeerRankings = async (limit = 20) => {
     const response = await api.get(
       `/swarm/analytics/peers/rankings?limit=${limit}`,
     );
-    return response.data;
+    return asArray(response.data);
   } catch (error) {
     console.error('Failed to fetch peer rankings:', error);
     throw error;
@@ -80,7 +82,7 @@ export const getTrends = async (timeWindowHours = 24, dataPoints = 24) => {
 export const getRecommendations = async () => {
   try {
     const response = await api.get('/swarm/analytics/recommendations');
-    return response.data;
+    return asArray(response.data);
   } catch (error) {
     console.error('Failed to fetch recommendations:', error);
     throw error;

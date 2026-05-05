@@ -370,7 +370,7 @@ const System = ({ options = {}, state = {}, theme }) => {
     navigate(`/system/${panes[newActiveIndex].route}`);
   };
 
-  if (tab === undefined) {
+  if (tab === undefined || activeIndex === -1) {
     return <Navigate replace to={`/system/${panes[0].route}`} />;
   }
 

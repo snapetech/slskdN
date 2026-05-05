@@ -1,14 +1,16 @@
 name: Build on Tag
 
-# Trigger: push tag matching build-main-*
+# Trigger: push tag matching build-main-* or build-dev-*
 #
 # Examples:
 #   git tag build-main-0.24.3-slskdn.44 && git push origin $_
+#   git tag build-dev-0.24.3-dev.20260505 && git push origin $_
 
 on:
   push:
     tags:
       - 'build-main-*'
+      - 'build-dev-*'
   workflow_dispatch:
 
 env:
@@ -31,12 +33,12 @@ jobs:
           echo "Tag: $TAG"
           
           # Extract channel and version from tag
-          # Format: build-main-<version>
-          if [[ "$TAG" =~ ^build-(main)-(.+)$ ]]; then
+          # Format: build-main-<version> or build-dev-<version>
+          if [[ "$TAG" =~ ^build-(main|dev)-(.+)$ ]]; then
             CHANNEL="${BASH_REMATCH[1]}"
             VERSION="${BASH_REMATCH[2]}"
           else
-            echo "::error::Invalid tag format. Expected: build-main-<version>"
+            echo "::error::Invalid tag format. Expected: build-main-<version> or build-dev-<version>"
             exit 1
           fi
           

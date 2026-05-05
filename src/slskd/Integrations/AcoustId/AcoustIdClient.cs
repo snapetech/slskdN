@@ -7,12 +7,15 @@ namespace slskd.Integrations.AcoustId
     using System.Collections.Generic;
     using System.Globalization;
     using System.Net.Http;
+    using System.Security.Cryptography;
+    using System.Text;
     using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
     using slskd;
+    using slskd.Common.Security;
     using slskd.Integrations.AcoustId.Models;
 
     /// <summary>
@@ -44,7 +47,8 @@ namespace slskd.Integrations.AcoustId
                 return null;
             }
 
-            using var client = httpClientFactory.CreateClient();
+            var fingerprintId = FingerprintLogId(fingerprint);
+            using var client = httpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
             using var request = new HttpRequestMessage(HttpMethod.Post, $"{options.BaseUrl.TrimEnd('/')}/lookup");
 
             var payload = new Dictionary<string, string>
@@ -62,7 +66,7 @@ namespace slskd.Integrations.AcoustId
             using var response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                log.LogWarning("AcoustID lookup failed ({StatusCode}) for fingerprint {Fingerprint}", response.StatusCode, fingerprint);
+                log.LogWarning("AcoustID lookup failed ({StatusCode}) for fingerprint id {FingerprintId}", response.StatusCode, fingerprintId);
                 response.EnsureSuccessStatusCode();
             }
 
@@ -70,11 +74,17 @@ namespace slskd.Integrations.AcoustId
             var root = await JsonSerializer.DeserializeAsync<AcoustIdRoot>(stream, serializerOptions, cancellationToken).ConfigureAwait(false);
             if (root?.Results == null || root.Results.Length == 0)
             {
-                log.LogDebug("AcoustID returned no results for fingerprint {Fingerprint}", fingerprint);
+                log.LogDebug("AcoustID returned no results for fingerprint id {FingerprintId}", fingerprintId);
                 return null;
             }
 
             return root.Results[0];
+        }
+
+        private static string FingerprintLogId(string fingerprint)
+        {
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(fingerprint));
+            return Convert.ToHexString(bytes, 0, 8);
         }
     }
 }

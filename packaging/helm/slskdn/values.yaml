@@ -3,7 +3,7 @@
 
 # Image
 image:
-  repository: slskd/slskdn
+  repository: ghcr.io/snapetech/slskdn
   tag: ""
   pullPolicy: IfNotPresent
 
@@ -37,16 +37,15 @@ persistence:
 
 # Environment (slskdN / slskd env vars)
 env:
-  SLSKD_USERNAME: ""
-  SLSKD_PASSWORD: ""
-  SLSKD_LISTEN_PORT: "5030"
+  SLSKD_SLSK_USERNAME: ""
+  SLSKD_SLSK_PASSWORD: ""
+  SLSKD_HTTP_PORT: "5030"
   SLSKD_SHARED_DIR: "/app/shared"
   SLSKD_DOWNLOADS_DIR: "/app/downloads"
   SLSKD_INCOMPLETE_DIR: "/app/incomplete"
   SLSKD_WEBUI: "true"
   SLSKD_WEBUI_HTTPS: "false"
-  SLSKD_SOULSEEK_NO_LISTEN_PORT: "false"
-  SLSKD_SOULSEEK_LISTEN_PORT: "2234"
+  SLSKD_SLSK_LISTEN_PORT: "2234"
   SLSKD_API_KEYS: ""
   SLSKD_API_REQUIRE_KEYS: "false"
   SLSKD_MESH_ENABLED: "false"

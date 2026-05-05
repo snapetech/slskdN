@@ -39,6 +39,20 @@ const initialState = {
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 
+const isDirectory = (directory) =>
+  directory
+  && typeof directory === 'object'
+  && !Array.isArray(directory)
+  && typeof directory.name === 'string';
+
+const normalizeDirectory = (directory) => ({
+  ...directory,
+  children: asArray(directory.children)
+    .filter(isDirectory)
+    .map(normalizeDirectory),
+  files: asArray(directory.files),
+});
+
 const MAX_BROWSE_CACHE_ENTRIES = 50;
 const BROWSE_CACHE_PREFIX = 'slskd-browse-state-';
 
@@ -169,8 +183,9 @@ class BrowseSession extends Component {
         users
           .browse({ username })
           .then((response) => {
-            let { directories } = response;
-            const { lockedDirectories } = response;
+            let directories = asArray(response?.directories).filter(isDirectory);
+            const lockedDirectories = asArray(response?.lockedDirectories)
+              .filter(isDirectory);
 
             // we need to know the directory separator. assume it is \ to start
             let separator;
@@ -274,11 +289,23 @@ class BrowseSession extends Component {
           lzString.decompress(getLocalStorageItem(key, '') || ''),
         );
 
-        if (savedState && savedState.tree && savedState.tree.length > 0) {
+        const tree = asArray(savedState?.tree)
+          .filter(isDirectory)
+          .map(normalizeDirectory);
+        if (
+          savedState
+          && typeof savedState === 'object'
+          && !Array.isArray(savedState)
+          && tree.length > 0
+        ) {
           // We have cached data - use it instead of re-fetching
           this.setState({
             ...savedState,
             browseState: 'complete',
+            selectedDirectory: isDirectory(savedState.selectedDirectory)
+              ? normalizeDirectory(savedState.selectedDirectory)
+              : initialState.selectedDirectory,
+            tree,
           });
           return true; // Indicate we loaded cached data
         }

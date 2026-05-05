@@ -3,9 +3,9 @@ on:
   push:
     # Only build on version tags, not on every push to master
     # build-main-* tags are handled by build-on-tag.yml
-    tags: 
-      - "[0-9]+.[0-9]+.[0-9]+"
-      - "[0-9]+.[0-9]+.[0-9]+-slskdn.[0-9]+"
+    tags:
+      - "[0-9]*.[0-9]*.[0-9]*"
+      - "[0-9]*.[0-9]*.[0-9]*-slskdn.*"
   pull_request:
     branches: [ main ]
   workflow_dispatch:

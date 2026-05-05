@@ -1,5 +1,10 @@
 ## 2026-05-05
 
+- Continued the broad bug-council burn-down instead of stopping at the first class of findings.
+- Fixed `BUG-20260505-086` through `BUG-20260505-097`: Browse/Chat/Rooms persisted tab hydration, BrowseSession directory/cache normalization, Swarm Analytics/Visualization payload shape guards, invalid System tab redirect recovery, recursive Transfers queue normalization, compatibility browse safety limiter/cancellation, no-redirect integration HTTP clients, AcoustID fingerprint log redaction, build-dev tag trigger support, glob-safe CI tag filters, and Helm/TrueNAS image/env alignment.
+- Documented new gotchas in ADR-0001 with commits `0288a045c` and `2c6f6a3d6`.
+- Validation: focused Web batch passed (`48` tests); focused backend unit slice passed (`68` tests); `bash scripts/check-workflow-trigger-policy.sh` passed; `bash packaging/scripts/validate-packaging-metadata.sh` passed.
+
 - Fixed the first bug-council burn-down batch and moved `BUG-20260505-011` through `BUG-20260505-029` to fixed/verified status in `docs/dev/bug-burndown-ledger.md`.
 - Web fixes covered Search query double-decoding, duplicate URL-created searches, corrupted Browse/Chat/Rooms persisted tab state, unsupported private-room creation semantics, malformed room API list payloads, room/chat action discoverability, and mounted Users URL changes.
 - Backend/network fixes covered multi-source source-discovery safety limiter use, backfill semaphore cancellation accounting, invalid FLAC probe hash fail-closed behavior, CSRF/relay/Pushbullet secret-safe logging, and no-redirect notification/Spotify HTTP clients.

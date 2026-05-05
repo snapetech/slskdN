@@ -17,6 +17,10 @@ import {
   Table,
 } from 'semantic-ui-react';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+const asObject = (value) =>
+  value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+
 const SwarmVisualization = ({ jobId }) => {
   const [jobStatus, setJobStatus] = useState(null);
   const [traceSummary, setTraceSummary] = useState(null);
@@ -63,8 +67,9 @@ const SwarmVisualization = ({ jobId }) => {
   }, [fetchData]);
 
   const peerContributions = useMemo(() => {
-    if (traceSummary?.peers && traceSummary.peers.length > 0) {
-      return traceSummary.peers.map((peer) => ({
+    const peers = asArray(traceSummary?.peers);
+    if (peers.length > 0) {
+      return peers.map((peer) => ({
         bytesServed: peer.bytesServed || 0,
         chunksCompleted: peer.chunksCompleted || 0,
         chunksFailed: peer.chunksFailed || 0,
@@ -429,8 +434,7 @@ const SwarmVisualization = ({ jobId }) => {
               </Statistic>
             </Grid.Column>
           </Grid>
-          {traceSummary.bytesBySource &&
-            Object.keys(traceSummary.bytesBySource).length > 0 && (
+          {Object.keys(asObject(traceSummary.bytesBySource)).length > 0 && (
               <div style={{ marginTop: '1em' }}>
                 <Header
                   as="h4"
@@ -440,7 +444,7 @@ const SwarmVisualization = ({ jobId }) => {
                 </Header>
                 <Table size="small">
                   <Table.Body>
-                    {Object.entries(traceSummary.bytesBySource)
+                    {Object.entries(asObject(traceSummary.bytesBySource))
                       .sort((a, b) => b[1] - a[1])
                       .map(([source, bytes]) => (
                         <Table.Row key={source}>

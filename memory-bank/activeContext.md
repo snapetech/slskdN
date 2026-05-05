@@ -1,3 +1,16 @@
+## Update 2026-05-05 22:05:00Z
+
+- Current task: Broad frontend/backend/release bug-council burn-down batch is complete locally.
+- Last activity:
+  - fixed and verified `BUG-20260505-086` through `BUG-20260505-097` in `docs/dev/bug-burndown-ledger.md`
+  - hardened Browse/Chat/Rooms/BrowseSession/System/Swarm/Transfers Web workflows against malformed persisted state and nested list payloads
+  - added compatibility browse Soulseek safety limiter/cancellation, no-redirect integration HTTP clients, AcoustID fingerprint redaction, build-dev tag support, glob-safe CI tag filters, and Helm/TrueNAS image/env corrections
+  - documented ADR-0001 gotchas in commits `0288a045c` and `2c6f6a3d6`
+  - validation passed: focused Web batch (`48` tests), focused backend unit slice (`68` tests), workflow trigger policy scanner, and packaging metadata validation
+- Next steps:
+  1. Run broader remediation/lint/diff/full test gates.
+  2. Commit and push the full dirty tree per user request.
+
 ## Update 2026-05-05 21:36:00Z
 
 - Current task: Continued broad frontend list-shape burn-down is complete locally.

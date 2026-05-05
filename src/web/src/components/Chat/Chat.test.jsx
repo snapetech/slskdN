@@ -39,6 +39,28 @@ describe('Chat', () => {
     expect(await screen.findByText('New Chat')).toBeInTheDocument();
   });
 
+  it('ignores malformed persisted tab entries and counters', async () => {
+    localStorage.setItem(
+      'slskd-chat-tabs',
+      JSON.stringify({
+        tabCounter: 'bad',
+        tabs: [
+          null,
+          'bad',
+          { key: 'chat-tab-7', label: [], username: { bad: true } },
+        ],
+      }),
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/chat']}>
+        <Chat />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('New Chat')).toBeInTheDocument();
+  });
+
   it('ignores malformed conversation list payloads while hydrating', async () => {
     chat.getAll.mockResolvedValue({ conversations: [{ username: 'alice' }] });
 
@@ -50,5 +72,21 @@ describe('Chat', () => {
 
     expect(await screen.findByText('New Chat')).toBeInTheDocument();
     expect(screen.queryByText('alice')).not.toBeInTheDocument();
+  });
+
+  it('ignores malformed conversation usernames while hydrating', async () => {
+    chat.getAll.mockResolvedValue([
+      { username: { bad: true } },
+      { username: 'alice' },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/chat']}>
+        <Chat />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findAllByText('alice')).toHaveLength(2);
+    expect(screen.queryByText('[object Object]')).not.toBeInTheDocument();
   });
 });

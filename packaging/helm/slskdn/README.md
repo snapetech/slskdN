@@ -19,9 +19,8 @@ helm install slskdn ./packaging/helm/slskdn -f my-values.yaml
 
 # Override key options
 helm install slskdn ./packaging/helm/slskdn \
-  --set env.SLSKD_USERNAME=myuser \
-  --set env.SLSKD_PASSWORD=mypass \
-  --set image.repository=ghcr.io/snapetech/slskdn \
+  --set env.SLSKD_SLSK_USERNAME=myuser \
+  --set env.SLSKD_SLSK_PASSWORD=mypass \
   --set image.tag=2026050500-slskdn.224
 ```
 
@@ -29,7 +28,7 @@ helm install slskdn ./packaging/helm/slskdn \
 
 | Section | Key | Default | Description |
 |--------|-----|---------|-------------|
-| **image** | `repository` | `slskd/slskdn` | Image |
+| **image** | `repository` | `ghcr.io/snapetech/slskdn` | Image |
 | | `tag` | (Chart `appVersion`) | Override tag |
 | | `pullPolicy` | `IfNotPresent` | Pull policy |
 | **service** | `main.port` | `5030` | HTTP port |
@@ -46,8 +45,8 @@ helm install slskdn ./packaging/helm/slskdn \
 
 ## Required env (override in `env` or via `--set`)
 
-- `SLSKD_USERNAME` – Soulseek username
-- `SLSKD_PASSWORD` – Soulseek password
+- `SLSKD_SLSK_USERNAME` – Soulseek username
+- `SLSKD_SLSK_PASSWORD` – Soulseek password
 
 Use a Secret and `env` / `envFrom` in a custom values file for production.
 

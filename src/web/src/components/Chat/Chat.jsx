@@ -23,6 +23,14 @@ import {
 
 let tabCounter = 0;
 const asArray = (value) => (Array.isArray(value) ? value : []);
+const isTab = (tab) =>
+  tab && typeof tab === 'object' && !Array.isArray(tab) && typeof tab.key === 'string';
+
+const normalizeTab = (tab) => ({
+  key: tab.key,
+  label: typeof tab.label === 'string' && tab.label ? tab.label : 'New Chat',
+  username: typeof tab.username === 'string' ? tab.username : '',
+});
 
 // Load tabs from localStorage
 const loadTabsFromStorage = () => {
@@ -36,8 +44,10 @@ const loadTabsFromStorage = () => {
       }
 
       // Restore tabCounter to avoid key collisions
-      tabCounter = parsed.tabCounter || 0;
-      return parsed.tabs;
+      tabCounter = Number.isInteger(parsed.tabCounter) && parsed.tabCounter >= 0
+        ? parsed.tabCounter
+        : 0;
+      return parsed.tabs.filter(isTab).map(normalizeTab);
     }
   } catch {
     // ignore
@@ -126,7 +136,7 @@ const Chat = ({ state }) => {
       const activeConversations = asArray(serverConversations)
         .filter((conversation) =>
           conversation && typeof conversation === 'object' && !Array.isArray(conversation))
-        .filter((conversation) => conversation.username)
+        .filter((conversation) => typeof conversation.username === 'string' && conversation.username)
         .sort((a, b) => {
           if (a.hasUnAcknowledgedMessages !== b.hasUnAcknowledgedMessages) {
             return a.hasUnAcknowledgedMessages ? -1 : 1;

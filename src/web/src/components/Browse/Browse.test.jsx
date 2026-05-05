@@ -45,4 +45,26 @@ describe('Browse', () => {
 
     expect(screen.getByText('New Tab')).toBeInTheDocument();
   });
+
+  it('ignores malformed persisted tab entries and counters', () => {
+    localStorage.setItem(
+      'slskd-browse-tabs',
+      JSON.stringify({
+        tabCounter: -1,
+        tabs: [
+          null,
+          'bad',
+          { key: 'tab-7', label: [], username: { bad: true } },
+        ],
+      }),
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/browse']}>
+        <Browse />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('New Tab')).toBeInTheDocument();
+  });
 });

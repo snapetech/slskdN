@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Hardened Browse, Chat, Rooms, System, Swarm Analytics/Visualization, and
+  Transfers against malformed persisted state and nested list payloads.
+- Added Soulseek safety limiter and cancellation propagation to the compatibility
+  user browse endpoint.
+- Switched AcoustID, MusicBrainz, release-graph, and Pushbullet integrations to
+  the no-redirect outbound HTTP client, and stopped logging raw AcoustID
+  fingerprints.
+- Fixed build tag workflow drift for `build-dev-*` tags, corrected GitHub tag
+  globs, and aligned Helm/TrueNAS charts with the published image repository and
+  real runtime environment variable names.
 - Fixed the first bug-council burn-down batch across Web URL/state workflows,
   Soulseek network-health guardrails, backfill probe accounting, secret-safe
   logs, no-redirect outbound callers, release packaging metadata, and default

@@ -269,6 +269,34 @@ describe('Transfers', () => {
     });
   });
 
+  it('ignores malformed nested transfer directories and files', async () => {
+    transfersLibrary.getAll.mockResolvedValue([
+      {
+        directories: { bad: true },
+        username: 'alice',
+      },
+      {
+        directories: [
+          {
+            directory: 'Album',
+            files: { bad: true },
+          },
+        ],
+        username: 'bob',
+      },
+    ]);
+
+    render(
+      <Transfers
+        direction="download"
+        server={{ isConnected: true }}
+      />,
+    );
+
+    expect(await screen.findByText('No downloads to display')).toBeInTheDocument();
+    expect(transfersLibrary.getPlaceInQueue).not.toHaveBeenCalled();
+  });
+
   it('shows one bulk retry error instead of a toast per file', async () => {
     transfersLibrary.download.mockRejectedValue(new Error('boom'));
 

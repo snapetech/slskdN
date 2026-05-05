@@ -21,6 +21,8 @@ import {
   Table,
 } from 'semantic-ui-react';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const SwarmAnalytics = () => {
   const [performanceMetrics, setPerformanceMetrics] = useState(null);
   const [peerRankings, setPeerRankings] = useState([]);
@@ -52,10 +54,10 @@ const SwarmAnalytics = () => {
         ]);
 
       setPerformanceMetrics(performance);
-      setPeerRankings(peers);
+      setPeerRankings(asArray(peers));
       setEfficiencyMetrics(efficiency);
       setTrends(trendsData);
-      setRecommendations(recs);
+      setRecommendations(asArray(recs));
     } catch (error) {
       toast.error(
         error?.response?.data ?? error?.message ?? 'Failed to load analytics',

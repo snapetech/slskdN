@@ -33,6 +33,25 @@ const OPTIMISTIC_HIDE_MS = 15_000;
 const QUEUE_POSITION_REFRESH_MS = 30_000;
 const MAX_QUEUE_POSITION_LOOKUPS_PER_FETCH = 5;
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+const isObject = (value) =>
+  value && typeof value === 'object' && !Array.isArray(value);
+
+const normalizeTransfers = (users) =>
+  asArray(users)
+    .filter(isObject)
+    .map((user) => ({
+      ...user,
+      directories: asArray(user.directories)
+        .filter(isObject)
+        .map((directory) => ({
+          ...directory,
+          files: asArray(directory.files).filter(isObject),
+        }))
+        .filter((directory) => directory.files.length > 0),
+    }))
+    .filter((user) => user.directories.length > 0);
+
 const Transfers = ({ direction, server }) => {
   const testId = direction === 'download' ? 'downloads-root' : 'uploads-root';
   const [connecting, setConnecting] = useState(true);
@@ -85,13 +104,13 @@ const Transfers = ({ direction, server }) => {
   const filterHiddenTransfers = (users) => {
     const now = Date.now();
 
-    return users
+    return normalizeTransfers(users)
       .map((user) => ({
         ...user,
-        directories: user.directories
+        directories: asArray(user.directories)
           .map((directory) => ({
             ...directory,
-            files: directory.files.filter(
+            files: asArray(directory.files).filter(
               (file) => !isOptimisticallyHidden(file, now),
             ),
           }))
@@ -187,7 +206,7 @@ const Transfers = ({ direction, server }) => {
     }
 
     const now = Date.now();
-    const queuedDownloads = users
+    const queuedDownloads = normalizeTransfers(users)
       .flatMap((user) => user.directories.flatMap((dir) => dir.files))
       .filter((file) => file.state && file.state.includes('Queued'));
 
@@ -259,10 +278,12 @@ const Transfers = ({ direction, server }) => {
     try {
       const response = await transfersLibrary.getAll({ direction });
 
-      await refreshQueuePositions(response);
+      const normalizedResponse = normalizeTransfers(response);
+
+      await refreshQueuePositions(normalizedResponse);
 
       if (fetchId === latestFetchIdRef.current) {
-        setTransfers(filterHiddenTransfers(response));
+        setTransfers(filterHiddenTransfers(normalizedResponse));
       }
     } catch (error) {
       console.error(error);

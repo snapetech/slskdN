@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **bug-council**: Continue broad frontend/backend/release burn-down.
+ - Status: completed (2026-05-05)
+ - Priority: P1
+ - Notes: Fixed and verified `BUG-20260505-086` through `BUG-20260505-097`: malformed Browse/Chat/Rooms persisted tabs and BrowseSession cached directory state, Swarm Analytics/Visualization list/map payloads, invalid System tab URLs, nested Transfers directory/file lists, compatibility browse limiter/cancellation, integration no-redirect HTTP clients and AcoustID fingerprint log redaction, build-dev tag workflow support, glob-safe CI tag filters, and Helm/TrueNAS image/env drift. Documented ADR-0001 gotchas in commits `0288a045c` and `2c6f6a3d6`. Validation passed: focused Web batch (`48` tests), focused backend integration/controller unit slice (`68` tests), workflow trigger scanner, and packaging metadata validation.
+
 - [x] **bug-council**: Fix first accepted burn-down batch.
  - Status: completed (2026-05-05)
  - Priority: P1
