@@ -9,12 +9,16 @@ const UserContextMenu = ({ children, trigger, username }) => {
   const navigate = useNavigate();
 
   const handleBrowse = () => {
-    navigate('/browse', { state: { user: username } });
+    navigate(`/browse?user=${encodeURIComponent(username)}`, {
+      state: { user: username },
+    });
   };
 
   const handleChat = () => {
     setSessionStorageItem(activeChatKey, username);
-    navigate('/chat');
+    navigate(`/chat?user=${encodeURIComponent(username)}`, {
+      state: { user: username },
+    });
   };
 
   return (

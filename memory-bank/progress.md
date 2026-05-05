@@ -9557,3 +9557,11 @@ Code quality improvements were completed as part of Option A:
 - Hardened high-risk work triggers and outbound fetches: SongID local-file analysis is admin-only and limited to configured media roots, Spotify/source-feed HTTP reads use outbound guards and byte caps, source-feed provider hosts require exact domain/subdomain matches, and external moderation endpoint validation now uses the shared outbound guard.
 - Bounded anonymous pod verification/discovery inputs, tightened security-diagnostic role requirements, removed script argument logging, made the release installer verify `SHA256SUMS.txt`, and moved ListenBrainz tokens from local storage to session storage.
 - Validation passed: `dotnet build slskd.sln --no-restore`, full `dotnet test slskd.sln --no-build`, `./bin/lint`, focused PlayerBar Vitest, `cd src/web && npm run lint`, mutating endpoint role scan, source-feed/SongID/script risky-pattern scan, `bash packaging/scripts/validate-packaging-metadata.sh`, and `git diff --check`.
+
+## 2026-05-05 16:49:44Z
+
+- Followed up on adjacent Web UI regressions with the same shapes as the room and Browse fixes.
+- Fixed remaining frontend helpers that sent raw primitive strings to JSON `[FromBody] string` endpoints: YAML validation/update and Pod content ID validation now send JSON string literals.
+- Made adjacent user navigation URL-addressable: Chat and Users accept `?user=...`, and contacts, messaging panels, rooms, user context menus, and transfer groups include usernames in Browse/Users/Chat URLs while preserving router state.
+- Documented both repeated gotchas by extending ADR-0001 in separate commits `323950f89` and `87702b418`.
+- Validation passed: focused Vitest coverage for options, MediaCore, Browse, Chat, and Users; `cd src/web && npm run lint`; `./bin/lint`; `git diff --check`.

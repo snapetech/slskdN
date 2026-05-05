@@ -126,7 +126,7 @@ class TransferGroup extends Component {
             <Link
               state={{ user: user.username }}
               title="Browse this user's files"
-              to="/browse"
+              to={`/browse?user=${encodeURIComponent(user.username)}`}
             >
               <UserCard username={user.username}>{user.username}</UserCard>
             </Link>

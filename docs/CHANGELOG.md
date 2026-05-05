@@ -72,6 +72,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   response normalization.
 - Fixed remaining shared Web API helpers for MediaCore and options endpoints,
   including response handling for JSON string bodies.
+- Made Browse, Users, and Chat user-target navigation URL-addressable so user
+  actions keep working when opened in a new tab, refreshed, or restored.
 - Made governance, pod, and ActivityPub signature handling fail closed unless
   signer identity can be verified, and replaced unstable hash-code identifiers
   with stable SHA-256-derived values.

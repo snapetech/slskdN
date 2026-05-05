@@ -199,12 +199,16 @@ class Contacts extends Component {
 
   openChat = (contact) => {
     const username = contact.nickname || contact.peerId;
-    this.props.navigate('/chat', { state: { user: username } });
+    this.props.navigate(`/chat?user=${encodeURIComponent(username)}`, {
+      state: { user: username },
+    });
   };
 
   browseContact = (contact) => {
     const username = contact.nickname || contact.peerId;
-    this.props.navigate('/browse', { state: { user: username } });
+    this.props.navigate(`/browse?user=${encodeURIComponent(username)}`, {
+      state: { user: username },
+    });
   };
 
   render() {

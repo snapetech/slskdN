@@ -50,7 +50,9 @@ const Users = () => {
     document.addEventListener('keyup', keyUp, false);
 
     const storedUsername =
-      location.state?.user || getLocalStorageItem(activeUserInfoKey);
+      location.state?.user ||
+      new URLSearchParams(location.search).get('user') ||
+      getLocalStorageItem(activeUserInfoKey);
 
     if (storedUsername !== undefined) {
       setSelectedUsername(storedUsername);

@@ -2356,3 +2356,7 @@
 - [x] Fix comprehensive follow-up security audit findings
   - Status: completed (2026-05-05)
   - Notes: Added explicit roles to all non-anonymous mutating controller actions, restricted SongID heavy analysis to administrators and allowed local media roots, guarded/capped SongID and source-feed outbound fetches, bounded anonymous pod verification/discovery inputs, enforced stricter security-diagnostic roles, removed script argument logging, required release-installer checksum verification, and moved ListenBrainz tokens to session storage.
+
+- [x] Fix adjacent string-body and router-state Web UI regressions
+  - Status: completed (2026-05-05)
+  - Notes: Extended the room join/create fix pattern to YAML config save/validation and Pod content ID validation, which also post to ASP.NET `[FromBody] string` endpoints under JSON content type. Extended the Browse new-tab URL fix to adjacent user actions for Browse, Users, and Chat from contacts, rooms, messaging panels, user context menus, transfer groups, and direct URLs.

@@ -961,7 +961,10 @@ const Messaging = ({ initialKind = 'mixed', state }) => {
                                   aria-label={`Open ${panel.target} profile`}
                                   icon="user"
                                   onClick={() =>
-                                    navigate('/users', { state: { user: panel.target } })
+                                    navigate(
+                                      `/users?user=${encodeURIComponent(panel.target)}`,
+                                      { state: { user: panel.target } },
+                                    )
                                   }
                                   size="mini"
                                   title={`Open ${panel.target} profile`}
@@ -1056,11 +1059,17 @@ const Messaging = ({ initialKind = 'mixed', state }) => {
                         <RoomSession
                           active
                           onBrowseShares={(username) =>
-                            navigate('/browse', { state: { user: username } })
+                            navigate(
+                              `/browse?user=${encodeURIComponent(username)}`,
+                              { state: { user: username } },
+                            )
                           }
                           onLeaveRoom={leaveRoom}
                           onUserProfile={(username) =>
-                            navigate('/users', { state: { user: username } })
+                            navigate(
+                              `/users?user=${encodeURIComponent(username)}`,
+                              { state: { user: username } },
+                            )
                           }
                           roomName={panel.target}
                         />

@@ -1,3 +1,15 @@
+## Update 2026-05-05 16:49:44Z
+
+- Current task: Adjacent Web UI bug hunt is complete locally.
+- Last activity:
+  - fixed raw string body helpers for YAML config validation/update and Pod content ID validation
+  - extended user-target navigation URLs so Browse, Users, and Chat work from direct URLs/new tabs instead of relying only on router state
+  - checked the remaining primitive `[FromBody]` endpoints and found existing frontend helpers for conversations, room messages, room join, and server disconnect already use JSON string bodies; room ticker/member invite and event raise have no current Web UI callers
+  - documented ADR-0001 gotcha extensions in separate commits `323950f89` and `87702b418`
+  - validation passed: focused options/MediaCore/Browse/Chat/Users Vitest, Web lint, repo lint, and `git diff --check`
+- Next steps:
+  1. Review and commit the remaining URL-navigation code/test/memory-bank changes.
+
 ## Update 2026-05-05 16:43:30Z
 
 - Current task: Soulseek room join/create Web UI fix is complete locally.

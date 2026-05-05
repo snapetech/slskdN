@@ -1,6 +1,12 @@
 import './Chat.css';
+import { activeChatKey } from '../../config';
 import * as chat from '../../lib/chat';
-import { getLocalStorageItem, setLocalStorageItem } from '../../lib/storage';
+import {
+  getLocalStorageItem,
+  getSessionStorageItem,
+  removeSessionStorageItem,
+  setLocalStorageItem,
+} from '../../lib/storage';
 import ChatSession from './ChatSession';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -168,9 +174,12 @@ const Chat = ({ state }) => {
     }
   }, [tabs]);
 
-  // Handle navigation with username in state (quick chat from user profile)
+  // Handle navigation with username in URL or state.
   useEffect(() => {
-    const username = location.state?.user;
+    const username =
+      location.state?.user ||
+      new URLSearchParams(location.search).get('user') ||
+      getSessionStorageItem(activeChatKey);
 
     if (username) {
       const existingIndex = tabs.findIndex((t) => t.username === username);
@@ -188,9 +197,10 @@ const Chat = ({ state }) => {
 
       // Clear the state to prevent re-triggering
       window.history.replaceState({}, document.title);
+      removeSessionStorageItem(activeChatKey);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.state]);
+  }, [location.search, location.state]);
 
   const handleAddTab = () => {
     setTabs((previous) => {

@@ -206,14 +206,18 @@ const Rooms = () => {
 
   const handleUserProfile = useCallback(
     (username) => {
-      navigate('/users', { state: { user: username } });
+      navigate(`/users?user=${encodeURIComponent(username)}`, {
+        state: { user: username },
+      });
     },
     [navigate],
   );
 
   const handleBrowseShares = useCallback(
     (username) => {
-      navigate('/browse', { state: { user: username } });
+      navigate(`/browse?user=${encodeURIComponent(username)}`, {
+        state: { user: username },
+      });
     },
     [navigate],
   );
