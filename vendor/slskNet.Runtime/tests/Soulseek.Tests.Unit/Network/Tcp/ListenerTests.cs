@@ -17,30 +17,22 @@
 
 namespace Soulseek.Tests.Unit.Network.Tcp
 {
-    using System;
     using System.Net;
     using Soulseek.Network.Tcp;
     using Xunit;
 
     public class ListenerTests
     {
-        private static readonly Random RNG = new Random();
-
-        private static int GetPort()
-        {
-            return 50000 + RNG.Next(1, 9999);
-        }
-
         [Trait("Category", "Instantiation")]
         [Fact(DisplayName = "Instantiates properly")]
         public void Instantiates_Properly()
         {
             var options = new ConnectionOptions();
-            var port = GetPort();
+            var port = 0;
 
-            var l = new Listener(IPAddress.Any, port, options);
+            var l = new Listener(IPAddress.Loopback, port, options);
 
-            Assert.Equal(IPAddress.Any, l.IPAddress);
+            Assert.Equal(IPAddress.Loopback, l.IPAddress);
             Assert.Equal(port, l.Port);
             Assert.Equal(options, l.ConnectionOptions);
 
@@ -52,16 +44,23 @@ namespace Soulseek.Tests.Unit.Network.Tcp
         public void Start_Starts_Listening()
         {
             var options = new ConnectionOptions();
-            var port = GetPort();
+            var port = 0;
 
-            var l = new Listener(IPAddress.Any, port, options);
+            var l = new Listener(IPAddress.Loopback, port, options);
 
             var first = l.Listening;
 
-            l.Start();
+            try
+            {
+                l.Start();
 
-            Assert.False(first);
-            Assert.True(l.Listening);
+                Assert.False(first);
+                Assert.True(l.Listening);
+            }
+            finally
+            {
+                l.Stop();
+            }
         }
 
         [Trait("Category", "Stop")]
@@ -69,9 +68,9 @@ namespace Soulseek.Tests.Unit.Network.Tcp
         public void Stop_Stops_Listening()
         {
             var options = new ConnectionOptions();
-            var port = GetPort();
+            var port = 0;
 
-            var l = new Listener(IPAddress.Any, port, options);
+            var l = new Listener(IPAddress.Loopback, port, options);
 
             l.Start();
 

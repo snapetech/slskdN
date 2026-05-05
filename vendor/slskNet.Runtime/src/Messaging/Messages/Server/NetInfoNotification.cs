@@ -69,7 +69,7 @@ namespace Soulseek.Messaging.Messages
                 throw new MessageException($"Message Code mismatch creating {nameof(NetInfoNotification)} (expected: {(int)MessageCode.Server.NetInfo}, received: {(int)code})");
             }
 
-            var parentCount = reader.ReadInteger();
+            var parentCount = ProtocolCountReader.ReadCount(reader, "distributed parent", minimumBytesPerItem: 12);
             var parents = new List<(string Username, IPAddress IPAddress, int Port)>();
 
             for (int i = 0; i < parentCount; i++)

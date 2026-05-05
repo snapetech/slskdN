@@ -71,6 +71,11 @@ namespace Soulseek.Network
         internal MessageConnection(IPEndPoint ipEndPoint, ConnectionOptions options = null, int codeLength = 4, ITcpClient tcpClient = null, bool obfuscated = false)
             : base(ipEndPoint, options, tcpClient, obfuscated)
         {
+            if (codeLength < 1)
+            {
+                throw new ArgumentException("The message code length must be greater than zero", nameof(codeLength));
+            }
+
             CodeLength = codeLength;
 
             // bind the connected event to begin reading upon connection. if we received a connected client, this will never fire
@@ -237,6 +242,7 @@ namespace Soulseek.Network
                         {
                             var lengthBytes = await ReadAsync(4, CancellationToken.None).ConfigureAwait(false);
                             var length = BitConverter.ToInt32(lengthBytes, 0);
+                            MessageFrameValidator.ValidateMessageLength(length, CodeLength);
                             message.AddRange(lengthBytes);
 
                             codeBytes = await ReadAsync(CodeLength, CancellationToken.None).ConfigureAwait(false);
@@ -329,10 +335,7 @@ namespace Soulseek.Network
 
         private void ValidateObfuscatedMessageLength(int length)
         {
-            if (length < CodeLength || length > RotatedObfuscation.MaxMessageLength)
-            {
-                throw new MessageReadException($"Invalid obfuscated message length: {length}");
-            }
+            MessageFrameValidator.ValidateMessageLength(length, CodeLength, "obfuscated message");
         }
     }
 }

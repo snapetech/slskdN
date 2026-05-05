@@ -45,7 +45,7 @@ namespace Soulseek.Messaging.Messages
                 throw new MessageException($"Message Code mismatch creating {nameof(ExcludedSearchPhrasesNotification)} (expected: {(int)MessageCode.Server.ExcludedSearchPhrases}, received: {(int)code}");
             }
 
-            var count = reader.ReadInteger();
+            var count = ProtocolCountReader.ReadCount(reader, "excluded search phrase", minimumBytesPerItem: 4);
             var list = new List<string>();
 
             for (int i = 0; i < count; i++)

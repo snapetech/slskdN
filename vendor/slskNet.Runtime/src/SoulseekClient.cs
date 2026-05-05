@@ -1141,6 +1141,11 @@ namespace Soulseek
                 throw new ArgumentNullException(nameof(size), "The size must be specified if the start offset is not zero");
             }
 
+            if (size.HasValue && startOffset > size.Value)
+            {
+                throw new ArgumentOutOfRangeException(nameof(startOffset), "The start offset must be less than or equal to the size");
+            }
+
             if (!State.HasFlag(SoulseekClientStates.Connected) || !State.HasFlag(SoulseekClientStates.LoggedIn))
             {
                 throw new InvalidOperationException($"The server connection must be connected and logged in to download files (currently: {State})");
@@ -1238,6 +1243,11 @@ namespace Soulseek
             if (startOffset > 0 && !size.HasValue)
             {
                 throw new ArgumentNullException(nameof(size), "The size must be specified if the start offset is not zero");
+            }
+
+            if (size.HasValue && startOffset > size.Value)
+            {
+                throw new ArgumentOutOfRangeException(nameof(startOffset), "The start offset must be less than or equal to the size");
             }
 
             if (outputStreamFactory == null)
@@ -1389,7 +1399,7 @@ namespace Soulseek
         /// <exception cref="SoulseekClientException">Thrown when an exception is encountered during the operation.</exception>
         public async Task<Task<Transfer>> EnqueueDownloadAsync(string username, string remoteFilename, string localFilename, long? size = null, long startOffset = 0, int? token = null, TransferOptions options = null, CancellationToken? cancellationToken = null)
         {
-            var enqueuedTaskCompletionSource = new TaskCompletionSource<bool>();
+            var enqueuedTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             options ??= new TransferOptions();
             options = options.WithAdditionalStateChanged(args =>
@@ -1476,7 +1486,7 @@ namespace Soulseek
         /// <exception cref="SoulseekClientException">Thrown when an exception is encountered during the operation.</exception>
         public async Task<Task<Transfer>> EnqueueDownloadAsync(string username, string remoteFilename, Func<Task<Stream>> outputStreamFactory, long? size = null, long startOffset = 0, int? token = null, TransferOptions options = null, CancellationToken? cancellationToken = null)
         {
-            var enqueuedTaskCompletionSource = new TaskCompletionSource<bool>();
+            var enqueuedTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             options ??= new TransferOptions();
             options = options.WithAdditionalStateChanged(args =>
@@ -1545,7 +1555,7 @@ namespace Soulseek
         /// <exception cref="SoulseekClientException">Thrown when an exception is encountered during the operation.</exception>
         public async Task<Task<Transfer>> EnqueueUploadAsync(string username, string remoteFilename, string localFilename, int? token = null, TransferOptions options = null, CancellationToken? cancellationToken = null)
         {
-            var enqueuedTaskCompletionSource = new TaskCompletionSource<bool>();
+            var enqueuedTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             options ??= new TransferOptions();
             options = options.WithAdditionalStateChanged(args =>
@@ -1604,7 +1614,7 @@ namespace Soulseek
         /// <exception cref="SoulseekClientException">Thrown when an exception is encountered during the operation.</exception>
         public async Task<Task<Transfer>> EnqueueUploadAsync(string username, string remoteFilename, long size, Func<long, Task<Stream>> inputStreamFactory, int? token = null, TransferOptions options = null, CancellationToken? cancellationToken = null)
         {
-            var enqueuedTaskCompletionSource = new TaskCompletionSource<bool>();
+            var enqueuedTaskCompletionSource = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             options ??= new TransferOptions();
             options = options.WithAdditionalStateChanged(args =>

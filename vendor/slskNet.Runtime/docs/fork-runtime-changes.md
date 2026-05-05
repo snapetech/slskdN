@@ -6,7 +6,7 @@ This document tracks protocol and runtime behavior added after the fork from Sou
 
 The fork is intended to remain compatible with legacy Soulseek clients.
 
-Default behavior preserves the upstream wire behavior. New outbound protocol messages are only sent when an application calls the new APIs. Peer/distributed-message obfuscation is disabled by default, and enabling it still requires the regular Soulseek listen port to be advertised.
+Default behavior preserves the upstream wire behavior. New outbound protocol messages are only sent when an application calls the new APIs. Peer/distributed/transfer obfuscation is disabled by default, and enabling it still requires the regular Soulseek listen port to be advertised.
 
 Compatibility rules used by the implementation:
 
@@ -15,7 +15,7 @@ Compatibility rules used by the implementation:
 - Keep regular direct and indirect peer/distributed/transfer connection attempts available as fallback paths.
 - Fail closed on malformed new protocol responses rather than accepting impossible counts or partial repeated data.
 
-## Type-1 Peer/distributed-message Obfuscation
+## Type-1 Peer/distributed/transfer Obfuscation
 
 Type-1 obfuscation support covers peer-message (`P`), distributed-message (`D`), and file-transfer (`F`) streams. It is not encryption and keeps regular fallback paths available.
 
@@ -29,6 +29,7 @@ Implementation pieces:
 - `MessageConnection` reads and writes obfuscated message frames when the connection is marked obfuscated.
 - `PeerConnectionManager` can prefer a cached compatible obfuscated endpoint while racing regular direct and indirect paths.
 - `DistributedConnectionManager` can accept obfuscated distributed children, complete obfuscated solicited distributed `PierceFirewall` handoffs, and prefer compatible obfuscated distributed parent candidates while retaining regular direct/indirect fallback paths.
+- `ObfuscatedTransferConnection` carries file-transfer setup and payload bytes in type-1 frames while `PeerConnectionManager` keeps regular transfer candidates available.
 
 Expected use:
 
@@ -45,7 +46,7 @@ Legacy impact:
 
 - Legacy peers can still connect to the regular Soulseek listen port.
 - If a legacy peer ignores obfuscation metadata, no compatibility issue is introduced.
-- If an obfuscated outbound attempt fails, regular direct or indirect connection setup can still succeed.
+- If an obfuscated outbound attempt fails or connects first and then fails setup negotiation, regular direct or indirect connection setup can still succeed.
 
 Security and safety notes:
 
@@ -53,6 +54,13 @@ Security and safety notes:
 - Obfuscated listener input is decoded only after validating the advertised obfuscated frame length.
 - Outbound obfuscated connection preference never disables indirect connection fallback.
 - The runtime requires regular-port advertisement when obfuscation is enabled; callers cannot use this implementation to create an obfuscated-only Soulseek client.
+
+Validation:
+
+- `ObfuscatedConnectionMatrixTests` uses loopback TCP sockets to prove obfuscated peer-message (`P`), distributed-message (`D`), and file-transfer (`F`) runtime paths.
+- The same matrix covers regular peer-message, distributed-message, and transfer fallback so compatibility paths stay under test alongside obfuscated paths.
+- Manager-level tests cover obfuscated inbound transfer handoff, inbound indirect transfer fallback, outbound transfer preference/fallback, and distributed parent preference/fallback.
+- The matrix is runtime-local; it does not replace separate live-network interoperability tests against arbitrary third-party Soulseek clients.
 
 ## Interest and Recommendation APIs
 

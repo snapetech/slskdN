@@ -9,6 +9,7 @@
 
 namespace Soulseek.Tests.Unit
 {
+    using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
@@ -32,7 +33,7 @@ namespace Soulseek.Tests.Unit
                 .Callback(() => callCount++)
                 .Returns(Task.FromResult((new Search(SearchQuery.FromText("x"), SearchScope.Wishlist, 1, SearchStates.Completed, 0, 0, 0), (IReadOnlyCollection<SearchResponse>)new List<SearchResponse>())));
 
-            var finished = new TaskCompletionSource<bool>();
+            var finished = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             using (var cts = new CancellationTokenSource())
             using (var scheduler = new WishlistSearchScheduler(
                 client.Object,
@@ -52,13 +53,91 @@ namespace Soulseek.Tests.Unit
                 await finished.Task;
             }
 
-            client.Verify(m => m.SearchAsync(
+            client.Verify(
+                m => m.SearchAsync(
+                It.IsAny<SearchQuery>(),
+                It.Is<SearchScope>(s => s.Type == SearchScopeType.Wishlist),
+                It.IsAny<int?>(),
+                It.IsAny<SearchOptions>(),
+                It.IsAny<CancellationToken?>()),
+                Times.Exactly(2));
+        }
+
+        [Fact(DisplayName = "Wishlist scheduler can stop and restart")]
+        public async Task Wishlist_Scheduler_Can_Stop_And_Restart()
+        {
+            var client = new Mock<ISoulseekClient>();
+            var callCount = 0;
+            client.SetupGet(m => m.ServerInfo).Returns(new ServerInfo(wishlistInterval: 1));
+            client.Setup(m => m.SearchAsync(
                     It.IsAny<SearchQuery>(),
-                    It.Is<SearchScope>(s => s.Type == SearchScopeType.Wishlist),
+                    It.IsAny<SearchScope>(),
                     It.IsAny<int?>(),
                     It.IsAny<SearchOptions>(),
-                    It.IsAny<CancellationToken?>()),
+                    It.IsAny<CancellationToken?>()))
+                .Callback(() => callCount++)
+                .Returns(Task.FromResult((new Search(SearchQuery.FromText("x"), SearchScope.Wishlist, 1, SearchStates.Completed, 0, 0, 0), (IReadOnlyCollection<SearchResponse>)new List<SearchResponse>())));
+
+            using (var scheduler = new WishlistSearchScheduler(
+                client.Object,
+                new[] { "alpha" },
+                new WishlistSearchSchedulerOptions(System.TimeSpan.FromSeconds(30), System.TimeSpan.Zero)))
+            {
+                scheduler.Start();
+                await WaitForCallCountAsync(() => callCount, 1);
+                scheduler.Stop();
+
+                await WaitForStoppedAsync(scheduler);
+
+                scheduler.Start();
+                await WaitForCallCountAsync(() => callCount, 2);
+                scheduler.Stop();
+            }
+
+            client.Verify(
+                m => m.SearchAsync(
+                It.IsAny<SearchQuery>(),
+                It.Is<SearchScope>(s => s.Type == SearchScopeType.Wishlist),
+                It.IsAny<int?>(),
+                It.IsAny<SearchOptions>(),
+                It.IsAny<CancellationToken?>()),
                 Times.Exactly(2));
+        }
+
+        [Fact(DisplayName = "Wishlist scheduler rejects start after dispose")]
+        public void Wishlist_Scheduler_Rejects_Start_After_Dispose()
+        {
+            var client = new Mock<ISoulseekClient>();
+            client.SetupGet(m => m.ServerInfo).Returns(new ServerInfo(wishlistInterval: 1));
+            var scheduler = new WishlistSearchScheduler(client.Object, new[] { "alpha" });
+
+            scheduler.Dispose();
+
+            Assert.Throws<ObjectDisposedException>(() => scheduler.Start());
+        }
+
+        private static async Task WaitForCallCountAsync(System.Func<int> getCallCount, int expected)
+        {
+            using (var timeout = new CancellationTokenSource(System.TimeSpan.FromSeconds(3)))
+            {
+                while (getCallCount() < expected)
+                {
+                    timeout.Token.ThrowIfCancellationRequested();
+                    await Task.Delay(10, timeout.Token).ConfigureAwait(false);
+                }
+            }
+        }
+
+        private static async Task WaitForStoppedAsync(WishlistSearchScheduler scheduler)
+        {
+            using (var timeout = new CancellationTokenSource(System.TimeSpan.FromSeconds(3)))
+            {
+                while (scheduler.IsRunning)
+                {
+                    timeout.Token.ThrowIfCancellationRequested();
+                    await Task.Delay(10, timeout.Token).ConfigureAwait(false);
+                }
+            }
         }
     }
 }

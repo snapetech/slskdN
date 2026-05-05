@@ -24,6 +24,7 @@
 namespace Soulseek.Messaging.Handlers
 {
     using System;
+    using System.Security.Cryptography;
     using Soulseek.Diagnostics;
     using Soulseek.Messaging.Messages;
     using Soulseek.Network;
@@ -74,15 +75,17 @@ namespace Soulseek.Messaging.Handlers
         public async void HandleChildMessageRead(object sender, byte[] message)
         {
             var connection = (IMessageConnection)sender;
-            var code = new MessageReader<MessageCode.Distributed>(message).ReadCode();
-
-            if (code != MessageCode.Distributed.Ping)
-            {
-                Diagnostic.Debug($"Distributed child message received: {code} from {connection.Username} ({connection.IPEndPoint}) (id: {connection.Id})");
-            }
+            var code = MessageCode.Distributed.Unknown;
 
             try
             {
+                code = new MessageReader<MessageCode.Distributed>(message).ReadCode();
+
+                if (code != MessageCode.Distributed.Ping)
+                {
+                    Diagnostic.Debug($"Distributed child message received: {code} from {connection.Username} ({connection.IPEndPoint}) (id: {connection.Id})");
+                }
+
                 switch (code)
                 {
                     case MessageCode.Distributed.ChildDepth:
@@ -138,26 +141,33 @@ namespace Soulseek.Messaging.Handlers
         public async void HandleMessageRead(object sender, byte[] message)
         {
             var connection = (IMessageConnection)sender;
-            var code = new MessageReader<MessageCode.Distributed>(message).ReadCode();
-
-            if (code != MessageCode.Distributed.SearchRequest && code != MessageCode.Distributed.EmbeddedMessage && code != MessageCode.Distributed.Ping)
-            {
-                Diagnostic.Debug($"Distributed message received: {code} from {connection.Username} ({connection.IPEndPoint}) (id: {connection.Id})");
-            }
-            else if (SoulseekClient.Options.DeduplicateSearchRequests)
-            {
-                var current = Convert.ToBase64String(message);
-
-                if (DeduplicationHash == current)
-                {
-                    return;
-                }
-
-                DeduplicationHash = current;
-            }
+            var code = MessageCode.Distributed.Unknown;
 
             try
             {
+                code = new MessageReader<MessageCode.Distributed>(message).ReadCode();
+
+                if (code != MessageCode.Distributed.SearchRequest && code != MessageCode.Distributed.EmbeddedMessage && code != MessageCode.Distributed.Ping)
+                {
+                    Diagnostic.Debug($"Distributed message received: {code} from {connection.Username} ({connection.IPEndPoint}) (id: {connection.Id})");
+                }
+                else if (SoulseekClient.Options.DeduplicateSearchRequests)
+                {
+                    string current;
+
+                    using (var sha256 = SHA256.Create())
+                    {
+                        current = Convert.ToBase64String(sha256.ComputeHash(message));
+                    }
+
+                    if (DeduplicationHash == current)
+                    {
+                        return;
+                    }
+
+                    DeduplicationHash = current;
+                }
+
                 switch (code)
                 {
                     // if we are connected to a branch root, we will receive EmbeddedMessage/93.

@@ -36,9 +36,10 @@ Type-1 obfuscation is not encryption. It is a compatibility/privacy posture for 
 The forked runtime remains wire-compatible with legacy Soulseek clients when default options are used. New protocol behavior is opt-in or passive:
 
 - Peer/distributed-message obfuscation is disabled by default.
-- When obfuscation is enabled, the regular Soulseek listen port must still be advertised. This keeps legacy clients able to connect by normal peer-message and distributed-message paths.
+- When obfuscation is enabled, the regular Soulseek listen port must still be advertised. This keeps legacy clients able to connect by normal peer-message, distributed-message, and file-transfer paths.
 - Outbound obfuscated dials are attempted only when `PeerObfuscationOptions.PreferOutbound` is enabled and the remote peer has advertised a compatible type-1 obfuscated endpoint.
 - Regular direct and indirect peer/distributed/transfer connection attempts remain available as fallback paths.
+- If an obfuscated distributed or transfer candidate connects first but fails setup negotiation, regular fallback candidates are still allowed to complete before the operation fails.
 - Interest, recommendation, similar-user, item-recommendation, hated-interest, and multi-user private-message commands are only sent when the application explicitly calls the corresponding API.
 - Passive handling of `CannotCreateRoom` only changes local error reporting for a failed room join; it does not alter room join wire format.
 
@@ -46,7 +47,7 @@ The practical result is that legacy clients that do not understand obfuscation m
 
 ## Added Protocol APIs
 
-### Peer/distributed-message obfuscation
+### Peer/distributed/transfer obfuscation
 
 `PeerObfuscationOptions` controls Soulseek type-1 rotated peer/distributed/transfer obfuscation:
 
@@ -67,6 +68,14 @@ Operational notes:
 - Keep `advertiseRegularPort` enabled. The constructor rejects obfuscated-only advertising because it would break legacy-client reachability.
 - `preferOutbound` changes connection ordering only for peers that advertised compatible type-1 metadata.
 - Obfuscation applies to peer-message (`P`), distributed-message (`D`), and file-transfer (`F`) streams. Regular paths remain available for fallback.
+
+Validation notes:
+
+- Local loopback matrix tests exercise obfuscated and regular peer-message (`P`) roundtrips.
+- Local loopback matrix tests exercise obfuscated and regular distributed-message (`D`) roundtrips.
+- Local loopback matrix tests exercise obfuscated file-transfer (`F`) byte and stream payloads plus regular transfer fallback.
+- Manager-level tests cover obfuscated inbound transfer handoff, inbound indirect transfer fallback, outbound transfer preference/fallback, and distributed parent preference/fallback.
+- These tests prove runtime framing and fallback behavior over real local TCP sockets; live third-party client interoperability still needs live-network validation.
 
 ### Interests and recommendations
 
@@ -110,6 +119,10 @@ The overload validates all recipients before writing the packet. Null, empty, an
 ### Room creation failures
 
 `CannotCreateRoom` server responses now complete the pending join-room wait with a `RoomException`. This makes failed room creation/join attempts visible to callers instead of requiring applications to infer failure from timeout behavior.
+
+### Authentication hash
+
+Soulseek login requests include the protocol-required MD5 hash of `username + password`. The runtime emits that field for wire compatibility only; it is not used as password storage, password verification, or a general-purpose security primitive.
 
 ## License
 

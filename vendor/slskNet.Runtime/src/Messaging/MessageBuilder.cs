@@ -230,7 +230,7 @@ namespace Soulseek.Messaging
                 // in this case we'll fail 'up' to UTF-8, instead of encoding to ISO-8859-1 while allowing replacements,
                 // which is almost certainly wrong.
                 bytes = Encoding.GetEncoding(CharacterEncoding.UTF8).GetBytes(value);
-                GlobalDiagnostic.Trace($"Failed to encode {encoding} for string {value}; resorted to fallback encoding {CharacterEncoding.UTF8} (base64: {Convert.ToBase64String(bytes)})", ex);
+                GlobalDiagnostic.Trace($"Failed to encode {encoding} string of {value?.Length ?? 0} characters; resorted to fallback encoding {CharacterEncoding.UTF8}", ex);
             }
 
             return WriteBytes(BitConverter.GetBytes(bytes.Length))

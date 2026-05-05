@@ -87,7 +87,15 @@ namespace Soulseek
                         var (username, token, query, searchResponse) = response;
 
                         Diagnostic.Debug($"Discarded cached search response {responseToken} to {username} for query '{query}' with token {token}");
-                        ResponseDeliveryFailed?.Invoke(this, new SearchRequestResponseEventArgs(username, token, query, searchResponse));
+                        try
+                        {
+                            ResponseDeliveryFailed?.Invoke(this, new SearchRequestResponseEventArgs(username, token, query, searchResponse));
+                        }
+                        finally
+                        {
+                            DisposeRawSearchResponseStream(searchResponse);
+                        }
+
                         return true;
                     }
                 }
@@ -129,7 +137,7 @@ namespace Soulseek
                 return false;
             }
 
-            if (searchResponse == null || searchResponse.FileCount + searchResponse.LockedFileCount <= 0)
+            if (!HasSearchResponseContent(searchResponse))
             {
                 return false;
             }
@@ -170,27 +178,7 @@ namespace Soulseek
                     throw;
                 }
 
-                // clients may choose to return a RawSearchResponse to the resolver. this is a way for clients to send a byte array directly to the network,
-                // bypassing serialization. the use case is a bit imaginary, but the same was done for RawBrowseResponse to allow slskd to cache the browse
-                // response to disk, avoiding serializing to json and deserializing to BrowseResponse each time; it's a performance optimization. this seemed
-                // like a good idea at the time but now that i'm reviewing it ~1.5 years later i'm wondering what i was thinking :)
-                if (searchResponse is RawSearchResponse rawSearchResponse)
-                {
-                    await peerConnection.WriteAsync(rawSearchResponse.Length, rawSearchResponse.Stream).ConfigureAwait(false);
-
-                    try
-                    {
-                        rawSearchResponse?.Stream?.Dispose();
-                    }
-                    catch
-                    {
-                        // noop
-                    }
-                }
-                else
-                {
-                    await peerConnection.WriteAsync(searchResponse.ToByteArray()).ConfigureAwait(false);
-                }
+                await WriteSearchResponseAsync(peerConnection, searchResponse).ConfigureAwait(false);
 
                 Diagnostic.Debug($"Sent response containing {searchResponse.FileCount + searchResponse.LockedFileCount} files to {username} for query '{query}' with token {token}");
                 ResponseDelivered?.Invoke(this, new SearchRequestResponseEventArgs(username, token, query, searchResponse));
@@ -239,7 +227,7 @@ namespace Soulseek
                     try
                     {
                         var peerConnection = await SoulseekClient.PeerConnectionManager.GetCachedMessageConnectionAsync(username).ConfigureAwait(false);
-                        await peerConnection.WriteAsync(searchResponse.ToByteArray()).ConfigureAwait(false);
+                        await WriteSearchResponseAsync(peerConnection, searchResponse).ConfigureAwait(false);
 
                         Diagnostic.Debug($"Sent cached response {responseToken} containing {searchResponse.FileCount + searchResponse.LockedFileCount} files to {username} for query '{query}' with token {token}");
                         ResponseDelivered?.Invoke(this, new SearchRequestResponseEventArgs(username, token, query, searchResponse));
@@ -248,12 +236,57 @@ namespace Soulseek
                     catch (Exception ex)
                     {
                         Diagnostic.Debug($"Failed to send cached search response {responseToken} to {username} for query '{query}' with token {token}: {ex.Message}", ex);
-                        ResponseDeliveryFailed?.Invoke(this, new SearchRequestResponseEventArgs(username, token, query, searchResponse));
+                        try
+                        {
+                            ResponseDeliveryFailed?.Invoke(this, new SearchRequestResponseEventArgs(username, token, query, searchResponse));
+                        }
+                        finally
+                        {
+                            DisposeRawSearchResponseStream(searchResponse);
+                        }
                     }
                 }
             }
 
             return false;
+        }
+
+        private static void DisposeRawSearchResponseStream(SearchResponse searchResponse)
+        {
+            if (searchResponse is RawSearchResponse rawSearchResponse)
+            {
+                try
+                {
+                    rawSearchResponse.Stream?.Dispose();
+                }
+                catch
+                {
+                    // noop
+                }
+            }
+        }
+
+        private static bool HasSearchResponseContent(SearchResponse searchResponse)
+            => searchResponse != null && (searchResponse is RawSearchResponse || searchResponse.FileCount + searchResponse.LockedFileCount > 0);
+
+        private static async Task WriteSearchResponseAsync(IMessageConnection peerConnection, SearchResponse searchResponse)
+        {
+            // Raw responses bypass serialization so callers can stream pre-serialized search data directly.
+            if (searchResponse is RawSearchResponse rawSearchResponse)
+            {
+                try
+                {
+                    await peerConnection.WriteAsync(rawSearchResponse.Length, rawSearchResponse.Stream).ConfigureAwait(false);
+                }
+                finally
+                {
+                    DisposeRawSearchResponseStream(rawSearchResponse);
+                }
+
+                return;
+            }
+
+            await peerConnection.WriteAsync(searchResponse.ToByteArray()).ConfigureAwait(false);
         }
     }
 }

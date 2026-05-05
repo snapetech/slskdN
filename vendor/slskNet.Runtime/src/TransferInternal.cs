@@ -224,7 +224,7 @@ namespace Soulseek
         /// <summary>
         ///     Gets the task completion source used to end the transfer if/when the remote client reports that it has failed or been rejected.
         /// </summary>
-        public TaskCompletionSource<bool> RemoteTaskCompletionSource { get; } = new TaskCompletionSource<bool>();
+        public TaskCompletionSource<bool> RemoteTaskCompletionSource { get; } = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         /// <summary>
         ///     Updates the transfer progress.

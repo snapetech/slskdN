@@ -40,8 +40,8 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         }
 
         [Trait("Category", "Parse")]
-        [Fact(DisplayName = "Parse throws MessageReadException on missing data")]
-        public void Parse_Throws_MessageReadException_On_Missing_Data()
+        [Fact(DisplayName = "Parse throws MessageException on missing room list data")]
+        public void Parse_Throws_MessageException_On_Missing_Room_List_Data()
         {
             var msg = new MessageBuilder()
                 .WriteCode(MessageCode.Server.RoomList)
@@ -51,7 +51,7 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             var ex = Record.Exception(() => RoomListResponseFactory.FromByteArray(msg));
 
             Assert.NotNull(ex);
-            Assert.IsType<MessageReadException>(ex);
+            Assert.IsType<MessageException>(ex);
         }
 
         [Trait("Category", "Parse")]

@@ -39,11 +39,6 @@ namespace Soulseek.Messaging.Handlers
     internal sealed class PeerMessageHandler : IPeerMessageHandler
     {
         /// <summary>
-        ///     A callback used for handling custom peer messages.
-        /// </summary>
-        private delegate Task CustomPeerMessageHandler(IMessageConnection connection, byte[] payload);
-
-        /// <summary>
         ///     Initializes a new instance of the <see cref="PeerMessageHandler"/> class.
         /// </summary>
         /// <param name="soulseekClient">The ISoulseekClient instance to use.</param>
@@ -55,7 +50,7 @@ namespace Soulseek.Messaging.Handlers
             SoulseekClient = soulseekClient ?? throw new ArgumentNullException(nameof(soulseekClient));
             Diagnostic = diagnosticFactory ??
                 new DiagnosticFactory(SoulseekClient.Options.MinimumDiagnosticLevel, (e) => DiagnosticGenerated?.Invoke(this, e));
-            CustomPeerMessageHandlers = new ConcurrentDictionary<int, CustomPeerMessageHandler>();
+            CustomPeerMessageHandlers = new ConcurrentDictionary<int, Func<IMessageConnection, byte[], Task>>();
         }
 
         /// <summary>
@@ -75,7 +70,7 @@ namespace Soulseek.Messaging.Handlers
 
         private IDiagnosticFactory Diagnostic { get; }
         private SoulseekClient SoulseekClient { get; }
-        private ConcurrentDictionary<int, CustomPeerMessageHandler> CustomPeerMessageHandlers { get; }
+        private ConcurrentDictionary<int, Func<IMessageConnection, byte[], Task>> CustomPeerMessageHandlers { get; }
 
         /// <summary>
         ///     Handles incoming messages.
@@ -180,16 +175,7 @@ namespace Soulseek.Messaging.Handlers
 
                             if (peerSearchResponse is RawSearchResponse rawSearchResponse)
                             {
-                                await connection.WriteAsync(rawSearchResponse.Length, rawSearchResponse.Stream).ConfigureAwait(false);
-
-                                try
-                                {
-                                    rawSearchResponse.Stream.Dispose();
-                                }
-                                catch
-                                {
-                                    // noop
-                                }
+                                await WriteRawSearchResponseAsync(connection, rawSearchResponse).ConfigureAwait(false);
                             }
                             else if (peerSearchResponse != null && peerSearchResponse.FileCount + peerSearchResponse.LockedFileCount > 0)
                             {
@@ -220,16 +206,7 @@ namespace Soulseek.Messaging.Handlers
 
                         if (browseResponse is RawBrowseResponse rawBrowseResponse)
                         {
-                            await connection.WriteAsync(rawBrowseResponse.Length, rawBrowseResponse.Stream).ConfigureAwait(false);
-
-                            try
-                            {
-                                rawBrowseResponse.Stream.Dispose();
-                            }
-                            catch
-                            {
-                                // noop
-                            }
+                            await WriteRawBrowseResponseAsync(connection, rawBrowseResponse).ConfigureAwait(false);
                         }
                         else
                         {
@@ -395,8 +372,8 @@ namespace Soulseek.Messaging.Handlers
 
             CustomPeerMessageHandlers.AddOrUpdate(
                 messageCode,
-                _ => new CustomPeerMessageHandler((connection, data) => handler(connection.Username, connection.IPEndPoint, data)),
-                (_, __) => new CustomPeerMessageHandler((connection, data) => handler(connection.Username, connection.IPEndPoint, data)));
+                _ => (connection, data) => handler(connection.Username, connection.IPEndPoint, data),
+                (_, __) => (connection, data) => handler(connection.Username, connection.IPEndPoint, data));
         }
 
         /// <summary>
@@ -456,6 +433,54 @@ namespace Soulseek.Messaging.Handlers
             var connection = (IMessageConnection)sender;
             var code = new MessageReader<MessageCode.Peer>(args.Message).ReadCode();
             Diagnostic.Debug($"Peer message sent: {code} ({connection.IPEndPoint}) (id: {connection.Id})");
+        }
+
+        private static void DisposeRawBrowseResponseStream(RawBrowseResponse rawBrowseResponse)
+        {
+            try
+            {
+                rawBrowseResponse.Stream?.Dispose();
+            }
+            catch
+            {
+                // noop
+            }
+        }
+
+        private static void DisposeRawSearchResponseStream(RawSearchResponse rawSearchResponse)
+        {
+            try
+            {
+                rawSearchResponse.Stream?.Dispose();
+            }
+            catch
+            {
+                // noop
+            }
+        }
+
+        private static async Task WriteRawBrowseResponseAsync(IMessageConnection connection, RawBrowseResponse rawBrowseResponse)
+        {
+            try
+            {
+                await connection.WriteAsync(rawBrowseResponse.Length, rawBrowseResponse.Stream).ConfigureAwait(false);
+            }
+            finally
+            {
+                DisposeRawBrowseResponseStream(rawBrowseResponse);
+            }
+        }
+
+        private static async Task WriteRawSearchResponseAsync(IMessageConnection connection, RawSearchResponse rawSearchResponse)
+        {
+            try
+            {
+                await connection.WriteAsync(rawSearchResponse.Length, rawSearchResponse.Stream).ConfigureAwait(false);
+            }
+            finally
+            {
+                DisposeRawSearchResponseStream(rawSearchResponse);
+            }
         }
 
         private async Task<(bool Rejected, string RejectionMessage)> TryEnqueueDownloadAsync(string username, IPEndPoint ipEndPoint, string filename)

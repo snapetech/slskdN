@@ -82,7 +82,10 @@ namespace Soulseek
 
             foreach (var key in keys)
             {
-                Cancel(key);
+                while (HasWait(key))
+                {
+                    Cancel(key);
+                }
             }
         }
 
@@ -138,7 +141,7 @@ namespace Soulseek
         /// </summary>
         /// <param name="key">The unique WaitKey for the wait.</param>
         /// <returns>A value indicating whether any waits exist for the key.</returns>
-        public bool HasWait(WaitKey key) => Waits.TryGetValue(key, out _);
+        public bool HasWait(WaitKey key) => Waits.TryGetValue(key, out var queue) && !queue.IsEmpty;
 
         /// <summary>
         ///     Throws the specified <paramref name="exception"/> on the oldest wait matching the specified <paramref name="key"/>.

@@ -9,6 +9,7 @@
 
 namespace Soulseek.Tests.Unit
 {
+    using System;
     using Xunit;
 
     public class Ed25519PeerDescriptorSignerTests
@@ -33,6 +34,39 @@ namespace Soulseek.Tests.Unit
                     signed.OverlayPort,
                     signed.MaxPayloadLength,
                     signed.Signature)));
+            }
+        }
+
+        [Fact(DisplayName = "Ed25519 descriptor signer rejects mismatched peer id")]
+        public void Ed25519_Descriptor_Signer_Rejects_Mismatched_Peer_Id()
+        {
+            using (var signer = new Ed25519PeerDescriptorSigner())
+            {
+                var keys = signer.GenerateKeyPair();
+                var descriptor = new PeerCapabilityDescriptor(peerId: "not-derived-from-key");
+
+                var ex = Record.Exception(() => signer.Sign(descriptor, keys.PrivateKey, keys.PublicKey));
+
+                Assert.NotNull(ex);
+                Assert.IsType<ArgumentException>(ex);
+            }
+        }
+
+        [Fact(DisplayName = "Ed25519 descriptor verifier rejects mismatched peer id")]
+        public void Ed25519_Descriptor_Verifier_Rejects_Mismatched_Peer_Id()
+        {
+            using (var signer = new Ed25519PeerDescriptorSigner())
+            {
+                var keys = signer.GenerateKeyPair();
+                var signed = signer.Sign(new PeerCapabilityDescriptor(features: new[] { "mesh" }), keys.PrivateKey, keys.PublicKey);
+                var forged = new PeerCapabilityDescriptor(
+                    peerId: "not-derived-from-key",
+                    features: signed.Features,
+                    overlayPort: signed.OverlayPort,
+                    maxPayloadLength: signed.MaxPayloadLength,
+                    signature: signed.Signature);
+
+                Assert.False(signer.Verify(forged));
             }
         }
     }

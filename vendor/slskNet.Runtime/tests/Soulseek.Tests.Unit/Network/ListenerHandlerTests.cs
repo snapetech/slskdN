@@ -480,7 +480,7 @@ namespace Soulseek.Tests.Unit.Network
             handler.HandleConnection(mocks.Listener.Object, mocks.Connection.Object);
 
             mocks.Connection.Verify(m => m.ReadAsync(RotatedObfuscation.MaxInitMessageLength + 1, It.IsAny<CancellationToken?>()), Times.Never);
-            mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("Invalid obfuscated message length", StringComparison.InvariantCultureIgnoreCase))), Times.Once);
+            mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("Invalid obfuscated initialization message length", StringComparison.InvariantCultureIgnoreCase))), Times.Once);
         }
 
         [Trait("Category", "PierceFirewall")]

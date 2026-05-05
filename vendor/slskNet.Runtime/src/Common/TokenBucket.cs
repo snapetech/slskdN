@@ -32,7 +32,7 @@ namespace Soulseek
     /// </summary>
     internal sealed class TokenBucket : ITokenBucket, IDisposable
     {
-        private TaskCompletionSource<bool> waitForReset = new TaskCompletionSource<bool>();
+        private TaskCompletionSource<bool> waitForReset = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="TokenBucket"/> class.
@@ -101,6 +101,11 @@ namespace Soulseek
         /// <returns>A Task that completes when tokens have been provided.</returns>
         public Task<int> GetAsync(int count, CancellationToken cancellationToken = default)
         {
+            if (count < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count), "Token count must be greater than or equal to 1");
+            }
+
             return GetInternalAsync(Math.Min(count, (int)Math.Min(int.MaxValue, Capacity)), cancellationToken);
         }
 
@@ -179,6 +184,6 @@ namespace Soulseek
         }
 
         private void Reset()
-            => Interlocked.Exchange(ref waitForReset, new TaskCompletionSource<bool>()).SetResult(true);
+            => Interlocked.Exchange(ref waitForReset, new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously)).SetResult(true);
     }
 }

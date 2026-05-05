@@ -124,6 +124,16 @@ namespace Soulseek.Network.Tcp
                 throw new ArgumentException("The requested length must be greater than or equal to zero", nameof(length));
             }
 
+            if (length > int.MaxValue)
+            {
+                throw new ArgumentOutOfRangeException(nameof(length), $"The requested length must be less than or equal to {int.MaxValue}");
+            }
+
+            if (length > Connection.MaximumBufferedReadLength)
+            {
+                throw new ArgumentOutOfRangeException(nameof(length), $"Buffered reads are limited to {Connection.MaximumBufferedReadLength} bytes; use the stream overload for larger transfers");
+            }
+
             var output = new byte[checked((int)length)];
             var offset = 0;
 
@@ -174,6 +184,12 @@ namespace Soulseek.Network.Tcp
                 var bytesRemaining = length - totalBytesRead;
                 var bytesAvailable = Math.Min(decodedBuffer.Count, (int)Math.Min(bytesRemaining, int.MaxValue));
                 var bytesGranted = Math.Min(bytesAvailable, await governor(bytesAvailable, token).ConfigureAwait(false));
+
+                if (bytesGranted <= 0)
+                {
+                    throw new ConnectionReadException($"Read governor granted {bytesGranted} bytes; obfuscated transfer reads require forward progress");
+                }
+
                 var buffer = new byte[bytesGranted];
 
                 for (var i = 0; i < bytesGranted; i++)
@@ -230,6 +246,12 @@ namespace Soulseek.Network.Tcp
                 var bytesRemaining = length - totalBytesWritten;
                 var bytesToRead = Math.Min(buffer.Length, (int)Math.Min(bytesRemaining, int.MaxValue));
                 var bytesGranted = Math.Min(bytesToRead, await governor(bytesToRead, token).ConfigureAwait(false));
+
+                if (bytesGranted <= 0)
+                {
+                    throw new ConnectionWriteException($"Write governor granted {bytesGranted} bytes; obfuscated transfer writes require forward progress");
+                }
+
                 var bytesRead = await inputStream.ReadAsync(buffer, 0, bytesGranted, token).ConfigureAwait(false);
 
                 if (bytesRead == 0)
@@ -265,7 +287,7 @@ namespace Soulseek.Network.Tcp
             var decodedFirstBlock = RotatedObfuscation.Decode(firstBlock);
             var length = BinaryPrimitives.ReadInt32LittleEndian(decodedFirstBlock);
 
-            if (length < 0 || length > RotatedObfuscation.MaxMessageLength - FrameLengthBytes)
+            if (length <= 0 || length > RotatedObfuscation.MaxMessageLength - FrameLengthBytes)
             {
                 throw new ConnectionReadException($"Invalid obfuscated transfer frame length: {length}");
             }

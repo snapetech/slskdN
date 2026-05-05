@@ -160,6 +160,34 @@ namespace Soulseek.Tests.Unit
         }
 
         [Trait("Category", "GetAsync")]
+        [Fact(DisplayName = "GetAsync throws ArgumentOutOfRangeException given zero count")]
+        public async Task GetAsync_Throws_ArgumentOutOfRangeException_Given_Zero_Count()
+        {
+            using (var t = new TokenBucket(10, 10000))
+            {
+                var ex = await Record.ExceptionAsync(() => t.GetAsync(0));
+
+                Assert.NotNull(ex);
+                Assert.IsType<ArgumentOutOfRangeException>(ex);
+                Assert.Equal("count", ((ArgumentOutOfRangeException)ex).ParamName);
+            }
+        }
+
+        [Trait("Category", "GetAsync")]
+        [Fact(DisplayName = "GetAsync throws ArgumentOutOfRangeException given negative count")]
+        public async Task GetAsync_Throws_ArgumentOutOfRangeException_Given_Negative_Count()
+        {
+            using (var t = new TokenBucket(10, 10000))
+            {
+                var ex = await Record.ExceptionAsync(() => t.GetAsync(-1));
+
+                Assert.NotNull(ex);
+                Assert.IsType<ArgumentOutOfRangeException>(ex);
+                Assert.Equal("count", ((ArgumentOutOfRangeException)ex).ParamName);
+            }
+        }
+
+        [Trait("Category", "GetAsync")]
         [Fact(DisplayName = "GetAsync waits for reset if bucket is depleted")]
         public async Task GetAsync_Waits_For_Reset_If_Bucket_Is_Depleted()
         {

@@ -703,15 +703,25 @@ namespace Soulseek.Network
 
             while (!ChildConnectionDictionary.IsEmpty)
             {
-                if (ChildConnectionDictionary.TryRemove(ChildConnectionDictionary.Keys.First(), out var value))
+                var keys = ChildConnectionDictionary.Keys.ToList();
+
+                if (keys.Count == 0)
                 {
-                    try
+                    break;
+                }
+
+                foreach (var key in keys)
+                {
+                    if (ChildConnectionDictionary.TryRemove(key, out var value))
                     {
-                        (await value.Value.ConfigureAwait(false))?.Dispose();
-                    }
-                    catch
-                    {
-                        // noop
+                        try
+                        {
+                            (await value.Value.ConfigureAwait(false))?.Dispose();
+                        }
+                        catch
+                        {
+                            // noop
+                        }
                     }
                 }
             }

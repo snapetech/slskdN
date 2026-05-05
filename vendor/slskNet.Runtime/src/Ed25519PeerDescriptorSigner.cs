@@ -80,8 +80,16 @@ namespace Soulseek
                 throw new ArgumentException("Ed25519 public key must be 32 bytes.", nameof(publicKey));
             }
 
+            var derivedPeerId = DerivePeerId(publicKey);
+
+            if (!string.IsNullOrWhiteSpace(descriptor.PeerId) &&
+                !string.Equals(descriptor.PeerId, derivedPeerId, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("Descriptor peer id must match the supplied Ed25519 public key.", nameof(descriptor));
+            }
+
             var unsigned = new PeerCapabilityDescriptor(
-                descriptor.PeerId ?? DerivePeerId(publicKey),
+                derivedPeerId,
                 descriptor.Features,
                 descriptor.OverlayPort,
                 descriptor.MaxPayloadLength);
@@ -106,6 +114,11 @@ namespace Soulseek
                 !string.Equals(descriptor.Signature.Algorithm, "Ed25519", StringComparison.OrdinalIgnoreCase) ||
                 descriptor.Signature.PublicKey.Length != 32 ||
                 descriptor.Signature.Signature.Length != 64)
+            {
+                return false;
+            }
+
+            if (!string.Equals(descriptor.PeerId, DerivePeerId(descriptor.Signature.PublicKey), StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }

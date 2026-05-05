@@ -30,6 +30,8 @@ namespace Soulseek
     /// </summary>
     internal static class UserInfoResponseFactory
     {
+        private const int MinimumTrailingFieldBytesAfterPicture = 9;
+
         /// <summary>
         ///     Creates a new instance of <see cref="UserInfo"/> from the specified <paramref name="bytes"/>.
         /// </summary>
@@ -52,6 +54,19 @@ namespace Soulseek
             if (hasPicture)
             {
                 var pictureLen = reader.ReadInteger();
+
+                if (pictureLen < 0)
+                {
+                    throw new MessageException($"Invalid picture length: {pictureLen}");
+                }
+
+                var maximumPictureLength = reader.Remaining - MinimumTrailingFieldBytesAfterPicture;
+
+                if (pictureLen > maximumPictureLength)
+                {
+                    throw new MessageException($"Invalid picture length: {pictureLen} exceeds the maximum possible length of {maximumPictureLength} for the remaining payload");
+                }
+
                 picture = reader.ReadBytes(pictureLen);
             }
 

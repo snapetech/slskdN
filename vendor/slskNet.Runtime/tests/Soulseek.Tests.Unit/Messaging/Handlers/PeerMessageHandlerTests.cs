@@ -612,6 +612,39 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
                     It.IsAny<Action<int, int, int>>(),
                     It.IsAny<CancellationToken?>()),
                 Times.Once);
+            Assert.False(stream.CanRead);
+        }
+
+        [Trait("Category", "SearchRequest")]
+        [Theory(DisplayName = "Disposes RawSearchResponse stream when write fails"), AutoData]
+        public void Disposes_RawSearchResponse_Stream_When_Write_Fails(string username, IPEndPoint endpoint, int token, string query)
+        {
+            var length = 1234L;
+            var stream = new System.IO.MemoryStream(new byte[length]);
+            var rawResponse = new RawSearchResponse(length, stream);
+
+            var options = new SoulseekClientOptions(
+                searchResponseResolver: (user, tok, searchQuery) => Task.FromResult<SearchResponse>(rawResponse));
+
+            var (handler, mocks) = GetFixture(username, endpoint, options);
+
+            mocks.PeerConnection.Setup(m => m.WriteAsync(
+                    It.IsAny<long>(),
+                    It.IsAny<System.IO.Stream>(),
+                    It.IsAny<Func<int, CancellationToken, Task<int>>>(),
+                    It.IsAny<Action<int, int, int>>(),
+                    It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromException(new ConnectionWriteException("failed")));
+
+            var message = new MessageBuilder()
+                .WriteCode(MessageCode.Peer.SearchRequest)
+                .WriteInteger(token)
+                .WriteString(query)
+                .Build();
+
+            handler.HandleMessageRead(mocks.PeerConnection.Object, message);
+
+            Assert.False(stream.CanRead);
         }
 
         [Trait("Category", "SearchRequest")]
@@ -733,6 +766,39 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
                     It.IsAny<Action<int, int, int>>(),
                     It.IsAny<CancellationToken?>()),
                 Times.Once);
+            Assert.False(stream.CanRead);
+        }
+
+        [Trait("Category", "BrowseRequest")]
+        [Theory(DisplayName = "Disposes RawBrowseResponse stream when write fails"), AutoData]
+        public void Disposes_RawBrowseResponse_Stream_When_Write_Fails(string username, IPEndPoint endpoint, int token, string query)
+        {
+            var length = 1234L;
+            var stream = new System.IO.MemoryStream(new byte[length]);
+            var rawResponse = new RawBrowseResponse(length, stream);
+
+            var options = new SoulseekClientOptions(
+                browseResponseResolver: (user, tok) => Task.FromResult<BrowseResponse>(rawResponse));
+
+            var (handler, mocks) = GetFixture(username, endpoint, options);
+
+            mocks.PeerConnection.Setup(m => m.WriteAsync(
+                    It.IsAny<long>(),
+                    It.IsAny<System.IO.Stream>(),
+                    It.IsAny<Func<int, CancellationToken, Task<int>>>(),
+                    It.IsAny<Action<int, int, int>>(),
+                    It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromException(new ConnectionWriteException("failed")));
+
+            var message = new MessageBuilder()
+                .WriteCode(MessageCode.Peer.BrowseRequest)
+                .WriteInteger(token)
+                .WriteString(query)
+                .Build();
+
+            handler.HandleMessageRead(mocks.PeerConnection.Object, message);
+
+            Assert.False(stream.CanRead);
         }
 
         [Trait("Category", "BrowseRequest")]

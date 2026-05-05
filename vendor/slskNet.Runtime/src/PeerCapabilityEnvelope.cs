@@ -102,48 +102,59 @@ namespace Soulseek
                 throw new ArgumentNullException(nameof(bytes));
             }
 
-            using (var stream = new MemoryStream(bytes))
-            using (var reader = new BinaryReader(stream, Encoding.UTF8))
+            try
             {
-                var magic = reader.ReadInt32();
-
-                if (magic != Magic)
+                using (var stream = new MemoryStream(bytes))
+                using (var reader = new BinaryReader(stream, Encoding.UTF8))
                 {
-                    throw new MessageException($"Peer capability magic mismatch (expected: {Magic}, received: {magic})");
+                    var magic = reader.ReadInt32();
+
+                    if (magic != Magic)
+                    {
+                        throw new MessageException($"Peer capability magic mismatch (expected: {Magic}, received: {magic})");
+                    }
+
+                    var version = reader.ReadInt32();
+                    var type = (PeerCapabilityMessageType)reader.ReadInt32();
+                    var nonce = ReadString(reader);
+                    var peerId = ReadString(reader);
+                    var overlayPort = reader.ReadInt32();
+                    var maxPayloadLength = reader.ReadInt32();
+                    var featureCount = ReadCount(reader, nameof(PeerCapabilityDescriptor.Features), MaximumFeatureCount);
+                    var features = new List<string>();
+
+                    for (var i = 0; i < featureCount; i++)
+                    {
+                        features.Add(ReadString(reader));
+                    }
+
+                    PeerDescriptorSignature signature = null;
+
+                    if (reader.ReadBoolean())
+                    {
+                        var algorithm = ReadString(reader);
+                        var publicKey = ReadBytes(reader, MaximumSignatureLength);
+                        var signatureBytes = ReadBytes(reader, MaximumSignatureLength);
+                        signature = new PeerDescriptorSignature(publicKey, signatureBytes, algorithm);
+                    }
+
+                    var descriptor = new PeerCapabilityDescriptor(
+                        peerId: string.IsNullOrEmpty(peerId) ? null : peerId,
+                        features: features,
+                        overlayPort: overlayPort < 0 ? (int?)null : overlayPort,
+                        maxPayloadLength: maxPayloadLength,
+                        signature: signature);
+
+                    return new PeerCapabilityEnvelope(type, descriptor, nonce, version);
                 }
-
-                var version = reader.ReadInt32();
-                var type = (PeerCapabilityMessageType)reader.ReadInt32();
-                var nonce = ReadString(reader);
-                var peerId = ReadString(reader);
-                var overlayPort = reader.ReadInt32();
-                var maxPayloadLength = reader.ReadInt32();
-                var featureCount = ReadCount(reader, nameof(PeerCapabilityDescriptor.Features), MaximumFeatureCount);
-                var features = new List<string>();
-
-                for (var i = 0; i < featureCount; i++)
-                {
-                    features.Add(ReadString(reader));
-                }
-
-                PeerDescriptorSignature signature = null;
-
-                if (reader.ReadBoolean())
-                {
-                    var algorithm = ReadString(reader);
-                    var publicKey = ReadBytes(reader, MaximumSignatureLength);
-                    var signatureBytes = ReadBytes(reader, MaximumSignatureLength);
-                    signature = new PeerDescriptorSignature(publicKey, signatureBytes, algorithm);
-                }
-
-                var descriptor = new PeerCapabilityDescriptor(
-                    peerId: string.IsNullOrEmpty(peerId) ? null : peerId,
-                    features: features,
-                    overlayPort: overlayPort < 0 ? (int?)null : overlayPort,
-                    maxPayloadLength: maxPayloadLength,
-                    signature: signature);
-
-                return new PeerCapabilityEnvelope(type, descriptor, nonce, version);
+            }
+            catch (MessageException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new MessageException($"Failed to parse peer capability envelope: {ex.Message}", ex);
             }
         }
 
@@ -199,7 +210,14 @@ namespace Soulseek
         private static byte[] ReadBytes(BinaryReader reader, int maximumLength)
         {
             var length = ReadCount(reader, "byte array", maximumLength);
-            return reader.ReadBytes(length);
+            var bytes = reader.ReadBytes(length);
+
+            if (bytes.Length != length)
+            {
+                throw new MessageException($"Invalid byte array length: expected {length}, received {bytes.Length}");
+            }
+
+            return bytes;
         }
 
         private static string ReadString(BinaryReader reader)

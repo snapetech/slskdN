@@ -28,8 +28,10 @@ namespace Soulseek
     {
         private readonly ISoulseekClient client;
         private readonly WishlistSearchSchedulerOptions options;
+        private readonly object syncRoot = new object();
         private readonly IReadOnlyCollection<string> terms;
         private CancellationTokenSource cancellationTokenSource;
+        private bool disposed;
         private Task loopTask;
 
         /// <summary>
@@ -63,7 +65,16 @@ namespace Soulseek
         /// <summary>
         ///     Gets a value indicating whether the scheduler is running.
         /// </summary>
-        public bool IsRunning => loopTask != null && !loopTask.IsCompleted;
+        public bool IsRunning
+        {
+            get
+            {
+                lock (syncRoot)
+                {
+                    return loopTask != null && !loopTask.IsCompleted;
+                }
+            }
+        }
 
         /// <summary>
         ///     Starts the scheduler.
@@ -71,13 +82,19 @@ namespace Soulseek
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         public void Start(CancellationToken cancellationToken = default)
         {
-            if (IsRunning)
+            lock (syncRoot)
             {
-                return;
-            }
+                ThrowIfDisposed();
 
-            cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            loopTask = RunAsync(cancellationTokenSource.Token);
+                if (loopTask != null && !loopTask.IsCompleted)
+                {
+                    return;
+                }
+
+                cancellationTokenSource?.Dispose();
+                cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                loopTask = RunAsync(cancellationTokenSource.Token);
+            }
         }
 
         /// <summary>
@@ -85,7 +102,10 @@ namespace Soulseek
         /// </summary>
         public void Stop()
         {
-            cancellationTokenSource?.Cancel();
+            lock (syncRoot)
+            {
+                cancellationTokenSource?.Cancel();
+            }
         }
 
         /// <summary>
@@ -93,8 +113,39 @@ namespace Soulseek
         /// </summary>
         public void Dispose()
         {
-            Stop();
-            cancellationTokenSource?.Dispose();
+            CancellationTokenSource source;
+            Task task;
+
+            lock (syncRoot)
+            {
+                if (disposed)
+                {
+                    return;
+                }
+
+                disposed = true;
+                source = cancellationTokenSource;
+                task = loopTask;
+                source?.Cancel();
+            }
+
+            if (source == null)
+            {
+                return;
+            }
+
+            if (task == null || task.IsCompleted)
+            {
+                source.Dispose();
+            }
+            else
+            {
+                task.ContinueWith(
+                    _ => source.Dispose(),
+                    CancellationToken.None,
+                    TaskContinuationOptions.ExecuteSynchronously,
+                    TaskScheduler.Default);
+            }
         }
 
         private TimeSpan GetInterval()
@@ -134,6 +185,14 @@ namespace Soulseek
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
                 SearchCompleted?.Invoke(this, new WishlistSearchCompletedEventArgs(term, null, Array.Empty<SearchResponse>(), ex));
+            }
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (disposed)
+            {
+                throw new ObjectDisposedException(nameof(WishlistSearchScheduler));
             }
         }
     }

@@ -26,6 +26,7 @@ namespace Soulseek.Messaging
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using Soulseek.Messaging.Messages;
 
     /// <summary>
     ///     Extensions for <see cref="MessageReader{T}"/>.
@@ -59,7 +60,7 @@ namespace Soulseek.Messaging
                 }
             }
 
-            var attributeCount = reader.ReadInteger();
+            var attributeCount = ProtocolCountReader.ReadCount(reader, "file attribute", minimumBytesPerItem: 8);
             var attributeList = new List<FileAttribute>();
 
             for (int i = 0; i < attributeCount; i++)
@@ -105,7 +106,7 @@ namespace Soulseek.Messaging
         internal static Directory ReadDirectory(this MessageReader<MessageCode.Peer> reader)
         {
             var directoryName = reader.ReadString();
-            var fileCount = reader.ReadInteger();
+            var fileCount = ProtocolCountReader.ReadCount(reader, "directory file", minimumBytesPerItem: 4);
 
             var fileList = new List<File>();
 

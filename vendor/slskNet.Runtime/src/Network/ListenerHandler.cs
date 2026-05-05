@@ -104,6 +104,7 @@ namespace Soulseek.Network
                 {
                     var lengthBytes = await connection.ReadAsync(4).ConfigureAwait(false);
                     var length = BitConverter.ToInt32(lengthBytes, 0);
+                    MessageFrameValidator.ValidateInitMessageLength(length);
 
                     var bodyBytes = await connection.ReadAsync(length).ConfigureAwait(false);
                     message = lengthBytes.Concat(bodyBytes).ToArray();
@@ -228,10 +229,7 @@ namespace Soulseek.Network
 
         private static void ValidateObfuscatedMessageLength(int length)
         {
-            if (length < 4 || length > RotatedObfuscation.MaxInitMessageLength)
-            {
-                throw new MessageReadException($"Invalid obfuscated message length: {length}");
-            }
+            MessageFrameValidator.ValidateInitMessageLength(length, "obfuscated initialization message");
         }
     }
 }

@@ -45,7 +45,7 @@ namespace Soulseek.Messaging.Messages
                 throw new MessageException($"Message Code mismatch creating {nameof(PrivilegedUserListNotification)} (expected: {(int)MessageCode.Server.PrivilegedUsers}, received: {(int)code}");
             }
 
-            var count = reader.ReadInteger();
+            var count = ProtocolCountReader.ReadCount(reader, "privileged user", minimumBytesPerItem: 4);
             var list = new List<string>();
 
             for (int i = 0; i < count; i++)

@@ -789,15 +789,25 @@ namespace Soulseek.Network
 
             while (!MessageConnectionDictionary.IsEmpty)
             {
-                if (MessageConnectionDictionary.TryRemove(MessageConnectionDictionary.Keys.First(), out var connection))
+                var keys = MessageConnectionDictionary.Keys.ToList();
+
+                if (keys.Count == 0)
                 {
-                    try
+                    return;
+                }
+
+                foreach (var key in keys)
+                {
+                    if (MessageConnectionDictionary.TryRemove(key, out var connection))
                     {
-                        (await connection.Value.ConfigureAwait(false))?.Dispose();
-                    }
-                    catch
-                    {
-                        // noop
+                        try
+                        {
+                            (await connection.Value.ConfigureAwait(false))?.Dispose();
+                        }
+                        catch
+                        {
+                            // noop
+                        }
                     }
                 }
             }

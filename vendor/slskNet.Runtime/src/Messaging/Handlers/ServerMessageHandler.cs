@@ -202,15 +202,17 @@ namespace Soulseek.Messaging.Handlers
         /// <param name="message">The message.</param>
         public async void HandleMessageRead(object sender, byte[] message)
         {
-            var code = new MessageReader<MessageCode.Server>(message).ReadCode();
-
-            if (code != MessageCode.Server.EmbeddedMessage)
-            {
-                Diagnostic.Debug($"Server message received: {code}");
-            }
+            var code = MessageCode.Server.Unknown;
 
             try
             {
+                code = new MessageReader<MessageCode.Server>(message).ReadCode();
+
+                if (code != MessageCode.Server.EmbeddedMessage)
+                {
+                    Diagnostic.Debug($"Server message received: {code}");
+                }
+
                 switch (code)
                 {
                     case MessageCode.Server.ParentMinSpeed:

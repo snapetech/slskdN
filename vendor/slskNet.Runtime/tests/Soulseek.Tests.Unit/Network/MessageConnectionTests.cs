@@ -209,6 +209,18 @@ namespace Soulseek.Tests.Unit.Network
             }
         }
 
+        [Trait("Category", "Instantiation")]
+        [Theory(DisplayName = "Throws when given invalid code length"), AutoData]
+        internal void Throws_When_Given_Invalid_Code_Length(string username, IPEndPoint endpoint)
+        {
+            IMessageConnection c;
+            var ex = Record.Exception(() => c = new MessageConnection(username, endpoint, codeLength: 0));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentException>(ex);
+            Assert.Equal("codeLength", ((ArgumentException)ex).ParamName);
+        }
+
         [Trait("Category", "WriteAsync")]
         [Theory(DisplayName = "WriteAsync throws MessageException when message ToByteArray() throws"), AutoData]
         public async Task WriteAsync_Throws_MessageException_When_Message_ToByteArray_Throws(string username, IPEndPoint endpoint)

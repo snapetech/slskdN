@@ -46,7 +46,7 @@ namespace Soulseek.Messaging.Messages
             }
 
             var roomName = reader.ReadString();
-            var userCount = reader.ReadInteger();
+            var userCount = ProtocolCountReader.ReadCount(reader, "owned private room user", minimumBytesPerItem: 4);
 
             var userList = new List<string>();
 

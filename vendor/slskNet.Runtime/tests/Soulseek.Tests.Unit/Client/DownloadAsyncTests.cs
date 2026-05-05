@@ -181,6 +181,21 @@ namespace Soulseek.Tests.Unit.Client
         }
 
         [Trait("Category", "DownloadAsync")]
+        [Fact(DisplayName = "DownloadAsync stream throws ArgumentOutOfRangeException given startOffset greater than size")]
+        public async Task DownloadAsync_Stream_Throws_ArgumentOutOfRangeException_Given_StartOffset_Greater_Than_Size()
+        {
+            using (var stream = new MemoryStream())
+            using (var s = new SoulseekClient(minorVersion: 9999))
+            {
+                var ex = await Record.ExceptionAsync(() => s.DownloadAsync("username", "foo", () => Task.FromResult((Stream)stream), size: 1, startOffset: 2));
+
+                Assert.NotNull(ex);
+                Assert.IsType<ArgumentOutOfRangeException>(ex);
+                Assert.Equal("startOffset", ((ArgumentOutOfRangeException)ex).ParamName);
+            }
+        }
+
+        [Trait("Category", "DownloadAsync")]
         [Theory(DisplayName = "DownloadAsync throws ArgumentOutOfRangeException given negative size"), AutoData]
         public async Task DownloadAsync_Throws_ArgumentOutOfRangeException_Given_Negative_Size(string localFilename)
         {
@@ -220,6 +235,20 @@ namespace Soulseek.Tests.Unit.Client
                 Assert.NotNull(ex);
                 Assert.IsType<ArgumentNullException>(ex);
                 Assert.Equal("size", ((ArgumentNullException)ex).ParamName);
+            }
+        }
+
+        [Trait("Category", "DownloadAsync")]
+        [Theory(DisplayName = "DownloadAsync throws ArgumentOutOfRangeException given startOffset greater than size"), AutoData]
+        public async Task DownloadAsync_Throws_ArgumentOutOfRangeException_Given_StartOffset_Greater_Than_Size(string localFilename)
+        {
+            using (var s = new SoulseekClient(minorVersion: 9999))
+            {
+                var ex = await Record.ExceptionAsync(() => s.DownloadAsync("username", "remote", localFilename, size: 1, startOffset: 2));
+
+                Assert.NotNull(ex);
+                Assert.IsType<ArgumentOutOfRangeException>(ex);
+                Assert.Equal("startOffset", ((ArgumentOutOfRangeException)ex).ParamName);
             }
         }
 

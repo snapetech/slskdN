@@ -39,6 +39,11 @@ namespace Soulseek.Messaging
         where T : Enum
     {
         /// <summary>
+        ///     The maximum allowed decompressed payload length.
+        /// </summary>
+        internal const int MaximumDecompressedPayloadLength = 64 * 1024 * 1024;
+
+        /// <summary>
         ///     Initializes a new instance of the <see cref="MessageReader{T}"/> class from the specified <paramref name="bytes"/>.
         /// </summary>
         /// <param name="bytes">The byte array with which to initialize the reader.</param>
@@ -119,6 +124,8 @@ namespace Soulseek.Messaging
         /// <returns>The read byte.</returns>
         public int ReadByte()
         {
+            EnsureRemaining(1, "byte");
+
             try
             {
                 var retVal = Payload.Span[Position];
@@ -138,6 +145,11 @@ namespace Soulseek.Messaging
         /// <returns>The read bytes.</returns>
         public byte[] ReadBytes(int count)
         {
+            if (count < 0)
+            {
+                throw new MessageReadException($"Invalid byte count: {count}");
+            }
+
             if (count > Payload.Length - Position)
             {
                 throw new MessageReadException("Requested bytes extend beyond the length of the message payload");
@@ -160,11 +172,28 @@ namespace Soulseek.Messaging
         }
 
         /// <summary>
+        ///     Gets a value indicating whether at least <paramref name="count"/> unread bytes remain in the payload.
+        /// </summary>
+        /// <param name="count">The number of bytes to check.</param>
+        /// <returns>A value indicating whether at least <paramref name="count"/> unread bytes remain.</returns>
+        public bool HasRemainingBytes(int count)
+        {
+            if (count < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count), "Byte count must be greater than or equal to zero");
+            }
+
+            return count <= Remaining;
+        }
+
+        /// <summary>
         ///     Reads an integer at the head of the reader.
         /// </summary>
         /// <returns>The read integer.</returns>
         public int ReadInteger()
         {
+            EnsureRemaining(4, "integer (4 bytes)");
+
             try
             {
                 var retVal = Payload.Span[Position] | (Payload.Span[Position + 1] << 8) | (Payload.Span[Position + 2] << 16) | (Payload.Span[Position + 3] << 24);
@@ -183,6 +212,8 @@ namespace Soulseek.Messaging
         /// <returns>The read long.</returns>
         public long ReadLong()
         {
+            EnsureRemaining(8, "long integer (8 bytes)");
+
             try
             {
                 var retVal = BitConverter.ToInt64(Payload.Slice(Position, 8).ToArray(), 0);
@@ -222,6 +253,11 @@ namespace Soulseek.Messaging
         {
             var length = ReadInteger();
 
+            if (length < 0)
+            {
+                throw new MessageReadException($"Invalid string length: {length}");
+            }
+
             if (length > Payload.Length - Position)
             {
                 throw new MessageReadException("Specified string length extends beyond the length of the message payload");
@@ -240,7 +276,7 @@ namespace Soulseek.Messaging
                 var requestedEncoding = encoding;
                 encoding = CharacterEncoding.ISO88591;
                 retVal = Encoding.GetEncoding(encoding).GetString(bytes);
-                GlobalDiagnostic.Trace($"Failed to decode {requestedEncoding} for string {retVal}; resorted to fallback encoding {CharacterEncoding.ISO88591} (base64: {Convert.ToBase64String(bytes)})", ex);
+                GlobalDiagnostic.Trace($"Failed to decode {bytes.Length} bytes as {requestedEncoding}; resorted to fallback encoding {CharacterEncoding.ISO88591}", ex);
             }
 
             Position += length;
@@ -283,16 +319,58 @@ namespace Soulseek.Messaging
 
             try
             {
-                using var outMemoryStream = new MemoryStream();
+                using var outMemoryStream = new BoundedMemoryStream(MaximumDecompressedPayloadLength);
                 using var outZStream = new ZOutputStream(outMemoryStream);
                 using var inMemoryStream = new MemoryStream(inData);
                 CopyStream(inMemoryStream, outZStream);
                 outZStream.finish();
                 outData = outMemoryStream.ToArray();
             }
+            catch (MessageCompressionException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 throw new MessageCompressionException("Failed to decompress the message payload", ex);
+            }
+        }
+
+        private void EnsureRemaining(int count, string readName)
+        {
+            if (!HasRemainingBytes(count))
+            {
+                throw new MessageReadException($"Failed to read a {readName} from position {Position} of the message; {Remaining} bytes remain");
+            }
+        }
+
+        private sealed class BoundedMemoryStream : MemoryStream
+        {
+            public BoundedMemoryStream(int maximumLength)
+            {
+                MaximumLength = maximumLength;
+            }
+
+            private int MaximumLength { get; }
+
+            public override void Write(byte[] buffer, int offset, int count)
+            {
+                ThrowIfWriteExceedsLimit(count);
+                base.Write(buffer, offset, count);
+            }
+
+            public override void WriteByte(byte value)
+            {
+                ThrowIfWriteExceedsLimit(1);
+                base.WriteByte(value);
+            }
+
+            private void ThrowIfWriteExceedsLimit(int count)
+            {
+                if (Length + count > MaximumLength)
+                {
+                    throw new MessageCompressionException($"Decompressed message payload exceeds the maximum allowed length of {MaximumLength} bytes");
+                }
             }
         }
     }

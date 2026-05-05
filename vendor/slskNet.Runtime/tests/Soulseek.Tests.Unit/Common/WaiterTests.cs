@@ -484,14 +484,19 @@ namespace Soulseek.Tests.Unit
                 var leaveKey = new WaitKey(MessageCode.Server.LeaveRoom);
 
                 var loginTask = waiter.Wait<object>(loginKey);
+                var duplicateLoginTask = waiter.Wait<object>(loginKey);
                 var loginTask2 = waiter.Wait<object>(loginKey2);
                 var leaveTask = waiter.Wait<object>(leaveKey);
 
                 waiter.CancelAll();
 
                 Assert.True(loginTask.IsCanceled);
+                Assert.True(duplicateLoginTask.IsCanceled);
                 Assert.True(loginTask2.IsCanceled);
                 Assert.True(leaveTask.IsCanceled);
+                Assert.False(waiter.HasWait(loginKey));
+                Assert.False(waiter.HasWait(loginKey2));
+                Assert.False(waiter.HasWait(leaveKey));
             }
         }
 

@@ -148,6 +148,9 @@ namespace Soulseek.Network.Tcp
         /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
         /// <returns>A Task representing the asynchronous operation, including the read bytes.</returns>
         /// <exception cref="ArgumentException">Thrown when the specified <paramref name="length"/> is less than 1.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        ///     Thrown when the specified <paramref name="length"/> exceeds the maximum buffered read length.
+        /// </exception>
         /// <exception cref="InvalidOperationException">
         ///     Thrown when the connection state is not <see cref="ConnectionState.Connected"/>, or when the underlying TcpClient
         ///     is not connected.

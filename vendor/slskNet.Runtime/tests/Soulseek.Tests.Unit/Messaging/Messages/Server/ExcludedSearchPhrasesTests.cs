@@ -39,8 +39,8 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         }
 
         [Trait("Category", "Parse")]
-        [Fact(DisplayName = "Parse throws MessageReadException on missing data")]
-        public void Parse_Throws_MessageReadException_On_Missing_Data()
+        [Fact(DisplayName = "Parse throws MessageException on impossible count")]
+        public void Parse_Throws_MessageException_On_Impossible_Count()
         {
             var msg = new MessageBuilder()
                 .WriteCode(MessageCode.Server.ExcludedSearchPhrases)
@@ -50,7 +50,7 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             var ex = Record.Exception(() => ExcludedSearchPhrasesNotification.FromByteArray(msg));
 
             Assert.NotNull(ex);
-            Assert.IsType<MessageReadException>(ex);
+            Assert.IsType<MessageException>(ex);
         }
 
         [Trait("Category", "Parse")]

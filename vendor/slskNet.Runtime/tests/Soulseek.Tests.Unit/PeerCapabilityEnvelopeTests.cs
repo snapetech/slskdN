@@ -11,7 +11,9 @@ namespace Soulseek.Tests.Unit
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Net;
+    using System.Text;
     using Soulseek.Messaging;
     using Xunit;
 
@@ -46,6 +48,31 @@ namespace Soulseek.Tests.Unit
             bytes[0] = 0;
 
             Assert.Throws<MessageException>(() => PeerCapabilityEnvelope.FromByteArray(bytes));
+        }
+
+        [Fact(DisplayName = "Capability envelope rejects truncated header")]
+        public void Capability_Envelope_Rejects_Truncated_Header()
+        {
+            Assert.Throws<MessageException>(() => PeerCapabilityEnvelope.FromByteArray(new byte[] { 1, 2, 3 }));
+        }
+
+        [Fact(DisplayName = "Capability envelope rejects truncated declared byte arrays")]
+        public void Capability_Envelope_Rejects_Truncated_Declared_Byte_Arrays()
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream, Encoding.UTF8))
+            {
+                writer.Write(0x4E44534B);
+                writer.Write(PeerCapabilityEnvelope.CurrentVersion);
+                writer.Write((int)PeerCapabilityMessageType.Hello);
+                writer.Write(1);
+                writer.Write(Encoding.UTF8.GetBytes("n"));
+                writer.Write(4);
+                writer.Write(Encoding.UTF8.GetBytes("ab"));
+                writer.Flush();
+
+                Assert.Throws<MessageException>(() => PeerCapabilityEnvelope.FromByteArray(stream.ToArray()));
+            }
         }
 
         [Fact(DisplayName = "Capability registry updates case-insensitive records")]

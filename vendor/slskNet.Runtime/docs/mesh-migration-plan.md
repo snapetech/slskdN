@@ -9,7 +9,7 @@ All additions in this plan must preserve wire compatibility with legacy Soulseek
 - No changes to the format of existing peer or server messages.
 - All new peer-message codes are slskdN-specific. Legacy clients ignore unknown peer-message codes and must not be sent any new code that they would interpret incorrectly.
 - New server-message use is restricted to APIs already exposed by the runtime (interests, similar-users, recommendations, multi-user private messages, room failures).
-- File-transfer connections are not modified.
+- File-transfer connection obfuscation is opt-in and must retain regular fallback.
 - Type-1 peer/distributed/transfer obfuscation remains opt-in and must not displace the regular listener.
 
 If a feature cannot be moved without violating these rules, it stays in slskdn.

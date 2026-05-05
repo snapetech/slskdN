@@ -71,6 +71,27 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         }
 
         [Trait("Category", "Parse")]
+        [Fact(DisplayName = "Parse throws MessageException on invalid picture length")]
+        public void Parse_Throws_MessageException_On_Invalid_Picture_Length()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Peer.InfoResponse)
+                .WriteString("foo")
+                .WriteByte(1)
+                .WriteInteger(10)
+                .WriteBytes(new byte[] { 0x01, 0x02 })
+                .WriteInteger(1)
+                .WriteInteger(2)
+                .WriteByte(1)
+                .Build();
+
+            var ex = Record.Exception(() => UserInfoResponseFactory.FromByteArray(msg));
+
+            Assert.NotNull(ex);
+            Assert.IsType<MessageException>(ex);
+        }
+
+        [Trait("Category", "Parse")]
         [Theory(DisplayName = "Parse returns expected data with picture"), AutoData]
         public void Parse_Returns_Expected_Data_With_Picture(string description, byte[] picture, int uploadSlots, int queueLength, bool hasFreeSlot)
         {
