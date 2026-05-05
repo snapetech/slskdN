@@ -1420,7 +1420,7 @@ namespace Soulseek
             // this may throw immediately, if there are issues with the input
             var downloadTask = DownloadAsync(username, remoteFilename, localFilename, size, startOffset, token, options, cancellationToken);
 
-            var success = await enqueuedTaskCompletionSource.Task.ConfigureAwait(false);
+            var success = await WaitForTransferEnqueueAsync(downloadTask, enqueuedTaskCompletionSource.Task).ConfigureAwait(false);
 
             if (!success)
             {
@@ -1507,7 +1507,7 @@ namespace Soulseek
             // this may throw immediately, if there are issues with the input
             var downloadTask = DownloadAsync(username, remoteFilename, outputStreamFactory, size, startOffset, token, options, cancellationToken);
 
-            var success = await enqueuedTaskCompletionSource.Task.ConfigureAwait(false);
+            var success = await WaitForTransferEnqueueAsync(downloadTask, enqueuedTaskCompletionSource.Task).ConfigureAwait(false);
 
             if (!success)
             {
@@ -1561,16 +1561,28 @@ namespace Soulseek
             options ??= new TransferOptions();
             options = options.WithAdditionalStateChanged(args =>
             {
-                if (args.Transfer.State == (TransferStates.Queued | TransferStates.Locally))
+                var state = args.Transfer.State;
+
+                if (state == (TransferStates.Queued | TransferStates.Locally))
                 {
                     enqueuedTaskCompletionSource.TrySetResult(true);
+                }
+                else if (state.HasFlag(TransferStates.Completed) && !state.HasFlag(TransferStates.Succeeded))
+                {
+                    enqueuedTaskCompletionSource.TrySetResult(false);
                 }
             });
 
             // this may throw immediately, if there are issues with the input
             var uploadTask = UploadAsync(username, remoteFilename, localFilename, token, options, cancellationToken);
 
-            await enqueuedTaskCompletionSource.Task.ConfigureAwait(false);
+            var success = await WaitForTransferEnqueueAsync(uploadTask, enqueuedTaskCompletionSource.Task).ConfigureAwait(false);
+
+            if (!success)
+            {
+                await uploadTask.ConfigureAwait(false);
+            }
+
             return uploadTask;
         }
 
@@ -1620,16 +1632,28 @@ namespace Soulseek
             options ??= new TransferOptions();
             options = options.WithAdditionalStateChanged(args =>
             {
-                if (args.Transfer.State == (TransferStates.Queued | TransferStates.Locally))
+                var state = args.Transfer.State;
+
+                if (state == (TransferStates.Queued | TransferStates.Locally))
                 {
                     enqueuedTaskCompletionSource.TrySetResult(true);
+                }
+                else if (state.HasFlag(TransferStates.Completed) && !state.HasFlag(TransferStates.Succeeded))
+                {
+                    enqueuedTaskCompletionSource.TrySetResult(false);
                 }
             });
 
             // this may throw immediately, if there are issues with the input
             var uploadTask = UploadAsync(username, remoteFilename, size, inputStreamFactory, token, options, cancellationToken);
 
-            await enqueuedTaskCompletionSource.Task.ConfigureAwait(false);
+            var success = await WaitForTransferEnqueueAsync(uploadTask, enqueuedTaskCompletionSource.Task).ConfigureAwait(false);
+
+            if (!success)
+            {
+                await uploadTask.ConfigureAwait(false);
+            }
+
             return uploadTask;
         }
 
@@ -4838,6 +4862,19 @@ namespace Soulseek
             {
                 throw new ArgumentOutOfRangeException(nameof(messageCode), "The peer message code must be greater than or equal to zero.");
             }
+        }
+
+        private async Task<bool> WaitForTransferEnqueueAsync(Task<Transfer> transferTask, Task<bool> enqueuedTask)
+        {
+            var completedTask = await Task.WhenAny(enqueuedTask, transferTask).ConfigureAwait(false);
+
+            if (completedTask == transferTask)
+            {
+                await transferTask.ConfigureAwait(false);
+                return true;
+            }
+
+            return await enqueuedTask.ConfigureAwait(false);
         }
 
         private void EnsureConnectedAndLoggedIn(string operation)

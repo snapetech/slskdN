@@ -19,6 +19,7 @@ namespace Soulseek.Tests.Unit.Client
 {
     using System;
     using System.IO;
+    using System.Threading;
     using System.Threading.Tasks;
     using AutoFixture.Xunit2;
     using Xunit;
@@ -87,6 +88,52 @@ namespace Soulseek.Tests.Unit.Client
                 var ex = await Record.ExceptionAsync(() => s.EnqueueUploadAsync(username, filename, 1, (_) => Task.FromResult((Stream)stream), token, new TransferOptions(), null));
 
                 Assert.Null(ex);
+            }
+        }
+
+        [Trait("Category", "EnqueueUploadAsync")]
+        [Theory(DisplayName = "EnqueueUploadAsync file throws cancellation before local queue"), AutoData]
+        public async Task EnqueueUploadAsync_File_Throws_Cancellation_Before_Local_Queue(string username, string filename, int token)
+        {
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            using (var testFile = new TestFile())
+            using (var s = new SoulseekClient(minorVersion: 9999))
+            {
+                s.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+                await cancellationTokenSource.CancelAsync();
+
+                var enqueueTask = s.EnqueueUploadAsync(username, filename, testFile.Path, token, new TransferOptions(), cancellationTokenSource.Token);
+                var completedTask = await Task.WhenAny(enqueueTask, Task.Delay(TimeSpan.FromSeconds(1)));
+
+                Assert.Same(enqueueTask, completedTask);
+
+                var ex = await Record.ExceptionAsync(() => enqueueTask);
+
+                Assert.NotNull(ex);
+                Assert.IsType<OperationCanceledException>(ex);
+            }
+        }
+
+        [Trait("Category", "EnqueueUploadAsync")]
+        [Theory(DisplayName = "EnqueueUploadAsync stream throws cancellation before local queue"), AutoData]
+        public async Task EnqueueUploadAsync_Stream_Throws_Cancellation_Before_Local_Queue(string username, string filename, int token)
+        {
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            using (var stream = new MemoryStream())
+            using (var s = new SoulseekClient(minorVersion: 9999))
+            {
+                s.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+                await cancellationTokenSource.CancelAsync();
+
+                var enqueueTask = s.EnqueueUploadAsync(username, filename, 1, (_) => Task.FromResult((Stream)stream), token, new TransferOptions(), cancellationTokenSource.Token);
+                var completedTask = await Task.WhenAny(enqueueTask, Task.Delay(TimeSpan.FromSeconds(1)));
+
+                Assert.Same(enqueueTask, completedTask);
+
+                var ex = await Record.ExceptionAsync(() => enqueueTask);
+
+                Assert.NotNull(ex);
+                Assert.IsType<OperationCanceledException>(ex);
             }
         }
     }
