@@ -57,7 +57,8 @@ jobs:
             -c Release \
             -o publish-linux-x64 \
             --self-contained true \
-            -r linux-x64
+            -r linux-x64 \
+            -p:AllowMissingPrunePackageData=true
 
       - name: Copy Web Assets
         run: |

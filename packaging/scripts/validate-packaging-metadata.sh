@@ -122,6 +122,7 @@ expect_literal packaging/aur/PKGBUILD '_dotnet_version="0.0.0-slskdn.${BASH_REMA
 expect_literal packaging/aur/PKGBUILD '-p:Version="$_dotnet_version"'
 expect_literal packaging/aur/PKGBUILD '-p:PackageVersion="$_dotnet_version"'
 expect_literal packaging/aur/PKGBUILD '-p:AllowMissingPrunePackageData=true'
+expect_literal bin/publish '-p:AllowMissingPrunePackageData=true'
 reject_literal packaging/aur/PKGBUILD '_assembly_ver="${pkgver%.slskdn.*}.${pkgver##*.}"'
 reject_literal packaging/aur/PKGBUILD '-p:Version="$_assembly_ver"'
 expect_literal packaging/aur/PKGBUILD 'chmod -R u=rwX,go=rX "${release_root}"'

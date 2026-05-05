@@ -48,6 +48,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   unless `SLSKDN_RUN_LIVE_MESH_ACCOUNT_TESTS` is explicitly enabled.
 - Fixed the non-bin AUR source package on Arch .NET 10 SDK builds by opting the
   framework-dependent RID publish out of missing prune package data enforcement.
+- Hardened shared and release-channel publish commands with the same .NET prune
+  package data opt-out used by the AUR source build.
 - Fixed remediation check invocation from both the repo root and `src/web`,
   restored direct `./bin/lint` execution, reconciled stale project audit
   entries, and clarified how frontend build assets are copied into backend

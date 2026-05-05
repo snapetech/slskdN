@@ -1,14 +1,15 @@
 ## Update 2026-05-05 09:06:43Z
 
-- Current task: Non-bin AUR source package .NET prune metadata fix is complete locally.
+- Current task: Non-bin AUR source package .NET prune metadata fix and release-channel hardening are complete locally.
 - Last activity:
   - added `-p:AllowMissingPrunePackageData=true` to the source AUR `dotnet publish` command
   - bumped `packaging/aur/PKGBUILD` from `pkgrel=3` to `pkgrel=4`
   - added packaging metadata validation for the publish property
+  - hardened `bin/publish`, tag release, standalone Linux, COPR, and PPA publish commands with the same property
   - documented ADR-0001 gotcha `0z285` and committed it separately as `aa19d6f24`
-  - validation passed: packaging metadata validation and AUR-shaped local `dotnet publish`
+  - validation passed: packaging metadata validation, AUR-shaped local `dotnet publish`, release workflow YAML parse checks, and `bin/publish` shell syntax
 - Next steps:
-  1. Commit/push the packaging fix and publish the updated AUR source package metadata if desired.
+  1. Push the packaging/release hardening commits and publish the updated AUR source package metadata if desired.
 
 ## Update 2026-05-05 06:17:11Z
 

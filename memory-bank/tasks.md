@@ -14,7 +14,7 @@
 - [x] **packaging**: Fix non-bin AUR source package on Arch .NET 10 SDK.
  - Status: completed (2026-05-05)
  - Priority: P1
- - Notes: The source PKGBUILD Web UI build completed, then `dotnet publish` failed on Arch SDK `10.0.104` with `NETSDK1226` for missing .NET 10 ASP.NET Core prune package data. Added `-p:AllowMissingPrunePackageData=true` to the framework-dependent RID publish, bumped `pkgrel` to `4`, added packaging metadata validation for the property, and documented ADR-0001 gotcha `0z285`. Validation passed: packaging metadata check and AUR-shaped `dotnet publish`.
+ - Notes: The source PKGBUILD Web UI build completed, then `dotnet publish` failed on Arch SDK `10.0.104` with `NETSDK1226` for missing .NET 10 ASP.NET Core prune package data. Added `-p:AllowMissingPrunePackageData=true` to the framework-dependent RID publish, bumped `pkgrel` to `4`, added packaging metadata validation for the property, and documented ADR-0001 gotcha `0z285`. Follow-up hardened shared and release-channel publish commands with the same property. Validation passed: packaging metadata check, AUR-shaped `dotnet publish`, release workflow YAML parse checks, and `bin/publish` shell syntax check.
 
 - [x] **tests**: Gate live Soulseek-account mesh smoke outside normal release preflight.
  - Status: completed (2026-05-05)

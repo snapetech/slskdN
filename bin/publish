@@ -107,6 +107,7 @@ dotnet publish \
     -p:CopyOutputSymbolsToPublishDirectory=false \
     -p:Version="$dotnet_version" \
     -p:InformationalVersion="$public_version" \
+    -p:AllowMissingPrunePackageData=true \
     --self-contained \
     --runtime $runtime \
     --output $output

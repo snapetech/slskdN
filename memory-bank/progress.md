@@ -9517,3 +9517,8 @@ Code quality improvements were completed as part of Option A:
 - Added `-p:AllowMissingPrunePackageData=true` to `packaging/aur/PKGBUILD`, bumped the AUR source `pkgrel` to `4`, and added a packaging metadata validation guard so the publish workaround is retained.
 - Documented ADR-0001 gotcha `0z285` separately in commit `aa19d6f24`.
 - Validation passed: `bash packaging/scripts/validate-packaging-metadata.sh` and an AUR-shaped local `dotnet publish` to `/tmp/slskdn-aur-publish-test`.
+
+## 2026-05-05 09:10:17Z
+
+- Hardened the shared `bin/publish` path and direct release-channel publish commands in tag, Linux, COPR, and PPA workflows with `-p:AllowMissingPrunePackageData=true`.
+- Added packaging metadata validation for the shared publish script so future release builds keep the prune metadata opt-out.
