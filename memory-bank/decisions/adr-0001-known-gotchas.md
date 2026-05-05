@@ -59,6 +59,12 @@ This is not optional. This is the highest priority action after fixing a bug.
 **Files Affected**:
 - `src/web/src/lib/quarantineJury.js`
 - `src/web/src/lib/listeningParty.js`
+- `src/web/src/components/Contacts/Contacts.jsx`
+- `src/web/src/components/Collections/Collections.jsx`
+- `src/web/src/components/Shares/SharedWithMe.jsx`
+- `src/web/src/components/ShareGroups/ShareGroups.jsx`
+- `src/web/src/components/Search/SoulseekDiscoveryPanel.jsx`
+- `src/web/src/components/Player/PlayerBar.jsx`
 
 **Wrong**:
 ```js
@@ -71,7 +77,7 @@ const { data } = await api.get('/items');
 return Array.isArray(data) ? data : [];
 ```
 
-**Why This Keeps Happening**: `|| []` only handles nullish or falsey responses. API helper contracts need shape checks at the boundary so component code can trust list helpers and does not need to repeat defensive `Array.isArray` checks everywhere.
+**Why This Keeps Happening**: `|| []` only handles nullish or falsey responses. API helper contracts need shape checks at the boundary so component code can trust list helpers and does not need to repeat defensive `Array.isArray` checks everywhere. When a component calls APIs directly and stores response data in list state, apply the same boundary check before setting state.
 
 ### 0z303. LocalStorage Arrays Must Validate Item Shapes
 
