@@ -113,6 +113,9 @@ return Array.isArray(data) ? data : [];
 - `src/web/src/lib/listeningHistory.js`
 - `src/web/src/lib/playlistIntake.js`
 - `src/web/src/lib/watchlists.js`
+- `src/web/src/lib/discoveryGraph.js`
+- `src/web/src/components/Search/DiscoveryGraphAtlasPanel.jsx`
+- `src/web/src/components/Search/DiscoveryGraphModal.jsx`
 
 **Wrong**:
 ```js
