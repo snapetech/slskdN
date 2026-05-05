@@ -219,9 +219,10 @@ jobs:
           cd aur-repo
           cp ../packaging/aur/PKGBUILD-bin PKGBUILD
           cp ../packaging/aur/slskd.service .
-          cp ../packaging/aur/slskd.yml .
-          cp ../packaging/aur/slskd.sysusers .
-          cp ../packaging/aur/slskd.install .
+	          cp ../packaging/aur/slskd.yml .
+	          cp ../packaging/aur/slskd.sysusers .
+	          cp ../packaging/aur/slskd.tmpfiles .
+	          cp ../packaging/aur/slskd.install .
           generate_srcinfo PKGBUILD > .SRCINFO
           git add -A
           bash ../packaging/scripts/push-aur-repo.sh . slskdn-bin "Update to ${{ steps.version.outputs.tag }}"
@@ -232,9 +233,10 @@ jobs:
           cd aur-repo-src
           cp ../packaging/aur/PKGBUILD .
           cp ../packaging/aur/slskd.service .
-          cp ../packaging/aur/slskd.yml .
-          cp ../packaging/aur/slskd.sysusers .
-          cp ../packaging/aur/slskd.install .
+	          cp ../packaging/aur/slskd.yml .
+	          cp ../packaging/aur/slskd.sysusers .
+	          cp ../packaging/aur/slskd.tmpfiles .
+	          cp ../packaging/aur/slskd.install .
           generate_srcinfo PKGBUILD > .SRCINFO
           git add -A
           bash ../packaging/scripts/push-aur-repo.sh . slskdn "Update to ${{ steps.version.outputs.tag }}"

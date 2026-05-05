@@ -1955,7 +1955,7 @@ const MediaCore = () => {
     try {
       setChannelsLoading(true);
       const result = await mediacore.getChannels(channelPodId);
-      setChannels(result);
+      setChannels(asArray(result));
     } catch (error_) {
       toast.error(`Failed to get channels: ${error_.message}`);
       setChannels([]);
@@ -7992,7 +7992,7 @@ const MediaCore = () => {
                           <br />
                           <small>
                             <strong>Factors:</strong>{' '}
-                            {rec.supportingFactors.join(', ')}
+                            {asArray(rec.supportingFactors).join(', ')}
                           </small>
                         </div>
                       </Card.Content>

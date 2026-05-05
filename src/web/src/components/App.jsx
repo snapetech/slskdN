@@ -1496,11 +1496,25 @@ class App extends Component {
                   />
                   <Route
                     path="/pods/:podId"
-                    element={<Navigate replace to="/messages" />}
+                    element={
+                      this.withTokenCheck(
+                        <Messaging
+                          initialKind="pod"
+                          state={applicationState}
+                        />,
+                      )
+                    }
                   />
                   <Route
                     path="/pods/:podId/channels/:channelId"
-                    element={<Navigate replace to="/messages" />}
+                    element={
+                      this.withTokenCheck(
+                        <Messaging
+                          initialKind="pod"
+                          state={applicationState}
+                        />,
+                      )
+                    }
                   />
                   <Route
                     path="/rooms"

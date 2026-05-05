@@ -44,6 +44,8 @@ const valueOrDash = (value) => {
   return value || '-';
 };
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const normalizeRequest = (request = {}) => ({
   createdAt: request.createdAt ?? request.CreatedAt ?? '',
   evidence: request.evidence ?? request.Evidence ?? [],
@@ -108,9 +110,9 @@ const normalizeReview = (review = {}) => ({
     review.CanAcceptReleaseCandidate ??
     false,
   request: normalizeRequest(review.request ?? review.Request),
-  routeAttempts: (review.routeAttempts ?? review.RouteAttempts ?? [])
+  routeAttempts: asArray(review.routeAttempts ?? review.RouteAttempts)
     .map(normalizeRouteAttempt),
-  verdicts: (review.verdicts ?? review.Verdicts ?? [])
+  verdicts: asArray(review.verdicts ?? review.Verdicts)
     .map(normalizeVerdictRecord),
 });
 

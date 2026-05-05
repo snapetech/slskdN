@@ -180,7 +180,7 @@ namespace slskd.Core.API
         /// <summary>
         ///     Creates a full memory dump. PR-06: requires Diagnostics.AllowMemoryDump; admin-only; loopback-only unless AllowRemoteDump.
         /// </summary>
-        [HttpGet("dump")]
+        [HttpPost("dump")]
         [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
         public async Task<IActionResult> DumpMemory()
         {

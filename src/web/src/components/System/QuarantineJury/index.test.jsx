@@ -129,4 +129,18 @@ describe('QuarantineJury', () => {
     );
     expect(await screen.findByText('Release-candidate recommendation accepted for this review.')).toBeInTheDocument();
   });
+
+  it('ignores malformed review route and verdict lists', async () => {
+    quarantineJuryApi.getReview.mockResolvedValue({
+      ...review,
+      routeAttempts: { bad: true },
+      verdicts: 'bad',
+    });
+
+    render(<QuarantineJury />);
+
+    expect(await screen.findByText('quarantine-jury:fixture')).toBeInTheDocument();
+    expect(screen.getByText('Fixture content id evidence')).toBeInTheDocument();
+    expect(screen.queryByText('Fixture juror evidence supports release.')).not.toBeInTheDocument();
+  });
 });

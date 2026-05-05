@@ -28,6 +28,8 @@ Current scan classes:
 Sweep closure rules:
 
 - A scan is not closed while unclassified candidate hits remain in touched domains.
+- A selected scan section is not closed until a dated sweep register records the candidate count and classifies every hit from that section.
+- The active sweep register must include a machine-checkable classification marker, and `scripts/check-remediation-baseline.sh` must assert that marker before the council can close the section.
 - Confirmed runtime bugs get focused regression tests and remediation-baseline patterns.
 - False positives stay in the ledger only when they document a recurring scan hit that would otherwise be re-reviewed.
 - Integration-only risks are recorded explicitly when credentials or live Soulseek network access are unavailable.

@@ -23,6 +23,10 @@ import { toast } from 'react-toastify';
 import { Button, Card, Icon, Label, List, Modal, Popup } from 'semantic-ui-react';
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
+const segment = (value) => encodeURIComponent(String(value));
+
+export const buildSearchItemActionPath = (searchId, itemId, action) =>
+  `/searches/${segment(searchId)}/items/${segment(itemId)}/${action}`;
 
 const buildTree = (response) => {
   let files = asArray(response.files);
@@ -172,7 +176,7 @@ class Response extends Component {
             }
 
             const itemId = `${responseIndex ?? 0}:${fileIndex}`;
-            return api.post(`/searches/${searchId}/items/${itemId}/download`);
+            return api.post(buildSearchItemActionPath(searchId, itemId, 'download'));
           });
 
           await Promise.all(downloadPromises);
@@ -547,7 +551,7 @@ class Response extends Component {
 
                       const itemId = `${responseIndex ?? 0}:${fileIndex}`;
                       const result = await api.post(
-                        `/searches/${searchId}/items/${itemId}/stream`,
+                        buildSearchItemActionPath(searchId, itemId, 'stream'),
                       );
 
                       if (result.data?.stream_url) {

@@ -10,7 +10,7 @@ import RoomCreateModal from '../Rooms/RoomCreateModal';
 import RoomSession from '../Rooms/RoomSession';
 import UserCard from '../Shared/UserCard';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
   Button,
@@ -262,6 +262,7 @@ const PodChannelSession = ({ channel, state }) => {
 
 const Messaging = ({ initialKind = 'mixed', state }) => {
   const navigate = useNavigate();
+  const params = useParams();
   const [panels, setPanels] = useState(() => loadPanels());
   const [chatTarget, setChatTarget] = useState('');
   const [conversations, setConversations] = useState([]);
@@ -398,6 +399,8 @@ const Messaging = ({ initialKind = 'mixed', state }) => {
       podChannels.filter((channel) => !isPodDirectChannel(channel)),
     [podChannels],
   );
+  const routePodId = params?.podId;
+  const routeChannelId = params?.channelId;
 
   useEffect(() => {
     hydrate().catch((error) => {
@@ -452,6 +455,34 @@ const Messaging = ({ initialKind = 'mixed', state }) => {
     joinedRooms,
     openPanel,
     panels.length,
+    visiblePodChannels,
+  ]);
+
+  useEffect(() => {
+    if (initialKind !== 'pod' || !routePodId || visiblePodChannels.length === 0) {
+      return;
+    }
+
+    const routeChannel =
+      visiblePodChannels.find(
+        (channel) =>
+          channel.podId === routePodId &&
+          (!routeChannelId || channel.channelId === routeChannelId),
+      ) ??
+      visiblePodChannels.find((channel) => channel.podId === routePodId);
+
+    if (!routeChannel) {
+      return;
+    }
+
+    openPanel('pod', routeChannel.target, {
+      label: channelLabel(routeChannel),
+    });
+  }, [
+    initialKind,
+    openPanel,
+    routeChannelId,
+    routePodId,
     visiblePodChannels,
   ]);
 

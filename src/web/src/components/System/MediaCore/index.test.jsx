@@ -5,12 +5,13 @@
 import * as mediacore from '../../../lib/mediacore';
 import MediaCore from './index';
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../lib/mediacore', () => ({
   getConflictStrategies: vi.fn(),
   getContentIdStats: vi.fn(),
+  getChannels: vi.fn(),
   getSupportedHashAlgorithms: vi.fn(),
 }));
 
@@ -34,6 +35,7 @@ describe('MediaCore', () => {
       descriptions: {},
     });
     mediacore.getConflictStrategies.mockResolvedValue([]);
+    mediacore.getChannels.mockResolvedValue([]);
   });
 
   it('renders a pod workflow index with safety framing', async () => {
@@ -70,5 +72,20 @@ describe('MediaCore', () => {
     fireEvent.click(screen.getAllByText('Show all pod workflows').at(-1));
 
     expect(screen.queryByText(/Showing DHT Publishing/)).not.toBeInTheDocument();
+  });
+
+  it('treats malformed pod channel payloads as empty lists', async () => {
+    mediacore.getChannels.mockResolvedValue('bad');
+
+    render(<MediaCore />);
+
+    fireEvent.change(await screen.findByPlaceholderText('Pod ID for channel management'), {
+      target: { value: 'pod/with/slash' },
+    });
+    fireEvent.click(screen.getByText('Load Channels'));
+
+    await waitFor(() => expect(mediacore.getChannels).toHaveBeenCalledWith('pod/with/slash'));
+    expect(await screen.findByText('Pod Channel Operations')).toBeInTheDocument();
+    expect(screen.queryByText('Existing Channels')).not.toBeInTheDocument();
   });
 });

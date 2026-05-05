@@ -58,10 +58,27 @@ public class MeshGatewayAuthMiddleware
         var isLocalhost = IsLocalRequest(context);
 
         // Check API key requirement (required for non-localhost)
-        if (!isLocalhost && !string.IsNullOrWhiteSpace(_options.ApiKey))
+        if (!isLocalhost && string.IsNullOrWhiteSpace(_options.ApiKey))
+        {
+            _logger.LogWarning(
+                "[GatewayAuth] Blocked non-localhost access from {RemoteIp} because MeshGateway ApiKey is not configured",
+                remoteIp);
+
+            context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = "unauthorized",
+                message = $"{ApiKeyHeader} must be configured for non-localhost gateway access"
+            });
+            return;
+        }
+
+        var configuredApiKey = _options.ApiKey ?? string.Empty;
+
+        if (!isLocalhost)
         {
             if (!context.Request.Headers.TryGetValue(ApiKeyHeader, out var apiKeyValue) ||
-                !SecureCompare(apiKeyValue.ToString(), _options.ApiKey))
+                !SecureCompare(apiKeyValue.ToString(), configuredApiKey))
             {
                 _logger.LogWarning(
                     "[GatewayAuth] Unauthorized access attempt from {RemoteIp} - invalid or missing API key",

@@ -22,6 +22,8 @@ expect_literal packaging/homebrew/Formula/slskdn.rb 'slskdn-main-linux-glibc-x64
 expect_literal packaging/chocolatey/tools/chocolateyinstall.ps1 'slskdn-main-win-x64.zip'
 expect_literal packaging/winget/snapetech.slskdn.installer.yaml 'slskdn-main-win-x64.zip'
 expect_literal packaging/rpm/slskdn.spec 'slskd.tmpfiles'
+expect_literal .github/release-notes/main.md.tmpl 'slskdn-main-linux-glibc-x64.zip'
+expect_literal .github/release-notes/main.md.tmpl 'slskdn-main-linux-glibc-arm64.zip'
 
 if [ "$failed" -ne 0 ]; then
   cat >&2 <<'MSG'

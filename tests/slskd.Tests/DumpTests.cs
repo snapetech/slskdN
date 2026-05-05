@@ -20,7 +20,7 @@ public class DumpTests
         using var factory = new DumpTestHostFactory(allowMemoryDump: false, allowRemoteDump: false, role: Role.Administrator);
         using var client = factory.CreateClient();
 
-        using var response = await client.GetAsync("/api/v0/application/dump");
+        using var response = await client.PostAsync("/api/v0/application/dump", content: null);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -31,7 +31,7 @@ public class DumpTests
         using var factory = new DumpTestHostFactory(allowMemoryDump: true, allowRemoteDump: true, role: Role.ReadOnly);
         using var client = factory.CreateClient();
 
-        using var response = await client.GetAsync("/api/v0/application/dump");
+        using var response = await client.PostAsync("/api/v0/application/dump", content: null);
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
@@ -41,7 +41,7 @@ public class DumpTests
     {
         using var factory = new DumpTestHostFactory(allowMemoryDump: true, allowRemoteDump: false, role: Role.Administrator);
         using var client = factory.CreateClient();
-        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v0/application/dump");
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v0/application/dump");
         req.Headers.TryAddWithoutValidation("X-Test-Remote-IP", "8.8.8.8");
 
         using var response = await client.SendAsync(req);
@@ -54,7 +54,7 @@ public class DumpTests
     {
         using var factory = new DumpTestHostFactory(allowMemoryDump: true, allowRemoteDump: false, role: Role.Administrator);
         using var client = factory.CreateClient();
-        using var req = new HttpRequestMessage(HttpMethod.Get, "/api/v0/application/dump");
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v0/application/dump");
         req.Headers.TryAddWithoutValidation("X-Test-Remote-IP", "127.0.0.1");
 
         using var response = await client.SendAsync(req);
@@ -64,6 +64,17 @@ public class DumpTests
             response.StatusCode == HttpStatusCode.OK ||
             response.StatusCode == HttpStatusCode.InternalServerError ||
             response.StatusCode == HttpStatusCode.NotImplemented,
-            $"GET /api/v0/application/dump returned {(int)response.StatusCode}, expected 200, 500, or 501.");
+            $"POST /api/v0/application/dump returned {(int)response.StatusCode}, expected 200, 500, or 501.");
+    }
+
+    [Fact]
+    public async Task AllowMemoryDump_true_admin_loopback_get_returns_405()
+    {
+        using var factory = new DumpTestHostFactory(allowMemoryDump: true, allowRemoteDump: false, role: Role.Administrator);
+        using var client = factory.CreateClient();
+
+        using var response = await client.GetAsync("/api/v0/application/dump");
+
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
     }
 }

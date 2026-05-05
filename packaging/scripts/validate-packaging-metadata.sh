@@ -128,6 +128,9 @@ expect_literal .github/workflows/build-on-tag.yml 'cp packaging/aur/slskd.servic
 expect_literal .github/workflows/build-on-tag.yml 'cp ../packaging/aur/slskd.tmpfiles slskd.tmpfiles'
 expect_literal .github/workflows/build-on-tag.yml 'cp packaging/aur/slskd.tmpfiles ~/rpmbuild/SOURCES/'
 expect_literal .github/workflows/build-on-tag.yml 'cp packaging/aur/slskd.tmpfiles slskdn-${VERSION}/usr/lib/tmpfiles.d/slskd.conf'
+expect_literal .github/workflows/release-linux.yml 'cp ../packaging/aur/slskd.tmpfiles .'
+expect_literal .github/workflows/release-ppa.yml 'mkdir -p slskdn-${{ steps.version.outputs.version }}/usr/lib/tmpfiles.d'
+expect_literal .github/workflows/release-ppa.yml 'cp packaging/aur/slskd.tmpfiles slskdn-${{ steps.version.outputs.version }}/usr/lib/tmpfiles.d/slskd.conf'
 
 expect_line .github/workflows/release-packages.yml '\$\{\{ steps\.version\.outputs\.tag \}\}-linux-x64\.zip'
 
@@ -231,6 +234,20 @@ fail_if_empty "$HELM_CHART_VERSION" "Helm appVersion"
 if [[ "$HELM_CHART_VERSION" != "$STABLE_FORMULA_VERSION" ]]; then
   fail "Helm chart appVersion ${HELM_CHART_VERSION} does not match stable Formula version ${STABLE_FORMULA_VERSION}"
 fi
+
+SNAP_VERSION=$(sed -n "s/^version: '\(.*\)'$/\1/p" packaging/snap/snapcraft.yaml)
+fail_if_empty "$SNAP_VERSION" "Snap version"
+if [[ "$SNAP_VERSION" != "$STABLE_FORMULA_VERSION" ]]; then
+  fail "Snap version ${SNAP_VERSION} does not match stable Formula version ${STABLE_FORMULA_VERSION}"
+fi
+
+SNAP_SOURCE=$(sed -n 's#^[[:space:]]*source: \(.*\)#\1#p' packaging/snap/snapcraft.yaml | head -n 1)
+fail_if_empty "$SNAP_SOURCE" "Snap source"
+SNAP_RELEASE=$(extract_release_from_url "$SNAP_SOURCE")
+if [[ "$SNAP_RELEASE" != "$STABLE_FORMULA_VERSION" ]]; then
+  fail "Snap source release ${SNAP_RELEASE} does not match stable Formula version ${STABLE_FORMULA_VERSION}"
+fi
+expect_literal packaging/snap/snapcraft.yaml "source-checksum: sha256/${STABLE_FORMULA_LINUX_SHA}"
 
 validate_winget() {
     local installer_file="$1"

@@ -178,7 +178,7 @@ const Searches = ({ server } = {}) => {
         search: queryParameter,
       }).then((id) => {
         if (id) {
-          routerNavigate(`/searches/${id}`, { replace: true });
+          routerNavigate(`/searches/${encodeURIComponent(id)}`, { replace: true });
           return;
         }
 
@@ -316,7 +316,7 @@ const Searches = ({ server } = {}) => {
       setCreating(false);
 
       if (navigate) {
-        routerNavigate(`/searches/${id}`);
+        routerNavigate(`/searches/${encodeURIComponent(id)}`);
       }
 
       return id;

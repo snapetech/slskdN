@@ -55,6 +55,7 @@ require_absent_pattern() {
 
 require_file "docs/dev/bug-burndown-ledger.md" "bug burndown ledger exists"
 require_file "docs/dev/bug-council-scan-registry.md" "bug council scan registry exists"
+require_file "docs/dev/bug-council-sweep-2026-05-05.md" "bug council active sweep register exists"
 require_file "scripts/check-remediation-baseline.sh" "remediation baseline script exists"
 require_file "scripts/scan-bug-council-candidates.sh" "bug council candidate scanner exists"
 
@@ -256,6 +257,13 @@ require_absent_pattern "\"name\"\\s*:" "package.json" "repo root does not define
 require_pattern "bash scripts/check-remediation-baseline\.sh" "docs/dev/bug-burndown-ledger.md" "ledger references remediation baseline command"
 require_pattern "RT-001" "docs/dev/bug-burndown-ledger.md" "ledger contains finding registry"
 require_pattern "bash scripts/scan-bug-council-candidates\.sh" "docs/dev/bug-council-scan-registry.md" "scan registry references candidate scanner"
+require_pattern "dated sweep register records the candidate count" "docs/dev/bug-council-scan-registry.md" "scan registry requires whole-section sweep registers"
+require_pattern "Constructors accepting mutable collections or params arrays" "docs/dev/bug-council-sweep-2026-05-05.md" "active sweep records constructor section"
+require_pattern "Candidate count: 20" "docs/dev/bug-council-sweep-2026-05-05.md" "active sweep records constructor candidate count"
+require_pattern "20/20 classified" "docs/dev/bug-council-sweep-2026-05-05.md" "active sweep records complete classification marker"
+require_pattern "Unclassified candidates: 0" "docs/dev/bug-council-sweep-2026-05-05.md" "active sweep records zero unclassified candidates"
+require_absent_pattern "\\|[^|\n]*\\| Unclassified \\|" "docs/dev/bug-council-sweep-2026-05-05.md" "active sweep has no unclassified rows"
+require_pattern "RT-067" "docs/dev/bug-burndown-ledger.md" "ledger records council loop closure flaw"
 require_pattern "Every hit must be ledgered" "scripts/scan-bug-council-candidates.sh" "candidate scanner documents ledger classification requirement"
 
 secret_pattern='-----BEGIN (RSA |DSA |EC |OPENSSH |PGP )?PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{36,}|xox[baprs]-[A-Za-z0-9-]{20,}|AKIA[0-9A-Z]{16}|(?i)(api[_-]?key|access[_-]?token|client[_-]?secret)["'\'']?\s*[:=]\s*["'\''][A-Za-z0-9_./+=-]{24,}["'\'']'

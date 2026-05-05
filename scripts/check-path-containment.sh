@@ -20,6 +20,13 @@ expect_literal src/slskd/Transfers/MultiSource/API/MultiSourceController.cs 'IOP
 expect_literal src/slskd/LibraryHealth/LibraryHealthService.cs 'NormalizeAbsolutePathWithinRoots'
 expect_literal src/slskd/Common/Security/PathGuard.cs 'NormalizeAndValidate'
 expect_literal src/slskd/Common/Security/PathGuard.cs 'NormalizeAbsolutePathWithinRoots'
+expect_literal src/slskd/Relay/RelayService.cs 'bool TryValidateFileDownloadCredential(Guid token, string credential, out string validatedAgentName, out string validatedFilename)'
+expect_literal src/slskd/Relay/API/Controllers/RelayController.cs 'PathGuard.NormalizeAndValidate(validatedFilename'
+
+if grep -Eq 'PathGuard\.NormalizeAndValidate\((filename|requestedFilename)' "$repo_root/src/slskd/Relay/API/Controllers/RelayController.cs"; then
+  printf '%s uses a request filename for relay download path selection\n' "src/slskd/Relay/API/Controllers/RelayController.cs" >&2
+  failed=1
+fi
 
 if [ "$failed" -ne 0 ]; then
   cat >&2 <<'MSG'

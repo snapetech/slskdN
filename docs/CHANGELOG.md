@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Synced the vendored slskNet.Runtime council workflow with a whole-section
+  sweep register so constructor candidate scans cannot close with unclassified
+  hits.
 - Hardened relay controller downloads so file serving uses the token-bound
   server filename instead of the caller-supplied filename header.
 - Encoded additional Web helper route segments for slskdN, library-health,

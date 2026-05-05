@@ -77,6 +77,33 @@ public class MeshGatewayAuthMiddlewareTests
     }
 
     [Fact]
+    public async Task InvokeAsync_NonLocalhost_NoConfiguredApiKey_Returns401()
+    {
+        // Arrange
+        var options = new MeshGatewayOptions
+        {
+            Enabled = true,
+            AllowedServices = new() { "pods" }
+        };
+        var (middleware, context) = CreateMiddleware(options);
+        context.Request.Path = "/mesh/http/pods";
+        context.Connection.RemoteIpAddress = IPAddress.Parse("192.168.1.100");
+        using var responseBody = new MemoryStream();
+        context.Response.Body = responseBody;
+
+        // Act
+        await middleware.InvokeAsync(context);
+
+        // Assert
+        Assert.Equal((int)HttpStatusCode.Unauthorized, context.Response.StatusCode);
+
+        context.Response.Body.Seek(0, SeekOrigin.Begin);
+        using var responseReader = new StreamReader(context.Response.Body);
+        var responseText = await responseReader.ReadToEndAsync();
+        Assert.Contains("must be configured", responseText);
+    }
+
+    [Fact]
     public async Task InvokeAsync_NonLocalhost_ValidApiKey_PassesThrough()
     {
         // Arrange

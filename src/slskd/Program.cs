@@ -1973,7 +1973,10 @@ namespace slskd
             {
                 options.KeyPath = ResolveAppRelativePath(options.KeyPath, "mesh-overlay.key");
             });
-            services.AddOptions<Mesh.ServiceFabric.MeshGatewayOptions>().Bind(Configuration.GetSlskdSection("MeshGateway"));
+            services.AddOptions<Mesh.ServiceFabric.MeshGatewayOptions>()
+                .Bind(Configuration.GetSlskdSection("MeshGateway"))
+                .Validate(options => options.Validate().IsValid, "MeshGateway configuration is invalid.")
+                .ValidateOnStart();
 
             // Realm services (T-REALM-01, T-REALM-02, T-REALM-04)
             Log.Debug("[DI] Configuring Realm services...");

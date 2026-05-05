@@ -246,7 +246,7 @@ class Pods extends Component {
         channel.channelId !== currentChannelId
       ) {
         this.props.navigate(
-          `${urlBase}/pods/${activePodId}/channels/${channel.channelId}`,
+          `${urlBase}/pods/${encodeURIComponent(activePodId)}/channels/${encodeURIComponent(channel.channelId)}`,
         );
       }
 
