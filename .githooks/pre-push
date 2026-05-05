@@ -70,8 +70,8 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     while IFS= read -r path; do
       [[ -z "$path" ]] && continue
 
-      if printf '%s\n' "$path" | rg -qi "$SUSP_PATH"; then
-        if ! printf '%s\n' "$path" | rg -qi '(\.example$|example|sample|template)'; then
+      if rg -qi "$SUSP_PATH" <<<"$path"; then
+        if ! rg -qi '(\.example$|example|sample|template)' <<<"$path"; then
           if [[ -z "${seen_warn_path[$path]:-}" ]]; then
             seen_warn_path["$path"]=1
             printf 'warn:path:%s\n' "$path" >> "$report_file"

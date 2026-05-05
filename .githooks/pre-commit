@@ -120,9 +120,9 @@ trap 'rm -f "$report_file"' EXIT
 for path in "${paths[@]}"; do
   [[ -z "$path" ]] && continue
 
-  if printf '%s\n' "$path" | rg -qi "$SUSP_PATH"; then
+  if rg -qi "$SUSP_PATH" <<<"$path"; then
     # Ignore common safe examples/templates.
-    if ! printf '%s\n' "$path" | rg -qi '(\.example$|example|sample|template)'; then
+    if ! rg -qi '(\.example$|example|sample|template)' <<<"$path"; then
       printf 'warn:path:%s\n' "$path" >> "$report_file"
       warned_paths=1
     fi
