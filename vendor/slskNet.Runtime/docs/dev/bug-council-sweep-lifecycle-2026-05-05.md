@@ -12,22 +12,26 @@ Selected scan sections:
 - `Lifecycle task completion and race candidates`
 - `Lifecycle cancellation registration candidates`
 - `Lifecycle timer and semaphore candidates`
+- `Lifecycle fire-and-forget async misuse candidates`
 
 Candidate markers:
 
-- Task, cancellation, timer, and semaphore lifecycle candidates: 202/202 classified
-- Lifecycle task completion and race candidates: 81/81 classified
+- Task, cancellation, timer, and semaphore lifecycle candidates: 203/203 classified
+- Lifecycle task completion and race candidates: 82/82 classified
 - Lifecycle cancellation registration candidates: 51/51 classified
 - Lifecycle timer and semaphore candidates: 84/84 classified
+- Lifecycle fire-and-forget async misuse candidates: 0/0 classified
 - Unclassified candidates: 0
 
-This sweep closes the broad lifecycle scan by splitting task completion/race points, cancellation registration ownership, and timer/semaphore lifetime into stable subgroups. The broad count increased by one during the sweep because the fix adds a scoped helper method containing the same cancellation registration ownership boundary.
+This sweep closes the broad lifecycle scan by splitting task completion/race points, cancellation registration ownership, timer/semaphore lifetime, and fire-and-forget async misuse into stable subgroups. The broad count increased by one during the sweep because the distributed lifecycle fixes add safe background helper methods that are themselves tracked by the task/race subgroup.
 
 ## Fixed Findings
 
 | Candidate | Classification | Ledger | Rationale |
 | --- | --- | --- | --- |
 | `src/Network/Tcp/Connection.cs:481` | Fixed | RT-076 | `WaitForDisconnect` now scopes cancellation registrations to the wait task and disposes them after completion instead of retaining callbacks for the lifetime of the token source. |
+| `src/Network/DistributedConnectionManager.cs:75` | Fixed | RT-078 | Distributed status timer, watchdog, and queued broadcast/status callbacks now run through safe background helpers that report failures through diagnostics instead of dropping fire-and-forget failures. |
+| `src/Messaging/Handlers/DistributedMessageHandler.cs:186` | Fixed | RT-079 | Distributed search broadcast fan-out now queues through a diagnostic wrapper so background broadcast failures are observed. |
 
 ## Existing Guards
 
@@ -39,6 +43,7 @@ Classification: Existing guard.
 - `TokenBucket` races reset waits against cancellation with scoped token registrations and releases reset waiters on disposal.
 - Scheduler, connection manager, and client timers/semaphores are disposed by their owning lifecycle objects; prior sweeps cover post-dispose wait creation and token-bucket wait release.
 - Remaining `async void` hits are event handler entry points that wrap exceptions into diagnostics or manager cleanup paths; they remain tracked by this sweep and existing focused tests.
+- Fire-and-forget async misuse currently has zero scan hits after replacing unobserved `ConfigureAwait(false)` calls with diagnostic queue helpers; the remediation baseline rejects regressions in that subgroup.
 
 ## False Positives
 

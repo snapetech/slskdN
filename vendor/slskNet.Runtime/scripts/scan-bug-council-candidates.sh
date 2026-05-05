@@ -76,6 +76,10 @@ scan "Lifecycle timer and semaphore candidates" \
   'SemaphoreSlim|System\.Timers\.Timer|SystemTimer|Timer\(|\.Reset\(\)|\.Stop\(\)|\.Start\(\)' \
   src
 
+scan "Lifecycle fire-and-forget async misuse candidates" \
+  '_ = .*\.ConfigureAwait\(false\);|^[[:space:]]*[A-Za-z0-9_.]+Async\([^)]*\)\.ConfigureAwait\(false\);' \
+  src
+
 scan "Protocol count and length allocation candidates" \
   'ReadInteger\(\)|ReadLong\(\)|ReadBytes\([^)]*\)|new byte\[[^]]+\]|for \(int i = 0; i < [^;]+; i\+\+\)|while \(' \
   src/Messaging src/Network

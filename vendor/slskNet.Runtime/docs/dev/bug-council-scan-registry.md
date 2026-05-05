@@ -22,6 +22,7 @@ Current scan classes:
 | Lifecycle task completion and race | Find task completion, continuation, `Task.WhenAny`, and event-style async entry points. |
 | Lifecycle cancellation registration | Find cancellation source and token registration ownership points. |
 | Lifecycle timer and semaphore | Find timer and semaphore ownership/lifetime points. |
+| Lifecycle fire-and-forget async misuse | Find background async calls that configure awaits without observing the returned task. |
 | Protocol count and length allocation | Find parser loops and allocations driven by untrusted payload fields. |
 | Protocol scalar emission | Find outbound message scalars that may need constructor guards. |
 | Resolver output and raw stream handling | Find application-supplied data that crosses peer serialization boundaries. |

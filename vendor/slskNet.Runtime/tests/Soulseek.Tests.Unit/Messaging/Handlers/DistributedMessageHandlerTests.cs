@@ -259,6 +259,31 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
         }
 
         [Trait("Category", "Message")]
+        [Theory(DisplayName = "Broadcasts SearchRequest reports background broadcast failures"), AutoData]
+        public async Task Broadcasts_SearchRequest_Reports_Background_Broadcast_Failures(string username, int token, string query)
+        {
+            var (handler, mocks) = GetFixture();
+            var diagnostic = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var conn = new Mock<IMessageConnection>();
+            var message = new DistributedSearchRequest(username, token, query).ToByteArray();
+
+            mocks.DistributedConnectionManager
+                .Setup(m => m.BroadcastMessageAsync(message, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromException(new InvalidOperationException("broadcast failed")));
+
+            mocks.Diagnostic
+                .Setup(m => m.Debug(It.Is<string>(s => s.ContainsInsensitive("Failed to broadcast distributed message")), It.IsAny<Exception>()))
+                .Callback<string, Exception>((m, ex) => diagnostic.TrySetResult(m));
+
+            handler.HandleMessageRead(conn.Object, message);
+
+            var completed = await Task.WhenAny(diagnostic.Task, Task.Delay(1000));
+
+            Assert.Same(diagnostic.Task, completed);
+        }
+
+        [Trait("Category", "Message")]
         [Theory(DisplayName = "Broadcasts ServerSearchRequest as SearchRequest"), AutoData]
         public void Broadcasts_ServerSearchRequest_As_SearchRequest(string username, int token, string query)
         {

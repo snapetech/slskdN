@@ -3988,6 +3988,29 @@ namespace Soulseek.Tests.Unit.Network
             mocks.Diagnostic.Verify(m => m.Warning("No distributed parent connected.  Requesting a list of candidates.", null), Times.Never);
         }
 
+        [Trait("Category", "Watchdog")]
+        [Fact(DisplayName = "StatusDebounceTimer_Elapsed reports background status update failures")]
+        internal async Task StatusDebounceTimer_Elapsed_Reports_Background_Status_Update_Failures()
+        {
+            var (manager, mocks) = GetFixture();
+            var diagnostic = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            mocks.Client.Setup(m => m.State)
+                .Returns(SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+
+            mocks.Diagnostic
+                .Setup(m => m.Debug(It.Is<string>(s => s.ContainsInsensitive("Failed to update distributed status from debounce timer")), It.IsAny<Exception>()))
+                .Callback<string, Exception>((m, ex) => diagnostic.TrySetResult(m));
+
+            manager.Dispose();
+
+            manager.InvokeMethod("StatusDebounceTimer_Elapsed", null, null);
+
+            var completed = await Task.WhenAny(diagnostic.Task, Task.Delay(1000));
+
+            Assert.Same(diagnostic.Task, completed);
+        }
+
         [Trait("Category", "GetBranchInformation")]
         [Theory(DisplayName = "GetBranchInformation returns expected info when root is established"), AutoData]
         internal void GetBranchInformation_Returns_Expected_Info_When_Root_Is_Established(string root, int level)
@@ -4096,6 +4119,24 @@ namespace Soulseek.Tests.Unit.Network
             }
 
             mocks.ServerConnection.Verify(m => m.WriteAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken?>()), Times.Once);
+        }
+
+        [Trait("Category", "UpdateStatusAsync")]
+        [Fact(DisplayName = "UpdateStatusSafely reports background status update failures")]
+        internal async Task UpdateStatusSafely_Reports_Background_Status_Update_Failures()
+        {
+            var (manager, mocks) = GetFixture();
+
+            mocks.Client.Setup(m => m.State)
+                .Returns(SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+
+            manager.Dispose();
+
+            await manager.InvokeMethod<Task>("UpdateStatusSafelyAsync");
+
+            mocks.Diagnostic.Verify(
+                m => m.Debug(It.Is<string>(s => s.ContainsInsensitive("Failed to update distributed status from background callback")), It.IsAny<Exception>()),
+                Times.Once);
         }
 
         private static (DistributedConnectionManager Manager, Mocks Mocks) GetFixture(string username = null, IPEndPoint endpoint = null, SoulseekClientOptions options = null)

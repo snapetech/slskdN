@@ -25,6 +25,7 @@ namespace Soulseek.Messaging.Handlers
 {
     using System;
     using System.Security.Cryptography;
+    using System.Threading.Tasks;
     using Soulseek.Diagnostics;
     using Soulseek.Messaging.Messages;
     using Soulseek.Network;
@@ -185,7 +186,7 @@ namespace Soulseek.Messaging.Handlers
                             case MessageCode.Distributed.SearchRequest:
                                 var embeddedSearchRequest = DistributedSearchRequest.FromByteArray(embeddedMessage.DistributedMessage);
 
-                                _ = SoulseekClient.DistributedConnectionManager.BroadcastMessageAsync(embeddedMessage.DistributedMessage).ConfigureAwait(false);
+                                QueueBroadcastMessage(embeddedMessage.DistributedMessage);
 
                                 if (embeddedSearchRequest.Username == SoulseekClient.Username)
                                 {
@@ -206,7 +207,7 @@ namespace Soulseek.Messaging.Handlers
                     case MessageCode.Distributed.SearchRequest:
                         var searchRequest = DistributedSearchRequest.FromByteArray(message);
 
-                        _ = SoulseekClient.DistributedConnectionManager.BroadcastMessageAsync(message).ConfigureAwait(false);
+                        QueueBroadcastMessage(message);
 
                         if (searchRequest.Username == SoulseekClient.Username)
                         {
@@ -296,7 +297,7 @@ namespace Soulseek.Messaging.Handlers
                         // *always* unwrap the received message and distribute only the wrapped message to children
                         // in the past some clients (including slskd, prior to this commit) were incorrectly forwarding the
                         // distributed message to children, who would then unwrap it properly.
-                        _ = SoulseekClient.DistributedConnectionManager.BroadcastMessageAsync(distributedMessage).ConfigureAwait(false);
+                        QueueBroadcastMessage(distributedMessage);
 
                         await SoulseekClient.SearchResponder.TryRespondAsync(searchRequest.Username, searchRequest.Token, searchRequest.Query).ConfigureAwait(false);
 
@@ -309,6 +310,21 @@ namespace Soulseek.Messaging.Handlers
             catch (Exception ex)
             {
                 Diagnostic.Warning($"Error handling embedded message: {code}; {ex.Message}", ex);
+            }
+        }
+
+        private void QueueBroadcastMessage(byte[] message)
+            => _ = BroadcastMessageSafelyAsync(message);
+
+        private async Task BroadcastMessageSafelyAsync(byte[] message)
+        {
+            try
+            {
+                await SoulseekClient.DistributedConnectionManager.BroadcastMessageAsync(message).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Diagnostic.Debug($"Failed to broadcast distributed message: {ex.Message}", ex);
             }
         }
     }
