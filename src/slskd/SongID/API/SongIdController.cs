@@ -51,13 +51,13 @@ public sealed class SongIdController : ControllerBase
             var run = await _songIdService.QueueAnalyzeAsync(request.Source, cancellationToken).ConfigureAwait(false);
             return Accepted(run);
         }
-        catch (ArgumentException ex)
+        catch (ArgumentException)
         {
-            return BadRequest(ex.Message);
+            return BadRequest("SongID request is invalid.");
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException)
         {
-            return BadRequest(ex.Message);
+            return BadRequest("SongID analysis could not be queued.");
         }
     }
 

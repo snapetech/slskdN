@@ -84,6 +84,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   backing collections.
 - Removed raw relay authentication credential values from challenge-validation
   failure logs and added a remediation scanner guard for that placeholder class.
+- Replaced raw exception-message API responses in Spotify, SongID, and
+  Listening Party controllers with stable client-facing errors, and stopped
+  reflecting Spotify OAuth callback error query text into the callback page.
 - Normalized formatter output in backend async-observation paths so repo lint
   passes after the council cleanup.
 

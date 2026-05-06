@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **bug-council**: Close controller raw exception response leakage.
+ - Status: completed (2026-05-06)
+ - Priority: P2
+ - Notes: Fixed `BUG-20260506-042` through `BUG-20260506-045` by replacing raw `BadRequest(ex.Message)` responses and reflected Spotify OAuth callback error text with stable client-facing messages. Added `scripts/check-api-exception-bodies.sh` to remediation and focused controller regressions. Added ADR-0001 gotcha `0z336`.
+
 - [x] **bug-council**: Remove raw relay authentication credentials from failure logs.
  - Status: completed (2026-05-06)
  - Priority: P1

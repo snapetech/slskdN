@@ -263,6 +263,30 @@ Log.Debug("Validation failed: Supplied authentication credential does not match 
 
 **Why This Keeps Happening**: Authentication failures are easy to over-log during debugging. Even derived HMAC response values are credentials for the challenge they answer, so failure logs should include only hashed stable identifiers and the failure class, never supplied or expected secret material.
 
+### 0z336. Controllers Must Not Return Raw Exception Messages
+
+**The Bug**: Several API controllers returned `BadRequest(ex.Message)` or reflected an OAuth callback `error` query value into response HTML.
+
+**Files Affected**:
+- `src/slskd/SourceFeeds/API/SpotifyConnectionController.cs`
+- `src/slskd/SongID/API/SongIdController.cs`
+- `src/slskd/ListeningParty/API/ListeningPartyController.cs`
+- `scripts/check-api-exception-bodies.sh`
+
+**Wrong**:
+```code
+return BadRequest(ex.Message);
+return Content(BuildCallbackHtml($"Spotify authorization failed: {error}"), "text/html");
+```
+
+**Correct**:
+```code
+return BadRequest("SongID analysis could not be queued.");
+return Content(BuildCallbackHtml("Spotify authorization failed."), "text/html");
+```
+
+**Why This Keeps Happening**: Service exception messages are often written for logs and operators, not API clients. They can contain local paths, process stderr, provider details, guard reasons, or user-provided callback text. Controllers should return stable client-facing text and keep detailed failure context in server logs or structured run evidence.
+
 ### 0z326. Integration Auth Fixtures Must Match Admin-Only Routes
 
 **The Bug**: After security telemetry routes were tightened to administrator-only, the shared integration `StubWebApplicationFactory` still authenticated as only `ReadWrite`, so versioned admin route smoke tests failed with `403 Forbidden`.

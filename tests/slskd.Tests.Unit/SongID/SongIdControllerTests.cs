@@ -54,6 +54,38 @@ public sealed class SongIdControllerTests
     }
 
     [Fact]
+    public async Task CreateRun_WhenArgumentExceptionThrown_ReturnsStableError()
+    {
+        var service = new Mock<ISongIdService>();
+        service
+            .Setup(instance => instance.QueueAnalyzeAsync("bad-source", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ArgumentException("sensitive source path /srv/private/file.flac"));
+
+        var controller = new SongIdController(service.Object);
+
+        var result = await controller.CreateRun(new SongIdRunRequest { Source = "bad-source" }, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("SongID request is invalid.", badRequest.Value);
+    }
+
+    [Fact]
+    public async Task CreateRun_WhenInvalidOperationExceptionThrown_ReturnsStableError()
+    {
+        var service = new Mock<ISongIdService>();
+        service
+            .Setup(instance => instance.QueueAnalyzeAsync("https://open.spotify.com/track/example", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("ffmpeg exited with code 1: local stderr detail"));
+
+        var controller = new SongIdController(service.Object);
+
+        var result = await controller.CreateRun(new SongIdRunRequest { Source = "https://open.spotify.com/track/example" }, CancellationToken.None);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("SongID analysis could not be queued.", badRequest.Value);
+    }
+
+    [Fact]
     public async Task CreateRun_TrimsSourceBeforeDispatch()
     {
         var expectedRun = new SongIdRun

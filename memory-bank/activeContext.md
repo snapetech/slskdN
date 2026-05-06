@@ -1,3 +1,16 @@
+## Update 2026-05-06 22:43:00Z
+
+- Current task: Continue non-runtime council API error-body leakage sweep.
+- Last activity:
+  - accepted and fixed `BUG-20260506-042` through `BUG-20260506-045`;
+  - Spotify, SongID, and Listening Party controllers now return stable client-facing errors instead of raw `ex.Message` values;
+  - Spotify OAuth callback HTML no longer reflects provider/caller-controlled `error` query text;
+  - added `scripts/check-api-exception-bodies.sh` to remediation and focused controller regressions;
+  - documented ADR-0001 gotcha `0z336` and updated ledger/changelog/task log.
+- Next steps:
+  1. Run remediation, lint, diff checks, and focused controller tests.
+  2. Commit and push the verified non-runtime council batch.
+
 ## Update 2026-05-06 22:24:00Z
 
 - Current task: Continue non-runtime council secret/log/error leakage sweep.

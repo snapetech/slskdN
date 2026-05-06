@@ -49,9 +49,9 @@ public sealed class SpotifyConnectionController : ControllerBase
             var redirectUri = BuildRedirectUri();
             return Ok(SpotifyConnectionService.BeginAuthorization(redirectUri));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException)
         {
-            return BadRequest(ex.Message);
+            return BadRequest("Spotify authorization is not configured.");
         }
     }
 
@@ -66,7 +66,7 @@ public sealed class SpotifyConnectionController : ControllerBase
     {
         if (!string.IsNullOrWhiteSpace(error))
         {
-            return Content(BuildCallbackHtml($"Spotify authorization failed: {error}"), "text/html");
+            return Content(BuildCallbackHtml("Spotify authorization failed."), "text/html");
         }
 
         if (string.IsNullOrWhiteSpace(state) || string.IsNullOrWhiteSpace(code))
@@ -81,9 +81,9 @@ public sealed class SpotifyConnectionController : ControllerBase
                 .ConfigureAwait(false);
             return Content(BuildCallbackHtml("Spotify account connected. You can close this window."), "text/html");
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException)
         {
-            return BadRequest(ex.Message);
+            return BadRequest("Spotify authorization could not be completed.");
         }
     }
 

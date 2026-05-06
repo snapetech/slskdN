@@ -93,9 +93,9 @@ public sealed class ListeningPartyController : ControllerBase
 
             return Ok(published);
         }
-        catch (ArgumentException ex)
+        catch (ArgumentException)
         {
-            return BadRequest(ex.Message);
+            return BadRequest("Listen-along event is invalid.");
         }
     }
 
