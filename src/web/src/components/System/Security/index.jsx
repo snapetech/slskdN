@@ -1,7 +1,7 @@
 import './Security.css';
 import * as securityApi from '../../../lib/security';
 import AdversarialSettings from './AdversarialSettings';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Button,
   Dimmer,
@@ -15,6 +15,7 @@ import {
 } from 'semantic-ui-react';
 
 const Security = () => {
+  const mountedRef = useRef(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,14 +26,22 @@ const Security = () => {
     try {
       setRefreshing(true);
       const dashboardData = await securityApi.getDashboard().catch(() => null);
+      if (!mountedRef.current) return;
       setDashboard(dashboardData);
       setError(null);
     } catch (fetchError) {
+      if (!mountedRef.current) return;
       setError(fetchError.message || 'Failed to load security data');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (mountedRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
+  }, []);
+
+  useEffect(() => () => {
+    mountedRef.current = false;
   }, []);
 
   useEffect(() => {

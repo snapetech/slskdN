@@ -1,5 +1,5 @@
 import * as bridge from '../../../lib/bridge';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Button,
   Card,
@@ -21,6 +21,7 @@ import {
 const asArray = (value) => (Array.isArray(value) ? value : []);
 
 const Bridge = () => {
+  const mountedRef = useRef(true);
   const [config, setConfig] = useState(null);
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -37,12 +38,16 @@ const Bridge = () => {
           bridge.getConfig(),
           bridge.getDashboard(),
         ]);
+        if (!mountedRef.current) return;
         setConfig(configData);
         setDashboard(dashboardData);
       } catch (error_) {
+        if (!mountedRef.current) return;
         setError(error_.message);
       } finally {
-        setLoading(false);
+        if (mountedRef.current) {
+          setLoading(false);
+        }
       }
     };
 
@@ -52,13 +57,17 @@ const Bridge = () => {
     const interval = setInterval(async () => {
       try {
         const dashboardData = await bridge.getDashboard();
+        if (!mountedRef.current) return;
         setDashboard(dashboardData);
       } catch {
         // Silently fail on refresh
       }
     }, 10_000);
 
-    return () => clearInterval(interval);
+    return () => {
+      mountedRef.current = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const handleConfigChange = (field, value) => {

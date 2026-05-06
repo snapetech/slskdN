@@ -33,6 +33,9 @@ require_poll_guard "src/web/src/components/System/Mesh/index.jsx"
 require_poll_guard "src/web/src/components/System/SwarmVisualization/index.jsx"
 require_poll_guard "src/web/src/components/System/SwarmAnalytics/index.jsx"
 require_poll_guard "src/web/src/components/System/Jobs/index.jsx"
+require_poll_guard "src/web/src/components/System/Security/index.jsx"
+require_poll_guard "src/web/src/components/System/Bridge/index.jsx"
+require_poll_guard "src/web/src/components/System/MediaCore/index.jsx"
 
 if [ "$failed" -ne 0 ]; then
   exit 1

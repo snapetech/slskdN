@@ -9861,8 +9861,8 @@ Code quality improvements were completed as part of Option A:
 ## 2026-05-06 22:44:05Z
 
 - Continued the non-runtime council scan into Web System polling lifecycle hazards.
-- Recorded and verified `BUG-20260506-093` through `BUG-20260506-097`.
-- Hardened System Network, Mesh, Swarm Visualization, Swarm Analytics, and Jobs polling so post-await state updates are ignored after unmount.
+- Recorded and verified `BUG-20260506-093` through `BUG-20260506-100`.
+- Hardened System Network, Mesh, Swarm Visualization, Swarm Analytics, Jobs, Security, Bridge, and MediaCore polling so post-await state updates are ignored after unmount.
 - Added `scripts/check-web-polling-lifecycle.sh` to the remediation baseline and extended ADR-0001 gotcha `0z93`.
 
 ## 2026-05-06 17:21:40Z

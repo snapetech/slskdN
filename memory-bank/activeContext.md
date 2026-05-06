@@ -3,8 +3,8 @@
 - Current task: Continue non-runtime council Web System polling lifecycle cycle.
 - Last activity:
   - classified System pollers after skipping runtime/vendor work;
-  - accepted and fixed `BUG-20260506-093` through `BUG-20260506-097`;
-  - Network, Mesh, Swarm Visualization, Swarm Analytics, and Jobs now guard post-await state updates after unmount;
+  - accepted and fixed `BUG-20260506-093` through `BUG-20260506-100`;
+  - Network, Mesh, Swarm Visualization, Swarm Analytics, Jobs, Security, Bridge, and MediaCore now guard post-await state updates after unmount;
   - added `scripts/check-web-polling-lifecycle.sh` to remediation and extended ADR-0001 gotcha `0z93`.
 - Next steps:
   1. Run focused Web tests, remediation, Web lint, repo lint, and diff checks.

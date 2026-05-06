@@ -6,7 +6,7 @@ import {
   podWorkflowFilterOptions,
   podWorkflowSections,
 } from './mediaCoreWorkflows';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import {
   Card,
@@ -31,6 +31,7 @@ const asObject = (value) =>
   value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 
 const MediaCore = () => {
+  const mountedRef = useRef(true);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -354,11 +355,15 @@ const MediaCore = () => {
         setLoading(true);
         setError(null);
         const data = await mediacore.getContentIdStats();
+        if (!mountedRef.current) return;
         setStats(data);
       } catch (error_) {
+        if (!mountedRef.current) return;
         setError(error_.message);
       } finally {
-        setLoading(false);
+        if (mountedRef.current) {
+          setLoading(false);
+        }
       }
     };
 
@@ -366,7 +371,10 @@ const MediaCore = () => {
 
     // Refresh stats every 60 seconds
     const interval = setInterval(fetchStats, 60_000);
-    return () => clearInterval(interval);
+    return () => {
+      mountedRef.current = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const handleRegister = async () => {
