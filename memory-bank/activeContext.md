@@ -5544,3 +5544,15 @@ dotnet test
 - Next steps:
   1. Run runtime remediation baseline, focused runtime tests, and repo checks.
   2. Commit and push the scalar-emission sweep.
+
+## Update 2026-05-06 02:24:55Z
+
+- Current task: Stable release `2026050600-slskdn.227` is published.
+- Last activity:
+  - created and pushed replacement tag `build-main-2026050600-slskdn.227`
+  - verified GitHub release publication with 13 release assets
+  - watched the release workflow to completion; Docker, PPA, COPR, AUR, Nix metadata/smoke, Homebrew, and announcements completed
+  - noted Chocolatey push as a non-blocking external 504 timeout after successful package creation
+- Next steps:
+  1. Optionally rerun or manually retry only the Chocolatey publish for `slskdn.2026050600.0.0-slskdn.227.nupkg`.
+  2. Address warning backlog for nullable annotations and CA2000 outbound handler analyzer warnings in a normal bug cycle.

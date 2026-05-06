@@ -9788,3 +9788,11 @@ Code quality improvements were completed as part of Option A:
 - Continued the runtime council loop into the protocol scalar emission section and classified all 145 candidates.
 - Fixed accepted outbound scalar constructor gaps for negative tokens, acknowledgement ids, minor versions, and non-positive privilege day counts before message byte emission.
 - Added `ProtocolArgumentValidator`, focused scalar-emission regression tests, ledger row `RT-071`, and ADR-0001 gotcha `0z83`.
+
+## 2026-05-06 02:24:55Z
+
+- Published stable release `2026050600-slskdn.227` from tag `build-main-2026050600-slskdn.227`.
+- Superseded `build-main-2026050600-slskdn.226`, which built platform artifacts but stopped before release publication because the exact changelog section was missing.
+- Added the missing changelog section, documented ADR-0001 gotcha `0z323`, pushed `main`, and cut the replacement tag.
+- Release validation passed: release gate, all six platform binary artifacts, GitHub release creation, Docker, PPA, COPR, AUR, Nix metadata/smoke, Homebrew tap update, and Discord/Matrix announcement.
+- Chocolatey package creation succeeded, but Chocolatey push returned five `504 Gateway Timeout` responses; the workflow completed overall because that channel is non-blocking.
