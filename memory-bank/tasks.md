@@ -2527,3 +2527,7 @@
 - [x] Continue non-runtime council scan and burn down accepted findings
   - Status: completed (2026-05-06)
   - Notes: Skipped the runtime lane again, recorded `BUG-20260506-014` through `BUG-20260506-022`, hardened ActivityPub/share backfill outbound clients, share-grant sender binding, recursive reparse-point listing, Discovery Graph query refresh, SearchHub list payloads, Messaging panel persistence, and additional Web media/search map/list guards.
+
+- [x] Run attribution audit
+  - Status: completed (2026-05-06)
+  - Notes: Audited fork-only files and upstream-derived changed files against `upstream/master`; fixed the missing slskdN co-attribution block on `Z12282025_AdditionalTransferIndexesMigration.cs`.

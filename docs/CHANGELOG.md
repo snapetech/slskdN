@@ -37,6 +37,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Added regression coverage and ledger entries for the latest non-runtime council
   batch, including route-query refresh, malformed hub/panel payloads, and
   Web media/search list-shape scanners.
+- Fixed a migration attribution header so an upstream-authored migration changed
+  in slskdN preserves upstream copyright and adds the slskdN co-attribution
+  block.
 
 ## [2026050600-slskdn.227] — 2026-05-06
 

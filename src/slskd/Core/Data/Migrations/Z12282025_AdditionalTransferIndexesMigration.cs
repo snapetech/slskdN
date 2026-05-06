@@ -14,6 +14,10 @@
 //     You should have received a copy of the GNU Affero General Public License
 //     along with this program.  If not, see https://www.gnu.org/licenses/.
 // </copyright>
+
+// <copyright file="Z12282025_AdditionalTransferIndexesMigration.cs" company="slskdN Team">
+//     Copyright (c) slskdN Team. All rights reserved.
+// </copyright>
 namespace slskd.Migrations;
 
 using System;

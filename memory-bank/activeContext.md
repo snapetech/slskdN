@@ -5581,3 +5581,14 @@ dotnet test
 - Next steps:
   1. Run broad remediation/lint/diff gates.
   2. Commit and push the non-runtime council follow-up.
+
+## Update 2026-05-06 17:21:40Z
+
+- Current task: Attribution audit is complete.
+- Last activity:
+  - audited fork-only files and upstream-derived changed files against `upstream/master`
+  - treated vendored Soulseek.NET runtime files as third-party exceptions that should retain JP Dillingham attribution
+  - fixed the missing slskdN co-attribution block on `Z12282025_AdditionalTransferIndexesMigration.cs`
+  - focused attribution checks, `git diff --check`, and `dotnet format --verify-no-changes --no-restore --severity error src/slskd/slskd.csproj` passed
+- Next steps:
+  1. Keep the same attribution rule for future files: fork-only slskdN code uses slskdN attribution; upstream-derived changed code preserves upstream and adds slskdN co-attribution.
