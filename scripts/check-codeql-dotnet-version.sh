@@ -13,14 +13,17 @@ if [ ! -f "$workflow" ]; then
 fi
 
 target_major="$(sed -n 's/.*<TargetFramework>net\([0-9][0-9]*\)\..*/\1/p' "$project" | head -n1)"
-sdk_major="$(sed -n 's/.*"version": "\([0-9][0-9]*\)\..*/\1/p' "$global_json" | head -n1)"
+sdk_major=""
+if [ -f "$global_json" ]; then
+  sdk_major="$(sed -n 's/.*"version": "\([0-9][0-9]*\)\..*/\1/p' "$global_json" | head -n1)"
+fi
 
-if [ -z "$target_major" ] || [ -z "$sdk_major" ]; then
-  printf 'unable to read target framework or global.json SDK major version\n' >&2
+if [ -z "$target_major" ]; then
+  printf 'unable to read target framework major version\n' >&2
   exit 1
 fi
 
-if [ "$target_major" != "$sdk_major" ]; then
+if [ -n "$sdk_major" ] && [ "$target_major" != "$sdk_major" ]; then
   printf 'global.json SDK major %s does not match slskd target framework net%s.0\n' "$sdk_major" "$target_major" >&2
   failed=1
 fi

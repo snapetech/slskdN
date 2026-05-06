@@ -52,6 +52,28 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z347. Release Gates Must Not Require Missing Optional SDK Pin Files
+
+**The Bug**: The CodeQL .NET version remediation check unconditionally read `global.json`, so tag release gates failed in GitHub Actions when the repository had no SDK pin file.
+
+**Files Affected**:
+- `scripts/check-codeql-dotnet-version.sh`
+
+**Wrong**:
+```bash
+sdk_major="$(sed -n 's/.*"version": "\([0-9][0-9]*\)\..*/\1/p' "$global_json" | head -n1)"
+```
+
+**Correct**:
+```bash
+sdk_major=""
+if [ -f "$global_json" ]; then
+  sdk_major="$(sed -n 's/.*"version": "\([0-9][0-9]*\)\..*/\1/p' "$global_json" | head -n1)"
+fi
+```
+
+**Why This Keeps Happening**: Remediation scripts often encode a desired consistency relationship, but release gates must distinguish required files from optional policy inputs. If an optional pin file is absent, validate the required source of truth and skip only the optional comparison.
+
 ### 0z327. Fire-And-Forget Side Effects Need Observation Helpers
 
 **The Bug**: Event handlers and transfer-completion paths launched notification, SignalR, relay, FTP, pod-routing, and peer-metric async calls with `_ =`. A surrounding synchronous `try/catch` cannot catch exceptions thrown after the first await, so failures can become unobserved task exceptions.
