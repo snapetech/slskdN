@@ -1,3 +1,16 @@
+## Update 2026-05-06 22:27:42Z
+
+- Current task: Run broader non-runtime council negative-space cycle.
+- Last activity:
+  - read the updated slskd council phase tracker and negative-space gate;
+  - accepted and fixed `BUG-20260506-092`;
+  - corrected controller boundary sink paths to the active `src/slskd` API layout;
+  - strengthened `scripts/check-council-negative-space.sh` so every declared boundary asserts validator presence and remediation-baseline registration;
+  - documented ADR-0001 gotcha `0z97`.
+- Next steps:
+  1. Run lint, diff checks, and target verification.
+  2. Commit and push the verified non-runtime negative-space batch without touching dirty vendored runtime files.
+
 ## Update 2026-05-06 22:00:48Z
 
 - Current task: Continue non-runtime council active fork branch-wording cycle.

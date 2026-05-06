@@ -9930,3 +9930,10 @@ Code quality improvements were completed as part of Option A:
 - Recorded and verified `BUG-20260506-090` and `BUG-20260506-091`.
 - Updated CI/CodeQL workflow comments, FEATURES quick-start/status text, and active security docs from stale fork `master` wording to `main`.
 - Broadened `scripts/check-fork-main-branch-links.sh` so active workflow comments and fork-facing docs cannot drift back to `master` wording.
+
+## 2026-05-06 22:27:42Z
+
+- Ran a broader non-runtime council cycle against the updated slskd negative-space gate.
+- Recorded and verified `BUG-20260506-092`.
+- Corrected the negative-space inventory's controller sink paths from non-existent `src/slskd.Web/Controllers` to the active `src/slskd` API/controller layout.
+- Strengthened `scripts/check-council-negative-space.sh` so mutating API, anonymous endpoint, path containment, outbound HTTP, durable state, and runtime-crossing boundaries each assert validator presence and remediation-baseline registration.

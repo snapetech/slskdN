@@ -2640,3 +2640,7 @@
 - [x] Continue non-runtime council active fork branch-wording cycle
   - Status: completed (2026-05-06)
   - Notes: Classified active workflow comment and fork docs branch-wording drift after skipping runtime/vendor/archive history; fixed `BUG-20260506-090` and `BUG-20260506-091` by moving CI/CodeQL comments, FEATURES quick-start/status text, and active security docs from `master` wording to `main`, and broadened `scripts/check-fork-main-branch-links.sh`.
+
+- [x] **bug-council**: Run broader non-runtime negative-space cycle
+  - Status: completed (2026-05-06)
+  - Notes: Incorporated the updated slskd council phase/negative-space gate, classified the new gate's false-negative gap, and fixed `BUG-20260506-092` by correcting controller boundary sink paths and making `scripts/check-council-negative-space.sh` enforce every declared boundary plus detailed remediation-baseline registration.
