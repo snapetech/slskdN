@@ -32,6 +32,28 @@ const GOLD_STAR_CLUB_POD_ID = 'pod:901d57a2c1bb4e5d90d57a2c1bb4e5d0';
 
 let panelCounter = 0;
 
+const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+const panelTypes = new Set(['chat', 'room', 'pod']);
+
+const normalizePanel = (panel) => {
+  if (
+    !isObject(panel) ||
+    typeof panel.id !== 'string' ||
+    typeof panel.type !== 'string' ||
+    typeof panel.target !== 'string' ||
+    !panelTypes.has(panel.type)
+  ) {
+    return null;
+  }
+
+  return {
+    collapsed: panel.collapsed === true,
+    id: panel.id,
+    target: panel.target,
+    type: panel.type,
+  };
+};
+
 const loadPanels = () => {
   try {
     const saved = getLocalStorageItem(STORAGE_KEY);
@@ -48,7 +70,9 @@ const loadPanels = () => {
     panelCounter = Number.isInteger(parsed.panelCounter) && parsed.panelCounter > 0
       ? parsed.panelCounter
       : 0;
-    return Array.isArray(parsed.panels) ? parsed.panels : [];
+    return Array.isArray(parsed.panels)
+      ? parsed.panels.map(normalizePanel).filter(Boolean)
+      : [];
   } catch {
     panelCounter = 0;
     return [];

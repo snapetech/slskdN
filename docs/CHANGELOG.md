@@ -31,6 +31,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
   malformed speed values and extreme durations cannot break transfer snapshots.
 - Hardened vendored slskNet.Runtime network progress snapshots so invalid
   totals cannot emit infinite, negative, or over-complete percentages.
+- Hardened persisted Messaging panels against malformed local storage entries.
 
 ## [2026050600-slskdn.227] — 2026-05-06
 
