@@ -52,6 +52,32 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z327. Fire-And-Forget Side Effects Need Observation Helpers
+
+**The Bug**: Event handlers and transfer-completion paths launched notification, SignalR, relay, FTP, pod-routing, and peer-metric async calls with `_ =`. A surrounding synchronous `try/catch` cannot catch exceptions thrown after the first await, so failures can become unobserved task exceptions.
+
+**Files Affected**:
+- `src/slskd/Application.cs`
+- `src/slskd/PodCore/PodServices.cs`
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+- `scripts/check-async-task-observation.sh`
+
+**Wrong**:
+```csharp
+_ = Notifications.SendPrivateMessageAsync(username, message);
+_ = PeerMetrics.RecordChunkCompletionAsync(username, result);
+```
+
+**Correct**:
+```csharp
+_ = ObserveBackgroundTaskAsync(
+    Notifications.SendPrivateMessageAsync(username, message),
+    "Failed to send private-message notification from {Username}",
+    username);
+```
+
+**Why This Keeps Happening**: Fire-and-forget is sometimes necessary for event callbacks, but assigning an async task to `_` only suppresses the compiler warning. Any side-effect task that is not awaited by the caller must be passed through a helper that awaits it and logs failures.
+
 ### 0z326. Integration Auth Fixtures Must Match Admin-Only Routes
 
 **The Bug**: After security telemetry routes were tightened to administrator-only, the shared integration `StubWebApplicationFactory` still authenticated as only `ReadWrite`, so versioned admin route smoke tests failed with `403 Forbidden`.
