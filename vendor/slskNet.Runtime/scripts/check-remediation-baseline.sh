@@ -63,6 +63,7 @@ require_file "docs/dev/bug-council-sweep-lifecycle-2026-05-05.md" "bug council l
 require_file "docs/dev/bug-council-sweep-residual-small-2026-05-05.md" "bug council residual small sweep register exists"
 require_file "scripts/check-remediation-baseline.sh" "remediation baseline script exists"
 require_file "scripts/scan-bug-council-candidates.sh" "bug council candidate scanner exists"
+require_file "scripts/check-council-sweep-counts.sh" "bug council sweep count checker exists"
 
 require_pattern "ProtocolCountReader" "src/Messaging/Messages" "protocol parsers use centralized count reader"
 require_pattern "ReadValidatedCount" "src/Messaging/Messages/Server/ProtocolCountReader.cs" "protocol count validation is centralized"
@@ -290,6 +291,9 @@ require_pattern "scan_constructor_candidates" "scripts/scan-bug-council-candidat
 require_pattern "one normalized row per constructor declaration" "docs/dev/bug-council-sweep-2026-05-05.md" "constructor sweep documents normalized scanner output"
 require_pattern "RT-068" "docs/dev/bug-burndown-ledger.md" "ledger records multiline constructor scan miss"
 require_pattern "RT-087" "docs/dev/bug-burndown-ledger.md" "ledger records constructor scan count drift fix"
+require_pattern "RT-088" "docs/dev/bug-burndown-ledger.md" "ledger records automated sweep count drift gate"
+require_pattern "check-council-sweep-counts\\.sh" "docs/dev/bug-council-scan-registry.md" "scan registry documents sweep count drift gate"
+require_pattern "require_closed_count" "scripts/check-council-sweep-counts.sh" "sweep count checker verifies closed scan counts"
 require_pattern "tickerCount != tickerList\\.Count" "src/Messaging/Messages/Server/RoomTickerListNotification.cs" "room ticker list notifications validate ticker count metadata"
 require_pattern "ticker == null" "src/Messaging/Messages/Server/RoomTickerListNotification.cs" "room ticker list notifications reject null tickers"
 require_pattern "Instantiation_Rejects_Invalid_Ticker_Metadata" "tests/Soulseek.Tests.Unit/Messaging/Messages/Server/RoomTickerListNotificationTests.cs" "room ticker metadata regression test is registered"

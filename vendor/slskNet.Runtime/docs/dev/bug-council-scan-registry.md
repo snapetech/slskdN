@@ -7,6 +7,7 @@ The council workflow is inventory-first:
 3. Mark each row `New`, `Accepted`, `Fixed`, `Existing guard`, `False positive`, or `Out of scope`.
 4. Batch fixes by ownership area so one verification pass covers related behavior.
 5. Add or extend `scripts/check-remediation-baseline.sh` for every fixed bug class.
+6. Run `bash scripts/check-council-sweep-counts.sh` to ensure closed sweep counts still match the current scanner output.
 
 The candidate scanner is intentionally noisy. It is not the pass/fail gate; it is the durable discovery queue. The remediation baseline is the pass/fail gate for fixed bug classes and must grow whenever the council burns down a confirmed finding.
 
@@ -41,6 +42,7 @@ Sweep closure rules:
 - A scan is not closed while unclassified candidate hits remain in touched domains.
 - A selected scan section is not closed until a dated sweep register records the candidate count and classifies every hit from that section.
 - The active sweep register must include a machine-checkable classification marker, and `scripts/check-remediation-baseline.sh` must assert that marker before the council can close the section.
+- Closed sweep counts must match the current candidate scanner; intentional scan drift requires updating the sweep register and `scripts/check-council-sweep-counts.sh` in the same change.
 - Confirmed runtime bugs get focused regression tests and remediation-baseline patterns.
 - False positives stay in the ledger only when they document a recurring scan hit that would otherwise be re-reviewed.
 - Integration-only risks are recorded explicitly when credentials or live Soulseek network access are unavailable.
