@@ -1,16 +1,19 @@
-## Update 2026-05-06 00:45:00Z
+## Update 2026-05-06 00:55:00Z
 
-- Current task: `kspls0` deploy is blocked by a Gluetun local-control HTTP regression and the fix is implemented locally.
+- Current task: `kspls0` is running the patched current build for user testing.
 - Last activity:
   - published and installed `0.0.0-slskdn.manual.20260506003550.cfbff9ac1fd8` on `kspls0`
   - observed startup stuck waiting for VPN because the public outbound SSRF guard rejected `127.0.0.1:8010`
   - added a local no-redirect HTTP client and switched Gluetun to it
   - documented ADR-0001 gotcha `0z321`
   - validation passed: focused Gluetun/VPN/outbound guard tests (`9/9`), outbound HTTP scanner, and `git diff --check`
+  - committed and pushed `82615e8cd`
+  - deployed patched build `0.0.0-slskdn.manual.20260506005051.82615e8cd975`
+  - verified `slskd.service` active, `/usr/lib/slskd/current` points at the patched release, HTTP `5030` serves the Web UI, and expected unauthenticated API `401` is returned
+  - Soulseek server login was still retrying external `10000ms` timeouts at handoff
 - Next steps:
-  1. Commit and push the Gluetun fix.
-  2. Rebuild and redeploy a patched artifact to `kspls0`.
-  3. Verify the service reaches normal ready state for user testing.
+  1. Let the user test the Web UI on `kspls0`.
+  2. Watch Soulseek connectivity if peer/network testing depends on login.
 
 ## Update 2026-05-06 00:20:00Z
 

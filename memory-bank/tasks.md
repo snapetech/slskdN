@@ -14,7 +14,7 @@
 - [x] **deploy/kspls0**: Restore Gluetun startup after local control HTTP over-hardening.
  - Status: completed (2026-05-06)
  - Priority: P1
- - Notes: Fixed `BUG-20260506-002` found during live deploy: Gluetun used the public outbound SSRF-guarded client, so configured loopback control URLs like `http://127.0.0.1:8010` were rejected and the daemon waited for VPN indefinitely. Added `OutboundUriGuard.LocalNoRedirectHttpClientName`, registered a no-redirect local-control handler, switched Gluetun to that client, added focused tests, and documented ADR-0001 gotcha `0z321`. Validation passed: focused Gluetun/VPN/outbound guard tests (`9/9`), outbound HTTP scanner, and `git diff --check`.
+ - Notes: Fixed `BUG-20260506-002` found during live deploy: Gluetun used the public outbound SSRF-guarded client, so configured loopback control URLs like `http://127.0.0.1:8010` were rejected and the daemon waited for VPN indefinitely. Added `OutboundUriGuard.LocalNoRedirectHttpClientName`, registered a no-redirect local-control handler, switched Gluetun to that client, added focused tests, and documented ADR-0001 gotcha `0z321`. Validation passed: focused Gluetun/VPN/outbound guard tests (`9/9`), outbound HTTP scanner, and `git diff --check`. Deployed `0.0.0-slskdn.manual.20260506005051.82615e8cd975` to `kspls0`; Web UI on `5030` and listener sockets are up, while Soulseek server login was still retrying external timeouts at handoff.
 
 - [x] **release/ci**: Fix 0-second GitHub Actions workflow failures.
  - Status: completed (2026-05-06)

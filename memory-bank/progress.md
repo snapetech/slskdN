@@ -4,6 +4,7 @@
 - Fixed `BUG-20260506-002`: added a named local no-redirect HTTP client for trusted local control-plane integrations and switched Gluetun to it while keeping public outbound callers on the public-IP guard.
 - Documented ADR-0001 gotcha `0z321`.
 - Validation passed: focused Gluetun/VPN/outbound guard tests (`9/9`), outbound HTTP scanner, and `git diff --check`.
+- Deployed patched build `0.0.0-slskdn.manual.20260506005051.82615e8cd975` to `kspls0`; `/usr/lib/slskd/current` points to `manual-20260506005051.82615e8cd975`, `slskd.service` is active, HTTP `5030` serves the Web UI, native/listener sockets `50300`/`50301`/`50305` are listening, and the local API returns expected unauthenticated `401`. Soulseek server login was still retrying external `10000ms` timeouts at handoff.
 
 - Investigated repeated GitHub Actions failures after the council pushes. The failing `release-linux.yml` and `release-ppa.yml` runs were 0-second failures with no jobs/logs, which meant GitHub rejected workflow YAML before job planning rather than failing tests.
 - Fixed `BUG-20260506-001`: removed tab indentation from release workflow shell blocks, rewrote the disabled upstream-access multiline PR/issue bodies so the workflow parses, and added `scripts/check-workflow-yaml-syntax.sh` to remediation.
