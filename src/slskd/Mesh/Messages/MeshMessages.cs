@@ -34,6 +34,9 @@ namespace slskd.Mesh.Messages
 
         /// <summary>Response with file chunk data (T-1434).</summary>
         RespChunk = 8,
+
+        /// <summary>Signed DHT store request.</summary>
+        DhtStore = 9,
     }
 
     /// <summary>

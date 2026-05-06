@@ -1,5 +1,15 @@
 ## 2026-05-06
 
+- Continued the non-runtime mutable-ownership council cycle and accepted `BUG-20260506-037`: `MeshPeer` now clones mutable `IPEndPoint` values on construction, update, `Addresses` access, and `GetBestAddress()` so caller-side endpoint mutation cannot rewrite peer address state. Added `MeshPeerTests`, ledger verification notes, changelog entry, and ADR-0001 gotcha `0z332`.
+- Fixed `BUG-20260506-038` found during focused validation: DHT STORE signing no longer reflects into a read-only ACK message type; it now signs a concrete DHT store mesh message and verifies with the real signer payload. Added a real signer/verification regression and ADR-0001 gotcha `0z333`.
+
+- Continued non-runtime mutable-ownership council burn-down with section-wide classification:
+  - fixed and verified `BUG-20260506-035` (`src/slskd/Common/Security/IMessageBatcher.cs`) by deep-copying nested batch metadata containers (`Dictionary`, `List`, nested `byte[]`) so deferred transport metadata no longer aliases caller-owned objects.
+  - fixed and verified `BUG-20260506-036` (`src/slskd/Mesh/Dht/KademliaRpcClient.cs`) by cloning DHT store `key`, `value`, and `requesterId` arrays before signing.
+  - added focused regressions in `tests/slskd.Tests.Unit/Common/Security/TimedBatcherTests.cs` and `tests/slskd.Tests.Unit/Mesh/KademliaRpcClientTests.cs`;
+  - documented ADR-0001 entries `0z330` and `0z331`;
+  - updated the burn-down ledger with verified entries and section status.
+
 - Completed another non-runtime council mini-cycle on primitive Web string-body mismatches.
 - Added and verified `BUG-20260506-032` through `BUG-20260506-034`; `src/web/src/lib/events.js` and `src/web/src/lib/rooms.js` now use `JSON.stringify` for `[FromBody] string` payloads; corresponding focused helper tests were added in `events.test.js` and `rooms.test.js`.
 - Updated `docs/dev/bug-burndown-ledger.md` class notes for primitive body mismatches and moved the new findings to `Verified`.

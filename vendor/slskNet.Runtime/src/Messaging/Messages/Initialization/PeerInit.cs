@@ -83,6 +83,11 @@ namespace Soulseek.Messaging.Messages
                 var transferType = reader.ReadString();
                 var token = reader.ReadInteger();
 
+                if (reader.HasMoreData)
+                {
+                    return false;
+                }
+
                 response = new PeerInit(username, transferType, token);
                 return true;
             }

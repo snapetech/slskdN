@@ -11,6 +11,8 @@ namespace slskd.Mesh;
 /// </summary>
 public class MeshPeer
 {
+    private readonly List<IPEndPoint> _addresses;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="MeshPeer"/> class.
     /// </summary>
@@ -19,7 +21,7 @@ public class MeshPeer
     public MeshPeer(string peerId, List<IPEndPoint> addresses)
     {
         PeerId = peerId ?? throw new ArgumentNullException(nameof(peerId));
-        Addresses = new List<IPEndPoint>(addresses ?? throw new ArgumentNullException(nameof(addresses)));
+        _addresses = CloneEndpointCollection(addresses ?? throw new ArgumentNullException(nameof(addresses)));
 
         LastSeen = DateTimeOffset.UtcNow;
         TrustScore = 0.5; // Default neutral trust
@@ -35,7 +37,7 @@ public class MeshPeer
     /// <summary>
     /// Gets the peer's network addresses.
     /// </summary>
-    public List<IPEndPoint> Addresses { get; }
+    public IReadOnlyList<IPEndPoint> Addresses => CloneEndpointCollection(_addresses);
 
     /// <summary>
     /// Gets or sets the last time this peer was seen.
@@ -78,7 +80,7 @@ public class MeshPeer
         // - IPv4 vs IPv6 preference
         // - Recent connection success
         // - Geographic proximity
-        return Addresses.FirstOrDefault() ?? throw new InvalidOperationException("No addresses available");
+        return CloneEndpoint(_addresses.FirstOrDefault() ?? throw new InvalidOperationException("No addresses available"));
     }
 
     /// <summary>
@@ -114,8 +116,8 @@ public class MeshPeer
 
         if (addresses != null && addresses.Count > 0)
         {
-            Addresses.Clear();
-            Addresses.AddRange(addresses);
+            _addresses.Clear();
+            _addresses.AddRange(CloneEndpointCollection(addresses));
         }
 
         if (version != null)
@@ -128,6 +130,20 @@ public class MeshPeer
             SupportsOnionRouting = supportsOnionRouting.Value;
         }
     }
+
+    private static List<IPEndPoint> CloneEndpointCollection(IEnumerable<IPEndPoint> endpoints)
+    {
+        var cloned = new List<IPEndPoint>();
+
+        foreach (var endpoint in endpoints)
+        {
+            cloned.Add(CloneEndpoint(endpoint));
+        }
+
+        return cloned;
+    }
+
+    private static IPEndPoint CloneEndpoint(IPEndPoint endpoint) => new(endpoint.Address, endpoint.Port);
 
     /// <summary>
     /// Records a successful connection to this peer.

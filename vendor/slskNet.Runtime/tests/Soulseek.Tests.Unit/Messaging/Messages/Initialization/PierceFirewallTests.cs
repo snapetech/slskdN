@@ -1,5 +1,6 @@
 ﻿// <copyright file="PierceFirewallTests.cs" company="JP Dillingham">
 //     Copyright (c) JP Dillingham. All rights reserved.
+//     Copyright (c) slskdN Team.
 //
 //     This program is free software: you can redistribute it and/or modify
 //     it under the terms of the GNU General Public License as published by
@@ -84,6 +85,24 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.NotNull(result);
 
             Assert.Equal(token, result.Token);
+        }
+
+        [Trait("Category", "TryParse")]
+        [Theory(DisplayName = "TryParse returns false on trailing data"), AutoData]
+        public void TryParse_Returns_False_On_Trailing_Data(int token)
+        {
+            var msg = new List<byte>();
+
+            msg.AddRange(BitConverter.GetBytes(0)); // overall length, ignored for this test.
+            msg.Add((byte)MessageCode.Initialization.PierceFirewall);
+
+            msg.AddRange(BitConverter.GetBytes(token));
+            msg.Add(1);
+
+            var r = PierceFirewall.TryFromByteArray(msg.ToArray(), out var result);
+
+            Assert.False(r);
+            Assert.Null(result);
         }
 
         [Trait("Category", "Instantiation")]

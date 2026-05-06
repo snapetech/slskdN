@@ -67,6 +67,11 @@ namespace Soulseek.Messaging.Messages
 
                 var token = reader.ReadInteger();
 
+                if (reader.HasMoreData)
+                {
+                    return false;
+                }
+
                 response = new PierceFirewall(token);
                 return true;
             }

@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Synced vendored slskNet.Runtime exact-frame parser hardening so capability
+  envelopes and peer initialization handshakes reject ignored trailing bytes.
 - Synced vendored slskNet.Runtime search scope validation so room and user
   search scopes reject whitespace-only subjects before protocol emission.
 - Synced vendored slskNet.Runtime peer capability envelope-limit hardening so
@@ -64,6 +66,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Closed remaining primitive-body web helper mismatches by serializing `[FromBody]
   string` payloads with `JSON.stringify` in event and room helpers (`events,
   setTicker, addRoomMember`) and adding focused regression tests.
+- Hardened additional non-runtime mutable ownership paths by deeply copying nested
+  batching metadata containers and cloning DHT store signing payload arrays before
+  signing and queueing, preventing caller-side mutation after enqueue/signed
+  message creation.
+- Hardened mesh peer endpoint ownership so discovered or updated endpoint objects
+  are cloned on input and read access instead of sharing mutable `IPEndPoint`
+  instances with callers.
+- Fixed mesh DHT STORE signing so signed store requests use a concrete DHT store
+  mesh message type and verify with the real signer payload instead of reflecting
+  into an ACK message.
 
 ## [2026050600-slskdn.227] — 2026-05-06
 

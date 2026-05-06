@@ -11,6 +11,21 @@
 
 *No high priority tasks currently active
 
+- [x] **bug-council**: Close mesh peer endpoint shared-ownership risk.
+ - Status: completed (2026-05-06)
+ - Priority: P2
+ - Notes: Fixed `BUG-20260506-037` by cloning mutable `IPEndPoint` values when peers are constructed, updated, and read through address accessors. Added `MeshPeerTests` regressions and ADR-0001 gotcha `0z332`.
+
+- [x] **bug-council**: Fix DHT STORE signed message construction.
+ - Status: completed (2026-05-06)
+ - Priority: P1
+ - Notes: Fixed `BUG-20260506-038` after focused validation showed `DhtStoreMessage.CreateSigned()` reflected into a read-only ACK message type and threw before signing. Added a concrete `DhtStore` mesh message type and real signer/verification regression in `KademliaRpcClientTests`. Added ADR-0001 gotcha `0z333`.
+
+- [x] **bug-council**: Close remaining mutable ownership risks in security batching and DHT storage messages.
+ - Status: completed (2026-05-06)
+ - Priority: P2
+ - Notes: Fixed `BatchedMessage` to deep-copy nested metadata containers and `KademliaRpcClient.CreateSigned` to clone `key`, `value`, and `requesterId` byte arrays before signing. Added regression tests `TimedBatcherTests.BatchedMessage_DeepCopiesNestedMetadata` and `KademliaRpcClientTests.CreateSigned_CopiesMutableInputs`. Added ADR-0001 gotchas `0z330` and `0z331`.
+
 - [x] **bug-council**: Close mutable ownership class in security batching/verification.
  - Status: completed (2026-05-06)
  - Priority: P2

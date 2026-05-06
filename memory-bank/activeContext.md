@@ -1,3 +1,28 @@
+## Update 2026-05-06 19:24:22Z
+
+- Current task: Continue non-runtime council mutable-ownership sweep across constructor/public accessor candidates.
+- Last activity:
+  - accepted and fixed `BUG-20260506-037` in `MeshPeer`;
+  - `MeshPeer` now clones `IPEndPoint` values on construction, update, `Addresses` access, and `GetBestAddress()` to avoid shared mutable endpoint ownership;
+  - fixed `BUG-20260506-038` after focused validation showed DHT STORE signing reflected into a read-only ACK message type;
+  - added focused `MeshPeerTests` and `KademliaRpcClientTests` regressions plus ADR-0001 gotchas `0z332` and `0z333`.
+- Next steps:
+  1. Run focused `MeshPeerTests`, remediation baseline, lint, and diff checks.
+  2. Continue the next non-runtime council section if validation remains green.
+
+## Update 2026-05-06 21:40:00Z
+
+- Current task: Continue non-runtime council mutable-ownership sweep across section-wide findings.
+- Last activity:
+  - fixed and verified `BUG-20260506-035` (`BatchedMessage` now deep-copies nested metadata values, including nested dictionaries, lists, and nested byte arrays);
+  - fixed and verified `BUG-20260506-036` (`DhtStoreMessage.CreateSigned` now clones `key`, `value`, and `requesterId` byte arrays before signing/payload serialization);
+  - added focused regressions in `tests/slskd.Tests.Unit/Common/Security/TimedBatcherTests.cs::BatchedMessage_DeepCopiesNestedMetadata` and `tests/slskd.Tests.Unit/Mesh/KademliaRpcClientTests.cs::CreateSigned_CopiesMutableInputs`;
+  - updated ADR-0001 gotchas `0z330` and `0z331`.
+- Next steps:
+  1. Run focused non-runtime validation checks and update the burn-down ledger summary status.
+  2. Update `memory-bank/tasks.md`, `memory-bank/progress.md`, and `docs/dev/bug-burndown-ledger.md`.
+  3. Commit and push this verified cycle in one batch.
+
 ## Update 2026-05-06 21:00:00Z
 
 - Current task: Continue non-runtime council scan and burn-down, avoiding one-hit loop behavior.

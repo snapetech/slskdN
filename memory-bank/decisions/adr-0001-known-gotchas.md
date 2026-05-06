@@ -129,6 +129,98 @@ Data = data.ToArray();
 
 **Why This Keeps Happening**: Mutable arrays are cheap and common in protocol/security paths, so defensive copies are often skipped for brevity. In mutable-data flows, skipping a copy turns boundary safety into shared ownership and allows later caller mutation to influence downstream checks or queued work.
 
+### 0z330. Nested Metadata Containers in Batches Must Be Deep-Copied
+
+**The Bug**: `BatchedMessage` copied only dictionary entries by top-level assignment, so nested `byte[]`, nested dictionaries, and nested lists kept shared references inside metadata graphs.
+
+**Files Affected**:
+- `src/slskd/Common/Security/IMessageBatcher.cs`
+
+**Wrong**:
+```code
+Metadata = metadata is null
+    ? new Dictionary<string, object>()
+    : new Dictionary<string, object>(metadata);
+```
+
+**Correct**:
+```code
+Metadata = metadata is null
+    ? new Dictionary<string, object>()
+    : metadata.ToDictionary(
+        kvp => kvp.Key,
+        kvp => CopyMetadataValue(kvp.Value));
+```
+
+**Why This Keeps Happening**: Top-level copy patterns are common for dictionary metadata containers, but they do not protect against mutable nested structures that continue to alias caller state. Deep metadata ownership checks are required wherever security batching or deferred processing may observe metadata after enqueue.
+
+### 0z331. DHT Signed Store Payload Arrays Must Not Be Shared
+
+**The Bug**: `DhtStoreMessage.CreateSigned()` assigned caller-supplied `key`, `value`, and `requesterId` arrays directly into the signed DHT store message object.
+
+**Files Affected**:
+- `src/slskd/Mesh/Dht/KademliaRpcClient.cs`
+
+**Wrong**:
+```code
+Key = key,
+Value = value,
+RequesterId = requesterId,
+```
+
+**Correct**:
+```code
+Key = key.ToArray(),
+Value = value.ToArray(),
+RequesterId = requesterId.ToArray(),
+```
+
+**Why This Keeps Happening**: Signed message constructors often trust inputs as immutable for performance, but protocol payload arrays remain mutable in callers and can be changed after signing/creation, which weakens integrity and auditability assumptions.
+
+### 0z332. Mesh Peer Endpoints Need Owned Copies
+
+**The Bug**: `MeshPeer` accepted `List<IPEndPoint>` values and copied only the list container. The contained `IPEndPoint` instances remained shared with the caller, and the public `Addresses`/`GetBestAddress()` accessors returned mutable endpoint objects from internal state.
+
+**Files Affected**:
+- `src/slskd/Mesh/MeshPeer.cs`
+
+**Wrong**:
+```code
+Addresses = new List<IPEndPoint>(addresses);
+Addresses.AddRange(addresses);
+return Addresses.FirstOrDefault();
+```
+
+**Correct**:
+```code
+_addresses = addresses.Select(endpoint => new IPEndPoint(endpoint.Address, endpoint.Port)).ToList();
+return new IPEndPoint(endpoint.Address, endpoint.Port);
+```
+
+**Why This Keeps Happening**: `IPEndPoint` looks like a small value object but its `Address` and `Port` setters make it mutable. A list copy is only a shallow container copy, so mesh peer state that crosses discovery or manager boundaries must clone each endpoint on input and output.
+
+### 0z333. DHT Store Signatures Need A Real Message Type
+
+**The Bug**: `DhtStoreMessage.CreateSigned()` tried to create a temporary `MeshAckMessage` and use reflection to set its read-only `Type` property to `dht-store`. The reflection write threw before signing, and even a non-throwing path would not have matched the DHT store verification payload.
+
+**Files Affected**:
+- `src/slskd/Mesh/Dht/KademliaRpcClient.cs`
+- `src/slskd/Mesh/Messages/MeshMessages.cs`
+
+**Wrong**:
+```code
+var meshMessage = new MeshAckMessage();
+meshMessage.GetType().GetProperty("Type")?.SetValue(meshMessage, "dht-store");
+var signedMeshMessage = signer.SignMessage(meshMessage);
+```
+
+**Correct**:
+```code
+var signedMeshMessage = signer.SignMessage(new DhtStoreSigningMessage(message));
+```
+
+**Why This Keeps Happening**: It is tempting to reuse an adjacent mesh message for signing when only the signer interface is available, but signature payloads are type-bound. Protocol-specific signed operations need their own concrete message type and a verification payload that matches the signer exactly.
+
 ### 0z326. Integration Auth Fixtures Must Match Admin-Only Routes
 
 **The Bug**: After security telemetry routes were tightened to administrator-only, the shared integration `StubWebApplicationFactory` still authenticated as only `ReadWrite`, so versioned admin route smoke tests failed with `403 Forbidden`.

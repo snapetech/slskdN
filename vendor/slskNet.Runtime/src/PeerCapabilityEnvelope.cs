@@ -147,6 +147,11 @@ namespace Soulseek
                         signature = new PeerDescriptorSignature(publicKey, signatureBytes, algorithm);
                     }
 
+                    if (stream.Position != stream.Length)
+                    {
+                        throw new MessageException($"Peer capability envelope contains {stream.Length - stream.Position} trailing byte(s)");
+                    }
+
                     var descriptor = new PeerCapabilityDescriptor(
                         peerId: string.IsNullOrEmpty(peerId) ? null : peerId,
                         features: features,

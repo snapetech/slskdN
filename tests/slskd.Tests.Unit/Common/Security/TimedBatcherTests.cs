@@ -2,9 +2,9 @@
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 using Moq;
 using slskd.Common.Security;
-using System;
 using System.Reflection;
 using System.Threading;
 using Xunit;
@@ -86,6 +86,61 @@ public class TimedBatcherTests
         messageBytes[0] = 9;
 
         Assert.Equal(new byte[] { 1, 2, 3, 4 }, message.Data);
+    }
+
+    [Fact]
+    public void BatchedMessage_DeepCopiesNestedMetadata()
+    {
+        var nestedBytes = new byte[] { 5, 6, 7 };
+        var nestedMap = new Dictionary<string, object>
+        {
+            ["innerBytes"] = nestedBytes,
+            ["label"] = "payload",
+        };
+
+        var metadataList = new List<object>
+        {
+            "first",
+            new byte[] { 8, 9 },
+            nestedMap
+        };
+
+        var metadata = new Dictionary<string, object>
+        {
+            ["rootBytes"] = new byte[] { 1, 2, 3 },
+            ["nested"] = nestedMap,
+            ["metadataList"] = metadataList,
+            ["name"] = "outer"
+        };
+
+        var message = new BatchedMessage(Array.Empty<byte>(), metadata, DateTimeOffset.UtcNow);
+
+        var messageMetadata = message.Metadata;
+        var sourceRootBytes = (byte[])metadata["rootBytes"];
+        var messageRootBytes = Assert.IsType<byte[]>(messageMetadata["rootBytes"]);
+        var messageNested = Assert.IsType<Dictionary<string, object>>(messageMetadata["nested"]);
+        var messageNestedBytes = Assert.IsType<byte[]>(messageNested["innerBytes"]);
+        var messageList = Assert.IsType<List<object>>(messageMetadata["metadataList"]);
+        var messageListBytes = Assert.IsType<byte[]>(messageList[1]);
+        var messageListNested = Assert.IsType<Dictionary<string, object>>(messageList[2]);
+
+        nestedBytes[0] = 9;
+        metadata["name"] = "mutated";
+        metadataList.Add("second");
+        nestedMap["innerBytes"] = new byte[] { 11, 12, 13 };
+        ((byte[])metadata["rootBytes"])[0] = 9;
+
+        Assert.NotSame(sourceRootBytes, messageRootBytes);
+        Assert.Equal(new byte[] { 1, 2, 3 }, messageRootBytes);
+        Assert.NotSame(nestedBytes, messageNestedBytes);
+        Assert.Equal(new byte[] { 5, 6, 7 }, messageNestedBytes);
+        Assert.NotSame(messageListBytes, nestedBytes);
+        Assert.Equal(new byte[] { 8, 9 }, messageListBytes);
+        Assert.Equal("payload", messageNested["label"]);
+        Assert.Equal(3, messageList.Count);
+        Assert.NotSame(metadataList, messageList);
+        Assert.NotSame(messageNested, messageListNested);
+        Assert.Equal("outer", messageMetadata["name"]);
     }
 
     private static CancellationTokenSource? GetCurrentBatchTimer(TimedBatcher batcher)

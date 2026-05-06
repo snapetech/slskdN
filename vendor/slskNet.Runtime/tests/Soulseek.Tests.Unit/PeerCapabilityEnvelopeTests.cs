@@ -109,6 +109,18 @@ namespace Soulseek.Tests.Unit
             }
         }
 
+        [Fact(DisplayName = "Capability envelope rejects trailing bytes")]
+        public void Capability_Envelope_Rejects_Trailing_Bytes()
+        {
+            var envelope = new PeerCapabilityEnvelope(
+                PeerCapabilityMessageType.Hello,
+                new PeerCapabilityDescriptor(),
+                nonce: "abc");
+            var bytes = envelope.ToByteArray().Concat(new byte[] { 1 }).ToArray();
+
+            Assert.Throws<MessageException>(() => PeerCapabilityEnvelope.FromByteArray(bytes));
+        }
+
         [Fact(DisplayName = "Capability registry updates case-insensitive records")]
         public void Capability_Registry_Updates_Case_Insensitive_Records()
         {

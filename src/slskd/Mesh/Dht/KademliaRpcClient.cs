@@ -10,9 +10,12 @@ using slskd.VirtualSoulfind.ShadowIndex;
 using NSec.Cryptography;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -343,29 +346,20 @@ public class DhtStoreMessage
 
         var message = new DhtStoreMessage
         {
-            Key = key,
-            Value = value,
-            RequesterId = requesterId,
+            Key = key.ToArray(),
+            Value = value.ToArray(),
+            RequesterId = requesterId.ToArray(),
             TtlSeconds = ttlSeconds,
             TimestampUnixMs = timestamp
         };
 
-        // Create a temporary mesh message for signing
-        var meshMessage = new MeshAckMessage();
-
-        // Use reflection to set the required fields for signing
-        var typeProperty = meshMessage.GetType().GetProperty("Type");
-        var payloadProperty = meshMessage.GetType().GetProperty("Payload");
-        var timestampProperty = meshMessage.GetType().GetProperty("TimestampUnixMs");
-
-        typeProperty?.SetValue(meshMessage, "dht-store");
-        payloadProperty?.SetValue(meshMessage, System.Text.Json.JsonSerializer.Serialize(message));
-        timestampProperty?.SetValue(meshMessage, timestamp);
-
-        var signedMeshMessage = signer.SignMessage(meshMessage);
+        var signedMeshMessage = signer.SignMessage(new DhtStoreSigningMessage(message));
 
         message.PublicKeyBase64 = signedMeshMessage.PublicKey;
         message.SignatureBase64 = signedMeshMessage.Signature;
+        message.TimestampUnixMs = signedMeshMessage.TimestampUnixMs == 0
+            ? timestamp
+            : signedMeshMessage.TimestampUnixMs;
 
         return message;
     }
@@ -404,10 +398,15 @@ public class DhtStoreMessage
             // Import public key
             var publicKey = PublicKey.Import(SignatureAlgorithm.Ed25519, publicKeyBytes, KeyBlobFormat.RawPublicKey);
 
-            // Create signable payload (same format as MeshMessageSigner)
-            var canonicalData = ToCanonicalString();
-            var signablePayload = $"dht-store|{TimestampUnixMs}|{System.Text.Json.JsonSerializer.Serialize(this)}";
-            var payloadBytes = System.Text.Encoding.UTF8.GetBytes(signablePayload);
+            var signingMessage = new DhtStoreSigningMessage(this)
+            {
+                PublicKey = PublicKeyBase64,
+                Signature = SignatureBase64,
+                TimestampUnixMs = TimestampUnixMs
+            };
+            var payloadJson = SerializeMessageForSigning(signingMessage);
+            var signablePayload = $"{signingMessage.Type}|{TimestampUnixMs}|{payloadJson}";
+            var payloadBytes = Encoding.UTF8.GetBytes(signablePayload);
 
             // Verify signature
             return SignatureAlgorithm.Ed25519.Verify(publicKey, payloadBytes, signatureBytes);
@@ -416,6 +415,67 @@ public class DhtStoreMessage
         {
             return false;
         }
+    }
+
+    private static string SerializeMessageForSigning(MeshMessage message)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        };
+
+        var fullJson = JsonSerializer.Serialize(message, message.GetType(), options);
+        using var doc = JsonDocument.Parse(fullJson);
+        var root = doc.RootElement;
+
+        using var stream = new MemoryStream();
+        using var writer = new Utf8JsonWriter(stream);
+
+        writer.WriteStartObject();
+
+        foreach (var prop in root.EnumerateObject())
+        {
+            if (prop.Name.Equals("publicKey", StringComparison.OrdinalIgnoreCase) ||
+                prop.Name.Equals("signature", StringComparison.OrdinalIgnoreCase) ||
+                prop.Name.Equals("timestampMs", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            prop.WriteTo(writer);
+        }
+
+        writer.WriteEndObject();
+        writer.Flush();
+
+        return Encoding.UTF8.GetString(stream.ToArray());
+    }
+
+    private sealed class DhtStoreSigningMessage : MeshMessage
+    {
+        public DhtStoreSigningMessage(DhtStoreMessage message)
+        {
+            Key = message.Key.ToArray();
+            Value = message.Value.ToArray();
+            RequesterId = message.RequesterId.ToArray();
+            TtlSeconds = message.TtlSeconds;
+            TimestampUnixMs = message.TimestampUnixMs;
+        }
+
+        public override MeshMessageType Type => MeshMessageType.DhtStore;
+
+        [JsonPropertyName("key")]
+        public byte[] Key { get; }
+
+        [JsonPropertyName("value")]
+        public byte[] Value { get; }
+
+        [JsonPropertyName("requester_id")]
+        public byte[] RequesterId { get; }
+
+        [JsonPropertyName("ttl_seconds")]
+        public int TtlSeconds { get; }
     }
 }
 
