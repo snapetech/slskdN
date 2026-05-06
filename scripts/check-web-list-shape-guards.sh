@@ -24,6 +24,36 @@ if rg -n 'manifest\.items\.(map|reduce|filter|length)' "$repo_root/src/web/src/c
   failed=1
 fi
 
+if rg -n 'searchesEvent\.reduce' "$repo_root/src/web/src/components/Search/Searches.jsx" >&2; then
+  printf 'Searches hub list events must be normalized before reduce\n' >&2
+  failed=1
+fi
+
+if rg -n 'return Array\.isArray\(parsed\.panels\) \? parsed\.panels : \[\]' "$repo_root/src/web/src/components/Messaging/Messaging.jsx" >&2; then
+  printf 'Messaging persisted panels must normalize each panel entry before rendering\n' >&2
+  failed=1
+fi
+
+if rg -n 'Object\.entries\(counts \|\| \{\}\)' "$repo_root/src/web/src/lib/discoveryGraph.js" >&2; then
+  printf 'Discovery Graph count maps must be guarded before Object.entries\n' >&2
+  failed=1
+fi
+
+if rg -n 'Object\.entries\(lane\.metrics \|\| \{\}\)' "$repo_root/src/web/src/components/Search/SongIDPanel.jsx" >&2; then
+  printf 'SongID lane metrics must be guarded before Object.entries\n' >&2
+  failed=1
+fi
+
+if rg -n 'Object\.entries\((stats\.mappingsByDomain|lastSeenTimestamps|memberAffinities) \|\| \{\}\)' "$repo_root/src/web/src/components/System/MediaCore/index.jsx" >&2; then
+  printf 'MediaCore map payloads must be guarded before Object.entries\n' >&2
+  failed=1
+fi
+
+if rg -n '\(preset\.(shapes|sprites|waves) \|\| \[\]\)\.map' "$repo_root/src/web/src/components/Player/visualizers/nativeMilkdropEngine.js" >&2; then
+  printf 'Native MilkDrop preset lists must be guarded before map\n' >&2
+  failed=1
+fi
+
 if [ "$failed" -ne 0 ]; then
   exit 1
 fi

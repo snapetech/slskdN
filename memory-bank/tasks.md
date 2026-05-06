@@ -2523,3 +2523,7 @@
 - [x] Run non-runtime council scan and burn down accepted findings
   - Status: completed (2026-05-06)
   - Notes: Skipped the runtime lane, classified accepted release/ops, frontend workflow, and backend/security findings as `BUG-20260506-004` through `BUG-20260506-013`, fixed package/workflow drift, Web list/route guards, admin-only security telemetry, and anonymous build update side effects, and added non-runtime regression scanners.
+
+- [x] Continue non-runtime council scan and burn down accepted findings
+  - Status: completed (2026-05-06)
+  - Notes: Skipped the runtime lane again, recorded `BUG-20260506-014` through `BUG-20260506-022`, hardened ActivityPub/share backfill outbound clients, share-grant sender binding, recursive reparse-point listing, Discovery Graph query refresh, SearchHub list payloads, Messaging panel persistence, and additional Web media/search map/list guards.

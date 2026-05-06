@@ -180,4 +180,24 @@ describe('discoveryGraph helpers', () => {
     expect(report).toContain('Center Track -> Nearby Track');
     expect(report).toContain('- Nearby Track');
   });
+
+  it('formats malformed count maps as empty count sections', () => {
+    const report = formatDiscoveryGraphBranchReport({
+      activeEdgeTypes: [],
+      edgeTypeCounts: [],
+      evidenceSummary: [],
+      graphTitle: 'Malformed Counts',
+      maxDepth: 2,
+      minNodeWeight: 0.2,
+      nodeTypeCounts: 'bad',
+      pinnedNode: null,
+      routeSuggestions: [],
+      searchQueries: [],
+      seedNodeId: '',
+      visibleEdgeCount: 0,
+      visibleNodeCount: 0,
+    });
+
+    expect(report.match(/- none visible/g)).toHaveLength(2);
+  });
 });

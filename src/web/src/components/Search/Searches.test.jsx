@@ -184,4 +184,12 @@ describe('Searches', () => {
       }),
     );
   });
+
+  it('treats malformed hub list events as empty search lists', async () => {
+    await renderSearches();
+
+    callbacks.list?.({ searches: [{ id: 'bad' }] });
+
+    expect(screen.getByTestId('search-input')).toBeInTheDocument();
+  });
 });

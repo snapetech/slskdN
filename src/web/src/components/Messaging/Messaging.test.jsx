@@ -168,6 +168,37 @@ describe('Messaging', () => {
     );
   });
 
+  it('filters malformed persisted panel entries before rendering workspace panels', async () => {
+    localStorage.setItem('slskd-messaging-workspace', JSON.stringify({
+      panelCounter: 4,
+      panels: [
+        null,
+        'bad',
+        { id: 'missing-target', type: 'chat' },
+        { id: 'bad-type', target: 'alice', type: 'unknown' },
+        { collapsed: 'yes', id: 'chat-4', target: 'alice', type: 'chat' },
+      ],
+    }));
+    chat.getAll.mockResolvedValue([]);
+    pods.list.mockResolvedValue([]);
+    rooms.getJoined.mockResolvedValue([]);
+
+    render(
+      <MemoryRouter>
+        <Messaging />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('Chat panel: alice')).toBeInTheDocument();
+    expect(screen.queryByText('Chat panel: undefined')).not.toBeInTheDocument();
+    expect(localStorage.getItem('slskd-messaging-workspace')).toContain(
+      '"id":"chat-4"',
+    );
+    expect(localStorage.getItem('slskd-messaging-workspace')).not.toContain(
+      'missing-target',
+    );
+  });
+
   it('sends one batch private message to multiple recipients', async () => {
     chat.getAll.mockResolvedValue([]);
     chat.sendBatch.mockResolvedValue({});

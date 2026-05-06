@@ -34,6 +34,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Hardened persisted Messaging panels against malformed local storage entries.
 - Hardened additional Web media/search rendering paths against malformed object
   and list payloads.
+- Added regression coverage and ledger entries for the latest non-runtime council
+  batch, including route-query refresh, malformed hub/panel payloads, and
+  Web media/search list-shape scanners.
 
 ## [2026050600-slskdn.227] — 2026-05-06
 

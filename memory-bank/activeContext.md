@@ -5569,3 +5569,15 @@ dotnet test
 - Next steps:
   1. Optionally rerun or manually retry only the Chocolatey publish for `slskdn.2026050600.0.0-slskdn.227.nupkg`.
   2. Address warning backlog for nullable annotations and CA2000 outbound handler analyzer warnings in a normal bug cycle.
+
+## Update 2026-05-06 16:49:51Z
+
+- Current task: Non-runtime council scan follow-up is in broad validation.
+- Last activity:
+  - skipped runtime-specific scanning/fixes because another agent owns that lane
+  - recorded `BUG-20260506-014` through `BUG-20260506-022`
+  - hardened ActivityPub/share backfill outbound clients, share-grant sender binding, recursive file listing reparse-point handling, Discovery Graph query refresh, SearchHub list payloads, Messaging panel persistence, and Web media/search map/list guards
+  - focused backend tests, focused Web tests, outbound/path/Web-list scanners, packaging metadata, and release-copy checks passed
+- Next steps:
+  1. Run broad remediation/lint/diff gates.
+  2. Commit and push the non-runtime council follow-up.

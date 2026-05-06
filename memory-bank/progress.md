@@ -9804,3 +9804,10 @@ Code quality improvements were completed as part of Option A:
 - Fixed accepted Web/backend findings: Wishlist route/list guards, System Shares/SharedWithMe malformed payload guards, admin-only security telemetry, and anonymous build endpoint update-check side effects.
 - Added regression scanners for CodeQL .NET setup, Flatpak manifest structure, Web list-shape guards, and Web search route segment encoding, and recorded ledger rows `BUG-20260506-004` through `BUG-20260506-013`.
 - Validation passed: focused Web tests (`9` tests), focused backend tests (`17` tests), Web lint, repo lint, packaging/release/workflow scanner lane, and `git diff --check`.
+
+## 2026-05-06 16:49:51Z
+
+- Continued the non-runtime council scan while leaving runtime-specific work to the separate runtime agent.
+- Recorded and verified `BUG-20260506-014` through `BUG-20260506-022`.
+- Hardened public outbound HTTP clients for ActivityPub/share backfill, share-grant PM sender binding, recursive file listing reparse-point handling, Discovery Graph route-query hydration, SearchHub list payloads, Messaging persisted panel entries, and additional Web media/search map/list operations.
+- Validation passed so far: focused backend unit slice (`13` tests), focused Web Vitest slice (`52` tests), outbound HTTP/path-containment/Web list-shape scanners, packaging metadata validation, and release-copy validation.
