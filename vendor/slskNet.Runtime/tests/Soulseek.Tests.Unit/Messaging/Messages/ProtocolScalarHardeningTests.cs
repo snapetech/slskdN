@@ -35,9 +35,11 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             yield return new object[] { "FolderContentsResponse", new Action(() => new FolderContentsResponse(-1, "dir", Array.Empty<Soulseek.Directory>())) };
             yield return new object[] { "LoginRequest", new Action(() => new LoginRequest(-1, "user", "pass")) };
             yield return new object[] { "PeerInit", new Action(() => new PeerInit("user", "P", -1)) };
+            yield return new object[] { "PeerSearchRequest", new Action(() => new PeerSearchRequest(-1, "query")) };
             yield return new object[] { "PierceFirewall", new Action(() => new PierceFirewall(-1)) };
             yield return new object[] { "RoomSearchRequest", new Action(() => new RoomSearchRequest("room", "query", -1)) };
             yield return new object[] { "SearchRequest", new Action(() => new SearchRequest("query", -1)) };
+            yield return new object[] { "ServerSearchRequest", new Action(() => new ServerSearchRequest("user", -1, "query")) };
             yield return new object[] { "TransferRequest", new Action(() => new TransferRequest(TransferDirection.Download, -1, "file", 0)) };
             yield return new object[] { "TransferResponse denied", new Action(() => new TransferResponse(-1, "denied")) };
             yield return new object[] { "TransferResponse allowed with size", new Action(() => new TransferResponse(-1, 0L)) };
@@ -185,6 +187,31 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
                 .Build();
 
             Assert.Throws<MessageException>(() => SearchResponseFactory.FromByteArray(msg));
+        }
+
+        [Fact(DisplayName = "Peer search request rejects negative token")]
+        public void Peer_Search_Request_Rejects_Negative_Token()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Peer.SearchRequest)
+                .WriteInteger(-1)
+                .WriteString("query")
+                .Build();
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => PeerSearchRequest.FromByteArray(msg));
+        }
+
+        [Fact(DisplayName = "Server search request rejects negative token")]
+        public void Server_Search_Request_Rejects_Negative_Token()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.FileSearch)
+                .WriteString("user")
+                .WriteInteger(-1)
+                .WriteString("query")
+                .Build();
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => ServerSearchRequest.FromByteArray(msg));
         }
 
         [Theory(DisplayName = "Protocol message constructors reject negative tokens")]

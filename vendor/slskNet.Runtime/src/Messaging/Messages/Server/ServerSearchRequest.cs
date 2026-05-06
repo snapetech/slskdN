@@ -40,9 +40,11 @@ namespace Soulseek.Messaging.Messages
         /// <param name="query">The search query.</param>
         public ServerSearchRequest(string username, int token, string query)
         {
-            Username = username;
+            ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "server search token");
+
+            Username = ProtocolArgumentValidator.RequireNotNull(username, nameof(username), "username");
             Token = token;
-            Query = query;
+            Query = ProtocolArgumentValidator.RequireNotNull(query, nameof(query), "query");
         }
 
         /// <summary>
