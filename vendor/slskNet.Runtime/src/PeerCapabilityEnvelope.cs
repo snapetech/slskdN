@@ -20,6 +20,7 @@ namespace Soulseek
     using System.IO;
     using System.Linq;
     using System.Text;
+    using Soulseek.Messaging.Messages;
 
     /// <summary>
     ///     Versioned slskdN peer capability envelope.
@@ -41,10 +42,11 @@ namespace Soulseek
         /// </summary>
         public const int DefaultMaxPayloadLength = 65536;
 
+        internal const int MaximumFeatureCount = 256;
+        internal const int MaximumStringLength = 4096;
+        internal const int MaximumSignatureLength = 4096;
+
         private const int Magic = 0x4E44534B;
-        private const int MaximumFeatureCount = 256;
-        private const int MaximumStringLength = 4096;
-        private const int MaximumSignatureLength = 4096;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="PeerCapabilityEnvelope"/> class.
@@ -72,7 +74,9 @@ namespace Soulseek
             Version = version;
             MessageType = messageType;
             Descriptor = descriptor ?? throw new ArgumentNullException(nameof(descriptor));
-            Nonce = string.IsNullOrWhiteSpace(nonce) ? Guid.NewGuid().ToString("N") : nonce;
+            Nonce = string.IsNullOrWhiteSpace(nonce)
+                ? Guid.NewGuid().ToString("N")
+                : ProtocolArgumentValidator.RequireMaximumUtf8Length(nonce, nameof(nonce), "nonce", MaximumStringLength);
         }
 
         /// <summary>

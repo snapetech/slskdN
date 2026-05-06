@@ -17,6 +17,7 @@ namespace Soulseek
 {
     using System;
     using System.Linq;
+    using Soulseek.Messaging.Messages;
 
     /// <summary>
     ///     Signature material for a peer capability descriptor.
@@ -36,7 +37,20 @@ namespace Soulseek
         {
             this.publicKey = publicKey?.ToArray() ?? throw new ArgumentNullException(nameof(publicKey));
             this.signature = signature?.ToArray() ?? throw new ArgumentNullException(nameof(signature));
-            Algorithm = string.IsNullOrWhiteSpace(algorithm) ? throw new ArgumentException("Algorithm must not be empty", nameof(algorithm)) : algorithm;
+
+            if (this.publicKey.Length > PeerCapabilityEnvelope.MaximumSignatureLength)
+            {
+                throw new ArgumentOutOfRangeException(nameof(publicKey), $"Public key length must not exceed {PeerCapabilityEnvelope.MaximumSignatureLength} bytes.");
+            }
+
+            if (this.signature.Length > PeerCapabilityEnvelope.MaximumSignatureLength)
+            {
+                throw new ArgumentOutOfRangeException(nameof(signature), $"Signature length must not exceed {PeerCapabilityEnvelope.MaximumSignatureLength} bytes.");
+            }
+
+            Algorithm = string.IsNullOrWhiteSpace(algorithm)
+                ? throw new ArgumentException("Algorithm must not be empty", nameof(algorithm))
+                : ProtocolArgumentValidator.RequireMaximumUtf8Length(algorithm, nameof(algorithm), "algorithm", PeerCapabilityEnvelope.MaximumStringLength);
         }
 
         /// <summary>

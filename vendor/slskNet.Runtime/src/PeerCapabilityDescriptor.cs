@@ -18,6 +18,7 @@ namespace Soulseek
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using Soulseek.Messaging.Messages;
 
     /// <summary>
     ///     slskdN peer capability descriptor exchanged over a normal Soulseek peer-message connection.
@@ -49,14 +50,24 @@ namespace Soulseek
                 throw new ArgumentOutOfRangeException(nameof(maxPayloadLength), "Maximum payload length must be greater than or equal to zero.");
             }
 
-            PeerId = peerId;
-            Features = (features ?? Enumerable.Empty<string>())
+            PeerId = peerId == null
+                ? null
+                : ProtocolArgumentValidator.RequireMaximumUtf8Length(peerId, nameof(peerId), "peer id", PeerCapabilityEnvelope.MaximumStringLength);
+
+            var featureList = (features ?? Enumerable.Empty<string>())
                 .Where(feature => !string.IsNullOrWhiteSpace(feature))
                 .Select(feature => feature.Trim())
+                .Select(feature => ProtocolArgumentValidator.RequireMaximumUtf8Length(feature, nameof(features), "feature", PeerCapabilityEnvelope.MaximumStringLength))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(feature => feature, StringComparer.OrdinalIgnoreCase)
-                .ToList()
-                .AsReadOnly();
+                .ToList();
+
+            if (featureList.Count > PeerCapabilityEnvelope.MaximumFeatureCount)
+            {
+                throw new ArgumentOutOfRangeException(nameof(features), $"Feature count must not exceed {PeerCapabilityEnvelope.MaximumFeatureCount}.");
+            }
+
+            Features = featureList.AsReadOnly();
             OverlayPort = overlayPort;
             MaxPayloadLength = maxPayloadLength;
             Signature = signature;

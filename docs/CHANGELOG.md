@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Synced vendored slskNet.Runtime peer capability envelope-limit hardening so
+  local descriptors, nonces, and signature material cannot exceed parser bounds.
 - Hardened DHT content-safety signature metadata so signature magic bytes are
   defensively copied like the common content-safety path.
 - Synced vendored slskNet.Runtime protocol string validation so outbound

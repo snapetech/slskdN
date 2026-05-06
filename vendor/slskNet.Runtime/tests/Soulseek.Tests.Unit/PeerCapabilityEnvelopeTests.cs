@@ -12,6 +12,7 @@ namespace Soulseek.Tests.Unit
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Net;
     using System.Text;
     using Soulseek.Messaging;
@@ -185,6 +186,40 @@ namespace Soulseek.Tests.Unit
                 observedAt: DateTimeOffset.UtcNow));
 
             Assert.Equal("messageType", ex.ParamName);
+        }
+
+        [Fact(DisplayName = "Capability descriptor rejects envelope-unserializable feature count")]
+        public void Capability_Descriptor_Rejects_Envelope_Unserializable_Feature_Count()
+        {
+            var features = Enumerable.Range(0, 257).Select(i => $"feature-{i}");
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => new PeerCapabilityDescriptor(features: features));
+        }
+
+        [Fact(DisplayName = "Capability descriptor rejects envelope-unserializable strings")]
+        public void Capability_Descriptor_Rejects_Envelope_Unserializable_Strings()
+        {
+            var tooLong = new string('a', 4097);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => new PeerCapabilityDescriptor(peerId: tooLong));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new PeerCapabilityDescriptor(features: new[] { tooLong }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new PeerCapabilityEnvelope(
+                PeerCapabilityMessageType.Hello,
+                new PeerCapabilityDescriptor(),
+                nonce: tooLong));
+        }
+
+        [Fact(DisplayName = "Capability signature rejects envelope-unserializable payloads")]
+        public void Capability_Signature_Rejects_Envelope_Unserializable_Payloads()
+        {
+            var tooLong = new byte[4097];
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => new PeerDescriptorSignature(tooLong, new byte[64]));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new PeerDescriptorSignature(new byte[32], tooLong));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new PeerDescriptorSignature(
+                new byte[32],
+                new byte[64],
+                new string('a', 4097)));
         }
     }
 }

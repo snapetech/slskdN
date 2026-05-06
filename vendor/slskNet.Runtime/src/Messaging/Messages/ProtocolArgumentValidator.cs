@@ -24,6 +24,7 @@
 namespace Soulseek.Messaging.Messages
 {
     using System;
+    using System.Text;
 
     /// <summary>
     ///     Validates outbound protocol arguments before message emission.
@@ -51,6 +52,21 @@ namespace Soulseek.Messaging.Messages
             if (value == null)
             {
                 throw new ArgumentNullException(paramName, $"The {valueName} must not be null");
+            }
+
+            return value;
+        }
+
+        public static string RequireMaximumUtf8Length(string value, string paramName, string valueName, int maximumLength)
+        {
+            if (value == null)
+            {
+                throw new ArgumentNullException(paramName, $"The {valueName} must not be null");
+            }
+
+            if (Encoding.UTF8.GetByteCount(value) > maximumLength)
+            {
+                throw new ArgumentOutOfRangeException(paramName, $"The {valueName} must not exceed {maximumLength} UTF-8 bytes.");
             }
 
             return value;
