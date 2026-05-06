@@ -15421,3 +15421,27 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 ```
 
 **Why This Keeps Happening**: Fork metadata, package manifests, copied workflow examples, and status docs often drift separately from GitHub workflow branch checks. Active fork-owned links, comments, and examples need their own scanner so package managers and contributors do not follow stale branch paths or stale branch instructions.
+
+### 0z97. Negative-Space Gates Must Enforce Every Declared Boundary
+
+**What went wrong:** The slskd negative-space council doc declared mutating API, anonymous endpoint, path containment, outbound HTTP, durable state, and runtime-crossing boundaries, but the checker enforced only a subset and referenced a non-existent controller sink path.
+
+**Files Affected**:
+- `docs/dev/bug-council-negative-space.md`
+- `scripts/check-council-negative-space.sh`
+- `scripts/check-remediation-baseline.sh`
+
+**Wrong**:
+```bash
+# Only path/outbound/anonymous checks were asserted even though the doc listed more boundaries.
+assert_validator_present "path-containment" "src/slskd/Common/Security/PathGuard.cs" "NormalizeAndValidate"
+```
+
+**Correct**:
+```bash
+assert_baseline_runs "mutating-api-endpoints" "scripts/check-controller-csrf.sh"
+assert_baseline_runs "durable-state-writes" "scripts/check-durable-state-atomic-writes.sh"
+assert_baseline_runs "soulseek-runtime-crossings" "scripts/check-async-task-observation.sh"
+```
+
+**Why This Keeps Happening**: Meta-checks are easy to make green by checking a representative sample, but negative-space gates are inventories. If a boundary is listed in the doc, the checker must assert its validator exists and is wired into the remediation baseline, or the council can delete both the real guard and its detailed scanner while the inventory still passes.
