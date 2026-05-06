@@ -66,20 +66,28 @@ namespace Soulseek.Network
         /// <param name="sender">The originating <see cref="IListener"/> instance.</param>
         /// <param name="connection">The accepted connection.</param>
         public async void HandleConnection(object sender, IConnection connection)
+            => await HandleConnectionAsync(sender, connection).ConfigureAwait(false);
+
+        internal async System.Threading.Tasks.Task HandleConnectionAsync(object sender, IConnection connection)
         {
-            var listener = sender as IListener;
-            var listenerPort = listener?.Port ?? SoulseekClient.Listener?.Port ?? 0;
-            var listenerAddress = listener?.IPAddress ?? SoulseekClient.Listener?.IPAddress;
-            var obfuscated = listener?.Obfuscated == true;
-            if (obfuscated)
-            {
-                connection.MarkObfuscated();
-            }
-
-            Diagnostic.Debug($"Accepted incoming connection from {connection.IPEndPoint.Address} on {listenerAddress}:{listenerPort} (id: {connection.Id})");
-
             try
             {
+                if (connection == null)
+                {
+                    throw new ArgumentNullException(nameof(connection));
+                }
+
+                var listener = sender as IListener;
+                var listenerPort = listener?.Port ?? SoulseekClient.Listener?.Port ?? 0;
+                var listenerAddress = listener?.IPAddress ?? SoulseekClient.Listener?.IPAddress;
+                var obfuscated = listener?.Obfuscated == true;
+                if (obfuscated)
+                {
+                    connection.MarkObfuscated();
+                }
+
+                Diagnostic.Debug($"Accepted incoming connection from {connection.IPEndPoint.Address} on {listenerAddress}:{listenerPort} (id: {connection.Id})");
+
                 byte[] message;
 
                 if (obfuscated)
@@ -221,9 +229,51 @@ namespace Soulseek.Network
             }
             catch (Exception ex)
             {
-                Diagnostic.Debug($"Failed to initialize direct connection from {connection.IPEndPoint.Address}:{connection.IPEndPoint.Port}: {ex.Message}");
-                connection.Disconnect(exception: ex);
-                connection.Dispose();
+                Diagnostic.Debug($"Failed to initialize direct connection from {GetConnectionDescription(connection)}: {ex.Message}");
+                DisconnectAndDispose(connection, ex);
+            }
+        }
+
+        private static void DisconnectAndDispose(IConnection connection, Exception exception)
+        {
+            if (connection == null)
+            {
+                return;
+            }
+
+            try
+            {
+                connection.Disconnect(exception: exception);
+            }
+            catch (Exception)
+            {
+            }
+            finally
+            {
+                try
+                {
+                    connection.Dispose();
+                }
+                catch (Exception)
+                {
+                }
+            }
+        }
+
+        private static string GetConnectionDescription(IConnection connection)
+        {
+            if (connection == null)
+            {
+                return "<null>";
+            }
+
+            try
+            {
+                return $"{connection.IPEndPoint.Address}:{connection.IPEndPoint.Port}";
+            }
+            catch (Exception)
+            {
+                return "<unknown>";
             }
         }
 

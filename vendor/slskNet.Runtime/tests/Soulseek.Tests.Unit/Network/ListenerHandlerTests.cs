@@ -146,6 +146,62 @@ namespace Soulseek.Tests.Unit.Network
         }
 
         [Trait("Category", "Diagnostic")]
+        [Theory(DisplayName = "Handles obfuscated mark failures inside diagnostic boundary"), AutoData]
+        public async Task Handles_Obfuscated_Mark_Failures_Inside_Diagnostic_Boundary(IPEndPoint endpoint)
+        {
+            var (handler, mocks) = GetFixture(endpoint);
+
+            mocks.Listener.Setup(m => m.Obfuscated).Returns(true);
+            mocks.Connection.Setup(m => m.MarkObfuscated()).Throws(new InvalidOperationException("mark failed"));
+            mocks.Diagnostic.Setup(m => m.Debug(It.IsAny<string>()));
+
+            await handler.HandleConnectionAsync(mocks.Listener.Object, mocks.Connection.Object);
+
+            var compare = StringComparison.InvariantCultureIgnoreCase;
+            mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("failed to initialize", compare) && s.Contains("mark failed", compare))), Times.Once);
+            mocks.Connection.Verify(m => m.Disconnect(null, It.IsAny<InvalidOperationException>()), Times.Once);
+            mocks.Connection.Verify(m => m.Dispose(), Times.Once);
+        }
+
+        [Trait("Category", "Diagnostic")]
+        [Theory(DisplayName = "Swallows cleanup failures after initialization failure"), AutoData]
+        public async Task Swallows_Cleanup_Failures_After_Initialization_Failure(IPEndPoint endpoint)
+        {
+            var (handler, mocks) = GetFixture(endpoint);
+
+            mocks.Connection.Setup(m => m.ReadAsync(4, It.IsAny<CancellationToken?>()))
+                .Throws(new InvalidOperationException("read failed"));
+            mocks.Connection.Setup(m => m.Disconnect(It.IsAny<string>(), It.IsAny<Exception>()))
+                .Throws(new InvalidOperationException("disconnect failed"));
+            mocks.Connection.Setup(m => m.Dispose())
+                .Throws(new InvalidOperationException("dispose failed"));
+            mocks.Diagnostic.Setup(m => m.Debug(It.IsAny<string>()));
+
+            var ex = await Record.ExceptionAsync(() => handler.HandleConnectionAsync(null, mocks.Connection.Object));
+
+            Assert.Null(ex);
+            var compare = StringComparison.InvariantCultureIgnoreCase;
+            mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("failed to initialize", compare) && s.Contains("read failed", compare))), Times.Once);
+        }
+
+        [Trait("Category", "Diagnostic")]
+        [Fact(DisplayName = "Null connection stays inside diagnostic boundary")]
+        public async Task Null_Connection_Stays_Inside_Diagnostic_Boundary()
+        {
+            using (var client = new SoulseekClient(minorVersion: 9999, options: null))
+            {
+                var diagnostic = new Mock<IDiagnosticFactory>();
+                diagnostic.Setup(m => m.Debug(It.IsAny<string>()));
+                var handler = new ListenerHandler(client, diagnostic.Object);
+
+                var ex = await Record.ExceptionAsync(() => handler.HandleConnectionAsync(null, null));
+
+                Assert.Null(ex);
+                diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("failed to initialize", StringComparison.InvariantCultureIgnoreCase) && s.Contains("connection", StringComparison.InvariantCultureIgnoreCase))), Times.Once);
+            }
+        }
+
+        [Trait("Category", "Diagnostic")]
         [Theory(DisplayName = "Creates diagnostic on PeerInit"), AutoData]
         public void Creates_Diagnostic_On_PeerInit(IPEndPoint endpoint, string username, int token)
         {
