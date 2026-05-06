@@ -50,7 +50,7 @@ namespace Soulseek.Messaging.Handlers
         {
             SoulseekClient = soulseekClient ?? throw new ArgumentNullException(nameof(soulseekClient));
             Diagnostic = diagnosticFactory ??
-                new DiagnosticFactory(SoulseekClient.Options.MinimumDiagnosticLevel, (e) => DiagnosticGenerated?.Invoke(this, e));
+                new DiagnosticFactory(SoulseekClient.Options.MinimumDiagnosticLevel, RaiseDiagnosticGenerated);
         }
 
         /// <summary>
@@ -219,17 +219,17 @@ namespace Soulseek.Messaging.Handlers
                 {
                     case MessageCode.Server.ParentMinSpeed:
                         var parentMinSpeed = IntegerResponse.FromByteArray<MessageCode.Server>(message);
-                        ServerInfoReceived?.Invoke(this, new ServerInfo(parentMinSpeed: parentMinSpeed));
+                        RaiseEventHandler(nameof(ServerInfoReceived), () => ServerInfoReceived?.Invoke(this, new ServerInfo(parentMinSpeed: parentMinSpeed)));
                         break;
 
                     case MessageCode.Server.ParentSpeedRatio:
                         var parentSpeedRatio = IntegerResponse.FromByteArray<MessageCode.Server>(message);
-                        ServerInfoReceived?.Invoke(this, new ServerInfo(parentSpeedRatio: parentSpeedRatio));
+                        RaiseEventHandler(nameof(ServerInfoReceived), () => ServerInfoReceived?.Invoke(this, new ServerInfo(parentSpeedRatio: parentSpeedRatio)));
                         break;
 
                     case MessageCode.Server.WishlistInterval:
                         var wishlistInterval = IntegerResponse.FromByteArray<MessageCode.Server>(message);
-                        ServerInfoReceived?.Invoke(this, new ServerInfo(wishlistInterval: wishlistInterval));
+                        RaiseEventHandler(nameof(ServerInfoReceived), () => ServerInfoReceived?.Invoke(this, new ServerInfo(wishlistInterval: wishlistInterval)));
                         break;
 
                     case MessageCode.Server.CheckPrivileges:
@@ -264,23 +264,23 @@ namespace Soulseek.Messaging.Handlers
                         break;
 
                     case MessageCode.Server.PrivateRoomAdded:
-                        PrivateRoomMembershipAdded?.Invoke(this, StringResponse.FromByteArray<MessageCode.Server>(message));
+                        RaiseEventHandler(nameof(PrivateRoomMembershipAdded), () => PrivateRoomMembershipAdded?.Invoke(this, StringResponse.FromByteArray<MessageCode.Server>(message)));
                         break;
 
                     case MessageCode.Server.PrivateRoomRemoved:
                         var privateRoomRemoved = StringResponse.FromByteArray<MessageCode.Server>(message);
                         SoulseekClient.Waiter.Complete(new WaitKey(code, privateRoomRemoved));
-                        PrivateRoomMembershipRemoved?.Invoke(this, privateRoomRemoved);
+                        RaiseEventHandler(nameof(PrivateRoomMembershipRemoved), () => PrivateRoomMembershipRemoved?.Invoke(this, privateRoomRemoved));
                         break;
 
                     case MessageCode.Server.PrivateRoomOperatorAdded:
-                        PrivateRoomModerationAdded?.Invoke(this, StringResponse.FromByteArray<MessageCode.Server>(message));
+                        RaiseEventHandler(nameof(PrivateRoomModerationAdded), () => PrivateRoomModerationAdded?.Invoke(this, StringResponse.FromByteArray<MessageCode.Server>(message)));
                         break;
 
                     case MessageCode.Server.PrivateRoomOperatorRemoved:
                         var privateRoomOperatorRemoved = StringResponse.FromByteArray<MessageCode.Server>(message);
                         SoulseekClient.Waiter.Complete(new WaitKey(code, privateRoomOperatorRemoved));
-                        PrivateRoomModerationRemoved?.Invoke(this, privateRoomOperatorRemoved);
+                        RaiseEventHandler(nameof(PrivateRoomModerationRemoved), () => PrivateRoomModerationRemoved?.Invoke(this, privateRoomOperatorRemoved));
                         break;
 
                     case MessageCode.Server.NewPassword:
@@ -295,12 +295,12 @@ namespace Soulseek.Messaging.Handlers
 
                     case MessageCode.Server.ExcludedSearchPhrases:
                         var excludedSearchPhraseList = ExcludedSearchPhrasesNotification.FromByteArray(message);
-                        ExcludedSearchPhrasesReceived?.Invoke(this, excludedSearchPhraseList);
+                        RaiseEventHandler(nameof(ExcludedSearchPhrasesReceived), () => ExcludedSearchPhrasesReceived?.Invoke(this, excludedSearchPhraseList));
                         break;
 
                     case MessageCode.Server.GlobalAdminMessage:
                         var msg = GlobalMessageNotification.FromByteArray(message);
-                        GlobalMessageReceived?.Invoke(this, msg);
+                        RaiseEventHandler(nameof(GlobalMessageReceived), () => GlobalMessageReceived?.Invoke(this, msg));
                         break;
 
                     case MessageCode.Server.Ping:
@@ -314,26 +314,28 @@ namespace Soulseek.Messaging.Handlers
                     case MessageCode.Server.RoomList:
                         var roomList = RoomListResponseFactory.FromByteArray(message);
                         SoulseekClient.Waiter.Complete(new WaitKey(code), roomList);
-                        RoomListReceived?.Invoke(this, roomList);
+                        RaiseEventHandler(nameof(RoomListReceived), () => RoomListReceived?.Invoke(this, roomList));
                         break;
 
                     case MessageCode.Server.PrivateRoomOwned:
                         var moderatedRoomInfo = PrivateRoomOwnedListNotification.FromByteArray(message);
-                        PrivateRoomModeratedUserListReceived?.Invoke(this, moderatedRoomInfo);
+                        RaiseEventHandler(nameof(PrivateRoomModeratedUserListReceived), () => PrivateRoomModeratedUserListReceived?.Invoke(this, moderatedRoomInfo));
                         break;
 
                     case MessageCode.Server.PrivateRoomUsers:
                         var roomInfo = PrivateRoomUserListNotification.FromByteArray(message);
-                        PrivateRoomUserListReceived?.Invoke(this, roomInfo);
+                        RaiseEventHandler(nameof(PrivateRoomUserListReceived), () => PrivateRoomUserListReceived?.Invoke(this, roomInfo));
                         break;
 
                     case MessageCode.Server.PrivilegedUsers:
                         var privilegedUserList = PrivilegedUserListNotification.FromByteArray(message);
-                        PrivilegedUserListReceived?.Invoke(this, privilegedUserList);
+                        RaiseEventHandler(nameof(PrivilegedUserListReceived), () => PrivilegedUserListReceived?.Invoke(this, privilegedUserList));
                         break;
 
                     case MessageCode.Server.AddPrivilegedUser:
-                        PrivilegeNotificationReceived?.Invoke(this, new PrivilegeNotificationReceivedEventArgs(PrivilegedUserNotification.FromByteArray(message)));
+                        RaiseEventHandler(
+                            nameof(PrivilegeNotificationReceived),
+                            () => PrivilegeNotificationReceived?.Invoke(this, new PrivilegeNotificationReceivedEventArgs(PrivilegedUserNotification.FromByteArray(message))));
                         break;
 
                     case MessageCode.Server.NotifyPrivileges:
@@ -371,7 +373,7 @@ namespace Soulseek.Messaging.Handlers
 
                     case MessageCode.Server.DistributedReset:
                         Diagnostic.Info($"Distributed network reset received from the server");
-                        DistributedNetworkReset?.Invoke(this, EventArgs.Empty);
+                        RaiseEventHandler(nameof(DistributedNetworkReset), () => DistributedNetworkReset?.Invoke(this, EventArgs.Empty));
 
                         SoulseekClient.DistributedConnectionManager.RemoveAndDisposeAll();
                         SoulseekClient.DistributedConnectionManager.ResetStatus();
@@ -386,7 +388,7 @@ namespace Soulseek.Messaging.Handlers
 
                         if (!string.IsNullOrEmpty(cannotConnect.Username))
                         {
-                            UserCannotConnect?.Invoke(this, new UserCannotConnectEventArgs(cannotConnect));
+                            RaiseEventHandler(nameof(UserCannotConnect), () => UserCannotConnect?.Invoke(this, new UserCannotConnectEventArgs(cannotConnect)));
                         }
 
                         break;
@@ -477,13 +479,13 @@ namespace Soulseek.Messaging.Handlers
                     case MessageCode.Server.GetStatus:
                         var status = UserStatusResponseFactory.FromByteArray(message);
                         SoulseekClient.Waiter.Complete(new WaitKey(code, status.Username), status);
-                        UserStatusChanged?.Invoke(this, status);
+                        RaiseEventHandler(nameof(UserStatusChanged), () => UserStatusChanged?.Invoke(this, status));
                         break;
 
                     case MessageCode.Server.GetUserStats:
                         var stats = UserStatisticsResponseFactory.FromByteArray(message);
                         SoulseekClient.Waiter.Complete(new WaitKey(code, stats.Username), stats);
-                        UserStatisticsChanged?.Invoke(this, stats);
+                        RaiseEventHandler(nameof(UserStatisticsChanged), () => UserStatisticsChanged?.Invoke(this, stats));
                         break;
 
                     case MessageCode.Server.PrivateMessage:
@@ -516,42 +518,42 @@ namespace Soulseek.Messaging.Handlers
                         // the server doesn't send a UserLeftRoom message when the current user is the one who left, whereas we do
                         // get a UserJoinedRoom message when the current user joins a room. to keep the API consistent, raise
                         // RoomLeft to mimic this behavior client side. this may result in duplicate events if the server behavior changes.
-                        RoomLeft?.Invoke(this, new RoomLeftEventArgs(leaveRoomResponse.RoomName, SoulseekClient.Username));
+                        RaiseEventHandler(nameof(RoomLeft), () => RoomLeft?.Invoke(this, new RoomLeftEventArgs(leaveRoomResponse.RoomName, SoulseekClient.Username)));
                         break;
 
                     case MessageCode.Server.SayInChatRoom:
                         var roomMessage = RoomMessageNotification.FromByteArray(message);
-                        RoomMessageReceived?.Invoke(this, new RoomMessageReceivedEventArgs(roomMessage));
+                        RaiseEventHandler(nameof(RoomMessageReceived), () => RoomMessageReceived?.Invoke(this, new RoomMessageReceivedEventArgs(roomMessage)));
                         break;
 
                     case MessageCode.Server.PublicChat:
                         var publicChatMessage = PublicChatMessageNotification.FromByteArray(message);
-                        PublicChatMessageReceived?.Invoke(this, new PublicChatMessageReceivedEventArgs(publicChatMessage));
+                        RaiseEventHandler(nameof(PublicChatMessageReceived), () => PublicChatMessageReceived?.Invoke(this, new PublicChatMessageReceivedEventArgs(publicChatMessage)));
                         break;
 
                     case MessageCode.Server.UserJoinedRoom:
                         var joinNotification = UserJoinedRoomNotification.FromByteArray(message);
-                        RoomJoined?.Invoke(this, new RoomJoinedEventArgs(joinNotification));
+                        RaiseEventHandler(nameof(RoomJoined), () => RoomJoined?.Invoke(this, new RoomJoinedEventArgs(joinNotification)));
                         break;
 
                     case MessageCode.Server.UserLeftRoom:
                         var leftNotification = UserLeftRoomNotification.FromByteArray(message);
-                        RoomLeft?.Invoke(this, new RoomLeftEventArgs(leftNotification));
+                        RaiseEventHandler(nameof(RoomLeft), () => RoomLeft?.Invoke(this, new RoomLeftEventArgs(leftNotification)));
                         break;
 
                     case MessageCode.Server.RoomTickers:
                         var roomTickers = RoomTickerListNotification.FromByteArray(message);
-                        RoomTickerListReceived?.Invoke(this, new RoomTickerListReceivedEventArgs(roomTickers));
+                        RaiseEventHandler(nameof(RoomTickerListReceived), () => RoomTickerListReceived?.Invoke(this, new RoomTickerListReceivedEventArgs(roomTickers)));
                         break;
 
                     case MessageCode.Server.RoomTickerAdd:
                         var roomTickerAdded = RoomTickerAddedNotification.FromByteArray(message);
-                        RoomTickerAdded?.Invoke(this, new RoomTickerAddedEventArgs(roomTickerAdded.RoomName, roomTickerAdded.Ticker));
+                        RaiseEventHandler(nameof(RoomTickerAdded), () => RoomTickerAdded?.Invoke(this, new RoomTickerAddedEventArgs(roomTickerAdded.RoomName, roomTickerAdded.Ticker)));
                         break;
 
                     case MessageCode.Server.RoomTickerRemove:
                         var roomTickerRemoved = RoomTickerRemovedNotification.FromByteArray(message);
-                        RoomTickerRemoved?.Invoke(this, new RoomTickerRemovedEventArgs(roomTickerRemoved.RoomName, roomTickerRemoved.Username));
+                        RaiseEventHandler(nameof(RoomTickerRemoved), () => RoomTickerRemoved?.Invoke(this, new RoomTickerRemovedEventArgs(roomTickerRemoved.RoomName, roomTickerRemoved.Username)));
                         break;
 
                     case MessageCode.Server.PrivateRoomAddUser:
@@ -575,7 +577,7 @@ namespace Soulseek.Messaging.Handlers
                         break;
 
                     case MessageCode.Server.KickedFromServer:
-                        KickedFromServer?.Invoke(this, EventArgs.Empty);
+                        RaiseEventHandler(nameof(KickedFromServer), () => KickedFromServer?.Invoke(this, EventArgs.Empty));
                         break;
 
                     case MessageCode.Server.FileSearch:
@@ -629,6 +631,18 @@ namespace Soulseek.Messaging.Handlers
         {
             var code = new MessageReader<MessageCode.Server>(args.Message).ReadCode();
             Diagnostic.Debug($"Server message sent: {code}");
+        }
+
+        private void RaiseDiagnosticGenerated(DiagnosticEventArgs e)
+        {
+            try
+            {
+                DiagnosticGenerated?.Invoke(this, e);
+            }
+            catch
+            {
+                // Diagnostics must not interrupt runtime control flow.
+            }
         }
 
         private void RaiseEventHandler(string eventName, Action invoke)

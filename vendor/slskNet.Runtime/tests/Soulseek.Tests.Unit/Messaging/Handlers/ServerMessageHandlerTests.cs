@@ -328,6 +328,28 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
         }
 
         [Trait("Category", "Message")]
+        [Fact(DisplayName = "Handles ParentMinSpeed if ServerInfoReceived handler throws")]
+        internal void Handles_ParentMinSpeed_If_ServerInfoReceived_Handler_Throws()
+        {
+            var expectedEx = new InvalidOperationException("subscriber failed");
+            int value = new Random().Next();
+
+            var (handler, mocks) = GetFixture();
+
+            handler.ServerInfoReceived += (_, __) => throw expectedEx;
+
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.ParentMinSpeed)
+                .WriteInteger(value)
+                .Build();
+
+            handler.HandleMessageRead(null, msg);
+
+            mocks.Diagnostic.Verify(m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Unhandled exception in ServerInfoReceived event handler")), expectedEx), Times.Once);
+            mocks.Diagnostic.Verify(m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Error handling server message")), It.IsAny<Exception>()), Times.Never);
+        }
+
+        [Trait("Category", "Message")]
         [Fact(DisplayName = "Handles ParentSpeedRatio")]
         internal void Handles_ParentSpeedRatio()
         {
@@ -1533,6 +1555,27 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
 
             mocks.DistributedConnectionManager.Verify(m => m.ResetStatus(), Times.Once);
             mocks.DistributedConnectionManager.Verify(m => m.RemoveAndDisposeAll(), Times.Once);
+        }
+
+        [Trait("Category", "Message")]
+        [Fact(DisplayName = "DistributedReset resets distributed network if handler throws")]
+        public void DistributedReset_Resets_Distributed_Network_If_Handler_Throws()
+        {
+            var expectedEx = new InvalidOperationException("subscriber failed");
+            var (handler, mocks) = GetFixture();
+
+            var message = new MessageBuilder()
+                .WriteCode(MessageCode.Server.DistributedReset)
+                .Build();
+
+            handler.DistributedNetworkReset += (_, __) => throw expectedEx;
+
+            handler.HandleMessageRead(null, message);
+
+            mocks.DistributedConnectionManager.Verify(m => m.ResetStatus(), Times.Once);
+            mocks.DistributedConnectionManager.Verify(m => m.RemoveAndDisposeAll(), Times.Once);
+            mocks.Diagnostic.Verify(m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Unhandled exception in DistributedNetworkReset event handler")), expectedEx), Times.Once);
+            mocks.Diagnostic.Verify(m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Error handling server message")), It.IsAny<Exception>()), Times.Never);
         }
 
         [Trait("Category", "Message")]

@@ -47,6 +47,11 @@ write_section \
   src examples/Web/api
 
 write_section \
+  "Unisolated server handler event invocations" \
+  '^(?![[:space:]]*\(\) =>)(?!.*RaiseEventHandler)(?!.*DiagnosticGenerated).*[A-Za-z0-9_]+\?\.Invoke\(' \
+  src/Messaging/Handlers/ServerMessageHandler.cs
+
+write_section \
   "Remote/user text in diagnostics or HTTP errors" \
   '(Diagnostic\.(Debug|Info|Warning|Error)|StatusCode\(|BadRequest\(|Console\.WriteLine)\([^;\n]*(username|query|filename|directory|token|Message)' \
   src examples/Web/api
