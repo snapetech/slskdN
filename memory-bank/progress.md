@@ -9865,6 +9865,13 @@ Code quality improvements were completed as part of Option A:
 - Hardened System Network, Mesh, Swarm Visualization, Swarm Analytics, Jobs, Security, Bridge, and MediaCore polling so post-await state updates are ignored after unmount.
 - Added `scripts/check-web-polling-lifecycle.sh` to the remediation baseline and extended ADR-0001 gotcha `0z93`.
 
+## 2026-05-06 22:57:43Z
+
+- Ran the updated slskd council tracker and completed the pending Web-input adversarial fuzz phase.
+- Recorded and verified `BUG-20260506-101`.
+- Added deterministic HTTP fuzz coverage for malformed JSON login bodies, random byte bodies, and hostile query/path strings.
+- Added `scripts/check-web-input-adversarial-fuzz.sh` to the remediation baseline.
+
 ## 2026-05-06 17:21:40Z
 
 - Ran an attribution audit against `upstream/master`, separating fork-only files, upstream-derived changed files, and vendored third-party code.

@@ -25,7 +25,7 @@ slskd ships its own scoped phase rows below for slskd-specific work that builds 
 | --- | --- | --- | --- | --- |
 | 1 | Mirror council process docs | Done | (agent) | Schema, sibling-search, behavior-pinning, slskd-adapted negative-space, this tracker, and a slskd `check-council-negative-space.sh` script all present. |
 | 2 | Wire negative-space gate into the meta-runner | Done | (agent) | `scripts/check-remediation-baseline.sh` calls `scripts/check-council-negative-space.sh`. |
-| 3 | Web-input adversarial fuzz | Pending | (agent) | A counterpart to slskNet.Runtime's `ProtocolAdversarialFuzz`: random bytes/strings into HTTP controllers, asserting only documented exceptions escape. |
+| 3 | Web-input adversarial fuzz | Done | (agent) | `tests/slskd.Tests/WebInputAdversarialFuzzTests.cs` sends malformed JSON, deterministic random bytes, and hostile query/path strings through the test host; `scripts/check-web-input-adversarial-fuzz.sh` keeps the harness registered in remediation. |
 
 ## How to resume
 

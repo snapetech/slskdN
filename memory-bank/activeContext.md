@@ -1,3 +1,15 @@
+## Update 2026-05-06 22:57:43Z
+
+- Current task: Run updated slskd council Web-input adversarial fuzz phase.
+- Last activity:
+  - read `docs/dev/bug-council-phases.md` and identified phase 3 as the first pending slskd-specific row;
+  - accepted and fixed `BUG-20260506-101`;
+  - added `tests/slskd.Tests/WebInputAdversarialFuzzTests.cs` for malformed JSON, deterministic random byte bodies, and hostile query/path strings;
+  - added `scripts/check-web-input-adversarial-fuzz.sh` to remediation and marked phase 3 done.
+- Next steps:
+  1. Run focused fuzz tests, remediation, lint, and diff checks.
+  2. Commit and push the verified non-runtime council fuzz batch.
+
 ## Update 2026-05-06 22:44:05Z
 
 - Current task: Continue non-runtime council Web System polling lifecycle cycle.

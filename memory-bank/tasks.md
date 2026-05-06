@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **bug-council**: Complete slskd Web-input adversarial fuzz phase.
+ - Status: completed (2026-05-06)
+ - Priority: P2
+ - Notes: Fixed `BUG-20260506-101` by adding `WebInputAdversarialFuzzTests` for malformed JSON, deterministic random byte bodies, and hostile query/path strings through the slskd test host. Added `scripts/check-web-input-adversarial-fuzz.sh` to remediation and marked council phase 3 done.
+
 - [x] **bug-council**: Continue Web System polling lifecycle cycle.
  - Status: completed (2026-05-06)
  - Priority: P2
