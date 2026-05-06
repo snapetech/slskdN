@@ -1,3 +1,16 @@
+## Update 2026-05-07 02:06:00Z
+
+- Current task: Continue non-runtime council QUIC overlay/data stream lifecycle cycle.
+- Last activity:
+  - classified backend async/lifecycle candidates after skipping runtime/vendor;
+  - accepted and fixed `BUG-20260506-085` and `BUG-20260506-086`;
+  - QUIC overlay control streams and QUIC data streams are now tracked and drained during server shutdown;
+  - extended `scripts/check-async-task-observation.sh` to reject raw detached stream handlers;
+  - documented ADR-0001 gotcha `0z95`, and updated ledger/changelog/task log.
+- Next steps:
+  1. Run remediation, focused QUIC tests, build/lint, and diff checks.
+  2. Commit and push the verified non-runtime QUIC lifecycle batch.
+
 ## Update 2026-05-07 01:49:00Z
 
 - Current task: Continue non-runtime council Proxmox/raw Linux installer safety cycle.
