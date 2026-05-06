@@ -103,22 +103,24 @@ public class BridgeProxyServer : BackgroundService
                         clientId, client.Client.RemoteEndPoint);
 
                     // Handle client in background task
-                    _ = Task.Run(async () =>
-                    {
-                        try
+                    _ = TaskObservation.Observe(
+                        Task.Run(async () =>
                         {
-                            await HandleClientAsync(clientId, client, stoppingToken);
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogError(ex, "[VSF-BRIDGE-PROXY] Error handling client {ClientId}", clientId);
-                        }
-                        finally
-                        {
-                            activeSessions.TryRemove(clientId, out _);
-                            client?.Close();
-                        }
-                    }, CancellationToken.None);
+                            try
+                            {
+                                await HandleClientAsync(clientId, client, stoppingToken);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, "[VSF-BRIDGE-PROXY] Error handling client {ClientId}", clientId);
+                            }
+                            finally
+                            {
+                                activeSessions.TryRemove(clientId, out _);
+                                client?.Close();
+                            }
+                        }, CancellationToken.None),
+                        ex => logger.LogError(ex, "[VSF-BRIDGE-PROXY] Unobserved task failure while handling client {ClientId}", clientId));
                 }
                 catch (ObjectDisposedException)
                 {
@@ -462,7 +464,9 @@ public class BridgeProxyServer : BackgroundService
                 transferId, proxyId, session.ClientId);
 
             // Start background task to push progress updates (T-851.5)
-            _ = Task.Run(() => PushProgressUpdatesAsync(session, CancellationToken.None), CancellationToken.None);
+            _ = TaskObservation.Observe(
+                Task.Run(() => PushProgressUpdatesAsync(session, CancellationToken.None), CancellationToken.None),
+                ex => logger.LogError(ex, "[VSF-BRIDGE-PROXY] Unobserved progress proxy task failure for {ClientId}", session.ClientId));
         }
         catch (Exception ex)
         {

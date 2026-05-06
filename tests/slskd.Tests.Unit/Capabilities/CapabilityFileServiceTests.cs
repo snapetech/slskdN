@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.Tests.Unit.Capabilities;
 
+using System.Net;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -18,7 +19,7 @@ public sealed class CapabilityFileServiceTests
         var registry = new PeerCapabilityRegistry();
         registry.Update(
             "alice",
-            null!,
+            new IPEndPoint(IPAddress.Loopback, 50305),
             new PeerCapabilityEnvelope(
                 PeerCapabilityMessageType.Hello,
                 new PeerCapabilityDescriptor("peer-id", new[] { "mesh_sync", "swarm_download" }, overlayPort: 50305)));

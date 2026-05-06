@@ -85,79 +85,81 @@ public class WebhookService
 
         foreach (var webhook in webhooksTriggeredByThisEventType)
         {
-            _ = Task.Run(async () =>
-            {
-                var call = webhook.Value.Call;
-
-                using var http = CreateWebhookHttpClient(call, webhook.Key);
-
-                http.Timeout = TimeSpan.FromMilliseconds(webhook.Value.Timeout);
-
-                foreach (var header in call.Headers)
+            _ = TaskObservation.Observe(
+                Task.Run(async () =>
                 {
-                    http.DefaultRequestHeaders.TryAddWithoutValidation(header.Name, header.Value);
-                }
+                    var call = webhook.Value.Call;
 
-                var payloadJson = JsonSerializer.Serialize(
-                    value: data,
-                    inputType: data.GetType(), // if omitted object is serialized as EventType, losing everything else
-                    options: JsonSerializerOptions);
+                    using var http = CreateWebhookHttpClient(call, webhook.Key);
 
-                HttpStatusCode? statusCode = null;
+                    http.Timeout = TimeSpan.FromMilliseconds(webhook.Value.Timeout);
 
-                try
-                {
-                    Log.Debug("Calling webhook '{Name}': {Url}", webhook.Key, webhook.Value.Call.Url);
-
-                    // SSRF guard: refuse to POST to loopback/private/link-local/cloud-metadata
-                    // hosts so a hostile config cannot pivot the daemon into internal services.
-                    if (!Uri.TryCreate(call.Url, UriKind.Absolute, out var targetUri))
+                    foreach (var header in call.Headers)
                     {
-                        Log.Warning("Webhook '{Name}' URL '{Url}' is not a valid absolute URI; skipping", webhook.Key, call.Url);
-                        return;
+                        http.DefaultRequestHeaders.TryAddWithoutValidation(header.Name, header.Value);
                     }
 
-                    using var ssrfCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                    var (safe, reason) = await OutboundUriGuard.CheckAsync(targetUri, ssrfCts.Token);
-                    if (!safe)
+                    var payloadJson = JsonSerializer.Serialize(
+                        value: data,
+                        inputType: data.GetType(), // if omitted object is serialized as EventType, losing everything else
+                        options: JsonSerializerOptions);
+
+                    HttpStatusCode? statusCode = null;
+
+                    try
                     {
-                        Log.Warning("Webhook '{Name}' URL blocked by SSRF guard: {Reason}", webhook.Key, reason);
-                        return;
-                    }
+                        Log.Debug("Calling webhook '{Name}': {Url}", webhook.Key, webhook.Value.Call.Url);
 
-                    var sw = Stopwatch.StartNew();
+                        // SSRF guard: refuse to POST to loopback/private/link-local/cloud-metadata
+                        // hosts so a hostile config cannot pivot the daemon into internal services.
+                        if (!Uri.TryCreate(call.Url, UriKind.Absolute, out var targetUri))
+                        {
+                            Log.Warning("Webhook '{Name}' URL '{Url}' is not a valid absolute URI; skipping", webhook.Key, call.Url);
+                            return;
+                        }
 
-                    await Retry.Do(
-                        task: async () =>
+                        using var ssrfCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                        var (safe, reason) = await OutboundUriGuard.CheckAsync(targetUri, ssrfCts.Token);
+                        if (!safe)
                         {
-                            using var content = new StringContent(
-                                content: payloadJson,
-                                encoding: Encoding.UTF8,
-                                mediaType: "application/json");
-                            using var response = await http.PostAsync(call.Url, content);
-                            response.EnsureSuccessStatusCode();
-                            statusCode = response.StatusCode;
-                        },
-                        isRetryable: (attempts, ex) => true, // retry everything
-                        onFailure: (attempts, ex) =>
-                        {
-                            if (webhook.Value.Retry.Attempts > 1)
+                            Log.Warning("Webhook '{Name}' URL blocked by SSRF guard: {Reason}", webhook.Key, reason);
+                            return;
+                        }
+
+                        var sw = Stopwatch.StartNew();
+
+                        await Retry.Do(
+                            task: async () =>
                             {
-                                Log.Warning(ex, "Failed attempt #{Attempts} to send webhook '{Name}' for event type {Event}: {Message}", attempts, webhook.Key, data.Type, ex.Message);
-                            }
-                        },
-                        maxAttempts: webhook.Value.Retry.Attempts,
-                        maxDelayInMilliseconds: 30000);
+                                using var content = new StringContent(
+                                    content: payloadJson,
+                                    encoding: Encoding.UTF8,
+                                    mediaType: "application/json");
+                                using var response = await http.PostAsync(call.Url, content);
+                                response.EnsureSuccessStatusCode();
+                                statusCode = response.StatusCode;
+                            },
+                            isRetryable: (attempts, ex) => true, // retry everything
+                            onFailure: (attempts, ex) =>
+                            {
+                                if (webhook.Value.Retry.Attempts > 1)
+                                {
+                                    Log.Warning(ex, "Failed attempt #{Attempts} to send webhook '{Name}' for event type {Event}: {Message}", attempts, webhook.Key, data.Type, ex.Message);
+                                }
+                            },
+                            maxAttempts: webhook.Value.Retry.Attempts,
+                            maxDelayInMilliseconds: 30000);
 
-                    sw.Stop();
+                        sw.Stop();
 
-                    Log.Debug("Webhook '{Name}' called successfully in {Duration}ms; status code: {StatusCode}", webhook.Key, sw.ElapsedMilliseconds, statusCode);
-                }
-                catch (Exception ex)
-                {
-                    Log.Warning(ex, "Failed to call webhook '{Name}' for event type {Event} after exhausting retries: {Message}", webhook.Key, data.Type, ex.Message);
-                }
-            });
+                        Log.Debug("Webhook '{Name}' called successfully in {Duration}ms; status code: {StatusCode}", webhook.Key, sw.ElapsedMilliseconds, statusCode);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(ex, "Failed to call webhook '{Name}' for event type {Event} after exhausting retries: {Message}", webhook.Key, data.Type, ex.Message);
+                    }
+                }),
+                ex => Log.Warning(ex, "Webhook task failed for '{Name}' while handling event {Event}", webhook.Key, data.Type));
         }
     }
 

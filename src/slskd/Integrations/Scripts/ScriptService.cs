@@ -98,7 +98,8 @@ public class ScriptService
 
         foreach (var script in scriptsTriggeredByThisEventType)
         {
-            _ = Task.Run(async () =>
+            _ = TaskObservation.Observe(
+                Task.Run(async () =>
             {
                 Process? process = null;
                 var processId = Guid.NewGuid();
@@ -255,7 +256,8 @@ public class ScriptService
                         Log.Warning(ex, "Failed to clean up process started from script '{Script}' for event type {Event}: {Message} (id: {ProcessId})", script.Key, data.Type, ex.Message, processId);
                     }
                 }
-            });
+            }, CancellationToken.None),
+                ex => Log.Warning(ex, "Script task failed for '{Script}' while handling event {Event}", script.Key, data.Type));
         }
     }
 }

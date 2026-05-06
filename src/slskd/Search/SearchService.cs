@@ -440,7 +440,8 @@ namespace slskd.Search
                 // search looks ok so far; let the rest of the logic run asynchronously
                 // on a background thread. this logic needs to clean up after itself and
                 // update the search record to accurately reflect the final state
-                _ = Task.Run(async () =>
+                _ = TaskObservation.Observe(
+                    Task.Run(async () =>
                 {
                     try
                     {
@@ -596,7 +597,8 @@ namespace slskd.Search
                         rateLimiter.Dispose();
                         ReleaseCancellationToken(id);
                     }
-                }, cancellationToken: CancellationToken.None);
+                    }, cancellationToken: CancellationToken.None),
+                    ex => Log.Warning(ex, "Search background task for '{Query}' failed (id: {Id})", query.SearchText, id));
 
                 // broadcast and return the _newly created_ search; it will continue to be updated in the background
                 await SearchHub.BroadcastUpdateAsync(search);

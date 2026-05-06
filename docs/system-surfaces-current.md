@@ -1,6 +1,6 @@
 # Current API surface inventory
 
-Generated: 2026-05-06T16:35:40Z
+Generated: 2026-05-06T18:31:08Z
 
 This inventory is generated from controller attributes. It is intended for parity/security review, not as a replacement for Swagger or integration tests.
 
@@ -158,14 +158,14 @@ None found.
 - src/slskd/Core/API/Controllers/ApplicationController.cs
   - 71:        [HttpGet]
   - 82:        [HttpDelete]
-  - 102:        [HttpPut]
-  - 127:        [HttpGet("version")]
-  - 138:        [HttpGet("build")]
-  - 139:        [AllowAnonymous]
-  - 150:        [HttpGet("version/latest")]
-  - 166:        [HttpPost("gc")]
-  - 178:        [HttpPost("dump")]
-  - 243:        [HttpPost("loopback")]
+  - 104:        [HttpPut]
+  - 129:        [HttpGet("version")]
+  - 140:        [HttpGet("build")]
+  - 141:        [AllowAnonymous]
+  - 152:        [HttpGet("version/latest")]
+  - 168:        [HttpPost("gc")]
+  - 180:        [HttpPost("dump")]
+  - 245:        [HttpPost("loopback")]
 - src/slskd/Core/API/Controllers/SessionController.cs
   - 72:        [HttpGet]
   - 87:        [HttpGet]

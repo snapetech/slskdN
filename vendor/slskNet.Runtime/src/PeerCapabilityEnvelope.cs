@@ -64,6 +64,11 @@ namespace Soulseek
                 throw new ArgumentOutOfRangeException(nameof(version), "Version must be greater than zero.");
             }
 
+            if (!Enum.IsDefined(typeof(PeerCapabilityMessageType), messageType))
+            {
+                throw new ArgumentOutOfRangeException(nameof(messageType), "Message type is not defined.");
+            }
+
             Version = version;
             MessageType = messageType;
             Descriptor = descriptor ?? throw new ArgumentNullException(nameof(descriptor));

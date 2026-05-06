@@ -657,8 +657,12 @@ internal class ForwarderConnection : IDisposable
             _streamMappingCts = streamMappingCts;
 
             // Start background stream mapping tasks
-            _ = Task.Run(() => MapStreamsAsync(localStream, streamMappingCts), CancellationToken.None);
-            _ = Task.Run(() => ProcessSendQueueAsync(streamMappingCts.Token), CancellationToken.None);
+            _ = TaskObservation.Observe(
+                Task.Run(() => MapStreamsAsync(localStream, streamMappingCts), CancellationToken.None),
+                ex => _logger.LogWarning(ex, "[PortForward] Stream-mapping task failed for tunnel {TunnelId}", _tunnelId));
+            _ = TaskObservation.Observe(
+                Task.Run(() => ProcessSendQueueAsync(streamMappingCts.Token), CancellationToken.None),
+                ex => _logger.LogWarning(ex, "[PortForward] Stream send queue task failed for tunnel {TunnelId}", _tunnelId));
         }
     }
 

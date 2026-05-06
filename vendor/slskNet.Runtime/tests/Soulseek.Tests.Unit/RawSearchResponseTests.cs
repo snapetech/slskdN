@@ -61,5 +61,23 @@ namespace Soulseek.Tests.Unit
             Assert.NotNull(ex);
             Assert.IsType<ArgumentNullException>(ex);
         }
+
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Throws if the given stream is not readable")]
+        public void Throws_If_The_Given_Stream_Is_Not_Readable()
+        {
+            using (var stream = new WriteOnlyStream())
+            {
+                var ex = Record.Exception(() => new RawSearchResponse(1, stream));
+
+                Assert.NotNull(ex);
+                Assert.IsType<InvalidOperationException>(ex);
+            }
+        }
+
+        private class WriteOnlyStream : MemoryStream
+        {
+            public override bool CanRead => false;
+        }
     }
 }

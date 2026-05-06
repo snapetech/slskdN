@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Synced vendored slskNet.Runtime validation hardening for resumed transfer
+  snapshots, raw response streams, and peer capability metadata; aligned slskdN
+  capability tests with the stricter non-null endpoint contract.
 - Hardened council async/path findings by awaiting SearchService traffic-observer
   notifications and making streaming fallback plus Library Health recursive scans
   skip symlinks/junctions explicitly; aligned integration route smoke auth with

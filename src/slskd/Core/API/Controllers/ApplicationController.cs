@@ -86,11 +86,13 @@ namespace slskd.Core.API
             Program.MasterCancellationTokenSource.Cancel();
             Lifetime.StopApplication();
 
-            Task.Run(async () =>
-            {
-                await Task.Delay(500);
-                Environment.Exit(0);
-            });
+            _ = TaskObservation.Observe(
+                Task.Run(async () =>
+                {
+                    await Task.Delay(500);
+                    Environment.Exit(0);
+                }),
+                ex => Log.Warning(ex, "[ApplicationController] Failed to observe shutdown task"));
 
             return NoContent();
         }

@@ -983,17 +983,20 @@ namespace slskd
                             var discovery = app.Services.GetService<Identity.ILanDiscoveryService>();
                             if (discovery != null)
                             {
-                                _ = Task.Run(async () =>
-                                {
-                                    try
+                                _ = TaskObservation.Observe(
+                                    Task.Run(async () =>
                                     {
-                                        await discovery.StartAdvertisingAsync().ConfigureAwait(false);
+                                        try
+                                        {
+                                            await discovery.StartAdvertisingAsync().ConfigureAwait(false);
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Log.Warning(ex, "[Program] Failed to start LAN discovery advertising");
+                                        }
                                     }
-                                    catch (Exception ex)
-                                    {
-                                        Log.Warning(ex, "[Program] Failed to start LAN discovery advertising");
-                                    }
-                                });
+                                    , CancellationToken.None),
+                                    ex => Log.Warning(ex, "[Program] Unobserved LAN discovery startup failure"));
                             }
                         }
                         catch (Exception ex)

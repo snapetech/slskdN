@@ -6,6 +6,7 @@ namespace slskd.Tests.Unit.SoulseekDiscovery;
 
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -93,7 +94,7 @@ public sealed class SoulseekDiscoveryControllerTests
             {
                 new PeerCapabilityRecord(
                     "mesh-peer",
-                    null!,
+                    new IPEndPoint(IPAddress.Loopback, 50305),
                     new PeerCapabilityDescriptor("peer-id", new[] { "mesh_sync" }, overlayPort: 50305),
                     PeerCapabilityMessageType.Hello,
                     "nonce",
@@ -123,7 +124,7 @@ public sealed class SoulseekDiscoveryControllerTests
             {
                 new PeerCapabilityRecord(
                     "mesh-peer",
-                    null!,
+                    new IPEndPoint(IPAddress.Loopback, 50305),
                     new PeerCapabilityDescriptor("peer-id", new[] { "mesh_sync" }, overlayPort: 50305),
                     PeerCapabilityMessageType.Acknowledgement,
                     "nonce",

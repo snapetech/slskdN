@@ -56,6 +56,39 @@ namespace Soulseek.Tests.Unit
             Assert.Throws<MessageException>(() => PeerCapabilityEnvelope.FromByteArray(new byte[] { 1, 2, 3 }));
         }
 
+        [Fact(DisplayName = "Capability envelope rejects undefined message type")]
+        public void Capability_Envelope_Rejects_Undefined_Message_Type()
+        {
+            var descriptor = new PeerCapabilityDescriptor();
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => new PeerCapabilityEnvelope(
+                (PeerCapabilityMessageType)99,
+                descriptor));
+
+            Assert.Equal("messageType", ex.ParamName);
+        }
+
+        [Fact(DisplayName = "Capability envelope parser rejects undefined message type")]
+        public void Capability_Envelope_Parser_Rejects_Undefined_Message_Type()
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream, Encoding.UTF8))
+            {
+                writer.Write(0x4E44534B);
+                writer.Write(PeerCapabilityEnvelope.CurrentVersion);
+                writer.Write(99);
+                writer.Write(1);
+                writer.Write(Encoding.UTF8.GetBytes("n"));
+                writer.Write(0);
+                writer.Write(-1);
+                writer.Write(PeerCapabilityEnvelope.DefaultMaxPayloadLength);
+                writer.Write(0);
+                writer.Write(false);
+                writer.Flush();
+
+                Assert.Throws<MessageException>(() => PeerCapabilityEnvelope.FromByteArray(stream.ToArray()));
+            }
+        }
+
         [Fact(DisplayName = "Capability envelope rejects truncated declared byte arrays")]
         public void Capability_Envelope_Rejects_Truncated_Declared_Byte_Arrays()
         {
@@ -124,6 +157,34 @@ namespace Soulseek.Tests.Unit
                 nonce: "n1");
 
             Assert.Throws<ArgumentException>(() => registry.Update(username, endpoint, envelope));
+        }
+
+        [Fact(DisplayName = "Capability registry rejects null endpoints")]
+        public void Capability_Registry_Rejects_Null_Endpoints()
+        {
+            var registry = new PeerCapabilityRegistry();
+            var envelope = new PeerCapabilityEnvelope(
+                PeerCapabilityMessageType.Hello,
+                new PeerCapabilityDescriptor(features: new[] { "mesh" }),
+                nonce: "n1");
+
+            Assert.Throws<ArgumentNullException>(() => registry.Update("user", null, envelope));
+        }
+
+        [Fact(DisplayName = "Capability record rejects undefined message type")]
+        public void Capability_Record_Rejects_Undefined_Message_Type()
+        {
+            var endpoint = new IPEndPoint(IPAddress.Loopback, 1234);
+            var descriptor = new PeerCapabilityDescriptor();
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => new PeerCapabilityRecord(
+                "user",
+                endpoint,
+                descriptor,
+                (PeerCapabilityMessageType)99,
+                nonce: "n1",
+                observedAt: DateTimeOffset.UtcNow));
+
+            Assert.Equal("messageType", ex.ParamName);
         }
     }
 }

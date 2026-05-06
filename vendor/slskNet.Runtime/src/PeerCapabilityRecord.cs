@@ -41,8 +41,13 @@ namespace Soulseek
             DateTimeOffset observedAt)
         {
             Username = string.IsNullOrWhiteSpace(username) ? throw new ArgumentException("Username must not be empty", nameof(username)) : username;
-            EndPoint = endpoint;
+            EndPoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
             Descriptor = descriptor ?? throw new ArgumentNullException(nameof(descriptor));
+            if (!Enum.IsDefined(typeof(PeerCapabilityMessageType), messageType))
+            {
+                throw new ArgumentOutOfRangeException(nameof(messageType), "Message type is not defined.");
+            }
+
             MessageType = messageType;
             Nonce = nonce;
             ObservedAt = observedAt;

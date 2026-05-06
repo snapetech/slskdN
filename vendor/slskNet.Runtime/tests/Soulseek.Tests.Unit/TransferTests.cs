@@ -47,7 +47,7 @@ namespace Soulseek.Tests.Unit
             state = TransferStates.InProgress;
             size = Math.Max(1, size);
             startOffset = Math.Min(Math.Max(0, startOffset), size);
-            bytesTransferred = Math.Min(Math.Max(0, bytesTransferred), size);
+            bytesTransferred = Math.Min(Math.Max(startOffset, bytesTransferred), size);
             averageSpeed = Math.Max(1, averageSpeed);
 
             var t = new Transfer(
@@ -214,6 +214,23 @@ namespace Soulseek.Tests.Unit
                     0,
                     averageSpeed: averageSpeed));
             }
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Rejects bytes transferred less than start offset")]
+        public void Rejects_Bytes_Transferred_Less_Than_Start_Offset()
+        {
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => new Transfer(
+                TransferDirection.Download,
+                "user",
+                "file",
+                1,
+                TransferStates.InProgress,
+                size: 10,
+                startOffset: 5,
+                bytesTransferred: 4));
+
+            Assert.Equal("bytesTransferred", ex.ParamName);
         }
 
         [Trait("Category", "RemainingTime")]

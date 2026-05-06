@@ -453,9 +453,11 @@ public sealed class PrivateGatewayMeshService : IMeshService, IDisposable
             _tunnelStreams[tunnelId] = stream;
 
             // Start forwarding task (bidirectional)
-            _ = Task.Run(
-                () => ForwardTunnelDataAsync(tunnelId, stream, _cleanupCancellationTokenSource.Token),
-                CancellationToken.None);
+            _ = TaskObservation.Observe(
+                Task.Run(
+                    () => ForwardTunnelDataAsync(tunnelId, stream, _cleanupCancellationTokenSource.Token),
+                    CancellationToken.None),
+                ex => _logger.LogWarning(ex, "[PrivateGateway] Unobserved tunnel forward failure for tunnel {TunnelId}", tunnelId));
 
             _logger.LogInformation(
                 "[PrivateGateway] AUDIT: Tunnel opened - TunnelId:{TunnelId}, PeerId:{PeerId}, PodId:{PodId}, Host:{Host}, Port:{Port}, Service:{ServiceName}",

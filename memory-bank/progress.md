@@ -1,5 +1,7 @@
 ## 2026-05-06
 
+- Continued non-runtime council async-lifecycle cleanup: fixed remaining `async void` health callbacks in `DisasterModeRecovery` and `DisasterModeCoordinator` by moving logic to observed async methods via `TaskObservation.Observe`, added `scripts/check-async-void-handlers.sh` to baseline, and added ADR-0001 gotcha `0z328` plus ledger row `BUG-20260506-028`.
+
 - Continued another non-runtime council cycle focused on async/lifecycle side effects after the baseline passed cleanly.
 - Fixed `BUG-20260506-027`: app notifications, SignalR broadcasts, relay start/sync, room rejoin, share rescans, pod message mirroring/routing, relay download notifications, FTP uploads, and peer-metric writes now run through observation helpers instead of raw `_ =` async calls.
 - Added `scripts/check-async-task-observation.sh` to remediation and documented ADR-0001 gotcha `0z327`.

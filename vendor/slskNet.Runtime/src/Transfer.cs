@@ -174,6 +174,11 @@ namespace Soulseek
                 throw new ArgumentOutOfRangeException(nameof(bytesTransferred), "Must be greater than or equal to zero");
             }
 
+            if (validate && bytesTransferred < startOffset)
+            {
+                throw new ArgumentOutOfRangeException(nameof(bytesTransferred), "Must be greater than or equal to startOffset");
+            }
+
             if (validate && bytesTransferred > size)
             {
                 throw new ArgumentOutOfRangeException(nameof(bytesTransferred), "Must be less than or equal to size");

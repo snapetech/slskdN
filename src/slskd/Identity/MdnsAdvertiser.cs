@@ -55,25 +55,27 @@ public sealed class MdnsAdvertiser : IDisposable
             await SendAnnouncementAsync(instanceName, serviceType, hostnameLocal, port, properties, announceCts.Token).ConfigureAwait(false);
 
             // Send periodic announcements (mDNS requires this)
-            _ = Task.Run(async () =>
-            {
-                try
+            _ = TaskObservation.Observe(
+                Task.Run(async () =>
                 {
-                    while (!announceCts.IsCancellationRequested)
+                    try
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(10), announceCts.Token).ConfigureAwait(false);
-                        await SendAnnouncementAsync(instanceName, serviceType, hostnameLocal, port, properties, announceCts.Token).ConfigureAwait(false);
+                        while (!announceCts.IsCancellationRequested)
+                        {
+                            await Task.Delay(TimeSpan.FromSeconds(10), announceCts.Token).ConfigureAwait(false);
+                            await SendAnnouncementAsync(instanceName, serviceType, hostnameLocal, port, properties, announceCts.Token).ConfigureAwait(false);
+                        }
                     }
-                }
-                catch (OperationCanceledException) when (announceCts.IsCancellationRequested)
-                {
-                    // Expected
-                }
-                catch (Exception ex)
-                {
-                    _log.LogWarning(ex, "[MdnsAdvertiser] Announcement loop error");
-                }
-            }, CancellationToken.None);
+                    catch (OperationCanceledException) when (announceCts.IsCancellationRequested)
+                    {
+                        // Expected
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.LogWarning(ex, "[MdnsAdvertiser] Announcement loop error");
+                    }
+                }, CancellationToken.None),
+                ex => _log.LogWarning(ex, "[MdnsAdvertiser] Unobserved announcement loop failure"));
 
             _log.LogInformation("[MdnsAdvertiser] Started advertising {Instance} on {Hostname}:{Port}", instanceName, hostnameLocal, port);
         }

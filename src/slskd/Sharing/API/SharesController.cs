@@ -187,17 +187,19 @@ public class SharesController : ControllerBase
             _log.LogWarning("[ShareGrantAnnounce] Soulseek client not available; cannot announce share {ShareId}", created.Id);
         }
 
-        _ = Task.Run(async () =>
-        {
-            try
+        _ = TaskObservation.Observe(
+            Task.Run(async () =>
             {
-                await AnnounceShareGrantAsync(created, currentUserId, CancellationToken.None).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                _log.LogWarning(ex, "[ShareGrantAnnounce] Announcement task failed for share {ShareId}", created.Id);
-            }
-        }, CancellationToken.None);
+                try
+                {
+                    await AnnounceShareGrantAsync(created, currentUserId, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _log.LogWarning(ex, "[ShareGrantAnnounce] Announcement task failed for share {ShareId}", created.Id);
+                }
+            }, CancellationToken.None),
+            ex => _log.LogWarning(ex, "[ShareGrantAnnounce] Unobserved announcement task failure for share {ShareId}", created.Id));
 
         return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
     }

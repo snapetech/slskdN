@@ -16,3 +16,4 @@ global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.AspNetCore.Authorization;
 global using MessagePack;
 global using slskd.Common;
+global using slskd.Common.CodeQuality;

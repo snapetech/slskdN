@@ -198,35 +198,37 @@ namespace slskd.Mesh
             else if (messageType == "REQKEY" || messageType == "REQDELTA" || messageType == "PUSHDELTA" || messageType == "HELLO" || messageType == "REQCHUNK")
             {
                 // Handle incoming requests by routing to HandleMessageAsync
-                _ = Task.Run(async () =>
-                {
-                    try
+                _ = TaskObservation.Observe(
+                    Task.Run(async () =>
                     {
-                        MeshMessage? message = messageType switch
+                        try
                         {
-                            "REQKEY" => JsonSerializer.Deserialize<MeshReqKeyMessage>(payload),
-                            "REQDELTA" => JsonSerializer.Deserialize<MeshReqDeltaMessage>(payload),
-                            "PUSHDELTA" => JsonSerializer.Deserialize<MeshPushDeltaMessage>(payload),
-                            "HELLO" => JsonSerializer.Deserialize<MeshHelloMessage>(payload),
-                            "REQCHUNK" => JsonSerializer.Deserialize<MeshReqChunkMessage>(payload),
-                            _ => null,
-                        };
-
-                        if (message != null)
-                        {
-                            var response = await HandleMessageAsync(normalizedUsername, message);
-                            if (response != null)
+                            MeshMessage? message = messageType switch
                             {
-                                // Send response back
-                                await SendMeshMessageAsync(normalizedUsername, response);
+                                "REQKEY" => JsonSerializer.Deserialize<MeshReqKeyMessage>(payload),
+                                "REQDELTA" => JsonSerializer.Deserialize<MeshReqDeltaMessage>(payload),
+                                "PUSHDELTA" => JsonSerializer.Deserialize<MeshPushDeltaMessage>(payload),
+                                "HELLO" => JsonSerializer.Deserialize<MeshHelloMessage>(payload),
+                                "REQCHUNK" => JsonSerializer.Deserialize<MeshReqChunkMessage>(payload),
+                                _ => null,
+                            };
+
+                            if (message != null)
+                            {
+                                var response = await HandleMessageAsync(normalizedUsername, message);
+                                if (response != null)
+                                {
+                                    // Send response back
+                                    await SendMeshMessageAsync(normalizedUsername, response);
+                                }
                             }
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        log.Warning(ex, "[MESH] Error handling mesh message from {Peer}", e.Username);
-                    }
-                });
+                        catch (Exception ex)
+                        {
+                            log.Warning(ex, "[MESH] Error handling mesh message from {Peer}", e.Username);
+                        }
+                    }),
+                    ex => log.Warning(ex, "[MESH] Unobserved mesh message handler failure from {Peer}", e.Username));
             }
         }
 

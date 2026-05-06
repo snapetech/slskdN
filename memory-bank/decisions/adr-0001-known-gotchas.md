@@ -78,6 +78,32 @@ _ = ObserveBackgroundTaskAsync(
 
 **Why This Keeps Happening**: Fire-and-forget is sometimes necessary for event callbacks, but assigning an async task to `_` only suppresses the compiler warning. Any side-effect task that is not awaited by the caller must be passed through a helper that awaits it and logs failures.
 
+### 0z328. Async Void Handlers Must Use Observed Task Helpers
+
+**The Bug**: `async void` health callbacks in disaster-mode monitor subscriptions could throw during async recovery/escalation work without being observed by a failure handler.
+
+**Files Affected**:
+- `src/slskd/VirtualSoulfind/DisasterMode/DisasterModeRecovery.cs`
+- `src/slskd/VirtualSoulfind/DisasterMode/DisasterModeCoordinator.cs`
+
+**Wrong**:
+```csharp
+private async void OnHealthChanged(object? sender, SoulseekHealthChangedEventArgs e)
+{
+    await AttemptRecoveryAsync(CancellationToken.None);
+}
+```
+
+**Correct**:
+```csharp
+private void OnHealthChanged(object? sender, SoulseekHealthChangedEventArgs e)
+{
+    _ = TaskObservation.Observe(HandleHealthChangedAsync(e), ex => logger.LogError(ex, ...));
+}
+```
+
+**Why This Keeps Happening**: `async void` feels natural for event handlers, but it bypasses normal task fault observation. Even callback-only paths must route exceptions to a task observer so background recovery/escalation failures are visible and non-fatal.
+
 ### 0z326. Integration Auth Fixtures Must Match Admin-Only Routes
 
 **The Bug**: After security telemetry routes were tightened to administrator-only, the shared integration `StubWebApplicationFactory` still authenticated as only `ReadWrite`, so versioned admin route smoke tests failed with `403 Forbidden`.

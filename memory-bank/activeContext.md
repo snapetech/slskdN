@@ -8,8 +8,19 @@
   - added `scripts/check-async-task-observation.sh` to remediation and documented ADR-0001 gotcha `0z327`
   - focused unit validation passed for touched Application/SignalBus/Shares/Pod/Download paths
 - Next steps:
-  1. Run broad remediation/lint/full solution tests.
-  2. Commit and push the implementation batch.
+ 1. Run broad remediation/lint/full solution tests.
+ 2. Commit and push the implementation batch.
+
+## Update 2026-05-06 18:22:00Z
+
+- Current task: Non-runtime council async-lifecycle cleanup pass continuation.
+- Last activity:
+  - converted `DisasterModeRecovery.OnHealthChanged` and `DisasterModeCoordinator.OnHealthChanged` from `async void` to observed `Task` handlers so recovery/escalation faults are captured by `TaskObservation`.
+  - added `scripts/check-async-void-handlers.sh` and wired it into `scripts/check-remediation-baseline.sh`.
+  - added `BUG-20260506-028` and ADR-0001 entry `0z328` to lock this pattern for recurrence prevention.
+- Next steps:
+  1. Run `scripts/check-async-void-handlers.sh`, `scripts/check-async-task-observation.sh`, and `npm run check:remediation`.
+  2. Run focused backend/lint verification and commit/push the complete dirty tree.
 
 ## Update 2026-05-06 17:10:00Z
 

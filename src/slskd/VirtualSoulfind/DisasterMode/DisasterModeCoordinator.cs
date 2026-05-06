@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.VirtualSoulfind.DisasterMode;
 
+using slskd.Common.CodeQuality;
 using System.Threading;
 using Microsoft.Extensions.Options;
 using slskd;
@@ -188,7 +189,15 @@ public sealed class DisasterModeCoordinator : IDisasterModeCoordinator
         _ => "Unknown level"
     };
 
-    private async void OnHealthChanged(object? sender, SoulseekHealthChangedEventArgs e)
+    private void OnHealthChanged(object? sender, SoulseekHealthChangedEventArgs e)
+    {
+        _ = TaskObservation.Observe(HandleHealthChangedAsync(e), ex =>
+        {
+            logger.LogError(ex, "[VSF-DISASTER] Unhandled exception while processing health change");
+        });
+    }
+
+    private async Task HandleHealthChangedAsync(SoulseekHealthChangedEventArgs e)
     {
         try
         {

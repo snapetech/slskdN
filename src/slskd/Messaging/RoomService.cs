@@ -191,29 +191,30 @@ namespace slskd.Messaging
             }
         }
 
-        private async void Client_LoggedIn(object? sender, EventArgs e)
+        private void Client_LoggedIn(object? sender, EventArgs e)
         {
-            try
-            {
-                var autoJoinRooms = OptionsMonitor.CurrentValue.Rooms;
-
-                if (autoJoinRooms.Any())
-                {
-                    Logger.Information("Auto-joining room(s) {Rooms}", string.Join(", ", autoJoinRooms));
-                    await TryJoinAsync(autoJoinRooms);
-                }
-
-                var previouslyJoinedRooms = RoomTracker.Rooms.Keys.Except(autoJoinRooms);
-
-                if (previouslyJoinedRooms.Any())
-                {
-                    Logger.Information("Attempting to rejoin room(s) {Rooms}", string.Join(", ", previouslyJoinedRooms));
-                    await TryJoinAsync(previouslyJoinedRooms.ToArray());
-                }
-            }
-            catch (Exception ex)
+            _ = TaskObservation.Observe(ClientLoggedInAsync(e), ex =>
             {
                 Logger.Error(ex, "Failed to execute post-login room actions");
+            });
+        }
+
+        private async Task ClientLoggedInAsync(EventArgs e)
+        {
+            var autoJoinRooms = OptionsMonitor.CurrentValue.Rooms;
+
+            if (autoJoinRooms.Any())
+            {
+                Logger.Information("Auto-joining room(s) {Rooms}", string.Join(", ", autoJoinRooms));
+                await TryJoinAsync(autoJoinRooms);
+            }
+
+            var previouslyJoinedRooms = RoomTracker.Rooms.Keys.Except(autoJoinRooms);
+
+            if (previouslyJoinedRooms.Any())
+            {
+                Logger.Information("Attempting to rejoin room(s) {Rooms}", string.Join(", ", previouslyJoinedRooms));
+                await TryJoinAsync(previouslyJoinedRooms.ToArray());
             }
         }
 

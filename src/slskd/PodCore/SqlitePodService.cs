@@ -94,17 +94,19 @@ namespace slskd.PodCore
                 // Publish to DHT if pod is listed
                 if (podPublisher != null && pod.Visibility == PodVisibility.Listed)
                 {
-                    _ = Task.Run(async () =>
-                    {
-                        try
+                    _ = TaskObservation.Observe(
+                        Task.Run(async () =>
                         {
-                            await podPublisher.PublishPodAsync(pod, CancellationToken.None);
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogWarning(ex, "Failed to publish pod to DHT");
-                        }
-                    }, CancellationToken.None);
+                            try
+                            {
+                                await podPublisher.PublishPodAsync(pod, CancellationToken.None);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogWarning(ex, "Failed to publish pod to DHT");
+                            }
+                        }, CancellationToken.None),
+                        ex => logger.LogWarning(ex, "Unobserved publish pod to DHT failure for pod {PodId}", pod.PodId));
                 }
 
                 return pod;
@@ -537,20 +539,22 @@ namespace slskd.PodCore
             await db.SaveChangesAsync(ct);
 
             // Publish updated pod to DHT if listed
-            if (podPublisher != null && pod.Visibility == PodVisibility.Listed)
-            {
-                _ = Task.Run(async () =>
+                if (podPublisher != null && pod.Visibility == PodVisibility.Listed)
                 {
-                    try
-                    {
-                        await podPublisher.PublishPodAsync(pod, CancellationToken.None);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "Failed to publish pod update to DHT");
-                    }
-                }, CancellationToken.None);
-            }
+                    _ = TaskObservation.Observe(
+                        Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await podPublisher.PublishPodAsync(pod, CancellationToken.None);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, "Failed to publish pod update to DHT");
+                            }
+                        }, CancellationToken.None),
+                        ex => logger.LogError(ex, "Unobserved pod update publish failure for pod {PodId}", pod.PodId));
+                }
 
             logger.LogInformation("Created channel {ChannelId} in pod {PodId}", channel.ChannelId, podId);
             return channel;
@@ -594,20 +598,22 @@ namespace slskd.PodCore
             await db.SaveChangesAsync(ct);
 
             // Publish updated pod to DHT if listed
-            if (podPublisher != null && pod.Visibility == PodVisibility.Listed)
-            {
-                _ = Task.Run(async () =>
+                if (podPublisher != null && pod.Visibility == PodVisibility.Listed)
                 {
-                    try
-                    {
-                        await podPublisher.PublishPodAsync(pod, CancellationToken.None);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "Failed to publish pod update to DHT");
-                    }
-                }, CancellationToken.None);
-            }
+                    _ = TaskObservation.Observe(
+                        Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await podPublisher.PublishPodAsync(pod, CancellationToken.None);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, "Failed to publish pod update to DHT");
+                            }
+                        }, CancellationToken.None),
+                        ex => logger.LogError(ex, "Unobserved pod update publish failure for pod {PodId}", pod.PodId));
+                }
 
             logger.LogInformation("Deleted channel {ChannelId} from pod {PodId}", channelId, podId);
             return true;
@@ -671,20 +677,22 @@ namespace slskd.PodCore
             await db.SaveChangesAsync(ct);
 
             // Publish updated pod to DHT if listed
-            if (podPublisher != null && pod.Visibility == PodVisibility.Listed)
-            {
-                _ = Task.Run(async () =>
+                if (podPublisher != null && pod.Visibility == PodVisibility.Listed)
                 {
-                    try
-                    {
-                        await podPublisher.PublishPodAsync(pod, CancellationToken.None);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "Failed to publish pod update to DHT");
-                    }
-                }, CancellationToken.None);
-            }
+                    _ = TaskObservation.Observe(
+                        Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await podPublisher.PublishPodAsync(pod, CancellationToken.None);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, "Failed to publish pod update to DHT");
+                            }
+                        }, CancellationToken.None),
+                        ex => logger.LogError(ex, "Unobserved pod update publish failure for pod {PodId}", pod.PodId));
+                }
 
             logger.LogInformation("Updated channel {ChannelId} in pod {PodId}", channel.ChannelId, podId);
             return true;

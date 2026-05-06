@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **bug-council**: Close remaining async-lifecycle callback hazards in disaster-mode handlers.
+ - Status: completed (2026-05-06)
+ - Priority: P2
+ - Notes: Converted `DisasterModeRecovery.OnHealthChanged` and `DisasterModeCoordinator.OnHealthChanged` from `async void` to observed async callback helpers, added `scripts/check-async-void-handlers.sh` to `scripts/check-remediation-baseline.sh`, updated `docs/dev/bug-burndown-ledger.md` with `BUG-20260506-028`, and documented ADR-0001 gotcha `0z328`.
+
 - [x] **runtime/network**: Accept opaque signed distributed search tokens from live peers.
  - Status: completed (2026-05-06)
  - Priority: P1
