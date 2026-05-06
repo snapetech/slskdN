@@ -52,6 +52,29 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z324. Stable Release Metadata Updaters Can Miss Snap
+
+**The Bug**: A stable release updated Homebrew, Nix, AUR, Debian, RPM, Helm, TrueNAS, Winget, Flatpak, and Chocolatey metadata, but left `packaging/snap/snapcraft.yaml` pinned to the previous stable release. The packaging validator caught the drift only after the release completed.
+
+**Files Affected**:
+- `packaging/snap/snapcraft.yaml`
+- `packaging/scripts/validate-packaging-metadata.sh`
+- `.github/workflows/build-on-tag.yml`
+
+**Wrong**:
+```yaml
+version: '2026050500-slskdn.224'
+source: https://github.com/snapetech/slskdn/releases/download/2026050500-slskdn.224/slskdn-main-linux-glibc-x64.zip
+```
+
+**Correct**:
+```yaml
+version: '2026050600-slskdn.227'
+source: https://github.com/snapetech/slskdn/releases/download/2026050600-slskdn.227/slskdn-main-linux-glibc-x64.zip
+```
+
+**Why This Keeps Happening**: Release automation and validation do not necessarily cover the same package matrix at the same time. After every stable tag, run `bash packaging/scripts/validate-packaging-metadata.sh` against the post-release metadata commit and either update Snap in the release automation or patch it immediately before declaring package metadata complete.
+
 ### 0z323. Stable Release Tags Need Versioned Changelog Sections
 
 **The Bug**: A stable `build-main-*` tag reached the release job with all platform artifacts built, but `scripts/generate-release-notes.sh` refused to synthesize release notes from a large commit delta because `docs/CHANGELOG.md` did not contain a section for the public release version.
