@@ -338,7 +338,9 @@ namespace Soulseek.Messaging.Handlers
 
                     case MessageCode.Server.NotifyPrivileges:
                         var pn = PrivilegeNotification.FromByteArray(message);
-                        PrivilegeNotificationReceived?.Invoke(this, new PrivilegeNotificationReceivedEventArgs(pn.Username, pn.Id));
+                        RaiseEventHandler(
+                            nameof(PrivilegeNotificationReceived),
+                            () => PrivilegeNotificationReceived?.Invoke(this, new PrivilegeNotificationReceivedEventArgs(pn.Username, pn.Id)));
 
                         if (SoulseekClient.Options.AutoAcknowledgePrivilegeNotifications)
                         {
@@ -486,7 +488,9 @@ namespace Soulseek.Messaging.Handlers
 
                     case MessageCode.Server.PrivateMessage:
                         var pm = PrivateMessageNotification.FromByteArray(message);
-                        PrivateMessageReceived?.Invoke(this, new PrivateMessageReceivedEventArgs(pm));
+                        RaiseEventHandler(
+                            nameof(PrivateMessageReceived),
+                            () => PrivateMessageReceived?.Invoke(this, new PrivateMessageReceivedEventArgs(pm)));
 
                         if (SoulseekClient.Options.AutoAcknowledgePrivateMessages)
                         {
@@ -625,6 +629,18 @@ namespace Soulseek.Messaging.Handlers
         {
             var code = new MessageReader<MessageCode.Server>(args.Message).ReadCode();
             Diagnostic.Debug($"Server message sent: {code}");
+        }
+
+        private void RaiseEventHandler(string eventName, Action invoke)
+        {
+            try
+            {
+                invoke();
+            }
+            catch (Exception ex)
+            {
+                Diagnostic.Warning($"Unhandled exception in {eventName} event handler: {ex.Message}", ex);
+            }
         }
     }
 }

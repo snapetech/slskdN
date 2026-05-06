@@ -280,6 +280,33 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
         }
 
         [Trait("Category", "Message")]
+        [Theory(DisplayName = "Acknowledges ServerPrivateMessage if PrivateMessageReceived handler throws"), AutoData]
+        internal void Acknowledges_ServerPrivateMessage_If_PrivateMessageReceived_Handler_Throws(int id, int timeOffset, string username, string message, bool isAdmin)
+        {
+            id = id < 0 ? 0 : id;
+            var options = new SoulseekClientOptions(autoAcknowledgePrivateMessages: true);
+            var (handler, mocks) = GetFixture(options);
+            var expectedEx = new InvalidOperationException("subscriber failed");
+
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.PrivateMessage)
+                .WriteInteger(id)
+                .WriteInteger(timeOffset)
+                .WriteString(username)
+                .WriteString(message)
+                .WriteByte((byte)(isAdmin ? 1 : 0))
+                .Build();
+
+            handler.PrivateMessageReceived += (_, __) => throw expectedEx;
+
+            handler.HandleMessageRead(null, msg);
+
+            mocks.Client.Verify(m => m.AcknowledgePrivateMessageAsync(id, It.IsAny<CancellationToken>()), Times.Once);
+            mocks.Diagnostic.Verify(m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Unhandled exception in PrivateMessageReceived event handler")), expectedEx), Times.Once);
+            mocks.Diagnostic.Verify(m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Error handling server message")), It.IsAny<Exception>()), Times.Never);
+        }
+
+        [Trait("Category", "Message")]
         [Fact(DisplayName = "Handles ParentMinSpeed")]
         internal void Handles_ParentMinSpeed()
         {
@@ -1527,6 +1554,31 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
             handler.HandleMessageRead(null, message);
 
             mocks.Client.Verify(m => m.AcknowledgePrivilegeNotificationAsync(id, It.IsAny<CancellationToken?>()), Times.Once);
+        }
+
+        [Trait("Category", "Message")]
+        [Theory(DisplayName = "Acknowledges NotifyPrivileges if PrivilegeNotificationReceived handler throws"), AutoData]
+        public void Acknowledges_NotifyPrivileges_If_PrivilegeNotificationReceived_Handler_Throws(string username, int id)
+        {
+            id = id < 0 ? 0 : id;
+            var (handler, mocks) = GetFixture();
+            var expectedEx = new InvalidOperationException("subscriber failed");
+
+            var message = new MessageBuilder()
+                .WriteCode(MessageCode.Server.NotifyPrivileges)
+                .WriteInteger(id)
+                .WriteString(username)
+                .Build();
+
+            mocks.Client.Setup(m => m.Options)
+                .Returns(new SoulseekClientOptions(autoAcknowledgePrivilegeNotifications: true));
+            handler.PrivilegeNotificationReceived += (_, __) => throw expectedEx;
+
+            handler.HandleMessageRead(null, message);
+
+            mocks.Client.Verify(m => m.AcknowledgePrivilegeNotificationAsync(id, It.IsAny<CancellationToken?>()), Times.Once);
+            mocks.Diagnostic.Verify(m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Unhandled exception in PrivilegeNotificationReceived event handler")), expectedEx), Times.Once);
+            mocks.Diagnostic.Verify(m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Error handling server message")), It.IsAny<Exception>()), Times.Never);
         }
 
         [Trait("Category", "Message")]
