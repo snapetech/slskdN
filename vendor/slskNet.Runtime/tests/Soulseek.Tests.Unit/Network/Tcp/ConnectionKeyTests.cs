@@ -78,6 +78,21 @@ namespace Soulseek.Tests.Unit.Network.Tcp
         }
 
         [Trait("Category", "Hash Code")]
+        [Fact(DisplayName = "Snapshots endpoint")]
+        public void Snapshots_Endpoint()
+        {
+            var endpoint = new IPEndPoint(IPAddress.Loopback, 1234);
+            var key = new ConnectionKey("user", endpoint);
+            var hash = key.GetHashCode();
+
+            endpoint.Port = 4321;
+            key.IPEndPoint.Port = 1111;
+
+            Assert.Equal(1234, key.IPEndPoint.Port);
+            Assert.Equal(hash, key.GetHashCode());
+        }
+
+        [Trait("Category", "Hash Code")]
         [Fact(DisplayName = "GetHashCode does not match if key differs")]
         public void GetHashCode_Does_Not_Match_If_Key_Differs()
         {

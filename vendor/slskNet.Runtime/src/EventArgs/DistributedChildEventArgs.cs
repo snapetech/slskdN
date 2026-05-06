@@ -1,5 +1,6 @@
 ﻿// <copyright file="DistributedChildEventArgs.cs" company="JP Dillingham">
 //     Copyright (c) JP Dillingham.
+//     Copyright (c) slskdN Team.
 //
 //     This program is free software: you can redistribute it and/or modify
 //     it under the terms of the GNU General Public License as published by
@@ -18,6 +19,7 @@
 //     project for the complete terms and conditions.
 //
 //     SPDX-FileCopyrightText: JP Dillingham
+//     SPDX-FileCopyrightText: slskdN Team
 //     SPDX-License-Identifier: GPL-3.0-only
 // </copyright>
 
@@ -30,6 +32,8 @@ namespace Soulseek
     /// </summary>
     public class DistributedChildEventArgs : SoulseekClientEventArgs
     {
+        private readonly IPEndPoint ipEndPoint;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="DistributedChildEventArgs"/> class.
         /// </summary>
@@ -38,13 +42,13 @@ namespace Soulseek
         public DistributedChildEventArgs(string username, IPEndPoint ipEndPoint)
         {
             Username = username;
-            IPEndPoint = ipEndPoint;
+            this.ipEndPoint = ipEndPoint.Snapshot();
         }
 
         /// <summary>
         ///     Gets the IP endpoint of the connection.
         /// </summary>
-        public IPEndPoint IPEndPoint { get; }
+        public IPEndPoint IPEndPoint => ipEndPoint.Snapshot();
 
         /// <summary>
         ///     Gets the username associated with the connection.

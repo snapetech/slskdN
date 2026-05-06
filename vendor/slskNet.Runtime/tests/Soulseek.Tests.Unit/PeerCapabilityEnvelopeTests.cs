@@ -141,6 +141,24 @@ namespace Soulseek.Tests.Unit
             Assert.Equal("n1", record.Nonce);
         }
 
+        [Fact(DisplayName = "Capability record snapshots endpoint")]
+        public void Capability_Record_Snapshots_Endpoint()
+        {
+            var endpoint = new IPEndPoint(IPAddress.Loopback, 1234);
+            var record = new PeerCapabilityRecord(
+                "user",
+                endpoint,
+                new PeerCapabilityDescriptor(),
+                PeerCapabilityMessageType.Hello,
+                nonce: "n1",
+                observedAt: DateTimeOffset.UtcNow);
+
+            endpoint.Port = 4321;
+            record.EndPoint.Port = 1111;
+
+            Assert.Equal(1234, record.EndPoint.Port);
+        }
+
         [Fact(DisplayName = "Capability registry uses ordinal username identity")]
         public void Capability_Registry_Uses_Ordinal_Username_Identity()
         {

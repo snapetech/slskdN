@@ -114,6 +114,26 @@ namespace Soulseek.Tests.Unit
             Assert.Equal(ex, t.Exception);
         }
 
+        [Fact(DisplayName = "Snapshots endpoint")]
+        public void Snapshots_Endpoint()
+        {
+            var endpoint = new IPEndPoint(IPAddress.Loopback, 1234);
+            var transfer = new Transfer(
+                TransferDirection.Download,
+                "user",
+                "file",
+                1,
+                TransferStates.InProgress,
+                1,
+                0,
+                ipEndPoint: endpoint);
+
+            endpoint.Port = 4321;
+            transfer.IPEndPoint.Port = 1111;
+
+            Assert.Equal(1234, transfer.IPEndPoint.Port);
+        }
+
         [Trait("Category", "State")]
         [Fact(DisplayName = "ElapsedTime returns null if StartTime is null")]
         internal void ElapsedTime_Returns_Null_If_StartTime_Is_Null()

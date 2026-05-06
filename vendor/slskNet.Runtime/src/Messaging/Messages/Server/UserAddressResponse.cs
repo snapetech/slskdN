@@ -35,6 +35,8 @@ namespace Soulseek.Messaging.Messages
     /// </summary>
     internal sealed class UserAddressResponse : IIncomingMessage
     {
+        private readonly IPEndPoint ipEndPoint;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="UserAddressResponse"/> class.
         /// </summary>
@@ -58,12 +60,12 @@ namespace Soulseek.Messaging.Messages
         public UserAddressResponse(string username, IPEndPoint endpoint, int obfuscationType = 0, int obfuscatedPort = 0)
         {
             Username = username;
-            IPEndPoint = endpoint;
+            ipEndPoint = endpoint.Snapshot();
             ObfuscationType = obfuscationType;
             ObfuscatedPort = obfuscatedPort;
 
-            IPAddress = IPEndPoint.Address;
-            Port = IPEndPoint.Port;
+            IPAddress = ipEndPoint.Address;
+            Port = ipEndPoint.Port;
         }
 
         /// <summary>
@@ -94,7 +96,7 @@ namespace Soulseek.Messaging.Messages
         /// <summary>
         ///     Gets the IP endpoint of the peer.
         /// </summary>
-        public IPEndPoint IPEndPoint { get; }
+        public IPEndPoint IPEndPoint => ipEndPoint.Snapshot();
 
         /// <summary>
         ///     Gets the port on which the peer is listening.

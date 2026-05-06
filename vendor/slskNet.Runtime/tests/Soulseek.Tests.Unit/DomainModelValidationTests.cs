@@ -18,6 +18,8 @@
 namespace Soulseek.Tests.Unit
 {
     using System;
+    using System.Linq;
+    using System.Net;
     using Xunit;
 
     public class DomainModelValidationTests
@@ -171,6 +173,31 @@ namespace Soulseek.Tests.Unit
                 null,
                 default,
                 false));
+
+        [Fact(DisplayName = "Distributed network info snapshots endpoints")]
+        public void DistributedNetworkInfo_Snapshots_Endpoints()
+        {
+            var childEndpoint = new IPEndPoint(IPAddress.Loopback, 1234);
+            var parentEndpoint = new IPEndPoint(IPAddress.Loopback, 2345);
+            var info = new DistributedNetworkInfo(
+                0,
+                1,
+                "root",
+                false,
+                1,
+                true,
+                new[] { ("child", childEndpoint) },
+                ("parent", parentEndpoint),
+                true);
+
+            childEndpoint.Port = 4321;
+            parentEndpoint.Port = 5432;
+            info.Children.Single().IPEndPoint.Port = 1111;
+            info.Parent.IPEndPoint.Port = 2222;
+
+            Assert.Equal(1234, info.Children.Single().IPEndPoint.Port);
+            Assert.Equal(2345, info.Parent.IPEndPoint.Port);
+        }
 
         [Fact(DisplayName = "Distributed parent event args reject negative branch level")]
         public void DistributedParentEventArgs_Rejects_Negative_Branch_Level()

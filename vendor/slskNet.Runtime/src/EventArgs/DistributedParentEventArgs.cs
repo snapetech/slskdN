@@ -33,6 +33,8 @@ namespace Soulseek
     /// </summary>
     public class DistributedParentEventArgs : SoulseekClientEventArgs
     {
+        private readonly IPEndPoint ipEndPoint;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="DistributedParentEventArgs"/> class.
         /// </summary>
@@ -48,7 +50,7 @@ namespace Soulseek
             }
 
             Username = username;
-            IPEndPoint = ipEndPoint;
+            this.ipEndPoint = ipEndPoint.Snapshot();
             BranchLevel = branchLevel;
             BranchRoot = branchRoot;
             IsBranchRoot = Username == BranchRoot && BranchLevel == 0;
@@ -67,7 +69,7 @@ namespace Soulseek
         /// <summary>
         ///     Gets the IP endpoint of the connection.
         /// </summary>
-        public IPEndPoint IPEndPoint { get; }
+        public IPEndPoint IPEndPoint => ipEndPoint.Snapshot();
 
         /// <summary>
         ///     Gets a value indicating whether the parent is a branch root.

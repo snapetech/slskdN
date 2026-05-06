@@ -34,6 +34,8 @@ namespace Soulseek.Messaging.Messages
     /// </summary>
     internal sealed class ConnectToPeerResponse : IIncomingMessage
     {
+        private readonly IPEndPoint ipEndPoint;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="ConnectToPeerResponse"/> class.
         /// </summary>
@@ -65,13 +67,13 @@ namespace Soulseek.Messaging.Messages
             Username = username;
             Type = type;
             Token = token;
-            IPEndPoint = endpoint;
+            ipEndPoint = endpoint.Snapshot();
             IsPrivileged = isPrivileged;
             ObfuscationType = obfuscationType;
             ObfuscatedPort = obfuscatedPort;
 
-            IPAddress = IPEndPoint.Address;
-            Port = IPEndPoint.Port;
+            IPAddress = ipEndPoint.Address;
+            Port = ipEndPoint.Port;
         }
 
         /// <summary>
@@ -102,7 +104,7 @@ namespace Soulseek.Messaging.Messages
         /// <summary>
         ///     Gets the IP endpoint to which to connect.
         /// </summary>
-        public IPEndPoint IPEndPoint { get; }
+        public IPEndPoint IPEndPoint => ipEndPoint.Snapshot();
 
         /// <summary>
         ///     Gets a value indicating whether the user is privileged.

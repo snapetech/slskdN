@@ -36,6 +36,9 @@ namespace Soulseek
     /// </summary>
     public class DistributedNetworkInfo
     {
+        private readonly IReadOnlyCollection<(string Username, IPEndPoint IPEndPoint)> children;
+        private readonly (string Username, IPEndPoint IPEndPoint) parent;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="DistributedNetworkInfo"/> class.
         /// </summary>
@@ -79,10 +82,13 @@ namespace Soulseek
             BranchRoot = branchRoot;
             CanAcceptChildren = canAcceptChildren;
             ChildLimit = childLimit;
-            Children = children?.ToList().AsReadOnly();
+            this.children = children?
+                .Select(child => (child.Username, child.IPEndPoint.Snapshot()))
+                .ToList()
+                .AsReadOnly();
             HasParent = hasParent;
             IsBranchRoot = isBranchRoot;
-            Parent = parent;
+            this.parent = (parent.Username, parent.IPEndPoint.Snapshot());
         }
 
         /// <summary>
@@ -113,7 +119,10 @@ namespace Soulseek
         /// <summary>
         ///     Gets the current list of child connections.
         /// </summary>
-        public IReadOnlyCollection<(string Username, IPEndPoint IPEndPoint)> Children { get; }
+        public IReadOnlyCollection<(string Username, IPEndPoint IPEndPoint)> Children => children?
+            .Select(child => (child.Username, child.IPEndPoint.Snapshot()))
+            .ToList()
+            .AsReadOnly();
 
         /// <summary>
         ///     Gets a value indicating whether a parent connection is established.
@@ -128,7 +137,7 @@ namespace Soulseek
         /// <summary>
         ///     Gets the current parent connection.
         /// </summary>
-        public (string Username, IPEndPoint IPEndPoint) Parent { get; }
+        public (string Username, IPEndPoint IPEndPoint) Parent => (parent.Username, parent.IPEndPoint.Snapshot());
 
         /// <summary>
         ///     Derives <see cref="DistributedNetworkInfo"/> from the internal <see cref="IDistributedConnectionManager"/>.

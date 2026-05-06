@@ -33,6 +33,8 @@ namespace Soulseek.Network.Tcp
     /// </summary>
     internal sealed class ConnectionKey : IEquatable<ConnectionKey>
     {
+        private readonly IPEndPoint ipEndPoint;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="ConnectionKey"/> class.
         /// </summary>
@@ -50,13 +52,13 @@ namespace Soulseek.Network.Tcp
         public ConnectionKey(string username, IPEndPoint ipEndPoint)
         {
             Username = username;
-            IPEndPoint = ipEndPoint;
+            this.ipEndPoint = ipEndPoint.Snapshot();
         }
 
         /// <summary>
         ///     Gets the IP endpoint of the connection.
         /// </summary>
-        public IPEndPoint IPEndPoint { get; }
+        public IPEndPoint IPEndPoint => ipEndPoint.Snapshot();
 
         /// <summary>
         ///     Gets the username associated with the connection.
@@ -72,7 +74,7 @@ namespace Soulseek.Network.Tcp
         {
             return !ReferenceEquals(other, null)
                 && string.Equals(Username, other.Username, StringComparison.Ordinal)
-                && object.Equals(IPEndPoint, other.IPEndPoint);
+                && object.Equals(ipEndPoint, other.ipEndPoint);
         }
 
         /// <summary>
@@ -91,7 +93,7 @@ namespace Soulseek.Network.Tcp
         /// <returns>The hash code of this instance.</returns>
         public override int GetHashCode()
         {
-            var str = $"{Username}:{IPEndPoint?.Address}:{IPEndPoint?.Port}";
+            var str = $"{Username}:{ipEndPoint?.Address}:{ipEndPoint?.Port}";
 #if NETSTANDARD2_0
             return str.GetHashCode();
 #else

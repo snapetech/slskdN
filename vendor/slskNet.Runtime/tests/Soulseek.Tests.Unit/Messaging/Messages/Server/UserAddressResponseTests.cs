@@ -42,6 +42,20 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Equal(endpoint.Port, response.IPEndPoint.Port);
         }
 
+        [Trait("Category", "Instantiation")]
+        [Theory(DisplayName = "Snapshots endpoint"), AutoData]
+        public void Snapshots_Endpoint(string username, IPEndPoint endpoint)
+        {
+            var port = endpoint.Port;
+            var response = new UserAddressResponse(username, endpoint);
+
+            endpoint.Port = port == 1 ? 2 : 1;
+            response.IPEndPoint.Port = port == 3 ? 4 : 3;
+
+            Assert.Equal(port, response.IPEndPoint.Port);
+            Assert.Equal(port, response.Port);
+        }
+
         [Trait("Category", "Parse")]
         [Fact(DisplayName = "Parse throws MessageExcepton on code mismatch")]
         public void Parse_Throws_MessageException_On_Code_Mismatch()

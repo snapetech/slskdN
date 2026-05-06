@@ -33,6 +33,8 @@ namespace Soulseek
     /// </summary>
     public class Transfer
     {
+        private readonly IPEndPoint ipEndPoint;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="Transfer"/> class.
         /// </summary>
@@ -201,7 +203,7 @@ namespace Soulseek
             StartTime = startTime;
             EndTime = endTime;
             RemoteToken = remoteToken;
-            IPEndPoint = ipEndPoint;
+            this.ipEndPoint = ipEndPoint.Snapshot();
             Exception = exception;
 
             BytesRemaining = Math.Max(0, Size - BytesTransferred);
@@ -253,7 +255,7 @@ namespace Soulseek
         /// <summary>
         ///     Gets the ip endpoint of the remote transfer connection, if one has been established.
         /// </summary>
-        public IPEndPoint IPEndPoint { get; }
+        public IPEndPoint IPEndPoint => ipEndPoint.Snapshot();
 
         /// <summary>
         ///     Gets the current progress in percent.

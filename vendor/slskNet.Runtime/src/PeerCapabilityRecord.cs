@@ -23,6 +23,8 @@ namespace Soulseek
     /// </summary>
     public sealed class PeerCapabilityRecord
     {
+        private readonly IPEndPoint endPoint;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="PeerCapabilityRecord"/> class.
         /// </summary>
@@ -41,7 +43,7 @@ namespace Soulseek
             DateTimeOffset observedAt)
         {
             Username = string.IsNullOrWhiteSpace(username) ? throw new ArgumentException("Username must not be empty", nameof(username)) : username;
-            EndPoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
+            endPoint = (endpoint ?? throw new ArgumentNullException(nameof(endpoint))).Snapshot();
             Descriptor = descriptor ?? throw new ArgumentNullException(nameof(descriptor));
             if (!Enum.IsDefined(typeof(PeerCapabilityMessageType), messageType))
             {
@@ -61,7 +63,7 @@ namespace Soulseek
         /// <summary>
         ///     Gets the endpoint from which the descriptor was seen.
         /// </summary>
-        public IPEndPoint EndPoint { get; }
+        public IPEndPoint EndPoint => endPoint.Snapshot();
 
         /// <summary>
         ///     Gets the message type that produced this record.

@@ -52,6 +52,18 @@ namespace Soulseek.Tests.Unit
             Assert.True(args.IsBranchRoot);
         }
 
+        [Fact(DisplayName = "DistributedParentEventArgs snapshots endpoint")]
+        public void DistributedParentEventArgs_Snapshots_Endpoint()
+        {
+            var endpoint = new IPEndPoint(IPAddress.Loopback, 1234);
+            var args = new DistributedParentEventArgs("user", endpoint, branchLevel: 0, branchRoot: "root");
+
+            endpoint.Port = 4321;
+            args.IPEndPoint.Port = 1111;
+
+            Assert.Equal(1234, args.IPEndPoint.Port);
+        }
+
         [Trait("Category", "Instantiation")]
         [Theory(DisplayName = "DistributedParentEventArgs nstantiates properly"), AutoData]
         public void DistributedChildEventArgs_Instantiates_Properly(string username, IPEndPoint ipEndPoint)
@@ -60,6 +72,18 @@ namespace Soulseek.Tests.Unit
 
             Assert.Equal(username, args.Username);
             Assert.Equal(ipEndPoint, args.IPEndPoint);
+        }
+
+        [Fact(DisplayName = "DistributedChildEventArgs snapshots endpoint")]
+        public void DistributedChildEventArgs_Snapshots_Endpoint()
+        {
+            var endpoint = new IPEndPoint(IPAddress.Loopback, 1234);
+            var args = new DistributedChildEventArgs("user", endpoint);
+
+            endpoint.Port = 4321;
+            args.IPEndPoint.Port = 1111;
+
+            Assert.Equal(1234, args.IPEndPoint.Port);
         }
     }
 }
