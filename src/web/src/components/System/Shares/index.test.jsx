@@ -1,7 +1,7 @@
 import Shares from './index';
 import * as sharesLibrary from '../../../lib/shares';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 
@@ -46,6 +46,20 @@ describe('System Shares', () => {
 
     expect(await screen.findByText('/music')).toBeInTheDocument();
     expect(screen.queryByText('/bad')).not.toBeInTheDocument();
+  });
+
+  it('cancels delayed post-scan refreshes when unmounted', async () => {
+    vi.useFakeTimers();
+    sharesLibrary.getAll.mockResolvedValue([]);
+
+    const { unmount } = renderShares();
+
+    await waitFor(() => expect(sharesLibrary.getAll).toHaveBeenCalledTimes(2));
+    unmount();
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    expect(sharesLibrary.getAll).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
   });
 });
   const renderShares = () =>

@@ -3,7 +3,7 @@ import { LoaderSegment, ShrinkableButton, Switch } from '../../Shared';
 import ContentsModal from './ContentsModal';
 import ExclusionTable from './ExclusionTable';
 import ShareTable from './ShareTable';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Divider } from 'semantic-ui-react';
 
@@ -43,8 +43,16 @@ const Shares = ({ state = {}, theme } = {}) => {
   const [working, setWorking] = useState(false);
   const [shares, setShares] = useState([]);
   const [modal, setModal] = useState(false);
+  const refreshTimeoutRef = useRef(null);
 
   const { directories, files, scanPending, scanProgress, scanning } = state;
+
+  const clearRefreshTimeout = () => {
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current);
+      refreshTimeoutRef.current = null;
+    }
+  };
 
   const getAll = async (quiet = false) => {
     try {
@@ -71,16 +79,22 @@ const Shares = ({ state = {}, theme } = {}) => {
 
   useEffect(() => {
     getAll();
+
+    return clearRefreshTimeout;
   }, []);
 
   useEffect(() => {
+    clearRefreshTimeout();
     getAll(true);
 
     if (!scanning) {
       // the state change out of scanning can fire before
       // shares are updated, which leaves them stale. wait a second
       // and fetch again.
-      setTimeout(() => getAll(true), 1_000);
+      refreshTimeoutRef.current = setTimeout(() => {
+        refreshTimeoutRef.current = null;
+        getAll(true);
+      }, 1_000);
     }
   }, [scanPending, scanning]);
 

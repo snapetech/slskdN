@@ -1,5 +1,7 @@
 ## 2026-05-06
 
+- Continued the non-runtime Web lifecycle/hub mutation council section and fixed `BUG-20260506-079` through `BUG-20260506-081`: Library Health scan polling now clears intervals/timeouts on unmount and surfaces poll failures, Shares cancels delayed post-scan refreshes, and malformed Search hub mutation events are ignored instead of creating `undefined` search entries. Added focused Vitest regressions and ADR-0001 gotcha `0z93`.
+
 - Continued the non-runtime Web boundary object-normalization council section and fixed `BUG-20260506-076` through `BUG-20260506-078`: Experience settings now sanitize persisted enum/boolean/numeric fields, user-note responses default malformed bodies safely, and MusicBrainz target lookup rejects malformed success bodies before enabling graph actions. Added focused Vitest regressions and ADR-0001 gotcha `0z92`.
 
 - Continued the non-runtime release/ops workflow section and fixed `BUG-20260506-046` through `BUG-20260506-047`: upstream sync is now manual-only and pushes to `main`, while the upstream-access notification workflow targets `main` and declares explicit issue/PR permissions. Added `scripts/check-workflow-main-branch-targets.sh` plus ADR-0001 gotchas `0z337` and `0z338`.

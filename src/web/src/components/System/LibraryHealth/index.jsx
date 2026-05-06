@@ -10,7 +10,7 @@ import {
 } from '../../../lib/libraryHealthReport';
 import { LoaderSegment } from '../../Shared';
 import * as searches from '../../../lib/searches';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Button,
   Grid,
@@ -44,11 +44,37 @@ const LibraryHealth = () => {
   const [reportMessage, setReportMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const mountedRef = useRef(true);
+  const pollIntervalRef = useRef(null);
+  const pollTimeoutRef = useRef(null);
+
+  const clearScanTimers = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+
+    if (pollTimeoutRef.current) {
+      clearTimeout(pollTimeoutRef.current);
+      pollTimeoutRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      clearScanTimers();
+    };
+  }, []);
 
   const loadSummary = async (path) => {
     if (!path) return;
 
     try {
+      if (!mountedRef.current) {
+        return;
+      }
+
       setLoading(true);
       setError(null);
       const [summaryResp, byTypeResp, byArtistResp, issuesResp] =
@@ -58,19 +84,30 @@ const LibraryHealth = () => {
           libraryHealth.getIssuesByArtist(10),
           libraryHealth.getIssues({ libraryPath: path, limit: 100 }),
       ]);
+
+      if (!mountedRef.current) {
+        return;
+      }
+
       setSummary(summaryResp.data);
       setIssuesByType(asArray(byTypeResp.data?.groups).filter(isObject));
       setIssuesByArtist(asArray(byArtistResp.data?.groups).filter(isObject));
       setIssues(asArray(issuesResp.data?.issues).filter(isObject));
       setReportMessage('');
     } catch (error_) {
+      if (!mountedRef.current) {
+        return;
+      }
+
       setError(
         error_.response?.data?.message ||
           error_.message ||
           'Failed to load library health data',
       );
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -81,6 +118,7 @@ const LibraryHealth = () => {
     }
 
     try {
+      clearScanTimers();
       setScanning(true);
       setError(null);
       const response = await libraryHealth.startScan(libraryPath);
@@ -92,25 +130,42 @@ const LibraryHealth = () => {
       }
 
       // Poll for completion
-      const poll = setInterval(async () => {
-        const statusResp = await libraryHealth.getScanStatus(scanId);
-        const status = isObject(statusResp.data) ? statusResp.data.status : '';
-        if (
-          status === 'Completed' ||
-          status === 'Failed'
-        ) {
-          clearInterval(poll);
-          setScanning(false);
-          loadSummary(libraryPath);
+      pollIntervalRef.current = setInterval(async () => {
+        try {
+          const statusResp = await libraryHealth.getScanStatus(scanId);
+          const status = isObject(statusResp.data) ? statusResp.data.status : '';
+          if (
+            status === 'Completed' ||
+            status === 'Failed'
+          ) {
+            clearScanTimers();
+            if (mountedRef.current) {
+              setScanning(false);
+              loadSummary(libraryPath);
+            }
+          }
+        } catch (error_) {
+          clearScanTimers();
+          if (mountedRef.current) {
+            setError(
+              error_.response?.data?.message ||
+                error_.message ||
+                'Failed to poll Library Health scan status',
+            );
+            setScanning(false);
+          }
         }
       }, 2_000);
 
-      setTimeout(() => {
-        clearInterval(poll);
-        setScanning(false);
-        loadSummary(libraryPath);
+      pollTimeoutRef.current = setTimeout(() => {
+        clearScanTimers();
+        if (mountedRef.current) {
+          setScanning(false);
+          loadSummary(libraryPath);
+        }
       }, 60_000); // Max 1 minute polling
     } catch (error_) {
+      clearScanTimers();
       setError(
         error_.response?.data?.message ||
           error_.message ||

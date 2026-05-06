@@ -224,4 +224,41 @@ describe('LibraryHealth', () => {
     ).not.toHaveLength(0);
     expect(libraryHealth.getScanStatus).not.toHaveBeenCalled();
   });
+
+  it('cleans scan polling timers when unmounted', async () => {
+    vi.useFakeTimers();
+    const { unmount } = render(<LibraryHealth />);
+
+    fireEvent.change(screen.getByPlaceholderText('Enter library path (e.g., /music or C:\\Music)'), {
+      target: { value: '/fixture/music' },
+    });
+    fireEvent.click(screen.getByText('Start Scan'));
+
+    await waitFor(() => expect(libraryHealth.startScan).toHaveBeenCalled());
+    unmount();
+    await vi.advanceTimersByTimeAsync(60_000);
+
+    expect(libraryHealth.getScanStatus).not.toHaveBeenCalled();
+    expect(libraryHealth.getSummary).not.toHaveBeenCalledWith('/fixture/music');
+  });
+
+  it('stops scanning and surfaces polling failures', async () => {
+    vi.useFakeTimers();
+    libraryHealth.getScanStatus.mockRejectedValue(new Error('poll failed'));
+
+    render(<LibraryHealth />);
+
+    fireEvent.change(screen.getByPlaceholderText('Enter library path (e.g., /music or C:\\Music)'), {
+      target: { value: '/fixture/music' },
+    });
+    fireEvent.click(screen.getByText('Start Scan'));
+
+    await vi.advanceTimersByTimeAsync(2_000);
+
+    await waitFor(() =>
+      expect(screen.getAllByText('poll failed').length).toBeGreaterThan(0),
+    );
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(libraryHealth.getScanStatus).toHaveBeenCalledTimes(1);
+  });
 });

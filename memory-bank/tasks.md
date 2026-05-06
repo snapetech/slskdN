@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **bug-council**: Continue Web lifecycle and hub mutation cycle.
+ - Status: completed (2026-05-06)
+ - Priority: P2
+ - Notes: Fixed `BUG-20260506-079` through `BUG-20260506-081` by owning Library Health scan polling timers through refs and cleanup, canceling Shares delayed post-scan refreshes on unmount, and ignoring malformed Search hub mutation events. Added focused Web regressions and ADR-0001 gotcha `0z93`.
+
 - [x] **bug-council**: Continue Web boundary object-normalization cycle.
  - Status: completed (2026-05-06)
  - Priority: P2

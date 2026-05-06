@@ -32,7 +32,11 @@ vi.mock('./SongIDPanel', () => ({
   default: () => <div data-testid="songid-panel">SongID panel</div>,
 }));
 vi.mock('./Detail/SearchDetail', () => ({ default: () => null }));
-vi.mock('./List/SearchList', () => ({ default: () => null }));
+vi.mock('./List/SearchList', () => ({
+  default: ({ searches = {} }) => (
+    <div data-testid="search-list">{Object.keys(searches).join(',')}</div>
+  ),
+}));
 
 const callbacks = {};
 
@@ -191,5 +195,17 @@ describe('Searches', () => {
     callbacks.list?.({ searches: [{ id: 'bad' }] });
 
     expect(screen.getByTestId('search-input')).toBeInTheDocument();
+  });
+
+  it('ignores malformed hub mutation events without creating undefined searches', async () => {
+    await renderSearches();
+
+    callbacks.create?.({ query: 'missing id' });
+    callbacks.update?.(null);
+    callbacks.delete?.({ id: 42 });
+    callbacks.create?.({ id: 'search-1', query: 'valid' });
+
+    expect(await screen.findByTestId('search-list')).toHaveTextContent('search-1');
+    expect(screen.getByTestId('search-list')).not.toHaveTextContent('undefined');
   });
 });

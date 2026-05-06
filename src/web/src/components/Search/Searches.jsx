@@ -41,6 +41,11 @@ import {
 } from 'semantic-ui-react';
 import { v4 as uuidv4 } from 'uuid';
 
+const isObject = (value) =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
+const hasSearchId = (value) => isObject(value) && typeof value.id === 'string';
+
 const CollapsibleSection = ({
   children,
   defaultOpen = true,
@@ -214,7 +219,7 @@ const Searches = ({ server } = {}) => {
     searchHub.on('list', (searchesEvent) => {
       const searchList = Array.isArray(searchesEvent) ? searchesEvent : [];
       onUpdate(
-        searchList.reduce((accumulator, search) => {
+        searchList.filter(hasSearchId).reduce((accumulator, search) => {
           accumulator[search.id] = search;
           return accumulator;
         }, {}),
@@ -223,18 +228,24 @@ const Searches = ({ server } = {}) => {
     });
 
     searchHub.on('update', (search) => {
-      onUpdate((old) => ({ ...old, [search.id]: search }));
+      if (hasSearchId(search)) {
+        onUpdate((old) => ({ ...old, [search.id]: search }));
+      }
     });
 
     searchHub.on('delete', (search) => {
-      onUpdate((old) => {
-        delete old[search.id];
-        return { ...old };
-      });
+      if (hasSearchId(search)) {
+        onUpdate((old) => {
+          delete old[search.id];
+          return { ...old };
+        });
+      }
     });
 
     searchHub.on('create', (search) => {
-      onUpdate((old) => ({ ...old, [search.id]: search }));
+      if (hasSearchId(search)) {
+        onUpdate((old) => ({ ...old, [search.id]: search }));
+      }
     });
 
     searchHub.onreconnecting((connectionError) =>

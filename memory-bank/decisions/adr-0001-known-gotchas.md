@@ -15349,3 +15349,11 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 **Why it happened:** Earlier Web guards checked malformed arrays and null bodies, but object-shaped payloads were still treated as trustworthy once `typeof value === 'object'` passed.
 
 **How to prevent it:** Normalize Web storage and API response bodies field by field at the component/helper boundary. Enum values must be allowlisted, booleans must be real booleans, and required nested success shapes must be rejected before updating UI state or enabling follow-up actions.
+
+### 0z93. Web Polling Timers Need Explicit Lifecycle Ownership
+
+**What went wrong:** Web scan/poll flows started intervals, timeout fallbacks, and delayed refreshes without owning them through refs and cleanup. A component unmount or scan-state transition could leave stale refreshes running, and polling errors could keep the UI stuck in scanning state.
+
+**Why it happened:** The initial code treated timer handles as local implementation details inside click/effect bodies. That works for the happy path, but React component lifecycle changes outlive those local variables unless cleanup owns every handle.
+
+**How to prevent it:** Any Web component that starts polling, delayed refreshes, hub callbacks, or timeout fallbacks must clear them on unmount and when starting replacement work. Poll callbacks also need local error handling so failures stop the spinner and surface a stable error.

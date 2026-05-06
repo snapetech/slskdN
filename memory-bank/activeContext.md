@@ -1,3 +1,17 @@
+## Update 2026-05-07 01:39:00Z
+
+- Current task: Continue non-runtime council Web lifecycle and hub mutation cycle.
+- Last activity:
+  - classified Web lifecycle candidates after skipping runtime/vendor;
+  - accepted and fixed `BUG-20260506-079` through `BUG-20260506-081`;
+  - Library Health scan polling now owns interval/timeout cleanup and handles poll errors;
+  - Shares delayed post-scan refreshes are canceled on unmount;
+  - Search hub mutation events now require object payloads with string ids;
+  - documented ADR-0001 gotcha `0z93`, and updated ledger/changelog/task log.
+- Next steps:
+  1. Run focused Web tests, remediation, Web lint, repo lint, and diff checks.
+  2. Commit and push the verified non-runtime Web lifecycle batch.
+
 ## Update 2026-05-07 01:33:00Z
 
 - Current task: Continue non-runtime council Web boundary object-normalization cycle.

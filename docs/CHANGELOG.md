@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Hardened Web lifecycle handling for Library Health scan polling, Shares
+  delayed refreshes, and malformed Search hub mutation events.
 - Hardened Web boundary object normalization for browser-local experience
   preferences, user-note responses, and MusicBrainz target lookup responses.
 - Persist job manifests, quarantine-jury state, Spotify connection tokens,
