@@ -1,5 +1,5 @@
-// <copyright file="WebApiRequestTests.cs" company="JP Dillingham">
-//     Copyright (c) JP Dillingham. All rights reserved.
+// <copyright file="WebApiRequestTests.cs" company="slskdN Team">
+//     Copyright (c) slskdN Team.
 //
 //     This program is free software: you can redistribute it and/or modify
 //     it under the terms of the GNU General Public License as published by

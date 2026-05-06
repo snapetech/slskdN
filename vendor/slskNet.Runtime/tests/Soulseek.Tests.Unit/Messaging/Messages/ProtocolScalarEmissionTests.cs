@@ -1,5 +1,5 @@
-﻿// <copyright file="ProtocolScalarEmissionTests.cs" company="JP Dillingham">
-//     Copyright (c) JP Dillingham. All rights reserved.
+﻿// <copyright file="ProtocolScalarEmissionTests.cs" company="slskdN Team">
+//     Copyright (c) slskdN Team.
 //
 //     This program is free software: you can redistribute it and/or modify
 //     it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             () => new PeerInit("user", Constants.ConnectionType.Peer, -1),
             () => new PierceFirewall(-1),
             () => new DistributedPingResponse(-1),
+            () => new DistributedSearchRequest("user", -1, "query"),
         };
 
         public static TheoryData<Action> ServerScalarCommands => new TheoryData<Action>

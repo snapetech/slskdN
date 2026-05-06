@@ -1,5 +1,5 @@
-// <copyright file="ProtocolScalarHardeningTests.cs" company="JP Dillingham">
-//     Copyright (c) JP Dillingham. All rights reserved.
+// <copyright file="ProtocolScalarHardeningTests.cs" company="slskdN Team">
+//     Copyright (c) slskdN Team.
 //
 //     This program is free software: you can redistribute it and/or modify
 //     it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             yield return new object[] { "CannotConnect", new Action(() => new CannotConnect(-1, "user")) };
             yield return new object[] { "ConnectToPeerRequest", new Action(() => new ConnectToPeerRequest(-1, "user", "P")) };
             yield return new object[] { "DistributedPingResponse", new Action(() => new DistributedPingResponse(-1)) };
+            yield return new object[] { "DistributedSearchRequest", new Action(() => new DistributedSearchRequest("user", -1, "query")) };
             yield return new object[] { "FolderContentsRequest", new Action(() => new FolderContentsRequest(-1, "dir")) };
             yield return new object[] { "FolderContentsResponse", new Action(() => new FolderContentsResponse(-1, "dir", Array.Empty<Soulseek.Directory>())) };
             yield return new object[] { "LoginRequest", new Action(() => new LoginRequest(-1, "user", "pass")) };

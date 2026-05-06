@@ -1,5 +1,6 @@
 ﻿// <copyright file="RoomTickerListNotification.cs" company="JP Dillingham">
 //     Copyright (c) JP Dillingham.
+//     Copyright (c) slskdN Team.
 //
 //     This program is free software: you can redistribute it and/or modify
 //     it under the terms of the GNU General Public License as published by
@@ -18,6 +19,7 @@
 //     project for the complete terms and conditions.
 //
 //     SPDX-FileCopyrightText: JP Dillingham
+//     SPDX-FileCopyrightText: slskdN Team
 //     SPDX-License-Identifier: GPL-3.0-only
 // </copyright>
 
