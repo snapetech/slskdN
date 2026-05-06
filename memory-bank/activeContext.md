@@ -1,3 +1,17 @@
+## Update 2026-05-06 23:28:00Z
+
+- Current task: Continue non-runtime council Web response-object cycle.
+- Last activity:
+  - classified the response-object property-read section across Contacts, Library Health, SharedWithMe, Playlist Intake, user notes, jobs/bridge helpers, and guarded search panels;
+  - accepted and fixed `BUG-20260506-051` through `BUG-20260506-054`;
+  - Contacts now filters malformed contact entries, treats malformed invite creation responses as stable errors, and renders structured contact errors as text;
+  - Library Health now requires a string scan id before polling and ignores malformed status bodies;
+  - SharedWithMe now normalizes backfill result counts and structured backfill errors;
+  - documented ADR-0001 gotcha `0z341`, and updated ledger/changelog/task log.
+- Next steps:
+  1. Run remediation, Web lint, repo lint, and diff checks.
+  2. Commit and push the verified non-runtime Web response-object batch.
+
 ## Update 2026-05-06 23:15:00Z
 
 - Current task: Continue non-runtime council Web/API contract cycle.

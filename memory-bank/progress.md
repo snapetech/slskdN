@@ -9863,3 +9863,12 @@ Code quality improvements were completed as part of Option A:
 - Hardened Transfers bulk selection resolution against stale/corrupt selection entries and non-array directory payloads.
 - Hardened the options editor so current validation failures block saves and structured API update errors render stable text instead of `[object Object]`.
 - Focused Web validation passed for the new Transfers and Options regressions.
+
+## 2026-05-06 23:28:00Z
+
+- Continued the non-runtime council scan into Web response-object shape drift.
+- Recorded and verified `BUG-20260506-051` through `BUG-20260506-054`.
+- Hardened Contacts against malformed contact entries, malformed invite creation responses, and structured add/delete contact errors.
+- Hardened Library Health scan startup so missing scan ids fail visibly without polling invalid status URLs.
+- Hardened incoming share backfill so malformed result bodies normalize to zero-count summaries and structured errors render as text.
+- Focused Web validation passed for Contacts, Library Health, and SharedWithMe regressions.

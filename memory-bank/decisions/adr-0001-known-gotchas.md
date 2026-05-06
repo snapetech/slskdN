@@ -394,6 +394,35 @@ return Array.from(selections)
 
 **Why This Keeps Happening**: UI selection state often stores compact identifiers while the rendered data refreshes independently. Any bulk-action resolver must treat serialized selections and refreshed payloads as untrusted, discard stale IDs, and only act on items that still exist.
 
+### 0z341. Web Response Objects Need Shape Guards Before Property Reads
+
+**The Bug**: Contacts, Library Health, and SharedWithMe normalized list payloads in some places, but still dereferenced scalar response objects directly (`response.data.inviteLink`, `response.data.scanId`, `result.data.failed`) and sometimes stored structured error bodies as React text.
+
+**Files Affected**:
+- `src/web/src/components/Contacts/Contacts.jsx`
+- `src/web/src/components/System/LibraryHealth/index.jsx`
+- `src/web/src/components/Shares/SharedWithMe.jsx`
+
+**Wrong**:
+```code
+const inviteLink = response.data.inviteLink;
+const scanId = response.data.scanId;
+if (result.data.failed === 0) { ... }
+setState({ error: error.response?.data || error.message });
+```
+
+**Correct**:
+```code
+const data = isObject(response.data) ? response.data : {};
+const inviteLink = typeof data.inviteLink === 'string' ? data.inviteLink : '';
+if (!inviteLink) throw new Error('Identity invite response did not include an invite link.');
+
+const result = normalizeBackfillResult(response.data);
+setState({ error: getErrorMessage(error, 'Failed to start backfill') });
+```
+
+**Why This Keeps Happening**: Earlier Web hardening focused on array/list payloads, so adjacent object payloads still looked safe. Any API response object used for control flow, ids, counts, or user-visible errors must be checked as an object and have typed fields before the UI branches on it.
+
 ### 0z326. Integration Auth Fixtures Must Match Admin-Only Routes
 
 **The Bug**: After security telemetry routes were tightened to administrator-only, the shared integration `StubWebApplicationFactory` still authenticated as only `ReadWrite`, so versioned admin route smoke tests failed with `403 Forbidden`.

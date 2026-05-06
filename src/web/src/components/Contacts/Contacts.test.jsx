@@ -28,6 +28,7 @@ const renderContacts = () =>
 
 describe('Contacts', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     identityAPI.getContacts.mockResolvedValue({ data: [] });
     identityAPI.getNearby.mockResolvedValue({ data: [] });
     identityAPI.createInvite.mockResolvedValue({
@@ -68,13 +69,57 @@ describe('Contacts', () => {
   });
 
   it('ignores malformed contact and nearby list payloads', async () => {
-    identityAPI.getContacts.mockResolvedValue({ data: { contacts: [] } });
+    identityAPI.getContacts.mockResolvedValue({
+      data: [null, { nickname: 'No peer id' }, { nickname: 'Alice', peerId: 'alice-peer' }],
+    });
     identityAPI.getNearby.mockResolvedValue({ data: { peers: [] } });
 
     renderContacts();
 
     expect(await screen.findByText('Create Invite')).toBeInTheDocument();
     expect(screen.queryByText('contacts.map is not a function')).not.toBeInTheDocument();
+    await waitFor(() => expect(identityAPI.getContacts).toHaveBeenCalled());
+    expect(screen.queryByText('No peer id')).not.toBeInTheDocument();
+  });
+
+  it('shows a stable error when invite creation returns a malformed payload', async () => {
+    identityAPI.createInvite.mockResolvedValue({ data: null });
+
+    renderContacts();
+
+    fireEvent.click(await screen.findByText('Create Invite'));
+
+    expect(
+      await screen.findByText(
+        /Identity invite response did not include an invite link/,
+      ),
+    ).toBeInTheDocument();
+    expect(QRCode.toDataURL).not.toHaveBeenCalled();
+  });
+
+  it('renders structured add-contact errors as text', async () => {
+    identityAPI.addContactFromInvite.mockRejectedValue({
+      response: {
+        data: {
+          detail: 'Invite expired',
+          status: 400,
+          title: 'Bad Request',
+        },
+      },
+    });
+
+    renderContacts();
+
+    fireEvent.click(await screen.findByText('Add Friend'));
+    fireEvent.change(screen.getByTestId('contacts-add-invite-input'), {
+      target: { value: 'slskdn://invite/expired' },
+    });
+    fireEvent.change(screen.getByTestId('contacts-contact-nickname'), {
+      target: { value: 'Alice' },
+    });
+    fireEvent.click(screen.getByTestId('contacts-add-invite-submit'));
+
+    expect(await screen.findByText(/Invite expired/)).toBeInTheDocument();
   });
 
   it('fills the invite input from a scanned QR image', async () => {

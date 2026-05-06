@@ -22,6 +22,7 @@ describe('SharedWithMe', () => {
     collectionsAPI.getShares.mockResolvedValue({
       data: [
         {
+          allowDownload: true,
           allowStream: true,
           collectionId: 'collection-1',
           id: 'share-1',
@@ -52,5 +53,41 @@ describe('SharedWithMe', () => {
 
     await waitFor(() => expect(collectionsAPI.getShareManifest).toHaveBeenCalledWith('share-1'));
     expect(await screen.findByText('No items in this collection')).toBeInTheDocument();
+  });
+
+  it('normalizes malformed backfill responses before rendering results', async () => {
+    collectionsAPI.backfillShare.mockResolvedValue({ data: null });
+
+    render(<SharedWithMe />);
+
+    expect(await screen.findByText('Shared Album')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('incoming-share-open'));
+    await screen.findByText('No items in this collection');
+    fireEvent.click(screen.getByTestId('incoming-backfill'));
+
+    await waitFor(() => expect(collectionsAPI.backfillShare).toHaveBeenCalledWith('share-1'));
+    expect(await screen.findByText(/0 enqueued, 0 failed/)).toBeInTheDocument();
+  });
+
+  it('renders structured backfill errors as text', async () => {
+    collectionsAPI.backfillShare.mockRejectedValue({
+      response: {
+        data: {
+          detail: 'Backfill is disabled for this share',
+          status: 400,
+          title: 'Bad Request',
+        },
+      },
+    });
+
+    render(<SharedWithMe />);
+
+    expect(await screen.findByText('Shared Album')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('incoming-share-open'));
+    await screen.findByText('No items in this collection');
+    fireEvent.click(screen.getByTestId('incoming-backfill'));
+
+    expect(await screen.findByText(/Backfill is disabled for this share/))
+      .toBeInTheDocument();
   });
 });

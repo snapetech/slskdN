@@ -21,6 +21,27 @@ import {
 const Button = TooltipButton;
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
+const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+
+const getErrorMessage = (error, fallback = 'Request failed') => {
+  const data = error?.response?.data;
+
+  if (typeof data === 'string') return data;
+  if (isObject(data)) {
+    return data.detail ||
+      data.message ||
+      data.error ||
+      data.title ||
+      JSON.stringify(data);
+  }
+
+  return error?.message || fallback;
+};
+
+const normalizeContact = (contact) =>
+  isObject(contact) && typeof contact.peerId === 'string' && contact.peerId.length > 0
+    ? contact
+    : null;
 
 const withNavigate = (WrappedComponent) => {
   const RoutedComponent = (props) => {
@@ -61,7 +82,10 @@ class Contacts extends Component {
     try {
       this.setState({ error: null, loading: true });
       const response = await identityAPI.getContacts();
-      this.setState({ contacts: asArray(response.data), loading: false });
+      this.setState({
+        contacts: asArray(response.data).map(normalizeContact).filter(Boolean),
+        loading: false,
+      });
     } catch (error) {
       // If 401/403/404, feature not enabled or not authenticated - return empty list
       if (
@@ -93,7 +117,7 @@ class Contacts extends Component {
       this.setState({ addFriendModalOpen: false });
       await this.loadContacts();
     } catch (error) {
-      this.setState({ error: error.response?.data || error.message });
+      this.setState({ error: getErrorMessage(error, 'Failed to add contact') });
     }
   };
 
@@ -102,14 +126,19 @@ class Contacts extends Component {
       await identityAPI.addContactFromDiscovery({ nickname, peerId });
       await this.loadContacts();
     } catch (error) {
-      this.setState({ error: error.response?.data || error.message });
+      this.setState({ error: getErrorMessage(error, 'Failed to add contact') });
     }
   };
 
   handleCreateInvite = async () => {
     try {
       const response = await identityAPI.createInvite({ expiresInHours: 24 });
-      const inviteLink = response.data.inviteLink;
+      const data = isObject(response.data) ? response.data : {};
+      const inviteLink = typeof data.inviteLink === 'string' ? data.inviteLink : '';
+      if (!inviteLink) {
+        throw new Error('Identity invite response did not include an invite link.');
+      }
+
       const inviteQrDataUrl = inviteLink
         ? await QRCode.toDataURL(inviteLink, {
             errorCorrectionLevel: 'M',
@@ -120,7 +149,7 @@ class Contacts extends Component {
       this.setState({
         createInviteModalOpen: true,
         error: null,
-        inviteFriendCode: response.data.friendCode,
+        inviteFriendCode: typeof data.friendCode === 'string' ? data.friendCode : null,
         inviteLink,
         inviteQrDataUrl,
       });
@@ -195,7 +224,7 @@ class Contacts extends Component {
       await identityAPI.deleteContact(id);
       await this.loadContacts();
     } catch (error) {
-      this.setState({ error: error.response?.data || error.message });
+      this.setState({ error: getErrorMessage(error, 'Failed to delete contact') });
     }
   };
 

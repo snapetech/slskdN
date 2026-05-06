@@ -2588,3 +2588,7 @@
 - [x] Continue non-runtime council Web/API contract cycle
   - Status: completed (2026-05-06)
   - Notes: Classified the web storage/response-shape section; fixed `BUG-20260506-048` through `BUG-20260506-050` for Transfers stale selection reconciliation, options save validation gating, and structured options update error rendering.
+
+- [x] Continue non-runtime council Web response-object cycle
+  - Status: completed (2026-05-06)
+  - Notes: Classified the response-object property-read section; fixed `BUG-20260506-051` through `BUG-20260506-054` for Contacts malformed contact/invite responses, Library Health scan id/status guards, and incoming share backfill result/error normalization.

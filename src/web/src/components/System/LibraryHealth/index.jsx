@@ -84,14 +84,20 @@ const LibraryHealth = () => {
       setScanning(true);
       setError(null);
       const response = await libraryHealth.startScan(libraryPath);
-      const scanId = response.data.scanId;
+      const scanId = isObject(response.data) && typeof response.data.scanId === 'string'
+        ? response.data.scanId
+        : '';
+      if (!scanId) {
+        throw new Error('Library Health scan response did not include a scan id');
+      }
 
       // Poll for completion
       const poll = setInterval(async () => {
         const statusResp = await libraryHealth.getScanStatus(scanId);
+        const status = isObject(statusResp.data) ? statusResp.data.status : '';
         if (
-          statusResp.data.status === 'Completed' ||
-          statusResp.data.status === 'Failed'
+          status === 'Completed' ||
+          status === 'Failed'
         ) {
           clearInterval(poll);
           setScanning(false);

@@ -207,4 +207,21 @@ describe('LibraryHealth', () => {
     expect(screen.queryByText('Fixture Track')).not.toBeInTheDocument();
     expect(screen.getAllByText('No issues detected').length).toBeGreaterThan(0);
   });
+
+  it('does not poll when scan creation omits a scan id', async () => {
+    vi.useFakeTimers();
+    libraryHealth.startScan.mockResolvedValue({ data: {} });
+
+    render(<LibraryHealth />);
+
+    fireEvent.change(screen.getByPlaceholderText('Enter library path (e.g., /music or C:\\Music)'), {
+      target: { value: '/fixture/music' },
+    });
+    fireEvent.click(screen.getByText('Start Scan'));
+
+    expect(
+      await screen.findAllByText(/Library Health scan response did not include a scan id/),
+    ).not.toHaveLength(0);
+    expect(libraryHealth.getScanStatus).not.toHaveBeenCalled();
+  });
 });

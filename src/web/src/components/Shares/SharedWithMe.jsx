@@ -16,6 +16,31 @@ import {
 } from 'semantic-ui-react';
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
+const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+
+const getErrorMessage = (error, fallback) => {
+  const data = error?.response?.data;
+
+  if (typeof data === 'string') return data;
+  if (isObject(data)) {
+    return data.detail ||
+      data.message ||
+      data.error ||
+      data.title ||
+      JSON.stringify(data);
+  }
+
+  return error?.message || fallback;
+};
+
+const normalizeBackfillResult = (data) =>
+  isObject(data)
+    ? {
+        enqueued: Number.isFinite(Number(data.enqueued)) ? Number(data.enqueued) : 0,
+        failed: Number.isFinite(Number(data.failed)) ? Number(data.failed) : 0,
+        message: typeof data.message === 'string' ? data.message : '',
+      }
+    : { enqueued: 0, failed: 0, message: '' };
 
 export default class SharedWithMe extends Component {
   state = {
@@ -156,24 +181,21 @@ export default class SharedWithMe extends Component {
     try {
       this.setState({ backfilling: true, backfillResult: null, error: null });
       const result = await collectionsAPI.backfillShare(selectedShare.id);
+      const backfillResult = normalizeBackfillResult(result.data);
       this.setState({
         backfilling: false,
-        backfillResult: result.data,
+        backfillResult,
       });
 
-      if (result.data.failed === 0) {
-        toast.success(result.data.message || 'Backfill started successfully');
+      if (backfillResult.failed === 0) {
+        toast.success(backfillResult.message || 'Backfill started successfully');
       } else {
         toast.warning(
-          result.data.message || 'Backfill started with some failures',
+          backfillResult.message || 'Backfill started with some failures',
         );
       }
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message ||
-        error.response?.data ||
-        error.message ||
-        'Failed to start backfill';
+      const errorMessage = getErrorMessage(error, 'Failed to start backfill');
       this.setState({
         backfilling: false,
         backfillResult: null,

@@ -25,6 +25,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Hardened the Web options editor and Transfers bulk-selection state so current
   validation errors block saves, structured API errors render readable text, and
   stale transfer selections are ignored after list refreshes.
+- Hardened Contacts, Library Health, and incoming share backfill workflows
+  against malformed response objects and structured API error bodies.
 - Synced vendored slskNet.Runtime endpoint ownership hardening so peer
   capability, distributed-network, transfer, and connection snapshots no longer
   expose mutable endpoint state.
