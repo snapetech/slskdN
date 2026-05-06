@@ -392,6 +392,37 @@ namespace Soulseek.Tests.Unit.Network
         }
 
         [Trait("Category", "WriteAsync")]
+        [Theory(DisplayName = "WriteAsync succeeds if MessageWritten handler throws"), AutoData]
+        public async Task WriteAsync_Succeeds_If_MessageWritten_Handler_Throws(string username, IPEndPoint endpoint)
+        {
+            var streamMock = new Mock<INetworkStream>();
+            streamMock.Setup(s => s.ReadAsync(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.Run(() => 1));
+
+            var tcpMock = new Mock<ITcpClient>();
+
+            using (var socket = new Socket(SocketType.Stream, ProtocolType.IP))
+            {
+                tcpMock.Setup(m => m.Client).Returns(socket);
+                tcpMock.Setup(s => s.Connected).Returns(true);
+                tcpMock.Setup(s => s.GetStream()).Returns(streamMock.Object);
+
+                var msg = new BrowseRequest();
+                var expectedEx = new InvalidOperationException("subscriber failed");
+
+                using (var c = new MessageConnection(username, endpoint, tcpClient: tcpMock.Object))
+                {
+                    c.MessageWritten += (s, a) => throw expectedEx;
+
+                    var ex = await Record.ExceptionAsync(() => c.WriteAsync(msg));
+
+                    Assert.Null(ex);
+                    streamMock.Verify(s => s.WriteAsync(It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<CancellationToken>()), Times.Once);
+                }
+            }
+        }
+
+        [Trait("Category", "WriteAsync")]
         [Theory(DisplayName = "WriteAsync bytes throws ConnectionWriteException when Stream.WriteAsync throws"), AutoData]
         public async Task WriteAsync_Bytes_Throws_ConnectionWriteException_When_Stream_WriteAsync_Throws(IPEndPoint endpoint)
         {
@@ -604,6 +635,104 @@ namespace Soulseek.Tests.Unit.Network
                     await Task.Delay(1000); // ReadContinuouslyAsync() runs in a separate task, so events won't arrive immediately after connect
 
                     Assert.Equal(code, BitConverter.ToInt32(readMessage));
+                }
+            }
+        }
+
+        [Trait("Category", "ReadContinuously")]
+        [Theory(DisplayName = "ReadContinuously continues through throwing MessageDataRead handler"), AutoData]
+        public async Task ReadContinuously_Continues_Through_Throwing_MessageDataRead_Handler(string username, IPEndPoint endpoint)
+        {
+            int callCount = 0;
+            var code = (int)MessageCode.Peer.InfoRequest;
+
+            var streamMock = new Mock<INetworkStream>();
+            streamMock.Setup(s => s.ReadAsync(It.IsAny<Memory<byte>>(), It.IsAny<CancellationToken>()))
+                .Callback<Memory<byte>, CancellationToken>((bytes, token) =>
+                {
+                    if (callCount == 0)
+                    {
+                        BitConverter.GetBytes(4).AsSpan().CopyTo(bytes.Span);
+                    }
+                    else if (callCount == 1)
+                    {
+                        BitConverter.GetBytes(code).AsSpan().CopyTo(bytes.Span);
+                    }
+
+                    callCount++;
+                })
+                .Returns(() => callCount <= 2 ? ValueTask.FromResult(4) : throw new IOException("stop"));
+
+            var tcpMock = new Mock<ITcpClient>();
+
+            using (var socket = new Socket(SocketType.Stream, ProtocolType.IP))
+            {
+                tcpMock.Setup(m => m.Client).Returns(socket);
+                tcpMock.Setup(s => s.Connected).Returns(true);
+                tcpMock.Setup(s => s.GetStream()).Returns(streamMock.Object);
+
+                byte[] readMessage = null;
+                var expectedEx = new InvalidOperationException("subscriber failed");
+
+                using (var c = new MessageConnection(username, endpoint, tcpClient: tcpMock.Object))
+                {
+                    c.MessageDataRead += (sender, e) => throw expectedEx;
+                    c.MessageRead += (sender, e) => readMessage = e.Message;
+
+                    var ex = await Record.ExceptionAsync(() => c.InvokeMethod<Task>("ReadContinuouslyAsync"));
+
+                    Assert.NotNull(ex);
+                    Assert.NotEqual(expectedEx, ex);
+                    Assert.Equal(MessageCode.Peer.InfoRequest, new MessageReader<MessageCode.Peer>(readMessage).ReadCode());
+                }
+            }
+        }
+
+        [Trait("Category", "ReadContinuously")]
+        [Theory(DisplayName = "ReadContinuously continues through throwing MessageReceived handler"), AutoData]
+        public async Task ReadContinuously_Continues_Through_Throwing_MessageReceived_Handler(string username, IPEndPoint endpoint)
+        {
+            int callCount = 0;
+            var code = (int)MessageCode.Peer.InfoRequest;
+
+            var streamMock = new Mock<INetworkStream>();
+            streamMock.Setup(s => s.ReadAsync(It.IsAny<Memory<byte>>(), It.IsAny<CancellationToken>()))
+                .Callback<Memory<byte>, CancellationToken>((bytes, token) =>
+                {
+                    if (callCount == 0)
+                    {
+                        BitConverter.GetBytes(4).AsSpan().CopyTo(bytes.Span);
+                    }
+                    else if (callCount == 1)
+                    {
+                        BitConverter.GetBytes(code).AsSpan().CopyTo(bytes.Span);
+                    }
+
+                    callCount++;
+                })
+                .Returns(() => callCount <= 2 ? ValueTask.FromResult(4) : throw new IOException("stop"));
+
+            var tcpMock = new Mock<ITcpClient>();
+
+            using (var socket = new Socket(SocketType.Stream, ProtocolType.IP))
+            {
+                tcpMock.Setup(m => m.Client).Returns(socket);
+                tcpMock.Setup(s => s.Connected).Returns(true);
+                tcpMock.Setup(s => s.GetStream()).Returns(streamMock.Object);
+
+                byte[] readMessage = null;
+                var expectedEx = new InvalidOperationException("subscriber failed");
+
+                using (var c = new MessageConnection(username, endpoint, tcpClient: tcpMock.Object))
+                {
+                    c.MessageReceived += (sender, e) => throw expectedEx;
+                    c.MessageRead += (sender, e) => readMessage = e.Message;
+
+                    var ex = await Record.ExceptionAsync(() => c.InvokeMethod<Task>("ReadContinuouslyAsync"));
+
+                    Assert.NotNull(ex);
+                    Assert.NotEqual(expectedEx, ex);
+                    Assert.Equal(MessageCode.Peer.InfoRequest, new MessageReader<MessageCode.Peer>(readMessage).ReadCode());
                 }
             }
         }

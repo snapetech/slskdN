@@ -51,6 +51,14 @@ write_section \
   '^(?![[:space:]]*\(\) =>)(?!.*RaiseEventHandler)(?!.*DiagnosticGenerated).*[A-Za-z0-9_]+\?\.Invoke\(' \
   src/Messaging/Handlers/ServerMessageHandler.cs
 
+{
+  printf '\n## Unisolated message connection event invocations\n'
+  awk '
+    /private void RaiseEventHandler/ { exit }
+    /\.Invoke\(/ { printf "%s:%d:%s\n", FILENAME, NR, $0 }
+  ' src/Network/MessageConnection.cs
+} >>"$report"
+
 write_section \
   "Remote/user text in diagnostics or HTTP errors" \
   '(Diagnostic\.(Debug|Info|Warning|Error)|StatusCode\(|BadRequest\(|Console\.WriteLine)\([^;\n]*(username|query|filename|directory|token|Message)' \

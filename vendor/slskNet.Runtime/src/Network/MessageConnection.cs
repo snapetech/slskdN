@@ -208,22 +208,8 @@ namespace Soulseek.Network
             ReadingContinuously = true;
             byte[] codeBytes = null;
 
-            void RaiseMessageDataRead(object sender, ConnectionDataEventArgs e)
-            {
-                if (SoulseekClient.RaiseEventsAsynchronously)
-                {
-                    Task.Run(() =>
-                    {
-                        Interlocked.CompareExchange(ref MessageDataRead, null, null)?
-                            .Invoke(this, new MessageDataEventArgs(codeBytes, e.CurrentLength, e.TotalLength));
-                    }, CancellationToken.None).Forget();
-                }
-                else
-                {
-                    Interlocked.CompareExchange(ref MessageDataRead, null, null)?
-                            .Invoke(this, new MessageDataEventArgs(codeBytes, e.CurrentLength, e.TotalLength));
-                }
-            }
+            void OnDataRead(object sender, ConnectionDataEventArgs e)
+                => RaiseMessageDataRead(codeBytes, e.CurrentLength, e.TotalLength);
 
             try
             {
@@ -248,12 +234,11 @@ namespace Soulseek.Network
                             codeBytes = await ReadAsync(CodeLength, CancellationToken.None).ConfigureAwait(false);
                             message.AddRange(codeBytes);
 
-                            RaiseMessageDataRead(this, new ConnectionDataEventArgs(0, length - CodeLength));
+                            RaiseMessageDataRead(codeBytes, 0, length - CodeLength);
 
-                            Interlocked.CompareExchange(ref MessageReceived, null, null)?
-                                .Invoke(this, new MessageReceivedEventArgs(length, codeBytes));
+                            RaiseMessageReceived(length, codeBytes);
 
-                            DataRead += RaiseMessageDataRead;
+                            DataRead += OnDataRead;
 
                             var payloadBytes = await ReadAsync(length - CodeLength, CancellationToken.None).ConfigureAwait(false);
                             message.AddRange(payloadBytes);
@@ -264,28 +249,15 @@ namespace Soulseek.Network
 
                         if (Obfuscated)
                         {
-                            RaiseMessageDataRead(this, new ConnectionDataEventArgs(messageLength - CodeLength, messageLength - CodeLength));
-                            Interlocked.CompareExchange(ref MessageReceived, null, null)?
-                                .Invoke(this, new MessageReceivedEventArgs(messageLength, codeBytes));
+                            RaiseMessageDataRead(codeBytes, messageLength - CodeLength, messageLength - CodeLength);
+                            RaiseMessageReceived(messageLength, codeBytes);
                         }
 
-                        if (SoulseekClient.RaiseEventsAsynchronously)
-                        {
-                            Task.Run(() =>
-                            {
-                                Interlocked.CompareExchange(ref MessageRead, null, null)?
-                                    .Invoke(this, new MessageEventArgs(messageBytes));
-                            }, CancellationToken.None).Forget();
-                        }
-                        else
-                        {
-                            Interlocked.CompareExchange(ref MessageRead, null, null)?
-                                .Invoke(this, new MessageEventArgs(messageBytes));
-                        }
+                        RaiseMessageRead(messageBytes);
                     }
                     finally
                     {
-                        DataRead -= RaiseMessageDataRead;
+                        DataRead -= OnDataRead;
                     }
                 }
             }
@@ -299,18 +271,73 @@ namespace Soulseek.Network
         {
             await WriteAsync(Obfuscated ? RotatedObfuscation.Encode(bytes) : bytes, cancellationToken).ConfigureAwait(false);
 
+            RaiseMessageWritten(bytes);
+        }
+
+        private void RaiseEventHandler(Action invoke)
+        {
+            try
+            {
+                invoke();
+            }
+            catch
+            {
+                // Subscriber exceptions must not interrupt connection read/write control flow.
+            }
+        }
+
+        private void RaiseMessageDataRead(byte[] codeBytes, long currentLength, long totalLength)
+        {
             if (SoulseekClient.RaiseEventsAsynchronously)
             {
                 Task.Run(() =>
                 {
-                    Interlocked.CompareExchange(ref MessageWritten, null, null)?
-                        .Invoke(this, new MessageEventArgs(bytes));
-                }, cancellationToken).Forget();
+                    RaiseEventHandler(() => Interlocked.CompareExchange(ref MessageDataRead, null, null)?
+                        .Invoke(this, new MessageDataEventArgs(codeBytes, currentLength, totalLength)));
+                }, CancellationToken.None).Forget();
             }
             else
             {
-                Interlocked.CompareExchange(ref MessageWritten, null, null)?
-                    .Invoke(this, new MessageEventArgs(bytes));
+                RaiseEventHandler(() => Interlocked.CompareExchange(ref MessageDataRead, null, null)?
+                    .Invoke(this, new MessageDataEventArgs(codeBytes, currentLength, totalLength)));
+            }
+        }
+
+        private void RaiseMessageRead(byte[] message)
+        {
+            if (SoulseekClient.RaiseEventsAsynchronously)
+            {
+                Task.Run(() =>
+                {
+                    RaiseEventHandler(() => Interlocked.CompareExchange(ref MessageRead, null, null)?
+                        .Invoke(this, new MessageEventArgs(message)));
+                }, CancellationToken.None).Forget();
+            }
+            else
+            {
+                RaiseEventHandler(() => Interlocked.CompareExchange(ref MessageRead, null, null)?
+                    .Invoke(this, new MessageEventArgs(message)));
+            }
+        }
+
+        private void RaiseMessageReceived(int length, byte[] code)
+            => RaiseEventHandler(() => Interlocked.CompareExchange(ref MessageReceived, null, null)?
+                .Invoke(this, new MessageReceivedEventArgs(length, code)));
+
+        private void RaiseMessageWritten(byte[] message)
+        {
+            if (SoulseekClient.RaiseEventsAsynchronously)
+            {
+                Task.Run(() =>
+                {
+                    RaiseEventHandler(() => Interlocked.CompareExchange(ref MessageWritten, null, null)?
+                        .Invoke(this, new MessageEventArgs(message)));
+                }, CancellationToken.None).Forget();
+            }
+            else
+            {
+                RaiseEventHandler(() => Interlocked.CompareExchange(ref MessageWritten, null, null)?
+                    .Invoke(this, new MessageEventArgs(message)));
             }
         }
 
