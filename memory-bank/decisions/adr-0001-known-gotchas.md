@@ -52,6 +52,27 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z326. Integration Auth Fixtures Must Match Admin-Only Routes
+
+**The Bug**: After security telemetry routes were tightened to administrator-only, the shared integration `StubWebApplicationFactory` still authenticated as only `ReadWrite`, so versioned admin route smoke tests failed with `403 Forbidden`.
+
+**Files Affected**:
+- `tests/slskd.Tests.Integration/StubWebApplicationFactory.cs`
+- `tests/slskd.Tests.Integration/Security/SecurityRoutesIntegrationTests.cs`
+
+**Wrong**:
+```csharp
+identity.AddClaim(new Claim(ClaimTypes.Role, Role.ReadWrite.ToString()));
+```
+
+**Correct**:
+```csharp
+identity.AddClaim(new Claim(ClaimTypes.Role, Role.ReadWrite.ToString()));
+identity.AddClaim(new Claim(ClaimTypes.Role, Role.Administrator.ToString()));
+```
+
+**Why This Keeps Happening**: Route-level role hardening can invalidate broad smoke fixtures even when focused controller tests pass. Shared integration fixtures that are meant to exercise authenticated admin surfaces must include the administrator role, or admin-only route tests will report false failures instead of validating reachability.
+
 ### 0z325. Recursive Local Library Scans Must Skip Reparse Points
 
 **The Bug**: Streaming fallback lookup and Library Health recursive scans validated only their starting roots, then used default recursive enumeration that could traverse symlinks or junctions under those roots.
