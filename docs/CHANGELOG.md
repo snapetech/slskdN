@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026050600-slskdn.227] — 2026-05-06
+
+This supersedes `build-main-2026050600-slskdn.226`, which built all platform
+artifacts but stopped before release publication because the exact versioned
+changelog section was missing.
+
 - Fixed distributed Soulseek search request parsing so opaque signed 32-bit
   tokens from live peers, including negative values, are accepted instead of
   rejected as invalid counters.
