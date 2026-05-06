@@ -13,6 +13,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Options;
+using slskd.Common.IO;
 using slskd.Common.Security;
 
 public sealed class SpotifyConnectionService : ISpotifyConnectionService
@@ -268,16 +269,11 @@ public sealed class SpotifyConnectionService : ISpotifyConnectionService
 
     private void PersistState()
     {
-        var directory = Path.GetDirectoryName(_storagePath);
-        if (!string.IsNullOrWhiteSpace(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
-
         var protectedJson = _protector.Protect(JsonSerializer.Serialize(_store, JsonOptions));
-        var tempPath = $"{_storagePath}.tmp";
-        File.WriteAllText(tempPath, protectedJson);
-        File.Move(tempPath, _storagePath, overwrite: true);
+        AtomicFileWriter.WriteAllText(
+            _storagePath,
+            protectedJson,
+            UnixFileMode.UserRead | UnixFileMode.UserWrite);
     }
 
     private static string GenerateCodeVerifier()

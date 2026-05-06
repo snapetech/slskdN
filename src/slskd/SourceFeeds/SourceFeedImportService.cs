@@ -15,6 +15,7 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using slskd.Common.IO;
 using slskd.Common.Security;
 
 public sealed class SourceFeedImportService : ISourceFeedImportService
@@ -1068,12 +1069,6 @@ public sealed class SourceFeedImportService : ISourceFeedImportService
 
     private void PersistHistory()
     {
-        var directory = Path.GetDirectoryName(_storagePath);
-        if (!string.IsNullOrWhiteSpace(directory))
-        {
-            Directory.CreateDirectory(directory);
-        }
-
         var state = new SourceFeedImportHistoryState
         {
             History = _history
@@ -1081,9 +1076,7 @@ public sealed class SourceFeedImportService : ISourceFeedImportService
                 .Take(MaxHistoryEntries)
                 .ToList(),
         };
-        var tempPath = $"{_storagePath}.tmp";
-        File.WriteAllText(tempPath, JsonSerializer.Serialize(state, JsonOptions));
-        File.Move(tempPath, _storagePath, overwrite: true);
+        AtomicFileWriter.WriteAllText(_storagePath, JsonSerializer.Serialize(state, JsonOptions));
     }
 
     private static string BuildImportId(SourceFeedImportRequest request, SourceFeedImportResult result)

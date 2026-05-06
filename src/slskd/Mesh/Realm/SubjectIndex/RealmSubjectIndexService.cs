@@ -7,6 +7,7 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
+using slskd.Common.IO;
 using slskd.Mesh.Governance;
 using slskd.SocialFederation;
 
@@ -778,12 +779,6 @@ public sealed class RealmSubjectIndexService : IRealmSubjectIndexService
     {
         lock (_storageSync)
         {
-            var directory = Path.GetDirectoryName(_storagePath);
-            if (!string.IsNullOrWhiteSpace(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
-
             var state = new RealmSubjectIndexStoreState
             {
                 Indexes = _indexes.Values
@@ -801,9 +796,7 @@ public sealed class RealmSubjectIndexService : IRealmSubjectIndexService
                     .ToList(),
             };
 
-            var tempPath = $"{_storagePath}.tmp";
-            File.WriteAllText(tempPath, JsonSerializer.Serialize(state, JsonOptions));
-            File.Move(tempPath, _storagePath, overwrite: true);
+            AtomicFileWriter.WriteAllText(_storagePath, JsonSerializer.Serialize(state, JsonOptions));
         }
     }
 

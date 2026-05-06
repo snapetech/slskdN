@@ -1,3 +1,15 @@
+## Update 2026-05-07 00:55:00Z
+
+- Current task: Continue non-runtime council durable temp-move state writer cycle.
+- Last activity:
+  - classified direct/fixed-temp durable state writers after skipping runtime/vendor;
+  - accepted and fixed `BUG-20260506-069` through `BUG-20260506-075`;
+  - job manifests, quarantine jury state, Spotify token state, source-feed history, MusicBrainz radar/overlay state, and realm subject indexes now use `AtomicFileWriter`;
+  - documented ADR-0001 gotcha `0z346`, and updated ledger/changelog/task log.
+- Next steps:
+  1. Run focused backend tests, remediation, repo lint, and diff checks.
+  2. Commit and push the verified non-runtime durable state writer batch.
+
 ## Update 2026-05-07 00:36:00Z
 
 - Current task: Continue non-runtime council DHT overlay async lifecycle cycle.

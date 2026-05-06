@@ -7,6 +7,7 @@ namespace slskd.Jobs.Manifests
     using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
+    using slskd.Common.IO;
     using YamlDotNet.Serialization;
     using YamlDotNet.Serialization.NamingConventions;
 
@@ -78,7 +79,7 @@ namespace slskd.Jobs.Manifests
 
             var path = Path.Combine(folder, $"{manifest.JobId}.yaml");
             var yaml = serializer.Serialize(manifest);
-            await File.WriteAllTextAsync(path, yaml, ct).ConfigureAwait(false);
+            await AtomicFileWriter.WriteAllTextAsync(path, yaml, ct).ConfigureAwait(false);
             return path;
         }
 

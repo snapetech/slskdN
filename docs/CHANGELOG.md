@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Persist job manifests, quarantine-jury state, Spotify connection tokens,
+  source-feed import history, MusicBrainz overlay/radar state, and realm subject
+  indexes through the shared atomic file writer.
 - Observe DHT overlay inbound/outbound background session loops so detached
   connection and message-loop faults are logged instead of becoming unobserved
   task failures.

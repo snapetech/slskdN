@@ -9901,3 +9901,10 @@ Code quality improvements were completed as part of Option A:
 - Recorded and verified `BUG-20260506-066` through `BUG-20260506-068`.
 - Observed inbound overlay connection tasks, inbound message loops, and outbound message loops with `TaskObservation`.
 - Extended `scripts/check-async-task-observation.sh` so these DHT overlay detached calls cannot regress.
+
+## 2026-05-07 00:55:00Z
+
+- Continued the non-runtime council scan into durable temp-move state writers.
+- Recorded and verified `BUG-20260506-069` through `BUG-20260506-075`.
+- Moved job manifest, quarantine jury, Spotify connection, source-feed history, MusicBrainz radar/overlay, and realm subject-index state writes to `AtomicFileWriter`.
+- Added `scripts/check-durable-state-atomic-writes.sh` to the remediation baseline.

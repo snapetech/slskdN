@@ -2608,3 +2608,7 @@
 - [x] Continue non-runtime council DHT overlay async lifecycle cycle
   - Status: completed (2026-05-06)
   - Notes: Classified detached app-side async lifecycle calls after skipping the runtime lane; fixed `BUG-20260506-066` through `BUG-20260506-068` by observing inbound overlay connection tasks, inbound message loops, and outbound message loops.
+
+- [x] Continue non-runtime council durable temp-move state writer cycle
+  - Status: completed (2026-05-06)
+  - Notes: Classified direct/fixed-temp durable state writers after skipping the runtime lane; fixed `BUG-20260506-069` through `BUG-20260506-075` by moving job manifests, quarantine jury state, Spotify token state, source-feed history, MusicBrainz radar/overlay state, and realm subject indexes to `AtomicFileWriter`.

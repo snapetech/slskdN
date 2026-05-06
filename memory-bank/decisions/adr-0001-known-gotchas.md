@@ -526,6 +526,34 @@ _ = TaskObservation.Observe(
 
 **Why This Keeps Happening**: Long-running session methods often have local try/catch blocks around reads and protocol handling, which makes a direct discard look safe. If the method has any awaited cleanup, unregister, dispose, or metric work after the main catch boundary, the detached task still needs `TaskObservation.Observe()` or explicit tracking/draining.
 
+### 0z346. Fixed Temp Paths Are Not Enough For Durable State
+
+**The Bug**: Several state writers used a fixed sibling temp path like `<state>.tmp`, wrote with `File.WriteAllText`, then moved over the final file. That avoids direct truncation but still does not flush to disk, can collide with another save, and may expose sensitive temp files with default permissions.
+
+**Files Affected**:
+- `src/slskd/QuarantineJury/QuarantineJuryService.cs`
+- `src/slskd/SourceFeeds/SpotifyConnectionService.cs`
+- `src/slskd/SourceFeeds/SourceFeedImportService.cs`
+- `src/slskd/Integrations/MusicBrainz/Radar/ArtistReleaseRadarService.cs`
+- `src/slskd/Integrations/MusicBrainz/Overlay/MusicBrainzOverlayService.cs`
+- `src/slskd/Mesh/Realm/SubjectIndex/RealmSubjectIndexService.cs`
+- `src/slskd/Jobs/Manifests/JobManifestService.cs`
+
+**Wrong**:
+```code
+var tempPath = $"{_storagePath}.tmp";
+File.WriteAllText(tempPath, json);
+File.Move(tempPath, _storagePath, overwrite: true);
+```
+
+**Correct**:
+```code
+AtomicFileWriter.WriteAllText(_storagePath, json);
+AtomicFileWriter.WriteAllText(_storagePath, protectedJson, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+```
+
+**Why This Keeps Happening**: Temp-then-move looks atomic at the path level, but durable state also needs unique temp names, a disk flush, failure cleanup, and restrictive temp permissions when secrets are involved. Prefer `AtomicFileWriter` for app-owned state instead of hand-rolled temp files.
+
 ### 0z326. Integration Auth Fixtures Must Match Admin-Only Routes
 
 **The Bug**: After security telemetry routes were tightened to administrator-only, the shared integration `StubWebApplicationFactory` still authenticated as only `ReadWrite`, so versioned admin route smoke tests failed with `403 Forbidden`.
