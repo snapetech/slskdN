@@ -58,7 +58,19 @@ public class SignalBus : ISignalBus, IDisposable
         logger.LogInformation("Registered signal channel handler: {Channel}", channel);
 
         // Start receiving from this channel
-        _ = handler.StartReceivingAsync(OnSignalReceivedAsync, CancellationToken.None);
+        _ = ObserveChannelStartAsync(handler, channel);
+    }
+
+    private async Task ObserveChannelStartAsync(ISignalChannelHandler handler, SignalChannel channel)
+    {
+        try
+        {
+            await handler.StartReceivingAsync(OnSignalReceivedAsync, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Signal channel handler {Channel} failed to start receiving", channel);
+        }
     }
 
     /// <inheritdoc />

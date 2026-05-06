@@ -4,6 +4,7 @@
 namespace slskd.Tests.Unit.Shares.API.Controllers;
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.Shares;
 using slskd.Shares.API;
@@ -22,7 +23,7 @@ public class SharesControllerTests
         var service = new Mock<IShareService>();
         service.SetupGet(s => s.Hosts).Returns(new[] { new Host("local", new[] { share }) });
 
-        var controller = new SharesController(service.Object);
+        var controller = new SharesController(service.Object, NullLogger<SharesController>.Instance);
 
         var result = controller.Get(" share-1 ");
 
@@ -34,7 +35,7 @@ public class SharesControllerTests
     [Fact]
     public async Task BrowseShare_WithBlankId_ReturnsBadRequest()
     {
-        var controller = new SharesController(Mock.Of<IShareService>());
+        var controller = new SharesController(Mock.Of<IShareService>(), NullLogger<SharesController>.Instance);
 
         var result = await controller.BrowseShare("   ");
 

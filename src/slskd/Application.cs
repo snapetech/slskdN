@@ -570,7 +570,9 @@ namespace slskd
                     if (OptionsAtStartup.Relay.Mode.ToEnum<RelayMode>() == RelayMode.Debug)
                     {
                         Log.Warning("Running in Debug relay mode; connecting to controller");
-                        _ = Relay.Client.StartAsync(cancellationToken);
+                        _ = ObserveBackgroundTaskAsync(
+                            Relay.Client.StartAsync(cancellationToken),
+                            "Failed to start relay client in debug mode");
                     }
                 }
 
@@ -1442,7 +1444,10 @@ namespace slskd
 
             if (!args.Replayed)
             {
-                _ = Notifications.SendPrivateMessageAsync(args.Username, args.Message);
+                _ = ObserveBackgroundTaskAsync(
+                    Notifications.SendPrivateMessageAsync(args.Username, args.Message),
+                    "Failed to send private-message notification from {Username}",
+                    args.Username);
             }
         }
 
@@ -1564,7 +1569,11 @@ namespace slskd
 
             if (message.Message.Contains(Client.Username))
             {
-                _ = Notifications.SendRoomMentionAsync(message.RoomName, message.Username, message.Message);
+                _ = ObserveBackgroundTaskAsync(
+                    Notifications.SendRoomMentionAsync(message.RoomName, message.Username, message.Message),
+                    "Failed to send room-mention notification from {Username} in {RoomName}",
+                    message.Username,
+                    message.RoomName);
             }
         }
 
@@ -1833,18 +1842,18 @@ namespace slskd
 
             // Broadcast transfer activity to connected clients
             var activity = TransferActivity.FromTransferStateChange(xfer, oldState);
-            _ = TransferHubExtensions.EmitTransferActivityAsync(TransfersHub, activity);
+            _ = ObserveBackgroundTaskAsync(
+                TransferHubExtensions.EmitTransferActivityAsync(TransfersHub, activity),
+                "Failed to broadcast transfer activity for {Filename} from {Username}",
+                xfer.Filename,
+                xfer.Username);
 
             if (xfer.Direction == TransferDirection.Upload && xfer.State.HasFlag(TransferStates.Completed | TransferStates.Succeeded) && args.Transfer.AverageSpeed > 0)
             {
-                try
-                {
-                    _ = Client.SendUploadSpeedAsync(Convert.ToInt32(Math.Ceiling(args.Transfer.AverageSpeed)));
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "Failed to report upload speed");
-                }
+                _ = ObserveBackgroundTaskAsync(
+                    Client.SendUploadSpeedAsync(Convert.ToInt32(Math.Ceiling(args.Transfer.AverageSpeed))),
+                    "Failed to report upload speed for {Username}",
+                    xfer.Username);
             }
         }
 
@@ -1981,7 +1990,9 @@ namespace slskd
                     || newOptions.Rooms.Except(PreviousOptions.Rooms).Any())
                 {
                     Log.Information("Room configuration changed.  Joining any newly added rooms.");
-                    _ = RoomService.TryJoinAsync(newOptions.Rooms);
+                    _ = ObserveBackgroundTaskAsync(
+                        RoomService.TryJoinAsync(newOptions.Rooms),
+                        "Failed to join rooms after configuration update");
                 }
 
                 // cancel active transfers for users newly added to the blacklist (#21)
@@ -2133,7 +2144,9 @@ namespace slskd
                 }
 
                 PreviousOptions = newOptions;
-                _ = ApplicationHub.BroadcastOptionsAsync(newOptions);
+                _ = ObserveBackgroundTaskAsync(
+                    ApplicationHub.BroadcastOptionsAsync(newOptions),
+                    "Failed to broadcast updated options");
 
                 Log.Information("Options updated successfully.");
             }
@@ -2395,7 +2408,9 @@ namespace slskd
             if (rebuildBrowseCache)
             {
                 _ = CacheBrowseResponse();
-                _ = Relay.Client.SynchronizeAsync();
+                _ = ObserveBackgroundTaskAsync(
+                    Relay.Client.SynchronizeAsync(),
+                    "Failed to synchronize relay shares after share state update");
             }
         }
 
@@ -2449,7 +2464,9 @@ namespace slskd
 
         private void State_OnChange((State Previous, State Current) state)
         {
-            _ = ApplicationHub.BroadcastStateAsync(state.Current);
+            _ = ObserveBackgroundTaskAsync(
+                ApplicationHub.BroadcastStateAsync(state.Current),
+                "Failed to broadcast application state");
         }
 
         /// <summary>

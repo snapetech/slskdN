@@ -1,3 +1,16 @@
+## Update 2026-05-06 18:05:00Z
+
+- Current task: Non-runtime council async side-effect burn-down is implemented locally.
+- Last activity:
+  - baseline remediation passed before the cycle
+  - classified the app async/lifecycle scan section and accepted `BUG-20260506-027`
+  - replaced raw fire-and-forget side effects in Application, SignalBus, SharesController, PodMessaging, and DownloadService with observation helpers
+  - added `scripts/check-async-task-observation.sh` to remediation and documented ADR-0001 gotcha `0z327`
+  - focused unit validation passed for touched Application/SignalBus/Shares/Pod/Download paths
+- Next steps:
+  1. Run broad remediation/lint/full solution tests.
+  2. Commit and push the implementation batch.
+
 ## Update 2026-05-06 17:10:00Z
 
 - Current task: Non-runtime council async/path scan batch is complete locally.

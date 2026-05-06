@@ -1146,11 +1146,13 @@ namespace slskd.Transfers.Downloads
 
                                         if (bytesThisUpdate > 0 && duration.TotalMilliseconds > 0)
                                         {
-                                            _ = PeerMetrics.RecordThroughputSampleAsync(
-                                                transfer.Username,
-                                                bytesThisUpdate,
-                                                duration,
-                                                cancellationToken);
+                                            _ = ObserveBackgroundTaskAsync(
+                                                PeerMetrics.RecordThroughputSampleAsync(
+                                                    transfer.Username,
+                                                    bytesThisUpdate,
+                                                    duration,
+                                                    cancellationToken),
+                                                $"Failed to record throughput sample for {transfer.Username}");
 
                                             lastBytesTransferred = args.Transfer.BytesTransferred;
                                             lastProgressUpdate = now;
@@ -1281,10 +1283,12 @@ namespace slskd.Transfers.Downloads
                 {
                     // CancellationToken.None: download already completed; record success
                     // unconditionally (error paths at nearby catch blocks do the same).
-                    _ = PeerMetrics.RecordChunkCompletionAsync(
-                        transfer.Username,
-                        ChunkCompletionResult.Success,
-                        cancellationToken: CancellationToken.None);
+                    _ = ObserveBackgroundTaskAsync(
+                        PeerMetrics.RecordChunkCompletionAsync(
+                            transfer.Username,
+                            ChunkCompletionResult.Success,
+                            cancellationToken: CancellationToken.None),
+                        $"Failed to record successful chunk completion for {transfer.Username}");
                 }
 
                 // explicitly dispose the rate limiter to prevent updates from it beyond this point, and in doing so we
@@ -1317,7 +1321,9 @@ namespace slskd.Transfers.Downloads
 
                 if (OptionsMonitor.CurrentValue.Relay.Enabled)
                 {
-                    _ = Relay.NotifyFileDownloadCompleteAsync(finalFilename);
+                    _ = ObserveBackgroundTaskAsync(
+                        Relay.NotifyFileDownloadCompleteAsync(finalFilename),
+                        $"Failed to notify relay agents of completed download {finalFilename}");
                 }
 
                 try
@@ -1356,7 +1362,9 @@ namespace slskd.Transfers.Downloads
 
                     if (OptionsMonitor.CurrentValue.Integration.Ftp.Enabled)
                     {
-                        _ = FTP.UploadAsync(finalFilename);
+                        _ = ObserveBackgroundTaskAsync(
+                            FTP.UploadAsync(finalFilename),
+                            $"Failed to start FTP upload for completed download {finalFilename}");
                     }
 
                     Log.Debug("Completed post-download logic for {Filename} from {Username} successfully", transfer.Filename, transfer.Username);
@@ -1385,10 +1393,12 @@ namespace slskd.Transfers.Downloads
                 if (PeerMetrics != null)
                 {
                     var result = ex is TimeoutException ? ChunkCompletionResult.TimedOut : ChunkCompletionResult.Failed;
-                    _ = PeerMetrics.RecordChunkCompletionAsync(
-                        transfer.Username,
-                        result,
-                        cancellationToken: CancellationToken.None);
+                    _ = ObserveBackgroundTaskAsync(
+                        PeerMetrics.RecordChunkCompletionAsync(
+                            transfer.Username,
+                            result,
+                            cancellationToken: CancellationToken.None),
+                        $"Failed to record {result} chunk completion for {transfer.Username}");
                 }
 
                 TryFail(transfer.Id, exception: ex);
@@ -1404,10 +1414,12 @@ namespace slskd.Transfers.Downloads
 
                 if (PeerMetrics != null)
                 {
-                    _ = PeerMetrics.RecordChunkCompletionAsync(
-                        transfer.Username,
-                        ChunkCompletionResult.Failed,
-                        cancellationToken: CancellationToken.None);
+                    _ = ObserveBackgroundTaskAsync(
+                        PeerMetrics.RecordChunkCompletionAsync(
+                            transfer.Username,
+                            ChunkCompletionResult.Failed,
+                            cancellationToken: CancellationToken.None),
+                        $"Failed to record failed chunk completion for {transfer.Username}");
                 }
 
                 TryFail(transfer.Id, exception: ex);
@@ -1424,10 +1436,12 @@ namespace slskd.Transfers.Downloads
                 // Record failed chunk completion for peer metrics (Phase 2C - T-409)
                 if (PeerMetrics != null)
                 {
-                    _ = PeerMetrics.RecordChunkCompletionAsync(
-                        transfer.Username,
-                        ChunkCompletionResult.Failed,
-                        cancellationToken: CancellationToken.None);
+                    _ = ObserveBackgroundTaskAsync(
+                        PeerMetrics.RecordChunkCompletionAsync(
+                            transfer.Username,
+                            ChunkCompletionResult.Failed,
+                            cancellationToken: CancellationToken.None),
+                        $"Failed to record failed chunk completion for {transfer.Username}");
                 }
 
                 TryFail(transfer.Id, exception: ex);

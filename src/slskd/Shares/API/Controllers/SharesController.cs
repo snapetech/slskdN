@@ -25,6 +25,7 @@ namespace slskd.Shares.API
     using System.Threading.Tasks;
     using Asp.Versioning;
     using Microsoft.AspNetCore.Authorization;
+    using Microsoft.Extensions.Logging;
     using Microsoft.AspNetCore.Mvc;
     using Soulseek;
     using slskd.Core.Security;
@@ -44,13 +45,17 @@ namespace slskd.Shares.API
         ///     Initializes a new instance of the <see cref="SharesController"/> class.
         /// </summary>
         /// <param name="shareService"></param>
+        /// <param name="logger"></param>
         public SharesController(
-            IShareService shareService)
+            IShareService shareService,
+            ILogger<SharesController> logger)
         {
             Shares = shareService;
+            Logger = logger;
         }
 
         private IShareService Shares { get; }
+        private ILogger<SharesController> Logger { get; }
 
         /// <summary>
         ///     Gets the current list of shares.
@@ -157,7 +162,7 @@ namespace slskd.Shares.API
         {
             try
             {
-                _ = Shares.ScanAsync();
+                _ = ObserveShareScanAsync(Shares.ScanAsync());
             }
             catch (ShareScanInProgressException)
             {
@@ -165,6 +170,22 @@ namespace slskd.Shares.API
             }
 
             return Ok();
+        }
+
+        private async Task ObserveShareScanAsync(Task scanTask)
+        {
+            try
+            {
+                await scanTask.ConfigureAwait(false);
+            }
+            catch (ShareScanInProgressException)
+            {
+                // The request path reports this synchronously when the scan is already in progress.
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Share rescan failed after it was accepted");
+            }
         }
 
         /// <summary>
