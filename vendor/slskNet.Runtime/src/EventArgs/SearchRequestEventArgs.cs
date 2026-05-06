@@ -23,6 +23,8 @@
 
 namespace Soulseek
 {
+    using System;
+
     /// <summary>
     ///     Generic event arguments for search request events.
     /// </summary>
@@ -36,6 +38,11 @@ namespace Soulseek
         /// <param name="query">The search query.</param>
         public SearchRequestEventArgs(string username, int token, string query)
         {
+            if (token < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(token), "Search request token must be greater than or equal to zero");
+            }
+
             Username = username;
             Token = token;
             Query = query;

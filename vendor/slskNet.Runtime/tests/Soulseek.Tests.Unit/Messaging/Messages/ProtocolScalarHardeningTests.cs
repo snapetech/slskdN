@@ -208,6 +208,19 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Throws<MessageException>(() => UserStatusResponseFactory.FromByteArray(msg));
         }
 
+        [Fact(DisplayName = "User status rejects invalid privileged flag")]
+        public void User_Status_Rejects_Invalid_Privileged_Flag()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.GetStatus)
+                .WriteString("user")
+                .WriteInteger((int)UserPresence.Online)
+                .WriteByte(2)
+                .Build();
+
+            Assert.Throws<MessageException>(() => UserStatusResponseFactory.FromByteArray(msg));
+        }
+
         [Fact(DisplayName = "Joined room user rejects invalid presence")]
         public void Joined_Room_User_Rejects_Invalid_Presence()
         {

@@ -41,6 +41,11 @@ namespace Soulseek
         /// <param name="replayed">A value indicating whether the message was replayed from a previous time.</param>
         public PrivateMessageReceivedEventArgs(int id, DateTime timestamp, string username, string message, bool replayed)
         {
+            if (id < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(id), "Private message id must be greater than or equal to zero");
+            }
+
             Id = id;
             Timestamp = timestamp;
             Username = username;

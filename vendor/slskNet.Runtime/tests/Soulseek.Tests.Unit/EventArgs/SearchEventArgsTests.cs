@@ -84,6 +84,7 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "Instantiates with context"), AutoData]
         public void SearchRequestEventArgs_Instantiates_With_Context(string username, int token, string query)
         {
+            token = token < 0 ? 0 : token;
             var e = new SearchRequestEventArgs(username, token, query);
 
             Assert.Equal(username, e.Username);
@@ -96,6 +97,7 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "Instantiates with SearchResponse and context"), AutoData]
         public void SearchRequestResponseEventArgs_Instantiates_SearchResponse_And_Context(string username, int token, string query, SearchResponse searchResponse)
         {
+            token = token < 0 ? 0 : token;
             var e = new SearchRequestResponseEventArgs(username, token, query, searchResponse);
 
             Assert.Equal(username, e.Username);
@@ -103,5 +105,11 @@ namespace Soulseek.Tests.Unit
             Assert.Equal(query, e.Query);
             Assert.Equal(searchResponse, e.SearchResponse);
         }
+
+        [Trait("Category", "Instantiation")]
+        [Trait("Class", "SearchRequestEventArgs")]
+        [Fact(DisplayName = "Rejects negative token")]
+        public void SearchRequestEventArgs_Rejects_Negative_Token()
+            => Assert.Throws<ArgumentOutOfRangeException>(() => new SearchRequestEventArgs("user", -1, "query"));
     }
 }

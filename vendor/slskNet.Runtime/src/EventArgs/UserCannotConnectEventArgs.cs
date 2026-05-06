@@ -23,6 +23,7 @@
 
 namespace Soulseek
 {
+    using System;
     using Soulseek.Messaging.Messages;
 
     /// <summary>
@@ -38,6 +39,11 @@ namespace Soulseek
         public UserCannotConnectEventArgs(int token, string username)
             : base(username)
         {
+            if (token < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(token), "Connection token must be greater than or equal to zero");
+            }
+
             Token = token;
         }
 

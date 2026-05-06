@@ -90,4 +90,23 @@ describe('SharedWithMe', () => {
     expect(await screen.findByText(/Backfill is disabled for this share/))
       .toBeInTheDocument();
   });
+
+  it('renders structured manifest load errors as text', async () => {
+    collectionsAPI.getShareManifest.mockRejectedValue({
+      response: {
+        data: {
+          detail: 'Manifest token expired',
+          status: 403,
+          title: 'Forbidden',
+        },
+      },
+    });
+
+    render(<SharedWithMe />);
+
+    expect(await screen.findByText('Shared Album')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('incoming-share-open'));
+
+    expect(await screen.findByText(/Manifest token expired/)).toBeInTheDocument();
+  });
 });

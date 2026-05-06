@@ -1367,6 +1367,7 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "PrivateMessageReceived fires when handler raises"), AutoData]
         public void PrivateMessageReceived_Fires_When_Handler_Raises(int id, DateTime timestamp, string username, string message, bool isAdmin)
         {
+            id = id < 0 ? 0 : id;
             var mock = new Mock<IServerMessageHandler>();
             var expectedArgs = new PrivateMessageReceivedEventArgs(id, timestamp, username, message, isAdmin);
             PrivateMessageReceivedEventArgs actualArgs = null;
@@ -1385,6 +1386,7 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "PrivateMessageReceived does not throw if event not bound"), AutoData]
         public void PrivateMessageReceived_Does_Not_Throw_If_Event_Not_Bound(int id, DateTime timestamp, string username, string message, bool isAdmin)
         {
+            id = id < 0 ? 0 : id;
             var mock = new Mock<IServerMessageHandler>();
             var expectedArgs = new PrivateMessageReceivedEventArgs(id, timestamp, username, message, isAdmin);
 
@@ -1466,6 +1468,7 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "PrivilegeNotificationReceived fires when handler raises"), AutoData]
         public void PrivilegeNotificationReceived_Fires_When_Handler_Raises(string username, int id)
         {
+            id = id < 0 ? 0 : id;
             var mock = new Mock<IServerMessageHandler>();
             var expectedArgs = new PrivilegeNotificationReceivedEventArgs(username, id);
             PrivilegeNotificationReceivedEventArgs actualArgs = null;
@@ -1484,6 +1487,7 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "PrivilegeNotificationReceived does not throw if event not bound"), AutoData]
         public void PrivilegeNotificationReceived_Does_Not_Throw_If_Event_Not_Bound(string username, int id)
         {
+            id = id < 0 ? 0 : id;
             var mock = new Mock<IServerMessageHandler>();
             var expectedArgs = new PrivilegeNotificationReceivedEventArgs(username, id);
 
@@ -1499,6 +1503,7 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "UserCannotConnect fires when handler raises"), AutoData]
         public void UserCannotConnect_Fires_When_Handler_Raises(int token, string username)
         {
+            token = token < 0 ? 0 : token;
             var mock = new Mock<IServerMessageHandler>();
             var expectedArgs = new UserCannotConnectEventArgs(token, username);
             UserCannotConnectEventArgs actualArgs = null;
@@ -1517,6 +1522,7 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "UserCannotConnect does not throw if event not bound"), AutoData]
         public void UserCannotConnect_Does_Not_Throw_If_Event_Not_Bound(int token, string username)
         {
+            token = token < 0 ? 0 : token;
             var mock = new Mock<IServerMessageHandler>();
             var expectedArgs = new UserCannotConnectEventArgs(token, username);
 

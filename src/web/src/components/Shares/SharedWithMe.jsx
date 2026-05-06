@@ -115,7 +115,7 @@ export default class SharedWithMe extends Component {
       this.setState({
         error: isAuthOrFeatureError
           ? null
-          : error.response?.data || error.message,
+          : getErrorMessage(error, 'Failed to load incoming shares'),
         loading: false,
       });
     }
@@ -160,7 +160,7 @@ export default class SharedWithMe extends Component {
       this.setState({ manifest: manifestRes.data, manifestLoading: false });
     } catch (error) {
       this.setState({
-        error: error.response?.data || error.message,
+        error: getErrorMessage(error, 'Failed to load manifest'),
         manifestLoading: false,
       });
     }
@@ -415,7 +415,7 @@ export default class SharedWithMe extends Component {
                 )}
               </div>
             ) : (
-              <ErrorSegment error="Failed to load manifest" />
+              <ErrorSegment caption="Failed to load manifest" />
             )}
           </Modal.Content>
           <Modal.Actions>

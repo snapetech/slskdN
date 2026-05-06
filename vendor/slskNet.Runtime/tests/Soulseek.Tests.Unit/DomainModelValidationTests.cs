@@ -327,5 +327,17 @@ namespace Soulseek.Tests.Unit
         [Fact(DisplayName = "WishlistSearchCompletedEventArgs rejects null responses")]
         public void WishlistSearchCompletedEventArgs_Rejects_Null_Responses()
             => Assert.Throws<ArgumentException>(() => new WishlistSearchCompletedEventArgs("term", null, new SearchResponse[] { null }, null));
+
+        [Fact(DisplayName = "UserCannotConnectEventArgs rejects negative token")]
+        public void UserCannotConnectEventArgs_Rejects_Negative_Token()
+            => Assert.Throws<ArgumentOutOfRangeException>(() => new UserCannotConnectEventArgs(-1, "user"));
+
+        [Fact(DisplayName = "PrivateMessageReceivedEventArgs rejects negative id")]
+        public void PrivateMessageReceivedEventArgs_Rejects_Negative_Id()
+            => Assert.Throws<ArgumentOutOfRangeException>(() => new PrivateMessageReceivedEventArgs(-1, DateTime.UtcNow, "user", "message", false));
+
+        [Fact(DisplayName = "PrivilegeNotificationReceivedEventArgs rejects negative id")]
+        public void PrivilegeNotificationReceivedEventArgs_Rejects_Negative_Id()
+            => Assert.Throws<ArgumentOutOfRangeException>(() => new PrivilegeNotificationReceivedEventArgs("user", -1));
     }
 }

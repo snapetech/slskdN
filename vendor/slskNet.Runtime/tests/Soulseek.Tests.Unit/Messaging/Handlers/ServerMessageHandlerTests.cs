@@ -150,6 +150,7 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
         [Theory(DisplayName = "Raises PrivateMessageReceived event on ServerPrivateMessage"), AutoData]
         public void Raises_PrivateMessageRecieved_Event_On_ServerPrivateMessage(int id, int timeOffset, string username, string message, bool replayed)
         {
+            id = id < 0 ? 0 : id;
             var options = new SoulseekClientOptions(autoAcknowledgePrivateMessages: false);
             var (handler, _) = GetFixture(options);
 
@@ -182,6 +183,7 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
         [Theory(DisplayName = "Raises UserCannotConnect event on CannotConnect if username"), AutoData]
         public void Raises_UserCannotConnect_Event_On_CannotConnect_If_Username(int token, string username)
         {
+            token = token < 0 ? 0 : token;
             var (handler, _) = GetFixture();
 
             var msg = new MessageBuilder()
@@ -204,6 +206,7 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
         [Theory(DisplayName = "Raises UserCannotConnect event on CannotConnect if no username"), AutoData]
         public void Does_Not_Raise_UserCannotConnect_Event_On_CannotConnect_If_No_Username(int token)
         {
+            token = token < 0 ? 0 : token;
             var (handler, _) = GetFixture();
 
             var msg = new MessageBuilder()
@@ -223,6 +226,7 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
         [Theory(DisplayName = "Discards SearchResponse on CannotConnect"), AutoData]
         public void Discards_SearchResponse_On_CannotConnect(int token)
         {
+            token = token < 0 ? 0 : token;
             var (handler, mocks) = GetFixture();
 
             var msg = new MessageBuilder()
@@ -256,6 +260,7 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
         [Theory(DisplayName = "Acknowledges ServerPrivateMessage"), AutoData]
         internal void Acknowledges_ServerPrivateMessage(int id, int timeOffset, string username, string message, bool isAdmin)
         {
+            id = id < 0 ? 0 : id;
             var options = new SoulseekClientOptions(autoAcknowledgePrivateMessages: true);
             var (handler, mocks) = GetFixture(options);
 
@@ -1447,6 +1452,7 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
         [Theory(DisplayName = "Raises PrivilegeNotificationReceived on NotifyPrivileges"), AutoData]
         public void Raises_PrivilegeNotificationReceived_On_NotifyPrivileges(string username, int id)
         {
+            id = id < 0 ? 0 : id;
             var (handler, _) = GetFixture();
 
             var message = new MessageBuilder()
@@ -1506,6 +1512,7 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
         [Theory(DisplayName = "Acknowledges NotifyPrivileges when AutoAcknowledgePrivilegeNotifications is true"), AutoData]
         public void Acknowledges_NotifyPrivileges_When_AutoAcknowledgePrivilegeNotifications_Is_True(string username, int id)
         {
+            id = id < 0 ? 0 : id;
             var (handler, mocks) = GetFixture();
 
             var message = new MessageBuilder()
@@ -1526,6 +1533,7 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
         [Theory(DisplayName = "Does not acknowledge NotifyPrivileges when AutoAcknowledgePrivilegeNotifications is false"), AutoData]
         public void Does_Not_Acknowledge_NotifyPrivileges_When_AutoAcknowledgePrivilegeNotifications_Is_False(string username, int id)
         {
+            id = id < 0 ? 0 : id;
             var (handler, mocks) = GetFixture();
 
             var message = new MessageBuilder()

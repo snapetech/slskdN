@@ -23,6 +23,8 @@
 
 namespace Soulseek
 {
+    using System;
+
     /// <summary>
     ///     Event arguments for events raised upon notification of new privileges.
     /// </summary>
@@ -35,6 +37,11 @@ namespace Soulseek
         /// <param name="id">The unique id of the notification, if applicable.</param>
         public PrivilegeNotificationReceivedEventArgs(string username, int? id = null)
         {
+            if (id.HasValue && id.Value < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(id), "Privilege notification id must be greater than or equal to zero");
+            }
+
             Username = username;
             Id = id;
 

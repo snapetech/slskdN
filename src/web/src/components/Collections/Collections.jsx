@@ -18,6 +18,22 @@ import {
 } from 'semantic-ui-react';
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
+const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+
+const getErrorMessage = (error, fallback = 'Request failed') => {
+  const data = error?.response?.data;
+
+  if (typeof data === 'string') return data;
+  if (isObject(data)) {
+    return data.detail ||
+      data.message ||
+      data.error ||
+      data.title ||
+      JSON.stringify(data);
+  }
+
+  return error?.message || fallback;
+};
 
 export default class Collections extends Component {
   constructor(props) {
@@ -204,7 +220,7 @@ export default class Collections extends Component {
         });
       }
     } catch (error) {
-      this.setState({ error: error.response?.data || error.message });
+      this.setState({ error: getErrorMessage(error, 'Failed to delete collection') });
     }
   };
 
@@ -312,7 +328,7 @@ export default class Collections extends Component {
       this.setState({ error: null, shareModalOpen: false });
       await this.loadShares(selectedCollection.id);
     } catch (error) {
-      this.setState({ error: error.response?.data || error.message });
+      this.setState({ error: getErrorMessage(error, 'Failed to create share') });
     }
   };
 

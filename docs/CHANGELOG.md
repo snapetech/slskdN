@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Synced vendored slskNet.Runtime protocol event identifier hardening so
+  malformed status flags and negative request/message ids are rejected before
+  event snapshots are published.
+- Hardened Collections, Share Groups, and Shared With Me web views against stale
+  selection/list state and added focused Collections and Share Groups coverage.
 - Hardened the Web options editor and Transfers bulk-selection state so current
   validation errors block saves, structured API errors render readable text, and
   stale transfer selections are ignored after list refreshes.

@@ -49,7 +49,10 @@ namespace Soulseek.Messaging.Messages
             var presence = (UserPresence)reader.ReadInteger();
             ProtocolValueValidator.ValidateDefinedEnum(presence, "user presence");
 
-            var privileged = reader.ReadByte() > 0;
+            var privilegedByte = reader.ReadByte();
+            ProtocolValueValidator.ValidateBooleanFlag(privilegedByte, "user status privileged flag");
+
+            var privileged = privilegedByte == 1;
 
             return new UserStatus(username, presence, privileged);
         }

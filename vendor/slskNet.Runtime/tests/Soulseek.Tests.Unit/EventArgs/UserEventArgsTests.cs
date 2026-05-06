@@ -27,6 +27,7 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "UserCannotConnectEventArgs Instantiates with the given data"), AutoData]
         public void UserCannotConnectEventArgs_Instantiates_With_The_Given_Data(int token, string username)
         {
+            token = token < 0 ? 0 : token;
             var e = new UserCannotConnectEventArgs(new CannotConnect(token, username));
 
             Assert.Equal(username, e.Username);

@@ -19,6 +19,22 @@ import {
 const Button = TooltipButton;
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
+const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+
+const getErrorMessage = (error, fallback = 'Request failed') => {
+  const data = error?.response?.data;
+
+  if (typeof data === 'string') return data;
+  if (isObject(data)) {
+    return data.detail ||
+      data.message ||
+      data.error ||
+      data.title ||
+      JSON.stringify(data);
+  }
+
+  return error?.message || fallback;
+};
 
 export default class ShareGroups extends Component {
   state = {
@@ -213,7 +229,7 @@ export default class ShareGroups extends Component {
       await collectionsAPI.deleteShareGroup(id);
       await this.loadData();
     } catch (error) {
-      this.setState({ error: error.response?.data || error.message });
+      this.setState({ error: getErrorMessage(error, 'Failed to delete share group') });
     }
   };
 
@@ -223,7 +239,7 @@ export default class ShareGroups extends Component {
       await collectionsAPI.removeShareGroupMember(groupId, userId);
       await this.loadData();
     } catch (error) {
-      this.setState({ error: error.response?.data || error.message });
+      this.setState({ error: getErrorMessage(error, 'Failed to remove member') });
     }
   };
 
