@@ -52,6 +52,27 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z321. Local Control APIs Need No-Redirect Without Public-IP SSRF Blocking
+
+**The Bug**: The Gluetun VPN integration used the public outbound SSRF-guarded HTTP client. That client rejects loopback/private destinations, so a valid operator-configured Gluetun control URL such as `http://127.0.0.1:8010` left the app waiting for VPN readiness indefinitely.
+
+**Files Affected**:
+- `src/slskd/Integrations/VPN/Clients/Gluetun.cs`
+- `src/slskd/Common/Security/OutboundUriGuard.cs`
+- `src/slskd/Program.cs`
+
+**Wrong**:
+```csharp
+using var http = HttpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
+```
+
+**Correct**:
+```csharp
+using var http = HttpClientFactory.CreateClient(OutboundUriGuard.LocalNoRedirectHttpClientName);
+```
+
+**Why This Keeps Happening**: SSRF hardening for arbitrary remote URLs is not the same boundary as a trusted local control-plane integration. Local control clients still must disable redirects, but they must not reuse public-address-only connection guards when the documented configuration is loopback or a private sidecar address.
+
 ### 0z320. Workflow YAML Cannot Contain Tab Indentation Or Unindented Multiline Arguments
 
 **The Bug**: Release workflows failed instantly on every push with no jobs or logs because YAML parsing rejected tab-indented lines inside `run:` blocks. A disabled upstream-access workflow also had multiline CLI bodies that were not indented as block-scalar content.
