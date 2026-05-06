@@ -15398,12 +15398,16 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 
 ### 0z96. Fork-Owned Package Links Must Track The Active Branch
 
-**What went wrong:** Active package metadata and developer examples still pointed fork-owned GitHub URLs or workflow examples at `master`, while this fork publishes from `main`.
+**What went wrong:** Active package metadata, developer examples, workflow comments, and fork status docs still pointed fork-owned GitHub URLs or branch wording at `master`, while this fork publishes from `main`.
 
 **Files Affected**:
 - `packaging/unraid/slskdn.xml`
 - `packaging/chocolatey/slskdn.nuspec`
 - `docs/dev/e2e-testing-guide.md`
+- `.github/workflows/ci.yml`
+- `.github/workflows/codeql.yml`
+- `docs/FEATURES.md`
+- `docs/security/*.md`
 - `scripts/check-fork-main-branch-links.sh`
 
 **Wrong**:
@@ -15416,4 +15420,4 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 <TemplateURL>https://raw.githubusercontent.com/snapetech/slskdn/main/packaging/unraid/slskdn.xml</TemplateURL>
 ```
 
-**Why This Keeps Happening**: Fork metadata, package manifests, and copied workflow examples often drift separately from GitHub workflow branch checks. Active fork-owned links and examples need their own scanner so package managers and contributors do not follow stale branch paths.
+**Why This Keeps Happening**: Fork metadata, package manifests, copied workflow examples, and status docs often drift separately from GitHub workflow branch checks. Active fork-owned links, comments, and examples need their own scanner so package managers and contributors do not follow stale branch paths or stale branch instructions.
