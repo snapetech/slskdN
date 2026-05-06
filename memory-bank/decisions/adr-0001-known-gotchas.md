@@ -14761,3 +14761,35 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 **Why it happened:** The implementation batch updated controller attributes and tests, then validated focused auth behavior, but did not include the generated system-surface artifact in the same ownership batch.
 
 **How to prevent it:** Any controller route, auth attribute, HTTP verb, anonymous surface, or action-count change must run `scripts/generate-route-inventory.sh docs/system-surfaces-current.md` before closing the batch, followed by `scripts/check-route-inventory.sh`.
+
+### 0z88. Public Outbound URL Checks Must Own The Actual Connect Path
+
+**What went wrong:** ActivityPub key fetch and federation delivery clients validated inbox/key URLs before sending, but their typed HTTP clients used plain no-redirect handlers. DNS could change between validation and connection, so the request path was not bound to the same public-address invariant.
+
+**Why it happened:** The code treated a preflight URI/DNS check as equivalent to an HTTP transport guard. That leaves a time-of-check/time-of-use gap whenever DNS resolution or connection establishment happens again inside `HttpClient`.
+
+**How to prevent it:** Public outbound callers must use `OutboundUriGuard.CreateNoRedirectHandler()` or an equivalent guarded `ConnectCallback` for the actual client. Keep preflight checks only for clearer errors, not as the only SSRF boundary.
+
+### 0z89. Remote Share Grant Announcements Must Bind Sender To Claimed Owner
+
+**What went wrong:** A remote Soulseek private message could announce a share grant with any `OwnerUserId` and `OwnerEndpoint`, and the receiver would persist that remote endpoint/token for later backfill without proving the private-message sender was the claimed owner.
+
+**Why it happened:** The JSON announcement was treated as trusted protocol content while the authenticated transport context, `PrivateMessageReceivedEventArgs.Username`, was discarded before ingestion.
+
+**How to prevent it:** Remote announcements must carry the sender context into ingestion and reject messages whose claimed owner does not match the private-message sender. Public/test ingestion paths can remain available, but network-originated payloads need this binding.
+
+### 0z90. Recursive File Listings Must Skip Reparse Points
+
+**What went wrong:** Recursive file listings validated the starting directory but allowed filesystem recursion to follow reparse points/symlinks below that root.
+
+**Why it happened:** Path containment was enforced at API entry, while the recursive traversal options skipped only system files. A symlink inside an allowed root can point outside that root after enumeration begins.
+
+**How to prevent it:** Any recursive filesystem listing under an allowed root must set `FileAttributes.ReparsePoint` in `EnumerationOptions.AttributesToSkip`, preferably in the service layer so all callers inherit the guard.
+
+### 0z91. Route-Hydrated Web Views Must React To Query Changes
+
+**What went wrong:** Discovery Graph Atlas hydrated from `location.search` only on mount, so navigating within the already-mounted route to a different query left the previous graph visible.
+
+**Why it happened:** The effect intentionally avoided repeated graph rebuilds, but its dependency list omitted the query string that supplies the route intent.
+
+**How to prevent it:** Any mounted Web view that hydrates state from URL query/path parameters must include those parameters in the effect dependencies and have a test that changes location while the component stays mounted.
