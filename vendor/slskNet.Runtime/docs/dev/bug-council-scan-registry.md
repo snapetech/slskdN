@@ -1,5 +1,12 @@
 # Bug Council Scan Registry
 
+Companion documents (process upgrades — see also `docs/dev/bug-council-phases.md`):
+
+- `docs/dev/bug-council-severity-schema.md` — severity and confidence tiers used in every new sweep row.
+- `docs/dev/bug-council-sibling-search.md` — the rule that no row closes Fixed without a sibling sweep.
+- `docs/dev/bug-council-negative-space.md` — declared trust boundaries, enforced by `scripts/check-council-negative-space.sh`.
+- `docs/dev/bug-council-behavior-pinning.md` — every text-anchored remediation gate must be paired with a behavior test.
+
 The council workflow is inventory-first:
 
 1. Run `bash scripts/scan-bug-council-candidates.sh`.

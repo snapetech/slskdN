@@ -560,6 +560,22 @@ require_pattern "Every hit must be ledgered" "scripts/scan-bug-council-candidate
 secret_pattern='-----BEGIN (RSA |DSA |EC |OPENSSH |PGP )?PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9_]{36,}|xox[baprs]-[A-Za-z0-9-]{20,}|AKIA[0-9A-Z]{16}|(?i)(api[_-]?key|access[_-]?token|client[_-]?secret)["'\'']?\s*[:=]\s*["'\''][A-Za-z0-9_./+=-]{24,}["'\'']'
 require_absent_pattern "$secret_pattern" "." "tracked text files do not contain high-confidence secret patterns"
 
+# Mythos-level upgrades — phase 1 council process artifacts.
+require_file "docs/dev/bug-council-phases.md" "council phase tracker exists"
+require_file "docs/dev/bug-council-severity-schema.md" "council severity/confidence schema exists"
+require_file "docs/dev/bug-council-sibling-search.md" "council sibling-search rule exists"
+require_file "docs/dev/bug-council-negative-space.md" "council negative-space gate doc exists"
+require_file "docs/dev/bug-council-behavior-pinning.md" "council behavior-pinning pattern exists"
+require_file "scripts/check-council-negative-space.sh" "council negative-space gate script exists"
+
+# Run the negative-space gate as part of the remediation baseline so a missing
+# validator on a declared boundary is caught the same way as a missing fix.
+if bash scripts/check-council-negative-space.sh >/dev/null 2>&1; then
+  pass "negative-space gate passes"
+else
+  fail "negative-space gate failed; run scripts/check-council-negative-space.sh for details"
+fi
+
 if [[ "$failures" -gt 0 ]]; then
   printf '\n%d remediation baseline check(s) failed.\n' "$failures" >&2
   exit 1

@@ -48,3 +48,23 @@ Classification: False positive.
 - `src/Messaging/Compression/ZStream.cs:78` and `src/Messaging/Compression/ZStream.cs:83` are internal zlib working buffers, not public runtime API state.
 - `scripts/scan-bug-council-candidates.sh:142` is the scanner's own high-confidence secret regex.
 - `scripts/check-remediation-baseline.sh:382` is the remediation baseline's own high-confidence secret regex.
+
+## Severity / Confidence Retrofit (Schema Demo)
+
+This sweep predates `docs/dev/bug-council-severity-schema.md`. The fixed rows are reproduced here in the new format as a worked example for future sweeps. Severity and confidence are assigned in retrospect, using the closed code state and any associated regression tests as evidence.
+
+| Candidate | Severity | Confidence | Classification | Ledger | Rationale |
+| --- | --- | --- | --- | --- | --- |
+| `src/Network/Tcp/ConnectionKey.cs:72` | Medium | Proven | Fixed | RT-086 | Culture-sensitive username comparison could collide distinct users under non-invariant locales; ordinal comparison is now enforced. Behavior pinned by `Equals_Treats_Embedded_Null_Usernames_As_Different`. |
+| `src/Network/Tcp/ConnectionKey.cs:96` | Medium | Proven | Fixed | RT-086 | Hash code must match ordinal equality contract; mismatch caused dictionary key drift across cultures. Behavior pinned by the same regression test. |
+| `src/Common/WaitKey.cs:94` | Medium | Proven | Fixed | RT-086 | Wait-key hash matched token equality only under invariant culture. Ordinal hashing matches ordinal equality. |
+
+Sibling search (per `docs/dev/bug-council-sibling-search.md`):
+
+```
+rg -n "GetHashCode\(\)" src/Network src/Common
+  src/Network/Tcp/ConnectionKey.cs:96 — fixed (this row)
+  src/Common/WaitKey.cs:94 — fixed (this row)
+  Other hits inspected: all override GetHashCode in a way consistent with the
+  paired Equals override; no further sweep rows opened.
+```
