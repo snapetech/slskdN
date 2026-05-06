@@ -584,6 +584,13 @@ require_file "docs/dev/bug-council-roslyn-analyzers.md" "council analyzer author
 require_pattern "OutputItemType=\"Analyzer\"" "src/Soulseek.csproj" "runtime references council analyzer as analyzer"
 require_pattern "CSL0001" "analyzers/Soulseek.CouncilAnalyzers/TaintToAllocationAnalyzer.cs" "CSL0001 diagnostic descriptor is declared"
 
+# Mythos-level upgrades — phase 3 protocol fuzz harness.
+require_file "tests/Soulseek.Tests.Unit/Messaging/Fuzz/ProtocolRoundtripFuzz.cs" "protocol roundtrip fuzz harness exists"
+require_file "tests/Soulseek.Tests.Unit/Messaging/Fuzz/ProtocolAdversarialFuzz.cs" "protocol adversarial fuzz harness exists"
+require_pattern "Category.*Fuzz" "tests/Soulseek.Tests.Unit/Messaging/Fuzz/ProtocolRoundtripFuzz.cs" "roundtrip fuzz is tagged with Fuzz category"
+require_pattern "Category.*Fuzz" "tests/Soulseek.Tests.Unit/Messaging/Fuzz/ProtocolAdversarialFuzz.cs" "adversarial fuzz is tagged with Fuzz category"
+require_pattern "IsDocumentedFailure" "tests/Soulseek.Tests.Unit/Messaging/Fuzz/ProtocolAdversarialFuzz.cs" "adversarial fuzz pins the documented-exception contract"
+
 if [[ "$failures" -gt 0 ]]; then
   printf '\n%d remediation baseline check(s) failed.\n' "$failures" >&2
   exit 1
