@@ -138,7 +138,7 @@ namespace slskd.Transfers.MultiSource
         /// <summary>
         ///     Gets the sources with the best (most common) hash.
         /// </summary>
-        public List<VerifiedSource> BestSources => BestHash != null && SourcesByHash.TryGetValue(BestHash, out var sources) ? sources : new List<VerifiedSource>();
+        public List<VerifiedSource> BestSources => BestHash != null && SourcesByHash.TryGetValue(BestHash, out var sources) ? sources.ToList() : new List<VerifiedSource>();
 
         /// <summary>
         ///     Semantic grouping keyed by MusicBrainz recording + codec.
@@ -148,7 +148,7 @@ namespace slskd.Transfers.MultiSource
         /// <summary>
         ///     Gets the best semantic group (prefers groups containing a MusicBrainz recording ID).
         /// </summary>
-        public IReadOnlyList<VerifiedSource> BestSemanticSources => BestSemanticKey != null && SourcesBySemanticKey.TryGetValue(BestSemanticKey, out var best) ? best : new List<VerifiedSource>();
+        public IReadOnlyList<VerifiedSource> BestSemanticSources => BestSemanticKey != null && SourcesBySemanticKey.TryGetValue(BestSemanticKey, out var best) ? best.ToList() : new List<VerifiedSource>();
 
         /// <summary>
         ///     Gets the selected semantic key (MBID+codec) for grouping chunks.

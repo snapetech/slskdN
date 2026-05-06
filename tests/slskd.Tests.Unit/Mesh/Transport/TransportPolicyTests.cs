@@ -274,6 +274,24 @@ public class TransportPolicyTests : IDisposable
     }
 
     [Fact]
+    public void TransportPolicy_GetEffectivePreferenceOrder_WithCustomOrder_ReturnsSnapshot()
+    {
+        // Arrange
+        var policy = new TransportPolicy
+        {
+            TransportPreferenceOrder = new List<TransportType> { TransportType.TorOnionQuic, TransportType.DirectQuic }
+        };
+        var globalOrder = new List<TransportType> { TransportType.DirectQuic };
+
+        // Act
+        var effectiveOrder = policy.GetEffectivePreferenceOrder(globalOrder);
+        effectiveOrder.Clear();
+
+        // Assert
+        Assert.Equal(new[] { TransportType.TorOnionQuic, TransportType.DirectQuic }, policy.TransportPreferenceOrder);
+    }
+
+    [Fact]
     public void TransportPolicy_GetEffectivePreferenceOrder_WithoutCustomOrder_ReturnsGlobalOrder()
     {
         // Arrange
@@ -285,5 +303,20 @@ public class TransportPolicyTests : IDisposable
 
         // Assert
         Assert.Equal(globalOrder, effectiveOrder);
+    }
+
+    [Fact]
+    public void TransportPolicy_GetEffectivePreferenceOrder_WithoutCustomOrder_ReturnsSnapshot()
+    {
+        // Arrange
+        var policy = new TransportPolicy();
+        var globalOrder = new List<TransportType> { TransportType.DirectQuic, TransportType.TorOnionQuic };
+
+        // Act
+        var effectiveOrder = policy.GetEffectivePreferenceOrder(globalOrder);
+        effectiveOrder.Clear();
+
+        // Assert
+        Assert.Equal(new[] { TransportType.DirectQuic, TransportType.TorOnionQuic }, globalOrder);
     }
 }

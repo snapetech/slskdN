@@ -11,6 +11,47 @@ using Xunit;
 public class ContentVerificationServiceTests
 {
     [Fact]
+    public void ContentVerificationResult_BestSources_ReturnsSnapshot()
+    {
+        var source = new VerifiedSource { Username = "peer-a", ContentHash = "hash-a" };
+        var result = new ContentVerificationResult
+        {
+            SourcesByHash = new Dictionary<string, List<VerifiedSource>>
+            {
+                ["hash-a"] = new() { source },
+            },
+        };
+
+        var bestSources = result.BestSources;
+
+        bestSources.Clear();
+
+        Assert.Single(result.SourcesByHash["hash-a"]);
+        Assert.Single(result.BestSources);
+    }
+
+    [Fact]
+    public void ContentVerificationResult_BestSemanticSources_ReturnsSnapshot()
+    {
+        var source = new VerifiedSource { Username = "peer-a", MusicBrainzRecordingId = "mbid-a" };
+        var result = new ContentVerificationResult
+        {
+            BestSemanticKey = "mbid-a|flac",
+            SourcesBySemanticKey = new Dictionary<string, List<VerifiedSource>>
+            {
+                ["mbid-a|flac"] = new() { source },
+            },
+        };
+
+        var bestSources = result.BestSemanticSources.ToList();
+
+        bestSources.Clear();
+
+        Assert.Single(result.SourcesBySemanticKey["mbid-a|flac"]);
+        Assert.Single(result.BestSemanticSources);
+    }
+
+    [Fact]
     public async Task VerifySourcesAsync_BoundsConcurrentSoulseekProbes()
     {
         var active = 0;

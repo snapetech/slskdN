@@ -1,5 +1,7 @@
 ## 2026-05-06
 
+- Continued the non-runtime mutable-ownership council sweep and fixed `BUG-20260506-039` through `BUG-20260506-040`: content-verification best-source helpers and mesh transport effective-order helpers now return snapshots instead of backing mutable lists. Added focused `ContentVerificationServiceTests` and `TransportPolicyTests` regressions, ledger rows, changelog note, and ADR-0001 gotcha `0z334`.
+
 - Continued the non-runtime mutable-ownership council cycle and accepted `BUG-20260506-037`: `MeshPeer` now clones mutable `IPEndPoint` values on construction, update, `Addresses` access, and `GetBestAddress()` so caller-side endpoint mutation cannot rewrite peer address state. Added `MeshPeerTests`, ledger verification notes, changelog entry, and ADR-0001 gotcha `0z332`.
 - Fixed `BUG-20260506-038` found during focused validation: DHT STORE signing no longer reflects into a read-only ACK message type; it now signs a concrete DHT store mesh message and verifies with the real signer payload. Added a real signer/verification regression and ADR-0001 gotcha `0z333`.
 

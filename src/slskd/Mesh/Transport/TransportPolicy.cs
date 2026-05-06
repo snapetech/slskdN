@@ -81,7 +81,7 @@ public class TransportPolicy
     /// <returns>The preference order to use.</returns>
     public List<TransportType> GetEffectivePreferenceOrder(List<TransportType> globalOrder)
     {
-        return TransportPreferenceOrder ?? globalOrder;
+        return (TransportPreferenceOrder ?? globalOrder).ToList();
     }
 
     /// <summary>

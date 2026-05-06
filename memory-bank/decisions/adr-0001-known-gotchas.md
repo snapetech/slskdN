@@ -221,6 +221,28 @@ var signedMeshMessage = signer.SignMessage(new DhtStoreSigningMessage(message));
 
 **Why This Keeps Happening**: It is tempting to reuse an adjacent mesh message for signing when only the signer interface is available, but signature payloads are type-bound. Protocol-specific signed operations need their own concrete message type and a verification payload that matches the signer exactly.
 
+### 0z334. Computed List Helpers Must Return Snapshots
+
+**The Bug**: `ContentVerificationResult.BestSources`, `ContentVerificationResult.BestSemanticSources`, and `TransportPolicy.GetEffectivePreferenceOrder()` returned backing mutable list instances from result dictionaries or policy/global option state.
+
+**Files Affected**:
+- `src/slskd/Transfers/MultiSource/IContentVerificationService.cs`
+- `src/slskd/Mesh/Transport/TransportPolicy.cs`
+
+**Wrong**:
+```code
+return sources;
+return TransportPreferenceOrder ?? globalOrder;
+```
+
+**Correct**:
+```code
+return sources.ToList();
+return (TransportPreferenceOrder ?? globalOrder).ToList();
+```
+
+**Why This Keeps Happening**: Helper properties that compute a "best" or "effective" list look read-only at the call site, but returning `List<T>` or a mutable backing collection transfers ownership to the caller. Public helpers that summarize internal buckets or option defaults must return a snapshot unless mutation is an explicit part of the contract.
+
 ### 0z326. Integration Auth Fixtures Must Match Admin-Only Routes
 
 **The Bug**: After security telemetry routes were tightened to administrator-only, the shared integration `StubWebApplicationFactory` still authenticated as only `ReadWrite`, so versioned admin route smoke tests failed with `403 Forbidden`.

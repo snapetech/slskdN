@@ -76,6 +76,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Fixed mesh DHT STORE signing so signed store requests use a concrete DHT store
   mesh message type and verify with the real signer payload instead of reflecting
   into an ACK message.
+- Hardened computed list helpers so content-verification source groups and mesh
+  transport preference orders return caller-safe snapshots instead of mutable
+  backing collections.
 - Normalized formatter output in backend async-observation paths so repo lint
   passes after the council cleanup.
 

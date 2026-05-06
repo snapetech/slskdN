@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **bug-council**: Close computed list helper shared-ownership risks.
+ - Status: completed (2026-05-06)
+ - Priority: P2
+ - Notes: Fixed `BUG-20260506-039` and `BUG-20260506-040` by returning snapshots from `ContentVerificationResult.BestSources`, `BestSemanticSources`, and `TransportPolicy.GetEffectivePreferenceOrder()`. Added focused regressions in `ContentVerificationServiceTests` and `TransportPolicyTests`, plus ADR-0001 gotcha `0z334`.
+
 - [x] **bug-council**: Close mesh peer endpoint shared-ownership risk.
  - Status: completed (2026-05-06)
  - Priority: P2

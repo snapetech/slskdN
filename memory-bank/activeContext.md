@@ -1,3 +1,15 @@
+## Update 2026-05-06 22:08:00Z
+
+- Current task: Continue non-runtime council mutable-ownership helper sweep.
+- Last activity:
+  - accepted and fixed `BUG-20260506-039` and `BUG-20260506-040`;
+  - `ContentVerificationResult.BestSources`, `BestSemanticSources`, and `TransportPolicy.GetEffectivePreferenceOrder()` now return snapshot lists instead of backing mutable collections;
+  - added focused regressions in `ContentVerificationServiceTests` and `TransportPolicyTests`;
+  - documented ADR-0001 gotcha `0z334` and updated the bug burn-down ledger/changelog/task log.
+- Next steps:
+  1. Run remediation, lint, and diff validation.
+  2. Commit and push the verified non-runtime council batch.
+
 ## Update 2026-05-06 19:24:22Z
 
 - Current task: Continue non-runtime council mutable-ownership sweep across constructor/public accessor candidates.
