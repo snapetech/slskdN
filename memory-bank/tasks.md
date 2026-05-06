@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **bug-council**: Continue QUIC overlay/data stream lifecycle cycle.
+ - Status: completed (2026-05-06)
+ - Priority: P2
+ - Notes: Fixed `BUG-20260506-085` and `BUG-20260506-086` by tracking accepted QUIC control/data stream tasks and draining them during server shutdown. Extended `scripts/check-async-task-observation.sh` to reject raw detached stream handlers and added ADR-0001 gotcha `0z95`.
+
 - [x] **bug-council**: Continue Proxmox/raw Linux installer safety cycle.
  - Status: completed (2026-05-06)
  - Priority: P1

@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Track and drain accepted QUIC overlay/data stream tasks during server
+  shutdown instead of detaching stream handlers from lifecycle ownership.
 - Hardened the Proxmox LXC installer with release checksum verification,
   stale-tree replacement, and Linux service permission convergence.
 - Hardened Web lifecycle handling for Library Health scan polling, Shares

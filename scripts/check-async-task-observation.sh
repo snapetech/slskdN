@@ -39,6 +39,8 @@ reject_literal src/slskd/Transfers/Downloads/DownloadService.cs '_ = FTP.UploadA
 reject_literal src/slskd/DhtRendezvous/MeshOverlayServer.cs '_ = HandleConnectionAsync'
 reject_literal src/slskd/DhtRendezvous/MeshOverlayServer.cs '_ = HandleMessagesAsync'
 reject_literal src/slskd/DhtRendezvous/MeshOverlayConnector.cs '_ = RunOutboundMessageLoopAsync'
+reject_literal src/slskd/Mesh/Overlay/QuicOverlayServer.cs '_ = HandleStreamAsync'
+reject_literal src/slskd/Mesh/Overlay/QuicDataServer.cs '_ = HandleStreamAsync'
 
 if [ "$failed" -ne 0 ]; then
   cat >&2 <<'MSG'

@@ -33,7 +33,9 @@ public class QuicDataServer : BackgroundService
     private readonly ConcurrentDictionary<IPEndPoint, QuicConnection> activeConnections = new();
     private readonly ConcurrentDictionary<IPEndPoint, string> _pinnedRemoteCertificates = new();
     private readonly ConcurrentDictionary<int, Task> activeConnectionTasks = new();
+    private readonly ConcurrentDictionary<int, Task> activeStreamTasks = new();
     private int nextConnectionTaskId;
+    private int nextStreamTaskId;
 
     public QuicDataServer(
         ILogger<QuicDataServer> logger,
@@ -56,6 +58,7 @@ public class QuicDataServer : BackgroundService
     {
         await CloseActiveConnectionsAsync().ConfigureAwait(false);
         await base.StopAsync(cancellationToken).ConfigureAwait(false);
+        await DrainStreamTasksAsync(cancellationToken).ConfigureAwait(false);
         await DrainConnectionTasksAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -173,7 +176,7 @@ public class QuicDataServer : BackgroundService
                             continue;
                         }
 
-                        _ = HandleStreamAsync(stream, remoteEndPoint, ct);
+                        TrackStreamTask(HandleStreamAsync(stream, remoteEndPoint, ct));
                     }
                     catch (OperationCanceledException)
                     {
@@ -442,6 +445,23 @@ public class QuicDataServer : BackgroundService
             TaskScheduler.Default);
     }
 
+    private void TrackStreamTask(Task task)
+    {
+        var taskId = Interlocked.Increment(ref nextStreamTaskId);
+        activeStreamTasks.TryAdd(taskId, task);
+        _ = task.ContinueWith(
+            _ =>
+            {
+                if (activeStreamTasks.TryRemove(taskId, out var removedTask))
+                {
+                    _ = removedTask;
+                }
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
+    }
+
     private async Task CloseActiveConnectionsAsync()
     {
         var connections = activeConnections.Values.Distinct().ToArray();
@@ -477,6 +497,28 @@ public class QuicDataServer : BackgroundService
         catch (Exception ex)
         {
             logger.LogDebug(ex, "[Overlay-QUIC-DATA] Error draining active connection tasks during stop");
+        }
+    }
+
+    private async Task DrainStreamTasksAsync(CancellationToken cancellationToken)
+    {
+        var tasks = activeStreamTasks.Values.ToArray();
+        if (tasks.Length == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await Task.WhenAll(tasks).WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Host shutdown timeout should not surface as a second failure here.
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "[Overlay-QUIC-DATA] Error draining active stream tasks during stop");
         }
     }
 }

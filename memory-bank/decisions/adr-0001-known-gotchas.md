@@ -15365,3 +15365,11 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 **Why it happened:** Similar installer flows lived in separate scripts, and the existing release/permission scanners checked representative paths rather than every active installer. The Proxmox path kept downloading ZIPs directly and extracting over the existing destination.
 
 **How to prevent it:** Every active Linux installer must verify release checksums, remove stale install trees before extraction, and converge config/data/app ownership plus `UMask=0002`. Keep a shared scanner that checks every installer entry point, not just the main package path.
+
+### 0z95. Accepted QUIC Streams Need Server-Owned Task Tracking
+
+**What went wrong:** QUIC overlay and data servers tracked accepted connection tasks, but each accepted stream was launched with `_ = HandleStreamAsync(...)` and was not included in shutdown draining.
+
+**Why it happened:** The stream handlers catch their own exceptions, which made the detached call look harmless during exception-observation sweeps. Lifecycle ownership still matters: shutdown has to know which stream work is active.
+
+**How to prevent it:** Any server that accepts nested stream/session work inside a tracked connection must either await it inline or add it to a server-owned tracked task collection that is drained during `StopAsync`. Scanner rules should reject raw `_ = HandleStreamAsync` in server accept loops.

@@ -37,7 +37,9 @@ public class QuicOverlayServer : BackgroundService, IOverlayConnectionMetrics
     private readonly ConcurrentDictionary<IPEndPoint, QuicConnection> activeConnections = new();
     private readonly ConcurrentDictionary<IPEndPoint, string> _pinnedRemoteCertificates = new();
     private readonly ConcurrentDictionary<int, Task> activeConnectionTasks = new();
+    private readonly ConcurrentDictionary<int, Task> activeStreamTasks = new();
     private int nextConnectionTaskId;
+    private int nextStreamTaskId;
 
     public QuicOverlayServer(
         ILogger<QuicOverlayServer> logger,
@@ -64,6 +66,7 @@ public class QuicOverlayServer : BackgroundService, IOverlayConnectionMetrics
     {
         await CloseActiveConnectionsAsync().ConfigureAwait(false);
         await base.StopAsync(cancellationToken).ConfigureAwait(false);
+        await DrainStreamTasksAsync(cancellationToken).ConfigureAwait(false);
         await DrainConnectionTasksAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -232,7 +235,7 @@ public class QuicOverlayServer : BackgroundService, IOverlayConnectionMetrics
                             continue;
                         }
 
-                        _ = HandleStreamAsync(stream, remoteEndPoint, ct);
+                        TrackStreamTask(HandleStreamAsync(stream, remoteEndPoint, ct));
                     }
                     catch (OperationCanceledException)
                     {
@@ -449,6 +452,23 @@ public class QuicOverlayServer : BackgroundService, IOverlayConnectionMetrics
             TaskScheduler.Default);
     }
 
+    private void TrackStreamTask(Task task)
+    {
+        var taskId = Interlocked.Increment(ref nextStreamTaskId);
+        activeStreamTasks.TryAdd(taskId, task);
+        _ = task.ContinueWith(
+            _ =>
+            {
+                if (activeStreamTasks.TryRemove(taskId, out var removedTask))
+                {
+                    _ = removedTask;
+                }
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
+    }
+
     private async Task CloseActiveConnectionsAsync()
     {
         var connections = activeConnections.Values.Distinct().ToArray();
@@ -484,6 +504,28 @@ public class QuicOverlayServer : BackgroundService, IOverlayConnectionMetrics
         catch (Exception ex)
         {
             logger.LogDebug(ex, "[Overlay-QUIC] Error draining active connection tasks during stop");
+        }
+    }
+
+    private async Task DrainStreamTasksAsync(CancellationToken cancellationToken)
+    {
+        var tasks = activeStreamTasks.Values.ToArray();
+        if (tasks.Length == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await Task.WhenAll(tasks).WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Host shutdown timeout should not surface as a second failure here.
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "[Overlay-QUIC] Error draining active stream tasks during stop");
         }
     }
 }

@@ -1,5 +1,7 @@
 ## 2026-05-06
 
+- Continued the non-runtime QUIC overlay/data lifecycle council section and fixed `BUG-20260506-085` through `BUG-20260506-086`: accepted QUIC control-plane and data-plane stream tasks are now tracked and drained during server shutdown instead of being detached from lifecycle ownership. Extended `scripts/check-async-task-observation.sh` and added ADR-0001 gotcha `0z95`.
+
 - Continued the non-runtime release/ops installer-safety council section and fixed `BUG-20260506-082` through `BUG-20260506-084`: the Proxmox LXC installer now verifies release checksums, removes stale install trees before extraction, and matches the raw Linux installer permission posture. Added `scripts/check-linux-installer-safety.sh` plus ADR-0001 gotcha `0z94`.
 
 - Continued the non-runtime Web lifecycle/hub mutation council section and fixed `BUG-20260506-079` through `BUG-20260506-081`: Library Health scan polling now clears intervals/timeouts on unmount and surfaces poll failures, Shares cancels delayed post-scan refreshes, and malformed Search hub mutation events are ignored instead of creating `undefined` search entries. Added focused Vitest regressions and ADR-0001 gotcha `0z93`.
