@@ -19,6 +19,22 @@ if rg -n 'branches:\s*\[master\]' "$repo_root/docs" \
   failed=1
 fi
 
+if rg -n 'slskdN master branch|\*\*Branch\*\*:\s*`?master`?|git checkout master' \
+  "$repo_root/docs" \
+  -g '!docs/archive/**' \
+  -g '!docs/dev/bug-burndown-ledger.md' \
+  -g '!docs/CHANGELOG.md' >&2; then
+  printf 'Active fork docs must describe main as the fork branch, not master.\n' >&2
+  failed=1
+fi
+
+if rg -n 'every push to master|Keep master scanning' "$repo_root/.github/workflows" \
+  -g '*.yml' \
+  -g '*.yaml' >&2; then
+  printf 'Active workflow comments must describe main as the fork branch, not master.\n' >&2
+  failed=1
+fi
+
 if [ "$failed" -ne 0 ]; then
   exit 1
 fi

@@ -9923,3 +9923,10 @@ Code quality improvements were completed as part of Option A:
 - Recorded and verified `BUG-20260506-087` through `BUG-20260506-089`.
 - Updated Unraid template metadata, Chocolatey package metadata, and the active E2E workflow guide from fork-owned `master` references to `main`.
 - Added `scripts/check-fork-main-branch-links.sh` to the remediation baseline so active fork package links and workflow examples cannot drift back to `master`.
+
+## 2026-05-06 22:00:48Z
+
+- Continued the non-runtime council scan into active fork workflow/docs branch-wording drift.
+- Recorded and verified `BUG-20260506-090` and `BUG-20260506-091`.
+- Updated CI/CodeQL workflow comments, FEATURES quick-start/status text, and active security docs from stale fork `master` wording to `main`.
+- Broadened `scripts/check-fork-main-branch-links.sh` so active workflow comments and fork-facing docs cannot drift back to `master` wording.

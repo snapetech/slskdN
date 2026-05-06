@@ -1,3 +1,15 @@
+## Update 2026-05-06 22:00:48Z
+
+- Current task: Continue non-runtime council active fork branch-wording cycle.
+- Last activity:
+  - classified active workflow comments and fork docs branch-wording references after skipping runtime/vendor/archive history;
+  - accepted and fixed `BUG-20260506-090` and `BUG-20260506-091`;
+  - CI/CodeQL comments, FEATURES quick-start/status text, and active security docs now describe the fork's `main` branch;
+  - broadened `scripts/check-fork-main-branch-links.sh` and extended ADR-0001 gotcha `0z96`.
+- Next steps:
+  1. Run remediation, focused branch-link scanner, workflow YAML checks, docs checks, lint, and diff checks.
+  2. Commit and push the verified non-runtime branch-wording batch.
+
 ## Update 2026-05-06 21:55:14Z
 
 - Current task: Continue non-runtime council active fork branch-link cycle.

@@ -1,6 +1,6 @@
 # Implementation Effort Analysis: slskdN Security Recommendations
 
-**Branch**: `master`  
+**Branch**: `main`
 **Date**: January 21, 2026
 
 ---

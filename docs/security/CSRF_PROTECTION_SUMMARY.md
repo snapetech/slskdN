@@ -1,6 +1,6 @@
 # CSRF Protection - Implementation Summary
 
-**Branch**: `master`  
+**Branch**: `main`
 **Implementation Date**: January 21, 2026  
 **Status**: ✅ Production Ready
 

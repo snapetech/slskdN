@@ -744,8 +744,8 @@ When downloading Pod results that aren't available locally:
 git clone https://github.com/snapetech/slskdn.git
 cd slskdn
 
-# Checkout experimental branch
-git checkout master
+# Checkout the active branch
+git checkout main
 
 # Build
 dotnet build
@@ -814,7 +814,7 @@ See LICENSE file for details.
 ## Status
 
 **Current Version**: 0.24.1 (main: 0.24.1-slskdn.40; dev: timestamped builds)  
-**Branch**: master  
+**Branch**: main
 **Status**: Active development  
 **Production Ready**: Main channel suitable for production; dev channel is experimental.
 

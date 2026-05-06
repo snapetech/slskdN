@@ -40,7 +40,7 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: csharp
-          # Keep master scanning focused on security findings; the broader suite
+          # Keep main-branch scanning focused on security findings; the broader suite
           # turns maintainability heuristics into thousands of repo alerts.
           queries: security-extended
           config: |

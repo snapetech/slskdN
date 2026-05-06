@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed active package/docs branch drift so Unraid and Chocolatey fork metadata
+  plus the E2E workflow guide point at `main`, with a remediation scanner
+  preventing fork-owned package links from drifting back to `master`.
+- Extended active branch-drift cleanup to workflow comments and fork-facing
+  security/feature docs so current contributor guidance consistently targets
+  `main`.
 - Track and drain accepted QUIC overlay/data stream tasks during server
   shutdown instead of detaching stream handlers from lifecycle ownership.
 - Hardened the Proxmox LXC installer with release checksum verification,
@@ -1394,8 +1400,6 @@ Relevant non-documentation commits preserved in this rollback line:
 - Added an E11 tag/organization dry run to Playlist Intake: matched rows can preview tag fields, organization templates, multi-artist behavior, cover-art policy, and ReplayGain policy with changed-field and destination-path summaries, without writing tags, moving files, running ReplayGain, contacting providers, searching, browsing peers, or downloading.
 
 - Fixed mesh self-descriptor publication so unsupported-QUIC hosts no longer advertise fake `DirectQuic` transports or legacy Soulseek-style `2234/2235` endpoints. Auto-detected mesh endpoints now use explicit `udp://...:<overlay-port>` legacy addresses derived from the real overlay listen port, and direct QUIC transport advertisement is suppressed when the running host cannot actually accept QUIC.
-- Fixed active package/docs branch drift so Unraid and Chocolatey fork metadata plus the E2E workflow guide point at `main`, with a remediation scanner preventing fork-owned package links from drifting back to `master`.
-
 ## [0.24.5-slskdn.125] — 2026-04-13
 
 - Closed the remaining tester follow-up on issues `#200` and `#201` by fixing the last versioned Web UI/API route gaps, tightening MediaCore and Jobs API versioning, removing the blanket benign `Connection refused` suppression, and covering those production `/api/v0/...` paths in release smoke.

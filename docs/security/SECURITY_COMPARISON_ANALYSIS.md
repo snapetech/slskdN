@@ -1,7 +1,7 @@
 # Security Comparison: slskdN (whatAmIThinking) vs. Upstream slskd
 
 **Date**: January 21, 2026  
-**Analysis**: Comparing security features between slskdN master branch and upstream slskd
+**Analysis**: Comparing security features between slskdN main branch and upstream slskd
 
 ---
 

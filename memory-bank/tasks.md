@@ -2636,3 +2636,7 @@
 - [x] Continue non-runtime council active fork branch-link cycle
   - Status: completed (2026-05-06)
   - Notes: Classified active fork package/docs branch references after skipping runtime/vendor/archive history; fixed `BUG-20260506-087` through `BUG-20260506-089` by moving Unraid, Chocolatey, and E2E guide references from `master` to `main`, and added `scripts/check-fork-main-branch-links.sh` to remediation.
+
+- [x] Continue non-runtime council active fork branch-wording cycle
+  - Status: completed (2026-05-06)
+  - Notes: Classified active workflow comment and fork docs branch-wording drift after skipping runtime/vendor/archive history; fixed `BUG-20260506-090` and `BUG-20260506-091` by moving CI/CodeQL comments, FEATURES quick-start/status text, and active security docs from `master` wording to `main`, and broadened `scripts/check-fork-main-branch-links.sh`.
