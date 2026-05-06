@@ -40,5 +40,6 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 "$repo_root/scripts/check-remediation-script-registry.sh"
 "$repo_root/scripts/check-remediation-doc-commands.sh"
 "$repo_root/scripts/check-council-negative-space.sh"
+"$repo_root/scripts/check-bug-council-all-phases.sh"
 
 printf 'Remediation baseline checks passed.\n'

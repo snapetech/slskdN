@@ -3,13 +3,16 @@
 // </copyright>
 namespace slskd.VirtualSoulfind.Bridge.Proxy;
 
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using slskd;
+using slskd.Common.Security;
 using slskd.VirtualSoulfind.Bridge;
 using slskd.VirtualSoulfind.Bridge.Protocol;
 using OptionsModel = slskd.Options;
@@ -368,8 +371,10 @@ public class BridgeProxyServer : BackgroundService
             return;
         }
 
-        logger.LogInformation("[VSF-BRIDGE-PROXY] Search request from {ClientId}: {Query} (token: {Token})",
-            session.ClientId, searchRequest.Query, searchRequest.Token);
+        logger.LogInformation("[VSF-BRIDGE-PROXY] Search request from {ClientId}: {QueryId} (token id {TokenId})",
+            session.ClientId,
+            LoggingSanitizer.SanitizeQueryText(searchRequest.Query),
+            GetProtocolTokenLogId(searchRequest.Token));
         bridgeDashboard.RecordRequest(session.ClientId, "search");
 
         try
@@ -424,8 +429,11 @@ public class BridgeProxyServer : BackgroundService
             return;
         }
 
-        logger.LogInformation("[VSF-BRIDGE-PROXY] Download request from {ClientId}: {Username}/{Filename} (token: {Token})",
-            session.ClientId, downloadRequest.Username, downloadRequest.Filename, downloadRequest.Token);
+        logger.LogInformation("[VSF-BRIDGE-PROXY] Download request from {ClientId}: {UserId}/{Filename} (token id {TokenId})",
+            session.ClientId,
+            LoggingSanitizer.SanitizeExternalIdentifier(downloadRequest.Username),
+            LoggingSanitizer.SanitizeFilePath(downloadRequest.Filename),
+            GetProtocolTokenLogId(downloadRequest.Token));
         bridgeDashboard.RecordRequest(session.ClientId, "download");
 
         try
@@ -677,6 +685,12 @@ public class BridgeProxyServer : BackgroundService
         {
             logger.LogWarning(ex, "[VSF-BRIDGE-PROXY] Failed to send error response: {Message}", errorMessage);
         }
+    }
+
+    private static string GetProtocolTokenLogId(int token)
+    {
+        var digest = SHA256.HashData(Encoding.UTF8.GetBytes(token.ToString(CultureInfo.InvariantCulture)));
+        return $"protocol-token:{Convert.ToHexString(digest.AsSpan(0, 6)).ToLowerInvariant()}";
     }
 
     private class ClientSession

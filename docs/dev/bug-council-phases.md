@@ -31,4 +31,5 @@ slskd ships its own scoped phase rows below for slskd-specific work that builds 
 
 1. Read this tracker; identify the first non-Done row.
 2. Run `bash scripts/check-remediation-baseline.sh` to confirm a green baseline.
-3. Pick up the row, update its status, and follow its exit criteria.
+3. Run `npm run check:council` so every slskd council phase executes in one command.
+4. Pick up any failing or non-Done phase, update its status, and follow its exit criteria.

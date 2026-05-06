@@ -285,6 +285,8 @@ Log.Debug("Validation failed: Supplied authentication credential does not match 
 
 **Why This Keeps Happening**: Authentication failures are easy to over-log during debugging. Even derived HMAC response values are credentials for the challenge they answer, so failure logs should include only hashed stable identifiers and the failure class, never supplied or expected secret material.
 
+**2026-05-06 follow-up:** VirtualSoulfind bridge proxy request logs had the same shape with protocol tokens plus user search text, usernames, and filenames. Search text should be logged with `LoggingSanitizer.SanitizeQueryText`, path-like filenames with `SanitizeFilePath`, user identifiers with `SanitizeExternalIdentifier`, and protocol tokens as stable hashed ids.
+
 ### 0z336. Controllers Must Not Return Raw Exception Messages
 
 **The Bug**: Several API controllers returned `BadRequest(ex.Message)` or reflected an OAuth callback `error` query value into response HTML.
@@ -15449,3 +15451,26 @@ assert_baseline_runs "soulseek-runtime-crossings" "scripts/check-async-task-obse
 ```
 
 **Why This Keeps Happening**: Meta-checks are easy to make green by checking a representative sample, but negative-space gates are inventories. If a boundary is listed in the doc, the checker must assert its validator exists and is wired into the remediation baseline, or the council can delete both the real guard and its detailed scanner while the inventory still passes.
+
+### 0z98. Council Runs Must Execute Every Phase Through One Command
+
+**What went wrong:** Agents ran individual council sections manually, so a green result could mean only the next visible phase or candidate class was checked instead of the full slskd council process.
+
+**Files Affected**:
+- `scripts/run-bug-council-all-phases.sh`
+- `scripts/check-bug-council-all-phases.sh`
+- `package.json`
+- `docs/dev/bug-council-phases.md`
+
+**Wrong**:
+```bash
+npm run check:remediation
+# then inspect one pending-looking section by hand
+```
+
+**Correct**:
+```bash
+npm run check:council
+```
+
+**Why This Keeps Happening**: Council phases are process gates, not a menu. Keep a single all-phases runner that checks mirrored docs, phase completion, remediation, and the slskd HTTP fuzz harness, and keep a remediation guard that ensures the runner itself remains wired.

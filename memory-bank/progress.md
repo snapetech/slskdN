@@ -9865,6 +9865,13 @@ Code quality improvements were completed as part of Option A:
 - Hardened System Network, Mesh, Swarm Visualization, Swarm Analytics, Jobs, Security, Bridge, and MediaCore polling so post-await state updates are ignored after unmount.
 - Added `scripts/check-web-polling-lifecycle.sh` to the remediation baseline and extended ADR-0001 gotcha `0z93`.
 
+## 2026-05-06 23:02:54Z
+
+- Ran every slskd council phase instead of selecting a single phase.
+- Recorded and verified `BUG-20260506-102` and `BUG-20260506-103`.
+- Added `npm run check:council` and `scripts/run-bug-council-all-phases.sh` so mirrored-doc checks, phase status, remediation, and Web-input fuzz execute together.
+- Redacted VirtualSoulfind bridge proxy request logs for search text, usernames, filenames, and protocol tokens, and extended sensitive-log scanning for the raw placeholders.
+
 ## 2026-05-06 22:57:43Z
 
 - Ran the updated slskd council tracker and completed the pending Web-input adversarial fuzz phase.

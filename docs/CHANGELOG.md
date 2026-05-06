@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Added `npm run check:council` so slskd council cycles execute every phase in
+  one command, and redacted VirtualSoulfind bridge proxy request logs.
 - Added a slskd HTTP adversarial fuzz harness for malformed JSON bodies,
   deterministic random byte bodies, and hostile query/path strings.
 - Replaced the checked-in slskdN web icon and logo assets with the borg feather

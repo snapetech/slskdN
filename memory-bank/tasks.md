@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **bug-council**: Run every slskd council phase and close broad scan findings.
+ - Status: completed (2026-05-06)
+ - Priority: P2
+ - Notes: Fixed `BUG-20260506-102` and `BUG-20260506-103` by adding `npm run check:council`/`scripts/run-bug-council-all-phases.sh` plus a remediation guard, and by redacting VirtualSoulfind bridge proxy query, user, filename, and token request logs. Extended `scripts/check-sensitive-placeholders.sh` and ADR-0001 gotchas `0z98`/`0z335`.
+
 - [x] **bug-council**: Complete slskd Web-input adversarial fuzz phase.
  - Status: completed (2026-05-06)
  - Priority: P2

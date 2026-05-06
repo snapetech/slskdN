@@ -1,3 +1,15 @@
+## Update 2026-05-06 23:02:54Z
+
+- Current task: Run every slskd council phase and broad non-runtime scans.
+- Last activity:
+  - added `npm run check:council` with `scripts/run-bug-council-all-phases.sh`;
+  - added `scripts/check-bug-council-all-phases.sh` to remediation so the all-phases runner remains wired;
+  - accepted and fixed `BUG-20260506-102` and `BUG-20260506-103`;
+  - redacted VirtualSoulfind bridge proxy search, username, filename, and protocol-token request logs.
+- Next steps:
+  1. Run `npm run check:council`, focused backend build, remediation, lint, and diff checks.
+  2. Commit and push the verified all-phases council batch.
+
 ## Update 2026-05-06 22:57:43Z
 
 - Current task: Run updated slskd council Web-input adversarial fuzz phase.
