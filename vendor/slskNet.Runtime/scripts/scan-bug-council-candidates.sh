@@ -22,6 +22,24 @@ scan_multiline() {
   rg -n -U --with-filename --pcre2 --hidden --glob '!.git/**' "$pattern" "$@" || true
 }
 
+scan_constructor_candidates() {
+  printf '\n## Constructors accepting mutable collections or params arrays\n'
+
+  find src -name '*.cs' -print0 | sort -z | xargs -0 perl -0ne '
+    while (/^[ \t]*(public|internal)[ \t]+([A-Za-z0-9_]+)[ \t]*\(([^)]*)\)/mg) {
+      my $declaration = $&;
+      my $arguments = $3;
+      my $start = $-[0];
+      next unless $arguments =~ /\b(?:IEnumerable<|IReadOnlyCollection<|ICollection<|IList<|List<|Dictionary<|HashSet<|params )/;
+
+      my $line = 1 + (substr($_, 0, $start) =~ tr/\n//);
+      $declaration =~ s/\s+/ /g;
+      $declaration =~ s/^\s+|\s+$//g;
+      print "$ARGV:$line:$declaration\n";
+    }
+  '
+}
+
 scan_protocol_scalar_guards() {
   printf '\n## Protocol scalar constructor guard candidates\n'
 
@@ -48,9 +66,7 @@ scan "Mutable public byte arrays and array properties" \
   'public [^;\n=]*\[\][^{;\n]*(\{|=>|;)|\bbyte\[\]\s+[A-Z][A-Za-z0-9_]*\s*\{' \
   src tests/Soulseek.Tests.Unit
 
-scan_multiline "Constructors accepting mutable collections or params arrays" \
-  '\b(public|internal) [A-Za-z0-9_]+\s*\([^)]*(IEnumerable<|IReadOnlyCollection<|ICollection<|IList<|List<|Dictionary<|HashSet<|params )' \
-  src
+scan_constructor_candidates
 
 scan "Value equality and hash-code comparisons" \
   'GetHashCode\(\)\s*==|Equals\([^)]*GetHashCode|operator ==|operator !=|public bool Equals\(' \

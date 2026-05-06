@@ -14,7 +14,7 @@ Candidate count: 28
 Classification marker: 28/28 classified
 Unclassified candidates: 0
 
-This sweep fixes the loop flaws that allowed the council to stop after one or two high-confidence hits and miss multiline constructors. The section is closed only after every candidate below is classified and every accepted finding in the section is fixed or already covered by a prior fixed ledger row.
+This sweep fixes the loop flaws that allowed the council to stop after one or two high-confidence hits and miss multiline constructors. The section is closed only after every candidate below is classified and every accepted finding in the section is fixed or already covered by a prior fixed ledger row. RT-087 keeps the scanner aligned with this register by emitting one normalized row per constructor declaration instead of counting each line of a multiline constructor as a separate candidate.
 
 | Candidate | Classification | Ledger | Rationale |
 | --- | --- | --- | --- |
