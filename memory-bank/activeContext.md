@@ -1,6 +1,6 @@
 ## Update 2026-05-06 01:05:00Z
 
-- Current task: Live `kspls0` Soulseek disconnect/log follow-up is in validation and deployment.
+- Current task: Live `kspls0` Soulseek disconnect/log follow-up is fixed and deployed.
 - Last activity:
   - checked service, authenticated application state, in-memory logs, Gluetun state, and service-user TCP egress
   - confirmed the daemon is currently connected/logged in, but had earlier connect/login timeouts before succeeding
@@ -8,10 +8,11 @@
   - documented ADR-0001 gotcha `0z322`
   - fixed `DistributedSearchRequest` to accept signed opaque token values and added focused runtime tests
   - validation passed: focused distributed/protocol scalar runtime test slice (`80/80`) and `git diff --check`
+  - deployed `0.0.0-slskdn.manual.20260506010228.a0f8ed7fff3` to `kspls0`
+  - verified authenticated state remains `Connected, LoggedIn` and a 45-second post-deploy log check found no disconnect/reconnect or distributed-token rejection messages
 - Next steps:
-  1. Publish and deploy a patched build to `kspls0`.
-  2. Re-check authenticated state and live logs after deployment.
-  3. Commit, verify GitHub target, and push the implementation/docs batch.
+  1. Push the local commits to `snapetech/slskdN`.
+  2. Let the user test the Web UI on `kspls0`.
 
 ## Update 2026-05-06 00:55:00Z
 

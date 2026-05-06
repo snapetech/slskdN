@@ -2,6 +2,7 @@
 
 - Checked live `kspls0` logs after the UI reported disconnection. The service was active and the authenticated state endpoint showed Soulseek connected/logged in, but in-memory logs showed earlier connect/login timeouts followed by valid distributed search requests being rejected because negative opaque tokens were treated as invalid.
 - Fixed `BUG-20260506-003`: `DistributedSearchRequest` now accepts the full signed `int` token range, added focused runtime tests, updated changelogs/ledger/tasks, and documented ADR-0001 gotcha `0z322`.
+- Deployed `0.0.0-slskdn.manual.20260506010228.a0f8ed7fff3` to `kspls0`; the service is active, `/usr/lib/slskd/current` points to the patched release, the authenticated state endpoint reports `Connected, LoggedIn`, and a 45-second post-deploy log check found zero disconnect/reconnect or distributed-token rejection matches.
 
 - Built and deployed `0.0.0-slskdn.manual.20260506003550.cfbff9ac1fd8` to `kspls0`, then found the app stayed in VPN-waiting state because Gluetun loopback status polling was blocked by the public outbound SSRF guard.
 - Fixed `BUG-20260506-002`: added a named local no-redirect HTTP client for trusted local control-plane integrations and switched Gluetun to it while keeping public outbound callers on the public-IP guard.
