@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Synced vendored slskNet.Runtime endpoint ownership hardening so peer
+  capability, distributed-network, transfer, and connection snapshots no longer
+  expose mutable endpoint state.
 - Synced vendored slskNet.Runtime exact-frame parser hardening so capability
   envelopes and peer initialization handshakes reject ignored trailing bytes.
 - Synced vendored slskNet.Runtime search scope validation so room and user
@@ -79,6 +82,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Hardened computed list helpers so content-verification source groups and mesh
   transport preference orders return caller-safe snapshots instead of mutable
   backing collections.
+- Removed raw relay authentication credential values from challenge-validation
+  failure logs and added a remediation scanner guard for that placeholder class.
 - Normalized formatter output in backend async-observation paths so repo lint
   passes after the council cleanup.
 

@@ -1,5 +1,7 @@
 ## 2026-05-06
 
+- Continued the non-runtime secret/log/error leakage council section and fixed `BUG-20260506-041`: relay authentication challenge mismatch logs no longer include supplied or expected HMAC credential values, and `scripts/check-sensitive-placeholders.sh` now rejects those raw credential placeholders. Added ADR-0001 gotcha `0z335`.
+
 - Continued the non-runtime mutable-ownership council sweep and fixed `BUG-20260506-039` through `BUG-20260506-040`: content-verification best-source helpers and mesh transport effective-order helpers now return snapshots instead of backing mutable lists. Added focused `ContentVerificationServiceTests` and `TransportPolicyTests` regressions, ledger rows, changelog note, and ADR-0001 gotcha `0z334`.
 
 - Continued the non-runtime mutable-ownership council cycle and accepted `BUG-20260506-037`: `MeshPeer` now clones mutable `IPEndPoint` values on construction, update, `Addresses` access, and `GetBestAddress()` so caller-side endpoint mutation cannot rewrite peer address state. Added `MeshPeerTests`, ledger verification notes, changelog entry, and ADR-0001 gotcha `0z332`.

@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **bug-council**: Remove raw relay authentication credentials from failure logs.
+ - Status: completed (2026-05-06)
+ - Priority: P1
+ - Notes: Fixed `BUG-20260506-041` by replacing raw supplied/expected relay credential mismatch logging with a hashed agent identifier and extending `scripts/check-sensitive-placeholders.sh` to reject the raw credential placeholders. Added ADR-0001 gotcha `0z335`.
+
 - [x] **bug-council**: Close computed list helper shared-ownership risks.
  - Status: completed (2026-05-06)
  - Priority: P2

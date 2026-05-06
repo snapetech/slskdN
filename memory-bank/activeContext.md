@@ -1,3 +1,15 @@
+## Update 2026-05-06 22:24:00Z
+
+- Current task: Continue non-runtime council secret/log/error leakage sweep.
+- Last activity:
+  - accepted and fixed `BUG-20260506-041`;
+  - relay authentication challenge mismatch logs now include only a hashed agent identifier, not supplied or expected HMAC credential values;
+  - extended `scripts/check-sensitive-placeholders.sh` so the raw credential placeholders are rejected by remediation;
+  - documented ADR-0001 gotcha `0z335` and updated the ledger/changelog/task log.
+- Next steps:
+  1. Run focused scanner, remediation, lint, and diff validation.
+  2. Commit and push the verified non-runtime council batch without touching dirty vendor runtime files.
+
 ## Update 2026-05-06 22:08:00Z
 
 - Current task: Continue non-runtime council mutable-ownership helper sweep.

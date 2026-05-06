@@ -817,7 +817,7 @@ namespace slskd.Relay
 
             if (expectedCredential != credential)
             {
-                Log.Debug("Validation failed: Supplied credential {Credential} does not match expected credential {Expected}", credential, expectedCredential);
+                Log.Debug("Validation failed: Supplied authentication credential does not match expected credential for agent {Agent}", GetAgentLogId(agentName));
                 return false;
             }
 

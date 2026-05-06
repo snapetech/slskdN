@@ -243,6 +243,26 @@ return (TransportPreferenceOrder ?? globalOrder).ToList();
 
 **Why This Keeps Happening**: Helper properties that compute a "best" or "effective" list look read-only at the call site, but returning `List<T>` or a mutable backing collection transfers ownership to the caller. Public helpers that summarize internal buckets or option defaults must return a snapshot unless mutation is an explicit part of the contract.
 
+### 0z335. Auth Failure Logs Must Not Include Supplied Or Expected Credentials
+
+**The Bug**: Relay authentication mismatch logging included both the supplied HMAC credential and the expected credential value.
+
+**Files Affected**:
+- `src/slskd/Relay/RelayService.cs`
+- `scripts/check-sensitive-placeholders.sh`
+
+**Wrong**:
+```code
+Log.Debug("Validation failed: Supplied credential {Credential} does not match expected credential {Expected}", credential, expectedCredential);
+```
+
+**Correct**:
+```code
+Log.Debug("Validation failed: Supplied authentication credential does not match expected credential for agent {Agent}", GetAgentLogId(agentName));
+```
+
+**Why This Keeps Happening**: Authentication failures are easy to over-log during debugging. Even derived HMAC response values are credentials for the challenge they answer, so failure logs should include only hashed stable identifiers and the failure class, never supplied or expected secret material.
+
 ### 0z326. Integration Auth Fixtures Must Match Admin-Only Routes
 
 **The Bug**: After security telemetry routes were tightened to administrator-only, the shared integration `StubWebApplicationFactory` still authenticated as only `ReadWrite`, so versioned admin route smoke tests failed with `403 Forbidden`.
