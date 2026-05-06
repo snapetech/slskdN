@@ -567,6 +567,14 @@ require_file "docs/dev/bug-council-sibling-search.md" "council sibling-search ru
 require_file "docs/dev/bug-council-negative-space.md" "council negative-space gate doc exists"
 require_file "docs/dev/bug-council-behavior-pinning.md" "council behavior-pinning pattern exists"
 require_file "scripts/check-council-negative-space.sh" "council negative-space gate script exists"
+require_file "scripts/run-bug-council-all-phases.sh" "council all-phases runner exists"
+require_file "scripts/check-bug-council-all-phases.sh" "council all-phases registration gate exists"
+
+if bash scripts/check-bug-council-all-phases.sh >/dev/null 2>&1; then
+  pass "all-phases council runner is registered"
+else
+  fail "all-phases council runner is not registered; run scripts/check-bug-council-all-phases.sh for details"
+fi
 
 # Run the negative-space gate as part of the remediation baseline so a missing
 # validator on a declared boundary is caught the same way as a missing fix.

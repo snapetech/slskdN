@@ -19,6 +19,7 @@ The goal is **higher-severity, deeper-fix findings** without abandoning the inve
 | 8 | Add CSL0002 second analyzer | Done | (agent) | `TaintToLoopBoundAnalyzer` flags tainted `for` loop bounds without sanctioned validators; positive, reversed-condition, validator, and parameter cases are tested. |
 | 9 | Mutation/calibration fixture project | Done | (agent) | `tests/Soulseek.CouncilAnalyzers.Calibration` is in the solution and contains known-bad/known-good snippets that prove zero-finding analyzer runs are calibrated. |
 | 10 | Multi-seed adversarial fuzz corpora | Done | (agent) | `ProtocolAdversarialFuzz` runs multiple deterministic random seeds plus explicit hostile corpus inputs; baseline gates both. |
+| 11 | All-phases council runner | Done | (agent) | `scripts/run-bug-council-all-phases.sh` runs candidate inventory, remediation, sweep-count drift, negative-space, analyzer tests, calibration, protocol fuzz, build, and package vulnerability scan in one command; `scripts/check-bug-council-all-phases.sh` is wired into the remediation baseline so partial council runs regress loudly. |
 
 Mark a phase **Done** only when every exit-criteria item is satisfied and the phase artifacts are checked in or staged.
 

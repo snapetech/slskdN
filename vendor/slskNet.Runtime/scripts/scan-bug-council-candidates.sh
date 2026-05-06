@@ -10,7 +10,7 @@ scan() {
   shift 2
 
   printf '\n## %s\n' "$title"
-  rg -n --with-filename --pcre2 --hidden --glob '!.git/**' "$pattern" "$@" || true
+  rg -n --with-filename --pcre2 --hidden --glob '!.git/**' --glob '!.council/**' "$pattern" "$@" || true
 }
 
 scan_multiline() {
@@ -19,7 +19,7 @@ scan_multiline() {
   shift 2
 
   printf '\n## %s\n' "$title"
-  rg -n -U --with-filename --pcre2 --hidden --glob '!.git/**' "$pattern" "$@" || true
+  rg -n -U --with-filename --pcre2 --hidden --glob '!.git/**' --glob '!.council/**' "$pattern" "$@" || true
 }
 
 scan_constructor_candidates() {
