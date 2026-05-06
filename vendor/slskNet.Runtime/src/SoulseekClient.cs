@@ -4676,6 +4676,7 @@ namespace Soulseek
         {
             var search = new SearchInternal(query, scope, token, options);
             var lastState = SearchStates.None;
+            var searchRegistered = false;
 
             void UpdateState(SearchStates state)
             {
@@ -4688,7 +4689,12 @@ namespace Soulseek
 
             try
             {
-                Searches.TryAdd(search.Token, search);
+                if (!Searches.TryAdd(search.Token, search))
+                {
+                    throw new DuplicateTokenException($"An active search with token {search.Token} is already in progress");
+                }
+
+                searchRegistered = true;
                 UpdateState(SearchStates.Requested);
 
                 Diagnostic.Debug($"Attempting to acquire search semaphore for search '{query.SearchText}' ({SearchSemaphore.CurrentCount} available)");
@@ -4751,6 +4757,10 @@ namespace Soulseek
 
                 throw;
             }
+            catch (DuplicateTokenException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 search.Complete(SearchStates.Errored);
@@ -4760,7 +4770,11 @@ namespace Soulseek
             }
             finally
             {
-                Searches.TryRemove(search.Token, out _);
+                if (searchRegistered)
+                {
+                    Searches.TryRemove(search.Token, out _);
+                }
+
                 search.Dispose();
             }
         }

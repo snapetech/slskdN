@@ -386,6 +386,36 @@ namespace Soulseek.Tests.Unit.Client
         }
 
         [Trait("Category", "SearchAsync")]
+        [Theory(DisplayName = "Search internal duplicate registration does not remove existing active search"), AutoData]
+        internal async Task SearchInternal_Duplicate_Registration_Does_Not_Remove_Existing_Active_Search(string text, int token)
+        {
+            using (var existingSearch = new SearchInternal(new SearchQuery(text), SearchScope.Network, token, new SearchOptions()))
+            {
+                var dict = new ConcurrentDictionary<int, SearchInternal>();
+                dict.TryAdd(token, existingSearch);
+
+                using (var s = new SoulseekClient(minorVersion: 9999))
+                {
+                    s.SetProperty("Searches", dict);
+
+                    var ex = await Record.ExceptionAsync(() => s.InvokeMethod<Task<Search>>(
+                        "SearchToCallbackAsync",
+                        new SearchQuery(text),
+                        new Action<SearchResponse>(_ => { }),
+                        SearchScope.Network,
+                        token,
+                        new SearchOptions(),
+                        CancellationToken.None));
+
+                    Assert.NotNull(ex);
+                    Assert.IsType<DuplicateTokenException>(ex);
+                    Assert.True(dict.TryGetValue(token, out var active));
+                    Assert.Same(existingSearch, active);
+                }
+            }
+        }
+
+        [Trait("Category", "SearchAsync")]
         [Theory(DisplayName = "SearchAsync returns completed search"), AutoData]
         public async Task SearchAsync_Returns_Completed_Search(string searchText, int token, string username)
         {
