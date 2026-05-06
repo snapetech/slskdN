@@ -219,7 +219,7 @@ public class ContentSafetyTests
         Assert.NotNull(nestedType);
 
         var ctor = nestedType!.GetConstructor(
-            BindingFlags.Instance | BindingFlags.Public,
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
             null,
             [typeof(byte[]), typeof(int), typeof(string)],
             null);

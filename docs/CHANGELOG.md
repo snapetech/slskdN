@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Hardened DHT content-safety signature metadata so signature magic bytes are
+  defensively copied like the common content-safety path.
 - Synced vendored slskNet.Runtime protocol string validation so outbound
   message constructors reject null strings before serialization.
 - Hardened mutable-byte ownership in security and batching paths by defensively
