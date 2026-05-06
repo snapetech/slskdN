@@ -8,3 +8,10 @@ export const list = async ({ offset, limit }) => {
 
   return { events, totalCount };
 };
+
+export const raiseEvent = async ({ type, disambiguator = '' }) => {
+  return api.post(
+    `/events/${encodeURIComponent(type)}`,
+    JSON.stringify(disambiguator),
+  );
+};

@@ -1,9 +1,10 @@
 import api from './api';
-import { list } from './events';
+import { list, raiseEvent } from './events';
 
 vi.mock('./api', () => ({
   default: {
     get: vi.fn(),
+    post: vi.fn(),
   },
 }));
 
@@ -34,5 +35,16 @@ describe('events', () => {
       events: [],
       totalCount: '1',
     });
+  });
+
+  it('raises typed events with a JSON string disambiguator', async () => {
+    api.post.mockResolvedValue({ data: { event: 'noop' } });
+
+    await raiseEvent({ type: 'noop', disambiguator: 'abc-123' });
+
+    expect(api.post).toHaveBeenCalledWith(
+      '/events/noop',
+      '"abc-123"',
+    );
   });
 });

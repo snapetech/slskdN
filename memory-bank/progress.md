@@ -1,5 +1,10 @@
 ## 2026-05-06
 
+- Completed another non-runtime council mini-cycle on primitive Web string-body mismatches.
+- Added and verified `BUG-20260506-032` through `BUG-20260506-034`; `src/web/src/lib/events.js` and `src/web/src/lib/rooms.js` now use `JSON.stringify` for `[FromBody] string` payloads; corresponding focused helper tests were added in `events.test.js` and `rooms.test.js`.
+- Updated `docs/dev/bug-burndown-ledger.md` class notes for primitive body mismatches and moved the new findings to `Verified`.
+- Validation passed: `npm run check:remediation`, `scripts/check-web-json-string-bodies.sh`, `cd src/web && npm test -- events.test.js rooms.test.js`, `cd src/web && npm run lint`, and `git diff --check`.
+
 - Continued non-runtime council broad fix cycle on mutable-security ownership patterns.
 - Fixed `BUG-20260506-029` through `BUG-20260506-031` (mutable array/bytes ownership): copied caller-supplied secret keys, signature magic bytes, and batched message payloads defensively; added regression tests `CanaryTrapsTests`, `ContentSafetyTests.FileSignature_StoresCopyOfMagicBytes`, and `TimedBatcherTests.BatchedMessage_CopiesMessageData`.
 - Updated `docs/dev/bug-burndown-ledger.md` with three `Verified` rows and classified mutable-input follow-up state in the `2026-05-06` section notes.

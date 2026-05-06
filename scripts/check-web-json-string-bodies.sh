@@ -17,6 +17,8 @@ expect_literal() {
 expect_literal src/web/src/lib/chat.js 'JSON.stringify(message)'
 expect_literal src/web/src/lib/rooms.js 'JSON.stringify(roomName)'
 expect_literal src/web/src/lib/rooms.js 'JSON.stringify(message)'
+expect_literal src/web/src/lib/rooms.js 'JSON.stringify(username)'
+expect_literal src/web/src/lib/events.js 'JSON.stringify(disambiguator)'
 expect_literal src/web/src/lib/options.js 'JSON.stringify(yaml)'
 expect_literal src/web/src/lib/mediacore.js 'JSON.stringify(contentId)'
 expect_literal src/web/src/lib/server.js 'data: JSON.stringify(message)'

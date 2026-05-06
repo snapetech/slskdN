@@ -62,3 +62,17 @@ export const sendMessage = async ({ roomName, message }) => {
     JSON.stringify(message),
   );
 };
+
+export const setTicker = async ({ roomName, message }) => {
+  return api.post(
+    `/rooms/joined/${encodeURIComponent(roomName)}/ticker`,
+    JSON.stringify(message),
+  );
+};
+
+export const addRoomMember = async ({ roomName, username }) => {
+  return api.post(
+    `/rooms/joined/${encodeURIComponent(roomName)}/members`,
+    JSON.stringify(username),
+  );
+};

@@ -38,6 +38,28 @@ describe('rooms api', () => {
     );
   });
 
+  it('posts room ticker messages as JSON strings', async () => {
+    api.post.mockResolvedValue({ data: {} });
+
+    await rooms.setTicker({ roomName: 'ambient', message: 'ticker text' });
+
+    expect(api.post).toHaveBeenCalledWith(
+      '/rooms/joined/ambient/ticker',
+      '"ticker text"',
+    );
+  });
+
+  it('posts room member names as JSON strings', async () => {
+    api.post.mockResolvedValue({ data: {} });
+
+    await rooms.addRoomMember({ roomName: 'ambient', username: 'alice' });
+
+    expect(api.post).toHaveBeenCalledWith(
+      '/rooms/joined/ambient/members',
+      '"alice"',
+    );
+  });
+
   it('returns empty arrays for malformed room list payloads', async () => {
     api.get.mockResolvedValue({ data: { unexpected: true } });
 

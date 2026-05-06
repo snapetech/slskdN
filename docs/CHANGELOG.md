@@ -59,6 +59,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Fixed a migration attribution header so an upstream-authored migration changed
   in slskdN preserves upstream copyright and adds the slskdN co-attribution
   block.
+- Closed remaining primitive-body web helper mismatches by serializing `[FromBody]
+  string` payloads with `JSON.stringify` in event and room helpers (`events,
+  setTicker, addRoomMember`) and adding focused regression tests.
 
 ## [2026050600-slskdn.227] — 2026-05-06
 

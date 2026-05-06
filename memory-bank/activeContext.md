@@ -1,3 +1,14 @@
+## Update 2026-05-06 21:00:00Z
+
+- Current task: Continue non-runtime council scan and burn-down, avoiding one-hit loop behavior.
+- Last activity:
+  - fixed and verified `BUG-20260506-032` through `BUG-20260506-034` for remaining primitive-body web helper mismatches (`Events.raiseEvent`, `Rooms.setTicker`, `Rooms.addRoomMember`);
+  - updated `docs/dev/bug-burndown-ledger.md` with class-wide section status and per-finding verification status;
+  - confirmed remediation + targeted web tests pass.
+- Next steps:
+  1. Continue the next non-runtime section after a short, full-candidate rescan to keep the council loop moving by section rather than one finding at a time.
+  2. Commit and push all non-runtime local changes when verified, including any remaining candidate classification rows.
+
 ## Update 2026-05-06 20:40:00Z
 
 - Current task: Broad non-runtime council cycle in mutable ownership class.
