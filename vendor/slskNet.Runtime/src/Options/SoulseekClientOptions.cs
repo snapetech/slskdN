@@ -39,6 +39,8 @@ namespace Soulseek
     /// </summary>
     public class SoulseekClientOptions
     {
+        private readonly IPAddress listenIPAddress;
+
         private readonly Func<string, IPEndPoint, Task<BrowseResponse>> defaultBrowseResponseResolver =
             (u, i) => Task.FromResult(new BrowseResponse(Enumerable.Empty<Directory>()));
 
@@ -147,7 +149,7 @@ namespace Soulseek
             bool raiseEventsAsynchronously = false)
         {
             EnableListener = enableListener;
-            ListenIPAddress = listenIPAddress ?? IPAddress.Any;
+            this.listenIPAddress = (listenIPAddress ?? IPAddress.Any).Snapshot();
 
             ListenPort = listenPort;
 
@@ -312,7 +314,7 @@ namespace Soulseek
         /// <summary>
         ///     Gets the IP Address on which to listen for incoming connections. (Default = IPAddress.Any/"0.0.0.0").
         /// </summary>
-        public IPAddress ListenIPAddress { get; }
+        public IPAddress ListenIPAddress => listenIPAddress.Snapshot();
 
         /// <summary>
         ///     Gets the port on which to listen for incoming connections. (Default = 50000).

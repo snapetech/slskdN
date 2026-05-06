@@ -52,6 +52,20 @@ namespace Soulseek.Tests.Unit.Options
         }
 
         [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Snapshots IP address")]
+        public void Snapshots_IPAddress()
+        {
+            var port = Port;
+            var options = new ProxyOptions("fe80::1", port);
+
+            options.IPAddress.ScopeId = 30;
+            options.IPEndPoint.Address.ScopeId = 40;
+
+            Assert.Equal(0, options.IPAddress.ScopeId);
+            Assert.Equal(0, options.IPEndPoint.Address.ScopeId);
+        }
+
+        [Trait("Category", "Instantiation")]
         [Theory(DisplayName = "Throws AddressException on bad address"), AutoData]
         public void Throws_ArgumentException_On_Bad_Address(string address)
         {

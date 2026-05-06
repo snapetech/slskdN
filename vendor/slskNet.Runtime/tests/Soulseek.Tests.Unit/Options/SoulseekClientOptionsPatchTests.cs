@@ -128,6 +128,20 @@ namespace Soulseek.Tests.Unit.Options
         }
 
         [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Snapshots listen IP address")]
+        public void Snapshots_Listen_IPAddress()
+        {
+            var listenAddress = IPAddress.Parse("fe80::1");
+            listenAddress.ScopeId = 10;
+            var options = new SoulseekClientOptionsPatch(listenIPAddress: listenAddress);
+
+            listenAddress.ScopeId = 20;
+            options.ListenIPAddress.ScopeId = 30;
+
+            Assert.Equal(10, options.ListenIPAddress.ScopeId);
+        }
+
+        [Trait("Category", "Instantiation")]
         [Fact(DisplayName = "Instantiates with given data")]
         public void Removes_Timeout_On_Server_Optons()
         {

@@ -37,6 +37,8 @@ namespace Soulseek
     /// </summary>
     public class SoulseekClientOptionsPatch
     {
+        private readonly IPAddress listenIPAddress;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="SoulseekClientOptionsPatch"/> class.
         /// </summary>
@@ -117,7 +119,7 @@ namespace Soulseek
             Func<string, IPEndPoint, string, Task<int?>> placeInQueueResolver = null)
         {
             EnableListener = enableListener;
-            ListenIPAddress = listenIPAddress;
+            this.listenIPAddress = listenIPAddress.Snapshot();
 
             ListenPort = listenPort;
 
@@ -247,7 +249,7 @@ namespace Soulseek
         /// <summary>
         ///     Gets the IP address on which to listen for incoming connections. (Default = IPAddress.Any/"0.0.0.0").
         /// </summary>
-        public IPAddress ListenIPAddress { get; }
+        public IPAddress ListenIPAddress => listenIPAddress.Snapshot();
 
         /// <summary>
         ///     Gets the port on which to listen for incoming connections.

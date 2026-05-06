@@ -31,19 +31,21 @@ namespace Soulseek.Messaging.Messages
     /// </summary>
     internal sealed class ParentsIPCommand : IOutgoingMessage
     {
+        private readonly IPAddress ipAddress;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="ParentsIPCommand"/> class.
         /// </summary>
         /// <param name="ipAddress">The IP address of the current distributed parent, or null if none is connected.</param>
         public ParentsIPCommand(IPAddress ipAddress = null)
         {
-            IPAddress = ipAddress;
+            this.ipAddress = ipAddress.Snapshot();
         }
 
         /// <summary>
         ///     Gets the IP address of the current distributed parent.
         /// </summary>
-        public IPAddress IPAddress { get; }
+        public IPAddress IPAddress => ipAddress.Snapshot();
 
         /// <summary>
         ///     Constructs a <see cref="byte"/> array from this message.
@@ -53,9 +55,9 @@ namespace Soulseek.Messaging.Messages
         {
             byte[] ipBytes = Array.Empty<byte>();
 
-            if (IPAddress != default)
+            if (ipAddress != default)
             {
-                ipBytes = IPAddress.GetAddressBytes();
+                ipBytes = ipAddress.GetAddressBytes();
                 Array.Reverse(ipBytes);
             }
 

@@ -32,6 +32,9 @@ namespace Soulseek
     /// </summary>
     public class ProxyOptions
     {
+        private readonly IPAddress ipAddress;
+        private readonly IPEndPoint ipEndPoint;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="ProxyOptions"/> class.
         /// </summary>
@@ -82,9 +85,9 @@ namespace Soulseek
             }
 
             Address = address;
-            IPAddress = ipAddress;
+            this.ipAddress = ipAddress.Snapshot();
             Port = port;
-            IPEndPoint = new IPEndPoint(IPAddress, Port);
+            ipEndPoint = new IPEndPoint(this.ipAddress.Snapshot(), Port);
             Username = username;
             Password = password;
         }
@@ -97,12 +100,12 @@ namespace Soulseek
         /// <summary>
         ///     Gets the resolved proxy server address.
         /// </summary>
-        public IPAddress IPAddress { get; }
+        public IPAddress IPAddress => ipAddress.Snapshot();
 
         /// <summary>
         ///     Gets the resolved proxy server endpoint.
         /// </summary>
-        public IPEndPoint IPEndPoint { get; }
+        public IPEndPoint IPEndPoint => ipEndPoint.Snapshot();
 
         /// <summary>
         ///     Gets the password for the proxy, if applicable.

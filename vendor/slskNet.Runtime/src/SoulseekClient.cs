@@ -552,7 +552,7 @@ namespace Soulseek
         /// <summary>
         ///     Gets the resolved server address.
         /// </summary>
-        public IPAddress IPAddress => IPEndPoint?.Address;
+        public IPAddress IPAddress => IPEndPoint?.Address.Snapshot();
 
         /// <summary>
         ///     Gets the resolved server endpoint.

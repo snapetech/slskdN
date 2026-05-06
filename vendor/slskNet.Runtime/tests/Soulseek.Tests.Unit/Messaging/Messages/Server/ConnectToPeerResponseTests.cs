@@ -59,6 +59,24 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Equal(port, response.Port);
         }
 
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Snapshots IP address")]
+        public void Snapshots_IPAddress()
+        {
+            var address = IPAddress.Parse("fe80::1");
+            address.ScopeId = 10;
+            var response = new ConnectToPeerResponse("user", "P", address, 1234, 1, false, obfuscationType: 1, obfuscatedPort: 4321);
+
+            address.ScopeId = 20;
+            response.IPAddress.ScopeId = 30;
+            response.IPEndPoint.Address.ScopeId = 40;
+            response.ObfuscatedIPEndPoint.Address.ScopeId = 50;
+
+            Assert.Equal(10, response.IPAddress.ScopeId);
+            Assert.Equal(10, response.IPEndPoint.Address.ScopeId);
+            Assert.Equal(10, response.ObfuscatedIPEndPoint.Address.ScopeId);
+        }
+
         [Trait("Category", "Parse")]
         [Fact(DisplayName = "Parse throws MessageExcepton on code mismatch")]
         public void Parse_Throws_MessageException_On_Code_Mismatch()

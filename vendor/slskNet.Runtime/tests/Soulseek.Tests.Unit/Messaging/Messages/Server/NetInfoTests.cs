@@ -47,18 +47,24 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         [Fact(DisplayName = "Instantiation snapshots parents")]
         public void Instantiation_Snapshots_Parents()
         {
+            var ipAddress = IPAddress.Parse("fe80::1");
+            ipAddress.ScopeId = 10;
             var parents = new List<(string Username, IPAddress IPAddress, int Port)>
             {
-                ("alice", IPAddress.Loopback, 1),
+                ("alice", ipAddress, 1),
             };
 
             var response = new NetInfoNotification(parents.Count, parents);
 
+            ipAddress.ScopeId = 20;
             parents[0] = ("bob", IPAddress.Any, 2);
 
             var parent = Assert.Single(response.Parents);
+            parent.IPAddress.ScopeId = 30;
+
+            parent = Assert.Single(response.Parents);
             Assert.Equal("alice", parent.Username);
-            Assert.Equal(IPAddress.Loopback, parent.IPAddress);
+            Assert.Equal(10, parent.IPAddress.ScopeId);
             Assert.Equal(1, parent.Port);
         }
 

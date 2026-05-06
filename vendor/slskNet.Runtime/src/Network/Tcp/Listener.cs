@@ -45,6 +45,8 @@ namespace Soulseek.Network.Tcp
     [ExcludeFromCodeCoverage]
     internal sealed class Listener : IListener
     {
+        private readonly IPAddress ipAddress;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="Listener"/> class.
         /// </summary>
@@ -55,10 +57,12 @@ namespace Soulseek.Network.Tcp
         /// <param name="obfuscated">A value indicating whether accepted peer-message handshakes use type-1 obfuscation.</param>
         public Listener(IPAddress ipAddress, int port, ConnectionOptions connectionOptions, ITcpListener tcpListener = null, bool obfuscated = false)
         {
-            IPAddress = ipAddress;
+            var address = ipAddress.Snapshot();
+
+            this.ipAddress = address;
             Port = port;
             ConnectionOptions = connectionOptions ?? new ConnectionOptions();
-            TcpListener = tcpListener ?? new TcpListenerAdapter(new TcpListener(ipAddress, port));
+            TcpListener = tcpListener ?? new TcpListenerAdapter(new TcpListener(address, port));
             Obfuscated = obfuscated;
         }
 
@@ -75,7 +79,7 @@ namespace Soulseek.Network.Tcp
         /// <summary>
         ///     Gets the port of the listener.
         /// </summary>
-        public IPAddress IPAddress { get; }
+        public IPAddress IPAddress => ipAddress.Snapshot();
 
         /// <summary>
         ///     Gets a value indicating whether the listener is listening for connections.

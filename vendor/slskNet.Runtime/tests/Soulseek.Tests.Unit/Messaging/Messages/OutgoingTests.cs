@@ -67,6 +67,21 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
 
         [Trait("Category", "Instantiation")]
         [Trait("Request", "ParentsIPCommand")]
+        [Fact(DisplayName = "ParentsIPCommand snapshots IP address")]
+        public void ParentsIPCommand_Snapshots_IPAddress()
+        {
+            var ipAddress = IPAddress.Parse("fe80::1");
+            ipAddress.ScopeId = 10;
+            var msg = new ParentsIPCommand(ipAddress);
+
+            ipAddress.ScopeId = 20;
+            msg.IPAddress.ScopeId = 30;
+
+            Assert.Equal(10, msg.IPAddress.ScopeId);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Trait("Request", "ParentsIPCommand")]
         [Theory(DisplayName = "ParentsIPCommand constructs the correct message"), AutoData]
         public void ParentsIPCommand_Constructs_The_Correct_Message(IPAddress ipAddress)
         {

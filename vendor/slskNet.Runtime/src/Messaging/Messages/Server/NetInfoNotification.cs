@@ -35,6 +35,8 @@ namespace Soulseek.Messaging.Messages
     /// </summary>
     internal sealed class NetInfoNotification : IIncomingMessage
     {
+        private readonly IReadOnlyCollection<(string Username, IPAddress IPAddress, int Port)> parents;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="NetInfoNotification"/> class.
         /// </summary>
@@ -73,7 +75,10 @@ namespace Soulseek.Messaging.Messages
             }
 
             ParentCount = parentCount;
-            Parents = parentList.AsReadOnly();
+            this.parents = parentList
+                .Select(parent => (parent.Username, parent.IPAddress.Snapshot(), parent.Port))
+                .ToList()
+                .AsReadOnly();
         }
 
         /// <summary>
@@ -84,7 +89,11 @@ namespace Soulseek.Messaging.Messages
         /// <summary>
         ///     Gets the list of parent candidates.
         /// </summary>
-        public IReadOnlyCollection<(string Username, IPAddress IPAddress, int Port)> Parents { get; }
+        public IReadOnlyCollection<(string Username, IPAddress IPAddress, int Port)> Parents
+            => parents
+                .Select(parent => (parent.Username, parent.IPAddress.Snapshot(), parent.Port))
+                .ToList()
+                .AsReadOnly();
 
         /// <summary>
         ///     Creates a new instance of <see cref="NetInfoNotification"/> from the specified <paramref name="bytes"/>.

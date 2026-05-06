@@ -19,7 +19,24 @@ namespace Soulseek
 
     internal static class IPEndPointExtensions
     {
-        public static IPEndPoint Snapshot(this IPEndPoint endPoint)
-            => endPoint == null ? null : new IPEndPoint(endPoint.Address, endPoint.Port);
+        internal static IPAddress Snapshot(this IPAddress address)
+        {
+            if (address == null)
+            {
+                return null;
+            }
+
+            var snapshot = new IPAddress(address.GetAddressBytes());
+
+            if (address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
+            {
+                snapshot.ScopeId = address.ScopeId;
+            }
+
+            return snapshot;
+        }
+
+        internal static IPEndPoint Snapshot(this IPEndPoint endPoint)
+            => endPoint == null ? null : new IPEndPoint(endPoint.Address.Snapshot(), endPoint.Port);
     }
 }

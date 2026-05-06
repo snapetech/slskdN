@@ -34,6 +34,7 @@ namespace Soulseek.Messaging.Messages
     /// </summary>
     internal sealed class ConnectToPeerResponse : IIncomingMessage
     {
+        private readonly IPAddress ipAddress;
         private readonly IPEndPoint ipEndPoint;
 
         /// <summary>
@@ -72,14 +73,14 @@ namespace Soulseek.Messaging.Messages
             ObfuscationType = obfuscationType;
             ObfuscatedPort = obfuscatedPort;
 
-            IPAddress = ipEndPoint.Address;
+            ipAddress = ipEndPoint.Address.Snapshot();
             Port = ipEndPoint.Port;
         }
 
         /// <summary>
         ///     Gets the obfuscated peer-message endpoint, if advertised.
         /// </summary>
-        public IPEndPoint ObfuscatedIPEndPoint => HasObfuscatedEndpoint ? new IPEndPoint(IPAddress, ObfuscatedPort) : null;
+        public IPEndPoint ObfuscatedIPEndPoint => HasObfuscatedEndpoint ? new IPEndPoint(ipAddress.Snapshot(), ObfuscatedPort) : null;
 
         /// <summary>
         ///     Gets the obfuscated peer-message port, if advertised.
@@ -99,7 +100,7 @@ namespace Soulseek.Messaging.Messages
         /// <summary>
         ///     Gets the IP address to which to connect.
         /// </summary>
-        public IPAddress IPAddress { get; }
+        public IPAddress IPAddress => ipAddress.Snapshot();
 
         /// <summary>
         ///     Gets the IP endpoint to which to connect.

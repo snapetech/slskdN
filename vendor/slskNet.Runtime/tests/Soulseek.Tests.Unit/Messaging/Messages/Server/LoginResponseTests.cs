@@ -47,6 +47,20 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Equal(ip, response.IPAddress);
         }
 
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Snapshots IP address")]
+        public void Snapshots_IPAddress()
+        {
+            var ip = IPAddress.Parse("fe80::1");
+            ip.ScopeId = 10;
+            var response = new LoginResponse(true, string.Empty, ip);
+
+            ip.ScopeId = 20;
+            response.IPAddress.ScopeId = 30;
+
+            Assert.Equal(10, response.IPAddress.ScopeId);
+        }
+
         [Trait("Category", "Parse")]
         [Fact(DisplayName = "Parse throws MessageExcepton on code mismatch")]
         public void Parse_Throws_MessageException_On_Code_Mismatch()

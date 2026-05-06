@@ -449,6 +449,20 @@ namespace Soulseek.Tests.Unit.Options
             Assert.Equal(placeInQueueResponseResolver, o.PlaceInQueueResolver);
         }
 
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Snapshots listen IP address")]
+        public void Snapshots_Listen_IPAddress()
+        {
+            var listenAddress = IPAddress.Parse("fe80::1");
+            listenAddress.ScopeId = 10;
+            var options = new SoulseekClientOptions(listenIPAddress: listenAddress);
+
+            listenAddress.ScopeId = 20;
+            options.ListenIPAddress.ScopeId = 30;
+
+            Assert.Equal(10, options.ListenIPAddress.ScopeId);
+        }
+
         [Trait("Category", "With")]
         [Theory(DisplayName = "Clones with expected properties"), AutoData]
         public void Clones_With_Expected_Properties(

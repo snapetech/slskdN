@@ -33,6 +33,8 @@ namespace Soulseek.Messaging.Messages
     /// </summary>
     internal sealed class LoginResponse : IIncomingMessage
     {
+        private readonly IPAddress ipAddress;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="LoginResponse"/> class.
         /// </summary>
@@ -48,7 +50,7 @@ namespace Soulseek.Messaging.Messages
         {
             Succeeded = succeeded;
             Message = message;
-            IPAddress = ipAddress;
+            this.ipAddress = ipAddress.Snapshot();
             Hash = hash;
             IsSupporter = isSupporter ?? false;
         }
@@ -61,7 +63,7 @@ namespace Soulseek.Messaging.Messages
         /// <summary>
         ///     Gets the client IP address, if the login was successful.
         /// </summary>
-        public IPAddress IPAddress { get; }
+        public IPAddress IPAddress => ipAddress.Snapshot();
 
         /// <summary>
         ///     Gets a value indicating whether the user has purchased privileges, regardless of whether the user has active
