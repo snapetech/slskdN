@@ -1090,6 +1090,8 @@ namespace slskd
             services.AddHttpClient();
             services.AddHttpClient(Common.Security.OutboundUriGuard.NoRedirectHttpClientName)
                 .ConfigurePrimaryHttpMessageHandler(Common.Security.OutboundUriGuard.CreateNoRedirectHandler);
+            services.AddHttpClient(Common.Security.OutboundUriGuard.LocalNoRedirectHttpClientName)
+                .ConfigurePrimaryHttpMessageHandler(Common.Security.OutboundUriGuard.CreateNoRedirectOnlyHandler);
             services.AddHttpClient("ExternalModeration")
                 .ConfigurePrimaryHttpMessageHandler(Common.Security.OutboundUriGuard.CreateNoRedirectHandler);
 

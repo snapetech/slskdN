@@ -30,6 +30,12 @@ public static class OutboundUriGuard
     public const string NoRedirectHttpClientName = "OutboundNoRedirect";
 
     /// <summary>
+    ///     Named HTTP client for trusted local control-plane integrations. This client refuses redirects but does not
+    ///     reject loopback/private destinations because the target is an operator-configured local service.
+    /// </summary>
+    public const string LocalNoRedirectHttpClientName = "LocalNoRedirect";
+
+    /// <summary>
     ///     Creates an HTTP handler that refuses redirects and connects only to public routed addresses.
     /// </summary>
     public static SocketsHttpHandler CreateNoRedirectHandler()
@@ -38,6 +44,17 @@ public static class OutboundUriGuard
         {
             AllowAutoRedirect = false,
             ConnectCallback = ConnectWithIpGuardAsync,
+        };
+    }
+
+    /// <summary>
+    ///     Creates an HTTP handler that refuses redirects without applying public-IP-only connection filtering.
+    /// </summary>
+    public static SocketsHttpHandler CreateNoRedirectOnlyHandler()
+    {
+        return new SocketsHttpHandler
+        {
+            AllowAutoRedirect = false,
         };
     }
 

@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed Gluetun VPN status polling so configured local control endpoints such
+  as `http://127.0.0.1:8010` use a no-redirect local-control HTTP client
+  instead of the public outbound SSRF guard.
 - Fully synced the vendored slskNet.Runtime tracked-file mirror, including
   protocol token emission hardening, and normalized share-scan media attributes
   so stricter runtime validation does not reject corrupt metadata.

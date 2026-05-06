@@ -30,6 +30,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using slskd.Common.Security;
 using Serilog;
 using static slskd.Options.IntegrationOptions.VpnOptions;
 
@@ -60,7 +61,7 @@ public class Gluetun : IVPNClient
     /// <returns>A value indicating whether the VPN is connected.</returns>
     public async Task<VPNStatus> GetStatusAsync()
     {
-        using var http = HttpClientFactory.CreateClient(slskd.Common.Security.OutboundUriGuard.NoRedirectHttpClientName);
+        using var http = HttpClientFactory.CreateClient(OutboundUriGuard.LocalNoRedirectHttpClientName);
 
         http.Timeout = TimeSpan.FromMilliseconds(Options.Timeout);
 

@@ -1,3 +1,17 @@
+## Update 2026-05-06 00:45:00Z
+
+- Current task: `kspls0` deploy is blocked by a Gluetun local-control HTTP regression and the fix is implemented locally.
+- Last activity:
+  - published and installed `0.0.0-slskdn.manual.20260506003550.cfbff9ac1fd8` on `kspls0`
+  - observed startup stuck waiting for VPN because the public outbound SSRF guard rejected `127.0.0.1:8010`
+  - added a local no-redirect HTTP client and switched Gluetun to it
+  - documented ADR-0001 gotcha `0z321`
+  - validation passed: focused Gluetun/VPN/outbound guard tests (`9/9`), outbound HTTP scanner, and `git diff --check`
+- Next steps:
+  1. Commit and push the Gluetun fix.
+  2. Rebuild and redeploy a patched artifact to `kspls0`.
+  3. Verify the service reaches normal ready state for user testing.
+
 ## Update 2026-05-06 00:20:00Z
 
 - Current task: GitHub Actions 0-second release workflow failures are diagnosed and fixed locally.

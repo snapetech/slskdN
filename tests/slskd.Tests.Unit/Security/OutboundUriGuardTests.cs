@@ -37,4 +37,13 @@ public class OutboundUriGuardTests
         Assert.False(handler.AllowAutoRedirect);
         Assert.NotNull(handler.ConnectCallback);
     }
+
+    [Fact]
+    public void CreateNoRedirectOnlyHandler_DisablesRedirectsWithoutGuardedConnect()
+    {
+        using var handler = OutboundUriGuard.CreateNoRedirectOnlyHandler();
+
+        Assert.False(handler.AllowAutoRedirect);
+        Assert.Null(handler.ConnectCallback);
+    }
 }
