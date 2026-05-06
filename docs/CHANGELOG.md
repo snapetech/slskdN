@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Persist peer profiles, reputation data, DHT node state, auto-replace state,
+  and verification probe budgets with flushed sibling-temp writes before atomic
+  replacement.
 - Persist overlay keys, overlay certificates, and mesh certificate pins with
   atomic sibling-temp writes so interrupted saves do not corrupt security or
   trust-state files.

@@ -17,6 +17,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using slskd.Common.IO;
 using slskd.Common.Security;
 using slskd.Mesh.Transport;
 
@@ -79,18 +80,10 @@ public sealed class ProfileService : IProfileService
             PrivateKey = Convert.ToBase64String(priv),
             PublicKey = Convert.ToBase64String(pub)
         };
-        File.WriteAllText(keyFile, JsonSerializer.Serialize(keyPairData, new JsonSerializerOptions { WriteIndented = true }));
-        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
-        {
-            try
-            {
-                File.SetUnixFileMode(keyFile, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-            }
-            catch (Exception ex)
-            {
-                _log.LogWarning(ex, "[ProfileService] Could not set restrictive permissions on {KeyFile}", keyFile);
-            }
-        }
+        AtomicFileWriter.WriteAllText(
+            keyFile,
+            JsonSerializer.Serialize(keyPairData, new JsonSerializerOptions { WriteIndented = true }),
+            UnixFileMode.UserRead | UnixFileMode.UserWrite);
 
         _log.LogInformation("[ProfileService] Generated new Ed25519 keypair");
         return (priv, pub);
@@ -239,7 +232,7 @@ public sealed class ProfileService : IProfileService
     private async Task SaveMyProfileAsync(PeerProfile profile, CancellationToken ct)
     {
         var json = JsonSerializer.Serialize(profile, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(ProfileFilePath, json, ct).ConfigureAwait(false);
+        await AtomicFileWriter.WriteAllTextAsync(ProfileFilePath, json, ct).ConfigureAwait(false);
     }
 
     public async Task<PeerProfile?> GetProfileAsync(string peerId, CancellationToken ct = default)

@@ -2600,3 +2600,7 @@
 - [x] Continue non-runtime council app security-state persistence cycle
   - Status: completed (2026-05-06)
   - Notes: Classified app-side key/certificate/pin persistence after skipping the runtime lane; fixed `BUG-20260506-058` through `BUG-20260506-060` with atomic writes for overlay keys, overlay certificates, and mesh certificate pins.
+
+- [x] Continue non-runtime council durable app-state persistence cycle
+  - Status: completed (2026-05-06)
+  - Notes: Classified direct durable state writes after skipping the runtime lane; fixed `BUG-20260506-061` through `BUG-20260506-065` with a shared atomic writer for profile identity, peer reputation, DHT nodes, auto-replace state, and verification probe budgets.

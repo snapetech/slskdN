@@ -475,6 +475,32 @@ File.Move(tempPath, path, overwrite: true);
 
 **Why This Keeps Happening**: Small JSON/PFX writes look harmless, but identity and trust stores are stateful security boundaries. Any file containing private keys, certificates, pins, tokens, or durable trust decisions must be written to a sibling temp file, flushed, permissioned before exposure, atomically moved into place, and cleaned up on failure.
 
+### 0z344. Durable App State Should Not Be Directly Overwritten
+
+**The Bug**: Several app-owned state files still used direct `File.WriteAllText*` / `File.WriteAllBytes*` overwrites for peer profile identity, encrypted peer reputation, DHT nodes, auto-replace state, and verification probe budgets.
+
+**Files Affected**:
+- `src/slskd/Identity/ProfileService.cs`
+- `src/slskd/Common/Moderation/PeerReputationStore.cs`
+- `src/slskd/DhtRendezvous/DhtRendezvousService.cs`
+- `src/slskd/Transfers/AutoReplace/AutoReplaceBackgroundService.cs`
+- `src/slskd/Transfers/MultiSource/ContentVerificationService.cs`
+- `src/slskd/Common/IO/AtomicFileWriter.cs`
+
+**Wrong**:
+```code
+await File.WriteAllBytesAsync(_storagePath, encryptedData, cancellationToken);
+File.WriteAllText(StateFilePath, json);
+```
+
+**Correct**:
+```code
+await AtomicFileWriter.WriteAllBytesAsync(_storagePath, encryptedData, cancellationToken);
+AtomicFileWriter.WriteAllText(StateFilePath, json);
+```
+
+**Why This Keeps Happening**: Durable state often starts as a small JSON or binary cache and later becomes part of identity continuity, moderation, network-health throttling, or operator intent. If losing or truncating the file changes future behavior, write it through `AtomicFileWriter` instead of overwriting the final path directly.
+
 ### 0z326. Integration Auth Fixtures Must Match Admin-Only Routes
 
 **The Bug**: After security telemetry routes were tightened to administrator-only, the shared integration `StubWebApplicationFactory` still authenticated as only `ReadWrite`, so versioned admin route smoke tests failed with `403 Forbidden`.

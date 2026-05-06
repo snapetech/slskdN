@@ -12,6 +12,7 @@ namespace slskd.Transfers.AutoReplace
     using Microsoft.Extensions.Options;
     using Serilog;
     using Soulseek;
+    using slskd.Common.IO;
 
     /// <summary>
     ///     Background service for automatic retry/replacement of stuck downloads.
@@ -207,7 +208,7 @@ namespace slskd.Transfers.AutoReplace
             {
                 var state = new AutoReplaceState { Enabled = IsEnabled, UserConfigured = true };
                 var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
-                System.IO.File.WriteAllText(StateFilePath, json);
+                AtomicFileWriter.WriteAllText(StateFilePath, json);
                 Log.Debug("Saved auto-replace state: enabled={Enabled}", IsEnabled);
             }
             catch (Exception ex)

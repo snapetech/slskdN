@@ -1,3 +1,15 @@
+## Update 2026-05-07 00:18:00Z
+
+- Current task: Continue non-runtime council durable app-state persistence cycle.
+- Last activity:
+  - classified direct durable app-state writes after skipping runtime/vendor;
+  - accepted and fixed `BUG-20260506-061` through `BUG-20260506-065`;
+  - profile identity, peer reputation, DHT node state, auto-replace state, and verification probe budgets now use `AtomicFileWriter`;
+  - documented ADR-0001 gotcha `0z344`, and updated ledger/changelog/task log.
+- Next steps:
+  1. Run focused backend tests, remediation, repo lint, and diff checks.
+  2. Commit and push the verified non-runtime durable-state batch.
+
 ## Update 2026-05-06 23:58:00Z
 
 - Current task: Continue non-runtime council app security-state persistence cycle.

@@ -9887,3 +9887,10 @@ Code quality improvements were completed as part of Option A:
 - Recorded and verified `BUG-20260506-058` through `BUG-20260506-060`.
 - Hardened overlay keypair, overlay certificate, and mesh certificate-pin writes with flushed sibling temp files, restrictive temp permissions where applicable, atomic replacement, and temp cleanup on failure.
 - Added focused unit coverage for key reload, certificate reload, and pin reload without leftover temp files.
+
+## 2026-05-07 00:18:00Z
+
+- Continued the non-runtime council scan into durable app-state persistence.
+- Recorded and verified `BUG-20260506-061` through `BUG-20260506-065`.
+- Added `AtomicFileWriter` for flushed sibling-temp writes and wired profile identity, encrypted peer reputation, DHT node state, auto-replace state, and verification probe budgets to it.
+- Added focused atomic writer unit coverage for overwrite, directory creation, and temp-file cleanup behavior.

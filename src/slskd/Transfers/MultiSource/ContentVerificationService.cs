@@ -14,6 +14,7 @@ namespace slskd.Transfers.MultiSource
     using System.Threading.Tasks;
     using Serilog;
     using Soulseek;
+    using slskd.Common.IO;
     using slskd.HashDb;
     using slskd.HashDb.Models;
     using slskd.Mesh;
@@ -108,8 +109,7 @@ namespace slskd.Transfers.MultiSource
             try
             {
                 var path = GetProbeBudgetPath();
-                System.IO.Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                System.IO.File.WriteAllText(path, JsonSerializer.Serialize(ProbeBudget));
+                AtomicFileWriter.WriteAllText(path, JsonSerializer.Serialize(ProbeBudget));
             }
             catch
             {

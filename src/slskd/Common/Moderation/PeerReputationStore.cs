@@ -15,6 +15,7 @@ namespace slskd.Common.Moderation
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.DataProtection;
     using Microsoft.Extensions.Logging;
+    using slskd.Common.IO;
 
     /// <summary>
     ///     Encrypted persistent store for peer reputation data.
@@ -365,7 +366,7 @@ namespace slskd.Common.Moderation
             await _fileLock.WaitAsync(cancellationToken);
             try
             {
-                await File.WriteAllBytesAsync(_storagePath, encryptedData, cancellationToken);
+                await AtomicFileWriter.WriteAllBytesAsync(_storagePath, encryptedData, cancellationToken);
             }
             finally
             {

@@ -20,6 +20,7 @@ using Microsoft.Extensions.Options;
 using MonoTorrent;
 using MonoTorrent.Connections.Dht;
 using MonoTorrent.Dht;
+using slskd.Common.IO;
 using slskd.Mesh;
 using slskd.Mesh.Overlay;
 using slskd.Mesh.Transport;
@@ -232,7 +233,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
                 var nodes = await dhtEngine.SaveNodesAsync();
                 if (nodes.Length > 0)
                 {
-                    await File.WriteAllBytesAsync(dhtStatePath, nodes.ToArray(), cancellationToken);
+                    await AtomicFileWriter.WriteAllBytesAsync(dhtStatePath, nodes.ToArray(), cancellationToken);
                     _logger.LogDebug("Saved {Count} bytes of DHT state", nodes.Length);
                 }
 
