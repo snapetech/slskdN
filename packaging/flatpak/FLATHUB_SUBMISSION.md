@@ -2,10 +2,10 @@
 
 Before submitting to Flathub, update `io.github.slskd.slskdn.yml` as follows.
 
-## 1. .NET 8.0 runtime — ✅ done
+## 1. .NET 10.0 runtime — ✅ done
 
-- `dotnet` module uses `https://dotnetcli.azureedge.net/dotnet/Runtime/8.0.11/dotnet-runtime-8.0.11-linux-x64.tar.gz` with sha256. No `curl | tar`; Flatpak extracts the archive and build-commands copy into `/app/dotnet/`.
-- To bump: get tarball URL from <https://dotnet.microsoft.com/download/dotnet/8.0>, then `curl -sL <url> | sha256sum`.
+- `dotnet` module uses `https://dotnetcli.azureedge.net/dotnet/Runtime/10.0.6/dotnet-runtime-10.0.6-linux-x64.tar.gz` with sha256. No `curl | tar`; Flatpak extracts the archive and build-commands copy into `/app/dotnet/`.
+- To bump: get tarball URL from <https://dotnet.microsoft.com/download/dotnet/10.0>, then `curl -sL <url> | sha256sum`.
 
 ## 2. slskdn application — ✅ done
 

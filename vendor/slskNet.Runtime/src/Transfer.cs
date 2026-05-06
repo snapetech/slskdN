@@ -177,9 +177,9 @@ namespace Soulseek
                 throw new ArgumentOutOfRangeException(nameof(bytesTransferred), "Must be less than or equal to size");
             }
 
-            if (validate && averageSpeed < 0)
+            if (validate && (averageSpeed < 0 || double.IsNaN(averageSpeed) || double.IsInfinity(averageSpeed)))
             {
-                throw new ArgumentOutOfRangeException(nameof(averageSpeed), "Must be greater than or equal to zero");
+                throw new ArgumentOutOfRangeException(nameof(averageSpeed), "Must be a finite value greater than or equal to zero");
             }
 
             Direction = direction;
@@ -200,7 +200,7 @@ namespace Soulseek
             BytesRemaining = Size - BytesTransferred;
             ElapsedTime = StartTime == null ? null : (TimeSpan?)((EndTime ?? DateTime.UtcNow) - StartTime.Value);
             PercentComplete = Size == 0 ? 0 : (BytesTransferred / (double)Size) * 100;
-            RemainingTime = AverageSpeed == 0 ? null : (TimeSpan?)TimeSpan.FromSeconds(BytesRemaining / AverageSpeed);
+            RemainingTime = TransferMetrics.GetRemainingTime(BytesRemaining, AverageSpeed);
         }
 
         /// <summary>

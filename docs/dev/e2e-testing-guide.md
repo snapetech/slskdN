@@ -102,8 +102,8 @@ tests/e2e/
 # Node.js 18+ (for Playwright)
 node --version  # Should be 18+
 
-# .NET 8.0 SDK (for building slskdn)
-dotnet --version  # Should be 8.0.x
+# .NET 10.0 SDK (for building slskdn)
+dotnet --version  # Should be 10.0.x
 ```
 
 ### Installation
@@ -177,7 +177,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
       
       - name: Setup Node.js
         uses: actions/setup-node@v4

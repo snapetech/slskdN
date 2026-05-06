@@ -130,7 +130,7 @@ namespace Soulseek
         /// <summary>
         ///     Gets the projected remaining duration of the transfer.
         /// </summary>
-        public TimeSpan? RemainingTime => AverageSpeed <= 0 ? null : (TimeSpan?)TimeSpan.FromSeconds(BytesRemaining / AverageSpeed);
+        public TimeSpan? RemainingTime => TransferMetrics.GetRemainingTime(BytesRemaining, AverageSpeed);
 
         /// <summary>
         ///     Gets or sets the remote unique token for the transfer.

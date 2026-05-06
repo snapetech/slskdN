@@ -279,6 +279,20 @@ namespace Soulseek.Tests.Unit
         }
 
         [Trait("Category", "State")]
+        [Fact(DisplayName = "RemainingTime caps oversized projections")]
+        internal void RemainingTime_Caps_Oversized_Projections()
+        {
+            var d = new TransferInternal(TransferDirection.Download, string.Empty, string.Empty, 0)
+            {
+                Size = long.MaxValue,
+            };
+
+            d.SetProperty("AverageSpeed", double.Epsilon);
+
+            Assert.Equal(TimeSpan.MaxValue, d.RemainingTime);
+        }
+
+        [Trait("Category", "State")]
         [Fact(DisplayName = "PercentComplete works")]
         internal void PercentComplete_Works()
         {

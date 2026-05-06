@@ -27,6 +27,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   route guards, security telemetry authorization, and anonymous build metadata.
 - Hardened vendored slskNet.Runtime username and password confirmation
   comparisons to use ordinal protocol identity semantics.
+- Hardened vendored slskNet.Runtime transfer remaining-time projections so
+  malformed speed values and extreme durations cannot break transfer snapshots.
 
 ## [2026050600-slskdn.227] — 2026-05-06
 

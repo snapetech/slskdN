@@ -39,7 +39,7 @@ finish-args:
 
 # Modules to build
 modules:
-  # .NET runtime (8.0 for slskdN)
+  # .NET runtime (10.0 for slskdN)
   - name: dotnet
     buildsystem: simple
     build-commands:
@@ -49,8 +49,8 @@ modules:
         ln -sf /app/dotnet/dotnet /app/bin/dotnet
     sources:
       - type: archive
-        url: https://dotnetcli.azureedge.net/dotnet/Runtime/8.0.11/dotnet-runtime-8.0.11-linux-x64.tar.gz
-        sha256: 96f423b7d9f07ca124a6f3f16743efa112607390c43f5e1687817ae0652d1007
+        url: https://dotnetcli.azureedge.net/dotnet/Runtime/10.0.6/dotnet-runtime-10.0.6-linux-x64.tar.gz
+        sha256: bbc2ad3316cbab707eb59ca406f5a1e8c8f7953b4f1a870533fb42aee988d922
 
   # slskdN application
   - name: slskdn

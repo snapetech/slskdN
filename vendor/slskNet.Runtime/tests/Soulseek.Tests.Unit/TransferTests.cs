@@ -178,5 +178,40 @@ namespace Soulseek.Tests.Unit
 
             Assert.Null(d.RemainingTime);
         }
+
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Rejects non-finite average speeds")]
+        public void Rejects_Non_Finite_Average_Speeds()
+        {
+            foreach (var averageSpeed in new[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity })
+            {
+                Assert.Throws<ArgumentOutOfRangeException>(() => new Transfer(
+                    TransferDirection.Download,
+                    "user",
+                    "file",
+                    1,
+                    TransferStates.InProgress,
+                    1,
+                    0,
+                    averageSpeed: averageSpeed));
+            }
+        }
+
+        [Trait("Category", "RemainingTime")]
+        [Fact(DisplayName = "RemainingTime caps oversized projections")]
+        public void RemainingTime_Caps_Oversized_Projections()
+        {
+            var transfer = new Transfer(
+                TransferDirection.Download,
+                "user",
+                "file",
+                1,
+                TransferStates.InProgress,
+                long.MaxValue,
+                0,
+                averageSpeed: double.Epsilon);
+
+            Assert.Equal(TimeSpan.MaxValue, transfer.RemainingTime);
+        }
     }
 }

@@ -1,6 +1,6 @@
 #!/bin/bash
 # setup-inside-ct.sh — run as root inside a Debian 12 or Ubuntu 22.04 LXC
-# Installs .NET 8, slskdn from GitHub release, systemd unit, and minimal config.
+# Installs .NET 10, slskdn from GitHub release, systemd unit, and minimal config.
 # Does not start the service (edit /etc/slskd/slskd.yml first).
 
 set -e
@@ -63,7 +63,7 @@ download_asset() {
   fi
 }
 
-echo "[1/7] Installing .NET 8 (Microsoft repo)…"
+echo "[1/7] Installing .NET 10 (Microsoft repo)…"
 apt-get update -qq
 apt-get install -y -qq wget ca-certificates unzip lsb-release
 wget -qO /etc/apt/trusted.gpg.d/microsoft.asc https://packages.microsoft.com/keys/microsoft.asc
@@ -72,7 +72,7 @@ REPO="https://packages.microsoft.com/${ID}/${VERSION_ID}/prod"
 CODENAME=$(lsb_release -cs)
 echo "deb [arch=amd64] ${REPO} ${CODENAME} main" > /etc/apt/sources.list.d/microsoft.list
 apt-get update -qq
-apt-get install -y -qq aspnetcore-runtime-8.0 yt-dlp
+apt-get install -y -qq aspnetcore-runtime-10.0 yt-dlp
 
 if [ -z "$SLSKDN_VERSION" ]; then
   SLSKDN_VERSION="$(resolve_release_tag)"
