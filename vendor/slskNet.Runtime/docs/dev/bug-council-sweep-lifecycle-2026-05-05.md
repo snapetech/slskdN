@@ -9,6 +9,7 @@ bash scripts/scan-bug-council-candidates.sh
 Selected scan sections:
 
 - `Task, cancellation, timer, and semaphore lifecycle candidates`
+- `Non-idempotent task completion candidates`
 - `Lifecycle task completion and race candidates`
 - `Lifecycle cancellation registration candidates`
 - `Lifecycle timer and semaphore candidates`
@@ -17,6 +18,7 @@ Selected scan sections:
 Candidate markers:
 
 - Task, cancellation, timer, and semaphore lifecycle candidates: 203/203 classified
+- Non-idempotent task completion candidates: 0/0 classified
 - Lifecycle task completion and race candidates: 82/82 classified
 - Lifecycle cancellation registration candidates: 51/51 classified
 - Lifecycle timer and semaphore candidates: 84/84 classified
@@ -38,6 +40,7 @@ This sweep closes the broad lifecycle scan by splitting task completion/race poi
 Classification: Existing guard.
 
 - Runtime `TaskCompletionSource` completion uses `TrySet*` APIs and the baseline rejects non-idempotent `Set*` source calls.
+- Non-idempotent task completion currently has zero scan hits; this zero queue is now closed in the sweep-count drift gate so future `Set*` regressions reopen the council instead of bypassing the ledger.
 - Transfer enqueue and disconnect races use `Task.WhenAny` with linked cancellation, and upload/download stream paths observe the linked race token.
 - `Waiter` owns and disposes cancellation/timeout registrations through `PendingWait.Dispose`.
 - `TokenBucket` races reset waits against cancellation with scoped token registrations and releases reset waiters on disposal.

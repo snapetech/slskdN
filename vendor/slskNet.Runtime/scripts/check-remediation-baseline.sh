@@ -96,6 +96,7 @@ require_pattern "MaximumBufferedReadLength" "src/Network/Tcp/Connection.cs" "buf
 
 require_pattern "TrySet(Result|Exception|Canceled)" "src" "runtime task completion uses idempotent completion APIs"
 require_absent_pattern "\.Set(Exception|Result|Canceled)\(" "src" "runtime source avoids non-idempotent task completion"
+require_pattern "Non-idempotent task completion candidates: 0/0 classified" "docs/dev/bug-council-sweep-lifecycle-2026-05-05.md" "non-idempotent task completion sweep is closed"
 require_pattern "CreateLinkedTokenSource" "src/SoulseekClient.cs" "transfer races use linked cancellation"
 require_pattern "Task\.WhenAny\\([\\s\\S]*disconnectedTaskCancellationSource\.Task" "src/SoulseekClient.cs" "transfer races include disconnect task"
 require_pattern "RemoteTaskCompletionSource\.TrySetException" "src/SoulseekClient.cs" "remote transfer failures complete idempotently"
@@ -358,6 +359,7 @@ require_pattern "RT-076" "docs/dev/bug-burndown-ledger.md" "ledger records wait-
 require_pattern "RT-077" "docs/dev/bug-burndown-ledger.md" "ledger records fire-and-forget subgroup loop flaw"
 require_pattern "RT-078" "docs/dev/bug-burndown-ledger.md" "ledger records distributed manager background hardening"
 require_pattern "RT-079" "docs/dev/bug-burndown-ledger.md" "ledger records distributed handler background hardening"
+require_pattern "RT-090" "docs/dev/bug-burndown-ledger.md" "ledger records zero-hit task completion gate closure"
 require_pattern "WaitForDisconnectInternalAsync" "src/Network/Tcp/Connection.cs" "wait-for-disconnect uses scoped cancellation helper"
 require_pattern "using \\(cancellationToken\\.Register" "src/Network/Tcp/Connection.cs" "wait-for-disconnect disposes cancellation registration"
 require_pattern "WaitForDisconnect_Disposes_Cancellation_Registration_After_Completion" "tests/Soulseek.Tests.Unit/Network/Tcp/ConnectionTests.cs" "wait-for-disconnect cancellation registration regression test is registered"
