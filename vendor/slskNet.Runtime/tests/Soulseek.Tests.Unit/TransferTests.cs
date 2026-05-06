@@ -170,6 +170,24 @@ namespace Soulseek.Tests.Unit
             Assert.Equal(0, d.PercentComplete);
         }
 
+        [Trait("Category", "State")]
+        [Fact(DisplayName = "BytesRemaining returns 0 when internal transferred bytes exceed size")]
+        internal void BytesRemaining_Returns_0_When_Internal_Transferred_Bytes_Exceed_Size()
+        {
+            var i = new TransferInternal(TransferDirection.Download, string.Empty, string.Empty, 0)
+            {
+                Size = 1,
+            };
+
+            i.SetProperty("BytesTransferred", 2L);
+
+            var d = new Transfer(i);
+
+            Assert.Equal(0, d.BytesRemaining);
+            Assert.Equal(100, d.PercentComplete);
+            Assert.Null(d.RemainingTime);
+        }
+
         [Trait("Category", "RemainingTime")]
         [Fact(DisplayName = "RemainingTime returns null if AverageSpeed is null")]
         internal void RemainingTime_Returns_Null_If_AverageSpeed_Is_Null()

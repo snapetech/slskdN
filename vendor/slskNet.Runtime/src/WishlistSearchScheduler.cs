@@ -215,20 +215,23 @@ namespace Soulseek
 
         private async Task RunSearchAsync(string term, CancellationToken cancellationToken)
         {
+            (Search Search, IReadOnlyCollection<SearchResponse> Responses) result;
+
             try
             {
-                var result = await client.SearchAsync(
+                result = await client.SearchAsync(
                     SearchQuery.FromText(term),
                     SearchScope.Wishlist,
                     options: options.SearchOptionsFactory?.Invoke(term),
                     cancellationToken: cancellationToken).ConfigureAwait(false);
-
-                SearchCompleted?.Invoke(this, new WishlistSearchCompletedEventArgs(term, result.Search, result.Responses, null));
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
                 SearchCompleted?.Invoke(this, new WishlistSearchCompletedEventArgs(term, null, Array.Empty<SearchResponse>(), ex));
+                return;
             }
+
+            SearchCompleted?.Invoke(this, new WishlistSearchCompletedEventArgs(term, result.Search, result.Responses, null));
         }
 
         private void ThrowIfDisposed()

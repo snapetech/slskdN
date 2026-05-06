@@ -210,6 +210,38 @@ namespace Soulseek.Tests.Unit
             Assert.Throws<ObjectDisposedException>(() => scheduler.Start());
         }
 
+        [Fact(DisplayName = "Wishlist scheduler does not report event handler failures as search failures")]
+        public async Task Wishlist_Scheduler_Does_Not_Report_Event_Handler_Failures_As_Search_Failures()
+        {
+            var client = new Mock<ISoulseekClient>();
+            var expectedException = new InvalidOperationException("handler failed");
+            var eventCount = 0;
+
+            client.Setup(m => m.SearchAsync(
+                    It.IsAny<SearchQuery>(),
+                    It.IsAny<SearchScope>(),
+                    It.IsAny<int?>(),
+                    It.IsAny<SearchOptions>(),
+                    It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult((new Search(SearchQuery.FromText("x"), SearchScope.Wishlist, 1, SearchStates.Completed, 0, 0, 0), (IReadOnlyCollection<SearchResponse>)new List<SearchResponse>())));
+
+            using (var scheduler = new WishlistSearchScheduler(client.Object, new[] { "alpha" }))
+            {
+                scheduler.SearchCompleted += (_, args) =>
+                {
+                    Interlocked.Increment(ref eventCount);
+                    Assert.Null(args.Exception);
+                    throw expectedException;
+                };
+
+                var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                    scheduler.InvokeMethod<Task>("RunSearchAsync", "alpha", CancellationToken.None));
+
+                Assert.Same(expectedException, exception);
+                Assert.Equal(1, eventCount);
+            }
+        }
+
         [Fact(DisplayName = "Wishlist scheduler uses minimum interval when ServerInfo is null")]
         public async Task Wishlist_Scheduler_Uses_Minimum_Interval_When_ServerInfo_Is_Null()
         {

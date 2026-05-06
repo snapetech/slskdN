@@ -199,7 +199,7 @@ namespace Soulseek
             IPEndPoint = ipEndPoint;
             Exception = exception;
 
-            BytesRemaining = Size - BytesTransferred;
+            BytesRemaining = Math.Max(0, Size - BytesTransferred);
             ElapsedTime = StartTime == null ? null : (TimeSpan?)((EndTime ?? DateTime.UtcNow) - StartTime.Value);
             PercentComplete = ProgressMetrics.GetPercentComplete(BytesTransferred, Size);
             RemainingTime = TransferMetrics.GetRemainingTime(BytesRemaining, AverageSpeed);
