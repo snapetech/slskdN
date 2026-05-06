@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **bug-council**: Continue Proxmox/raw Linux installer safety cycle.
+ - Status: completed (2026-05-06)
+ - Priority: P1
+ - Notes: Fixed `BUG-20260506-082` through `BUG-20260506-084` by adding checksum verification, stale install-tree replacement, and raw Linux installer permission parity to `packaging/proxmox-lxc/setup-inside-ct.sh`. Added `scripts/check-linux-installer-safety.sh` to remediation and ADR-0001 gotcha `0z94`.
+
 - [x] **bug-council**: Continue Web lifecycle and hub mutation cycle.
  - Status: completed (2026-05-06)
  - Priority: P2
