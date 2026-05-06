@@ -52,6 +52,31 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z325. Recursive Local Library Scans Must Skip Reparse Points
+
+**The Bug**: Streaming fallback lookup and Library Health recursive scans validated only their starting roots, then used default recursive enumeration that could traverse symlinks or junctions under those roots.
+
+**Files Affected**:
+- `src/slskd/Streaming/ContentLocator.cs`
+- `src/slskd/LibraryHealth/LibraryHealthService.cs`
+- `scripts/check-path-containment.sh`
+
+**Wrong**:
+```csharp
+Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories);
+```
+
+**Correct**:
+```csharp
+Directory.EnumerateFiles(root, "*", new EnumerationOptions
+{
+    RecurseSubdirectories = true,
+    AttributesToSkip = FileAttributes.Hidden | FileAttributes.System | FileAttributes.ReparsePoint,
+});
+```
+
+**Why This Keeps Happening**: Path containment reviews often stop after the initial root validation. Any recursive local scan under user-configured roots must make traversal policy explicit, especially `FileAttributes.ReparsePoint`, so a link inside an allowed tree does not expand the scan outside the intended boundary.
+
 ### 0z324. Stable Release Metadata Updaters Can Miss Snap
 
 **The Bug**: A stable release updated Homebrew, Nix, AUR, Debian, RPM, Helm, TrueNAS, Winget, Flatpak, and Chocolatey metadata, but left `packaging/snap/snapcraft.yaml` pinned to the previous stable release. The packaging validator caught the drift only after the release completed.
