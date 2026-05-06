@@ -52,6 +52,31 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z320. Workflow YAML Cannot Contain Tab Indentation Or Unindented Multiline Arguments
+
+**The Bug**: Release workflows failed instantly on every push with no jobs or logs because YAML parsing rejected tab-indented lines inside `run:` blocks. A disabled upstream-access workflow also had multiline CLI bodies that were not indented as block-scalar content.
+
+**Files Affected**:
+- `.github/workflows/release-linux.yml`
+- `.github/workflows/release-ppa.yml`
+- `.github/workflows/check-upstream-access.yml`
+
+**Wrong**:
+```yaml
+run: |
+  mkdir -p output
+	  cp packaging/aur/slskd.yml output/
+```
+
+**Correct**:
+```yaml
+run: |
+  mkdir -p output
+  cp packaging/aur/slskd.yml output/
+```
+
+**Why This Keeps Happening**: Shell snippets tolerate tabs and multiline quoted strings, but the workflow file must parse as YAML before any shell runs. Keep workflow indentation spaces-only, and when a shell argument spans multiple lines inside `run: |`, every body line must remain indented inside the YAML block scalar.
+
 ### 0z319. Shared File Responses Must Advertise Root-Relative Remote Paths
 
 **The Bug**: Example Web API search and browse responses used local absolute filesystem paths as shared file/directory names, leaking host path layout and coupling remote protocol names to the server's local root.
