@@ -52,6 +52,30 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z323. Stable Release Tags Need Versioned Changelog Sections
+
+**The Bug**: A stable `build-main-*` tag reached the release job with all platform artifacts built, but `scripts/generate-release-notes.sh` refused to synthesize release notes from a large commit delta because `docs/CHANGELOG.md` did not contain a section for the public release version.
+
+**Files Affected**:
+- `docs/CHANGELOG.md`
+- `.github/workflows/build-on-tag.yml`
+- `scripts/generate-release-notes.sh`
+
+**Wrong**:
+```bash
+git tag build-main-2026050600-slskdn.226
+git push origin build-main-2026050600-slskdn.226
+```
+
+**Correct**:
+```markdown
+## [2026050600-slskdn.226] — 2026-05-06
+
+Release notes for the exact public version.
+```
+
+**Why This Keeps Happening**: The release workflow is intentionally fail-closed for large release-note deltas. Before pushing a stable release tag, add a matching `docs/CHANGELOG.md` section or the release job will build artifacts and then stop before creating the GitHub release or package jobs.
+
 ### 0z322. Soulseek Tokens Are Opaque Signed Integers Unless Proven Otherwise
 
 **The Bug**: Protocol hardening rejected negative distributed search tokens, but live Soulseek peers send the token as an opaque 32-bit signed value. Rejecting negative values dropped valid distributed search requests and spammed runtime warnings after login.
