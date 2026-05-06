@@ -135,6 +135,30 @@ namespace Soulseek.Tests.Unit.Client
         }
 
         [Trait("Category", "ChangePasswordAsync")]
+        [Fact(DisplayName = "ChangePasswordAsync uses ordinal password confirmation")]
+        public async Task ChangePasswordAsync_Uses_Ordinal_Password_Confirmation()
+        {
+            var waiter = new Mock<IWaiter>();
+            waiter.Setup(m => m.Wait<string>(It.IsAny<WaitKey>(), null, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult("pass"));
+
+            var serverConn = new Mock<IMessageConnection>();
+            serverConn.Setup(m => m.WriteAsync(It.IsAny<IOutgoingMessage>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            using (var s = new SoulseekClient(minorVersion: 9999, waiter: waiter.Object, serverConnection: serverConn.Object))
+            {
+                s.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+
+                var ex = await Record.ExceptionAsync(() => s.ChangePasswordAsync("p\0ass"));
+
+                Assert.NotNull(ex);
+                Assert.IsType<SoulseekClientException>(ex);
+                Assert.True(ex.Message.ContainsInsensitive("doesn't match the specified password"));
+            }
+        }
+
+        [Trait("Category", "ChangePasswordAsync")]
         [Theory(DisplayName = "ChangePasswordAsync throws SoulseekClientException on throw"), AutoData]
         public async Task ChangePasswordAsync_Throws_SoulseekClientException_On_Throw(string password)
         {

@@ -2635,7 +2635,7 @@ namespace Soulseek
 
             var usernameList = rawUsernames
                 .Select(username => username.Trim())
-                .Distinct(StringComparer.InvariantCultureIgnoreCase)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
             if (usernameList.Count > MaximumMessageUsersRecipients)
@@ -3418,7 +3418,7 @@ namespace Soulseek
                 throw new SoulseekClientException($"Failed to change password: {ex.Message}", ex);
             }
 
-            if (!response.Equals(password, StringComparison.CurrentCulture))
+            if (!response.Equals(password, StringComparison.Ordinal))
             {
                 throw new SoulseekClientException("Probably failed to change password; the response from the server doesn't match the specified password");
             }

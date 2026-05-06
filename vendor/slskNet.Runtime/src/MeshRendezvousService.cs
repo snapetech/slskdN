@@ -71,7 +71,7 @@ namespace Soulseek
 
             if (options.ProbePeerCapabilities && client.PeerCapabilityDescriptor != null)
             {
-                foreach (var username in users.Select(u => u.Username).Where(u => !string.Equals(u, client.Username, StringComparison.InvariantCultureIgnoreCase)))
+                foreach (var username in users.Select(u => u.Username).Where(u => !string.Equals(u, client.Username, StringComparison.OrdinalIgnoreCase)))
                 {
                     token.ThrowIfCancellationRequested();
 

@@ -51,5 +51,26 @@ namespace Soulseek.Tests.Unit
             client.Verify(m => m.SendPeerCapabilityAsync("alice", null, It.IsAny<CancellationToken?>()), Times.Once);
             client.Verify(m => m.SendPeerCapabilityAsync("self", null, It.IsAny<CancellationToken?>()), Times.Never);
         }
+
+        [Fact(DisplayName = "Rendezvous service uses ordinal username identity")]
+        public async Task Rendezvous_Service_Uses_Ordinal_Username_Identity()
+        {
+            var client = new Mock<ISoulseekClient>();
+            client.SetupGet(m => m.Username).Returns("self");
+            client.SetupGet(m => m.PeerCapabilityDescriptor).Returns(new PeerCapabilityDescriptor());
+            client.SetupGet(m => m.PeerCapabilities).Returns(new PeerCapabilityRegistry());
+            client.Setup(m => m.GetSimilarUsersAsync(It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult<IReadOnlyCollection<SimilarUser>>(new[]
+                {
+                    new SimilarUser("s\0elf", 1),
+                }));
+            client.Setup(m => m.SendPeerCapabilityAsync(It.IsAny<string>(), null, It.IsAny<CancellationToken?>()))
+                .Returns(Task.CompletedTask);
+            var service = new MeshRendezvousService(client.Object, new MeshRendezvousOptions(probePeerCapabilities: true));
+
+            await service.DiscoverAsync();
+
+            client.Verify(m => m.SendPeerCapabilityAsync("s\0elf", null, It.IsAny<CancellationToken?>()), Times.Once);
+        }
     }
 }

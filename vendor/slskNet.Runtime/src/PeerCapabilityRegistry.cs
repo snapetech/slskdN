@@ -27,7 +27,7 @@ namespace Soulseek
     public sealed class PeerCapabilityRegistry
     {
         private readonly ConcurrentDictionary<string, PeerCapabilityRecord> records =
-            new ConcurrentDictionary<string, PeerCapabilityRecord>(StringComparer.InvariantCultureIgnoreCase);
+            new ConcurrentDictionary<string, PeerCapabilityRecord>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         ///     Occurs when a peer capability record is updated.

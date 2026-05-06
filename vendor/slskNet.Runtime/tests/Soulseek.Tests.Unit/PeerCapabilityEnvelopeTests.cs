@@ -95,6 +95,21 @@ namespace Soulseek.Tests.Unit
             Assert.Equal("n1", record.Nonce);
         }
 
+        [Fact(DisplayName = "Capability registry uses ordinal username identity")]
+        public void Capability_Registry_Uses_Ordinal_Username_Identity()
+        {
+            var registry = new PeerCapabilityRegistry();
+            var endpoint = new IPEndPoint(IPAddress.Loopback, 1234);
+            var envelope = new PeerCapabilityEnvelope(
+                PeerCapabilityMessageType.Hello,
+                new PeerCapabilityDescriptor(features: new[] { "mesh" }),
+                nonce: "n1");
+
+            registry.Update("user", endpoint, envelope);
+
+            Assert.False(registry.TryGet("u\0ser", out _));
+        }
+
         [Theory(DisplayName = "Capability registry rejects empty usernames")]
         [InlineData(null)]
         [InlineData("")]

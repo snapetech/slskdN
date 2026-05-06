@@ -242,6 +242,34 @@ namespace Soulseek.Tests.Unit.Client
         }
 
         [Trait("Category", "SendPrivateMessageAsync")]
+        [Fact(DisplayName = "SendPrivateMessageAsync to multiple users uses ordinal identity")]
+        public async Task SendPrivateMessageAsync_To_Multiple_Users_Uses_Ordinal_Identity()
+        {
+            IOutgoingMessage capturedMessage = null;
+            var conn = new Mock<IMessageConnection>();
+            conn.Setup(m => m.State)
+                .Returns(ConnectionState.Connected);
+            conn.Setup(m => m.WriteAsync(It.IsAny<IOutgoingMessage>(), It.IsAny<CancellationToken>()))
+                .Callback<IOutgoingMessage, CancellationToken?>((message, _) => capturedMessage = message)
+                .Returns(Task.CompletedTask);
+
+            using (var s = new SoulseekClient(minorVersion: 9999, serverConnection: conn.Object))
+            {
+                s.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+
+                await s.SendPrivateMessageAsync(new[] { "foo", "f\0oo" }, "message");
+            }
+
+            var reader = new MessageReader<MessageCode.Server>(capturedMessage.ToByteArray());
+
+            Assert.Equal(MessageCode.Server.MessageUsers, reader.ReadCode());
+            Assert.Equal(2, reader.ReadInteger());
+            Assert.Equal("foo", reader.ReadString());
+            Assert.Equal("f\0oo", reader.ReadString());
+            Assert.Equal("message", reader.ReadString());
+        }
+
+        [Trait("Category", "SendPrivateMessageAsync")]
         [Fact(DisplayName = "SendPrivateMessageAsync to multiple users validates null entries before deduplication")]
         public async Task SendPrivateMessageAsync_To_Multiple_Users_Validates_Null_Entries_Before_Deduplication()
         {
