@@ -24,7 +24,7 @@ slskd ships its own scoped phase rows below for slskd-specific work that builds 
 | # | Name | Status | Owner | Exit criteria |
 | --- | --- | --- | --- | --- |
 | 1 | Mirror council process docs | Done | (agent) | Schema, sibling-search, behavior-pinning, slskd-adapted negative-space, this tracker, and a slskd `check-council-negative-space.sh` script all present. |
-| 2 | Wire negative-space gate into the meta-runner | Pending | (agent) | `scripts/check-remediation-baseline.sh` calls `scripts/check-council-negative-space.sh`. |
+| 2 | Wire negative-space gate into the meta-runner | Done | (agent) | `scripts/check-remediation-baseline.sh` calls `scripts/check-council-negative-space.sh`. |
 | 3 | Web-input adversarial fuzz | Pending | (agent) | A counterpart to slskNet.Runtime's `ProtocolAdversarialFuzz`: random bytes/strings into HTTP controllers, asserting only documented exceptions escape. |
 
 ## How to resume
