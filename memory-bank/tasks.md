@@ -2584,3 +2584,7 @@
 - [x] Continue non-runtime council async side-effect burn-down
   - Status: completed (2026-05-06)
   - Notes: Reclassified the full app async side-effect section and fixed `BUG-20260506-027` by observing notification, SignalR broadcast, relay, room-join, share-rescan, pod-routing, FTP, and peer-metric background work; added `scripts/check-async-task-observation.sh` to remediation.
+
+- [x] Continue non-runtime council Web/API contract cycle
+  - Status: completed (2026-05-06)
+  - Notes: Classified the web storage/response-shape section; fixed `BUG-20260506-048` through `BUG-20260506-050` for Transfers stale selection reconciliation, options save validation gating, and structured options update error rendering.

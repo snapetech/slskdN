@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Hardened the Web options editor and Transfers bulk-selection state so current
+  validation errors block saves, structured API errors render readable text, and
+  stale transfer selections are ignored after list refreshes.
 - Synced vendored slskNet.Runtime endpoint ownership hardening so peer
   capability, distributed-network, transfer, and connection snapshots no longer
   expose mutable endpoint state.

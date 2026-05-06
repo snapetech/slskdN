@@ -9,6 +9,24 @@ import CodeEditor from '../../Shared/CodeEditor';
 import React, { useEffect, useState } from 'react';
 import { Button, Icon, Message, Modal } from 'semantic-ui-react';
 
+const getErrorText = (error, fallback = 'Options update failed') => {
+  const data = error?.response?.data;
+
+  if (typeof data === 'string') {
+    return data;
+  }
+
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    return data.detail ||
+      data.message ||
+      data.error ||
+      data.title ||
+      JSON.stringify(data);
+  }
+
+  return error?.message || fallback;
+};
+
 const EditModal = ({ onClose, open, theme }) => {
   // eslint-disable-next-line react/hook-use-state
   const [{ error, loading }, setLoading] = useState({
@@ -43,6 +61,7 @@ const EditModal = ({ onClose, open, theme }) => {
   const validate = async (newYaml) => {
     const response = await validateYaml({ yaml: newYaml });
     setYamlError(response);
+    return response;
   };
 
   const update = async (newYaml) => {
@@ -51,14 +70,15 @@ const EditModal = ({ onClose, open, theme }) => {
   };
 
   const save = async (newYaml) => {
-    await validate(newYaml);
+    setUpdateError(undefined);
+    const nextYamlError = await validate(newYaml);
 
-    if (!yamlError) {
+    if (!nextYamlError) {
       try {
         await updateYaml({ yaml: newYaml });
         onClose();
       } catch (nextUpdateError) {
-        setUpdateError(nextUpdateError.response.data);
+        setUpdateError(getErrorText(nextUpdateError));
       }
     }
   };

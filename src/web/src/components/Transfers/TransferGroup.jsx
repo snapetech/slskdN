@@ -6,6 +6,20 @@ import { Link } from 'react-router-dom';
 import { Button, Card, Icon } from 'semantic-ui-react';
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
+const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+
+const parseSelection = (selection) => {
+  try {
+    const parsed = JSON.parse(selection);
+    return isObject(parsed) &&
+      typeof parsed.directory === 'string' &&
+      typeof parsed.filename === 'string'
+      ? parsed
+      : null;
+  } catch {
+    return null;
+  }
+};
 
 class TransferGroup extends Component {
   constructor(props) {
@@ -42,11 +56,12 @@ class TransferGroup extends Component {
     const { user } = this.props;
 
     return Array.from(this.state.selections)
-      .map((s) => JSON.parse(s))
+      .map(parseSelection)
+      .filter(Boolean)
       .map((s) =>
-        user.directories
+        asArray(user.directories)
           .find((d) => d.directory === s.directory)
-          .files.find((f) => f.filename === s.filename),
+          ?.files?.find((f) => f.filename === s.filename),
       )
       .filter((s) => s !== undefined);
   };
@@ -133,9 +148,9 @@ class TransferGroup extends Component {
               <UserCard username={user.username}>{user.username}</UserCard>
             </Link>
           </Card.Header>
-          {user.directories &&
+          {asArray(user.directories).length > 0 &&
             !isFolded &&
-            user.directories.map((directory) => (
+            asArray(user.directories).map((directory) => (
               <TransferList
                 direction={this.props.direction}
                 directoryName={directory.directory}

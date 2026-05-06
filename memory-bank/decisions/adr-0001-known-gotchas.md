@@ -342,6 +342,58 @@ gh pr create --base "main"
 
 **Why This Keeps Happening**: Workflow files often keep old default-branch names and implicit token assumptions after a repo moves. Any workflow that writes a branch, PR, or issue should declare only the permissions it needs and use the current fork target branch explicitly.
 
+### 0z339. Web Saves Must Use The Fresh Validation Result
+
+**The Bug**: The options editor awaited YAML validation, but then checked the previous `yamlError` React state value before saving. A newly returned validation error could still be stale in the closure, allowing an invalid update request to run.
+
+**Files Affected**:
+- `src/web/src/components/System/Options/EditModal.jsx`
+
+**Wrong**:
+```code
+await validate(newYaml);
+if (!yamlError) {
+  await updateYaml({ yaml: newYaml });
+}
+```
+
+**Correct**:
+```code
+const nextYamlError = await validate(newYaml);
+if (!nextYamlError) {
+  await updateYaml({ yaml: newYaml });
+}
+```
+
+**Why This Keeps Happening**: React state setters are asynchronous, so validation workflows that immediately branch on state can use stale values. Save paths must branch on the return value from the awaited validation call and use state only for rendering the result.
+
+### 0z340. Persisted UI Selections Must Reconcile Against Current Data
+
+**The Bug**: Transfer bulk-selection state parsed serialized selected files and immediately dereferenced the matching current directory. If the selection was malformed or the transfer list changed before the bulk action rendered, the Transfers page could crash.
+
+**Files Affected**:
+- `src/web/src/components/Transfers/TransferGroup.jsx`
+
+**Wrong**:
+```code
+return Array.from(selections)
+  .map((s) => JSON.parse(s))
+  .map((s) => user.directories.find((d) => d.directory === s.directory).files
+    .find((f) => f.filename === s.filename));
+```
+
+**Correct**:
+```code
+return Array.from(selections)
+  .map(parseSelection)
+  .filter(Boolean)
+  .map((s) => asArray(user.directories).find((d) => d.directory === s.directory)
+    ?.files?.find((f) => f.filename === s.filename))
+  .filter((s) => s !== undefined);
+```
+
+**Why This Keeps Happening**: UI selection state often stores compact identifiers while the rendered data refreshes independently. Any bulk-action resolver must treat serialized selections and refreshed payloads as untrusted, discard stale IDs, and only act on items that still exist.
+
 ### 0z326. Integration Auth Fixtures Must Match Admin-Only Routes
 
 **The Bug**: After security telemetry routes were tightened to administrator-only, the shared integration `StubWebApplicationFactory` still authenticated as only `ReadWrite`, so versioned admin route smoke tests failed with `403 Forbidden`.

@@ -9855,3 +9855,11 @@ Code quality improvements were completed as part of Option A:
 - Ran an attribution audit against `upstream/master`, separating fork-only files, upstream-derived changed files, and vendored third-party code.
 - Found no upstream-derived C# files that lost upstream attribution, and no fork-only app C# files carrying only upstream attribution after the fix.
 - Added the missing slskdN co-attribution block to `src/slskd/Core/Data/Migrations/Z12282025_AdditionalTransferIndexesMigration.cs`.
+
+## 2026-05-06 23:15:00Z
+
+- Continued the non-runtime council scan into Web/API contract and persisted UI state drift while skipping the runtime lane.
+- Recorded and verified `BUG-20260506-048` through `BUG-20260506-050`.
+- Hardened Transfers bulk selection resolution against stale/corrupt selection entries and non-array directory payloads.
+- Hardened the options editor so current validation failures block saves and structured API update errors render stable text instead of `[object Object]`.
+- Focused Web validation passed for the new Transfers and Options regressions.

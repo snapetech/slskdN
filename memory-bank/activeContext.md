@@ -1,3 +1,16 @@
+## Update 2026-05-06 23:15:00Z
+
+- Current task: Continue non-runtime council Web/API contract cycle.
+- Last activity:
+  - classified the direct fetch, browser storage, response-shape, and persisted UI selection slice;
+  - accepted and fixed `BUG-20260506-048` through `BUG-20260506-050`;
+  - Transfers now ignores malformed/stale selected file entries and malformed directory payloads before bulk actions render;
+  - Options edit saves now branch on the fresh validation result and render structured update errors as stable text;
+  - documented ADR-0001 gotchas `0z339` and `0z340`, and updated ledger/changelog/task log.
+- Next steps:
+  1. Run remediation, Web lint, repo lint, and diff checks.
+  2. Commit and push the verified non-runtime Web/API batch.
+
 ## Update 2026-05-06 23:03:00Z
 
 - Current task: Continue non-runtime council release/ops workflow sweep.
