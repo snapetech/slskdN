@@ -16,6 +16,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using slskd.Common.CodeQuality;
 using slskd.DhtRendezvous.Messages;
 using slskd.DhtRendezvous.Search;
 using slskd.DhtRendezvous.Security;
@@ -245,7 +246,9 @@ public sealed class MeshOverlayConnector : IMeshOverlayConnector
                     string.Join(", ", (IEnumerable<string>?)ack.Features ?? Array.Empty<string>()));
 
                 var registeredConnection = connection;
-                _ = RunOutboundMessageLoopAsync(registeredConnection, CancellationToken.None);
+                _ = TaskObservation.Observe(
+                    RunOutboundMessageLoopAsync(registeredConnection, CancellationToken.None),
+                    ex => _logger.LogDebug(ex, "Unhandled outbound overlay message loop failure for {Username}@{Endpoint}", OverlayLogSanitizer.Username(registeredConnection.Username), OverlayLogSanitizer.Endpoint(endpoint)));
                 connection = null;
                 return registeredConnection;
             }

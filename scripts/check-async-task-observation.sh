@@ -36,6 +36,10 @@ reject_literal src/slskd/Transfers/Downloads/DownloadService.cs '_ = PeerMetrics
 reject_literal src/slskd/Transfers/Downloads/DownloadService.cs '_ = Relay.NotifyFileDownloadCompleteAsync'
 reject_literal src/slskd/Transfers/Downloads/DownloadService.cs '_ = FTP.UploadAsync'
 
+reject_literal src/slskd/DhtRendezvous/MeshOverlayServer.cs '_ = HandleConnectionAsync'
+reject_literal src/slskd/DhtRendezvous/MeshOverlayServer.cs '_ = HandleMessagesAsync'
+reject_literal src/slskd/DhtRendezvous/MeshOverlayConnector.cs '_ = RunOutboundMessageLoopAsync'
+
 if [ "$failed" -ne 0 ]; then
   cat >&2 <<'MSG'
 

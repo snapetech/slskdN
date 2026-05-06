@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Observe DHT overlay inbound/outbound background session loops so detached
+  connection and message-loop faults are logged instead of becoming unobserved
+  task failures.
 - Persist peer profiles, reputation data, DHT node state, auto-replace state,
   and verification probe budgets with flushed sibling-temp writes before atomic
   replacement.

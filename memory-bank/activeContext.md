@@ -1,3 +1,15 @@
+## Update 2026-05-07 00:36:00Z
+
+- Current task: Continue non-runtime council DHT overlay async lifecycle cycle.
+- Last activity:
+  - classified detached app-side async lifecycle calls after skipping runtime/vendor;
+  - accepted and fixed `BUG-20260506-066` through `BUG-20260506-068`;
+  - DHT overlay inbound connection tasks, inbound message loops, and outbound message loops now use `TaskObservation`;
+  - documented ADR-0001 gotcha `0z345`, and updated ledger/changelog/task log.
+- Next steps:
+  1. Run focused backend tests, remediation, repo lint, and diff checks.
+  2. Commit and push the verified non-runtime DHT overlay async lifecycle batch.
+
 ## Update 2026-05-07 00:18:00Z
 
 - Current task: Continue non-runtime council durable app-state persistence cycle.

@@ -2604,3 +2604,7 @@
 - [x] Continue non-runtime council durable app-state persistence cycle
   - Status: completed (2026-05-06)
   - Notes: Classified direct durable state writes after skipping the runtime lane; fixed `BUG-20260506-061` through `BUG-20260506-065` with a shared atomic writer for profile identity, peer reputation, DHT nodes, auto-replace state, and verification probe budgets.
+
+- [x] Continue non-runtime council DHT overlay async lifecycle cycle
+  - Status: completed (2026-05-06)
+  - Notes: Classified detached app-side async lifecycle calls after skipping the runtime lane; fixed `BUG-20260506-066` through `BUG-20260506-068` by observing inbound overlay connection tasks, inbound message loops, and outbound message loops.

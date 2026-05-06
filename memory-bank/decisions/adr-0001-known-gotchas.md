@@ -501,6 +501,31 @@ AtomicFileWriter.WriteAllText(StateFilePath, json);
 
 **Why This Keeps Happening**: Durable state often starts as a small JSON or binary cache and later becomes part of identity continuity, moderation, network-health throttling, or operator intent. If losing or truncating the file changes future behavior, write it through `AtomicFileWriter` instead of overwriting the final path directly.
 
+### 0z345. Detached Session Loops Must Be Observed Even When They Catch Internally
+
+**The Bug**: DHT overlay inbound and outbound session loops were started with direct discard assignments. The loops catch their main protocol body, but cleanup/unregister/dispose code after that catch boundary can still throw and become an unobserved task failure.
+
+**Files Affected**:
+- `src/slskd/DhtRendezvous/MeshOverlayServer.cs`
+- `src/slskd/DhtRendezvous/MeshOverlayConnector.cs`
+- `scripts/check-async-task-observation.sh`
+
+**Wrong**:
+```code
+_ = HandleConnectionAsync(tcpClient, cancellationToken);
+_ = HandleMessagesAsync(connection, cancellationToken);
+_ = RunOutboundMessageLoopAsync(registeredConnection, CancellationToken.None);
+```
+
+**Correct**:
+```code
+_ = TaskObservation.Observe(
+    HandleMessagesAsync(connection, cancellationToken),
+    ex => logger.LogWarning(ex, "Unhandled overlay message loop failure"));
+```
+
+**Why This Keeps Happening**: Long-running session methods often have local try/catch blocks around reads and protocol handling, which makes a direct discard look safe. If the method has any awaited cleanup, unregister, dispose, or metric work after the main catch boundary, the detached task still needs `TaskObservation.Observe()` or explicit tracking/draining.
+
 ### 0z326. Integration Auth Fixtures Must Match Admin-Only Routes
 
 **The Bug**: After security telemetry routes were tightened to administrator-only, the shared integration `StubWebApplicationFactory` still authenticated as only `ReadWrite`, so versioned admin route smoke tests failed with `403 Forbidden`.

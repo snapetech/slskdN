@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using slskd.Common.CodeQuality;
 using slskd.DhtRendezvous.Search;
 using slskd.DhtRendezvous.Security;
 using slskd.Mesh;
@@ -164,8 +165,9 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
             {
                 var tcpClient = await _listener.AcceptTcpClientAsync(cancellationToken);
 
-                // Handle connection in background
-                _ = HandleConnectionAsync(tcpClient, cancellationToken);
+                _ = TaskObservation.Observe(
+                    HandleConnectionAsync(tcpClient, cancellationToken),
+                    ex => _logger.LogWarning(ex, "Unhandled inbound overlay connection task failure"));
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
@@ -292,8 +294,9 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
 
                 TryStartReciprocalOutboundConnection(remoteEndPoint.Address, hello);
 
-                // Start message handling loop in background
-                _ = HandleMessagesAsync(connection, cancellationToken);
+                _ = TaskObservation.Observe(
+                    HandleMessagesAsync(connection, cancellationToken),
+                    ex => _logger.LogWarning(ex, "Unhandled inbound overlay message loop failure for {Username}", OverlayLogSanitizer.Username(connection.Username)));
                 connection = null;
             }
             catch (Exception ex)

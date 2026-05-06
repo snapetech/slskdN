@@ -9894,3 +9894,10 @@ Code quality improvements were completed as part of Option A:
 - Recorded and verified `BUG-20260506-061` through `BUG-20260506-065`.
 - Added `AtomicFileWriter` for flushed sibling-temp writes and wired profile identity, encrypted peer reputation, DHT node state, auto-replace state, and verification probe budgets to it.
 - Added focused atomic writer unit coverage for overwrite, directory creation, and temp-file cleanup behavior.
+
+## 2026-05-07 00:36:00Z
+
+- Continued the non-runtime council scan into DHT overlay async lifecycle hazards.
+- Recorded and verified `BUG-20260506-066` through `BUG-20260506-068`.
+- Observed inbound overlay connection tasks, inbound message loops, and outbound message loops with `TaskObservation`.
+- Extended `scripts/check-async-task-observation.sh` so these DHT overlay detached calls cannot regress.
