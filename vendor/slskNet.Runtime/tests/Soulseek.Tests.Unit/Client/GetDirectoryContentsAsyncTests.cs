@@ -88,6 +88,22 @@ namespace Soulseek.Tests.Unit.Client
         }
 
         [Trait("Category", "GetDirectoryContentsAsync")]
+        [Fact(DisplayName = "GetDirectoryContentsAsync throws ArgumentOutOfRangeException given negative token")]
+        public async Task GetDirectoryContentsAsync_Throws_ArgumentOutOfRangeException_Given_Negative_Token()
+        {
+            using (var s = new SoulseekClient(minorVersion: 9999))
+            {
+                s.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+
+                var ex = await Record.ExceptionAsync(() => s.GetDirectoryContentsAsync("username", "directory", token: -1));
+
+                Assert.NotNull(ex);
+                Assert.IsType<ArgumentOutOfRangeException>(ex);
+                Assert.Equal("token", ((ArgumentOutOfRangeException)ex).ParamName);
+            }
+        }
+
+        [Trait("Category", "GetDirectoryContentsAsync")]
         [Theory(DisplayName = "GetDirectoryContentsAsync throws TimeoutException on timeout"), AutoData]
         public async Task GetDirectoryContentsAsync_Throws_TimeoutException_On_Timeout(string username, string directory)
         {

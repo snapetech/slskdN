@@ -1153,6 +1153,7 @@ namespace Soulseek
             }
 
             token ??= GetNextToken();
+            ThrowIfNegativeToken(token.Value, nameof(token));
 
             if (UploadDictionary.ContainsKey(token.Value) || DownloadDictionary.ContainsKey(token.Value))
             {
@@ -1262,6 +1263,7 @@ namespace Soulseek
             }
 
             token ??= GetNextToken();
+            ThrowIfNegativeToken(token.Value, nameof(token));
 
             if (UploadDictionary.ContainsKey(token.Value) || DownloadDictionary.ContainsKey(token.Value))
             {
@@ -1692,6 +1694,7 @@ namespace Soulseek
             }
 
             token ??= GetNextToken();
+            ThrowIfNegativeToken(token.Value, nameof(token));
 
             return GetDirectoryContentsInternalAsync(username, directoryName, token.Value, cancellationToken ?? CancellationToken.None);
         }
@@ -2471,6 +2474,7 @@ namespace Soulseek
             }
 
             token ??= TokenFactory.NextToken();
+            ThrowIfNegativeToken(token.Value, nameof(token));
 
             if (Searches.ContainsKey(token.Value))
             {
@@ -2544,6 +2548,7 @@ namespace Soulseek
             }
 
             token ??= TokenFactory.NextToken();
+            ThrowIfNegativeToken(token.Value, nameof(token));
 
             if (Searches.ContainsKey(token.Value))
             {
@@ -3081,6 +3086,7 @@ namespace Soulseek
             }
 
             token ??= GetNextToken();
+            ThrowIfNegativeToken(token.Value, nameof(token));
 
             if (UploadDictionary.ContainsKey(token.Value) || DownloadDictionary.ContainsKey(token.Value))
             {
@@ -3162,6 +3168,7 @@ namespace Soulseek
             }
 
             token ??= GetNextToken();
+            ThrowIfNegativeToken(token.Value, nameof(token));
 
             if (UploadDictionary.ContainsKey(token.Value) || DownloadDictionary.ContainsKey(token.Value))
             {
@@ -4861,6 +4868,14 @@ namespace Soulseek
             if (messageCode < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(messageCode), "The peer message code must be greater than or equal to zero.");
+            }
+        }
+
+        private static void ThrowIfNegativeToken(int token, string paramName)
+        {
+            if (token < 0)
+            {
+                throw new ArgumentOutOfRangeException(paramName, "The token must be greater than or equal to zero");
             }
         }
 

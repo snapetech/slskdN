@@ -37,6 +37,40 @@ namespace Soulseek.Tests.Unit.Client
     public class UploadAsyncTests
     {
         [Trait("Category", "UploadAsync")]
+        [Fact(DisplayName = "UploadAsync stream throws ArgumentOutOfRangeException given negative token")]
+        public async Task UploadAsync_Stream_Throws_ArgumentOutOfRangeException_Given_Negative_Token()
+        {
+            using (var stream = new MemoryStream())
+            using (var s = new SoulseekClient(minorVersion: 9999))
+            {
+                s.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+
+                var ex = await Record.ExceptionAsync(() => s.UploadAsync("username", "filename", 1, (_) => Task.FromResult((Stream)stream), token: -1));
+
+                Assert.NotNull(ex);
+                Assert.IsType<ArgumentOutOfRangeException>(ex);
+                Assert.Equal("token", ((ArgumentOutOfRangeException)ex).ParamName);
+            }
+        }
+
+        [Trait("Category", "UploadAsync")]
+        [Fact(DisplayName = "UploadAsync file throws ArgumentOutOfRangeException given negative token")]
+        public async Task UploadAsync_File_Throws_ArgumentOutOfRangeException_Given_Negative_Token()
+        {
+            using (var testFile = new TestFile())
+            using (var s = new SoulseekClient(minorVersion: 9999))
+            {
+                s.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+
+                var ex = await Record.ExceptionAsync(() => s.UploadAsync("username", "filename", testFile.Path, token: -1));
+
+                Assert.NotNull(ex);
+                Assert.IsType<ArgumentOutOfRangeException>(ex);
+                Assert.Equal("token", ((ArgumentOutOfRangeException)ex).ParamName);
+            }
+        }
+
+        [Trait("Category", "UploadAsync")]
         [Theory(DisplayName = "UploadAsync stream throws ArgumentException given bad username")]
         [InlineData(null)]
         [InlineData("")]
