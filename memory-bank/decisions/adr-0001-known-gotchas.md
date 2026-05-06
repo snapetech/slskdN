@@ -14753,3 +14753,11 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 **Why it happened:** Some API helpers normalized list responses, but newer UI paths kept raw payloads in component state or rendered nested list fields directly. Route construction hardening also missed a rendered `Link` path while API helper paths were already encoded.
 
 **How to prevent it:** Normalize API list/map payloads at the helper or render boundary, guard nested list fields before iterating, and encode every dynamic route segment in `Link` and API helpers. Add focused Web tests with malformed lists and slash-bearing identifiers.
+
+### 0z87. API Surface Changes Must Regenerate The Route Inventory
+
+**What went wrong:** A controller authorization and line-number change was committed without regenerating `docs/system-surfaces-current.md`, so the route inventory gate failed on the next non-runtime council scan even though the code change itself was intentional.
+
+**Why it happened:** The implementation batch updated controller attributes and tests, then validated focused auth behavior, but did not include the generated system-surface artifact in the same ownership batch.
+
+**How to prevent it:** Any controller route, auth attribute, HTTP verb, anonymous surface, or action-count change must run `scripts/generate-route-inventory.sh docs/system-surfaces-current.md` before closing the batch, followed by `scripts/check-route-inventory.sh`.
