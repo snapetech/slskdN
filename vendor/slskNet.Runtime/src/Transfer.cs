@@ -199,7 +199,7 @@ namespace Soulseek
 
             BytesRemaining = Size - BytesTransferred;
             ElapsedTime = StartTime == null ? null : (TimeSpan?)((EndTime ?? DateTime.UtcNow) - StartTime.Value);
-            PercentComplete = Size == 0 ? 0 : (BytesTransferred / (double)Size) * 100;
+            PercentComplete = ProgressMetrics.GetPercentComplete(BytesTransferred, Size);
             RemainingTime = TransferMetrics.GetRemainingTime(BytesRemaining, AverageSpeed);
         }
 

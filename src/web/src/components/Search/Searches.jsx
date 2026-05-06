@@ -212,8 +212,9 @@ const Searches = ({ server } = {}) => {
     const searchHub = createSearchHubConnection();
 
     searchHub.on('list', (searchesEvent) => {
+      const searchList = Array.isArray(searchesEvent) ? searchesEvent : [];
       onUpdate(
-        searchesEvent.reduce((accumulator, search) => {
+        searchList.reduce((accumulator, search) => {
           accumulator[search.id] = search;
           return accumulator;
         }, {}),

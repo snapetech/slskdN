@@ -84,7 +84,7 @@ const DiscoveryGraphAtlasPanel = ({ disabled, persistRoute = false }) => {
       openGraph(request);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [persistRoute]);
+  }, [persistRoute, location.search]);
 
   const buildRequest = () => ({
     album: album.trim() || undefined,

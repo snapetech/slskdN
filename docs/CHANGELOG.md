@@ -29,6 +29,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   comparisons to use ordinal protocol identity semantics.
 - Hardened vendored slskNet.Runtime transfer remaining-time projections so
   malformed speed values and extreme durations cannot break transfer snapshots.
+- Hardened vendored slskNet.Runtime network progress snapshots so invalid
+  totals cannot emit infinite, negative, or over-complete percentages.
 
 ## [2026050600-slskdn.227] — 2026-05-06
 

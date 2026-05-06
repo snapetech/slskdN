@@ -42,6 +42,19 @@ namespace Soulseek.Tests.Unit
         }
 
         [Trait("Category", "Instantiation")]
+        [Theory(DisplayName = "ConnectionDataEventArgs clamps invalid progress totals")]
+        [InlineData(1, 0, 0)]
+        [InlineData(1, -1, 0)]
+        [InlineData(-1, 10, 0)]
+        [InlineData(20, 10, 100)]
+        public void ConnectionDataEventArgs_Clamps_Invalid_Progress_Totals(long current, long total, double expected)
+        {
+            var d = new ConnectionDataEventArgs(current, total);
+
+            Assert.Equal(expected, d.PercentComplete);
+        }
+
+        [Trait("Category", "Instantiation")]
         [Fact(DisplayName = "ConnectionStateChangedEventArgs instantiates properly")]
         public void ConnectionStateChangedEventArgs_Instantiates_Properly()
         {

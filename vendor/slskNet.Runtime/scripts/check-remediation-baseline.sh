@@ -236,7 +236,7 @@ require_pattern "SoulseekClientStates ValidStates" "src/EventArgs/SoulseekClient
 require_pattern "SearchStates ValidStates" "src/EventArgs/SearchStateChangedEventArgs.cs" "search state events validate defined flags"
 require_pattern "TransferStates ValidStates" "src/EventArgs/TransferStateChangedEventArgs.cs" "transfer state events validate defined flags"
 require_pattern "Math\\.Max\\(0, \\(Size \\?\\? 0\\) - BytesTransferred\\)" "src/TransferInternal.cs" "internal transfer remaining bytes are clamped"
-require_pattern "Size\\.Value > 0" "src/TransferInternal.cs" "internal transfer percent avoids zero-size division"
+require_pattern "ProgressMetrics\\.GetPercentComplete\\(BytesTransferred, Size \\?\\? 0\\)" "src/TransferInternal.cs" "internal transfer percent avoids zero-size division"
 require_pattern "startOffset < 0" "src/SoulseekClient.cs" "uploads reject negative peer start offsets"
 require_pattern "StartOffset_Rejects_Negative_Values" "tests/Soulseek.Tests.Unit/TransferInternalTests.cs" "internal transfer start offset validation tests are registered"
 require_pattern "Peer_Sends_Negative_StartOffset" "tests/Soulseek.Tests.Unit/Client/UploadAsyncTests.cs" "upload negative start offset regression test is registered"

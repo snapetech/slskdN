@@ -55,11 +55,11 @@ public sealed class ShareGrantAnnouncementService : IDisposable
         _log.LogInformation("[ShareGrantInbox] Received SHAREGRANT message from {User}", e.Username);
 
         _ = ObserveBackgroundTaskAsync(
-            Task.Run(() => HandleAnnouncementAsync(e.Message.Substring(Prefix.Length), CancellationToken.None), CancellationToken.None),
+            Task.Run(() => HandleAnnouncementAsync(e.Message.Substring(Prefix.Length), e.Username, CancellationToken.None), CancellationToken.None),
             e.Username);
     }
 
-    private async Task HandleAnnouncementAsync(string payload, CancellationToken ct)
+    private async Task HandleAnnouncementAsync(string payload, string senderUsername, CancellationToken ct)
     {
         if (!_options.CurrentValue.Feature.CollectionsSharing)
         {
@@ -82,10 +82,15 @@ public sealed class ShareGrantAnnouncementService : IDisposable
             return;
         }
 
-        await IngestAsync(msg, ct).ConfigureAwait(false);
+        await IngestAsync(msg, senderUsername, ct).ConfigureAwait(false);
     }
 
-    public async Task IngestAsync(ShareGrantAnnouncement msg, CancellationToken ct)
+    public Task IngestAsync(ShareGrantAnnouncement msg, CancellationToken ct)
+    {
+        return IngestAsync(msg, senderUsername: null, ct);
+    }
+
+    public async Task IngestAsync(ShareGrantAnnouncement msg, string? senderUsername, CancellationToken ct)
     {
         if (!_options.CurrentValue.Feature.CollectionsSharing)
         {
@@ -116,6 +121,14 @@ public sealed class ShareGrantAnnouncementService : IDisposable
             return;
         }
 
+        var ownerUserId = msg.OwnerUserId?.Trim() ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(senderUsername) &&
+            !string.Equals(ownerUserId, senderUsername, StringComparison.OrdinalIgnoreCase))
+        {
+            _log.LogWarning("[ShareGrantInbox] Rejected announcement from {Sender}: claimed owner {OwnerUserId} did not match sender", senderUsername, ownerUserId);
+            return;
+        }
+
         await using var db = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
 
         // Upsert collection (owner is remote user)
@@ -128,7 +141,7 @@ public sealed class ShareGrantAnnouncementService : IDisposable
                 Title = msg.CollectionTitle ?? "Untitled",
                 Description = msg.CollectionDescription,
                 Type = string.IsNullOrWhiteSpace(msg.CollectionType) ? CollectionType.ShareList : msg.CollectionType!,
-                OwnerUserId = msg.OwnerUserId ?? string.Empty,
+                OwnerUserId = ownerUserId,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
             };
@@ -139,7 +152,7 @@ public sealed class ShareGrantAnnouncementService : IDisposable
             c.Title = msg.CollectionTitle ?? c.Title;
             c.Description = msg.CollectionDescription;
             c.Type = string.IsNullOrWhiteSpace(msg.CollectionType) ? c.Type : msg.CollectionType!;
-            c.OwnerUserId = msg.OwnerUserId ?? c.OwnerUserId;
+            c.OwnerUserId = string.IsNullOrWhiteSpace(ownerUserId) ? c.OwnerUserId : ownerUserId;
             c.UpdatedAt = DateTime.UtcNow;
         }
 

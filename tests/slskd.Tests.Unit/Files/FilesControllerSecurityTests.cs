@@ -136,6 +136,27 @@ namespace slskd.Tests.Unit.Files
             mockFileService.Verify();
         }
 
+        [Fact]
+        public async Task GetDownloadSubdirectoryContentsAsync_RecursiveListingSkipsReparsePoints()
+        {
+            var encodedPath = Convert.ToBase64String(Encoding.UTF8.GetBytes("subdir"));
+            var expectedPath = Path.GetFullPath(Path.Combine("/test/downloads", "subdir"));
+
+            mockFileService.Setup(s => s.ListContentsAsync(
+                    It.Is<string>(path => path == expectedPath),
+                    It.Is<EnumerationOptions>(options =>
+                        options.RecurseSubdirectories &&
+                        options.AttributesToSkip.HasFlag(FileAttributes.System) &&
+                        options.AttributesToSkip.HasFlag(FileAttributes.ReparsePoint))))
+                .ReturnsAsync(new FilesystemDirectory())
+                .Verifiable();
+
+            var result = await controller.GetDownloadSubdirectoryContentsAsync(encodedPath, recursive: true);
+
+            Assert.IsType<OkObjectResult>(result);
+            mockFileService.Verify();
+        }
+
         [Theory]
         [InlineData("Li4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vc2VjcmV0LnR4dA==")] // Deep traversal
         [InlineData("Li4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vLi4vc2VjcmV0LnR4dA==")] // Very deep traversal

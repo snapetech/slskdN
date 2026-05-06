@@ -22,6 +22,8 @@ expect_literal src/slskd/Common/Security/PathGuard.cs 'NormalizeAndValidate'
 expect_literal src/slskd/Common/Security/PathGuard.cs 'NormalizeAbsolutePathWithinRoots'
 expect_literal src/slskd/Relay/RelayService.cs 'bool TryValidateFileDownloadCredential(Guid token, string credential, out string validatedAgentName, out string validatedFilename)'
 expect_literal src/slskd/Relay/API/Controllers/RelayController.cs 'PathGuard.NormalizeAndValidate(validatedFilename'
+expect_literal src/slskd/Files/FileService.cs 'enumerationOptions.AttributesToSkip |= FileAttributes.ReparsePoint;'
+expect_literal src/slskd/Files/API/FilesController.cs 'AttributesToSkip = FileAttributes.System | FileAttributes.ReparsePoint'
 
 if grep -Eq 'PathGuard\.NormalizeAndValidate\((filename|requestedFilename)' "$repo_root/src/slskd/Relay/API/Controllers/RelayController.cs"; then
   printf '%s uses a request filename for relay download path selection\n' "src/slskd/Relay/API/Controllers/RelayController.cs" >&2

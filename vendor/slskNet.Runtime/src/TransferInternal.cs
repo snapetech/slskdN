@@ -123,9 +123,7 @@ namespace Soulseek
         /// <summary>
         ///     Gets the current progress in percent.
         /// </summary>
-        public double PercentComplete => Size.HasValue && Size.Value > 0
-            ? Math.Min(100, Math.Max(0, (BytesTransferred / (double)Size.Value) * 100))
-            : 0;
+        public double PercentComplete => ProgressMetrics.GetPercentComplete(BytesTransferred, Size ?? 0);
 
         /// <summary>
         ///     Gets the projected remaining duration of the transfer.

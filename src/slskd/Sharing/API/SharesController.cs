@@ -473,7 +473,7 @@ public class SharesController : ControllerBase
                 return StatusCode(500, "Downloads directory not configured or does not exist");
             }
 
-            using var httpHandler = new HttpClientHandler { AllowAutoRedirect = false };
+            using var httpHandler = OutboundUriGuard.CreateNoRedirectHandler();
             using var httpClient = new HttpClient(httpHandler) { Timeout = TimeSpan.FromMinutes(30) };
 
             foreach (var item in manifest.Items)

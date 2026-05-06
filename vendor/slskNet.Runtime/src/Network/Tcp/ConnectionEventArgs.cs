@@ -49,7 +49,7 @@ namespace Soulseek.Network.Tcp
             CurrentLength = currentLength;
             TotalLength = totalLength;
 
-            PercentComplete = (CurrentLength / (double)TotalLength) * 100d;
+            PercentComplete = ProgressMetrics.GetPercentComplete(CurrentLength, TotalLength);
         }
 
         /// <summary>

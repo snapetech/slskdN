@@ -1097,7 +1097,7 @@ namespace slskd
 
             // PR-14: SSRF-safe key fetcher for ActivityPub HTTP Signature (timeout 3s, no redirects to prevent SSRF)
             services.AddHttpClient<SocialFederation.IHttpSignatureKeyFetcher, SocialFederation.HttpSignatureKeyFetcher>(c => c.Timeout = TimeSpan.FromSeconds(3))
-                .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
+                .ConfigurePrimaryHttpMessageHandler(Common.Security.OutboundUriGuard.CreateNoRedirectHandler);
 
             // add a partially configured instance of SoulseekClient. the Application instance will
             // complete configuration at startup.

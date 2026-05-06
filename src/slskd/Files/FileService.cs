@@ -307,6 +307,11 @@ namespace slskd.Files
 
                 try
                 {
+                    if (enumerationOptions?.RecurseSubdirectories == true)
+                    {
+                        enumerationOptions.AttributesToSkip |= FileAttributes.ReparsePoint;
+                    }
+
                     var contents = enumerationOptions is null
                         ? dir.GetFileSystemInfos("*")
                         : dir.GetFileSystemInfos("*", enumerationOptions);

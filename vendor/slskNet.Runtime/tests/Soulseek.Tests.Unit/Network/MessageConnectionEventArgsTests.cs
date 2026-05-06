@@ -27,12 +27,27 @@ namespace Soulseek.Tests.Unit.Network
         [Theory(DisplayName = "MessageDataEventArgs instantiates with the expected values"), AutoData]
         public void MessageDataEventArgs_Instantiates_With_The_Expected_Values(byte[] code, long current, long total)
         {
+            total = System.Math.Max(1, total);
+            current = System.Math.Min(System.Math.Max(0, current), total);
             var a = new MessageDataEventArgs(code, current, total);
 
             Assert.Equal(code, a.Code);
             Assert.Equal(current, a.CurrentLength);
             Assert.Equal(total, a.TotalLength);
             Assert.Equal((current / (double)total) * 100d, a.PercentComplete);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Theory(DisplayName = "MessageDataEventArgs clamps invalid progress totals")]
+        [InlineData(1, 0, 0)]
+        [InlineData(1, -1, 0)]
+        [InlineData(-1, 10, 0)]
+        [InlineData(20, 10, 100)]
+        public void MessageDataEventArgs_Clamps_Invalid_Progress_Totals(long current, long total, double expected)
+        {
+            var a = new MessageDataEventArgs(new byte[] { 0x01 }, current, total);
+
+            Assert.Equal(expected, a.PercentComplete);
         }
 
         [Trait("Category", "Instantiation")]

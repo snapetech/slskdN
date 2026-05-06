@@ -198,7 +198,7 @@ namespace slskd.Files.API
                     directory: requestedDir,
                     enumerationOptions: new EnumerationOptions
                     {
-                        AttributesToSkip = FileAttributes.System,
+                        AttributesToSkip = FileAttributes.System | FileAttributes.ReparsePoint,
                         RecurseSubdirectories = recursive,
                     });
 
