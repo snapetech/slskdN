@@ -14729,3 +14729,27 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 **Why it happened:** Parser hardening had focused on rejecting malformed inbound scalar values, while outbound constructors were treated as simple DTOs. The scalar-emission scan showed that `WriteInteger` sinks need the same invariant enforcement before bytes are built.
 
 **How to prevent it:** Any outbound message constructor that owns a protocol token, id, count, version, enum, port, or size must validate the value before `ToByteArray` can emit it. Keep scalar-emission sweep tests covering constructor rejection, not just parser rejection.
+
+### 0z84. Release Metadata Updaters Need Package-Coverage Checks
+
+**What went wrong:** Stable release metadata was updated for the main package manifests, but Snap drifted to an older version and checksum. Flatpak also had a structurally broken generated source block that a YAML parse alone could not catch.
+
+**Why it happened:** The release updater and validation scripts were not treated as a complete package matrix. Snap was missing from the updater, and Flatpak validation only checked values after parsing instead of checking that source entries stayed in the manifest source section.
+
+**How to prevent it:** Any release metadata updater must cover every package format listed by the release asset matrix, and validation must include structural checks for generated manifests, not only version/checksum string comparisons.
+
+### 0z85. Scheduled Workflows Must Not Create Release Tags
+
+**What went wrong:** The upstream release sync workflow could run on a six-hour schedule with write permissions, push branch changes, and create release tags. Because release builds are tag-triggered, a scheduled sync could start a release build without a human explicitly asking for one.
+
+**Why it happened:** The tag-only build policy focused on build workflows, while a separate sync workflow still contained automated tag creation. The scanner did not connect scheduled triggers with tag-push commands.
+
+**How to prevent it:** Any workflow that creates or pushes tags must be manual-only, and the workflow trigger scanner must reject scheduled tag creation or scheduled tag pushes across all workflow files.
+
+### 0z86. Web List Payloads And Route Segments Need Local Guards
+
+**What went wrong:** Several Web components assumed API payloads were arrays or host maps before calling `map`, `reduce`, or `Object.entries`, and one Wishlist route interpolated a search id directly into a path segment. Malformed payloads could crash the page, and slash-bearing ids could route to the wrong search.
+
+**Why it happened:** Some API helpers normalized list responses, but newer UI paths kept raw payloads in component state or rendered nested list fields directly. Route construction hardening also missed a rendered `Link` path while API helper paths were already encoded.
+
+**How to prevent it:** Normalize API list/map payloads at the helper or render boundary, guard nested list fields before iterating, and encode every dynamic route segment in `Link` and API helpers. Add focused Web tests with malformed lists and slash-bearing identifiers.
