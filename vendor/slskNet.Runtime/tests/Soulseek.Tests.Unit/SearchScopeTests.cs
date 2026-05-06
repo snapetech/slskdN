@@ -100,7 +100,7 @@ namespace Soulseek.Tests.Unit
 
             Assert.NotNull(ex);
             Assert.IsType<ArgumentException>(ex);
-            Assert.True(ex.Message.ContainsInsensitive("requires a single, non null and non empty"));
+            Assert.True(ex.Message.ContainsInsensitive("requires a single, non null, non empty, and non whitespace"));
         }
 
         [Trait("Category", "Instantiation")]
@@ -116,7 +116,7 @@ namespace Soulseek.Tests.Unit
 
             Assert.NotNull(ex);
             Assert.IsType<ArgumentException>(ex);
-            Assert.True(ex.Message.ContainsInsensitive("requires a single, non null and non empty"));
+            Assert.True(ex.Message.ContainsInsensitive("requires a single, non null, non empty, and non whitespace"));
         }
 
         [Trait("Category", "Instantiation")]
@@ -129,7 +129,20 @@ namespace Soulseek.Tests.Unit
 
             Assert.NotNull(ex);
             Assert.IsType<ArgumentException>(ex);
-            Assert.True(ex.Message.ContainsInsensitive("requires a single, non null and non empty"));
+            Assert.True(ex.Message.ContainsInsensitive("requires a single, non null, non empty, and non whitespace"));
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Throws on Room when subjects is one whitespace string")]
+        public void Throws_On_Room_When_Subjects_Is_One_Whitespace_String()
+        {
+            SearchScope s = null;
+
+            var ex = Record.Exception(() => s = new SearchScope(SearchScopeType.Room, "   "));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentException>(ex);
+            Assert.True(ex.Message.ContainsInsensitive("whitespace"));
         }
 
         [Trait("Category", "Instantiation")]
@@ -142,7 +155,7 @@ namespace Soulseek.Tests.Unit
 
             Assert.NotNull(ex);
             Assert.IsType<ArgumentException>(ex);
-            Assert.True(ex.Message.ContainsInsensitive("requires a single, non null and non empty"));
+            Assert.True(ex.Message.ContainsInsensitive("requires a single, non null, non empty, and non whitespace"));
         }
 
         [Trait("Category", "Instantiation")]
@@ -186,7 +199,7 @@ namespace Soulseek.Tests.Unit
 
             Assert.NotNull(ex);
             Assert.IsType<ArgumentException>(ex);
-            Assert.True(ex.Message.ContainsInsensitive("One or more of the supplied User scope subjects is null or empty"));
+            Assert.True(ex.Message.ContainsInsensitive("One or more of the supplied User scope subjects is null, empty, or whitespace"));
         }
 
         [Trait("Category", "Instantiation")]
@@ -202,7 +215,23 @@ namespace Soulseek.Tests.Unit
 
             Assert.NotNull(ex);
             Assert.IsType<ArgumentException>(ex);
-            Assert.True(ex.Message.ContainsInsensitive("One or more of the supplied User scope subjects is null or empty"));
+            Assert.True(ex.Message.ContainsInsensitive("One or more of the supplied User scope subjects is null, empty, or whitespace"));
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Throws on User when subjects contains whitespace")]
+        public void Throws_On_User_When_Subjects_Contains_Whitespace()
+        {
+            SearchScope s = null;
+
+#pragma warning disable S3878 // Arrays should not be created for params parameters
+
+            var ex = Record.Exception(() => s = new SearchScope(SearchScopeType.User, new string[] { "one", "   " }));
+#pragma warning restore S3878 // Arrays should not be created for params parameters
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentException>(ex);
+            Assert.True(ex.Message.ContainsInsensitive("whitespace"));
         }
 
         [Trait("Category", "Instantiation")]

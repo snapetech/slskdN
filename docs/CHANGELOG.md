@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Synced vendored slskNet.Runtime search scope validation so room and user
+  search scopes reject whitespace-only subjects before protocol emission.
 - Synced vendored slskNet.Runtime peer capability envelope-limit hardening so
   local descriptors, nonces, and signature material cannot exceed parser bounds.
 - Hardened DHT content-safety signature metadata so signature magic bytes are
