@@ -15395,3 +15395,25 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 **Why it happened:** The stream handlers catch their own exceptions, which made the detached call look harmless during exception-observation sweeps. Lifecycle ownership still matters: shutdown has to know which stream work is active.
 
 **How to prevent it:** Any server that accepts nested stream/session work inside a tracked connection must either await it inline or add it to a server-owned tracked task collection that is drained during `StopAsync`. Scanner rules should reject raw `_ = HandleStreamAsync` in server accept loops.
+
+### 0z96. Fork-Owned Package Links Must Track The Active Branch
+
+**What went wrong:** Active package metadata and developer examples still pointed fork-owned GitHub URLs or workflow examples at `master`, while this fork publishes from `main`.
+
+**Files Affected**:
+- `packaging/unraid/slskdn.xml`
+- `packaging/chocolatey/slskdn.nuspec`
+- `docs/dev/e2e-testing-guide.md`
+- `scripts/check-fork-main-branch-links.sh`
+
+**Wrong**:
+```xml
+<TemplateURL>https://raw.githubusercontent.com/snapetech/slskdn/master/packaging/unraid/slskdn.xml</TemplateURL>
+```
+
+**Correct**:
+```xml
+<TemplateURL>https://raw.githubusercontent.com/snapetech/slskdn/main/packaging/unraid/slskdn.xml</TemplateURL>
+```
+
+**Why This Keeps Happening**: Fork metadata, package manifests, and copied workflow examples often drift separately from GitHub workflow branch checks. Active fork-owned links and examples need their own scanner so package managers and contributors do not follow stale branch paths.
