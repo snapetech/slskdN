@@ -76,4 +76,16 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+
+  <!--
+    Council analyzers (Mythos-level scanning, phase 2). The analyzer assembly is
+    referenced as an analyzer only; its types are not linked into the runtime
+    package. See docs/dev/bug-council-roslyn-analyzers.md.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\analyzers\Soulseek.CouncilAnalyzers\Soulseek.CouncilAnalyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+  </ItemGroup>
 </Project>

@@ -10,9 +10,9 @@ The goal is **higher-severity, deeper-fix findings** without abandoning the inve
 
 | # | Name | Status | Owner | Exit criteria |
 | --- | --- | --- | --- | --- |
-| 1 | Council process upgrades | In progress | (agent) | Severity/confidence schema added to one sweep register, sibling-search rule documented, negative-space gate doc + script, behavior-pinning pattern documented, baseline gates the new rule presence. |
-| 2 | Roslyn `TaintToAllocation` analyzer beachhead | Pending | (agent) | New `Soulseek.CouncilAnalyzers` analyzer project added to the solution and referenced by `src/Soulseek.csproj` as an analyzer. `CSL0001` taint→allocation diagnostic implemented, unit tests pass, `dotnet build` clean, baseline asserts the analyzer ships. |
-| 3 | Protocol fuzz harness | Pending | (agent) | FsCheck-driven roundtrip + adversarial-bytes property tests across `Server`, `Peer`, and `Distributed` parsers; tests run under `dotnet test`; baseline asserts presence of the fuzz traits. |
+| 1 | Council process upgrades | Done | (agent) | Severity/confidence schema added to one sweep register, sibling-search rule documented, negative-space gate doc + script, behavior-pinning pattern documented, baseline gates the new rule presence. |
+| 2 | Roslyn `TaintToAllocation` analyzer beachhead | Done | (agent) | New `Soulseek.CouncilAnalyzers` analyzer project added to the solution and referenced by `src/Soulseek.csproj` as an analyzer. `CSL0001` taint→allocation diagnostic implemented, unit tests pass, `dotnet build` clean, baseline asserts the analyzer ships. |
+| 3 | Protocol fuzz harness | In progress | (agent) | FsCheck-driven roundtrip + adversarial-bytes property tests across `Server`, `Peer`, and `Distributed` parsers; tests run under `dotnet test`; baseline asserts presence of the fuzz traits. |
 | 4 | Generic `council_of_experts` repo | Pending | (agent) | New repo at `/home/keith/Documents/code/council_of_experts` containing language-agnostic scanners, ledger/registry templates, schema docs, Roslyn analyzer template, README. Initialized git, public push to `github.com/snapetech/council_of_experts` confirmed and visible. |
 | 5 | Mirror to `../slskdn` and `../slskR` | Pending | (agent) | slskdn gains a top-level scanner + severity/confidence/sibling/negative-space/behavior-pinning docs; slskR gains the same upgrades adapted to its existing council. Neither vendored slskNet.Runtime in slskdn nor uncommitted user edits are touched. |
 

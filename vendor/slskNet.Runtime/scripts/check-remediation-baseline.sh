@@ -576,6 +576,14 @@ else
   fail "negative-space gate failed; run scripts/check-council-negative-space.sh for details"
 fi
 
+# Mythos-level upgrades — phase 2 Roslyn analyzer beachhead.
+require_file "analyzers/Soulseek.CouncilAnalyzers/Soulseek.CouncilAnalyzers.csproj" "council analyzer project exists"
+require_file "analyzers/Soulseek.CouncilAnalyzers/TaintToAllocationAnalyzer.cs" "CSL0001 taint-to-allocation analyzer source exists"
+require_file "tests/Soulseek.CouncilAnalyzers.Tests/Soulseek.CouncilAnalyzers.Tests.csproj" "council analyzer tests project exists"
+require_file "docs/dev/bug-council-roslyn-analyzers.md" "council analyzer authoring doc exists"
+require_pattern "OutputItemType=\"Analyzer\"" "src/Soulseek.csproj" "runtime references council analyzer as analyzer"
+require_pattern "CSL0001" "analyzers/Soulseek.CouncilAnalyzers/TaintToAllocationAnalyzer.cs" "CSL0001 diagnostic descriptor is declared"
+
 if [[ "$failures" -gt 0 ]]; then
   printf '\n%d remediation baseline check(s) failed.\n' "$failures" >&2
   exit 1
