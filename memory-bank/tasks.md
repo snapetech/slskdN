@@ -2592,3 +2592,7 @@
 - [x] Continue non-runtime council Web response-object cycle
   - Status: completed (2026-05-06)
   - Notes: Classified the response-object property-read section; fixed `BUG-20260506-051` through `BUG-20260506-054` for Contacts malformed contact/invite responses, Library Health scan id/status guards, and incoming share backfill result/error normalization.
+
+- [x] Continue non-runtime council Web error-rendering cycle
+  - Status: completed (2026-05-06)
+  - Notes: Classified the raw API error-body rendering section; fixed `BUG-20260506-055` through `BUG-20260506-057` for Collections, ShareGroups, and SharedWithMe structured error rendering plus the incorrect `ErrorSegment` prop.

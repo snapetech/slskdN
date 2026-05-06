@@ -1,3 +1,16 @@
+## Update 2026-05-06 23:40:00Z
+
+- Current task: Continue non-runtime council Web error-rendering cycle.
+- Last activity:
+  - classified raw API error-body rendering in Collections, ShareGroups, SharedWithMe, and adjacent already-normalized Web paths;
+  - accepted and fixed `BUG-20260506-055` through `BUG-20260506-057`;
+  - Collections and ShareGroups now normalize structured mutation errors before rendering;
+  - SharedWithMe now normalizes manifest/load errors and uses the correct `ErrorSegment` `caption` prop;
+  - documented ADR-0001 gotcha `0z342`, and updated ledger/changelog/task log.
+- Next steps:
+  1. Run remediation, Web lint, repo lint, and diff checks.
+  2. Commit and push the verified non-runtime Web error-rendering batch.
+
 ## Update 2026-05-06 23:28:00Z
 
 - Current task: Continue non-runtime council Web response-object cycle.

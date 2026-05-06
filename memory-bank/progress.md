@@ -9872,3 +9872,11 @@ Code quality improvements were completed as part of Option A:
 - Hardened Library Health scan startup so missing scan ids fail visibly without polling invalid status URLs.
 - Hardened incoming share backfill so malformed result bodies normalize to zero-count summaries and structured errors render as text.
 - Focused Web validation passed for Contacts, Library Health, and SharedWithMe regressions.
+
+## 2026-05-06 23:40:00Z
+
+- Continued the non-runtime council scan into raw API error-body rendering.
+- Recorded and verified `BUG-20260506-055` through `BUG-20260506-057`.
+- Hardened Collections delete/share errors and ShareGroups delete/remove-member errors through shared local error normalization.
+- Fixed the incoming share manifest failure fallback to pass `caption` to `ErrorSegment` and normalize structured manifest errors.
+- Focused Web validation passed for Collections, ShareGroups, and SharedWithMe regressions.

@@ -32,6 +32,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   stale transfer selections are ignored after list refreshes.
 - Hardened Contacts, Library Health, and incoming share backfill workflows
   against malformed response objects and structured API error bodies.
+- Hardened Collections, Share Groups, and incoming share manifests so structured
+  API errors are normalized before rendering.
 - Synced vendored slskNet.Runtime endpoint ownership hardening so peer
   capability, distributed-network, transfer, and connection snapshots no longer
   expose mutable endpoint state.

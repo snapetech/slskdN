@@ -423,6 +423,29 @@ setState({ error: getErrorMessage(error, 'Failed to start backfill') });
 
 **Why This Keeps Happening**: Earlier Web hardening focused on array/list payloads, so adjacent object payloads still looked safe. Any API response object used for control flow, ids, counts, or user-visible errors must be checked as an object and have typed fields before the UI branches on it.
 
+### 0z342. API Error Bodies Must Be Normalized Before Rendering
+
+**The Bug**: Collections, ShareGroups, and incoming share manifest paths stored raw `error.response.data` in state that is later rendered by `ErrorSegment`. One SharedWithMe fallback also passed `error=` instead of `caption=`, so the visible error text was lost.
+
+**Files Affected**:
+- `src/web/src/components/Collections/Collections.jsx`
+- `src/web/src/components/ShareGroups/ShareGroups.jsx`
+- `src/web/src/components/Shares/SharedWithMe.jsx`
+
+**Wrong**:
+```code
+this.setState({ error: error.response?.data || error.message });
+<ErrorSegment error="Failed to load manifest" />
+```
+
+**Correct**:
+```code
+this.setState({ error: getErrorMessage(error, 'Failed to create share') });
+<ErrorSegment caption="Failed to load manifest" />
+```
+
+**Why This Keeps Happening**: Axios error bodies can be strings, ProblemDetails objects, empty bodies, or missing entirely. React cannot render arbitrary objects as children, and shared components only receive the props they actually define. Every UI path that renders an API failure must convert it to stable text at the boundary.
+
 ### 0z326. Integration Auth Fixtures Must Match Admin-Only Routes
 
 **The Bug**: After security telemetry routes were tightened to administrator-only, the shared integration `StubWebApplicationFactory` still authenticated as only `ReadWrite`, so versioned admin route smoke tests failed with `403 Forbidden`.
