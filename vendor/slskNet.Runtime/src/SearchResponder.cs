@@ -91,7 +91,7 @@ namespace Soulseek
                         Diagnostic.Debug($"Discarded cached search response {responseToken} to {username} for query '{query}' with token {token}");
                         try
                         {
-                            ResponseDeliveryFailed?.Invoke(this, new SearchRequestResponseEventArgs(username, token, query, searchResponse));
+                            RaiseResponseDeliveryFailed(username, token, query, searchResponse);
                         }
                         finally
                         {
@@ -120,7 +120,7 @@ namespace Soulseek
         /// <returns>The operation context, including a value indicating whether a response was successfully sent.</returns>
         public async Task<bool> TryRespondAsync(string username, int token, string query)
         {
-            RequestReceived?.Invoke(this, new SearchRequestEventArgs(username, token, query));
+            RaiseRequestReceived(username, token, query);
 
             if (SoulseekClient.Options.SearchResponseResolver == default)
             {
@@ -186,7 +186,7 @@ namespace Soulseek
                 await WriteSearchResponseAsync(peerConnection, searchResponse).ConfigureAwait(false);
 
                 Diagnostic.Debug($"Sent response containing {searchResponse.FileCount + searchResponse.LockedFileCount} files to {username} for query '{query}' with token {token}");
-                ResponseDelivered?.Invoke(this, new SearchRequestResponseEventArgs(username, token, query, searchResponse));
+                RaiseResponseDelivered(username, token, query, searchResponse);
 
                 return true;
             }
@@ -196,7 +196,7 @@ namespace Soulseek
 
                 if (!deliveryDeferred)
                 {
-                    ResponseDeliveryFailed?.Invoke(this, new SearchRequestResponseEventArgs(username, token, query, searchResponse));
+                    RaiseResponseDeliveryFailed(username, token, query, searchResponse);
                 }
             }
             finally
@@ -247,13 +247,13 @@ namespace Soulseek
                         await WriteSearchResponseAsync(peerConnection, searchResponse).ConfigureAwait(false);
 
                         Diagnostic.Debug($"Sent cached response {responseToken} containing {searchResponse.FileCount + searchResponse.LockedFileCount} files to {username} for query '{query}' with token {token}");
-                        ResponseDelivered?.Invoke(this, new SearchRequestResponseEventArgs(username, token, query, searchResponse));
+                        RaiseResponseDelivered(username, token, query, searchResponse);
                         return true;
                     }
                     catch (Exception ex)
                     {
                         Diagnostic.Debug($"Failed to send cached search response {responseToken} to {username} for query '{query}' with token {token}: {ex.Message}", ex);
-                        ResponseDeliveryFailed?.Invoke(this, new SearchRequestResponseEventArgs(username, token, query, searchResponse));
+                        RaiseResponseDeliveryFailed(username, token, query, searchResponse);
                     }
                     finally
                     {
@@ -293,6 +293,33 @@ namespace Soulseek
             }
 
             await peerConnection.WriteAsync(searchResponse.ToByteArray()).ConfigureAwait(false);
+        }
+
+        private void RaiseRequestReceived(string username, int token, string query)
+            => InvokeEventHandler(
+                nameof(RequestReceived),
+                () => RequestReceived?.Invoke(this, new SearchRequestEventArgs(username, token, query)));
+
+        private void RaiseResponseDelivered(string username, int token, string query, SearchResponse searchResponse)
+            => InvokeEventHandler(
+                nameof(ResponseDelivered),
+                () => ResponseDelivered?.Invoke(this, new SearchRequestResponseEventArgs(username, token, query, searchResponse)));
+
+        private void RaiseResponseDeliveryFailed(string username, int token, string query, SearchResponse searchResponse)
+            => InvokeEventHandler(
+                nameof(ResponseDeliveryFailed),
+                () => ResponseDeliveryFailed?.Invoke(this, new SearchRequestResponseEventArgs(username, token, query, searchResponse)));
+
+        private void InvokeEventHandler(string eventName, Action invoke)
+        {
+            try
+            {
+                invoke();
+            }
+            catch (Exception ex)
+            {
+                Diagnostic.Warning($"Unhandled exception in {eventName} event handler: {ex.Message}", ex);
+            }
         }
     }
 }

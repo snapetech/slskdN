@@ -144,6 +144,30 @@ namespace Soulseek.Tests.Unit
         }
 
         [Trait("Category", "TryDiscard")]
+        [Theory(DisplayName = "TryDiscard returns true if ResponseDeliveryFailed handler throws"), AutoData]
+        public void TryDiscard_Returns_True_If_ResponseDeliveryFailed_Handler_Throws(int responseToken, string username, int token, string query)
+        {
+            var cache = GetCacheMock();
+            var (responder, mocks) = GetFixture(new SoulseekClientOptions(searchResponseCache: cache.Object));
+
+            var stream = new System.IO.MemoryStream(new byte[] { 0x01, 0x02 });
+            var searchResponse = new RawSearchResponse(stream.Length, stream);
+            var record = (username, token, query, (SearchResponse)searchResponse);
+
+            cache.Setup(m => m.TryRemove(responseToken, out record))
+                .Returns(true);
+
+            var expectedEx = new Exception();
+            responder.ResponseDeliveryFailed += (sender, e) => throw expectedEx;
+
+            var removed = responder.TryDiscard(responseToken);
+
+            Assert.True(removed);
+            Assert.False(stream.CanRead);
+            mocks.Diagnostic.Verify(m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Unhandled exception in ResponseDeliveryFailed event handler")), expectedEx), Times.Once);
+        }
+
+        [Trait("Category", "TryDiscard")]
         [Theory(DisplayName = "TryDiscard produces debug when discarding"), AutoData]
         public void TryDiscard_Produces_Debug_When_Discarding(int responseToken, string username, int token, string query, SearchResponse searchResponse)
         {
@@ -320,6 +344,27 @@ namespace Soulseek.Tests.Unit
         }
 
         [Trait("Category", "TryRespondAsync")]
+        [Theory(DisplayName = "TryRespondAsync continues if RequestReceived handler throws"), AutoData]
+        public async Task TryRespondAsync_Continues_If_RequestReceived_Handler_Throws(string username, int token, string query)
+        {
+            var resolverCalled = false;
+            var (responder, mocks) = GetFixture(new SoulseekClientOptions(searchResponseResolver: (u, t, q) =>
+            {
+                resolverCalled = true;
+                return Task.FromResult<SearchResponse>(null);
+            }));
+
+            var expectedEx = new Exception();
+            responder.RequestReceived += (sender, e) => throw expectedEx;
+
+            var responded = await responder.TryRespondAsync(username, token, query);
+
+            Assert.False(responded);
+            Assert.True(resolverCalled);
+            mocks.Diagnostic.Verify(m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Unhandled exception in RequestReceived event handler")), expectedEx), Times.Once);
+        }
+
+        [Trait("Category", "TryRespondAsync")]
         [Theory(DisplayName = "TryRespondAsync sends response and returns true"), AutoData]
         public async Task TryRespondAsync_Sends_Response_And_Returns_True(string username, int token, string query, SearchResponse searchResponse, IPEndPoint endpoint, int responseToken)
         {
@@ -370,6 +415,35 @@ namespace Soulseek.Tests.Unit
             Assert.Equal(token, args.Token);
             Assert.Equal(query, args.Query);
             Assert.Equal(searchResponse, args.SearchResponse);
+        }
+
+        [Trait("Category", "TryRespondAsync")]
+        [Theory(DisplayName = "TryRespondAsync returns true if ResponseDelivered handler throws"), AutoData]
+        public async Task TryRespondAsync_Returns_True_If_ResponseDelivered_Handler_Throws(string username, int token, string query, SearchResponse searchResponse, IPEndPoint endpoint, int responseToken)
+        {
+            var (responder, mocks) = GetFixture(new SoulseekClientOptions(searchResponseResolver: (u, t, q) => Task.FromResult(searchResponse)));
+
+            mocks.Client.Setup(m => m.GetUserEndPointAsync(username, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(endpoint));
+            mocks.Client.Setup(m => m.GetNextToken())
+                .Returns(responseToken);
+
+            var conn = new Mock<IMessageConnection>();
+
+            mocks.PeerConnectionManager.Setup(m => m.GetOrAddMessageConnectionAsync(username, endpoint, responseToken, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(conn.Object));
+
+            var failed = false;
+            var expectedEx = new Exception();
+            responder.ResponseDelivered += (sender, e) => throw expectedEx;
+            responder.ResponseDeliveryFailed += (sender, e) => failed = true;
+
+            var responded = await responder.TryRespondAsync(username, token, query);
+
+            Assert.True(responded);
+            Assert.False(failed);
+            conn.Verify(m => m.WriteAsync(It.Is<byte[]>(b => b.Matches(searchResponse.ToByteArray())), It.IsAny<CancellationToken?>()), Times.Once);
+            mocks.Diagnostic.Verify(m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Unhandled exception in ResponseDelivered event handler")), expectedEx), Times.Once);
         }
 
         [Trait("Category", "TryRespondAsync")]
@@ -803,6 +877,35 @@ namespace Soulseek.Tests.Unit
             var ex = await Record.ExceptionAsync(() => responder.TryRespondAsync(responseToken));
 
             Assert.Null(ex);
+        }
+
+        [Trait("Category", "TryRespondAsync")]
+        [Theory(DisplayName = "TryRespondAsync token returns true if ResponseDelivered handler throws"), AutoData]
+        public async Task TryRespondAsync_Token_Returns_True_If_ResponseDelivered_Handler_Throws(int responseToken, string username, int token, string query, SearchResponse searchResponse)
+        {
+            var record = (username, token, query, searchResponse);
+
+            var cache = GetCacheMock();
+            cache.Setup(m => m.TryRemove(responseToken, out record))
+                .Returns(true);
+
+            var (responder, mocks) = GetFixture(new SoulseekClientOptions(searchResponseCache: cache.Object));
+
+            var conn = new Mock<IMessageConnection>();
+            mocks.PeerConnectionManager.Setup(m => m.GetCachedMessageConnectionAsync(username))
+                .Returns(Task.FromResult(conn.Object));
+
+            var failed = false;
+            var expectedEx = new Exception();
+            responder.ResponseDelivered += (sender, e) => throw expectedEx;
+            responder.ResponseDeliveryFailed += (sender, e) => failed = true;
+
+            var responded = await responder.TryRespondAsync(responseToken);
+
+            Assert.True(responded);
+            Assert.False(failed);
+            conn.Verify(m => m.WriteAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken?>()), Times.Once);
+            mocks.Diagnostic.Verify(m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Unhandled exception in ResponseDelivered event handler")), expectedEx), Times.Once);
         }
 
         [Trait("Category", "TryRespondAsync")]
