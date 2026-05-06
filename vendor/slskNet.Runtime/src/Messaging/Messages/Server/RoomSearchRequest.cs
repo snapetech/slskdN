@@ -40,8 +40,8 @@ namespace Soulseek.Messaging.Messages
         {
             ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "search token");
 
-            RoomName = roomName;
-            SearchText = searchText;
+            RoomName = ProtocolArgumentValidator.RequireNotNull(roomName, nameof(roomName), "room name");
+            SearchText = ProtocolArgumentValidator.RequireNotNull(searchText, nameof(searchText), "search text");
             Token = token;
         }
 

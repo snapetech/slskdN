@@ -267,6 +267,13 @@ namespace Soulseek.Tests.Unit
             }
         }
 
+        [Theory(DisplayName = "MeshRendezvousResult rejects empty interest tags")]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("   ")]
+        public void MeshRendezvousResult_Rejects_Empty_Interest_Tags(string interestTag)
+            => Assert.Throws<ArgumentException>(() => new MeshRendezvousResult(interestTag, null, null));
+
         [Theory(DisplayName = "UserInterests rejects null entries")]
         [InlineData(false)]
         [InlineData(true)]

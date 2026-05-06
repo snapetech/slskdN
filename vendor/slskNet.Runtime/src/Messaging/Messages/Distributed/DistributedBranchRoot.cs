@@ -34,7 +34,7 @@ namespace Soulseek.Messaging.Messages
         /// <param name="username">The username of the current branch root.</param>
         public DistributedBranchRoot(string username)
         {
-            Username = username;
+            Username = ProtocolArgumentValidator.RequireNotNull(username, nameof(username), "username");
         }
 
         /// <summary>

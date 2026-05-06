@@ -15,6 +15,7 @@
 
 namespace Soulseek
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
 
@@ -47,7 +48,7 @@ namespace Soulseek
                 throw new System.ArgumentException("The capability record list must not contain null entries", nameof(capabilityRecords));
             }
 
-            InterestTag = interestTag;
+            InterestTag = string.IsNullOrWhiteSpace(interestTag) ? throw new ArgumentException("Interest tag must not be empty.", nameof(interestTag)) : interestTag;
             SimilarUsers = users.AsReadOnly();
             CapabilityRecords = records.AsReadOnly();
         }

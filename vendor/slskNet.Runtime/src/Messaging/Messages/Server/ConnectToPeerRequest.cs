@@ -41,8 +41,8 @@ namespace Soulseek.Messaging.Messages
             ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "connection token");
 
             Token = token;
-            Username = username;
-            Type = type;
+            Username = ProtocolArgumentValidator.RequireNotNull(username, nameof(username), "username");
+            Type = ProtocolArgumentValidator.RequireNotNull(type, nameof(type), "connection type");
         }
 
         /// <summary>

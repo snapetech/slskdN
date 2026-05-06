@@ -58,7 +58,7 @@ namespace Soulseek.Messaging.Messages
 
             Token = token;
 
-            DirectoryName = directoryName;
+            DirectoryName = ProtocolArgumentValidator.RequireNotNull(directoryName, nameof(directoryName), "directory name");
 
             Directories = directoryList.AsReadOnly();
             DirectoryCount = Directories.Count;

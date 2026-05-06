@@ -35,8 +35,8 @@ namespace Soulseek.Messaging.Messages
         /// <param name="message">The message to send.</param>
         public RoomMessageCommand(string roomName, string message)
         {
-            RoomName = roomName;
-            Message = message;
+            RoomName = ProtocolArgumentValidator.RequireNotNull(roomName, nameof(roomName), "room name");
+            Message = ProtocolArgumentValidator.RequireNotNull(message, nameof(message), "message");
         }
 
         /// <summary>

@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **bug-council**: Close mutable ownership class in security batching/verification.
+ - Status: completed (2026-05-06)
+ - Priority: P2
+ - Notes: Fixed `BUG-20260506-029` through `BUG-20260506-031` by defensively copying caller-provided mutable byte arrays in `CanaryTraps`, `ContentSafety` signature construction, and `TimedBatcher` message payload enqueue. Added focused regressions in `CanaryTrapsTests`, `ContentSafetyTests`, and `TimedBatcherTests` and added ledger rows with `Verified` status.
+
 - [x] **bug-council**: Close remaining async-lifecycle callback hazards in disaster-mode handlers.
  - Status: completed (2026-05-06)
  - Priority: P2

@@ -37,7 +37,7 @@ namespace slskd.Validation
         public CompositeValidationResult(string errorMessage, IEnumerable<ValidationResult> validationResults)
             : base(errorMessage)
         {
-            ResultsList = (List<ValidationResult>)validationResults;
+            ResultsList = validationResults is not null ? new List<ValidationResult>(validationResults) : new List<ValidationResult>();
         }
 
         protected CompositeValidationResult(ValidationResult validationResult)

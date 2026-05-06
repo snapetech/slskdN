@@ -40,9 +40,9 @@ namespace Soulseek.Messaging.Messages
         {
             ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "distributed search token");
 
-            Username = username;
+            Username = ProtocolArgumentValidator.RequireNotNull(username, nameof(username), "username");
             Token = token;
-            Query = query;
+            Query = ProtocolArgumentValidator.RequireNotNull(query, nameof(query), "query");
         }
 
         /// <summary>

@@ -40,8 +40,8 @@ namespace Soulseek.Messaging.Messages
         {
             ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "peer initialization token");
 
-            Username = username;
-            ConnectionType = connectionType;
+            Username = ProtocolArgumentValidator.RequireNotNull(username, nameof(username), "username");
+            ConnectionType = ProtocolArgumentValidator.RequireNotNull(connectionType, nameof(connectionType), "connection type");
             Token = token;
         }
 

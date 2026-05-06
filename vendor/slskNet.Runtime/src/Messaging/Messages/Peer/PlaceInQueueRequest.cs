@@ -34,7 +34,7 @@ namespace Soulseek.Messaging.Messages
         /// <param name="filename">The filename to check.</param>
         public PlaceInQueueRequest(string filename)
         {
-            Filename = filename;
+            Filename = ProtocolArgumentValidator.RequireNotNull(filename, nameof(filename), "filename");
         }
 
         /// <summary>

@@ -34,7 +34,7 @@ namespace Soulseek.Messaging.Messages
         /// <param name="username">The username of the peer for which to retreive status information.</param>
         public UserStatusRequest(string username)
         {
-            Username = username;
+            Username = ProtocolArgumentValidator.RequireNotNull(username, nameof(username), "username");
         }
 
         /// <summary>

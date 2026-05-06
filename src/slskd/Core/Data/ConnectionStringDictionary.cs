@@ -25,7 +25,7 @@ public class ConnectionStringDictionary
 {
     public ConnectionStringDictionary(Dictionary<Database, ConnectionString> dictionary)
     {
-        Strings = dictionary;
+        Strings = new Dictionary<Database, ConnectionString>(dictionary ?? throw new ArgumentNullException(nameof(dictionary)));
     }
 
     private Dictionary<Database, ConnectionString> Strings { get; } = [];

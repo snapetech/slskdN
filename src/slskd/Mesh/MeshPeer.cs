@@ -2,6 +2,7 @@
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 using System.Net;
+using System.Linq;
 
 namespace slskd.Mesh;
 
@@ -18,7 +19,7 @@ public class MeshPeer
     public MeshPeer(string peerId, List<IPEndPoint> addresses)
     {
         PeerId = peerId ?? throw new ArgumentNullException(nameof(peerId));
-        Addresses = addresses ?? throw new ArgumentNullException(nameof(addresses));
+        Addresses = new List<IPEndPoint>(addresses ?? throw new ArgumentNullException(nameof(addresses)));
 
         LastSeen = DateTimeOffset.UtcNow;
         TrustScore = 0.5; // Default neutral trust

@@ -35,7 +35,7 @@ namespace Soulseek.Messaging.Messages
         /// <param name="isPrivate">A value indicating whether the room is private.</param>
         public JoinRoomRequest(string roomName, bool isPrivate = false)
         {
-            RoomName = roomName;
+            RoomName = ProtocolArgumentValidator.RequireNotNull(roomName, nameof(roomName), "room name");
             IsPrivate = isPrivate;
         }
 

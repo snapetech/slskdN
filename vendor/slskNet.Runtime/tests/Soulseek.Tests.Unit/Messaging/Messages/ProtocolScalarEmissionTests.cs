@@ -10,6 +10,7 @@
 namespace Soulseek.Tests.Unit.Messaging.Messages
 {
     using System;
+    using Soulseek.Messaging;
     using Soulseek.Messaging.Messages;
     using Xunit;
 
@@ -43,6 +44,66 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             () => new WishlistSearchRequest("query", -1),
         };
 
+        public static TheoryData<Action> OutboundStringCommands => new TheoryData<Action>
+        {
+            () => new PeerInit(null, Constants.ConnectionType.Peer, 1),
+            () => new PeerInit("user", null, 1),
+            () => new DistributedBranchRoot(null),
+            () => new DistributedSearchRequest(null, 1, "query"),
+            () => new DistributedSearchRequest("user", 1, null),
+            () => new FolderContentsRequest(1, null),
+            () => new FolderContentsResponse(1, null, Array.Empty<Directory>()),
+            () => new PlaceInQueueRequest(null),
+            () => new PlaceInQueueResponse(null, 1),
+            () => new QueueDownloadRequest(null),
+            () => new TransferRequest(TransferDirection.Download, 1, null),
+            () => new TransferResponse(1, null),
+            () => new UploadDenied(null, "denied"),
+            () => new UploadDenied("file", null),
+            () => new UploadFailed(null),
+            () => new PeerSearchRequest(1, null),
+            () => new BranchRootCommand(null),
+            () => new ConnectToPeerRequest(1, null, Constants.ConnectionType.Peer),
+            () => new ConnectToPeerRequest(1, "user", null),
+            () => new GivePrivilegesCommand(null, 1),
+            () => new InterestCommand(MessageCode.Server.InterestAdd, null),
+            () => new ItemRecommendationsRequest(MessageCode.Server.GetItemRecommendations, null),
+            () => new JoinRoomRequest(null),
+            () => new LeaveRoomRequest(null),
+            () => new LoginRequest(1, null, "password"),
+            () => new LoginRequest(1, "user", null),
+            () => new NewPassword(null),
+            () => new PrivateMessageCommand(null, "message"),
+            () => new PrivateMessageCommand("user", null),
+            () => new PrivateRoomAddOperator(null, "user"),
+            () => new PrivateRoomAddOperator("room", null),
+            () => new PrivateRoomAddUser(null, "user"),
+            () => new PrivateRoomAddUser("room", null),
+            () => new PrivateRoomDropMembershipCommand(null),
+            () => new PrivateRoomDropOwnershipCommand(null),
+            () => new PrivateRoomRemoveOperator(null, "user"),
+            () => new PrivateRoomRemoveOperator("room", null),
+            () => new PrivateRoomRemoveUser(null, "user"),
+            () => new PrivateRoomRemoveUser("room", null),
+            () => new RoomMessageCommand(null, "message"),
+            () => new RoomMessageCommand("room", null),
+            () => new RoomSearchRequest(null, "query", 1),
+            () => new RoomSearchRequest("room", null, 1),
+            () => new SearchRequest(null, 1),
+            () => new SetRoomTickerCommand(null, "message"),
+            () => new SetRoomTickerCommand("room", null),
+            () => new UserAddressRequest(null),
+            () => new UserInterestsRequest(null),
+            () => new UserPrivilegesRequest(null),
+            () => new UserSearchRequest(null, "query", 1),
+            () => new UserSearchRequest("user", null, 1),
+            () => new UserStatisticsRequest(null),
+            () => new UserStatusRequest(null),
+            () => new UnwatchUserCommand(null),
+            () => new WatchUserRequest(null),
+            () => new WishlistSearchRequest(null, 1),
+        };
+
         [Theory(DisplayName = "Outbound server scalar commands reject invalid values before emission")]
         [MemberData(nameof(ServerScalarCommands))]
         public void Outbound_Server_Scalar_Commands_Reject_Invalid_Values_Before_Emission(Action action)
@@ -55,6 +116,13 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         public void Outbound_Peer_And_Initialization_Scalar_Commands_Reject_Invalid_Tokens_Before_Emission(Action action)
         {
             Assert.Throws<ArgumentOutOfRangeException>(action);
+        }
+
+        [Theory(DisplayName = "Outbound string commands reject null values before emission")]
+        [MemberData(nameof(OutboundStringCommands))]
+        public void Outbound_String_Commands_Reject_Null_Values_Before_Emission(Action action)
+        {
+            Assert.Throws<ArgumentNullException>(action);
         }
     }
 }

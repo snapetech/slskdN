@@ -77,6 +77,17 @@ public class TimedBatcherTests
         Assert.Throws<ObjectDisposedException>(() => _ = timer!.Token);
     }
 
+    [Fact]
+    public void BatchedMessage_CopiesMessageData()
+    {
+        var messageBytes = new byte[] { 1, 2, 3, 4 };
+        var message = new BatchedMessage(messageBytes, null, DateTimeOffset.UtcNow);
+
+        messageBytes[0] = 9;
+
+        Assert.Equal(new byte[] { 1, 2, 3, 4 }, message.Data);
+    }
+
     private static CancellationTokenSource? GetCurrentBatchTimer(TimedBatcher batcher)
     {
         var field = typeof(TimedBatcher).GetField("_currentBatchTimer", BindingFlags.Instance | BindingFlags.NonPublic);

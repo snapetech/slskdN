@@ -36,7 +36,7 @@ namespace slskd.Shares
         public Host(string name, IEnumerable<Share>? shares = null)
         {
             Name = name;
-            Shares = shares ?? Enumerable.Empty<Share>();
+            Shares = shares?.ToList() ?? Enumerable.Empty<Share>();
         }
 
         /// <summary>

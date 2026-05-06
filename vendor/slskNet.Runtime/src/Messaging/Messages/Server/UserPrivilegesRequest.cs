@@ -34,7 +34,7 @@ namespace Soulseek.Messaging.Messages
         /// <param name="username">The username of the user to which to grant privileges.</param>
         public UserPrivilegesRequest(string username)
         {
-            Username = username;
+            Username = ProtocolArgumentValidator.RequireNotNull(username, nameof(username), "username");
         }
 
         /// <summary>

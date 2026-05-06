@@ -58,8 +58,8 @@ public class BatchedMessage
     /// <param name="timestamp">The timestamp.</param>
     public BatchedMessage(byte[] data, IReadOnlyDictionary<string, object>? metadata, DateTimeOffset timestamp)
     {
-        Data = data ?? throw new ArgumentNullException(nameof(data));
-        Metadata = metadata ?? new Dictionary<string, object>();
+        Data = data?.ToArray() ?? throw new ArgumentNullException(nameof(data));
+        Metadata = metadata is null ? new Dictionary<string, object>() : new Dictionary<string, object>(metadata);
         Timestamp = timestamp;
     }
 }

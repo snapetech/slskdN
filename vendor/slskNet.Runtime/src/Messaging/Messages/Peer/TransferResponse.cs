@@ -43,7 +43,7 @@ namespace Soulseek.Messaging.Messages
 
             Token = token;
             IsAllowed = false;
-            Message = message;
+            Message = ProtocolArgumentValidator.RequireNotNull(message, nameof(message), "message");
         }
 
         /// <summary>

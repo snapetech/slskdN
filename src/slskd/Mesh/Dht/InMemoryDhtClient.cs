@@ -63,7 +63,9 @@ public class InMemoryDhtClient : IDhtClient
 
         var now = DateTimeOffset.UtcNow;
         var expires = now.AddSeconds(Math.Clamp(ttlSeconds, 60, 3600));
-        var keyHex = ToHex(key);
+        var keyCopy = key?.ToArray() ?? throw new ArgumentNullException(nameof(key));
+        var valueCopy = value?.ToArray() ?? throw new ArgumentNullException(nameof(value));
+        var keyHex = ToHex(keyCopy);
         var list = store.GetOrAdd(keyHex, _ => new List<DhtValue>());
 
         lock (list)
@@ -76,7 +78,7 @@ public class InMemoryDhtClient : IDhtClient
             }
             else
             {
-                list.Add(new DhtValue(value, expires));
+                list.Add(new DhtValue(valueCopy, expires));
                 if (list.Count > maxReplicas)
                 {
                     list.Sort((a, b) => a.ExpiresAt.CompareTo(b.ExpiresAt));
@@ -93,7 +95,7 @@ public class InMemoryDhtClient : IDhtClient
     public Task<byte[]?> GetAsync(byte[] key, CancellationToken ct = default)
     {
         statsCollector?.RecordDhtOperation();
-        var keyHex = ToHex(key);
+        var keyHex = ToHex(key ?? throw new ArgumentNullException(nameof(key)));
         if (!store.TryGetValue(keyHex, out var list))
         {
             return Task.FromResult<byte[]?>(null);
@@ -104,13 +106,13 @@ public class InMemoryDhtClient : IDhtClient
             var now = DateTimeOffset.UtcNow;
             list.RemoveAll(v => v.ExpiresAt <= now);
             var first = list.FirstOrDefault();
-            return Task.FromResult(first?.Data);
+            return Task.FromResult(first?.Data.ToArray());
         }
     }
 
     public Task<List<byte[]>> GetMultipleAsync(byte[] key, CancellationToken ct = default)
     {
-        var keyHex = ToHex(key);
+        var keyHex = ToHex(key ?? throw new ArgumentNullException(nameof(key)));
         if (!store.TryGetValue(keyHex, out var list))
         {
             return Task.FromResult(new List<byte[]>());
@@ -120,7 +122,7 @@ public class InMemoryDhtClient : IDhtClient
         {
             var now = DateTimeOffset.UtcNow;
             list.RemoveAll(v => v.ExpiresAt <= now);
-            return Task.FromResult(list.Select(v => v.Data).ToList());
+            return Task.FromResult(list.Select(v => v.Data.ToArray()).ToList());
         }
     }
 
@@ -183,7 +185,7 @@ public class InMemoryDhtClient : IDhtClient
     /// </summary>
     public List<byte[]> GetMultiple(byte[] key)
     {
-        var keyHex = ToHex(key);
+        var keyHex = ToHex(key ?? throw new ArgumentNullException(nameof(key)));
         if (!store.TryGetValue(keyHex, out var list))
         {
             return new List<byte[]>();
@@ -193,7 +195,7 @@ public class InMemoryDhtClient : IDhtClient
         {
             var now = DateTimeOffset.UtcNow;
             list.RemoveAll(v => v.ExpiresAt <= now);
-            return list.Select(v => v.Data).ToList();
+            return list.Select(v => v.Data.ToArray()).ToList();
         }
     }
 
@@ -231,7 +233,7 @@ public class InMemoryDhtClient : IDhtClient
     {
         public DhtValue(byte[] data, DateTimeOffset expiresAt)
         {
-            Data = data;
+            Data = data?.ToArray() ?? throw new ArgumentNullException(nameof(data));
             ExpiresAt = expiresAt;
         }
 

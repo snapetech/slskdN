@@ -44,7 +44,7 @@ namespace Soulseek.Messaging.Messages
                 throw new ArgumentOutOfRangeException(nameof(days), days, "The privilege grant duration must be greater than zero");
             }
 
-            Username = username;
+            Username = ProtocolArgumentValidator.RequireNotNull(username, nameof(username), "username");
             Days = days;
         }
 

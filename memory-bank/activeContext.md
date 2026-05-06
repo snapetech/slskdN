@@ -1,3 +1,14 @@
+## Update 2026-05-06 20:40:00Z
+
+- Current task: Broad non-runtime council cycle in mutable ownership class.
+- Last activity:
+  - fixed `BUG-20260506-029` through `BUG-20260506-031`: copied mutable secret/signature/message bytes on input in security batching paths.
+  - added `docs/dev/bug-burndown-ledger.md` rows for the three fixes and updated remaining mutable-input class notes.
+  - added focused backend unit regressions in `CanaryTrapsTests`, `ContentSafetyTests`, and `TimedBatcherTests`.
+- Next steps:
+  1. Continue council scan of remaining sections/classes and classify full candidate batches before stopping.
+  2. Keep fix/push cadence for completed cycles until the user-directed broad burn-down cycle is complete.
+
 ## Update 2026-05-06 18:05:00Z
 
 - Current task: Non-runtime council async side-effect burn-down is implemented locally.
@@ -8,8 +19,8 @@
   - added `scripts/check-async-task-observation.sh` to remediation and documented ADR-0001 gotcha `0z327`
   - focused unit validation passed for touched Application/SignalBus/Shares/Pod/Download paths
 - Next steps:
- 1. Run broad remediation/lint/full solution tests.
- 2. Commit and push the implementation batch.
+1. Run broad remediation/lint/full solution tests.
+2. Commit and push the implementation batch.
 
 ## Update 2026-05-06 18:22:00Z
 

@@ -55,7 +55,7 @@ namespace Soulseek.Messaging.Messages
 
             Direction = direction;
             Token = token;
-            Filename = filename;
+            Filename = ProtocolArgumentValidator.RequireNotNull(filename, nameof(filename), "filename");
             FileSize = fileSize;
         }
 

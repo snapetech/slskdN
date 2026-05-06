@@ -5,6 +5,7 @@ namespace slskd.Tests.Unit.Security;
 
 using System;
 using System.IO;
+using System.Reflection;
 using slskd.Common.Security;
 using Xunit;
 
@@ -209,6 +210,31 @@ public class ContentSafetyTests
 
         Assert.False(result.IsValid);
         Assert.Equal(ContentThreatLevel.Unknown, result.ThreatLevel);
+    }
+
+    [Fact]
+    public void FileSignature_StoresCopyOfMagicBytes()
+    {
+        var nestedType = typeof(ContentSafety).GetNestedType("FileSignature", BindingFlags.NonPublic);
+        Assert.NotNull(nestedType);
+
+        var ctor = nestedType!.GetConstructor(
+            BindingFlags.Instance | BindingFlags.Public,
+            null,
+            [typeof(byte[]), typeof(int), typeof(string)],
+            null);
+        Assert.NotNull(ctor);
+
+        var magic = new byte[] { 0x11, 0x22, 0x33, 0x44 };
+        var signature = ctor!.Invoke([magic, 0, "unit"]);
+
+        var magicProperty = nestedType.GetProperty("Magic", BindingFlags.Public | BindingFlags.Instance);
+        Assert.NotNull(magicProperty);
+
+        magic[0] = 0xFF;
+
+        var storedMagic = Assert.IsType<byte[]>(magicProperty!.GetValue(signature)!);
+        Assert.NotEqual(magic[0], storedMagic[0]);
     }
 
     [Fact]

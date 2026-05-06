@@ -45,5 +45,15 @@ namespace Soulseek.Messaging.Messages
                 throw new ArgumentOutOfRangeException(paramName, value, $"The {valueName} must be greater than zero");
             }
         }
+
+        public static string RequireNotNull(string value, string paramName, string valueName)
+        {
+            if (value == null)
+            {
+                throw new ArgumentNullException(paramName, $"The {valueName} must not be null");
+            }
+
+            return value;
+        }
     }
 }

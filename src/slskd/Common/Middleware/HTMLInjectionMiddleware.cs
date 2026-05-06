@@ -42,7 +42,7 @@ namespace slskd
         /// <returns></returns>
         public static IApplicationBuilder UseHTMLInjection(this IApplicationBuilder builder, string html, IEnumerable<string> excludedRoutes)
         {
-            return builder.UseMiddleware<HTMLInjectionMiddleware>(html);
+            return builder.UseMiddleware<HTMLInjectionMiddleware>(html, excludedRoutes);
         }
     }
 
@@ -61,7 +61,7 @@ namespace slskd
         {
             Next = next;
             HTML = html;
-            ExcludedRoutes = excludedRoutes;
+            ExcludedRoutes = excludedRoutes?.ToList() ?? new List<string>();
         }
 
         private string HTML { get; }

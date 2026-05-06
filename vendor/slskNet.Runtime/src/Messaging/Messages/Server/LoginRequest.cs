@@ -42,8 +42,8 @@ namespace Soulseek.Messaging.Messages
 
             MinorVersion = minorVersion;
 
-            Username = username;
-            Password = password;
+            Username = ProtocolArgumentValidator.RequireNotNull(username, nameof(username), "username");
+            Password = ProtocolArgumentValidator.RequireNotNull(password, nameof(password), "password");
 
             Hash = $"{Username}{Password}".ToMD5Hash();
         }

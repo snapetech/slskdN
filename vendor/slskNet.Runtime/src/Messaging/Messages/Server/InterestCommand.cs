@@ -36,7 +36,7 @@ namespace Soulseek.Messaging.Messages
         public InterestCommand(MessageCode.Server code, string item)
         {
             Code = code;
-            Item = item;
+            Item = ProtocolArgumentValidator.RequireNotNull(item, nameof(item), "item");
         }
 
         /// <summary>

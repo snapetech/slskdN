@@ -24,11 +24,13 @@ public class KademliaRoutingTable
 
     public KademliaRoutingTable(byte[] selfId)
     {
-        this.selfId = selfId ?? throw new ArgumentNullException(nameof(selfId));
-        if (selfId.Length * 8 != IdLengthBits)
+        var safeSelfId = selfId ?? throw new ArgumentNullException(nameof(selfId));
+        if (safeSelfId.Length * 8 != IdLengthBits)
         {
             throw new ArgumentException($"Node ID must be {IdLengthBits} bits ({IdLengthBits / 8} bytes)", nameof(selfId));
         }
+
+        this.selfId = safeSelfId.ToArray();
 
         // Initialize with bucket 0 (contains the whole ID space initially)
         buckets[0] = new Bucket();
@@ -47,7 +49,7 @@ public class KademliaRoutingTable
     /// <summary>
     /// Gets the local node's ID.
     /// </summary>
-    public byte[] GetSelfId() => selfId;
+    public byte[] GetSelfId() => selfId.ToArray();
 
     /// <summary>
     /// Gets statistics about the routing table.
@@ -383,7 +385,19 @@ public class KademliaRoutingTable
     }
 }
 
-public record KNode(byte[] NodeId, string Address, DateTimeOffset LastSeen);
+public sealed record KNode
+{
+    public byte[] NodeId { get; init; }
+    public string Address { get; init; }
+    public DateTimeOffset LastSeen { get; init; }
+
+    public KNode(byte[] nodeId, string address, DateTimeOffset lastSeen)
+    {
+        NodeId = (nodeId ?? throw new ArgumentNullException(nameof(nodeId))).ToArray();
+        Address = address;
+        LastSeen = lastSeen;
+    }
+}
 
 public record RoutingTableStats(
     int TotalNodes,

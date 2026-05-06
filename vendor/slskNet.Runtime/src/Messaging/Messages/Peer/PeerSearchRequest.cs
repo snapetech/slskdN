@@ -36,7 +36,7 @@ namespace Soulseek.Messaging.Messages
         public PeerSearchRequest(int token, string query)
         {
             Token = token;
-            Query = query;
+            Query = ProtocolArgumentValidator.RequireNotNull(query, nameof(query), "query");
         }
 
         /// <summary>

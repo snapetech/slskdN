@@ -34,7 +34,7 @@ namespace Soulseek.Messaging.Messages
         /// <param name="password">The new password.</param>
         public NewPassword(string password)
         {
-            Password = password;
+            Password = ProtocolArgumentValidator.RequireNotNull(password, nameof(password), "password");
         }
 
         /// <summary>

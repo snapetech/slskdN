@@ -104,6 +104,31 @@ private void OnHealthChanged(object? sender, SoulseekHealthChangedEventArgs e)
 
 **Why This Keeps Happening**: `async void` feels natural for event handlers, but it bypasses normal task fault observation. Even callback-only paths must route exceptions to a task observer so background recovery/escalation failures are visible and non-fatal.
 
+### 0z329. Mutable Input Arrays Must Be Copied on Receipt
+
+**The Bug**: Several security and batching paths stored caller-provided arrays directly (`byte[]` for secrets and signatures, `byte[]` message payloads), so a caller could mutate the source array after passing it and alter runtime behavior or security state.
+
+**Files Affected**:
+- `src/slskd/Common/Security/CanaryTraps.cs`
+- `src/slskd/Common/Security/ContentSafety.cs`
+- `src/slskd/Common/Security/IMessageBatcher.cs`
+
+**Wrong**:
+```csharp
+_secretKey = secretKey;
+Magic = magic;
+Data = data;
+```
+
+**Correct**:
+```csharp
+_secretKey = (byte[])secretKey.Clone();
+Magic = magic.ToArray();
+Data = data.ToArray();
+```
+
+**Why This Keeps Happening**: Mutable arrays are cheap and common in protocol/security paths, so defensive copies are often skipped for brevity. In mutable-data flows, skipping a copy turns boundary safety into shared ownership and allows later caller mutation to influence downstream checks or queued work.
+
 ### 0z326. Integration Auth Fixtures Must Match Admin-Only Routes
 
 **The Bug**: After security telemetry routes were tightened to administrator-only, the shared integration `StubWebApplicationFactory` still authenticated as only `ReadWrite`, so versioned admin route smoke tests failed with `403 Forbidden`.

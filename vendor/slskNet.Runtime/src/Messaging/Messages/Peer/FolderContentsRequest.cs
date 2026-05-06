@@ -39,7 +39,7 @@ namespace Soulseek.Messaging.Messages
         {
             ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "folder contents token");
 
-            DirectoryName = directoryName;
+            DirectoryName = ProtocolArgumentValidator.RequireNotNull(directoryName, nameof(directoryName), "directory name");
             Token = token;
         }
 

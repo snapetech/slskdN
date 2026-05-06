@@ -35,8 +35,8 @@ namespace Soulseek.Messaging.Messages
         /// <param name="username">The username of the user to add.</param>
         public PrivateRoomAddOperator(string roomName, string username)
         {
-            RoomName = roomName;
-            Username = username;
+            RoomName = ProtocolArgumentValidator.RequireNotNull(roomName, nameof(roomName), "room name");
+            Username = ProtocolArgumentValidator.RequireNotNull(username, nameof(username), "username");
         }
 
         /// <summary>

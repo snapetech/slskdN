@@ -33,7 +33,7 @@ namespace slskd
         /// <param name="tokenParts">The parts which make up the key.</param>
         public WaitKey(params object[] tokenParts)
         {
-            TokenParts = tokenParts;
+            TokenParts = tokenParts?.ToArray() ?? Array.Empty<object>();
             Token = string.Join(":", TokenParts);
         }
 

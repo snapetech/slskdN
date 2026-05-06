@@ -27,6 +27,7 @@ namespace slskd.Relay
     using System;
     using System.Diagnostics.CodeAnalysis;
     using System.Diagnostics;
+    using System.Linq;
     using System.IO;
     using System.Net.Security;
     using System.Net.Http;
@@ -883,7 +884,7 @@ namespace slskd.Relay
         {
             public ControllerRetryPolicy(params int[] intervals)
             {
-                Intervals = intervals;
+                Intervals = intervals?.ToArray() ?? Array.Empty<int>();
             }
 
             private int[] Intervals { get; set; }

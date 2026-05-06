@@ -39,7 +39,7 @@ public sealed class CanaryTraps
     public CanaryTraps(ILogger<CanaryTraps> logger, byte[]? secretKey = null)
     {
         _logger = logger;
-        _secretKey = secretKey ?? RandomNumberGenerator.GetBytes(32);
+        _secretKey = (byte[])(secretKey ?? RandomNumberGenerator.GetBytes(32)).Clone();
     }
 
     /// <summary>

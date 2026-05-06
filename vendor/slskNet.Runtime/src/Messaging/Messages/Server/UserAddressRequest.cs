@@ -34,7 +34,7 @@ namespace Soulseek.Messaging.Messages
         /// <param name="username">The username of the requested peer.</param>
         public UserAddressRequest(string username)
         {
-            Username = username;
+            Username = ProtocolArgumentValidator.RequireNotNull(username, nameof(username), "username");
         }
 
         /// <summary>

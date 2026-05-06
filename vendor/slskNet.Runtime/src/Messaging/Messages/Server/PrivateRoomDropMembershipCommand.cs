@@ -34,7 +34,7 @@ namespace Soulseek.Messaging.Messages
         /// <param name="roomName">The room for which to drop membership.</param>
         public PrivateRoomDropMembershipCommand(string roomName)
         {
-            RoomName = roomName;
+            RoomName = ProtocolArgumentValidator.RequireNotNull(roomName, nameof(roomName), "room name");
         }
 
         /// <summary>

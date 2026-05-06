@@ -41,7 +41,7 @@ namespace Soulseek.Messaging.Messages
             }
 
             Code = code;
-            Item = item;
+            Item = ProtocolArgumentValidator.RequireNotNull(item, nameof(item), "item");
         }
 
         /// <summary>

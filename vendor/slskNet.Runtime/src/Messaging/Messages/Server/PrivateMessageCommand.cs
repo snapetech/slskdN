@@ -35,8 +35,8 @@ namespace Soulseek.Messaging.Messages
         /// <param name="message">The message to send.</param>
         public PrivateMessageCommand(string username, string message)
         {
-            Username = username;
-            Message = message;
+            Username = ProtocolArgumentValidator.RequireNotNull(username, nameof(username), "username");
+            Message = ProtocolArgumentValidator.RequireNotNull(message, nameof(message), "message");
         }
 
         /// <summary>

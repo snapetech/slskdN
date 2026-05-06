@@ -34,7 +34,7 @@ namespace Soulseek.Messaging.Messages
         /// <param name="filename">The name of the file being enqueued.</param>
         public QueueDownloadRequest(string filename)
         {
-            Filename = filename;
+            Filename = ProtocolArgumentValidator.RequireNotNull(filename, nameof(filename), "filename");
         }
 
         /// <summary>

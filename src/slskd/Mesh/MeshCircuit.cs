@@ -24,7 +24,7 @@ public class MeshCircuit : IDisposable
     public MeshCircuit(string circuitId, List<CircuitHop> hops, TimeSpan timeToLive)
     {
         CircuitId = circuitId ?? throw new ArgumentNullException(nameof(circuitId));
-        Hops = hops ?? throw new ArgumentNullException(nameof(hops));
+        Hops = new List<CircuitHop>(hops ?? throw new ArgumentNullException(nameof(hops)));
         _timeToLive = timeToLive;
         _createdAt = DateTimeOffset.UtcNow;
     }

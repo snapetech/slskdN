@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Synced vendored slskNet.Runtime protocol string validation so outbound
+  message constructors reject null strings before serialization.
+- Hardened mutable-byte ownership in security and batching paths by defensively
+  copying provided secret keys, signature magic bytes, and queued message payloads
+  before use or storage.
 - Synced vendored slskNet.Runtime validation hardening for resumed transfer
   snapshots, raw response streams, and peer capability metadata; aligned slskdN
   capability tests with the stricter non-null endpoint contract.

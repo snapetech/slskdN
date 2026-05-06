@@ -1,5 +1,10 @@
 ## 2026-05-06
 
+- Continued non-runtime council broad fix cycle on mutable-security ownership patterns.
+- Fixed `BUG-20260506-029` through `BUG-20260506-031` (mutable array/bytes ownership): copied caller-supplied secret keys, signature magic bytes, and batched message payloads defensively; added regression tests `CanaryTrapsTests`, `ContentSafetyTests.FileSignature_StoresCopyOfMagicBytes`, and `TimedBatcherTests.BatchedMessage_CopiesMessageData`.
+- Updated `docs/dev/bug-burndown-ledger.md` with three `Verified` rows and classified mutable-input follow-up state in the `2026-05-06` section notes.
+- Validation passed for this cycle: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --no-restore --filter FullyQualifiedName~CanaryTrapsTests`, `dotnet test ... --filter FullyQualifiedName~ContentSafetyTests`, `dotnet test ... --filter FullyQualifiedName~TimedBatcherTests`, and `git diff --check`.
+
 - Continued non-runtime council async-lifecycle cleanup: fixed remaining `async void` health callbacks in `DisasterModeRecovery` and `DisasterModeCoordinator` by moving logic to observed async methods via `TaskObservation.Observe`, added `scripts/check-async-void-handlers.sh` to baseline, and added ADR-0001 gotcha `0z328` plus ledger row `BUG-20260506-028`.
 
 - Continued another non-runtime council cycle focused on async/lifecycle side effects after the baseline passed cleanly.

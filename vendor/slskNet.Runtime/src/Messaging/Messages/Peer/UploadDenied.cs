@@ -35,8 +35,8 @@ namespace Soulseek.Messaging.Messages
         /// <param name="message">The reason for the denial.</param>
         public UploadDenied(string filename, string message)
         {
-            Filename = filename;
-            Message = message;
+            Filename = ProtocolArgumentValidator.RequireNotNull(filename, nameof(filename), "filename");
+            Message = ProtocolArgumentValidator.RequireNotNull(message, nameof(message), "message");
         }
 
         /// <summary>

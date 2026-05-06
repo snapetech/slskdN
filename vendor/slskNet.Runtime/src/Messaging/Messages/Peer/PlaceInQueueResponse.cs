@@ -44,7 +44,7 @@ namespace Soulseek.Messaging.Messages
                 throw new ArgumentOutOfRangeException(nameof(placeInQueue), "Must be greater than or equal to zero");
             }
 
-            Filename = filename;
+            Filename = ProtocolArgumentValidator.RequireNotNull(filename, nameof(filename), "filename");
             PlaceInQueue = placeInQueue;
         }
 

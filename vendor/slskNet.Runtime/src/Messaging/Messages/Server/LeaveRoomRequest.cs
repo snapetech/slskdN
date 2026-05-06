@@ -34,7 +34,7 @@ namespace Soulseek.Messaging.Messages
         /// <param name="roomName">The name of the room to leave.</param>
         public LeaveRoomRequest(string roomName)
         {
-            RoomName = roomName;
+            RoomName = ProtocolArgumentValidator.RequireNotNull(roomName, nameof(roomName), "room name");
         }
 
         /// <summary>

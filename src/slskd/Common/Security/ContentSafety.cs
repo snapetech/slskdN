@@ -286,7 +286,7 @@ public static class ContentSafety
 
         public FileSignature(byte[] magic, int offset, string description)
         {
-            Magic = magic;
+            Magic = magic is null ? throw new ArgumentNullException(nameof(magic)) : magic.ToArray();
             Offset = offset;
             Description = description;
         }
