@@ -1,3 +1,18 @@
+## Update 2026-05-06 17:10:00Z
+
+- Current task: Non-runtime council async/path scan batch is complete locally.
+- Last activity:
+  - skipped `vendor/slskNet.Runtime` because runtime remains assigned to another agent
+  - classified route-state navigation, primitive JSON body, outbound HTTP, async/lifecycle, and filesystem/path scan sections
+  - accepted and fixed `BUG-20260506-023` through `BUG-20260506-026`
+  - awaited and isolated SearchService traffic-observer notifications so async failures are observed and later responses still notify
+  - made ContentLocator fallback lookup and Library Health recursive scans skip reparse points explicitly
+  - aligned the integration auth fixture with admin-only security route smoke tests
+  - documented ADR-0001 gotchas `0z325` and `0z326` and strengthened `scripts/check-path-containment.sh`
+- Next steps:
+  1. Run focused backend tests and remediation/path scanners.
+  2. Commit and push the implementation batch.
+
 ## Update 2026-05-06 16:20:00Z
 
 - Current task: Non-runtime council scan and accepted burn-down batch is complete locally.

@@ -196,4 +196,14 @@ public class ContentLocatorTests
             try { Directory.Delete(root, recursive: true); } catch { }
         }
     }
+
+    [Fact]
+    public void CreateFallbackEnumerationOptions_SkipsReparsePoints()
+    {
+        var options = ContentLocator.CreateFallbackEnumerationOptions();
+
+        Assert.True(options.RecurseSubdirectories);
+        Assert.True(options.AttributesToSkip.HasFlag(FileAttributes.ReparsePoint));
+        Assert.True(options.AttributesToSkip.HasFlag(FileAttributes.System));
+    }
 }

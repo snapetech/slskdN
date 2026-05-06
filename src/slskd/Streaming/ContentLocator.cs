@@ -158,7 +158,7 @@ public sealed class ContentLocator : IContentLocator
             IEnumerable<string> files;
             try
             {
-                files = Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories);
+                files = Directory.EnumerateFiles(root, "*", CreateFallbackEnumerationOptions());
             }
             catch
             {
@@ -171,6 +171,15 @@ public sealed class ContentLocator : IContentLocator
                 yield return file;
             }
         }
+    }
+
+    internal static EnumerationOptions CreateFallbackEnumerationOptions()
+    {
+        return new EnumerationOptions
+        {
+            RecurseSubdirectories = true,
+            AttributesToSkip = FileAttributes.Hidden | FileAttributes.System | FileAttributes.ReparsePoint,
+        };
     }
 
     private bool IsAllowedLocalPath(string path)

@@ -2531,3 +2531,7 @@
 - [x] Run attribution audit
   - Status: completed (2026-05-06)
   - Notes: Audited fork-only files and upstream-derived changed files against `upstream/master`; fixed the missing slskdN co-attribution block on `Z12282025_AdditionalTransferIndexesMigration.cs`.
+
+- [x] Continue non-runtime council async/path scan
+  - Status: completed (2026-05-06)
+  - Notes: Classified the current route-intent, primitive-body, outbound-HTTP, async/lifecycle, path-containment, and test-fixture drift sections; fixed accepted `BUG-20260506-023` through `BUG-20260506-026` for SearchService traffic-observer task observation, recursive reparse-point traversal in streaming fallback and Library Health scans, and admin-only integration route smoke auth.

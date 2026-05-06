@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Hardened council async/path findings by awaiting SearchService traffic-observer
+  notifications and making streaming fallback plus Library Health recursive scans
+  skip symlinks/junctions explicitly; aligned integration route smoke auth with
+  admin-only security telemetry routes.
 - Hardened non-runtime council findings across release metadata, scheduled
   release-tag policy, CodeQL .NET setup, Flatpak/Snap packaging, Web list and
   route guards, security telemetry authorization, and anonymous build metadata.

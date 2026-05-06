@@ -59,6 +59,27 @@ namespace Soulseek.Tests.Unit.Network
             Assert.Null(c.AverageBroadcastLatency);
         }
 
+        [Trait("Category", "RemoveAndDisposeAll")]
+        [Fact(DisplayName = "RemoveAndDisposeAll cancels pending inbound indirect child connections")]
+        public void RemoveAndDisposeAll_Cancels_Pending_Inbound_Indirect_Child_Connections()
+        {
+            var (manager, _) = GetFixture();
+
+            using (manager)
+            using (var cts = new CancellationTokenSource())
+            {
+                var pendingDict = new ConcurrentDictionary<string, CancellationTokenSource>();
+                pendingDict.TryAdd("foo", cts);
+
+                manager.SetProperty("PendingInboundIndirectConnectionDictionary", pendingDict);
+
+                manager.RemoveAndDisposeAll();
+
+                Assert.True(cts.IsCancellationRequested);
+                Assert.Empty(pendingDict);
+            }
+        }
+
         [Trait("Category", "BranchRoot")]
         [Fact(DisplayName = "BranchRoot returns empty string if no username is set and no parent")]
         public void BranchRoot_Returns_Empty_String_If_No_Username_And_No_Parent()
@@ -1266,6 +1287,28 @@ namespace Soulseek.Tests.Unit.Network
                 await task;
 
                 Assert.True(exists);
+            }
+        }
+
+        [Trait("Category", "AddChildConnectionAsync")]
+        [Theory(DisplayName = "AddChildConnectionAsync does not remove newer pending indirect child connection"), AutoData]
+        internal void AddChildConnectionAsync_Does_Not_Remove_Newer_Pending_Indirect_Child_Connection(string username)
+        {
+            var (manager, _) = GetFixture();
+
+            using (manager)
+            using (var oldCts = new CancellationTokenSource())
+            using (var newCts = new CancellationTokenSource())
+            {
+                var pendingDict = new ConcurrentDictionary<string, CancellationTokenSource>();
+                pendingDict.TryAdd(username, newCts);
+
+                manager.SetProperty("PendingInboundIndirectConnectionDictionary", pendingDict);
+
+                manager.InvokeMethod("RemovePendingInboundIndirectConnection", username, oldCts);
+
+                Assert.True(pendingDict.TryGetValue(username, out var current));
+                Assert.Same(newCts, current);
             }
         }
 

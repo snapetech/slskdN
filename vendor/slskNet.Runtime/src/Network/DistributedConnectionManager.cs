@@ -641,7 +641,7 @@ namespace Soulseek.Network
                 using (var cts = new CancellationTokenSource())
                 {
                     // add a record to the pending dictionary so we can tell whether the following code is waiting
-                    PendingInboundIndirectConnectionDictionary.AddOrUpdate(r.Username, cts, (username, existingCts) => cts);
+                    AddOrUpdatePendingInboundIndirectConnection(r.Username, cts);
 
                     try
                     {
@@ -661,7 +661,7 @@ namespace Soulseek.Network
                     {
                         // let everyone know this code is done executing and that .Value of the containing cache is safe to await
                         // with no delay.
-                        PendingInboundIndirectConnectionDictionary.TryRemove(r.Username, out _);
+                        RemovePendingInboundIndirectConnection(r.Username, cts);
                     }
                 }
 
@@ -700,7 +700,7 @@ namespace Soulseek.Network
         public async void RemoveAndDisposeAll()
         {
             PendingSolicitationDictionary.Clear();
-            PendingInboundIndirectConnectionDictionary.Clear();
+            CancelAndDisposePendingInboundIndirectConnections();
             ParentConnection?.Dispose();
 
             while (!ChildConnectionDictionary.IsEmpty)
@@ -833,6 +833,46 @@ namespace Soulseek.Network
             }
         }
 
+        private void CancelAndDisposePendingInboundIndirectConnections()
+        {
+            foreach (var key in PendingInboundIndirectConnectionDictionary.Keys.ToList())
+            {
+                if (!PendingInboundIndirectConnectionDictionary.TryRemove(key, out var pendingCts))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    pendingCts.Cancel();
+                }
+                catch
+                {
+                    // noop
+                }
+                finally
+                {
+                    pendingCts.Dispose();
+                }
+            }
+        }
+
+        private void AddOrUpdatePendingInboundIndirectConnection(string username, CancellationTokenSource pendingCts)
+        {
+            PendingInboundIndirectConnectionDictionary.AddOrUpdate(
+                username,
+                pendingCts,
+                (_, existingCts) =>
+                {
+                    if (!ReferenceEquals(existingCts, pendingCts))
+                    {
+                        existingCts.Cancel();
+                    }
+
+                    return pendingCts;
+                });
+        }
+
         private void ChildConnection_Disconnected(object sender, ConnectionDisconnectedEventArgs e)
         {
             var connection = (IMessageConnection)sender;
@@ -876,6 +916,12 @@ namespace Soulseek.Network
             payload.AddRange(new DistributedBranchRoot(BranchRoot).ToByteArray());
 
             return payload.ToArray();
+        }
+
+        private void RemovePendingInboundIndirectConnection(string username, CancellationTokenSource pendingCts)
+        {
+            var pending = (ICollection<KeyValuePair<string, CancellationTokenSource>>)PendingInboundIndirectConnectionDictionary;
+            pending.Remove(new KeyValuePair<string, CancellationTokenSource>(username, pendingCts));
         }
 
         private IMessageConnection CreateDistributedConnection(string username, IPEndPoint ipEndPoint, ITcpClient tcpClient = null, bool obfuscated = false)

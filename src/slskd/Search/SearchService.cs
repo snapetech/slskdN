@@ -518,19 +518,7 @@ namespace slskd.Search
                         // Notify traffic observer for Virtual Soulfind capture (Phase 6A: T-803)
                         if (TrafficObserver != null && soulseekSnapshot.Count > 0)
                         {
-                            try
-                            {
-                                // Call TrafficObserver for each search response
-                                // Each SearchResponse represents one user's results for the query
-                                foreach (var response in soulseekSnapshot)
-                                {
-                                    _ = TrafficObserver.OnSearchResultsAsync(query.SearchText, response, CancellationToken.None);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Debug(ex, "Failed to notify traffic observer for search '{Query}'", query.SearchText);
-                            }
+                            await NotifyTrafficObserverAsync(TrafficObserver, query.SearchText, soulseekSnapshot, Log, CancellationToken.None);
                         }
 
                         // zero responses before broadcasting, as we don't want to blast this
@@ -655,6 +643,30 @@ namespace slskd.Search
             search.ResponseCount = responses.Count;
             search.FileCount = responses.Sum(r => r.FileCount);
             search.LockedFileCount = responses.Sum(r => r.LockedFileCount);
+        }
+
+        internal static async Task NotifyTrafficObserverAsync(
+            slskd.VirtualSoulfind.Capture.ITrafficObserver trafficObserver,
+            string query,
+            IEnumerable<SearchResponse> responses,
+            ILogger log,
+            CancellationToken cancellationToken)
+        {
+            foreach (var response in responses)
+            {
+                try
+                {
+                    await trafficObserver.OnSearchResultsAsync(query, response, cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    log.Debug(ex, "Failed to notify traffic observer for search '{Query}'", query);
+                }
+            }
         }
 
         /// <summary>

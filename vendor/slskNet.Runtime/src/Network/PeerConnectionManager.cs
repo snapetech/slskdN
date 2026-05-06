@@ -72,8 +72,12 @@ namespace Soulseek.Network
         ///     Gets current list of peer message connections.
         /// </summary>
         public IReadOnlyCollection<(string Username, IPEndPoint IPEndPoint)> MessageConnections => MessageConnectionDictionary.Values
-            .Select(async c => await c.Value.ConfigureAwait(false))
-            .Select(c => (c.Result.Username, c.Result.IPEndPoint)).ToList().AsReadOnly();
+            .Where(c => c.IsValueCreated && c.Value.Status == TaskStatus.RanToCompletion)
+            .Select(c => c.Value.Result)
+            .Where(c => c != null)
+            .Select(c => (c.Username, c.IPEndPoint))
+            .ToList()
+            .AsReadOnly();
 
         /// <summary>
         ///     Gets a dictionary containing the pending connection solicitations.
@@ -390,7 +394,7 @@ namespace Soulseek.Network
                 using (var cts = new CancellationTokenSource())
                 {
                     // add a record to the pending dictionary so we can tell whether the following code is waiting
-                    PendingInboundIndirectConnectionDictionary.AddOrUpdate(r.Username, cts, (username, existingCts) => cts);
+                    AddOrUpdatePendingInboundIndirectConnection(r.Username, cts);
 
                     try
                     {
@@ -408,7 +412,7 @@ namespace Soulseek.Network
                     {
                         // let everyone know this code is done executing and that .Value of the containing cache is safe to await
                         // with no delay.
-                        PendingInboundIndirectConnectionDictionary.TryRemove(r.Username, out _);
+                        RemovePendingInboundIndirectConnection(r.Username, cts);
                     }
                 }
 
@@ -785,7 +789,7 @@ namespace Soulseek.Network
         public async void RemoveAndDisposeAll()
         {
             PendingSolicitationDictionary.Clear();
-            PendingInboundIndirectConnectionDictionary.Clear();
+            CancelAndDisposePendingInboundIndirectConnections();
 
             while (!MessageConnectionDictionary.IsEmpty)
             {
@@ -827,6 +831,46 @@ namespace Soulseek.Network
 
             DisposeCompletedConnection(connection);
             return true;
+        }
+
+        private void CancelAndDisposePendingInboundIndirectConnections()
+        {
+            foreach (var key in PendingInboundIndirectConnectionDictionary.Keys.ToList())
+            {
+                if (!PendingInboundIndirectConnectionDictionary.TryRemove(key, out var pendingCts))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    pendingCts.Cancel();
+                }
+                catch
+                {
+                    // noop
+                }
+                finally
+                {
+                    pendingCts.Dispose();
+                }
+            }
+        }
+
+        private void AddOrUpdatePendingInboundIndirectConnection(string username, CancellationTokenSource pendingCts)
+        {
+            PendingInboundIndirectConnectionDictionary.AddOrUpdate(
+                username,
+                pendingCts,
+                (_, existingCts) =>
+                {
+                    if (!ReferenceEquals(existingCts, pendingCts))
+                    {
+                        existingCts.Cancel();
+                    }
+
+                    return pendingCts;
+                });
         }
 
         private void Dispose(bool disposing)
@@ -1052,6 +1096,12 @@ namespace Soulseek.Network
         }
 
         private void MessageConnectionProvisional_Disconnected(object sender, ConnectionDisconnectedEventArgs e) => ((IMessageConnection)sender).Dispose();
+
+        private void RemovePendingInboundIndirectConnection(string username, CancellationTokenSource pendingCts)
+        {
+            var pending = (ICollection<KeyValuePair<string, CancellationTokenSource>>)PendingInboundIndirectConnectionDictionary;
+            pending.Remove(new KeyValuePair<string, CancellationTokenSource>(username, pendingCts));
+        }
 
         private void TryRemoveMessageConnectionRecord(IMessageConnection connection)
         {

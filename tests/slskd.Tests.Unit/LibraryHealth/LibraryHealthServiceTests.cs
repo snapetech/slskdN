@@ -119,6 +119,16 @@ namespace slskd.Tests.Unit.LibraryHealth
             }
         }
 
+        [Fact]
+        public void CreateLibraryEnumerationOptions_WhenRecursive_SkipsReparsePoints()
+        {
+            var options = LibraryHealthService.CreateLibraryEnumerationOptions(includeSubdirectories: true);
+
+            Assert.True(options.RecurseSubdirectories);
+            Assert.True(options.AttributesToSkip.HasFlag(FileAttributes.ReparsePoint));
+            Assert.True(options.AttributesToSkip.HasFlag(FileAttributes.System));
+        }
+
         private static LibraryHealthScan Clone(LibraryHealthScan scan)
         {
             return new LibraryHealthScan

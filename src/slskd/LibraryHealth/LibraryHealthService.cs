@@ -168,7 +168,7 @@ namespace slskd.LibraryHealth
                 var files = Directory.EnumerateFiles(
                         request.LibraryPath,
                         "*.*",
-                        request.IncludeSubdirectories ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)
+                        CreateLibraryEnumerationOptions(request.IncludeSubdirectories))
                     .Where(f => request.FileExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
                     .ToList();
 
@@ -429,7 +429,10 @@ namespace slskd.LibraryHealth
                         // Try to find file by FlacKey in the library directory
                         // Note: This is simplified - in practice, we'd need a reverse lookup from FlacKey to file path
                         // For now, we'll check if the recording ID matches any files in the directory
-                        var filesInDir = Directory.EnumerateFiles(libraryPath ?? string.Empty, "*.*", SearchOption.TopDirectoryOnly)
+                        var filesInDir = Directory.EnumerateFiles(
+                                libraryPath ?? string.Empty,
+                                "*.*",
+                                CreateLibraryEnumerationOptions(includeSubdirectories: false))
                             .Where(f => Path.GetExtension(f).ToLowerInvariant() is ".flac" or ".mp3" or ".m4a" or ".ogg" or ".opus");
 
                         // Simplified check: if we have hashes for this recording, assume it might be present
@@ -477,6 +480,15 @@ namespace slskd.LibraryHealth
             {
                 log.LogWarning(ex, "[LH] Failed to check release completeness for {ReleaseId}", releaseId);
             }
+        }
+
+        internal static EnumerationOptions CreateLibraryEnumerationOptions(bool includeSubdirectories)
+        {
+            return new EnumerationOptions
+            {
+                RecurseSubdirectories = includeSubdirectories,
+                AttributesToSkip = FileAttributes.Hidden | FileAttributes.System | FileAttributes.ReparsePoint,
+            };
         }
 
         private async Task EmitIssueAsync(LibraryIssue issue, LibraryHealthScan scan, object scanLock, CancellationToken ct)

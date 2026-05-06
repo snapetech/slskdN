@@ -7,12 +7,16 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using slskd.Common.Security;
 using slskd.Search;
 using slskd.Search.API;
+using slskd.VirtualSoulfind.Capture;
+using Serilog;
 using Soulseek;
 using Xunit;
 
@@ -122,6 +126,35 @@ public class SearchServiceLifecycleTests
         Assert.Equal(1, search.ResponseCount);
         Assert.Equal(1, search.FileCount);
         Assert.Equal(0, search.LockedFileCount);
+    }
+
+    [Fact]
+    public async Task NotifyTrafficObserverAsync_WhenOneResponseFails_Continues()
+    {
+        var observer = new Mock<ITrafficObserver>();
+        var responses = new[]
+        {
+            new SearchResponse("first", 1, true, 0, 0, Array.Empty<Soulseek.File>(), Array.Empty<Soulseek.File>()),
+            new SearchResponse("second", 1, true, 0, 0, Array.Empty<Soulseek.File>(), Array.Empty<Soulseek.File>()),
+        };
+
+        observer
+            .Setup(m => m.OnSearchResultsAsync("query", responses[0], It.IsAny<CancellationToken>()))
+            .Returns(Task.FromException(new InvalidOperationException("observer failed")));
+        observer
+            .Setup(m => m.OnSearchResultsAsync("query", responses[1], It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        await SearchService.NotifyTrafficObserverAsync(
+            observer.Object,
+            "query",
+            responses,
+            new LoggerConfiguration().CreateLogger(),
+            CancellationToken.None);
+
+        observer.Verify(
+            m => m.OnSearchResultsAsync("query", It.IsAny<SearchResponse>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
     }
 
     private static SearchService CreateService()

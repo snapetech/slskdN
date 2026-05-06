@@ -17,15 +17,15 @@ Selected scan sections:
 
 Candidate markers:
 
-- Task, cancellation, timer, and semaphore lifecycle candidates: 203/203 classified
+- Task, cancellation, timer, and semaphore lifecycle candidates: 211/211 classified
 - Non-idempotent task completion candidates: 0/0 classified
 - Lifecycle task completion and race candidates: 82/82 classified
-- Lifecycle cancellation registration candidates: 51/51 classified
+- Lifecycle cancellation registration candidates: 59/59 classified
 - Lifecycle timer and semaphore candidates: 84/84 classified
 - Lifecycle fire-and-forget async misuse candidates: 0/0 classified
 - Unclassified candidates: 0
 
-This sweep closes the broad lifecycle scan by splitting task completion/race points, cancellation registration ownership, timer/semaphore lifetime, and fire-and-forget async misuse into stable subgroups. The broad count increased by one during the sweep because the distributed lifecycle fixes add safe background helper methods that are themselves tracked by the task/race subgroup.
+This sweep closes the broad lifecycle scan by splitting task completion/race points, cancellation registration ownership, timer/semaphore lifetime, and fire-and-forget async misuse into stable subgroups. The broad count increased during later burn-down passes because distributed/peer pending-indirect cancellation ownership is now explicit and itself tracked by the cancellation subgroup.
 
 ## Fixed Findings
 
@@ -34,6 +34,8 @@ This sweep closes the broad lifecycle scan by splitting task completion/race poi
 | `src/Network/Tcp/Connection.cs:481` | Fixed | RT-076 | `WaitForDisconnect` now scopes cancellation registrations to the wait task and disposes them after completion instead of retaining callbacks for the lifetime of the token source. |
 | `src/Network/DistributedConnectionManager.cs:75` | Fixed | RT-078 | Distributed status timer, watchdog, and queued broadcast/status callbacks now run through safe background helpers that report failures through diagnostics instead of dropping fire-and-forget failures. |
 | `src/Messaging/Handlers/DistributedMessageHandler.cs:186` | Fixed | RT-079 | Distributed search broadcast fan-out now queues through a diagnostic wrapper so background broadcast failures are observed. |
+| `src/Network/PeerConnectionManager.cs:785` / `src/Network/DistributedConnectionManager.cs:700` | Fixed | RT-092 | Shutdown now cancels and disposes pending inbound-indirect cancellation sources instead of clearing the dictionaries and leaving pending attempts unowned. |
+| `src/Network/PeerConnectionManager.cs:393` / `src/Network/DistributedConnectionManager.cs:644` | Fixed | RT-093 | Pending inbound-indirect connection registration now cancels superseded sources and removes only the current source, preventing older attempts from erasing newer cancellation ownership. |
 
 ## Existing Guards
 

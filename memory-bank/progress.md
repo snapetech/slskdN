@@ -1,5 +1,9 @@
 ## 2026-05-06
 
+- Continued the non-runtime council scan across route-intent, primitive JSON bodies, outbound HTTP, async/lifecycle, and path-containment sections instead of stopping at the first candidate.
+- Fixed `BUG-20260506-023` through `BUG-20260506-026`: SearchService now awaits/logs traffic-observer notifications per response, ContentLocator plus LibraryHealth recursive scans explicitly skip reparse points under configured roots, and the shared integration route-smoke fixture includes the administrator role required by security telemetry routes.
+- Documented ADR-0001 gotchas `0z325` and `0z326`, and strengthened `scripts/check-path-containment.sh` to keep the streaming/library-health traversal posture covered.
+
 - Checked live `kspls0` logs after the UI reported disconnection. The service was active and the authenticated state endpoint showed Soulseek connected/logged in, but in-memory logs showed earlier connect/login timeouts followed by valid distributed search requests being rejected because negative opaque tokens were treated as invalid.
 - Fixed `BUG-20260506-003`: `DistributedSearchRequest` now accepts the full signed `int` token range, added focused runtime tests, updated changelogs/ledger/tasks, and documented ADR-0001 gotcha `0z322`.
 - Deployed `0.0.0-slskdn.manual.20260506010228.a0f8ed7fff3` to `kspls0`; the service is active, `/usr/lib/slskd/current` points to the patched release, the authenticated state endpoint reports `Connected, LoggedIn`, and a 45-second post-deploy log check found zero disconnect/reconnect or distributed-token rejection matches.
