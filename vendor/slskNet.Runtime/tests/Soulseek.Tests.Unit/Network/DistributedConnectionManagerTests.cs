@@ -353,6 +353,32 @@ namespace Soulseek.Tests.Unit.Network
         }
 
         [Trait("Category", "PromoteToBranchRoot")]
+        [Fact(DisplayName = "PromoteToBranchRoot isolates throwing event handlers")]
+        public void PromoteToBranchRoot_Isolates_Throwing_Event_Handlers()
+        {
+            var expectedEx = new Exception("event failure");
+            var (manager, mocks) = GetFixture();
+
+            using (manager)
+            {
+                var stateChangedFired = false;
+
+                manager.PromotedToBranchRoot += (sender, args) => throw expectedEx;
+                manager.StateChanged += (sender, args) => stateChangedFired = true;
+
+                var ex = Record.Exception(() => manager.PromoteToBranchRoot());
+
+                Assert.Null(ex);
+                Assert.True(manager.IsBranchRoot);
+                Assert.True(stateChangedFired);
+            }
+
+            mocks.Diagnostic.Verify(
+                m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Unhandled exception in PromotedToBranchRoot event handler")), expectedEx),
+                Times.Once);
+        }
+
+        [Trait("Category", "PromoteToBranchRoot")]
         [Fact(DisplayName = "PromoteToBranchRoot does not raise PromotedToBranchRoot if already root")]
         public void PromoteToBranchRoot_Does_Not_Raise_PromotedToBranchRoot_If_Already_Root()
         {
@@ -448,6 +474,35 @@ namespace Soulseek.Tests.Unit.Network
 
                 Assert.True(fired);
             }
+        }
+
+        [Trait("Category", "DemoteFromBranchRoot")]
+        [Fact(DisplayName = "DemoteFromBranchRoot isolates throwing event handlers")]
+        public void DemoteFromBranchRoot_Isolates_Throwing_Event_Handlers()
+        {
+            var expectedEx = new Exception("event failure");
+            var (manager, mocks) = GetFixture();
+
+            using (manager)
+            {
+                manager.PromoteToBranchRoot();
+                Assert.True(manager.IsBranchRoot);
+
+                var stateChangedFired = false;
+
+                manager.DemotedFromBranchRoot += (sender, args) => throw expectedEx;
+                manager.StateChanged += (sender, args) => stateChangedFired = true;
+
+                var ex = Record.Exception(() => manager.DemoteFromBranchRoot());
+
+                Assert.Null(ex);
+                Assert.False(manager.IsBranchRoot);
+                Assert.True(stateChangedFired);
+            }
+
+            mocks.Diagnostic.Verify(
+                m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Unhandled exception in DemotedFromBranchRoot event handler")), expectedEx),
+                Times.Once);
         }
 
         [Trait("Category", "SetParentBranchLevel")]
@@ -735,6 +790,40 @@ namespace Soulseek.Tests.Unit.Network
 
                 Assert.True(stateChangedFired);
             }
+        }
+
+        [Trait("Category", "ParentConnection_Disconnected")]
+        [Theory(DisplayName = "ParentConnection_Disconnected isolates throwing event handlers"), AutoData]
+        public void ParentConnection_Disconnected_Isolates_Throwing_Event_Handlers(string username, IPEndPoint endpoint, string message)
+        {
+            var expectedEx = new Exception("event failure");
+            var c = GetMessageConnectionMock(username, endpoint);
+
+            var (manager, mocks) = GetFixture();
+
+            using (manager)
+            {
+                manager.SetProperty("ParentConnection", new Mock<IMessageConnection>().Object);
+                manager.SetProperty("ParentBranchLevel", 1);
+                manager.SetProperty("ParentBranchRoot", "foo");
+
+                var stateChangedFired = false;
+
+                manager.ParentDisconnected += (sender, args) => throw expectedEx;
+                manager.StateChanged += (sender, args) => stateChangedFired = true;
+
+                var ex = Record.Exception(() => manager.InvokeMethod("ParentConnection_Disconnected", c.Object, new ConnectionDisconnectedEventArgs(message)));
+
+                Assert.Null(ex);
+                Assert.True(stateChangedFired);
+                Assert.Null(manager.GetProperty<IMessageConnection>("ParentConnection"));
+                Assert.Equal(0, manager.BranchLevel);
+                Assert.Equal(string.Empty, manager.BranchRoot);
+            }
+
+            mocks.Diagnostic.Verify(
+                m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Unhandled exception in ParentDisconnected event handler")), expectedEx),
+                Times.Once);
         }
 
         [Trait("Category", "ParentConnection_Disconnected")]
@@ -2108,6 +2197,34 @@ namespace Soulseek.Tests.Unit.Network
         }
 
         [Trait("Category", "UpdateStatusAsync")]
+        [Fact(DisplayName = "UpdateStatusAsync isolates throwing StateChanged handlers")]
+        internal async Task UpdateStatusAsync_Isolates_Throwing_StateChanged_Handlers()
+        {
+            var expectedEx = new Exception("event failure");
+            var (manager, mocks) = GetFixture();
+
+            mocks.Client.Setup(m => m.State)
+                .Returns(SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+
+            var conn = GetMessageConnectionMock("foo", null);
+            conn.Setup(m => m.State)
+                .Returns(ConnectionState.Connected);
+
+            using (manager)
+            {
+                manager.SetProperty("ParentConnection", conn.Object);
+                manager.StateChanged += (sender, args) => throw expectedEx;
+
+                await manager.UpdateStatusAsync();
+            }
+
+            mocks.Diagnostic.Verify(
+                m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Unhandled exception in StateChanged event handler")), expectedEx),
+                Times.Once);
+            mocks.Diagnostic.Verify(m => m.Info(It.Is<string>(s => s.ContainsInsensitive("Updated distributed status"))), Times.Once);
+        }
+
+        [Trait("Category", "UpdateStatusAsync")]
         [Fact(DisplayName = "UpdateStatusAsync produces diagnostic warning on failure when connected")]
         internal async Task UpdateStatusAsync_Produces_Diagnostic_Warning_On_Failure_When_Connected()
         {
@@ -2259,6 +2376,40 @@ namespace Soulseek.Tests.Unit.Network
 
                 Assert.True(stateChangedFired);
             }
+        }
+
+        [Trait("Category", "ChildConnection_Disconnected")]
+        [Theory(DisplayName = "ChildConnection_Disconnected isolates throwing event handlers"), AutoData]
+        internal void ChildConnection_Disconnected_Isolates_Throwing_Event_Handlers(string message)
+        {
+            var expectedEx = new Exception("event failure");
+            var (manager, mocks) = GetFixture();
+
+            var conn = GetMessageConnectionMock("foo", null);
+
+            var dict = manager.GetProperty<ConcurrentDictionary<string, Lazy<Task<IMessageConnection>>>>("ChildConnectionDictionary");
+            dict.TryAdd("foo", new Lazy<Task<IMessageConnection>>(() => Task.FromResult(conn.Object)));
+
+            var dict2 = manager.GetProperty<ConcurrentDictionary<string, IPEndPoint>>("ChildDictionary");
+            dict2.TryAdd("foo", conn.Object.IPEndPoint);
+
+            using (manager)
+            {
+                var stateChangedFired = false;
+
+                manager.ChildDisconnected += (sender, args) => throw expectedEx;
+                manager.StateChanged += (sender, args) => stateChangedFired = true;
+
+                var ex = Record.Exception(() => manager.InvokeMethod("ChildConnection_Disconnected", conn.Object, new ConnectionDisconnectedEventArgs(message)));
+
+                Assert.Null(ex);
+                Assert.True(stateChangedFired);
+                Assert.Empty(manager.Children);
+            }
+
+            mocks.Diagnostic.Verify(
+                m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Unhandled exception in ChildDisconnected event handler")), expectedEx),
+                Times.Once);
         }
 
         [Trait("Category", "ChildConnection_Disconnected")]

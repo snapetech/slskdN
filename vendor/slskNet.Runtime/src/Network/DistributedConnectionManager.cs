@@ -68,7 +68,7 @@ namespace Soulseek.Network
             ConnectionFactory = connectionFactory ?? new ConnectionFactory();
 
             Diagnostic = diagnosticFactory ??
-                new DiagnosticFactory(SoulseekClient.Options.MinimumDiagnosticLevel, (e) => DiagnosticGenerated?.Invoke(this, e));
+                new DiagnosticFactory(SoulseekClient.Options.MinimumDiagnosticLevel, RaiseDiagnosticGenerated);
 
             StatusDebounceTimer = new SystemTimer()
             {
@@ -333,8 +333,8 @@ namespace Soulseek.Network
 
                 if (!superseded)
                 {
-                    ChildAdded?.Invoke(this, new DistributedChildEventArgs(connection.Username, connection.IPEndPoint));
-                    StateChanged?.Invoke(this, DistributedNetworkInfo.FromDistributedConnectionManager(this));
+                    RaiseChildAdded(connection);
+                    RaiseStateChanged();
                 }
 
                 QueueStatusUpdateEventually();
@@ -430,8 +430,8 @@ namespace Soulseek.Network
                     Diagnostic.Debug($"Parent connection to {ParentConnection.Username} ({ParentConnection.IPEndPoint}) established. (type: {ParentConnection.Type}, id: {ParentConnection.Id})");
                     Diagnostic.Info($"Adopted parent connection to {ParentConnection.Username} ({ParentConnection.IPEndPoint})");
                     DemoteFromBranchRoot();
-                    ParentAdopted?.Invoke(this, new DistributedParentEventArgs(ParentConnection.Username, ParentConnection.IPEndPoint, ParentBranchLevel, ParentBranchRoot));
-                    StateChanged?.Invoke(this, DistributedNetworkInfo.FromDistributedConnectionManager(this));
+                    RaiseParentAdopted(ParentConnection);
+                    RaiseStateChanged();
 
                     await UpdateStatusAsync().ConfigureAwait(false);
                     QueueBroadcastMessage(GetBranchInformation());
@@ -523,8 +523,8 @@ namespace Soulseek.Network
             {
                 IsBranchRoot = false;
                 Diagnostic.Info($"Demoted from distributed branch root.");
-                DemotedFromBranchRoot?.Invoke(this, EventArgs.Empty);
-                StateChanged?.Invoke(this, DistributedNetworkInfo.FromDistributedConnectionManager(this));
+                RaiseDemotedFromBranchRoot();
+                RaiseStateChanged();
             }
         }
 
@@ -671,8 +671,8 @@ namespace Soulseek.Network
 
                 Diagnostic.Debug($"Child connection to {connection.Username} ({connection.IPEndPoint}) established. (type: {connection.Type}, id: {connection.Id})");
                 Diagnostic.Info($"Added child connection to {connection.Username} ({connection.IPEndPoint})");
-                ChildAdded?.Invoke(this, new DistributedChildEventArgs(connection.Username, connection.IPEndPoint));
-                StateChanged?.Invoke(this, DistributedNetworkInfo.FromDistributedConnectionManager(this));
+                RaiseChildAdded(connection);
+                RaiseStateChanged();
 
                 QueueStatusUpdateEventually();
 
@@ -689,8 +689,8 @@ namespace Soulseek.Network
             {
                 IsBranchRoot = true;
                 Diagnostic.Info($"Promoted to distributed branch root.");
-                PromotedToBranchRoot?.Invoke(this, EventArgs.Empty);
-                StateChanged?.Invoke(this, DistributedNetworkInfo.FromDistributedConnectionManager(this));
+                RaisePromotedToBranchRoot();
+                RaiseStateChanged();
             }
         }
 
@@ -802,7 +802,7 @@ namespace Soulseek.Network
 
                         await SoulseekClient.ServerConnection.WriteAsync(payload.ToArray(), cancellationToken).ConfigureAwait(false);
 
-                        StateChanged?.Invoke(this, DistributedNetworkInfo.FromDistributedConnectionManager(this));
+                        RaiseStateChanged();
                         Diagnostic.Info($"Updated distributed status; {status}");
 
                         LastStatus = status.ToString();
@@ -881,8 +881,8 @@ namespace Soulseek.Network
 
             Diagnostic.Debug($"Child connection to {connection.Username} ({connection.IPEndPoint}) disconnected: {e.Message} (type: {connection.Type}, id: {connection.Id})");
             Diagnostic.Info($"Child connection to {connection.Username} ({connection.IPEndPoint}) disconnected{(e.Message == null ? "." : $": {e.Message}")}");
-            ChildDisconnected?.Invoke(this, new DistributedChildEventArgs(connection.Username, connection.IPEndPoint));
-            StateChanged?.Invoke(this, DistributedNetworkInfo.FromDistributedConnectionManager(this));
+            RaiseChildDisconnected(connection);
+            RaiseStateChanged();
 
             connection.Dispose();
 
@@ -917,6 +917,51 @@ namespace Soulseek.Network
 
             return payload.ToArray();
         }
+
+        private void RaiseChildAdded(IMessageConnection connection)
+            => RaiseEvent(nameof(ChildAdded), () => ChildAdded?.Invoke(this, new DistributedChildEventArgs(connection.Username, connection.IPEndPoint)));
+
+        private void RaiseChildDisconnected(IMessageConnection connection)
+            => RaiseEvent(nameof(ChildDisconnected), () => ChildDisconnected?.Invoke(this, new DistributedChildEventArgs(connection.Username, connection.IPEndPoint)));
+
+        private void RaiseDemotedFromBranchRoot()
+            => RaiseEvent(nameof(DemotedFromBranchRoot), () => DemotedFromBranchRoot?.Invoke(this, EventArgs.Empty));
+
+        private void RaiseDiagnosticGenerated(DiagnosticEventArgs e)
+        {
+            try
+            {
+                DiagnosticGenerated?.Invoke(this, e);
+            }
+            catch
+            {
+                // Diagnostics must not interrupt runtime control flow.
+            }
+        }
+
+        private void RaiseEvent(string eventName, Action raise)
+        {
+            try
+            {
+                raise();
+            }
+            catch (Exception ex)
+            {
+                Diagnostic.Warning($"Unhandled exception in {eventName} event handler: {ex.Message}", ex);
+            }
+        }
+
+        private void RaiseParentAdopted(IMessageConnection connection)
+            => RaiseEvent(nameof(ParentAdopted), () => ParentAdopted?.Invoke(this, new DistributedParentEventArgs(connection.Username, connection.IPEndPoint, ParentBranchLevel, ParentBranchRoot)));
+
+        private void RaiseParentDisconnected(IMessageConnection connection)
+            => RaiseEvent(nameof(ParentDisconnected), () => ParentDisconnected?.Invoke(this, new DistributedParentEventArgs(connection.Username, connection.IPEndPoint, ParentBranchLevel, ParentBranchRoot)));
+
+        private void RaisePromotedToBranchRoot()
+            => RaiseEvent(nameof(PromotedToBranchRoot), () => PromotedToBranchRoot?.Invoke(this, EventArgs.Empty));
+
+        private void RaiseStateChanged()
+            => RaiseEvent(nameof(StateChanged), () => StateChanged?.Invoke(this, DistributedNetworkInfo.FromDistributedConnectionManager(this)));
 
         private void RemovePendingInboundIndirectConnection(string username, CancellationTokenSource pendingCts)
         {
@@ -1152,13 +1197,13 @@ namespace Soulseek.Network
 
             Diagnostic.Debug($"Parent connection to {connection.Username} ({connection.IPEndPoint}) disconnected: {e.Message} (type: {connection.Type}, id: {connection.Id})");
             Diagnostic.Info($"Parent connection to {connection.Username} ({connection.IPEndPoint}) disconnected{(e.Message == null ? "." : $": {e.Message}")}.");
-            ParentDisconnected?.Invoke(this, new DistributedParentEventArgs(connection.Username, connection.IPEndPoint, ParentBranchLevel, ParentBranchRoot));
+            RaiseParentDisconnected(connection);
 
             ParentConnection = null;
             ParentBranchLevel = 0;
             ParentBranchRoot = string.Empty;
 
-            StateChanged?.Invoke(this, DistributedNetworkInfo.FromDistributedConnectionManager(this));
+            RaiseStateChanged();
 
             connection.Dispose();
 

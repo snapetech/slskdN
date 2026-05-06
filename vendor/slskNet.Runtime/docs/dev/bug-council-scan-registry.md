@@ -16,7 +16,7 @@ The council workflow is inventory-first:
 5. Add or extend `scripts/check-remediation-baseline.sh` for every fixed bug class.
 6. Run `bash scripts/check-council-sweep-counts.sh` to ensure closed sweep counts still match the current scanner output.
 
-The candidate scanner is intentionally noisy. It is not the pass/fail gate; it is the durable discovery queue. The remediation baseline is the pass/fail gate for fixed bug classes and must grow whenever the council burns down a confirmed finding.
+The candidate scanner is intentionally noisy. It is not the pass/fail gate; it is the durable discovery queue. The remediation baseline is the pass/fail gate for fixed bug classes and must grow whenever the council burns down a confirmed finding. A green all-phases council run is not proof that no bugs exist; it means the currently registered lenses and gates did not fire. Use `scripts/run-council-active-bughunt.sh` to keep a fresh discovery queue for suspicious shapes that are not yet durable gates.
 
 Current scan classes:
 

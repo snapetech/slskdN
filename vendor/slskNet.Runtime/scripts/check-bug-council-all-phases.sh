@@ -44,6 +44,7 @@ if [ ! -x "$runner" ]; then
 fi
 
 require_literal "scan-bug-council-candidates.sh" "$runner"
+require_literal "run-council-active-bughunt.sh" "$runner"
 require_literal "check-remediation-baseline.sh" "$runner"
 require_literal "check-council-sweep-counts.sh" "$runner"
 require_literal "check-council-negative-space.sh" "$runner"
@@ -53,8 +54,10 @@ require_literal "Category=Fuzz" "$runner"
 require_literal "dotnet restore slskNet.Runtime.sln" "$runner"
 require_literal "dotnet build slskNet.Runtime.sln" "$runner"
 require_literal "dotnet list slskNet.Runtime.sln package --vulnerable --include-transitive" "$runner"
+require_literal "this is not proof of no bugs" "$runner"
 
 require_literal 'scripts/check-bug-council-all-phases.sh' "$repo_root/scripts/check-remediation-baseline.sh"
+require_literal "not proof of no bugs" "$repo_root/scripts/run-council-active-bughunt.sh"
 
 assert_phase_done "Council process upgrades"
 assert_phase_done "Roslyn"
@@ -66,6 +69,7 @@ assert_phase_done "Add CSL0002"
 assert_phase_done "Mutation/calibration"
 assert_phase_done "Multi-seed"
 assert_phase_done "All-phases council runner"
+assert_phase_done "Non-proof verdict"
 
 if [ "$failed" -ne 0 ]; then
   exit 1
