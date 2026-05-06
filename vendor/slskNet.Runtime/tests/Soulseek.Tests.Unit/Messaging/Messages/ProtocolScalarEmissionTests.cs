@@ -15,19 +15,19 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
 
     public class ProtocolScalarEmissionTests
     {
-        [Theory(DisplayName = "Outbound server scalar commands reject invalid values before emission")]
-        [MemberData(nameof(ServerScalarCommands))]
-        public void Outbound_Server_Scalar_Commands_Reject_Invalid_Values_Before_Emission(Action action)
+        public static TheoryData<Action> PeerAndInitializationScalarCommands => new TheoryData<Action>
         {
-            Assert.Throws<ArgumentOutOfRangeException>(action);
-        }
-
-        [Theory(DisplayName = "Outbound peer and initialization scalar commands reject invalid tokens before emission")]
-        [MemberData(nameof(PeerAndInitializationScalarCommands))]
-        public void Outbound_Peer_And_Initialization_Scalar_Commands_Reject_Invalid_Tokens_Before_Emission(Action action)
-        {
-            Assert.Throws<ArgumentOutOfRangeException>(action);
-        }
+            () => new FolderContentsRequest(-1, "dir"),
+            () => new FolderContentsResponse(-1, "dir", Array.Empty<Directory>()),
+            () => new TransferRequest(TransferDirection.Download, -1, "file.mp3"),
+            () => new TransferResponse(-1),
+            () => new TransferResponse(-1, 1L),
+            () => new TransferResponse(-1, "denied"),
+            () => new PeerInit("user", Constants.ConnectionType.Peer, -1),
+            () => new PierceFirewall(-1),
+            () => new DistributedPingResponse(-1),
+            () => new DistributedSearchRequest("user", -1, "query"),
+        };
 
         public static TheoryData<Action> ServerScalarCommands => new TheoryData<Action>
         {
@@ -43,18 +43,18 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             () => new WishlistSearchRequest("query", -1),
         };
 
-        public static TheoryData<Action> PeerAndInitializationScalarCommands => new TheoryData<Action>
+        [Theory(DisplayName = "Outbound server scalar commands reject invalid values before emission")]
+        [MemberData(nameof(ServerScalarCommands))]
+        public void Outbound_Server_Scalar_Commands_Reject_Invalid_Values_Before_Emission(Action action)
         {
-            () => new FolderContentsRequest(-1, "dir"),
-            () => new FolderContentsResponse(-1, "dir", Array.Empty<Directory>()),
-            () => new TransferRequest(TransferDirection.Download, -1, "file.mp3"),
-            () => new TransferResponse(-1),
-            () => new TransferResponse(-1, 1L),
-            () => new TransferResponse(-1, "denied"),
-            () => new PeerInit("user", Constants.ConnectionType.Peer, -1),
-            () => new PierceFirewall(-1),
-            () => new DistributedPingResponse(-1),
-            () => new DistributedSearchRequest("user", -1, "query"),
-        };
+            Assert.Throws<ArgumentOutOfRangeException>(action);
+        }
+
+        [Theory(DisplayName = "Outbound peer and initialization scalar commands reject invalid tokens before emission")]
+        [MemberData(nameof(PeerAndInitializationScalarCommands))]
+        public void Outbound_Peer_And_Initialization_Scalar_Commands_Reject_Invalid_Tokens_Before_Emission(Action action)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(action);
+        }
     }
 }

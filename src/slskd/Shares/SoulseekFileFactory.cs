@@ -98,17 +98,17 @@ namespace slskd.Shares
                     if (!isLossless)
                     {
                         // per Nicotine+ docs, Soulseek NS, Nicotine+, Museek+, SoulSeeX all send bit rate, length, then VBR
-                        attributeList.Add(new FileAttribute(FileAttributeType.BitRate, file.Properties.AudioBitrate));
-                        attributeList.Add(new FileAttribute(FileAttributeType.Length, (int)file.Properties.Duration.TotalSeconds));
+                        attributeList.Add(new FileAttribute(FileAttributeType.BitRate, NormalizeMediaAttributeValue(file.Properties.AudioBitrate)));
+                        attributeList.Add(new FileAttribute(FileAttributeType.Length, NormalizeMediaAttributeValue(file.Properties.Duration.TotalSeconds)));
                         attributeList.Add(new FileAttribute(FileAttributeType.VariableBitRate, IsVBR(file) ? 1 : 0));
                     }
                     else
                     {
                         // SoulseekQt 2015-6-12 and later provides the length, sample rate and bit depth for lossless files
                         // bitrate can be deduced from this information
-                        attributeList.Add(new FileAttribute(FileAttributeType.Length, (int)file.Properties.Duration.TotalSeconds));
-                        attributeList.Add(new FileAttribute(FileAttributeType.SampleRate, file.Properties.AudioSampleRate));
-                        attributeList.Add(new FileAttribute(FileAttributeType.BitDepth, file.Properties.BitsPerSample));
+                        attributeList.Add(new FileAttribute(FileAttributeType.Length, NormalizeMediaAttributeValue(file.Properties.Duration.TotalSeconds)));
+                        attributeList.Add(new FileAttribute(FileAttributeType.SampleRate, NormalizeMediaAttributeValue(file.Properties.AudioSampleRate)));
+                        attributeList.Add(new FileAttribute(FileAttributeType.BitDepth, NormalizeMediaAttributeValue(file.Properties.BitsPerSample)));
                     }
                 }
                 catch (Exception ex)
@@ -122,6 +122,21 @@ namespace slskd.Shares
             }
 
             return new File(code, maskedFilename, size, extension, attributeList);
+        }
+
+        internal static int NormalizeMediaAttributeValue(double value)
+        {
+            if (double.IsNaN(value) || value <= 0)
+            {
+                return 0;
+            }
+
+            if (value >= int.MaxValue)
+            {
+                return int.MaxValue;
+            }
+
+            return (int)value;
         }
 
         private bool IsVBR(TagLib.File file)

@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fully synced the vendored slskNet.Runtime tracked-file mirror, including
+  protocol token emission hardening, and normalized share-scan media attributes
+  so stricter runtime validation does not reject corrupt metadata.
 - Ran a broader council cycle across backend security, frontend workflows,
   release packaging, and scanner coverage: fail-closed mesh gateway auth,
   POST-only memory dumps, redacted option logs, no-redirect tunnel transports,

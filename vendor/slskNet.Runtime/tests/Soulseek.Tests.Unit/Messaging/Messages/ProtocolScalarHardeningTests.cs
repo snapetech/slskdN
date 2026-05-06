@@ -18,12 +18,34 @@
 namespace Soulseek.Tests.Unit.Messaging.Messages
 {
     using System;
+    using System.Collections.Generic;
     using Soulseek.Messaging;
     using Soulseek.Messaging.Messages;
     using Xunit;
 
     public class ProtocolScalarHardeningTests
     {
+        public static IEnumerable<object[]> NegativeTokenConstructors()
+        {
+            yield return new object[] { "CannotConnect", new Action(() => new CannotConnect(-1, "user")) };
+            yield return new object[] { "ConnectToPeerRequest", new Action(() => new ConnectToPeerRequest(-1, "user", "P")) };
+            yield return new object[] { "DistributedPingResponse", new Action(() => new DistributedPingResponse(-1)) };
+            yield return new object[] { "DistributedSearchRequest", new Action(() => new DistributedSearchRequest("user", -1, "query")) };
+            yield return new object[] { "FolderContentsRequest", new Action(() => new FolderContentsRequest(-1, "dir")) };
+            yield return new object[] { "FolderContentsResponse", new Action(() => new FolderContentsResponse(-1, "dir", Array.Empty<Soulseek.Directory>())) };
+            yield return new object[] { "LoginRequest", new Action(() => new LoginRequest(-1, "user", "pass")) };
+            yield return new object[] { "PeerInit", new Action(() => new PeerInit("user", "P", -1)) };
+            yield return new object[] { "PierceFirewall", new Action(() => new PierceFirewall(-1)) };
+            yield return new object[] { "RoomSearchRequest", new Action(() => new RoomSearchRequest("room", "query", -1)) };
+            yield return new object[] { "SearchRequest", new Action(() => new SearchRequest("query", -1)) };
+            yield return new object[] { "TransferRequest", new Action(() => new TransferRequest(TransferDirection.Download, -1, "file", 0)) };
+            yield return new object[] { "TransferResponse denied", new Action(() => new TransferResponse(-1, "denied")) };
+            yield return new object[] { "TransferResponse allowed with size", new Action(() => new TransferResponse(-1, 0L)) };
+            yield return new object[] { "TransferResponse allowed", new Action(() => new TransferResponse(-1)) };
+            yield return new object[] { "UserSearchRequest", new Action(() => new UserSearchRequest("user", "query", -1)) };
+            yield return new object[] { "WishlistSearchRequest", new Action(() => new WishlistSearchRequest("query", -1)) };
+        }
+
         [Theory(DisplayName = "User statistics rejects negative counters")]
         [InlineData(-1, 1L, 1, 1)]
         [InlineData(1, -1L, 1, 1)]
@@ -163,6 +185,14 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
                 .Build();
 
             Assert.Throws<MessageException>(() => SearchResponseFactory.FromByteArray(msg));
+        }
+
+        [Theory(DisplayName = "Protocol message constructors reject negative tokens")]
+        [MemberData(nameof(NegativeTokenConstructors))]
+        public void Protocol_Message_Constructors_Reject_Negative_Tokens(string caseName, Action constructor)
+        {
+            Assert.NotNull(caseName);
+            Assert.Throws<ArgumentOutOfRangeException>(constructor);
         }
 
         [Fact(DisplayName = "User status rejects invalid presence")]

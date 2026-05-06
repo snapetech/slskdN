@@ -27,6 +27,7 @@ The broad scalar emission scan includes every protocol `WriteInteger`, `WriteLon
 | `src/Messaging/Messages/Server/AcknowledgePrivateMessageCommand.cs:35` | Fixed | RT-072 | Private message acknowledgement IDs now reject negative values in the internal command constructor. |
 | `src/Messaging/Messages/Server/AcknowledgePrivilegeNotificationCommand.cs:35` | Fixed | RT-072 | Privilege notification acknowledgement IDs now reject negative values in the internal command constructor. |
 | `src/Messaging/Messages/Server/GivePrivilegesCommand.cs:36` | Fixed | RT-072 | Privilege grant durations now reject non-positive values in the internal command constructor. |
+| protocol token and minor-version constructors | Fixed | RT-091 | Outbound/internal protocol messages now reject negative tokens and login minor versions through `ProtocolArgumentValidator` before serializing impossible scalar identifiers. |
 
 ## Existing Guards
 
@@ -39,6 +40,7 @@ The remaining scalar emission hits are already covered by domain model construct
 - Transfer scalar messages emit direction, file size, queue position, and allow/deny flags already hardened by transfer/request/response constructors and parser checks.
 - Listen-port and obfuscation port emissions are already bounded by `SetListenPortCommand`.
 - Branch level/depth emissions are already bounded by distributed scalar constructors.
+- Protocol token emissions and login minor-version emission are now bounded by `ProtocolArgumentValidator.RequireNonNegative` across server, peer, distributed, and initialization message constructors.
 - Boolean flag emissions are derived from bool properties or validated parser inputs.
 - String emissions now share `MessageBuilder.WriteString` null rejection, with public API guards remaining responsible for user-facing whitespace policy.
 - Compression helper and `MessageReader` scalar method hits are parser/infrastructure boundaries, not outbound protocol command emitters; their buffer limits are already covered by the protocol length/allocation sweep.

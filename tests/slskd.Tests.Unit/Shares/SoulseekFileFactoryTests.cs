@@ -90,6 +90,17 @@ public class SoulseekFileFactoryTests
         }
     }
 
+    [Theory]
+    [InlineData(-1, 0)]
+    [InlineData(double.NaN, 0)]
+    [InlineData(0, 0)]
+    [InlineData(123.9, 123)]
+    [InlineData(double.PositiveInfinity, int.MaxValue)]
+    public void NormalizeMediaAttributeValue_Clamps_Values_Runtime_Rejects(double value, int expected)
+    {
+        Assert.Equal(expected, SoulseekFileFactory.NormalizeMediaAttributeValue(value));
+    }
+
     private static void WriteMinimalWav(string path)
     {
         const short channels = 1;
