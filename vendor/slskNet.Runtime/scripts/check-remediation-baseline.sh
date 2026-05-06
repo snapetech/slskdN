@@ -578,11 +578,20 @@ fi
 
 # Mythos-level upgrades — phase 2 Roslyn analyzer beachhead.
 require_file "analyzers/Soulseek.CouncilAnalyzers/Soulseek.CouncilAnalyzers.csproj" "council analyzer project exists"
+require_file "analyzers/Soulseek.CouncilAnalyzers/ProtocolTaintAnalysis.cs" "shared protocol taint classifier exists"
 require_file "analyzers/Soulseek.CouncilAnalyzers/TaintToAllocationAnalyzer.cs" "CSL0001 taint-to-allocation analyzer source exists"
+require_file "analyzers/Soulseek.CouncilAnalyzers/TaintToLoopBoundAnalyzer.cs" "CSL0002 taint-to-loop-bound analyzer source exists"
 require_file "tests/Soulseek.CouncilAnalyzers.Tests/Soulseek.CouncilAnalyzers.Tests.csproj" "council analyzer tests project exists"
+require_file "tests/Soulseek.CouncilAnalyzers.Calibration/Soulseek.CouncilAnalyzers.Calibration.csproj" "council analyzer calibration project exists"
 require_file "docs/dev/bug-council-roslyn-analyzers.md" "council analyzer authoring doc exists"
 require_pattern "OutputItemType=\"Analyzer\"" "src/Soulseek.csproj" "runtime references council analyzer as analyzer"
 require_pattern "CSL0001" "analyzers/Soulseek.CouncilAnalyzers/TaintToAllocationAnalyzer.cs" "CSL0001 diagnostic descriptor is declared"
+require_pattern "CSL0002" "analyzers/Soulseek.CouncilAnalyzers/TaintToLoopBoundAnalyzer.cs" "CSL0002 diagnostic descriptor is declared"
+require_pattern "ReadByte" "analyzers/Soulseek.CouncilAnalyzers/ProtocolTaintAnalysis.cs" "CSL0001/CSL0002 taint sources include byte readers"
+require_pattern "ReadString" "analyzers/Soulseek.CouncilAnalyzers/ProtocolTaintAnalysis.cs" "CSL0001/CSL0002 taint sources include string readers"
+require_pattern "CreateInstance" "analyzers/Soulseek.CouncilAnalyzers/TaintToAllocationAnalyzer.cs" "CSL0001 sinks include Array.CreateInstance"
+require_pattern "MemoryStream" "analyzers/Soulseek.CouncilAnalyzers/TaintToAllocationAnalyzer.cs" "CSL0001 sinks include capacity constructors"
+require_pattern "Calibration_Corpus_Fires_CSL0001_And_CSL0002" "tests/Soulseek.CouncilAnalyzers.Calibration/CouncilAnalyzerCalibrationTests.cs" "council analyzer calibration corpus pins known-bad mutations"
 
 # Mythos-level upgrades — phase 3 protocol fuzz harness.
 require_file "tests/Soulseek.Tests.Unit/Messaging/Fuzz/ProtocolRoundtripFuzz.cs" "protocol roundtrip fuzz harness exists"
@@ -590,6 +599,8 @@ require_file "tests/Soulseek.Tests.Unit/Messaging/Fuzz/ProtocolAdversarialFuzz.c
 require_pattern "Category.*Fuzz" "tests/Soulseek.Tests.Unit/Messaging/Fuzz/ProtocolRoundtripFuzz.cs" "roundtrip fuzz is tagged with Fuzz category"
 require_pattern "Category.*Fuzz" "tests/Soulseek.Tests.Unit/Messaging/Fuzz/ProtocolAdversarialFuzz.cs" "adversarial fuzz is tagged with Fuzz category"
 require_pattern "IsDocumentedFailure" "tests/Soulseek.Tests.Unit/Messaging/Fuzz/ProtocolAdversarialFuzz.cs" "adversarial fuzz pins the documented-exception contract"
+require_pattern "Seeds" "tests/Soulseek.Tests.Unit/Messaging/Fuzz/ProtocolAdversarialFuzz.cs" "adversarial fuzz uses multiple deterministic seeds"
+require_pattern "KnownCorpus" "tests/Soulseek.Tests.Unit/Messaging/Fuzz/ProtocolAdversarialFuzz.cs" "adversarial fuzz includes explicit hostile corpus cases"
 
 if [[ "$failures" -gt 0 ]]; then
   printf '\n%d remediation baseline check(s) failed.\n' "$failures" >&2

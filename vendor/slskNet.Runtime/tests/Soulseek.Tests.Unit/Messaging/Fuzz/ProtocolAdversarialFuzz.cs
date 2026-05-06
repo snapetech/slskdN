@@ -23,6 +23,27 @@ namespace Soulseek.Tests.Unit.Messaging.Fuzz
     {
         private const int IterationsPerParser = 500;
 
+        private static readonly int[] Seeds =
+        {
+            0x5111_5110,
+            unchecked((int)0xC0DE_BAAD),
+            unchecked((int)0xA11C_A7ED),
+            0x5EED_2026,
+        };
+
+        private static readonly IReadOnlyList<byte[]> KnownCorpus = new List<byte[]>
+        {
+            Array.Empty<byte>(),
+            new byte[] { 0x00 },
+            new byte[] { 0xFF },
+            new byte[] { 0x04, 0x00, 0x00, 0x00 },
+            new byte[] { 0xFF, 0xFF, 0xFF, 0x7F },
+            new byte[] { 0xFF, 0xFF, 0xFF, 0xFF },
+            new byte[] { 0x00, 0x00, 0x00, 0x80 },
+            new byte[] { 0x10, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0x7F },
+            new byte[] { 0x10, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF },
+        };
+
         // Parsers under test, keyed by a stable label. Each parser is invoked with a random byte
         // buffer of varying length; we only require that the parser either succeeds or throws one
         // of the allowed exception types.
@@ -49,28 +70,31 @@ namespace Soulseek.Tests.Unit.Messaging.Fuzz
         [Fact]
         public void Random_Bytes_Produce_Only_Documented_Exceptions()
         {
-            var rng = new Random(0x5111_5110);
             var unexpectedFailures = new List<string>();
 
             foreach (var (label, parse) in Parsers)
             {
-                for (var i = 0; i < IterationsPerParser; i++)
+                foreach (var seed in Seeds)
                 {
-                    var length = rng.Next(0, 256);
-                    var bytes = new byte[length];
-                    rng.NextBytes(bytes);
+                    var rng = new Random(seed);
+                    for (var i = 0; i < IterationsPerParser; i++)
+                    {
+                        var length = rng.Next(0, 256);
+                        var bytes = new byte[length];
+                        rng.NextBytes(bytes);
 
-                    try
-                    {
-                        parse(bytes);
-                    }
-                    catch (Exception ex) when (IsDocumentedFailure(ex))
-                    {
-                        // expected
-                    }
-                    catch (Exception ex)
-                    {
-                        unexpectedFailures.Add($"{label} threw {ex.GetType().FullName} on input length {length}: {ex.Message}");
+                        try
+                        {
+                            parse(bytes);
+                        }
+                        catch (Exception ex) when (IsDocumentedFailure(ex))
+                        {
+                            // expected
+                        }
+                        catch (Exception ex)
+                        {
+                            unexpectedFailures.Add($"{label} threw {ex.GetType().FullName} on seed {seed} input length {length}: {ex.Message}");
+                        }
                     }
                 }
             }
@@ -81,25 +105,32 @@ namespace Soulseek.Tests.Unit.Messaging.Fuzz
         }
 
         [Fact]
-        public void Empty_Input_Produces_Only_Documented_Exceptions()
+        public void Known_Corpus_Produces_Only_Documented_Exceptions()
         {
-            // Empty input is an explicit boundary case; every parser must handle it without
-            // dereferencing into the buffer.
+            var unexpectedFailures = new List<string>();
+
             foreach (var (label, parse) in Parsers)
             {
-                try
+                foreach (var bytes in KnownCorpus)
                 {
-                    parse(Array.Empty<byte>());
-                }
-                catch (Exception ex) when (IsDocumentedFailure(ex))
-                {
-                    // expected
-                }
-                catch (Exception ex)
-                {
-                    Assert.Fail($"{label} threw undocumented {ex.GetType().FullName} on empty input: {ex.Message}");
+                    try
+                    {
+                        parse(bytes);
+                    }
+                    catch (Exception ex) when (IsDocumentedFailure(ex))
+                    {
+                        // expected
+                    }
+                    catch (Exception ex)
+                    {
+                        unexpectedFailures.Add($"{label} threw {ex.GetType().FullName} on corpus length {bytes.Length}: {ex.Message}");
+                    }
                 }
             }
+
+            var message = $"Known corpus produced {unexpectedFailures.Count} undocumented failures:\n  - "
+                + string.Join("\n  - ", unexpectedFailures);
+            Assert.True(unexpectedFailures.Count == 0, message);
         }
 
         private static bool IsDocumentedFailure(Exception ex)

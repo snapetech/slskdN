@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Replaced the checked-in slskdN web icon and logo assets with the borg feather
+  source artwork used by current frontend builds.
 - Hardened System Network, Mesh, Swarm Visualization, Swarm Analytics, Jobs,
   Security, Bridge, and MediaCore polling so in-flight refreshes do not update
   state after navigation away.

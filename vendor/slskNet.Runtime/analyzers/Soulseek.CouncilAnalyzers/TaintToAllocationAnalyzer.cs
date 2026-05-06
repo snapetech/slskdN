@@ -5,9 +5,7 @@
 
 namespace Soulseek.CouncilAnalyzers
 {
-    using System.Collections.Generic;
     using System.Collections.Immutable;
-    using System.Linq;
     using Microsoft.CodeAnalysis;
     using Microsoft.CodeAnalysis.CSharp;
     using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -19,9 +17,8 @@ namespace Soulseek.CouncilAnalyzers
     /// <remarks>
     ///     Flags allocations whose size expression transitively (intra-procedurally) depends on a value
     ///     read from an untrusted protocol stream (e.g. <c>MessageReader.ReadInteger</c>,
-    ///     <c>MessageReader.ReadLong</c>) without passing through a sanctioned validator
-    ///     (<c>ProtocolCountReader.ReadValidatedCount</c>, <c>ProtocolValueValidator.*</c>,
-    ///     <c>MessageFrameValidator.Validate*</c>). This is the highest-severity council lens
+    ///     <c>MessageReader.ReadString().Length</c>) without passing through a sanctioned validator.
+    ///     This is the highest-severity council lens
     ///     because a missing guard here is a remote denial-of-service.
     ///
     ///     See <c>docs/dev/bug-council-roslyn-analyzers.md</c> for how to add new lenses.
@@ -52,31 +49,12 @@ namespace Soulseek.CouncilAnalyzers
             isEnabledByDefault: true,
             description: Description);
 
-        // Method names on a wire-reader type that produce attacker-controlled scalars. The receiver
-        // type is filtered separately to avoid flagging local helpers that happen to share names.
-        private static readonly ImmutableHashSet<string> TaintedReaderMethodNames = ImmutableHashSet.Create(
-            "ReadInteger",
-            "ReadLong");
-
-        // Container types whose members are considered untrusted-source readers. Match by simple
-        // type name (without generic arity) so MessageReader<T> matches as "MessageReader".
-        private static readonly ImmutableHashSet<string> TaintedReaderTypeNames = ImmutableHashSet.Create(
-            "MessageReader");
-
-        // Methods whose presence on the dataflow path neutralizes the taint. These are the
-        // sanctioned validators declared in docs/dev/bug-council-negative-space.md and the
-        // documented helpers in src/Messaging.
-        private static readonly ImmutableHashSet<string> SanctionedValidatorMethodNames = ImmutableHashSet.Create(
-            "ReadValidatedCount",
-            "ValidateNonNegative",
-            "ValidateNonNegativeCount",
-            "ValidateMatchingCount",
-            "ValidateBooleanFlag",
-            "ValidateDefinedEnum",
-            "ValidatePort",
-            "ValidateAdvertisedPort",
-            "ValidateMessageLength",
-            "ValidateInitMessageLength");
+        private static readonly ImmutableHashSet<string> CapacityTypeNames = ImmutableHashSet.Create(
+            "List",
+            "Dictionary",
+            "HashSet",
+            "MemoryStream",
+            "StringBuilder");
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
             ImmutableArray.Create(Rule);
@@ -92,6 +70,8 @@ namespace Soulseek.CouncilAnalyzers
             context.EnableConcurrentExecution();
 
             context.RegisterSyntaxNodeAction(AnalyzeArrayCreation, SyntaxKind.ArrayCreationExpression);
+            context.RegisterSyntaxNodeAction(AnalyzeObjectCreation, SyntaxKind.ObjectCreationExpression);
+            context.RegisterSyntaxNodeAction(AnalyzeInvocation, SyntaxKind.InvocationExpression);
         }
 
         private static void AnalyzeArrayCreation(SyntaxNodeAnalysisContext context)
@@ -112,248 +92,52 @@ namespace Soulseek.CouncilAnalyzers
                         continue;
                     }
 
-                    var classification = ClassifyExpression(context.SemanticModel, size, new HashSet<ISymbol>(SymbolEqualityComparer.Default));
-                    if (classification.IsTainted && !classification.HasSanctionedValidator)
-                    {
-                        var diagnostic = Diagnostic.Create(
-                            Rule,
-                            size.GetLocation(),
-                            classification.TaintedSourceName ?? "ReadInteger");
-                        context.ReportDiagnostic(diagnostic);
-                    }
+                    ReportIfTainted(context, size);
                 }
             }
         }
 
-        private static Classification ClassifyExpression(
-            SemanticModel model,
-            ExpressionSyntax expression,
-            HashSet<ISymbol> visited)
+        private static void AnalyzeObjectCreation(SyntaxNodeAnalysisContext context)
         {
-            if (expression == null)
+            var creation = (ObjectCreationExpressionSyntax)context.Node;
+            var symbol = context.SemanticModel.GetSymbolInfo(creation).Symbol as IMethodSymbol;
+            var typeName = symbol?.ContainingType?.Name;
+            if (typeName == null || !CapacityTypeNames.Contains(typeName))
             {
-                return Classification.Clean;
+                return;
             }
 
-            switch (expression)
+            if (creation.ArgumentList?.Arguments.Count > 0)
             {
-                case ParenthesizedExpressionSyntax paren:
-                    return ClassifyExpression(model, paren.Expression, visited);
-
-                case CheckedExpressionSyntax check:
-                    return ClassifyExpression(model, check.Expression, visited);
-
-                case CastExpressionSyntax cast:
-                    return ClassifyExpression(model, cast.Expression, visited);
-
-                case BinaryExpressionSyntax bin:
-                    {
-                        var left = ClassifyExpression(model, bin.Left, visited);
-                        var right = ClassifyExpression(model, bin.Right, visited);
-                        return Classification.Combine(left, right);
-                    }
-
-                case PrefixUnaryExpressionSyntax pre:
-                    return ClassifyExpression(model, pre.Operand, visited);
-
-                case PostfixUnaryExpressionSyntax post:
-                    return ClassifyExpression(model, post.Operand, visited);
-
-                case ConditionalExpressionSyntax cond:
-                    {
-                        var t = ClassifyExpression(model, cond.WhenTrue, visited);
-                        var f = ClassifyExpression(model, cond.WhenFalse, visited);
-                        return Classification.Combine(t, f);
-                    }
-
-                case InvocationExpressionSyntax invocation:
-                    return ClassifyInvocation(model, invocation, visited);
-
-                case MemberAccessExpressionSyntax member:
-                    {
-                        // e.g. `payload.Length` where payload type is bounded; treat as clean unless arg is tainted.
-                        return ClassifyExpression(model, member.Expression, visited);
-                    }
-
-                case IdentifierNameSyntax identifier:
-                    return ClassifyIdentifier(model, identifier, visited);
+                ReportIfTainted(context, creation.ArgumentList.Arguments[0].Expression);
             }
-
-            return Classification.Clean;
         }
 
-        private static Classification ClassifyInvocation(
-            SemanticModel model,
-            InvocationExpressionSyntax invocation,
-            HashSet<ISymbol> visited)
+        private static void AnalyzeInvocation(SyntaxNodeAnalysisContext context)
         {
-            var symbolInfo = model.GetSymbolInfo(invocation);
-            var symbol = symbolInfo.Symbol as IMethodSymbol;
-            var nameForReport = invocation.ToString();
+            var invocation = (InvocationExpressionSyntax)context.Node;
+            var symbol = context.SemanticModel.GetSymbolInfo(invocation).Symbol as IMethodSymbol;
 
-            if (symbol != null)
+            if (symbol?.ContainingType?.Name != "Array" || symbol.Name != "CreateInstance")
             {
-                nameForReport = symbol.Name;
-
-                // Sanctioned validators short-circuit: their result is treated as clean even if their
-                // arguments are tainted. We do still descend into nested invocations *inside* the
-                // arguments so that a missing validator deeper down still surfaces.
-                if (SanctionedValidatorMethodNames.Contains(symbol.Name))
-                {
-                    var inner = ClassifyArguments(model, invocation, visited);
-                    return new Classification(
-                        isTainted: inner.IsTainted,
-                        hasSanctionedValidator: true,
-                        taintedSourceName: inner.TaintedSourceName);
-                }
-
-                // Tainted source: a wire-reader invocation that produces an attacker-controlled scalar.
-                if (TaintedReaderMethodNames.Contains(symbol.Name))
-                {
-                    var receiver = symbol.ContainingType;
-                    if (receiver != null && IsTaintedReaderType(receiver))
-                    {
-                        return new Classification(
-                            isTainted: true,
-                            hasSanctionedValidator: false,
-                            taintedSourceName: $"{receiver.Name}.{symbol.Name}");
-                    }
-                }
+                return;
             }
 
-            // Fallthrough: combine classifications of all arguments and the receiver expression.
-            var combined = ClassifyArguments(model, invocation, visited);
-            if (invocation.Expression is MemberAccessExpressionSyntax ma)
+            for (var i = 1; i < invocation.ArgumentList.Arguments.Count; i++)
             {
-                combined = Classification.Combine(combined, ClassifyExpression(model, ma.Expression, visited));
+                ReportIfTainted(context, invocation.ArgumentList.Arguments[i].Expression);
             }
-
-            return combined;
         }
 
-        private static Classification ClassifyArguments(
-            SemanticModel model,
-            InvocationExpressionSyntax invocation,
-            HashSet<ISymbol> visited)
+        private static void ReportIfTainted(SyntaxNodeAnalysisContext context, ExpressionSyntax expression)
         {
-            var combined = Classification.Clean;
-            if (invocation.ArgumentList == null)
+            var classification = ProtocolTaintAnalysis.ClassifyExpression(context.SemanticModel, expression);
+            if (classification.IsTainted && !classification.HasSanctionedValidator)
             {
-                return combined;
-            }
-
-            foreach (var argument in invocation.ArgumentList.Arguments)
-            {
-                combined = Classification.Combine(combined, ClassifyExpression(model, argument.Expression, visited));
-            }
-
-            return combined;
-        }
-
-        private static Classification ClassifyIdentifier(
-            SemanticModel model,
-            IdentifierNameSyntax identifier,
-            HashSet<ISymbol> visited)
-        {
-            var symbol = model.GetSymbolInfo(identifier).Symbol;
-            if (symbol == null)
-            {
-                return Classification.Clean;
-            }
-
-            // A parameter is treated as clean here — taint must be local for this lens. Inter-procedural
-            // taint is intentionally out of scope; the goal is to catch the high-severity in-method
-            // shape (ReadInteger() flowing into new T[N]) without false positives across method boundaries.
-            if (symbol is IParameterSymbol)
-            {
-                return Classification.Clean;
-            }
-
-            if (!visited.Add(symbol))
-            {
-                return Classification.Clean;
-            }
-
-            try
-            {
-                if (symbol is ILocalSymbol local)
-                {
-                    return ClassifyLocalSymbol(model, local, visited);
-                }
-
-                if (symbol is IFieldSymbol)
-                {
-                    return Classification.Clean;
-                }
-
-                if (symbol is IPropertySymbol)
-                {
-                    return Classification.Clean;
-                }
-            }
-            finally
-            {
-                visited.Remove(symbol);
-            }
-
-            return Classification.Clean;
-        }
-
-        private static Classification ClassifyLocalSymbol(
-            SemanticModel model,
-            ILocalSymbol local,
-            HashSet<ISymbol> visited)
-        {
-            var combined = Classification.Clean;
-
-            foreach (var reference in local.DeclaringSyntaxReferences)
-            {
-                if (reference.GetSyntax() is VariableDeclaratorSyntax declarator
-                    && declarator.Initializer?.Value is ExpressionSyntax init)
-                {
-                    combined = Classification.Combine(combined, ClassifyExpression(model, init, visited));
-                }
-            }
-
-            return combined;
-        }
-
-        private static bool IsTaintedReaderType(INamedTypeSymbol type)
-        {
-            for (var t = (INamedTypeSymbol?)type; t != null; t = t.BaseType)
-            {
-                if (TaintedReaderTypeNames.Contains(t.Name))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private readonly struct Classification
-        {
-            public Classification(bool isTainted, bool hasSanctionedValidator, string? taintedSourceName)
-            {
-                IsTainted = isTainted;
-                HasSanctionedValidator = hasSanctionedValidator;
-                TaintedSourceName = taintedSourceName;
-            }
-
-            public static Classification Clean => default;
-
-            public bool IsTainted { get; }
-
-            public bool HasSanctionedValidator { get; }
-
-            public string? TaintedSourceName { get; }
-
-            public static Classification Combine(Classification a, Classification b)
-            {
-                return new Classification(
-                    isTainted: a.IsTainted || b.IsTainted,
-                    hasSanctionedValidator: a.HasSanctionedValidator || b.HasSanctionedValidator,
-                    taintedSourceName: a.TaintedSourceName ?? b.TaintedSourceName);
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Rule,
+                    expression.GetLocation(),
+                    classification.TaintedSourceName ?? "protocol reader"));
             }
         }
     }

@@ -24,8 +24,11 @@ namespace Soulseek.Messaging
 
     internal sealed class MessageReader<T> where T : Enum
     {
+        public int ReadByte() => 0;
+        public byte[] ReadBytes(int count) => new byte[count];
         public int ReadInteger() => 0;
         public long ReadLong() => 0L;
+        public string ReadString() => string.Empty;
     }
 }
 
@@ -36,6 +39,7 @@ namespace Soulseek.Messaging.Messages.Server
     internal static class ProtocolCountReader
     {
         public static int ReadValidatedCount(MessageReader<DummyCode> reader, int max) => 0;
+        public static int ReadCount(MessageReader<DummyCode> reader, string collectionName, int minimumBytesPerItem) => 0;
     }
 
     internal enum DummyCode { None }
@@ -127,6 +131,124 @@ namespace Soulseek.Messaging.Messages.Server
         }
 
         [Fact]
+        public async Task Allocates_Tainted_ReadByte_Reports_CSL0001()
+        {
+            var source = ReaderHarness + @"
+namespace Soulseek.Messaging.Messages.Server
+{
+    using Soulseek.Messaging;
+
+    internal sealed class ByteBad
+    {
+        public byte[] Parse(MessageReader<DummyCode> reader)
+        {
+            var length = reader.ReadByte();
+            return new byte[length];
+        }
+    }
+}
+";
+            var diagnostics = await RunAnalyzerAsync(source);
+            Assert.Single(diagnostics);
+            Assert.Equal("CSL0001", diagnostics[0].Id);
+        }
+
+        [Fact]
+        public async Task Allocates_Tainted_ReadString_Length_Reports_CSL0001()
+        {
+            var source = ReaderHarness + @"
+namespace Soulseek.Messaging.Messages.Server
+{
+    using Soulseek.Messaging;
+
+    internal sealed class StringLengthBad
+    {
+        public byte[] Parse(MessageReader<DummyCode> reader)
+        {
+            var length = reader.ReadString().Length;
+            return new byte[length];
+        }
+    }
+}
+";
+            var diagnostics = await RunAnalyzerAsync(source);
+            Assert.Single(diagnostics);
+            Assert.Equal("CSL0001", diagnostics[0].Id);
+        }
+
+        [Fact]
+        public async Task ArrayCreateInstance_Tainted_Length_Reports_CSL0001()
+        {
+            var source = ReaderHarness + @"
+namespace Soulseek.Messaging.Messages.Server
+{
+    using System;
+    using Soulseek.Messaging;
+
+    internal sealed class ArrayCreateInstanceBad
+    {
+        public Array Parse(MessageReader<DummyCode> reader)
+        {
+            var length = reader.ReadInteger();
+            return Array.CreateInstance(typeof(byte), length);
+        }
+    }
+}
+";
+            var diagnostics = await RunAnalyzerAsync(source);
+            Assert.Single(diagnostics);
+            Assert.Equal("CSL0001", diagnostics[0].Id);
+        }
+
+        [Fact]
+        public async Task MemoryStream_Tainted_Capacity_Reports_CSL0001()
+        {
+            var source = ReaderHarness + @"
+namespace Soulseek.Messaging.Messages.Server
+{
+    using System.IO;
+    using Soulseek.Messaging;
+
+    internal sealed class MemoryStreamBad
+    {
+        public MemoryStream Parse(MessageReader<DummyCode> reader)
+        {
+            var length = reader.ReadInteger();
+            return new MemoryStream(length);
+        }
+    }
+}
+";
+            var diagnostics = await RunAnalyzerAsync(source);
+            Assert.Single(diagnostics);
+            Assert.Equal("CSL0001", diagnostics[0].Id);
+        }
+
+        [Fact]
+        public async Task List_Tainted_Capacity_Reports_CSL0001()
+        {
+            var source = ReaderHarness + @"
+namespace Soulseek.Messaging.Messages.Server
+{
+    using System.Collections.Generic;
+    using Soulseek.Messaging;
+
+    internal sealed class ListBad
+    {
+        public List<byte> Parse(MessageReader<DummyCode> reader)
+        {
+            var length = reader.ReadInteger();
+            return new List<byte>(length);
+        }
+    }
+}
+";
+            var diagnostics = await RunAnalyzerAsync(source);
+            Assert.Single(diagnostics);
+            Assert.Equal("CSL0001", diagnostics[0].Id);
+        }
+
+        [Fact]
         public async Task Allocates_Tainted_Through_Arithmetic_Reports_CSL0001()
         {
             var source = ReaderHarness + @"
@@ -146,6 +268,28 @@ namespace Soulseek.Messaging.Messages.Server
 ";
             var diagnostics = await RunAnalyzerAsync(source);
             Assert.Single(diagnostics);
+        }
+
+        [Fact]
+        public async Task Allocates_ReadCount_Result_Does_Not_Report()
+        {
+            var source = ReaderHarness + @"
+namespace Soulseek.Messaging.Messages.Server
+{
+    using Soulseek.Messaging;
+
+    internal sealed class ReadCountGood
+    {
+        public byte[] Parse(MessageReader<DummyCode> reader)
+        {
+            var length = ProtocolCountReader.ReadCount(reader, ""file"", minimumBytesPerItem: 1);
+            return new byte[length];
+        }
+    }
+}
+";
+            var diagnostics = await RunAnalyzerAsync(source);
+            Assert.Empty(diagnostics);
         }
 
         [Fact]

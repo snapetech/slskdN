@@ -16,8 +16,8 @@ slskd ships its own scoped phase rows below for slskd-specific work that builds 
 ## What is intentionally not mirrored
 
 - The slskNet.Runtime candidate scanner (`scan-bug-council-candidates.sh`) is **not** mirrored. slskd already runs ~35 topic-specific check scripts that cover the same territory in finer detail. Adding a catch-all scanner on top would produce noise without new signal.
-- The Roslyn analyzer (`Soulseek.CouncilAnalyzers`) ships in slskNet.Runtime and reaches slskd through the vendored runtime. slskd does not maintain its own copy.
-- The protocol fuzz harness lives in slskNet.Runtime. slskd-level fuzz (HTTP / web shell input) is its own follow-up phase.
+- The Roslyn analyzers (`Soulseek.CouncilAnalyzers`) ship in slskNet.Runtime and reach slskd through the vendored runtime. slskd does not maintain its own copy. The vendored runtime now includes broadened `CSL0001`, `CSL0002`, and analyzer calibration fixtures.
+- The protocol fuzz harness lives in slskNet.Runtime and now includes multiple deterministic seeds plus explicit hostile corpus inputs. slskd-level fuzz (HTTP / web shell input) is its own follow-up phase.
 
 ## slskd phases
 
