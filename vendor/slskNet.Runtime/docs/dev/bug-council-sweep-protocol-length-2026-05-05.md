@@ -8,18 +8,35 @@ bash scripts/scan-bug-council-candidates.sh
 
 Selected scan sections:
 
+- `Protocol count and length allocation candidates`
 - `Protocol counted collection loops`
 - `Protocol length-prefixed reads and payload allocations`
 - `Protocol compression boundary candidates`
 
 Candidate markers:
 
+- Protocol count and length allocation candidates: 221/221 classified
 - Protocol counted collection loops: 54/54 classified
 - Protocol length-prefixed reads and payload allocations: 12/12 classified
 - Protocol compression boundary candidates: 16/16 classified
 - Unclassified candidates: 0
 
-The broad `Protocol count and length allocation candidates` scan remains intentionally noisy. This sweep closes the loop flaw by adding countable sub-sections underneath that broad scan before burn-down decisions are made.
+The broad `Protocol count and length allocation candidates` scan remains intentionally noisy, but the current 221 hits are classified here so the broad queue cannot drift outside the council. Counted protocol loops, length-prefixed allocations, and compression boundaries are closed by the subgroups below. The remaining broad hits are fixed-size network buffers, guarded frame-read/write loops, scalar reads that delegate to hardened parser/model validation, lifecycle loops already covered by the lifecycle sweep, or legacy zlib internal loops behind bounded decompression.
+
+## Protocol Count And Length Allocation Candidates
+
+Classification: Existing guard / false positive.
+
+The 221 broad hits are covered as follows:
+
+- Obfuscated message and transfer frame allocations validate decoded lengths with `ValidateObfuscatedMessageLength`, `MessageFrameValidator`, or `RotatedObfuscation.MaxMessageLength` before allocating `8 + length`, payload, or frame buffers.
+- Buffered connection reads reject negative, oversized, and over-limit lengths before allocating arrays; stream overloads use fixed-size buffers or pooled buffers and enforce governor forward progress.
+- Transfer read/write loops bound each buffer by configured read/write sizes, frame payload limits, decoded buffer availability, or the caller-requested transfer length.
+- Protocol counted collection loops are closed by the `Protocol counted collection loops` subgroup.
+- Length-prefixed string, byte, and picture reads are closed by the `Protocol length-prefixed reads and payload allocations` subgroup.
+- Scalar `ReadInteger` and `ReadLong` hits are not allocation/count loops by themselves; downstream constructors, protocol scalar validators, enum validators, and parser factories are covered by RT-001, RT-032, RT-041, RT-069, RT-071, and RT-072.
+- Compression implementation loops and working buffers are behind bounded decompression and are closed by the compression subgroup.
+- Network manager lifecycle loops are ownership/connection-drain loops, not protocol length/count trust boundaries; they are closed by the lifecycle sweep.
 
 ## Protocol Counted Collection Loops
 

@@ -93,18 +93,18 @@ jobs:
           # Create proper directory structure for debian packaging
           mkdir -p slskdn-${{ steps.version.outputs.version }}/usr/lib/slskd
           mkdir -p slskdn-${{ steps.version.outputs.version }}/lib/systemd/system
-	          mkdir -p slskdn-${{ steps.version.outputs.version }}/etc/slskd
-	          mkdir -p slskdn-${{ steps.version.outputs.version }}/usr/lib/sysusers.d
-	          mkdir -p slskdn-${{ steps.version.outputs.version }}/usr/lib/tmpfiles.d
+          mkdir -p slskdn-${{ steps.version.outputs.version }}/etc/slskd
+          mkdir -p slskdn-${{ steps.version.outputs.version }}/usr/lib/sysusers.d
+          mkdir -p slskdn-${{ steps.version.outputs.version }}/usr/lib/tmpfiles.d
           
           # Copy binary files from our build
           cp -r publish-linux-x64/* slskdn-${{ steps.version.outputs.version }}/usr/lib/slskd/
           
           # Copy service files from packaging
-	          cp packaging/aur/slskd.service slskdn-${{ steps.version.outputs.version }}/lib/systemd/system/
-	          cp packaging/aur/slskd.yml slskdn-${{ steps.version.outputs.version }}/etc/slskd/
-	          cp packaging/aur/slskd.sysusers slskdn-${{ steps.version.outputs.version }}/usr/lib/sysusers.d/slskd.conf
-	          cp packaging/aur/slskd.tmpfiles slskdn-${{ steps.version.outputs.version }}/usr/lib/tmpfiles.d/slskd.conf
+          cp packaging/aur/slskd.service slskdn-${{ steps.version.outputs.version }}/lib/systemd/system/
+          cp packaging/aur/slskd.yml slskdn-${{ steps.version.outputs.version }}/etc/slskd/
+          cp packaging/aur/slskd.sysusers slskdn-${{ steps.version.outputs.version }}/usr/lib/sysusers.d/slskd.conf
+          cp packaging/aur/slskd.tmpfiles slskdn-${{ steps.version.outputs.version }}/usr/lib/tmpfiles.d/slskd.conf
 
       - name: Prepare Source Package
         run: |

@@ -194,22 +194,22 @@ jobs:
             source "$pkgbuild"
             
             echo "pkgbase = ${pkgname}"
-            echo "	pkgdesc = ${pkgdesc}"
-            echo "	pkgver = ${pkgver}"
-            echo "	pkgrel = ${pkgrel}"
-            echo "	url = ${url}"
-            for arch in "${arch[@]}"; do echo "	arch = $arch"; done
-            echo "	license = ${license[0]}"
-            for dep in "${depends[@]}"; do echo "	depends = $dep"; done
-            for dep in "${makedepends[@]}"; do echo "	makedepends = $dep"; done
-            for dep in "${optdepends[@]}"; do echo "	optdepends = $dep"; done
-            for prov in "${provides[@]}"; do echo "	provides = $prov"; done
-            for conf in "${conflicts[@]}"; do echo "	conflicts = $conf"; done
-            for repl in "${replaces[@]}"; do echo "	replaces = $repl"; done
-            for opt in "${options[@]}"; do echo "	options = $opt"; done
-            for bak in "${backup[@]}"; do echo "	backup = $bak"; done
-            for src in "${source[@]}"; do echo "	source = $src"; done
-            for sum in "${sha256sums[@]}"; do echo "	sha256sums = $sum"; done
+            printf '\tpkgdesc = %s\n' "${pkgdesc}"
+            printf '\tpkgver = %s\n' "${pkgver}"
+            printf '\tpkgrel = %s\n' "${pkgrel}"
+            printf '\turl = %s\n' "${url}"
+            for arch in "${arch[@]}"; do printf '\tarch = %s\n' "$arch"; done
+            printf '\tlicense = %s\n' "${license[0]}"
+            for dep in "${depends[@]}"; do printf '\tdepends = %s\n' "$dep"; done
+            for dep in "${makedepends[@]}"; do printf '\tmakedepends = %s\n' "$dep"; done
+            for dep in "${optdepends[@]}"; do printf '\toptdepends = %s\n' "$dep"; done
+            for prov in "${provides[@]}"; do printf '\tprovides = %s\n' "$prov"; done
+            for conf in "${conflicts[@]}"; do printf '\tconflicts = %s\n' "$conf"; done
+            for repl in "${replaces[@]}"; do printf '\treplaces = %s\n' "$repl"; done
+            for opt in "${options[@]}"; do printf '\toptions = %s\n' "$opt"; done
+            for bak in "${backup[@]}"; do printf '\tbackup = %s\n' "$bak"; done
+            for src in "${source[@]}"; do printf '\tsource = %s\n' "$src"; done
+            for sum in "${sha256sums[@]}"; do printf '\tsha256sums = %s\n' "$sum"; done
             echo ""
             echo "pkgname = ${pkgname}"
           }
@@ -219,10 +219,10 @@ jobs:
           cd aur-repo
           cp ../packaging/aur/PKGBUILD-bin PKGBUILD
           cp ../packaging/aur/slskd.service .
-	          cp ../packaging/aur/slskd.yml .
-	          cp ../packaging/aur/slskd.sysusers .
-	          cp ../packaging/aur/slskd.tmpfiles .
-	          cp ../packaging/aur/slskd.install .
+          cp ../packaging/aur/slskd.yml .
+          cp ../packaging/aur/slskd.sysusers .
+          cp ../packaging/aur/slskd.tmpfiles .
+          cp ../packaging/aur/slskd.install .
           generate_srcinfo PKGBUILD > .SRCINFO
           git add -A
           bash ../packaging/scripts/push-aur-repo.sh . slskdn-bin "Update to ${{ steps.version.outputs.tag }}"
@@ -233,10 +233,10 @@ jobs:
           cd aur-repo-src
           cp ../packaging/aur/PKGBUILD .
           cp ../packaging/aur/slskd.service .
-	          cp ../packaging/aur/slskd.yml .
-	          cp ../packaging/aur/slskd.sysusers .
-	          cp ../packaging/aur/slskd.tmpfiles .
-	          cp ../packaging/aur/slskd.install .
+          cp ../packaging/aur/slskd.yml .
+          cp ../packaging/aur/slskd.sysusers .
+          cp ../packaging/aur/slskd.tmpfiles .
+          cp ../packaging/aur/slskd.install .
           generate_srcinfo PKGBUILD > .SRCINFO
           git add -A
           bash ../packaging/scripts/push-aur-repo.sh . slskdn "Update to ${{ steps.version.outputs.tag }}"

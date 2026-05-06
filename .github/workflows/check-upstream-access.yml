@@ -82,27 +82,31 @@ jobs:
           git push origin upstream-unlocked
           
           # Create PR
+          cat > pr-body.md <<'EOF'
+          ## Upstream Access Restored!
+
+          The daily check detected that **slskd/slskd** interaction limits have been removed or relaxed.
+
+          ### Changes in this PR
+          - Updated comparison table: `🔒` → `✅` for 'Open to community feedback'
+
+          ### Next Steps
+          1. **Verify manually** that you can create issues/PRs at https://github.com/slskd/slskd
+          2. **Submit bug fixes** documented in `docs/upstream-bug-testing.md`:
+             - `fix/async-void-roomservice` - try-catch wrapper for crash prevention
+             - `fix/searches-undefined-return` - return [] instead of undefined
+             - `fix/transfers-undefined-return` - return [] instead of undefined
+          3. **Merge this PR** once upstream contributions are submitted
+
+          ---
+          *This PR was created automatically by the check-upstream-access workflow.*
+          EOF
+
           gh pr create --repo ${{ github.repository }} \
             --title "🎉 Update README: Upstream is open to contributions!" \
             --head "upstream-unlocked" \
             --base "master" \
-            --body "## Upstream Access Restored!
-
-The daily check detected that **slskd/slskd** interaction limits have been removed or relaxed.
-
-### Changes in this PR
-- Updated comparison table: \`🔒\` → \`✅\` for 'Open to community feedback'
-
-### Next Steps
-1. **Verify manually** that you can create issues/PRs at https://github.com/slskd/slskd
-2. **Submit bug fixes** documented in \`docs/upstream-bug-testing.md\`:
-   - \`fix/async-void-roomservice\` - try-catch wrapper for crash prevention
-   - \`fix/searches-undefined-return\` - return [] instead of undefined
-   - \`fix/transfers-undefined-return\` - return [] instead of undefined
-3. **Merge this PR** once upstream contributions are submitted
-
----
-*This PR was created automatically by the check-upstream-access workflow.*"
+            --body-file pr-body.md
           
           echo "Created PR to update README"
 
@@ -117,19 +121,23 @@ The daily check detected that **slskd/slskd** interaction limits have been remov
           if [ -z "$EXISTING" ]; then
             gh label create "upstream-unlocked" --description "Upstream slskd is open to contributions" --color "2ea44f" --force 2>/dev/null || true
             
+            cat > issue-body.md <<'EOF'
+            The daily check detected that slskd/slskd interaction limits may have changed.
+
+            **A PR has been created automatically to update the README.**
+
+            **Action items:**
+            1. Manually verify you can create issues/PRs at https://github.com/slskd/slskd
+            2. If confirmed, submit the bug fixes documented in `docs/upstream-bug-testing.md`
+            3. Review and merge the auto-generated PR to update the comparison table
+
+            *This issue was created automatically by the check-upstream-access workflow.*
+            EOF
+
             gh issue create --repo ${{ github.repository }} \
               --title "🎉 Upstream slskd may be open to contributions!" \
               --label "upstream-unlocked" \
-              --body "The daily check detected that slskd/slskd interaction limits may have changed.
-
-**A PR has been created automatically to update the README.**
-
-**Action items:**
-1. Manually verify you can create issues/PRs at https://github.com/slskd/slskd
-2. If confirmed, submit the bug fixes documented in \`docs/upstream-bug-testing.md\`
-3. Review and merge the auto-generated PR to update the comparison table
-
-*This issue was created automatically by the check-upstream-access workflow.*"
+              --body-file issue-body.md
             echo "Created notification issue"
           else
             echo "Notification issue #$EXISTING already exists"
