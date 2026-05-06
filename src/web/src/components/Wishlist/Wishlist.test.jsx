@@ -109,4 +109,35 @@ describe('Wishlist', () => {
     expect(wishlistAPI.runSearch).toHaveBeenCalledWith('wish-2');
     expect(screen.getByText(/Ran 2 enabled Wishlist searches/)).toBeInTheDocument();
   });
+
+  it('renders an empty wishlist when the API returns a malformed list', async () => {
+    wishlistAPI.getAll.mockResolvedValue({ items: [] });
+
+    renderWishlist();
+
+    expect(await screen.findByText('No wishlist items yet')).toBeInTheDocument();
+  });
+
+  it('encodes last search ids as one route segment', async () => {
+    wishlistAPI.getAll.mockResolvedValue([
+      {
+        autoDownload: false,
+        enabled: true,
+        id: 'wish-special',
+        lastMatchCount: 1,
+        lastSearchId: 'search/with?chars%',
+        lastSearchedAt: '2026-05-06T00:00:00Z',
+        searchText: 'encoded route',
+        totalSearchCount: 1,
+      },
+    ]);
+
+    renderWishlist();
+
+    expect(await screen.findByText('encoded route')).toBeInTheDocument();
+    expect(screen.getByTitle('View last search results').closest('a')).toHaveAttribute(
+      'href',
+      '/searches/search%2Fwith%3Fchars%25',
+    );
+  });
 });

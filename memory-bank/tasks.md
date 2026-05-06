@@ -2519,3 +2519,7 @@
 - [x] Burn down runtime protocol scalar emission sweep
   - Status: completed (2026-05-05)
   - Notes: Classified 145/145 protocol scalar emission candidates, fixed accepted outbound token/id/version/day-count constructor gaps, and added grouped scalar-emission regression coverage.
+
+- [x] Run non-runtime council scan and burn down accepted findings
+  - Status: completed (2026-05-06)
+  - Notes: Skipped the runtime lane, classified accepted release/ops, frontend workflow, and backend/security findings as `BUG-20260506-004` through `BUG-20260506-013`, fixed package/workflow drift, Web list/route guards, admin-only security telemetry, and anonymous build update side effects, and added non-runtime regression scanners.

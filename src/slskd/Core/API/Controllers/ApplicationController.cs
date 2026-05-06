@@ -137,14 +137,9 @@ namespace slskd.Core.API
         /// <returns></returns>
         [HttpGet("build")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetBuild([FromQuery] bool checkForUpdates = true)
+        public IActionResult GetBuild([FromQuery] bool checkForUpdates = false)
         {
-            var checkedAt = ApplicationStateMonitor.CurrentValue.Version.CheckedAt;
-            if (checkForUpdates && (checkedAt == null || checkedAt < DateTimeOffset.UtcNow.AddHours(-1)))
-            {
-                await Application.CheckVersionAsync().ConfigureAwait(false);
-            }
-
+            _ = checkForUpdates;
             return Ok(ApplicationStateMonitor.CurrentValue.Version);
         }
 

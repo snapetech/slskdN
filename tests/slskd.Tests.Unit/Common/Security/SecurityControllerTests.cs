@@ -3,16 +3,30 @@
 // </copyright>
 namespace slskd.Tests.Unit.Common.Security;
 
+using System.Reflection;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
+using slskd;
 using slskd.Common.Security;
 using slskd.Common.Security.API;
 using Xunit;
 
 public class SecurityControllerTests
 {
+    [Fact]
+    public void SecurityTelemetryController_Requires_Administrator_Role()
+    {
+        var authorize = typeof(SecurityController)
+            .GetCustomAttributes<AuthorizeAttribute>(inherit: true)
+            .Single();
+
+        Assert.Equal(AuthPolicy.Any, authorize.Policy);
+        Assert.Equal(AuthRole.AdministratorOnly, authorize.Roles);
+    }
+
     [Fact]
     public async Task BuildCircuit_DoesNotLeak_Exception_Message()
     {

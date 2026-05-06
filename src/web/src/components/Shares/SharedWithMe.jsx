@@ -326,7 +326,7 @@ export default class SharedWithMe extends Component {
                 {manifest.description && (
                   <p style={{ marginBottom: '1em' }}>{manifest.description}</p>
                 )}
-                {manifest.items && manifest.items.length > 0 ? (
+                {asArray(manifest.items).length > 0 ? (
                   <Table>
                     <Table.Header>
                       <Table.Row>
@@ -336,7 +336,7 @@ export default class SharedWithMe extends Component {
                       </Table.Row>
                     </Table.Header>
                     <Table.Body>
-                      {manifest.items.map((item, index) => {
+                      {asArray(manifest.items).map((item, index) => {
                         // Extract sha256 prefix from contentId (format: "sha256:...")
                         const sha256Prefix = item.contentId?.startsWith(
                           'sha256:',

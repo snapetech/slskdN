@@ -6,7 +6,6 @@ namespace slskd.Tests.Unit.Core.API;
 using System;
 using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -54,7 +53,7 @@ public class ApplicationControllerTests
     }
 
     [Fact]
-    public async Task GetBuild_ReturnsPublicVersionStateWithoutForcingWhenAlreadyChecked()
+    public void GetBuild_ReturnsPublicVersionStateWithoutForcingWhenAlreadyChecked()
     {
         var application = new Mock<IApplication>();
         var controller = CreateController(
@@ -71,7 +70,7 @@ public class ApplicationControllerTests
                 },
             });
 
-        var result = await controller.GetBuild();
+        var result = controller.GetBuild();
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var version = Assert.IsType<VersionState>(ok.Value);
@@ -82,14 +81,14 @@ public class ApplicationControllerTests
     }
 
     [Fact]
-    public async Task GetBuild_ChecksGitHubWhenNoCachedCheckExists()
+    public void GetBuild_DoesNotTriggerUpdateChecksForAnonymousRequests()
     {
         var application = new Mock<IApplication>();
         var controller = CreateController(application: application);
 
-        await controller.GetBuild();
+        controller.GetBuild(checkForUpdates: true);
 
-        application.Verify(a => a.CheckVersionAsync(), Times.Once);
+        application.Verify(a => a.CheckVersionAsync(), Times.Never);
     }
 
     [Theory]

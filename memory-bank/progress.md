@@ -9796,3 +9796,11 @@ Code quality improvements were completed as part of Option A:
 - Added the missing changelog section, documented ADR-0001 gotcha `0z323`, pushed `main`, and cut the replacement tag.
 - Release validation passed: release gate, all six platform binary artifacts, GitHub release creation, Docker, PPA, COPR, AUR, Nix metadata/smoke, Homebrew tap update, and Discord/Matrix announcement.
 - Chocolatey package creation succeeded, but Chocolatey push returned five `504 Gateway Timeout` responses; the workflow completed overall because that channel is non-blocking.
+
+## 2026-05-06 16:20:00Z
+
+- Ran the non-runtime council scan while leaving `vendor/slskNet.Runtime` to the separate runtime agent.
+- Fixed accepted release/ops drift: Snap updater coverage, Flatpak manifest structure, CodeQL .NET 10 setup, and scheduled upstream release tag creation.
+- Fixed accepted Web/backend findings: Wishlist route/list guards, System Shares/SharedWithMe malformed payload guards, admin-only security telemetry, and anonymous build endpoint update-check side effects.
+- Added regression scanners for CodeQL .NET setup, Flatpak manifest structure, Web list-shape guards, and Web search route segment encoding, and recorded ledger rows `BUG-20260506-004` through `BUG-20260506-013`.
+- Validation passed: focused Web tests (`9` tests), focused backend tests (`17` tests), Web lint, repo lint, packaging/release/workflow scanner lane, and `git diff --check`.

@@ -48,6 +48,13 @@ if rg -n '\[0-9\]\+\.\[0-9\]\+\.\[0-9\]\+' "$repo_root/.github/workflows/ci.yml"
   failed=1
 fi
 
+while IFS= read -r workflow; do
+  if rg -q '^\s*schedule:' "$workflow" && rg -q 'git (tag|push origin .*\$?NEW_VERSION|push origin .*\$?\{.*version.*\})' "$workflow"; then
+    printf '%s must not create or push release tags from a scheduled workflow\n' "${workflow#$repo_root/}" >&2
+    failed=1
+  fi
+done < <(find "$repo_root/.github/workflows" -maxdepth 1 -type f \( -name '*.yml' -o -name '*.yaml' \) | sort)
+
 if [ "$failed" -ne 0 ]; then
   exit 1
 fi

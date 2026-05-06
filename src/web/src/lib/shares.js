@@ -1,7 +1,8 @@
 import api from './api';
 
 export const getAll = async () => {
-  return (await api.get('/shares')).data;
+  const data = (await api.get('/shares')).data;
+  return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
 };
 
 export const get = async ({ id } = {}) => {

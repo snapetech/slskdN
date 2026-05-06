@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Hardened vendored slskNet.Runtime username and password confirmation
+  comparisons to use ordinal protocol identity semantics.
+
 ## [2026050600-slskdn.227] — 2026-05-06
 
 This supersedes `build-main-2026050600-slskdn.226`, which built all platform

@@ -1,7 +1,8 @@
 import api from './api';
 
 export const getAll = async () => {
-  return (await api.get('/wishlist')).data;
+  const data = (await api.get('/wishlist')).data;
+  return Array.isArray(data) ? data : [];
 };
 
 export const get = async (id) => {

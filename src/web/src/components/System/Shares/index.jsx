@@ -7,6 +7,11 @@ import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Divider } from 'semantic-ui-react';
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+const asObject = (value) => (
+  value && typeof value === 'object' && !Array.isArray(value) ? value : {}
+);
+
 const ScanButton = ({ rescan, scanPending, working }) => (
   <ShrinkableButton
     color={scanPending ? 'yellow' : undefined}
@@ -46,10 +51,10 @@ const Shares = ({ state = {}, theme } = {}) => {
       if (!quiet) setLoading(true);
 
       const sharesByHost = await sharesLibrary.getAll();
-      const flattened = Object.entries(sharesByHost).reduce(
+      const flattened = Object.entries(asObject(sharesByHost)).reduce(
         (accumulator, [host, sharesForHost]) => {
           return accumulator.concat(
-            sharesForHost.map((share) => ({ host, ...share })),
+            asArray(sharesForHost).map((share) => ({ host, ...share })),
           );
         },
         [],

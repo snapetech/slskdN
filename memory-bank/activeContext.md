@@ -1,3 +1,16 @@
+## Update 2026-05-06 16:20:00Z
+
+- Current task: Non-runtime council scan and accepted burn-down batch is complete locally.
+- Last activity:
+  - skipped `vendor/slskNet.Runtime` because runtime is assigned to another agent
+  - fixed and verified `BUG-20260506-004` through `BUG-20260506-013` in `docs/dev/bug-burndown-ledger.md`
+  - fixed Snap updater coverage, Flatpak manifest structure, CodeQL .NET setup, scheduled release-tag automation, Wishlist route/list guards, System Shares/SharedWithMe payload guards, SecurityController role drift, and anonymous build update side effects
+  - added non-runtime scanners for CodeQL .NET setup, Flatpak manifest structure, Web list-shape guards, and Web search route segment encoding
+  - validation passed: focused Web tests (`9`), focused backend tests (`17`), Web lint, repo lint, packaging/release/workflow scanner lane, and `git diff --check`
+- Next steps:
+  1. Commit and push the non-runtime council batch, excluding runtime files owned by the other agent.
+  2. Continue the next non-runtime council section if requested.
+
 ## Update 2026-05-06 01:05:00Z
 
 - Current task: Live `kspls0` Soulseek disconnect/log follow-up is fixed and deployed.

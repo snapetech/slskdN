@@ -1,9 +1,6 @@
 name: Upstream Release Sync
 
 on:
-  schedule:
-    # Check for new upstream releases every 6 hours (offset from sync)
-    - cron: '30 */6 * * *'
   workflow_dispatch:
     inputs:
       force_release:
@@ -121,7 +118,7 @@ jobs:
       - name: Push Changes
         if: steps.merge.outputs.merge_success == 'true'
         run: |
-          git push origin master
+          git push origin HEAD:main
 
       - name: Update PKGBUILDs
         if: steps.merge.outputs.merge_success == 'true'
@@ -149,7 +146,7 @@ jobs:
           
           git add packaging/aur/
           git commit -m "chore: Update PKGBUILDs to ${NEW_VERSION}" || true
-          git push origin master
+          git push origin HEAD:main
 
       - name: Create Release Tag
         if: steps.merge.outputs.merge_success == 'true'

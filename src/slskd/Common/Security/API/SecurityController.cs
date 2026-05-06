@@ -29,7 +29,7 @@ using IOFile = System.IO.File;
 [ApiController]
 [Route("api/v{version:apiVersion}/security")]
 [ApiVersion("0")]
-[Authorize(Policy = AuthPolicy.Any)]
+[Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
 public class SecurityController : ControllerBase
 {
