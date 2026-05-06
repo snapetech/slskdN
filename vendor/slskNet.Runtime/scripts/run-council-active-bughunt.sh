@@ -59,6 +59,14 @@ write_section \
   ' src/Network/MessageConnection.cs
 } >>"$report"
 
+{
+  printf '\n## Unisolated TCP connection event invocations\n'
+  awk '
+    /private void RaiseEventHandler/ { exit }
+    /\.Invoke\(this,/ { printf "%s:%d:%s\n", FILENAME, NR, $0 }
+  ' src/Network/Tcp/Connection.cs
+} >>"$report"
+
 write_section \
   "Remote/user text in diagnostics or HTTP errors" \
   '(Diagnostic\.(Debug|Info|Warning|Error)|StatusCode\(|BadRequest\(|Console\.WriteLine)\([^;\n]*(username|query|filename|directory|token|Message)' \

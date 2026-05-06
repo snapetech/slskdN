@@ -584,18 +584,15 @@ namespace Soulseek.Network.Tcp
 
             State = state;
 
-            Interlocked.CompareExchange(ref StateChanged, null, null)?
-                .Invoke(this, eventArgs);
+            RaiseStateChanged(eventArgs);
 
             if (State == ConnectionState.Connected)
             {
-                Interlocked.CompareExchange(ref Connected, null, null)?
-                    .Invoke(this, EventArgs.Empty);
+                RaiseConnected();
             }
             else if (State == ConnectionState.Disconnected)
             {
-                Interlocked.CompareExchange(ref Disconnected, null, null)?
-                    .Invoke(this, new ConnectionDisconnectedEventArgs(message, exception));
+                RaiseDisconnected(message, exception);
 
                 if (exception != null)
                 {
@@ -693,19 +690,7 @@ namespace Soulseek.Network.Tcp
 
                     reporter?.Invoke(bytesToRead, bytesGranted, bytesRead);
 
-                    if (SoulseekClient.RaiseEventsAsynchronously)
-                    {
-                        Task.Run(() =>
-                        {
-                            Interlocked.CompareExchange(ref DataRead, null, null)?
-                                .Invoke(this, new ConnectionDataEventArgs(totalBytesRead, length));
-                        }, cancellationToken).Forget();
-                    }
-                    else
-                    {
-                        Interlocked.CompareExchange(ref DataRead, null, null)?
-                            .Invoke(this, new ConnectionDataEventArgs(totalBytesRead, length));
-                    }
+                    RaiseDataRead(totalBytesRead, length);
 
                     ResetInactivityTime();
                 }
@@ -844,19 +829,7 @@ namespace Soulseek.Network.Tcp
 
                     reporter?.Invoke(bytesToRead, bytesGranted, bytesRead);
 
-                    if (SoulseekClient.RaiseEventsAsynchronously)
-                    {
-                        Task.Run(() =>
-                        {
-                            Interlocked.CompareExchange(ref DataWritten, null, null)?
-                                .Invoke(this, new ConnectionDataEventArgs(totalBytesWritten, length));
-                        }, cancellationToken).Forget();
-                    }
-                    else
-                    {
-                        Interlocked.CompareExchange(ref DataWritten, null, null)?
-                            .Invoke(this, new ConnectionDataEventArgs(totalBytesWritten, length));
-                    }
+                    RaiseDataWritten(totalBytesWritten, length);
 
                     ResetInactivityTime();
                 }
@@ -900,5 +873,63 @@ namespace Soulseek.Network.Tcp
                 }
             }
         }
+
+        private void RaiseEventHandler(Action invoke)
+        {
+            try
+            {
+                invoke();
+            }
+            catch
+            {
+                // Subscriber exceptions must not interrupt TCP connection control flow.
+            }
+        }
+
+        private void RaiseConnected()
+            => RaiseEventHandler(() => Interlocked.CompareExchange(ref Connected, null, null)?
+                .Invoke(this, EventArgs.Empty));
+
+        private void RaiseDataRead(long currentLength, long totalLength)
+        {
+            if (SoulseekClient.RaiseEventsAsynchronously)
+            {
+                Task.Run(() =>
+                {
+                    RaiseEventHandler(() => Interlocked.CompareExchange(ref DataRead, null, null)?
+                        .Invoke(this, new ConnectionDataEventArgs(currentLength, totalLength)));
+                }, CancellationToken.None).Forget();
+            }
+            else
+            {
+                RaiseEventHandler(() => Interlocked.CompareExchange(ref DataRead, null, null)?
+                    .Invoke(this, new ConnectionDataEventArgs(currentLength, totalLength)));
+            }
+        }
+
+        private void RaiseDataWritten(long currentLength, long totalLength)
+        {
+            if (SoulseekClient.RaiseEventsAsynchronously)
+            {
+                Task.Run(() =>
+                {
+                    RaiseEventHandler(() => Interlocked.CompareExchange(ref DataWritten, null, null)?
+                        .Invoke(this, new ConnectionDataEventArgs(currentLength, totalLength)));
+                }, CancellationToken.None).Forget();
+            }
+            else
+            {
+                RaiseEventHandler(() => Interlocked.CompareExchange(ref DataWritten, null, null)?
+                    .Invoke(this, new ConnectionDataEventArgs(currentLength, totalLength)));
+            }
+        }
+
+        private void RaiseDisconnected(string message, Exception exception)
+            => RaiseEventHandler(() => Interlocked.CompareExchange(ref Disconnected, null, null)?
+                .Invoke(this, new ConnectionDisconnectedEventArgs(message, exception)));
+
+        private void RaiseStateChanged(ConnectionStateChangedEventArgs eventArgs)
+            => RaiseEventHandler(() => Interlocked.CompareExchange(ref StateChanged, null, null)?
+                .Invoke(this, eventArgs));
     }
 }

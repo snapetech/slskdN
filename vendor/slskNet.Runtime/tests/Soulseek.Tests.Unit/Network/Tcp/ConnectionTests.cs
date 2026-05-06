@@ -319,6 +319,23 @@ namespace Soulseek.Tests.Unit.Network.Tcp
             }
         }
 
+        [Trait("Category", "Disconnect")]
+        [Theory(DisplayName = "Disconnect succeeds if state events throw"), AutoData]
+        public void Disconnect_Succeeds_If_State_Events_Throw(IPEndPoint endpoint)
+        {
+            using (var c = new Connection(endpoint))
+            {
+                c.SetProperty("State", ConnectionState.Connected);
+                c.StateChanged += (sender, e) => throw new InvalidOperationException("subscriber failed");
+                c.Disconnected += (sender, e) => throw new InvalidOperationException("subscriber failed");
+
+                var ex = Record.Exception(() => c.Disconnect("foo"));
+
+                Assert.Null(ex);
+                Assert.Equal(ConnectionState.Disconnected, c.State);
+            }
+        }
+
         [Trait("Category", "Connect")]
         [Theory(DisplayName = "Connect throws when not pending or disconnected"), AutoData]
         public async Task Connect_Throws_When_Not_Pending_Or_Disconnected(IPEndPoint endpoint)
@@ -538,6 +555,33 @@ namespace Soulseek.Tests.Unit.Network.Tcp
 
                     Assert.Equal(ConnectionState.Connected, c.State);
                     Assert.Single(eventArgs);
+
+                    t.Verify(m => m.ConnectAsync(It.IsAny<IPAddress>(), It.IsAny<int>()), Times.Once);
+                }
+            }
+        }
+
+        [Trait("Category", "Connect")]
+        [Theory(DisplayName = "Connect succeeds if state events throw"), AutoData]
+        public async Task Connect_Succeeds_If_State_Events_Throw(IPEndPoint endpoint)
+        {
+            using (var socket = new Socket(SocketType.Stream, ProtocolType.IP))
+            {
+                var s = new Mock<INetworkStream>();
+                var t = new Mock<ITcpClient>();
+                t.Setup(m => m.GetStream())
+                    .Returns(s.Object);
+                t.Setup(m => m.Client).Returns(socket);
+
+                using (var c = new Connection(endpoint, tcpClient: t.Object))
+                {
+                    c.StateChanged += (sender, e) => throw new InvalidOperationException("subscriber failed");
+                    c.Connected += (sender, e) => throw new InvalidOperationException("subscriber failed");
+
+                    var ex = await Record.ExceptionAsync(() => c.ConnectAsync());
+
+                    Assert.Null(ex);
+                    Assert.Equal(ConnectionState.Connected, c.State);
 
                     t.Verify(m => m.ConnectAsync(It.IsAny<IPAddress>(), It.IsAny<int>()), Times.Once);
                 }
@@ -1467,6 +1511,35 @@ namespace Soulseek.Tests.Unit.Network.Tcp
             }
         }
 
+        [Trait("Category", "Write")]
+        [Theory(DisplayName = "Write succeeds if DataWritten handler throws"), AutoData]
+        public async Task Write_Succeeds_If_DataWritten_Handler_Throws(IPEndPoint endpoint)
+        {
+            var s = new Mock<INetworkStream>();
+            s.Setup(m => m.WriteAsync(It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.Run(() => 1));
+
+            var t = new Mock<ITcpClient>();
+
+            using (var socket = new Socket(SocketType.Stream, ProtocolType.IP))
+            {
+                t.Setup(m => m.Client).Returns(socket);
+                t.Setup(m => m.Connected).Returns(true);
+                t.Setup(m => m.GetStream()).Returns(s.Object);
+
+                using (var c = new Connection(endpoint, tcpClient: t.Object))
+                {
+                    c.DataWritten += (sender, e) => throw new InvalidOperationException("subscriber failed");
+
+                    var ex = await Record.ExceptionAsync(() => c.WriteAsync(new byte[] { 0x0 }));
+
+                    Assert.Null(ex);
+                    Assert.Equal(ConnectionState.Connected, c.State);
+                    s.Verify(m => m.WriteAsync(It.IsAny<ReadOnlyMemory<byte>>(), It.IsAny<CancellationToken>()), Times.Once);
+                }
+            }
+        }
+
         [Trait("Category", "Read")]
         [Theory(DisplayName = "Read throws if TcpClient is not connected"), AutoData]
         public async Task Read_Throws_If_TcpClient_Is_Not_Connected(IPEndPoint endpoint)
@@ -2281,6 +2354,35 @@ namespace Soulseek.Tests.Unit.Network.Tcp
                     Assert.Equal(3, eventArgs[2].CurrentLength);
                     Assert.Equal(3, eventArgs[2].TotalLength);
 
+                    s.Verify(m => m.ReadAsync(It.IsAny<Memory<byte>>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
+                }
+            }
+        }
+
+        [Trait("Category", "Read")]
+        [Theory(DisplayName = "Read succeeds if DataRead handler throws"), AutoData]
+        public async Task Read_Succeeds_If_DataRead_Handler_Throws(IPEndPoint endpoint)
+        {
+            var s = new Mock<INetworkStream>();
+            s.Setup(m => m.ReadAsync(It.IsAny<Memory<byte>>(), It.IsAny<CancellationToken>()))
+                .Returns(ValueTask.FromResult(1));
+
+            var t = new Mock<ITcpClient>();
+
+            using (var socket = new Socket(SocketType.Stream, ProtocolType.IP))
+            {
+                t.Setup(m => m.Client).Returns(socket);
+                t.Setup(m => m.Connected).Returns(true);
+                t.Setup(m => m.GetStream()).Returns(s.Object);
+
+                using (var c = new Connection(endpoint, tcpClient: t.Object))
+                {
+                    c.DataRead += (sender, e) => throw new InvalidOperationException("subscriber failed");
+
+                    var bytes = await c.ReadAsync(3);
+
+                    Assert.Equal(3, bytes.Length);
+                    Assert.Equal(ConnectionState.Connected, c.State);
                     s.Verify(m => m.ReadAsync(It.IsAny<Memory<byte>>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
                 }
             }
