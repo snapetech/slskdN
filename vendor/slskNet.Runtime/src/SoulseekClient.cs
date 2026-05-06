@@ -641,6 +641,7 @@ namespace Soulseek
         private SemaphoreSlim StateSyncRoot { get; } = new SemaphoreSlim(1, 1);
         private SemaphoreSlim SimilarUsersSemaphore { get; } = new SemaphoreSlim(1, 1);
         private ITokenFactory TokenFactory { get; }
+        private object TransferDictionarySyncRoot { get; } = new object();
         private System.Timers.Timer UploadSemaphoreCleanupTimer { get; }
         private ConcurrentDictionary<string, SemaphoreSlim> UploadSemaphores { get; } = new ConcurrentDictionary<string, SemaphoreSlim>();
         private SemaphoreSlim UploadSemaphoreSyncRoot { get; } = new SemaphoreSlim(1, 1);
@@ -3650,19 +3651,22 @@ namespace Soulseek
             // it past here this unique combination is "locked" until the transfer is complete (as long as we remove it in the finally block!)
             var uniqueKey = $"{TransferDirection.Download}:{username}:{remoteFilename}";
 
-            if (!UniqueKeyDictionary.TryAdd(key: uniqueKey, value: true))
+            lock (TransferDictionarySyncRoot)
             {
-                throw new DuplicateTransferException($"Duplicate download of {remoteFilename} from {username} aborted");
-            }
+                if (!UniqueKeyDictionary.TryAdd(key: uniqueKey, value: true))
+                {
+                    throw new DuplicateTransferException($"Duplicate download of {remoteFilename} from {username} aborted");
+                }
 
-            // we also can't allow the same token to be used across different transfers. we're checking for this in the public-scoped
-            // methods as well, but again, concurrent calls can sneak past.
-            if (!DownloadDictionary.TryAdd(download.Token, download))
-            {
-                // we would have obtained exclusive access over this unique combination in the code above, so we need to release it
-                UniqueKeyDictionary.TryRemove(uniqueKey, out _);
+                // we also can't allow the same token to be used across different transfers. we're checking for this in the public-scoped
+                // methods as well, but again, concurrent calls can sneak past.
+                if (UploadDictionary.ContainsKey(download.Token) || !DownloadDictionary.TryAdd(download.Token, download))
+                {
+                    // we would have obtained exclusive access over this unique combination in the code above, so we need to release it
+                    UniqueKeyDictionary.TryRemove(uniqueKey, out _);
 
-                throw new DuplicateTransferException($"Duplicate download of {remoteFilename} from {username} aborted");
+                    throw new DuplicateTokenException($"The specified or generated token {download.Token} is already in progress");
+                }
             }
 
             var lastState = TransferStates.None;
@@ -5012,19 +5016,22 @@ namespace Soulseek
             // it past here this unique combination is "locked" until the transfer is complete (as long as we remove it in the finally block!)
             var uniqueKey = $"{TransferDirection.Upload}:{username}:{remoteFilename}";
 
-            if (!UniqueKeyDictionary.TryAdd(key: uniqueKey, value: true))
+            lock (TransferDictionarySyncRoot)
             {
-                throw new DuplicateTransferException($"Duplicate upload of {remoteFilename} to {username} aborted");
-            }
+                if (!UniqueKeyDictionary.TryAdd(key: uniqueKey, value: true))
+                {
+                    throw new DuplicateTransferException($"Duplicate upload of {remoteFilename} to {username} aborted");
+                }
 
-            // we also can't allow the same token to be used across different transfers. we're checking for this in the public-scoped
-            // methods as well, but again, concurrent calls can sneak past.
-            if (!UploadDictionary.TryAdd(upload.Token, upload))
-            {
-                // we would have obtained exclusive access over this unique combination in the code above, so we need to release it
-                UniqueKeyDictionary.TryRemove(uniqueKey, out _);
+                // we also can't allow the same token to be used across different transfers. we're checking for this in the public-scoped
+                // methods as well, but again, concurrent calls can sneak past.
+                if (DownloadDictionary.ContainsKey(upload.Token) || !UploadDictionary.TryAdd(upload.Token, upload))
+                {
+                    // we would have obtained exclusive access over this unique combination in the code above, so we need to release it
+                    UniqueKeyDictionary.TryRemove(uniqueKey, out _);
 
-                throw new DuplicateTransferException($"Duplicate upload of {remoteFilename} to {username} aborted");
+                    throw new DuplicateTokenException($"The specified or generated token {upload.Token} is already in progress");
+                }
             }
 
             var lastState = TransferStates.None;

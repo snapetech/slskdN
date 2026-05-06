@@ -33,6 +33,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 "$repo_root/scripts/check-flatpak-manifest-structure.sh"
 "$repo_root/scripts/check-config-option-drift.sh"
 "$repo_root/scripts/check-systemd-permission-matrix.sh"
+"$repo_root/scripts/check-linux-installer-safety.sh"
 "$repo_root/scripts/check-remediation-script-registry.sh"
 "$repo_root/scripts/check-remediation-doc-commands.sh"
 

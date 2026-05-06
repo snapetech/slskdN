@@ -63,6 +63,31 @@ download_asset() {
   fi
 }
 
+download_checksums() {
+  local release_tag="$1"
+  local destination="$2"
+  local url="https://github.com/snapetech/slskdn/releases/download/${release_tag}/SHA256SUMS.txt"
+
+  wget -q -O "$destination" "$url"
+}
+
+verify_asset_checksum() {
+  local checksum_file="$1"
+  local asset_name="$2"
+
+  if [ ! -s "$checksum_file" ]; then
+    echo "Missing SHA256SUMS.txt for release ${SLSKDN_VERSION}; refusing to install unverified artifact." >&2
+    exit 1
+  fi
+
+  if ! grep -Eq "^[0-9a-fA-F]{64}[[:space:]]+\\*?${asset_name//./\\.}$" "$checksum_file"; then
+    echo "SHA256SUMS.txt does not contain ${asset_name}; refusing to install unverified artifact." >&2
+    exit 1
+  fi
+
+  sha256sum --check --ignore-missing "$checksum_file"
+}
+
 echo "[1/7] Installing .NET 10 (Microsoft repo)…"
 apt-get update -qq
 apt-get install -y -qq wget ca-certificates unzip lsb-release
@@ -90,6 +115,7 @@ ZIP_CANDIDATES=(
 )
 
 ZIP=""
+RESOLVED_RELEASE_TAG=""
 RELEASE_TAGS=(
   "$SLSKDN_VERSION"
   "${SLSKDN_VERSION//.slskdn./-slskdn.}"
@@ -103,6 +129,7 @@ for release_tag in "${RELEASE_TAGS[@]}"; do
     fi
     if download_asset "$release_tag" "$candidate" "$candidate"; then
       ZIP="$candidate"
+      RESOLVED_RELEASE_TAG="$release_tag"
       break
     else
       echo "[2/7] Candidate not found: ${candidate} from ${release_tag}"
@@ -116,8 +143,11 @@ if [ -z "$ZIP" ]; then
 fi
 
 echo "[2/7] Downloaded ${ZIP}"
+download_checksums "$RESOLVED_RELEASE_TAG" SHA256SUMS.txt
+verify_asset_checksum SHA256SUMS.txt "$ZIP"
 
 echo "[3/7] Extracting to ${DEST}…"
+rm -rf "$DEST"
 mkdir -p "$DEST"
 unzip -o -q "$ZIP" -d "$DEST"
 # Some zips have a top-level folder; flatten if slskd.dll is one level down
@@ -139,7 +169,8 @@ rm -rf /tmp/slskdn-setup
 echo "[4/7] Creating slskd user and directories…"
 id -u "$USER" >/dev/null 2>&1 || useradd -r -s /usr/sbin/nologin -d "$DATA_DIR" "$USER"
 mkdir -p "$DATA_DIR" "$DATA_DIR/downloads" "$DATA_DIR/incomplete" "$CONFIG_DIR"
-chown -R "${USER}:${USER}" "$DATA_DIR"
+chown -R "${USER}:${USER}" "$DATA_DIR" "$DEST"
+chmod -R g+rwX "$DATA_DIR"
 
 echo "[5/7] Installing minimal config…"
 if [ ! -f "$CONFIG_FILE" ]; then
@@ -172,10 +203,13 @@ web:
 #   minimum_level: Information
 CFG
   chown "${USER}:${USER}" "$CONFIG_FILE"
+  chmod 664 "$CONFIG_FILE"
   echo "Created $CONFIG_FILE — please set soulseek.username and soulseek.password"
 else
   echo "Config already exists: $CONFIG_FILE"
 fi
+chown "${USER}:${USER}" "$CONFIG_FILE"
+chmod 664 "$CONFIG_FILE"
 
 echo "[6/7] Installing systemd unit…"
 cat > /etc/systemd/system/slskd.service << 'SVC'
@@ -193,6 +227,7 @@ ExecStart=/usr/bin/dotnet /opt/slskdn/slskd.dll --config /etc/slskd/slskd.yml
 WorkingDirectory=/var/lib/slskd
 Environment="HOME=/var/lib/slskd"
 Environment="DOTNET_ROOT=/usr/share/dotnet"
+UMask=0002
 Restart=on-failure
 RestartSec=10
 

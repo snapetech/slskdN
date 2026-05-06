@@ -15357,3 +15357,11 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 **Why it happened:** The initial code treated timer handles as local implementation details inside click/effect bodies. That works for the happy path, but React component lifecycle changes outlive those local variables unless cleanup owns every handle.
 
 **How to prevent it:** Any Web component that starts polling, delayed refreshes, hub callbacks, or timeout fallbacks must clear them on unmount and when starting replacement work. Poll callbacks also need local error handling so failures stop the spinner and surface a stable error.
+
+### 0z94. Parallel Linux Installers Must Share Release Safety Invariants
+
+**What went wrong:** The raw Linux release installer had checksum verification, stale-tree replacement, and service permission convergence, but the Proxmox LXC installer drifted behind those safeguards.
+
+**Why it happened:** Similar installer flows lived in separate scripts, and the existing release/permission scanners checked representative paths rather than every active installer. The Proxmox path kept downloading ZIPs directly and extracting over the existing destination.
+
+**How to prevent it:** Every active Linux installer must verify release checksums, remove stale install trees before extraction, and converge config/data/app ownership plus `UMask=0002`. Keep a shared scanner that checks every installer entry point, not just the main package path.

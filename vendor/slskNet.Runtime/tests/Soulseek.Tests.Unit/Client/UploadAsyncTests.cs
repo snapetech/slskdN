@@ -1324,8 +1324,8 @@ namespace Soulseek.Tests.Unit.Client
         }
 
         [Trait("Category", "UploadFromStreamAsync")]
-        [Theory(DisplayName = "UploadFromStreamAsync throws DuplicateTransferException when failing to insert UploadDictionary"), AutoData]
-        public async Task UploadFromStreamAsync_Throws_DuplicateTransferException_If_UploadDictionary_Add_Fails(string username, string filename, int token)
+        [Theory(DisplayName = "UploadFromStreamAsync throws DuplicateTokenException when failing to insert UploadDictionary"), AutoData]
+        public async Task UploadFromStreamAsync_Throws_DuplicateTokenException_If_UploadDictionary_Add_Fails(string username, string filename, int token)
         {
             var options = new SoulseekClientOptions(messageTimeout: 5);
             var waiter = new Mock<IWaiter>();
@@ -1348,10 +1348,42 @@ namespace Soulseek.Tests.Unit.Client
                 var ex = await Record.ExceptionAsync(() => s.InvokeMethod<Task>("UploadFromStreamAsync", username, filename, 1, new Func<long, Task<Stream>>((_) => Task.FromResult((Stream)stream)), token, null, null));
 
                 Assert.NotNull(ex);
-                Assert.IsType<DuplicateTransferException>(ex);
+                Assert.IsType<DuplicateTokenException>(ex);
 
                 // release the unique key
                 Assert.Empty(tracked);
+            }
+        }
+
+        [Trait("Category", "UploadFromStreamAsync")]
+        [Theory(DisplayName = "UploadFromStreamAsync throws DuplicateTokenException when token is registered to download"), AutoData]
+        public async Task UploadFromStreamAsync_Throws_DuplicateTokenException_When_Token_Is_Registered_To_Download(string username, string filename, int token)
+        {
+            var options = new SoulseekClientOptions(messageTimeout: 5);
+            var waiter = new Mock<IWaiter>();
+            var conn = new Mock<IMessageConnection>();
+            var connManager = new Mock<IPeerConnectionManager>();
+
+            using (var stream = new MemoryStream())
+            using (var s = new SoulseekClient(minorVersion: 9999, options: options, waiter: waiter.Object, serverConnection: conn.Object, peerConnectionManager: connManager.Object))
+            {
+                s.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+
+                var tracked = new ConcurrentDictionary<string, bool>();
+                s.SetProperty("UniqueKeyDictionary", tracked);
+
+                var queued = new ConcurrentDictionary<int, TransferInternal>();
+                queued.TryAdd(token, new TransferInternal(TransferDirection.Download, "foo", "bar", token));
+
+                s.SetProperty("DownloadDictionary", queued);
+
+                var ex = await Record.ExceptionAsync(() => s.InvokeMethod<Task>("UploadFromStreamAsync", username, filename, 1, new Func<long, Task<Stream>>((_) => Task.FromResult((Stream)stream)), token, null, null));
+
+                Assert.NotNull(ex);
+                Assert.IsType<DuplicateTokenException>(ex);
+
+                Assert.Empty(tracked);
+                Assert.True(queued.ContainsKey(token));
             }
         }
 
