@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **release/ci**: Fix 0-second GitHub Actions workflow failures.
+ - Status: completed (2026-05-06)
+ - Priority: P1
+ - Notes: Fixed `BUG-20260506-001`: release Linux and PPA workflows contained tab-indented lines that made GitHub reject the workflow files before jobs/logs were created, and the disabled upstream-access workflow had unindented multiline CLI bodies. Added `scripts/check-workflow-yaml-syntax.sh`, wired it into remediation, and documented ADR-0001 gotcha `0z320`. Validation passed: workflow tab scan, Ruby YAML parse for all workflow files, `npm run check:remediation`, `git diff --check`, and GitHub target verification before push.
+
 - [x] **bug-council-runtime**: Close example Web API request/path lifecycle sweep.
  - Status: completed (2026-05-05)
  - Priority: P1

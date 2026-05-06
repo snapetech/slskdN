@@ -1,3 +1,10 @@
+## 2026-05-06
+
+- Investigated repeated GitHub Actions failures after the council pushes. The failing `release-linux.yml` and `release-ppa.yml` runs were 0-second failures with no jobs/logs, which meant GitHub rejected workflow YAML before job planning rather than failing tests.
+- Fixed `BUG-20260506-001`: removed tab indentation from release workflow shell blocks, rewrote the disabled upstream-access multiline PR/issue bodies so the workflow parses, and added `scripts/check-workflow-yaml-syntax.sh` to remediation.
+- Documented ADR-0001 gotcha `0z320`.
+- Validation passed: workflow tab scan, Ruby YAML parse for all workflow files, `npm run check:remediation`, `git diff --check`, and GitHub target verification before push.
+
 ## 2026-05-05
 
 - Continued into the next runtime council section instead of stopping after lifecycle: `Example Web API path, request, and lifecycle candidates`.

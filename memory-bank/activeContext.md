@@ -1,3 +1,17 @@
+## Update 2026-05-06 00:20:00Z
+
+- Current task: GitHub Actions 0-second release workflow failures are diagnosed and fixed locally.
+- Last activity:
+  - confirmed the failures were workflow parser failures with no jobs/logs, not product test failures
+  - fixed tab indentation in `release-linux.yml` and `release-ppa.yml`
+  - fixed disabled `check-upstream-access.yml` multiline body YAML shape
+  - added `scripts/check-workflow-yaml-syntax.sh` and wired it into remediation
+  - documented ADR-0001 gotcha `0z320`
+  - validation passed: workflow YAML syntax check, `npm run check:remediation`, and `git diff --check`
+- Next steps:
+  1. Commit and push the remediation scanner/docs sync.
+  2. Watch the next Actions run to confirm the 0-second workflow parser failures stop.
+
 ## Update 2026-05-05 23:55:00Z
 
 - Current task: Vendored runtime example Web API council sweep is implemented and broadly validated locally.

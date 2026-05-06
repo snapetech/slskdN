@@ -19,6 +19,7 @@
     "check:outbound-http-guards": "bash scripts/check-outbound-http-guards.sh",
     "check:path-containment": "bash scripts/check-path-containment.sh",
     "check:soulseek-network-health": "bash scripts/check-soulseek-network-health.sh",
+    "check:workflow-yaml-syntax": "bash scripts/check-workflow-yaml-syntax.sh",
     "check:workflow-trigger-policy": "bash scripts/check-workflow-trigger-policy.sh",
     "check:release-asset-matrix": "bash scripts/check-release-asset-matrix.sh",
     "check:config-option-drift": "bash scripts/check-config-option-drift.sh",
