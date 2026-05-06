@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed distributed Soulseek search request parsing so opaque signed 32-bit
+  tokens from live peers, including negative values, are accepted instead of
+  rejected as invalid counters.
 - Fixed Gluetun VPN status polling so configured local control endpoints such
   as `http://127.0.0.1:8010` use a no-redirect local-control HTTP client
   instead of the public outbound SSRF guard.

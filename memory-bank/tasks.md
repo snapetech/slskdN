@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **runtime/network**: Accept opaque signed distributed search tokens from live peers.
+ - Status: completed (2026-05-06)
+ - Priority: P1
+ - Notes: Fixed `BUG-20260506-003` found in live `kspls0` logs after the daemon reconnected: distributed search requests from peers used negative 32-bit token values, but protocol scalar hardening treated them as invalid counters. Removed the non-negative guard only for `DistributedSearchRequest`, added focused signed-token regressions, kept other scalar guards intact, and documented ADR-0001 gotcha `0z322`.
+
 - [x] **deploy/kspls0**: Restore Gluetun startup after local control HTTP over-hardening.
  - Status: completed (2026-05-06)
  - Priority: P1

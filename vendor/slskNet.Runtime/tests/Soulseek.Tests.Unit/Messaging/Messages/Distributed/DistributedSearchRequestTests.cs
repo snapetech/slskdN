@@ -35,6 +35,19 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Equal(query, r.Query);
         }
 
+        [Trait("Category", "Instantiation")]
+        [Theory(DisplayName = "Instantiates with signed opaque token values")]
+        [InlineData(int.MinValue)]
+        [InlineData(-1)]
+        [InlineData(0)]
+        [InlineData(int.MaxValue)]
+        public void Instantiates_With_Signed_Opaque_Token_Values(int token)
+        {
+            var request = new DistributedSearchRequest("user", token, "query");
+
+            Assert.Equal(token, request.Token);
+        }
+
         [Trait("Category", "ToByteArray")]
         [Theory(DisplayName = "ToByteArray Constructs the correct Message"), AutoData]
         public void ToByteArray_Constructs_The_Correct_Message(string username, int token, string query)
@@ -72,6 +85,23 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Equal(username, response.Username);
             Assert.Equal(token, response.Token);
             Assert.Equal(query, response.Query);
+        }
+
+        [Trait("Category", "FromByteArray")]
+        [Fact(DisplayName = "FromByteArray accepts negative opaque token values")]
+        public void FromByteArray_Accepts_Negative_Opaque_Token_Values()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Distributed.SearchRequest)
+                .WriteInteger(0)
+                .WriteString("peer")
+                .WriteInteger(-1040051922)
+                .WriteString("album")
+                .Build();
+
+            var response = DistributedSearchRequest.FromByteArray(msg);
+
+            Assert.Equal(-1040051922, response.Token);
         }
 
         [Trait("Category", "FromByteArray")]

@@ -1,3 +1,18 @@
+## Update 2026-05-06 01:05:00Z
+
+- Current task: Live `kspls0` Soulseek disconnect/log follow-up is in validation and deployment.
+- Last activity:
+  - checked service, authenticated application state, in-memory logs, Gluetun state, and service-user TCP egress
+  - confirmed the daemon is currently connected/logged in, but had earlier connect/login timeouts before succeeding
+  - found a real post-login runtime regression in live logs: valid distributed search requests with negative opaque tokens were rejected by scalar hardening
+  - documented ADR-0001 gotcha `0z322`
+  - fixed `DistributedSearchRequest` to accept signed opaque token values and added focused runtime tests
+  - validation passed: focused distributed/protocol scalar runtime test slice (`80/80`) and `git diff --check`
+- Next steps:
+  1. Publish and deploy a patched build to `kspls0`.
+  2. Re-check authenticated state and live logs after deployment.
+  3. Commit, verify GitHub target, and push the implementation/docs batch.
+
 ## Update 2026-05-06 00:55:00Z
 
 - Current task: `kspls0` is running the patched current build for user testing.

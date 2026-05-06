@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Distributed Soulseek search requests now accept opaque signed 32-bit tokens, matching live peer traffic and stopping valid negative-token searches from being dropped after login.
 - Gluetun VPN status polling now uses a no-redirect local-control HTTP client, so loopback/private configured Gluetun endpoints such as `http://127.0.0.1:8010` are no longer blocked by the public outbound SSRF guard.
 - Search API timeout values now honor the documented seconds unit before mapping to Soulseek's millisecond timeout, and multi-source discovery now uses its intended multi-minute search window instead of an accidental sub-second window.
 - Background auto-replace searches now charge the Soulseek search safety limiter to an `auto-replace` source instead of the user/API `user` bucket, so stuck-download maintenance cannot starve manual searches. Search completion logs now include source, state, Soulseek response count, mesh response count, merged response count, file count, and duration for live diagnosis.
