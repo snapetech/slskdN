@@ -1,5 +1,8 @@
 import api from './api';
 
+const asObject = (value) =>
+  value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+
 export const buildDiscoveryGraph = async (request) => {
   const response = await api.post('/discovery-graph', request);
   return response.data;
@@ -202,7 +205,7 @@ const summarizeCounts = (items, property) =>
   }, {});
 
 const appendCounts = (lines, counts) => {
-  const entries = Object.entries(counts || {});
+  const entries = Object.entries(asObject(counts));
   if (entries.length === 0) {
     lines.push('- none visible');
     return;

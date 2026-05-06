@@ -175,6 +175,8 @@ const cloneEntry = (entry = {}) => ({
   equations: { ...(entry.equations || {}) },
 });
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 const clonePreset = (preset) => ({
   baseValues: { ...(preset.baseValues || {}) },
   equations: { ...(preset.equations || {}) },
@@ -182,10 +184,10 @@ const clonePreset = (preset) => ({
   metadata: { ...(preset.metadata || {}) },
   rawSections: { ...(preset.rawSections || {}) },
   shaders: { ...(preset.shaders || {}) },
-  shapes: (preset.shapes || []).map(cloneEntry),
-  sprites: (preset.sprites || []).map(cloneEntry),
+  shapes: asArray(preset.shapes).map(cloneEntry),
+  sprites: asArray(preset.sprites).map(cloneEntry),
   source: preset.source,
-  waves: (preset.waves || []).map(cloneEntry),
+  waves: asArray(preset.waves).map(cloneEntry),
 });
 
 const cloneParsedPresetSet = (parsed) => {

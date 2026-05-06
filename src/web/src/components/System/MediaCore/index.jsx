@@ -27,6 +27,8 @@ import {
 } from 'semantic-ui-react';
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
+const asObject = (value) =>
+  value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 
 const MediaCore = () => {
   const [stats, setStats] = useState(null);
@@ -2502,12 +2504,11 @@ const MediaCore = () => {
               </Statistic>
             </Statistic.Group>
 
-            {stats?.mappingsByDomain &&
-              Object.keys(stats.mappingsByDomain).length > 0 && (
+            {Object.keys(asObject(stats?.mappingsByDomain)).length > 0 && (
                 <div style={{ marginTop: '1em' }}>
                   <Header as="h4">Mappings by Domain</Header>
                   <List horizontal>
-                    {Object.entries(stats.mappingsByDomain || {}).map(
+                    {Object.entries(asObject(stats?.mappingsByDomain)).map(
                       ([domain, count]) => (
                         <List.Item key={domain}>
                           <Label>
@@ -7282,14 +7283,13 @@ const MediaCore = () => {
                 value={backfillPodId}
               />
 
-              {lastSeenTimestamps &&
-                Object.keys(lastSeenTimestamps).length > 0 && (
+              {Object.keys(asObject(lastSeenTimestamps)).length > 0 && (
                   <Message size="small">
                     <Message.Header>
                       Last Seen Timestamps for Pod {backfillPodId}
                     </Message.Header>
                     <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
-                      {Object.entries(lastSeenTimestamps || {}).map(
+                      {Object.entries(asObject(lastSeenTimestamps)).map(
                         ([channelId, timestamp]) => (
                           <div
                             key={channelId}
@@ -8002,12 +8002,12 @@ const MediaCore = () => {
               )}
 
               {/* Member Affinities */}
-              {Object.keys(memberAffinities).length > 0 && (
+              {Object.keys(asObject(memberAffinities)).length > 0 && (
                 <div style={{ marginBottom: '1em' }}>
                   <Header size="tiny">
-                    Member Affinities ({Object.keys(memberAffinities).length})
+                    Member Affinities ({Object.keys(asObject(memberAffinities)).length})
                   </Header>
-                  {Object.entries(memberAffinities || {}).map(
+                  {Object.entries(asObject(memberAffinities)).map(
                     ([peerId, affinity], index) => (
                       <Card
                         key={index}

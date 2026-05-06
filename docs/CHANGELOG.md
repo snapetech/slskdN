@@ -32,6 +32,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Hardened vendored slskNet.Runtime network progress snapshots so invalid
   totals cannot emit infinite, negative, or over-complete percentages.
 - Hardened persisted Messaging panels against malformed local storage entries.
+- Hardened additional Web media/search rendering paths against malformed object
+  and list payloads.
 
 ## [2026050600-slskdn.227] — 2026-05-06
 

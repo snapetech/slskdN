@@ -22,6 +22,9 @@ import {
 } from 'semantic-ui-react';
 import { v4 as uuidv4 } from 'uuid';
 
+const asObject = (value) =>
+  value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+
 const getSyntheticVerdictColor = (verdict) => {
   switch (verdict) {
     case 'strong_suspicion':
@@ -636,7 +639,7 @@ const SongIDPanel = ({ disabled }) => {
       return null;
     }
 
-    const metricSummary = Object.entries(lane.metrics || {})
+    const metricSummary = Object.entries(asObject(lane.metrics))
       .slice(0, 5)
       .map(([key, value]) => `${key}: ${value}`)
       .join(' | ');
