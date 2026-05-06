@@ -195,7 +195,7 @@ namespace Soulseek
                 }
                 finally
                 {
-                    DownloadFailed?.Invoke(this, e);
+                    RaiseEventHandler(nameof(DownloadFailed), () => DownloadFailed?.Invoke(this, e));
                 }
             };
 
@@ -221,7 +221,7 @@ namespace Soulseek
                 }
                 finally
                 {
-                    DownloadDenied?.Invoke(this, e);
+                    RaiseEventHandler(nameof(DownloadDenied), () => DownloadDenied?.Invoke(this, e));
                 }
             };
 
@@ -277,14 +277,14 @@ namespace Soulseek
                     wishlistInterval: e.WishlistInterval,
                     isSupporter: e.IsSupporter);
 
-                ServerInfoReceived?.Invoke(this, ServerInfo);
+                RaiseServerInfoReceived(ServerInfo);
             };
 
             ServerMessageHandler.KickedFromServer += (sender, e) =>
             {
                 Diagnostic.Info($"Kicked from server.");
                 Disconnect("Kicked from server", new KickedFromServerException());
-                KickedFromServer?.Invoke(this, e);
+                RaiseEventHandler(nameof(KickedFromServer), () => KickedFromServer?.Invoke(this, e));
             };
         }
 
@@ -3439,19 +3439,19 @@ namespace Soulseek
             State = state;
 
             Diagnostic.Debug($"Client state changed from {previousState} to {state}{(message == null ? string.Empty : $"; message: {message}")}");
-            StateChanged?.Invoke(this, new SoulseekClientStateChangedEventArgs(previousState, State, message, exception));
+            RaiseStateChanged(previousState, State, message, exception);
 
             if (State == SoulseekClientStates.Connected)
             {
-                Connected?.Invoke(this, EventArgs.Empty);
+                RaiseConnected();
             }
             else if (State == (SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn))
             {
-                LoggedIn?.Invoke(this, EventArgs.Empty);
+                RaiseLoggedIn();
             }
             else if (State == SoulseekClientStates.Disconnected)
             {
-                Disconnected?.Invoke(this, new SoulseekClientDisconnectedEventArgs(message, exception));
+                RaiseDisconnected(message, exception);
             }
         }
 
@@ -3573,7 +3573,7 @@ namespace Soulseek
                     if (response.Succeeded)
                     {
                         ServerInfo = ServerInfo.With(isSupporter: response.IsSupporter);
-                        ServerInfoReceived?.Invoke(this, ServerInfo);
+                        RaiseServerInfoReceived(ServerInfo);
 
                         Username = username;
 
@@ -4883,16 +4883,34 @@ namespace Soulseek
         }
 
         private void RaisePeerCapabilityReceived(PeerCapabilityRecord record)
+            => RaiseEventHandler(nameof(PeerCapabilityReceived), () => PeerCapabilityReceived?.Invoke(this, new PeerCapabilityReceivedEventArgs(record)));
+
+        private void RaiseConnected()
+            => RaiseEventHandler(nameof(Connected), () => Connected?.Invoke(this, EventArgs.Empty));
+
+        private void RaiseDisconnected(string message, Exception exception)
+            => RaiseEventHandler(nameof(Disconnected), () => Disconnected?.Invoke(this, new SoulseekClientDisconnectedEventArgs(message, exception)));
+
+        private void RaiseEventHandler(string eventName, Action raise)
         {
             try
             {
-                PeerCapabilityReceived?.Invoke(this, new PeerCapabilityReceivedEventArgs(record));
+                raise();
             }
             catch (Exception ex)
             {
-                HandlePeerCapabilityEventException(nameof(PeerCapabilityReceived), ex);
+                HandlePeerCapabilityEventException(eventName, ex);
             }
         }
+
+        private void RaiseLoggedIn()
+            => RaiseEventHandler(nameof(LoggedIn), () => LoggedIn?.Invoke(this, EventArgs.Empty));
+
+        private void RaiseServerInfoReceived(ServerInfo serverInfo)
+            => RaiseEventHandler(nameof(ServerInfoReceived), () => ServerInfoReceived?.Invoke(this, serverInfo));
+
+        private void RaiseStateChanged(SoulseekClientStates previousState, SoulseekClientStates state, string message, Exception exception)
+            => RaiseEventHandler(nameof(StateChanged), () => StateChanged?.Invoke(this, new SoulseekClientStateChangedEventArgs(previousState, state, message, exception)));
 
         private void HandlePeerCapabilityEventException(string eventName, Exception ex)
         {

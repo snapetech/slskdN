@@ -344,6 +344,31 @@ namespace Soulseek.Tests.Unit.Client
         }
 
         [Trait("Category", "Connect")]
+        [Fact(DisplayName = "Connect succeeds if client lifecycle handlers throw")]
+        public async Task Connect_Succeeds_If_Client_Lifecycle_Handlers_Throw()
+        {
+            var (client, mocks) = GetFixture();
+
+            mocks.ServerConnection
+                .Setup(m => m.ConnectAsync(It.IsAny<CancellationToken?>()))
+                .Returns(Task.CompletedTask)
+                .Callback(() => client.InvokeMethod("ChangeState", SoulseekClientStates.Connected, "Connected", null));
+
+            using (client)
+            {
+                client.StateChanged += (sender, e) => throw new InvalidOperationException("subscriber failed");
+                client.Connected += (sender, e) => throw new InvalidOperationException("subscriber failed");
+                client.LoggedIn += (sender, e) => throw new InvalidOperationException("subscriber failed");
+                client.ServerInfoReceived += (sender, e) => throw new InvalidOperationException("subscriber failed");
+
+                var ex = await Record.ExceptionAsync(() => client.ConnectAsync("u", "p"));
+
+                Assert.Null(ex);
+                Assert.Equal(SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn, client.State);
+            }
+        }
+
+        [Trait("Category", "Connect")]
         [Fact(DisplayName = "Raises correct StateChanged sequence on success")]
         public async Task Raises_Correct_StateChanged_Sequence_On_Success()
         {

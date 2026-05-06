@@ -67,6 +67,13 @@ write_section \
   ' src/Network/Tcp/Connection.cs
 } >>"$report"
 
+{
+  printf '\n## Unisolated client lifecycle event invocations\n'
+  rg -n --with-filename --pcre2 \
+    '^(?!.*Raise(EventHandler|StateChanged|Connected|LoggedIn|Disconnected|ServerInfoReceived)).*(?<![A-Za-z0-9_])(StateChanged|Connected|LoggedIn|Disconnected|ServerInfoReceived)\?\.Invoke\(this,' \
+    src/SoulseekClient.cs || true
+} >>"$report"
+
 write_section \
   "Remote/user text in diagnostics or HTTP errors" \
   '(Diagnostic\.(Debug|Info|Warning|Error)|StatusCode\(|BadRequest\(|Console\.WriteLine)\([^;\n]*(username|query|filename|directory|token|Message)' \
