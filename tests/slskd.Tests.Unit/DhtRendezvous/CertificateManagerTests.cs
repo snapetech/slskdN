@@ -33,6 +33,27 @@ public class CertificateManagerTests
         Assert.True(File.Exists(certPath));
     }
 
+    [Fact]
+    public void GetOrCreateServerCertificate_WritesCertificateWithoutLeavingTempFile()
+    {
+        using var tempDir = new TempDir();
+        var certPath = Path.Combine(tempDir.Path, "overlay_cert.pfx");
+        var manager = new CertificateManager(NullLogger<CertificateManager>.Instance, tempDir.Path);
+
+        using var certificate = manager.GetOrCreateServerCertificate();
+        using var reloaded = X509CertificateLoader.LoadPkcs12(
+            File.ReadAllBytes(certPath),
+            null,
+            X509KeyStorageFlags.Exportable,
+            new Pkcs12LoaderLimits());
+
+        Assert.True(File.Exists(certPath));
+        Assert.False(Directory.EnumerateFiles(tempDir.Path, "overlay_cert.pfx.*.tmp").Any());
+        Assert.Equal(
+            certificate.GetCertHashString(HashAlgorithmName.SHA256),
+            reloaded.GetCertHashString(HashAlgorithmName.SHA256));
+    }
+
     private static X509Certificate2 CreateLegacyPasswordProtectedCertificate(string password)
     {
         using var rsa = RSA.Create(CertificateManager.KeySize);

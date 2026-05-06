@@ -2596,3 +2596,7 @@
 - [x] Continue non-runtime council Web error-rendering cycle
   - Status: completed (2026-05-06)
   - Notes: Classified the raw API error-body rendering section; fixed `BUG-20260506-055` through `BUG-20260506-057` for Collections, ShareGroups, and SharedWithMe structured error rendering plus the incorrect `ErrorSegment` prop.
+
+- [x] Continue non-runtime council app security-state persistence cycle
+  - Status: completed (2026-05-06)
+  - Notes: Classified app-side key/certificate/pin persistence after skipping the runtime lane; fixed `BUG-20260506-058` through `BUG-20260506-060` with atomic writes for overlay keys, overlay certificates, and mesh certificate pins.

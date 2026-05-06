@@ -17,6 +17,7 @@
 
 namespace Soulseek.Tests.Unit
 {
+    using System;
     using AutoFixture.Xunit2;
     using Xunit;
 
@@ -26,6 +27,8 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "Initializes with given start"), AutoData]
         public void Initializes_With_Given_Start(int start)
         {
+            start = Math.Max(0, start);
+
             var t = new TokenFactory(start);
 
             var current = t.GetField<int>("current");
@@ -37,6 +40,8 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "First token is start"), AutoData]
         public void First_Token_Is_Start(int start)
         {
+            start = Math.Max(0, start);
+
             var t = new TokenFactory(start);
 
             Assert.Equal(start, t.NextToken());
@@ -46,6 +51,8 @@ namespace Soulseek.Tests.Unit
         [Theory(DisplayName = "Returns sequential tokens"), AutoData]
         public void Returns_Sequential_Tokens(int start)
         {
+            start = Math.Max(0, start == int.MaxValue ? 0 : start);
+
             var t = new TokenFactory(start);
 
             var t1 = t.NextToken();
@@ -66,6 +73,13 @@ namespace Soulseek.Tests.Unit
 
             Assert.Equal(int.MaxValue, t1);
             Assert.Equal(0, t2);
+        }
+
+        [Trait("Category", "Initialization")]
+        [Fact(DisplayName = "Throws if start is negative")]
+        public void Throws_If_Start_Is_Negative()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new TokenFactory(-1));
         }
     }
 }

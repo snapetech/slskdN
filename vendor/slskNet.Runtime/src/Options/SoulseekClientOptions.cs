@@ -217,6 +217,11 @@ namespace Soulseek
             MinimumDiagnosticLevel = minimumDiagnosticLevel;
             StartingToken = startingToken;
 
+            if (StartingToken < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(startingToken), "Must be greater than or equal to zero");
+            }
+
             ServerConnectionOptions = (serverConnectionOptions ?? new ConnectionOptions()).WithoutInactivityTimeout();
             PeerConnectionOptions = peerConnectionOptions ?? new ConnectionOptions();
             TransferConnectionOptions = transferConnectionOptions ?? new ConnectionOptions();

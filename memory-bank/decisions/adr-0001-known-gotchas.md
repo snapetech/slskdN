@@ -446,6 +446,35 @@ this.setState({ error: getErrorMessage(error, 'Failed to create share') });
 
 **Why This Keeps Happening**: Axios error bodies can be strings, ProblemDetails objects, empty bodies, or missing entirely. React cannot render arbitrary objects as children, and shared components only receive the props they actually define. Every UI path that renders an API failure must convert it to stable text at the boundary.
 
+### 0z343. Security State Files Need Atomic Replacement
+
+**The Bug**: Overlay keypairs, overlay TLS certificates, and mesh certificate pins were written directly to their final files. A process crash, disk-full condition, or host restart during write could leave a truncated private key, PFX, or pin store behind.
+
+**Files Affected**:
+- `src/slskd/Mesh/Overlay/KeyStore.cs`
+- `src/slskd/DhtRendezvous/Security/CertificateManager.cs`
+- `src/slskd/Mesh/Transport/CertificatePinManager.cs`
+
+**Wrong**:
+```code
+File.WriteAllText(path, json);
+File.WriteAllBytes(path, pfxBytes);
+```
+
+**Correct**:
+```code
+using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+{
+    stream.Write(bytes, 0, bytes.Length);
+    stream.Flush(flushToDisk: true);
+}
+
+File.SetUnixFileMode(tempPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+File.Move(tempPath, path, overwrite: true);
+```
+
+**Why This Keeps Happening**: Small JSON/PFX writes look harmless, but identity and trust stores are stateful security boundaries. Any file containing private keys, certificates, pins, tokens, or durable trust decisions must be written to a sibling temp file, flushed, permissioned before exposure, atomically moved into place, and cleaned up on failure.
+
 ### 0z326. Integration Auth Fixtures Must Match Admin-Only Routes
 
 **The Bug**: After security telemetry routes were tightened to administrator-only, the shared integration `StubWebApplicationFactory` still authenticated as only `ReadWrite`, so versioned admin route smoke tests failed with `403 Forbidden`.

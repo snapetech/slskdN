@@ -168,7 +168,7 @@ public sealed class CertificateManager
         }
 
         var pfxBytes = certificate.Export(X509ContentType.Pfx);
-        File.WriteAllBytes(path, pfxBytes);
+        WriteCertificateAtomically(path, pfxBytes);
 
         // Set restrictive permissions (Unix only)
         if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
@@ -185,6 +185,55 @@ public sealed class CertificateManager
 
         _logger.LogDebug("Saved certificate to {Path}", path);
         DeleteLegacyPasswordFile();
+    }
+
+    private void WriteCertificateAtomically(string path, byte[] pfxBytes)
+    {
+        var tempPath = $"{path}.{Guid.NewGuid():N}.tmp";
+
+        try
+        {
+            using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                stream.Write(pfxBytes, 0, pfxBytes.Length);
+                stream.Flush(flushToDisk: true);
+            }
+
+            // Set restrictive permissions on the temp file before it becomes visible as the certificate.
+            if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
+            {
+                try
+                {
+                    File.SetUnixFileMode(tempPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not set certificate file permissions");
+                }
+            }
+
+            File.Move(tempPath, path, overwrite: true);
+        }
+        catch
+        {
+            TryDeleteTempFile(tempPath);
+            throw;
+        }
+    }
+
+    private static void TryDeleteTempFile(string tempPath)
+    {
+        try
+        {
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+        }
+        catch
+        {
+            // best-effort cleanup; preserve the original failure.
+        }
     }
 
     /// <summary>

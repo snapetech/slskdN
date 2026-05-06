@@ -1,3 +1,15 @@
+## Update 2026-05-06 23:58:00Z
+
+- Current task: Continue non-runtime council app security-state persistence cycle.
+- Last activity:
+  - classified app-side security-state file writes after skipping runtime/vendor;
+  - accepted and fixed `BUG-20260506-058` through `BUG-20260506-060`;
+  - overlay keypairs, overlay TLS certificates, and mesh certificate pins now use flushed sibling temp files and atomic replacement;
+  - documented ADR-0001 gotcha `0z343`, and updated ledger/changelog/task log.
+- Next steps:
+  1. Run focused backend unit tests, remediation, repo lint, and diff checks.
+  2. Commit and push the verified non-runtime security-state persistence batch.
+
 ## Update 2026-05-06 23:40:00Z
 
 - Current task: Continue non-runtime council Web error-rendering cycle.

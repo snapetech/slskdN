@@ -57,6 +57,25 @@ public class CertificatePinManagerTests : IDisposable
     }
 
     [Fact]
+    public void ValidateCertificatePin_PersistsPinsWithoutLeavingTempFile()
+    {
+        // Arrange
+        var peerId = "peer:test:persist";
+        var cert = CreateTestCertificate();
+        var pinPath = Path.Combine(_tempDir, "mesh", "certificate-pins.json");
+
+        // Act
+        var result = _pinManager.ValidateCertificatePin(peerId, cert);
+        var reloaded = new CertificatePinManager(_loggerMock.Object, _optionsMock.Object);
+
+        // Assert
+        Assert.True(result);
+        Assert.True(File.Exists(pinPath));
+        Assert.False(Directory.EnumerateFiles(Path.GetDirectoryName(pinPath)!, "certificate-pins.json.*.tmp").Any());
+        Assert.NotNull(reloaded.GetPeerCertificateInfo(peerId));
+    }
+
+    [Fact]
     public void ValidateCertificatePin_ExistingPeer_AcceptsValidPin()
     {
         // Arrange

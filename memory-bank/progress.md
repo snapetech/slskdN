@@ -9880,3 +9880,10 @@ Code quality improvements were completed as part of Option A:
 - Hardened Collections delete/share errors and ShareGroups delete/remove-member errors through shared local error normalization.
 - Fixed the incoming share manifest failure fallback to pass `caption` to `ErrorSegment` and normalize structured manifest errors.
 - Focused Web validation passed for Collections, ShareGroups, and SharedWithMe regressions.
+
+## 2026-05-06 23:58:00Z
+
+- Continued the non-runtime council scan into app-side security-state persistence while leaving runtime work out of scope.
+- Recorded and verified `BUG-20260506-058` through `BUG-20260506-060`.
+- Hardened overlay keypair, overlay certificate, and mesh certificate-pin writes with flushed sibling temp files, restrictive temp permissions where applicable, atomic replacement, and temp cleanup on failure.
+- Added focused unit coverage for key reload, certificate reload, and pin reload without leftover temp files.

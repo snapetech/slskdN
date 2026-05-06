@@ -2,6 +2,7 @@
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 using System.Collections.Concurrent;
+using System.Text;
 using System.Security.Cryptography.X509Certificates;
 
 namespace slskd.Mesh.Transport;
@@ -286,11 +287,53 @@ public class CertificatePinManager
                 WriteIndented = true
             });
 
-            File.WriteAllText(_pinStoragePath, json);
+            WritePinsAtomically(json);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to persist certificate pins");
+        }
+    }
+
+    private void WritePinsAtomically(string json)
+    {
+        var bytes = Encoding.UTF8.GetBytes(json);
+        var tempPath = $"{_pinStoragePath}.{Guid.NewGuid():N}.tmp";
+
+        try
+        {
+            using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                stream.Write(bytes, 0, bytes.Length);
+                stream.Flush(flushToDisk: true);
+            }
+
+            if (!OperatingSystem.IsWindows())
+            {
+                File.SetUnixFileMode(tempPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            }
+
+            File.Move(tempPath, _pinStoragePath, overwrite: true);
+        }
+        catch
+        {
+            TryDeleteTempFile(tempPath);
+            throw;
+        }
+    }
+
+    private static void TryDeleteTempFile(string tempPath)
+    {
+        try
+        {
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+        }
+        catch
+        {
+            // best-effort cleanup; preserve the original failure.
         }
     }
 }

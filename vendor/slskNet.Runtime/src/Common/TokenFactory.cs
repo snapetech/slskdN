@@ -23,6 +23,8 @@
 
 namespace Soulseek
 {
+    using System;
+
     /// <summary>
     ///     Generates unique tokens for network operations.
     /// </summary>
@@ -37,6 +39,11 @@ namespace Soulseek
         /// <param name="start">The optional starting value.</param>
         public TokenFactory(int start = 0)
         {
+            if (start < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(start), "Must be greater than or equal to zero");
+            }
+
             current = start;
         }
 

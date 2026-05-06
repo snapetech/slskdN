@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Persist overlay keys, overlay certificates, and mesh certificate pins with
+  atomic sibling-temp writes so interrupted saves do not corrupt security or
+  trust-state files.
 - Synced vendored slskNet.Runtime protocol event identifier hardening so
   malformed status flags and negative request/message ids are rejected before
   event snapshots are published.

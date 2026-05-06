@@ -62,6 +62,7 @@ namespace Soulseek.Tests.Unit.Options
             var searchResponseCache = new Mock<ISearchResponseCache>();
             maximumUploadSpeed = Math.Max(1, maximumUploadSpeed);
             maximumDownloadSpeed = Math.Max(1, maximumDownloadSpeed);
+            startingToken = Math.Max(0, startingToken);
 
             var searchResponseResolver = new Func<string, int, SearchQuery, Task<SearchResponse>>((s, i, q) => Task.FromResult<SearchResponse>(null));
             var browseResponseResolver = new Func<string, IPEndPoint, Task<BrowseResponse>>((s, i) => Task.FromResult<BrowseResponse>(null));
@@ -169,6 +170,8 @@ namespace Soulseek.Tests.Unit.Options
             DiagnosticLevel minimumDiagnosticLevel,
             int startingToken)
         {
+            startingToken = Math.Max(0, startingToken);
+
             var o = new SoulseekClientOptions(
                 messageTimeout: messageTimeout,
                 autoAcknowledgePrivateMessages: autoAcknowledgePrivateMessages,
@@ -189,6 +192,8 @@ namespace Soulseek.Tests.Unit.Options
             DiagnosticLevel minimumDiagnosticLevel,
             int startingToken)
         {
+            startingToken = Math.Max(0, startingToken);
+
             var o = new SoulseekClientOptions(
                 messageTimeout: messageTimeout,
                 autoAcknowledgePrivateMessages: autoAcknowledgePrivateMessages,
@@ -589,6 +594,13 @@ namespace Soulseek.Tests.Unit.Options
         public void Throws_If_Message_Timeout_Is_Less_Than_One(int messageTimeout)
         {
             Assert.Throws<ArgumentOutOfRangeException>(() => new SoulseekClientOptions(messageTimeout: messageTimeout));
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Throws if starting token is negative")]
+        public void Throws_If_Starting_Token_Is_Negative()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new SoulseekClientOptions(startingToken: -1));
         }
 
         private static int? NormalizePositive(int? value) => value.HasValue ? Math.Max(1, value.Value) : value;

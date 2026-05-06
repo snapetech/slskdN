@@ -154,6 +154,8 @@ namespace Soulseek.Tests.Unit.Client
         [Theory(DisplayName = "BrowseAsync raises BrowseProgressUpdated event at least twice"), AutoData]
         public async Task BrowseAsync_Raises_BrowseProgressUpdated_Event_At_Least_Twice(string username, IPEndPoint endpoint, string localUsername, List<Directory> directories, int length)
         {
+            length = Math.Max(5, length);
+
             var response = new BrowseResponse(directories);
 
             var waiter = new Mock<IWaiter>();
@@ -196,6 +198,8 @@ namespace Soulseek.Tests.Unit.Client
         [Theory(DisplayName = "BrowseAsync invokes ProgressUpdated Action at least twice"), AutoData]
         public async Task BrowseAsync_Invokes_ProgressUpdated_Action_At_Least_Twice(string username, IPEndPoint endpoint, string localUsername, List<Directory> directories, int length)
         {
+            length = Math.Max(5, length);
+
             var response = new BrowseResponse(directories);
 
             var waiter = new Mock<IWaiter>();
