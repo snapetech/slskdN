@@ -597,7 +597,7 @@ namespace slskd.Search
                         rateLimiter.Dispose();
                         ReleaseCancellationToken(id);
                     }
-                    }, cancellationToken: CancellationToken.None),
+                }, cancellationToken: CancellationToken.None),
                     ex => Log.Warning(ex, "Search background task for '{Query}' failed (id: {Id})", query.SearchText, id));
 
                 // broadcast and return the _newly created_ search; it will continue to be updated in the background

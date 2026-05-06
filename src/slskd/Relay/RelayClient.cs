@@ -655,64 +655,64 @@ namespace slskd.Relay
             _ = TaskObservation.Observe(
                 Task.Run(async () =>
                     {
-                    try
-                    {
-                        var downloadsDirectory = OptionsMonitor.CurrentValue.Directories.Downloads;
-                        var destinationFile = PathGuard.NormalizeAndValidate(filename, downloadsDirectory);
-                        if (destinationFile == null)
+                        try
                         {
-                            throw new InvalidOperationException("Relay download filename is outside the downloads directory.");
-                        }
-
-                        if (OptionsMonitor.CurrentValue.Relay.Mode.ToEnum<RelayMode>() == RelayMode.Debug)
-                        {
-                            // if we're debugging, we're referencing the same file for both the controller and agent which will lead to an
-                            // access violation. prefix the destination file to avoid this.
-                            destinationFile = PathGuard.NormalizeAndValidate($"{filename}.relayed", downloadsDirectory);
+                            var downloadsDirectory = OptionsMonitor.CurrentValue.Directories.Downloads;
+                            var destinationFile = PathGuard.NormalizeAndValidate(filename, downloadsDirectory);
                             if (destinationFile == null)
                             {
-                                throw new InvalidOperationException("Relay debug download filename is outside the downloads directory.");
+                                throw new InvalidOperationException("Relay download filename is outside the downloads directory.");
                             }
-                        }
 
-                        await Retry.Do(task: async () =>
-                        {
-                            using var request = new HttpRequestMessage(HttpMethod.Get, $"api/v0/relay/controller/downloads/{token}");
-
-                            request.Headers.Add("X-API-Key", OptionsMonitor.CurrentValue.Relay.Controller.ApiKey);
-                            request.Headers.Add("X-Relay-Agent", OptionsMonitor.CurrentValue.InstanceName);
-                            request.Headers.Add("X-Relay-Credential", ComputeCredential(token));
-                            request.Headers.Add("X-Relay-Filename-Base64", filename.ToBase64());
-
-                            using var client = CreateHttpClient();
-                            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-
-                            response.EnsureSuccessStatusCode();
-                            if (response.Content.Headers.ContentLength is long contentLength && contentLength > MaxRelayDownloadBytes)
+                            if (OptionsMonitor.CurrentValue.Relay.Mode.ToEnum<RelayMode>() == RelayMode.Debug)
                             {
-                                throw new InvalidOperationException("Relay download exceeds the maximum allowed size.");
+                                // if we're debugging, we're referencing the same file for both the controller and agent which will lead to an
+                                // access violation. prefix the destination file to avoid this.
+                                destinationFile = PathGuard.NormalizeAndValidate($"{filename}.relayed", downloadsDirectory);
+                                if (destinationFile == null)
+                                {
+                                    throw new InvalidOperationException("Relay debug download filename is outside the downloads directory.");
+                                }
                             }
 
-                            using var remoteStream = await response.Content.ReadAsStreamAsync();
+                            await Retry.Do(task: async () =>
+                            {
+                                using var request = new HttpRequestMessage(HttpMethod.Get, $"api/v0/relay/controller/downloads/{token}");
 
-                            var destinationDirectory = Path.GetDirectoryName(destinationFile)
-                                ?? throw new IOException($"Failed to determine destination directory for download {destinationFile}");
-                            Directory.CreateDirectory(destinationDirectory);
-                            using var localStream = new FileStream(destinationFile, FileMode.Create);
-                            await CopyWithLimitAsync(remoteStream, localStream, MaxRelayDownloadBytes);
-                        },
-                        isRetryable: (_, _) => true,
-                        onFailure: (_, ex) => Log.Error(ex, "Failed to handle file download notification for {Filename} ({Token})", filename, GetRelayTokenLogId(token)),
-                        maxAttempts: 3,
-                        maxDelayInMilliseconds: 60000);
+                                request.Headers.Add("X-API-Key", OptionsMonitor.CurrentValue.Relay.Controller.ApiKey);
+                                request.Headers.Add("X-Relay-Agent", OptionsMonitor.CurrentValue.InstanceName);
+                                request.Headers.Add("X-Relay-Credential", ComputeCredential(token));
+                                request.Headers.Add("X-Relay-Filename-Base64", filename.ToBase64());
 
-                        Log.Information("File {Filename} successfully downloaded to {Destination}", filename, destinationFile);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex, "Relay download notification handling failed for {Filename} ({Token})", filename, GetRelayTokenLogId(token));
-                    }
-                }, CancellationToken.None),
+                                using var client = CreateHttpClient();
+                                using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+                                response.EnsureSuccessStatusCode();
+                                if (response.Content.Headers.ContentLength is long contentLength && contentLength > MaxRelayDownloadBytes)
+                                {
+                                    throw new InvalidOperationException("Relay download exceeds the maximum allowed size.");
+                                }
+
+                                using var remoteStream = await response.Content.ReadAsStreamAsync();
+
+                                var destinationDirectory = Path.GetDirectoryName(destinationFile)
+                                    ?? throw new IOException($"Failed to determine destination directory for download {destinationFile}");
+                                Directory.CreateDirectory(destinationDirectory);
+                                using var localStream = new FileStream(destinationFile, FileMode.Create);
+                                await CopyWithLimitAsync(remoteStream, localStream, MaxRelayDownloadBytes);
+                            },
+                            isRetryable: (_, _) => true,
+                            onFailure: (_, ex) => Log.Error(ex, "Failed to handle file download notification for {Filename} ({Token})", filename, GetRelayTokenLogId(token)),
+                            maxAttempts: 3,
+                            maxDelayInMilliseconds: 60000);
+
+                            Log.Information("File {Filename} successfully downloaded to {Destination}", filename, destinationFile);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error(ex, "Relay download notification handling failed for {Filename} ({Token})", filename, GetRelayTokenLogId(token));
+                        }
+                    }, CancellationToken.None),
                 ex => Log.Error(ex, "[RelayClient] Unobserved relay download handler failure for {Filename} ({Token})", filename, GetRelayTokenLogId(token)));
 
             return Task.CompletedTask;

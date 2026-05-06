@@ -351,19 +351,19 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
         }
 
         var endpoint = new IPEndPoint(remoteAddress, port);
-            _ = TaskObservation.Observe(
-                Task.Run(async () =>
+        _ = TaskObservation.Observe(
+            Task.Run(async () =>
+            {
+                try
                 {
-                    try
-                    {
-                        await _overlayConnector.ConnectToEndpointAsync(endpoint).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogDebug(ex, "Reciprocal overlay connect to {Username}@{Endpoint} failed: {Message}", OverlayLogSanitizer.Username(hello.Username), OverlayLogSanitizer.Endpoint(endpoint), ex.Message);
-                    }
-                }),
-                ex => _logger.LogDebug(ex, "Unobserved reciprocal connect failure for {Username}@{Endpoint}", OverlayLogSanitizer.Username(hello.Username), OverlayLogSanitizer.Endpoint(endpoint)));
+                    await _overlayConnector.ConnectToEndpointAsync(endpoint).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Reciprocal overlay connect to {Username}@{Endpoint} failed: {Message}", OverlayLogSanitizer.Username(hello.Username), OverlayLogSanitizer.Endpoint(endpoint), ex.Message);
+                }
+            }),
+            ex => _logger.LogDebug(ex, "Unobserved reciprocal connect failure for {Username}@{Endpoint}", OverlayLogSanitizer.Username(hello.Username), OverlayLogSanitizer.Endpoint(endpoint)));
     }
 
     private async Task HandleMessagesAsync(MeshOverlayConnection connection, CancellationToken cancellationToken)
