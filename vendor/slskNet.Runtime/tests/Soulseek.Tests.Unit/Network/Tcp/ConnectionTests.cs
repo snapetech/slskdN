@@ -809,6 +809,48 @@ namespace Soulseek.Tests.Unit.Network.Tcp
         }
 
         [Trait("Category", "Write")]
+        [Theory(DisplayName = "Write releases queue slot when cancelled waiting for write semaphore"), AutoData]
+        public async Task Write_Releases_Queue_Slot_When_Cancelled_Waiting_For_Write_Semaphore(IPEndPoint endpoint)
+        {
+            using (var socket = new Socket(SocketType.Stream, ProtocolType.IP))
+            using (var cancellationTokenSource = new CancellationTokenSource())
+            {
+                var stream = new Mock<INetworkStream>();
+                var t = new Mock<ITcpClient>();
+                t.Setup(m => m.GetStream())
+                    .Returns(stream.Object);
+                t.Setup(m => m.Client).Returns(socket);
+                t.Setup(m => m.Connected).Returns(true);
+
+                using (var c = new Connection(endpoint, new ConnectionOptions(writeQueueSize: 1), tcpClient: t.Object))
+                {
+                    var writeSemaphore = c.GetProperty<SemaphoreSlim>("WriteSemaphore");
+
+                    await writeSemaphore.WaitAsync();
+
+                    try
+                    {
+                        var writeTask = c.WriteAsync(new byte[] { 0x0, 0x1 }, cancellationTokenSource.Token);
+                        await Task.Delay(50);
+
+                        Assert.Equal(1, c.WriteQueueDepth);
+
+                        await cancellationTokenSource.CancelAsync();
+
+                        await Assert.ThrowsAsync<OperationCanceledException>(() => writeTask);
+
+                        Assert.Equal(0, c.WriteQueueDepth);
+                        Assert.Equal(ConnectionState.Connected, c.State);
+                    }
+                    finally
+                    {
+                        writeSemaphore.Release();
+                    }
+                }
+            }
+        }
+
+        [Trait("Category", "Write")]
         [Theory(DisplayName = "Write from stream throws given negative length")]
         [InlineData(-1)]
         [InlineData(-121412)]

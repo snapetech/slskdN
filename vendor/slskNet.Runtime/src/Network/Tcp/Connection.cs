@@ -769,28 +769,33 @@ namespace Soulseek.Network.Tcp
             // a failure to allocate memory will throw, so we need to do it within the try/catch
             // declare and initialize it here so it's available in the finally block
             byte[] buffer = Array.Empty<byte>();
-
-            // in the case of a bad (or failing) connection, it is possible for us to continue to write data, particularly
-            // distributed search requests, to the connection for quite a while before the underlying socket figures out that it
-            // is in a bad state. when this happens memory usage skyrockets. see https://github.com/slskd/slskd/issues/251 for
-            // more information.  note that this isn't for synchronization, it's to maintain a count of waiting writes.
-            if (WriteQueueFull || !await WriteQueueSemaphore.WaitAsync(0, cancellationToken).ConfigureAwait(false))
-            {
-                // note: the semaphore check and this latch are not atomic! it's possible for one thread to fail to get the semaphore,
-                // and for the next to succeed (if one is released in the finally) before we set this to true. if that happens,
-                // *something* below will fail and the exception will bubble out (and if it doesn't throw, it probably got sent)
-                WriteQueueFull = true;
-
-                Disconnect("The write buffer is full");
-                throw new ConnectionWriteDroppedException($"Dropped buffered message to {IPEndPoint}; the write buffer is full");
-            }
-
-            // obtain the write semaphore for this connection.  this keeps concurrent writes
-            // from interleaving, which will mangle the messages on the receiving end
-            await WriteSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+            var writeQueueSemaphoreAcquired = false;
+            var writeSemaphoreAcquired = false;
 
             try
             {
+                // in the case of a bad (or failing) connection, it is possible for us to continue to write data, particularly
+                // distributed search requests, to the connection for quite a while before the underlying socket figures out that it
+                // is in a bad state. when this happens memory usage skyrockets. see https://github.com/slskd/slskd/issues/251 for
+                // more information.  note that this isn't for synchronization, it's to maintain a count of waiting writes.
+                if (WriteQueueFull || !await WriteQueueSemaphore.WaitAsync(0, cancellationToken).ConfigureAwait(false))
+                {
+                    // note: the semaphore check and this latch are not atomic! it's possible for one thread to fail to get the semaphore,
+                    // and for the next to succeed (if one is released in the finally) before we set this to true. if that happens,
+                    // *something* below will fail and the exception will bubble out (and if it doesn't throw, it probably got sent)
+                    WriteQueueFull = true;
+
+                    Disconnect("The write buffer is full");
+                    throw new ConnectionWriteDroppedException($"Dropped buffered message to {IPEndPoint}; the write buffer is full");
+                }
+
+                writeQueueSemaphoreAcquired = true;
+
+                // obtain the write semaphore for this connection.  this keeps concurrent writes
+                // from interleaving, which will mangle the messages on the receiving end
+                await WriteSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+                writeSemaphoreAcquired = true;
+
                 ResetInactivityTime();
 
 #if NETSTANDARD2_0
@@ -856,6 +861,14 @@ namespace Soulseek.Network.Tcp
                     ResetInactivityTime();
                 }
             }
+            catch (ConnectionWriteDroppedException)
+            {
+                throw;
+            }
+            catch (OperationCanceledException) when (!writeSemaphoreAcquired)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 Disconnect($"Write error: {ex.Message}", ex);
@@ -875,8 +888,15 @@ namespace Soulseek.Network.Tcp
 
                 if (!Disposed)
                 {
-                    WriteQueueSemaphore.Release();
-                    WriteSemaphore.Release();
+                    if (writeQueueSemaphoreAcquired)
+                    {
+                        WriteQueueSemaphore.Release();
+                    }
+
+                    if (writeSemaphoreAcquired)
+                    {
+                        WriteSemaphore.Release();
+                    }
                 }
             }
         }
