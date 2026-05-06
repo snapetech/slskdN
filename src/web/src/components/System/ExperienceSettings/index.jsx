@@ -37,6 +37,19 @@ const defaults = {
   searchRankingProfile: 'balanced',
 };
 
+const booleanPreferenceKeys = [
+  'messagesDenseMode',
+  'messagesPinnedRestore',
+  'messagesRoomUserFilter',
+  'messagesSearchEnabled',
+  'messagesUnreadBadges',
+  'playerCaptureHistory',
+  'playerKeyboardShortcuts',
+  'playerQueueAutoFill',
+  'playerShowRatings',
+  'searchDuplicateFolding',
+];
+
 const options = {
   actionPreviewDensity: [
     { key: 'compact', text: 'Compact', value: 'compact' },
@@ -82,12 +95,94 @@ const options = {
   ],
 };
 
+const optionPreferenceKeys = {
+  discoveryApprovalFilter: options.approvalFilter,
+  discoveryExplanationDetail: options.explanationDetail,
+  playerDefaultVisualizer: options.visualizerDefault,
+  playerRadioSeedMode: options.radioSeedMode,
+  playerScrobbleMode: options.scrobbleMode,
+  searchActionPreviewDensity: options.actionPreviewDensity,
+  searchPreferredCondition: options.preferredCondition,
+  searchRankingProfile: options.rankingProfile,
+};
+
+const isObject = (value) =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
+const isOptionValue = (optionList, value) =>
+  optionList.some((option) => option.value === value);
+
+const normalizeDecimalString = (value, fallback, minimum, maximum) => {
+  if (typeof value !== 'string') {
+    return fallback;
+  }
+
+  const trimmed = value.trim();
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) {
+    return fallback;
+  }
+
+  const parsed = Number(trimmed);
+  return parsed >= minimum && parsed <= maximum ? trimmed : fallback;
+};
+
+const normalizeIntegerString = (value, fallback, minimum, maximum) => {
+  if (typeof value !== 'string') {
+    return fallback;
+  }
+
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) {
+    return fallback;
+  }
+
+  const parsed = Number(trimmed);
+  return parsed >= minimum && parsed <= maximum ? trimmed : fallback;
+};
+
+const normalizeStoredPreferences = (stored) => {
+  if (!isObject(stored)) {
+    return defaults;
+  }
+
+  const normalized = { ...defaults };
+
+  Object.entries(optionPreferenceKeys).forEach(([key, optionList]) => {
+    if (isOptionValue(optionList, stored[key])) {
+      normalized[key] = stored[key];
+    }
+  });
+
+  booleanPreferenceKeys.forEach((key) => {
+    if (typeof stored[key] === 'boolean') {
+      normalized[key] = stored[key];
+    }
+  });
+
+  if (typeof stored.discoveryProviderFilter === 'string') {
+    normalized.discoveryProviderFilter = stored.discoveryProviderFilter;
+  }
+
+  normalized.discoveryConfidenceFloor = normalizeDecimalString(
+    stored.discoveryConfidenceFloor,
+    defaults.discoveryConfidenceFloor,
+    0,
+    1,
+  );
+  normalized.discoveryStaleDays = normalizeIntegerString(
+    stored.discoveryStaleDays,
+    defaults.discoveryStaleDays,
+    1,
+    3650,
+  );
+
+  return normalized;
+};
+
 const readStoredPreferences = () => {
   try {
     const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    return stored && typeof stored === 'object' && !Array.isArray(stored)
-      ? { ...defaults, ...stored }
-      : defaults;
+    return normalizeStoredPreferences(stored);
   } catch {
     return defaults;
   }

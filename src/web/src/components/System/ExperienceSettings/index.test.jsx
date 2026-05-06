@@ -55,6 +55,43 @@ describe('ExperienceSettings', () => {
     expect(screen.getByLabelText('Show unread message badges preference')).toBeChecked();
   });
 
+  it('normalizes malformed persisted preference values', () => {
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        discoveryApprovalFilter: 'ship-it',
+        discoveryConfidenceFloor: '2.50',
+        discoveryProviderFilter: 7,
+        discoveryStaleDays: '-5',
+        messagesUnreadBadges: 'false',
+        playerRadioSeedMode: 'everywhere',
+        searchDuplicateFolding: 'false',
+        searchRankingProfile: 'quality',
+      }),
+    );
+
+    render(<ExperienceSettings />);
+
+    expect(
+      screen.getByLabelText('Enable search duplicate folding preference'),
+    ).toBeChecked();
+    expect(screen.getByLabelText('Show unread message badges preference')).toBeChecked();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copy Report' }));
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringContaining('Search: ranking=quality'),
+    );
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Discovery: provider=all, approval=all, confidence>=0.70, stale_days=14',
+      ),
+    );
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringContaining('Player: queue_auto_fill=false, radio_seed=current'),
+    );
+  });
+
   it('copies a preference report', () => {
     render(<ExperienceSettings />);
 

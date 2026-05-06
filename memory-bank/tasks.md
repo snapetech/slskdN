@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **bug-council**: Continue Web boundary object-normalization cycle.
+ - Status: completed (2026-05-06)
+ - Priority: P2
+ - Notes: Fixed `BUG-20260506-076` through `BUG-20260506-078` by normalizing browser-local Experience preferences field by field, defaulting malformed user-note API responses, and rejecting malformed MusicBrainz target lookup bodies before enabling graph actions. Added focused Web regressions and ADR-0001 gotcha `0z92`.
+
 - [x] **bug-council**: Close upstream workflow branch-target drift.
  - Status: completed (2026-05-06)
  - Priority: P1

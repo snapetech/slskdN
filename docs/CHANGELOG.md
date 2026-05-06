@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Hardened Web boundary object normalization for browser-local experience
+  preferences, user-note responses, and MusicBrainz target lookup responses.
 - Persist job manifests, quarantine-jury state, Spotify connection tokens,
   source-feed import history, MusicBrainz overlay/radar state, and realm subject
   indexes through the shared atomic file writer.

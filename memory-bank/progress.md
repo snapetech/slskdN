@@ -1,5 +1,7 @@
 ## 2026-05-06
 
+- Continued the non-runtime Web boundary object-normalization council section and fixed `BUG-20260506-076` through `BUG-20260506-078`: Experience settings now sanitize persisted enum/boolean/numeric fields, user-note responses default malformed bodies safely, and MusicBrainz target lookup rejects malformed success bodies before enabling graph actions. Added focused Vitest regressions and ADR-0001 gotcha `0z92`.
+
 - Continued the non-runtime release/ops workflow section and fixed `BUG-20260506-046` through `BUG-20260506-047`: upstream sync is now manual-only and pushes to `main`, while the upstream-access notification workflow targets `main` and declares explicit issue/PR permissions. Added `scripts/check-workflow-main-branch-targets.sh` plus ADR-0001 gotchas `0z337` and `0z338`.
 
 - Continued the non-runtime API error-body leakage section and fixed `BUG-20260506-042` through `BUG-20260506-045`: Spotify, SongID, and Listening Party controllers now return stable client-facing errors instead of raw service exception messages, and Spotify callback HTML no longer reflects provider `error` query text. Added `scripts/check-api-exception-bodies.sh` plus focused controller regressions and ADR-0001 gotcha `0z336`.

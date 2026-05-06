@@ -71,6 +71,28 @@ const colors = [
   },
 ];
 
+const isObject = (value) =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
+const colorValues = new Set(colors.map(({ value }) => value));
+
+const normalizeNoteResponse = (data) => {
+  if (!isObject(data)) {
+    return {
+      color: null,
+      isHighPriority: false,
+      note: '',
+    };
+  }
+
+  return {
+    color: colorValues.has(data.color) ? data.color : null,
+    isHighPriority:
+      typeof data.isHighPriority === 'boolean' ? data.isHighPriority : false,
+    note: typeof data.note === 'string' ? data.note : '',
+  };
+};
+
 const UserNoteModal = ({ onClose, trigger, username }) => {
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState('');
@@ -85,16 +107,10 @@ const UserNoteModal = ({ onClose, trigger, username }) => {
       setLoading(true);
       try {
         const response = await userNotes.getNote({ username });
-        if (response.data) {
-          setNote(response.data.note || '');
-          setColor(response.data.color || null);
-          setIsHighPriority(response.data.isHighPriority || false);
-        } else {
-          // Reset if no note exists
-          setNote('');
-          setColor(null);
-          setIsHighPriority(false);
-        }
+        const normalized = normalizeNoteResponse(response.data);
+        setNote(normalized.note);
+        setColor(normalized.color);
+        setIsHighPriority(normalized.isHighPriority);
       } catch (error) {
         if (error.response && error.response.status === 404) {
           setNote('');

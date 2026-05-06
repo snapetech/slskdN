@@ -16,6 +16,25 @@ import DiscoveryGraphModal from './DiscoveryGraphModal';
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 
+const isObject = (value) =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+
+const normalizeResolvedTarget = (data) => {
+  if (!isObject(data)) {
+    return null;
+  }
+
+  if (isObject(data.album)) {
+    return { album: data.album };
+  }
+
+  if (isObject(data.track)) {
+    return { track: data.track };
+  }
+
+  return null;
+};
+
 const MusicBrainzLookup = ({ disabled }) => {
   const [releaseInput, setReleaseInput] = useState('');
   const [recordingInput, setRecordingInput] = useState('');
@@ -62,12 +81,17 @@ const MusicBrainzLookup = ({ disabled }) => {
       };
 
       const response = await resolveTarget(payload);
-      setTarget(response.data);
+      const resolvedTarget = normalizeResolvedTarget(response.data);
+      if (!resolvedTarget) {
+        throw new Error('MusicBrainz target response did not include a target');
+      }
+
+      setTarget(resolvedTarget);
 
       toast.success(
-        response.data.album
-          ? `Loaded album ${response.data.album.title}`
-          : `Loaded track ${response.data.track?.title}`,
+        resolvedTarget.album
+          ? `Loaded album ${resolvedTarget.album.title}`
+          : `Loaded track ${resolvedTarget.track?.title}`,
       );
     } catch (error) {
       console.error(error);

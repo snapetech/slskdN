@@ -1,3 +1,16 @@
+## Update 2026-05-07 01:33:00Z
+
+- Current task: Continue non-runtime council Web boundary object-normalization cycle.
+- Last activity:
+  - classified Web storage and response-object boundary candidates after skipping runtime/vendor;
+  - accepted and fixed `BUG-20260506-076` through `BUG-20260506-078`;
+  - Experience settings now normalize persisted enum, boolean, and numeric-string fields;
+  - user-note modal responses and MusicBrainz target lookup responses now reject or default malformed success bodies before updating UI state;
+  - documented ADR-0001 gotcha `0z92`, and updated ledger/changelog/task log.
+- Next steps:
+  1. Run focused Web tests, remediation, Web lint, repo lint, and diff checks.
+  2. Commit and push the verified non-runtime Web boundary batch.
+
 ## Update 2026-05-07 00:55:00Z
 
 - Current task: Continue non-runtime council durable temp-move state writer cycle.

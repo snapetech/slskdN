@@ -15341,3 +15341,11 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 **Why it happened:** The effect intentionally avoided repeated graph rebuilds, but its dependency list omitted the query string that supplies the route intent.
 
 **How to prevent it:** Any mounted Web view that hydrates state from URL query/path parameters must include those parameters in the effect dependencies and have a test that changes location while the component stays mounted.
+
+### 0z92. Web Boundary State Needs Field-Level Shape Normalization
+
+**What went wrong:** Browser-local experience preferences and API response objects were parsed only as generic objects, then merged or rendered with unvalidated enum, boolean, and nested target fields.
+
+**Why it happened:** Earlier Web guards checked malformed arrays and null bodies, but object-shaped payloads were still treated as trustworthy once `typeof value === 'object'` passed.
+
+**How to prevent it:** Normalize Web storage and API response bodies field by field at the component/helper boundary. Enum values must be allowlisted, booleans must be real booleans, and required nested success shapes must be rejected before updating UI state or enabling follow-up actions.
