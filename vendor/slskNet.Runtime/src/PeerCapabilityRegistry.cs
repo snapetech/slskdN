@@ -28,6 +28,20 @@ namespace Soulseek
     {
         private readonly ConcurrentDictionary<string, PeerCapabilityRecord> records =
             new ConcurrentDictionary<string, PeerCapabilityRecord>(StringComparer.OrdinalIgnoreCase);
+        private readonly Action<string, Exception> eventExceptionHandler;
+
+        /// <summary>
+        ///     Initializes a new instance of the <see cref="PeerCapabilityRegistry"/> class.
+        /// </summary>
+        public PeerCapabilityRegistry()
+            : this(null)
+        {
+        }
+
+        internal PeerCapabilityRegistry(Action<string, Exception> eventExceptionHandler)
+        {
+            this.eventExceptionHandler = eventExceptionHandler;
+        }
 
         /// <summary>
         ///     Occurs when a peer capability record is updated.
@@ -92,8 +106,20 @@ namespace Soulseek
                 DateTimeOffset.UtcNow);
 
             records.AddOrUpdate(username, record, (_, __) => record);
-            Updated?.Invoke(this, new PeerCapabilityReceivedEventArgs(record));
+            RaiseUpdated(record);
             return record;
+        }
+
+        private void RaiseUpdated(PeerCapabilityRecord record)
+        {
+            try
+            {
+                Updated?.Invoke(this, new PeerCapabilityReceivedEventArgs(record));
+            }
+            catch (Exception ex)
+            {
+                eventExceptionHandler?.Invoke(nameof(Updated), ex);
+            }
         }
     }
 }

@@ -155,6 +155,7 @@ namespace Soulseek
 
             Diagnostic = diagnosticFactory ?? new DiagnosticFactory(Options.MinimumDiagnosticLevel, (e) => DiagnosticGenerated?.Invoke(this, e));
             GlobalDiagnostic.Init(Diagnostic);
+            PeerCapabilities = new PeerCapabilityRegistry(HandlePeerCapabilityEventException);
 
             ListenerHandler = listenerHandler ?? new ListenerHandler(this);
             ListenerHandler.DiagnosticGenerated += (sender, e) => DiagnosticGenerated?.Invoke(sender, e);
@@ -577,7 +578,7 @@ namespace Soulseek
         /// <summary>
         ///     Gets the known slskdN peer capability registry.
         /// </summary>
-        public PeerCapabilityRegistry PeerCapabilities { get; } = new PeerCapabilityRegistry();
+        public PeerCapabilityRegistry PeerCapabilities { get; }
 
         /// <summary>
         ///     Gets the local slskdN peer capability descriptor advertised in capability acknowledgements.
@@ -4868,7 +4869,7 @@ namespace Soulseek
             }
 
             var record = PeerCapabilities.Update(username, endpoint, envelope);
-            PeerCapabilityReceived?.Invoke(this, new PeerCapabilityReceivedEventArgs(record));
+            RaisePeerCapabilityReceived(record);
 
             if (envelope.MessageType == PeerCapabilityMessageType.Hello && PeerCapabilityDescriptor != null)
             {
@@ -4879,6 +4880,23 @@ namespace Soulseek
 
                 await SendPeerMessageInternalAsync(username, PeerCapabilityEnvelope.MessageCode, response.ToByteArray(), CancellationToken.None).ConfigureAwait(false);
             }
+        }
+
+        private void RaisePeerCapabilityReceived(PeerCapabilityRecord record)
+        {
+            try
+            {
+                PeerCapabilityReceived?.Invoke(this, new PeerCapabilityReceivedEventArgs(record));
+            }
+            catch (Exception ex)
+            {
+                HandlePeerCapabilityEventException(nameof(PeerCapabilityReceived), ex);
+            }
+        }
+
+        private void HandlePeerCapabilityEventException(string eventName, Exception ex)
+        {
+            Diagnostic.Warning($"Unhandled exception in {eventName} event handler: {ex.Message}", ex);
         }
 
         private static void ValidatePeerMessageCode(int messageCode)

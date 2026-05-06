@@ -18,6 +18,7 @@ namespace Soulseek.Tests.Unit.Client
     using AutoFixture.Xunit2;
     using Moq;
     using Soulseek;
+    using Soulseek.Diagnostics;
     using Soulseek.Messaging;
     using Soulseek.Messaging.Handlers;
     using Soulseek.Messaging.Messages;
@@ -115,6 +116,114 @@ namespace Soulseek.Tests.Unit.Client
 
                 Assert.True(receiver.PeerCapabilities.TryGet(username, out var record));
                 Assert.Equal(descriptor.PeerId, record.Descriptor.PeerId);
+            }
+        }
+
+        [Trait("Category", "MeshRendezvous")]
+        [Theory, AutoData]
+        public async Task PeerCapability_Registry_Updated_Handler_Exception_Does_Not_Prevent_Acknowledgement(string username)
+        {
+            var endpoint = new IPEndPoint(IPAddress.Loopback, 5000);
+            var diagnostic = new Mock<IDiagnosticFactory>();
+            var waiter = new Mock<IWaiter>();
+            var serverConnection = new Mock<IMessageConnection>();
+            var acknowledgementConnection = new Mock<IMessageConnection>();
+            var peerConnectionManager = new Mock<IPeerConnectionManager>();
+            var acknowledgementSent = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            waiter.Setup(m => m.Wait<UserAddressResponse>(It.IsAny<WaitKey>(), null, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(new UserAddressResponse(username, endpoint.Address, endpoint.Port)));
+            serverConnection.Setup(m => m.WriteAsync(It.IsAny<IOutgoingMessage>(), It.IsAny<CancellationToken?>()))
+                .Returns(Task.CompletedTask);
+            acknowledgementConnection.Setup(m => m.WriteAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken?>()))
+                .Callback<byte[], CancellationToken?>((message, _) => acknowledgementSent.TrySetResult(message))
+                .Returns(Task.CompletedTask);
+            peerConnectionManager.Setup(m => m.GetOrAddMessageConnectionAsync(username, endpoint, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(acknowledgementConnection.Object));
+
+            using (var signer = new Ed25519PeerDescriptorSigner())
+            using (var receiver = new SoulseekClient(
+                minorVersion: 9999,
+                waiter: waiter.Object,
+                serverConnection: serverConnection.Object,
+                peerConnectionManager: peerConnectionManager.Object,
+                diagnosticFactory: diagnostic.Object))
+            {
+                receiver.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+                receiver.SetPeerCapabilityDescriptor(new PeerCapabilityDescriptor(features: new[] { "local" }));
+                receiver.PeerCapabilities.Updated += (_, __) => throw new InvalidOperationException("subscriber failed");
+
+                var keys = signer.GenerateKeyPair();
+                var descriptor = signer.Sign(
+                    new PeerCapabilityDescriptor(features: new[] { "mesh" }),
+                    keys.PrivateKey,
+                    keys.PublicKey);
+                var connection = GetCapabilityConnection(username, endpoint);
+                var message = GetCapabilityMessage(new PeerCapabilityEnvelope(PeerCapabilityMessageType.Hello, descriptor, nonce: "n1"));
+
+                var receiverHandler = receiver.GetProperty<IPeerMessageHandler>("PeerMessageHandler");
+                receiverHandler.HandleMessageRead(connection.Object, message);
+
+                var completed = await Task.WhenAny(acknowledgementSent.Task, Task.Delay(TimeSpan.FromMilliseconds(500)));
+
+                Assert.Same(acknowledgementSent.Task, completed);
+                Assert.True(receiver.PeerCapabilities.TryGet(username, out _));
+                Assert.Equal(PeerCapabilityEnvelope.MessageCode, BitConverter.ToInt32(await acknowledgementSent.Task, 4));
+                diagnostic.Verify(m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Unhandled exception in Updated event handler")), It.IsAny<InvalidOperationException>()), Times.Once);
+            }
+        }
+
+        [Trait("Category", "MeshRendezvous")]
+        [Theory, AutoData]
+        public async Task PeerCapability_Received_Handler_Exception_Does_Not_Prevent_Acknowledgement(string username)
+        {
+            var endpoint = new IPEndPoint(IPAddress.Loopback, 5000);
+            var diagnostic = new Mock<IDiagnosticFactory>();
+            var waiter = new Mock<IWaiter>();
+            var serverConnection = new Mock<IMessageConnection>();
+            var acknowledgementConnection = new Mock<IMessageConnection>();
+            var peerConnectionManager = new Mock<IPeerConnectionManager>();
+            var acknowledgementSent = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            waiter.Setup(m => m.Wait<UserAddressResponse>(It.IsAny<WaitKey>(), null, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(new UserAddressResponse(username, endpoint.Address, endpoint.Port)));
+            serverConnection.Setup(m => m.WriteAsync(It.IsAny<IOutgoingMessage>(), It.IsAny<CancellationToken?>()))
+                .Returns(Task.CompletedTask);
+            acknowledgementConnection.Setup(m => m.WriteAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken?>()))
+                .Callback<byte[], CancellationToken?>((message, _) => acknowledgementSent.TrySetResult(message))
+                .Returns(Task.CompletedTask);
+            peerConnectionManager.Setup(m => m.GetOrAddMessageConnectionAsync(username, endpoint, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(acknowledgementConnection.Object));
+
+            using (var signer = new Ed25519PeerDescriptorSigner())
+            using (var receiver = new SoulseekClient(
+                minorVersion: 9999,
+                waiter: waiter.Object,
+                serverConnection: serverConnection.Object,
+                peerConnectionManager: peerConnectionManager.Object,
+                diagnosticFactory: diagnostic.Object))
+            {
+                receiver.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+                receiver.SetPeerCapabilityDescriptor(new PeerCapabilityDescriptor(features: new[] { "local" }));
+                receiver.PeerCapabilityReceived += (_, __) => throw new InvalidOperationException("subscriber failed");
+
+                var keys = signer.GenerateKeyPair();
+                var descriptor = signer.Sign(
+                    new PeerCapabilityDescriptor(features: new[] { "mesh" }),
+                    keys.PrivateKey,
+                    keys.PublicKey);
+                var connection = GetCapabilityConnection(username, endpoint);
+                var message = GetCapabilityMessage(new PeerCapabilityEnvelope(PeerCapabilityMessageType.Hello, descriptor, nonce: "n1"));
+
+                var receiverHandler = receiver.GetProperty<IPeerMessageHandler>("PeerMessageHandler");
+                receiverHandler.HandleMessageRead(connection.Object, message);
+
+                var completed = await Task.WhenAny(acknowledgementSent.Task, Task.Delay(TimeSpan.FromMilliseconds(500)));
+
+                Assert.Same(acknowledgementSent.Task, completed);
+                Assert.True(receiver.PeerCapabilities.TryGet(username, out _));
+                Assert.Equal(PeerCapabilityEnvelope.MessageCode, BitConverter.ToInt32(await acknowledgementSent.Task, 4));
+                diagnostic.Verify(m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Unhandled exception in PeerCapabilityReceived event handler")), It.IsAny<InvalidOperationException>()), Times.Once);
             }
         }
 

@@ -141,6 +141,24 @@ namespace Soulseek.Tests.Unit
             Assert.Equal("n1", record.Nonce);
         }
 
+        [Fact(DisplayName = "Capability registry update succeeds if Updated handler throws")]
+        public void Capability_Registry_Update_Succeeds_If_Updated_Handler_Throws()
+        {
+            var registry = new PeerCapabilityRegistry();
+            var endpoint = new IPEndPoint(IPAddress.Loopback, 1234);
+            var envelope = new PeerCapabilityEnvelope(
+                PeerCapabilityMessageType.Hello,
+                new PeerCapabilityDescriptor(features: new[] { "mesh" }),
+                nonce: "n1");
+
+            registry.Updated += (_, __) => throw new InvalidOperationException("subscriber failed");
+
+            var record = registry.Update("Alice", endpoint, envelope);
+
+            Assert.True(registry.TryGet("alice", out var stored));
+            Assert.Same(record, stored);
+        }
+
         [Fact(DisplayName = "Capability record snapshots endpoint")]
         public void Capability_Record_Snapshots_Endpoint()
         {
