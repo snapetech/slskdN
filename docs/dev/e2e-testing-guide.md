@@ -161,7 +161,7 @@ name: E2E Tests
 
 on:
   pull_request:
-    branches: [master]
+    branches: [main]
   schedule:
     - cron: '0 2 * * *'  # Nightly
   workflow_dispatch:

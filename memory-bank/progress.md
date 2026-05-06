@@ -9916,3 +9916,10 @@ Code quality improvements were completed as part of Option A:
 - Recorded and verified `BUG-20260506-069` through `BUG-20260506-075`.
 - Moved job manifest, quarantine jury, Spotify connection, source-feed history, MusicBrainz radar/overlay, and realm subject-index state writes to `AtomicFileWriter`.
 - Added `scripts/check-durable-state-atomic-writes.sh` to the remediation baseline.
+
+## 2026-05-06 21:55:14Z
+
+- Continued the non-runtime council scan into active fork package/docs branch-link drift.
+- Recorded and verified `BUG-20260506-087` through `BUG-20260506-089`.
+- Updated Unraid template metadata, Chocolatey package metadata, and the active E2E workflow guide from fork-owned `master` references to `main`.
+- Added `scripts/check-fork-main-branch-links.sh` to the remediation baseline so active fork package links and workflow examples cannot drift back to `master`.

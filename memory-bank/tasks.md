@@ -2632,3 +2632,7 @@
 - [x] Continue non-runtime council durable temp-move state writer cycle
   - Status: completed (2026-05-06)
   - Notes: Classified direct/fixed-temp durable state writers after skipping the runtime lane; fixed `BUG-20260506-069` through `BUG-20260506-075` by moving job manifests, quarantine jury state, Spotify token state, source-feed history, MusicBrainz radar/overlay state, and realm subject indexes to `AtomicFileWriter`.
+
+- [x] Continue non-runtime council active fork branch-link cycle
+  - Status: completed (2026-05-06)
+  - Notes: Classified active fork package/docs branch references after skipping runtime/vendor/archive history; fixed `BUG-20260506-087` through `BUG-20260506-089` by moving Unraid, Chocolatey, and E2E guide references from `master` to `main`, and added `scripts/check-fork-main-branch-links.sh` to remediation.

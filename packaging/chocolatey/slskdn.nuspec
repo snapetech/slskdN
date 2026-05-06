@@ -6,7 +6,7 @@
     <title>slskdn</title>
     <authors>snapetech</authors>
     <projectUrl>https://github.com/snapetech/slskdn</projectUrl>
-    <licenseUrl>https://github.com/snapetech/slskdn/blob/master/LICENSE</licenseUrl>
+    <licenseUrl>https://github.com/snapetech/slskdn/blob/main/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <tags>slskdn soulseek p2p community-service content-sharing</tags>
     <summary>slskdN, an unofficial batteries-included fork of slskd</summary>

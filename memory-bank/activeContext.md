@@ -1,3 +1,15 @@
+## Update 2026-05-06 21:55:14Z
+
+- Current task: Continue non-runtime council active fork branch-link cycle.
+- Last activity:
+  - classified active fork package/docs branch references after skipping runtime/vendor/archive history;
+  - accepted and fixed `BUG-20260506-087` through `BUG-20260506-089`;
+  - Unraid, Chocolatey, and the active E2E guide now target the fork's `main` branch;
+  - added `scripts/check-fork-main-branch-links.sh` to remediation and documented ADR-0001 gotcha `0z96`.
+- Next steps:
+  1. Run remediation, focused branch-link scanner, packaging metadata checks, docs checks, lint, and diff checks.
+  2. Commit and push the verified non-runtime branch-link batch.
+
 ## Update 2026-05-07 02:06:00Z
 
 - Current task: Continue non-runtime council QUIC overlay/data stream lifecycle cycle.

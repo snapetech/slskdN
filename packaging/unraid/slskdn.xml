@@ -32,7 +32,7 @@ No scripts required. Everything built-in.
   </Overview>
   <Category>MediaApp:Music Downloaders</Category>
   <WebUI>http://[IP]:[PORT:5030]/</WebUI>
-  <TemplateURL>https://raw.githubusercontent.com/snapetech/slskdn/master/packaging/unraid/slskdn.xml</TemplateURL>
+  <TemplateURL>https://raw.githubusercontent.com/snapetech/slskdn/main/packaging/unraid/slskdn.xml</TemplateURL>
   <Icon>https://raw.githubusercontent.com/slskd/slskd/master/docs/slskd.png</Icon>
   <ExtraParams>--restart=unless-stopped</ExtraParams>
   <Description>slskdN - Unofficial slskd fork with auto-replace, wishlist, smart ranking, and more. Batteries included.</Description>
@@ -100,7 +100,6 @@ No scripts required. Everything built-in.
   <Config Name="Soulseek Username" Target="SLSKD_SLSK_USERNAME" Default="" Mode="" Description="Your Soulseek username (or set in web UI)" Type="Variable" Display="always" Required="false" Mask="false"></Config>
   <Config Name="Soulseek Password" Target="SLSKD_SLSK_PASSWORD" Default="" Mode="" Description="Your Soulseek password (or set in web UI)" Type="Variable" Display="always" Required="false" Mask="true"></Config>
 </Container>
-
 
 
 
