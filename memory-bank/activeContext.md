@@ -1,3 +1,16 @@
+## Update 2026-05-07 01:49:00Z
+
+- Current task: Continue non-runtime council Proxmox/raw Linux installer safety cycle.
+- Last activity:
+  - classified active release/ops installer candidates after skipping runtime/vendor and docs/archive;
+  - accepted and fixed `BUG-20260506-082` through `BUG-20260506-084`;
+  - Proxmox LXC installs now verify `SHA256SUMS.txt`, remove stale install trees before extraction, and converge service config/data/app ownership plus `UMask=0002`;
+  - added `scripts/check-linux-installer-safety.sh` to remediation;
+  - documented ADR-0001 gotcha `0z94`, and updated ledger/changelog/task log.
+- Next steps:
+  1. Run remediation, packaging installer checks, repo lint, and diff checks.
+  2. Commit and push the verified non-runtime release/ops installer batch.
+
 ## Update 2026-05-07 01:39:00Z
 
 - Current task: Continue non-runtime council Web lifecycle and hub mutation cycle.
