@@ -4,7 +4,7 @@
 
 import * as swarmAnalyticsLibrary from '../../../lib/swarmAnalytics';
 import { formatBytes } from '../../../lib/util';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import {
   Card,
@@ -24,6 +24,7 @@ import {
 const asArray = (value) => (Array.isArray(value) ? value : []);
 
 const SwarmAnalytics = () => {
+  const mountedRef = useRef(true);
   const [performanceMetrics, setPerformanceMetrics] = useState(null);
   const [peerRankings, setPeerRankings] = useState([]);
   const [efficiencyMetrics, setEfficiencyMetrics] = useState(null);
@@ -41,6 +42,10 @@ const SwarmAnalytics = () => {
     { key: '168', text: '7 days', value: 168 },
   ];
 
+  useEffect(() => () => {
+    mountedRef.current = false;
+  }, []);
+
   const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true);
@@ -53,18 +58,23 @@ const SwarmAnalytics = () => {
           swarmAnalyticsLibrary.getRecommendations(),
         ]);
 
+      if (!mountedRef.current) return;
+
       setPerformanceMetrics(performance);
       setPeerRankings(asArray(peers));
       setEfficiencyMetrics(efficiency);
       setTrends(trendsData);
       setRecommendations(asArray(recs));
     } catch (error) {
+      if (!mountedRef.current) return;
       toast.error(
         error?.response?.data ?? error?.message ?? 'Failed to load analytics',
       );
       console.error('Failed to fetch analytics:', error);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [rankingLimit, timeWindow]);
 

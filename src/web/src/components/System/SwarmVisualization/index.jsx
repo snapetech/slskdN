@@ -4,7 +4,7 @@
 
 import * as jobsLibrary from '../../../lib/jobs';
 import { formatBytes } from '../../../lib/util';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Grid,
   Header,
@@ -22,12 +22,19 @@ const asObject = (value) =>
   value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 
 const SwarmVisualization = ({ jobId }) => {
+  const mountedRef = useRef(true);
   const [jobStatus, setJobStatus] = useState(null);
   const [traceSummary, setTraceSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  useEffect(() => () => {
+    mountedRef.current = false;
+  }, []);
+
   const fetchData = useCallback(async () => {
+    if (!mountedRef.current) return;
+
     if (!jobId) {
       setLoading(false);
       return;
@@ -42,6 +49,8 @@ const SwarmVisualization = ({ jobId }) => {
         jobsLibrary.getSwarmTraceSummary(jobId),
       ]);
 
+      if (!mountedRef.current) return;
+
       if (status.status === 'fulfilled') {
         setJobStatus(status.value);
       } else {
@@ -53,10 +62,13 @@ const SwarmVisualization = ({ jobId }) => {
       }
       // Trace summary is optional - don't error if not available
     } catch (error_) {
+      if (!mountedRef.current) return;
       setError(error_?.message || 'Failed to fetch swarm data');
       console.error('Failed to fetch swarm visualization data:', error_);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [jobId]);
 

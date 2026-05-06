@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Hardened System Network, Mesh, Swarm Visualization, Swarm Analytics, and
+  Jobs polling so in-flight refreshes do not update state after navigation away.
 - Strengthened the new slskd bug-council negative-space gate so every declared
   trust boundary asserts its validator and remediation-baseline registration,
   including mutating API, durable-state, and runtime-crossing checks.

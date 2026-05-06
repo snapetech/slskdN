@@ -5,7 +5,7 @@
 import * as jobsLibrary from '../../../lib/jobs';
 import { formatBytes } from '../../../lib/util';
 import SwarmVisualization from '../SwarmVisualization';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import {
   Button,
@@ -28,6 +28,7 @@ const asArray = (value) => (Array.isArray(value) ? value : []);
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
 const Jobs = () => {
+  const mountedRef = useRef(true);
   const [jobs, setJobs] = useState([]);
   const [swarmJobs, setSwarmJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +48,10 @@ const Jobs = () => {
     total: 0,
   });
 
+  useEffect(() => () => {
+    mountedRef.current = false;
+  }, []);
+
   const fetchJobs = useCallback(async () => {
     try {
       setLoading(true);
@@ -58,6 +63,7 @@ const Jobs = () => {
         status: filters.status || undefined,
         type: filters.type || undefined,
       });
+      if (!mountedRef.current) return;
       setJobs(asArray(response?.jobs).filter(isObject));
       setPagination((previous) => ({
         ...previous,
@@ -65,6 +71,7 @@ const Jobs = () => {
         total: response?.total || 0,
       }));
     } catch (error) {
+      if (!mountedRef.current) return;
       toast.error(
         error?.response?.data?.message ||
           error?.message ||
@@ -72,7 +79,9 @@ const Jobs = () => {
       );
       console.error('Failed to fetch jobs:', error);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [filters, pagination.limit, pagination.offset]);
 
@@ -80,12 +89,16 @@ const Jobs = () => {
     try {
       setSwarmLoading(true);
       const jobs = await jobsLibrary.getActiveSwarmJobs();
+      if (!mountedRef.current) return;
       setSwarmJobs(asArray(jobs).filter(isObject));
     } catch (error) {
+      if (!mountedRef.current) return;
       console.debug('Failed to fetch swarm jobs:', error);
       setSwarmJobs([]);
     } finally {
-      setSwarmLoading(false);
+      if (mountedRef.current) {
+        setSwarmLoading(false);
+      }
     }
   }, []);
 

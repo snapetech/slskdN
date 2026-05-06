@@ -15380,6 +15380,8 @@ stats and a removed neighbor is deleted from the circuit peer inventory.
 
 **How to prevent it:** Any Web component that starts polling, delayed refreshes, hub callbacks, or timeout fallbacks must clear them on unmount and when starting replacement work. Poll callbacks also need local error handling so failures stop the spinner and surface a stable error.
 
+**2026-05-06 update:** Council scanning found the same pattern in System polling panels. Interval cleanup alone is not enough when the async request is already in flight; pollers must also gate post-await state updates with a mounted ref. `scripts/check-web-polling-lifecycle.sh` now locks this in for the fixed System panels.
+
 ### 0z94. Parallel Linux Installers Must Share Release Safety Invariants
 
 **What went wrong:** The raw Linux release installer had checksum verification, stale-tree replacement, and service permission convergence, but the Proxmox LXC installer drifted behind those safeguards.

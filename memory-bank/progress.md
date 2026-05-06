@@ -9858,6 +9858,13 @@ Code quality improvements were completed as part of Option A:
 - Hardened public outbound HTTP clients for ActivityPub/share backfill, share-grant PM sender binding, recursive file listing reparse-point handling, Discovery Graph route-query hydration, SearchHub list payloads, Messaging persisted panel entries, and additional Web media/search map/list operations.
 - Validation passed so far: focused backend unit slice (`13` tests), focused Web Vitest slice (`52` tests), outbound HTTP/path-containment/Web list-shape scanners, packaging metadata validation, and release-copy validation.
 
+## 2026-05-06 22:44:05Z
+
+- Continued the non-runtime council scan into Web System polling lifecycle hazards.
+- Recorded and verified `BUG-20260506-093` through `BUG-20260506-097`.
+- Hardened System Network, Mesh, Swarm Visualization, Swarm Analytics, and Jobs polling so post-await state updates are ignored after unmount.
+- Added `scripts/check-web-polling-lifecycle.sh` to the remediation baseline and extended ADR-0001 gotcha `0z93`.
+
 ## 2026-05-06 17:21:40Z
 
 - Ran an attribution audit against `upstream/master`, separating fork-only files, upstream-derived changed files, and vendored third-party code.

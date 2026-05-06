@@ -5,7 +5,7 @@ import {
 } from '../../../lib/networkHealthScore';
 import { getLocalStorageItem, setLocalStorageItem } from '../../../lib/storage';
 import { LoaderSegment, ShrinkableButton } from '../../Shared';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import {
   Button,
@@ -83,6 +83,7 @@ const StatCard = ({ color, icon, inverted = false, label, subLabel, value }) => 
 
 // eslint-disable-next-line complexity
 const Network = ({ theme }) => {
+  const mountedRef = useRef(true);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({});
   const [meshPeers, setMeshPeers] = useState([]);
@@ -102,14 +103,19 @@ const Network = ({ theme }) => {
         slskdnAPI.getDiscoveredPeers().catch(() => []),
       ]);
 
+      if (!mountedRef.current) return;
+
       setStats(statsData || {});
       setMeshPeers(Array.isArray(peersData) ? peersData : []);
       setDiscoveredPeers(Array.isArray(discoveredData) ? discoveredData : []);
     } catch (error) {
+      if (!mountedRef.current) return;
       console.error('Failed to fetch network stats:', error);
       // Don't show toast on every poll failure
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -117,6 +123,10 @@ const Network = ({ theme }) => {
     setLocalStorageItem(DHT_EXPOSURE_CONSENT_KEY, 'acknowledged');
     setDhtExposureAcknowledged(true);
   };
+
+  useEffect(() => () => {
+    mountedRef.current = false;
+  }, []);
 
   useEffect(() => {
     fetchData();

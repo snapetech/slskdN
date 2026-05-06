@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **bug-council**: Continue Web System polling lifecycle cycle.
+ - Status: completed (2026-05-06)
+ - Priority: P2
+ - Notes: Fixed `BUG-20260506-093` through `BUG-20260506-097` by adding mounted-ref async completion guards to System Network, Mesh, Swarm Visualization, Swarm Analytics, and Jobs pollers. Added `scripts/check-web-polling-lifecycle.sh` to the remediation baseline and extended ADR-0001 gotcha `0z93`.
+
 - [x] **bug-council**: Continue QUIC overlay/data stream lifecycle cycle.
  - Status: completed (2026-05-06)
  - Priority: P2

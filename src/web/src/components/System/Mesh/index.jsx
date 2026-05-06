@@ -2,7 +2,7 @@ import * as mesh from '../../../lib/mesh';
 import * as soulseekDiscovery from '../../../lib/soulseekDiscovery';
 import MeshEvidencePolicy from './MeshEvidencePolicy';
 import RealmSubjectIndexConflicts from './RealmSubjectIndexConflicts';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Button,
   Card,
@@ -21,6 +21,7 @@ const asArray = (value) => (Array.isArray(value) ? value : []);
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
 
 const Mesh = () => {
+  const mountedRef = useRef(true);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -38,17 +39,25 @@ const Mesh = () => {
     return error_?.message || fallback;
   };
 
+  useEffect(() => () => {
+    mountedRef.current = false;
+  }, []);
+
   useEffect(() => {
     const fetchStats = async () => {
       try {
         setLoading(true);
         setError(null);
         const data = await mesh.getStats();
+        if (!mountedRef.current) return;
         setStats(data);
       } catch (error_) {
+        if (!mountedRef.current) return;
         setError(error_.message);
       } finally {
-        setLoading(false);
+        if (mountedRef.current) {
+          setLoading(false);
+        }
       }
     };
 
@@ -63,8 +72,10 @@ const Mesh = () => {
     const fetchRendezvousStatus = async () => {
       try {
         const response = await soulseekDiscovery.getMeshRendezvousStatus();
+        if (!mountedRef.current) return;
         setRendezvousStatus(isObject(response.data) ? response.data : {});
       } catch (error_) {
+        if (!mountedRef.current) return;
         setRendezvousStatus({
           enabled: false,
           error: error_?.response?.data || error_.message,
