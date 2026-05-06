@@ -1,9 +1,6 @@
 name: Sync Upstream
 
 on:
-  schedule:
-    # Run every 6 hours
-    - cron: '0 */6 * * *'
   workflow_dispatch:
     inputs:
       force:
@@ -89,8 +86,8 @@ jobs:
       - name: Push Changes
         if: steps.merge.outputs.merge_success == 'true'
         run: |
-          git push origin master
-          echo "✅ Changes pushed to master"
+          git push origin HEAD:main
+          echo "✅ Changes pushed to main"
 
       - name: Create Issue on Conflict
         if: steps.merge.outputs.merge_success == 'false'
@@ -150,4 +147,3 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "A GitHub issue has been created for manual resolution." >> $GITHUB_STEP_SUMMARY
           fi
-

@@ -87,6 +87,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Replaced raw exception-message API responses in Spotify, SongID, and
   Listening Party controllers with stable client-facing errors, and stopped
   reflecting Spotify OAuth callback error query text into the callback page.
+- Hardened upstream-maintenance workflows so upstream sync is manual-only,
+  fork writes target `main`, and automated upstream-access PR/issue creation has
+  the explicit permissions and base branch it needs.
 - Normalized formatter output in backend async-observation paths so repo lint
   passes after the council cleanup.
 

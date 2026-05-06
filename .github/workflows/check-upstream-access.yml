@@ -13,6 +13,8 @@ on:
 
 permissions:
   contents: write
+  issues: write
+  pull-requests: write
 jobs:
   check-access:
     runs-on: ubuntu-latest
@@ -105,7 +107,7 @@ jobs:
           gh pr create --repo ${{ github.repository }} \
             --title "🎉 Update README: Upstream is open to contributions!" \
             --head "upstream-unlocked" \
-            --base "master" \
+            --base "main" \
             --body-file pr-body.md
           
           echo "Created PR to update README"

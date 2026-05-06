@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] **bug-council**: Close upstream workflow branch-target drift.
+ - Status: completed (2026-05-06)
+ - Priority: P1
+ - Notes: Fixed `BUG-20260506-046` and `BUG-20260506-047` by making upstream sync manual-only, targeting `main` for fork pushes/PR bases, and adding explicit PR/issue token permissions for the upstream access workflow. Added `scripts/check-workflow-main-branch-targets.sh` to remediation and ADR-0001 gotchas `0z337` and `0z338`.
+
 - [x] **bug-council**: Close controller raw exception response leakage.
  - Status: completed (2026-05-06)
  - Priority: P2

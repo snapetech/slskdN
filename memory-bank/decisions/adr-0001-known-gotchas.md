@@ -287,6 +287,61 @@ return Content(BuildCallbackHtml("Spotify authorization failed."), "text/html");
 
 **Why This Keeps Happening**: Service exception messages are often written for logs and operators, not API clients. They can contain local paths, process stderr, provider details, guard reasons, or user-provided callback text. Controllers should return stable client-facing text and keep detailed failure context in server logs or structured run evidence.
 
+### 0z337. Scheduled Upstream Sync Must Not Push Into The Fork
+
+**The Bug**: `upstream-sync.yml` ran every six hours, attempted to merge `upstream/master`, and pushed the result to `origin master` even though this fork's active branch is `main`.
+
+**Files Affected**:
+- `.github/workflows/upstream-sync.yml`
+- `scripts/check-workflow-main-branch-targets.sh`
+
+**Wrong**:
+```code
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+...
+git push origin master
+```
+
+**Correct**:
+```code
+on:
+  workflow_dispatch:
+...
+git push origin HEAD:main
+```
+
+**Why This Keeps Happening**: Old upstream-sync automation predates the fork's current branch and release policy. Anything that can merge upstream and push into the fork must be manual-only and must target the active branch explicitly, or it can create unreviewed branch changes, fail against a nonexistent/default-mismatched branch, or hide release drift behind scheduled automation.
+
+### 0z338. Automated PR Workflows Need The Active Base Branch And Explicit Permissions
+
+**The Bug**: `check-upstream-access.yml` created its update PR against `master` and declared only `contents: write`, while the workflow also creates PRs and issues.
+
+**Files Affected**:
+- `.github/workflows/check-upstream-access.yml`
+- `scripts/check-workflow-main-branch-targets.sh`
+
+**Wrong**:
+```code
+permissions:
+  contents: write
+...
+gh pr create --base "master"
+```
+
+**Correct**:
+```code
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+...
+gh pr create --base "main"
+```
+
+**Why This Keeps Happening**: Workflow files often keep old default-branch names and implicit token assumptions after a repo moves. Any workflow that writes a branch, PR, or issue should declare only the permissions it needs and use the current fork target branch explicitly.
+
 ### 0z326. Integration Auth Fixtures Must Match Admin-Only Routes
 
 **The Bug**: After security telemetry routes were tightened to administrator-only, the shared integration `StubWebApplicationFactory` still authenticated as only `ReadWrite`, so versioned admin route smoke tests failed with `403 Forbidden`.

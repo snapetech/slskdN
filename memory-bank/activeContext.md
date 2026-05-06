@@ -1,3 +1,16 @@
+## Update 2026-05-06 23:03:00Z
+
+- Current task: Continue non-runtime council release/ops workflow sweep.
+- Last activity:
+  - accepted and fixed `BUG-20260506-046` and `BUG-20260506-047`;
+  - upstream sync is manual-only and now pushes to `main` instead of scheduled `origin master`;
+  - upstream-access notification PRs target `main` and declare explicit `issues`/`pull-requests` permissions;
+  - added `scripts/check-workflow-main-branch-targets.sh` to remediation;
+  - documented ADR-0001 gotchas `0z337` and `0z338` and updated ledger/changelog/task log.
+- Next steps:
+  1. Run remediation, workflow scanners, lint, and diff checks.
+  2. Commit and push the verified non-runtime workflow batch.
+
 ## Update 2026-05-06 22:43:00Z
 
 - Current task: Continue non-runtime council API error-body leakage sweep.
