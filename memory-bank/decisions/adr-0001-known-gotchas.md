@@ -52,6 +52,28 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z322. Soulseek Tokens Are Opaque Signed Integers Unless Proven Otherwise
+
+**The Bug**: Protocol hardening rejected negative distributed search tokens, but live Soulseek peers send the token as an opaque 32-bit signed value. Rejecting negative values dropped valid distributed search requests and spammed runtime warnings after login.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/src/Messaging/Messages/Distributed/DistributedSearchRequest.cs`
+- `vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/Distributed/DistributedSearchRequestTests.cs`
+- `vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/ProtocolScalarEmissionTests.cs`
+- `vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/ProtocolScalarHardeningTests.cs`
+
+**Wrong**:
+```csharp
+ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "distributed search token");
+```
+
+**Correct**:
+```csharp
+Token = token;
+```
+
+**Why This Keeps Happening**: Not every integer field in the Soulseek protocol is a count, size, port, or enum. Tokens are correlation IDs and may use the full signed `int` range; only constrain scalar fields when the protocol invariant is explicit or verified against live traffic.
+
 ### 0z321. Local Control APIs Need No-Redirect Without Public-IP SSRF Blocking
 
 **The Bug**: The Gluetun VPN integration used the public outbound SSRF-guarded HTTP client. That client rejects loopback/private destinations, so a valid operator-configured Gluetun control URL such as `http://127.0.0.1:8010` left the app waiting for VPN readiness indefinitely.
