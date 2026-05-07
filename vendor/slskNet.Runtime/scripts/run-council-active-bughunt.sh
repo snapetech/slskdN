@@ -74,6 +74,20 @@ write_section \
     src/SoulseekClient.cs || true
 } >>"$report"
 
+{
+  printf '\n## Unisolated client search event invocations\n'
+  rg -n --with-filename --pcre2 \
+    '^(?!.*Raise(SearchStateChanged|SearchResponseReceived|EventHandler)).*(SearchStateChanged|SearchResponseReceived)\?\.Invoke\(this,' \
+    src/SoulseekClient.cs || true
+} >>"$report"
+
+{
+  printf '\n## Unisolated client transfer/browse event invocations\n'
+  rg -n --with-filename --pcre2 \
+    '^(?!.*Raise(BrowseProgressUpdated|Transfer(StateChanged|ProgressUpdated)|EventHandler)).*(BrowseProgressUpdated|Transfer(StateChanged|ProgressUpdated))\?\.Invoke\(this,' \
+    src/SoulseekClient.cs || true
+} >>"$report"
+
 write_section \
   "Remote/user text in diagnostics or HTTP errors" \
   '(Diagnostic\.(Debug|Info|Warning|Error)|StatusCode\(|BadRequest\(|Console\.WriteLine)\([^;\n]*(username|query|filename|directory|token|Message)' \

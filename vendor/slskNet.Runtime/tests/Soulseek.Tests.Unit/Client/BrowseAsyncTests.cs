@@ -195,6 +195,45 @@ namespace Soulseek.Tests.Unit.Client
         }
 
         [Trait("Category", "BrowseAsync")]
+        [Theory(DisplayName = "BrowseAsync succeeds if BrowseProgressUpdated handler throws"), AutoData]
+        public async Task BrowseAsync_Succeeds_If_BrowseProgressUpdated_Handler_Throws(string username, IPEndPoint endpoint, string localUsername, List<Directory> directories, int length)
+        {
+            length = Math.Max(5, length);
+
+            var response = new BrowseResponse(directories);
+
+            var waiter = new Mock<IWaiter>();
+            waiter.Setup(m => m.WaitIndefinitely<BrowseResponse>(It.IsAny<WaitKey>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(response));
+            waiter.Setup(m => m.Wait<UserAddressResponse>(It.IsAny<WaitKey>(), null, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(new UserAddressResponse(username, endpoint.Address, endpoint.Port)));
+
+            var conn = new Mock<IMessageConnection>();
+            conn.Setup(m => m.State)
+                .Returns(ConnectionState.Connected);
+            conn.Setup(m => m.WriteAsync(It.IsAny<IOutgoingMessage>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            var connManager = new Mock<IPeerConnectionManager>();
+            connManager.Setup(m => m.GetOrAddMessageConnectionAsync(username, endpoint, It.IsAny<CancellationToken>()))
+                .Returns(Task.FromResult(conn.Object));
+
+            waiter.Setup(m => m.Wait<(MessageReceivedEventArgs, IMessageConnection)>(It.IsAny<WaitKey>(), It.IsAny<int?>(), It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult((new MessageReceivedEventArgs(length, new byte[] { 0x0 }), conn.Object)));
+
+            using (var s = new SoulseekClient(minorVersion: 9999, waiter: waiter.Object, serverConnection: conn.Object, peerConnectionManager: connManager.Object))
+            {
+                s.BrowseProgressUpdated += (sender, args) => throw new InvalidOperationException("subscriber failed");
+                s.SetProperty("Username", localUsername);
+                s.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+
+                var ex = await Record.ExceptionAsync(() => s.BrowseAsync(username));
+
+                Assert.Null(ex);
+            }
+        }
+
+        [Trait("Category", "BrowseAsync")]
         [Theory(DisplayName = "BrowseAsync invokes ProgressUpdated Action at least twice"), AutoData]
         public async Task BrowseAsync_Invokes_ProgressUpdated_Action_At_Least_Twice(string username, IPEndPoint endpoint, string localUsername, List<Directory> directories, int length)
         {

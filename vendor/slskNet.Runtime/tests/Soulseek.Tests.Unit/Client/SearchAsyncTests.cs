@@ -755,6 +755,28 @@ namespace Soulseek.Tests.Unit.Client
         }
 
         [Trait("Category", "SearchAsync")]
+        [Theory(DisplayName = "SearchAsync succeeds if SearchStateChanged handler throws"), AutoData]
+        public async Task SearchAsync_Succeeds_If_SearchStateChanged_Handler_Throws(string searchText, int token)
+        {
+            var options = new SearchOptions(searchTimeout: 100, fileLimit: 1);
+
+            var conn = new Mock<IMessageConnection>();
+            conn.Setup(m => m.WriteAsync(It.IsAny<IOutgoingMessage>(), null))
+                .Returns(Task.CompletedTask);
+
+            using (var s = new SoulseekClient(minorVersion: 9999, serverConnection: conn.Object))
+            {
+                s.SearchStateChanged += (sender, e) => throw new InvalidOperationException("subscriber failed");
+                s.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+
+                var ex = await Record.ExceptionAsync(() => s.SearchAsync(SearchQuery.FromText(searchText), SearchScope.Network, token, options, null));
+
+                Assert.Null(ex);
+                conn.Verify(m => m.WriteAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken?>()), Times.Once);
+            }
+        }
+
+        [Trait("Category", "SearchAsync")]
         [Theory(DisplayName = "SearchAsync invokes ResponseReceived delegate"), AutoData]
         public async Task SearchAsync_Invokes_ResponseReceived_Delegate(string searchText, int token)
         {
@@ -809,6 +831,33 @@ namespace Soulseek.Tests.Unit.Client
                 await task;
 
                 Assert.True(fired);
+            }
+        }
+
+        [Trait("Category", "SearchAsync")]
+        [Theory(DisplayName = "SearchAsync continues if SearchResponseReceived handler throws"), AutoData]
+        public async Task SearchAsync_Continues_If_SearchResponseReceived_Handler_Throws(string searchText, int token)
+        {
+            var options = new SearchOptions(searchTimeout: 1000, fileLimit: 1);
+            var response = new SearchResponse("username", token, true, 1, 1, new List<File>() { new File(1, "foo", 1, "bar") });
+
+            var conn = new Mock<IMessageConnection>();
+            conn.Setup(m => m.WriteAsync(It.IsAny<IOutgoingMessage>(), null))
+                .Returns(Task.CompletedTask);
+
+            using (var s = new SoulseekClient(minorVersion: 9999, serverConnection: conn.Object))
+            {
+                s.SearchResponseReceived += (sender, e) => throw new InvalidOperationException("subscriber failed");
+                s.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+
+                var task = s.SearchAsync(SearchQuery.FromText(searchText), SearchScope.Network, token, options, null);
+
+                var search = s.GetProperty<ConcurrentDictionary<int, SearchInternal>>("Searches")[token];
+                var callbackEx = Record.Exception(() => search.ResponseReceived.Invoke(response));
+                var taskEx = await Record.ExceptionAsync(() => task);
+
+                Assert.Null(callbackEx);
+                Assert.Null(taskEx);
             }
         }
 

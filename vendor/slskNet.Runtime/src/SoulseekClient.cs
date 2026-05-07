@@ -3341,7 +3341,7 @@ namespace Soulseek
 
                 var e = new BrowseProgressUpdatedEventArgs(username, args.CurrentLength, args.TotalLength);
                 options.ProgressUpdated?.Invoke((e.Username, e.BytesTransferred, e.BytesRemaining, e.PercentComplete, e.Size));
-                BrowseProgressUpdated?.Invoke(this, e);
+                RaiseBrowseProgressUpdated(e);
             }
 
             try
@@ -3678,7 +3678,7 @@ namespace Soulseek
                 var e = new TransferStateChangedEventArgs(previousState: lastState, transfer: new Transfer(download));
                 lastState = state;
                 options.StateChanged?.Invoke((e.PreviousState, e.Transfer));
-                TransferStateChanged?.Invoke(this, e);
+                RaiseTransferStateChanged(e);
             }
 
             void UpdateProgress(long bytesDownloaded)
@@ -3687,7 +3687,7 @@ namespace Soulseek
                 download.UpdateProgress(bytesDownloaded);
                 var e = new TransferProgressUpdatedEventArgs(lastBytes, new Transfer(download));
                 options.ProgressUpdated?.Invoke((e.PreviousBytesTransferred, e.Transfer));
-                TransferProgressUpdated?.Invoke(this, e);
+                RaiseTransferProgressUpdated(e);
             }
 
             var transferStartRequestedWaitKey = new WaitKey(MessageCode.Peer.TransferRequest, download.Username, download.Filename);
@@ -4689,7 +4689,7 @@ namespace Soulseek
                 var e = new SearchStateChangedEventArgs(previousState: lastState, search: new Search(search));
                 lastState = state;
                 options.StateChanged?.Invoke((e.PreviousState, e.Search));
-                SearchStateChanged?.Invoke(this, e);
+                RaiseSearchStateChanged(e);
             }
 
             try
@@ -4726,7 +4726,7 @@ namespace Soulseek
 
                         var e = new SearchResponseReceivedEventArgs(response, new Search(search));
                         options.ResponseReceived?.Invoke((e.Search, e.Response));
-                        SearchResponseReceived?.Invoke(this, e);
+                        RaiseSearchResponseReceived(e);
                     };
 
                     await ServerConnection.WriteAsync(message, cancellationToken).ConfigureAwait(false);
@@ -4885,6 +4885,9 @@ namespace Soulseek
         private void RaisePeerCapabilityReceived(PeerCapabilityRecord record)
             => RaiseEventHandler(nameof(PeerCapabilityReceived), () => PeerCapabilityReceived?.Invoke(this, new PeerCapabilityReceivedEventArgs(record)));
 
+        private void RaiseBrowseProgressUpdated(BrowseProgressUpdatedEventArgs eventArgs)
+            => RaiseEventHandler(nameof(BrowseProgressUpdated), () => BrowseProgressUpdated?.Invoke(this, eventArgs));
+
         private void RaiseConnected()
             => RaiseEventHandler(nameof(Connected), () => Connected?.Invoke(this, EventArgs.Empty));
 
@@ -4909,8 +4912,20 @@ namespace Soulseek
         private void RaiseServerInfoReceived(ServerInfo serverInfo)
             => RaiseEventHandler(nameof(ServerInfoReceived), () => ServerInfoReceived?.Invoke(this, serverInfo));
 
+        private void RaiseSearchResponseReceived(SearchResponseReceivedEventArgs eventArgs)
+            => RaiseEventHandler(nameof(SearchResponseReceived), () => SearchResponseReceived?.Invoke(this, eventArgs));
+
+        private void RaiseSearchStateChanged(SearchStateChangedEventArgs eventArgs)
+            => RaiseEventHandler(nameof(SearchStateChanged), () => SearchStateChanged?.Invoke(this, eventArgs));
+
         private void RaiseStateChanged(SoulseekClientStates previousState, SoulseekClientStates state, string message, Exception exception)
             => RaiseEventHandler(nameof(StateChanged), () => StateChanged?.Invoke(this, new SoulseekClientStateChangedEventArgs(previousState, state, message, exception)));
+
+        private void RaiseTransferProgressUpdated(TransferProgressUpdatedEventArgs eventArgs)
+            => RaiseEventHandler(nameof(TransferProgressUpdated), () => TransferProgressUpdated?.Invoke(this, eventArgs));
+
+        private void RaiseTransferStateChanged(TransferStateChangedEventArgs eventArgs)
+            => RaiseEventHandler(nameof(TransferStateChanged), () => TransferStateChanged?.Invoke(this, eventArgs));
 
         private void HandlePeerCapabilityEventException(string eventName, Exception ex)
         {
@@ -5078,7 +5093,7 @@ namespace Soulseek
                 var e = new TransferStateChangedEventArgs(previousState: lastState, transfer: new Transfer(upload));
                 lastState = state;
                 options.StateChanged?.Invoke((e.PreviousState, e.Transfer));
-                TransferStateChanged?.Invoke(this, e);
+                RaiseTransferStateChanged(e);
             }
 
             void UpdateProgress(long bytesUploaded)
@@ -5087,7 +5102,7 @@ namespace Soulseek
                 upload.UpdateProgress(bytesUploaded);
                 var e = new TransferProgressUpdatedEventArgs(lastBytes, new Transfer(upload));
                 options.ProgressUpdated?.Invoke((e.PreviousBytesTransferred, e.Transfer));
-                TransferProgressUpdated?.Invoke(this, e);
+                RaiseTransferProgressUpdated(e);
             }
 
             IPEndPoint endpoint = null;
