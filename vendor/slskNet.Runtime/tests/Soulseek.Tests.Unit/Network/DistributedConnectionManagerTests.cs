@@ -931,6 +931,33 @@ namespace Soulseek.Tests.Unit.Network
             }
         }
 
+        [Trait("Category", "ParentConnection_Disconnected")]
+        [Theory(DisplayName = "ParentConnection_Disconnected diagnoses AddParentConnectionAsync failures"), AutoData]
+        public async Task ParentConnection_Disconnected_Diagnoses_AddParentConnectionAsync_Failures(string username, IPEndPoint endpoint, string message)
+        {
+            var diagnostic = new TaskCompletionSource<Exception>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var c = GetMessageConnectionMock(username, endpoint);
+
+            var (manager, mocks) = GetFixture();
+
+            mocks.Client.Setup(m => m.State).Returns(SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+            mocks.Diagnostic
+                .Setup(m => m.Debug(It.Is<string>(s => s.ContainsInsensitive("Failed to reconnect to a distributed parent")), It.IsAny<Exception>()))
+                .Callback<string, Exception>((_, ex) => diagnostic.TrySetResult(ex));
+
+            using (manager)
+            {
+                manager.SetProperty("ParentCandidateList", null); // force a null ref
+
+                var ex = Record.Exception(() => manager.InvokeMethod("ParentConnection_Disconnected", c.Object, new ConnectionDisconnectedEventArgs(message)));
+                var completed = await Task.WhenAny(diagnostic.Task, Task.Delay(1000));
+
+                Assert.Null(ex);
+                Assert.Same(diagnostic.Task, completed);
+                Assert.IsType<ArgumentNullException>(await diagnostic.Task);
+            }
+        }
+
         [Trait("Category", "AddChildConnectionAsync")]
         [Theory(DisplayName = "AddChildConnectionAsync CTPR rejects if over child limit"), AutoData]
         internal async Task AddChildConnectionAsync_Ctpr_Rejects_If_Over_Child_Limit(ConnectToPeerResponse ctpr)

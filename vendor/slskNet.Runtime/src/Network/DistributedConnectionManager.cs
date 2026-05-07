@@ -1211,9 +1211,9 @@ namespace Soulseek.Network
             {
                 await AddParentConnectionAsync(ParentCandidateList).ConfigureAwait(false);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // noop
+                Diagnostic.Debug($"Failed to reconnect to a distributed parent after parent disconnect: {ex.Message}", ex);
             }
         }
 

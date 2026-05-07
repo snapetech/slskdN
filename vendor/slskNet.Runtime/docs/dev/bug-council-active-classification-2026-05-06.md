@@ -24,14 +24,16 @@ follow-up gate owns the accepted class.
 | RT-129 | Callback/event invocation boundaries | `DiagnosticFactory` invoked diagnostic event callbacks directly; components that pass `DiagnosticGenerated?.Invoke(...)` could let a throwing diagnostic subscriber interrupt ordinary diagnostic logging and the runtime path that produced it. | Medium | Proven | Fixed |
 | RT-130 | Remote/user text in diagnostics or HTTP errors | Transfer diagnostics mostly used basenames but several warning/debug paths logged raw transfer filename values, and `Path.GetFileName` does not strip Soulseek backslashes on every host platform. | Medium | Proven | Fixed |
 | RT-131 | Public mutable ownership surfaces | Peer and distributed connection manager inspection properties cloned the collection wrapper but returned live `IPEndPoint` instances for message, child, and parent connections. | Medium | Proven | Fixed |
+| RT-132 | Silent catch or lossy exception boundaries | `DistributedConnectionManager.ParentConnection_Disconnected` swallowed parent reconnect failures after clearing parent state, hiding reconnect-loop failures from diagnostics. | Low | Proven | Fixed |
+| RT-133 | Remote/user text in diagnostics or HTTP errors | Runtime search diagnostics and wrapped search failures logged raw search text even though token/count metadata is enough to correlate search lifecycle events. | Medium | Proven | Fixed |
 
 ## Silent Catch Or Lossy Exception Boundaries
 
-Classification marker: `Silent catch or lossy exception boundaries: 3/3 classified`.
+Classification marker: `Silent catch or lossy exception boundaries: 2/2 classified`.
 
 | Candidate | Classification | Rationale | Follow-up |
 | --- | --- | --- | --- |
-| `src/Network/DistributedConnectionManager.cs:1214` | Open subgroup | Parent reconnect failures are intentionally non-fatal after a parent disconnect, but the noop catch should be reviewed with the async lifecycle pile for diagnostic visibility. | Keep active backlog row open; split reconnect-background diagnostics. |
+| `src/Network/DistributedConnectionManager.cs:1214` | Accepted | Parent reconnect failures are intentionally non-fatal after a parent disconnect, but they must still be visible in diagnostics after parent state is cleared. | Fixed as RT-132. |
 | `src/Network/ListenerHandler.cs:248` | Existing guard | Best-effort disconnect during failed listener initialization; the failure path already emits `Failed to initialize direct connection...` before cleanup. | Covered by listener handler diagnostic-boundary tests. |
 | `src/Network/ListenerHandler.cs:257` | Existing guard | Best-effort dispose during failed listener initialization; throwing from cleanup would mask the real initialization failure. | Covered by listener handler cleanup failure regression tests. |
 
@@ -63,14 +65,16 @@ wrappers, and lower-level transport callbacks.
 
 ## Remote/User Text In Diagnostics Or HTTP Errors
 
-Classification marker: `Remote/user text in diagnostics or HTTP errors: accepted transfer filename subgroup`.
+Classification marker: `Remote/user text in diagnostics or HTTP errors: accepted transfer filename and search text subgroups`.
 
-The accepted subgroup is transfer filename/path diagnostics. Runtime transfer
-diagnostics should identify the file without exposing caller local paths or
-remote shared-directory path segments. Remaining rows stay open in
-`docs/dev/bug-council-active-backlog.md` because the pile also includes peer
-usernames, protocol tokens, exception messages, and example Web API response
-text that need separate policy decisions.
+The accepted subgroups are transfer filename/path diagnostics and raw search
+text diagnostics. Runtime transfer diagnostics should identify the file without
+exposing caller local paths or remote shared-directory path segments. Runtime
+search diagnostics should correlate by token/count metadata, not raw query
+content. Remaining rows stay open in `docs/dev/bug-council-active-backlog.md`
+because the pile also includes peer usernames, protocol tokens, exception
+messages, and example Web API response text that need separate policy
+decisions.
 
 ## Public Mutable Ownership Surfaces
 

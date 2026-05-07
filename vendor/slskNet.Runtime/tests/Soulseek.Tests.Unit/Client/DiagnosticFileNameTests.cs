@@ -39,5 +39,21 @@ namespace Soulseek.Tests.Unit.Client
                 Assert.Equal(expected, actual);
             }
         }
+
+        [Trait("Category", "Diagnostics")]
+        [Fact(DisplayName = "GetDiagnosticSearchDescription omits raw search text")]
+        public void GetDiagnosticSearchDescription_Omits_Raw_Search_Text()
+        {
+            using (var s = new SoulseekClient(minorVersion: 9999))
+            {
+                var query = new SearchQuery(new[] { "private", "phrase" }, new[] { "excluded" });
+                var actual = s.InvokeMethod<string>("GetDiagnosticSearchDescription", query, 42);
+
+                Assert.Equal("token 42, terms 2, exclusions 1", actual);
+                Assert.DoesNotContain("private", actual);
+                Assert.DoesNotContain("phrase", actual);
+                Assert.DoesNotContain("excluded", actual);
+            }
+        }
     }
 }

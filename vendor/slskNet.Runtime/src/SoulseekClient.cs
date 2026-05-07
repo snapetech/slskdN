@@ -4680,6 +4680,7 @@ namespace Soulseek
         private async Task<Search> SearchToCallbackAsync(SearchQuery query, Action<SearchResponse> responseHandler, SearchScope scope, int token, SearchOptions options, CancellationToken cancellationToken)
         {
             var search = new SearchInternal(query, scope, token, options);
+            var searchDescription = GetDiagnosticSearchDescription(query, token);
             var lastState = SearchStates.None;
             var searchRegistered = false;
 
@@ -4702,13 +4703,13 @@ namespace Soulseek
                 searchRegistered = true;
                 UpdateState(SearchStates.Requested);
 
-                Diagnostic.Debug($"Attempting to acquire search semaphore for search '{query.SearchText}' ({SearchSemaphore.CurrentCount} available)");
+                Diagnostic.Debug($"Attempting to acquire search semaphore for search {searchDescription} ({SearchSemaphore.CurrentCount} available)");
                 UpdateState(SearchStates.Queued);
 
                 // obtain a semaphore, or wait until one becomes available. this is done as a protective measure
                 // against automation that may not think to do this, resulting in the server being bombarded by requests
                 await SearchSemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
-                Diagnostic.Debug($"Acquired search semaphore for search '{query.SearchText}'");
+                Diagnostic.Debug($"Acquired search semaphore for search {searchDescription}");
 
                 try
                 {
@@ -4735,14 +4736,14 @@ namespace Soulseek
                     await search.WaitForCompletion(cancellationToken).ConfigureAwait(false);
                     UpdateState(SearchStates.Completed | search.State);
 
-                    Diagnostic.Debug($"Search for '{query.SearchText}' completed: {search.State}");
+                    Diagnostic.Debug($"Search {searchDescription} completed: {search.State}");
 
                     return new Search(search);
                 }
                 finally
                 {
                     SearchSemaphore.Release(releaseCount: 1);
-                    Diagnostic.Debug($"Released search semaphore for search '{query.SearchText}' ({SearchSemaphore.CurrentCount} available)");
+                    Diagnostic.Debug($"Released search semaphore for search {searchDescription} ({SearchSemaphore.CurrentCount} available)");
                 }
             }
             catch (OperationCanceledException)
@@ -4771,7 +4772,7 @@ namespace Soulseek
                 search.Complete(SearchStates.Errored);
                 UpdateState(SearchStates.Completed | SearchStates.Errored);
 
-                throw new SoulseekClientException($"Failed to search for {query.SearchText} ({token}): {ex.Message}", ex);
+                throw new SoulseekClientException($"Failed to search ({searchDescription}): {ex.Message}", ex);
             }
             finally
             {
@@ -4958,6 +4959,14 @@ namespace Soulseek
             return separator >= 0 && separator < filename.Length - 1
                 ? filename.Substring(separator + 1)
                 : filename;
+        }
+
+        private static string GetDiagnosticSearchDescription(SearchQuery query, int token)
+        {
+            var termCount = query?.Terms?.Count ?? 0;
+            var exclusionCount = query?.Exclusions?.Count ?? 0;
+
+            return $"token {token}, terms {termCount}, exclusions {exclusionCount}";
         }
 
         private static void ValidatePeerMessageCode(int messageCode)
