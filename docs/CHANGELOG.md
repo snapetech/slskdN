@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed DHT mesh rendezvous behind VPN/NAT-PMP providers that rewrite requested
+  ports by allowing `dht.advertised_overlay_port` to differ from the local
+  `dht.overlay_port` listener.
 - Fixed VPN split-routing rule order so NAT-PMP renewals for the slskd UID reach
   the provider gateway before local-CIDR bypass rules.
 - Synced Snap stable package metadata to the current stable release asset.

@@ -190,7 +190,7 @@ public sealed class MeshOverlayConnector : IMeshOverlayConnector
             {
                 var ack = await connection.PerformClientHandshakeAsync(
                     LocalUsername,
-                    overlayPort: _optionsMonitor.CurrentValue?.DhtRendezvous?.OverlayPort,
+                    overlayPort: _optionsMonitor.CurrentValue?.DhtRendezvous?.EffectiveOverlayPort,
                     cancellationToken: cancellationToken);
 
                 if (_blocklist.IsBlocked(ack.Username))

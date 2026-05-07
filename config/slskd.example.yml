@@ -154,6 +154,7 @@
 #   enabled: true
 #   lan_only: false # set true to avoid public BitTorrent DHT bootstrap/discoverability
 #   overlay_port: 50305 # TCP overlay rendezvous. Can share the same numeric port as dht_port because TCP/UDP port spaces are separate.
+#   advertised_overlay_port: 0 # optional public TCP overlay port to announce when VPN/NAT rewrites overlay_port; 0 uses overlay_port
 #   dht_port: 50305 # explicit stable UDP port; forward/allow-list this port if DHT rendezvous is enabled
 #   bootstrap_routers:
 #     - router.bittorrent.com

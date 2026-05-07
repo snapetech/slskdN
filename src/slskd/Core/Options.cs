@@ -531,6 +531,13 @@ namespace slskd
                     [nameof(DhtRendezvous)]));
             }
 
+            if (DhtRendezvous.Enabled && DhtRendezvous.AdvertisedOverlayPort is < 0 or > IPEndPoint.MaxPort)
+            {
+                results.Add(new ValidationResult(
+                    "DHT rendezvous advertised overlay port must be 0 or between 1 and 65535. Configure dht.advertised_overlay_port to the VPN-assigned public TCP port, or leave it unset to use dht.overlay_port.",
+                    [nameof(DhtRendezvous)]));
+            }
+
             if (DhtRendezvous.Enabled && (DhtRendezvous.BootstrapRouters is null || DhtRendezvous.BootstrapRouters.Length == 0 || DhtRendezvous.BootstrapRouters.All(string.IsNullOrWhiteSpace)))
             {
                 results.Add(new ValidationResult(

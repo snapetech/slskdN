@@ -2693,3 +2693,5 @@
 - [2026-05-07T03:18:52Z] Completed: replace slow Browse folder checkbox selection with explicit O(1) folder download action.
 
 - [2026-05-07T03:21:15Z] Completed: clean up Browse root download action and selected-folder file panel presentation.
+
+- [2026-05-07T19:37:00Z] Completed: diagnose and fix kspls0 mesh peering behind VPN NAT-PMP; added separate DHT advertised overlay port support, deployed live hotfix, enabled Soulseek rendezvous, and verified one active mesh overlay peer.

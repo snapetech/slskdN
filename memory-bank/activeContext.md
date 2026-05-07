@@ -6020,3 +6020,9 @@ Completed Browse folder action fix. Checkbox descendant selection was removed be
 ## 2026-05-07T03:21:15Z Session update
 
 Completed Browse UI cleanup after live feedback. Root/user tree row no longer has a download button; selected folder files remain available through the integrated file panel.
+
+## 2026-05-07T19:37:00Z Session update
+
+Completed kspls0 mesh/VPN diagnosis and hotfix. DHT now announces the VPN-assigned public overlay port separately from the local listener, Soulseek rendezvous is enabled, and kspls0 has a verified active mesh overlay peer.
+
+Next steps: package the mesh advertised-port fix in the next normal release; remove the live hotfix directory after kspls0 is upgraded to a release containing this change.

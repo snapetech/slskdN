@@ -9980,3 +9980,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-07T03:18:52Z] Browse folder action fix: removed descendant-walking folder checkboxes, added explicit per-folder download buttons, kept folder-name click for preview, and deployed frontend build to kspls0.
 
 [2026-05-07T03:21:15Z] Browse UI cleanup: hid folder download action on synthetic root/user row, clarified selected-folder file panel styling, and deployed frontend build to kspls0.
+
+[2026-05-07T19:37:00Z] kspls0 mesh/VPN fix: found DHT was discovering peers but advertising the unreachable local overlay port through a VPN that rewrites NAT-PMP public ports. Added `dht.advertised_overlay_port`, deployed a hotfix build on kspls0, renewed Soulseek and mesh NAT-PMP mappings, enabled Soulseek mesh rendezvous, and verified VPN egress, UI/health, external Soulseek/mesh ports, and one active inbound mesh overlay peer.

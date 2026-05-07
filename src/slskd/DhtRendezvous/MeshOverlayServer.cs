@@ -51,6 +51,7 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
 
     private string LocalUsername => _optionsMonitor.CurrentValue?.Soulseek?.Username ?? "unknown";
     private int ListenPortConfig => _dhtOptions.OverlayPort;
+    private int AdvertisedPortConfig => _dhtOptions.EffectiveOverlayPort;
 
     public MeshOverlayServer(
         ILogger<MeshOverlayServer> logger,
@@ -232,7 +233,7 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
                 // Perform protocol handshake
                 var hello = await connection.PerformServerHandshakeAsync(
                     LocalUsername,
-                    overlayPort: ListenPortConfig,
+                    overlayPort: AdvertisedPortConfig,
                     cancellationToken: cancellationToken);
 
                 // Check if username is blocked

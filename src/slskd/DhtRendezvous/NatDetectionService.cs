@@ -220,6 +220,7 @@ public sealed class NatDetectionService : IAsyncDisposable
             HasOverlayMapping = _overlayPortMapping is not null,
             HasDhtMapping = _dhtPortMapping is not null,
             OverlayPort = _options.OverlayPort,
+            AdvertisedOverlayPort = _options.EffectiveOverlayPort,
             DhtPort = _options.DhtPort,
             LastDiscoveryTime = _lastDiscoveryTime,
             IsBeaconCapable = IsBeaconCapable,
@@ -627,6 +628,7 @@ public sealed class NatDetectionStats
     public bool HasOverlayMapping { get; init; }
     public bool HasDhtMapping { get; init; }
     public int OverlayPort { get; init; }
+    public int AdvertisedOverlayPort { get; init; }
     public int DhtPort { get; init; }
     public DateTimeOffset? LastDiscoveryTime { get; init; }
     public bool IsBeaconCapable { get; init; }

@@ -827,16 +827,18 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
             return Task.CompletedTask;
         }
 
-        _logger.LogDebug("Announcing to DHT (announce_peer) with overlay port {Port}", _options.OverlayPort);
+        var advertisedOverlayPort = _options.EffectiveOverlayPort;
+
+        _logger.LogDebug("Announcing to DHT (announce_peer) with overlay port {Port}", advertisedOverlayPort);
         _lastAnnounceTime = DateTimeOffset.UtcNow;
 
         // Announce on all rendezvous infohashes
-        _dhtEngine.Announce(MainInfohash, _options.OverlayPort);
-        _dhtEngine.Announce(BackupInfohash1, _options.OverlayPort);
-        _dhtEngine.Announce(BackupInfohash2, _options.OverlayPort);
+        _dhtEngine.Announce(MainInfohash, advertisedOverlayPort);
+        _dhtEngine.Announce(BackupInfohash1, advertisedOverlayPort);
+        _dhtEngine.Announce(BackupInfohash2, advertisedOverlayPort);
 
         _logger.LogInformation("Announced overlay port {Port} to DHT on {Count} infohashes",
-            _options.OverlayPort, 3);
+            advertisedOverlayPort, 3);
 
         return Task.CompletedTask;
     }
@@ -1058,6 +1060,16 @@ public sealed class DhtRendezvousOptions
     /// Port for the overlay TCP listener.
     /// </summary>
     public int OverlayPort { get; set; } = 50305;
+
+    /// <summary>
+    /// Public TCP overlay port announced to DHT peers. Defaults to <see cref="OverlayPort"/>.
+    /// </summary>
+    public int AdvertisedOverlayPort { get; set; }
+
+    /// <summary>
+    /// Public TCP overlay port to announce to peers.
+    /// </summary>
+    public int EffectiveOverlayPort => AdvertisedOverlayPort > 0 ? AdvertisedOverlayPort : OverlayPort;
 
     /// <summary>
     /// UDP port for DHT.
