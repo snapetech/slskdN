@@ -224,7 +224,7 @@ namespace Soulseek
 
             ServerConnectionOptions = (serverConnectionOptions ?? new ConnectionOptions()).WithoutInactivityTimeout();
             PeerConnectionOptions = peerConnectionOptions ?? new ConnectionOptions();
-            TransferConnectionOptions = transferConnectionOptions ?? new ConnectionOptions();
+            TransferConnectionOptions = transferConnectionOptions ?? new ConnectionOptions(readBufferSize: 65536, writeBufferSize: 65536);
             IncomingConnectionOptions = incomingConnectionOptions ?? new ConnectionOptions();
             PeerObfuscationOptions = peerObfuscationOptions ?? new PeerObfuscationOptions();
             DistributedConnectionOptions = distributedConnectionOptions ?? new ConnectionOptions();

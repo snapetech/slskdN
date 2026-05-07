@@ -1,5 +1,6 @@
 ﻿// <copyright file="TokenFactory.cs" company="JP Dillingham">
 //     Copyright (c) JP Dillingham.
+//     Copyright (c) slskdN Team.
 //
 //     This program is free software: you can redistribute it and/or modify
 //     it under the terms of the GNU General Public License as published by
@@ -18,6 +19,7 @@
 //     project for the complete terms and conditions.
 //
 //     SPDX-FileCopyrightText: JP Dillingham
+//     SPDX-FileCopyrightText: slskdN Team
 //     SPDX-License-Identifier: GPL-3.0-only
 // </copyright>
 
@@ -28,6 +30,10 @@ namespace Soulseek
     /// <summary>
     ///     Generates unique tokens for network operations.
     /// </summary>
+    /// <remarks>
+    ///     Generated tokens skip zero because some Soulseek peers treat zero as a sentinel and do not return search responses
+    ///     for requests using it.
+    /// </remarks>
     internal sealed class TokenFactory : ITokenFactory
     {
         private readonly object syncRoot = new object();
@@ -51,7 +57,7 @@ namespace Soulseek
         ///     Gets the next token.
         /// </summary>
         /// <remarks>
-        ///     <para>Tokens are returned sequentially and the token value rolls over to 0 when it has reached <see cref="int.MaxValue"/>.</para>
+        ///     <para>Tokens are returned sequentially and the token value rolls over to 1 when it has reached <see cref="int.MaxValue"/>.</para>
         ///     <para>This operation is thread safe.</para>
         /// </remarks>
         /// <returns>The next token.</returns>
@@ -60,8 +66,13 @@ namespace Soulseek
         {
             lock (syncRoot)
             {
+                if (current == 0)
+                {
+                    current = 1;
+                }
+
                 var retVal = current;
-                current = current == int.MaxValue ? 0 : current + 1;
+                current = current == int.MaxValue ? 1 : current + 1;
                 return retVal;
             }
         }

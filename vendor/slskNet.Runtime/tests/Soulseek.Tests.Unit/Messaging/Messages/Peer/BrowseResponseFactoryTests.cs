@@ -432,6 +432,36 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Equal(2, m.ReadInteger());
         }
 
+        [Trait("Category", "WriteTo")]
+        [Fact(DisplayName = "WriteTo writes parse-equivalent browse response data")]
+        public void WriteTo_Writes_Parse_Equivalent_Browse_Response_Data()
+        {
+            var list = new List<File>()
+            {
+                new File(1, "1", 1, ".1", new List<FileAttribute>() { new FileAttribute(FileAttributeType.BitDepth, 1) }),
+                new File(2, "2", 2, ".2", new List<FileAttribute>() { new FileAttribute(FileAttributeType.BitRate, 2) }),
+            };
+
+            var dirs = new List<Directory>()
+            {
+                new Directory("dir1", list),
+                new Directory("dir2", list),
+            };
+
+            var response = new BrowseResponse(dirs);
+
+            using (var stream = new System.IO.MemoryStream())
+            {
+                response.WriteTo(stream);
+
+                var parsed = BrowseResponseFactory.FromByteArray(stream.ToArray());
+
+                Assert.Equal(response.DirectoryCount, parsed.DirectoryCount);
+                Assert.Equal(response.Directories.Select(d => d.Name), parsed.Directories.Select(d => d.Name));
+                Assert.Equal(response.Directories.Sum(d => d.FileCount), parsed.Directories.Sum(d => d.FileCount));
+            }
+        }
+
         [Trait("Category", "ToByteArray")]
         [Fact(DisplayName = "ToByteArray returns the expected data when only locked files given")]
         public void ToByteArray_Returns_Expected_Data_When_Only_Locked_Files_Given()

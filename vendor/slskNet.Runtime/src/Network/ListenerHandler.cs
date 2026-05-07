@@ -219,7 +219,20 @@ namespace Soulseek.Network
                     }
                     else
                     {
-                        throw new ConnectionException($"Unknown PierceFirewall attempt with token {pierceFirewall.Token} from {connection.IPEndPoint.Address}:{connection.IPEndPoint.Port} (id: {connection.Id})");
+                        // Search responders behind a firewall can arrive with a bare PierceFirewall token before sending the
+                        // peer SearchResponse message. There is no username in the init frame, but SearchResponse contains both
+                        // username and search token, so keep the socket alive long enough for PeerMessageHandler to process it.
+                        var provisionalUsername = $"pierce-{pierceFirewall.Token}-{connection.IPEndPoint.Address}:{connection.IPEndPoint.Port}";
+                        Diagnostic.Debug($"Unknown PierceFirewall with token {pierceFirewall.Token} accepted as provisional peer message connection from {connection.IPEndPoint.Address}:{connection.IPEndPoint.Port} (id: {connection.Id})");
+
+                        if (obfuscated)
+                        {
+                            await SoulseekClient.PeerConnectionManager.AddOrUpdateObfuscatedMessageConnectionAsync(provisionalUsername, connection).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            await SoulseekClient.PeerConnectionManager.AddOrUpdateMessageConnectionAsync(provisionalUsername, connection).ConfigureAwait(false);
+                        }
                     }
                 }
                 else

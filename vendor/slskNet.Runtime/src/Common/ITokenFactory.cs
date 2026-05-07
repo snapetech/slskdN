@@ -32,7 +32,7 @@ namespace Soulseek
         ///     Gets the next token.
         /// </summary>
         /// <remarks>
-        ///     <para>Tokens are returned sequentially and the token value rolls over to 0 when it has reached <see cref="int.MaxValue"/>.</para>
+        ///     <para>Tokens are returned sequentially and the token value rolls over to 1 when it has reached <see cref="int.MaxValue"/>.</para>
         ///     <para>This operation is thread safe.</para>
         /// </remarks>
         /// <returns>The next token.</returns>

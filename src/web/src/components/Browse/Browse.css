@@ -51,6 +51,13 @@
   margin-bottom: 1px !important;
 }
 
+.browse-folderlist-limit {
+  color: var(--slskd-color-subtle, #777);
+  font-size: 0.9em;
+  margin-top: 8px;
+  white-space: normal;
+}
+
 .browse-folderlist-header {
   cursor: pointer;
   margin-left: 3px !important;
@@ -77,6 +84,26 @@
 
 .browse-tree-card {
   width: 100% !important;
+}
+
+.browse-selected-directory-card.ui.card {
+  width: 100% !important;
+  margin-top: 12px !important;
+  background:
+    linear-gradient(180deg, rgba(214, 164, 90, 0.08), rgba(214, 164, 90, 0)),
+    var(--slskd-color-canvas, #111) !important;
+  border: 1px solid var(--slskd-tertiary-border-color, rgba(214, 164, 90, 0.24)) !important;
+  box-shadow: unset !important;
+}
+
+.browse-selected-directory-card .filelist-header {
+  margin-bottom: 10px !important;
+}
+
+.browse-selected-directory-card .filelist-title::before {
+  color: var(--slskd-color-subtle, #999);
+  content: 'Selected folder contents: ';
+  font-weight: 400;
 }
 
 .browse-container:last-child {

@@ -15,6 +15,15 @@ const normalizeTab = (tab) => ({
   username: typeof tab.username === 'string' ? tab.username : '',
 });
 
+const createBrowseTab = (username = '') => {
+  tabCounter += 1;
+  return {
+    key: `tab-${tabCounter}`,
+    label: username || 'New Tab',
+    username,
+  };
+};
+
 // Load tabs from localStorage
 const loadTabsFromStorage = () => {
   try {
@@ -49,14 +58,38 @@ const saveTabsToStorage = (tabsToSave) => {
 
 const Browse = () => {
   const location = useLocation();
-  const [tabs, setTabs] = useState(() => loadTabsFromStorage());
-  const [activeIndex, setActiveIndex] = useState(0);
-  const closeTabRef = useRef(null);
-  const updateTabRef = useRef(null);
   const requestedUser =
     location.state?.user ||
     new URLSearchParams(location.search).get('user') ||
     '';
+  const requestedUsername = requestedUser.trim();
+  const initialTabsRef = useRef(null);
+
+  if (initialTabsRef.current === null) {
+    const savedTabs = loadTabsFromStorage();
+    const requestedIndex = requestedUsername
+      ? savedTabs.findIndex((tab) => tab.username === requestedUsername)
+      : -1;
+
+    if (requestedUsername && requestedIndex === -1) {
+      initialTabsRef.current = {
+        activeIndex: savedTabs.length,
+        tabs: [...savedTabs, createBrowseTab(requestedUsername)],
+      };
+    } else {
+      initialTabsRef.current = {
+        activeIndex: requestedIndex >= 0 ? requestedIndex : 0,
+        tabs: savedTabs,
+      };
+    }
+  }
+
+  const [tabs, setTabs] = useState(() => initialTabsRef.current.tabs);
+  const [activeIndex, setActiveIndex] = useState(
+    () => initialTabsRef.current.activeIndex,
+  );
+  const closeTabRef = useRef(null);
+  const updateTabRef = useRef(null);
 
   const closeTab = useCallback((tabKey) => {
     setTabs((previous) => {
@@ -83,30 +116,22 @@ const Browse = () => {
   closeTabRef.current = closeTab;
   updateTabRef.current = updateTabLabel;
 
-  const createTab = useCallback((username = '') => {
-    tabCounter += 1;
-    const tabKey = `tab-${tabCounter}`;
-    return {
-      key: tabKey,
-      label: username || 'New Tab',
-      username,
-    };
-  }, []);
+  const createTab = useCallback((username = '') => createBrowseTab(username), []);
 
   // Create initial tab on mount
   useEffect(() => {
-    if (tabs.length === 0) {
+    if (tabs.length === 0 && !requestedUsername) {
       setTabs([createTab()]);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-create tab if all closed, and reset counter to keep numbers reasonable
   useEffect(() => {
-    if (tabs.length === 0) {
+    if (tabs.length === 0 && !requestedUsername) {
       tabCounter = 0; // Reset counter when starting fresh
       setTabs([createTab()]);
     }
-  }, [tabs.length, createTab]);
+  }, [tabs.length, createTab, requestedUsername]);
 
   // Save tabs to localStorage whenever they change
   useEffect(() => {
@@ -117,21 +142,20 @@ const Browse = () => {
 
   // Handle navigation with user in state or URL (quick browse from search; URL supports new tabs)
   useEffect(() => {
-    const user = requestedUser.trim();
+    const user = requestedUsername;
 
     if (user) {
-      const existingIndex = tabs.findIndex((t) => t.username === user);
+      setTabs((previous) => {
+        const existingIndex = previous.findIndex((t) => t.username === user);
+        if (existingIndex !== -1) {
+          setActiveIndex(existingIndex);
+          return previous;
+        }
 
-      if (existingIndex === -1) {
-        // Create new tab for this user - use callback to get correct index
-        setTabs((previous) => {
-          const newTabs = [...previous, createTab(user)];
-          setActiveIndex(newTabs.length - 1);
-          return newTabs;
-        });
-      } else {
-        setActiveIndex(existingIndex);
-      }
+        const newTabs = [...previous, createTab(user)];
+        setActiveIndex(newTabs.length - 1);
+        return newTabs;
+      });
 
       // Clear the state to prevent re-triggering
       if (location.state?.user) {
@@ -139,7 +163,7 @@ const Browse = () => {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestedUser]);
+  }, [requestedUsername]);
 
   const handleAddTab = () => {
     setTabs((previous) => {
@@ -212,7 +236,7 @@ const Browse = () => {
             render: () => null,
           },
         ]}
-        renderActiveOnly={false}
+        renderActiveOnly
       />
     </div>
   );

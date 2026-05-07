@@ -226,7 +226,7 @@ namespace Soulseek.Tests.Unit.Network
 
         [Trait("Category", "Diagnostic")]
         [Theory(DisplayName = "Creates diagnostic on unknown PierceFirewall"), AutoData]
-        public void Creates_Diagnostic_On_PierceFirewall(IPEndPoint endpoint, int token)
+        public async Task Creates_Diagnostic_On_PierceFirewall(IPEndPoint endpoint, int token)
         {
             var (handler, mocks) = GetFixture(endpoint);
 
@@ -244,10 +244,58 @@ namespace Soulseek.Tests.Unit.Network
             mocks.Connection.Setup(m => m.ReadAsync(messageBytes.Length, It.IsAny<CancellationToken?>()))
                 .Returns(Task.FromResult(messageBytes));
 
-            handler.HandleConnection(null, mocks.Connection.Object);
+            await handler.HandleConnectionAsync(null, mocks.Connection.Object);
 
             var compare = StringComparison.InvariantCultureIgnoreCase;
             mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.Contains("Unknown PierceFirewall", compare))), Times.Once);
+        }
+
+        [Trait("Category", "PierceFirewall")]
+        [Theory(DisplayName = "Adds provisional peer connection on unknown PierceFirewall"), AutoData]
+        public async Task Adds_Provisional_Peer_Connection_On_Unknown_PierceFirewall(IPEndPoint endpoint, int token)
+        {
+            var (handler, mocks) = GetFixture(endpoint);
+
+            var message = new PierceFirewall(token);
+            var messageBytes = message.ToByteArray().AsSpan().Slice(4).ToArray();
+
+            mocks.Connection.Setup(m => m.ReadAsync(4, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(BitConverter.GetBytes(messageBytes.Length)));
+
+            mocks.Connection.Setup(m => m.ReadAsync(messageBytes.Length, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(messageBytes));
+
+            await handler.HandleConnectionAsync(null, mocks.Connection.Object);
+
+            var expectedUsername = $"pierce-{token}-{endpoint.Address}:{endpoint.Port}";
+            mocks.PeerConnectionManager.Verify(m => m.AddOrUpdateMessageConnectionAsync(expectedUsername, mocks.Connection.Object), Times.Once);
+            mocks.Connection.Verify(m => m.Disconnect(It.IsAny<string>(), It.IsAny<Exception>()), Times.Never);
+            mocks.Connection.Verify(m => m.Dispose(), Times.Never);
+        }
+
+        [Trait("Category", "PierceFirewall")]
+        [Theory(DisplayName = "Adds provisional obfuscated peer connection on unknown obfuscated PierceFirewall"), AutoData]
+        public async Task Adds_Provisional_Obfuscated_Peer_Connection_On_Unknown_Obfuscated_PierceFirewall(IPEndPoint endpoint, int token)
+        {
+            var (handler, mocks) = GetFixture(endpoint);
+
+            var message = new PierceFirewall(token).ToByteArray();
+            var obfuscatedMessage = RotatedObfuscation.Encode(message, 0x1020_3040);
+
+            mocks.Listener.Setup(m => m.Obfuscated).Returns(true);
+            mocks.Connection.Setup(m => m.ReadAsync(8, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(obfuscatedMessage.AsSpan().Slice(0, 8).ToArray()));
+            mocks.Connection.Setup(m => m.ReadAsync(message.Length - 4, It.IsAny<CancellationToken?>()))
+                .Returns(Task.FromResult(obfuscatedMessage.AsSpan().Slice(8).ToArray()));
+
+            await handler.HandleConnectionAsync(mocks.Listener.Object, mocks.Connection.Object);
+
+            var expectedUsername = $"pierce-{token}-{endpoint.Address}:{endpoint.Port}";
+            mocks.Connection.Verify(m => m.MarkObfuscated(), Times.Once);
+            mocks.PeerConnectionManager.Verify(m => m.AddOrUpdateObfuscatedMessageConnectionAsync(expectedUsername, mocks.Connection.Object), Times.Once);
+            mocks.PeerConnectionManager.Verify(m => m.AddOrUpdateMessageConnectionAsync(expectedUsername, mocks.Connection.Object), Times.Never);
+            mocks.Connection.Verify(m => m.Disconnect(It.IsAny<string>(), It.IsAny<Exception>()), Times.Never);
+            mocks.Connection.Verify(m => m.Dispose(), Times.Never);
         }
 
         [Trait("Category", "Diagnostic")]

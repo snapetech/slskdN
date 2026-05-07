@@ -163,6 +163,20 @@ namespace Soulseek.Tests.Unit.Options
         }
 
         [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Instantiates with larger transfer buffers by default")]
+        public void Instantiates_With_Larger_Transfer_Buffers_By_Default()
+        {
+            var o = new SoulseekClientOptions();
+
+            Assert.Equal(65536, o.TransferConnectionOptions.ReadBufferSize);
+            Assert.Equal(65536, o.TransferConnectionOptions.WriteBufferSize);
+            Assert.Equal(16384, o.PeerConnectionOptions.ReadBufferSize);
+            Assert.Equal(16384, o.PeerConnectionOptions.WriteBufferSize);
+            Assert.Equal(16384, o.DistributedConnectionOptions.ReadBufferSize);
+            Assert.Equal(16384, o.DistributedConnectionOptions.WriteBufferSize);
+        }
+
+        [Trait("Category", "Instantiation")]
         [Theory(DisplayName = "Instantiates with default options if null"), AutoData]
         public void Instantiation_Defaults_Options_If_Null(
             int messageTimeout,

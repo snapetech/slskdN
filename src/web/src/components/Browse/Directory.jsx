@@ -69,7 +69,7 @@ class Directory extends Component {
 
     return (
       <Card
-        className="result-card"
+        className="browse-selected-directory-card"
         raised
       >
         <Card.Content>

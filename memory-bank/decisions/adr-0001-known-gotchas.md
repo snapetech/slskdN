@@ -52,6 +52,157 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z354. VPN Ingress Netns Units Cannot Use Mount Sandboxing
+
+**The Bug**: `slskdN-vpn-ingress.service` reported successful NAT-PMP mappings, but `/run/netns/slskdNpf*` contained dead placeholder files and inbound Soulseek ports timed out or refused.
+
+**Files Affected**:
+- `src/slskdN.VpnAgent/systemd/slskdN-vpn-ingress.service`
+
+**Wrong**:
+```ini
+ProtectHome=true
+ReadWritePaths=/var/lib/slskdN-vpn /run/netns
+```
+
+**Correct**:
+```ini
+ProtectHome=false
+```
+
+**Why This Keeps Happening**: systemd filesystem sandbox directives create a private mount namespace for the oneshot service. `ip netns add` then creates the namespace bind mount only inside the service's private mount view; when the service exits, the host is left with an invalid regular file at `/run/netns/slskdNpf*`. Namespace ingress setup must run in the host mount namespace, and verification must execute `ip netns exec` after service start instead of trusting state files alone.
+
+**Additional Guardrail**: Do not run the primary ingress namespace with the same WireGuard identity as the main slskd egress tunnel. NAT-PMP can report a valid public mapping, but the provider can deliver inbound packets to the main tunnel for that key instead of the namespace, bypassing the namespace DNAT counters.
+
+### 0z355. Unknown PierceFirewall Connections Can Carry Search Responses
+
+**The Bug**: Network searches timed out with zero responses even though peers reached the public NAT-PMP port, because incoming peer sockets sent a bare `PierceFirewall` initialization token and the listener dropped it as unknown before reading the following peer `SearchResponse`.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/src/Network/ListenerHandler.cs`
+
+**Wrong**:
+```csharp
+throw new ConnectionException($"Unknown PierceFirewall attempt with token {pierceFirewall.Token}");
+```
+
+**Correct**:
+```csharp
+await SoulseekClient.PeerConnectionManager.AddOrUpdateMessageConnectionAsync(provisionalUsername, connection);
+```
+
+**Why This Keeps Happening**: A `PierceFirewall` frame does not include the peer username, so it looks unusable unless it matches a pending solicitation. Search-response payloads include their own username and search token, so the socket must stay open long enough for `PeerMessageHandler` to read and attach the response to the active search.
+
+### 0z356. Do Not Issue Soulseek Network Token 0
+
+**The Bug**: The first search after a restart used token `0`; peers connected and sent payloads, but no search responses were accepted for the active search.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/src/Common/TokenFactory.cs`
+
+**Wrong**:
+```csharp
+var retVal = current;
+current = current == int.MaxValue ? 0 : current + 1;
+```
+
+**Correct**:
+```csharp
+if (current == 0)
+{
+    current = 1;
+}
+
+var retVal = current;
+current = current == int.MaxValue ? 1 : current + 1;
+```
+
+**Why This Keeps Happening**: The runtime validator only rejects negative tokens, but real Soulseek peers commonly treat `0` as a sentinel or invalid operation token. Starting the token counter at zero makes the first post-restart search look successful locally while remote peer responses never attach.
+
+### 0z357. Do Not Advertise Unforwarded Obfuscated Soulseek Ports
+
+**The Bug**: Soulseek advertised regular port `44508` and derived obfuscated port `44509`, but NAT-PMP only forwarded the regular port. Peers choosing obfuscated reachability could not connect, making network search look randomly broken.
+
+**Files Affected**:
+- `/etc/slskd/slskd.yml`
+- `src/slskd/SoulseekObfuscationSupport.cs`
+
+**Wrong**:
+```yaml
+soulseek:
+  listen_port: 44508
+  obfuscation:
+    enabled: true
+    listen_port: 0
+```
+
+**Correct**:
+```yaml
+soulseek:
+  listen_port: 44508
+  obfuscation:
+    enabled: false
+```
+
+**Why This Keeps Happening**: `listen_port: 0` derives the obfuscated listener as regular port + 1. VPN providers generally grant one NAT-PMP public port, so advertising the derived second port exposes unreachable metadata unless the harness explicitly maps and renews that second port too.
+
+### 0z353. Browse Trees Must Be Built By Parent Map, Not Recursive Prefix Scans
+
+**The Bug**: Large user browse responses reached 100% download, then the UI kept spinning because the browser built the directory tree with recursive full-list prefix scans.
+
+**Files Affected**:
+- `src/web/src/components/Browse/BrowseSession.jsx`
+
+**Wrong**:
+```javascript
+children: depthMap
+  .get(depth)
+  .filter((d) => d.name.startsWith(root.name))
+  .map((d) => this.getChildDirectories(depthMap, d, separator, depth + 1))
+```
+
+**Correct**:
+```javascript
+nodesByName.set(directory.name, { ...directory, children: [] });
+const parent = parentName ? nodesByName.get(parentName) : null;
+```
+
+**Why This Keeps Happening**: Browse payloads can contain thousands of directories. Prefix-recursing over sibling arrays turns the client-side render prep into O(n²) work after the network has already completed, making the UI look like the browse is still downloading.
+
+**Follow-up Guardrail**: Large browse tree prep should run in `browseTreeWorker.js`, and directory rendering should flatten only the visible expanded rows. Recursive React rendering and uncapped expand-all paths can still lock the browser even after the tree data structure is efficient.
+
+**Action Guardrail**: Do not implement folder checkboxes by walking all descendants into selected state. Large shares can contain thousands of descendants, so selection actions must stay O(1) from the user's click path. Prefer explicit per-folder download buttons that pass the selected folder subtree directly to the existing download handler.
+
+**UI Guardrail**: Do not show a folder download action on the level-0 synthetic browse root. That row represents the user/root grouping, not an intentional folder selection, and makes the UI look like it downloads the whole user share accidentally.
+
+**Cache Guardrail**: Browse cache entries need a `cacheVersion` and must reject synthetic-root-only states with `0` directories and `0` files. Otherwise a bad intermediate render can be trusted forever and block the real `/users/{user}/browse` request on future visits.
+
+### 0z352. Malformed Distributed Search Tokens Need Local Drop Handling In The Distributed Handler
+
+**The Bug**: Negative distributed search tokens thrown by `DistributedSearchRequest.FromByteArray()` escaped to the outer distributed-message warning logger, producing repeated warning spam even though the message should simply be ignored.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/src/Messaging/Handlers/DistributedMessageHandler.cs`
+
+**Wrong**:
+```csharp
+var searchRequest = DistributedSearchRequest.FromByteArray(message);
+```
+
+**Correct**:
+```csharp
+try
+{
+    searchRequest = DistributedSearchRequest.FromByteArray(message);
+}
+catch (ArgumentOutOfRangeException ex) when (ex.ParamName == "token")
+{
+    break;
+}
+```
+
+**Why This Keeps Happening**: Search response validation is too late for malformed distributed requests. The token guard must be on the distributed request parse path because the parser validates before the responder sees the message.
+
 ### 0z347. Release Gates Must Not Require Missing Optional SDK Pin Files
 
 **The Bug**: The CodeQL .NET version remediation check unconditionally read `global.json`, so tag release gates failed in GitHub Actions when the repository had no SDK pin file.
@@ -15557,3 +15708,11 @@ npm run check:council
 **Why:** React state identity changed on every poll, and fallback row keys based on visible indexes caused unnecessary row reuse/remount work as capped windows shifted.
 
 **How to prevent:** Compare compact render signatures before state writes, preserve previous state for unchanged poll results, memoize high-churn panes, and use stable message render keys instead of visible-slice indexes.
+
+### 0z351. Dynamic Semantic UI Browse Tabs Must Render Active Pane
+
+**What went wrong:** Browse could open a user tab from `/browse?user=...` but show a blank pane. The tab label existed, so it looked like browse returned no files.
+
+**Why:** `Tab` was configured with `renderActiveOnly={false}` while panes were dynamic and included a synthetic add-tab pane. In the browser this could leave the selected dynamic tab without a mounted `BrowseSession`.
+
+**How to prevent:** Use active-pane rendering for dynamic Browse tabs, keep add-tab behavior in the tab menu only, and cover transfer-to-browse handoff with a headless browser test that asserts rendered browse content, not just API responses.

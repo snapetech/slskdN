@@ -1,5 +1,6 @@
 ﻿// <copyright file="TokenFactoryTests.cs" company="JP Dillingham">
 //     Copyright (c) JP Dillingham. All rights reserved.
+//     Copyright (c) slskdN Team.
 //
 //     This program is free software: you can redistribute it and/or modify
 //     it under the terms of the GNU General Public License as published by
@@ -44,14 +45,14 @@ namespace Soulseek.Tests.Unit
 
             var t = new TokenFactory(start);
 
-            Assert.Equal(start, t.NextToken());
+            Assert.Equal(start == 0 ? 1 : start, t.NextToken());
         }
 
         [Trait("Category", "GetToken")]
         [Theory(DisplayName = "Returns sequential tokens"), AutoData]
         public void Returns_Sequential_Tokens(int start)
         {
-            start = Math.Max(0, start == int.MaxValue ? 0 : start);
+            start = Math.Max(1, start == int.MaxValue ? 1 : start);
 
             var t = new TokenFactory(start);
 
@@ -60,6 +61,15 @@ namespace Soulseek.Tests.Unit
 
             Assert.Equal(start, t1);
             Assert.Equal(start + 1, t2);
+        }
+
+        [Trait("Category", "GetToken")]
+        [Fact(DisplayName = "Skips zero")]
+        public void Skips_Zero()
+        {
+            var t = new TokenFactory();
+
+            Assert.Equal(1, t.NextToken());
         }
 
         [Trait("Category", "GetToken")]
@@ -72,7 +82,7 @@ namespace Soulseek.Tests.Unit
             var t2 = t.NextToken();
 
             Assert.Equal(int.MaxValue, t1);
-            Assert.Equal(0, t2);
+            Assert.Equal(1, t2);
         }
 
         [Trait("Category", "Initialization")]

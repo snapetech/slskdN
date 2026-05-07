@@ -1077,6 +1077,8 @@ namespace slskd.Transfers.Downloads
                 using var rateLimiter = new RateLimiter(250, concurrencyLimit: 1, flushOnDispose: true);
 
                 var topts = new TransferOptions(
+                    progressUpdateInterval: 250,
+                    progressUpdateMinimumBytes: 1024 * 1024,
                     stateChanged: (args) =>
                     {
                         try

@@ -70,6 +70,12 @@ namespace Soulseek
         /// <param name="disposeOutputStreamOnCompletion">
         ///     A value indicating whether the output stream should be closed upon transfer completion.
         /// </param>
+        /// <param name="progressUpdateInterval">
+        ///     The minimum time, in milliseconds, between transfer progress callbacks.
+        /// </param>
+        /// <param name="progressUpdateMinimumBytes">
+        ///     The minimum byte delta between transfer progress callbacks.
+        /// </param>
         public TransferOptions(
             Func<Transfer, int, CancellationToken, Task<int>> governor = null,
             Action<(TransferStates PreviousState, Transfer Transfer)> stateChanged = null,
@@ -81,11 +87,23 @@ namespace Soulseek
             bool seekInputStreamAutomatically = true,
             bool seekOutputStreamAutomatically = true,
             bool disposeInputStreamOnCompletion = true,
-            bool disposeOutputStreamOnCompletion = true)
+            bool disposeOutputStreamOnCompletion = true,
+            int progressUpdateInterval = 0,
+            long progressUpdateMinimumBytes = 0)
         {
             if (maximumLingerTime < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(maximumLingerTime), "Must be greater than or equal to zero");
+            }
+
+            if (progressUpdateInterval < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(progressUpdateInterval), "Must be greater than or equal to zero");
+            }
+
+            if (progressUpdateMinimumBytes < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(progressUpdateMinimumBytes), "Must be greater than or equal to zero");
             }
 
             SeekInputStreamAutomatically = seekInputStreamAutomatically;
@@ -100,6 +118,8 @@ namespace Soulseek
             StateChanged = stateChanged;
             ProgressUpdated = progressUpdated;
             MaximumLingerTime = maximumLingerTime;
+            ProgressUpdateInterval = progressUpdateInterval;
+            ProgressUpdateMinimumBytes = progressUpdateMinimumBytes;
         }
 
         /// <summary>
@@ -128,6 +148,16 @@ namespace Soulseek
         ///     Gets the delegate to invoke when the transfer receives data. (Default = no action).
         /// </summary>
         public Action<(long PreviousBytesTransferred, Transfer Transfer)> ProgressUpdated { get; }
+
+        /// <summary>
+        ///     Gets the minimum time, in milliseconds, between transfer progress callbacks. (Default = 0).
+        /// </summary>
+        public int ProgressUpdateInterval { get; }
+
+        /// <summary>
+        ///     Gets the minimum byte delta between transfer progress callbacks. (Default = 0).
+        /// </summary>
+        public long ProgressUpdateMinimumBytes { get; }
 
         /// <summary>
         ///     Gets the delegate, accepting the number of bytes attempted, granted, and transferred for each chunk, used to
@@ -181,6 +211,8 @@ namespace Soulseek
                 slotReleased: SlotReleased,
                 reporter: Reporter,
                 maximumLingerTime: MaximumLingerTime,
+                progressUpdateInterval: ProgressUpdateInterval,
+                progressUpdateMinimumBytes: ProgressUpdateMinimumBytes,
                 seekInputStreamAutomatically: SeekInputStreamAutomatically,
                 seekOutputStreamAutomatically: SeekOutputStreamAutomatically,
                 disposeInputStreamOnCompletion: DisposeInputStreamOnCompletion,
@@ -209,6 +241,8 @@ namespace Soulseek
                 slotReleased: SlotReleased,
                 reporter: Reporter,
                 maximumLingerTime: MaximumLingerTime,
+                progressUpdateInterval: ProgressUpdateInterval,
+                progressUpdateMinimumBytes: ProgressUpdateMinimumBytes,
                 seekInputStreamAutomatically: SeekInputStreamAutomatically,
                 seekOutputStreamAutomatically: SeekOutputStreamAutomatically,
                 disposeInputStreamOnCompletion: disposeInputStreamOnCompletion ?? DisposeInputStreamOnCompletion,

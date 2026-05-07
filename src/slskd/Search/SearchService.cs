@@ -382,6 +382,9 @@ namespace slskd.Search
                 List<SearchResponse> responses = new();
                 IReadOnlyList<Response> latestMeshResponses = Array.Empty<Response>();
                 object responseLock = new();
+                int soulseekResponseCount = 0;
+                int soulseekFileCount = 0;
+                int soulseekLockedFileCount = 0;
 
                 options ??= new SearchOptions();
                 options = options.WithActions(
@@ -403,16 +406,37 @@ namespace slskd.Search
                         // note: this is rate limited, but has the potential to update the database every 250ms (or whatever the
                         // interval is set to) for the duration of the search. any issues with disk i/o or performance while searches
                         // are running should investigate this as a cause
-                        List<SearchResponse> soulseekSnapshot;
+                        int responseCount;
+                        int fileCount;
+                        int lockedFileCount;
                         IReadOnlyList<Response> meshSnapshot;
+
                         lock (responseLock)
                         {
-                            soulseekSnapshot = responses.ToList();
+                            responseCount = soulseekResponseCount;
+                            fileCount = soulseekFileCount;
+                            lockedFileCount = soulseekLockedFileCount;
                             meshSnapshot = latestMeshResponses;
                         }
 
-                        var merged = MergeSearchResponses(soulseekSnapshot, meshSnapshot);
-                        ApplyResponseSummary(search, merged);
+                        if (meshSnapshot.Count > 0)
+                        {
+                            List<SearchResponse> soulseekSnapshot;
+
+                            lock (responseLock)
+                            {
+                                soulseekSnapshot = responses.ToList();
+                            }
+
+                            var merged = MergeSearchResponses(soulseekSnapshot, meshSnapshot);
+                            ApplyResponseSummary(search, merged);
+                        }
+                        else
+                        {
+                            search.ResponseCount = responseCount;
+                            search.FileCount = fileCount;
+                            search.LockedFileCount = lockedFileCount;
+                        }
 
                         Update(search);
 
@@ -430,6 +454,9 @@ namespace slskd.Search
                         lock (responseLock)
                         {
                             responses.Add(response);
+                            soulseekResponseCount++;
+                            soulseekFileCount += response.FileCount;
+                            soulseekLockedFileCount += response.LockedFileCount;
                         }
                     },
                     scope,

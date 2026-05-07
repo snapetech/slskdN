@@ -39,9 +39,13 @@ namespace Soulseek.Tests.Unit.Options
             Action<(long PreviousBytesTransferred, Transfer Transfer)> progressUpdated,
             Func<Transfer, CancellationToken, Task> acquireSlot,
             Action<Transfer, int, int, int> reporter,
-            Action<Transfer> slotReleased)
+            Action<Transfer> slotReleased,
+            int progressUpdateInterval,
+            long progressUpdateMinimumBytes)
         {
             maximumLingerTime = Math.Abs(maximumLingerTime % 10000);
+            progressUpdateInterval = Math.Abs(progressUpdateInterval % 10000);
+            progressUpdateMinimumBytes = Math.Abs(progressUpdateMinimumBytes % 10000);
 
             var o = new TransferOptions(
                 governor,
@@ -54,7 +58,9 @@ namespace Soulseek.Tests.Unit.Options
                 seekInput,
                 seekOutput,
                 disposeInput,
-                disposeOutput);
+                disposeOutput,
+                progressUpdateInterval,
+                progressUpdateMinimumBytes);
 
             Assert.Equal(seekInput, o.SeekInputStreamAutomatically);
             Assert.Equal(seekOutput, o.SeekOutputStreamAutomatically);
@@ -64,6 +70,8 @@ namespace Soulseek.Tests.Unit.Options
             Assert.Equal(stateChanged, o.StateChanged);
             Assert.Equal(progressUpdated, o.ProgressUpdated);
             Assert.Equal(maximumLingerTime, o.MaximumLingerTime);
+            Assert.Equal(progressUpdateInterval, o.ProgressUpdateInterval);
+            Assert.Equal(progressUpdateMinimumBytes, o.ProgressUpdateMinimumBytes);
             Assert.Equal(acquireSlot, o.SlotAwaiter);
             Assert.Equal(slotReleased, o.SlotReleased);
             Assert.Equal(reporter, o.Reporter);
@@ -99,6 +107,30 @@ namespace Soulseek.Tests.Unit.Options
             Assert.Null(o.StateChanged);
             Assert.Null(o.ProgressUpdated);
             Assert.Null(o.SlotReleased);
+            Assert.Equal(0, o.ProgressUpdateInterval);
+            Assert.Equal(0, o.ProgressUpdateMinimumBytes);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Throws given negative progress update interval")]
+        public void Throws_Given_Negative_Progress_Update_Interval()
+        {
+            var ex = Record.Exception(() => new TransferOptions(progressUpdateInterval: -1));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentOutOfRangeException>(ex);
+            Assert.Equal("progressUpdateInterval", ((ArgumentOutOfRangeException)ex).ParamName);
+        }
+
+        [Trait("Category", "Instantiation")]
+        [Fact(DisplayName = "Throws given negative progress update minimum bytes")]
+        public void Throws_Given_Negative_Progress_Update_Minimum_Bytes()
+        {
+            var ex = Record.Exception(() => new TransferOptions(progressUpdateMinimumBytes: -1));
+
+            Assert.NotNull(ex);
+            Assert.IsType<ArgumentOutOfRangeException>(ex);
+            Assert.Equal("progressUpdateMinimumBytes", ((ArgumentOutOfRangeException)ex).ParamName);
         }
 
         [Trait("Category", "WithAdditionalStateChanged")]
@@ -112,9 +144,13 @@ namespace Soulseek.Tests.Unit.Options
             int maximumLingerTime,
             Action<(long PreviousBytesTransferred, Transfer Transfer)> progressUpdated,
             Func<Transfer, CancellationToken, Task> acquireSlot,
-            Action<Transfer> slotReleased)
+            Action<Transfer> slotReleased,
+            int progressUpdateInterval,
+            long progressUpdateMinimumBytes)
         {
             maximumLingerTime = Math.Abs(maximumLingerTime % 10000);
+            progressUpdateInterval = Math.Abs(progressUpdateInterval % 10000);
+            progressUpdateMinimumBytes = Math.Abs(progressUpdateMinimumBytes % 10000);
 
             var n = new TransferOptions(
                 governor: governor,
@@ -123,6 +159,8 @@ namespace Soulseek.Tests.Unit.Options
                 slotAwaiter: acquireSlot,
                 slotReleased: slotReleased,
                 maximumLingerTime: maximumLingerTime,
+                progressUpdateInterval: progressUpdateInterval,
+                progressUpdateMinimumBytes: progressUpdateMinimumBytes,
                 seekInputStreamAutomatically: seekInput,
                 disposeInputStreamOnCompletion: disposeInput,
                 disposeOutputStreamOnCompletion: disposeOutput);
@@ -135,6 +173,8 @@ namespace Soulseek.Tests.Unit.Options
             Assert.Equal(governor, o.Governor);
             Assert.Equal(progressUpdated, o.ProgressUpdated);
             Assert.Equal(maximumLingerTime, o.MaximumLingerTime);
+            Assert.Equal(progressUpdateInterval, o.ProgressUpdateInterval);
+            Assert.Equal(progressUpdateMinimumBytes, o.ProgressUpdateMinimumBytes);
             Assert.Equal(acquireSlot, o.SlotAwaiter);
             Assert.Equal(slotReleased, o.SlotReleased);
 
@@ -182,9 +222,13 @@ namespace Soulseek.Tests.Unit.Options
             int maximumLingerTime,
             Action<(long PreviousBytesTransferred, Transfer Transfer)> progressUpdated,
             Func<Transfer, CancellationToken, Task> acquireSlot,
-            Action<Transfer> slotReleased)
+            Action<Transfer> slotReleased,
+            int progressUpdateInterval,
+            long progressUpdateMinimumBytes)
         {
             maximumLingerTime = Math.Abs(maximumLingerTime % 10000);
+            progressUpdateInterval = Math.Abs(progressUpdateInterval % 10000);
+            progressUpdateMinimumBytes = Math.Abs(progressUpdateMinimumBytes % 10000);
 
             var n = new TransferOptions(
                 governor: governor,
@@ -193,6 +237,8 @@ namespace Soulseek.Tests.Unit.Options
                 slotAwaiter: acquireSlot,
                 slotReleased: slotReleased,
                 maximumLingerTime: maximumLingerTime,
+                progressUpdateInterval: progressUpdateInterval,
+                progressUpdateMinimumBytes: progressUpdateMinimumBytes,
                 seekInputStreamAutomatically: seekInput,
                 disposeInputStreamOnCompletion: disposeInput,
                 disposeOutputStreamOnCompletion: disposeOutput);
@@ -205,6 +251,8 @@ namespace Soulseek.Tests.Unit.Options
             Assert.Equal(acquireSlot, o.SlotAwaiter);
             Assert.Equal(slotReleased, o.SlotReleased);
             Assert.Equal(maximumLingerTime, o.MaximumLingerTime);
+            Assert.Equal(progressUpdateInterval, o.ProgressUpdateInterval);
+            Assert.Equal(progressUpdateMinimumBytes, o.ProgressUpdateMinimumBytes);
             Assert.Equal(seekInput, o.SeekInputStreamAutomatically);
             Assert.Equal(disposeInput, o.DisposeInputStreamOnCompletion);
             Assert.Equal(disposeOutput, o.DisposeOutputStreamOnCompletion);
@@ -221,9 +269,13 @@ namespace Soulseek.Tests.Unit.Options
             int maximumLingerTime,
             Action<(long PreviousBytesTransferred, Transfer Transfer)> progressUpdated,
             Func<Transfer, CancellationToken, Task> acquireSlot,
-            Action<Transfer> slotReleased)
+            Action<Transfer> slotReleased,
+            int progressUpdateInterval,
+            long progressUpdateMinimumBytes)
         {
             maximumLingerTime = Math.Abs(maximumLingerTime % 10000);
+            progressUpdateInterval = Math.Abs(progressUpdateInterval % 10000);
+            progressUpdateMinimumBytes = Math.Abs(progressUpdateMinimumBytes % 10000);
 
             var n = new TransferOptions(
                 governor: governor,
@@ -232,6 +284,8 @@ namespace Soulseek.Tests.Unit.Options
                 slotAwaiter: acquireSlot,
                 slotReleased: slotReleased,
                 maximumLingerTime: maximumLingerTime,
+                progressUpdateInterval: progressUpdateInterval,
+                progressUpdateMinimumBytes: progressUpdateMinimumBytes,
                 seekInputStreamAutomatically: seekInput,
                 disposeInputStreamOnCompletion: !disposeInput,
                 disposeOutputStreamOnCompletion: !disposeOutput);
@@ -246,6 +300,8 @@ namespace Soulseek.Tests.Unit.Options
             Assert.Equal(acquireSlot, o.SlotAwaiter);
             Assert.Equal(slotReleased, o.SlotReleased);
             Assert.Equal(maximumLingerTime, o.MaximumLingerTime);
+            Assert.Equal(progressUpdateInterval, o.ProgressUpdateInterval);
+            Assert.Equal(progressUpdateMinimumBytes, o.ProgressUpdateMinimumBytes);
             Assert.Equal(seekInput, o.SeekInputStreamAutomatically);
             Assert.Equal(disposeInput, o.DisposeInputStreamOnCompletion);
             Assert.Equal(disposeOutput, o.DisposeOutputStreamOnCompletion);

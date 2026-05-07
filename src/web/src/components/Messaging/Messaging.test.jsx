@@ -18,6 +18,8 @@ vi.mock('../../lib/chat', () => ({
 }));
 
 vi.mock('../../lib/pods', () => ({
+  create: vi.fn(),
+  discoverAll: vi.fn(),
   get: vi.fn(),
   getMembers: vi.fn(),
   getMessages: vi.fn(),
@@ -56,6 +58,9 @@ describe('Messaging', () => {
     pods.getMessages.mockResolvedValue([]);
     pods.leave.mockResolvedValue({});
     pods.list.mockResolvedValue([]);
+    pods.create.mockResolvedValue({});
+    pods.discoverAll.mockResolvedValue([]);
+    rooms.getAvailable.mockResolvedValue([]);
     rooms.getJoined.mockResolvedValue([]);
     rooms.getMessages.mockResolvedValue([]);
     rooms.getUsers.mockResolvedValue([]);

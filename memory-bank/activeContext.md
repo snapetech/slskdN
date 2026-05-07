@@ -5999,3 +5999,24 @@ dotnet test
 
 Current task: kspls0 Messages V2 resource/flicker hotfix deployed.
 Next steps: User live-tests Messages pane sizing, flicker, and resource use; investigate any remaining panel-specific churn with browser profiler if visible.
+
+## 2026-05-07 02:56:47Z
+
+Current task: Downloads-to-Browse empty tab hotfix deployed.
+Next steps: User validates live kspls0 by clicking the new folder browse button from Downloads; investigate only if a real peer browse returns an actual empty share response.
+
+## 2026-05-07T03:10:33Z Session update
+
+Completed live hotfix for Messaging V2 room/pod controls, Browse tree performance, and distributed-token log spam. Deployed custom build to kspls0. Next steps: user live-tests room/pod controls and large Browse behavior.
+
+## 2026-05-07T03:15:46Z Session update
+
+Completed Browse frontend performance follow-up. Worker tree construction and flattened/capped visible directory rendering are deployed to kspls0 for live testing.
+
+## 2026-05-07T03:18:52Z Session update
+
+Completed Browse folder action fix. Checkbox descendant selection was removed because it froze large browse tabs; folder rows now expose direct download buttons and keep drilldown/preview behavior.
+
+## 2026-05-07T03:21:15Z Session update
+
+Completed Browse UI cleanup after live feedback. Root/user tree row no longer has a download button; selected folder files remain available through the integrated file panel.

@@ -92,5 +92,14 @@ namespace Soulseek
         {
             return BrowseResponseFactory.ToByteArray(this);
         }
+
+        /// <summary>
+        ///     Serializes the response to the raw message stream sent over the network.
+        /// </summary>
+        /// <param name="stream">The seekable stream to which the serialized response is written.</param>
+        public void WriteTo(Stream stream)
+        {
+            BrowseResponseFactory.WriteToStream(this, stream);
+        }
     }
 }

@@ -55,6 +55,7 @@ const normalizeDirectory = (directory) => ({
 
 const MAX_BROWSE_CACHE_ENTRIES = 50;
 const BROWSE_CACHE_PREFIX = 'slskd-browse-state-';
+const BROWSE_CACHE_VERSION = 2;
 
 // Cleanup old browse cache entries using LRU strategy
 const cleanupBrowseCache = () => {
@@ -182,7 +183,7 @@ class BrowseSession extends Component {
 
         users
           .browse({ username })
-          .then((response) => {
+          .then(async (response) => {
             let directories = asArray(response?.directories).filter(isDirectory);
             const lockedDirectories = asArray(response?.lockedDirectories)
               .filter(isDirectory);
@@ -211,6 +212,11 @@ class BrowseSession extends Component {
               lockedDirectories.map((d) => ({ ...d, locked: true })),
             );
 
+            const tree = await this.getDirectoryTreeAsync({
+              directories,
+              separator,
+            });
+
             this.setState({
               info: {
                 directories: directoryCount,
@@ -219,7 +225,7 @@ class BrowseSession extends Component {
                 lockedFiles: lockedFileCount,
               },
               separator,
-              tree: this.getDirectoryTree({ directories, separator }),
+              tree,
             });
           })
           .then(() => {
@@ -268,7 +274,12 @@ class BrowseSession extends Component {
       try {
         setLocalStorageItem(
           this.getStorageKey(),
-          lzString.compress(JSON.stringify(this.state)),
+          lzString.compress(
+            JSON.stringify({
+              ...this.state,
+              cacheVersion: BROWSE_CACHE_VERSION,
+            }),
+          ),
         );
         // Cleanup old cache entries to prevent unbounded growth
         cleanupBrowseCache();
@@ -296,7 +307,12 @@ class BrowseSession extends Component {
           savedState
           && typeof savedState === 'object'
           && !Array.isArray(savedState)
+          && savedState.cacheVersion === BROWSE_CACHE_VERSION
           && tree.length > 0
+          && (
+            Number(savedState.info?.directories || 0) > 0 ||
+            Number(savedState.info?.files || 0) > 0
+          )
         ) {
           // We have cached data - use it instead of re-fetching
           this.setState({
@@ -309,6 +325,8 @@ class BrowseSession extends Component {
           });
           return true; // Indicate we loaded cached data
         }
+
+        removeLocalStorageItem(key);
       } catch {
         // ignore - will fetch fresh
       }
@@ -335,49 +353,67 @@ class BrowseSession extends Component {
   };
 
   getDirectoryTree = ({ directories, separator }) => {
-    if (directories.length === 0 || directories[0].name === undefined) {
+    const validDirectories = asArray(directories).filter(isDirectory);
+
+    if (validDirectories.length === 0) {
       return [];
     }
 
-    // Optimise this process so we only:
-    // - loop through all directories once
-    // - do the split once
-    // - future look ups are done from the Map
-    const depthMap = new Map();
-    for (const d of directories) {
-      const directoryDepth = d.name.split(separator).length;
-      if (!depthMap.has(directoryDepth)) {
-        depthMap.set(directoryDepth, []);
+    const effectiveSeparator = separator || '\\';
+    const nodesByName = new Map();
+    const roots = [];
+
+    for (const directory of validDirectories) {
+      nodesByName.set(directory.name, { ...directory, children: [] });
+    }
+
+    for (const node of nodesByName.values()) {
+      const parts = node.name.split(effectiveSeparator);
+      const parentName =
+        parts.length > 1 ? parts.slice(0, -1).join(effectiveSeparator) : '';
+      const parent = parentName ? nodesByName.get(parentName) : null;
+
+      if (parent) {
+        parent.children.push(node);
+      } else {
+        roots.push(node);
+      }
+    }
+
+    return roots;
+  };
+
+  getDirectoryTreeAsync = ({ directories, separator }) =>
+    new Promise((resolve) => {
+      if (typeof Worker !== 'function') {
+        resolve(this.getDirectoryTree({ directories, separator }));
+        return;
       }
 
-      depthMap.get(directoryDepth).push(d);
-    }
-
-    const depth = Math.min(...Array.from(depthMap.keys()));
-
-    return depthMap
-      .get(depth)
-      .map((directory) =>
-        this.getChildDirectories(depthMap, directory, separator, depth + 1),
+      const worker = new Worker(
+        new URL('./browseTreeWorker.js', import.meta.url),
+        { type: 'module' },
       );
-  };
+      const id = `${Date.now()}-${Math.random()}`;
 
-  getChildDirectories = (depthMap, root, separator, depth) => {
-    if (!depthMap.has(depth)) {
-      return { ...root, children: [] };
-    }
+      worker.onmessage = ({ data }) => {
+        if (data.id !== id) {
+          return;
+        }
 
-    const children = depthMap
-      .get(depth)
-      .filter((d) => d.name.startsWith(root.name));
+        worker.terminate();
+        resolve(
+          data.error ? this.getDirectoryTree({ directories, separator }) : data.tree,
+        );
+      };
 
-    return {
-      ...root,
-      children: children.map((c) =>
-        this.getChildDirectories(depthMap, c, separator, depth + 1),
-      ),
-    };
-  };
+      worker.onerror = () => {
+        worker.terminate();
+        resolve(this.getDirectoryTree({ directories, separator }));
+      };
+
+      worker.postMessage({ directories, id, separator });
+    });
 
   selectDirectory = (directory) => {
     this.setState({ selectedDirectory: { ...directory, children: [] } }, () =>
@@ -475,7 +511,7 @@ class BrowseSession extends Component {
     }));
 
     return (
-      <div className="search-container">
+      <div className="search-container" data-testid="browse-content">
         <Segment
           className="browse-segment"
           raised
@@ -601,7 +637,6 @@ class BrowseSession extends Component {
                   <Directory
                     files={files}
                     locked={locked}
-                    marginTop={-20}
                     name={name}
                     onClose={this.handleDeselectDirectory}
                     username={username}

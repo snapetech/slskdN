@@ -15,8 +15,10 @@ ExecStart=/usr/local/bin/slskdN-vpn-agent ingress
 ExecStop=/usr/local/bin/slskdN-vpn-agent cleanup-ingress
 TimeoutStartSec=20min
 NoNewPrivileges=true
-ProtectHome=true
-ReadWritePaths=/var/lib/slskdN-vpn /run/netns
+# ip netns add creates namespace bind mounts under /run/netns. Filesystem
+# sandboxing creates a private mount namespace for this unit, which leaves
+# dead placeholder files on the host after the oneshot exits.
+ProtectHome=false
 
 [Install]
 WantedBy=multi-user.target

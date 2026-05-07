@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed Soulseek search response handling across VPN ingress by accepting
+  PierceFirewall handoffs that carry peer search results.
+- Stabilized VPN split-routing and ingress systemd configuration so slskd
+  traffic stays on the VPN/NAT-PMP path without breaking namespace setup.
+- Improved browse rendering and transfer handoff performance with worker-backed
+  tree processing and direct file/folder download actions.
+- Completed Messaging v2 toolbar/composer cutover with regression coverage for
+  quote, copy, and controlled composer state.
 - Improved Messaging workspace command controls with command help, quick
   switching, unread markers, URL autolinking, and composer regression coverage.
 - Synced vendored slskNet.Runtime validation coverage for diagnostic,

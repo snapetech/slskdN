@@ -597,6 +597,39 @@ namespace Soulseek.Tests.Unit.Client
         }
 
         [Trait("Category", "Connect")]
+        [Theory(DisplayName = "Throws promptly when server disconnects during login"), AutoData]
+        public async Task Throws_Promptly_When_Server_Disconnects_During_Login(string user, string password)
+        {
+            var (client, mocks) = GetFixture();
+            var waitKey = new WaitKey(MessageCode.Server.Login);
+            var loginWait = new TaskCompletionSource<LoginResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            mocks.Waiter.Setup(m => m.Wait<LoginResponse>(It.IsAny<WaitKey>(), null, It.IsAny<CancellationToken>()))
+                .Returns(loginWait.Task);
+            mocks.Waiter.Setup(m => m.Throw(It.IsAny<WaitKey>(), It.IsAny<Exception>()))
+                .Callback<WaitKey, Exception>((key, ex) =>
+                {
+                    Assert.Equal(waitKey, key);
+                    loginWait.TrySetException(ex);
+                });
+            mocks.ServerConnection.Setup(m => m.WriteAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken?>()))
+                .Callback(() => mocks.ServerConnection.Raise(m => m.Disconnected += null, new ConnectionDisconnectedEventArgs("closed")))
+                .Returns(Task.CompletedTask);
+
+            using (client)
+            {
+                var ex = await Record.ExceptionAsync(() => client.ConnectAsync(user, password));
+
+                Assert.NotNull(ex);
+                Assert.IsType<SoulseekClientException>(ex);
+                Assert.IsType<ConnectionException>(ex.InnerException);
+                Assert.Contains("Server disconnected during login", ex.InnerException.Message);
+                Assert.Equal(SoulseekClientStates.Disconnected, client.State);
+                Assert.Null(client.Username);
+            }
+        }
+
+        [Trait("Category", "Connect")]
         [Theory(DisplayName = "Throws SoulseekClientException on message write exception"), AutoData]
         public async Task LoginAsync_Throws_SoulseekClientException_On_Message_Write_Exception(string user, string password)
         {

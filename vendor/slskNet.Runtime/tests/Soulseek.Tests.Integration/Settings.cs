@@ -33,5 +33,15 @@ namespace Soulseek.Tests.Integration
         ///     Gets the password to use when logging in.
         /// </summary>
         public static string Password => Environment.GetEnvironmentVariable("SLSK_INTEGRATION_PASSWORD");
+
+        /// <summary>
+        ///     Gets the peer username to use when running multi-client tests.
+        /// </summary>
+        public static string PeerUsername => Environment.GetEnvironmentVariable("SLSK_INTEGRATION_PEER_USERNAME");
+
+        /// <summary>
+        ///     Gets the peer password to use when running multi-client tests.
+        /// </summary>
+        public static string PeerPassword => Environment.GetEnvironmentVariable("SLSK_INTEGRATION_PEER_PASSWORD");
     }
 }

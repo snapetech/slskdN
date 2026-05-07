@@ -333,6 +333,8 @@ namespace slskd.Transfers.Uploads
                 using var rateLimiter = new RateLimiter(250, concurrencyLimit: 1, flushOnDispose: true);
 
                 var topts = new TransferOptions(
+                    progressUpdateInterval: 250,
+                    progressUpdateMinimumBytes: 1024 * 1024,
                     stateChanged: (args) =>
                     {
                         Log.Debug("Upload of {Filename} to user {Username} changed state from {Previous} to {New}", localFilename, transfer.Username, args.PreviousState, args.Transfer.State);

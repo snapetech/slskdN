@@ -25,7 +25,12 @@
 
 namespace Soulseek.Messaging.Messages
 {
+    using System;
     using System.Collections.Generic;
+    using System.IO;
+    using System.Text;
+    using Soulseek.Diagnostics;
+    using Soulseek.Messaging.Compression;
 
     /// <summary>
     ///     Factory for browse response messages. This class helps keep message abstractions from leaking into the public API via
@@ -51,8 +56,8 @@ namespace Soulseek.Messaging.Messages
             reader.Decompress();
 
             var directoryCount = ProtocolCountReader.ReadCount(reader, "directory", minimumBytesPerItem: 4);
-            var directoryList = new List<Directory>();
-            var lockedDirectoryList = new List<Directory>();
+            var directoryList = new List<Soulseek.Directory>();
+            var lockedDirectoryList = new List<Soulseek.Directory>();
 
             for (int i = 0; i < directoryCount; i++)
             {
@@ -103,6 +108,138 @@ namespace Soulseek.Messaging.Messages
 
             builder.Compress();
             return builder.Build();
+        }
+
+        public static void WriteToStream(BrowseResponse browseResponse, Stream stream)
+        {
+            if (browseResponse == null)
+            {
+                throw new ArgumentNullException(nameof(browseResponse));
+            }
+
+            if (stream == null)
+            {
+                throw new ArgumentNullException(nameof(stream));
+            }
+
+            if (!stream.CanWrite)
+            {
+                throw new InvalidOperationException("The specified stream is not writable");
+            }
+
+            if (!stream.CanSeek)
+            {
+                throw new InvalidOperationException("The specified stream must be seekable");
+            }
+
+            var start = stream.Position;
+            WriteInteger(stream, 0);
+            WriteInteger(stream, (int)MessageCode.Peer.BrowseResponse);
+
+#pragma warning disable CA2000 // ZOutputStream.Close closes the destination stream; end() releases compression state without closing it.
+            var zStream = new ZOutputStream(stream, zlibConst.Z_DEFAULT_COMPRESSION);
+#pragma warning restore CA2000
+
+            try
+            {
+                WriteInteger(zStream, browseResponse.DirectoryCount);
+
+                foreach (var directory in browseResponse.Directories)
+                {
+                    WriteDirectory(zStream, directory);
+                }
+
+                WriteInteger(zStream, 0);
+                WriteInteger(zStream, browseResponse.LockedDirectoryCount);
+
+                foreach (var directory in browseResponse.LockedDirectories)
+                {
+                    WriteDirectory(zStream, directory);
+                }
+
+                zStream.finish();
+            }
+            finally
+            {
+                zStream.end();
+            }
+
+            var end = stream.Position;
+            var length = end - start - sizeof(int);
+
+            if (length > int.MaxValue)
+            {
+                throw new MessageException($"Browse response length exceeds the maximum message size: {length}");
+            }
+
+            stream.Position = start;
+            WriteInteger(stream, (int)length);
+            stream.Position = end;
+        }
+
+        private static void WriteDirectory(Stream stream, Soulseek.Directory directory)
+        {
+            directory = directory ?? throw new ArgumentNullException(nameof(directory));
+
+            WriteString(stream, directory.Name);
+            WriteInteger(stream, directory.FileCount);
+
+            foreach (var file in directory.Files)
+            {
+                WriteFile(stream, file);
+            }
+        }
+
+        private static void WriteFile(Stream stream, Soulseek.File file)
+        {
+            file = file ?? throw new ArgumentNullException(nameof(file));
+
+            stream.WriteByte((byte)file.Code);
+            WriteString(stream, file.Filename);
+            WriteLong(stream, file.Size);
+            WriteString(stream, file.Extension);
+            WriteInteger(stream, file.AttributeCount);
+
+            foreach (var attribute in file.Attributes)
+            {
+                WriteInteger(stream, (int)attribute.Type);
+                WriteInteger(stream, attribute.Value);
+            }
+        }
+
+        private static void WriteInteger(Stream stream, int value)
+        {
+            var bytes = BitConverter.GetBytes(value);
+            stream.Write(bytes, 0, bytes.Length);
+        }
+
+        private static void WriteLong(Stream stream, long value)
+        {
+            var bytes = BitConverter.GetBytes(value);
+            stream.Write(bytes, 0, bytes.Length);
+        }
+
+        private static void WriteString(Stream stream, string value)
+        {
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value), "Invalid attempt to write a null string to message");
+            }
+
+            byte[] bytes;
+
+            try
+            {
+                bytes = Encoding.GetEncoding(CharacterEncoding.UTF8, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback).GetBytes(value);
+            }
+            catch (Exception ex)
+            {
+                bytes = Encoding.GetEncoding(CharacterEncoding.UTF8).GetBytes(value);
+                GlobalDiagnostic.Trace($"Failed to encode {CharacterEncoding.UTF8} string of {value.Length} characters; resorted to fallback encoding {CharacterEncoding.UTF8}", ex);
+            }
+
+            WriteInteger(stream, bytes.Length);
+            stream.Write(bytes, 0, bytes.Length);
         }
     }
 }

@@ -139,7 +139,9 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
 
   const [conversations, setConversations] = useState([]);
   const [joinedRooms, setJoinedRooms] = useState([]);
+  const [availableRooms, setAvailableRooms] = useState([]);
   const [podChannels, setPodChannels] = useState([]);
+  const [discoveredPods, setDiscoveredPods] = useState([]);
   const [networkFilter, setNetworkFilter] = useState('all');
   const [memberRailOpen, setMemberRailOpen] = useState(true);
   const [adapterMembers, setAdapterMembers] = useState([]);
@@ -148,18 +150,31 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   const [streamReloadToken, setStreamReloadToken] = useState(0);
   const [dmDraft, setDmDraft] = useState('');
   const [roomDraft, setRoomDraft] = useState('');
+  const [podDraft, setPodDraft] = useState('');
   const [dmAddOpen, setDmAddOpen] = useState(false);
   const [roomAddOpen, setRoomAddOpen] = useState(false);
+  const [podAddOpen, setPodAddOpen] = useState(false);
   const [userPopover, setUserPopover] = useState(null);
   const [composerDraft, setComposerDraft] = useState('');
   const composerInputRef = useRef(null);
   const lastWheelZoomAt = useRef(0);
+  const currentUser = state?.user?.username;
 
   const hydrate = useCallback(async () => {
-    const [serverConversations, serverJoinedRooms, serverPods] = await Promise.all([
+    const [
+      serverConversations,
+      serverJoinedRooms,
+      serverAvailableRooms,
+      serverPods,
+      serverDiscoveredPods,
+    ] = await Promise.all([
       chat.getAll(),
       rooms.getJoined(),
+      Promise.resolve(rooms.getAvailable()).catch(() => []),
       pods.list().catch(() => []),
+      Promise.resolve(
+        typeof pods.discoverAll === 'function' ? pods.discoverAll(50) : [],
+      ).catch(() => []),
     ]);
     const podDetails = await Promise.all(
       asArray(serverPods)
@@ -184,6 +199,20 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         }),
     );
     setJoinedRooms(asArray(serverJoinedRooms).filter(Boolean).sort());
+    setAvailableRooms(
+      asArray(serverAvailableRooms)
+        .map((room) => (typeof room === 'string' ? room : room?.name || room?.Name || ''))
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b)),
+    );
+    setDiscoveredPods(
+      asArray(serverDiscoveredPods)
+        .filter((pod) => pod && typeof pod === 'object' && !Array.isArray(pod))
+        .sort((a, b) =>
+          (a.name || a.Name || a.podId || a.PodId || '').localeCompare(
+            b.name || b.Name || b.podId || b.PodId || '',
+          )),
+    );
     setPodChannels(
       podDetails
         .flatMap((pod) =>
@@ -471,19 +500,95 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
     setDmAddOpen(false);
   }, [dmDraft, openTab]);
 
-  const joinRoomFromInput = useCallback(async () => {
-    const trimmed = roomDraft.trim();
+  const joinRoomByName = useCallback(async (roomName) => {
+    const trimmed = roomName.trim();
     if (!trimmed) return;
     try {
       await rooms.join({ roomName: trimmed });
       await hydrate();
       openTab('room', trimmed);
-      setRoomDraft('');
-      setRoomAddOpen(false);
     } catch (error) {
       console.error('Failed to join room:', error);
     }
-  }, [hydrate, openTab, roomDraft]);
+  }, [hydrate, openTab]);
+
+  const joinRoomFromInput = useCallback(async () => {
+    const trimmed = roomDraft.trim();
+    if (!trimmed) return;
+    await joinRoomByName(trimmed);
+    setRoomDraft('');
+    setRoomAddOpen(false);
+  }, [joinRoomByName, roomDraft]);
+
+  const createPodFromInput = useCallback(async () => {
+    const name = podDraft.trim();
+    if (!name) return;
+    try {
+      const created = await pods.create({
+        channels: [
+          {
+            channelId: 'general',
+            kind: 'General',
+            name: 'General',
+          },
+        ],
+        description: null,
+        externalBindings: [],
+        name,
+        tags: [],
+        visibility: 'Unlisted',
+      }, currentUser || 'local-peer');
+      const channel = {
+        channelId: 'general',
+        channelName: 'General',
+        podId: created.podId,
+        podName: created.name || name,
+        target: encodePodTarget(created.podId, 'general'),
+      };
+      await hydrate();
+      openTab('pod', channel.target, channelLabel(channel));
+      setPodDraft('');
+      setPodAddOpen(false);
+    } catch (error) {
+      console.error('Failed to create pod room:', error);
+    }
+  }, [currentUser, hydrate, openTab, podDraft]);
+
+  const saveDiscoveredPod = useCallback(async (pod) => {
+    const podId = pod.podId || pod.PodId;
+    const name = pod.name || pod.Name || podId;
+    if (!podId) return;
+    try {
+      const saved = await pods.create({
+        channels: [
+          {
+            channelId: 'general',
+            kind: 'General',
+            name: 'General',
+          },
+        ],
+        externalBindings: [],
+        focusContentId: pod.focusContentId || pod.FocusContentId || null,
+        name,
+        podId,
+        tags: asArray(pod.tags || pod.Tags),
+        visibility: pod.visibility || pod.Visibility || 'Unlisted',
+      }, currentUser || 'local-peer');
+      const detail = await pods.get(saved.podId).catch(() => saved);
+      const firstChannel = asArray(detail.channels)[0] || { channelId: 'general', name: 'General' };
+      const channel = {
+        channelId: firstChannel.channelId,
+        channelName: firstChannel.name,
+        podId: saved.podId,
+        podName: saved.name || name,
+        target: encodePodTarget(saved.podId, firstChannel.channelId),
+      };
+      await hydrate();
+      openTab('pod', channel.target, channelLabel(channel));
+    } catch (error) {
+      console.error('Failed to save discovered pod:', error);
+    }
+  }, [currentUser, hydrate, openTab]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -579,8 +684,6 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         : null,
     [activeTab?.label, activeTab?.target, activeTab?.type, podChannels],
   );
-
-  const currentUser = state?.user?.username;
 
   const adapter = useMemo(() => {
     if (!activeTab) return null;
@@ -731,6 +834,13 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   );
 
   const showMembers = activeTab && activeTab.type !== 'chat' && memberRailOpen;
+  const joinableRooms = availableRooms.filter(
+    (roomName) => !joinedRooms.includes(roomName),
+  );
+  const joinableDiscoveredPods = discoveredPods.filter((pod) => {
+    const podId = pod.podId || pod.PodId;
+    return podId && !podChannels.some((channel) => channel.podId === podId);
+  });
 
   const gridStyle = {
     '--msgv2-member-width': showMembers ? `${workspace.paneSettings.memberWidth}px` : '0px',
@@ -870,16 +980,19 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
               />
             }
             collapsed={workspace.collapsedSections.soulseekRooms}
-            count={joinedRooms.length}
+            count={joinedRooms.length + joinableRooms.length}
             onAddToggle={() => setRoomAddOpen((open) => !open)}
             onToggle={() => toggleSection('soulseekRooms')}
             showAdd={roomAddOpen}
             title="Soulseek · Rooms"
           >
-            {joinedRooms.length === 0 ? (
-              <EmptyHint>No joined rooms.</EmptyHint>
+            {joinedRooms.length === 0 && joinableRooms.length === 0 ? (
+              <EmptyHint>No rooms reported by the Soulseek server.</EmptyHint>
             ) : (
-              joinedRooms.map((roomName) => {
+              <>
+              {joinedRooms.length === 0 ? (
+                <EmptyHint>No joined rooms.</EmptyHint>
+              ) : joinedRooms.map((roomName) => {
                 const isActive =
                   activeTab?.type === 'room' && activeTab.target === roomName;
                 return (
@@ -894,7 +1007,20 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
                     target={roomName}
                   />
                 );
-              })
+              })}
+              {joinableRooms.length > 0 && (
+                <TreeSubhead>Available rooms</TreeSubhead>
+              )}
+              {joinableRooms.slice(0, 100).map((roomName) => (
+                <TreeRow
+                  accent="slsk"
+                  key={`available-${roomName}`}
+                  onActivate={() => joinRoomByName(roomName)}
+                  prefix="+"
+                  target={roomName}
+                />
+              ))}
+              </>
             )}
           </TreeSection>
         )}
@@ -902,15 +1028,34 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         {showMesh && (
           <TreeSection
             accent="mesh"
+            addLabel="Create a pod room"
+            addPanel={
+              <InlineAddForm
+                buttonLabel="Create"
+                onCancel={() => {
+                  setPodAddOpen(false);
+                  setPodDraft('');
+                }}
+                onChange={setPodDraft}
+                onSubmit={createPodFromInput}
+                placeholder="pod room name"
+                value={podDraft}
+              />
+            }
             collapsed={workspace.collapsedSections.meshPods}
-            count={visiblePodChannels.length}
+            count={visiblePodChannels.length + joinableDiscoveredPods.length}
+            onAddToggle={() => setPodAddOpen((open) => !open)}
             onToggle={() => toggleSection('meshPods')}
+            showAdd={podAddOpen}
             title="Mesh · Pod channels"
           >
-            {visiblePodChannels.length === 0 ? (
-              <EmptyHint>No pod channels yet.</EmptyHint>
+            {visiblePodChannels.length === 0 && joinableDiscoveredPods.length === 0 ? (
+              <EmptyHint>No pod rooms or discovered pods yet.</EmptyHint>
             ) : (
-              visiblePodChannels.map((channel) => {
+              <>
+              {visiblePodChannels.length === 0 ? (
+                <EmptyHint>No joined pod channels.</EmptyHint>
+              ) : visiblePodChannels.map((channel) => {
                 const label = channelLabel(channel);
                 const isActive =
                   activeTab?.type === 'pod' && activeTab.target === channel.target;
@@ -926,7 +1071,24 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
                     target={label}
                   />
                 );
-              })
+              })}
+              {joinableDiscoveredPods.length > 0 && (
+                <TreeSubhead>Discovered pods</TreeSubhead>
+              )}
+              {joinableDiscoveredPods.slice(0, 50).map((pod) => {
+                const podId = pod.podId || pod.PodId;
+                const name = pod.name || pod.Name || podId;
+                return (
+                  <TreeRow
+                    accent="mesh"
+                    key={`discovered-${podId}`}
+                    onActivate={() => saveDiscoveredPod(pod)}
+                    prefix="+"
+                    target={name}
+                  />
+                );
+              })}
+              </>
             )}
           </TreeSection>
         )}
@@ -1235,6 +1397,10 @@ const TreeRow = ({
 
 const EmptyHint = ({ children }) => (
   <div className="msgv2-tree-empty">{children}</div>
+);
+
+const TreeSubhead = ({ children }) => (
+  <div className="msgv2-tree-subhead">{children}</div>
 );
 
 const InlineAddForm = ({

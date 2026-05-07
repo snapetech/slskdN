@@ -3,7 +3,7 @@ import UserCard from '../Shared/UserCard';
 import TransferList from './TransferList';
 import React, { Component } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, Card, Icon } from 'semantic-ui-react';
+import { Button, Card, Icon, Popup } from 'semantic-ui-react';
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
@@ -140,13 +140,24 @@ class TransferGroup extends Component {
               name={isFolded ? 'chevron right' : 'chevron down'}
               onClick={() => this.toggleFolded()}
             />
-            <Link
-              state={{ user: user.username }}
-              title="Browse this user's files"
-              to={`/browse?user=${encodeURIComponent(user.username)}`}
-            >
-              <UserCard username={user.username}>{user.username}</UserCard>
-            </Link>
+            <UserCard username={user.username}>{user.username}</UserCard>
+            <Popup
+              content="Open this user's shared file list in Browse. Use this when a transfer row is the easiest way to jump back to that user's shares."
+              position="top center"
+              trigger={
+                <Button
+                  aria-label={`Browse ${user.username}'s files`}
+                  as={Link}
+                  compact
+                  data-testid={`transfer-browse-user-${user.username}`}
+                  icon="folder open"
+                  size="mini"
+                  state={{ user: user.username }}
+                  title="Browse this user's files"
+                  to={`/browse?user=${encodeURIComponent(user.username)}`}
+                />
+              }
+            />
           </Card.Header>
           {asArray(user.directories).length > 0 &&
             !isFolded &&

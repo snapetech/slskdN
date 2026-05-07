@@ -29,6 +29,7 @@ namespace Soulseek
     using System.Threading;
     using System.Threading.Tasks;
     using Soulseek.Diagnostics;
+    using Soulseek.Messaging.Handlers;
     using Soulseek.Network;
 
     /// <summary>
@@ -288,7 +289,7 @@ namespace Soulseek
             // Raw responses bypass serialization so callers can stream pre-serialized search data directly.
             if (searchResponse is RawSearchResponse rawSearchResponse)
             {
-                await peerConnection.WriteAsync(rawSearchResponse.Length, rawSearchResponse.Stream).ConfigureAwait(false);
+                await RawMessageWriter.WriteAsync(peerConnection, rawSearchResponse.Length, rawSearchResponse.Stream).ConfigureAwait(false);
                 return;
             }
 

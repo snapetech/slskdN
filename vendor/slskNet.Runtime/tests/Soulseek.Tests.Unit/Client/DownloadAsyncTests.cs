@@ -445,7 +445,11 @@ namespace Soulseek.Tests.Unit.Client
                 var queued = new ConcurrentDictionary<int, TransferInternal>();
                 queued.TryAdd(0, new TransferInternal(TransferDirection.Download, username, filename, 0));
 
+                var tracked = new ConcurrentDictionary<string, bool>();
+                tracked.TryAdd($"{TransferDirection.Download}:{username}:{filename}", true);
+
                 s.SetProperty("DownloadDictionary", queued);
+                s.SetProperty("UniqueKeyDictionary", tracked);
 
                 var ex = await Record.ExceptionAsync(() => s.DownloadAsync(username, filename, localFilename, token: 1));
 
@@ -528,7 +532,11 @@ namespace Soulseek.Tests.Unit.Client
                 var queued = new ConcurrentDictionary<int, TransferInternal>();
                 queued.TryAdd(0, new TransferInternal(TransferDirection.Download, username, filename, 0));
 
+                var tracked = new ConcurrentDictionary<string, bool>();
+                tracked.TryAdd($"{TransferDirection.Download}:{username}:{filename}", true);
+
                 s.SetProperty("DownloadDictionary", queued);
+                s.SetProperty("UniqueKeyDictionary", tracked);
 
                 var ex = await Record.ExceptionAsync(() => s.DownloadAsync(username, filename, () => Task.FromResult((Stream)stream), token: 1));
 

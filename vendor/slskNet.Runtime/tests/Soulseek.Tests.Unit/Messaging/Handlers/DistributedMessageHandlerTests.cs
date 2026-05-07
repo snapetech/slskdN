@@ -379,6 +379,71 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
         }
 
         [Trait("Category", "Message")]
+        [Theory(DisplayName = "Ignores SearchRequest with invalid token"), AutoData]
+        public void Ignores_SearchRequest_With_Invalid_Token(string username, string query)
+        {
+            var (handler, mocks) = GetFixture();
+            var conn = new Mock<IMessageConnection>();
+            var message = new MessageBuilder()
+                .WriteCode(MessageCode.Distributed.SearchRequest)
+                .WriteInteger(0)
+                .WriteString(username)
+                .WriteInteger(-1)
+                .WriteString(query)
+                .Build();
+
+            handler.HandleMessageRead(conn.Object, message);
+
+            mocks.DistributedConnectionManager.Verify(m => m.BroadcastMessageAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken?>()), Times.Never);
+            mocks.SearchResponder.Verify(m => m.TryRespondAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+            mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.ContainsInsensitive("invalid token"))), Times.Once);
+        }
+
+        [Trait("Category", "Message")]
+        [Theory(DisplayName = "Ignores embedded SearchRequest with invalid token"), AutoData]
+        public void Ignores_Embedded_SearchRequest_With_Invalid_Token(string username, string query)
+        {
+            var (handler, mocks) = GetFixture();
+            var conn = new Mock<IMessageConnection>();
+            var message = new MessageBuilder()
+                .WriteCode(MessageCode.Server.EmbeddedMessage)
+                .WriteByte(0x03)
+                .WriteBytes(new byte[4])
+                .WriteString(username)
+                .WriteInteger(-1)
+                .WriteString(query)
+                .Build();
+
+            handler.HandleMessageRead(conn.Object, message);
+
+            mocks.DistributedConnectionManager.Verify(m => m.BroadcastMessageAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken?>()), Times.Never);
+            mocks.SearchResponder.Verify(m => m.TryRespondAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+            mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.ContainsInsensitive("invalid token"))), Times.Once);
+        }
+
+        [Trait("Category", "HandleEmbeddedMessage")]
+        [Theory(DisplayName = "HandleEmbeddedMessage ignores SearchRequest with invalid token"), AutoData]
+        public void HandleEmbeddedMessage_Ignores_SearchRequest_With_Invalid_Token(string username, string query)
+        {
+            var (handler, mocks) = GetFixture();
+            var message = new MessageBuilder()
+                .WriteCode(MessageCode.Server.EmbeddedMessage)
+                .WriteByte(0x03)
+                .WriteBytes(new byte[4])
+                .WriteString(username)
+                .WriteInteger(-1)
+                .WriteString(query)
+                .Build();
+
+            handler.HandleEmbeddedMessage(message);
+
+            mocks.DistributedConnectionManager.Verify(m => m.PromoteToBranchRoot(), Times.Once);
+            mocks.DistributedConnectionManager.Verify(m => m.BroadcastMessageAsync(It.IsAny<byte[]>(), It.IsAny<CancellationToken?>()), Times.Never);
+            mocks.SearchResponder.Verify(m => m.TryRespondAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+            mocks.Diagnostic.Verify(m => m.Debug(It.Is<string>(s => s.ContainsInsensitive("invalid token"))), Times.Once);
+        }
+
+        [Trait("Category", "Message")]
         [Theory(DisplayName = "Doesn't respond to SearchRequest if result is null"), AutoData]
         public void Doesnt_Respond_To_SearchRequest_If_Result_Is_Null(string username, int token, string query)
         {

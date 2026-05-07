@@ -2433,13 +2433,17 @@ namespace slskd
                 var sw = new Stopwatch();
                 sw.Start();
 
-                var directories = await Shares.BrowseAsync();
-                var response = new BrowseResponse(directories);
                 var destination = Path.Combine(Program.DataDirectory, "browse.cache");
                 temp = Path.Combine(Program.DataDirectory, $"browse.cache.{Guid.NewGuid():N}.tmp");
 
                 Log.Information("Warming browse response cache...");
-                await System.IO.File.WriteAllBytesAsync(temp, response.ToByteArray());
+                var directories = await Shares.BrowseAsync();
+                var response = new BrowseResponse(directories);
+
+                await using (var stream = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                {
+                    response.WriteTo(stream);
+                }
 
                 Log.Debug("Saved cache to temp file {File}", temp);
 
@@ -2447,7 +2451,9 @@ namespace slskd
 
                 sw.Stop();
                 Log.Information("Browse response cached successfully in {Duration}ms", sw.ElapsedMilliseconds);
-                return response;
+
+                var cacheFileInfo = Files.ResolveFileInfo(destination);
+                return new RawBrowseResponse(cacheFileInfo.Length, OpenBrowseCacheReadStream(destination));
             }
             catch (Exception ex)
             {

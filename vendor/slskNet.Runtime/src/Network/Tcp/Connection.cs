@@ -299,10 +299,12 @@ namespace Soulseek.Network.Tcp
 
                         if (completedTask == timeoutTaskCompletionSource.Task)
                         {
+                            AbortPendingConnect(connectTask);
                             throw new TimeoutException($"Operation timed out after {Options.ConnectTimeout} milliseconds");
                         }
                         else if (completedTask == cancellationTaskCompletionSource.Task)
                         {
+                            AbortPendingConnect(connectTask);
                             throw new OperationCanceledException("Operation cancelled", cancellationToken.Value);
                         }
 
@@ -725,6 +727,27 @@ namespace Soulseek.Network.Tcp
         {
             InactivityTimer?.Reset();
             LastActivityTime = DateTime.UtcNow;
+        }
+
+        private void AbortPendingConnect(Task connectTask)
+        {
+            try
+            {
+                TcpClient?.Close();
+            }
+            catch
+            {
+                // best effort: the caller will observe the timeout or cancellation that triggered the abort.
+            }
+
+            _ = connectTask.ContinueWith(
+                task =>
+                {
+                    _ = task.Exception;
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted,
+                TaskScheduler.Default);
         }
 
         private async Task<string> WaitForDisconnectInternalAsync(CancellationToken cancellationToken)

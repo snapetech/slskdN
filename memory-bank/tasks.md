@@ -2683,3 +2683,13 @@
   - Notes: Incorporated the updated slskd council phase/negative-space gate, classified the new gate's false-negative gap, and fixed `BUG-20260506-092` by correcting controller boundary sink paths and making `scripts/check-council-negative-space.sh` enforce every declared boundary plus detailed remediation-baseline registration.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.
+
+- 2026-05-07 02:56:47Z: Monitor kspls0 Browse handoff from Downloads with real users/transfers after active-pane hotfix.
+
+- [2026-05-07T03:10:33Z] Completed: restore Messaging V2 Soulseek room list/join and pod room create/list/join controls; fix slow Browse post-100% tree render; suppress malformed distributed-token warning spam; deploy custom build to kspls0.
+
+- [2026-05-07T03:15:46Z] Completed: Browse performance follow-up for worker tree construction and visible-row folder rendering.
+
+- [2026-05-07T03:18:52Z] Completed: replace slow Browse folder checkbox selection with explicit O(1) folder download action.
+
+- [2026-05-07T03:21:15Z] Completed: clean up Browse root download action and selected-folder file panel presentation.

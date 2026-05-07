@@ -427,6 +427,7 @@ namespace Soulseek.Tests.Unit.Network.Tcp
                     Assert.Equal(ConnectionState.Disconnected, c.State);
 
                     t.Verify(m => m.ConnectAsync(It.IsAny<IPAddress>(), It.IsAny<int>()), Times.Once);
+                    t.Verify(m => m.Close(), Times.AtLeastOnce);
                 }
             }
         }
@@ -463,6 +464,7 @@ namespace Soulseek.Tests.Unit.Network.Tcp
                     Assert.Equal(ConnectionState.Disconnected, c.State);
 
                     t.Verify(m => m.ConnectAsync(It.IsAny<IPAddress>(), It.IsAny<int>()), Times.Once);
+                    t.Verify(m => m.Close(), Times.AtLeastOnce);
                 }
             }
         }

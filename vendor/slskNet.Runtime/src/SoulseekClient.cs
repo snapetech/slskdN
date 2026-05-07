@@ -1162,11 +1162,6 @@ namespace Soulseek
                 throw new DuplicateTokenException($"The specified or generated token {token} is already in progress");
             }
 
-            if (DownloadDictionary.Values.Any(d => d.Username == username && d.Filename == remoteFilename))
-            {
-                throw new DuplicateTransferException($"An active or queued download of {remoteFilename} from {username} is already in progress");
-            }
-
             if (UniqueKeyDictionary.ContainsKey($"{TransferDirection.Download}:{username}:{remoteFilename}"))
             {
                 throw new DuplicateTransferException($"An active or queued download of {remoteFilename} from {username} is already in progress");
@@ -1270,11 +1265,6 @@ namespace Soulseek
             if (UploadDictionary.ContainsKey(token.Value) || DownloadDictionary.ContainsKey(token.Value))
             {
                 throw new DuplicateTokenException($"The specified or generated token {token} is already in progress");
-            }
-
-            if (DownloadDictionary.Values.Any(d => d.Username == username && d.Filename == remoteFilename))
-            {
-                throw new DuplicateTransferException($"An active or queued download of {remoteFilename} from {username} is already in progress");
             }
 
             if (UniqueKeyDictionary.ContainsKey($"{TransferDirection.Download}:{username}:{remoteFilename}"))
@@ -1747,7 +1737,7 @@ namespace Soulseek
         ///     Gets the next token for use in client operations.
         /// </summary>
         /// <remarks>
-        ///     <para>Tokens are returned sequentially and the token value rolls over to 0 when it has reached <see cref="int.MaxValue"/>.</para>
+        ///     <para>Tokens are returned sequentially and the token value rolls over to 1 when it has reached <see cref="int.MaxValue"/>.</para>
         ///     <para>This operation is thread safe.</para>
         /// </remarks>
         /// <returns>The next token.</returns>
@@ -3095,11 +3085,6 @@ namespace Soulseek
                 throw new DuplicateTokenException($"The specified or generated token {token} is already in progress");
             }
 
-            if (UploadDictionary.Values.Any(d => d.Username == username && d.Filename == remoteFilename))
-            {
-                throw new DuplicateTransferException($"An active or queued upload of {remoteFilename} to {username} is already in progress");
-            }
-
             if (UniqueKeyDictionary.ContainsKey($"{TransferDirection.Upload}:{username}:{remoteFilename}"))
             {
                 throw new DuplicateTransferException($"An active or queued upload of {remoteFilename} to {username} is already in progress");
@@ -3175,11 +3160,6 @@ namespace Soulseek
             if (UploadDictionary.ContainsKey(token.Value) || DownloadDictionary.ContainsKey(token.Value))
             {
                 throw new DuplicateTokenException($"The specified or generated token {token} is already in progress");
-            }
-
-            if (UploadDictionary.Values.Any(d => d.Username == username && d.Filename == remoteFilename))
-            {
-                throw new DuplicateTransferException($"An active or queued upload of {remoteFilename} to {username} is already in progress");
             }
 
             if (UniqueKeyDictionary.ContainsKey($"{TransferDirection.Upload}:{username}:{remoteFilename}"))
@@ -3556,7 +3536,17 @@ namespace Soulseek
                     using var loginFailureCts = new CancellationTokenSource();
                     using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, loginFailureCts.Token);
 
-                    var loginWait = Waiter.Wait<LoginResponse>(new WaitKey(MessageCode.Server.Login), cancellationToken: cancellationToken);
+                    var loginWaitKey = new WaitKey(MessageCode.Server.Login);
+                    var loginWait = Waiter.Wait<LoginResponse>(loginWaitKey, cancellationToken: cancellationToken);
+
+                    void ThrowLoginWaitOnDisconnect(object sender, ConnectionDisconnectedEventArgs e)
+                    {
+                        var message = string.IsNullOrWhiteSpace(e.Message)
+                            ? "Server disconnected during login"
+                            : $"Server disconnected during login: {e.Message}";
+
+                        Waiter.Throw(loginWaitKey, e.Exception ?? new ConnectionException(message));
+                    }
 
                     // concatenate the login request with the set listen port command to prevent a race condition where remote
                     // users are notified of the login but the listen port is not yet set, resulting in the server reporting a
@@ -3566,9 +3556,20 @@ namespace Soulseek
                         .Concat(CreateSetListenPortCommand().ToByteArray())
                         .ToArray();
 
-                    await ServerConnection.WriteAsync(loginBytes, cancellationToken).ConfigureAwait(false);
+                    ServerConnection.Disconnected += ThrowLoginWaitOnDisconnect;
 
-                    var response = await loginWait.ConfigureAwait(false);
+                    LoginResponse response;
+
+                    try
+                    {
+                        await ServerConnection.WriteAsync(loginBytes, cancellationToken).ConfigureAwait(false);
+
+                        response = await loginWait.ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        ServerConnection.Disconnected -= ThrowLoginWaitOnDisconnect;
+                    }
 
                     if (response.Succeeded)
                     {
@@ -3671,6 +3672,8 @@ namespace Soulseek
             }
 
             var lastState = TransferStates.None;
+            long lastProgressCallbackBytes = startOffset;
+            DateTime? lastProgressCallbackTime = null;
 
             void UpdateState(TransferStates state)
             {
@@ -3685,6 +3688,15 @@ namespace Soulseek
             {
                 var lastBytes = download.BytesTransferred;
                 download.UpdateProgress(bytesDownloaded);
+
+                if (!ShouldRaiseTransferProgress(download, bytesDownloaded, lastProgressCallbackBytes, lastProgressCallbackTime, options))
+                {
+                    return;
+                }
+
+                lastProgressCallbackBytes = bytesDownloaded;
+                lastProgressCallbackTime = DateTime.UtcNow;
+
                 var e = new TransferProgressUpdatedEventArgs(lastBytes, new Transfer(download));
                 options.ProgressUpdated?.Invoke((e.PreviousBytesTransferred, e.Transfer));
                 RaiseTransferProgressUpdated(e);
@@ -4937,6 +4949,32 @@ namespace Soulseek
         private void RaiseTransferProgressUpdated(TransferProgressUpdatedEventArgs eventArgs)
             => RaiseEventHandler(nameof(TransferProgressUpdated), () => TransferProgressUpdated?.Invoke(this, eventArgs));
 
+        private bool ShouldRaiseTransferProgress(
+            TransferInternal transfer,
+            long bytesTransferred,
+            long lastProgressCallbackBytes,
+            DateTime? lastProgressCallbackTime,
+            TransferOptions options)
+        {
+            if (!lastProgressCallbackTime.HasValue)
+            {
+                return true;
+            }
+
+            if (transfer.Size.HasValue && bytesTransferred >= transfer.Size.Value)
+            {
+                return true;
+            }
+
+            if (options.ProgressUpdateMinimumBytes == 0 || bytesTransferred - lastProgressCallbackBytes >= options.ProgressUpdateMinimumBytes)
+            {
+                return true;
+            }
+
+            return options.ProgressUpdateInterval == 0
+                || (DateTime.UtcNow - lastProgressCallbackTime.Value).TotalMilliseconds >= options.ProgressUpdateInterval;
+        }
+
         private void RaiseTransferStateChanged(TransferStateChangedEventArgs eventArgs)
             => RaiseEventHandler(nameof(TransferStateChanged), () => TransferStateChanged?.Invoke(this, eventArgs));
 
@@ -5118,6 +5156,8 @@ namespace Soulseek
             }
 
             var lastState = TransferStates.None;
+            long lastProgressCallbackBytes = 0;
+            DateTime? lastProgressCallbackTime = null;
 
             void UpdateState(TransferStates state)
             {
@@ -5132,6 +5172,15 @@ namespace Soulseek
             {
                 var lastBytes = upload.BytesTransferred;
                 upload.UpdateProgress(bytesUploaded);
+
+                if (!ShouldRaiseTransferProgress(upload, bytesUploaded, lastProgressCallbackBytes, lastProgressCallbackTime, options))
+                {
+                    return;
+                }
+
+                lastProgressCallbackBytes = bytesUploaded;
+                lastProgressCallbackTime = DateTime.UtcNow;
+
                 var e = new TransferProgressUpdatedEventArgs(lastBytes, new Transfer(upload));
                 options.ProgressUpdated?.Invoke((e.PreviousBytesTransferred, e.Transfer));
                 RaiseTransferProgressUpdated(e);

@@ -286,6 +286,10 @@ static class Commands
         {
             await DeleteRuleUntilGone("to", $"{AppConfig.ProviderGateway}/32", "lookup", AppConfig.VpnTable);
         }
+        await DeleteRuleUntilGone("pref", "10005");
+        await DeleteRuleUntilGone("pref", "10006");
+        await DeleteRuleUntilGone("pref", "10010");
+        await DeleteRuleUntilGone("pref", "10011");
         foreach (var cidr in AppConfig.LocalCidrs)
         {
             await DeleteRuleUntilGone("uidrange", $"{AppConfig.ServiceUid}-{AppConfig.ServiceUid}", "to", cidr, "lookup", "main");
@@ -297,6 +301,15 @@ static class Commands
 
         await MustRun("ip", "route", "replace", "default", "dev", AppConfig.VpnIface, "table", AppConfig.VpnTable);
         await MustRun("ip", "route", "replace", "blackhole", "default", "table", AppConfig.VpnTable, "metric", "32767");
+        var vpnAddress = await InterfaceIpv4Address(AppConfig.VpnIface);
+        if (!string.IsNullOrWhiteSpace(vpnAddress))
+        {
+            await ProcessUtil.Run("ip", "rule", "add", "pref", "10005", "from", $"{vpnAddress}/32", "lookup", AppConfig.VpnTable);
+        }
+
+        await ProcessUtil.Run("ip", "rule", "add", "pref", "10006", "iif", AppConfig.VpnIface, "lookup", AppConfig.VpnTable);
+        await ProcessUtil.Run("ip", "rule", "add", "pref", "10010", "to", $"{AppConfig.IngressHostPrefix}.0.0/16", "lookup", "main");
+        await ProcessUtil.Run("ip", "rule", "add", "pref", "10011", "from", $"{AppConfig.IngressHostPrefix}.0.0/16", "lookup", "main");
         await MustRun("ip", "rule", "add", "pref", "32760", "uidrange", $"{AppConfig.ServiceUid}-{AppConfig.ServiceUid}", "lookup", AppConfig.VpnTable);
         if (!string.IsNullOrWhiteSpace(AppConfig.ProviderGateway))
         {
@@ -315,6 +328,27 @@ static class Commands
 
         Console.WriteLine($"Configured UID {AppConfig.ServiceUid} ({AppConfig.ServiceUser}) routing through {AppConfig.VpnIface} table {AppConfig.VpnTable}");
         return 0;
+    }
+
+    private static async Task<string> InterfaceIpv4Address(string iface)
+    {
+        var addresses = await ProcessUtil.Run("ip", "-4", "-o", "addr", "show", "dev", iface, "scope", "global");
+        if (addresses.ExitCode != 0)
+        {
+            return "";
+        }
+
+        foreach (var line in addresses.Stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var parts = line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+            var inetIndex = Array.IndexOf(parts, "inet");
+            if (inetIndex >= 0 && inetIndex + 1 < parts.Length)
+            {
+                return parts[inetIndex + 1].Split('/')[0];
+            }
+        }
+
+        return "";
     }
 
     private static async Task<int> SplitWindows()

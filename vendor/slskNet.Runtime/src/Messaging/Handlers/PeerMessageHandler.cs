@@ -487,7 +487,7 @@ namespace Soulseek.Messaging.Handlers
         {
             try
             {
-                await connection.WriteAsync(rawBrowseResponse.Length, rawBrowseResponse.Stream).ConfigureAwait(false);
+                await RawMessageWriter.WriteAsync(connection, rawBrowseResponse.Length, rawBrowseResponse.Stream).ConfigureAwait(false);
             }
             finally
             {
@@ -498,7 +498,7 @@ namespace Soulseek.Messaging.Handlers
         private static async Task WriteRawSearchResponseAsync(IMessageConnection connection, RawSearchResponse rawSearchResponse)
         {
             // Raw response streams are owned by the caller so disposal can be ordered with surrounding delivery handling.
-            await connection.WriteAsync(rawSearchResponse.Length, rawSearchResponse.Stream).ConfigureAwait(false);
+            await RawMessageWriter.WriteAsync(connection, rawSearchResponse.Length, rawSearchResponse.Stream).ConfigureAwait(false);
         }
 
         private async Task<(bool Rejected, string RejectionMessage)> TryEnqueueDownloadAsync(string username, IPEndPoint ipEndPoint, string filename)

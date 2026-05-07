@@ -9970,3 +9970,13 @@ Code quality improvements were completed as part of Option A:
 - Strengthened `scripts/check-council-negative-space.sh` so mutating API, anonymous endpoint, path containment, outbound HTTP, durable state, and runtime-crossing boundaries each assert validator presence and remediation-baseline registration.
 
 - 2026-05-07 02:39:03Z Messaging V2 flicker/resource hotfix: capped passive rendering remains in place, preserved member/message poll identity, memoized high-churn panes, added stable message row keys, dropped negative distributed search tokens before response construction, built and deployed custom release manual-20260507023404.neg-token-fix to kspls0.
+
+- 2026-05-07 02:56:47Z Browse transfer handoff hotfix: made Downloads browse action explicit, prevented UserCard interest popup from acting as browse affordance, initialized Browse tabs from URL/state user, restored active-pane rendering for dynamic Browse tabs, added headless Playwright proof for Downloads -> Browse populated tab.
+
+[2026-05-07T03:10:33Z] Messaging/browse live hotfix: restored visible Soulseek room listing/join controls, added pod room create/discovered-pod join controls, replaced Browse directory tree prefix recursion with parent-map construction, and locally dropped malformed distributed search tokens before warning spam. Built and deployed custom release to kspls0.
+
+[2026-05-07T03:15:46Z] Browse performance follow-up: moved browse tree construction to a frontend worker with synchronous fallback, replaced recursive directory rendering with flattened visible-row rendering, capped expand-all/visible row worst cases, and deployed the frontend build to kspls0 current release.
+
+[2026-05-07T03:18:52Z] Browse folder action fix: removed descendant-walking folder checkboxes, added explicit per-folder download buttons, kept folder-name click for preview, and deployed frontend build to kspls0.
+
+[2026-05-07T03:21:15Z] Browse UI cleanup: hid folder download action on synthetic root/user row, clarified selected-folder file panel styling, and deployed frontend build to kspls0.

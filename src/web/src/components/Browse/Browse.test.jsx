@@ -21,7 +21,8 @@ describe('Browse', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('alice')).toBeInTheDocument();
+    expect(screen.getByTestId('browse-session')).toHaveTextContent('alice');
+    expect(screen.queryByText('empty')).not.toBeInTheDocument();
   });
 
   it('opens a user browse tab from router state for in-app navigation', () => {
@@ -31,7 +32,7 @@ describe('Browse', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('bob')).toBeInTheDocument();
+    expect(screen.getByTestId('browse-session')).toHaveTextContent('bob');
   });
 
   it('ignores corrupted persisted tab shapes instead of crashing', () => {

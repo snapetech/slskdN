@@ -351,6 +351,16 @@ body.msgv2-resizing {
   font-style: italic;
 }
 
+.msgv2-tree-subhead {
+  padding: calc(var(--msg-row-pad-y) * 1.5) var(--msg-row-pad-x)
+    var(--msg-row-pad-y) 18px;
+  color: var(--msgv2-fg-dim);
+  font-size: 0.78em;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .msgv2-tree-row-wrap {
   position: relative;
 }

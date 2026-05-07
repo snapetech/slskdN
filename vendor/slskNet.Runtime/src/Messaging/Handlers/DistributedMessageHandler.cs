@@ -186,7 +186,10 @@ namespace Soulseek.Messaging.Handlers
                             // branch roots are intended to 'unwrap' the message and forward only the wrapped message to peers. when we get one of these,
                             // it is from older clients that either have a bug, or misunderstood the intent. this includes slskd prior to this commit.
                             case MessageCode.Distributed.SearchRequest:
-                                var embeddedSearchRequest = DistributedSearchRequest.FromByteArray(embeddedMessage.DistributedMessage);
+                                if (!TryReadDistributedSearchRequest(embeddedMessage.DistributedMessage, connection, out var embeddedSearchRequest))
+                                {
+                                    break;
+                                }
 
                                 QueueBroadcastMessage(embeddedMessage.DistributedMessage);
 
@@ -207,7 +210,10 @@ namespace Soulseek.Messaging.Handlers
 
                     // if we are connected to anyone other than a branch root, we will receive SearchRequest/3.
                     case MessageCode.Distributed.SearchRequest:
-                        var searchRequest = DistributedSearchRequest.FromByteArray(message);
+                        if (!TryReadDistributedSearchRequest(message, connection, out var searchRequest))
+                        {
+                            break;
+                        }
 
                         QueueBroadcastMessage(message);
 
@@ -294,7 +300,10 @@ namespace Soulseek.Messaging.Handlers
                         // operating as a branch root on the distributed network.
                         SoulseekClient.DistributedConnectionManager.PromoteToBranchRoot();
 
-                        var searchRequest = DistributedSearchRequest.FromByteArray(distributedMessage);
+                        if (!TryReadDistributedSearchRequest(distributedMessage, null, out var searchRequest))
+                        {
+                            break;
+                        }
 
                         // *always* unwrap the received message and distribute only the wrapped message to children
                         // in the past some clients (including slskd, prior to this commit) were incorrectly forwarding the
@@ -317,6 +326,26 @@ namespace Soulseek.Messaging.Handlers
 
         private void QueueBroadcastMessage(byte[] message)
             => _ = BroadcastMessageSafelyAsync(message);
+
+        private bool TryReadDistributedSearchRequest(byte[] message, IMessageConnection connection, out DistributedSearchRequest searchRequest)
+        {
+            try
+            {
+                searchRequest = DistributedSearchRequest.FromByteArray(message);
+                return true;
+            }
+            catch (ArgumentOutOfRangeException ex) when (ex.ParamName == "token")
+            {
+                searchRequest = null;
+
+                var source = connection == null
+                    ? "the server"
+                    : $"{connection.Username} ({connection.IPEndPoint})";
+
+                Diagnostic.Debug($"Ignored distributed search request with invalid token from {source}");
+                return false;
+            }
+        }
 
         private async Task BroadcastMessageSafelyAsync(byte[] message)
         {

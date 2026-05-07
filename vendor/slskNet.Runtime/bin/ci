@@ -2,6 +2,12 @@
 set -e
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+github_repository="${GITHUB_REPOSITORY:-snapetech/slskNet.Runtime}"
+sonar_project_key="${SONAR_PROJECT_KEY:-snapetech_slskNet.Runtime}"
+sonar_organization="${SONAR_ORGANIZATION:-snapetech}"
+sonar_token="${TOKEN_SONARCLOUD:-${SONAR_TOKEN:-}}"
+codecov_token="${TOKEN_CODECOV_SLSKNET_RUNTIME:-${TOKEN_CODECOV_SOULSEEKNET:-${CODECOV_TOKEN:-}}}"
+
 # get the current git branch and set options for a non-PR analysis
 branch=$(git rev-parse --abbrev-ref HEAD)
 options="/d:sonar.branch.name="${branch}""
@@ -14,31 +20,41 @@ if [ ! -z "${CIRCLECI}" ]; then
     # if building a PR, fetch the PR info from GitHub to determine the base and branch, then set options for PR analysis
     if [ ! -z "${CIRCLE_PULL_REQUEST}" ]; then
         echo "Fetching PR to determine base and branch"
-        pr_json="$(curl -s https://api.github.com/repos/jpdillingham/Soulseek.NET/pulls/${CIRCLE_PULL_REQUEST##*/})"
+        pr_json="$(curl -s "https://api.github.com/repos/${github_repository}/pulls/${CIRCLE_PULL_REQUEST##*/}")"
         base="$(echo "${pr_json}" | jq -r ".base.ref")"
         branch="$(echo "${pr_json}" | jq -r ".head.ref")"
         options="/d:sonar.pullrequest.base="${base}" /d:sonar.pullrequest.branch="${branch}" /d:sonar.pullrequest.key="${CIRCLE_PULL_REQUEST##*/}""
     fi
 fi
 
-echo "Launching dotnet-sonarscanner with options: ${options}"
-
 # disable git bash/mingw path mangling on Windows
 export MSYS2_ARG_CONV_EXCL="*"
 
-dotnet-sonarscanner begin \
-    /key:"jpdillingham_Soulseek.NET" \
-    /o:jpdillingham-github \
-    ${options} \
-    /d:sonar.host.url="https://sonarcloud.io" \
-    /d:sonar.github.repository="jpdillingham/Soulseek.NET" \
-    /d:sonar.exclusions="**/*examples*/**" \
-    /d:sonar.cs.opencover.reportsPaths="tests/opencover.xml" \
-    /d:sonar.login="${TOKEN_SONARCLOUD}" \
+if [ -n "${sonar_token}" ]; then
+    echo "Launching dotnet-sonarscanner for ${github_repository} with options: ${options}"
+
+    dotnet-sonarscanner begin \
+        /key:"${sonar_project_key}" \
+        /o:"${sonar_organization}" \
+        ${options} \
+        /d:sonar.host.url="https://sonarcloud.io" \
+        /d:sonar.github.repository="${github_repository}" \
+        /d:sonar.exclusions="**/*examples*/**" \
+        /d:sonar.cs.opencover.reportsPaths="tests/opencover.xml" \
+        /d:sonar.login="${sonar_token}"
+else
+    echo "Skipping SonarCloud analysis; set TOKEN_SONARCLOUD or SONAR_TOKEN to enable it."
+fi
 
 . "${dir}/build"
 . "${dir}/test"
 
-dotnet-sonarscanner end /d:sonar.login="${TOKEN_SONARCLOUD}"
+if [ -n "${sonar_token}" ]; then
+    dotnet-sonarscanner end /d:sonar.login="${sonar_token}"
+fi
 
-bash <(curl -s https://codecov.io/bash) -f tests/opencover.xml -t ${TOKEN_CODECOV_SOULSEEKNET}
+if [ -n "${codecov_token}" ]; then
+    bash <(curl -s https://codecov.io/bash) -f tests/opencover.xml -t "${codecov_token}"
+else
+    echo "Skipping Codecov upload; set TOKEN_CODECOV_SLSKNET_RUNTIME, TOKEN_CODECOV_SOULSEEKNET, or CODECOV_TOKEN to enable it."
+fi
