@@ -18,6 +18,13 @@ Status meanings:
 - `False positive` - scanner shape is not a bug for the listed rationale.
 - `Out of scope` - candidate belongs outside this runtime council.
 
+## Commit Wording
+
+Fix commits must describe the runtime change, bug class, or user-visible
+hardening. Do not mention council, bughunt, scanners, agents, or other discovery tooling in commit messages. The ledger and process docs can record
+how a bug was found; commit history should read as normal maintenance and fix
+history.
+
 | Section | Candidate count | Status | Current classification | Next action |
 | --- | ---: | --- | --- | --- |
 | `Event-style async boundaries` | 10 | Open | Event-handler and timer callbacks remain a broad lifecycle queue. Several known handler paths are already diagnostic-wrapped, but this pile needs a whole-section pass rather than one callback at a time. | Split into event-handler, timer, and disposal subgroups; accept only paths where exceptions can escape without diagnostics or leave state half-updated. |

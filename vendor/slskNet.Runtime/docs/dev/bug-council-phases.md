@@ -147,7 +147,7 @@ Exit checklist:
 
 ## How to resume
 
-1. Read the latest commit messages in this repo for the prefix `council:` to see what has landed.
+1. Read recent product/fix commits and the ledger to see what has landed. Commit messages must describe the runtime change, not the discovery tool or process.
 2. Read this file's phase table to find the first non-Done row.
 3. Run `bash scripts/run-bug-council-all-phases.sh`; treat a green result as "registered lenses passed", not as "no bugs exist".
 4. Pick up the phase, update its status to In Progress, and follow its exit checklist.
