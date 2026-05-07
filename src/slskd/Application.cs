@@ -1832,7 +1832,7 @@ namespace slskd
             var xfer = args.Transfer;
             var direction = xfer.Direction.ToString().ToUpper();
             var user = xfer.Username;
-            var file = Path.GetFileName(xfer.Filename);
+            var file = xfer.Filename;
             var oldState = args.PreviousState;
             var state = xfer.State;
 

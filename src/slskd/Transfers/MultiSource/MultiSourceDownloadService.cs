@@ -1722,7 +1722,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             if (_hashDb != null)
             {
                 await _hashDb.StoreHashFromVerificationAsync(filename, fileSize, hash, cancellationToken: cancellationToken);
-                _logger.LogDebug("[HASHDB] Stored downloaded file hash: {Filename} -> {Hash}", IOPath.GetFileName(filename), hash.Substring(0, 16) + "...");
+                _logger.LogDebug("[HASHDB] Stored downloaded file hash: {Filename} -> {Hash}", filename, hash);
             }
 
             // Publish to mesh for other slskdn clients
@@ -1730,7 +1730,7 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             {
                 var flacKey = HashDbEntry.GenerateFlacKey(filename, fileSize);
                 await _meshSync.PublishHashAsync(flacKey, hash, fileSize, cancellationToken: cancellationToken);
-                _logger.LogDebug("[MESH] Published hash to mesh: {Key} -> {Hash}", flacKey, hash.Substring(0, 16) + "...");
+                _logger.LogDebug("[MESH] Published hash to mesh: {Key} -> {Hash}", flacKey, hash);
             }
         }
         catch (Exception ex)

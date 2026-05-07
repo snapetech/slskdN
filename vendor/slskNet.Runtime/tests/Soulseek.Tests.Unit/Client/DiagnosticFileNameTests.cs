@@ -22,37 +22,49 @@ namespace Soulseek.Tests.Unit.Client
     public class DiagnosticFileNameTests
     {
         [Trait("Category", "Diagnostics")]
-        [Theory(DisplayName = "GetDiagnosticFileName returns basename for slash and backslash paths")]
-        [InlineData(@"C:\Users\alice\Music\secret.mp3", "secret.mp3")]
-        [InlineData("/home/alice/Music/secret.mp3", "secret.mp3")]
-        [InlineData(@"@@alias\folder\secret.mp3", "secret.mp3")]
-        [InlineData("folder/secret.mp3", "secret.mp3")]
+        [Theory(DisplayName = "GetDiagnosticLogValue preserves operator-visible text")]
+        [InlineData(@"C:\Users\alice\Music\secret.mp3", @"C:\\Users\\alice\\Music\\secret.mp3")]
+        [InlineData("/home/alice/Music/secret.mp3", "/home/alice/Music/secret.mp3")]
+        [InlineData(@"@@alias\folder\secret.mp3", @"@@alias\\folder\\secret.mp3")]
+        [InlineData("folder/secret.mp3", "folder/secret.mp3")]
         [InlineData("secret.mp3", "secret.mp3")]
         [InlineData("", "")]
         [InlineData(null, null)]
-        public void GetDiagnosticFileName_Returns_Basename_For_Slash_And_Backslash_Paths(string filename, string expected)
+        public void GetDiagnosticLogValue_Preserves_Operator_Visible_Text(string filename, string expected)
         {
             using (var s = new SoulseekClient(minorVersion: 9999))
             {
-                var actual = s.InvokeMethod<string>("GetDiagnosticFileName", filename);
+                var actual = s.InvokeMethod<string>("GetDiagnosticLogValue", filename);
 
                 Assert.Equal(expected, actual);
             }
         }
 
         [Trait("Category", "Diagnostics")]
-        [Fact(DisplayName = "GetDiagnosticSearchDescription omits raw search text")]
-        public void GetDiagnosticSearchDescription_Omits_Raw_Search_Text()
+        [Fact(DisplayName = "GetDiagnosticLogValue escapes log-breaking control characters")]
+        public void GetDiagnosticLogValue_Escapes_Log_Breaking_Control_Characters()
+        {
+            using (var s = new SoulseekClient(minorVersion: 9999))
+            {
+                var actual = s.InvokeMethod<string>("GetDiagnosticLogValue", "first\r\nsecond\tthird");
+
+                Assert.Equal("first\\r\\nsecond\\tthird", actual);
+            }
+        }
+
+        [Trait("Category", "Diagnostics")]
+        [Fact(DisplayName = "GetDiagnosticSearchDescription includes search text")]
+        public void GetDiagnosticSearchDescription_Includes_Search_Text()
         {
             using (var s = new SoulseekClient(minorVersion: 9999))
             {
                 var query = new SearchQuery(new[] { "private", "phrase" }, new[] { "excluded" });
                 var actual = s.InvokeMethod<string>("GetDiagnosticSearchDescription", query, 42);
 
-                Assert.Equal("token 42, terms 2, exclusions 1", actual);
-                Assert.DoesNotContain("private", actual);
-                Assert.DoesNotContain("phrase", actual);
-                Assert.DoesNotContain("excluded", actual);
+                Assert.Equal("token 42, query \"private phrase -excluded\"", actual);
+                Assert.Contains("private", actual);
+                Assert.Contains("phrase", actual);
+                Assert.Contains("excluded", actual);
             }
         }
     }

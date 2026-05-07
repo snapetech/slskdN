@@ -163,7 +163,7 @@ namespace slskd.Transfers
                 }
 
                 upload.Ready = DateTime.UtcNow;
-                Log.Debug("Ready: {File} for {User} at {Time}", Path.GetFileName(upload.Filename), upload.Username, upload.Enqueued);
+                Log.Debug("Ready: {File} for {User} at {Time}", upload.Filename, upload.Username, upload.Enqueued);
 
                 return upload.TaskCompletionSource.Task;
             }
@@ -221,7 +221,7 @@ namespace slskd.Transfers
                 }
 
                 list.Remove(upload);
-                Log.Debug("Complete: {File} for {User} at {Time}", Path.GetFileName(upload.Filename), upload.Username, upload.Enqueued);
+                Log.Debug("Complete: {File} for {User} at {Time}", upload.Filename, upload.Username, upload.Enqueued);
 
                 // ensure the slot is returned to the group from which it was acquired the group may have been removed during the
                 // transfer. if so, do nothing.
@@ -267,7 +267,7 @@ namespace slskd.Transfers
                         return list;
                     });
 
-                Log.Debug("Enqueued: {File} for {User} at {Time}", Path.GetFileName(upload.Filename), upload.Username, upload.Enqueued);
+                Log.Debug("Enqueued: {File} for {User} at {Time}", upload.Filename, upload.Username, upload.Enqueued);
             }
             finally
             {
@@ -569,7 +569,7 @@ namespace slskd.Transfers
 
                     // release the upload
                     upload.TaskCompletionSource.SetResult();
-                    Log.Debug("Started: {File} for {User} at {Time}", Path.GetFileName(upload.Filename), upload.Username, upload.Enqueued);
+                    Log.Debug("Started: {File} for {User} at {Time}", upload.Filename, upload.Username, upload.Enqueued);
                     Log.Debug("Group {Group} slots: {Used}/{Available}", group.Name, group.UsedSlots, group.Slots);
 
                     return upload;

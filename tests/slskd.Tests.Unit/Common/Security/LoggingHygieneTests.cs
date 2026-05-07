@@ -13,7 +13,7 @@ namespace slskd.Tests.Unit.Common.Security
 
     /// <summary>
     ///     Tests for H-GLOBAL01: Logging and Telemetry Hygiene Audit.
-    ///     Ensures that sensitive data is never logged in plain text.
+    ///     Ensures that actual secrets are never logged in plain text while operator-visible activity remains useful.
     /// </summary>
     public class LoggingHygieneTests
     {
@@ -27,7 +27,7 @@ namespace slskd.Tests.Unit.Common.Security
         }
 
         [Fact]
-        public void LogFilePath_UsesSanitizedPath()
+        public void LogFilePath_PreservesPath()
         {
             // Arrange
             var fullPath = "/home/user/secret/document.pdf";
@@ -40,14 +40,14 @@ namespace slskd.Tests.Unit.Common.Security
                 x => x.Log(
                     LogLevel.Information,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("document.pdf") && !v.ToString().Contains("/home/user")),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("/home/user/secret/document.pdf")),
                     It.IsAny<Exception>(),
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
         }
 
         [Fact]
-        public void LogIpAddress_UsesSanitizedIp()
+        public void LogIpAddress_PreservesIp()
         {
             // Arrange
             var ip = "192.168.1.100";
@@ -60,7 +60,7 @@ namespace slskd.Tests.Unit.Common.Security
                 x => x.Log(
                     LogLevel.Information,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => !v.ToString().Contains("192.168.1.100") && v.ToString().Length > 0),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("192.168.1.100")),
                     It.IsAny<Exception>(),
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);
@@ -87,7 +87,7 @@ namespace slskd.Tests.Unit.Common.Security
         }
 
         [Fact]
-        public void LogExternalIdentifier_UsesSanitizedIdentifier()
+        public void LogExternalIdentifier_PreservesIdentifier()
         {
             // Arrange
             var identifier = "user_john_doe_123456";
@@ -100,7 +100,7 @@ namespace slskd.Tests.Unit.Common.Security
                 x => x.Log(
                     LogLevel.Information,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("u***6 (20 chars)") && !v.ToString().Contains("user_john_doe_123456")),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("user_john_doe_123456")),
                     It.IsAny<Exception>(),
                     It.IsAny<Func<It.IsAnyType, Exception, string>>()),
                 Times.Once);

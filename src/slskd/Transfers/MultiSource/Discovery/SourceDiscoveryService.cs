@@ -529,7 +529,7 @@ namespace slskd.Transfers.MultiSource.Discovery
                         updateCmd.ExecuteNonQuery();
 
                         log.Debug("[Discovery] Verified hash for {Filename} from {Username}: {Hash}",
-                            Path.GetFileName(filename), username, hash.Substring(0, 16) + "...");
+                            filename, username, hash);
                     }
                 }
                 catch (Exception ex)

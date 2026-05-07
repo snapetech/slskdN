@@ -151,7 +151,7 @@ namespace slskd.HashDb
                 // Track this peer - they're active and downloading, good candidate for FLAC discovery
                 await GetOrCreatePeerAsync(evt.Username);
                 await TouchPeerAsync(evt.Username);
-                log.Debug("[HashDb] Tracked peer {Username} who downloaded {File}", evt.Username, Path.GetFileName(evt.Filename));
+                log.Debug("[HashDb] Tracked peer {Username} who downloaded {File}", evt.Username, evt.Filename);
             }
             catch (Exception ex)
             {
@@ -247,7 +247,7 @@ namespace slskd.HashDb
 
                 // Store the hash locally
                 await StoreHashFromVerificationAsync(evt.RemoteFilename, fileSize, hash);
-                log.Information("[HashDb] Stored hash for downloaded file {Filename}: {Hash}", Path.GetFileName(localFilename), hash.Substring(0, 16) + "...");
+                log.Information("[HashDb] Stored hash for downloaded file {Filename}: {Hash}", localFilename, hash);
 
                 // Derive variant metadata + quality score
                 try
@@ -1340,7 +1340,7 @@ namespace slskd.HashDb
                 MetaFlags = metaFlags,
             }, cancellationToken);
 
-            log.Debug("[HashDb] Stored hash {Key} -> {Hash} for {File} ({Size} bytes)", flacKey, byteHash.Substring(0, 16) + "...", filename, size);
+            log.Debug("[HashDb] Stored hash {Key} -> {Hash} for {File} ({Size} bytes)", flacKey, byteHash, filename, size);
         }
 
         /// <inheritdoc/>
@@ -3039,9 +3039,9 @@ namespace slskd.HashDb
                     // Conflict! Keep the one with higher use_count
                     log.Warning("[HashDb] Hash conflict for {Key}: local={Local} (uses:{LocalUse}) vs remote={Remote} (uses:{RemoteUse})",
                         entry.FlacKey,
-                        existing.ByteHash?.Substring(0, 16),
+                        existing.ByteHash,
                         existing.UseCount,
-                        entry.ByteHash?.Substring(0, 16),
+                        entry.ByteHash,
                         entry.UseCount);
                     conflicts++;
                 }

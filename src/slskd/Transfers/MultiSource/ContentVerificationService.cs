@@ -176,14 +176,14 @@ namespace slskd.Transfers.MultiSource
                 if (entry != null)
                 {
                     Log.Debug("[HASHDB] Cache hit for {Filename} ({Size} bytes): {Hash}",
-                        Path.GetFileName(filename), fileSize, entry.ByteHash?.Substring(0, 16) + "...");
+                        filename, fileSize, entry.ByteHash);
 
                     // Increment use count
                     await HashDb.IncrementHashUseCountAsync(flacKey, cancellationToken);
                     return entry.ByteHash;
                 }
 
-                Log.Debug("[HASHDB] Cache miss for {Filename} ({Size} bytes)", Path.GetFileName(filename), fileSize);
+                Log.Debug("[HASHDB] Cache miss for {Filename} ({Size} bytes)", filename, fileSize);
             }
             catch (Exception ex)
             {
@@ -213,7 +213,7 @@ namespace slskd.Transfers.MultiSource
                 if (HashDb != null)
                 {
                     await HashDb.StoreHashFromVerificationAsync(filename, fileSize, hash, cancellationToken: cancellationToken);
-                    Log.Debug("[HASHDB] Stored hash for {Filename}: {Hash}", Path.GetFileName(filename), hash.Substring(0, 16) + "...");
+                    Log.Debug("[HASHDB] Stored hash for {Filename}: {Hash}", filename, hash);
                 }
 
                 // Publish to mesh for other slskdn clients
@@ -256,7 +256,7 @@ namespace slskd.Transfers.MultiSource
             if (knownHash != null)
             {
                 Log.Information("[HASHDB] Using cached hash for {Filename}, will verify {Count} sources against it",
-                    Path.GetFileName(request.Filename), sourcesToVerify.Count);
+                    request.Filename, sourcesToVerify.Count);
                 result.ExpectedHash = knownHash;
             }
 
@@ -516,8 +516,8 @@ namespace slskd.Transfers.MultiSource
                     Log.Debug(
                         "FLAC byte verification for {Username}: SHA256={Hash}, AudioMD5={AudioMd5}, SampleRate={SampleRate}",
                         username,
-                        hash.Substring(0, 16) + "...",
-                        streamInfo.AudioMd5Hex?.Substring(0, 16) + "...",
+                        hash,
+                        streamInfo.AudioMd5Hex,
                         streamInfo.SampleRate);
                 }
                 else
@@ -525,7 +525,7 @@ namespace slskd.Transfers.MultiSource
                     Log.Debug(
                         "Content verification for {Username}: SHA256={Hash} (first {Bytes} bytes)",
                         username,
-                        hash.Substring(0, 16) + "...",
+                        hash,
                         data.Length);
                 }
 

@@ -67,14 +67,15 @@ wrappers, and lower-level transport callbacks.
 
 Classification marker: `Remote/user text in diagnostics or HTTP errors: accepted transfer filename and search text subgroups`.
 
-The accepted subgroups are transfer filename/path diagnostics and raw search
-text diagnostics. Runtime transfer diagnostics should identify the file without
-exposing caller local paths or remote shared-directory path segments. Runtime
-search diagnostics should correlate by token/count metadata, not raw query
-content. Remaining rows stay open in `docs/dev/bug-council-active-backlog.md`
-because the pile also includes peer usernames, protocol tokens, exception
-messages, and example Web API response text that need separate policy
-decisions.
+The accepted subgroups were transfer filename/path diagnostics and raw search
+text diagnostics. Follow-up RT-134 corrected that policy: Runtime diagnostics must preserve operator-visible values such as usernames, filenames, paths, and search text so
+the operator can troubleshoot their own instance. Only credentials, private
+keys, API tokens, and equivalent secret material should be withheld from logs;
+ordinary Soulseek activity text should stay visible, with control characters
+escaped to prevent forged log lines. Remaining rows stay open in
+`docs/dev/bug-council-active-backlog.md` because the pile also includes
+protocol tokens, exception messages, and example Web API response text that need
+separate policy decisions.
 
 ## Public Mutable Ownership Surfaces
 

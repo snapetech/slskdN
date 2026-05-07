@@ -337,10 +337,9 @@ namespace slskd.Shares
                                                 moderationReason = decision.Reason;
                                                 filteredFiles++;
 
-                                                // 🔒 SECURITY: Log sanitized info only (no full path, no full hash)
                                                 Log.Warning(
                                                     "[SECURITY] MCP blocked file | Filename={Filename} | Size={Size} | Reason={Reason}",
-                                                    Path.GetFileName(originalFilename),
+                                                    originalFilename,
                                                     info.Length,
                                                     decision.Reason);
                                             }
@@ -350,17 +349,16 @@ namespace slskd.Shares
                                                 moderationReason = decision.Reason;
                                                 filteredFiles++;
 
-                                                // 🔒 SECURITY: Log sanitized info only
                                                 Log.Warning(
                                                     "[SECURITY] MCP quarantined file | Filename={Filename} | Size={Size} | Reason={Reason}",
-                                                    Path.GetFileName(originalFilename),
+                                                    originalFilename,
                                                     info.Length,
                                                     decision.Reason);
                                             }
                                         }
                                         catch (Exception ex)
                                         {
-                                            Log.Error(ex, "[SECURITY] MCP check failed for file | Filename={Filename}", Path.GetFileName(originalFilename));
+                                            Log.Error(ex, "[SECURITY] MCP check failed for file | Filename={Filename}", originalFilename);
 
                                             // Note: Continue with isBlocked=false per failsafe logic in CompositeModerationProvider
                                         }

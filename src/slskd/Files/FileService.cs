@@ -366,7 +366,7 @@ namespace slskd.Files
             var path = Path.GetDirectoryName(filename);
             if (string.IsNullOrWhiteSpace(path))
             {
-                throw new IOException($"Failed to determine directory for file {Path.GetFileName(filename)}");
+                throw new IOException($"Failed to determine directory for file {filename}");
             }
 
             var configuredFileMode = OptionsMonitor.CurrentValue.Permissions.File.Mode;
@@ -412,7 +412,7 @@ namespace slskd.Files
             {
                 // the operation above can throw quite a few exceptions, all granular variations of
                 // IOException. to make handling downstream easier, wrap them all up and re-throw.
-                throw new IOException($"Failed to create file {Path.GetFileName(filename)}: {ex.Message}", ex);
+                throw new IOException($"Failed to create file {filename}: {ex.Message}", ex);
             }
         }
 
@@ -507,7 +507,7 @@ namespace slskd.Files
             {
                 // the operation above can throw quite a few exceptions, all granular variations of
                 // IOException. to make handling downstream easier, wrap them all up and re-throw.
-                throw new IOException($"Failed to move file {Path.GetFileName(sourceFilename)}: {ex.Message}", ex);
+                throw new IOException($"Failed to move file {sourceFilename}: {ex.Message}", ex);
             }
         }
     }

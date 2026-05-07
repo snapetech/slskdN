@@ -625,7 +625,7 @@ namespace slskd.Transfers.MultiSource.API
                 }
 
                 Log.Information("[SWARM] Verified {Count} sources with matching hash {Hash}",
-                    verifiedSources.Count, expectedHash?.Substring(0, 16) + "...");
+                    verifiedSources.Count, expectedHash);
             }
 
             // Calculate chunks for display
@@ -773,7 +773,7 @@ namespace slskd.Transfers.MultiSource.API
                 }
 
                 Log.Information("[SWARM ASYNC] Verified {Count} sources with matching hash {Hash}",
-                    verifiedSources.Count, expectedHash?.Substring(0, 16) + "...");
+                    verifiedSources.Count, expectedHash);
             }
 
             var targetFilename = IOPath.GetFileName(verifiedSources.First().FullPath);
@@ -806,7 +806,7 @@ namespace slskd.Transfers.MultiSource.API
                 verifiedSources = verifiedSources.Count,
                 totalChunks = (int)Math.Ceiling((double)request.Size / chunkSize),
                 verificationEnabled = !request.SkipVerification,
-                expectedHash = expectedHash?.Substring(0, 16) + "...",
+                expectedHash = expectedHash,
             });
         }
 

@@ -13,7 +13,7 @@ namespace slskd.Tests.Unit.Common.Security
     public class LoggingSanitizerTests
     {
         [Fact]
-        public void SanitizeFilePath_WithFullPath_ReturnsOnlyFilename()
+        public void SanitizeFilePath_WithFullPath_PreservesPath()
         {
             // Arrange
             var fullPath = "/home/user/documents/secret.pdf";
@@ -22,11 +22,11 @@ namespace slskd.Tests.Unit.Common.Security
             var result = LoggingSanitizer.SanitizeFilePath(fullPath);
 
             // Assert
-            Assert.Equal("secret.pdf", result);
+            Assert.Equal(fullPath, result);
         }
 
         [Fact]
-        public void SanitizeFilePath_WithWindowsPath_ReturnsOnlyFilename()
+        public void SanitizeFilePath_WithWindowsPath_PreservesPathAndEscapesBackslashes()
         {
             // Arrange
             var fullPath = @"C:\Users\user\Desktop\confidential.docx";
@@ -35,7 +35,7 @@ namespace slskd.Tests.Unit.Common.Security
             var result = LoggingSanitizer.SanitizeFilePath(fullPath);
 
             // Assert
-            Assert.Equal("confidential.docx", result);
+            Assert.Equal(@"C:\\Users\\user\\Desktop\\confidential.docx", result);
         }
 
         [Fact]
@@ -49,7 +49,7 @@ namespace slskd.Tests.Unit.Common.Security
         }
 
         [Fact]
-        public void SanitizeIpAddress_WithValidIp_ReturnsHashedValue()
+        public void SanitizeIpAddress_WithValidIp_PreservesIp()
         {
             // Arrange
             var ip = "192.168.1.100";
@@ -58,13 +58,11 @@ namespace slskd.Tests.Unit.Common.Security
             var result = LoggingSanitizer.SanitizeIpAddress(ip);
 
             // Assert
-            Assert.NotEqual(ip, result);
-            Assert.Equal(16, result.Length); // Should be 16 chars (8 bytes as hex)
-            Assert.Matches("^[a-f0-9]{16}$", result);
+            Assert.Equal(ip, result);
         }
 
         [Fact]
-        public void SanitizeIpAddress_WithIpAddressObject_ReturnsHashedValue()
+        public void SanitizeIpAddress_WithIpAddressObject_PreservesIp()
         {
             // Arrange
             var ip = IPAddress.Parse("10.0.0.1");
@@ -73,12 +71,11 @@ namespace slskd.Tests.Unit.Common.Security
             var result = LoggingSanitizer.SanitizeIpAddress(ip);
 
             // Assert
-            Assert.NotEqual("10.0.0.1", result);
-            Assert.Equal(16, result.Length);
+            Assert.Equal("10.0.0.1", result);
         }
 
         [Fact]
-        public void SanitizeExternalIdentifier_WithLongIdentifier_ReturnsSanitized()
+        public void SanitizeExternalIdentifier_WithLongIdentifier_PreservesIdentifier()
         {
             // Arrange
             var identifier = "john_doe_12345"; // 14 chars
@@ -87,11 +84,11 @@ namespace slskd.Tests.Unit.Common.Security
             var result = LoggingSanitizer.SanitizeExternalIdentifier(identifier);
 
             // Assert
-            Assert.Equal("j***5 (14 chars)", result);
+            Assert.Equal(identifier, result);
         }
 
         [Fact]
-        public void SanitizeExternalIdentifier_WithShortIdentifier_ReturnsSanitized()
+        public void SanitizeExternalIdentifier_WithShortIdentifier_PreservesIdentifier()
         {
             // Arrange
             var identifier = "ab";
@@ -100,11 +97,11 @@ namespace slskd.Tests.Unit.Common.Security
             var result = LoggingSanitizer.SanitizeExternalIdentifier(identifier);
 
             // Assert
-            Assert.Equal("a* (2 chars)", result);
+            Assert.Equal(identifier, result);
         }
 
         [Fact]
-        public void SanitizeHash_WithLongHash_ReturnsTruncated()
+        public void SanitizeHash_WithLongHash_PreservesHash()
         {
             // Arrange: 48 chars, first 8 and last 8
             var hash = "a1b2c3d4e5f678901234567890abcdef1234567890abcdef";
@@ -112,8 +109,7 @@ namespace slskd.Tests.Unit.Common.Security
             // Act
             var result = LoggingSanitizer.SanitizeHash(hash);
 
-            // Assert: first 8 + "..." + last 8; last 8 of this hash are "90abcdef"
-            Assert.Equal("a1b2c3d4...90abcdef", result);
+            Assert.Equal(hash, result);
         }
 
         [Fact]
@@ -169,7 +165,7 @@ namespace slskd.Tests.Unit.Common.Security
         }
 
         [Fact]
-        public void SanitizeQueryText_WithSearchText_ReturnsStableFingerprintWithoutOriginalText()
+        public void SanitizeQueryText_WithSearchText_PreservesTrimmedSearchText()
         {
             // Arrange
             var query = "private artist unreleased track";
@@ -179,11 +175,10 @@ namespace slskd.Tests.Unit.Common.Security
             var result2 = LoggingSanitizer.SanitizeQueryText($"  {query}  ");
 
             // Assert
+            Assert.Equal(query, result1);
             Assert.Equal(result1, result2);
-            Assert.DoesNotContain("private", result1, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("artist", result1, StringComparison.OrdinalIgnoreCase);
-            Assert.StartsWith("query:", result1, StringComparison.Ordinal);
-            Assert.EndsWith("(31 chars)", result1, StringComparison.Ordinal);
+            Assert.Contains("private", result1, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("artist", result1, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -207,7 +202,15 @@ namespace slskd.Tests.Unit.Common.Security
 
             // Assert
             Assert.Equal("user", result.Context);
-            Assert.Equal("s***3 (21 chars)", result.Id);
+            Assert.Equal(identifier, result.Id);
+        }
+
+        [Fact]
+        public void Sanitizers_EscapeLogBreakingControlCharacters()
+        {
+            var result = LoggingSanitizer.SanitizeQueryText("first\r\nsecond\tthird");
+
+            Assert.Equal("first\\r\\nsecond\\tthird", result);
         }
     }
 }

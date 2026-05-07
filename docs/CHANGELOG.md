@@ -24,8 +24,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 - Restored the visible green `Join Room` action in the Rooms toolbar and added
   regression coverage for joining an available room such as `slskdn`.
+- Preserved operator-visible usernames, paths, endpoints, hashes, and search
+  text in runtime and app diagnostics while still redacting actual secrets.
 - Added `npm run check:council` so slskd council cycles execute every phase in
-  one command, and redacted VirtualSoulfind bridge proxy request logs.
+  one command.
 - Added a slskd HTTP adversarial fuzz harness for malformed JSON bodies,
   deterministic random byte bodies, and hostile query/path strings.
 - Replaced the checked-in slskdN web icon and logo assets with the borg feather

@@ -34,7 +34,7 @@ public class LoggingUtilsTests
     }
 
     [Fact]
-    public void SafePeerId_LongId_ReturnsTruncatedId()
+    public void SafePeerId_LongId_ReturnsFullId()
     {
         // Arrange
         var longId = "very-long-peer-identifier-12345";
@@ -43,7 +43,7 @@ public class LoggingUtilsTests
         var result = LoggingUtils.SafePeerId(longId);
 
         // Assert
-        Assert.Equal("very...2345", result);
+        Assert.Equal(longId, result);
     }
 
     [Fact]
@@ -68,7 +68,7 @@ public class LoggingUtilsTests
     }
 
     [Fact]
-    public void SafeEndpoint_PublicIP_ReturnsRedacted()
+    public void SafeEndpoint_PublicIP_ReturnsFullEndpoint()
     {
         // Arrange - use public IP; 192.168.x is treated as private and not redacted
         var publicIp = "203.0.113.100:8080";
@@ -77,7 +77,7 @@ public class LoggingUtilsTests
         var result = LoggingUtils.SafeEndpoint(publicIp);
 
         // Assert
-        Assert.Equal("xxx.xxx.xxx.100:8080", result);
+        Assert.Equal(publicIp, result);
     }
 
     [Fact]
@@ -91,17 +91,17 @@ public class LoggingUtilsTests
     }
 
     [Fact]
-    public void SafeEndpoint_PublicIpv6_ReturnsRedacted()
+    public void SafeEndpoint_PublicIpv6_ReturnsFullEndpoint()
     {
         var endpoint = "[2001:db8::abcd]:8080";
 
         var result = LoggingUtils.SafeEndpoint(endpoint);
 
-        Assert.Equal("xxxx:xxxx:xxxx:abcd:8080", result);
+        Assert.Equal(endpoint, result);
     }
 
     [Fact]
-    public void SafeEndpoint_OnionAddress_ReturnsRedactedForm()
+    public void SafeEndpoint_OnionAddress_ReturnsFullEndpoint()
     {
         // Arrange
         var onionAddr = "abcdefghijklmnop.onion:8080";
@@ -109,13 +109,11 @@ public class LoggingUtilsTests
         // Act
         var result = LoggingUtils.SafeEndpoint(onionAddr);
 
-        // Assert - hostname logic shortens to prefix...suffix (e.g. abc...onion:8080)
-        Assert.Contains("onion", result);
-        Assert.Contains("...", result);
+        Assert.Equal(onionAddr, result);
     }
 
     [Fact]
-    public void SafeEndpoint_I2PAddress_ReturnsRedactedForm()
+    public void SafeEndpoint_I2PAddress_ReturnsFullEndpoint()
     {
         // Arrange
         var i2pAddr = "abcdefghijklmnop.i2p:8080";
@@ -123,19 +121,17 @@ public class LoggingUtilsTests
         // Act
         var result = LoggingUtils.SafeEndpoint(i2pAddr);
 
-        // Assert - hostname logic shortens to prefix...suffix (e.g. abc...i2p:8080)
-        Assert.Contains("i2p", result);
-        Assert.Contains("...", result);
+        Assert.Equal(i2pAddr, result);
     }
 
     [Fact]
-    public void SafeEndpoint_HostnameWithPort_PreservesPortAndRedactsHost()
+    public void SafeEndpoint_HostnameWithPort_PreservesHostAndPort()
     {
         var endpoint = "example.remote.host:4040";
 
         var result = LoggingUtils.SafeEndpoint(endpoint);
 
-        Assert.Equal("rem...host:4040", result);
+        Assert.Equal(endpoint, result);
     }
 
     [Fact]
@@ -145,11 +141,11 @@ public class LoggingUtilsTests
 
         var result = LoggingUtils.SafeEndpoint(endpoint);
 
-        Assert.Equal("exa...com:8080", result);
+        Assert.Equal(endpoint, result);
     }
 
     [Fact]
-    public void SafeCertificate_ReturnsRedactedFormat()
+    public void SafeCertificate_ReturnsOperatorVisibleFormat()
     {
         // Arrange
         var cert = CreateTestCertificate();
@@ -160,7 +156,7 @@ public class LoggingUtilsTests
         // Assert
         Assert.StartsWith("[cert:", result);
         Assert.EndsWith("]", result);
-        Assert.Contains("...", result);
+        Assert.Contains("thumbprint:", result);
     }
 
     [Fact]
@@ -178,7 +174,7 @@ public class LoggingUtilsTests
         var result = LoggingUtils.SafeTransportEndpoint(endpoint);
 
         // Assert
-        Assert.Equal("DirectQuic:xxx.xxx.xxx.100:8080", result);
+        Assert.Equal("DirectQuic:203.0.113.100:8080", result);
     }
 
     [Fact]

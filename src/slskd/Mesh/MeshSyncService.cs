@@ -869,7 +869,7 @@ namespace slskd.Mesh
                 MetaFlags = metaFlags,
             }, cancellationToken);
 
-            log.Debug("[MESH] Published hash {Key} -> {Hash}", flacKey, byteHash?.Length >= 16 ? byteHash.Substring(0, 16) + "..." : byteHash ?? "(null)");
+            log.Debug("[MESH] Published hash {Key} -> {Hash}", flacKey, byteHash ?? "(null)");
 
             // The hash will propagate to peers during next sync session
             // No immediate push - epidemic model relies on pull-based delta sync

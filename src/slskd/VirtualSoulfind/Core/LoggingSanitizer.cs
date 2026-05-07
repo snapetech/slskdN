@@ -4,15 +4,15 @@
 namespace slskd.VirtualSoulfind.Core
 {
     /// <summary>
-    /// Utility for sanitizing sensitive data in logs.
+    /// Utility for formatting values in logs without hiding operator-visible activity.
     /// </summary>
     public static class LoggingSanitizer
     {
         /// <summary>
-        /// Sanitizes a string for logging by redacting sensitive information.
+        /// Formats a string for logging without hiding operator-visible activity.
         /// </summary>
         /// <param name="value">The value to sanitize.</param>
-        /// <returns>Sanitized string safe for logging.</returns>
+        /// <returns>The string with log-breaking control characters escaped.</returns>
         public static string? Sanitize(string? value)
         {
             if (string.IsNullOrEmpty(value))
@@ -20,21 +20,14 @@ namespace slskd.VirtualSoulfind.Core
                 return value;
             }
 
-            // Redact sensitive patterns
-            // Example: API keys, tokens, passwords
-            if (value.Length > 8)
-            {
-                return value.Substring(0, 4) + "..." + value.Substring(value.Length - 4);
-            }
-
-            return "***";
+            return EscapeForLog(value);
         }
 
         /// <summary>
-        /// Sanitizes a file path for logging by showing only the filename.
+        /// Formats a file path for logging without hiding directory context.
         /// </summary>
         /// <param name="filePath">The file path to sanitize.</param>
-        /// <returns>Sanitized file path (filename only).</returns>
+        /// <returns>The path with log-breaking control characters escaped.</returns>
         public static string? SanitizeFilePath(string? filePath)
         {
             if (string.IsNullOrEmpty(filePath))
@@ -42,7 +35,16 @@ namespace slskd.VirtualSoulfind.Core
                 return filePath;
             }
 
-            return System.IO.Path.GetFileName(filePath);
+            return EscapeForLog(filePath);
+        }
+
+        private static string EscapeForLog(string value)
+        {
+            return value
+                .Replace("\\", "\\\\")
+                .Replace("\r", "\\r")
+                .Replace("\n", "\\n")
+                .Replace("\t", "\\t");
         }
     }
 }

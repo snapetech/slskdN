@@ -342,7 +342,7 @@ namespace slskd.Backfill
                     // Increment backfill count
                     await hashDb.IncrementPeerBackfillCountAsync(peerId, cancellationToken);
 
-                    logger.LogInformation("[BACKFILL] ✓ Discovered hash for {Peer}/{Path}: {Hash}", peerId, System.IO.Path.GetFileName(path), hash.Substring(0, 16));
+                    logger.LogInformation("[BACKFILL] Discovered hash for {Peer}/{Path}: {Hash}", peerId, path, hash);
                 }
                 else
                 {
@@ -356,7 +356,7 @@ namespace slskd.Backfill
                     ? "Backfill probe failed"
                     : result.Error;
                 await hashDb.MarkFlacHashFailedAsync(fileId, cancellationToken);
-                logger.LogDebug("[BACKFILL] ✗ Failed {Peer}/{Path}: {Error}", peerId, System.IO.Path.GetFileName(path), ex.Message);
+                logger.LogDebug("[BACKFILL] Failed {Peer}/{Path}: {Error}", peerId, path, ex.Message);
             }
             finally
             {

@@ -6,11 +6,11 @@
 
 ## Overview
 
-slskdN handles sensitive user data including file paths, IP addresses, external usernames, and cryptographic material. This document establishes mandatory patterns for safe logging and telemetry collection.
+slskdN handles operator-visible activity such as file paths, IP addresses, usernames, search terms, and hashes, plus genuinely sensitive values such as passwords, API keys, private keys, and bearer tokens. This document establishes mandatory patterns for keeping real secrets out of logs without hiding the activity operators need to troubleshoot their own node.
 
 ## Core Principle
 
-**NEVER log sensitive data in plain text.** Always use sanitization utilities before logging.
+**Never log actual secrets in plain text.** Operator-visible activity belongs in operator logs. Use the formatting utilities to escape log-breaking control characters, and use explicit redaction only for credentials, API keys, private keys, passwords, bearer/session tokens, and equivalent secret material.
 
 ## Sanitization Utilities
 
@@ -18,32 +18,32 @@ Use `slskd.Common.Security.LoggingSanitizer` for all logging operations:
 
 ### File Paths
 ```csharp
-// ❌ BAD - logs full path
-_logger.LogInformation("Processing file: {Path}", "/home/user/secret/document.pdf");
+// ❌ BAD - allows control characters to break log lines
+_logger.LogInformation("Processing file: {Path}", "folder\r\nforged-entry.mp3");
 
-// ✅ GOOD - logs only filename
+// ✅ GOOD - preserves the path but escapes log-breaking characters
 _logger.LogInformation("Processing file: {SanitizedPath}", LoggingSanitizer.SanitizeFilePath("/home/user/secret/document.pdf"));
-// Result: "Processing file: document.pdf"
+// Result: "Processing file: /home/user/secret/document.pdf"
 ```
 
 ### IP Addresses
 ```csharp
-// ❌ BAD - logs plain IP
-_logger.LogInformation("Connection from: {Ip}", "192.168.1.100");
+// ❌ BAD - allows control characters to break log lines
+_logger.LogInformation("Connection from: {Ip}", "192.168.1.100\r\nforged");
 
-// ✅ GOOD - logs hashed IP
+// ✅ GOOD - preserves endpoint context
 _logger.LogInformation("Connection from: {SanitizedIp}", LoggingSanitizer.SanitizeIpAddress("192.168.1.100"));
-// Result: "Connection from: a1b2c3d4e5f6..." (16-char hash)
+// Result: "Connection from: 192.168.1.100"
 ```
 
 ### External Identifiers (Usernames, ActivityPub handles, etc.)
 ```csharp
-// ❌ BAD - logs full username
-_logger.LogInformation("User login: {Username}", "john_doe_12345");
+// ❌ BAD - allows control characters to break log lines
+_logger.LogInformation("User login: {Username}", "john\r\ndoe");
 
-// ✅ GOOD - logs sanitized identifier
+// ✅ GOOD - preserves the identifier
 _logger.LogInformation("User login: {SanitizedId}", LoggingSanitizer.SanitizeExternalIdentifier("john_doe_12345"));
-// Result: "User login: j***5 (13 chars)"
+// Result: "User login: john_doe_12345"
 ```
 
 ### Sensitive Data (API keys, tokens, passwords)
@@ -68,12 +68,12 @@ _logger.LogInformation("Request to: {SanitizedUrl}", LoggingSanitizer.SanitizeUr
 
 ### Cryptographic Hashes
 ```csharp
-// ❌ BAD - logs full hash (may be sensitive in some contexts)
-_logger.LogInformation("File hash: {Hash}", fullSha256Hash);
+// ❌ BAD - allows control characters to break log lines
+_logger.LogInformation("File hash: {Hash}", hashWithControlCharacters);
 
-// ✅ GOOD - logs truncated hash
+// ✅ GOOD - preserves the full hash for troubleshooting
 _logger.LogInformation("File hash: {SanitizedHash}", LoggingSanitizer.SanitizeHash(fullSha256Hash));
-// Result: "File hash: a1b2c3d4...567890ab" (first 8 + last 8 chars)
+// Result: "File hash: <full hash>"
 ```
 
 ## Telemetry (Metrics) Guidelines

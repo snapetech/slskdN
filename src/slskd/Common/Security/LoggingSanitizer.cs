@@ -5,27 +5,24 @@ namespace slskd.Common.Security
 {
     using System;
     using System.Net;
-    using System.Security.Cryptography;
-    using System.Text;
-
     /// <summary>
-    ///     Provides safe logging utilities that sanitize sensitive information.
+    ///     Provides logging utilities that preserve operator-visible activity while keeping actual secrets out of logs.
     /// </summary>
     /// <remarks>
-    ///     H-GLOBAL01: Logging and Telemetry Hygiene Audit.
-    ///     Ensures sensitive data like full paths, IP addresses, and external identifiers
-    ///     are never logged in plain text. Provides sanitized alternatives.
+    ///     H-GLOBAL01: Logging and Telemetry Hygiene Audit. Runtime and operator logs should show usernames, paths,
+    ///     search terms, peer IDs, endpoints, and hashes because those values are needed to troubleshoot a running node.
+    ///     Only credentials, API keys, private keys, passwords, and equivalent secret material should be redacted.
     /// </remarks>
     public static class LoggingSanitizer
     {
         /// <summary>
-        ///     Sanitizes a file path for safe logging by truncating directory components.
+        ///     Formats a file path for logging without hiding operator-visible path context.
         /// </summary>
         /// <param name="path">The full file path.</param>
-        /// <returns>A sanitized path showing only filename and extension.</returns>
+        /// <returns>The path with log-breaking control characters escaped.</returns>
         /// <example>
-        ///     "/home/user/documents/secret.pdf" → "secret.pdf"
-        ///     "C:\Users\user\Desktop\confidential.docx" → "confidential.docx"
+        ///     "/home/user/documents/file.pdf" → "/home/user/documents/file.pdf"
+        ///     "C:\Users\user\Desktop\file.docx" → "C:\\Users\\user\\Desktop\\file.docx"
         /// </example>
         public static string SanitizeFilePath(string? path)
         {
@@ -36,24 +33,21 @@ namespace slskd.Common.Security
 
             try
             {
-                // Handle Windows-style paths on any OS (Path.GetFileName treats \ as literal on Unix)
-                var normalized = path.Replace('\\', '/');
-                return System.IO.Path.GetFileName(normalized);
+                return EscapeForLog(path);
             }
             catch
             {
-                // If path parsing fails, return a generic placeholder
-                return "[invalid-path]";
+                return path;
             }
         }
 
         /// <summary>
-        ///     Sanitizes an IP address for safe logging by hashing it.
+        ///     Formats an IP address for logging without hiding endpoint context.
         /// </summary>
         /// <param name="ipAddress">The IP address to sanitize.</param>
-        /// <returns>A hashed representation of the IP address.</returns>
+        /// <returns>The IP address with log-breaking control characters escaped.</returns>
         /// <example>
-        ///     "192.168.1.100" → "a1b2c3d4e5f6..."
+        ///     "192.168.1.100" → "192.168.1.100"
         /// </example>
         public static string SanitizeIpAddress(string? ipAddress)
         {
@@ -64,23 +58,19 @@ namespace slskd.Common.Security
 
             try
             {
-                // Hash the IP address to prevent correlation while maintaining uniqueness
-                using var sha256 = SHA256.Create();
-                var bytes = Encoding.UTF8.GetBytes(ipAddress);
-                var hash = sha256.ComputeHash(bytes);
-                return BitConverter.ToString(hash).Replace("-", string.Empty).ToLowerInvariant().Substring(0, 16);
+                return EscapeForLog(ipAddress);
             }
             catch
             {
-                return "[invalid-ip]";
+                return ipAddress;
             }
         }
 
         /// <summary>
-        ///     Sanitizes an IP address for safe logging by hashing it.
+        ///     Formats an IP address for logging without hiding endpoint context.
         /// </summary>
         /// <param name="ipAddress">The IP address to sanitize.</param>
-        /// <returns>A hashed representation of the IP address.</returns>
+        /// <returns>The IP address with log-breaking control characters escaped.</returns>
         public static string SanitizeIpAddress(IPAddress? ipAddress)
         {
             if (ipAddress == null)
@@ -92,12 +82,12 @@ namespace slskd.Common.Security
         }
 
         /// <summary>
-        ///     Sanitizes a username or external identifier for safe logging.
+        ///     Formats a username or external identifier for logging without hiding it.
         /// </summary>
         /// <param name="identifier">The username or external identifier.</param>
-        /// <returns>A sanitized version showing length and first character only.</returns>
+        /// <returns>The identifier with log-breaking control characters escaped.</returns>
         /// <example>
-        ///     "john_doe_12345" → "j**** (13 chars)"
+        ///     "john_doe_12345" → "john_doe_12345"
         /// </example>
         public static string SanitizeExternalIdentifier(string? identifier)
         {
@@ -106,21 +96,16 @@ namespace slskd.Common.Security
                 return "[empty]";
             }
 
-            if (identifier.Length <= 2)
-            {
-                return $"{identifier[0]}* ({identifier.Length} chars)";
-            }
-
-            return $"{identifier[0]}***{identifier[^1]} ({identifier.Length} chars)";
+            return EscapeForLog(identifier);
         }
 
         /// <summary>
-        ///     Sanitizes a content hash for safe logging by truncating it.
+        ///     Formats a content hash for logging without truncating it.
         /// </summary>
         /// <param name="hash">The full hash string.</param>
-        /// <returns>A truncated hash showing first and last 8 characters.</returns>
+        /// <returns>The hash with log-breaking control characters escaped.</returns>
         /// <example>
-        ///     "a1b2c3d4e5f678901234567890abcdef1234567890abcdef" → "a1b2c3d4...bcdef123"
+        ///     "a1b2c3d4e5f678901234567890abcdef1234567890abcdef" → "a1b2c3d4e5f678901234567890abcdef1234567890abcdef"
         /// </example>
         public static string SanitizeHash(string? hash)
         {
@@ -129,19 +114,14 @@ namespace slskd.Common.Security
                 return "[empty]";
             }
 
-            if (hash.Length <= 16)
-            {
-                return hash;
-            }
-
-            return $"{hash.Substring(0, 8)}...{hash.Substring(hash.Length - 8)}";
+            return EscapeForLog(hash);
         }
 
         /// <summary>
-        ///     Sanitizes user-supplied search text or metadata values for safe logging.
+        ///     Formats user-supplied search text or metadata values for logging.
         /// </summary>
         /// <param name="value">The search text or metadata value.</param>
-        /// <returns>A stable short fingerprint and length, without the original value.</returns>
+        /// <returns>The original value with log-breaking control characters escaped.</returns>
         public static string SanitizeQueryText(string? value)
         {
             if (string.IsNullOrWhiteSpace(value))
@@ -151,18 +131,7 @@ namespace slskd.Common.Security
 
             var normalized = value.Trim();
 
-            try
-            {
-                using var sha256 = SHA256.Create();
-                var bytes = Encoding.UTF8.GetBytes(normalized);
-                var hash = sha256.ComputeHash(bytes);
-                var fingerprint = BitConverter.ToString(hash).Replace("-", string.Empty).ToLowerInvariant().Substring(0, 12);
-                return $"query:{fingerprint} ({normalized.Length} chars)";
-            }
-            catch
-            {
-                return $"query:[redacted] ({normalized.Length} chars)";
-            }
+            return EscapeForLog(normalized);
         }
 
         /// <summary>
@@ -207,6 +176,15 @@ namespace slskd.Common.Security
             }
 
             return $"[redacted-{data.Length}-chars]";
+        }
+
+        private static string EscapeForLog(string value)
+        {
+            return value
+                .Replace("\\", "\\\\")
+                .Replace("\r", "\\r")
+                .Replace("\n", "\\n")
+                .Replace("\t", "\\t");
         }
 
         /// <summary>
