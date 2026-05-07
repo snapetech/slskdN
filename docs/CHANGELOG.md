@@ -22,6 +22,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Synced Snap stable package metadata to the current stable release asset.
 - Aligned AUR package-owned slskd state directory modes with tmpfiles and
   systemd group-write policy to avoid pacman permission mismatch warnings.
 - Fixed Soulseek search response handling across VPN ingress by accepting
