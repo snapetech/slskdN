@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import Composer, { matchSuggestions } from './Composer';
-import React from 'react';
+import React, { useState } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -46,10 +46,21 @@ const buildAdapter = () => ({
   send: vi.fn(() => Promise.resolve()),
 });
 
+const ControlledComposer = (props) => {
+  const [value, setValue] = useState(props.initial || '');
+  return (
+    <Composer
+      {...props}
+      onChange={setValue}
+      value={value}
+    />
+  );
+};
+
 describe('Composer', () => {
   it('shows suggestions when input starts with slash and Tab autocompletes', () => {
     const adapter = buildAdapter();
-    render(<Composer adapter={adapter} commands={COMMANDS} />);
+    render(<ControlledComposer adapter={adapter} commands={COMMANDS} />);
     const input = screen.getByLabelText('Message composer');
 
     fireEvent.change(input, { target: { value: '/m' } });
@@ -64,7 +75,7 @@ describe('Composer', () => {
     const adapter = buildAdapter();
     const onCommand = vi.fn(({ name }) => name === 'help');
     render(
-      <Composer
+      <ControlledComposer
         adapter={adapter}
         commands={COMMANDS}
         onCommand={onCommand}
@@ -85,7 +96,7 @@ describe('Composer', () => {
 
   it('navigates suggestions with arrow keys', () => {
     const adapter = buildAdapter();
-    render(<Composer adapter={adapter} commands={COMMANDS} />);
+    render(<ControlledComposer adapter={adapter} commands={COMMANDS} />);
     const input = screen.getByLabelText('Message composer');
 
     fireEvent.change(input, { target: { value: '/' } });
@@ -96,7 +107,7 @@ describe('Composer', () => {
 
   it('sends plain text via adapter.send when not a command', async () => {
     const adapter = buildAdapter();
-    render(<Composer adapter={adapter} commands={COMMANDS} />);
+    render(<ControlledComposer adapter={adapter} commands={COMMANDS} />);
     const input = screen.getByLabelText('Message composer');
     fireEvent.change(input, { target: { value: 'hello world' } });
     fireEvent.keyDown(input, { key: 'Enter' });
@@ -104,5 +115,18 @@ describe('Composer', () => {
     await waitFor(() => {
       expect(adapter.send).toHaveBeenCalledWith('hello world');
     });
+  });
+
+  it('reflects value updates from the parent', () => {
+    const adapter = buildAdapter();
+    render(
+      <ControlledComposer
+        adapter={adapter}
+        commands={COMMANDS}
+        initial={'> alice: hi\n'}
+      />,
+    );
+    const input = screen.getByLabelText('Message composer');
+    expect(input.value).toBe('> alice: hi\n');
   });
 });

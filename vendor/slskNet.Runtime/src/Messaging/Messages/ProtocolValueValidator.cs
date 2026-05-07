@@ -91,6 +91,21 @@ namespace Soulseek.Messaging.Messages
         }
 
         /// <summary>
+        ///     Converts and validates that a raw protocol enum value is defined.
+        /// </summary>
+        /// <typeparam name="TEnum">The enum type.</typeparam>
+        /// <param name="value">The raw protocol value.</param>
+        /// <param name="fieldName">The field name for diagnostics.</param>
+        /// <returns>The validated enum value.</returns>
+        public static TEnum ToDefinedEnum<TEnum>(int value, string fieldName)
+            where TEnum : struct
+        {
+            var converted = (TEnum)Enum.ToObject(typeof(TEnum), value);
+            ValidateDefinedEnum(converted, fieldName);
+            return converted;
+        }
+
+        /// <summary>
         ///     Validates that a protocol byte is a boolean flag.
         /// </summary>
         /// <param name="value">The flag value to validate.</param>

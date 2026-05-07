@@ -1,3 +1,16 @@
+## Update 2026-05-07 02:20:00Z
+
+- Current task: Retire `/messages` V1 route and validate Messaging V2 cutover.
+- Last activity:
+  - made `/messages` render `MessagingV2` directly without the `slskd-messaging-v2` localStorage flag;
+  - removed the inline V1 pod channel session from the route while leaving legacy `ChatSession.jsx` and `RoomSession.jsx` available for the older dedicated Chat and Rooms pages;
+  - added active-conversation search to `MessageStream` with highlighted matches, previous/next navigation, Enter cycling, and Escape clear;
+  - changed `/leave` and `/part` in V2 to leave active rooms/pods instead of only closing the tab;
+  - documented Phase 7 server-push messaging as deferred pending backend/SignalR contract work;
+  - validation passed: focused Messaging Vitest (`21/21`), Web lint, production Web build, and headless Playwright cutover smoke with the legacy flag forced off.
+- Next steps:
+  1. Commit and push the validated Messaging V2 cutover if requested.
+
 ## Update 2026-05-07 01:15:18Z
 
 - Current task: Fix missing Rooms `Join Room` button reported from kspls0.

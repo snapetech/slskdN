@@ -16,16 +16,34 @@ const matchSuggestions = (draft, commands) => {
   });
 };
 
-const Composer = ({ adapter, commands = [], disabled, label, onCommand, placeholder }) => {
-  const [draft, setDraft] = useState('');
+const Composer = ({
+  adapter,
+  commands = [],
+  disabled,
+  inputRef,
+  label,
+  onChange,
+  onCommand,
+  placeholder,
+  value,
+}) => {
   const [busy, setBusy] = useState(false);
   const [cursor, setCursor] = useState(0);
-  const inputRef = useRef(null);
+  const localRef = useRef(null);
+  const ref = inputRef || localRef;
 
   useEffect(() => {
-    setDraft('');
     setCursor(0);
   }, [adapter]);
+
+  const setValue = useCallback(
+    (next) => {
+      if (typeof onChange === 'function') onChange(next);
+    },
+    [onChange],
+  );
+
+  const draft = typeof value === 'string' ? value : '';
 
   const suggestions = useMemo(
     () => matchSuggestions(draft, commands),
@@ -48,7 +66,7 @@ const Composer = ({ adapter, commands = [], disabled, label, onCommand, placehol
         raw: trimmed,
       });
       if (handled) {
-        setDraft('');
+        setValue('');
         return;
       }
     }
@@ -56,33 +74,33 @@ const Composer = ({ adapter, commands = [], disabled, label, onCommand, placehol
     setBusy(true);
     try {
       await adapter.send(trimmed);
-      setDraft('');
+      setValue('');
     } catch (error) {
       console.error('Composer send failed:', error);
     } finally {
       setBusy(false);
     }
-  }, [adapter, busy, draft, onCommand]);
+  }, [adapter, busy, draft, onCommand, setValue]);
 
   const completeSuggestion = useCallback(() => {
     const choice = suggestions[cursor];
     if (!choice) return false;
-    setDraft(`/${choice.name} `);
+    setValue(`/${choice.name} `);
     setCursor(0);
     return true;
-  }, [cursor, suggestions]);
+  }, [cursor, setValue, suggestions]);
 
   const handleKeyDown = useCallback(
     (event) => {
       if (suggestions.length > 0) {
         if (event.key === 'ArrowDown') {
           event.preventDefault();
-          setCursor((value) => Math.min(suggestions.length - 1, value + 1));
+          setCursor((current) => Math.min(suggestions.length - 1, current + 1));
           return;
         }
         if (event.key === 'ArrowUp') {
           event.preventDefault();
-          setCursor((value) => Math.max(0, value - 1));
+          setCursor((current) => Math.max(0, current - 1));
           return;
         }
         if (event.key === 'Tab') {
@@ -116,8 +134,8 @@ const Composer = ({ adapter, commands = [], disabled, label, onCommand, placehol
               key={command.name}
               onClick={() => {
                 setCursor(index);
-                setDraft(`/${command.name} `);
-                inputRef.current?.focus();
+                setValue(`/${command.name} `);
+                ref.current?.focus();
               }}
               onMouseEnter={() => setCursor(index)}
               role="option"
@@ -138,14 +156,14 @@ const Composer = ({ adapter, commands = [], disabled, label, onCommand, placehol
           aria-label={label || 'Message composer'}
           className="msgv2-composer-input"
           disabled={isDisabled}
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) => setValue(event.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={
             isDisabled
               ? 'Open a tab to start typing'
               : placeholder || 'Type a message — Enter sends, Shift+Enter newline'
           }
-          ref={inputRef}
+          ref={ref}
           rows={1}
           value={draft}
         />

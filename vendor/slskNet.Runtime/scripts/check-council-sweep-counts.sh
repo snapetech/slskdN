@@ -74,7 +74,7 @@ require_closed_count() {
 require_closed_count "Constructors accepting mutable collections or params arrays" 28 "docs/dev/bug-council-sweep-2026-05-05.md" "constructor sweep count matches scanner"
 require_closed_count "Protocol count and length allocation candidates" 221 "docs/dev/bug-council-sweep-protocol-length-2026-05-05.md" "protocol broad count/length sweep count matches scanner"
 require_closed_count "Protocol counted collection loops" 54 "docs/dev/bug-council-sweep-protocol-length-2026-05-05.md" "protocol counted-loop sweep count matches scanner"
-require_closed_count "Protocol length-prefixed reads and payload allocations" 12 "docs/dev/bug-council-sweep-protocol-length-2026-05-05.md" "protocol length/allocation sweep count matches scanner"
+require_closed_count "Protocol length-prefixed reads and payload allocations" 11 "docs/dev/bug-council-sweep-protocol-length-2026-05-05.md" "protocol length/allocation sweep count matches scanner"
 require_closed_count "Protocol compression boundary candidates" 16 "docs/dev/bug-council-sweep-protocol-length-2026-05-05.md" "protocol compression sweep count matches scanner"
 require_closed_count "Protocol scalar emission candidates" 145 "docs/dev/bug-council-sweep-protocol-scalar-2026-05-05.md" "protocol scalar sweep count matches scanner"
 require_closed_count "Protocol scalar constructor guard candidates" 66 "docs/dev/bug-council-sweep-protocol-scalar-2026-05-05.md" "protocol scalar guard sweep count matches scanner"

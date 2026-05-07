@@ -46,8 +46,7 @@ namespace Soulseek.Messaging.Messages
             }
 
             var username = reader.ReadString();
-            var presence = (UserPresence)reader.ReadInteger();
-            ProtocolValueValidator.ValidateDefinedEnum(presence, "user presence");
+            var presence = ProtocolValueValidator.ToDefinedEnum<UserPresence>(reader.ReadInteger(), "user presence");
 
             var privilegedByte = reader.ReadByte();
             ProtocolValueValidator.ValidateBooleanFlag(privilegedByte, "user status privileged flag");

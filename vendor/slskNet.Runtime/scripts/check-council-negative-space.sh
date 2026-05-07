@@ -157,6 +157,38 @@ assert_validator_present \
   "CSL0003"
 assert_baseline_anchor "csl0003-taint-to-stream-position" "CSL0003"
 
+# Mythos-level analyzer (CSL0004) - file/directory path sink lens.
+assert_validator_present \
+  "csl0004-taint-to-file-path" \
+  "analyzers/Soulseek.CouncilAnalyzers/TaintToFilePathAnalyzer.cs" \
+  "CSL0004"
+assert_baseline_anchor "csl0004-taint-to-file-path" "CSL0004"
+
+# Mythos-level analyzers (CSL0005-CSL0008) - batched semantic sink lenses.
+assert_validator_present \
+  "csl0005-taint-to-timeout" \
+  "analyzers/Soulseek.CouncilAnalyzers/TaintToTimeoutAnalyzer.cs" \
+  "CSL0005"
+assert_baseline_anchor "csl0005-taint-to-timeout" "CSL0005"
+
+assert_validator_present \
+  "csl0006-taint-to-endpoint" \
+  "analyzers/Soulseek.CouncilAnalyzers/TaintToEndpointAnalyzer.cs" \
+  "CSL0006"
+assert_baseline_anchor "csl0006-taint-to-endpoint" "CSL0006"
+
+assert_validator_present \
+  "csl0007-taint-to-enum" \
+  "analyzers/Soulseek.CouncilAnalyzers/TaintToEnumAnalyzer.cs" \
+  "CSL0007"
+assert_baseline_anchor "csl0007-taint-to-enum" "CSL0007"
+
+assert_validator_present \
+  "csl0008-taint-to-string-slice" \
+  "analyzers/Soulseek.CouncilAnalyzers/TaintToStringSliceAnalyzer.cs" \
+  "CSL0008"
+assert_baseline_anchor "csl0008-taint-to-string-slice" "CSL0008"
+
 # Protocol fuzz harness — same logic; absence silently disables coverage.
 assert_validator_present \
   "protocol-fuzz-harness" \

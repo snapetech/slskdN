@@ -4,7 +4,7 @@ Design contract, principles, layout, and phased plan for rebuilding the
 `/messages` workspace as a compact, IRC/Discord-style chat surface with clear
 delineation between Soulseek (DMs, rooms) and Mesh (pod channels).
 
-Status: **proposal**, awaiting sign-off on the three open questions in §9.
+Status: **implemented for V2**. The legacy `/messages` V1 switch has been retired; remaining push-transport work is tracked as deferred.
 
 ---
 
@@ -228,8 +228,8 @@ until phase 4 lands and the swap is permanent.
 | 0 | **Contract lock** | This document; bump `localStorage` to `slskd-messaging-workspace.v2` with a one-shot migrator. | Trivial |
 | 1 | **Shell + tokens** | New `<Messaging>` shell with CSS Grid, zoom CSS vars, transport accent vars, two resize handles persisted to `localStorage`. Old sidebar kept temporarily. | Low |
 | 2 | **Channel tree** | Replace sidebar with `<ChannelTree>`: grouped Soulseek / Mesh sections, hover actions, right-click context menu, `Ctrl+K` quick switcher. | Medium — interactions |
-| 3 | **MessageStream unification** | One renderer; adapters for chat/room/pod. Migrate `ChatSession.jsx` / `RoomSession.jsx` / `PodChannelSession` to it. Update the three test files. | Medium-high — test churn |
+| 3 | **MessageStream unification** | Complete. `/messages` uses one renderer with chat, room, and pod adapters; the inline `PodChannelSession` and V1 grid workspace are retired from this route. Legacy `ChatSession.jsx` and `RoomSession.jsx` remain only for the older dedicated Chat and Rooms pages. | Medium-high — test churn |
 | 4 | **Tabs + composer** | TabBar above message view; `<Composer>` with `/commands`; `Split right` for second pane. Drop card grid. | Medium |
 | 5 | **MemberRail + popover** | Collapsible rail, persisted per-target. User popover replaces inline `UserCard` chrome. | Low |
-| 6 | **Polish** | Day separators, nick coloring, `/me`, listen-along card, "new messages" marker, keyboard map screen. | Low |
-| 7 | **(optional)** | Push channel for messages instead of 2s polling. Out of scope for the redesign itself. | High, defer |
+| 6 | **Polish** | Complete. Day separators, nick coloring, `/me`, listen-along cards, new-message marker, quote/copy hover actions, command help, and active-conversation search are implemented. | Low |
+| 7 | **(deferred)** | Push channel for messages instead of 2s polling. This needs backend/SignalR contract work and remains intentionally deferred so V2 does not change daemon network behavior. | High, defer |

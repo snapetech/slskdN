@@ -25,8 +25,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Improved Messaging workspace command controls with command help, quick
   switching, unread markers, URL autolinking, and composer regression coverage.
 - Added Messaging stream jump-to-latest controls and link rendering coverage.
+- Completed the Messaging v2 cutover with user popovers, composer polish, and
+  focused regression coverage.
 - Synced vendored slskNet.Runtime protocol offset boundary coverage for
   tainted stream positioning and skip operations.
+- Synced vendored slskNet.Runtime protocol enum and slice-bound validation plus
+  calibrated semantic coverage for path, timeout, endpoint, enum, and slice
+  trust boundaries.
 - Added canonical opinion records for users, files, content hashes, artists,
   albums, tracks, pods, peers, and search terms, with Soulseek liked/hated
   interests imported as weak public signals and explicit peer opinions feeding

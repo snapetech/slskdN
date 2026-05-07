@@ -1,5 +1,7 @@
 ## 2026-05-06
 
+- Completed the remaining Messaging V2 route work: `/messages` now renders V2 directly without the legacy localStorage feature flag, the inline V1 pod channel session was removed from the route, `/leave` now calls the active room/pod leave action, and `MessageStream` gained active-conversation search with match highlighting and keyboard navigation. Phase 7 server-push transport remains deferred because it requires backend/SignalR contract work and would change polling behavior. Validation passed: focused Messaging Vitest (`21/21`), Web lint, production Web build, and headless Playwright cutover smoke (`messages_route_uses_v2_when_legacy_flag_is_off`) with `SLSKDN_TEST_NO_CONNECT=true`.
+
 - Fixed `BUG-20260506-104`: the Rooms toolbar now renders a visible green `Join Room` action again, backed by `RoomJoinModal`. The available room list is normalized before rendering, and focused Web coverage verifies selecting `slskdn` joins with `rooms.join({ roomName: 'slskdn' })`. Documented ADR-0001 gotcha `0z99`.
 
 - Continued the non-runtime QUIC overlay/data lifecycle council section and fixed `BUG-20260506-085` through `BUG-20260506-086`: accepted QUIC control-plane and data-plane stream tasks are now tracked and drained during server shutdown instead of being detached from lifecycle ownership. Extended `scripts/check-async-task-observation.sh` and added ADR-0001 gotcha `0z95`.

@@ -80,6 +80,7 @@ const buildItems = (messages, newSinceIndex) => {
     items.push({
       kind: 'message',
       message,
+      messageIndex: index,
       showSender: !compactWithPrev,
     });
     previousTs = message.ts;
@@ -112,10 +113,42 @@ const autolink = (text) => {
   return parts;
 };
 
-const renderBody = (text) =>
+const highlightText = (text, query) => {
+  if (!query || typeof text !== 'string') return [text];
+  const lower = text.toLowerCase();
+  const needle = query.toLowerCase();
+  const parts = [];
+  let start = 0;
+  let index = lower.indexOf(needle);
+
+  while (index !== -1) {
+    if (index > start) parts.push(text.slice(start, index));
+    parts.push({ highlight: text.slice(index, index + needle.length) });
+    start = index + needle.length;
+    index = lower.indexOf(needle, start);
+  }
+
+  if (start < text.length) parts.push(text.slice(start));
+  return parts;
+};
+
+const renderBody = (text, searchQuery) =>
   autolink(text).map((part, index) =>
     typeof part === 'string' ? (
-      <React.Fragment key={index}>{part}</React.Fragment>
+      <React.Fragment key={index}>
+        {highlightText(part, searchQuery).map((piece, pieceIndex) =>
+          typeof piece === 'string' ? (
+            <React.Fragment key={pieceIndex}>{piece}</React.Fragment>
+          ) : (
+            <mark
+              className="msg-stream-search-hit"
+              key={pieceIndex}
+            >
+              {piece.highlight}
+            </mark>
+          ),
+        )}
+      </React.Fragment>
     ) : (
       <a
         className="msg-stream-link"
@@ -155,18 +188,78 @@ const ListenAlongCard = ({ message }) => {
   );
 };
 
-const MessageRow = ({ item, onSenderClick }) => {
+const MessageActions = ({ message, onCopy, onQuote }) => {
+  if (!onCopy && !onQuote) return null;
+  return (
+    <div
+      aria-label="Message actions"
+      className="msg-stream-actions"
+      role="toolbar"
+    >
+      {onQuote && (
+        <button
+          aria-label="Quote message"
+          className="msg-stream-action"
+          onClick={() => onQuote(message)}
+          title="Quote in composer"
+          type="button"
+        >
+          ❝
+        </button>
+      )}
+      {onCopy && (
+        <button
+          aria-label="Copy message"
+          className="msg-stream-action"
+          onClick={() => onCopy(message)}
+          title="Copy text"
+          type="button"
+        >
+          ⎘
+        </button>
+      )}
+    </div>
+  );
+};
+
+const messageMatches = (message, query) => {
+  if (!query) return false;
+  const needle = query.toLowerCase();
+  return [message.sender, message.body, message.meta?.title, message.meta?.artist]
+    .filter(Boolean)
+    .some((value) => `${value}`.toLowerCase().includes(needle));
+};
+
+const MessageRow = ({
+  activeMatch,
+  item,
+  onCopy,
+  onQuote,
+  onSenderClick,
+  searchQuery,
+}) => {
   const { message, showSender } = item;
   const color = useMemo(() => nickColor(message.sender), [message.sender]);
+  const rowRef = useRef(null);
+
+  useEffect(() => {
+    if (activeMatch) {
+      rowRef.current?.scrollIntoView?.({ block: 'center' });
+    }
+  }, [activeMatch]);
 
   if (message.kind === 'listenalong') {
     return (
       <div
         className="msg-stream-row msg-stream-row-listenalong"
+        data-search-match={messageMatches(message, searchQuery) ? 'true' : undefined}
+        data-search-active={activeMatch ? 'true' : undefined}
         data-self={message.isSelf ? 'true' : undefined}
+        ref={rowRef}
       >
         <span className="msg-stream-time">{formatTime(message.ts)}</span>
         <ListenAlongCard message={message} />
+        <MessageActions message={message} onCopy={onCopy} onQuote={onQuote} />
       </div>
     );
   }
@@ -175,19 +268,23 @@ const MessageRow = ({ item, onSenderClick }) => {
     return (
       <div
         className="msg-stream-row msg-stream-row-me"
+        data-search-match={messageMatches(message, searchQuery) ? 'true' : undefined}
+        data-search-active={activeMatch ? 'true' : undefined}
         data-self={message.isSelf ? 'true' : undefined}
+        ref={rowRef}
       >
         <span className="msg-stream-time">{formatTime(message.ts)}</span>
         <span className="msg-stream-me-glyph">*</span>
         <button
           className="msg-stream-me-sender"
-          onClick={() => onSenderClick?.(message.sender)}
+          onClick={(event) => onSenderClick?.(message.sender, event)}
           style={{ color }}
           type="button"
         >
           {message.sender}
         </button>
-        <span className="msg-stream-me-body">{renderBody(message.body)}</span>
+        <span className="msg-stream-me-body">{renderBody(message.body, searchQuery)}</span>
+        <MessageActions message={message} onCopy={onCopy} onQuote={onQuote} />
       </div>
     );
   }
@@ -196,7 +293,10 @@ const MessageRow = ({ item, onSenderClick }) => {
     <div
       className="msg-stream-row msg-stream-row-text"
       data-compact={!showSender ? 'true' : undefined}
+      data-search-match={messageMatches(message, searchQuery) ? 'true' : undefined}
+      data-search-active={activeMatch ? 'true' : undefined}
       data-self={message.isSelf ? 'true' : undefined}
+      ref={rowRef}
     >
       <span className="msg-stream-time">
         {showSender ? formatTime(message.ts) : ''}
@@ -204,7 +304,7 @@ const MessageRow = ({ item, onSenderClick }) => {
       {showSender ? (
         <button
           className="msg-stream-sender"
-          onClick={() => onSenderClick?.(message.sender)}
+          onClick={(event) => onSenderClick?.(message.sender, event)}
           style={{ color }}
           title={message.sender}
           type="button"
@@ -214,7 +314,8 @@ const MessageRow = ({ item, onSenderClick }) => {
       ) : (
         <span className="msg-stream-sender-spacer" aria-hidden="true" />
       )}
-      <span className="msg-stream-body">{renderBody(message.body)}</span>
+      <span className="msg-stream-body">{renderBody(message.body, searchQuery)}</span>
+      <MessageActions message={message} onCopy={onCopy} onQuote={onQuote} />
     </div>
   );
 };
@@ -227,11 +328,13 @@ const DaySeparator = ({ ts }) => (
   </div>
 );
 
-const MessageStream = ({ adapter, emptyHint, onSenderClick }) => {
+const MessageStream = ({ adapter, emptyHint, onCopy, onQuote, onSenderClick }) => {
   const [messages, setMessages] = useState([]);
   const [error, setError] = useState(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [lastSeenCount, setLastSeenCount] = useState(0);
+  const [searchCursor, setSearchCursor] = useState(0);
+  const [searchDraft, setSearchDraft] = useState('');
   const [stuck, setStuck] = useState(true);
   const scrollRef = useRef(null);
   const stuckRef = useRef(true);
@@ -259,6 +362,8 @@ const MessageStream = ({ adapter, emptyHint, onSenderClick }) => {
   useEffect(() => {
     setMessages([]);
     setIsInitialLoad(true);
+    setSearchCursor(0);
+    setSearchDraft('');
     setStuckBoth(true);
     setLastSeenCount(0);
     if (!adapter) return undefined;
@@ -308,9 +413,83 @@ const MessageStream = ({ adapter, emptyHint, onSenderClick }) => {
   );
 
   const newCount = newSinceIndex !== null ? messages.length - newSinceIndex : 0;
+  const searchQuery = searchDraft.trim();
+  const matchingIndexes = useMemo(
+    () =>
+      searchQuery
+        ? messages
+            .map((message, index) => (messageMatches(message, searchQuery) ? index : null))
+            .filter((index) => index !== null)
+        : [],
+    [messages, searchQuery],
+  );
+  const activeMatchIndex = matchingIndexes[searchCursor] ?? null;
+
+  useEffect(() => {
+    if (searchCursor >= matchingIndexes.length) {
+      setSearchCursor(0);
+    }
+  }, [matchingIndexes.length, searchCursor]);
+
+  const moveSearch = useCallback(
+    (delta) => {
+      if (matchingIndexes.length === 0) return;
+      setSearchCursor((current) =>
+        (current + delta + matchingIndexes.length) % matchingIndexes.length,
+      );
+    },
+    [matchingIndexes.length],
+  );
 
   return (
     <div className="msg-stream-wrap">
+      <div className="msg-stream-search">
+        <input
+          aria-label="Search active conversation"
+          className="msg-stream-search-input"
+          onChange={(event) => {
+            setSearchDraft(event.target.value);
+            setSearchCursor(0);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              moveSearch(event.shiftKey ? -1 : 1);
+            } else if (event.key === 'Escape') {
+              setSearchDraft('');
+              setSearchCursor(0);
+            }
+          }}
+          placeholder="Search in conversation"
+          type="search"
+          value={searchDraft}
+        />
+        <span className="msg-stream-search-count">
+          {searchQuery
+            ? `${matchingIndexes.length ? searchCursor + 1 : 0}/${matchingIndexes.length}`
+            : ''}
+        </span>
+        <button
+          aria-label="Previous search match"
+          className="msg-stream-search-button"
+          disabled={matchingIndexes.length === 0}
+          onClick={() => moveSearch(-1)}
+          title="Previous search match"
+          type="button"
+        >
+          ↑
+        </button>
+        <button
+          aria-label="Next search match"
+          className="msg-stream-search-button"
+          disabled={matchingIndexes.length === 0}
+          onClick={() => moveSearch(1)}
+          title="Next search match"
+          type="button"
+        >
+          ↓
+        </button>
+      </div>
       <div
         className="msg-stream"
         onScroll={handleScroll}
@@ -332,9 +511,13 @@ const MessageStream = ({ adapter, emptyHint, onSenderClick }) => {
             }
             return (
               <MessageRow
+                activeMatch={item.messageIndex === activeMatchIndex}
                 item={item}
                 key={item.message.id || index}
+                onCopy={onCopy}
+                onQuote={onQuote}
                 onSenderClick={onSenderClick}
+                searchQuery={searchQuery}
               />
             );
           })

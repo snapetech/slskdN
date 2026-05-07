@@ -74,6 +74,8 @@ assert_phase_done "All-phases council runner"
 assert_phase_done "Non-proof verdict"
 assert_phase_done "Active backlog"
 assert_phase_done "Add CSL0003"
+assert_phase_done "Add CSL0004"
+assert_phase_done "Add batched semantic"
 
 if [ "$failed" -ne 0 ]; then
   exit 1

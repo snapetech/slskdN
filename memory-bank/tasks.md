@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] Retire Messaging V1 route and finish Messaging V2 search polish.
+ - Status: completed (2026-05-06)
+ - Priority: P2
+ - Notes: `/messages` now renders `MessagingV2` directly, the route no longer depends on `slskd-messaging-v2`, the inline V1 pod channel session was removed, `/leave` leaves active rooms/pods, and `MessageStream` includes active-conversation search with highlighted matches. Server-push messaging remains deferred pending backend/SignalR contract work. Validation passed: focused Messaging Vitest (`21/21`), Web lint, production Web build, and headless Playwright cutover smoke.
+
 - [x] Fix missing Rooms Join Room button.
  - Status: completed (2026-05-06)
  - Priority: P1

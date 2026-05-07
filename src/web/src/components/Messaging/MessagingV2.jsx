@@ -26,6 +26,7 @@ import {
 import CommandHelp from './CommandHelp';
 import MessageStream from './MessageStream';
 import QuickSwitcher from './QuickSwitcher';
+import UserPopover from './UserPopover';
 import React, {
   useCallback,
   useEffect,
@@ -55,7 +56,7 @@ const COMPOSER_COMMANDS = [
   },
   {
     aliases: ['part', 'leave'],
-    description: 'Close the current tab.',
+    description: 'Leave the current room or pod, or close the current DM tab.',
     name: 'close',
     syntax: '/close',
   },
@@ -147,6 +148,9 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   const [roomDraft, setRoomDraft] = useState('');
   const [dmAddOpen, setDmAddOpen] = useState(false);
   const [roomAddOpen, setRoomAddOpen] = useState(false);
+  const [userPopover, setUserPopover] = useState(null);
+  const [composerDraft, setComposerDraft] = useState('');
+  const composerInputRef = useRef(null);
 
   const hydrate = useCallback(async () => {
     const [serverConversations, serverJoinedRooms, serverPods] = await Promise.all([
@@ -579,20 +583,76 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
     };
   }, [adapter]);
 
-  const handleSenderClick = useCallback(
-    (username) => {
-      if (!username) return;
-      navigate(`/users?user=${encodeURIComponent(username)}`, {
-        state: { user: username },
-      });
-    },
-    [navigate],
+  const handleSenderClick = useCallback((username, event) => {
+    if (!username) return;
+    const x = event?.clientX ?? window.innerWidth / 2;
+    const y = event?.clientY ?? window.innerHeight / 2;
+    setUserPopover({ username, x, y });
+  }, []);
+
+  const closeUserPopover = useCallback(() => setUserPopover(null), []);
+
+  useEffect(() => {
+    setComposerDraft('');
+  }, [activeTab?.id]);
+
+  const handleCopyMessage = useCallback(async (message) => {
+    if (!message?.body) return;
+    try {
+      await navigator.clipboard.writeText(message.body);
+    } catch (error) {
+      console.error('Copy to clipboard failed:', error);
+    }
+  }, []);
+
+  const handleQuoteMessage = useCallback((message) => {
+    if (!message) return;
+    const quote = `> ${message.sender}: ${message.body}\n`;
+    setComposerDraft((previous) => `${quote}${previous}`);
+    window.setTimeout(() => {
+      composerInputRef.current?.focus();
+    }, 0);
+  }, []);
+
+  const userPopoverActions = useMemo(
+    () => ({
+      browse: (username) => {
+        navigate(`/browse?user=${encodeURIComponent(username)}`, {
+          state: { user: username },
+        });
+        closeUserPopover();
+      },
+      message: (username) => {
+        openTab('chat', username);
+        closeUserPopover();
+      },
+      profile: (username) => {
+        navigate(`/users?user=${encodeURIComponent(username)}`, {
+          state: { user: username },
+        });
+        closeUserPopover();
+      },
+    }),
+    [closeUserPopover, navigate, openTab],
   );
 
   const handleComposerCommand = useCallback(
     ({ argv, name }) => {
-      if (name === 'close' || name === 'part' || name === 'leave') {
+      if (name === 'close') {
         if (activeTab) closeTab(activeTab.id);
+        return true;
+      }
+      if (name === 'part' || name === 'leave') {
+        if (!activeTab) return true;
+        if (activeTab.type === 'room') {
+          leaveRoom(activeTab.target);
+          return true;
+        }
+        if (activeTab.type === 'pod' && activePodChannel) {
+          leavePod(activePodChannel);
+          return true;
+        }
+        closeTab(activeTab.id);
         return true;
       }
       if (name === 'zoom') {
@@ -626,7 +686,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
       }
       return false;
     },
-    [activeTab, closeTab, hydrate, openTab, setZoom],
+    [activePodChannel, activeTab, closeTab, hydrate, leavePod, leaveRoom, openTab, setZoom],
   );
 
   const showMembers = activeTab && activeTab.type !== 'chat' && memberRailOpen;
@@ -907,6 +967,8 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
               adapter={adapter}
               emptyHint={`No messages yet in ${tabLabel(activeTab)}.`}
               key={`${activeTab.id}#${streamReloadToken}`}
+              onCopy={handleCopyMessage}
+              onQuote={handleQuoteMessage}
               onSenderClick={handleSenderClick}
             />
           ) : (
@@ -923,13 +985,16 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         <Composer
           adapter={adapter}
           commands={COMPOSER_COMMANDS}
+          inputRef={composerInputRef}
           label={activeTab ? `Message ${tabLabel(activeTab)}` : 'Message composer'}
+          onChange={setComposerDraft}
           onCommand={handleComposerCommand}
           placeholder={
             activeTab
               ? `Message ${tabLabel(activeTab)} — type / for commands, /help for the full list`
               : undefined
           }
+          value={composerDraft}
         />
       </main>
 
@@ -967,6 +1032,16 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         onClose={() => setHelpOpen(false)}
         open={helpOpen}
       />
+
+      <UserPopover
+        anchor={userPopover ? { x: userPopover.x, y: userPopover.y } : null}
+        onBrowse={userPopoverActions.browse}
+        onClose={closeUserPopover}
+        onMessage={userPopoverActions.message}
+        onProfile={userPopoverActions.profile}
+        open={Boolean(userPopover)}
+        username={userPopover?.username}
+      />
     </div>
   );
 };
@@ -1002,7 +1077,7 @@ const MemberRail = ({ members, onSelect }) => (
             >
               <button
                 className="msgv2-members-name"
-                onClick={() => onSelect?.(display)}
+                onClick={(event) => onSelect?.(display, event)}
                 title={display}
                 type="button"
               >

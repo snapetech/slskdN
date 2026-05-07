@@ -9,8 +9,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../lib/chat', () => ({
+  acknowledge: vi.fn(),
+  get: vi.fn(),
   getAll: vi.fn(),
   remove: vi.fn(),
+  send: vi.fn(),
   sendBatch: vi.fn(),
 }));
 
@@ -26,255 +29,95 @@ vi.mock('../../lib/pods', () => ({
 vi.mock('../../lib/rooms', () => ({
   getAvailable: vi.fn(),
   getJoined: vi.fn(),
+  getMessages: vi.fn(),
+  getUsers: vi.fn(),
   join: vi.fn(),
   leave: vi.fn(),
+  sendMessage: vi.fn(),
 }));
 
-vi.mock('../Chat/ChatSession', () => ({
-  default: ({ username }) => <div>Chat panel: {username}</div>,
-}));
-
-vi.mock('../Rooms/RoomCreateModal', () => ({
-  default: () => <button type="button">Create Room</button>,
-}));
-
-vi.mock('../Rooms/RoomSession', () => ({
-  default: ({ roomName }) => <div>Room panel: {roomName}</div>,
-}));
-
-vi.mock('../Player/PodListenAlongPanel', () => ({
-  default: ({ channelId, compact }) => (
-    <div>
-      Listen Along {channelId} {compact ? 'compact' : 'full'}
-    </div>
-  ),
-}));
+const renderMessaging = (props = {}) =>
+  render(
+    <MemoryRouter>
+      <Messaging state={{ user: { username: 'me' } }} {...props} />
+    </MemoryRouter>,
+  );
 
 describe('Messaging', () => {
   beforeEach(() => {
     window.localStorage.clear();
     vi.clearAllMocks();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    chat.get.mockResolvedValue({ messages: [] });
+    chat.getAll.mockResolvedValue([]);
+    chat.remove.mockResolvedValue({});
+    chat.send.mockResolvedValue({});
     pods.getMembers.mockResolvedValue([]);
     pods.getMessages.mockResolvedValue([]);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    pods.leave.mockResolvedValue({});
+    pods.list.mockResolvedValue([]);
+    rooms.getJoined.mockResolvedValue([]);
+    rooms.getMessages.mockResolvedValue([]);
+    rooms.getUsers.mockResolvedValue([]);
+    rooms.join.mockResolvedValue({});
+    rooms.leave.mockResolvedValue({});
+    rooms.sendMessage.mockResolvedValue({});
   });
 
-  it('opens chat and room panels and collapses them into the dock', async () => {
-    chat.getAll.mockResolvedValue([
-      {
-        hasUnAcknowledgedMessages: true,
-        unAcknowledgedMessageCount: 2,
-        username: 'friend',
-      },
-    ]);
-    rooms.getJoined.mockResolvedValue(['indie']);
-    rooms.getAvailable.mockResolvedValue([
-      {
-        name: 'ambient',
-        userCount: 9,
-      },
-    ]);
-    pods.list.mockResolvedValue([]);
+  it('renders the V2 workspace without requiring the legacy feature flag', async () => {
+    chat.getAll.mockResolvedValue([{ username: 'friend' }]);
 
-    render(
-      <MemoryRouter>
-        <Messaging state={{ user: { username: 'me' } }} />
-      </MemoryRouter>,
-    );
+    renderMessaging();
 
-    expect(await screen.findByText('Saved Chats')).toBeInTheDocument();
-    fireEvent.click(screen.getByText('friend'));
-    fireEvent.click(screen.getByText('#indie'));
+    expect(await screen.findByText('Channels')).toBeInTheDocument();
+    expect(screen.getByText('Soulseek · DMs')).toBeInTheDocument();
+    expect(screen.queryByText('Workspace')).not.toBeInTheDocument();
+    expect(window.localStorage.getItem('slskd-messaging-v2')).toBeNull();
+  });
 
-    expect(screen.getByText('Chat panel: friend')).toBeInTheDocument();
-    expect(screen.getByText('Room panel: indie')).toBeInTheDocument();
+  it('opens a direct-message tab from the V2 channel tree', async () => {
+    chat.getAll.mockResolvedValue([{ username: 'friend' }]);
+    chat.get.mockResolvedValue({
+      messages: [
+        {
+          direction: 'In',
+          message: 'hello from friend',
+          timestamp: 1_700_000_000_000,
+          username: 'friend',
+        },
+      ],
+    });
 
-    fireEvent.click(screen.getByLabelText('Collapse #indie'));
+    renderMessaging();
+
+    fireEvent.click(await screen.findByTitle('@friend'));
+
+    expect(await screen.findByText('@friend')).toBeInTheDocument();
+    expect(await screen.findByText('hello from friend')).toBeInTheDocument();
+  });
+
+  it('joins a room from the V2 inline room form', async () => {
+    renderMessaging();
+
+    fireEvent.click(await screen.findByLabelText('Join or create a room'));
+    fireEvent.change(screen.getByPlaceholderText('room name'), {
+      target: { value: 'slskdn' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Join' }));
 
     await waitFor(() => {
-      expect(screen.queryByText('Room panel: indie')).not.toBeInTheDocument();
+      expect(rooms.join).toHaveBeenCalledWith({ roomName: 'slskdn' });
     });
-    expect(screen.getAllByText('#indie').length).toBeGreaterThan(0);
   });
 
-  it('starts a direct-message panel from the username input', async () => {
-    chat.getAll.mockResolvedValue([]);
-    pods.list.mockResolvedValue([]);
-    rooms.getJoined.mockResolvedValue([]);
-
-    render(
-      <MemoryRouter>
-        <Messaging />
-      </MemoryRouter>,
-    );
-
-    fireEvent.change(await screen.findByLabelText('Chat username'), {
-      target: { value: 'new-user' },
-    });
-    fireEvent.click(screen.getByLabelText('Open direct-message panel'));
-
-    expect(screen.getByText('Chat panel: new-user')).toBeInTheDocument();
-  });
-
-  it('ignores malformed server list payloads while hydrating', async () => {
-    chat.getAll.mockResolvedValue({ conversations: [] });
-    rooms.getJoined.mockResolvedValue({ rooms: [] });
-    pods.list.mockResolvedValue([
-      null,
-      'bad',
-      ['bad'],
-      {
-        channels: { channelId: 'general' },
-        name: 'Broken Pod',
-        podId: 'pod-1',
-      },
-    ]);
-    pods.get.mockResolvedValue({
-      channels: { channelId: 'general' },
-      name: 'Broken Pod',
-      podId: 'pod-1',
-    });
-
-    render(
-      <MemoryRouter>
-        <Messaging />
-      </MemoryRouter>,
-    );
-
-    expect(await screen.findByText('Workspace')).toBeInTheDocument();
-    expect(screen.queryByText('Broken Pod / general')).not.toBeInTheDocument();
-  });
-
-  it('ignores malformed persisted workspace shapes before creating panels', async () => {
-    localStorage.setItem('slskd-messaging-workspace', JSON.stringify(['bad']));
-    chat.getAll.mockResolvedValue([]);
-    pods.list.mockResolvedValue([]);
-    rooms.getJoined.mockResolvedValue([]);
-
-    render(
-      <MemoryRouter>
-        <Messaging />
-      </MemoryRouter>,
-    );
-
-    fireEvent.change(await screen.findByLabelText('Chat username'), {
-      target: { value: 'new-user' },
-    });
-    fireEvent.click(screen.getByLabelText('Open direct-message panel'));
-
-    expect(screen.getByText('Chat panel: new-user')).toBeInTheDocument();
-    expect(localStorage.getItem('slskd-messaging-workspace')).toContain(
-      '"id":"chat-1"',
-    );
-  });
-
-  it('filters malformed persisted panel entries before rendering workspace panels', async () => {
-    localStorage.setItem('slskd-messaging-workspace', JSON.stringify({
-      panelCounter: 4,
-      panels: [
-        null,
-        'bad',
-        { id: 'missing-target', type: 'chat' },
-        { id: 'bad-type', target: 'alice', type: 'unknown' },
-        { collapsed: 'yes', id: 'chat-4', target: 'alice', type: 'chat' },
-      ],
-    }));
-    chat.getAll.mockResolvedValue([]);
-    pods.list.mockResolvedValue([]);
-    rooms.getJoined.mockResolvedValue([]);
-
-    render(
-      <MemoryRouter>
-        <Messaging />
-      </MemoryRouter>,
-    );
-
-    expect(await screen.findByText('Chat panel: alice')).toBeInTheDocument();
-    expect(screen.queryByText('Chat panel: undefined')).not.toBeInTheDocument();
-    expect(localStorage.getItem('slskd-messaging-workspace')).toContain(
-      '"id":"chat-4"',
-    );
-    expect(localStorage.getItem('slskd-messaging-workspace')).not.toContain(
-      'missing-target',
-    );
-  });
-
-  it('sends one batch private message to multiple recipients', async () => {
-    chat.getAll.mockResolvedValue([]);
-    chat.sendBatch.mockResolvedValue({});
-    pods.list.mockResolvedValue([]);
-    rooms.getJoined.mockResolvedValue([]);
-
-    render(
-      <MemoryRouter>
-        <Messaging />
-      </MemoryRouter>,
-    );
-
-    expect(await screen.findByText('Workspace')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByLabelText('Open batch private-message dialog'));
-    fireEvent.change(screen.getByLabelText('Batch private-message recipients'), {
-      target: { value: 'alice, bob' },
-    });
-    fireEvent.change(screen.getByLabelText('Batch private-message body'), {
-      target: { value: 'hello' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
-
-    await waitFor(() =>
-      expect(chat.sendBatch).toHaveBeenCalledWith({
-        message: 'hello',
-        usernames: ['alice', 'bob'],
-      }),
-    );
-  });
-
-  it('hides pod direct channels from the unified message workspace', async () => {
-    chat.getAll.mockResolvedValue([]);
-    rooms.getJoined.mockResolvedValue([]);
-    pods.list.mockResolvedValue([
-      {
-        channels: [{ channelId: 'dm', kind: 'Direct', name: 'dm' }],
-        name: 'hunterbiden5000',
-        podId: 'pod-1',
-      },
-    ]);
-    pods.get.mockResolvedValue({
-      channels: [{ channelId: 'dm', kind: 'Direct', name: 'dm' }],
-      name: 'hunterbiden5000',
-      podId: 'pod-1',
-    });
-    pods.getMessages.mockResolvedValue([
-      {
-        body: 'hello from pod',
-        senderPeerId: 'friend',
-        timestampUnixMs: Date.now(),
-      },
-    ]);
-
-    render(
-      <MemoryRouter>
-        <Messaging state={{ user: { username: 'me' } }} />
-      </MemoryRouter>,
-    );
-
-    expect(await screen.findByText('Pod Channels')).toBeInTheDocument();
-    expect(screen.queryByText('hunterbiden5000 / dm')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Message hunterbiden5000 / dm')).not.toBeInTheDocument();
-    expect(screen.queryByText(/Listen Along dm/)).not.toBeInTheDocument();
-  });
-
-  it('folds pod direct channels into matching saved chats', async () => {
-    chat.getAll.mockResolvedValue([{ username: 'hunterbiden5000' }]);
-    rooms.getJoined.mockResolvedValue([]);
+  it('keeps pod direct channels hidden while showing pod room channels', async () => {
     pods.list.mockResolvedValue([
       {
         channels: [
           { channelId: 'dm', kind: 'Direct', name: 'dm' },
           { channelId: 'general', kind: 'Room', name: 'General' },
         ],
-        name: 'hunterbiden5000',
+        name: 'Gold Star Club',
         podId: 'pod-1',
       },
     ]);
@@ -283,153 +126,31 @@ describe('Messaging', () => {
         { channelId: 'dm', kind: 'Direct', name: 'dm' },
         { channelId: 'general', kind: 'Room', name: 'General' },
       ],
-      name: 'hunterbiden5000',
-      podId: 'pod-1',
-    });
-
-    render(
-      <MemoryRouter>
-        <Messaging state={{ user: { username: 'me' } }} />
-      </MemoryRouter>,
-    );
-
-    expect(await screen.findByText('hunterbiden5000')).toBeInTheDocument();
-    expect(screen.getByText('pod')).toBeInTheDocument();
-    expect(screen.queryByText('hunterbiden5000 / dm')).not.toBeInTheDocument();
-    expect(screen.getByText('hunterbiden5000 / General')).toBeInTheDocument();
-  });
-
-  it('does not reveal a pod direct channel after deleting a matching saved chat', async () => {
-    chat.getAll
-      .mockResolvedValueOnce([{ username: 'hunterbiden5000' }])
-      .mockResolvedValue([]);
-    rooms.getJoined.mockResolvedValue([]);
-    pods.list.mockResolvedValue([
-      {
-        channels: [{ channelId: 'dm', kind: 'Direct', name: 'dm' }],
-        name: 'hunterbiden5000',
-        podId: 'pod-1',
-      },
-    ]);
-    pods.get.mockResolvedValue({
-      channels: [{ channelId: 'dm', kind: 'Direct', name: 'dm' }],
-      name: 'hunterbiden5000',
-      podId: 'pod-1',
-    });
-
-    render(
-      <MemoryRouter>
-        <Messaging state={{ user: { username: 'me' } }} />
-      </MemoryRouter>,
-    );
-
-    expect(await screen.findByText('hunterbiden5000')).toBeInTheDocument();
-    expect(screen.queryByText('hunterbiden5000 / dm')).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByLabelText('Delete message thread with hunterbiden5000'));
-    await waitFor(() => {
-      expect(chat.remove).toHaveBeenCalledWith({ username: 'hunterbiden5000' });
-    });
-
-    expect(screen.queryByText('hunterbiden5000 / dm')).not.toBeInTheDocument();
-  });
-
-  it('shows compact listen-along only for pod room channels', async () => {
-    chat.getAll.mockResolvedValue([]);
-    rooms.getJoined.mockResolvedValue([]);
-    pods.list.mockResolvedValue([
-      {
-        channels: [{ channelId: 'general', kind: 'Room', name: 'General' }],
-        name: 'Gold Star Club',
-        podId: 'pod-1',
-      },
-    ]);
-    pods.get.mockResolvedValue({
-      channels: [{ channelId: 'general', kind: 'Room', name: 'General' }],
       name: 'Gold Star Club',
       podId: 'pod-1',
     });
-    pods.getMessages.mockResolvedValue([]);
 
-    render(
-      <MemoryRouter>
-        <Messaging state={{ user: { username: 'me' } }} />
-      </MemoryRouter>,
-    );
+    renderMessaging();
 
-    fireEvent.click(await screen.findByText('Gold Star Club / General'));
-
-    expect(await screen.findByText('Listen Along general compact')).toBeInTheDocument();
+    expect(await screen.findByText('Gold Star Club / General')).toBeInTheDocument();
+    expect(screen.queryByText('Gold Star Club / dm')).not.toBeInTheDocument();
   });
 
-  it('uses the room-style member rail for pod room channels', async () => {
-    chat.getAll.mockResolvedValue([]);
-    rooms.getJoined.mockResolvedValue([]);
-    pods.list.mockResolvedValue([
-      {
-        channels: [{ channelId: 'general', kind: 'Room', name: 'General' }],
-        name: 'Gold Star Club',
-        podId: 'pod-1',
-      },
-    ]);
-    pods.get.mockResolvedValue({
-      channels: [{ channelId: 'general', kind: 'Room', name: 'General' }],
-      name: 'Gold Star Club',
-      podId: 'pod-1',
-    });
-    pods.getMembers.mockResolvedValue([{ peerId: 'member-one', role: 'Member' }]);
-    pods.getMessages.mockResolvedValue([
-      {
-        body: 'pod room message',
-        senderPeerId: 'member-one',
-        timestampUnixMs: Date.now(),
-      },
-    ]);
-
-    render(
-      <MemoryRouter>
-        <Messaging state={{ user: { username: 'me' } }} />
-      </MemoryRouter>,
-    );
-
-    fireEvent.click(await screen.findByText('Gold Star Club / General'));
-
-    expect(await screen.findByText('Members (1)')).toBeInTheDocument();
-    expect(screen.getByText('pod room message')).toBeInTheDocument();
-    expect(screen.getByLabelText('Message Gold Star Club / General')).toBeInTheDocument();
-  });
-
-  it('exposes confirmed destructive actions for chats, rooms, and pods', async () => {
-    chat.getAll.mockResolvedValue([{ username: 'friend' }]);
+  it('uses slash leave to call the active room leave action', async () => {
     rooms.getJoined.mockResolvedValue(['indie']);
-    pods.list.mockResolvedValue([
-      {
-        channels: [{ channelId: 'general', kind: 'Room', name: 'General' }],
-        name: 'Gold Star Club',
-        podId: 'pod-1',
-      },
-    ]);
-    pods.get.mockResolvedValue({
-      channels: [{ channelId: 'general', kind: 'Room', name: 'General' }],
-      name: 'Gold Star Club',
-      podId: 'pod-1',
+
+    renderMessaging({ initialKind: 'room' });
+
+    expect(await screen.findByText('#indie')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Message #indie'), {
+      target: { value: '/leave' },
+    });
+    fireEvent.keyDown(screen.getByLabelText('Message #indie'), {
+      key: 'Enter',
     });
 
-    render(
-      <MemoryRouter>
-        <Messaging state={{ user: { username: 'me' } }} />
-      </MemoryRouter>,
-    );
-
-    expect(await screen.findByText('friend')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByLabelText('Delete message thread with friend'));
-    expect(chat.remove).toHaveBeenCalledWith({ username: 'friend' });
-
-    fireEvent.click(screen.getByLabelText('Leave room indie'));
-    expect(rooms.leave).toHaveBeenCalledWith({ roomName: 'indie' });
-
-    fireEvent.click(screen.getByLabelText('Leave pod Gold Star Club'));
-    expect(pods.leave).toHaveBeenCalledWith('pod-1', 'me');
+    await waitFor(() => {
+      expect(rooms.leave).toHaveBeenCalledWith({ roomName: 'indie' });
+    });
   });
 });

@@ -253,17 +253,7 @@ namespace Soulseek.Messaging
         /// <returns>The read string.</returns>
         public (string Value, CharacterEncoding Encoding) ReadStringAndEncoding(CharacterEncoding encoding = null)
         {
-            var length = ReadInteger();
-
-            if (length < 0)
-            {
-                throw new MessageReadException($"Invalid string length: {length}");
-            }
-
-            if (length > Payload.Length - Position)
-            {
-                throw new MessageReadException("Specified string length extends beyond the length of the message payload");
-            }
+            var length = ValidateSliceBounds(ReadInteger(), Payload.Length - Position);
 
             encoding ??= CharacterEncoding.UTF8;
             var bytes = Payload.Slice(Position, length).ToArray();
@@ -302,6 +292,21 @@ namespace Soulseek.Messaging
             }
 
             Position = position;
+        }
+
+        private static int ValidateSliceBounds(int length, int remaining)
+        {
+            if (length < 0)
+            {
+                throw new MessageReadException($"Invalid string length: {length}");
+            }
+
+            if (length > remaining)
+            {
+                throw new MessageReadException("Specified string length extends beyond the length of the message payload");
+            }
+
+            return length;
         }
 
         private void Decompress(byte[] inData, out byte[] outData)

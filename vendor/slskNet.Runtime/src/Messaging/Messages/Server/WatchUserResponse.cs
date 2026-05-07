@@ -83,8 +83,7 @@ namespace Soulseek.Messaging.Messages
 
             if (exists)
             {
-                var status = (UserPresence)reader.ReadInteger();
-                ProtocolValueValidator.ValidateDefinedEnum(status, "user presence");
+                var status = ProtocolValueValidator.ToDefinedEnum<UserPresence>(reader.ReadInteger(), "user presence");
 
                 var averageSpeed = reader.ReadInteger();
                 var downloadCount = reader.ReadLong();

@@ -42,18 +42,34 @@ namespace Soulseek.Messaging.Messages.Server
         public static int ReadCount(MessageReader<DummyCode> reader, string collectionName, int minimumBytesPerItem) => 0;
     }
 
+    internal static class PathSafety
+    {
+        public static string ResolveContainedPath(string root, string relativePath) => relativePath;
+    }
+
+    internal static class ProtocolValueValidator
+    {
+        public static int ValidatePort(int value) => value;
+        public static int ValidateSliceBounds(int value) => value;
+        public static int ValidateTimeout(int value) => value;
+        public static DummyStatus ValidateDefinedEnum(DummyStatus value) => value;
+    }
+
     internal enum DummyCode { None }
+    internal enum DummyStatus { None, Good }
 }
 ";
 
         [Fact]
-        public async Task Calibration_Corpus_Fires_CSL0001_CSL0002_And_CSL0003_On_Known_Bad_Shapes()
+        public async Task Calibration_Corpus_Fires_CSL0001_Through_CSL0008_On_Known_Bad_Shapes()
         {
             var source = Harness + @"
 namespace Soulseek.Messaging.Messages.Server
 {
     using System;
     using System.IO;
+    using System.Net;
+    using System.Threading.Tasks;
     using Soulseek.Messaging;
 
     internal sealed class KnownBad
@@ -87,6 +103,36 @@ namespace Soulseek.Messaging.Messages.Server
             var offset = reader.ReadInteger();
             reader.Seek(offset);
         }
+
+        public string ParseFile(MessageReader<DummyCode> reader)
+        {
+            var path = reader.ReadString();
+            return File.ReadAllText(path);
+        }
+
+        public Task ParseDelay(MessageReader<DummyCode> reader)
+        {
+            var timeout = reader.ReadInteger();
+            return Task.Delay(timeout);
+        }
+
+        public IPEndPoint ParseEndpoint(MessageReader<DummyCode> reader)
+        {
+            var port = reader.ReadInteger();
+            return new IPEndPoint(IPAddress.Loopback, port);
+        }
+
+        public DummyStatus ParseStatus(MessageReader<DummyCode> reader)
+        {
+            var status = reader.ReadInteger();
+            return (DummyStatus)status;
+        }
+
+        public string ParseSlice(MessageReader<DummyCode> reader, string text)
+        {
+            var offset = reader.ReadInteger();
+            return text.Substring(offset);
+        }
     }
 }
 ";
@@ -95,6 +141,11 @@ namespace Soulseek.Messaging.Messages.Server
             Assert.Equal(2, diagnostics.Count(d => d.Id == TaintToAllocationAnalyzer.DiagnosticId));
             Assert.Single(diagnostics.Where(d => d.Id == TaintToLoopBoundAnalyzer.DiagnosticId));
             Assert.Single(diagnostics.Where(d => d.Id == TaintToStreamPositionAnalyzer.DiagnosticId));
+            Assert.Single(diagnostics.Where(d => d.Id == TaintToFilePathAnalyzer.DiagnosticId));
+            Assert.Single(diagnostics.Where(d => d.Id == TaintToTimeoutAnalyzer.DiagnosticId));
+            Assert.Single(diagnostics.Where(d => d.Id == TaintToEndpointAnalyzer.DiagnosticId));
+            Assert.Single(diagnostics.Where(d => d.Id == TaintToEnumAnalyzer.DiagnosticId));
+            Assert.Single(diagnostics.Where(d => d.Id == TaintToStringSliceAnalyzer.DiagnosticId));
         }
 
         [Fact]
@@ -104,6 +155,8 @@ namespace Soulseek.Messaging.Messages.Server
 namespace Soulseek.Messaging.Messages.Server
 {
     using System.Collections.Generic;
+    using System.Net;
+    using System.Threading.Tasks;
     using Soulseek.Messaging;
 
     internal sealed class KnownGood
@@ -130,6 +183,35 @@ namespace Soulseek.Messaging.Messages.Server
         {
             var offset = ProtocolCountReader.ReadValidatedCount(reader, 1024);
             reader.Seek(offset);
+        }
+
+        public string ParseFile(MessageReader<DummyCode> reader, string root)
+        {
+            var path = PathSafety.ResolveContainedPath(root, reader.ReadString());
+            return System.IO.File.ReadAllText(path);
+        }
+
+        public Task ParseDelay(MessageReader<DummyCode> reader)
+        {
+            var timeout = ProtocolValueValidator.ValidateTimeout(reader.ReadInteger());
+            return Task.Delay(timeout);
+        }
+
+        public IPEndPoint ParseEndpoint(MessageReader<DummyCode> reader)
+        {
+            var port = ProtocolValueValidator.ValidatePort(reader.ReadInteger());
+            return new IPEndPoint(IPAddress.Loopback, port);
+        }
+
+        public DummyStatus ParseStatus(MessageReader<DummyCode> reader)
+        {
+            return ProtocolValueValidator.ValidateDefinedEnum((DummyStatus)reader.ReadInteger());
+        }
+
+        public string ParseSlice(MessageReader<DummyCode> reader, string text)
+        {
+            var offset = ProtocolValueValidator.ValidateSliceBounds(reader.ReadInteger());
+            return text.Substring(offset);
         }
     }
 }
@@ -158,7 +240,12 @@ namespace Soulseek.Messaging.Messages.Server
             var analyzers = ImmutableArray.Create<DiagnosticAnalyzer>(
                 new TaintToAllocationAnalyzer(),
                 new TaintToLoopBoundAnalyzer(),
-                new TaintToStreamPositionAnalyzer());
+                new TaintToStreamPositionAnalyzer(),
+                new TaintToFilePathAnalyzer(),
+                new TaintToTimeoutAnalyzer(),
+                new TaintToEndpointAnalyzer(),
+                new TaintToEnumAnalyzer(),
+                new TaintToStringSliceAnalyzer());
 
             var diagnostics = await compilation.WithAnalyzers(analyzers)
                 .GetAnalyzerDiagnosticsAsync()
@@ -168,7 +255,12 @@ namespace Soulseek.Messaging.Messages.Server
                 .Where(d =>
                     d.Id == TaintToAllocationAnalyzer.DiagnosticId ||
                     d.Id == TaintToLoopBoundAnalyzer.DiagnosticId ||
-                    d.Id == TaintToStreamPositionAnalyzer.DiagnosticId)
+                    d.Id == TaintToStreamPositionAnalyzer.DiagnosticId ||
+                    d.Id == TaintToFilePathAnalyzer.DiagnosticId ||
+                    d.Id == TaintToTimeoutAnalyzer.DiagnosticId ||
+                    d.Id == TaintToEndpointAnalyzer.DiagnosticId ||
+                    d.Id == TaintToEnumAnalyzer.DiagnosticId ||
+                    d.Id == TaintToStringSliceAnalyzer.DiagnosticId)
                 .ToImmutableArray();
         }
     }

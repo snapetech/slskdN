@@ -72,10 +72,9 @@ namespace Soulseek.Messaging
 
             for (int i = 0; i < attributeCount; i++)
             {
-                var type = (FileAttributeType)reader.ReadInteger();
+                var type = ProtocolValueValidator.ToDefinedEnum<FileAttributeType>(reader.ReadInteger(), "file attribute type");
                 var value = reader.ReadInteger();
 
-                ProtocolValueValidator.ValidateDefinedEnum(type, "file attribute type");
                 ProtocolValueValidator.ValidateNonNegative(value, "file attribute value");
 
                 var attribute = new FileAttribute(

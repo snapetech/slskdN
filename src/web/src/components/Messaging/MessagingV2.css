@@ -943,6 +943,65 @@ body.msgv2-resizing {
   font-size: 11px;
 }
 
+/* user popover */
+.msgv2-userpop {
+  position: fixed;
+  z-index: 10001;
+  min-width: 180px;
+  background: var(--msgv2-bg-elevated, #0d0c14);
+  color: var(--msgv2-fg, #efe7dc);
+  border: 1px solid var(--msgv2-border-strong, rgba(255, 255, 255, 0.18));
+  border-radius: 6px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--slskd-font-family, 'Inter', system-ui, sans-serif);
+  font-size: 12px;
+  overflow: hidden;
+}
+
+.msgv2-userpop-header {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--msgv2-border, rgba(255, 255, 255, 0.08));
+  font-weight: 700;
+  background: var(--msgv2-active-bg, rgba(255, 255, 255, 0.06));
+}
+
+.msgv2-userpop-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+
+.msgv2-userpop-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.msgv2-userpop-action:hover {
+  background: var(--msgv2-hover-bg, rgba(255, 255, 255, 0.03));
+}
+
+.msgv2-userpop-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  color: var(--msgv2-fg-faint, rgba(239, 231, 220, 0.32));
+  font-family: var(--slskd-mono-family, monospace);
+  font-weight: 700;
+}
+
 /* command help */
 .msgv2-help-overlay {
   position: fixed;

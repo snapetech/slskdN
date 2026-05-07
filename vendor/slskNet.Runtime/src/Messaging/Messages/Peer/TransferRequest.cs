@@ -94,8 +94,7 @@ namespace Soulseek.Messaging.Messages
                 throw new MessageException($"Message Code mismatch creating {nameof(TransferRequest)} (expected: {(int)MessageCode.Peer.TransferRequest}, received: {(int)code})");
             }
 
-            var direction = (TransferDirection)reader.ReadInteger();
-            ProtocolValueValidator.ValidateDefinedEnum(direction, "transfer direction");
+            var direction = ProtocolValueValidator.ToDefinedEnum<TransferDirection>(reader.ReadInteger(), "transfer direction");
 
             var token = reader.ReadInteger();
             var filename = reader.ReadString();

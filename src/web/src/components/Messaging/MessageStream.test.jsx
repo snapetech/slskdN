@@ -2,8 +2,8 @@ import '@testing-library/jest-dom';
 import MessageStream, { autolink } from './MessageStream';
 import { __test__ } from './messagingAdapters';
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 const { classifyBody } = __test__;
 
@@ -121,6 +121,102 @@ describe('MessageStream', () => {
       'href',
       'ftp://files.example.org',
     );
+  });
+
+  it('searches within the active message stream and highlights matches', async () => {
+    const t = 1_700_000_000_000;
+    const adapter = buildAdapter([
+      { body: 'first needle', id: 's1', isSelf: false, kind: 'text', sender: 'alice', ts: t },
+      { body: 'second line', id: 's2', isSelf: false, kind: 'text', sender: 'bob', ts: t + 1_000 },
+      { body: 'third needle', id: 's3', isSelf: false, kind: 'text', sender: 'carol', ts: t + 2_000 },
+    ]);
+
+    render(<MessageStream adapter={adapter} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('first needle')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText('Search active conversation'), {
+      target: { value: 'needle' },
+    });
+
+    expect(screen.getByText('1/2')).toBeInTheDocument();
+    expect(screen.getAllByText('needle')).toHaveLength(2);
+
+    fireEvent.click(screen.getByLabelText('Next search match'));
+    expect(screen.getByText('2/2')).toBeInTheDocument();
+  });
+});
+
+describe('MessageStream hover actions', () => {
+  it('invokes onQuote and onCopy with the original message', async () => {
+    const t = 1_700_000_000_000;
+    const adapter = {
+      list: () =>
+        Promise.resolve({
+          messages: [
+            {
+              body: 'hey',
+              id: 'q1',
+              isSelf: false,
+              kind: 'text',
+              sender: 'alice',
+              ts: t,
+            },
+          ],
+        }),
+      pollIntervalMs: 1_000_000,
+    };
+    const onQuote = vi.fn();
+    const onCopy = vi.fn();
+
+    render(
+      <MessageStream
+        adapter={adapter}
+        onCopy={onCopy}
+        onQuote={onQuote}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('hey')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByLabelText('Quote message'));
+    expect(onQuote).toHaveBeenCalledWith(
+      expect.objectContaining({ body: 'hey', sender: 'alice' }),
+    );
+
+    fireEvent.click(screen.getByLabelText('Copy message'));
+    expect(onCopy).toHaveBeenCalledWith(
+      expect.objectContaining({ body: 'hey' }),
+    );
+  });
+
+  it('omits the action toolbar when no callbacks are provided', async () => {
+    const adapter = {
+      list: () =>
+        Promise.resolve({
+          messages: [
+            {
+              body: 'hey',
+              id: 'q2',
+              isSelf: false,
+              kind: 'text',
+              sender: 'alice',
+              ts: 1_700_000_000_000,
+            },
+          ],
+        }),
+      pollIntervalMs: 1_000_000,
+    };
+    render(<MessageStream adapter={adapter} />);
+    await waitFor(() => {
+      expect(screen.getByText('hey')).toBeInTheDocument();
+    });
+    expect(screen.queryByLabelText('Quote message')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Copy message')).not.toBeInTheDocument();
   });
 });
 

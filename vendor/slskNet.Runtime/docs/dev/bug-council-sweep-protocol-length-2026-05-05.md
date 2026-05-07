@@ -17,7 +17,7 @@ Candidate markers:
 
 - Protocol count and length allocation candidates: 221/221 classified
 - Protocol counted collection loops: 54/54 classified
-- Protocol length-prefixed reads and payload allocations: 12/12 classified
+- Protocol length-prefixed reads and payload allocations: 11/11 classified
 - Protocol compression boundary candidates: 16/16 classified
 - Unclassified candidates: 0
 
@@ -68,18 +68,17 @@ Covered files:
 
 | Candidate | Classification | Ledger | Rationale |
 | --- | --- | --- | --- |
-| `src/Network/Tcp/RotatedObfuscation.cs:55` | Fixed | RT-070 | Obfuscation encode now rejects null input before using `input.Length`. |
-| `src/Network/Tcp/RotatedObfuscation.cs:70` | Fixed | RT-070 | Obfuscation decode now rejects null input before length checks and allocation. |
+| `src/Network/Tcp/RotatedObfuscation.cs:65` | Fixed | RT-070 | Obfuscation encode now rejects null input before using `input.Length`. |
+| `src/Network/Tcp/RotatedObfuscation.cs:85` | Fixed | RT-070 | Obfuscation decode now rejects null input before length checks and allocation. |
 | `src/Network/Tcp/ObfuscatedTransferConnection.cs:137` | Existing guard | RT-029 | Buffered transfer reads reject negative, oversized, and over-limit lengths before allocation. |
 | `src/Network/Tcp/ObfuscatedTransferConnection.cs:278` | Existing guard | RT-029 | Obfuscated transfer frame encoding rejects payloads larger than the frame maximum. |
 | `src/Network/Tcp/ObfuscatedTransferConnection.cs:295` | Existing guard | RT-029 | Obfuscated transfer frame reads validate frame length before allocating the encoded frame buffer. |
-| `src/Messaging/MessageReader.cs:146` | Existing guard | RT-001 | `ReadBytes` rejects negative counts and counts beyond remaining payload before slicing. |
-| `src/Messaging/MessageReader.cs:240` | Existing guard | RT-001 | String reads route through the guarded length-prefixed string reader. |
-| `src/Messaging/MessageReader.cs:252` | Existing guard | RT-001 | String length is rejected when negative or larger than the remaining payload. |
-| `src/Messaging/MessageReader.cs:254` | Existing guard | RT-001 | The length field is validated before byte slicing and decoding. |
-| `src/Network/MessageConnection.cs:324` | Existing guard | RT-029 | Obfuscated message length is validated before allocating the decoded frame. |
-| `src/Network/ListenerHandler.cs:92` | Existing guard | RT-029 | Obfuscated initialization message length is validated before allocating the decoded init frame. |
-| `src/Messaging/Messages/Peer/UserInfoResponseFactory.cs:60` | Existing guard | RT-001 | Picture length is rejected when negative or larger than remaining payload after trailing fields. |
+| `src/Messaging/MessageReader.cs:148` | Existing guard | RT-001 | `ReadBytes` rejects negative counts and counts beyond remaining payload before slicing. |
+| `src/Messaging/MessageReader.cs:242` | Existing guard | RT-001 | String reads route through the guarded length-prefixed string reader. |
+| `src/Messaging/MessageReader.cs:254` | Existing guard | RT-001 | String length is validated before byte slicing and decoding. |
+| `src/Network/MessageConnection.cs:351` | Existing guard | RT-029 | Obfuscated message length is validated before allocating the decoded frame. |
+| `src/Network/ListenerHandler.cs:100` | Existing guard | RT-029 | Obfuscated initialization message length is validated before allocating the decoded init frame. |
+| `src/Messaging/Messages/Peer/UserInfoResponseFactory.cs:62` | Existing guard | RT-001 | Picture length is rejected when negative or larger than remaining payload after trailing fields. |
 
 ## Protocol Compression Boundary Candidates
 
