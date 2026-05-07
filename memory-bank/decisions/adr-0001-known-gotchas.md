@@ -52,6 +52,29 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z361. Remote Heredocs Can Expand Embedded Awk Fields
+
+**The Bug**: A live NAT-PMP renewal helper failed because a remote shell heredoc expanded awk's `$4` field reference while writing the script, producing invalid awk source.
+
+**Files Affected**:
+- Live host scripts such as `/usr/local/sbin/slskdN-main-natpmp-renew`
+
+**Wrong**:
+```bash
+sudo tee /usr/local/sbin/helper >/dev/null <<SCRIPT
+awk "/Mapped public port/ {print $4; exit}"
+SCRIPT
+```
+
+**Correct**:
+```bash
+sudo tee /usr/local/sbin/helper >/dev/null <<'SCRIPT'
+awk '/Mapped public port/ {print $4; exit}'
+SCRIPT
+```
+
+**Why This Keeps Happening**: Quoted heredoc delimiters must survive the local SSH command and the remote shell. If the delimiter is not quoted in the shell that actually processes the heredoc, `$4` is expanded before the script is written, and awk receives broken code.
+
 ### 0z360. DHT Overlay Advertisement Must Support VPN-Rewritten Public Ports
 
 **The Bug**: Mesh DHT discovered peers but never established overlay connections, because the node announced its local `dht.overlay_port` even when VPN NAT-PMP rewrote that listener to a different public TCP port.
