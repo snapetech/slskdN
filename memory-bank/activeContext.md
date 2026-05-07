@@ -1,3 +1,30 @@
+## Update 2026-05-07 02:29:00Z
+
+- Current task: Messaging V2 sizing/performance follow-up deployed to `kspls0`.
+- Last activity:
+  - added visible `-`/`+` whole-Messages UI size controls around the S/M/L/XL presets;
+  - captured Ctrl/Cmd+wheel inside Messages so it changes Messages UI size instead of browser/page zoom;
+  - bounded the Messages pane to the app content area using nav/footer/player CSS variables so it stays above the player/footer;
+  - reduced inactive search render overhead in `MessageStream`;
+  - documented ADR-0001 gotcha `0z348`;
+  - validation passed: focused Messaging Vitest (`21/21`), Web lint, and production Web build;
+  - synced the rebuilt web bundle into `/usr/lib/slskd/current/wwwroot` on `kspls0` and restarted `slskd.service`;
+  - verified HTTP 200 on `http://kspls0:5030/`, active PID `3071009`, initialization complete, mesh neighbor connected, VPN ready, and Soulseek logged in as `Jarvis1984`.
+- Next steps:
+  1. User testing on `http://kspls0:5030/messages` with hard refresh if an old asset is cached.
+
+## Update 2026-05-07 02:24:00Z
+
+- Current task: Custom Messaging V2 build deployed to `kspls0` for user testing.
+- Last activity:
+  - built Web production assets and backend Release/self-contained `linux-x64` publish as `0.0.0-slskdn.manual.20260507022201.ae68db572`;
+  - stopped the previously running `slskd.service` on `kspls0`;
+  - deployed `/usr/lib/slskd/releases/manual-20260507022201.ae68db572` and repointed `/usr/lib/slskd/current`;
+  - restarted `slskd.service`; PID `3057278` is active/running;
+  - verified `http://kspls0:5030/` returns HTTP 200, listeners are bound on `5030`, `50300`, `50301`, and `50305`, startup completed, VPN is ready, and Soulseek logged in as `Jarvis1984`.
+- Next steps:
+  1. User testing on `http://kspls0:5030/messages`.
+
 ## Update 2026-05-07 02:20:00Z
 
 - Current task: Retire `/messages` V1 route and validate Messaging V2 cutover.
@@ -5967,3 +5994,8 @@ dotnet test
   - focused attribution checks, `git diff --check`, and `dotnet format --verify-no-changes --no-restore --severity error src/slskd/slskd.csproj` passed
 - Next steps:
   1. Keep the same attribution rule for future files: fork-only slskdN code uses slskdN attribution; upstream-derived changed code preserves upstream and adds slskdN co-attribution.
+
+## 2026-05-07 02:39:03Z
+
+Current task: kspls0 Messages V2 resource/flicker hotfix deployed.
+Next steps: User live-tests Messages pane sizing, flicker, and resource use; investigate any remaining panel-specific churn with browser profiler if visible.

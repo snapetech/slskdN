@@ -29,7 +29,21 @@
     var(--msgv2-handle-width)
     var(--msgv2-member-width);
   grid-template-rows: 1fr;
-  height: calc(100vh - 110px);
+  height: calc(
+    100dvh -
+    var(--slskdn-nav-height, 58px) -
+    var(--slskdn-footer-height, 43px) -
+    var(--slskdn-player-reserved-height, var(--slskdn-player-height, 248px)) -
+    12px
+  );
+  max-height: calc(
+    100dvh -
+    var(--slskdn-nav-height, 58px) -
+    var(--slskdn-footer-height, 43px) -
+    var(--slskdn-player-reserved-height, var(--slskdn-player-height, 248px)) -
+    12px
+  );
+  min-height: 260px;
   background: var(--msgv2-bg);
   color: var(--msgv2-fg);
   border: 1px solid var(--msgv2-border);
@@ -578,6 +592,39 @@ body.msgv2-resizing {
   border: 1px solid var(--msgv2-border);
   border-radius: 4px;
   overflow: hidden;
+}
+
+.msgv2-density-presets {
+  display: inline-flex;
+  align-items: center;
+}
+
+.msgv2-density-step {
+  background: var(--msgv2-active-bg);
+  border: 0;
+  border-right: 1px solid var(--msgv2-border);
+  color: var(--msgv2-fg);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  min-width: 24px;
+  padding: 4px 7px;
+}
+
+.msgv2-density-step:last-child {
+  border-left: 1px solid var(--msgv2-border);
+  border-right: 0;
+}
+
+.msgv2-density-step:hover:not(:disabled) {
+  background: var(--msgv2-hover-bg);
+}
+
+.msgv2-density-step:disabled {
+  color: var(--msgv2-fg-faint);
+  cursor: default;
+  opacity: 0.45;
 }
 
 .msgv2-density-pip {

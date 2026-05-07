@@ -189,6 +189,55 @@ assert_validator_present \
   "CSL0008"
 assert_baseline_anchor "csl0008-taint-to-string-slice" "CSL0008"
 
+# Mythos-level analyzers (CSL0009-CSL0016) - full runtime semantic sink batch.
+assert_validator_present \
+  "csl0009-taint-to-diagnostic" \
+  "analyzers/Soulseek.CouncilAnalyzers/TaintToDiagnosticAnalyzer.cs" \
+  "CSL0009"
+assert_baseline_anchor "csl0009-taint-to-diagnostic" "CSL0009"
+
+assert_validator_present \
+  "csl0010-taint-to-message-builder" \
+  "analyzers/Soulseek.CouncilAnalyzers/TaintToMessageBuilderAnalyzer.cs" \
+  "CSL0010"
+assert_baseline_anchor "csl0010-taint-to-message-builder" "CSL0010"
+
+assert_validator_present \
+  "csl0011-taint-to-cache-key" \
+  "analyzers/Soulseek.CouncilAnalyzers/TaintToCacheKeyAnalyzer.cs" \
+  "CSL0011"
+assert_baseline_anchor "csl0011-taint-to-cache-key" "CSL0011"
+
+assert_validator_present \
+  "csl0012-taint-to-crypto-trust" \
+  "analyzers/Soulseek.CouncilAnalyzers/TaintToCryptoTrustAnalyzer.cs" \
+  "CSL0012"
+assert_baseline_anchor "csl0012-taint-to-crypto-trust" "CSL0012"
+
+assert_validator_present \
+  "csl0013-taint-to-dynamic-execution" \
+  "analyzers/Soulseek.CouncilAnalyzers/TaintToDynamicExecutionAnalyzer.cs" \
+  "CSL0013"
+assert_baseline_anchor "csl0013-taint-to-dynamic-execution" "CSL0013"
+
+assert_validator_present \
+  "csl0014-taint-to-parser-runtime" \
+  "analyzers/Soulseek.CouncilAnalyzers/TaintToParserRuntimeAnalyzer.cs" \
+  "CSL0014"
+assert_baseline_anchor "csl0014-taint-to-parser-runtime" "CSL0014"
+
+assert_validator_present \
+  "csl0015-taint-to-resource-capacity" \
+  "analyzers/Soulseek.CouncilAnalyzers/TaintToResourceCapacityAnalyzer.cs" \
+  "CSL0015"
+assert_baseline_anchor "csl0015-taint-to-resource-capacity" "CSL0015"
+
+assert_validator_present \
+  "csl0016-taint-to-buffer-operation" \
+  "analyzers/Soulseek.CouncilAnalyzers/TaintToBufferOperationAnalyzer.cs" \
+  "CSL0016"
+assert_baseline_anchor "csl0016-taint-to-buffer-operation" "CSL0016"
+
 # Protocol fuzz harness — same logic; absence silently disables coverage.
 assert_validator_present \
   "protocol-fuzz-harness" \

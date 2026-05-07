@@ -2209,6 +2209,14 @@ namespace slskd
                 var sw = new Stopwatch();
                 sw.Start();
 
+                if (token < 0)
+                {
+                    Metrics.Search.Incoming.RequestsDropped.Inc(1);
+                    Metrics.Search.Incoming.CurrentRequestDropRate.CountUp(1);
+
+                    return null;
+                }
+
                 if (Users.IsBlacklisted(username))
                 {
                     return null;

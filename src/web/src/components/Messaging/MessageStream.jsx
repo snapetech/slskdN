@@ -15,6 +15,7 @@ const NICK_PALETTE = [
 ];
 
 const SAME_SENDER_WINDOW_MS = 60_000;
+const MAX_RENDERED_MESSAGES = 300;
 
 const nickColor = (name) => {
   if (!name) return NICK_PALETTE[0];
@@ -92,6 +93,15 @@ const buildItems = (messages, newSinceIndex) => {
 };
 
 const URL_REGEX = /\b(?:https?|ftp):\/\/[^\s<>"'()]+[^\s<>"'(),.!?:;]/g;
+
+const messageRenderKey = (message, fallbackIndex) =>
+  message.id ||
+  `${message.timestamp || message.time || message.ts || ''}\u0001${message.sender || ''}\u0001${message.body || ''}\u0001${fallbackIndex}`;
+
+const messageListSignature = (messages) =>
+  messages
+    .map((message, index) => messageRenderKey(message, index))
+    .join('\u0002');
 
 const autolink = (text) => {
   if (typeof text !== 'string' || text.length === 0) return [text];
@@ -233,6 +243,7 @@ const messageMatches = (message, query) => {
 const MessageRow = ({
   activeMatch,
   item,
+  matchesSearch,
   onCopy,
   onQuote,
   onSenderClick,
@@ -252,7 +263,7 @@ const MessageRow = ({
     return (
       <div
         className="msg-stream-row msg-stream-row-listenalong"
-        data-search-match={messageMatches(message, searchQuery) ? 'true' : undefined}
+        data-search-match={matchesSearch ? 'true' : undefined}
         data-search-active={activeMatch ? 'true' : undefined}
         data-self={message.isSelf ? 'true' : undefined}
         ref={rowRef}
@@ -268,7 +279,7 @@ const MessageRow = ({
     return (
       <div
         className="msg-stream-row msg-stream-row-me"
-        data-search-match={messageMatches(message, searchQuery) ? 'true' : undefined}
+        data-search-match={matchesSearch ? 'true' : undefined}
         data-search-active={activeMatch ? 'true' : undefined}
         data-self={message.isSelf ? 'true' : undefined}
         ref={rowRef}
@@ -293,7 +304,7 @@ const MessageRow = ({
     <div
       className="msg-stream-row msg-stream-row-text"
       data-compact={!showSender ? 'true' : undefined}
-      data-search-match={messageMatches(message, searchQuery) ? 'true' : undefined}
+      data-search-match={matchesSearch ? 'true' : undefined}
       data-search-active={activeMatch ? 'true' : undefined}
       data-self={message.isSelf ? 'true' : undefined}
       ref={rowRef}
@@ -349,7 +360,9 @@ const MessageStream = ({ adapter, emptyHint, onCopy, onQuote, onSenderClick }) =
     try {
       const result = await adapter.list();
       const next = Array.isArray(result?.messages) ? result.messages : [];
-      setMessages(next);
+      setMessages((previous) =>
+        messageListSignature(previous) === messageListSignature(next) ? previous : next,
+      );
       setError(null);
     } catch (caught) {
       console.error('MessageStream refresh failed:', caught);
@@ -407,21 +420,39 @@ const MessageStream = ({ adapter, emptyHint, onCopy, onQuote, onSenderClick }) =
       ? lastSeenCount
       : null;
 
-  const items = useMemo(
-    () => buildItems(messages, newSinceIndex),
-    [messages, newSinceIndex],
-  );
-
   const newCount = newSinceIndex !== null ? messages.length - newSinceIndex : 0;
   const searchQuery = searchDraft.trim();
+  const searchActive = searchQuery.length > 0;
+  const visibleOffset = searchActive
+    ? 0
+    : Math.max(0, messages.length - MAX_RENDERED_MESSAGES);
+  const visibleMessages = useMemo(
+    () => messages.slice(visibleOffset),
+    [messages, visibleOffset],
+  );
+  const visibleNewSinceIndex =
+    newSinceIndex !== null && newSinceIndex >= visibleOffset
+      ? newSinceIndex - visibleOffset
+      : null;
+  const hiddenMessageCount = visibleOffset;
+
+  const items = useMemo(
+    () => buildItems(visibleMessages, visibleNewSinceIndex),
+    [visibleMessages, visibleNewSinceIndex],
+  );
+
   const matchingIndexes = useMemo(
     () =>
-      searchQuery
+      searchActive
         ? messages
             .map((message, index) => (messageMatches(message, searchQuery) ? index : null))
             .filter((index) => index !== null)
         : [],
-    [messages, searchQuery],
+    [messages, searchActive, searchQuery],
+  );
+  const matchingIndexSet = useMemo(
+    () => new Set(matchingIndexes),
+    [matchingIndexes],
   );
   const activeMatchIndex = matchingIndexes[searchCursor] ?? null;
 
@@ -502,25 +533,33 @@ const MessageStream = ({ adapter, emptyHint, onCopy, onQuote, onSenderClick }) =
             {error ? 'Could not load messages.' : emptyHint || 'No messages yet.'}
           </div>
         ) : (
-          items.map((item, index) => {
-            if (item.kind === 'day') {
-              return <DaySeparator key={`day-${item.ts}-${index}`} ts={item.ts} />;
-            }
-            if (item.kind === 'newmarker') {
-              return <NewMessagesMarker key={`new-${index}`} />;
-            }
-            return (
-              <MessageRow
-                activeMatch={item.messageIndex === activeMatchIndex}
-                item={item}
-                key={item.message.id || index}
-                onCopy={onCopy}
-                onQuote={onQuote}
-                onSenderClick={onSenderClick}
-                searchQuery={searchQuery}
-              />
-            );
-          })
+          <>
+            {hiddenMessageCount > 0 && (
+              <div className="msg-stream-truncated">
+                Showing latest {MAX_RENDERED_MESSAGES} of {messages.length} messages. Use search to scan full history.
+              </div>
+            )}
+            {items.map((item, index) => {
+              if (item.kind === 'day') {
+                return <DaySeparator key={`day-${item.ts}-${index}`} ts={item.ts} />;
+              }
+              if (item.kind === 'newmarker') {
+                return <NewMessagesMarker key={`new-${index}`} />;
+              }
+              return (
+                <MessageRow
+                  activeMatch={item.messageIndex + visibleOffset === activeMatchIndex}
+                  item={item}
+                  key={messageRenderKey(item.message, item.messageIndex + visibleOffset)}
+                  matchesSearch={searchActive && matchingIndexSet.has(item.messageIndex + visibleOffset)}
+                  onCopy={onCopy}
+                  onQuote={onQuote}
+                  onSenderClick={onSenderClick}
+                  searchQuery={searchActive ? searchQuery : ''}
+                />
+              );
+            })}
+          </>
         )}
       </div>
       {!stuck && (
@@ -551,5 +590,5 @@ const NewMessagesMarker = () => (
   </div>
 );
 
-export default MessageStream;
+export default React.memo(MessageStream);
 export { autolink, nickColor };

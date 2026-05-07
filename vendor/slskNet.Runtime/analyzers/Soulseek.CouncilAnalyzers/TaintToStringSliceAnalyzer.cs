@@ -87,10 +87,48 @@ namespace Soulseek.CouncilAnalyzers
                 return;
             }
 
+            var receiverType = context.SemanticModel.GetTypeInfo(access.Expression).Type;
+            if (!IsIndexableSequence(receiverType))
+            {
+                return;
+            }
+
             foreach (var argument in access.ArgumentList.Arguments)
             {
                 ReportIfTainted(context, argument.Expression);
             }
+        }
+
+        private static bool IsIndexableSequence(ITypeSymbol? type)
+        {
+            if (type == null)
+            {
+                return false;
+            }
+
+            if (type.TypeKind == TypeKind.Array ||
+                type.SpecialType == SpecialType.System_String ||
+                type.Name.Contains("List") ||
+                type.Name.Contains("Memory") ||
+                type.Name.Contains("Span"))
+            {
+                return true;
+            }
+
+            if (type is not INamedTypeSymbol namedType)
+            {
+                return false;
+            }
+
+            foreach (var iface in namedType.AllInterfaces)
+            {
+                if (iface.Name == "IList" || iface.Name == "IReadOnlyList")
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static void ReportIfTainted(SyntaxNodeAnalysisContext context, ExpressionSyntax expression)

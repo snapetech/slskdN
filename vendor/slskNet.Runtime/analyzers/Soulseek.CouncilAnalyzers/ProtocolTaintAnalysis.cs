@@ -53,7 +53,28 @@ namespace Soulseek.CouncilAnalyzers
             "ValidateSliceBounds",
             "RequireSliceBounds",
             "RequireNonNegative",
-            "RequireMaximumUtf8Length");
+            "RequireMaximumUtf8Length",
+            "EscapeControlCharacters",
+            "FormatDiagnosticValue",
+            "RequireLogLineSafe",
+            "ToDiagnosticString",
+            "NormalizeCacheKey",
+            "RequireCacheKey",
+            "NormalizeWaitKey",
+            "RequireOutboundArgument",
+            "RequireOutboundCount",
+            "RequireOutboundString",
+            "RequireCryptoMaterial",
+            "ValidateCryptoMaterial",
+            "ValidatePublicKey",
+            "ValidateSignature",
+            "RequireAllowlistedType",
+            "RequireSafeProcessArgument",
+            "ValidateParserLimits",
+            "ValidateRegexTimeout",
+            "RequireBoundedCapacity",
+            "ValidateBufferCount",
+            "RequireBufferCount");
 
         public static Classification ClassifyExpression(SemanticModel model, ExpressionSyntax? expression)
         {

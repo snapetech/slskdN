@@ -103,6 +103,8 @@ const formatUnread = (count) => {
   return count > 99 ? '99+' : String(count);
 };
 
+const zoomIndex = (zoom) => Math.max(0, ZOOM_LEVELS.indexOf(zoom));
+
 const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   const navigate = useNavigate();
   const params = useParams();
@@ -151,6 +153,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   const [userPopover, setUserPopover] = useState(null);
   const [composerDraft, setComposerDraft] = useState('');
   const composerInputRef = useRef(null);
+  const lastWheelZoomAt = useRef(0);
 
   const hydrate = useCallback(async () => {
     const [serverConversations, serverJoinedRooms, serverPods] = await Promise.all([
@@ -275,6 +278,33 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
       );
     },
     [updateWorkspace],
+  );
+
+  const adjustZoom = useCallback(
+    (delta) => {
+      updateWorkspace((previous) => {
+        const currentIndex = zoomIndex(previous.zoom);
+        const nextIndex = Math.min(
+          ZOOM_LEVELS.length - 1,
+          Math.max(0, currentIndex + delta),
+        );
+        const nextZoom = ZOOM_LEVELS[nextIndex];
+        return previous.zoom === nextZoom ? previous : { ...previous, zoom: nextZoom };
+      });
+    },
+    [updateWorkspace],
+  );
+
+  const handleWheelZoom = useCallback(
+    (event) => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      const now = Date.now();
+      if (now - lastWheelZoomAt.current < 90) return;
+      lastWheelZoomAt.current = now;
+      adjustZoom(event.deltaY < 0 ? 1 : -1);
+    },
+    [adjustZoom],
   );
 
   const toggleSection = useCallback(
@@ -539,13 +569,16 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   const showSoulseek = networkFilter !== 'mesh';
   const showMesh = networkFilter !== 'soulseek';
 
-  const activePodChannel =
-    activeTab?.type === 'pod'
-      ? podChannels.find((channel) => channel.target === activeTab.target) ?? {
-          ...decodePodTarget(activeTab.target),
-          podName: activeTab.label,
-        }
-      : null;
+  const activePodChannel = useMemo(
+    () =>
+      activeTab?.type === 'pod'
+        ? podChannels.find((channel) => channel.target === activeTab.target) ?? {
+            ...decodePodTarget(activeTab.target),
+            podName: activeTab.label,
+          }
+        : null,
+    [activeTab?.label, activeTab?.target, activeTab?.type, podChannels],
+  );
 
   const currentUser = state?.user?.username;
 
@@ -561,18 +594,26 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
       return createPodAdapter({ channel: activePodChannel, currentUser });
     }
     return null;
-  }, [activeTab, activePodChannel, currentUser]);
+  }, [activePodChannel, activeTab?.target, activeTab?.type, currentUser]);
 
   useEffect(() => {
-    setAdapterMembers([]);
-    if (!adapter || typeof adapter.members !== 'function') return undefined;
+    if (!adapter || typeof adapter.members !== 'function') {
+      setAdapterMembers((previous) => (previous.length === 0 ? previous : []));
+      return undefined;
+    }
     let cancelled = false;
+    const applyMembers = (members) => {
+      const next = Array.isArray(members) ? members : [];
+      setAdapterMembers((previous) =>
+        memberListSignature(previous) === memberListSignature(next) ? previous : next,
+      );
+    };
     const refresh = async () => {
       try {
         const members = await adapter.members();
-        if (!cancelled) setAdapterMembers(Array.isArray(members) ? members : []);
+        if (!cancelled) applyMembers(members);
       } catch {
-        if (!cancelled) setAdapterMembers([]);
+        if (!cancelled) applyMembers([]);
       }
     };
     refresh();
@@ -705,6 +746,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
     <div
       className="msgv2"
       data-zoom={workspace.zoom}
+      onWheelCapture={handleWheelZoom}
       style={gridStyle}
     >
       <aside className="msgv2-rail">
@@ -955,6 +997,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
               </button>
             )}
             <DensityToggle
+              onAdjust={adjustZoom}
               onChange={setZoom}
               value={workspace.zoom}
             />
@@ -1055,7 +1098,13 @@ const memberDisplay = (member) =>
 const memberRole = (member) =>
   member.role || member.Role || (member.isOperator ? 'operator' : null);
 
-const MemberRail = ({ members, onSelect }) => (
+const memberListSignature = (members) =>
+  members
+    .map((member) => `${memberKey(member)}\u0001${memberDisplay(member)}\u0001${memberRole(member) || ''}`)
+    .sort()
+    .join('\u0002');
+
+const MemberRail = React.memo(({ members, onSelect }) => (
   <aside
     aria-label="Members"
     className="msgv2-members"
@@ -1090,7 +1139,7 @@ const MemberRail = ({ members, onSelect }) => (
       </ul>
     )}
   </aside>
-);
+));
 
 const TreeSection = ({
   accent,
@@ -1231,25 +1280,50 @@ const InlineAddForm = ({
   );
 };
 
-const DensityToggle = ({ onChange, value }) => (
+const DensityToggle = ({ onAdjust, onChange, value }) => (
   <div
-    aria-label="Density"
+    aria-label="Messages UI size"
     className="msgv2-density"
-    role="radiogroup"
   >
-    {ZOOM_LEVELS.map((level) => (
-      <button
-        aria-checked={value === level}
-        className={`msgv2-density-pip ${value === level ? 'is-active' : ''}`}
-        key={level}
-        onClick={() => onChange(level)}
-        role="radio"
-        title={`Density ${level.toUpperCase()}`}
-        type="button"
-      >
-        {level.toUpperCase()}
-      </button>
-    ))}
+    <button
+      aria-label="Make Messages UI smaller"
+      className="msgv2-density-step"
+      disabled={zoomIndex(value) === 0}
+      onClick={() => onAdjust(-1)}
+      title="Make the entire Messages UI smaller"
+      type="button"
+    >
+      −
+    </button>
+    <div
+      aria-label="Messages UI size presets"
+      className="msgv2-density-presets"
+      role="radiogroup"
+    >
+      {ZOOM_LEVELS.map((level) => (
+        <button
+          aria-checked={value === level}
+          className={`msgv2-density-pip ${value === level ? 'is-active' : ''}`}
+          key={level}
+          onClick={() => onChange(level)}
+          role="radio"
+          title={`Messages UI size ${level.toUpperCase()}`}
+          type="button"
+        >
+          {level.toUpperCase()}
+        </button>
+      ))}
+    </div>
+    <button
+      aria-label="Make Messages UI larger"
+      className="msgv2-density-step"
+      disabled={zoomIndex(value) === ZOOM_LEVELS.length - 1}
+      onClick={() => onAdjust(1)}
+      title="Make the entire Messages UI larger"
+      type="button"
+    >
+      +
+    </button>
   </div>
 );
 

@@ -1,5 +1,11 @@
 ## 2026-05-06
 
+- Deployed a Messaging V2 sizing/layout follow-up to `kspls0`: visible `-`/`+` whole-UI size controls now wrap the S/M/L/XL presets, Ctrl/Cmd+wheel is captured inside Messages for pane-only resizing, the pane height is bounded by nav/footer/player CSS variables, and inactive search matching does less per-row work. Validation passed: focused Messaging Vitest (`21/21`), Web lint, and production Web build. Synced the rebuilt web bundle to `/usr/lib/slskd/current/wwwroot`, restarted `slskd.service`, and verified HTTP 200, active PID `3071009`, startup completion, mesh neighbor connectivity, VPN readiness, and Soulseek login as `Jarvis1984`.
+
+
+- Built and manually deployed custom frontend/backend release `0.0.0-slskdn.manual.20260507022201.ae68db572` to `kspls0` at `/usr/lib/slskd/releases/manual-20260507022201.ae68db572`. Stopped the previous `slskd.service`, repointed `/usr/lib/slskd/current`, restarted the service, and verified HTTP 200 on `http://kspls0:5030/`, active PID `3057278`, expected listeners, initialization completion, VPN readiness, and Soulseek login as `Jarvis1984`. Health is `Degraded` due to mesh peer connectivity warnings.
+
+
 - Completed the remaining Messaging V2 route work: `/messages` now renders V2 directly without the legacy localStorage feature flag, the inline V1 pod channel session was removed from the route, `/leave` now calls the active room/pod leave action, and `MessageStream` gained active-conversation search with match highlighting and keyboard navigation. Phase 7 server-push transport remains deferred because it requires backend/SignalR contract work and would change polling behavior. Validation passed: focused Messaging Vitest (`21/21`), Web lint, production Web build, and headless Playwright cutover smoke (`messages_route_uses_v2_when_legacy_flag_is_off`) with `SLSKDN_TEST_NO_CONNECT=true`.
 
 - Fixed `BUG-20260506-104`: the Rooms toolbar now renders a visible green `Join Room` action again, backed by `RoomJoinModal`. The available room list is normalized before rendering, and focused Web coverage verifies selecting `slskdn` joins with `rooms.join({ roomName: 'slskdn' })`. Documented ADR-0001 gotcha `0z99`.
@@ -9962,3 +9968,5 @@ Code quality improvements were completed as part of Option A:
 - Recorded and verified `BUG-20260506-092`.
 - Corrected the negative-space inventory's controller sink paths from non-existent `src/slskd.Web/Controllers` to the active `src/slskd` API/controller layout.
 - Strengthened `scripts/check-council-negative-space.sh` so mutating API, anonymous endpoint, path containment, outbound HTTP, durable state, and runtime-crossing boundaries each assert validator presence and remediation-baseline registration.
+
+- 2026-05-07 02:39:03Z Messaging V2 flicker/resource hotfix: capped passive rendering remains in place, preserved member/message poll identity, memoized high-churn panes, added stable message row keys, dropped negative distributed search tokens before response construction, built and deployed custom release manual-20260507023404.neg-token-fix to kspls0.

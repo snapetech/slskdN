@@ -53,29 +53,40 @@ namespace Soulseek.CouncilAnalyzers
             context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
             context.EnableConcurrentExecution();
             context.RegisterSyntaxNodeAction(AnalyzeForStatement, SyntaxKind.ForStatement);
+            context.RegisterSyntaxNodeAction(AnalyzeWhileStatement, SyntaxKind.WhileStatement);
+            context.RegisterSyntaxNodeAction(AnalyzeDoStatement, SyntaxKind.DoStatement);
         }
 
         private static void AnalyzeForStatement(SyntaxNodeAnalysisContext context)
         {
             var statement = (ForStatementSyntax)context.Node;
-            if (statement.Condition is not BinaryExpressionSyntax condition)
+            AnalyzeCondition(context, statement.Condition);
+        }
+
+        private static void AnalyzeWhileStatement(SyntaxNodeAnalysisContext context)
+        {
+            var statement = (WhileStatementSyntax)context.Node;
+            AnalyzeCondition(context, statement.Condition);
+        }
+
+        private static void AnalyzeDoStatement(SyntaxNodeAnalysisContext context)
+        {
+            var statement = (DoStatementSyntax)context.Node;
+            AnalyzeCondition(context, statement.Condition);
+        }
+
+        private static void AnalyzeCondition(SyntaxNodeAnalysisContext context, ExpressionSyntax? condition)
+        {
+            if (condition is BinaryExpressionSyntax binary)
             {
+                TaintDiagnosticHelpers.ReportIfTainted(context, Rule, binary.Left);
+                TaintDiagnosticHelpers.ReportIfTainted(context, Rule, binary.Right);
                 return;
             }
 
-            ReportIfTainted(context, condition.Left);
-            ReportIfTainted(context, condition.Right);
-        }
-
-        private static void ReportIfTainted(SyntaxNodeAnalysisContext context, ExpressionSyntax expression)
-        {
-            var classification = ProtocolTaintAnalysis.ClassifyExpression(context.SemanticModel, expression);
-            if (classification.IsTainted && !classification.HasSanctionedValidator)
+            if (condition != null)
             {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    Rule,
-                    expression.GetLocation(),
-                    classification.TaintedSourceName ?? "protocol reader"));
+                TaintDiagnosticHelpers.ReportIfTainted(context, Rule, condition);
             }
         }
     }

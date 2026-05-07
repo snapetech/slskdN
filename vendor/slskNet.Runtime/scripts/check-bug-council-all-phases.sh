@@ -76,6 +76,7 @@ assert_phase_done "Active backlog"
 assert_phase_done "Add CSL0003"
 assert_phase_done "Add CSL0004"
 assert_phase_done "Add batched semantic"
+assert_phase_done "Add full runtime semantic"
 
 if [ "$failed" -ne 0 ]; then
   exit 1

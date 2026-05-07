@@ -15504,3 +15504,56 @@ npm run check:council
 ```
 
 **Why This Keeps Happening**: Replacing a modal workflow with a compact inline control can keep the API path technically reachable while removing the visible primary action users rely on. Any toolbar with paired create/join, add/remove, start/stop, or import/export actions needs a regression test that asserts both visible buttons and the underlying action call.
+
+### 0z348. Messaging V2 Size Controls Must Be Explicit And Viewport-Bounded
+
+**The Bug**: Messaging V2 relied on small S/M/L/XL density presets and did not intercept Ctrl/Cmd+wheel, so users trying to resize the chat surface triggered browser/page zoom and expensive whole-app reflow. The pane also used a hard-coded `100vh - 110px` height that could extend under the player/footer instead of staying in the app's available content slot.
+
+**Files Affected**:
+- `src/web/src/components/Messaging/MessagingV2.jsx`
+- `src/web/src/components/Messaging/MessagingV2.css`
+
+**Wrong**:
+```jsx
+<DensityToggle onChange={setZoom} value={workspace.zoom} />
+```
+
+```css
+.msgv2 {
+  height: calc(100vh - 110px);
+}
+```
+
+**Correct**:
+```jsx
+<DensityToggle onAdjust={adjustZoom} onChange={setZoom} value={workspace.zoom} />
+```
+
+```css
+.msgv2 {
+  height: calc(
+    100dvh -
+    var(--slskdn-nav-height, 58px) -
+    var(--slskdn-footer-height, 43px) -
+    var(--slskdn-player-reserved-height, var(--slskdn-player-height, 248px)) -
+    12px
+  );
+}
+```
+
+**Why This Keeps Happening**: Density presets are technically functional but not discoverable as whole-UI zoom controls, and browser Ctrl+wheel feels like the obvious resize gesture. Messages must provide explicit `-`/`+` controls, capture Ctrl/Cmd+wheel inside the pane, and use the app layout CSS variables so the chat surface never renders under persistent chrome.
+### 0z349. Drop Negative Distributed Search Tokens Before Building Responses
+
+**What went wrong:** Some Soulseek peers send distributed search requests with negative tokens. `SearchResponse` rejects those tokens, so otherwise valid incoming search handling can throw and spam warnings on a hot path.
+
+**Why:** The peer-supplied token reaches response construction after share search work has already happened.
+
+**How to prevent:** Validate `token < 0` at the start of `SearchResponseResolver`, increment incoming-search drop metrics, and return `null` before filtering/searching/building a response.
+
+### 0z350. Preserve Messaging Poll Identity To Avoid Flicker
+
+**What went wrong:** Messaging V2 polls can return fresh arrays with unchanged member/message content. Writing those arrays directly to state forces React to repaint panes every poll, which looks like flicker even when no message changed.
+
+**Why:** React state identity changed on every poll, and fallback row keys based on visible indexes caused unnecessary row reuse/remount work as capped windows shifted.
+
+**How to prevent:** Compare compact render signatures before state writes, preserve previous state for unchanged poll results, memoize high-churn panes, and use stable message render keys instead of visible-slice indexes.

@@ -141,12 +141,19 @@
 }
 
 .msg-stream-loading,
-.msg-stream-empty {
+.msg-stream-empty,
+.msg-stream-truncated {
   color: var(--msgv2-fg-faint, rgba(239, 231, 220, 0.32));
   text-align: center;
   padding: 24px 12px;
   font-style: italic;
   font-size: 0.95em;
+}
+
+.msg-stream-truncated {
+  padding: 6px 12px;
+  border-bottom: 1px dashed var(--msgv2-border, rgba(255, 255, 255, 0.08));
+  font-size: 0.82em;
 }
 
 /* day separator */

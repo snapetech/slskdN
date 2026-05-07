@@ -24,6 +24,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 - Improved Messaging workspace command controls with command help, quick
   switching, unread markers, URL autolinking, and composer regression coverage.
+- Synced vendored slskNet.Runtime validation coverage for diagnostic,
+  outbound-message, cache-key, crypto-trust, dynamic-execution, parser-runtime,
+  resource-capacity, and buffer-operation protocol boundaries.
 - Added Messaging stream jump-to-latest controls and link rendering coverage.
 - Completed the Messaging v2 cutover with user popovers, composer polish, and
   focused regression coverage.

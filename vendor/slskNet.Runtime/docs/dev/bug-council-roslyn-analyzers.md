@@ -23,6 +23,14 @@ The council ships a small Roslyn analyzer project, `analyzers/Soulseek.CouncilAn
 | CSL0006 | TaintToEndpoint | High | Network-derived address, endpoint, DNS, or URI component without sanctioned endpoint validation. This catches hostile peer-controlled network targets and malformed endpoints before connection code trusts them. |
 | CSL0007 | TaintToEnum | High | Network-derived enum or status conversion without defined-value validation. This catches undefined protocol states before they cross switch/capability/trust decisions. |
 | CSL0008 | TaintToStringSlice | High | Network-derived slice index or length without sanctioned range validation. This catches hostile `Substring`, `Slice`, `GetRange`, and indexer bounds that can throw, truncate incorrectly, or desynchronize parsing. |
+| CSL0009 | TaintToDiagnostic | High | Network-derived diagnostic/log text without log-line/control-character validation. Values stay operator-visible; this lens targets forged-line/control-character injection, not privacy redaction. |
+| CSL0010 | TaintToMessageBuilder | High | Network-derived outbound `MessageBuilder` values without outbound argument validation. Message-code dispatch enums are intentionally excluded because unknown distributed codes must remain forwardable. |
+| CSL0011 | TaintToCacheKey | High | Network-derived cache, dictionary, or correlation key without normalization/bounding. This catches unbounded key growth, dedupe bypass, and wait-map poisoning shapes. |
+| CSL0012 | TaintToCryptoTrust | High | Network-derived key/signature/trust bytes without explicit size/format verification before cryptographic trust APIs. |
+| CSL0013 | TaintToDynamicExecution | High | Network-derived reflection, assembly loading, type lookup, or process execution input without allowlist validation. |
+| CSL0014 | TaintToParserRuntime | High | Network-derived regex, JSON, XML, or parser-runtime input without parser limits or timeout validation. |
+| CSL0015 | TaintToResourceCapacity | High | Network-derived concurrency/resource capacity values without sanctioned bounds. Sinks include bounded channels, semaphores, blocking collections, stream length, and capacity setters. |
+| CSL0016 | TaintToBufferOperation | High | Network-derived buffer, stream, pool, or compression operation counts without sanctioned bounds. Sinks include stream read/write/copy counts and buffer pool rents. |
 
 The `Severity (council)` column is the council's severity-schema tier; the analyzer's reported `DiagnosticSeverity` is `Warning` because errors would block the build for partial-knowledge cases. The council severity is what determines triage priority.
 

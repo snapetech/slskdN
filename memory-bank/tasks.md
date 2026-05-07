@@ -11,6 +11,18 @@
 
 *No high priority tasks currently active
 
+- [x] Fix Messaging V2 size controls, viewport bounds, and redeploy to kspls0.
+ - Status: completed (2026-05-06)
+ - Priority: P1
+ - Notes: Added visible `-`/`+` whole-Messages UI size controls, captured Ctrl/Cmd+wheel for pane-only resizing, bounded the pane between nav/player/footer using app CSS variables, reduced inactive search render overhead, documented ADR-0001 gotcha `0z348`, passed focused Messaging Vitest (`21/21`), Web lint, production Web build, and redeployed the web bundle to `kspls0` with service PID `3071009`.
+
+
+- [x] Deploy custom Messaging V2 build to kspls0.
+ - Status: completed (2026-05-06)
+ - Priority: P1
+ - Notes: Built and deployed `0.0.0-slskdn.manual.20260507022201.ae68db572` to `/usr/lib/slskd/releases/manual-20260507022201.ae68db572`, stopped the previous service, repointed `/usr/lib/slskd/current`, restarted `slskd.service`, and verified HTTP 200, active PID `3057278`, expected listeners, startup completion, VPN readiness, and Soulseek login as `Jarvis1984`. Health remains `Degraded` from mesh peer connectivity warnings.
+
+
 - [x] Retire Messaging V1 route and finish Messaging V2 search polish.
  - Status: completed (2026-05-06)
  - Priority: P2
@@ -2669,3 +2681,5 @@
 - [x] **bug-council**: Run broader non-runtime negative-space cycle
   - Status: completed (2026-05-06)
   - Notes: Incorporated the updated slskd council phase/negative-space gate, classified the new gate's false-negative gap, and fixed `BUG-20260506-092` by correcting controller boundary sink paths and making `scripts/check-council-negative-space.sh` enforce every declared boundary plus detailed remediation-baseline registration.
+
+- 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.

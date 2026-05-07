@@ -30,6 +30,11 @@ namespace Soulseek.Messaging
         public string ReadString() => string.Empty;
         public void Seek(int position) { }
     }
+
+    internal sealed class MessageBuilder
+    {
+        public MessageBuilder WriteString(string value) => this;
+    }
 }
 
 namespace Soulseek.Messaging.Messages.Server
@@ -53,6 +58,39 @@ namespace Soulseek.Messaging.Messages.Server
         public static int ValidateSliceBounds(int value) => value;
         public static int ValidateTimeout(int value) => value;
         public static DummyStatus ValidateDefinedEnum(DummyStatus value) => value;
+        public static int RequireBoundedCapacity(int value) => value;
+        public static int RequireBufferCount(int value) => value;
+        public static byte[] RequireCryptoMaterial(byte[] value) => value;
+        public static string NormalizeCacheKey(string value) => value;
+        public static string RequireOutboundString(string value) => value;
+        public static string RequireSafeProcessArgument(string value) => value;
+        public static string ToDiagnosticString(string value) => value;
+        public static string ValidateParserLimits(string value) => value;
+    }
+
+    internal static class Logger
+    {
+        public static void WriteLine(string value) { }
+    }
+
+    internal sealed class Verifier
+    {
+        public bool VerifySignature(byte[] signature) => true;
+    }
+
+    internal static class Regex
+    {
+        public static string Replace(string input, string pattern, string replacement) => input;
+    }
+
+    internal static class Channel
+    {
+        public static object CreateBounded(int capacity) => new object();
+    }
+
+    internal sealed class Pool
+    {
+        public byte[] Rent(int minimumLength) => new byte[minimumLength];
     }
 
     internal enum DummyCode { None }
@@ -61,7 +99,7 @@ namespace Soulseek.Messaging.Messages.Server
 ";
 
         [Fact]
-        public async Task Calibration_Corpus_Fires_CSL0001_Through_CSL0008_On_Known_Bad_Shapes()
+        public async Task Calibration_Corpus_Fires_CSL0001_Through_CSL0016_On_Known_Bad_Shapes()
         {
             var source = Harness + @"
 namespace Soulseek.Messaging.Messages.Server
@@ -133,6 +171,55 @@ namespace Soulseek.Messaging.Messages.Server
             var offset = reader.ReadInteger();
             return text.Substring(offset);
         }
+
+        public void ParseDiagnostic(MessageReader<DummyCode> reader)
+        {
+            var text = reader.ReadString();
+            Logger.WriteLine(text);
+        }
+
+        public void ParseOutbound(MessageReader<DummyCode> reader, MessageBuilder builder)
+        {
+            var text = reader.ReadString();
+            builder.WriteString(text);
+        }
+
+        public void ParseCache(MessageReader<DummyCode> reader)
+        {
+            var key = reader.ReadString();
+            var cache = new System.Collections.Generic.Dictionary<string, int>();
+            cache[key] = 1;
+        }
+
+        public bool ParseCrypto(MessageReader<DummyCode> reader, Verifier verifier)
+        {
+            var signature = reader.ReadBytes(64);
+            return verifier.VerifySignature(signature);
+        }
+
+        public Type? ParseDynamic(MessageReader<DummyCode> reader)
+        {
+            var typeName = reader.ReadString();
+            return Type.GetType(typeName);
+        }
+
+        public string ParseRuntime(MessageReader<DummyCode> reader)
+        {
+            var pattern = reader.ReadString();
+            return Regex.Replace(""input"", pattern, ""replacement"");
+        }
+
+        public object ParseCapacity(MessageReader<DummyCode> reader)
+        {
+            var capacity = reader.ReadInteger();
+            return Channel.CreateBounded(capacity);
+        }
+
+        public byte[] ParseBuffer(MessageReader<DummyCode> reader, Pool pool)
+        {
+            var count = reader.ReadInteger();
+            return pool.Rent(count);
+        }
     }
 }
 ";
@@ -146,6 +233,14 @@ namespace Soulseek.Messaging.Messages.Server
             Assert.Single(diagnostics.Where(d => d.Id == TaintToEndpointAnalyzer.DiagnosticId));
             Assert.Single(diagnostics.Where(d => d.Id == TaintToEnumAnalyzer.DiagnosticId));
             Assert.Single(diagnostics.Where(d => d.Id == TaintToStringSliceAnalyzer.DiagnosticId));
+            Assert.Single(diagnostics.Where(d => d.Id == TaintToDiagnosticAnalyzer.DiagnosticId));
+            Assert.Single(diagnostics.Where(d => d.Id == TaintToMessageBuilderAnalyzer.DiagnosticId));
+            Assert.Single(diagnostics.Where(d => d.Id == TaintToCacheKeyAnalyzer.DiagnosticId));
+            Assert.Single(diagnostics.Where(d => d.Id == TaintToCryptoTrustAnalyzer.DiagnosticId));
+            Assert.Single(diagnostics.Where(d => d.Id == TaintToDynamicExecutionAnalyzer.DiagnosticId));
+            Assert.Single(diagnostics.Where(d => d.Id == TaintToParserRuntimeAnalyzer.DiagnosticId));
+            Assert.Single(diagnostics.Where(d => d.Id == TaintToResourceCapacityAnalyzer.DiagnosticId));
+            Assert.Single(diagnostics.Where(d => d.Id == TaintToBufferOperationAnalyzer.DiagnosticId));
         }
 
         [Fact]
@@ -213,6 +308,55 @@ namespace Soulseek.Messaging.Messages.Server
             var offset = ProtocolValueValidator.ValidateSliceBounds(reader.ReadInteger());
             return text.Substring(offset);
         }
+
+        public void ParseDiagnostic(MessageReader<DummyCode> reader)
+        {
+            var text = ProtocolValueValidator.ToDiagnosticString(reader.ReadString());
+            Logger.WriteLine(text);
+        }
+
+        public void ParseOutbound(MessageReader<DummyCode> reader, MessageBuilder builder)
+        {
+            var text = ProtocolValueValidator.RequireOutboundString(reader.ReadString());
+            builder.WriteString(text);
+        }
+
+        public void ParseCache(MessageReader<DummyCode> reader)
+        {
+            var key = ProtocolValueValidator.NormalizeCacheKey(reader.ReadString());
+            var cache = new System.Collections.Generic.Dictionary<string, int>();
+            cache[key] = 1;
+        }
+
+        public bool ParseCrypto(MessageReader<DummyCode> reader, Verifier verifier)
+        {
+            var signature = ProtocolValueValidator.RequireCryptoMaterial(reader.ReadBytes(64));
+            return verifier.VerifySignature(signature);
+        }
+
+        public Type? ParseDynamic(MessageReader<DummyCode> reader)
+        {
+            var typeName = ProtocolValueValidator.RequireSafeProcessArgument(reader.ReadString());
+            return Type.GetType(typeName);
+        }
+
+        public string ParseRuntime(MessageReader<DummyCode> reader)
+        {
+            var pattern = ProtocolValueValidator.ValidateParserLimits(reader.ReadString());
+            return Regex.Replace(""input"", pattern, ""replacement"");
+        }
+
+        public object ParseCapacity(MessageReader<DummyCode> reader)
+        {
+            var capacity = ProtocolValueValidator.RequireBoundedCapacity(reader.ReadInteger());
+            return Channel.CreateBounded(capacity);
+        }
+
+        public byte[] ParseBuffer(MessageReader<DummyCode> reader, Pool pool)
+        {
+            var count = ProtocolValueValidator.RequireBufferCount(reader.ReadInteger());
+            return pool.Rent(count);
+        }
     }
 }
 ";
@@ -245,7 +389,15 @@ namespace Soulseek.Messaging.Messages.Server
                 new TaintToTimeoutAnalyzer(),
                 new TaintToEndpointAnalyzer(),
                 new TaintToEnumAnalyzer(),
-                new TaintToStringSliceAnalyzer());
+                new TaintToStringSliceAnalyzer(),
+                new TaintToDiagnosticAnalyzer(),
+                new TaintToMessageBuilderAnalyzer(),
+                new TaintToCacheKeyAnalyzer(),
+                new TaintToCryptoTrustAnalyzer(),
+                new TaintToDynamicExecutionAnalyzer(),
+                new TaintToParserRuntimeAnalyzer(),
+                new TaintToResourceCapacityAnalyzer(),
+                new TaintToBufferOperationAnalyzer());
 
             var diagnostics = await compilation.WithAnalyzers(analyzers)
                 .GetAnalyzerDiagnosticsAsync()
@@ -260,7 +412,15 @@ namespace Soulseek.Messaging.Messages.Server
                     d.Id == TaintToTimeoutAnalyzer.DiagnosticId ||
                     d.Id == TaintToEndpointAnalyzer.DiagnosticId ||
                     d.Id == TaintToEnumAnalyzer.DiagnosticId ||
-                    d.Id == TaintToStringSliceAnalyzer.DiagnosticId)
+                    d.Id == TaintToStringSliceAnalyzer.DiagnosticId ||
+                    d.Id == TaintToDiagnosticAnalyzer.DiagnosticId ||
+                    d.Id == TaintToMessageBuilderAnalyzer.DiagnosticId ||
+                    d.Id == TaintToCacheKeyAnalyzer.DiagnosticId ||
+                    d.Id == TaintToCryptoTrustAnalyzer.DiagnosticId ||
+                    d.Id == TaintToDynamicExecutionAnalyzer.DiagnosticId ||
+                    d.Id == TaintToParserRuntimeAnalyzer.DiagnosticId ||
+                    d.Id == TaintToResourceCapacityAnalyzer.DiagnosticId ||
+                    d.Id == TaintToBufferOperationAnalyzer.DiagnosticId)
                 .ToImmutableArray();
         }
     }

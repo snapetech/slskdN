@@ -29,6 +29,14 @@ A boundary is a code seam where data crosses from a less-trusted source into the
 | CSL0006 analyzer lens | Protocol reader taint | `analyzers/Soulseek.CouncilAnalyzers/TaintToEndpointAnalyzer.cs` | `CSL0006` |
 | CSL0007 analyzer lens | Protocol reader taint | `analyzers/Soulseek.CouncilAnalyzers/TaintToEnumAnalyzer.cs` | `CSL0007` |
 | CSL0008 analyzer lens | Protocol reader taint | `analyzers/Soulseek.CouncilAnalyzers/TaintToStringSliceAnalyzer.cs` | `CSL0008` |
+| CSL0009 analyzer lens | Protocol reader taint | `analyzers/Soulseek.CouncilAnalyzers/TaintToDiagnosticAnalyzer.cs` | `CSL0009` |
+| CSL0010 analyzer lens | Protocol reader taint | `analyzers/Soulseek.CouncilAnalyzers/TaintToMessageBuilderAnalyzer.cs` | `CSL0010` |
+| CSL0011 analyzer lens | Protocol reader taint | `analyzers/Soulseek.CouncilAnalyzers/TaintToCacheKeyAnalyzer.cs` | `CSL0011` |
+| CSL0012 analyzer lens | Protocol reader taint | `analyzers/Soulseek.CouncilAnalyzers/TaintToCryptoTrustAnalyzer.cs` | `CSL0012` |
+| CSL0013 analyzer lens | Protocol reader taint | `analyzers/Soulseek.CouncilAnalyzers/TaintToDynamicExecutionAnalyzer.cs` | `CSL0013` |
+| CSL0014 analyzer lens | Protocol reader taint | `analyzers/Soulseek.CouncilAnalyzers/TaintToParserRuntimeAnalyzer.cs` | `CSL0014` |
+| CSL0015 analyzer lens | Protocol reader taint | `analyzers/Soulseek.CouncilAnalyzers/TaintToResourceCapacityAnalyzer.cs` | `CSL0015` |
+| CSL0016 analyzer lens | Protocol reader taint | `analyzers/Soulseek.CouncilAnalyzers/TaintToBufferOperationAnalyzer.cs` | `CSL0016` |
 
 ## Adding a new boundary
 
