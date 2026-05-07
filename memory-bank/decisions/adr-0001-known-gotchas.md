@@ -15474,3 +15474,33 @@ npm run check:council
 ```
 
 **Why This Keeps Happening**: Council phases are process gates, not a menu. Keep a single all-phases runner that checks mirrored docs, phase completion, remediation, and the slskd HTTP fuzz harness, and keep a remediation guard that ensures the runner itself remains wired.
+
+### 0z99. Workflow Toolbars Must Preserve Explicit Primary Actions
+
+**What went wrong:** The Rooms page still had a hidden join path through the searchable room dropdown, but the explicit green `Join Room` button disappeared from the toolbar when the join modal stopped being rendered.
+
+**Files Affected**:
+- `src/web/src/components/Rooms/Rooms.jsx`
+- `src/web/src/components/Rooms/RoomJoinModal.jsx`
+- `src/web/src/components/Rooms/Rooms.test.jsx`
+
+**Wrong**:
+```jsx
+<Dropdown
+  placeholder="Search existing rooms..."
+  onChange={(_, { value }) => value && joinRoom(value)}
+/>
+<RoomCreateModal onCreateRoom={createRoom} />
+```
+
+**Correct**:
+```jsx
+<Dropdown
+  placeholder="Search existing rooms..."
+  onChange={(_, { value }) => value && joinRoom(value)}
+/>
+<RoomJoinModal joinRoom={joinRoom} />
+<RoomCreateModal onCreateRoom={createRoom} />
+```
+
+**Why This Keeps Happening**: Replacing a modal workflow with a compact inline control can keep the API path technically reachable while removing the visible primary action users rely on. Any toolbar with paired create/join, add/remove, start/stop, or import/export actions needs a regression test that asserts both visible buttons and the underlying action call.
