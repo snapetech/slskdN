@@ -1,4 +1,5 @@
 import './UserCard.css';
+import * as opinions from '../../lib/opinions';
 import * as security from '../../lib/security';
 import * as soulseekDiscovery from '../../lib/soulseekDiscovery';
 import * as users from '../../lib/users';
@@ -16,6 +17,7 @@ class UserCard extends Component {
       interestsError: null,
       interestsLoading: false,
       loading: false,
+      opinionSummary: null,
       reputation: null,
     };
   }
@@ -30,6 +32,7 @@ class UserCard extends Component {
         interests: null,
         interestsError: null,
         interestsLoading: false,
+        opinionSummary: null,
       });
       this.fetchUserData();
     }
@@ -42,9 +45,13 @@ class UserCard extends Component {
     this.setState({ loading: true });
 
     try {
-      const [infoResponse, reputationData] = await Promise.allSettled([
+      const [infoResponse, reputationData, opinionData] = await Promise.allSettled([
         users.getInfo({ quietUnavailable: true, username }),
         security.getReputation(username).catch(() => null),
+        opinions.getOpinionSummary({
+          subjectId: username,
+          subjectType: 'User',
+        }).catch(() => null),
       ]);
 
       this.setState({
@@ -53,6 +60,10 @@ class UserCard extends Component {
             ? infoResponse.value.data
             : null,
         loading: false,
+        opinionSummary:
+          opinionData.status === 'fulfilled' && opinionData.value?.data
+            ? opinionData.value.data
+            : null,
         reputation:
           reputationData.status === 'fulfilled' && reputationData.value
             ? reputationData.value
@@ -102,6 +113,21 @@ class UserCard extends Component {
     if (score >= 40) return 'olive'; // OK (40-59)
     if (score >= 20) return 'orange'; // Poor (20-39)
     return 'red'; // Very poor (0-19)
+  };
+
+  getOpinionColor = (summary) => {
+    const score = Number(summary?.weightedScore ?? 0);
+    if (!summary || Number(summary.total ?? 0) === 0) return 'grey';
+    if (score > 0.15) return 'green';
+    if (score < -0.15) return 'red';
+    return 'olive';
+  };
+
+  getOpinionValue = (summary) => {
+    if (!summary || Number(summary.total ?? 0) === 0) return '?';
+    const score = Number(summary.weightedScore ?? 0);
+    if (Math.abs(score) < 0.05) return '0';
+    return score > 0 ? `+${score.toFixed(1)}` : score.toFixed(1);
   };
 
   renderInterestPopup = () => {
@@ -169,7 +195,7 @@ class UserCard extends Component {
 
   render() {
     const { children, inline = true, username } = this.props;
-    const { info, loading, reputation } = this.state;
+    const { info, loading, opinionSummary, reputation } = this.state;
 
     const reputationScore = reputation?.score ?? null;
     const reputationColor = this.getReputationColor(reputationScore);
@@ -188,6 +214,16 @@ class UserCard extends Component {
           ? 'Reputation unavailable'
           : `Reputation Score: ${reputationScore}/100`,
       value: reputationScore === null ? '?' : reputationScore,
+    });
+
+    stats.push({
+      color: this.getOpinionColor(opinionSummary),
+      icon: 'thumbs up outline',
+      key: 'opinion',
+      tooltip: opinionSummary?.total
+        ? `Canonical opinions: ${opinionSummary.positive || 0} positive, ${opinionSummary.negative || 0} negative, weighted ${Number(opinionSummary.weightedScore || 0).toFixed(2)}`
+        : 'No canonical opinions recorded',
+      value: this.getOpinionValue(opinionSummary),
     });
 
     // Upload speed (always show, grayed if no data)

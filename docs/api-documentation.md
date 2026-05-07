@@ -213,6 +213,44 @@ User interests response:
 
 Native recommendation item strings are discovery/search seeds, not verified catalog identities. API clients should keep review steps before download automation.
 
+### Canonical Opinion APIs
+
+These endpoints expose durable opinion records used by Soulseek interest
+imports, operator annotations, peer trust, and pod affinity. Native Soulseek
+liked/hated interests remain public weak signals; explicit trust/distrust
+records are separate and can target users, files, content hashes, artists,
+albums, tracks, pods, sources, mesh peers, search terms, or other identifiers.
+
+- `GET /api/v0/opinions` - List opinion records with optional filters
+- `GET /api/v0/opinions/summary` - Summarize opinions for a subject
+- `POST /api/v0/opinions` - Submit or replace an opinion record
+- `DELETE /api/v0/opinions/{id}` - Delete an opinion record
+
+Summary request:
+
+```http
+GET /api/v0/opinions/summary?subjectType=User&subjectId=alice&scope=global
+```
+
+Opinion request:
+
+```json
+{
+  "issuer": "local:operator",
+  "subjectType": "User",
+  "subjectId": "alice",
+  "kind": "Trust",
+  "strength": 0.75,
+  "confidence": 0.9,
+  "scope": "global",
+  "source": "operator",
+  "reason": "Completed transfers and useful chat history",
+  "evidence": [
+    { "type": "transfer", "value": "completed" }
+  ]
+}
+```
+
 #### Mesh Rendezvous and Runtime Capabilities
 - `GET /api/v0/soulseek/mesh-rendezvous/status` - Get rendezvous enablement, interest tag, and privacy text
 - `POST /api/v0/soulseek/mesh-rendezvous/interest` - Publish the public `slskdn-mesh-v1` interest tag

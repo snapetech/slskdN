@@ -25,7 +25,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Added canonical opinion records for users, files, content hashes, artists,
   albums, tracks, pods, peers, and search terms, with Soulseek liked/hated
   interests imported as weak public signals and explicit peer opinions feeding
-  pod affinity.
+  pod affinity and user-card opinion badges.
 - Restored the visible green `Join Room` action in the Rooms toolbar and added
   regression coverage for joining an available room such as `slskdn`.
 - Preserved operator-visible usernames, paths, endpoints, hashes, and search
