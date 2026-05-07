@@ -23,6 +23,7 @@ A boundary is a code seam where data crosses from a less-trusted source into the
 | Distributed branch metadata | Distributed message body | `src/Messaging/Messages/Distributed/DistributedBranchLevel.cs` | `branch level` |
 | Distributed child depth | Distributed message body | `src/Messaging/Messages/Distributed/DistributedChildDepth.cs` | `child depth` |
 | Resolver outputs | Application code | `src/Messaging/Handlers/PeerMessageHandler.cs` | `WriteRaw` (raw response handler) |
+| CSL0003 analyzer lens | Protocol reader taint | `analyzers/Soulseek.CouncilAnalyzers/TaintToStreamPositionAnalyzer.cs` | `CSL0003` |
 
 ## Adding a new boundary
 

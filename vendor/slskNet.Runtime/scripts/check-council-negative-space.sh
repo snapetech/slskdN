@@ -150,6 +150,13 @@ assert_validator_present \
   "CSL0002"
 assert_baseline_anchor "csl0002-taint-to-loop-bound" "CSL0002"
 
+# Mythos-level analyzer (CSL0003) - stream-position/skip lens.
+assert_validator_present \
+  "csl0003-taint-to-stream-position" \
+  "analyzers/Soulseek.CouncilAnalyzers/TaintToStreamPositionAnalyzer.cs" \
+  "CSL0003"
+assert_baseline_anchor "csl0003-taint-to-stream-position" "CSL0003"
+
 # Protocol fuzz harness — same logic; absence silently disables coverage.
 assert_validator_present \
   "protocol-fuzz-harness" \

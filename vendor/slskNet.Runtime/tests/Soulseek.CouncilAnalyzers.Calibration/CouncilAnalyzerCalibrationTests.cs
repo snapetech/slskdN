@@ -28,6 +28,7 @@ namespace Soulseek.Messaging
         public int ReadInteger() => 0;
         public long ReadLong() => 0L;
         public string ReadString() => string.Empty;
+        public void Seek(int position) { }
     }
 }
 
@@ -46,7 +47,7 @@ namespace Soulseek.Messaging.Messages.Server
 ";
 
         [Fact]
-        public async Task Calibration_Corpus_Fires_CSL0001_And_CSL0002_On_Known_Bad_Shapes()
+        public async Task Calibration_Corpus_Fires_CSL0001_CSL0002_And_CSL0003_On_Known_Bad_Shapes()
         {
             var source = Harness + @"
 namespace Soulseek.Messaging.Messages.Server
@@ -80,6 +81,12 @@ namespace Soulseek.Messaging.Messages.Server
 
             return total;
         }
+
+        public void ParseSeek(MessageReader<DummyCode> reader)
+        {
+            var offset = reader.ReadInteger();
+            reader.Seek(offset);
+        }
     }
 }
 ";
@@ -87,6 +94,7 @@ namespace Soulseek.Messaging.Messages.Server
 
             Assert.Equal(2, diagnostics.Count(d => d.Id == TaintToAllocationAnalyzer.DiagnosticId));
             Assert.Single(diagnostics.Where(d => d.Id == TaintToLoopBoundAnalyzer.DiagnosticId));
+            Assert.Single(diagnostics.Where(d => d.Id == TaintToStreamPositionAnalyzer.DiagnosticId));
         }
 
         [Fact]
@@ -117,6 +125,12 @@ namespace Soulseek.Messaging.Messages.Server
 
             return total;
         }
+
+        public void ParseSeek(MessageReader<DummyCode> reader)
+        {
+            var offset = ProtocolCountReader.ReadValidatedCount(reader, 1024);
+            reader.Seek(offset);
+        }
     }
 }
 ";
@@ -143,14 +157,18 @@ namespace Soulseek.Messaging.Messages.Server
 
             var analyzers = ImmutableArray.Create<DiagnosticAnalyzer>(
                 new TaintToAllocationAnalyzer(),
-                new TaintToLoopBoundAnalyzer());
+                new TaintToLoopBoundAnalyzer(),
+                new TaintToStreamPositionAnalyzer());
 
             var diagnostics = await compilation.WithAnalyzers(analyzers)
                 .GetAnalyzerDiagnosticsAsync()
                 .ConfigureAwait(false);
 
             return diagnostics
-                .Where(d => d.Id == TaintToAllocationAnalyzer.DiagnosticId || d.Id == TaintToLoopBoundAnalyzer.DiagnosticId)
+                .Where(d =>
+                    d.Id == TaintToAllocationAnalyzer.DiagnosticId ||
+                    d.Id == TaintToLoopBoundAnalyzer.DiagnosticId ||
+                    d.Id == TaintToStreamPositionAnalyzer.DiagnosticId)
                 .ToImmutableArray();
         }
     }

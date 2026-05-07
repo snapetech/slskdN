@@ -73,6 +73,7 @@ assert_phase_done "Multi-seed"
 assert_phase_done "All-phases council runner"
 assert_phase_done "Non-proof verdict"
 assert_phase_done "Active backlog"
+assert_phase_done "Add CSL0003"
 
 if [ "$failed" -ne 0 ]; then
   exit 1

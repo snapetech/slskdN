@@ -22,6 +22,7 @@ The goal is **higher-severity, deeper-fix findings** without abandoning the inve
 | 11 | All-phases council runner | Done | (agent) | `scripts/run-bug-council-all-phases.sh` runs candidate inventory, remediation, sweep-count drift, negative-space, analyzer tests, calibration, protocol fuzz, build, and package vulnerability scan in one command; `scripts/check-bug-council-all-phases.sh` is wired into the remediation baseline so partial council runs regress loudly. |
 | 12 | Non-proof verdict and active discovery handoff | Done | (agent) | `scripts/run-bug-council-all-phases.sh` explicitly states that a green council pass is not proof of no bugs, invokes `scripts/run-council-active-bughunt.sh`, and the registration guard verifies both the active-discovery runner and non-proof wording. |
 | 13 | Active backlog pile gate | Done | (agent) | `docs/dev/bug-council-active-backlog.md` records every active-discovery pile with a current count/status, `scripts/check-council-active-backlog.sh` fails on stale or untriaged rows, and the all-phases runner plus remediation baseline invoke the gate every cycle. |
+| 14 | Add CSL0003 stream-position analyzer | Done | (agent) | `TaintToStreamPositionAnalyzer` flags protocol-tainted `Seek`, `Skip`, and `Position` sinks without sanctioned validation; analyzer unit tests and the calibration corpus prove the new lens fires on known-bad code and stays silent on validated offsets. |
 
 Mark a phase **Done** only when every exit-criteria item is satisfied and the phase artifacts are checked in or staged.
 

@@ -23,7 +23,9 @@ import {
   createPodAdapter,
   createRoomAdapter,
 } from './messagingAdapters';
+import CommandHelp from './CommandHelp';
 import MessageStream from './MessageStream';
+import QuickSwitcher from './QuickSwitcher';
 import React, {
   useCallback,
   useEffect,
@@ -35,12 +37,53 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 const NETWORKS = ['all', 'soulseek', 'mesh'];
 
-const sectionAccent = {
-  mesh: 'mesh',
-  soulseek: 'slsk',
-};
+const COMPOSER_COMMANDS = [
+  {
+    description: 'Send an italic action (e.g. /me waves).',
+    name: 'me',
+    syntax: '/me <action>',
+  },
+  {
+    description: 'Open a direct-message tab with the given user.',
+    name: 'msg',
+    syntax: '/msg <user>',
+  },
+  {
+    description: 'Join (or create) a Soulseek room.',
+    name: 'join',
+    syntax: '/join <room>',
+  },
+  {
+    aliases: ['part', 'leave'],
+    description: 'Close the current tab.',
+    name: 'close',
+    syntax: '/close',
+  },
+  {
+    description: 'Set message density.',
+    name: 'zoom',
+    syntax: '/zoom <s|m|l|xl>',
+  },
+  {
+    description: 'Refetch messages for the current tab.',
+    name: 'reload',
+    syntax: '/reload',
+  },
+  {
+    description: 'Open the channel switcher.',
+    name: 'switch',
+    syntax: '/switch',
+  },
+  {
+    description: 'Show this command list.',
+    name: 'help',
+    syntax: '/help',
+  },
+];
 
 const tabAccent = (tab) => (tab.type === 'pod' ? 'mesh' : 'slsk');
+
+const GOLD_STAR_CLUB_POD_ID = 'pod:901d57a2c1bb4e5d90d57a2c1bb4e5d0';
 
 const tabLabel = (tab) => {
   if (tab.type === 'room') return `#${tab.target}`;
@@ -97,6 +140,13 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   const [networkFilter, setNetworkFilter] = useState('all');
   const [memberRailOpen, setMemberRailOpen] = useState(true);
   const [adapterMembers, setAdapterMembers] = useState([]);
+  const [qsOpen, setQsOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [streamReloadToken, setStreamReloadToken] = useState(0);
+  const [dmDraft, setDmDraft] = useState('');
+  const [roomDraft, setRoomDraft] = useState('');
+  const [dmAddOpen, setDmAddOpen] = useState(false);
+  const [roomAddOpen, setRoomAddOpen] = useState(false);
 
   const hydrate = useCallback(async () => {
     const [serverConversations, serverJoinedRooms, serverPods] = await Promise.all([
@@ -285,6 +335,175 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
     value: workspace.paneSettings.memberWidth,
   });
 
+  const deleteConversation = useCallback(
+    async (username) => {
+      if (!username) return;
+      if (!window.confirm(`Permanently delete the saved message thread with "${username}"?`)) {
+        return;
+      }
+      try {
+        await chat.remove({ username });
+        await hydrate();
+        updateWorkspace((previous) => {
+          const tabs = previous.tabs.filter(
+            (tab) => !(tab.type === 'chat' && tab.target === username),
+          );
+          return tabs.length === previous.tabs.length
+            ? previous
+            : {
+                ...previous,
+                activeTabId: tabs.find((tab) => tab.id === previous.activeTabId)
+                  ? previous.activeTabId
+                  : tabs[0]?.id ?? null,
+                tabs,
+              };
+        });
+      } catch (error) {
+        console.error('Failed to delete conversation:', error);
+      }
+    },
+    [hydrate, updateWorkspace],
+  );
+
+  const leaveRoom = useCallback(
+    async (roomName) => {
+      if (!roomName) return;
+      if (!window.confirm(`Leave room "${roomName}"?`)) return;
+      try {
+        await rooms.leave({ roomName });
+        await hydrate();
+        updateWorkspace((previous) => {
+          const tabs = previous.tabs.filter(
+            (tab) => !(tab.type === 'room' && tab.target === roomName),
+          );
+          return tabs.length === previous.tabs.length
+            ? previous
+            : {
+                ...previous,
+                activeTabId: tabs.find((tab) => tab.id === previous.activeTabId)
+                  ? previous.activeTabId
+                  : tabs[0]?.id ?? null,
+                tabs,
+              };
+        });
+      } catch (error) {
+        console.error('Failed to leave room:', error);
+      }
+    },
+    [hydrate, updateWorkspace],
+  );
+
+  const leavePod = useCallback(
+    async (channel) => {
+      const peerId = state?.user?.username || 'local-peer';
+      const podName = channel?.podName || channel?.podId;
+      if (!channel?.podId) return;
+      const prompt =
+        channel.podId === GOLD_STAR_CLUB_POD_ID
+          ? `Permanently leave ${podName}? Gold Star Club membership is irrevocable.`
+          : `Leave pod "${podName}"? This exits the pod and removes its channels.`;
+      if (!window.confirm(prompt)) return;
+      try {
+        await pods.leave(channel.podId, peerId);
+        await hydrate();
+        updateWorkspace((previous) => {
+          const tabs = previous.tabs.filter((tab) => {
+            if (tab.type !== 'pod') return true;
+            const { podId } = decodePodTarget(tab.target);
+            return podId !== channel.podId;
+          });
+          return tabs.length === previous.tabs.length
+            ? previous
+            : {
+                ...previous,
+                activeTabId: tabs.find((tab) => tab.id === previous.activeTabId)
+                  ? previous.activeTabId
+                  : tabs[0]?.id ?? null,
+                tabs,
+              };
+        });
+      } catch (error) {
+        console.error('Failed to leave pod:', error);
+      }
+    },
+    [hydrate, state?.user?.username, updateWorkspace],
+  );
+
+  const startDirectMessage = useCallback(() => {
+    const trimmed = dmDraft.trim();
+    if (!trimmed) return;
+    openTab('chat', trimmed);
+    setDmDraft('');
+    setDmAddOpen(false);
+  }, [dmDraft, openTab]);
+
+  const joinRoomFromInput = useCallback(async () => {
+    const trimmed = roomDraft.trim();
+    if (!trimmed) return;
+    try {
+      await rooms.join({ roomName: trimmed });
+      await hydrate();
+      openTab('room', trimmed);
+      setRoomDraft('');
+      setRoomAddOpen(false);
+    } catch (error) {
+      console.error('Failed to join room:', error);
+    }
+  }, [hydrate, openTab, roomDraft]);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setQsOpen((open) => !open);
+      } else if (event.key === 'Escape' && qsOpen) {
+        setQsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [qsOpen]);
+
+  const quickSwitcherItems = useMemo(() => {
+    const items = [];
+    for (const conversation of conversations) {
+      items.push({
+        accent: 'slsk',
+        id: `chat:${conversation.username}`,
+        label: conversation.username,
+        prefix: '@',
+        sublabel: 'Soulseek DM',
+        target: conversation.username,
+        type: 'chat',
+      });
+    }
+    for (const roomName of joinedRooms) {
+      items.push({
+        accent: 'slsk',
+        id: `room:${roomName}`,
+        label: roomName,
+        prefix: '#',
+        sublabel: 'Soulseek room',
+        target: roomName,
+        type: 'room',
+      });
+    }
+    for (const channel of visiblePodChannels) {
+      const label = channelLabel(channel);
+      items.push({
+        accent: 'mesh',
+        id: `pod:${channel.target}`,
+        label,
+        prefix: '&',
+        sublabel: 'Mesh channel',
+        target: channel.target,
+        type: 'pod',
+        tabLabel: label,
+      });
+    }
+    return items;
+  }, [conversations, joinedRooms, visiblePodChannels]);
+
   const activeTab = workspace.tabs.find((tab) => tab.id === workspace.activeTabId) ?? null;
 
   useEffect(() => {
@@ -393,6 +612,18 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         });
         return true;
       }
+      if (name === 'reload') {
+        setStreamReloadToken((value) => value + 1);
+        return true;
+      }
+      if (name === 'switch' || name === 'k') {
+        setQsOpen(true);
+        return true;
+      }
+      if (name === 'help' || name === '?') {
+        setHelpOpen(true);
+        return true;
+      }
       return false;
     },
     [activeTab, closeTab, hydrate, openTab, setZoom],
@@ -471,9 +702,25 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         {showSoulseek && (
           <TreeSection
             accent="slsk"
+            addLabel="Start a direct message"
+            addPanel={
+              <InlineAddForm
+                buttonLabel="DM"
+                onCancel={() => {
+                  setDmAddOpen(false);
+                  setDmDraft('');
+                }}
+                onChange={setDmDraft}
+                onSubmit={startDirectMessage}
+                placeholder="username"
+                value={dmDraft}
+              />
+            }
             collapsed={workspace.collapsedSections.soulseekDirect}
             count={conversations.length}
+            onAddToggle={() => setDmAddOpen((open) => !open)}
             onToggle={() => toggleSection('soulseekDirect')}
+            showAdd={dmAddOpen}
             title="Soulseek · DMs"
           >
             {conversations.length === 0 ? (
@@ -488,8 +735,10 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
                 return (
                   <TreeRow
                     accent="slsk"
+                    actionLabel={`Delete saved thread with ${c.username}`}
                     isActive={isActive}
                     key={c.username}
+                    onAction={() => deleteConversation(c.username)}
                     onActivate={() => openTab('chat', c.username)}
                     prefix="@"
                     target={c.username}
@@ -504,9 +753,25 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         {showSoulseek && (
           <TreeSection
             accent="slsk"
+            addLabel="Join or create a room"
+            addPanel={
+              <InlineAddForm
+                buttonLabel="Join"
+                onCancel={() => {
+                  setRoomAddOpen(false);
+                  setRoomDraft('');
+                }}
+                onChange={setRoomDraft}
+                onSubmit={joinRoomFromInput}
+                placeholder="room name"
+                value={roomDraft}
+              />
+            }
             collapsed={workspace.collapsedSections.soulseekRooms}
             count={joinedRooms.length}
+            onAddToggle={() => setRoomAddOpen((open) => !open)}
             onToggle={() => toggleSection('soulseekRooms')}
+            showAdd={roomAddOpen}
             title="Soulseek · Rooms"
           >
             {joinedRooms.length === 0 ? (
@@ -518,8 +783,10 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
                 return (
                   <TreeRow
                     accent="slsk"
+                    actionLabel={`Leave room ${roomName}`}
                     isActive={isActive}
                     key={roomName}
+                    onAction={() => leaveRoom(roomName)}
                     onActivate={() => openTab('room', roomName)}
                     prefix="#"
                     target={roomName}
@@ -548,8 +815,10 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
                 return (
                   <TreeRow
                     accent="mesh"
+                    actionLabel={`Leave pod ${channel.podName || channel.podId}`}
                     isActive={isActive}
                     key={channel.target}
+                    onAction={() => leavePod(channel)}
                     onActivate={() => openTab('pod', channel.target, label)}
                     prefix="&"
                     target={label}
@@ -637,6 +906,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
             <MessageStream
               adapter={adapter}
               emptyHint={`No messages yet in ${tabLabel(activeTab)}.`}
+              key={`${activeTab.id}#${streamReloadToken}`}
               onSenderClick={handleSenderClick}
             />
           ) : (
@@ -644,7 +914,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
               <div className="msgv2-empty-glyph">⌬</div>
               <div className="msgv2-empty-title">No conversation open</div>
               <div className="msgv2-empty-hint">
-                Pick something from the channel list to start.
+                Pick something from the channel list, or press <kbd>Ctrl</kbd>+<kbd>K</kbd>.
               </div>
             </div>
           )}
@@ -652,11 +922,12 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
 
         <Composer
           adapter={adapter}
+          commands={COMPOSER_COMMANDS}
           label={activeTab ? `Message ${tabLabel(activeTab)}` : 'Message composer'}
           onCommand={handleComposerCommand}
           placeholder={
             activeTab
-              ? `Message ${tabLabel(activeTab)} — /me, /msg, /join, /close`
+              ? `Message ${tabLabel(activeTab)} — type / for commands, /help for the full list`
               : undefined
           }
         />
@@ -680,6 +951,22 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
           onSelect={handleSenderClick}
         />
       )}
+
+      <QuickSwitcher
+        items={quickSwitcherItems}
+        onClose={() => setQsOpen(false)}
+        onPick={(item) => {
+          openTab(item.type, item.target, item.tabLabel);
+          setQsOpen(false);
+        }}
+        open={qsOpen}
+      />
+
+      <CommandHelp
+        commands={COMPOSER_COMMANDS}
+        onClose={() => setHelpOpen(false)}
+        open={helpOpen}
+      />
     </div>
   );
 };
@@ -730,44 +1017,144 @@ const MemberRail = ({ members, onSelect }) => (
   </aside>
 );
 
-const TreeSection = ({ accent, collapsed, count, onToggle, title, children }) => (
+const TreeSection = ({
+  accent,
+  addLabel,
+  addPanel,
+  collapsed,
+  count,
+  onAddToggle,
+  onToggle,
+  showAdd,
+  title,
+  children,
+}) => (
   <section
     className={`msgv2-tree-section ${collapsed ? 'is-collapsed' : ''}`}
     data-accent={accent}
   >
-    <button
-      aria-expanded={!collapsed}
-      className="msgv2-tree-section-head"
-      onClick={onToggle}
-      type="button"
-    >
-      <span className="msgv2-tree-caret">{collapsed ? '▸' : '▾'}</span>
-      <span className="msgv2-tree-section-title">{title}</span>
-      <span className="msgv2-tree-section-count">{count}</span>
-    </button>
+    <div className="msgv2-tree-section-head-row">
+      <button
+        aria-expanded={!collapsed}
+        className="msgv2-tree-section-head"
+        onClick={onToggle}
+        type="button"
+      >
+        <span className="msgv2-tree-caret">{collapsed ? '▸' : '▾'}</span>
+        <span className="msgv2-tree-section-title">{title}</span>
+        <span className="msgv2-tree-section-count">{count}</span>
+      </button>
+      {onAddToggle && (
+        <button
+          aria-label={addLabel}
+          aria-pressed={showAdd}
+          className={`msgv2-tree-section-add ${showAdd ? 'is-on' : ''}`}
+          onClick={onAddToggle}
+          title={addLabel}
+          type="button"
+        >
+          {showAdd ? '×' : '+'}
+        </button>
+      )}
+    </div>
+    {!collapsed && showAdd && addPanel && (
+      <div className="msgv2-tree-add-panel">{addPanel}</div>
+    )}
     {!collapsed && <div className="msgv2-tree-section-body">{children}</div>}
   </section>
 );
 
-const TreeRow = ({ accent, isActive, onActivate, prefix, target, unread }) => (
-  <button
-    className={`msgv2-tree-row ${isActive ? 'is-active' : ''}`}
+const TreeRow = ({
+  accent,
+  actionLabel,
+  isActive,
+  onAction,
+  onActivate,
+  prefix,
+  target,
+  unread,
+}) => (
+  <div
+    className={`msgv2-tree-row-wrap ${isActive ? 'is-active' : ''}`}
     data-accent={accent}
-    onClick={onActivate}
-    title={`${prefix}${target}`}
-    type="button"
   >
-    <span className="msgv2-tree-row-prefix">{prefix}</span>
-    <span className="msgv2-tree-row-name">{target}</span>
-    {unread > 0 && (
-      <span className="msgv2-tree-row-unread">{formatUnread(unread)}</span>
+    <button
+      className={`msgv2-tree-row ${isActive ? 'is-active' : ''}`}
+      data-accent={accent}
+      onClick={onActivate}
+      title={`${prefix}${target}`}
+      type="button"
+    >
+      <span className="msgv2-tree-row-prefix">{prefix}</span>
+      <span className="msgv2-tree-row-name">{target}</span>
+      {unread > 0 && (
+        <span className="msgv2-tree-row-unread">{formatUnread(unread)}</span>
+      )}
+    </button>
+    {onAction && (
+      <button
+        aria-label={actionLabel}
+        className="msgv2-tree-row-action"
+        onClick={(event) => {
+          event.stopPropagation();
+          onAction();
+        }}
+        tabIndex={-1}
+        title={actionLabel}
+        type="button"
+      >
+        ×
+      </button>
     )}
-  </button>
+  </div>
 );
 
 const EmptyHint = ({ children }) => (
   <div className="msgv2-tree-empty">{children}</div>
 );
+
+const InlineAddForm = ({
+  buttonLabel,
+  onCancel,
+  onChange,
+  onSubmit,
+  placeholder,
+  value,
+}) => {
+  const inputRef = useRef(null);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+  return (
+    <div className="msgv2-tree-add">
+      <input
+        className="msgv2-tree-add-input"
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            onSubmit();
+          } else if (event.key === 'Escape') {
+            event.preventDefault();
+            onCancel();
+          }
+        }}
+        placeholder={placeholder}
+        ref={inputRef}
+        type="text"
+        value={value}
+      />
+      <button
+        className="msgv2-tree-add-go"
+        disabled={value.trim().length === 0}
+        onClick={onSubmit}
+        type="button"
+      >
+        {buttonLabel}
+      </button>
+    </div>
+  );
+};
 
 const DensityToggle = ({ onChange, value }) => (
   <div

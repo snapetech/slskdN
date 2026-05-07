@@ -17,6 +17,7 @@ The council ships a small Roslyn analyzer project, `analyzers/Soulseek.CouncilAn
 | --- | --- | --- | --- |
 | CSL0001 | TaintToAllocation | High | Network-derived allocation size without a sanctioned validator. Tainted sources include `MessageReader<T>.{ReadByte, ReadBytes, ReadCode, ReadInteger, ReadLong, ReadString, ReadStringAndEncoding}` and reader extension methods. Sinks include arrays, `Array.CreateInstance`, `MemoryStream(int)`, `StringBuilder(int)`, and common collection capacity constructors. Sanctioned validators include `ProtocolCountReader.ReadCount`/`ReadValidatedCount`, `ProtocolValueValidator.*`, `MessageFrameValidator.Validate*`, and protocol argument guards. |
 | CSL0002 | TaintToLoopBound | High | Network-derived `for` loop bound without a sanctioned validator. This catches the non-allocation denial-of-service shape where a hostile count drives repeated work or repeated per-iteration allocations. |
+| CSL0003 | TaintToStreamPosition | High | Network-derived stream position, parser seek, or skip count without a sanctioned validator. This catches hostile offsets that can desynchronize a frame parser or move a stream outside the intended bounded payload. |
 
 The `Severity (council)` column is the council's severity-schema tier; the analyzer's reported `DiagnosticSeverity` is `Warning` because errors would block the build for partial-knowledge cases. The council severity is what determines triage priority.
 
