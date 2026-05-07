@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed VPN split-routing rule order so NAT-PMP renewals for the slskd UID reach
+  the provider gateway before local-CIDR bypass rules.
 - Synced Snap stable package metadata to the current stable release asset.
 - Aligned AUR package-owned slskd state directory modes with tmpfiles and
   systemd group-write policy to avoid pacman permission mismatch warnings.

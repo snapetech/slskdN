@@ -313,7 +313,7 @@ static class Commands
         await MustRun("ip", "rule", "add", "pref", "32760", "uidrange", $"{AppConfig.ServiceUid}-{AppConfig.ServiceUid}", "lookup", AppConfig.VpnTable);
         if (!string.IsNullOrWhiteSpace(AppConfig.ProviderGateway))
         {
-            await ProcessUtil.Run("ip", "rule", "add", "pref", "32758", "to", $"{AppConfig.ProviderGateway}/32", "lookup", AppConfig.VpnTable);
+            await ProcessUtil.Run("ip", "rule", "add", "pref", "32754", "to", $"{AppConfig.ProviderGateway}/32", "lookup", AppConfig.VpnTable);
         }
 
         foreach (var cidr in AppConfig.LocalCidrs)

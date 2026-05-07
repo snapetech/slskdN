@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z359. VPN Provider Gateway Rule Must Precede UID Local-CIDR Bypasses
+
+**The Bug**: NAT-PMP renewal for the slskd UID timed out even though WireGuard was healthy, because traffic to the provider gateway `10.2.0.1` matched the UID `10.0.0.0/8 -> main` bypass before the specific VPN-gateway rule.
+
+**Files Affected**:
+- `src/slskdN.VpnAgent/Program.cs`
+
+**Wrong**:
+```csharp
+await ProcessUtil.Run("ip", "rule", "add", "pref", "32758", "to", $"{AppConfig.ProviderGateway}/32", "lookup", AppConfig.VpnTable);
+```
+
+**Correct**:
+```csharp
+await ProcessUtil.Run("ip", "rule", "add", "pref", "32754", "to", $"{AppConfig.ProviderGateway}/32", "lookup", AppConfig.VpnTable);
+```
+
+**Why This Keeps Happening**: The Proton/WireGuard NAT-PMP gateway is in `10.0.0.0/8`, which is also part of the local-network bypass list for the `slskd` UID. The gateway exception must have a lower numeric priority than the UID local-CIDR bypass rules, or `natpmpc` runs through the LAN route and hangs while normal outbound VPN traffic still looks healthy.
+
 ### 0z358. AUR Package Directory Modes Must Match tmpfiles Policy
 
 **The Bug**: AUR upgrades warned that `/var/lib/slskd`, `/var/lib/slskd/downloads`, and `/var/lib/slskd/incomplete` had filesystem mode `775` while the package declared `755`.
