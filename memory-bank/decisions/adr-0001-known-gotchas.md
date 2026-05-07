@@ -52,6 +52,28 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z360. DHT Overlay Advertisement Must Support VPN-Rewritten Public Ports
+
+**The Bug**: Mesh DHT discovered peers but never established overlay connections, because the node announced its local `dht.overlay_port` even when VPN NAT-PMP rewrote that listener to a different public TCP port.
+
+**Files Affected**:
+- `src/slskd/DhtRendezvous/DhtRendezvousService.cs`
+- `src/slskd/DhtRendezvous/MeshOverlayConnector.cs`
+- `src/slskd/DhtRendezvous/MeshOverlayServer.cs`
+- `config/slskd.example.yml`
+
+**Wrong**:
+```csharp
+_dhtEngine.Announce(MainInfohash, _options.OverlayPort);
+```
+
+**Correct**:
+```csharp
+_dhtEngine.Announce(MainInfohash, _options.EffectiveOverlayPort);
+```
+
+**Why This Keeps Happening**: Some VPN providers allocate arbitrary public NAT-PMP ports even when the client requests a specific value. The TCP overlay listener still binds the local port, but DHT announcements and overlay handshake metadata must advertise the externally reachable public port when it differs.
+
 ### 0z359. VPN Provider Gateway Rule Must Precede UID Local-CIDR Bypasses
 
 **The Bug**: NAT-PMP renewal for the slskd UID timed out even though WireGuard was healthy, because traffic to the provider gateway `10.2.0.1` matched the UID `10.0.0.0/8 -> main` bypass before the specific VPN-gateway rule.
