@@ -52,6 +52,27 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z358. AUR Package Directory Modes Must Match tmpfiles Policy
+
+**The Bug**: AUR upgrades warned that `/var/lib/slskd`, `/var/lib/slskd/downloads`, and `/var/lib/slskd/incomplete` had filesystem mode `775` while the package declared `755`.
+
+**Files Affected**:
+- `packaging/aur/PKGBUILD`
+- `packaging/aur/PKGBUILD-bin`
+- `packaging/aur/slskd.tmpfiles`
+
+**Wrong**:
+```bash
+install -dm755 "${pkgdir}/var/lib/${_pkgname}"
+```
+
+**Correct**:
+```bash
+install -dm775 "${pkgdir}/var/lib/${_pkgname}"
+```
+
+**Why This Keeps Happening**: `slskd.tmpfiles` and the systemd service intentionally use group-writable daemon state (`0775` plus `UMask=0002`), but pacman records directory modes from the PKGBUILD payload before tmpfiles converges them on the target machine. The PKGBUILD, tmpfiles rules, and validation scripts must declare the same state-directory modes.
+
 ### 0z354. VPN Ingress Netns Units Cannot Use Mount Sandboxing
 
 **The Bug**: `slskdN-vpn-ingress.service` reported successful NAT-PMP mappings, but `/run/netns/slskdNpf*` contained dead placeholder files and inbound Soulseek ports timed out or refused.

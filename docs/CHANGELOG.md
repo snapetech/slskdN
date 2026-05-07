@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Aligned AUR package-owned slskd state directory modes with tmpfiles and
+  systemd group-write policy to avoid pacman permission mismatch warnings.
 - Fixed Soulseek search response handling across VPN ingress by accepting
   PierceFirewall handoffs that carry peer search results.
 - Stabilized VPN split-routing and ingress systemd configuration so slskd
