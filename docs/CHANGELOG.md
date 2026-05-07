@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Restored the visible green `Join Room` action in the Rooms toolbar and added
+  regression coverage for joining an available room such as `slskdn`.
 - Added `npm run check:council` so slskd council cycles execute every phase in
   one command, and redacted VirtualSoulfind bridge proxy request logs.
 - Added a slskd HTTP adversarial fuzz harness for malformed JSON bodies,

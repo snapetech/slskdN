@@ -1,3 +1,15 @@
+## Update 2026-05-07 01:15:18Z
+
+- Current task: Fix missing Rooms `Join Room` button reported from kspls0.
+- Last activity:
+  - verified a fresh headless kspls0 browser session reached the login page and could not inspect authenticated Rooms state;
+  - confirmed source-side regression: `RoomJoinModal` existed but `Rooms.jsx` no longer rendered the explicit join action;
+  - restored the visible green `Join Room` toolbar button, hardened available-room payload normalization, and added a focused `slskdn` join regression;
+  - recorded `BUG-20260506-104` and ADR-0001 gotcha `0z99`.
+- Next steps:
+  1. Run Web lint, focused Rooms test, diff checks, and git status.
+  2. Commit and push the verified workflow fix.
+
 ## Update 2026-05-06 23:02:54Z
 
 - Current task: Run every slskd council phase and broad non-runtime scans.

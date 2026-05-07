@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] Fix missing Rooms Join Room button.
+ - Status: completed (2026-05-06)
+ - Priority: P1
+ - Notes: Fixed `BUG-20260506-104` by rendering `RoomJoinModal` beside the Create Room action again, adding a tooltip-backed green Join Room trigger, normalizing available room payloads before display, and covering the `slskdn` join flow in `Rooms.test.jsx`. Added ADR-0001 gotcha `0z99`.
+
 - [x] **bug-council**: Run every slskd council phase and close broad scan findings.
  - Status: completed (2026-05-06)
  - Priority: P2

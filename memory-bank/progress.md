@@ -1,5 +1,7 @@
 ## 2026-05-06
 
+- Fixed `BUG-20260506-104`: the Rooms toolbar now renders a visible green `Join Room` action again, backed by `RoomJoinModal`. The available room list is normalized before rendering, and focused Web coverage verifies selecting `slskdn` joins with `rooms.join({ roomName: 'slskdn' })`. Documented ADR-0001 gotcha `0z99`.
+
 - Continued the non-runtime QUIC overlay/data lifecycle council section and fixed `BUG-20260506-085` through `BUG-20260506-086`: accepted QUIC control-plane and data-plane stream tasks are now tracked and drained during server shutdown instead of being detached from lifecycle ownership. Extended `scripts/check-async-task-observation.sh` and added ADR-0001 gotcha `0z95`.
 
 - Continued the non-runtime release/ops installer-safety council section and fixed `BUG-20260506-082` through `BUG-20260506-084`: the Proxmox LXC installer now verifies release checksums, removes stale install trees before extraction, and matches the raw Linux installer permission posture. Added `scripts/check-linux-installer-safety.sh` plus ADR-0001 gotcha `0z94`.

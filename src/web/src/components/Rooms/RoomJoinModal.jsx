@@ -10,11 +10,31 @@ import {
   Input,
   Loader,
   Modal,
+  Popup,
   Segment,
   Table,
 } from 'semantic-ui-react';
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
+const normalizeRoom = (room) => {
+  if (
+    !room ||
+    typeof room !== 'object' ||
+    Array.isArray(room) ||
+    typeof room.name !== 'string' ||
+    !room.name
+  ) {
+    return undefined;
+  }
+
+  return {
+    ...room,
+    isModerated: room.isModerated === true,
+    isOwned: room.isOwned === true,
+    isPrivate: room.isPrivate === true,
+    userCount: Number.isFinite(room.userCount) ? room.userCount : 0,
+  };
+};
 
 const RoomJoinModal = ({ joinRoom: parentJoinRoom, ...modalOptions }) => {
   const [open, setOpen] = useState(false);
@@ -30,7 +50,9 @@ const RoomJoinModal = ({ joinRoom: parentJoinRoom, ...modalOptions }) => {
       setLoading(true);
       try {
         const availableResult = await rooms.getAvailable();
-        setAvailable(asArray(availableResult));
+        setAvailable(
+          asArray(availableResult).map(normalizeRoom).filter(Boolean),
+        );
       } catch {
         toast.error('Failed to load room list');
         setAvailable([]);
@@ -92,115 +114,130 @@ const RoomJoinModal = ({ joinRoom: parentJoinRoom, ...modalOptions }) => {
   };
 
   return (
-    <Modal
-      className="join-room-modal"
-      onClose={() => close()}
-      onOpen={() => setOpen(true)}
-      open={open}
-      {...modalOptions}
-    >
-      <Header>
-        <Icon name="comments" />
-        <Modal.Content>Join Room</Modal.Content>
-      </Header>
-      <Modal.Content scrolling>
-        {loading ? (
-          <Dimmer
-            active
-            inverted
+    <>
+      <Popup
+        content="Browse available Soulseek rooms and join the selected room."
+        trigger={
+          <Button
+            color="green"
+            icon
+            onClick={() => setOpen(true)}
+            title="Join Room"
           >
-            <Loader
-              content="Loading Room List"
+            <Icon name="sign in" />
+            Join Room
+          </Button>
+        }
+      />
+      <Modal
+        className="join-room-modal"
+        onClose={() => close()}
+        open={open}
+        {...modalOptions}
+      >
+        <Header>
+          <Icon name="comments" />
+          <Modal.Content>Join Room</Modal.Content>
+        </Header>
+        <Modal.Content scrolling>
+          {loading ? (
+            <Dimmer
+              active
               inverted
-            />
-          </Dimmer>
-        ) : (
-          <>
-            <Input
-              fluid
-              icon="filter"
-              onChange={(_, event) => setFilter(event.value)}
-              placeholder="Room Filter"
-            />
-            {sortedAvailable.length === 0 ? (
-              <Segment
-                placeholder
-                textAlign="center"
-              >
-                <Header icon>
-                  <Icon name="comments outline" />
-                  No rooms available
-                </Header>
-                <p>Try refreshing or check your connection to the server.</p>
-              </Segment>
-            ) : (
-              <Table
-                celled
-                selectable
-              >
-                <Table.Header>
-                  <Table.Row>
-                    <Table.HeaderCell onClick={() => changeSort('name')}>
-                      Name
-                      <Icon
-                        link={sortBy === 'name'}
-                        name={
-                          sortBy === 'name' &&
-                          (sortOrder === 'asc' ? 'chevron up' : 'chevron down')
-                        }
-                      />
-                    </Table.HeaderCell>
-                    <Table.HeaderCell onClick={() => changeSort('userCount')}>
-                      Users
-                      <Icon
-                        link={sortBy === 'userCount'}
-                        name={
-                          sortBy === 'userCount' &&
-                          (sortOrder === 'asc' ? 'chevron up' : 'chevron down')
-                        }
-                      />
-                    </Table.HeaderCell>
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                  {sortedAvailable.map((room) => (
-                    <Table.Row
-                      key={room.name}
-                      onClick={() => setSelected(room.name)}
-                      style={isSelected(room) ? { fontWeight: 'bold' } : {}}
-                    >
-                      <Table.Cell>
-                        {isSelected(room) && (
-                          <Icon
-                            color="green"
-                            name="check"
-                          />
-                        )}
-                        {room.isPrivate && <Icon name="lock" />}
-                        {room.isOwned && <Icon name="chess queen" />}
-                        {room.isModerated && <Icon name="gavel" />}
-                        {room.name}
-                      </Table.Cell>
-                      <Table.Cell>{room.userCount}</Table.Cell>
+            >
+              <Loader
+                content="Loading Room List"
+                inverted
+              />
+            </Dimmer>
+          ) : (
+            <>
+              <Input
+                fluid
+                icon="filter"
+                onChange={(_, event) => setFilter(event.value)}
+                placeholder="Room Filter"
+              />
+              {sortedAvailable.length === 0 ? (
+                <Segment
+                  placeholder
+                  textAlign="center"
+                >
+                  <Header icon>
+                    <Icon name="comments outline" />
+                    No rooms available
+                  </Header>
+                  <p>Try refreshing or check your connection to the server.</p>
+                </Segment>
+              ) : (
+                <Table
+                  celled
+                  selectable
+                >
+                  <Table.Header>
+                    <Table.Row>
+                      <Table.HeaderCell onClick={() => changeSort('name')}>
+                        Name
+                        <Icon
+                          link={sortBy === 'name'}
+                          name={
+                            sortBy === 'name' &&
+                            (sortOrder === 'asc' ? 'chevron up' : 'chevron down')
+                          }
+                        />
+                      </Table.HeaderCell>
+                      <Table.HeaderCell onClick={() => changeSort('userCount')}>
+                        Users
+                        <Icon
+                          link={sortBy === 'userCount'}
+                          name={
+                            sortBy === 'userCount' &&
+                            (sortOrder === 'asc' ? 'chevron up' : 'chevron down')
+                          }
+                        />
+                      </Table.HeaderCell>
                     </Table.Row>
-                  ))}
-                </Table.Body>
-              </Table>
-            )}
-          </>
-        )}
-      </Modal.Content>
-      <Modal.Actions>
-        <Button onClick={() => setOpen(false)}>Cancel</Button>
-        <Button
-          disabled={!selected}
-          onClick={() => joinRoom()}
-          positive
-        >
-          Join
-        </Button>
-      </Modal.Actions>
-    </Modal>
+                  </Table.Header>
+                  <Table.Body>
+                    {sortedAvailable.map((room) => (
+                      <Table.Row
+                        key={room.name}
+                        onClick={() => setSelected(room.name)}
+                        style={isSelected(room) ? { fontWeight: 'bold' } : {}}
+                      >
+                        <Table.Cell>
+                          {isSelected(room) && (
+                            <Icon
+                              color="green"
+                              name="check"
+                            />
+                          )}
+                          {room.isPrivate && <Icon name="lock" />}
+                          {room.isOwned && <Icon name="chess queen" />}
+                          {room.isModerated && <Icon name="gavel" />}
+                          {room.name}
+                        </Table.Cell>
+                        <Table.Cell>{room.userCount}</Table.Cell>
+                      </Table.Row>
+                    ))}
+                  </Table.Body>
+                </Table>
+              )}
+            </>
+          )}
+        </Modal.Content>
+        <Modal.Actions>
+          <Button onClick={() => close()}>Cancel</Button>
+          <Button
+            disabled={!selected}
+            onClick={() => joinRoom()}
+            positive
+          >
+            Join
+          </Button>
+        </Modal.Actions>
+      </Modal>
+    </>
   );
 };
 

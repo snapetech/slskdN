@@ -1,6 +1,6 @@
 import * as rooms from '../../lib/rooms';
 import Rooms from './Rooms';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -82,5 +82,35 @@ describe('Rooms', () => {
 
     expect(await screen.findByText('chill')).toBeInTheDocument();
     expect(screen.queryByText('[object Object]')).not.toBeInTheDocument();
+  });
+
+  it('shows the explicit join room button and joins a selected available room', async () => {
+    rooms.getAvailable.mockResolvedValue([
+      null,
+      { name: '' },
+      { name: 'slskdn', userCount: 3 },
+    ]);
+    rooms.getJoined
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(['slskdn']);
+
+    render(
+      <MemoryRouter initialEntries={['/rooms']}>
+        <Rooms />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: /join room/i }));
+
+    expect(await screen.findByText('slskdn')).toBeInTheDocument();
+    expect(screen.queryByText('[object Object]')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('slskdn'));
+    fireEvent.click(screen.getByRole('button', { name: 'Join' }));
+
+    await waitFor(() =>
+      expect(rooms.join).toHaveBeenCalledWith({ roomName: 'slskdn' }),
+    );
+    expect(await screen.findByText('slskdn')).toBeInTheDocument();
   });
 });

@@ -3,6 +3,7 @@ import { getLocalStorageItem, setLocalStorageItem } from '../../lib/storage';
 import * as rooms from '../../lib/rooms';
 import PlaceholderSegment from '../Shared/PlaceholderSegment';
 import RoomCreateModal from './RoomCreateModal';
+import RoomJoinModal from './RoomJoinModal';
 import RoomSession from './RoomSession';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -327,6 +328,7 @@ const Rooms = () => {
               search
               selection
             />
+            <RoomJoinModal joinRoom={joinRoom} />
             <RoomCreateModal onCreateRoom={createRoom} />
             <Popup
               content="Reload rooms joined by the daemon and reopen their tabs."
