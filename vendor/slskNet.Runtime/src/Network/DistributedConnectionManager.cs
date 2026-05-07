@@ -157,7 +157,7 @@ namespace Soulseek.Network
         /// <summary>
         ///     Gets the current list of child connections.
         /// </summary>
-        public IReadOnlyCollection<(string Username, IPEndPoint IPEndPoint)> Children => ChildDictionary.Select(c => (c.Key, c.Value)).ToList().AsReadOnly();
+        public IReadOnlyCollection<(string Username, IPEndPoint IPEndPoint)> Children => ChildDictionary.Select(c => (c.Key, c.Value.Snapshot())).ToList().AsReadOnly();
 
         /// <summary>
         ///     Gets a value indicating whether a parent connection is established.
@@ -173,7 +173,7 @@ namespace Soulseek.Network
         ///     Gets the current parent connection.
         /// </summary>
         public (string Username, IPEndPoint IPEndPoint) Parent =>
-            ParentConnection == null ? (string.Empty, null) : (ParentConnection.Username, ParentConnection.IPEndPoint);
+            ParentConnection == null ? (string.Empty, null) : (ParentConnection.Username, ParentConnection.IPEndPoint.Snapshot());
 
         /// <summary>
         ///     Gets a dictionary containing the pending connection solicitations.

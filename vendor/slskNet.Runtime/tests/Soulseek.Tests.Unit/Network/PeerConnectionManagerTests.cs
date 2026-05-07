@@ -103,6 +103,32 @@ namespace Soulseek.Tests.Unit.Network
             }
         }
 
+        [Trait("Category", "MessageConnections")]
+        [Theory(DisplayName = "MessageConnections snapshots endpoints"), AutoData]
+        public void MessageConnections_Snapshots_Endpoints(string username, IPEndPoint endpoint)
+        {
+            var (manager, _) = GetFixture();
+            var connection = GetMessageConnectionMock(username, endpoint);
+
+            using (manager)
+            {
+                var dict = new ConcurrentDictionary<string, Lazy<Task<IMessageConnection>>>();
+                var lazy = new Lazy<Task<IMessageConnection>>(() => Task.FromResult(connection.Object));
+                _ = lazy.Value;
+                dict.TryAdd(username, lazy);
+
+                manager.SetProperty("MessageConnectionDictionary", dict);
+
+                var snapshot = manager.MessageConnections.Single().IPEndPoint;
+                snapshot.Port = endpoint.Port == IPEndPoint.MaxPort ? IPEndPoint.MinPort : endpoint.Port + 1;
+
+                var nextSnapshot = manager.MessageConnections.Single().IPEndPoint;
+
+                Assert.NotSame(endpoint, snapshot);
+                Assert.Equal(endpoint.Port, nextSnapshot.Port);
+            }
+        }
+
         [Trait("Category", "Instantiation")]
         [Fact(DisplayName = "Ensures Diagnostic given null")]
         public void Ensures_Diagnostic_Given_Null()
@@ -486,7 +512,7 @@ namespace Soulseek.Tests.Unit.Network
                 await manager.AddOrUpdateMessageConnectionAsync(username, incomingConn.Object);
 
                 Assert.Single(manager.MessageConnections);
-                Assert.Contains(manager.MessageConnections, c => c.Username == username && c.IPEndPoint == endpoint);
+                Assert.Contains(manager.MessageConnections, c => c.Username == username && c.IPEndPoint.Equals(endpoint));
             }
         }
 
@@ -518,7 +544,7 @@ namespace Soulseek.Tests.Unit.Network
                 await manager.AddOrUpdateMessageConnectionAsync(username, incomingConn.Object);
 
                 Assert.Single(manager.MessageConnections);
-                Assert.Contains(manager.MessageConnections, c => c.Username == username && c.IPEndPoint == endpoint);
+                Assert.Contains(manager.MessageConnections, c => c.Username == username && c.IPEndPoint.Equals(endpoint));
 
                 // swap in the second connection
                 mocks.ConnectionFactory.Setup(m => m.GetMessageConnection(username, endpoint, It.IsAny<ConnectionOptions>(), It.IsAny<ITcpClient>()))
@@ -529,7 +555,7 @@ namespace Soulseek.Tests.Unit.Network
 
                 // make sure we still have just the one
                 Assert.Single(manager.MessageConnections);
-                Assert.Contains(manager.MessageConnections, c => c.Username == username && c.IPEndPoint == endpoint);
+                Assert.Contains(manager.MessageConnections, c => c.Username == username && c.IPEndPoint.Equals(endpoint));
 
                 // verify that the first connection was disposed
                 conn1.Verify(m => m.Dispose(), Times.Never);

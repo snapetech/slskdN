@@ -126,6 +126,50 @@ namespace Soulseek.Tests.Unit.Network
             }
         }
 
+        [Trait("Category", "DistributedNetworkInfo")]
+        [Theory(DisplayName = "Children snapshots endpoints"), AutoData]
+        public void Children_Snapshots_Endpoints(string username, IPEndPoint endpoint)
+        {
+            var (manager, _) = GetFixture();
+
+            using (manager)
+            {
+                var children = new ConcurrentDictionary<string, IPEndPoint>();
+                children.TryAdd(username, endpoint);
+
+                manager.SetProperty("ChildDictionary", children);
+
+                var snapshot = manager.Children.Single().IPEndPoint;
+                snapshot.Port = endpoint.Port == IPEndPoint.MaxPort ? IPEndPoint.MinPort : endpoint.Port + 1;
+
+                var nextSnapshot = manager.Children.Single().IPEndPoint;
+
+                Assert.NotSame(endpoint, snapshot);
+                Assert.Equal(endpoint.Port, nextSnapshot.Port);
+            }
+        }
+
+        [Trait("Category", "DistributedNetworkInfo")]
+        [Theory(DisplayName = "Parent snapshots endpoint"), AutoData]
+        public void Parent_Snapshots_Endpoint(string username, IPEndPoint endpoint)
+        {
+            var (manager, _) = GetFixture();
+            var parent = GetMessageConnectionMock(username, endpoint);
+
+            using (manager)
+            {
+                manager.SetProperty("ParentConnection", parent.Object);
+
+                var snapshot = manager.Parent.IPEndPoint;
+                snapshot.Port = endpoint.Port == IPEndPoint.MaxPort ? IPEndPoint.MinPort : endpoint.Port + 1;
+
+                var nextSnapshot = manager.Parent.IPEndPoint;
+
+                Assert.NotSame(endpoint, snapshot);
+                Assert.Equal(endpoint.Port, nextSnapshot.Port);
+            }
+        }
+
         [Trait("Category", "BranchLevel")]
         [Fact(DisplayName = "BranchLevel returns 0 if no parent")]
         public void BranchRoot_Returns_Zero_If_No_Parent()

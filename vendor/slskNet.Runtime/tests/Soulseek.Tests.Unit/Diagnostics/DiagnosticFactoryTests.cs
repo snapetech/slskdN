@@ -322,5 +322,16 @@ namespace Soulseek.Tests.Unit
 
             Assert.Empty(x);
         }
+
+        [Trait("Category", "Diagnostic")]
+        [Theory(DisplayName = "Does not throw when event handler throws"), AutoData]
+        public void Does_Not_Throw_When_Event_Handler_Throws(string message)
+        {
+            var d = new DiagnosticFactory(DiagnosticLevel.Info, (args) => throw new InvalidOperationException("subscriber failed"));
+
+            var ex = Record.Exception(() => d.Info(message));
+
+            Assert.Null(ex);
+        }
     }
 }

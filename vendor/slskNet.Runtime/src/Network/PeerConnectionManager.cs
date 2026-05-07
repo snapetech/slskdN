@@ -75,7 +75,7 @@ namespace Soulseek.Network
             .Where(c => c.IsValueCreated && c.Value.Status == TaskStatus.RanToCompletion)
             .Select(c => c.Value.Result)
             .Where(c => c != null)
-            .Select(c => (c.Username, c.IPEndPoint))
+            .Select(c => (c.Username, c.IPEndPoint.Snapshot()))
             .ToList()
             .AsReadOnly();
 

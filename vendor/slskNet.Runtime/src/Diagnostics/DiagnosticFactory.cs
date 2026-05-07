@@ -106,7 +106,14 @@ namespace Soulseek.Diagnostics
             if (level <= MinimumLevel)
             {
                 var e = new DiagnosticEventArgs(level, message, exception);
-                EventHandler(e);
+                try
+                {
+                    EventHandler(e);
+                }
+                catch
+                {
+                    // Diagnostics are observational and must not alter runtime control flow.
+                }
             }
         }
     }
