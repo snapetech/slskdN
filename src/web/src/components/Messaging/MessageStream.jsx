@@ -339,9 +339,34 @@ const MessageStream = ({ adapter, emptyHint, onSenderClick }) => {
             );
           })
         )}
+      </div>
+      {!stuck && (
+        <button
+          aria-label="Jump to latest"
+          className="msg-stream-jump"
+          onClick={jumpToLatest}
+          type="button"
+        >
+          {newCount > 0
+            ? `↓ ${newCount} new ${newCount === 1 ? 'message' : 'messages'}`
+            : '↓ Jump to latest'}
+        </button>
+      )}
     </div>
   );
 };
 
+const NewMessagesMarker = () => (
+  <div
+    aria-label="New messages below"
+    className="msg-stream-newmarker"
+    role="separator"
+  >
+    <span className="msg-stream-newmarker-line" aria-hidden="true" />
+    <span className="msg-stream-newmarker-label">new</span>
+    <span className="msg-stream-newmarker-line" aria-hidden="true" />
+  </div>
+);
+
 export default MessageStream;
-export { nickColor };
+export { autolink, nickColor };

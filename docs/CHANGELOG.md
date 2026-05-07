@@ -24,6 +24,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 - Improved Messaging workspace command controls with command help, quick
   switching, unread markers, URL autolinking, and composer regression coverage.
+- Added Messaging stream jump-to-latest controls and link rendering coverage.
 - Synced vendored slskNet.Runtime protocol offset boundary coverage for
   tainted stream positioning and skip operations.
 - Added canonical opinion records for users, files, content hashes, artists,
