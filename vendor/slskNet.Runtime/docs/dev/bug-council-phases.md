@@ -21,6 +21,7 @@ The goal is **higher-severity, deeper-fix findings** without abandoning the inve
 | 10 | Multi-seed adversarial fuzz corpora | Done | (agent) | `ProtocolAdversarialFuzz` runs multiple deterministic random seeds plus explicit hostile corpus inputs; baseline gates both. |
 | 11 | All-phases council runner | Done | (agent) | `scripts/run-bug-council-all-phases.sh` runs candidate inventory, remediation, sweep-count drift, negative-space, analyzer tests, calibration, protocol fuzz, build, and package vulnerability scan in one command; `scripts/check-bug-council-all-phases.sh` is wired into the remediation baseline so partial council runs regress loudly. |
 | 12 | Non-proof verdict and active discovery handoff | Done | (agent) | `scripts/run-bug-council-all-phases.sh` explicitly states that a green council pass is not proof of no bugs, invokes `scripts/run-council-active-bughunt.sh`, and the registration guard verifies both the active-discovery runner and non-proof wording. |
+| 13 | Active backlog pile gate | Done | (agent) | `docs/dev/bug-council-active-backlog.md` records every active-discovery pile with a current count/status, `scripts/check-council-active-backlog.sh` fails on stale or untriaged rows, and the all-phases runner plus remediation baseline invoke the gate every cycle. |
 
 Mark a phase **Done** only when every exit-criteria item is satisfied and the phase artifacts are checked in or staged.
 

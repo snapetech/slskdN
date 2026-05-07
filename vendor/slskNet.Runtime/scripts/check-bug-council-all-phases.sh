@@ -46,6 +46,7 @@ fi
 require_literal "scan-bug-council-candidates.sh" "$runner"
 require_literal "run-council-active-bughunt.sh" "$runner"
 require_literal "check-remediation-baseline.sh" "$runner"
+require_literal "check-council-active-backlog.sh" "$runner"
 require_literal "check-council-sweep-counts.sh" "$runner"
 require_literal "check-council-negative-space.sh" "$runner"
 require_literal "Soulseek.CouncilAnalyzers.Tests.csproj" "$runner"
@@ -57,6 +58,7 @@ require_literal "dotnet list slskNet.Runtime.sln package --vulnerable --include-
 require_literal "this is not proof of no bugs" "$runner"
 
 require_literal 'scripts/check-bug-council-all-phases.sh' "$repo_root/scripts/check-remediation-baseline.sh"
+require_literal "bug-council-active-backlog.md" "$repo_root/scripts/check-remediation-baseline.sh"
 require_literal "not proof of no bugs" "$repo_root/scripts/run-council-active-bughunt.sh"
 
 assert_phase_done "Council process upgrades"
@@ -70,6 +72,7 @@ assert_phase_done "Mutation/calibration"
 assert_phase_done "Multi-seed"
 assert_phase_done "All-phases council runner"
 assert_phase_done "Non-proof verdict"
+assert_phase_done "Active backlog"
 
 if [ "$failed" -ne 0 ]; then
   exit 1

@@ -16,6 +16,7 @@ bash scripts/run-council-active-bughunt.sh
 
 printf '\n==> Regression and process gates\n'
 bash scripts/check-remediation-baseline.sh
+bash scripts/check-council-active-backlog.sh
 bash scripts/check-council-sweep-counts.sh
 bash scripts/check-council-negative-space.sh
 
@@ -34,4 +35,4 @@ dotnet build slskNet.Runtime.sln --no-restore
 dotnet list slskNet.Runtime.sln package --vulnerable --include-transitive
 
 printf '\nCouncil verdict: all registered slskNet.Runtime phases passed, and no registered drift/finding gate fired.\n'
-printf 'Council verdict boundary: this is not proof of no bugs. It means the current calibrated lenses, closed sweep counts, fuzz corpus, build, and vulnerability scan passed. Candidate counts were saved to %s and active-discovery candidates were saved under %s.\n' "$scan_out" "$out_dir"
+printf 'Council verdict boundary: this is not proof of no bugs. It means the current calibrated lenses, active backlog, closed sweep counts, fuzz corpus, build, and vulnerability scan passed. Candidate counts were saved to %s and active-discovery candidates were saved under %s.\n' "$scan_out" "$out_dir"

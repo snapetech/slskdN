@@ -613,13 +613,24 @@ require_file "scripts/check-council-negative-space.sh" "council negative-space g
 require_file "scripts/run-bug-council-all-phases.sh" "council all-phases runner exists"
 require_file "scripts/check-bug-council-all-phases.sh" "council all-phases registration gate exists"
 require_file "scripts/run-council-active-bughunt.sh" "council active bughunt runner exists"
+require_file "scripts/check-council-active-backlog.sh" "council active backlog gate exists"
+require_file "docs/dev/bug-council-active-backlog.md" "council active backlog exists"
 require_pattern "not proof of no bugs" "scripts/run-bug-council-all-phases.sh" "all-phases runner states green council runs are not no-bug proofs"
 require_pattern "not proof of no bugs" "scripts/run-council-active-bughunt.sh" "active bughunt runner states reports are not no-bug proofs"
+require_pattern "Every active-bughunt section must have a row" "docs/dev/bug-council-active-backlog.md" "active backlog documents section coverage rule"
+require_pattern "check-council-active-backlog.sh" "scripts/run-bug-council-all-phases.sh" "all-phases runner checks active backlog"
+require_pattern "RT-128" "docs/dev/bug-burndown-ledger.md" "ledger records active backlog loop hardening"
 
 if bash scripts/check-bug-council-all-phases.sh >/dev/null 2>&1; then
   pass "all-phases council runner is registered"
 else
   fail "all-phases council runner is not registered; run scripts/check-bug-council-all-phases.sh for details"
+fi
+
+if bash scripts/check-council-active-backlog.sh >/dev/null 2>&1; then
+  pass "active backlog matches active bughunt report"
+else
+  fail "active backlog does not match active bughunt report; run scripts/check-council-active-backlog.sh for details"
 fi
 
 # Run the negative-space gate as part of the remediation baseline so a missing
