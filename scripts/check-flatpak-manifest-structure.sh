@@ -12,12 +12,14 @@ fi
 
 ruby -e 'require "yaml"; YAML.load_file(ARGV.fetch(0))' "$manifest"
 
-if ! rg -q '^        DEFAULT_CONFIG$' "$manifest"; then
+# Use grep instead of rg so this script runs on stock CI runners (GitHub Actions
+# ubuntu-latest doesn't ship ripgrep).
+if ! grep -qE '^        DEFAULT_CONFIG$' "$manifest"; then
   printf 'Flatpak wrapper default-config heredoc must close before manifest sources\n' >&2
   failed=1
 fi
 
-if ! rg -q '^        EOF$' "$manifest"; then
+if ! grep -qE '^        EOF$' "$manifest"; then
   printf 'Flatpak wrapper heredoc must close before manifest sources\n' >&2
   failed=1
 fi
@@ -34,7 +36,7 @@ if ! awk '
 fi
 
 for asset in slskdn.desktop slskdn.metainfo.xml slskdn.svg; do
-  if ! rg -q "path: $asset" "$manifest"; then
+  if ! grep -qF "path: $asset" "$manifest"; then
     printf 'Flatpak manifest is missing source asset %s\n' "$asset" >&2
     failed=1
   fi
