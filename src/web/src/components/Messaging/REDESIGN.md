@@ -206,13 +206,16 @@ small ▶ icon is a hover affordance.
    list so paint flicker drops. A push channel for messages is out of scope
    for this redesign, worth a follow-up.
 
-## 9. Open questions (decide before phase 1)
+## 9. Decisions (locked 2026-05-06)
 
-1. Tabs+split (proposed) vs keep the multi-card grid?
-2. IRC-default density vs Discord-default density?
-3. Green-light to break the existing `ChatSession` / `RoomSession` /
-   `PodChannelSession` test files and rewrite against `<MessageStream>` in
-   phase 3?
+1. **Tabs.** Single message view with tabs and an opt-in `Split right` for a
+   second pane. Multi-card grid retired in V2.
+2. **IRC density default, scalable.** Default zoom is `s` (11px / 1.2 lh).
+   The S/M/L/XL toggle is the answer to comfort and accessibility — defaults
+   stay tight, the lever scales up.
+3. **Green light to rewrite the three session test files** when phase 3b
+   migrates V1 onto `<MessageStream>`. V1 stays on the legacy components
+   until then so we don't churn tests during incremental rollout.
 
 ## 10. Plan (phased, each phase shippable on its own)
 

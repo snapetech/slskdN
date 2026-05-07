@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using slskd.Opinions;
 
 /// <summary>
 /// Pod affinity scoring service.
@@ -38,16 +39,19 @@ public class PodAffinityScorer : IPodAffinityScorer
     private readonly ILogger<PodAffinityScorer> logger;
     private readonly IPodService podService;
     private readonly IPodMessaging podMessaging;
+    private readonly IOpinionService? opinionService;
     private static readonly TimeSpan StableMembershipThreshold = TimeSpan.FromDays(7);
 
     public PodAffinityScorer(
         ILogger<PodAffinityScorer> logger,
         IPodService podService,
-        IPodMessaging podMessaging)
+        IPodMessaging podMessaging,
+        IOpinionService? opinionService = null)
     {
         this.logger = logger;
         this.podService = podService;
         this.podMessaging = podMessaging;
+        this.opinionService = opinionService;
     }
 
     public async Task<double> ComputeAffinityAsync(string podId, string userId, CancellationToken ct = default)
@@ -177,7 +181,41 @@ public class PodAffinityScorer : IPodAffinityScorer
             ? Math.Max(0.4, 1.0 - ((double)recentChurnCount / members.Count))
             : 1.0;
 
-        return Math.Clamp(((verifiedRatio * 0.35) + (stableRatio * 0.65)) * bannedPenalty * churnPenalty, 0.0, 1.0);
+        var baseTrust = ((verifiedRatio * 0.35) + (stableRatio * 0.65)) * bannedPenalty * churnPenalty;
+        var opinionAdjustment = await ComputeOpinionTrustAdjustmentAsync(normalizedUserId, members, ct).ConfigureAwait(false);
+        return opinionAdjustment.HasValue
+            ? Math.Clamp(baseTrust + opinionAdjustment.Value, 0.0, 1.0)
+            : Math.Clamp(baseTrust, 0.0, 1.0);
+    }
+
+    private async Task<double?> ComputeOpinionTrustAdjustmentAsync(string userId, IReadOnlyList<PodMember> members, CancellationToken ct)
+    {
+        if (opinionService == null || string.IsNullOrWhiteSpace(userId) || members.Count == 0)
+        {
+            return null;
+        }
+
+        var adjustments = new List<double>();
+        foreach (var member in members)
+        {
+            var peerId = member.PeerId?.Trim() ?? string.Empty;
+            if (peerId.Length == 0)
+            {
+                continue;
+            }
+
+            var peerSummary = await opinionService.SummarizeAsync(OpinionSubjectType.MeshPeer, peerId, "global", ct).ConfigureAwait(false);
+            var userSummary = await opinionService.SummarizeAsync(OpinionSubjectType.User, peerId, "global", ct).ConfigureAwait(false);
+            if (peerSummary.Total == 0 && userSummary.Total == 0)
+            {
+                continue;
+            }
+
+            var score = peerSummary.WeightedScore + userSummary.WeightedScore;
+            adjustments.Add(Math.Clamp(score, -1.0, 1.0) * 0.2);
+        }
+
+        return adjustments.Count == 0 ? null : adjustments.Average();
     }
 
     private static bool IsStableMember(PodMember member, IReadOnlyDictionary<string, IReadOnlyList<SignedMembershipRecord>> historyByPeer)

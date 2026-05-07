@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using slskd.Opinions;
 using slskd.PodCore;
 using Xunit;
 
@@ -23,6 +24,8 @@ public class PodAffinityScorerTests
     {
         mockPodService = new Mock<IPodService>();
         mockPodMessaging = new Mock<IPodMessaging>();
+        mockPodService.Setup(s => s.GetMembershipHistoryAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<SignedMembershipRecord>());
         scorer = new PodAffinityScorer(
             NullLogger<PodAffinityScorer>.Instance,
             mockPodService.Object,
@@ -279,6 +282,61 @@ public class PodAffinityScorerTests
         var churnAffinity = await scorer.ComputeAffinityAsync("pod:churn", "outsider");
 
         Assert.True(stableAffinity > churnAffinity, $"Stable membership ({stableAffinity:F3}) should beat churn ({churnAffinity:F3})");
+    }
+
+    [Fact]
+    public async Task ComputeAffinityAsync_UsesExplicitPeerOpinionsAsTrustSignal()
+    {
+        var pod = CreatePod("pod:opinions", "Opinion Pod");
+        var members = new List<PodMember>
+        {
+            new PodMember { PeerId = "peer-a", Role = "member", PublicKey = "key-a" },
+            new PodMember { PeerId = "peer-b", Role = "member", PublicKey = "key-b" }
+        };
+        var messages = CreateRecentMessages(10, 1);
+        var opinions = new OpinionService(
+            NullLogger<OpinionService>.Instance,
+            Path.Combine(Path.GetTempPath(), $"slskdn-opinions-{Guid.NewGuid():N}.json"));
+        var opinionScorer = new PodAffinityScorer(
+            NullLogger<PodAffinityScorer>.Instance,
+            mockPodService.Object,
+            mockPodMessaging.Object,
+            opinions);
+
+        mockPodService.Setup(s => s.GetPodAsync("pod:opinions", It.IsAny<CancellationToken>())).ReturnsAsync(pod);
+        mockPodService.Setup(s => s.GetMembersAsync("pod:opinions", It.IsAny<CancellationToken>())).ReturnsAsync(members);
+        mockPodMessaging.Setup(s => s.GetMessagesAsync("pod:opinions", "general", null, It.IsAny<CancellationToken>())).ReturnsAsync(messages);
+
+        var baseline = await opinionScorer.ComputeAffinityAsync("pod:opinions", "outsider");
+
+        await opinions.SubmitAsync(new OpinionRecord
+        {
+            Issuer = "local:test",
+            SubjectType = OpinionSubjectType.MeshPeer,
+            SubjectId = "peer-a",
+            Kind = OpinionKind.Distrust,
+            Strength = -1,
+            Confidence = 1,
+            Scope = "global",
+            Source = "operator",
+            Evidence = { new OpinionEvidence { Type = "manual", Value = "operator distrust" } },
+        });
+        await opinions.SubmitAsync(new OpinionRecord
+        {
+            Issuer = "local:test",
+            SubjectType = OpinionSubjectType.User,
+            SubjectId = "peer-b",
+            Kind = OpinionKind.Distrust,
+            Strength = -1,
+            Confidence = 1,
+            Scope = "global",
+            Source = "operator",
+            Evidence = { new OpinionEvidence { Type = "manual", Value = "operator distrust" } },
+        });
+
+        var distrusted = await opinionScorer.ComputeAffinityAsync("pod:opinions", "outsider");
+
+        Assert.True(distrusted < baseline, $"Distrusted pod ({distrusted:F3}) should score below baseline ({baseline:F3})");
     }
 
     // Helper methods

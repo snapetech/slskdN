@@ -1244,6 +1244,9 @@ namespace slskd
             services.AddSingleton<IRoomTracker, RoomTracker>(_ => new RoomTracker(messageLimit: 250));
 
             services.AddSingleton<IMessagingService, MessagingService>();
+            services.AddSingleton<Opinions.IOpinionService>(sp => new Opinions.OpinionService(
+                sp.GetRequiredService<ILogger<Opinions.OpinionService>>(),
+                Path.Combine(Program.AppDirectory, "opinions.json")));
             services.AddSingleton<ISoulseekDiscoveryService, SoulseekDiscoveryService>();
             services.AddSingleton<IConversationService>(sp =>
             {

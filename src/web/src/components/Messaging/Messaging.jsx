@@ -1,5 +1,6 @@
 import './Messaging.css';
 import * as chat from '../../lib/chat';
+import { isV2Enabled } from '../../lib/messagingFlag';
 import * as pods from '../../lib/pods';
 import * as rooms from '../../lib/rooms';
 import { getLocalStorageItem, setLocalStorageItem } from '../../lib/storage';
@@ -9,6 +10,7 @@ import PlaceholderSegment from '../Shared/PlaceholderSegment';
 import RoomCreateModal from '../Rooms/RoomCreateModal';
 import RoomSession from '../Rooms/RoomSession';
 import UserCard from '../Shared/UserCard';
+import MessagingV2 from './MessagingV2';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -93,22 +95,22 @@ const makePanel = (type, target, collapsed = false) => {
   };
 };
 
-const encodePodTarget = (podId, channelId) => `${podId}\u001f${channelId}`;
+export const encodePodTarget = (podId, channelId) => `${podId}\u001f${channelId}`;
 
-const decodePodTarget = (target) => {
+export const decodePodTarget = (target) => {
   const [podId, channelId] = `${target || ''}`.split('\u001f');
   return { channelId, podId };
 };
 
-const channelLabel = (channel) =>
+export const channelLabel = (channel) =>
   [channel.podName, channel.channelName || channel.channelId]
     .filter(Boolean)
     .join(' / ');
 
 const normalizeConversationName = (value) => `${value || ''}`.trim().toLowerCase();
-const asArray = (value) => (Array.isArray(value) ? value : []);
+export const asArray = (value) => (Array.isArray(value) ? value : []);
 
-const isPodDirectChannel = (channel) => {
+export const isPodDirectChannel = (channel) => {
   const channelKind = normalizeConversationName(channel.channelKind);
   const channelName = normalizeConversationName(
     channel.channelName || channel.channelId,
@@ -129,7 +131,7 @@ const panelLabel = (panel) => {
   return panel.target;
 };
 
-const PodChannelSession = ({ channel, state }) => {
+export const PodChannelSession = ({ channel, state }) => {
   const [body, setBody] = useState('');
   const [members, setMembers] = useState([]);
   const [messages, setMessages] = useState([]);
@@ -285,6 +287,26 @@ const PodChannelSession = ({ channel, state }) => {
 };
 
 const Messaging = ({ initialKind = 'mixed', state }) => {
+  const [v2Enabled, setV2Enabled] = useState(() => isV2Enabled());
+
+  useEffect(() => {
+    const handleStorage = (event) => {
+      if (event.key === null || event.key === 'slskd-messaging-v2') {
+        setV2Enabled(isV2Enabled());
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  if (v2Enabled) {
+    return <MessagingV2 initialKind={initialKind} state={state} />;
+  }
+
+  return <MessagingV1Inner initialKind={initialKind} state={state} />;
+};
+
+const MessagingV1Inner = ({ initialKind = 'mixed', state }) => {
   const navigate = useNavigate();
   const params = useParams();
   const [panels, setPanels] = useState(() => loadPanels());

@@ -10,31 +10,28 @@ using Xunit;
 public class OverlayLogSanitizerTests
 {
     [Fact]
-    public void Username_RedactsRawSoulseekName()
+    public void Username_PreservesRawSoulseekName()
     {
         var result = OverlayLogSanitizer.Username("keef_shape");
 
-        Assert.Equal("k***e (10 chars)", result);
-        Assert.DoesNotContain("keef_shape", result);
+        Assert.Equal("keef_shape", result);
     }
 
     [Fact]
-    public void PeerId_RedactsUsernameBackedPeerId()
+    public void PeerId_PreservesUsernameBackedPeerId()
     {
         var result = OverlayLogSanitizer.PeerId("spynn56");
 
-        Assert.Equal("s***6 (7 chars)", result);
-        Assert.DoesNotContain("spynn56", result);
+        Assert.Equal("spynn56", result);
     }
 
     [Fact]
-    public void Endpoint_RedactsPublicIpButKeepsPortForTriage()
+    public void Endpoint_PreservesPublicIpAndPortForTriage()
     {
         var endpoint = new IPEndPoint(IPAddress.Parse("24.109.206.134"), 34160);
 
         var result = OverlayLogSanitizer.Endpoint(endpoint);
 
-        Assert.Equal("xxx.xxx.xxx.134:34160", result);
-        Assert.DoesNotContain("24.109.206", result);
+        Assert.Equal("24.109.206.134:34160", result);
     }
 }

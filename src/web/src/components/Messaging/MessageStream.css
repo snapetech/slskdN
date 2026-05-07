@@ -1,0 +1,191 @@
+.msg-stream {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0 6px;
+  font-family: var(--slskd-font-family, 'Inter', system-ui, sans-serif);
+  font-size: var(--msg-font, 12.5px);
+  line-height: var(--msg-line, 1.3);
+  color: var(--msgv2-fg, #efe7dc);
+  scrollbar-width: thin;
+}
+
+.msg-stream-loading,
+.msg-stream-empty {
+  color: var(--msgv2-fg-faint, rgba(239, 231, 220, 0.32));
+  text-align: center;
+  padding: 24px 12px;
+  font-style: italic;
+  font-size: 0.95em;
+}
+
+/* day separator */
+.msg-stream-day {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px var(--msg-row-pad-x, 8px) 4px;
+  color: var(--msgv2-fg-faint, rgba(239, 231, 220, 0.32));
+  font-size: 0.82em;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.msg-stream-day-line {
+  flex: 1;
+  height: 1px;
+  background: var(--msgv2-border, rgba(255, 255, 255, 0.08));
+}
+
+/* base row layout — IRC three-column with hanging indent */
+.msg-stream-row {
+  display: grid;
+  grid-template-columns: 38px 96px 1fr;
+  column-gap: 8px;
+  padding: var(--msg-row-pad-y, 1px) var(--msg-row-pad-x, 8px);
+  align-items: baseline;
+}
+
+.msg-stream-row:hover {
+  background: var(--msgv2-hover-bg, rgba(255, 255, 255, 0.03));
+}
+
+.msg-stream-row[data-self='true'] {
+  background: linear-gradient(
+    90deg,
+    var(--xport-slsk-soft, rgba(214, 164, 90, 0.18)) 0,
+    transparent 60%
+  );
+}
+
+.msg-stream-row[data-compact='true'] {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.msg-stream-time {
+  font-family: var(--slskd-mono-family, 'JetBrains Mono', ui-monospace, monospace);
+  font-size: 0.92em;
+  color: var(--msgv2-fg-faint, rgba(239, 231, 220, 0.32));
+  text-align: right;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.msg-stream-sender,
+.msg-stream-me-sender {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  max-width: 100%;
+}
+
+.msg-stream-sender:hover,
+.msg-stream-me-sender:hover {
+  text-decoration: underline;
+}
+
+.msg-stream-sender-spacer {
+  display: block;
+}
+
+.msg-stream-body {
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* /me row */
+.msg-stream-row-me {
+  grid-template-columns: 38px auto auto 1fr;
+  font-style: italic;
+  color: var(--msgv2-fg-dim, rgba(239, 231, 220, 0.55));
+}
+
+.msg-stream-me-glyph {
+  color: var(--msgv2-fg-faint, rgba(239, 231, 220, 0.32));
+  font-weight: 700;
+  user-select: none;
+}
+
+.msg-stream-me-body {
+  color: var(--msgv2-fg-dim, rgba(239, 231, 220, 0.62));
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* listenalong card */
+.msg-stream-row-listenalong {
+  grid-template-columns: 38px 1fr;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.msg-stream-listenalong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-left: 2px solid var(--xport-mesh, #5ac0d6);
+  background: var(--xport-mesh-soft, rgba(90, 192, 214, 0.12));
+  border-radius: 0 4px 4px 0;
+  font-size: 0.95em;
+  flex-wrap: wrap;
+}
+
+.msg-stream-listenalong-glyph {
+  color: var(--xport-mesh, #5ac0d6);
+  font-weight: 700;
+}
+
+.msg-stream-listenalong-host {
+  font-weight: 600;
+  color: var(--msgv2-fg, #efe7dc);
+}
+
+.msg-stream-listenalong-action {
+  color: var(--msgv2-fg-dim, rgba(239, 231, 220, 0.62));
+  font-style: italic;
+}
+
+.msg-stream-listenalong-title {
+  color: var(--msgv2-fg, #efe7dc);
+  font-weight: 600;
+}
+
+.msg-stream-listenalong-artist,
+.msg-stream-listenalong-album {
+  color: var(--msgv2-fg-dim, rgba(239, 231, 220, 0.62));
+}
+
+/* small viewport: drop sender column to its own line */
+@media only screen and (max-width: 600px) {
+  .msg-stream-row {
+    grid-template-columns: 38px 1fr;
+  }
+
+  .msg-stream-sender,
+  .msg-stream-me-sender {
+    grid-column: 2;
+    text-align: left;
+  }
+
+  .msg-stream-body,
+  .msg-stream-me-body {
+    grid-column: 2;
+  }
+
+  .msg-stream-time {
+    grid-row: 1 / span 2;
+    align-self: start;
+  }
+}
