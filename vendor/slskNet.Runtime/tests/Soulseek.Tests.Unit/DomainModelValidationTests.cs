@@ -24,9 +24,13 @@ namespace Soulseek.Tests.Unit
 
     public class DomainModelValidationTests
     {
-        [Fact(DisplayName = "File rejects negative size")]
-        public void File_Rejects_Negative_Size()
-            => Assert.Throws<ArgumentOutOfRangeException>(() => new File(1, "file.mp3", -1, ".mp3"));
+        [Fact(DisplayName = "File accepts negative size from the wire")]
+        public void File_Accepts_Negative_Size()
+        {
+            var file = new File(1, "file.mp3", -1, ".mp3");
+
+            Assert.Equal(-1, file.Size);
+        }
 
         [Fact(DisplayName = "File rejects null attributes")]
         public void File_Rejects_Null_Attributes()
@@ -53,11 +57,16 @@ namespace Soulseek.Tests.Unit
             }
         }
 
-        [Theory(DisplayName = "SearchResponse rejects negative peer metadata")]
+        [Theory(DisplayName = "SearchResponse accepts negative peer metadata from the wire")]
         [InlineData(-1, 0)]
         [InlineData(0, -1)]
-        public void SearchResponse_Rejects_Negative_Peer_Metadata(int uploadSpeed, int queueLength)
-            => Assert.Throws<ArgumentOutOfRangeException>(() => new SearchResponse("user", 1, true, uploadSpeed, queueLength, null));
+        public void SearchResponse_Accepts_Negative_Peer_Metadata(int uploadSpeed, int queueLength)
+        {
+            var response = new SearchResponse("user", 1, true, uploadSpeed, queueLength, null);
+
+            Assert.Equal(uploadSpeed, response.UploadSpeed);
+            Assert.Equal(queueLength, response.QueueLength);
+        }
 
         [Theory(DisplayName = "SearchResponse rejects null files")]
         [InlineData(false)]
@@ -76,35 +85,56 @@ namespace Soulseek.Tests.Unit
             }
         }
 
-        [Theory(DisplayName = "UserInfo rejects negative peer metadata")]
+        [Theory(DisplayName = "UserInfo accepts negative peer metadata from the wire")]
         [InlineData(-1, 0)]
         [InlineData(0, -1)]
-        public void UserInfo_Rejects_Negative_Peer_Metadata(int uploadSlots, int queueLength)
-            => Assert.Throws<ArgumentOutOfRangeException>(() => new UserInfo("description", uploadSlots, queueLength, false));
+        public void UserInfo_Accepts_Negative_Peer_Metadata(int uploadSlots, int queueLength)
+        {
+            var info = new UserInfo("description", uploadSlots, queueLength, false);
 
-        [Theory(DisplayName = "UserData rejects invalid peer metadata")]
+            Assert.Equal(uploadSlots, info.UploadSlots);
+            Assert.Equal(queueLength, info.QueueLength);
+        }
+
+        [Theory(DisplayName = "UserData accepts negative metadata and undefined presence from the wire")]
         [InlineData((UserPresence)99, 0, 0L, 0, 0, null)]
         [InlineData(UserPresence.Online, -1, 0L, 0, 0, null)]
         [InlineData(UserPresence.Online, 0, -1L, 0, 0, null)]
         [InlineData(UserPresence.Online, 0, 0L, -1, 0, null)]
         [InlineData(UserPresence.Online, 0, 0L, 0, -1, null)]
         [InlineData(UserPresence.Online, 0, 0L, 0, 0, -1)]
-        public void UserData_Rejects_Invalid_Peer_Metadata(
+        public void UserData_Accepts_Wire_Metadata(
             UserPresence status,
             int averageSpeed,
             long uploadCount,
             int fileCount,
             int directoryCount,
             int? slotsFree)
-            => Assert.Throws<ArgumentOutOfRangeException>(() => new UserData("user", status, averageSpeed, uploadCount, fileCount, directoryCount, "US", slotsFree));
+        {
+            var data = new UserData("user", status, averageSpeed, uploadCount, fileCount, directoryCount, "US", slotsFree);
 
-        [Theory(DisplayName = "UserStatistics rejects negative peer metadata")]
+            Assert.Equal(status, data.Status);
+            Assert.Equal(averageSpeed, data.AverageSpeed);
+            Assert.Equal(uploadCount, data.UploadCount);
+            Assert.Equal(fileCount, data.FileCount);
+            Assert.Equal(directoryCount, data.DirectoryCount);
+            Assert.Equal(slotsFree, data.SlotsFree);
+        }
+
+        [Theory(DisplayName = "UserStatistics accepts negative peer metadata from the wire")]
         [InlineData(-1, 0L, 0, 0)]
         [InlineData(0, -1L, 0, 0)]
         [InlineData(0, 0L, -1, 0)]
         [InlineData(0, 0L, 0, -1)]
-        public void UserStatistics_Rejects_Negative_Peer_Metadata(int averageSpeed, long uploadCount, int fileCount, int directoryCount)
-            => Assert.Throws<ArgumentOutOfRangeException>(() => new UserStatistics("user", averageSpeed, uploadCount, fileCount, directoryCount));
+        public void UserStatistics_Accepts_Negative_Peer_Metadata(int averageSpeed, long uploadCount, int fileCount, int directoryCount)
+        {
+            var stats = new UserStatistics("user", averageSpeed, uploadCount, fileCount, directoryCount);
+
+            Assert.Equal(averageSpeed, stats.AverageSpeed);
+            Assert.Equal(uploadCount, stats.UploadCount);
+            Assert.Equal(fileCount, stats.FileCount);
+            Assert.Equal(directoryCount, stats.DirectoryCount);
+        }
 
         [Theory(DisplayName = "Transfer rejects invalid progress metadata")]
         [InlineData((TransferDirection)99, 1, 0, 0, 0)]
@@ -150,13 +180,21 @@ namespace Soulseek.Tests.Unit
         public void Search_Rejects_Invalid_Counters_And_States(SearchStates state, int responseCount, int fileCount, int lockedFileCount)
             => Assert.Throws<ArgumentOutOfRangeException>(() => new Search(SearchQuery.FromText("query"), SearchScope.Network, 1, state, responseCount, fileCount, lockedFileCount));
 
-        [Fact(DisplayName = "UserStatus rejects invalid presence")]
-        public void UserStatus_Rejects_Invalid_Presence()
-            => Assert.Throws<ArgumentOutOfRangeException>(() => new UserStatus("user", (UserPresence)99, false));
+        [Fact(DisplayName = "UserStatus accepts undefined presence from the wire")]
+        public void UserStatus_Accepts_Undefined_Presence()
+        {
+            var status = new UserStatus("user", (UserPresence)99, false);
 
-        [Fact(DisplayName = "RoomInfo rejects negative user count")]
-        public void RoomInfo_Rejects_Negative_User_Count()
-            => Assert.Throws<ArgumentOutOfRangeException>(() => new RoomInfo("room", -1));
+            Assert.Equal((UserPresence)99, status.Presence);
+        }
+
+        [Fact(DisplayName = "RoomInfo accepts negative user count from the wire")]
+        public void RoomInfo_Accepts_Negative_User_Count()
+        {
+            var info = new RoomInfo("room", -1);
+
+            Assert.Equal(-1, info.UserCount);
+        }
 
         [Theory(DisplayName = "Distributed network info rejects invalid topology metadata")]
         [InlineData(-0.1d, 0, 0)]
@@ -199,9 +237,13 @@ namespace Soulseek.Tests.Unit
             Assert.Equal(2345, info.Parent.IPEndPoint.Port);
         }
 
-        [Fact(DisplayName = "Distributed parent event args reject negative branch level")]
-        public void DistributedParentEventArgs_Rejects_Negative_Branch_Level()
-            => Assert.Throws<ArgumentOutOfRangeException>(() => new DistributedParentEventArgs("user", null, -1, "root"));
+        [Fact(DisplayName = "Distributed parent event args accept negative branch level from the wire")]
+        public void DistributedParentEventArgs_Accepts_Negative_Branch_Level()
+        {
+            var args = new DistributedParentEventArgs("user", null, -1, "root");
+
+            Assert.Equal(-1, args.BranchLevel);
+        }
 
         [Theory(DisplayName = "Browse progress event args reject invalid progress metadata")]
         [InlineData(-1, 1)]
@@ -211,7 +253,6 @@ namespace Soulseek.Tests.Unit
 
         [Theory(DisplayName = "File attribute rejects invalid metadata")]
         [InlineData((FileAttributeType)99, 0)]
-        [InlineData(FileAttributeType.BitRate, -1)]
         public void FileAttribute_Rejects_Invalid_Metadata(FileAttributeType type, int value)
             => Assert.Throws<ArgumentOutOfRangeException>(() => new FileAttribute(type, value));
 

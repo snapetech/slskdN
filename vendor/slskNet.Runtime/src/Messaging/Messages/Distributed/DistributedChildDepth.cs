@@ -38,11 +38,6 @@ namespace Soulseek.Messaging.Messages
         /// <param name="depth">The current depth of the child.</param>
         public DistributedChildDepth(int depth)
         {
-            if (depth < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(depth), depth, "The child depth must be equal to or greater than zero");
-            }
-
             Depth = depth;
         }
 

@@ -38,13 +38,12 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         }
 
         [Trait("Category", "Instantiation")]
-        [Fact(DisplayName = "Instantiation throws on negative depth")]
-        public void Instantiation_Throws_On_Negative_Depth()
+        [Fact(DisplayName = "Instantiation accepts negative depth from the wire")]
+        public void Instantiation_Accepts_Negative_Depth()
         {
-            var ex = Record.Exception(() => new DistributedChildDepth(-1));
+            var r = new DistributedChildDepth(-1);
 
-            Assert.NotNull(ex);
-            Assert.IsType<ArgumentOutOfRangeException>(ex);
+            Assert.Equal(-1, r.Depth);
         }
 
         [Trait("Category", "ToByteArray")]
@@ -81,18 +80,17 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         }
 
         [Trait("Category", "FromByteArray")]
-        [Fact(DisplayName = "FromByteArray throws MessageException on negative depth")]
-        public void FromByteArray_Throws_MessageException_On_Negative_Depth()
+        [Fact(DisplayName = "FromByteArray accepts negative depth from the wire")]
+        public void FromByteArray_Accepts_Negative_Depth()
         {
             var msg = new MessageBuilder()
                 .WriteCode(MessageCode.Distributed.ChildDepth)
                 .WriteInteger(-1)
                 .Build();
 
-            var ex = Record.Exception(() => DistributedChildDepth.FromByteArray(msg));
+            var response = DistributedChildDepth.FromByteArray(msg);
 
-            Assert.NotNull(ex);
-            Assert.IsType<MessageException>(ex);
+            Assert.Equal(-1, response.Depth);
         }
 
         [Trait("Category", "FromByteArray")]

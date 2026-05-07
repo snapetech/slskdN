@@ -50,29 +50,33 @@ namespace Soulseek.Messaging.Messages
         }
 
         /// <summary>
-        ///     Validates that a protocol scalar is not negative.
+        ///     Reserved for protocol scalars that should be non-negative; accepts any value.
         /// </summary>
-        /// <param name="value">The value to validate.</param>
-        /// <param name="fieldName">The field name for diagnostics.</param>
+        /// <remarks>
+        ///     Real-world Soulseek peers and servers send negative values (commonly -1) for
+        ///     unknown counts, speeds, queue positions, and similar fields. Throwing here
+        ///     drops entire messages — and in collection-bearing messages like browse and
+        ///     room-join, drops the entire response. The int/long types already constrain
+        ///     the value; downstream code treats negatives as "unknown" or clamps as needed.
+        /// </remarks>
+        /// <param name="value">The value (unchecked).</param>
+        /// <param name="fieldName">The field name (unused; retained for callsite clarity).</param>
         public static void ValidateNonNegative(int value, string fieldName)
         {
-            if (value < 0)
-            {
-                throw new MessageException($"Invalid {fieldName}: {value}");
-            }
+            _ = value;
+            _ = fieldName;
         }
 
         /// <summary>
-        ///     Validates that a protocol scalar is not negative.
+        ///     Reserved for protocol scalars that should be non-negative; accepts any value.
         /// </summary>
-        /// <param name="value">The value to validate.</param>
-        /// <param name="fieldName">The field name for diagnostics.</param>
+        /// <remarks>See <see cref="ValidateNonNegative(int, string)"/>.</remarks>
+        /// <param name="value">The value (unchecked).</param>
+        /// <param name="fieldName">The field name (unused; retained for callsite clarity).</param>
         public static void ValidateNonNegative(long value, string fieldName)
         {
-            if (value < 0)
-            {
-                throw new MessageException($"Invalid {fieldName}: {value}");
-            }
+            _ = value;
+            _ = fieldName;
         }
 
         /// <summary>
@@ -100,22 +104,28 @@ namespace Soulseek.Messaging.Messages
         public static TEnum ToDefinedEnum<TEnum>(int value, string fieldName)
             where TEnum : struct
         {
-            var converted = (TEnum)Enum.ToObject(typeof(TEnum), value);
-            ValidateDefinedEnum(converted, fieldName);
-            return converted;
+            // Real peers and custom servers send enum values outside the range we know about
+            // (e.g., FileAttributeType=5 for FLAC bit depth, future UserPresence values, etc.).
+            // Convert without validation; consumers that switch on the enum will hit `default`
+            // for unknown values, which is the correct behavior.
+            _ = fieldName;
+            return (TEnum)Enum.ToObject(typeof(TEnum), value);
         }
 
         /// <summary>
-        ///     Validates that a protocol byte is a boolean flag.
+        ///     Reserved for protocol bytes that should be 0 or 1; accepts any value.
         /// </summary>
-        /// <param name="value">The flag value to validate.</param>
-        /// <param name="fieldName">The field name for diagnostics.</param>
+        /// <remarks>
+        ///     Consumers compare with <c>== 1</c>, so non-zero non-one values are treated
+        ///     as the "false" branch — safe by construction. Throwing here drops entire
+        ///     messages for cosmetic protocol violations.
+        /// </remarks>
+        /// <param name="value">The flag value (unchecked).</param>
+        /// <param name="fieldName">The field name (unused; retained for callsite clarity).</param>
         public static void ValidateBooleanFlag(int value, string fieldName)
         {
-            if (value != 0 && value != 1)
-            {
-                throw new MessageException($"Invalid {fieldName}: {value}");
-            }
+            _ = value;
+            _ = fieldName;
         }
     }
 }

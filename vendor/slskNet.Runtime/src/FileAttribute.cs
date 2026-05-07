@@ -44,11 +44,6 @@ namespace Soulseek
                 throw new ArgumentOutOfRangeException(nameof(type), "Must be a defined file attribute type");
             }
 
-            if (value < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(value), "Must be greater than or equal to zero");
-            }
-
             Type = type;
             Value = value;
         }

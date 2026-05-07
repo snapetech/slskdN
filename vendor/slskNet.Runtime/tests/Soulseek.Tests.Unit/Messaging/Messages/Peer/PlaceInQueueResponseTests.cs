@@ -39,13 +39,13 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         }
 
         [Trait("Category", "Instantiation")]
-        [Fact(DisplayName = "Instantiation rejects negative place in queue")]
-        public void Instantiation_Rejects_Negative_Place_In_Queue()
+        [Fact(DisplayName = "Instantiation accepts negative place in queue from the wire")]
+        public void Instantiation_Accepts_Negative_Place_In_Queue()
         {
-            var ex = Record.Exception(() => new PlaceInQueueResponse("file", -1));
+            var response = new PlaceInQueueResponse("file", -1);
 
-            Assert.NotNull(ex);
-            Assert.IsType<ArgumentOutOfRangeException>(ex);
+            Assert.Equal("file", response.Filename);
+            Assert.Equal(-1, response.PlaceInQueue);
         }
 
         [Trait("Category", "Parse")]

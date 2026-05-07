@@ -62,11 +62,8 @@ namespace Soulseek.Messaging
                 }
             }
 
-            if (size < 0)
-            {
-                throw new MessageException($"Invalid file size: {size}");
-            }
-
+            // Real peers send negative sizes (commonly -1) for unknown sizes; accept and let
+            // higher layers clamp or filter as needed.
             var attributeCount = ProtocolCountReader.ReadCount(reader, "file attribute", minimumBytesPerItem: 8);
             var attributeList = new List<FileAttribute>();
 
@@ -74,8 +71,6 @@ namespace Soulseek.Messaging
             {
                 var type = ProtocolValueValidator.ToDefinedEnum<FileAttributeType>(reader.ReadInteger(), "file attribute type");
                 var value = reader.ReadInteger();
-
-                ProtocolValueValidator.ValidateNonNegative(value, "file attribute value");
 
                 var attribute = new FileAttribute(
                     type: type,

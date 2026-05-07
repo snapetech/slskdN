@@ -3363,6 +3363,11 @@ namespace Soulseek
                     // to be removed before this code exits. once the response connection is returned and the disconnected event
                     // bound the risk is mitigated.
                     Waiter.Throw(browseWaitKey, ex);
+
+                    // observe the now-faulted browseWait task so it doesn't surface as an unobserved
+                    // task exception (the caller awaits BrowseInternalAsync, not browseWait directly).
+                    _ = browseWait.ContinueWith(t => _ = t.Exception, TaskScheduler.Default);
+
                     throw;
                 }
 

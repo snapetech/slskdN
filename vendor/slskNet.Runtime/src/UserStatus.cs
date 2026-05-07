@@ -40,11 +40,6 @@ namespace Soulseek
         /// <param name="isPrivileged">A value indicating whether the user is privileged.</param>
         public UserStatus(string username, UserPresence presence, bool isPrivileged)
         {
-            if (!Enum.IsDefined(typeof(UserPresence), presence))
-            {
-                throw new ArgumentOutOfRangeException(nameof(presence), "Must be a defined user presence");
-            }
-
             Username = username;
             Presence = presence;
             IsPrivileged = isPrivileged;

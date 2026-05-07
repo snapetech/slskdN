@@ -56,20 +56,24 @@ namespace Soulseek.Tests.Unit.Messaging.Fuzz
         }
 
         [Fact]
-        public void DistributedBranchLevel_Rejects_Negative_Values_From_Wire()
+        public void DistributedBranchLevel_Accepts_Negative_Values_From_Wire()
         {
-            // Hand-build a wire-shaped buffer with a negative branch level. A correct parser must
-            // reject this; the value cannot be produced by ToByteArray() because the constructor
-            // refuses negatives, so we synthesize the bytes directly.
+            // Real distributed parents occasionally broadcast negative branch levels (typically
+            // during reorganization). The parser should accept the wire value rather than dropping
+            // the message; consumers can decide what to do with the unusual value.
             var bytes = SynthesizeDistributedScalar(MessageCode.Distributed.BranchLevel, -1);
-            Assert.ThrowsAny<Exception>(() => DistributedBranchLevel.FromByteArray(bytes));
+            var decoded = DistributedBranchLevel.FromByteArray(bytes);
+
+            Assert.Equal(-1, decoded.Level);
         }
 
         [Fact]
-        public void DistributedChildDepth_Rejects_Negative_Values_From_Wire()
+        public void DistributedChildDepth_Accepts_Negative_Values_From_Wire()
         {
             var bytes = SynthesizeDistributedScalar(MessageCode.Distributed.ChildDepth, -1);
-            Assert.ThrowsAny<Exception>(() => DistributedChildDepth.FromByteArray(bytes));
+            var decoded = DistributedChildDepth.FromByteArray(bytes);
+
+            Assert.Equal(-1, decoded.Depth);
         }
 
         private static byte[] SynthesizeDistributedScalar(MessageCode.Distributed code, int value)

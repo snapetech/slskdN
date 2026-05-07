@@ -42,26 +42,6 @@ namespace Soulseek
         /// <param name="directoryCount">The number of directories shared by the user.</param>
         public UserStatistics(string username, int averageSpeed, long uploadCount, int fileCount, int directoryCount)
         {
-            if (averageSpeed < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(averageSpeed), "Must be greater than or equal to zero");
-            }
-
-            if (uploadCount < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(uploadCount), "Must be greater than or equal to zero");
-            }
-
-            if (fileCount < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(fileCount), "Must be greater than or equal to zero");
-            }
-
-            if (directoryCount < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(directoryCount), "Must be greater than or equal to zero");
-            }
-
             Username = username;
             AverageSpeed = averageSpeed;
             UploadCount = uploadCount;

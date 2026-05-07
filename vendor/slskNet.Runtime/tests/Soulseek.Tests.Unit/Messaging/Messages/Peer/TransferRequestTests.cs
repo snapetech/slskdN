@@ -126,8 +126,8 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         }
 
         [Trait("Category", "Parse")]
-        [Fact(DisplayName = "Parse throws MessageException on negative file size")]
-        public void Parse_Throws_MessageException_On_Negative_File_Size()
+        [Fact(DisplayName = "Parse accepts negative file size from the wire")]
+        public void Parse_Accepts_Negative_File_Size()
         {
             var msg = new MessageBuilder()
                 .WriteCode(MessageCode.Peer.TransferRequest)
@@ -137,15 +137,14 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
                 .WriteLong(-1)
                 .Build();
 
-            var ex = Record.Exception(() => TransferRequest.FromByteArray(msg));
+            var request = TransferRequest.FromByteArray(msg);
 
-            Assert.NotNull(ex);
-            Assert.IsType<MessageException>(ex);
+            Assert.Equal(-1L, request.FileSize);
         }
 
         [Trait("Category", "Parse")]
-        [Fact(DisplayName = "Parse throws MessageException on invalid direction")]
-        public void Parse_Throws_MessageException_On_Invalid_Direction()
+        [Fact(DisplayName = "Parse accepts undefined direction from the wire")]
+        public void Parse_Accepts_Undefined_Direction()
         {
             var msg = new MessageBuilder()
                 .WriteCode(MessageCode.Peer.TransferRequest)
@@ -154,30 +153,27 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
                 .WriteString("file")
                 .Build();
 
-            var ex = Record.Exception(() => TransferRequest.FromByteArray(msg));
+            var request = TransferRequest.FromByteArray(msg);
 
-            Assert.NotNull(ex);
-            Assert.IsType<MessageException>(ex);
+            Assert.Equal((TransferDirection)2, request.Direction);
         }
 
         [Trait("Category", "Instantiation")]
-        [Fact(DisplayName = "Instantiation throws on invalid direction")]
-        public void Instantiation_Throws_On_Invalid_Direction()
+        [Fact(DisplayName = "Instantiation accepts undefined direction")]
+        public void Instantiation_Accepts_Undefined_Direction()
         {
-            var ex = Record.Exception(() => new TransferRequest((TransferDirection)2, 1, "file"));
+            var request = new TransferRequest((TransferDirection)2, 1, "file");
 
-            Assert.NotNull(ex);
-            Assert.IsType<ArgumentOutOfRangeException>(ex);
+            Assert.Equal((TransferDirection)2, request.Direction);
         }
 
         [Trait("Category", "Instantiation")]
-        [Fact(DisplayName = "Instantiation throws on negative file size")]
-        public void Instantiation_Throws_On_Negative_File_Size()
+        [Fact(DisplayName = "Instantiation accepts negative file size from the wire")]
+        public void Instantiation_Accepts_Negative_File_Size()
         {
-            var ex = Record.Exception(() => new TransferRequest(TransferDirection.Download, 1, "file", -1));
+            var request = new TransferRequest(TransferDirection.Download, 1, "file", -1);
 
-            Assert.NotNull(ex);
-            Assert.IsType<ArgumentOutOfRangeException>(ex);
+            Assert.Equal(-1L, request.FileSize);
         }
 
         [Trait("Category", "ToByteArray")]

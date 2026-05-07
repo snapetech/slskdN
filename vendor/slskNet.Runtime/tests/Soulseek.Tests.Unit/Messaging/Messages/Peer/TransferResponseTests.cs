@@ -110,8 +110,8 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         }
 
         [Trait("Category", "Parse")]
-        [Fact(DisplayName = "Parse throws MessageException on negative allowed file size")]
-        public void Parse_Throws_MessageException_On_Negative_Allowed_File_Size()
+        [Fact(DisplayName = "Parse accepts negative allowed file size from the wire")]
+        public void Parse_Accepts_Negative_Allowed_File_Size()
         {
             var msg = new MessageBuilder()
                 .WriteCode(MessageCode.Peer.TransferResponse)
@@ -120,25 +120,23 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
                 .WriteLong(-1)
                 .Build();
 
-            var ex = Record.Exception(() => TransferResponse.FromByteArray(msg));
+            var response = TransferResponse.FromByteArray(msg);
 
-            Assert.NotNull(ex);
-            Assert.IsType<MessageException>(ex);
+            Assert.Equal(-1L, response.FileSize);
         }
 
         [Trait("Category", "Instantiation")]
-        [Fact(DisplayName = "Instantiation throws on negative allowed file size")]
-        public void Instantiation_Throws_On_Negative_Allowed_File_Size()
+        [Fact(DisplayName = "Instantiation accepts negative allowed file size from the wire")]
+        public void Instantiation_Accepts_Negative_Allowed_File_Size()
         {
-            var ex = Record.Exception(() => new TransferResponse(1, -1));
+            var response = new TransferResponse(1, -1L);
 
-            Assert.NotNull(ex);
-            Assert.IsType<ArgumentOutOfRangeException>(ex);
+            Assert.Equal(-1L, response.FileSize);
         }
 
         [Trait("Category", "Parse")]
-        [Fact(DisplayName = "Parse throws MessageException on invalid allowed flag")]
-        public void Parse_Throws_MessageException_On_Invalid_Allowed_Flag()
+        [Fact(DisplayName = "Parse accepts non-0/1 allowed flag from the wire")]
+        public void Parse_Accepts_NonStandard_Allowed_Flag()
         {
             var msg = new MessageBuilder()
                 .WriteCode(MessageCode.Peer.TransferResponse)
@@ -146,10 +144,13 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
                 .WriteByte(0x2)
                 .Build();
 
+            // ValidateBooleanFlag is now a no-op; non-1 values are treated as denied (IsAllowed=false).
+            // The parser then expects a denial-reason string, which we didn't write — the underlying
+            // reader fails. Either MessageException or MessageReadException is acceptable here.
             var ex = Record.Exception(() => TransferResponse.FromByteArray(msg));
 
             Assert.NotNull(ex);
-            Assert.IsType<MessageException>(ex);
+            Assert.IsAssignableFrom<MessageException>(ex);
         }
 
         [Trait("Category", "Parse")]

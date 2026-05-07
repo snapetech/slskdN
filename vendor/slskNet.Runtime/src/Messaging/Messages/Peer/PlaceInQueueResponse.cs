@@ -39,11 +39,6 @@ namespace Soulseek.Messaging.Messages
         /// <param name="placeInQueue">The current place in the peer's queue.</param>
         public PlaceInQueueResponse(string filename, int placeInQueue)
         {
-            if (placeInQueue < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(placeInQueue), "Must be greater than or equal to zero");
-            }
-
             Filename = ProtocolArgumentValidator.RequireNotNull(filename, nameof(filename), "filename");
             PlaceInQueue = placeInQueue;
         }

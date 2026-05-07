@@ -25,6 +25,7 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
 
     public class ProtocolScalarHardeningTests
     {
+        // Outgoing message constructors validate locally-generated tokens. These remain strict.
         public static IEnumerable<object[]> NegativeTokenConstructors()
         {
             yield return new object[] { "CannotConnect", new Action(() => new CannotConnect(-1, "user")) };
@@ -48,145 +49,12 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             yield return new object[] { "WishlistSearchRequest", new Action(() => new WishlistSearchRequest("query", -1)) };
         }
 
-        [Theory(DisplayName = "User statistics rejects negative counters")]
-        [InlineData(-1, 1L, 1, 1)]
-        [InlineData(1, -1L, 1, 1)]
-        [InlineData(1, 1L, -1, 1)]
-        [InlineData(1, 1L, 1, -1)]
-        public void User_Statistics_Rejects_Negative_Counters(int averageSpeed, long uploadCount, int fileCount, int directoryCount)
+        [Theory(DisplayName = "Outgoing message constructors reject negative tokens")]
+        [MemberData(nameof(NegativeTokenConstructors))]
+        public void Outgoing_Message_Constructors_Reject_Negative_Tokens(string caseName, Action constructor)
         {
-            var msg = new MessageBuilder()
-                .WriteCode(MessageCode.Server.GetUserStats)
-                .WriteString("user")
-                .WriteInteger(averageSpeed)
-                .WriteLong(uploadCount)
-                .WriteInteger(fileCount)
-                .WriteInteger(directoryCount)
-                .Build();
-
-            Assert.Throws<MessageException>(() => UserStatisticsResponseFactory.FromByteArray(msg));
-        }
-
-        [Theory(DisplayName = "Watch user rejects negative counters")]
-        [InlineData(-1, 1L, 1, 1)]
-        [InlineData(1, -1L, 1, 1)]
-        [InlineData(1, 1L, -1, 1)]
-        [InlineData(1, 1L, 1, -1)]
-        public void Watch_User_Rejects_Negative_Counters(int averageSpeed, long uploadCount, int fileCount, int directoryCount)
-        {
-            var msg = new MessageBuilder()
-                .WriteCode(MessageCode.Server.WatchUser)
-                .WriteString("user")
-                .WriteByte(1)
-                .WriteInteger((int)UserPresence.Online)
-                .WriteInteger(averageSpeed)
-                .WriteLong(uploadCount)
-                .WriteInteger(fileCount)
-                .WriteInteger(directoryCount)
-                .Build();
-
-            Assert.Throws<MessageException>(() => WatchUserResponse.FromByteArray(msg));
-        }
-
-        [Theory(DisplayName = "Joined room user rejects negative counters")]
-        [InlineData(-1, 1L, 1, 1, 1)]
-        [InlineData(1, -1L, 1, 1, 1)]
-        [InlineData(1, 1L, -1, 1, 1)]
-        [InlineData(1, 1L, 1, -1, 1)]
-        [InlineData(1, 1L, 1, 1, -1)]
-        public void Joined_Room_User_Rejects_Negative_Counters(int averageSpeed, long uploadCount, int fileCount, int directoryCount, int slotsFree)
-        {
-            var msg = new MessageBuilder()
-                .WriteCode(MessageCode.Server.UserJoinedRoom)
-                .WriteString("room")
-                .WriteString("user")
-                .WriteInteger((int)UserPresence.Online)
-                .WriteInteger(averageSpeed)
-                .WriteLong(uploadCount)
-                .WriteInteger(fileCount)
-                .WriteInteger(directoryCount)
-                .WriteInteger(slotsFree)
-                .WriteString("US")
-                .Build();
-
-            Assert.Throws<MessageException>(() => UserJoinedRoomNotification.FromByteArray(msg));
-        }
-
-        [Theory(DisplayName = "Join room rejects negative user counters")]
-        [InlineData(-1, 1L, 1, 1, 1)]
-        [InlineData(1, -1L, 1, 1, 1)]
-        [InlineData(1, 1L, -1, 1, 1)]
-        [InlineData(1, 1L, 1, -1, 1)]
-        [InlineData(1, 1L, 1, 1, -1)]
-        public void Join_Room_Rejects_Negative_User_Counters(int averageSpeed, long uploadCount, int fileCount, int directoryCount, int slotsFree)
-        {
-            var msg = new MessageBuilder()
-                .WriteCode(MessageCode.Server.JoinRoom)
-                .WriteString("room")
-                .WriteInteger(1)
-                .WriteString("user")
-                .WriteInteger(1)
-                .WriteInteger((int)UserPresence.Online)
-                .WriteInteger(1)
-                .WriteInteger(averageSpeed)
-                .WriteLong(uploadCount)
-                .WriteInteger(fileCount)
-                .WriteInteger(directoryCount)
-                .WriteInteger(1)
-                .WriteInteger(slotsFree)
-                .WriteInteger(1)
-                .WriteString("US")
-                .Build();
-
-            Assert.Throws<MessageException>(() => JoinRoomResponse.FromByteArray(msg));
-        }
-
-        [Theory(DisplayName = "User info rejects negative queue metadata")]
-        [InlineData(-1, 1)]
-        [InlineData(1, -1)]
-        public void User_Info_Rejects_Negative_Queue_Metadata(int uploadSlots, int queueLength)
-        {
-            var msg = new MessageBuilder()
-                .WriteCode(MessageCode.Peer.InfoResponse)
-                .WriteString("description")
-                .WriteByte(0)
-                .WriteInteger(uploadSlots)
-                .WriteInteger(queueLength)
-                .WriteByte(0)
-                .Build();
-
-            Assert.Throws<MessageException>(() => UserInfoResponseFactory.FromByteArray(msg));
-        }
-
-        [Fact(DisplayName = "Place in queue rejects negative position")]
-        public void Place_In_Queue_Rejects_Negative_Position()
-        {
-            var msg = new MessageBuilder()
-                .WriteCode(MessageCode.Peer.PlaceInQueueResponse)
-                .WriteString("file")
-                .WriteInteger(-1)
-                .Build();
-
-            Assert.Throws<MessageException>(() => PlaceInQueueResponse.FromByteArray(msg));
-        }
-
-        [Theory(DisplayName = "Search response rejects negative queue metadata")]
-        [InlineData(-1, 1)]
-        [InlineData(1, -1)]
-        public void Search_Response_Rejects_Negative_Queue_Metadata(int uploadSpeed, int queueLength)
-        {
-            var msg = new MessageBuilder()
-                .WriteCode(MessageCode.Peer.SearchResponse)
-                .WriteString("user")
-                .WriteInteger(1)
-                .WriteInteger(0)
-                .WriteByte(0)
-                .WriteInteger(uploadSpeed)
-                .WriteInteger(queueLength)
-                .Compress()
-                .Build();
-
-            Assert.Throws<MessageException>(() => SearchResponseFactory.FromByteArray(msg));
+            Assert.NotNull(caseName);
+            Assert.Throws<ArgumentOutOfRangeException>(constructor);
         }
 
         [Fact(DisplayName = "Peer search request rejects negative token")]
@@ -214,16 +82,132 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Throws<ArgumentOutOfRangeException>(() => ServerSearchRequest.FromByteArray(msg));
         }
 
-        [Theory(DisplayName = "Protocol message constructors reject negative tokens")]
-        [MemberData(nameof(NegativeTokenConstructors))]
-        public void Protocol_Message_Constructors_Reject_Negative_Tokens(string caseName, Action constructor)
+        // The remainder of these tests document the LENIENT-on-the-wire policy. Real Soulseek peers
+        // and servers send -1 for unknown counts/speeds/queues, undefined enum values for newer
+        // attribute types (e.g. FLAC bit depth), and non-0/1 bytes in flag fields. The runtime
+        // accepts these without throwing so a single misformatted field doesn't drop the entire
+        // message and silently break browse, search, room joins, etc.
+
+        [Theory(DisplayName = "User statistics accepts negative counters from the wire")]
+        [InlineData(-1, 1L, 1, 1)]
+        [InlineData(1, -1L, 1, 1)]
+        [InlineData(1, 1L, -1, 1)]
+        [InlineData(1, 1L, 1, -1)]
+        public void User_Statistics_Accepts_Negative_Counters(int averageSpeed, long uploadCount, int fileCount, int directoryCount)
         {
-            Assert.NotNull(caseName);
-            Assert.Throws<ArgumentOutOfRangeException>(constructor);
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.GetUserStats)
+                .WriteString("user")
+                .WriteInteger(averageSpeed)
+                .WriteLong(uploadCount)
+                .WriteInteger(fileCount)
+                .WriteInteger(directoryCount)
+                .Build();
+
+            var ex = Record.Exception(() => UserStatisticsResponseFactory.FromByteArray(msg));
+            Assert.Null(ex);
         }
 
-        [Fact(DisplayName = "User status rejects invalid presence")]
-        public void User_Status_Rejects_Invalid_Presence()
+        [Theory(DisplayName = "Watch user accepts negative counters from the wire")]
+        [InlineData(-1, 1L, 1, 1)]
+        [InlineData(1, -1L, 1, 1)]
+        [InlineData(1, 1L, -1, 1)]
+        [InlineData(1, 1L, 1, -1)]
+        public void Watch_User_Accepts_Negative_Counters(int averageSpeed, long uploadCount, int fileCount, int directoryCount)
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.WatchUser)
+                .WriteString("user")
+                .WriteByte(1)
+                .WriteInteger((int)UserPresence.Online)
+                .WriteInteger(averageSpeed)
+                .WriteLong(uploadCount)
+                .WriteInteger(fileCount)
+                .WriteInteger(directoryCount)
+                .Build();
+
+            var ex = Record.Exception(() => WatchUserResponse.FromByteArray(msg));
+            Assert.Null(ex);
+        }
+
+        [Theory(DisplayName = "Joined room user accepts negative counters from the wire")]
+        [InlineData(-1, 1L, 1, 1, 1)]
+        [InlineData(1, -1L, 1, 1, 1)]
+        [InlineData(1, 1L, -1, 1, 1)]
+        [InlineData(1, 1L, 1, -1, 1)]
+        [InlineData(1, 1L, 1, 1, -1)]
+        public void Joined_Room_User_Accepts_Negative_Counters(int averageSpeed, long uploadCount, int fileCount, int directoryCount, int slotsFree)
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Server.UserJoinedRoom)
+                .WriteString("room")
+                .WriteString("user")
+                .WriteInteger((int)UserPresence.Online)
+                .WriteInteger(averageSpeed)
+                .WriteLong(uploadCount)
+                .WriteInteger(fileCount)
+                .WriteInteger(directoryCount)
+                .WriteInteger(slotsFree)
+                .WriteString("US")
+                .Build();
+
+            var ex = Record.Exception(() => UserJoinedRoomNotification.FromByteArray(msg));
+            Assert.Null(ex);
+        }
+
+        [Theory(DisplayName = "User info accepts negative queue metadata from the wire")]
+        [InlineData(-1, 1)]
+        [InlineData(1, -1)]
+        public void User_Info_Accepts_Negative_Queue_Metadata(int uploadSlots, int queueLength)
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Peer.InfoResponse)
+                .WriteString("description")
+                .WriteByte(0)
+                .WriteInteger(uploadSlots)
+                .WriteInteger(queueLength)
+                .WriteByte(0)
+                .Build();
+
+            var ex = Record.Exception(() => UserInfoResponseFactory.FromByteArray(msg));
+            Assert.Null(ex);
+        }
+
+        [Fact(DisplayName = "Place in queue accepts negative position from the wire")]
+        public void Place_In_Queue_Accepts_Negative_Position()
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Peer.PlaceInQueueResponse)
+                .WriteString("file")
+                .WriteInteger(-1)
+                .Build();
+
+            var response = PlaceInQueueResponse.FromByteArray(msg);
+            Assert.Equal(-1, response.PlaceInQueue);
+        }
+
+        [Theory(DisplayName = "Search response accepts negative queue metadata from the wire")]
+        [InlineData(-1, 1)]
+        [InlineData(1, -1)]
+        public void Search_Response_Accepts_Negative_Queue_Metadata(int uploadSpeed, int queueLength)
+        {
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Peer.SearchResponse)
+                .WriteString("user")
+                .WriteInteger(1)
+                .WriteInteger(0)
+                .WriteByte(0)
+                .WriteInteger(uploadSpeed)
+                .WriteInteger(queueLength)
+                .Compress()
+                .Build();
+
+            var ex = Record.Exception(() => SearchResponseFactory.FromByteArray(msg));
+            Assert.Null(ex);
+        }
+
+        [Fact(DisplayName = "User status accepts undefined presence values from the wire")]
+        public void User_Status_Accepts_Undefined_Presence()
         {
             var msg = new MessageBuilder()
                 .WriteCode(MessageCode.Server.GetStatus)
@@ -232,11 +216,12 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
                 .WriteByte(0)
                 .Build();
 
-            Assert.Throws<MessageException>(() => UserStatusResponseFactory.FromByteArray(msg));
+            var ex = Record.Exception(() => UserStatusResponseFactory.FromByteArray(msg));
+            Assert.Null(ex);
         }
 
-        [Fact(DisplayName = "User status rejects invalid privileged flag")]
-        public void User_Status_Rejects_Invalid_Privileged_Flag()
+        [Fact(DisplayName = "User status accepts non-0/1 privileged flag")]
+        public void User_Status_Accepts_NonStandard_Privileged_Flag()
         {
             var msg = new MessageBuilder()
                 .WriteCode(MessageCode.Server.GetStatus)
@@ -245,186 +230,8 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
                 .WriteByte(2)
                 .Build();
 
-            Assert.Throws<MessageException>(() => UserStatusResponseFactory.FromByteArray(msg));
-        }
-
-        [Fact(DisplayName = "Joined room user rejects invalid presence")]
-        public void Joined_Room_User_Rejects_Invalid_Presence()
-        {
-            var msg = new MessageBuilder()
-                .WriteCode(MessageCode.Server.UserJoinedRoom)
-                .WriteString("room")
-                .WriteString("user")
-                .WriteInteger(99)
-                .WriteInteger(1)
-                .WriteLong(1)
-                .WriteInteger(1)
-                .WriteInteger(1)
-                .WriteInteger(1)
-                .WriteString("US")
-                .Build();
-
-            Assert.Throws<MessageException>(() => UserJoinedRoomNotification.FromByteArray(msg));
-        }
-
-        [Fact(DisplayName = "Join room rejects invalid presence")]
-        public void Join_Room_Rejects_Invalid_Presence()
-        {
-            var msg = new MessageBuilder()
-                .WriteCode(MessageCode.Server.JoinRoom)
-                .WriteString("room")
-                .WriteInteger(1)
-                .WriteString("user")
-                .WriteInteger(1)
-                .WriteInteger(99)
-                .WriteInteger(1)
-                .WriteInteger(1)
-                .WriteLong(1)
-                .WriteInteger(1)
-                .WriteInteger(1)
-                .WriteInteger(1)
-                .WriteInteger(1)
-                .WriteInteger(1)
-                .WriteString("US")
-                .Build();
-
-            Assert.Throws<MessageException>(() => JoinRoomResponse.FromByteArray(msg));
-        }
-
-        [Fact(DisplayName = "Watch user rejects invalid exists flag")]
-        public void Watch_User_Rejects_Invalid_Exists_Flag()
-        {
-            var msg = new MessageBuilder()
-                .WriteCode(MessageCode.Server.WatchUser)
-                .WriteString("user")
-                .WriteByte(2)
-                .Build();
-
-            Assert.Throws<MessageException>(() => WatchUserResponse.FromByteArray(msg));
-        }
-
-        [Fact(DisplayName = "Watch user rejects invalid presence")]
-        public void Watch_User_Rejects_Invalid_Presence()
-        {
-            var msg = new MessageBuilder()
-                .WriteCode(MessageCode.Server.WatchUser)
-                .WriteString("user")
-                .WriteByte(1)
-                .WriteInteger(99)
-                .WriteInteger(1)
-                .WriteLong(1)
-                .WriteInteger(1)
-                .WriteInteger(1)
-                .Build();
-
-            Assert.Throws<MessageException>(() => WatchUserResponse.FromByteArray(msg));
-        }
-
-        [Fact(DisplayName = "Login rejects invalid success flag")]
-        public void Login_Rejects_Invalid_Success_Flag()
-        {
-            var msg = new MessageBuilder()
-                .WriteCode(MessageCode.Server.Login)
-                .WriteByte(2)
-                .Build();
-
-            Assert.Throws<MessageException>(() => LoginResponse.FromByteArray(msg));
-        }
-
-        [Fact(DisplayName = "Login rejects invalid supporter flag")]
-        public void Login_Rejects_Invalid_Supporter_Flag()
-        {
-            var msg = new MessageBuilder()
-                .WriteCode(MessageCode.Server.Login)
-                .WriteByte(1)
-                .WriteString("ok")
-                .WriteBytes(new byte[] { 127, 0, 0, 1 })
-                .WriteString("hash")
-                .WriteByte(2)
-                .Build();
-
-            Assert.Throws<MessageException>(() => LoginResponse.FromByteArray(msg));
-        }
-
-        [Fact(DisplayName = "User info rejects invalid picture flag")]
-        public void User_Info_Rejects_Invalid_Picture_Flag()
-        {
-            var msg = new MessageBuilder()
-                .WriteCode(MessageCode.Peer.InfoResponse)
-                .WriteString("description")
-                .WriteByte(2)
-                .Build();
-
-            Assert.Throws<MessageException>(() => UserInfoResponseFactory.FromByteArray(msg));
-        }
-
-        [Fact(DisplayName = "User info rejects invalid free slot flag")]
-        public void User_Info_Rejects_Invalid_Free_Slot_Flag()
-        {
-            var msg = new MessageBuilder()
-                .WriteCode(MessageCode.Peer.InfoResponse)
-                .WriteString("description")
-                .WriteByte(0)
-                .WriteInteger(1)
-                .WriteInteger(1)
-                .WriteByte(2)
-                .Build();
-
-            Assert.Throws<MessageException>(() => UserInfoResponseFactory.FromByteArray(msg));
-        }
-
-        [Fact(DisplayName = "Connect to peer rejects invalid privileged flag")]
-        public void Connect_To_Peer_Rejects_Invalid_Privileged_Flag()
-        {
-            var msg = new MessageBuilder()
-                .WriteCode(MessageCode.Server.ConnectToPeer)
-                .WriteString("user")
-                .WriteString("P")
-                .WriteBytes(new byte[] { 127, 0, 0, 1 })
-                .WriteInteger(2234)
-                .WriteInteger(1)
-                .WriteByte(2)
-                .Build();
-
-            Assert.Throws<MessageException>(() => ConnectToPeerResponse.FromByteArray(msg));
-        }
-
-        [Fact(DisplayName = "User privilege rejects invalid privileged flag")]
-        public void User_Privilege_Rejects_Invalid_Privileged_Flag()
-        {
-            var msg = new MessageBuilder()
-                .WriteCode(MessageCode.Server.UserPrivileges)
-                .WriteString("user")
-                .WriteByte(2)
-                .Build();
-
-            Assert.Throws<MessageException>(() => UserPrivilegeResponse.FromByteArray(msg));
-        }
-
-        [Fact(DisplayName = "Private room toggle rejects invalid flag")]
-        public void Private_Room_Toggle_Rejects_Invalid_Flag()
-        {
-            var msg = new MessageBuilder()
-                .WriteCode(MessageCode.Server.PrivateRoomToggle)
-                .WriteByte(2)
-                .Build();
-
-            Assert.Throws<MessageException>(() => PrivateRoomToggle.FromByteArray(msg));
-        }
-
-        [Fact(DisplayName = "Private message rejects invalid replay flag")]
-        public void Private_Message_Rejects_Invalid_Replay_Flag()
-        {
-            var msg = new MessageBuilder()
-                .WriteCode(MessageCode.Server.PrivateMessage)
-                .WriteInteger(1)
-                .WriteInteger(0)
-                .WriteString("user")
-                .WriteString("message")
-                .WriteByte(2)
-                .Build();
-
-            Assert.Throws<MessageException>(() => PrivateMessageNotification.FromByteArray(msg));
+            var ex = Record.Exception(() => UserStatusResponseFactory.FromByteArray(msg));
+            Assert.Null(ex);
         }
     }
 }

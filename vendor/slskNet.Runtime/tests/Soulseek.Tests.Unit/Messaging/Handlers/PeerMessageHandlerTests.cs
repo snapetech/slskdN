@@ -1204,10 +1204,12 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
             mocks.Diagnostic.Verify(m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Failed to resolve place in Queue")), ex), Times.Once);
         }
 
-        [Trait("Category", "Diagnostic")]
-        [Theory(DisplayName = "Creates diagnostic when PlaceInQueueResponseResolver returns invalid output"), AutoData]
-        public void Creates_Diagnostic_When_PlaceInQueueResponseResolver_Returns_Invalid_Output(string username, IPEndPoint endpoint, string filename)
+        [Trait("Category", "Message")]
+        [Theory(DisplayName = "Writes PlaceInQueueResponse with negative position when resolver returns it"), AutoData]
+        public void Writes_PlaceInQueueResponse_With_Negative_Position_When_Resolver_Returns_It(string username, IPEndPoint endpoint, string filename)
         {
+            // PlaceInQueueResponse now accepts negative positions on the wire (some clients use
+            // -1 to mean "unknown"); the resolver may return -1 and the response is still sent.
             var options = new SoulseekClientOptions(
                 enqueueDownload: (u, f, i) => Task.CompletedTask,
                 placeInQueueResolver: (u, f, i) => Task.FromResult<int?>(-1));
@@ -1218,8 +1220,7 @@ namespace Soulseek.Tests.Unit.Messaging.Handlers
 
             handler.HandleMessageRead(mocks.PeerConnection.Object, message);
 
-            mocks.Diagnostic.Verify(m => m.Warning(It.Is<string>(s => s.ContainsInsensitive("Failed to send place in queue response")), It.IsAny<ArgumentOutOfRangeException>()), Times.Once);
-            mocks.PeerConnection.Verify(m => m.WriteAsync(It.IsAny<IOutgoingMessage>(), It.IsAny<CancellationToken?>()), Times.Never);
+            mocks.PeerConnection.Verify(m => m.WriteAsync(It.Is<IOutgoingMessage>(msg => msg.ToByteArray().Matches(new PlaceInQueueResponse(filename, -1).ToByteArray())), It.IsAny<CancellationToken?>()), Times.Once);
         }
 
         [Trait("Category", "Message")]

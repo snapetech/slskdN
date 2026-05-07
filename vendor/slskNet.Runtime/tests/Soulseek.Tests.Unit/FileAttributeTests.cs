@@ -41,15 +41,25 @@ namespace Soulseek.Tests.Unit
             Assert.Equal(value, fa.Value);
         }
 
-        [Theory(DisplayName = "Throws on invalid file attribute metadata")]
+        [Theory(DisplayName = "Throws on invalid file attribute type")]
         [InlineData((FileAttributeType)99, 0)]
-        [InlineData(FileAttributeType.BitRate, -1)]
         public void Throws_On_Invalid_File_Attribute_Metadata(FileAttributeType type, int value)
         {
             var ex = Record.Exception(() => new FileAttribute(type, value));
 
             Assert.NotNull(ex);
             Assert.IsType<ArgumentOutOfRangeException>(ex);
+        }
+
+        [Theory(DisplayName = "Accepts negative file attribute values from the wire")]
+        [InlineData(FileAttributeType.BitRate, -1)]
+        [InlineData(FileAttributeType.Length, -1)]
+        public void Accepts_Negative_File_Attribute_Values(FileAttributeType type, int value)
+        {
+            var fa = new FileAttribute(type, value);
+
+            Assert.Equal(type, fa.Type);
+            Assert.Equal(value, fa.Value);
         }
     }
 }

@@ -48,16 +48,6 @@ namespace Soulseek
         /// <param name="lockedFileList">The optional locked file list.</param>
         public SearchResponse(string username, int token, bool hasFreeUploadSlot, int uploadSpeed, int queueLength, IEnumerable<File> fileList, IEnumerable<File> lockedFileList = null)
         {
-            if (uploadSpeed < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(uploadSpeed), "Must be greater than or equal to zero");
-            }
-
-            if (queueLength < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(queueLength), "Must be greater than or equal to zero");
-            }
-
             Username = username;
             Token = token;
             UploadSpeed = uploadSpeed;

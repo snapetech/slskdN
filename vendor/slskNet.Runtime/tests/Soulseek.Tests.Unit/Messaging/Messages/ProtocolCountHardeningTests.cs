@@ -29,9 +29,11 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Throws<MessageException>(() => SearchResponseFactory.FromByteArray(bytes));
         }
 
-        [Fact(DisplayName = "Search response rejects invalid negative file size")]
-        public void Search_Response_Rejects_Invalid_Negative_File_Size()
+        [Fact(DisplayName = "Search response accepts negative file size from the wire")]
+        public void Search_Response_Accepts_Negative_File_Size()
         {
+            // Some Soulseek clients emit -1 (or other negatives) for unknown file sizes; accept
+            // the value so the entire response isn't dropped over a single malformed entry.
             var bytes = new MessageBuilder()
                 .WriteCode(MessageCode.Peer.SearchResponse)
                 .WriteString("user")
@@ -49,7 +51,9 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
                 .Compress()
                 .Build();
 
-            Assert.Throws<MessageException>(() => SearchResponseFactory.FromByteArray(bytes));
+            var response = SearchResponseFactory.FromByteArray(bytes);
+
+            Assert.Contains(response.Files, file => file.Size == long.MinValue);
         }
 
         [Fact(DisplayName = "Search response accepts legacy sign-extended unsigned file size")]

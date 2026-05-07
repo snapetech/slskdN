@@ -44,16 +44,6 @@ namespace Soulseek
         /// <param name="hasFreeUploadSlot">A value indicating whether an upload slot is free.</param>
         public UserInfo(string description, int uploadSlots, int queueLength, bool hasFreeUploadSlot, byte[] picture = null)
         {
-            if (uploadSlots < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(uploadSlots), "Must be greater than or equal to zero");
-            }
-
-            if (queueLength < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(queueLength), "Must be greater than or equal to zero");
-            }
-
             Description = description;
             this.picture = picture == null ? null : (byte[])picture.Clone();
             HasPicture = this.picture != null;

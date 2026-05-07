@@ -43,16 +43,6 @@ namespace Soulseek.Messaging.Messages
         {
             ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "transfer token");
 
-            if (!Enum.IsDefined(typeof(TransferDirection), direction))
-            {
-                throw new ArgumentOutOfRangeException(nameof(direction), direction, "The transfer direction must be defined");
-            }
-
-            if (fileSize < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(fileSize), fileSize, "The file size must be equal to or greater than zero");
-            }
-
             Direction = direction;
             Token = token;
             Filename = ProtocolArgumentValidator.RequireNotNull(filename, nameof(filename), "filename");
@@ -104,11 +94,6 @@ namespace Soulseek.Messaging.Messages
             if (reader.HasMoreData)
             {
                 fileSize = reader.ReadLong();
-
-                if (fileSize < 0)
-                {
-                    throw new MessageException($"Invalid transfer file size: {fileSize}");
-                }
             }
 
             return new TransferRequest(direction, token, filename, fileSize);

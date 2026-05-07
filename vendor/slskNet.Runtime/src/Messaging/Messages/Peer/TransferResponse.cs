@@ -55,11 +55,6 @@ namespace Soulseek.Messaging.Messages
         {
             ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "transfer token");
 
-            if (fileSize < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(fileSize), fileSize, "The file size must be equal to or greater than zero");
-            }
-
             Token = token;
             IsAllowed = true;
             FileSize = fileSize;
@@ -121,12 +116,6 @@ namespace Soulseek.Messaging.Messages
             if (allowed && reader.HasMoreData)
             {
                 var fileSize = reader.ReadLong();
-
-                if (fileSize < 0)
-                {
-                    throw new MessageException($"Invalid transfer file size: {fileSize}");
-                }
-
                 return new TransferResponse(token, fileSize);
             }
             else if (!allowed)

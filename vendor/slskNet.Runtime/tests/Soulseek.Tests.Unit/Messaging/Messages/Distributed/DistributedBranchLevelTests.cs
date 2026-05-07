@@ -38,13 +38,12 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         }
 
         [Trait("Category", "Instantiation")]
-        [Fact(DisplayName = "Instantiation throws on negative level")]
-        public void Instantiation_Throws_On_Negative_Level()
+        [Fact(DisplayName = "Instantiation accepts negative level from the wire")]
+        public void Instantiation_Accepts_Negative_Level()
         {
-            var ex = Record.Exception(() => new DistributedBranchLevel(-1));
+            var r = new DistributedBranchLevel(-1);
 
-            Assert.NotNull(ex);
-            Assert.IsType<ArgumentOutOfRangeException>(ex);
+            Assert.Equal(-1, r.Level);
         }
 
         [Trait("Category", "ToByteArray")]
@@ -81,18 +80,17 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         }
 
         [Trait("Category", "FromByteArray")]
-        [Fact(DisplayName = "FromByteArray throws MessageException on negative level")]
-        public void FromByteArray_Throws_MessageException_On_Negative_Level()
+        [Fact(DisplayName = "FromByteArray accepts negative level from the wire")]
+        public void FromByteArray_Accepts_Negative_Level()
         {
             var msg = new MessageBuilder()
                 .WriteCode(MessageCode.Distributed.BranchLevel)
                 .WriteInteger(-1)
                 .Build();
 
-            var ex = Record.Exception(() => DistributedBranchLevel.FromByteArray(msg));
+            var response = DistributedBranchLevel.FromByteArray(msg);
 
-            Assert.NotNull(ex);
-            Assert.IsType<MessageException>(ex);
+            Assert.Equal(-1, response.Level);
         }
 
         [Trait("Category", "FromByteArray")]

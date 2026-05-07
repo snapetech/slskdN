@@ -44,11 +44,6 @@ namespace Soulseek
         /// <param name="attributeList">The optional list of <see cref="FileAttribute"/> s.</param>
         public File(int code, string filename, long size, string extension, IEnumerable<FileAttribute> attributeList = null)
         {
-            if (size < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(size), "Must be greater than or equal to zero");
-            }
-
             Code = code;
             Filename = filename;
             Size = size;
