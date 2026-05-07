@@ -88,6 +88,13 @@ write_section \
     src/SoulseekClient.cs || true
 } >>"$report"
 
+{
+  printf '\n## Unisolated SoulseekClient bridge event invocations\n'
+  rg -n --with-filename --pcre2 \
+    '^[[:space:]]*[A-Za-z0-9_.]+\.[A-Za-z0-9_]+ \+= \(sender, e\) => (?!Raise(DiagnosticGenerated|EventHandler)).*\?\.Invoke\(' \
+    src/SoulseekClient.cs || true
+} >>"$report"
+
 write_section \
   "Remote/user text in diagnostics or HTTP errors" \
   '(Diagnostic\.(Debug|Info|Warning|Error)|StatusCode\(|BadRequest\(|Console\.WriteLine)\([^;\n]*(username|query|filename|directory|token|Message)' \

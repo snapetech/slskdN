@@ -153,23 +153,23 @@ namespace Soulseek
             TokenFactory = tokenFactory ?? new TokenFactory(Options.StartingToken);
             IOAdapter = ioAdapter ?? new IOAdapter();
 
-            Diagnostic = diagnosticFactory ?? new DiagnosticFactory(Options.MinimumDiagnosticLevel, (e) => DiagnosticGenerated?.Invoke(this, e));
+            Diagnostic = diagnosticFactory ?? new DiagnosticFactory(Options.MinimumDiagnosticLevel, (e) => RaiseDiagnosticGenerated(this, e));
             GlobalDiagnostic.Init(Diagnostic);
             PeerCapabilities = new PeerCapabilityRegistry(HandlePeerCapabilityEventException);
 
             ListenerHandler = listenerHandler ?? new ListenerHandler(this);
-            ListenerHandler.DiagnosticGenerated += (sender, e) => DiagnosticGenerated?.Invoke(sender, e);
+            ListenerHandler.DiagnosticGenerated += (sender, e) => RaiseDiagnosticGenerated(sender, e);
 
             Listener = listener;
 
             SearchResponder = searchResponder ?? new SearchResponder(this);
-            SearchResponder.DiagnosticGenerated += (sender, e) => DiagnosticGenerated?.Invoke(sender, e);
-            SearchResponder.RequestReceived += (sender, e) => SearchRequestReceived?.Invoke(this, e);
-            SearchResponder.ResponseDelivered += (sender, e) => SearchResponseDelivered?.Invoke(this, e);
-            SearchResponder.ResponseDeliveryFailed += (sender, e) => SearchResponseDeliveryFailed?.Invoke(this, e);
+            SearchResponder.DiagnosticGenerated += (sender, e) => RaiseDiagnosticGenerated(sender, e);
+            SearchResponder.RequestReceived += (sender, e) => RaiseEventHandler(nameof(SearchRequestReceived), () => SearchRequestReceived?.Invoke(this, e));
+            SearchResponder.ResponseDelivered += (sender, e) => RaiseEventHandler(nameof(SearchResponseDelivered), () => SearchResponseDelivered?.Invoke(this, e));
+            SearchResponder.ResponseDeliveryFailed += (sender, e) => RaiseEventHandler(nameof(SearchResponseDeliveryFailed), () => SearchResponseDeliveryFailed?.Invoke(this, e));
 
             PeerMessageHandler = peerMessageHandler ?? new PeerMessageHandler(this);
-            PeerMessageHandler.DiagnosticGenerated += (sender, e) => DiagnosticGenerated?.Invoke(sender, e);
+            PeerMessageHandler.DiagnosticGenerated += (sender, e) => RaiseDiagnosticGenerated(sender, e);
             PeerMessageHandler.RegisterPeerMessageHandler(PeerCapabilityEnvelope.MessageCode, HandlePeerCapabilityMessageAsync);
             PeerMessageHandler.DownloadFailed += (sender, e) =>
             {
@@ -226,48 +226,48 @@ namespace Soulseek
             };
 
             DistributedMessageHandler = distributedMessageHandler ?? new DistributedMessageHandler(this);
-            DistributedMessageHandler.DiagnosticGenerated += (sender, e) => DiagnosticGenerated?.Invoke(sender, e);
+            DistributedMessageHandler.DiagnosticGenerated += (sender, e) => RaiseDiagnosticGenerated(sender, e);
 
             ConnectionFactory = connectionFactory ?? new ConnectionFactory();
 
             PeerConnectionManager = peerConnectionManager ?? new PeerConnectionManager(this);
-            PeerConnectionManager.DiagnosticGenerated += (sender, e) => DiagnosticGenerated?.Invoke(sender, e);
+            PeerConnectionManager.DiagnosticGenerated += (sender, e) => RaiseDiagnosticGenerated(sender, e);
 
             DistributedConnectionManager = distributedConnectionManager ?? new DistributedConnectionManager(this);
-            DistributedConnectionManager.DiagnosticGenerated += (sender, e) => DiagnosticGenerated?.Invoke(sender, e);
-            DistributedConnectionManager.PromotedToBranchRoot += (sender, e) => PromotedToDistributedBranchRoot?.Invoke(this, e);
-            DistributedConnectionManager.DemotedFromBranchRoot += (sender, e) => DemotedFromDistributedBranchRoot?.Invoke(this, e);
-            DistributedConnectionManager.ParentAdopted += (sender, e) => DistributedParentAdopted?.Invoke(this, e);
-            DistributedConnectionManager.ParentDisconnected += (sender, e) => DistributedParentDisconnected?.Invoke(this, e);
-            DistributedConnectionManager.ChildAdded += (sender, e) => DistributedChildAdded?.Invoke(this, e);
-            DistributedConnectionManager.ChildDisconnected += (sender, e) => DistributedChildDisconnected?.Invoke(this, e);
-            DistributedConnectionManager.StateChanged += (sender, e) => DistributedNetworkStateChanged?.Invoke(this, e);
+            DistributedConnectionManager.DiagnosticGenerated += (sender, e) => RaiseDiagnosticGenerated(sender, e);
+            DistributedConnectionManager.PromotedToBranchRoot += (sender, e) => RaiseEventHandler(nameof(PromotedToDistributedBranchRoot), () => PromotedToDistributedBranchRoot?.Invoke(this, e));
+            DistributedConnectionManager.DemotedFromBranchRoot += (sender, e) => RaiseEventHandler(nameof(DemotedFromDistributedBranchRoot), () => DemotedFromDistributedBranchRoot?.Invoke(this, e));
+            DistributedConnectionManager.ParentAdopted += (sender, e) => RaiseEventHandler(nameof(DistributedParentAdopted), () => DistributedParentAdopted?.Invoke(this, e));
+            DistributedConnectionManager.ParentDisconnected += (sender, e) => RaiseEventHandler(nameof(DistributedParentDisconnected), () => DistributedParentDisconnected?.Invoke(this, e));
+            DistributedConnectionManager.ChildAdded += (sender, e) => RaiseEventHandler(nameof(DistributedChildAdded), () => DistributedChildAdded?.Invoke(this, e));
+            DistributedConnectionManager.ChildDisconnected += (sender, e) => RaiseEventHandler(nameof(DistributedChildDisconnected), () => DistributedChildDisconnected?.Invoke(this, e));
+            DistributedConnectionManager.StateChanged += (sender, e) => RaiseEventHandler(nameof(DistributedNetworkStateChanged), () => DistributedNetworkStateChanged?.Invoke(this, e));
 
             ServerMessageHandler = serverMessageHandler ?? new ServerMessageHandler(this);
-            ServerMessageHandler.UserCannotConnect += (sender, e) => UserCannotConnect?.Invoke(this, e);
-            ServerMessageHandler.UserStatusChanged += (sender, e) => UserStatusChanged?.Invoke(this, e);
-            ServerMessageHandler.UserStatisticsChanged += (sender, e) => UserStatisticsChanged?.Invoke(this, e);
-            ServerMessageHandler.PrivateMessageReceived += (sender, e) => PrivateMessageReceived?.Invoke(this, e);
-            ServerMessageHandler.PrivateRoomMembershipAdded += (sender, e) => PrivateRoomMembershipAdded?.Invoke(this, e);
-            ServerMessageHandler.PrivateRoomMembershipRemoved += (sender, e) => PrivateRoomMembershipRemoved?.Invoke(this, e);
-            ServerMessageHandler.PrivateRoomModeratedUserListReceived += (sender, e) => PrivateRoomModeratedUserListReceived?.Invoke(this, e);
-            ServerMessageHandler.PrivateRoomModerationAdded += (sender, e) => PrivateRoomModerationAdded?.Invoke(this, e);
-            ServerMessageHandler.PrivateRoomModerationRemoved += (sender, e) => PrivateRoomModerationRemoved?.Invoke(this, e);
-            ServerMessageHandler.PrivateRoomUserListReceived += (sender, e) => PrivateRoomUserListReceived?.Invoke(this, e);
-            ServerMessageHandler.PrivilegedUserListReceived += (sender, e) => PrivilegedUserListReceived?.Invoke(this, e);
-            ServerMessageHandler.PrivilegeNotificationReceived += (sender, e) => PrivilegeNotificationReceived?.Invoke(this, e);
-            ServerMessageHandler.RoomMessageReceived += (sender, e) => RoomMessageReceived?.Invoke(this, e);
-            ServerMessageHandler.RoomTickerListReceived += (sender, e) => RoomTickerListReceived?.Invoke(this, e);
-            ServerMessageHandler.RoomTickerAdded += (sender, e) => RoomTickerAdded?.Invoke(this, e);
-            ServerMessageHandler.RoomTickerRemoved += (sender, e) => RoomTickerRemoved?.Invoke(this, e);
-            ServerMessageHandler.PublicChatMessageReceived += (sender, e) => PublicChatMessageReceived?.Invoke(this, e);
-            ServerMessageHandler.RoomJoined += (sender, e) => RoomJoined?.Invoke(this, e);
-            ServerMessageHandler.RoomLeft += (sender, e) => RoomLeft?.Invoke(this, e);
-            ServerMessageHandler.RoomListReceived += (sender, e) => RoomListReceived?.Invoke(this, e);
-            ServerMessageHandler.DiagnosticGenerated += (sender, e) => DiagnosticGenerated?.Invoke(sender, e);
-            ServerMessageHandler.GlobalMessageReceived += (sender, e) => GlobalMessageReceived?.Invoke(this, e);
-            ServerMessageHandler.DistributedNetworkReset += (sender, e) => DistributedNetworkReset?.Invoke(this, e);
-            ServerMessageHandler.ExcludedSearchPhrasesReceived += (sender, e) => ExcludedSearchPhrasesReceived?.Invoke(this, e);
+            ServerMessageHandler.UserCannotConnect += (sender, e) => RaiseEventHandler(nameof(UserCannotConnect), () => UserCannotConnect?.Invoke(this, e));
+            ServerMessageHandler.UserStatusChanged += (sender, e) => RaiseEventHandler(nameof(UserStatusChanged), () => UserStatusChanged?.Invoke(this, e));
+            ServerMessageHandler.UserStatisticsChanged += (sender, e) => RaiseEventHandler(nameof(UserStatisticsChanged), () => UserStatisticsChanged?.Invoke(this, e));
+            ServerMessageHandler.PrivateMessageReceived += (sender, e) => RaiseEventHandler(nameof(PrivateMessageReceived), () => PrivateMessageReceived?.Invoke(this, e));
+            ServerMessageHandler.PrivateRoomMembershipAdded += (sender, e) => RaiseEventHandler(nameof(PrivateRoomMembershipAdded), () => PrivateRoomMembershipAdded?.Invoke(this, e));
+            ServerMessageHandler.PrivateRoomMembershipRemoved += (sender, e) => RaiseEventHandler(nameof(PrivateRoomMembershipRemoved), () => PrivateRoomMembershipRemoved?.Invoke(this, e));
+            ServerMessageHandler.PrivateRoomModeratedUserListReceived += (sender, e) => RaiseEventHandler(nameof(PrivateRoomModeratedUserListReceived), () => PrivateRoomModeratedUserListReceived?.Invoke(this, e));
+            ServerMessageHandler.PrivateRoomModerationAdded += (sender, e) => RaiseEventHandler(nameof(PrivateRoomModerationAdded), () => PrivateRoomModerationAdded?.Invoke(this, e));
+            ServerMessageHandler.PrivateRoomModerationRemoved += (sender, e) => RaiseEventHandler(nameof(PrivateRoomModerationRemoved), () => PrivateRoomModerationRemoved?.Invoke(this, e));
+            ServerMessageHandler.PrivateRoomUserListReceived += (sender, e) => RaiseEventHandler(nameof(PrivateRoomUserListReceived), () => PrivateRoomUserListReceived?.Invoke(this, e));
+            ServerMessageHandler.PrivilegedUserListReceived += (sender, e) => RaiseEventHandler(nameof(PrivilegedUserListReceived), () => PrivilegedUserListReceived?.Invoke(this, e));
+            ServerMessageHandler.PrivilegeNotificationReceived += (sender, e) => RaiseEventHandler(nameof(PrivilegeNotificationReceived), () => PrivilegeNotificationReceived?.Invoke(this, e));
+            ServerMessageHandler.RoomMessageReceived += (sender, e) => RaiseEventHandler(nameof(RoomMessageReceived), () => RoomMessageReceived?.Invoke(this, e));
+            ServerMessageHandler.RoomTickerListReceived += (sender, e) => RaiseEventHandler(nameof(RoomTickerListReceived), () => RoomTickerListReceived?.Invoke(this, e));
+            ServerMessageHandler.RoomTickerAdded += (sender, e) => RaiseEventHandler(nameof(RoomTickerAdded), () => RoomTickerAdded?.Invoke(this, e));
+            ServerMessageHandler.RoomTickerRemoved += (sender, e) => RaiseEventHandler(nameof(RoomTickerRemoved), () => RoomTickerRemoved?.Invoke(this, e));
+            ServerMessageHandler.PublicChatMessageReceived += (sender, e) => RaiseEventHandler(nameof(PublicChatMessageReceived), () => PublicChatMessageReceived?.Invoke(this, e));
+            ServerMessageHandler.RoomJoined += (sender, e) => RaiseEventHandler(nameof(RoomJoined), () => RoomJoined?.Invoke(this, e));
+            ServerMessageHandler.RoomLeft += (sender, e) => RaiseEventHandler(nameof(RoomLeft), () => RoomLeft?.Invoke(this, e));
+            ServerMessageHandler.RoomListReceived += (sender, e) => RaiseEventHandler(nameof(RoomListReceived), () => RoomListReceived?.Invoke(this, e));
+            ServerMessageHandler.DiagnosticGenerated += (sender, e) => RaiseDiagnosticGenerated(sender, e);
+            ServerMessageHandler.GlobalMessageReceived += (sender, e) => RaiseEventHandler(nameof(GlobalMessageReceived), () => GlobalMessageReceived?.Invoke(this, e));
+            ServerMessageHandler.DistributedNetworkReset += (sender, e) => RaiseEventHandler(nameof(DistributedNetworkReset), () => DistributedNetworkReset?.Invoke(this, e));
+            ServerMessageHandler.ExcludedSearchPhrasesReceived += (sender, e) => RaiseEventHandler(nameof(ExcludedSearchPhrasesReceived), () => ExcludedSearchPhrasesReceived?.Invoke(this, e));
 
             ServerMessageHandler.ServerInfoReceived += (sender, e) =>
             {
@@ -4893,6 +4893,18 @@ namespace Soulseek
 
         private void RaiseDisconnected(string message, Exception exception)
             => RaiseEventHandler(nameof(Disconnected), () => Disconnected?.Invoke(this, new SoulseekClientDisconnectedEventArgs(message, exception)));
+
+        private void RaiseDiagnosticGenerated(object sender, DiagnosticEventArgs eventArgs)
+        {
+            try
+            {
+                DiagnosticGenerated?.Invoke(sender, eventArgs);
+            }
+            catch
+            {
+                // Avoid recursive diagnostics when a diagnostic subscriber itself throws.
+            }
+        }
 
         private void RaiseEventHandler(string eventName, Action raise)
         {
