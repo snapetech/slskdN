@@ -2490,6 +2490,9 @@ namespace slskd
             services.AddSingleton<Transfers.AutoReplace.AutoReplaceBackgroundService>();
             services.AddHostedService(provider => provider.GetRequiredService<Transfers.AutoReplace.AutoReplaceBackgroundService>());
 
+            // Auto-retry: re-enqueue failed downloads automatically
+            services.AddHostedService<Transfers.Downloads.DownloadAutoRetryService>();
+
             services.AddSingleton<IRelayService, RelayService>();
 
             // HARDENING-2026-04-20 H8: loud, periodic reminder when relay controller TLS validation is reduced.

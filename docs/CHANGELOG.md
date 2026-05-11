@@ -22,6 +22,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Added automatic re-queue for failed downloads: transfers ending in TimedOut, Errored, or Aborted state are automatically re-enqueued after a configurable delay (default 5 minutes). Cancelled and Rejected transfers are excluded.
 - Enabled accelerated download mode (rescue mode) by default for all users.
 - Fixed "Remove All Errored" and "Retry All Errored" not targeting "Completed, Aborted" transfers; aborted transfers are now included alongside timed-out, errored, and rejected.
 - Fixed header bulk-operation buttons (Remove All, Retry All) silently doing nothing when "Hide Completed" was enabled, caused by the poll skipping completed transfers from the API response.

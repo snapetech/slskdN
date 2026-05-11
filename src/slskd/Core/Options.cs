@@ -1321,6 +1321,12 @@ namespace slskd
                 public bool CostBasedScheduling { get; init; } = true;
 
                 /// <summary>
+                ///     Gets options for automatically re-queuing failed downloads.
+                /// </summary>
+                [Validate]
+                public AutoRetryOptions AutoRetry { get; init; } = new();
+
+                /// <summary>
                 ///     Direct Soulseek download retry options.
                 /// </summary>
                 public class DownloadRetryOptions
@@ -1349,6 +1355,35 @@ namespace slskd
                     /// </summary>
                     [Range(1000, 86400000)]
                     public int MaxDelay { get; init; } = 60000;
+                }
+
+                /// <summary>
+                ///     Options for automatically re-queuing failed downloads.
+                /// </summary>
+                public class AutoRetryOptions
+                {
+                    /// <summary>
+                    ///     Gets a value indicating whether failed downloads are automatically re-queued.
+                    /// </summary>
+                    public bool Enabled { get; init; } = true;
+
+                    /// <summary>
+                    ///     Gets the minimum time in seconds a download must remain in a failed state before it is retried.
+                    /// </summary>
+                    [Range(10, 86400)]
+                    public int RetryDelaySeconds { get; init; } = 300;
+
+                    /// <summary>
+                    ///     Gets the interval in seconds between auto-retry scans.
+                    /// </summary>
+                    [Range(10, 3600)]
+                    public int CheckIntervalSeconds { get; init; } = 60;
+
+                    /// <summary>
+                    ///     Gets the maximum number of automatic retry attempts per file per process lifetime.
+                    /// </summary>
+                    [Range(1, 100)]
+                    public int MaxAttempts { get; init; } = 10;
                 }
             }
         }
