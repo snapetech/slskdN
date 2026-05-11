@@ -283,11 +283,14 @@ const Transfers = ({ direction, server }) => {
       // allTransfers is populated separately on a slower interval for header bulk ops.
       const response = await transfersLibrary.getAll({ direction, includeCompleted: false });
       const normalizedResponse = normalizeTransfers(response);
-      await refreshQueuePositions(normalizedResponse);
 
       if (fetchId === latestFetchIdRef.current) {
         setTransfers(filterHiddenTransfers(normalizedResponse));
       }
+
+      // Fire-and-forget: queue positions block on Soulseek round-trips, no reason
+      // to hold up the render. Cached values are applied on the next poll anyway.
+      refreshQueuePositions(normalizedResponse).catch(() => {});
     } catch (error) {
       console.error(error);
       toast.error(getErrorMessage(error));
