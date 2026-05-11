@@ -22,6 +22,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Dramatically reduced downloads/uploads page initial load time by fetching only active transfers on the 2-second poll; completed transfers are fetched separately on a 15-second interval for header bulk operations.
 - Added automatic re-queue for failed downloads: transfers ending in TimedOut, Errored, or Aborted state are automatically re-enqueued after a configurable delay (default 5 minutes). Cancelled and Rejected transfers are excluded.
 - Enabled accelerated download mode (rescue mode) by default for all users.
 - Fixed "Remove All Errored" and "Retry All Errored" not targeting "Completed, Aborted" transfers; aborted transfers are now included alongside timed-out, errored, and rejected.

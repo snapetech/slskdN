@@ -56,6 +56,7 @@ const Transfers = ({ direction, server }) => {
   const testId = direction === 'download' ? 'downloads-root' : 'uploads-root';
   const [connecting, setConnecting] = useState(true);
   const [transfers, setTransfers] = useState([]);
+  const [allTransfers, setAllTransfers] = useState([]);
 
   const [retryingSingle, setRetryingSingle] = useState(false);
   const [cancellingSingle, setCancellingSingle] = useState(false);
@@ -72,6 +73,8 @@ const Transfers = ({ direction, server }) => {
   const bulkQueueRunningRef = useRef(false);
   const hiddenTransfersRef = useRef(new Map());
   const latestFetchIdRef = useRef(0);
+  const latestFetchAllIdRef = useRef(0);
+  const hideCompletedRef = useRef(true);
   const lastQueuePositionBatchAtRef = useRef(0);
   const queuePositionCacheRef = useRef(new Map());
   const queuePositionRequestsRef = useRef(new Set());
@@ -273,14 +276,13 @@ const Transfers = ({ direction, server }) => {
   };
 
   const fetch = async () => {
-    const fetchId = latestFetchIdRef.current + 1;
-    latestFetchIdRef.current = fetchId;
+    const fetchId = ++latestFetchIdRef.current;
 
     try {
-      const response = await transfersLibrary.getAll({ direction });
-
+      // Only fetch active (non-completed) transfers for fast polling.
+      // allTransfers is populated separately on a slower interval for header bulk ops.
+      const response = await transfersLibrary.getAll({ direction, includeCompleted: false });
       const normalizedResponse = normalizeTransfers(response);
-
       await refreshQueuePositions(normalizedResponse);
 
       if (fetchId === latestFetchIdRef.current) {
@@ -292,19 +294,45 @@ const Transfers = ({ direction, server }) => {
     }
   };
 
+  const fetchAll = async () => {
+    const fetchId = ++latestFetchAllIdRef.current;
+
+    try {
+      const response = await transfersLibrary.getAll({ direction });
+      const normalized = normalizeTransfers(response);
+
+      if (fetchId === latestFetchAllIdRef.current) {
+        setAllTransfers(normalized);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  // Keep ref in sync so the stale interval closure reads the current value.
+  useEffect(() => {
+    hideCompletedRef.current = hideCompleted;
+  }, [hideCompleted]);
+
   useEffect(() => {
     setConnecting(true);
 
     const init = async () => {
+      // Fast first paint: only active transfers.
       await fetch();
       setConnecting(false);
+      // Background: populate allTransfers for header bulk ops without blocking.
+      fetchAll();
     };
 
     init();
-    const interval = window.setInterval(fetch, 2_000);
+    const activeInterval = window.setInterval(fetch, 2_000);
+    // Slower full-list refresh for header bulk-operation file lists.
+    const allInterval = window.setInterval(fetchAll, 15_000);
 
     return () => {
-      clearInterval(interval);
+      clearInterval(activeInterval);
+      clearInterval(allInterval);
     };
   }, [direction]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -534,20 +562,27 @@ const Transfers = ({ direction, server }) => {
     }
   };
 
+  // When hiding completed, `transfers` already contains only active transfers (API-filtered).
+  // When showing completed, merge: active poll provides fresh progress, allTransfers provides
+  // completed records. Build a fast lookup so active state wins for in-flight transfers.
   const visibleTransfers = useMemo(() => {
-    if (!hideCompleted) return transfers;
-    return transfers
-      .map((user) => ({
-        ...user,
-        directories: user.directories
-          .map((dir) => ({
-            ...dir,
-            files: dir.files.filter((file) => !file.state?.startsWith('Completed')),
-          }))
-          .filter((dir) => dir.files.length > 0),
-      }))
-      .filter((user) => user.directories.length > 0);
-  }, [transfers, hideCompleted]);
+    if (hideCompleted) return transfers;
+
+    const activeById = new Map();
+    transfers.forEach((user) =>
+      user.directories?.forEach((dir) =>
+        dir.files?.forEach((file) => activeById.set(file.id, file)),
+      ),
+    );
+
+    return allTransfers.map((user) => ({
+      ...user,
+      directories: user.directories?.map((dir) => ({
+        ...dir,
+        files: dir.files?.map((file) => activeById.get(file.id) ?? file),
+      })),
+    }));
+  }, [transfers, allTransfers, hideCompleted]);
 
   if (connecting) {
     return <LoaderSegment />;
@@ -571,14 +606,14 @@ const Transfers = ({ direction, server }) => {
         removing={removing}
         retrying={retrying}
         server={server}
-        transfers={transfers}
+        transfers={allTransfers}
       />
-      {transfers.length === 0 ? (
+      {allTransfers.length === 0 && transfers.length === 0 ? (
         <PlaceholderSegment
           caption={`No ${direction}s to display`}
           icon={direction}
         />
-      ) : visibleTransfers.length === 0 ? (
+      ) : hideCompleted && transfers.length === 0 ? (
         <PlaceholderSegment
           caption={`All ${direction}s are completed`}
           icon="check"
