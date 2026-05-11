@@ -8,6 +8,7 @@ import {
   getRunnableWishlistRequests,
 } from '../../lib/acquisitionRequests';
 import * as wishlistAPI from '../../lib/wishlist';
+import * as optionsAPI from '../../lib/options';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -450,6 +451,31 @@ const Wishlist = () => {
     }
   };
 
+  const [autoSearchEnabled, setAutoSearchEnabled] = useState(true);
+  const [togglingAutoSearch, setTogglingAutoSearch] = useState(false);
+
+  const loadOptions = useCallback(async () => {
+    try {
+      const opts = await optionsAPI.getCurrent();
+      setAutoSearchEnabled(opts?.wishlist?.enabled ?? true);
+    } catch {
+      // leave optimistic default
+    }
+  }, []);
+
+  const handleToggleAutoSearch = useCallback(async (_, { checked }) => {
+    setTogglingAutoSearch(true);
+    try {
+      await optionsAPI.applyOverlay({ wishlist: { enabled: checked } });
+      setAutoSearchEnabled(checked);
+      toast.success(checked ? 'Auto-search enabled' : 'Auto-search paused');
+    } catch (error) {
+      toast.error(`Failed to update: ${error.message}`);
+    } finally {
+      setTogglingAutoSearch(false);
+    }
+  }, []);
+
   const loadItems = useCallback(async () => {
     try {
       const data = await wishlistAPI.getAll();
@@ -462,8 +488,9 @@ const Wishlist = () => {
   }, []);
 
   useEffect(() => {
+    loadOptions();
     loadItems();
-  }, [loadItems]);
+  }, [loadOptions, loadItems]);
 
   const handleAdd = () => {
     setModalItem(null);
@@ -533,6 +560,22 @@ const Wishlist = () => {
             </Header.Subheader>
           </Header.Content>
         </Header>
+        <Popup
+          content={autoSearchEnabled
+            ? 'Auto-search is on — enabled items are searched automatically in the background.'
+            : 'Auto-search is paused — items will not be searched until you turn it back on.'}
+          trigger={
+            <Checkbox
+              checked={autoSearchEnabled}
+              className="wishlist-autosearch-toggle"
+              disabled={togglingAutoSearch}
+              floated="right"
+              label={autoSearchEnabled ? 'Auto-search on' : 'Auto-search off'}
+              onChange={handleToggleAutoSearch}
+              toggle
+            />
+          }
+        />
         <Popup
           content="Add one saved search to the wishlist. Enabled wishlist entries run later using the normal conservative scheduler."
           trigger={

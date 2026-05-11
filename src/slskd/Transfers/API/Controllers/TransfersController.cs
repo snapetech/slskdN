@@ -457,14 +457,16 @@ namespace slskd.Transfers.API
         [HttpGet("downloads")]
         [Authorize(Policy = AuthPolicy.Any)]
         [ProducesResponseType(200)]
-        public IActionResult GetDownloadsAsync([FromQuery] bool includeRemoved = false)
+        public IActionResult GetDownloadsAsync([FromQuery] bool includeRemoved = false, [FromQuery] bool includeCompleted = true)
         {
             if (Program.IsRelayAgent)
             {
                 return Forbid();
             }
 
-            var downloads = Transfers.Downloads.List(includeRemoved: includeRemoved);
+            var downloads = Transfers.Downloads.List(
+                expression: includeCompleted ? null : t => !t.State.HasFlag(Soulseek.TransferStates.Completed),
+                includeRemoved: includeRemoved);
 
             var response = downloads.GroupBy(t => t.Username).Select(grouping => new UserResponse()
             {
@@ -627,13 +629,21 @@ namespace slskd.Transfers.API
             var soulseekSpeed = totalSpeed;
             var meshSpeed = 0.0;
 
+            var sessionBytesDownloaded = (long)Transfers.Downloads.List(includeRemoved: true)
+                .Sum(t => (double)t.BytesTransferred);
+            var sessionBytesUploaded = (long)Transfers.Uploads.List(t => true, includeRemoved: true)
+                .Sum(t => (double)t.BytesTransferred);
+
             return Ok(new
             {
                 total = totalSpeed,
                 soulseek = soulseekSpeed,
                 mesh = meshSpeed,
                 download = totalDownloadSpeed,
-                upload = totalUploadSpeed
+                upload = totalUploadSpeed,
+                sessionBytesDownloaded,
+                sessionBytesUploaded,
+                sessionBytesTotal = sessionBytesDownloaded + sessionBytesUploaded,
             });
         }
 
@@ -661,7 +671,7 @@ namespace slskd.Transfers.API
         [HttpGet("uploads")]
         [Authorize(Policy = AuthPolicy.Any)]
         [ProducesResponseType(200)]
-        public IActionResult GetUploads([FromQuery] bool includeRemoved = false)
+        public IActionResult GetUploads([FromQuery] bool includeRemoved = false, [FromQuery] bool includeCompleted = true)
         {
             if (Program.IsRelayAgent)
             {
@@ -670,7 +680,9 @@ namespace slskd.Transfers.API
 
             // todo: refactor this so it doesn't return the world. start and end time params
             // should be required.  consider pagination.
-            var uploads = Transfers.Uploads.List(t => true, includeRemoved: includeRemoved);
+            var uploads = Transfers.Uploads.List(
+                expression: includeCompleted ? t => true : t => !t.State.HasFlag(Soulseek.TransferStates.Completed),
+                includeRemoved: includeRemoved);
 
             var response = uploads.GroupBy(t => t.Username).Select(grouping => new UserResponse()
             {

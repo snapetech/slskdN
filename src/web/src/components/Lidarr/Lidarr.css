@@ -1,0 +1,69 @@
+.lidarr-container {
+  padding: 1em;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.lidarr-header {
+  margin-bottom: 1em !important;
+}
+
+.lidarr-status-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75em;
+  margin-bottom: 1.5em;
+}
+
+.lidarr-status-cards .ui.statistic {
+  margin: 0 !important;
+}
+
+.lidarr-status-cards .ui.segment {
+  flex: 1 1 auto;
+  min-width: 140px;
+}
+
+.lidarr-section {
+  margin-bottom: 2em !important;
+}
+
+.lidarr-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75em;
+}
+
+.lidarr-section-header .ui.header {
+  margin: 0 !important;
+}
+
+.lidarr-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5em;
+  margin-top: 0.75em;
+}
+
+.lidarr-pagination-info {
+  color: #888;
+  font-size: 0.9em;
+}
+
+.lidarr-container .ui.table td {
+  vertical-align: middle;
+}
+
+.lidarr-filter-tag {
+  font-size: 0.8em;
+  color: #aaa;
+  margin-left: 0.4em;
+}
+
+.lidarr-empty {
+  text-align: center;
+  color: #888;
+  padding: 2em 0;
+}

@@ -35,6 +35,17 @@ const formatSpeed = (bytesPerSec) => {
   return { unit: 'B', value: bytesPerSec.toFixed(0) };
 };
 
+const formatBytes = (bytes) => {
+  if (!bytes || bytes === 0) return { unit: 'B', value: '0' };
+  const kb = bytes / 1_024;
+  const mb = kb / 1_024;
+  const gb = mb / 1_024;
+  if (gb >= 1) return { unit: 'GB', value: gb.toFixed(gb >= 10 ? 1 : 2) };
+  if (mb >= 1) return { unit: 'MB', value: mb.toFixed(mb >= 10 ? 1 : 2) };
+  if (kb >= 1) return { unit: 'KB', value: kb.toFixed(kb >= 10 ? 1 : 2) };
+  return { unit: 'B', value: bytes.toFixed(0) };
+};
+
 const formatCount = (value) => {
   if (value === undefined || value === null) return '0';
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
@@ -66,6 +77,8 @@ class Footer extends Component {
     };
     this.footerRef = React.createRef();
     this.footerResizeObserver = null;
+    this._displaySpeeds = null;
+    this._lastNonZeroAt = 0;
   }
 
   componentDidMount() {
@@ -141,10 +154,41 @@ class Footer extends Component {
     }
 
     try {
-      const speeds = await transfers.getSpeeds();
-      this.setState({ speeds });
+      const raw = await transfers.getSpeeds();
+      const now = Date.now();
+      const HOLD_MS = 3_000;
+      const DECAY = 0.65;
+      const FLOOR = 512; // below this, snap to 0 during decay
+
+      let displayed;
+      if (!this._displaySpeeds || raw.total > 0) {
+        // Active or first poll: snap to live value
+        displayed = raw;
+        if (raw.total > 0) this._lastNonZeroAt = now;
+      } else {
+        const idleMs = now - this._lastNonZeroAt;
+        if (idleMs < HOLD_MS) {
+          // Hold: keep last displayed speeds
+          displayed = { ...this._displaySpeeds, sessionBytesDownloaded: raw.sessionBytesDownloaded, sessionBytesUploaded: raw.sessionBytesUploaded, sessionBytesTotal: raw.sessionBytesTotal };
+        } else {
+          // Decay: exponential fade toward zero
+          const fade = (v) => (v > FLOOR ? v * DECAY : 0);
+          displayed = {
+            total: fade(this._displaySpeeds.total),
+            soulseek: fade(this._displaySpeeds.soulseek),
+            mesh: fade(this._displaySpeeds.mesh),
+            download: fade(this._displaySpeeds.download),
+            upload: fade(this._displaySpeeds.upload),
+            sessionBytesDownloaded: raw.sessionBytesDownloaded,
+            sessionBytesUploaded: raw.sessionBytesUploaded,
+            sessionBytesTotal: raw.sessionBytesTotal,
+          };
+        }
+      }
+
+      this._displaySpeeds = displayed;
+      this.setState({ speeds: displayed });
     } catch (error) {
-      // Silently fail - speeds are non-critical
       console.debug('Failed to fetch transfer speeds:', error);
     }
   };
@@ -189,6 +233,10 @@ class Footer extends Component {
     const soulseekSpeed =
       isLoggedIn && speeds ? formatSpeed(speeds.soulseek) : null;
     const meshSpeed = isLoggedIn && speeds ? formatSpeed(speeds.mesh) : null;
+    const sessionTotal =
+      isLoggedIn && speeds != null
+        ? formatBytes(speeds.sessionBytesTotal ?? 0)
+        : null;
 
     // Determine if stats are connected
     const isDhtConnected = isLoggedIn && displayedDhtPeers > 0;
@@ -329,6 +377,16 @@ class Footer extends Component {
                 </span>
                 <span className="speed-unit">{meshSpeed ? meshSpeed.unit : 'B'}</span>
               </span>
+              {sessionTotal && (
+                <span
+                  className="slskdn-footer-speed-item slskdn-footer-session-total"
+                  title={`Session total: ${speeds.sessionBytesDownloaded ? formatBytes(speeds.sessionBytesDownloaded).value + formatBytes(speeds.sessionBytesDownloaded).unit + ' ↓' : '0'} / ${speeds.sessionBytesUploaded ? formatBytes(speeds.sessionBytesUploaded).value + formatBytes(speeds.sessionBytesUploaded).unit + ' ↑' : '0'}`}
+                >
+                  <span className="speed-value">{sessionTotal.value}</span>
+                  <span className="speed-unit">{sessionTotal.unit}</span>
+                  <span className="slskdn-footer-session-label">session</span>
+                </span>
+              )}
             </div>
           </div>
 

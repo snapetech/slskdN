@@ -65,7 +65,7 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
         var candidates = await LidarrClient
             .GetManualImportCandidatesAsync(
                 lidarrDirectory,
-                filterExistingFiles: true,
+                filterExistingFiles: false,
                 replaceExistingFiles: options.ImportReplaceExistingFiles,
                 cancellationToken)
             .ConfigureAwait(false);

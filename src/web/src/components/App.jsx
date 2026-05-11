@@ -56,6 +56,7 @@ const System = lazy(() => import('./System/System'));
 const Transfers = lazy(() => import('./Transfers/Transfers'));
 const Users = lazy(() => import('./Users/Users'));
 const Wishlist = lazy(() => import('./Wishlist/Wishlist'));
+const LidarrPage = lazy(() => import('./Lidarr/Lidarr'));
 
 const THEME_OPTIONS = [
   { key: 'slskdn', text: 'slskdN', value: 'slskdn' },
@@ -1076,6 +1077,12 @@ class App extends Component {
                       Wishlist
                     </Menu.Item>
                   </NavLink>
+                  <NavLink to="/lidarr">
+                    <Menu.Item data-testid="nav-lidarr">
+                      <Icon name="music" />
+                      Lidarr
+                    </Menu.Item>
+                  </NavLink>
                   <NavLink to="/downloads">
                     <Menu.Item data-testid="nav-downloads">
                       <Icon name="download" />
@@ -1436,6 +1443,16 @@ class App extends Component {
                       this.withTokenCheck(
                         <div className="view">
                           <Wishlist />
+                        </div>,
+                      )
+                    }
+                  />
+                  <Route
+                    path="/lidarr"
+                    element={
+                      this.withTokenCheck(
+                        <div className="view">
+                          <LidarrPage />
                         </div>,
                       )
                     }

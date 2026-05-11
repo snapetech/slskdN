@@ -84,10 +84,6 @@
 #     auto_replace_stuck: true
 #     auto_replace_threshold: 5.0
 #     auto_replace_interval: 60
-#   wishlist:
-#     enabled: true
-#     interval: 60
-#     auto_download: false
 #   groups:
 #     default:
 #       upload:
@@ -178,6 +174,11 @@
 # blacklist:
 #   enabled: true
 #   file: <path to file containing CIDRs to blacklist>
+# wishlist:
+#   enabled: true             # background wishlist searching; on by default
+#   interval_seconds: 3600    # delay between full wishlist scan cycles (min 300)
+#   auto_download: false      # global default; per-item autoDownload overrides this
+#   max_results: 100
 # filters:
 #   search:
 #     request:

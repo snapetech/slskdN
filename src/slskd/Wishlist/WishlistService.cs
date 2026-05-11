@@ -5,6 +5,7 @@ namespace slskd.Wishlist
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Text;
     using System.Threading;
@@ -250,6 +251,16 @@ namespace slskd.Wishlist
             await Task.Yield();
 
             Log.Information("Wishlist background service started");
+
+            // Wait for Soulseek to connect before the first run so we don't immediately
+            // miss the first interval on a fresh start when the network is still coming up.
+            var warmupDeadline = DateTime.UtcNow.AddSeconds(60);
+            while (!stoppingToken.IsCancellationRequested
+                   && !Client.State.HasFlag(SoulseekClientStates.Connected)
+                   && DateTime.UtcNow < warmupDeadline)
+            {
+                await Task.Delay(2000, stoppingToken).ConfigureAwait(false);
+            }
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -505,23 +516,39 @@ namespace slskd.Wishlist
             // If auto-download is enabled and we have results, download the best ones
             if (item.AutoDownload && searchWithResponses?.Responses?.Any() == true)
             {
-                await AutoDownloadBestResultsAsync(searchWithResponses, cancellationToken);
+                var downloaded = await AutoDownloadBestResultsAsync(searchWithResponses, item.Filter, cancellationToken);
+                if (downloaded)
+                {
+                    item.TotalDownloadCount++;
+                    item.Enabled = false;
+                    context.WishlistItems.Update(item);
+                    await context.SaveChangesAsync(cancellationToken);
+                    Log.Information("Wishlist item {Id} disabled after successful download", item.Id);
+                }
             }
 
             return searchWithResponses ?? search;
         }
 
-        private async Task AutoDownloadBestResultsAsync(SlskdSearch search, CancellationToken cancellationToken)
+        private async Task<bool> AutoDownloadBestResultsAsync(SlskdSearch search, string filter, CancellationToken cancellationToken)
         {
             try
             {
-                // Collect all files from all responses
-                var candidates = new List<SourceCandidate>();
+                var wantedExt = string.IsNullOrWhiteSpace(filter)
+                    ? null
+                    : "." + filter.TrimStart('.').ToLowerInvariant();
 
+                var candidates = new List<SourceCandidate>();
                 foreach (var response in search.Responses)
                 {
                     foreach (var file in response.Files)
                     {
+                        if (wantedExt != null &&
+                            !Path.GetExtension(file.Filename).Equals(wantedExt, StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
                         candidates.Add(new SourceCandidate
                         {
                             Username = response.Username,
@@ -536,35 +563,52 @@ namespace slskd.Wishlist
 
                 if (candidates.Count == 0)
                 {
-                    return;
+                    return false;
                 }
 
-                // Rank all candidates using smart scoring
-                var rankedCandidates = await RankingService.RankSourcesAsync(candidates, cancellationToken);
+                // Group by (user, directory) so we can download a complete album at once.
+                // Rank one representative file per group (peer-level stats are the same for all).
+                var groups = candidates
+                    .GroupBy(c => (c.Username, Dir: GetParentDirectory(c.Filename)))
+                    .ToList();
 
-                // Take the top result (best scored)
-                var best = rankedCandidates.FirstOrDefault();
-                if (best == null)
+                var representatives = groups.Select(g => g.First()).ToList();
+                var ranked = await RankingService.RankSourcesAsync(representatives, cancellationToken);
+
+                var bestRep = ranked.FirstOrDefault();
+                if (bestRep == null)
                 {
-                    return;
+                    return false;
                 }
+
+                var bestDir = GetParentDirectory(bestRep.Filename);
+                var filesToDownload = groups
+                    .First(g => g.Key.Username == bestRep.Username && g.Key.Dir == bestDir)
+                    .Select(c => (c.Filename, c.Size))
+                    .ToList();
 
                 Log.Information(
-                    "Auto-downloading best result: {Filename} from {Username} (score: {Score:F1})",
-                    best.Filename,
-                    best.Username,
-                    best.SmartScore);
+                    "Auto-downloading {Count} file(s) from {Username} in {Directory} (score: {Score:F1})",
+                    filesToDownload.Count,
+                    bestRep.Username,
+                    bestDir,
+                    bestRep.SmartScore);
 
-                // Enqueue the download
-                await DownloadService.EnqueueAsync(
-                    best.Username,
-                    new[] { (best.Filename, best.Size) },
-                    cancellationToken);
+                await DownloadService.EnqueueAsync(bestRep.Username, filesToDownload, cancellationToken);
+                return true;
             }
             catch (Exception ex)
             {
                 Log.Warning(ex, "Error auto-downloading wishlist results: {Message}", ex.Message);
+                return false;
             }
+        }
+
+        private static string GetParentDirectory(string filename)
+        {
+            var normalized = filename.Replace('\\', '/');
+            var lastSlash = normalized.LastIndexOf('/');
+            return lastSlash < 0 ? string.Empty : normalized[..lastSlash];
         }
     }
 }

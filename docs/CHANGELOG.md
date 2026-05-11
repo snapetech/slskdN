@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Added full Lidarr integration: nav tab, sync page, wanted-to-wishlist sync with per-cycle cap, and auto-import on download completion with safe-candidate filtering.
+- Fixed Lidarr auto-import HTTP 500 by using `filterExistingFiles=false` to avoid hitting the corrupt `MediaFiles` SQLite table.
+- Added `includeCompleted=false` query param to `GET /transfers/downloads` and `GET /transfers/uploads` so the server skips serializing completed rows; the UI passes this when "Hide Completed" is on, eliminating the slow initial page load.
+- Added "Hide Completed" toggle to the Transfers header (on by default) that filters completed transfers from the API response and the rendered list.
+- Decoupled bulk action button disabled states so retrying errored transfers no longer locks out the Remove and Cancel buttons.
+- Slowed the transfers poll interval from 1 s to 2 s to reduce server load.
+- Limited the room search dropdown to the top 100 rooms by user count to avoid hanging on large lists.
+- Added filter-before-render to the Join Room modal so the full table is only shown once a search term is entered.
+- Surfaced room join errors as toast notifications instead of silent console errors.
+
 - Fixed DHT mesh rendezvous behind VPN/NAT-PMP providers that rewrite requested
   ports by allowing `dht.advertised_overlay_port` to differ from the local
   `dht.overlay_port` listener.

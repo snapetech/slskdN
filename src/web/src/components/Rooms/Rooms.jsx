@@ -7,6 +7,7 @@ import RoomJoinModal from './RoomJoinModal';
 import RoomSession from './RoomSession';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import {
   Button,
   Dropdown,
@@ -194,6 +195,7 @@ const Rooms = () => {
       openRoomTab(roomName);
     } catch (error) {
       console.error('Failed to join room:', error);
+      toast.error(`Failed to join room "${roomName}": ${error?.message ?? error}`);
     }
   };
 
@@ -249,12 +251,16 @@ const Rooms = () => {
     [navigate],
   );
 
-  const roomOptions = availableRooms.map((r) => ({
-    description: r.isPrivate ? 'Private' : '',
-    key: r.name,
-    text: `${r.name} (${r.userCount} users)`,
-    value: r.name,
-  }));
+  const roomOptions = availableRooms
+    .slice()
+    .sort((a, b) => (b.userCount || 0) - (a.userCount || 0))
+    .slice(0, 100)
+    .map((r) => ({
+      description: r.isPrivate ? 'Private' : '',
+      key: r.name,
+      text: `${r.name} (${r.userCount} users)`,
+      value: r.name,
+    }));
 
   const panes = tabs.map((tab, index) => ({
     menuItem: (

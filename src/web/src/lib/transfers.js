@@ -1,8 +1,9 @@
 import api from './api';
 
-export const getAll = async ({ direction }) => {
+export const getAll = async ({ direction, includeCompleted = true }) => {
+  const params = includeCompleted ? '' : '?includeCompleted=false';
   const response = (
-    await api.get(`/transfers/${encodeURIComponent(direction)}s`)
+    await api.get(`/transfers/${encodeURIComponent(direction)}s${params}`)
   ).data;
 
   if (!Array.isArray(response)) {

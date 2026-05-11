@@ -91,3 +91,9 @@
 .wishlist-container .ui.placeholder.segment .icon {
   color: #888 !important;
 }
+
+.wishlist-autosearch-toggle {
+  float: right;
+  margin-top: 0.6em !important;
+  margin-left: 1em !important;
+}

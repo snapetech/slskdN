@@ -14,6 +14,8 @@ using slskd.Wishlist;
 
 public interface ILidarrSyncService
 {
+    LidarrSyncState SyncState { get; }
+
     Task<LidarrSyncResult> SyncWantedToWishlistAsync(CancellationToken cancellationToken = default);
 }
 
@@ -37,6 +39,8 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
 
     private ILogger Log { get; } = Serilog.Log.ForContext<LidarrSyncService>();
 
+    public LidarrSyncState SyncState { get; } = new LidarrSyncState();
+
     public async Task<LidarrSyncResult> SyncWantedToWishlistAsync(CancellationToken cancellationToken = default)
     {
         var options = OptionsMonitor.CurrentValue.Integration.Lidarr;
@@ -45,47 +49,72 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
             return new LidarrSyncResult { Enabled = false };
         }
 
-        var wanted = await LidarrClient.GetWantedMissingAsync(options.MaxItemsPerSync, cancellationToken).ConfigureAwait(false);
         var existing = await WishlistService.ListAsync().ConfigureAwait(false);
         var existingSearches = existing
             .Select(item => item.SearchText)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var result = new LidarrSyncResult
-        {
-            Enabled = true,
-            WantedCount = wanted.Count,
-        };
+        var result = new LidarrSyncResult { Enabled = true };
 
-        foreach (var album in wanted)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
+        const int lidarrPageSize = 250;
+        var page = 1;
+        var reachedCap = false;
 
-            var searchText = album.SearchText.Trim();
-            if (string.IsNullOrWhiteSpace(searchText))
+        while (!cancellationToken.IsCancellationRequested && !reachedCap)
+        {
+            var (records, totalRecords) = await LidarrClient.GetWantedMissingPageAsync(page, lidarrPageSize, cancellationToken).ConfigureAwait(false);
+
+            result.WantedCount = totalRecords;
+
+            if (records.Count == 0)
             {
-                result.SkippedCount++;
-                continue;
+                break;
             }
 
-            if (existingSearches.Contains(searchText))
+            foreach (var album in records)
             {
-                result.DuplicateCount++;
-                continue;
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var searchText = album.SearchText.Trim();
+                if (string.IsNullOrWhiteSpace(searchText))
+                {
+                    result.SkippedCount++;
+                    continue;
+                }
+
+                if (existingSearches.Contains(searchText))
+                {
+                    result.DuplicateCount++;
+                    continue;
+                }
+
+                var item = new WishlistItem
+                {
+                    SearchText = searchText,
+                    Filter = options.WishlistFilter,
+                    Enabled = true,
+                    AutoDownload = options.AutoDownload,
+                    MaxResults = options.WishlistMaxResults,
+                };
+
+                await WishlistService.CreateAsync(item).ConfigureAwait(false);
+                existingSearches.Add(searchText);
+                result.CreatedCount++;
+
+                if (result.CreatedCount >= options.MaxItemsPerSync)
+                {
+                    Log.Information("Lidarr sync reached per-cycle cap of {Cap} new items; will continue from page {Page} next cycle", options.MaxItemsPerSync, page);
+                    reachedCap = true;
+                    break;
+                }
             }
 
-            var item = new WishlistItem
+            if (page * lidarrPageSize >= result.WantedCount)
             {
-                SearchText = searchText,
-                Filter = options.WishlistFilter,
-                Enabled = true,
-                AutoDownload = options.AutoDownload,
-                MaxResults = options.WishlistMaxResults,
-            };
+                break;
+            }
 
-            await WishlistService.CreateAsync(item).ConfigureAwait(false);
-            existingSearches.Add(searchText);
-            result.CreatedCount++;
+            page++;
         }
 
         Log.Information(
@@ -94,6 +123,9 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
             result.DuplicateCount,
             result.SkippedCount,
             result.WantedCount);
+
+        SyncState.LastSyncAt = DateTime.UtcNow;
+        SyncState.LastResult = result;
 
         return result;
     }
@@ -111,6 +143,7 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
             {
                 if (options.Enabled && options.SyncWantedToWishlist)
                 {
+                    SyncState.IsSyncing = true;
                     await SyncWantedToWishlistAsync(stoppingToken).ConfigureAwait(false);
                 }
             }
@@ -121,8 +154,14 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
             catch (Exception ex)
             {
                 Log.Warning(ex, "Lidarr wanted sync failed: {Message}", ex.Message);
+                SyncState.LastError = ex.Message;
+            }
+            finally
+            {
+                SyncState.IsSyncing = false;
             }
 
+            SyncState.NextSyncAt = DateTime.UtcNow.Add(delay);
             await Task.Delay(delay, stoppingToken).ConfigureAwait(false);
         }
     }
@@ -132,11 +171,24 @@ public sealed record LidarrSyncResult
 {
     public bool Enabled { get; init; }
 
-    public int WantedCount { get; init; }
+    public int WantedCount { get; set; }
 
     public int CreatedCount { get; set; }
 
     public int DuplicateCount { get; set; }
 
     public int SkippedCount { get; set; }
+}
+
+public sealed class LidarrSyncState
+{
+    public bool IsSyncing { get; set; }
+
+    public DateTime? LastSyncAt { get; set; }
+
+    public DateTime? NextSyncAt { get; set; }
+
+    public string? LastError { get; set; }
+
+    public LidarrSyncResult? LastResult { get; set; }
 }

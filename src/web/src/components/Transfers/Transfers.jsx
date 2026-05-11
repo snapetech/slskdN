@@ -64,6 +64,8 @@ const Transfers = ({ direction, server }) => {
 
   const [autoReplaceEnabled, setAutoReplaceEnabled] = useState(false);
   const [acceleratedEnabled, setAcceleratedEnabled] = useState(false);
+  const [hideCompleted, setHideCompleted] = useState(true);
+  const hideCompletedRef = useRef(true);
   const autoReplaceThreshold = AUTO_REPLACE_THRESHOLD;
 
   const bulkQueueRef = useRef([]);
@@ -276,7 +278,7 @@ const Transfers = ({ direction, server }) => {
     latestFetchIdRef.current = fetchId;
 
     try {
-      const response = await transfersLibrary.getAll({ direction });
+      const response = await transfersLibrary.getAll({ direction, includeCompleted: !hideCompletedRef.current });
 
       const normalizedResponse = normalizeTransfers(response);
 
@@ -300,7 +302,7 @@ const Transfers = ({ direction, server }) => {
     };
 
     init();
-    const interval = window.setInterval(fetch, 1_000);
+    const interval = window.setInterval(fetch, 2_000);
 
     return () => {
       clearInterval(interval);
@@ -533,6 +535,21 @@ const Transfers = ({ direction, server }) => {
     }
   };
 
+  const visibleTransfers = useMemo(() => {
+    if (!hideCompleted) return transfers;
+    return transfers
+      .map((user) => ({
+        ...user,
+        directories: user.directories
+          .map((dir) => ({
+            ...dir,
+            files: dir.files.filter((file) => !file.state?.startsWith('Completed')),
+          }))
+          .filter((dir) => dir.files.length > 0),
+      }))
+      .filter((user) => user.directories.length > 0);
+  }, [transfers, hideCompleted]);
+
   if (connecting) {
     return <LoaderSegment />;
   }
@@ -545,9 +562,11 @@ const Transfers = ({ direction, server }) => {
         autoReplaceThreshold={autoReplaceThreshold}
         cancelling={cancelling}
         direction={direction}
+        hideCompleted={hideCompleted}
         onAutoReplaceChange={handleAutoReplaceChange}
         onAcceleratedChange={handleAcceleratedChange}
         onCancelAll={cancelAll}
+        onHideCompletedChange={(v) => { hideCompletedRef.current = v; setHideCompleted(v); }}
         onRemoveAll={removeAll}
         onRetryAll={retryAll}
         removing={removing}
@@ -560,8 +579,13 @@ const Transfers = ({ direction, server }) => {
           caption={`No ${direction}s to display`}
           icon={direction}
         />
+      ) : visibleTransfers.length === 0 ? (
+        <PlaceholderSegment
+          caption={`All ${direction}s are completed`}
+          icon="check"
+        />
       ) : (
-        transfers.map((user) => (
+        visibleTransfers.map((user) => (
           <TransferGroup
             cancel={cancel}
             cancelAll={cancelAll}

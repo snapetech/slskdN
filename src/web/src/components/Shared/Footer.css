@@ -318,6 +318,16 @@
     opacity: 0.72;
 }
 
+.slskdn-footer-session-total .speed-unit::after {
+    content: none;
+}
+
+.slskdn-footer-session-label {
+    color: rgba(238, 233, 227, 0.4);
+    font-size: 9px;
+    margin-left: 2px;
+}
+
 .slskdn-footer-network-item.active,
 .slskdn-footer-network-item.syncing {
     color: var(--slskdn-accent-warm, #d7a16b);

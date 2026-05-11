@@ -65,9 +65,11 @@ const TransfersHeader = ({
   autoReplaceThreshold = 5,
   cancelling = false,
   direction,
+  hideCompleted = true,
   onAcceleratedChange,
   onAutoReplaceChange,
   onCancelAll,
+  onHideCompletedChange,
   onRemoveAll,
   onRetryAll,
   removing = false,
@@ -95,7 +97,6 @@ const TransfersHeader = ({
   }, [direction, transfers]);
 
   const empty = files.length === 0;
-  const working = retrying || cancelling || removing;
 
   return (
     <Segment
@@ -114,7 +115,7 @@ const TransfersHeader = ({
       >
         <ShrinkableDropdownButton
           color="green"
-          disabled={working || empty || !server.isConnected}
+          disabled={retrying || empty || !server.isConnected}
           hidden={direction === 'upload'}
           icon="redo"
           loading={retrying}
@@ -132,7 +133,7 @@ const TransfersHeader = ({
         <Nbsp />
         <ShrinkableDropdownButton
           color="red"
-          disabled={working || empty}
+          disabled={cancelling || empty}
           icon="x"
           loading={cancelling}
           mediaQuery="(max-width: 715px)"
@@ -150,7 +151,7 @@ const TransfersHeader = ({
         </ShrinkableDropdownButton>
         <Nbsp />
         <ShrinkableDropdownButton
-          disabled={working || empty}
+          disabled={removing || empty}
           icon="trash alternate"
           loading={removing}
           mediaQuery="(max-width: 715px)"
@@ -199,6 +200,20 @@ const TransfersHeader = ({
               hidden={direction === 'upload'}
               label="Auto-Replace"
               onChange={(_, data) => onAutoReplaceChange?.(data.checked)}
+              toggle
+            />
+          }
+        />
+        <Nbsp />
+        <Popup
+          content="Hide completed transfers from the list. They can still be removed using the Remove button."
+          position="bottom right"
+          trigger={
+            <Checkbox
+              checked={hideCompleted}
+              className="hide-completed-toggle"
+              label="Hide Completed"
+              onChange={(_, data) => onHideCompletedChange?.(data.checked)}
               toggle
             />
           }

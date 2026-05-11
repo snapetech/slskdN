@@ -158,16 +158,27 @@ const RoomJoinModal = ({ joinRoom: parentJoinRoom, ...modalOptions }) => {
                 onChange={(_, event) => setFilter(event.value)}
                 placeholder="Room Filter"
               />
-              {sortedAvailable.length === 0 ? (
+              {!filter.trim() ? (
+                <Segment
+                  placeholder
+                  textAlign="center"
+                >
+                  <Header icon>
+                    <Icon name="search" />
+                    Type to search rooms
+                  </Header>
+                  <p>{available.length.toLocaleString()} rooms available. Enter a name above to filter.</p>
+                </Segment>
+              ) : sortedAvailable.length === 0 ? (
                 <Segment
                   placeholder
                   textAlign="center"
                 >
                   <Header icon>
                     <Icon name="comments outline" />
-                    No rooms available
+                    No rooms match &ldquo;{filter}&rdquo;
                   </Header>
-                  <p>Try refreshing or check your connection to the server.</p>
+                  <p>Try a different search term.</p>
                 </Segment>
               ) : (
                 <Table

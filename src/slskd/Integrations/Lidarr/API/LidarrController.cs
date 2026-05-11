@@ -41,12 +41,19 @@ public sealed class LidarrController : ControllerBase
         return Ok(status);
     }
 
+    [HttpGet("sync/status")]
+    [Authorize(Policy = AuthPolicy.Any)]
+    public IActionResult GetSyncStatus()
+    {
+        return Ok(LidarrSyncService.SyncState);
+    }
+
     [HttpGet("wanted/missing")]
     [Authorize(Policy = AuthPolicy.Any)]
-    public async Task<IActionResult> GetWantedMissing([FromQuery] int pageSize = 100, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetWantedMissing([FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
     {
-        var wanted = await LidarrClient.GetWantedMissingAsync(pageSize, cancellationToken).ConfigureAwait(false);
-        return Ok(wanted);
+        var (records, total) = await LidarrClient.GetWantedMissingPageAsync(page, pageSize, cancellationToken).ConfigureAwait(false);
+        return Ok(new { records, totalRecords = total, page, pageSize });
     }
 
     [HttpPost("wanted/sync")]

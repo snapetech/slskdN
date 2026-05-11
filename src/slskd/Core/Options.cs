@@ -1904,7 +1904,7 @@ namespace slskd
             [Argument(default, "wishlist-enabled")]
             [EnvironmentVariable("WISHLIST_ENABLED")]
             [Description("enable automatic wishlist background searching")]
-            public bool Enabled { get; init; } = false;
+            public bool Enabled { get; init; } = true;
 
             /// <summary>
             ///     Gets the interval between wishlist searches, in seconds.

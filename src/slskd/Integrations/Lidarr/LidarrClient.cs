@@ -21,6 +21,8 @@ public interface ILidarrClient
 
     Task<IReadOnlyList<LidarrWantedAlbum>> GetWantedMissingAsync(int pageSize, CancellationToken cancellationToken = default);
 
+    Task<(IReadOnlyList<LidarrWantedAlbum> Records, int TotalRecords)> GetWantedMissingPageAsync(int page, int pageSize, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<LidarrManualImportResource>> GetManualImportCandidatesAsync(
         string folder,
         bool filterExistingFiles,
@@ -91,6 +93,17 @@ public sealed class LidarrClient : ILidarrClient
         }
 
         return wanted;
+    }
+
+    public async Task<(IReadOnlyList<LidarrWantedAlbum> Records, int TotalRecords)> GetWantedMissingPageAsync(int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var safePage = Math.Max(1, page);
+        var safePageSize = Math.Clamp(pageSize, 1, 250);
+        var relative = $"api/v1/wanted/missing?page={safePage.ToString(CultureInfo.InvariantCulture)}&pageSize={safePageSize.ToString(CultureInfo.InvariantCulture)}&includeArtist=true&monitored=true";
+        using var request = CreateRequest(HttpMethod.Get, relative);
+        using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
+        var pageResult = await ReadJsonAsync<LidarrPagingResource<LidarrWantedAlbum>>(response, cancellationToken).ConfigureAwait(false);
+        return (pageResult?.Records ?? [], pageResult?.TotalRecords ?? 0);
     }
 
     public async Task<IReadOnlyList<LidarrManualImportResource>> GetManualImportCandidatesAsync(
@@ -171,7 +184,7 @@ public sealed class LidarrClient : ILidarrClient
     private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var options = OptionsMonitor.CurrentValue.Integration.Lidarr;
-        var client = HttpClientFactory.CreateClient(slskd.Common.Security.OutboundUriGuard.NoRedirectHttpClientName);
+        var client = HttpClientFactory.CreateClient(slskd.Common.Security.OutboundUriGuard.LocalNoRedirectHttpClientName);
         client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
         var response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
@@ -272,7 +285,11 @@ public sealed class LidarrManualImportResource
         Quality.HasValue &&
         Quality.Value.ValueKind is not JsonValueKind.Null and not JsonValueKind.Undefined &&
         AdditionalFile == false &&
-        (Rejections == null || Rejections.Count == 0);
+        (Rejections == null || Rejections.All(r =>
+        {
+            var reason = r.TryGetProperty("reason", out var p) ? p.GetString() ?? string.Empty : string.Empty;
+            return reason.Contains("missing tracks", StringComparison.OrdinalIgnoreCase);
+        }));
 }
 
 public sealed record LidarrAlbumResource
