@@ -1,0 +1,35 @@
+name: Feature coherence audit
+
+on:
+  pull_request:
+    paths:
+      - README.md
+      - FEATURE_INVENTORY.md
+      - docs/status.md
+      - docs/security/**
+      - docs/dependencies.md
+      - docs/analyzer-suppressions.md
+      - scripts/audit-feature-coherence.sh
+      - src/slskd/slskd.csproj
+  push:
+    branches:
+      - chore/feature-coherence-audit
+    paths:
+      - README.md
+      - FEATURE_INVENTORY.md
+      - docs/status.md
+      - docs/security/**
+      - docs/dependencies.md
+      - docs/analyzer-suppressions.md
+      - scripts/audit-feature-coherence.sh
+      - src/slskd/slskd.csproj
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run feature coherence audit
+        run: bash scripts/audit-feature-coherence.sh
