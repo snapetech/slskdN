@@ -12,6 +12,7 @@ const getRetryableFiles = ({ files, retryOption }) => {
           'Completed, TimedOut',
           'Completed, Errored',
           'Completed, Rejected',
+          'Completed, Aborted',
         ].includes(file.state),
       );
     case 'Cancelled':
@@ -48,6 +49,7 @@ const getRemovableFiles = ({ files, removeOption }) => {
           'Completed, TimedOut',
           'Completed, Errored',
           'Completed, Rejected',
+          'Completed, Aborted',
         ].includes(file.state),
       );
     case 'Cancelled':

@@ -65,7 +65,6 @@ const Transfers = ({ direction, server }) => {
   const [autoReplaceEnabled, setAutoReplaceEnabled] = useState(false);
   const [acceleratedEnabled, setAcceleratedEnabled] = useState(false);
   const [hideCompleted, setHideCompleted] = useState(true);
-  const hideCompletedRef = useRef(true);
   const autoReplaceThreshold = AUTO_REPLACE_THRESHOLD;
 
   const bulkQueueRef = useRef([]);
@@ -278,7 +277,7 @@ const Transfers = ({ direction, server }) => {
     latestFetchIdRef.current = fetchId;
 
     try {
-      const response = await transfersLibrary.getAll({ direction, includeCompleted: !hideCompletedRef.current });
+      const response = await transfersLibrary.getAll({ direction });
 
       const normalizedResponse = normalizeTransfers(response);
 
@@ -566,7 +565,7 @@ const Transfers = ({ direction, server }) => {
         onAutoReplaceChange={handleAutoReplaceChange}
         onAcceleratedChange={handleAcceleratedChange}
         onCancelAll={cancelAll}
-        onHideCompletedChange={(v) => { hideCompletedRef.current = v; setHideCompleted(v); }}
+        onHideCompletedChange={setHideCompleted}
         onRemoveAll={removeAll}
         onRetryAll={retryAll}
         removing={removing}

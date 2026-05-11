@@ -2061,7 +2061,7 @@ namespace slskd
             /// <summary>
             ///     Gets a value indicating whether rescue mode and underperformance detection are enabled.
             /// </summary>
-            public bool Enabled { get; init; } = false;
+            public bool Enabled { get; init; } = true;
 
             /// <summary>
             ///     Maximum time a download may remain queued before rescue is triggered, in seconds.

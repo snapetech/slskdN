@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Enabled accelerated download mode (rescue mode) by default for all users.
+- Fixed "Remove All Errored" and "Retry All Errored" not targeting "Completed, Aborted" transfers; aborted transfers are now included alongside timed-out, errored, and rejected.
+- Fixed header bulk-operation buttons (Remove All, Retry All) silently doing nothing when "Hide Completed" was enabled, caused by the poll skipping completed transfers from the API response.
+
 - Added full Lidarr integration: nav tab, sync page, wanted-to-wishlist sync with per-cycle cap, and auto-import on download completion with safe-candidate filtering.
 - Fixed Lidarr auto-import HTTP 500 by using `filterExistingFiles=false` to avoid hitting the corrupt `MediaFiles` SQLite table.
 - Added `includeCompleted=false` query param to `GET /transfers/downloads` and `GET /transfers/uploads` so the server skips serializing completed rows; the UI passes this when "Hide Completed" is on, eliminating the slow initial page load.
