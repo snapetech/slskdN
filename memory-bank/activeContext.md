@@ -1,3 +1,20 @@
+## Update 2026-05-12 21:17:26Z
+
+- Current task: PPA release failure follow-up in progress.
+- Last activity:
+  - confirmed release `build-main-2026051220-slskdn.244` built app archives and created the GitHub release;
+  - found Launchpad Jammy amd64 failed later during binary packaging because `packaging/debian/rules` used Bash brace expansion under `/bin/sh`;
+  - documented ADR-0001 gotcha `0z376`;
+  - replaced the Debian VPN unit rewrite loop with a POSIX-safe explicit unit list;
+  - added packaging validation for the Debian rule and a PPA workflow binary-package preflight before Launchpad upload;
+  - noted Chocolatey failed separately after five Chocolatey.org `504 Gateway Timeout` responses.
+- Validation:
+  - Passed: packaging metadata validation, `git diff --check`, and a local `debian/rules override_dh_auto_install` staged-payload simulation.
+- Next steps:
+  1. Commit the PPA fix.
+  2. Merge the .244 release metadata commit from `origin/main`.
+  3. Run the guarded release flow for a replacement tag.
+
 ## Update 2026-05-12 20:45:10Z
 
 - Current task: live slskd app-log triage follow-up completed.

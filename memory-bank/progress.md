@@ -1,5 +1,12 @@
 ## 2026-05-12
 
+- Investigated the Launchpad failure email for
+  `2026051220.slskdn.244-1ppa202605122102~jammy`. The app/release artifacts
+  had built, but the Launchpad binary build failed because `debian/rules` used
+  Bash brace expansion while Launchpad runs package recipes under `/bin/sh`.
+  Replaced the loop with an explicit POSIX-safe unit list, added packaging
+  validation to reject the bad construct, added a PPA workflow binary-package
+  preflight before upload, and documented ADR-0001 gotcha `0z376`.
 - Inspected live `slskd.service` app logs on `kspls0` after the broader host
   checks. The only new app-level errors were duplicate queue-position timeout
   logs from remote peer lookups, not VPN, mesh, or local service failures.

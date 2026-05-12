@@ -87,7 +87,7 @@ jobs:
       - name: Install Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y devscripts debhelper gnupg build-essential
+          sudo apt-get install -y devscripts debhelper gnupg build-essential patchelf
 
       - name: Import GPG Key
         env:
@@ -140,6 +140,13 @@ jobs:
           
            -- slskdn <slskdn@proton.me>  $(date -R)
           EOF
+
+      - name: Preflight Binary Package Build
+        run: |
+          cd slskdn-${{ steps.version.outputs.version }}
+          dpkg-buildpackage -us -uc -b -d
+          dh clean
+          rm -f ../*.deb ../*.buildinfo ../*_*.changes
 
       - name: Build Source Package
         run: |

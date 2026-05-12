@@ -76,6 +76,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Fixed Arch, Debian, and RPM VPN helper service units so distro packages use
   `/usr/bin/slskdN-vpn-agent`, `/etc/slskd/slskd.yml`, and the packaged `slskd`
   service/user names instead of manual-install defaults.
+- Fixed PPA binary builds by keeping `debian/rules` POSIX-shell compatible, and
+  added a GitHub-side binary package preflight before Launchpad uploads.
 - Added Arch `.pacnew` upgrade messaging for `/etc/slskd/slskd.yml`.
 - Fixed downloads/uploads page spinner stalling on initial load due to queue-position API calls blocking the render; those are now fire-and-forget.
 - Dramatically reduced downloads/uploads page initial load time by fetching only active transfers on the 2-second poll; completed transfers are fetched separately on a 15-second interval for header bulk operations.

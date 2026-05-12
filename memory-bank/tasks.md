@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] Fix Launchpad PPA Jammy build failure for VPN helper packaging.
+ - Status: completed (2026-05-12)
+ - Priority: P1
+ - Notes: Launchpad failed the `2026051220.slskdn.244-1ppa202605122102~jammy` amd64 build because `packaging/debian/rules` used Bash brace expansion under `/bin/sh`. Replaced the VPN unit rewrite loop with a POSIX-safe explicit unit list, added packaging validation to reject the Bash-only pattern, and added a PPA workflow binary-package preflight before source upload. Documented ADR-0001 gotcha `0z376`.
+
 - [x] Quiet expected queue-position timeout noise from live app logs.
  - Status: completed (2026-05-12)
  - Priority: P2

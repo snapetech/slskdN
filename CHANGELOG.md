@@ -25,6 +25,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   SDK pin as local release gates.
 - Linux distro packages now rewrite bundled VPN helper systemd units to the
   packaged `/usr/bin` helper path and packaged `slskd` service/config names.
+- Debian/PPA package builds now avoid Bash-only brace expansion in
+  `debian/rules`, and the PPA workflow runs a binary-package preflight before
+  uploading source packages to Launchpad.
 - Arch installs now print explicit `.pacnew` guidance when pacman preserves an
   existing `/etc/slskd/slskd.yml`.
 - The network endpoint ports banner is now a compact one-line notice, and once
