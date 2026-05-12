@@ -199,6 +199,39 @@ control flow after the required byte window is captured. Tests that instrument
 probe lifecycle state must clean up in `finally` blocks, or expected
 cancellation looks like extra concurrency and causes release-only flakes.
 
+### 0z378. Publish Terminal Status Details Before Terminal State
+
+**The Bug**: The `.246` release gate failed in
+`MeshTransferServiceTests.StartTransferAsync_WhenPeerDiscoveryFails_ReturnsSanitizedFailure`
+because the background mesh-transfer task wrote `State = Failed` before writing
+the sanitized `ErrorMessage`. Polling callers treat terminal states as ready, so
+they could observe `Failed` with a null message.
+
+**Files Affected**:
+- `src/slskd/VirtualSoulfind/DisasterMode/MeshTransferService.cs`
+- `tests/slskd.Tests.Unit/VirtualSoulfind/DisasterMode/MeshTransferServiceTests.cs`
+
+**Wrong**:
+```csharp
+status.State = MeshTransferState.Failed;
+status.ErrorMessage = "Mesh transfer failed";
+PublishProgress(transferId, status);
+```
+
+**Correct**:
+```csharp
+status.ErrorMessage = "Mesh transfer failed";
+status.CompletedAt = DateTimeOffset.UtcNow;
+status.State = MeshTransferState.Failed;
+PublishProgress(transferId, status);
+```
+
+**Why This Keeps Happening**: Transfer status objects are mutated by background
+tasks and polled by callers without a lock around the whole object. Any
+terminal-state transition must write all user-visible terminal details first,
+then assign the terminal state last so pollers never see a half-published
+terminal result.
+
 ### 0z372. Dismissed Banners Must Not Be Keyed To Volatile Runtime State
 
 **The Bug**: The network endpoint migration banner stored dismissal against the
