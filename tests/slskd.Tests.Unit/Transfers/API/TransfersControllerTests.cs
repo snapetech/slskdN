@@ -175,6 +175,75 @@ public class TransfersControllerTests
     }
 
     [Fact]
+    public void GetDownloadsAsync_WhenCompletedHidden_KeepsFailedTerminalDownloadsVisible()
+    {
+        var completed = new SlskdTransfer
+        {
+            Id = Guid.NewGuid(),
+            Username = "alice",
+            Filename = "Album\\done.flac",
+            Direction = TransferDirection.Download,
+            State = TransferStates.Completed | TransferStates.Succeeded,
+        };
+        var failed = new SlskdTransfer
+        {
+            Id = Guid.NewGuid(),
+            Username = "alice",
+            Filename = "Album\\retry.flac",
+            Direction = TransferDirection.Download,
+            State = TransferStates.Completed | TransferStates.Errored,
+        };
+        var downloads = new Mock<IDownloadService>();
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), false))
+            .Returns<Expression<Func<SlskdTransfer, bool>>?, bool>((expression, _) =>
+                new[] { completed, failed }.Where(expression!.Compile()).ToList());
+
+        var controller = CreateController(downloads);
+
+        var result = controller.GetDownloadsAsync(includeCompleted: false);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var user = Assert.Single(Assert.IsAssignableFrom<IEnumerable<UserResponse>>(ok.Value));
+        var file = Assert.Single(user.Directories.Single().Files);
+        Assert.Equal("Album\\retry.flac", file.Filename);
+    }
+
+    [Fact]
+    public void ClearCompletedDownloads_RemovesOnlySuccessfulDownloads()
+    {
+        var completed = new SlskdTransfer
+        {
+            Id = Guid.NewGuid(),
+            Username = "alice",
+            Filename = "Album\\done.flac",
+            Direction = TransferDirection.Download,
+            State = TransferStates.Completed | TransferStates.Succeeded,
+        };
+        var failed = new SlskdTransfer
+        {
+            Id = Guid.NewGuid(),
+            Username = "alice",
+            Filename = "Album\\retry.flac",
+            Direction = TransferDirection.Download,
+            State = TransferStates.Completed | TransferStates.Errored,
+        };
+        var downloads = new Mock<IDownloadService>();
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), false))
+            .Returns<Expression<Func<SlskdTransfer, bool>>?, bool>((expression, _) =>
+                new[] { completed, failed }.Where(expression!.Compile()).ToList());
+
+        var controller = CreateController(downloads);
+
+        var result = controller.ClearCompletedDownloads();
+
+        Assert.IsType<NoContentResult>(result);
+        downloads.Verify(service => service.Remove(completed.Id, false), Times.Once);
+        downloads.Verify(service => service.Remove(failed.Id, false), Times.Never);
+    }
+
+    [Fact]
     public void GetAcceleratedDownloadMode_ReturnsCurrentState()
     {
         var accelerated = new Mock<IAcceleratedDownloadService>();

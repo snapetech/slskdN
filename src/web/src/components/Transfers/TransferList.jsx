@@ -1,3 +1,4 @@
+import { formatTransferState } from '../../lib/transfers';
 import { formatBytes, formatBytesAsUnit, getFileName } from '../../lib/util';
 import React, { Component } from 'react';
 import {
@@ -169,7 +170,7 @@ class TransferList extends Component {
                                 isRetryableState(f.state) && (
                                   <Icon name="redo" />
                                 )}
-                              {f.state}
+                              {formatTransferState(f.state)}
                               {f.placeInQueue ? ` (#${f.placeInQueue})` : ''}
                             </Button>
                           )}

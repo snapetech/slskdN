@@ -1,3 +1,18 @@
+## Update 2026-05-12 20:36:17Z
+
+- Current task: failed transfer completion semantics completed.
+- Last activity:
+  - kept Soulseek's internal `Completed` terminal flag intact, but changed API/UI semantics so only `Completed, Succeeded` means user-facing complete;
+  - changed `includeCompleted=false` transfer lists to hide only successful terminal transfers, so failed/aborted/timed-out downloads stay visible for retry or review;
+  - changed bulk clear completed for downloads/uploads to remove only successful terminal transfers;
+  - changed Web transfer labels from raw `Completed, Errored` style strings to `Error`, `Timed out`, `Aborted`, `Rejected`, `Cancelled`, or `Complete`;
+  - renamed the UI toggle to `Hide Complete` and clarified that failed terminal downloads stay visible;
+  - documented ADR-0001 gotcha `0z374`.
+- Validation:
+  - Passed: focused `TransfersControllerTests` (`13/13`), focused Transfers Web tests (`11/11`), Web lint for touched files, `./bin/lint`, and `git diff --check`.
+- Next steps:
+  1. Commit and push the transfer semantics fix.
+
 ## Update 2026-05-12 20:28:14Z
 
 - Current task: `kspls0` log triage follow-up completed.

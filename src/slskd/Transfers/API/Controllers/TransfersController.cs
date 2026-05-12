@@ -82,6 +82,12 @@ namespace slskd.Transfers.API
         private IAcceleratedDownloadService AcceleratedDownloads { get; }
         private ILogger Log { get; set; } = Serilog.Log.ForContext<TransfersController>();
 
+        private static bool IsSuccessfulTerminalTransfer(Soulseek.TransferStates state)
+        {
+            return state.HasFlag(Soulseek.TransferStates.Completed) &&
+                state.HasFlag(Soulseek.TransferStates.Succeeded);
+        }
+
         /// <summary>
         ///     Gets the accelerated download mode status.
         /// </summary>
@@ -166,7 +172,7 @@ namespace slskd.Transfers.API
         }
 
         /// <summary>
-        ///     Removes all completed downloads, regardless of whether they failed or succeeded.
+        ///     Removes downloads that completed successfully. Failed terminal downloads are intentionally retained so they can be retried.
         /// </summary>
         /// <returns></returns>
         /// <response code="204">The downloads were removed successfully.</response>
@@ -180,7 +186,9 @@ namespace slskd.Transfers.API
                 return Forbid();
             }
 
-            var transfers = Transfers.Downloads.List(t => t.State.HasFlag(Soulseek.TransferStates.Completed));
+            var transfers = Transfers.Downloads.List(
+                t => t.State.HasFlag(Soulseek.TransferStates.Completed) &&
+                    t.State.HasFlag(Soulseek.TransferStates.Succeeded));
 
             foreach (var id in transfers.Select(t => t.Id))
             {
@@ -242,7 +250,7 @@ namespace slskd.Transfers.API
         }
 
         /// <summary>
-        ///     Removes all completed uploads, regardless of whether they failed or succeeded.
+        ///     Removes uploads that completed successfully. Failed terminal uploads are intentionally retained for visibility.
         /// </summary>
         /// <returns></returns>
         /// <response code="204">The uploads were removed successfully.</response>
@@ -258,7 +266,10 @@ namespace slskd.Transfers.API
 
             // get all the transfers that aren't removed
             var transfers = Transfers.Uploads
-                .List(t => t.State.HasFlag(Soulseek.TransferStates.Completed), includeRemoved: false);
+                .List(
+                    t => t.State.HasFlag(Soulseek.TransferStates.Completed) &&
+                        t.State.HasFlag(Soulseek.TransferStates.Succeeded),
+                    includeRemoved: false);
 
             foreach (var id in transfers.Select(t => t.Id))
             {
@@ -465,7 +476,7 @@ namespace slskd.Transfers.API
             }
 
             var downloads = Transfers.Downloads.List(
-                expression: includeCompleted ? null : t => !t.State.HasFlag(Soulseek.TransferStates.Completed),
+                expression: includeCompleted ? null : t => !IsSuccessfulTerminalTransfer(t.State),
                 includeRemoved: includeRemoved);
 
             var response = downloads.GroupBy(t => t.Username).Select(grouping => new UserResponse()
@@ -681,7 +692,7 @@ namespace slskd.Transfers.API
             // todo: refactor this so it doesn't return the world. start and end time params
             // should be required.  consider pagination.
             var uploads = Transfers.Uploads.List(
-                expression: includeCompleted ? t => true : t => !t.State.HasFlag(Soulseek.TransferStates.Completed),
+                expression: includeCompleted ? t => true : t => !IsSuccessfulTerminalTransfer(t.State),
                 includeRemoved: includeRemoved);
 
             var response = uploads.GroupBy(t => t.Username).Select(grouping => new UserResponse()

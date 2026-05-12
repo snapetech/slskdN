@@ -67,6 +67,7 @@ export const clearCompleted = ({ direction }) => {
 // 'Completed, TimedOut'
 // 'Completed, Errored'
 // 'Completed, Rejected'
+// 'Completed, Aborted'
 
 export const getPlaceInQueue = ({ username, id }) => {
   return api.get(
@@ -74,8 +75,12 @@ export const getPlaceInQueue = ({ username, id }) => {
   );
 };
 
+export const isStateSucceeded = (state) => state === 'Completed, Succeeded';
+
+export const isStateTerminal = (state = '') => state.includes('Completed');
+
 export const isStateRetryable = (state) =>
-  state.includes('Completed') && state !== 'Completed, Succeeded';
+  isStateTerminal(state) && !isStateSucceeded(state);
 
 export const isStateCancellable = (state) =>
   [
@@ -87,4 +92,23 @@ export const isStateCancellable = (state) =>
     'Initializing',
   ].find((s) => s === state);
 
-export const isStateRemovable = (state) => state.includes('Completed');
+export const isStateRemovable = (state) => isStateTerminal(state);
+
+export const formatTransferState = (state) => {
+  switch (state) {
+    case 'Completed, Succeeded':
+      return 'Complete';
+    case 'Completed, Cancelled':
+      return 'Cancelled';
+    case 'Completed, TimedOut':
+      return 'Timed out';
+    case 'Completed, Errored':
+      return 'Error';
+    case 'Completed, Rejected':
+      return 'Rejected';
+    case 'Completed, Aborted':
+      return 'Aborted';
+    default:
+      return state;
+  }
+};

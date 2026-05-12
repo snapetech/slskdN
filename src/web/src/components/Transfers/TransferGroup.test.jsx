@@ -1,4 +1,7 @@
 import TransferGroup from './TransferGroup';
+import TransferList from './TransferList';
+import React from 'react';
+import { render, screen } from '@testing-library/react';
 
 describe('TransferGroup', () => {
   const makeGroup = (user) =>
@@ -43,5 +46,30 @@ describe('TransferGroup', () => {
     ]);
 
     expect(group.getSelectedFiles()).toEqual([]);
+  });
+
+  it('labels failed terminal downloads without saying completed', () => {
+    render(
+      <TransferList
+        direction="download"
+        directoryName="Album"
+        files={[
+          {
+            bytesTransferred: 12,
+            direction: 'Download',
+            filename: 'Album\\track.flac',
+            percentComplete: 12,
+            size: 100,
+            state: 'Completed, Errored',
+          },
+        ]}
+        onPlaceInQueueRequested={vi.fn()}
+        onRetryRequested={vi.fn()}
+        onSelectionChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /Error/u })).toBeInTheDocument();
+    expect(screen.queryByText(/Completed/u)).not.toBeInTheDocument();
   });
 });

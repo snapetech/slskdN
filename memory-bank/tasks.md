@@ -2693,6 +2693,7 @@
 - [2026-05-12T20:03:59Z] Completed: fix distro VPN helper unit packaging regression; AUR/Debian/RPM packages now rewrite helper units to packaged `/usr/bin`, `/etc/slskd/slskd.yml`, and `slskd` service/user defaults, Arch `.pacnew` handling is documented, and `kspls0` is verified connected with VPN forwarding and watchdog healthy.
 - [2026-05-12T20:10:49Z] Completed: make the network endpoint/ports banner compact and permanently dismissible; dismissal now survives forwarded-port changes and future installs that keep browser storage.
 - [2026-05-12T20:28:14Z] Completed: triage `kspls0` logs after release fixes; accepted Windows-rooted remote Soulseek paths as valid remote store names, downgraded expected rescue metadata misses to debug, and confirmed app/VPN units are healthy while unrelated host Proton WireGuard units remain failed.
+- [2026-05-12T20:36:17Z] Completed: fix failed transfer completion semantics; failed terminal downloads stay visible when hiding completed, clear completed only removes successful 100% transfers, and the UI labels failures as Error/Timed out/Aborted instead of Completed.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.
 

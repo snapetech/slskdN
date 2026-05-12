@@ -1,4 +1,8 @@
-import { isStateCancellable, isStateRetryable } from '../../lib/transfers';
+import {
+  isStateCancellable,
+  isStateRetryable,
+  isStateSucceeded,
+} from '../../lib/transfers';
 import { Div, Nbsp } from '../Shared';
 import ShrinkableDropdownButton from '../Shared/ShrinkableDropdownButton';
 import React, { useMemo, useState } from 'react';
@@ -42,7 +46,7 @@ const getCancellableFiles = ({ cancelOption, files }) => {
 const getRemovableFiles = ({ files, removeOption }) => {
   switch (removeOption) {
     case 'Succeeded':
-      return files.filter((file) => file.state === 'Completed, Succeeded');
+      return files.filter((file) => isStateSucceeded(file.state));
     case 'Errored':
       return files.filter((file) =>
         [
@@ -55,7 +59,7 @@ const getRemovableFiles = ({ files, removeOption }) => {
     case 'Cancelled':
       return files.filter((file) => file.state === 'Completed, Cancelled');
     case 'Completed':
-      return files.filter((file) => file.state.includes('Completed'));
+      return files.filter((file) => isStateSucceeded(file.state));
     default:
       return [];
   }
@@ -169,10 +173,10 @@ const TransfersHeader = ({
             { key: 'succeeded', text: 'Succeeded', value: 'Succeeded' },
             { key: 'errored', text: 'Errored', value: 'Errored' },
             { key: 'cancelled', text: 'Cancelled', value: 'Cancelled' },
-            { key: 'completed', text: 'Completed', value: 'Completed' },
+            { key: 'completed', text: 'Complete', value: 'Completed' },
           ]}
         >
-          {`Remove All ${removeOption}`}
+          {`Remove All ${removeOption === 'Completed' ? 'Complete' : removeOption}`}
         </ShrinkableDropdownButton>
         <Nbsp />
         <Popup
@@ -208,13 +212,13 @@ const TransfersHeader = ({
         />
         <Nbsp />
         <Popup
-          content="Hide completed transfers from the list. They can still be removed using the Remove button."
+          content="Hide successful 100% transfers from the list. Failed, aborted, timed-out, and rejected downloads stay visible for retry or review."
           position="bottom right"
           trigger={
             <Checkbox
               checked={hideCompleted}
               className="hide-completed-toggle"
-              label="Hide Completed"
+              label="Hide Complete"
               onChange={(_, data) => onHideCompletedChange?.(data.checked)}
               toggle
             />
