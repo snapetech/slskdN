@@ -161,6 +161,44 @@ Bash, but Debian package recipes must stay POSIX-shell compatible. Packaging
 validation needs to reject Bash-only syntax in `debian/rules` whenever that
 file is changed.
 
+### 0z377. Cancellation-Driven Streams Need `finally` Cleanup In Tests
+
+**The Bug**: The `.245` release gate failed in
+`ContentVerificationServiceTests.VerifySourcesAsync_BoundsConcurrentSoulseekProbes`
+because the mock Soulseek download incremented an active-probe counter but only
+decremented it on the success path. `LimitedWriteStream` intentionally cancels
+the probe once enough verification bytes are captured, so a cancellation during
+the mock write path could leak the counter and make a bounded concurrency test
+report impossible values.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Transfers/MultiSource/ContentVerificationServiceTests.cs`
+
+**Wrong**:
+```csharp
+var current = Interlocked.Increment(ref active);
+await stream.WriteAsync(buffer, cancellationToken);
+Interlocked.Decrement(ref active);
+```
+
+**Correct**:
+```csharp
+Interlocked.Increment(ref active);
+try
+{
+    await stream.WriteAsync(buffer, cancellationToken);
+}
+finally
+{
+    Interlocked.Decrement(ref active);
+}
+```
+
+**Why This Keeps Happening**: Verification probes use cancellation as normal
+control flow after the required byte window is captured. Tests that instrument
+probe lifecycle state must clean up in `finally` blocks, or expected
+cancellation looks like extra concurrency and causes release-only flakes.
+
 ### 0z372. Dismissed Banners Must Not Be Keyed To Volatile Runtime State
 
 **The Bug**: The network endpoint migration banner stored dismissal against the
