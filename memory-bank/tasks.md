@@ -2719,6 +2719,8 @@
 - [2026-05-12T23:27:09Z] Completed: fixed Messaging V2 Soulseek room discovery so the room add box searches existing rooms and joins or creates the typed room without dumping a raw concatenated server list.
 - [2026-05-12T23:32:51Z] Completed: fixed optional available-room API behavior during Soulseek reconnects so Messaging sidebar hydration gets an empty list instead of backend 500 log noise.
 - [2026-05-12T23:41:45Z] Completed: stopped Messaging V2 from polling Soulseek room discovery during general hydration and mapped room-list timeouts to empty optional data so room joins are not blocked by repeated directory fetches.
+- [2026-05-12T23:49:22Z] Completed: continue feature-coherence hardening from the merged audit branch; fixed startup bind-exposure semantics, hid the unavailable hash-from-audio CLI/env toggle, and made the unsupported flag fail startup if set.
+- [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.
 
