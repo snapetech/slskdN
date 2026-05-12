@@ -115,6 +115,35 @@ state. Rendering an arbitrary prefix looks like a broken concatenated list and
 hides the useful action. Treat room joining as search-first: filter matches near
 the input, and use the typed non-match as the create/join target.
 
+### 0z388. Room List APIs Must Not 500 While Soulseek Reconnects
+
+**The Bug**: The Messaging sidebar polls the available-room endpoint during
+startup. If the Soulseek client is disconnected or still logging in,
+`GetRoomListAsync()` throws and the API logs an unhandled 500 even though the UI
+can continue with no available rooms.
+
+**Files Affected**:
+- `src/slskd/Messaging/API/Controllers/RoomsController.cs`
+
+**Wrong**:
+```csharp
+var list = await Client.GetRoomListAsync();
+return Ok(MapRooms(list));
+```
+
+**Correct**:
+```csharp
+if (!Client.State.HasFlag(SoulseekClientStates.LoggedIn))
+{
+    return Ok(Array.Empty<RoomInfoResponse>());
+}
+```
+
+**Why This Keeps Happening**: Room discovery is optional sidebar data, but the
+Soulseek SDK treats room-list fetches as logged-in-only operations. Any UI
+hydration path that asks for optional Soulseek data must handle reconnect
+windows as empty/degraded data instead of surfacing an exception.
+
 ### 0z384. Render-Time Work Must Not Scale With Hidden Or Unchanged Data
 
 **The Bug**: Performance fixes removed first-load blockers, but some render
