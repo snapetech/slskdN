@@ -232,6 +232,37 @@ terminal-state transition must write all user-visible terminal details first,
 then assign the terminal state last so pollers never see a half-published
 terminal result.
 
+### 0z379. Controlled Composer Tests Must Wait For State Before Enter
+
+**The Bug**: The local `.247` release gate stopped before tagging because the
+full Web suite intermittently failed
+`Messaging.test.jsx uses slash leave to call the active room leave action`.
+The test changed the controlled textarea value and immediately fired Enter,
+which can race React state publication under full-suite load even though the
+focused file passes.
+
+**Files Affected**:
+- `src/web/src/components/Messaging/Messaging.test.jsx`
+
+**Wrong**:
+```jsx
+fireEvent.change(input, { target: { value: '/leave' } });
+fireEvent.keyDown(input, { key: 'Enter' });
+```
+
+**Correct**:
+```jsx
+fireEvent.change(input, { target: { value: '/leave' } });
+await waitFor(() => expect(input).toHaveValue('/leave'));
+fireEvent.keyDown(input, { key: 'Enter' });
+```
+
+**Why This Keeps Happening**: The composer is a controlled React component, and
+the Enter handler reads the latest React state rather than the raw DOM value.
+Tests that assert keyboard submission after a change event must wait until the
+controlled value is visible before pressing Enter, especially in full-suite
+release gates.
+
 ### 0z372. Dismissed Banners Must Not Be Keyed To Volatile Runtime State
 
 **The Bug**: The network endpoint migration banner stored dismissal against the
