@@ -17,13 +17,13 @@
   - regenerated the API route inventory caught by the release gate;
   - fixed Transfers optimistic bulk-clear state so header rows disappear with the body rows.
 - Validation:
-  - Pending for latest guarded-tag documentation/script pass.
-  - Passed: `packaging/scripts/run-release-gate.sh` end-to-end.
+  - Passed: `packaging/scripts/run-release-gate.sh` end-to-end after guarded release-tag workflow changes were pushed to `origin/main`.
+  - Passed separately: shell syntax checks, `packaging/scripts/validate-packaging-metadata.sh`, `git diff --check`, and GitHub target verification.
   - Passed within gate: packaging metadata, remediation baseline, Web install/tests/build/subpath smoke, backend unit/smoke tests, release integration smoke.
   - Passed separately: self-contained VPN helper publishes for `linux-x64`, `win-x64`, and `osx-x64`; local `./bin/publish --no-prebuild --runtime linux-x64 --output /tmp/slskdn-release-linux-x64-pass2` with `vpn-agent/` payload.
 - Next steps:
-  1. Run shell/packaging metadata validation for the guarded release path.
-  2. Wait for explicit release tag/version before triggering a tag-only release.
+  1. Wait for explicit release tag/version before triggering a tag-only release through `scripts/create-release-tag.sh`.
+  2. After the GitHub release publishes, run `scripts/verify-release-artifacts.sh <tag>`.
 
 ## Update 2026-05-12 16:15:00Z
 
