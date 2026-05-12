@@ -57,6 +57,9 @@ class Slskdn < Formula
     libexec.install Dir["*"]
     (bin/"slskd").write_exec_script libexec/"slskd"
     (bin/"slskdn").write_exec_script libexec/"slskd"
+    if (libexec/"vpn-agent/slskdN-vpn-agent").exist?
+      (bin/"slskdN-vpn-agent").write_exec_script libexec/"vpn-agent/slskdN-vpn-agent"
+    end
   end
 end
 EOF
@@ -88,10 +91,16 @@ class Slskdn < Formula
     libexec.install Dir["*"]
     (bin/"slskd").write_exec_script libexec/"slskd"
     (bin/"slskdn").write_exec_script libexec/"slskd"
+    if (libexec/"vpn-agent/slskdN-vpn-agent").exist?
+      (bin/"slskdN-vpn-agent").write_exec_script libexec/"vpn-agent/slskdN-vpn-agent"
+    end
   end
 
   test do
     assert_match "slskd", shell_output("#{bin}/slskd --help", 1)
+    if (bin/"slskdN-vpn-agent").exist?
+      assert_match "slskdN-vpn-agent", shell_output("#{bin}/slskdN-vpn-agent --help")
+    end
   end
 end
 EOF

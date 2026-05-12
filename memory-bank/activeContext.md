@@ -1,3 +1,20 @@
+## Update 2026-05-12 16:56:00Z
+
+- Current task: second packaging/cross-platform release-readiness pass completed.
+- Last activity:
+  - fixed macOS VPN helper pf enforcement so the anchor is installed and referenced from `/etc/pf.conf`;
+  - added VPN helper payload publishing/checks to secondary Linux, PPA, and COPR release workflows;
+  - exposed `slskdN-vpn-agent` from Homebrew and Chocolatey installs and kept the stable metadata updater in sync;
+  - regenerated the API route inventory caught by the release gate;
+  - fixed Transfers optimistic bulk-clear state so header rows disappear with the body rows.
+- Validation:
+  - Passed: `packaging/scripts/run-release-gate.sh` end-to-end.
+  - Passed within gate: packaging metadata, remediation baseline, Web install/tests/build/subpath smoke, backend unit/smoke tests, release integration smoke.
+  - Passed separately: self-contained VPN helper publishes for `linux-x64`, `win-x64`, and `osx-x64`; local `./bin/publish --no-prebuild --runtime linux-x64 --output /tmp/slskdn-release-linux-x64-pass2` with `vpn-agent/` payload.
+- Next steps:
+  1. Commit remaining packaging workflow polish.
+  2. Wait for explicit release tag/version before triggering a tag-only release.
+
 ## Update 2026-05-12 16:15:00Z
 
 - Current task: VPN helper packaging and cross-platform release readiness completed.

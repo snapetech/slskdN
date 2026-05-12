@@ -135,6 +135,18 @@ expect_literal .github/workflows/build-on-tag.yml 'cp packaging/aur/slskd.tmpfil
 expect_literal .github/workflows/release-linux.yml 'cp ../packaging/aur/slskd.tmpfiles .'
 expect_literal .github/workflows/release-ppa.yml 'mkdir -p slskdn-${{ steps.version.outputs.version }}/usr/lib/tmpfiles.d'
 expect_literal .github/workflows/release-ppa.yml 'cp packaging/aur/slskd.tmpfiles slskdn-${{ steps.version.outputs.version }}/usr/lib/tmpfiles.d/slskd.conf'
+expect_literal .github/workflows/release-ppa.yml 'dotnet publish src/slskdN.VpnAgent/slskdN-vpn-agent.csproj'
+expect_literal .github/workflows/release-ppa.yml 'publish-linux-x64/vpn-agent'
+expect_literal .github/workflows/release-ppa.yml 'test -x publish-linux-x64/vpn-agent/slskdN-vpn-agent'
+expect_literal .github/workflows/release-linux.yml 'dotnet publish src/slskdN.VpnAgent/slskdN-vpn-agent.csproj'
+expect_literal .github/workflows/release-linux.yml 'publish-linux-${{ matrix.arch }}/vpn-agent'
+expect_literal .github/workflows/release-linux.yml 'test -x publish-linux-${{ matrix.arch }}/vpn-agent/slskdN-vpn-agent'
+expect_literal .github/workflows/release-copr.yml 'dotnet publish src/slskdN.VpnAgent/slskdN-vpn-agent.csproj'
+expect_literal .github/workflows/release-copr.yml 'publish-linux-x64/vpn-agent'
+expect_literal .github/workflows/release-copr.yml 'test -x publish-linux-x64/vpn-agent/slskdN-vpn-agent'
+expect_literal packaging/homebrew/Formula/slskdn.rb 'slskdN-vpn-agent'
+expect_literal packaging/scripts/update-stable-release-metadata.sh 'slskdN-vpn-agent'
+expect_literal packaging/chocolatey/tools/chocolateyinstall.ps1 'Install-BinFile -Name "slskdN-vpn-agent"'
 
 expect_line .github/workflows/release-packages.yml '\$\{\{ steps\.version\.outputs\.tag \}\}-linux-x64\.zip'
 

@@ -52,6 +52,18 @@ jobs:
             -p:PublishReadyToRun=false \
             -p:AllowMissingPrunePackageData=true
 
+          dotnet publish src/slskdN.VpnAgent/slskdN-vpn-agent.csproj \
+            -c Release \
+            -o publish-linux-${{ matrix.arch }}/vpn-agent \
+            --self-contained true \
+            -r linux-${{ matrix.arch }} \
+            -p:PublishSingleFile=true
+          cp src/slskdN.VpnAgent/README.md publish-linux-${{ matrix.arch }}/vpn-agent/README.md
+          cp src/slskdN.VpnAgent/windows-macos.md publish-linux-${{ matrix.arch }}/vpn-agent/windows-macos.md
+          cp -r src/slskdN.VpnAgent/systemd publish-linux-${{ matrix.arch }}/vpn-agent/
+          cp src/slskdN.VpnAgent/install.sh publish-linux-${{ matrix.arch }}/vpn-agent/install.sh
+          chmod +x publish-linux-${{ matrix.arch }}/vpn-agent/slskdN-vpn-agent publish-linux-${{ matrix.arch }}/vpn-agent/install.sh
+
       - name: Copy Web Assets
         run: |
           cp -r src/web/build/* publish-linux-${{ matrix.arch }}/wwwroot/
@@ -59,6 +71,8 @@ jobs:
       - name: Verify Publish Output
         run: |
           test -x publish-linux-${{ matrix.arch }}/slskd || { echo 'missing slskd apphost'; exit 1; }
+          test -x publish-linux-${{ matrix.arch }}/vpn-agent/slskdN-vpn-agent || { echo 'missing VPN helper'; exit 1; }
+          test -f publish-linux-${{ matrix.arch }}/vpn-agent/systemd/slskdN-vpn-ingress.service || { echo 'missing VPN helper systemd units'; exit 1; }
           find publish-linux-${{ matrix.arch }} -name 'libcoreclrtraceptprovider.so' -print || true
 
       - name: Get Version
