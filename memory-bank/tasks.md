@@ -2707,6 +2707,7 @@
 - [2026-05-12T21:35:00Z] Completed: fix `.245` release-gate content-verification test flake; mock probe accounting now cleans up on expected verification cancellation.
 - [2026-05-12T21:45:00Z] Completed: fix `.246` release-gate mesh transfer status race; terminal status details are now populated before `Failed` is visible to pollers.
 - [2026-05-12T21:55:00Z] Completed: fix local `.247` release-gate Messaging slash-command test flake; test now waits for controlled composer state before Enter.
+- [2026-05-12T22:18:00Z] Completed: fix kspls0 page-load stalls; Search and Transfers now render page shells before SignalR/API background work completes, active transfer filters are EF-translatable again, and the footer speeds endpoint caches expensive session aggregates.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.
 

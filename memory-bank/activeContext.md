@@ -1,3 +1,24 @@
+## Update 2026-05-12 22:18:00Z
+
+- Current task: kspls0 page-load stall fix completed.
+- Last activity:
+  - confirmed live Search was blocked by the SignalR initial list event before rendering the search input;
+  - confirmed live active Downloads/Uploads polling failed because EF could not translate `IsSuccessfulTerminalTransfer(t.State)`;
+  - replaced active transfer filters with translatable bitwise expressions and added a predicate-shape regression test;
+  - changed Search and Transfers to render page shells before hub/API background work finishes;
+  - cached the footer speeds/session aggregate response for short poll windows;
+  - built and deployed `2026051216.slskdn.248-perf-fix` to kspls0.
+- Validation:
+  - Passed: focused `TransfersControllerTests` (`16/16`).
+  - Passed: focused Search/Transfers Web tests (`17/17`).
+  - Passed: `./bin/lint`.
+  - Passed: full publish gate (`703/703` Web tests, production Web build, `4026/4026` unit tests, `57/57` smoke tests, `276/276` integration tests).
+  - Passed live on kspls0: active downloads API 200, active uploads API 200, speeds API 200, searches API 200.
+  - Passed live headless direct page-load checks: Search shell 228 ms, Uploads shell 198 ms, Downloads shell 901 ms.
+- Next steps:
+  1. Commit and push the page-load fixes.
+  2. If a public release is needed, cut it through the guarded tag-only flow after the commit is on `origin/main`.
+
 ## Update 2026-05-12 21:55:00Z
 
 - Current task: replacement release follow-up in progress.

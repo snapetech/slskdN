@@ -26,6 +26,7 @@ namespace slskd.Transfers.API
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Linq;
+    using System.Linq.Expressions;
     using System.Net;
     using System.Net.Sockets;
     using System.Threading;
@@ -74,6 +75,11 @@ namespace slskd.Transfers.API
         }
 
         private static SemaphoreSlim DownloadRequestLimiter { get; } = new SemaphoreSlim(2, 2);
+        private static object SpeedsCacheSyncRoot { get; } = new object();
+        private static TimeSpan SpeedsCacheDuration { get; } = TimeSpan.FromSeconds(2);
+        private static DateTime SpeedsCacheExpiresAt { get; set; } = DateTime.MinValue;
+        private static object? SpeedsCacheResponse { get; set; }
+
         private ITransferService Transfers { get; }
         private IOptionsSnapshot<Options> OptionsSnapshot { get; }
         private IStateSnapshot<State> StateSnapshot { get; }
@@ -87,6 +93,11 @@ namespace slskd.Transfers.API
             return state.HasFlag(Soulseek.TransferStates.Completed) &&
                 state.HasFlag(Soulseek.TransferStates.Succeeded);
         }
+
+        private static Expression<Func<global::slskd.Transfers.Transfer, bool>> NotSuccessfulTerminalTransferExpression =>
+            transfer =>
+                (transfer.State & Soulseek.TransferStates.Completed) != Soulseek.TransferStates.Completed ||
+                (transfer.State & Soulseek.TransferStates.Succeeded) != Soulseek.TransferStates.Succeeded;
 
         /// <summary>
         ///     Gets the accelerated download mode status.
@@ -476,7 +487,7 @@ namespace slskd.Transfers.API
             }
 
             var downloads = Transfers.Downloads.List(
-                expression: includeCompleted ? null : t => !IsSuccessfulTerminalTransfer(t.State),
+                expression: includeCompleted ? null : NotSuccessfulTerminalTransferExpression,
                 includeRemoved: includeRemoved);
 
             var response = downloads.GroupBy(t => t.Username).Select(grouping => new UserResponse()
@@ -631,6 +642,22 @@ namespace slskd.Transfers.API
         [ProducesResponseType(200)]
         public IActionResult GetSpeeds()
         {
+            lock (SpeedsCacheSyncRoot)
+            {
+                if (DateTime.UtcNow < SpeedsCacheExpiresAt && SpeedsCacheResponse != null)
+                {
+                    return Ok(SpeedsCacheResponse);
+                }
+
+                SpeedsCacheResponse = GetSpeedsResponse();
+                SpeedsCacheExpiresAt = DateTime.UtcNow.Add(SpeedsCacheDuration);
+
+                return Ok(SpeedsCacheResponse);
+            }
+        }
+
+        private object GetSpeedsResponse()
+        {
             // Calculate total speeds from active transfers
             var activeDownloads = Transfers.Downloads.List(t =>
                 t.State == Soulseek.TransferStates.InProgress);
@@ -650,7 +677,7 @@ namespace slskd.Transfers.API
             var sessionBytesUploaded = (long)Transfers.Uploads.List(t => true, includeRemoved: true)
                 .Sum(t => (double)t.BytesTransferred);
 
-            return Ok(new
+            return new
             {
                 total = totalSpeed,
                 soulseek = soulseekSpeed,
@@ -660,7 +687,7 @@ namespace slskd.Transfers.API
                 sessionBytesDownloaded,
                 sessionBytesUploaded,
                 sessionBytesTotal = sessionBytesDownloaded + sessionBytesUploaded,
-            });
+            };
         }
 
         private static double GetLiveSpeed(global::slskd.Transfers.Transfer transfer)
@@ -697,7 +724,7 @@ namespace slskd.Transfers.API
             // todo: refactor this so it doesn't return the world. start and end time params
             // should be required.  consider pagination.
             var uploads = Transfers.Uploads.List(
-                expression: includeCompleted ? t => true : t => !IsSuccessfulTerminalTransfer(t.State),
+                expression: includeCompleted ? t => true : NotSuccessfulTerminalTransferExpression,
                 includeRemoved: includeRemoved);
 
             var response = uploads.GroupBy(t => t.Username).Select(grouping => new UserResponse()

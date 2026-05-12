@@ -10,7 +10,6 @@ import { getCapabilities } from '../../lib/slskdn';
 import { getLocalStorageItem, setLocalStorageItem } from '../../lib/storage';
 import * as library from '../../lib/searches';
 import ErrorSegment from '../Shared/ErrorSegment';
-import LoaderSegment from '../Shared/LoaderSegment';
 import PlaceholderSegment from '../Shared/PlaceholderSegment';
 import AlbumCompletionPanel from './AlbumCompletionPanel';
 import ArtistReleaseRadarPanel from './ArtistReleaseRadarPanel';
@@ -45,6 +44,14 @@ const isObject = (value) =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
 const hasSearchId = (value) => isObject(value) && typeof value.id === 'string';
+
+const toSearchMap = (searchesEvent) =>
+  (Array.isArray(searchesEvent) ? searchesEvent : [])
+    .filter(hasSearchId)
+    .reduce((accumulator, search) => {
+      accumulator[search.id] = search;
+      return accumulator;
+    }, {});
 
 const CollapsibleSection = ({
   children,
@@ -119,9 +126,10 @@ const CollapsibleSection = ({
 
 const Searches = ({ server } = {}) => {
   const normalizedServer = server ?? { isConnected: false };
-  const [connecting, setConnecting] = useState(true);
+  const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState(undefined);
   const [searches, setSearches] = useState({});
+  const [initialSearchesLoaded, setInitialSearchesLoaded] = useState(false);
 
   const [removing, setRemoving] = useState(false);
   const [removingAll, setRemovingAll] = useState(false);
@@ -207,7 +215,9 @@ const Searches = ({ server } = {}) => {
   };
 
   const onUpdate = (update) => {
-    setSearches(update);
+    setSearches((current) =>
+      typeof update === 'function' ? update(current) : update,
+    );
     onConnected();
   };
 
@@ -217,13 +227,8 @@ const Searches = ({ server } = {}) => {
     const searchHub = createSearchHubConnection();
 
     searchHub.on('list', (searchesEvent) => {
-      const searchList = Array.isArray(searchesEvent) ? searchesEvent : [];
-      onUpdate(
-        searchList.filter(hasSearchId).reduce((accumulator, search) => {
-          accumulator[search.id] = search;
-          return accumulator;
-        }, {}),
-      );
+      onUpdate(toSearchMap(searchesEvent));
+      setInitialSearchesLoaded(true);
       onConnected();
     });
 
@@ -266,6 +271,19 @@ const Searches = ({ server } = {}) => {
       }
     };
 
+    const loadInitialSearches = async () => {
+      try {
+        const searchList = await library.getAll();
+        onUpdate(toSearchMap(searchList));
+      } catch (loadError) {
+        console.error(loadError);
+        setError(loadError?.response?.data ?? loadError?.message ?? loadError);
+      } finally {
+        setInitialSearchesLoaded(true);
+      }
+    };
+
+    loadInitialSearches();
     connect();
 
     // Scene ↔ Pod Bridging is opt-in. Do not infer it from generic capabilities,
@@ -292,6 +310,16 @@ const Searches = ({ server } = {}) => {
       searchHub.stop();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    inputRef?.current?.inputRef?.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (searchId && initialSearchesLoaded && !searches[searchId]) {
+      routerNavigate('/searches', { replace: true });
+    }
+  }, [initialSearchesLoaded, routerNavigate, searchId, searches]);
 
   // create a new search, and optionally navigate to it to display the details
   // we do this if the user clicks the search icon, or repeats an existing search
@@ -396,14 +424,6 @@ const Searches = ({ server } = {}) => {
     }
   };
 
-  if (connecting) {
-    return <LoaderSegment />;
-  }
-
-  if (error) {
-    return <ErrorSegment caption={error?.message ?? error} />;
-  }
-
   // if searchId is not null, there's an id in the route.
   // display the details for the search, if there is one
   if (searchId) {
@@ -422,12 +442,15 @@ const Searches = ({ server } = {}) => {
       );
     }
 
-    // if the searchId doesn't match a search we know about, chop
-    // the id off of the url and force navigation back to the list
-    routerNavigate('/searches', { replace: true });
+    if (!initialSearchesLoaded) {
+      return (
+        <PlaceholderSegment
+          caption="Loading search details"
+          icon="search"
+        />
+      );
+    }
   }
-
-  inputRef?.current?.inputRef?.current.focus();
 
   return (
     <>
@@ -643,9 +666,15 @@ const Searches = ({ server } = {}) => {
         storageKey="slskdn.search.section.searchResults"
         title="Search Results"
       >
-        {Object.keys(searches).length === 0 ? (
+        {error ? (
+          <ErrorSegment caption={error?.message ?? error} />
+        ) : Object.keys(searches).length === 0 ? (
           <PlaceholderSegment
-            caption="No searches to display"
+            caption={
+              connecting || !initialSearchesLoaded
+                ? 'Loading searches'
+                : 'No searches to display'
+            }
             icon="search"
           />
         ) : (

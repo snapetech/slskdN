@@ -87,6 +87,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   observe `Failed` before the sanitized error message is populated.
 - Hardened the Messaging slash-command test so full-suite timing cannot submit
   before the controlled composer has published the `/leave` draft.
+- Fixed Search, Downloads, and Uploads page-load stalls by rendering page shells
+  before SignalR/API background work completes, restoring EF-translatable active
+  transfer filters, and caching expensive footer transfer-session aggregates.
 - Fixed downloads/uploads page spinner stalling on initial load due to queue-position API calls blocking the render; those are now fire-and-forget.
 - Dramatically reduced downloads/uploads page initial load time by fetching only active transfers on the 2-second poll; completed transfers are fetched separately on a 15-second interval for header bulk operations.
 - Added automatic re-queue for failed downloads: transfers ending in TimedOut, Errored, or Aborted state are automatically re-enqueued after a configurable delay (default 5 minutes). Cancelled and Rejected transfers are excluded.

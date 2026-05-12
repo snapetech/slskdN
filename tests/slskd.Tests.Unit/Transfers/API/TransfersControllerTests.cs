@@ -232,6 +232,42 @@ public class TransfersControllerTests
     }
 
     [Fact]
+    public void GetDownloadsAsync_WhenCompletedHidden_UsesTranslatablePredicate()
+    {
+        Expression<Func<SlskdTransfer, bool>>? capturedExpression = null;
+        var downloads = new Mock<IDownloadService>();
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), false))
+            .Callback<Expression<Func<SlskdTransfer, bool>>?, bool>((expression, _) => capturedExpression = expression)
+            .Returns(new List<SlskdTransfer>());
+
+        var controller = CreateController(downloads);
+
+        controller.GetDownloadsAsync(includeCompleted: false);
+
+        Assert.NotNull(capturedExpression);
+        Assert.False(ContainsMethodCall(capturedExpression!.Body));
+    }
+
+    [Fact]
+    public void GetUploads_WhenCompletedHidden_UsesTranslatablePredicate()
+    {
+        Expression<Func<SlskdTransfer, bool>>? capturedExpression = null;
+        var uploads = new Mock<IUploadService>();
+        uploads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), false))
+            .Callback<Expression<Func<SlskdTransfer, bool>>, bool>((expression, _) => capturedExpression = expression)
+            .Returns(new List<SlskdTransfer>());
+
+        var controller = CreateController(uploads: uploads);
+
+        controller.GetUploads(includeCompleted: false);
+
+        Assert.NotNull(capturedExpression);
+        Assert.False(ContainsMethodCall(capturedExpression!.Body));
+    }
+
+    [Fact]
     public void ClearCompletedDownloads_RemovesOnlySuccessfulDownloads()
     {
         var completed = new SlskdTransfer
@@ -425,6 +461,22 @@ public class TransfersControllerTests
         var property = source.GetType().GetProperty(propertyName);
         Assert.NotNull(property);
         return Convert.ToDouble(property.GetValue(source));
+    }
+
+    private static bool ContainsMethodCall(Expression expression)
+    {
+        return expression switch
+        {
+            BinaryExpression binary => ContainsMethodCall(binary.Left) || ContainsMethodCall(binary.Right),
+            ConditionalExpression conditional => ContainsMethodCall(conditional.Test) ||
+                ContainsMethodCall(conditional.IfTrue) ||
+                ContainsMethodCall(conditional.IfFalse),
+            LambdaExpression lambda => ContainsMethodCall(lambda.Body),
+            MemberExpression member => member.Expression != null && ContainsMethodCall(member.Expression),
+            MethodCallExpression => true,
+            UnaryExpression unary => ContainsMethodCall(unary.Operand),
+            _ => false,
+        };
     }
 
     private static TransfersController CreateController(

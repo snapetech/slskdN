@@ -1,7 +1,7 @@
 import './Transfers.css';
 import * as autoReplaceLibrary from '../../lib/autoReplace';
 import * as transfersLibrary from '../../lib/transfers';
-import { LoaderSegment, PlaceholderSegment } from '../Shared';
+import { PlaceholderSegment } from '../Shared';
 import TransferGroup from './TransferGroup';
 import TransfersHeader from './TransfersHeader';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -297,6 +297,10 @@ const Transfers = ({ direction, server }) => {
     } catch (error) {
       console.error(error);
       toast.error(getErrorMessage(error));
+    } finally {
+      if (fetchId === latestFetchIdRef.current) {
+        setConnecting(false);
+      }
     }
   };
 
@@ -323,15 +327,11 @@ const Transfers = ({ direction, server }) => {
   useEffect(() => {
     setConnecting(true);
 
-    const init = async () => {
-      // Fast first paint: only active transfers.
-      await fetch();
-      setConnecting(false);
-      // Background: populate allTransfers for header bulk ops without blocking.
-      fetchAll();
-    };
+    // Fetch active transfers for the body and full transfer history for header
+    // actions in parallel. Neither request should block the page shell.
+    fetch();
+    fetchAll();
 
-    init();
     const activeInterval = window.setInterval(fetch, 2_000);
     // Slower full-list refresh for header bulk-operation file lists.
     const allInterval = window.setInterval(fetchAll, 15_000);
@@ -340,10 +340,6 @@ const Transfers = ({ direction, server }) => {
       clearInterval(activeInterval);
       clearInterval(allInterval);
     };
-  }, [direction]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useMemo(() => {
-    setConnecting(true);
   }, [direction]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const retry = async ({
@@ -590,10 +586,6 @@ const Transfers = ({ direction, server }) => {
     }));
   }, [transfers, allTransfers, hideCompleted]);
 
-  if (connecting) {
-    return <LoaderSegment />;
-  }
-
   return (
     <div data-testid={testId}>
       <TransfersHeader
@@ -616,7 +608,11 @@ const Transfers = ({ direction, server }) => {
       />
       {allTransfers.length === 0 && transfers.length === 0 ? (
         <PlaceholderSegment
-          caption={`No ${direction}s to display`}
+          caption={
+            connecting
+              ? `Loading ${direction}s`
+              : `No ${direction}s to display`
+          }
           icon={direction}
         />
       ) : hideCompleted && transfers.length === 0 ? (
