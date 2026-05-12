@@ -83,6 +83,39 @@ under `/usr/share/dotnet`, but not every job starts with that directory in
 `PATH`. Workflows that skip `actions/setup-dotnet` on self-hosted runners must
 add the SDK directory before any later `dotnet` command.
 
+### 0z387. Large Room Lists Need Search-First Join Controls
+
+**The Bug**: Messaging V2 rendered joined rooms followed by the first page of
+raw available Soulseek rooms. Users could not search that server list, and the
+separate add form gave no way to discover whether the typed room already
+existed before joining.
+
+**Files Affected**:
+- `src/web/src/components/Messaging/MessagingV2.jsx`
+- `src/web/src/components/Messaging/MessagingV2.css`
+
+**Wrong**:
+```jsx
+<InlineAddForm onSubmit={joinRoomFromInput} placeholder="room name" />
+{joinableRooms.slice(0, 100).map((roomName) => (
+  <TreeRow onActivate={() => joinRoomByName(roomName)} target={roomName} />
+))}
+```
+
+**Correct**:
+```jsx
+<RoomJoinSearch
+  availableRooms={joinableRooms}
+  joinedRooms={joinedRooms}
+  onJoinRoom={joinRoomFromPicker}
+/>
+```
+
+**Why This Keeps Happening**: Soulseek room lists are large, unordered server
+state. Rendering an arbitrary prefix looks like a broken concatenated list and
+hides the useful action. Treat room joining as search-first: filter matches near
+the input, and use the typed non-match as the create/join target.
+
 ### 0z384. Render-Time Work Must Not Scale With Hidden Or Unchanged Data
 
 **The Bug**: Performance fixes removed first-load blockers, but some render
