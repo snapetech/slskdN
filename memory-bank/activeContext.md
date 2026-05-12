@@ -1,3 +1,16 @@
+## Update 2026-05-12 23:27:09Z
+
+- Current task: Messaging V2 room search/join fix completed.
+- Last activity:
+  - documented the room-list gotcha in ADR-0001 and committed it separately;
+  - replaced the raw available room list in the Messages sidebar with a search-first room picker;
+  - kept join/create on the same typed-room control while preserving joined room rows.
+- Validation:
+  - Passed: focused Messaging Web tests (`6/6`).
+  - Passed: ESLint for `MessagingV2.jsx` and `Messaging.test.jsx`.
+- Next steps:
+  1. Build, commit, push, and deploy the aggregate to `kspls0` for manual testing.
+
 ## Update 2026-05-12 23:20:38Z
 
 - Current task: feature-coherence/de-hallucination first slice completed.

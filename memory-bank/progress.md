@@ -10046,3 +10046,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-12T23:06:00Z] Pods hidden polling cleanup: documented the hidden pane polling gotcha and removed forced inactive rendering from the nested Pods detail Tab. The Port Forwarding pane no longer mounts and starts status/stats intervals while the VPN Gateway pane is active. ESLint for `Pods.jsx` and production Web build passed.
 
 [2026-05-12T23:08:20Z] Contacts hidden pane cleanup: documented Contacts under the hidden render-cost gotcha and changed Contacts tabs to active-only rendering. Contacts keeps pane data in parent state, so this avoids building the hidden Contacts/Nearby lists without losing loaded data. Focused Contacts tests, ESLint, and production Web build passed.
+
+[2026-05-12T23:27:09Z] Messaging room picker fix: replaced the raw available Soulseek room dump in Messaging V2 with a compact search-first room picker. The picker filters existing rooms as the user types and uses the same input to join/create non-matches. Focused Messaging tests and ESLint passed.

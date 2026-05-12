@@ -512,13 +512,11 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
     }
   }, [hydrate, openTab]);
 
-  const joinRoomFromInput = useCallback(async () => {
-    const trimmed = roomDraft.trim();
-    if (!trimmed) return;
-    await joinRoomByName(trimmed);
+  const joinRoomFromPicker = useCallback(async (roomName) => {
+    await joinRoomByName(roomName);
     setRoomDraft('');
     setRoomAddOpen(false);
-  }, [joinRoomByName, roomDraft]);
+  }, [joinRoomByName]);
 
   const createPodFromInput = useCallback(async () => {
     const name = podDraft.trim();
@@ -967,15 +965,15 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
             accent="slsk"
             addLabel="Join or create a room"
             addPanel={
-              <InlineAddForm
-                buttonLabel="Join"
+              <RoomJoinSearch
+                availableRooms={joinableRooms}
+                joinedRooms={joinedRooms}
                 onCancel={() => {
                   setRoomAddOpen(false);
                   setRoomDraft('');
                 }}
                 onChange={setRoomDraft}
-                onSubmit={joinRoomFromInput}
-                placeholder="room name"
+                onJoinRoom={joinRoomFromPicker}
                 value={roomDraft}
               />
             }
@@ -991,7 +989,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
             ) : (
               <>
               {joinedRooms.length === 0 ? (
-                <EmptyHint>No joined rooms.</EmptyHint>
+                <EmptyHint>Search above to join or create a room.</EmptyHint>
               ) : joinedRooms.map((roomName) => {
                 const isActive =
                   activeTab?.type === 'room' && activeTab.target === roomName;
@@ -1008,18 +1006,6 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
                   />
                 );
               })}
-              {joinableRooms.length > 0 && (
-                <TreeSubhead>Available rooms</TreeSubhead>
-              )}
-              {joinableRooms.slice(0, 100).map((roomName) => (
-                <TreeRow
-                  accent="slsk"
-                  key={`available-${roomName}`}
-                  onActivate={() => joinRoomByName(roomName)}
-                  prefix="+"
-                  target={roomName}
-                />
-              ))}
               </>
             )}
           </TreeSection>
@@ -1402,6 +1388,129 @@ const EmptyHint = ({ children }) => (
 const TreeSubhead = ({ children }) => (
   <div className="msgv2-tree-subhead">{children}</div>
 );
+
+const RoomJoinSearch = ({
+  availableRooms,
+  joinedRooms,
+  onCancel,
+  onChange,
+  onJoinRoom,
+  value,
+}) => {
+  const inputRef = useRef(null);
+  const query = value.trim();
+  const normalizedQuery = query.toLocaleLowerCase();
+  const joinedLookup = useMemo(
+    () => new Set(joinedRooms.map((roomName) => roomName.toLocaleLowerCase())),
+    [joinedRooms],
+  );
+  const matches = useMemo(() => {
+    if (!normalizedQuery) return [];
+    const exact = [];
+    const startsWith = [];
+    const contains = [];
+    availableRooms.forEach((roomName) => {
+      const normalizedRoom = roomName.toLocaleLowerCase();
+      if (joinedLookup.has(normalizedRoom)) return;
+      if (normalizedRoom === normalizedQuery) exact.push(roomName);
+      else if (normalizedRoom.startsWith(normalizedQuery)) startsWith.push(roomName);
+      else if (normalizedRoom.includes(normalizedQuery)) contains.push(roomName);
+    });
+    return [...exact, ...startsWith, ...contains].slice(0, 16);
+  }, [availableRooms, joinedLookup, normalizedQuery]);
+  const exactAvailable = matches.some(
+    (roomName) => roomName.toLocaleLowerCase() === normalizedQuery,
+  );
+  const exactJoined = normalizedQuery && joinedLookup.has(normalizedQuery);
+  const canSubmit = query.length > 0;
+  const submitLabel = exactJoined ? 'Open' : exactAvailable ? 'Join' : 'Join/Create';
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const submit = useCallback(() => {
+    if (!canSubmit) return;
+    onJoinRoom(query);
+  }, [canSubmit, onJoinRoom, query]);
+
+  return (
+    <div className="msgv2-room-search">
+      <div className="msgv2-tree-add">
+        <input
+          aria-label="Search or create Soulseek room"
+          className="msgv2-tree-add-input"
+          onChange={(event) => onChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              submit();
+            } else if (event.key === 'Escape') {
+              event.preventDefault();
+              onCancel();
+            }
+          }}
+          placeholder="search or create room"
+          ref={inputRef}
+          type="text"
+          value={value}
+        />
+        <button
+          aria-label="Join/Create room"
+          className="msgv2-tree-add-go"
+          disabled={!canSubmit}
+          onClick={submit}
+          title="Join a matching Soulseek room, or create it if it does not exist"
+          type="button"
+        >
+          {submitLabel}
+        </button>
+      </div>
+      {!query ? (
+        <div className="msgv2-room-search-hint">
+          {availableRooms.length.toLocaleString()} available. Type to filter.
+        </div>
+      ) : (
+        <>
+          {matches.length > 0 && (
+            <div
+              aria-label="Matching Soulseek rooms"
+              className="msgv2-room-search-results"
+            >
+              {matches.map((roomName) => (
+                <button
+                  aria-label={`Join ${roomName}`}
+                  className="msgv2-room-search-result"
+                  key={roomName}
+                  onClick={() => onJoinRoom(roomName)}
+                  title={`Join ${roomName}`}
+                  type="button"
+                >
+                  <span className="msgv2-tree-row-prefix">#</span>
+                  <span className="msgv2-tree-row-name">{roomName}</span>
+                  <span className="msgv2-room-search-result-meta">Join</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {!exactAvailable && !exactJoined && (
+            <button
+              className="msgv2-room-search-create"
+              onClick={submit}
+              title={`Join or create ${query}`}
+              type="button"
+            >
+              Join/Create #{query}
+            </button>
+          )}
+          {exactJoined && (
+            <div className="msgv2-room-search-hint">Already joined. Press Enter to open.</div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
 
 const InlineAddForm = ({
   buttonLabel,

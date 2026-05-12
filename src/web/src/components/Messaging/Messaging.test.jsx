@@ -101,17 +101,34 @@ describe('Messaging', () => {
     expect(await screen.findByText('hello from friend')).toBeInTheDocument();
   });
 
-  it('joins a room from the V2 inline room form', async () => {
+  it('joins a room from the V2 room search form', async () => {
     renderMessaging();
 
     fireEvent.click(await screen.findByLabelText('Join or create a room'));
-    fireEvent.change(screen.getByPlaceholderText('room name'), {
+    fireEvent.change(screen.getByLabelText('Search or create Soulseek room'), {
       target: { value: 'slskdn' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Join' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Join/Create room' }));
 
     await waitFor(() => {
       expect(rooms.join).toHaveBeenCalledWith({ roomName: 'slskdn' });
+    });
+  });
+
+  it('filters available rooms instead of dumping the server room list', async () => {
+    rooms.getAvailable.mockResolvedValue(['ambient', 'jazz', 'slskdn']);
+
+    renderMessaging();
+
+    fireEvent.click(await screen.findByLabelText('Join or create a room'));
+    expect(screen.queryByTitle('ambient')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Search or create Soulseek room'), {
+      target: { value: 'amb' },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Join ambient' }));
+
+    await waitFor(() => {
+      expect(rooms.join).toHaveBeenCalledWith({ roomName: 'ambient' });
     });
   });
 
