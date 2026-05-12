@@ -321,6 +321,11 @@ namespace slskd.Messaging.API
                 return Forbid();
             }
 
+            if (!Client.State.HasFlag(SoulseekClientStates.LoggedIn))
+            {
+                return Ok(Array.Empty<RoomInfoResponse>());
+            }
+
             var list = await Client.GetRoomListAsync();
 
             var response = new List<RoomInfoResponse>();

@@ -118,6 +118,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Replaced the Messaging V2 raw available-room dump with a compact room search
   box that filters existing Soulseek rooms and joins or creates the typed room
   from the same control.
+- Made the available-room API return an empty list while Soulseek reconnects
+  instead of logging an unhandled 500 from optional room discovery.
 - Fixed downloads/uploads page spinner stalling on initial load due to queue-position API calls blocking the render; those are now fire-and-forget.
 - Dramatically reduced downloads/uploads page initial load time by fetching only active transfers on the 2-second poll; completed transfers are fetched separately on a 15-second interval for header bulk operations.
 - Added automatic re-queue for failed downloads: transfers ending in TimedOut, Errored, or Aborted state are automatically re-enqueued after a configurable delay (default 5 minutes). Cancelled and Rejected transfers are excluded.

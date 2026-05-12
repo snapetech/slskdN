@@ -1,3 +1,15 @@
+## Update 2026-05-12 23:32:51Z
+
+- Current task: room list reconnect hardening completed.
+- Last activity:
+  - documented the optional room-list reconnect gotcha in ADR-0001 and committed it separately;
+  - changed the available-room API to return an empty list until Soulseek is logged in;
+  - added focused controller coverage for the disconnected path.
+- Validation:
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter RoomsControllerTests --no-restore` (`5/5`).
+- Next steps:
+  1. Commit, push, rebuild, and redeploy the aggregate to `kspls0`.
+
 ## Update 2026-05-12 23:27:09Z
 
 - Current task: Messaging V2 room search/join fix completed.

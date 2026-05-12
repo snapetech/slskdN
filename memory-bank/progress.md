@@ -10048,3 +10048,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-12T23:08:20Z] Contacts hidden pane cleanup: documented Contacts under the hidden render-cost gotcha and changed Contacts tabs to active-only rendering. Contacts keeps pane data in parent state, so this avoids building the hidden Contacts/Nearby lists without losing loaded data. Focused Contacts tests, ESLint, and production Web build passed.
 
 [2026-05-12T23:27:09Z] Messaging room picker fix: replaced the raw available Soulseek room dump in Messaging V2 with a compact search-first room picker. The picker filters existing rooms as the user types and uses the same input to join/create non-matches. Focused Messaging tests and ESLint passed.
+
+[2026-05-12T23:32:51Z] Room list reconnect hardening: kspls0 post-deploy logs showed `/api/v0/rooms/available` could throw while Soulseek was disconnected during startup. Documented the gotcha, changed the endpoint to return an empty list until logged in, and added focused controller coverage.

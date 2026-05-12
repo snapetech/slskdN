@@ -69,6 +69,21 @@ public class RoomsControllerTests
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
+    [Fact]
+    public async Task GetRooms_When_Disconnected_Returns_Empty_List()
+    {
+        var client = new Mock<ISoulseekClient>();
+        client.SetupGet(x => x.State).Returns(SoulseekClientStates.Disconnected);
+        var controller = CreateController(client: client.Object);
+
+        var result = await controller.GetRooms();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var rooms = Assert.IsAssignableFrom<IEnumerable<RoomInfoResponse>>(ok.Value);
+        Assert.Empty(rooms);
+        client.Verify(x => x.GetRoomListAsync(null), Times.Never);
+    }
+
     private static RoomsController CreateController(
         ISoulseekClient? client = null,
         IRoomService? roomService = null,
