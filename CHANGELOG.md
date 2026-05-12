@@ -21,6 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Release and CI workflows now pin the exact .NET SDK from `global.json`, and
   packaging validation rejects broad SDK selectors that can drift during
   self-contained publish jobs.
+- `global.json` is now tracked and validated so remote tag builds see the same
+  SDK pin as local release gates.
 - Distributed Soulseek search requests now accept opaque signed 32-bit tokens, matching live peer traffic and stopping valid negative-token searches from being dropped after login.
 - Gluetun VPN status polling now uses a no-redirect local-control HTTP client, so loopback/private configured Gluetun endpoints such as `http://127.0.0.1:8010` are no longer blocked by the public outbound SSRF guard.
 - Search API timeout values now honor the documented seconds unit before mapping to Soulseek's millisecond timeout, and multi-source discovery now uses its intended multi-minute search window instead of an accidental sub-second window.

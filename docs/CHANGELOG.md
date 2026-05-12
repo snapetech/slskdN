@@ -58,6 +58,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Pinned release and CI workflows to the exact .NET SDK in `global.json`, with
   packaging validation coverage so future self-contained publish jobs cannot
   drift to an untested SDK feature band.
+- Tracked `global.json` in the repo and taught packaging validation to fail if
+  the SDK pin is missing from tag checkouts.
 - Fixed downloads/uploads page spinner stalling on initial load due to queue-position API calls blocking the render; those are now fire-and-forget.
 - Dramatically reduced downloads/uploads page initial load time by fetching only active transfers on the 2-second poll; completed transfers are fetched separately on a 15-second interval for header bulk operations.
 - Added automatic re-queue for failed downloads: transfers ending in TimedOut, Errored, or Aborted state are automatically re-enqueued after a configurable delay (default 5 minutes). Cancelled and Rejected transfers are excluded.

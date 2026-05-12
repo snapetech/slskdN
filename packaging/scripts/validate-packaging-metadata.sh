@@ -185,6 +185,7 @@ test -x packaging/docker/slskdn-container-start || fail 'packaging/docker/slskdn
 
 sdk_version=$(awk -F '"' '/"version"/ { print $4; exit }' global.json)
 fail_if_empty "$sdk_version" 'global.json SDK version'
+git ls-files --error-unmatch global.json >/dev/null 2>&1 || fail 'global.json must be tracked so tag release gates use the same SDK pin as local checks'
 expect_literal .github/workflows/build-on-tag.yml "DOTNET_VERSION: '${sdk_version}'"
 expect_literal .github/workflows/ci.yml "DOTNET_VERSION: '${sdk_version}'"
 expect_literal .github/workflows/ci-enhancements.yml "DOTNET_VERSION: '${sdk_version}'"
