@@ -55,9 +55,10 @@ This is not optional. This is the highest priority action after fixing a bug.
 ### 0z386. Self-Hosted Workflow Jobs Must Not Assume Dotnet Paths
 
 **The Bug**: PR checks in `ci-enhancements.yml` failed immediately on
-self-hosted runners with `dotnet: command not found`. The workflow only ran
-`actions/setup-dotnet` for GitHub-hosted runners and assumed self-hosted runners
-already had `dotnet` on `PATH` or in a fixed `/usr/share/dotnet` location.
+self-hosted runners with `dotnet: command not found`, then with
+`mkdir: cannot create directory '/usr/share/dotnet': Permission denied`. The
+workflow only ran `actions/setup-dotnet` for GitHub-hosted runners, then the
+portable setup path tried to install into a root-owned default location.
 
 **Files Affected**:
 - `.github/workflows/ci-enhancements.yml`
@@ -77,10 +78,15 @@ already had `dotnet` on `PATH` or in a fixed `/usr/share/dotnet` location.
     dotnet-version: ${{ env.DOTNET_VERSION }}
 ```
 
+```yaml
+env:
+  DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
+```
+
 **Why This Keeps Happening**: Self-hosted runner labels do not guarantee a
-specific SDK install path. Workflows that need `dotnet` should run
-`actions/setup-dotnet` unless a job has already proven and exported a specific
-runner-local SDK path.
+specific SDK install path or root-write access. Workflows that need `dotnet`
+should run `actions/setup-dotnet` with a writable `DOTNET_INSTALL_DIR` unless a
+job has already proven and exported a specific runner-local SDK path.
 
 ### 0z387. Large Room Lists Need Search-First Join Controls
 
