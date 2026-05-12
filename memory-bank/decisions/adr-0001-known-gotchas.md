@@ -225,6 +225,53 @@ Transfers.Downloads.List(t =>
 destructive clear operations must distinguish successful 100% transfers from
 retryable terminal failures.
 
+### 0z375. Queue Position Timeouts Are Remote Peer Unavailability, Not App Errors
+
+**The Bug**: Download queue-position lookups contact remote Soulseek peers and
+can time out normally. The download service and transfer API controller both
+logged the same timeout at error level, producing duplicate `ERR` lines for a
+peer/network condition the app handled.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+- `src/slskd/Transfers/API/Controllers/TransfersController.cs`
+- `tests/slskd.Tests.Unit/Transfers/API/TransfersControllerTests.cs`
+
+**Wrong**:
+```csharp
+catch (Exception ex)
+{
+    Log.Error(ex, "Failed to get place in queue for download {Id}: {Message}", id, ex.Message);
+    throw;
+}
+```
+
+```csharp
+catch (Exception ex)
+{
+    Log.Error(ex, "Failed to get place in queue for {Username}/{TransferId}", username, guid);
+    return StatusCode(500, "Failed to get queue position");
+}
+```
+
+**Correct**:
+```csharp
+var place = await Client.GetDownloadPlaceInQueueAsync(transfer.Username, transfer.Filename);
+```
+
+```csharp
+catch (TimeoutException)
+{
+    Log.Debug("Timed out getting place in queue for {Username}/{TransferId}", username, guid);
+    return StatusCode(504, "Queue position lookup timed out");
+}
+```
+
+**Why This Keeps Happening**: Not every exception from a remote peer call is an
+application defect. Services should not catch just to log and rethrow, and API
+controllers should classify expected remote timeouts separately from unexpected
+server failures.
+
 ### 0z369. Release Artifact Verifiers Must Match The Active Web Bundler Layout
 
 **The Bug**: The post-release artifact verifier looked only for
