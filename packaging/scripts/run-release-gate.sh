@@ -55,6 +55,9 @@ ensure_tool() {
 
 ensure_tool rg ripgrep
 
+run_step "Verify release branch sync" 120 \
+    bash scripts/check-release-branch-sync.sh
+
 run_step "Validate packaging metadata" 300 \
     bash packaging/scripts/validate-packaging-metadata.sh
 

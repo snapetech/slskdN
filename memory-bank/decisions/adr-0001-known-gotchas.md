@@ -52,6 +52,29 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z367. Release Gates Must Verify Branch Sync Before Tagging
+
+**The Bug**: Local release-readiness work was committed on `main` but not pushed to `origin/main`, while the latest published release still pointed at an older build tag. That made local validation look current while users installed an older aggregate.
+
+**Files Affected**:
+- `packaging/scripts/run-release-gate.sh`
+- `scripts/check-release-branch-sync.sh`
+
+**Wrong**:
+```bash
+bash packaging/scripts/run-release-gate.sh
+git tag build-main-...
+```
+
+**Correct**:
+```bash
+bash scripts/check-release-branch-sync.sh
+bash packaging/scripts/run-release-gate.sh
+git tag build-main-...
+```
+
+**Why This Keeps Happening**: Release validation proves the local checkout works, not that the release source has reached GitHub. The release gate must fail when a branch is ahead of or behind its upstream before a tag is cut, or a release can be built from a different aggregate than the one just validated.
+
 ### 0z366. Optimistic Transfer Hides Must Update Active And Header State
 
 **The Bug**: Clearing completed transfers showed an empty-state placeholder while completed filenames still rendered in the Transfers header, because optimistic hides updated `transfers` but left `allTransfers` unchanged.
