@@ -40,8 +40,8 @@ jobs:
       - name: Verify .NET (self-hosted)
         if: ${{ runner.environment == 'self-hosted' }}
         run: |
-          echo "Using pre-installed .NET SDK"
-          dotnet --version
+          echo "/usr/share/dotnet" >> $GITHUB_PATH
+          /usr/share/dotnet/dotnet --version
 
       - name: Build Performance Benchmark Project
         run: |
@@ -99,7 +99,9 @@ jobs:
 
       - name: Verify .NET (self-hosted)
         if: ${{ runner.environment == 'self-hosted' }}
-        run: dotnet --version
+        run: |
+          echo "/usr/share/dotnet" >> $GITHUB_PATH
+          /usr/share/dotnet/dotnet --version
 
       - name: Build Application
         run: |
@@ -222,6 +224,12 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Set up .NET (self-hosted)
+        if: ${{ runner.environment == 'self-hosted' }}
+        run: |
+          echo "/usr/share/dotnet" >> $GITHUB_PATH
+          /usr/share/dotnet/dotnet --version
 
       - name: Scan NuGet Dependencies
         run: |
