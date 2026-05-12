@@ -186,6 +186,45 @@ not local filesystem paths. Security checks must reject traversal and local
 destination escape after normalizing the remote store root, while still
 accepting common Windows-rooted remote filenames from other clients.
 
+### 0z374. Failed Downloads Are Terminal, Not Completed
+
+**The Bug**: Soulseek transfer states use `Completed` as a terminal bit for
+success, timeout, error, reject, abort, and cancel. The Web UI displayed the raw
+flag text (`Completed, Errored`) and bulk-clear APIs removed every terminal
+download. Partial failed downloads therefore looked completed, were hidden by
+the completed filter, and could be purged even though they were not 100%.
+
+**Files Affected**:
+- `src/slskd/Transfers/API/Controllers/TransfersController.cs`
+- `src/web/src/lib/transfers.js`
+- `src/web/src/components/Transfers/TransferList.jsx`
+- `src/web/src/components/Transfers/TransfersHeader.jsx`
+
+**Wrong**:
+```jsx
+state.includes('Completed')
+```
+
+```csharp
+Transfers.Downloads.List(t => t.State.HasFlag(TransferStates.Completed));
+```
+
+**Correct**:
+```jsx
+isStateSucceeded(state)
+```
+
+```csharp
+Transfers.Downloads.List(t =>
+    t.State.HasFlag(TransferStates.Completed) &&
+    t.State.HasFlag(TransferStates.Succeeded));
+```
+
+**Why This Keeps Happening**: The runtime enum's `Completed` flag means
+"terminal", not "successfully complete". UI language, hide filters, and
+destructive clear operations must distinguish successful 100% transfers from
+retryable terminal failures.
+
 ### 0z369. Release Artifact Verifiers Must Match The Active Web Bundler Layout
 
 **The Bug**: The post-release artifact verifier looked only for
