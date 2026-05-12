@@ -30,6 +30,8 @@ import {
 } from 'semantic-ui-react';
 
 const SLSKDN_RELEASES_URL = 'https://github.com/snapetech/slskdn/releases';
+const NETWORK_ENDPOINT_NOTICE_DISMISSED_FOREVER_STORAGE_KEY =
+  'slskdn.networkEndpoints.dismissedForever';
 const NETWORK_ENDPOINT_NOTICE_STORAGE_KEY =
   'slskdn.networkEndpoints.v2.dismissedSignature';
 const NETWORK_ENDPOINT_SNAPSHOT_STORAGE_KEY =
@@ -172,7 +174,18 @@ const parseLegacyVpnPortSignature = (signature) => {
 };
 
 const hasDismissedVpnPortNotice = (signature) => {
-  return getLocalStorageItem(NETWORK_ENDPOINT_NOTICE_STORAGE_KEY) === signature;
+  if (
+    getLocalStorageItem(
+      NETWORK_ENDPOINT_NOTICE_DISMISSED_FOREVER_STORAGE_KEY,
+    ) === 'true'
+  ) {
+    return true;
+  }
+
+  return Boolean(signature) && (
+    getLocalStorageItem(NETWORK_ENDPOINT_NOTICE_STORAGE_KEY, '') !== '' ||
+    getLocalStorageItem(LEGACY_VPN_PORT_NOTICE_STORAGE_KEY, '') !== ''
+  );
 };
 
 const getStoredNetworkEndpointSnapshot = () => {
@@ -204,6 +217,10 @@ const getStoredNetworkEndpointSnapshot = () => {
 };
 
 const storeDismissedVpnPortNotice = (signature, portForwards) => {
+  setLocalStorageItem(
+    NETWORK_ENDPOINT_NOTICE_DISMISSED_FOREVER_STORAGE_KEY,
+    'true',
+  );
   setLocalStorageItem(NETWORK_ENDPOINT_NOTICE_STORAGE_KEY, signature);
   setLocalStorageItem(
     NETWORK_ENDPOINT_SNAPSHOT_STORAGE_KEY,
@@ -265,39 +282,6 @@ const NavigationIcon = ({ alert, alertTestId, name }) => (
   </span>
 );
 
-const LEGACY_INGRESS_PORTS = [
-  {
-    config: 'soulseek.listen_port',
-    label: 'Soulseek peer/file transfers',
-    port: 50300,
-    proto: 'TCP',
-  },
-  {
-    config: 'dht.overlay_port + dht.dht_port + overlay.quic_listen_port',
-    label: 'slskdN mesh, DHT rendezvous, and QUIC overlay',
-    port: 50305,
-    proto: 'TCP/UDP',
-  },
-  {
-    config: 'mesh.overlay.listen_port',
-    label: 'legacy mesh UDP overlay',
-    port: 50400,
-    proto: 'UDP',
-  },
-  {
-    config: 'mesh.data.listen_port',
-    label: 'legacy mesh data overlay',
-    port: 50401,
-    proto: 'UDP',
-  },
-  {
-    config: 'mesh.overlay.quic_listen_port',
-    label: 'legacy mesh QUIC overlay',
-    port: 50402,
-    proto: 'UDP',
-  },
-];
-
 const buildCurrentIngressPorts = (options = {}) => {
   const soulseek = getOption(options, 'soulseek', 'Soulseek') || {};
   const dht = getOption(options, 'dht', 'dhtRendezvous', 'DhtRendezvous') || {};
@@ -315,7 +299,7 @@ const buildCurrentIngressPorts = (options = {}) => {
   );
   const ports = [{
     config: 'soulseek.listen_port',
-    label: 'Soulseek peer/file transfers',
+    label: 'Soulseek',
     port: soulseekListenPort,
     proto: 'TCP',
   }];
@@ -323,7 +307,7 @@ const buildCurrentIngressPorts = (options = {}) => {
   if (dhtOverlayPort === dhtPort) {
     ports.push({
       config: 'dht.overlay_port + dht.dht_port',
-      label: 'slskdN mesh overlay and DHT rendezvous',
+      label: 'mesh/DHT/QUIC',
       port: dhtOverlayPort,
       proto: 'TCP/UDP',
     });
@@ -331,13 +315,13 @@ const buildCurrentIngressPorts = (options = {}) => {
     ports.push(
       {
         config: 'dht.overlay_port',
-        label: 'slskdN mesh overlay',
+        label: 'mesh/QUIC',
         port: dhtOverlayPort,
         proto: 'TCP',
       },
       {
         config: 'dht.dht_port',
-        label: 'DHT rendezvous',
+        label: 'DHT',
         port: dhtPort,
         proto: 'UDP',
       },
@@ -347,33 +331,11 @@ const buildCurrentIngressPorts = (options = {}) => {
   return ports;
 };
 
-const IngressPortList = ({ expectedPorts, title }) => {
-  if (!expectedPorts?.length) {
-    return null;
-  }
+const formatIngressPort = (expected) =>
+  `${expected.label} ${expected.proto} ${expected.port}`;
 
-  return (
-    <div className="network-endpoint-change-group">
-      {title ? <span className="network-endpoint-change-title">{title}</span> : null}
-      <div className="network-endpoint-change-list">
-        {expectedPorts.map((expected) => (
-          <div
-            className="network-endpoint-change-item"
-            key={`${expected.proto}-${expected.port}-${expected.config}`}
-          >
-            <span className="network-endpoint-change-service">
-              {expected.label}
-            </span>
-            <code>{`${expected.proto} ${expected.port}`}</code>
-            <span className="network-endpoint-change-config">
-              {expected.config}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+const formatCurrentIngressPorts = (options) =>
+  buildCurrentIngressPorts(options).map(formatIngressPort).join(', ');
 
 const VpnPortChangeNotice = ({ onDismiss, options, portForwards }) => {
   if (!portForwards.length) {
@@ -388,30 +350,21 @@ const VpnPortChangeNotice = ({ onDismiss, options, portForwards }) => {
       <div className="network-endpoint-change-notice-body">
         <Icon name="exchange" />
         <div className="network-endpoint-change-notice-copy">
-          <strong>slskdN ingress ports were reduced.</strong>
           <span>
-            Older builds needed five public forwards. Current builds need two:
-            Soulseek peer/file transfers and the slskdN mesh/DHT/QUIC overlay.
+            <strong>Ingress ports changed:</strong> older builds needed 5 public
+            forwards; now keep {formatCurrentIngressPorts(options)} reachable.
           </span>
-          <IngressPortList
-            expectedPorts={LEGACY_INGRESS_PORTS}
-            title="Used to need"
-          />
-          <IngressPortList
-            expectedPorts={buildCurrentIngressPorts(options)}
-            title="Need now"
-          />
         </div>
       </div>
       <Popup
-        content="Dismiss this port migration reminder until the forwarded ports change again."
+        content="Dismiss this port migration reminder permanently in this browser."
         trigger={
           <Button
             basic
             compact
             icon="close"
             onClick={onDismiss}
-            title="Dismiss port migration reminder"
+            title="Dismiss port migration reminder permanently"
           />
         }
       />

@@ -27,6 +27,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   packaged `/usr/bin` helper path and packaged `slskd` service/config names.
 - Arch installs now print explicit `.pacnew` guidance when pacman preserves an
   existing `/etc/slskd/slskd.yml`.
+- The network endpoint ports banner is now a compact one-line notice, and once
+  dismissed it stays dismissed across VPN port changes and future installs that
+  keep the same browser profile.
 - Distributed Soulseek search requests now accept opaque signed 32-bit tokens, matching live peer traffic and stopping valid negative-token searches from being dropped after login.
 - Gluetun VPN status polling now uses a no-redirect local-control HTTP client, so loopback/private configured Gluetun endpoints such as `http://127.0.0.1:8010` are no longer blocked by the public outbound SSRF guard.
 - Search API timeout values now honor the documented seconds unit before mapping to Soulseek's millisecond timeout, and multi-source discovery now uses its intended multi-minute search window instead of an accidental sub-second window.

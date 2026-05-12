@@ -322,35 +322,74 @@ describe('App', () => {
       },
     });
 
-    expect(
-      await screen.findByTestId('vpn-port-change-notice'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('slskdN ingress ports were reduced.')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'Older builds needed five public forwards. Current builds need two: Soulseek peer/file transfers and the slskdN mesh/DHT/QUIC overlay.',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getAllByText('Soulseek peer/file transfers')).toHaveLength(2);
-    expect(screen.getByText('Used to need')).toBeInTheDocument();
-    expect(screen.getByText('Need now')).toBeInTheDocument();
-    expect(screen.getAllByText('TCP 50300')).toHaveLength(2);
-    expect(screen.getAllByText('TCP/UDP 50305')).toHaveLength(2);
-    expect(screen.getByText('slskdN mesh overlay and DHT rendezvous')).toBeInTheDocument();
-    expect(screen.getByText('slskdN mesh, DHT rendezvous, and QUIC overlay')).toBeInTheDocument();
-    expect(screen.getByText('legacy mesh UDP overlay')).toBeInTheDocument();
-    expect(screen.getByText('UDP 50400')).toBeInTheDocument();
+    const notice = await screen.findByTestId('vpn-port-change-notice');
+    expect(notice).toBeInTheDocument();
+    expect(notice).toHaveTextContent(
+      /Ingress ports changed: older builds needed 5 public forwards/u,
+    );
+    expect(notice).toHaveTextContent(/Soulseek TCP 50300/u);
+    expect(notice).toHaveTextContent(/mesh\/DHT\/QUIC TCP\/UDP 50305/u);
+    expect(screen.queryByText('Used to need')).not.toBeInTheDocument();
+    expect(screen.queryByText('Need now')).not.toBeInTheDocument();
     expect(screen.queryByText('TCP 50301')).not.toBeInTheDocument();
+    expect(screen.queryByText('legacy mesh UDP overlay')).not.toBeInTheDocument();
+    expect(screen.queryByText('UDP 50400')).not.toBeInTheDocument();
     expect(screen.queryByText(/active:/u)).not.toBeInTheDocument();
     expect(screen.queryByText('not reported')).not.toBeInTheDocument();
     expect(screen.queryByText(/203\.0\.113\./u)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByTitle('Dismiss port migration reminder'));
+    fireEvent.click(screen.getByTitle('Dismiss port migration reminder permanently'));
 
     await waitFor(() => {
       expect(
         screen.queryByTestId('vpn-port-change-notice'),
       ).not.toBeInTheDocument();
+    });
+    expect(
+      localStorage.getItem('slskdn.networkEndpoints.dismissedForever'),
+    ).toBe('true');
+  });
+
+  it('keeps the network endpoint notice dismissed when forwarded ports change', async () => {
+    localStorage.setItem('slskdn.networkEndpoints.dismissedForever', 'true');
+
+    render(
+      <MemoryRouter>
+        <App />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Searches')).toBeInTheDocument();
+    });
+
+    hubHandlers.state({
+      server: { isConnected: true },
+      vpn: {
+        isReady: true,
+        portForwards: [
+          {
+            localPort: 50300,
+            proto: 'tcp',
+            publicIPAddress: '203.0.113.10',
+            publicPort: 52000,
+            slot: 0,
+            targetPort: 52000,
+          },
+          {
+            localPort: 50305,
+            proto: 'tcp',
+            publicIPAddress: '203.0.113.20',
+            publicPort: 52001,
+            slot: 1,
+            targetPort: 50305,
+          },
+        ],
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('vpn-port-change-notice')).not.toBeInTheDocument();
     });
   });
 
@@ -407,14 +446,11 @@ describe('App', () => {
       },
     });
 
-    expect(
-      await screen.findByTestId('vpn-port-change-notice'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('TCP 61000')).toBeInTheDocument();
-    expect(screen.getByText('slskdN mesh overlay')).toBeInTheDocument();
-    expect(screen.getByText('TCP 62000')).toBeInTheDocument();
-    expect(screen.getByText('DHT rendezvous')).toBeInTheDocument();
-    expect(screen.getByText('UDP 62010')).toBeInTheDocument();
-    expect(screen.getAllByText('TCP/UDP 50305')).toHaveLength(1);
+    const notice = await screen.findByTestId('vpn-port-change-notice');
+    expect(notice).toBeInTheDocument();
+    expect(notice).toHaveTextContent(/Soulseek TCP 61000/u);
+    expect(notice).toHaveTextContent(/mesh\/QUIC TCP 62000/u);
+    expect(notice).toHaveTextContent(/DHT UDP 62010/u);
+    expect(screen.queryByText(/TCP\/UDP 50305/u)).not.toBeInTheDocument();
   });
 });

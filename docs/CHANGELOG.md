@@ -58,6 +58,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Pinned release and CI workflows to the exact .NET SDK in `global.json`, with
   packaging validation coverage so future self-contained publish jobs cannot
   drift to an untested SDK feature band.
+- Condensed the network endpoint ports banner to one line and made dismissal
+  permanent across VPN port changes and future installs that keep browser
+  storage.
 - Tracked `global.json` in the repo and taught packaging validation to fail if
   the SDK pin is missing from tag checkouts.
 - Fixed Arch, Debian, and RPM VPN helper service units so distro packages use

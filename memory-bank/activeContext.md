@@ -1,3 +1,16 @@
+## Update 2026-05-12 20:10:49Z
+
+- Current task: ports banner dismissal and compact layout completed.
+- Last activity:
+  - changed the network endpoint migration banner dismissal from forwarded-port-signature matching to a permanent browser-local flag;
+  - preserved legacy dismissal keys so users who already closed the older banner do not get it back after this update;
+  - condensed the banner to one small line that still says old builds needed 5 public forwards and names the current ports to keep reachable;
+  - documented ADR-0001 gotcha `0z372`.
+- Validation:
+  - Passed: focused `App.test.jsx` (`11/11`), Web lint, production Web build, and `git diff --check`.
+- Next steps:
+  1. Commit and push the UI fix.
+
 ## Update 2026-05-12 20:03:59Z
 
 - Current task: distro VPN helper packaging regression and `kspls0` connectivity check completed.
