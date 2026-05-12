@@ -183,6 +183,22 @@ reject_literal Dockerfile 'SLSKD_DOCKER_REVISON'
 reject_literal Dockerfile 'VOLUME /app'
 test -x packaging/docker/slskdn-container-start || fail 'packaging/docker/slskdn-container-start must be executable'
 
+sdk_version=$(awk -F '"' '/"version"/ { print $4; exit }' global.json)
+fail_if_empty "$sdk_version" 'global.json SDK version'
+expect_literal .github/workflows/build-on-tag.yml "DOTNET_VERSION: '${sdk_version}'"
+expect_literal .github/workflows/ci.yml "DOTNET_VERSION: '${sdk_version}'"
+expect_literal .github/workflows/ci-enhancements.yml "DOTNET_VERSION: '${sdk_version}'"
+expect_literal .github/workflows/e2e-tests.yml "DOTNET_VERSION: '${sdk_version}'"
+expect_literal .github/workflows/codeql.yml "DOTNET_VERSION: '${sdk_version}'"
+expect_literal .github/workflows/release-linux.yml "dotnet-version: '${sdk_version}'"
+expect_literal .github/workflows/release-copr.yml "dotnet-version: '${sdk_version}'"
+expect_literal .github/workflows/release-ppa.yml "dotnet-version: '${sdk_version}'"
+reject_literal .github/workflows/build-on-tag.yml "DOTNET_VERSION: '10'"
+reject_literal .github/workflows/build-on-tag.yml 'dotnet-version: 10.0.x'
+reject_literal .github/workflows/release-linux.yml 'dotnet-version: 10.0.x'
+reject_literal .github/workflows/release-copr.yml 'dotnet-version: 10.0.x'
+reject_literal .github/workflows/release-ppa.yml 'dotnet-version: 10.0.x'
+
 expect_line packaging/aur/PKGBUILD '^source=\($'
 expect_literal packaging/aur/PKGBUILD-bin '"slskdn-${pkgver}-main-linux-glibc-x64.zip::https://github.com/snapetech/slskdn/releases/download/${pkgver//.slskdn/-slskdn}/slskdn-main-linux-glibc-x64.zip"'
 expect_literal packaging/aur/PKGBUILD-bin 'noextract=("slskdn-${pkgver}-main-linux-glibc-x64.zip")'
