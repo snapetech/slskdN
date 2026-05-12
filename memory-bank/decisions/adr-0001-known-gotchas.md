@@ -151,6 +151,40 @@ Soulseek SDK treats room-list fetches as logged-in-only operations. Any UI
 hydration path that asks for optional Soulseek data must handle reconnect
 windows as empty/degraded data instead of surfacing an exception.
 
+### 0z389. Do Not Poll Soulseek Room Discovery In General Hydration
+
+**The Bug**: Messaging V2 included `rooms.getAvailable()` in its 10-second
+workspace hydrate loop. When the Soulseek server timed out room-list requests,
+the app repeatedly queued 5-second room-list waits, filled the logs with 500s,
+and made manual room joins appear broken.
+
+**Files Affected**:
+- `src/web/src/components/Messaging/MessagingV2.jsx`
+- `src/slskd/Messaging/API/Controllers/RoomsController.cs`
+
+**Wrong**:
+```jsx
+await Promise.all([
+  chat.getAll(),
+  rooms.getJoined(),
+  rooms.getAvailable(),
+]);
+```
+
+**Correct**:
+```jsx
+await hydrateJoinedRoomsAndTabs();
+if (roomPickerOpen) {
+  await loadAvailableRooms();
+}
+```
+
+**Why This Keeps Happening**: The available room list is optional discovery
+data, not required workspace state. General hydration should fetch joined rooms
+and active conversations only; expensive or unreliable network discovery belongs
+behind the user action that needs it, with backend timeout failures mapped to an
+empty/degraded list.
+
 ### 0z384. Render-Time Work Must Not Scale With Hidden Or Unchanged Data
 
 **The Bug**: Performance fixes removed first-load blockers, but some render
