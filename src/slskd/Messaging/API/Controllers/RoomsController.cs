@@ -326,7 +326,20 @@ namespace slskd.Messaging.API
                 return Ok(Array.Empty<RoomInfoResponse>());
             }
 
-            var list = await Client.GetRoomListAsync();
+            RoomList list;
+
+            try
+            {
+                list = await Client.GetRoomListAsync();
+            }
+            catch (TimeoutException)
+            {
+                return Ok(Array.Empty<RoomInfoResponse>());
+            }
+            catch (InvalidOperationException)
+            {
+                return Ok(Array.Empty<RoomInfoResponse>());
+            }
 
             var response = new List<RoomInfoResponse>();
 

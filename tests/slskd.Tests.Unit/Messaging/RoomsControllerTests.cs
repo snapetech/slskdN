@@ -84,6 +84,23 @@ public class RoomsControllerTests
         client.Verify(x => x.GetRoomListAsync(null), Times.Never);
     }
 
+    [Fact]
+    public async Task GetRooms_When_Room_List_Times_Out_Returns_Empty_List()
+    {
+        var client = new Mock<ISoulseekClient>();
+        client.SetupGet(x => x.State).Returns(SoulseekClientStates.LoggedIn);
+        client
+            .Setup(x => x.GetRoomListAsync(null))
+            .ThrowsAsync(new TimeoutException());
+        var controller = CreateController(client: client.Object);
+
+        var result = await controller.GetRooms();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var rooms = Assert.IsAssignableFrom<IEnumerable<RoomInfoResponse>>(ok.Value);
+        Assert.Empty(rooms);
+    }
+
     private static RoomsController CreateController(
         ISoulseekClient? client = null,
         IRoomService? roomService = null,

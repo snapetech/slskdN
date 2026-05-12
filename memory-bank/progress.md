@@ -10050,3 +10050,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-12T23:27:09Z] Messaging room picker fix: replaced the raw available Soulseek room dump in Messaging V2 with a compact search-first room picker. The picker filters existing rooms as the user types and uses the same input to join/create non-matches. Focused Messaging tests and ESLint passed.
 
 [2026-05-12T23:32:51Z] Room list reconnect hardening: kspls0 post-deploy logs showed `/api/v0/rooms/available` could throw while Soulseek was disconnected during startup. Documented the gotcha, changed the endpoint to return an empty list until logged in, and added focused controller coverage.
+
+[2026-05-12T23:41:45Z] Room discovery polling fix: live kspls0 testing showed `GetRoomListAsync()` timed out repeatedly while Messaging V2 polled available rooms every 10 seconds. Moved available-room loading behind the room picker, kept general hydration to joined rooms/conversations, and made backend room-list timeouts return empty optional data.
