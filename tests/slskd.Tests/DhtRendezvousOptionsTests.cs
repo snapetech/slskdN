@@ -31,4 +31,20 @@ public class DhtRendezvousOptionsTests
 
         Assert.Equal(38851, options.EffectiveOverlayPort);
     }
+
+    [Theory]
+    [InlineData("disabled", VpnOverlayPortSyncMode.Disabled)]
+    [InlineData("primary", VpnOverlayPortSyncMode.Primary)]
+    [InlineData("target_port", VpnOverlayPortSyncMode.TargetPort)]
+    [InlineData("target-port", VpnOverlayPortSyncMode.TargetPort)]
+    [InlineData("TargetPort", VpnOverlayPortSyncMode.TargetPort)]
+    public void VpnPortSyncMode_accepts_documented_config_spellings(string value, VpnOverlayPortSyncMode expected)
+    {
+        var options = new DhtRendezvousOptions
+        {
+            VpnPortSync = value,
+        };
+
+        Assert.Equal(expected, options.VpnPortSyncMode);
+    }
 }

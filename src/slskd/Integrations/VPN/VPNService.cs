@@ -89,6 +89,18 @@ public class VPNService : IDisposable
     /// </summary>
     public VPNStatus Status { get; private set; } = new VPNStatus();
 
+    /// <summary>
+    ///     Fired when a port forward's public port changes. Subscribers receive the updated <see cref="VPNPortForward"/>.
+    ///     Only fires for entries in <see cref="VPNStatus.PortForwards"/> (multi-slot forwarding).
+    /// </summary>
+    public event EventHandler<VPNPortForward>? PortForwardChanged;
+
+    /// <summary>
+    ///     Fired when the VPN's primary forwarded port changes (i.e., <see cref="VPNStatus.ForwardedPort"/>).
+    ///     This is the single port reported by standard VPN clients that support one forwarded port at a time.
+    /// </summary>
+    public event EventHandler<int>? PrimaryForwardedPortChanged;
+
     private ISoulseekClient SoulseekClient { get; }
     private IVPNClient? Client { get; set; }
     private System.Timers.Timer? Timer { get; }
@@ -99,6 +111,8 @@ public class VPNService : IDisposable
     private OptionsAtStartup OptionsAtStartup { get; }
     private bool Disposed { get; set; }
     private SemaphoreSlim TimerElapsedLock { get; } = new SemaphoreSlim(1, 1);
+    private Dictionary<int, int> LastPortForwardPublicPorts { get; } = new();
+    private int? LastPrimaryForwardedPort { get; set; }
 
     /// <summary>
     ///     Starts polling the configured VPN client for status updates.
@@ -239,6 +253,24 @@ public class VPNService : IDisposable
 
             IsReady = isReadyNow;
             Status = status ?? new VPNStatus();
+
+            foreach (var forward in Status.PortForwards)
+            {
+                if (!LastPortForwardPublicPorts.TryGetValue(forward.TargetPort, out var prev) || prev != forward.PublicPort)
+                {
+                    LastPortForwardPublicPorts[forward.TargetPort] = forward.PublicPort;
+                    if (forward.PublicPort > 0)
+                    {
+                        PortForwardChanged?.Invoke(this, forward);
+                    }
+                }
+            }
+
+            if (Status.ForwardedPort is int fp && fp > 0 && fp != LastPrimaryForwardedPort)
+            {
+                LastPrimaryForwardedPort = fp;
+                PrimaryForwardedPortChanged?.Invoke(this, fp);
+            }
 
             if (!IsReady)
             {

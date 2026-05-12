@@ -52,6 +52,29 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z362. Documented Snake Case Enum Config Must Not Bind Directly To CLR Enum
+
+**The Bug**: `kspls0` crash-looped on startup because `dht.vpn_port_sync: target_port` was documented in `slskd.example.yml`, but `DhtRendezvousOptions.VpnPortSync` was a CLR enum property and Microsoft configuration binding only accepted enum names such as `TargetPort`.
+
+**Files Affected**:
+- `src/slskd/DhtRendezvous/DhtRendezvousService.cs`
+- `tests/slskd.Tests/DhtRendezvousOptionsTests.cs`
+- `config/slskd.example.yml`
+
+**Wrong**:
+```csharp
+public VpnOverlayPortSyncMode VpnPortSync { get; set; } = VpnOverlayPortSyncMode.Disabled;
+```
+
+**Correct**:
+```csharp
+public string VpnPortSync { get; set; } = "disabled";
+
+public VpnOverlayPortSyncMode VpnPortSyncMode => ParseVpnPortSync(VpnPortSync);
+```
+
+**Why This Keeps Happening**: YAML config uses snake_case values for operator readability, while CLR enum member names are PascalCase. Unless an option has a custom parser or is modeled as a string plus normalized parsed property, the framework binder fails before validation can produce a useful error.
+
 ### 0z361. Remote Heredocs Can Expand Embedded Awk Fields
 
 **The Bug**: A live NAT-PMP renewal helper failed because a remote shell heredoc expanded awk's `$4` field reference while writing the script, producing invalid awk source.

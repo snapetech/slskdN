@@ -265,19 +265,45 @@ public sealed class SharedMeshUdpListener : IDhtListener, IDisposable
             return new[] { listenEndPoint };
         }
 
-        var endpoints = NetworkInterface.GetAllNetworkInterfaces()
+        // Detect which local IP the OS would choose for internet-bound traffic.
+        // This socket is never connected (UDP connect just sets the routing, no packets sent).
+        // It becomes _defaultPublicUdp so DHT bootstrap packets go out with a routable source IP
+        // and responses come back to the matching per-interface receive socket.
+        var defaultRouteSourceIP = GetDefaultRouteSourceIP();
+
+        var addresses = NetworkInterface.GetAllNetworkInterfaces()
             .Where(nic => nic.OperationalStatus == OperationalStatus.Up)
             .SelectMany(nic => nic.GetIPProperties().UnicastAddresses)
             .Select(address => address.Address)
             .Where(address => address.AddressFamily == AddressFamily.InterNetwork)
             .Distinct()
-            .OrderBy(address => IPAddress.IsLoopback(address) ? 1 : 0)
-            .Select(address => new IPEndPoint(address, listenEndPoint.Port))
+            .OrderBy(address =>
+            {
+                if (defaultRouteSourceIP is not null && address.Equals(defaultRouteSourceIP)) return 0; // default route IP first
+                if (IPAddress.IsLoopback(address)) return 2; // loopback last
+                return 1; // other IPs in the middle
+            })
             .ToList();
+
+        var endpoints = addresses.Select(address => new IPEndPoint(address, listenEndPoint.Port)).ToList();
 
         return endpoints.Count > 0
             ? endpoints
             : new[] { listenEndPoint };
+    }
+
+    private static IPAddress? GetDefaultRouteSourceIP()
+    {
+        try
+        {
+            using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            socket.Connect("8.8.8.8", 53);
+            return ((IPEndPoint)socket.LocalEndPoint!).Address;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private sealed class QuicProxySession : IDisposable

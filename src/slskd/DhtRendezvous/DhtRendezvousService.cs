@@ -21,6 +21,7 @@ using MonoTorrent;
 using MonoTorrent.Connections.Dht;
 using MonoTorrent.Dht;
 using slskd.Common.IO;
+using slskd.Integrations.VPN;
 using slskd.Mesh;
 using slskd.Mesh.Overlay;
 using slskd.Mesh.Transport;
@@ -47,6 +48,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
     private readonly ConnectionThrottler? _connectionThrottler;
     private readonly IOptions<OverlayOptions>? _overlayOptionsMonitor;
     private readonly IOptions<MeshOptions>? _meshOptions;
+    private volatile int _vpnAdvertisedOverlayPort = 0;
 
     // MonoTorrent DHT components
     private DhtEngine? _dhtEngine;
@@ -98,7 +100,8 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
         ILoggerFactory? loggerFactory = null,
         IControlDispatcher? overlayDispatcher = null,
         ConnectionThrottler? connectionThrottler = null,
-        IOptions<MeshOptions>? meshOptions = null)
+        IOptions<MeshOptions>? meshOptions = null,
+        VPNService? vpnService = null)
     {
         _logger = logger;
         _overlayServer = overlayServer;
@@ -112,6 +115,55 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
         _connectionThrottler = connectionThrottler;
         _overlayOptionsMonitor = overlayOptions;
         _meshOptions = meshOptions;
+
+        if (vpnService is not null && _options.VpnPortSyncMode != VpnOverlayPortSyncMode.Disabled)
+        {
+            if (_options.VpnPortSyncMode == VpnOverlayPortSyncMode.Primary)
+            {
+                // Standard VPN clients that expose a single forwarded port (e.g. stock gluetun).
+                if (vpnService.Status.ForwardedPort is int fp && fp > 0)
+                    _vpnAdvertisedOverlayPort = fp;
+
+                vpnService.PrimaryForwardedPortChanged += (_, port) =>
+                {
+                    var prev = _vpnAdvertisedOverlayPort;
+                    _vpnAdvertisedOverlayPort = port;
+                    if (prev != port)
+                    {
+                        _logger.LogInformation(
+                            "VPN primary forwarded port changed: {Prev} -> {New}; re-announcing to DHT",
+                            prev, port);
+                        _ = AnnounceAsync();
+                    }
+                };
+            }
+            else if (_options.VpnPortSyncMode == VpnOverlayPortSyncMode.TargetPort)
+            {
+                // Multi-slot VPN forwarding: match the forward entry whose local target port equals overlay_port.
+                foreach (var forward in vpnService.Status.PortForwards)
+                {
+                    if (forward.TargetPort == _options.OverlayPort && forward.PublicPort > 0)
+                        _vpnAdvertisedOverlayPort = forward.PublicPort;
+                }
+
+                vpnService.PortForwardChanged += (_, forward) =>
+                {
+                    if (forward.TargetPort != _options.OverlayPort)
+                        return;
+
+                    var prev = _vpnAdvertisedOverlayPort;
+                    _vpnAdvertisedOverlayPort = forward.PublicPort;
+
+                    if (prev != forward.PublicPort)
+                    {
+                        _logger.LogInformation(
+                            "VPN port forward for overlay port {Local} changed: {Prev} -> {New}; re-announcing to DHT",
+                            _options.OverlayPort, prev, forward.PublicPort);
+                        _ = AnnounceAsync();
+                    }
+                };
+            }
+        }
     }
 
     public bool IsBeaconCapable { get; private set; }
@@ -827,7 +879,9 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
             return Task.CompletedTask;
         }
 
-        var advertisedOverlayPort = _options.EffectiveOverlayPort;
+        var advertisedOverlayPort = _vpnAdvertisedOverlayPort > 0
+            ? _vpnAdvertisedOverlayPort
+            : _options.EffectiveOverlayPort;
 
         _logger.LogDebug("Announcing to DHT (announce_peer) with overlay port {Port}", advertisedOverlayPort);
         _lastAnnounceTime = DateTimeOffset.UtcNow;
@@ -1157,4 +1211,54 @@ public sealed class DhtRendezvousOptions
     /// Default: true
     /// </summary>
     public bool EnablePeerDiversity { get; set; } = true;
+
+    /// <summary>
+    /// Controls automatic synchronisation of the announced <c>advertised_overlay_port</c> from VPN port forwarding.
+    /// Requires <c>integration.vpn.enabled: true</c> and <c>integration.vpn.port_forwarding: true</c>.
+    /// <list type="bullet">
+    ///   <item><c>disabled</c> – no sync; <c>advertised_overlay_port</c> is used as-is (default)</item>
+    ///   <item><c>primary</c> – track the VPN's single forwarded port (<see cref="VPNStatus.ForwardedPort"/>); use this with a standard gluetun setup</item>
+    ///   <item><c>target_port</c> – track the VPN port-forward entry whose local target port matches <c>overlay_port</c>; use this when the VPN exposes multiple forwarded ports and one specifically targets the overlay port</item>
+    /// </list>
+    /// </summary>
+    public string VpnPortSync { get; set; } = "disabled";
+
+    /// <summary>
+    /// Parsed <see cref="VpnPortSync"/> value. Accepts documented config spellings such as
+    /// <c>target_port</c> as well as CLR enum names such as <c>TargetPort</c>.
+    /// </summary>
+    public VpnOverlayPortSyncMode VpnPortSyncMode => ParseVpnPortSync(VpnPortSync);
+
+    internal static VpnOverlayPortSyncMode ParseVpnPortSync(string? value)
+    {
+        return value?.Trim().Replace("-", string.Empty, StringComparison.Ordinal).Replace("_", string.Empty, StringComparison.Ordinal).ToLowerInvariant() switch
+        {
+            null or "" or "disabled" => VpnOverlayPortSyncMode.Disabled,
+            "primary" => VpnOverlayPortSyncMode.Primary,
+            "targetport" => VpnOverlayPortSyncMode.TargetPort,
+            _ => throw new InvalidOperationException($"Invalid dht.vpn_port_sync value '{value}'. Expected disabled, primary, or target_port."),
+        };
+    }
+}
+
+/// <summary>
+/// Determines how <see cref="DhtRendezvousService"/> follows VPN port-forward changes when
+/// computing the port to announce to DHT peers.
+/// </summary>
+public enum VpnOverlayPortSyncMode
+{
+    /// <summary>No VPN sync. The static <c>advertised_overlay_port</c> (or <c>overlay_port</c>) is used.</summary>
+    Disabled,
+
+    /// <summary>
+    /// Follow <see cref="VPNStatus.ForwardedPort"/> — the single port that most VPN clients (e.g. gluetun)
+    /// forward on behalf of the container. When this port changes the DHT announcement is updated automatically.
+    /// </summary>
+    Primary,
+
+    /// <summary>
+    /// Follow the <see cref="VPNPortForward"/> entry whose <c>TargetPort</c> equals <c>overlay_port</c>.
+    /// Intended for setups with multi-slot VPN port forwarding where the overlay port has its own dedicated slot.
+    /// </summary>
+    TargetPort,
 }
