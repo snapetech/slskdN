@@ -37,6 +37,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
   VPN helper payload and Linux installer wiring intact.
 - Fixed macOS VPN helper enforcement so the generated pf anchor is referenced
   from `/etc/pf.conf`, not merely loaded into an unevaluated anchor namespace.
+- Added VPN helper payload checks to secondary Linux, PPA, and COPR release
+  workflows, and exposed `slskdN-vpn-agent` through Homebrew and Chocolatey
+  installs when the release archive contains it.
+- Fixed Transfers bulk-clear optimistic state so completed filenames disappear
+  from both the page body and header immediately after clearing.
+- Updated Rooms join-modal regression coverage for the search-before-render room
+  list behavior.
 - Fixed downloads/uploads page spinner stalling on initial load due to queue-position API calls blocking the render; those are now fire-and-forget.
 - Dramatically reduced downloads/uploads page initial load time by fetching only active transfers on the 2-second poll; completed transfers are fetched separately on a 15-second interval for header bulk operations.
 - Added automatic re-queue for failed downloads: transfers ending in TimedOut, Errored, or Aborted state are automatically re-enqueued after a configurable delay (default 5 minutes). Cancelled and Rejected transfers are excluded.

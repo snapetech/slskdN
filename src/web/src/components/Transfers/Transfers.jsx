@@ -136,6 +136,9 @@ const Transfers = ({ direction, server }) => {
     setTransfers((previousTransfers) =>
       filterHiddenTransfers(previousTransfers),
     );
+    setAllTransfers((previousTransfers) =>
+      filterHiddenTransfers(previousTransfers),
+    );
   };
 
   const runBulkQueue = async () => {

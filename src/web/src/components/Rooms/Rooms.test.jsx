@@ -101,6 +101,9 @@ describe('Rooms', () => {
     );
 
     fireEvent.click(await screen.findByRole('button', { name: /join room/i }));
+    fireEvent.change(await screen.findByPlaceholderText('Room Filter'), {
+      target: { value: 'slskdn' },
+    });
 
     expect(await screen.findByText('slskdn')).toBeInTheDocument();
     expect(screen.queryByText('[object Object]')).not.toBeInTheDocument();

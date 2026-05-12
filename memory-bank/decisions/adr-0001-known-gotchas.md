@@ -52,6 +52,33 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z366. Optimistic Transfer Hides Must Update Active And Header State
+
+**The Bug**: Clearing completed transfers showed an empty-state placeholder while completed filenames still rendered in the Transfers header, because optimistic hides updated `transfers` but left `allTransfers` unchanged.
+
+**Files Affected**:
+- `src/web/src/components/Transfers/Transfers.jsx`
+- `src/web/src/components/Transfers/Transfers.test.jsx`
+
+**Wrong**:
+```javascript
+setTransfers((previousTransfers) =>
+  filterHiddenTransfers(previousTransfers),
+);
+```
+
+**Correct**:
+```javascript
+setTransfers((previousTransfers) =>
+  filterHiddenTransfers(previousTransfers),
+);
+setAllTransfers((previousTransfers) =>
+  filterHiddenTransfers(previousTransfers),
+);
+```
+
+**Why This Keeps Happening**: The Transfers page keeps a fast active-transfer state and a slower all-transfer state for header bulk operations. Any optimistic hide/remove path must update both, or the body and header can disagree until the next backend snapshot.
+
 ### 0z365. macOS pf Anchors Must Be Referenced From The Main Ruleset
 
 **The Bug**: The macOS VPN helper loaded rules into a named pf anchor, but the main `/etc/pf.conf` ruleset did not necessarily reference that anchor, so the fail-closed rules could be present but never evaluated.
