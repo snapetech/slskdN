@@ -186,6 +186,34 @@ and active conversations only; expensive or unreliable network discovery belongs
 behind the user action that needs it, with backend timeout failures mapped to an
 empty/degraded list.
 
+### 0z390. Room Join Must Degrade Cleanly During Reconnect Windows
+
+**The Bug**: Clicking Join while the Soulseek client was `Connecting` threw an
+SDK `InvalidOperationException` through the API stack and returned a generic
+500, even though the correct user-facing state is "try again once logged in."
+
+**Files Affected**:
+- `src/slskd/Messaging/API/Controllers/RoomsController.cs`
+
+**Wrong**:
+```csharp
+var roomData = await RoomService.JoinAsync(roomName);
+return StatusCode(StatusCodes.Status201Created, MapRoomToRoomResponse(room));
+```
+
+**Correct**:
+```csharp
+if (!Client.State.HasFlag(SoulseekClientStates.LoggedIn))
+{
+    return StatusCode(StatusCodes.Status503ServiceUnavailable, "Soulseek is reconnecting; try again shortly.");
+}
+```
+
+**Why This Keeps Happening**: Soulseek room operations are interactive network
+commands. UI actions can race with startup/reconnect, so controllers must map
+transient client-state failures to controlled status codes instead of allowing
+SDK state exceptions to escape as 500s.
+
 ### 0z384. Render-Time Work Must Not Scale With Hidden Or Unchanged Data
 
 **The Bug**: Performance fixes removed first-load blockers, but some render
