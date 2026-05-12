@@ -52,6 +52,34 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z368. New Check Scripts Must Be Registered In The Remediation Baseline
+
+**The Bug**: A new release guard script was added and called directly from the
+release gate, but it was not listed in `scripts/check-remediation-baseline.sh`.
+The remediation script registry then failed inside the full release gate instead
+of catching the omission at the time the guard was added.
+
+**Files Affected**:
+- `scripts/check-remediation-baseline.sh`
+- `scripts/check-release-branch-sync.sh`
+
+**Wrong**:
+```bash
+# Added a new scripts/check-*.sh file, but only called it from one workflow.
+bash scripts/check-release-branch-sync.sh
+```
+
+**Correct**:
+```bash
+# Add the new check script to the remediation baseline too.
+"$repo_root/scripts/check-release-branch-sync.sh"
+```
+
+**Why This Keeps Happening**: `check-remediation-script-registry.sh` treats
+unregistered `check-*.sh` scripts as drift. Any new guard must be wired into the
+central baseline unless there is a documented reason it should remain outside
+the remediation set.
+
 ### 0z367. Release Gates Must Verify Branch Sync Before Tagging
 
 **The Bug**: Local release-readiness work was committed on `main` but not pushed to `origin/main`, while the latest published release still pointed at an older build tag. That made local validation look current while users installed an older aggregate.
