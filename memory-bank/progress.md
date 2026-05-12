@@ -9903,6 +9903,8 @@ Code quality improvements were completed as part of Option A:
 - Hardened the options editor so current validation failures block saves and structured API update errors render stable text instead of `[object Object]`.
 - Focused Web validation passed for the new Transfers and Options regressions.
 
+[2026-05-12T15:51:52Z] kspls0 mesh/VPN recovery: fixed `dht.vpn_port_sync: target_port` startup crash by parsing documented snake_case config values explicitly, kept VPN port-forward sync for the overlay listener, rebuilt and deployed `/usr/lib/slskd` on `kspls0`, cleaned/restarted VPN ingress, and verified DHT running plus two active inbound mesh overlay peers. Validation: focused DHT options tests passed, Release build/publish passed, `./bin/lint` passed; full `dotnet test` still exits nonzero due to pre-existing `LidarrImportServiceTests.FakeLidarrClient` missing `GetWantedMissingPageAsync`.
+
 ## 2026-05-06 23:28:00Z
 
 - Continued the non-runtime council scan into Web response-object shape drift.

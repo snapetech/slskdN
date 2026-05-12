@@ -1,3 +1,18 @@
+## Update 2026-05-12 15:51:52Z
+
+- Current task: kspls0 mesh/VPN recovery completed.
+- Last activity:
+  - fixed `dht.vpn_port_sync: target_port` startup crash by making DHT VPN port sync parse documented snake_case values instead of binding directly to a CLR enum;
+  - documented ADR-0001 gotcha `0z362` and committed `ccf773241`;
+  - published and deployed the rebuilt backend to `/usr/lib/slskd` on `kspls0`;
+  - cleaned/restarted VPN ingress and verified public mesh overlay advertisement `40824 -> 50305`;
+  - verified `slskd.service` and `slskdN-vpn-ingress.service` active, DHT running, 69 DHT nodes, 31 discovered peers, and two active inbound mesh overlay peers.
+- Validation:
+  - Passed: focused `DhtRendezvousOptionsTests` (`7/7`), Release build, Release publish, `./bin/lint`.
+  - Partial: full `dotnet test` ran `slskd.Tests` (`57/57`) and `slskd.Tests.Integration` (`276/276`) but exited nonzero because `slskd.Tests.Unit` has a pre-existing compile failure: `LidarrImportServiceTests.FakeLidarrClient` does not implement `ILidarrClient.GetWantedMissingPageAsync`.
+- Next steps:
+  1. Fix the unrelated Lidarr unit-test fake compile failure when touching test infrastructure next.
+
 ## Update 2026-05-07 02:29:00Z
 
 - Current task: Messaging V2 sizing/performance follow-up deployed to `kspls0`.
