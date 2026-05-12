@@ -10054,3 +10054,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-12T23:41:45Z] Room discovery polling fix: live kspls0 testing showed `GetRoomListAsync()` timed out repeatedly while Messaging V2 polled available rooms every 10 seconds. Moved available-room loading behind the room picker, kept general hydration to joined rooms/conversations, and made backend room-list timeouts return empty optional data.
 
 [2026-05-12T23:49:22Z] Feature-coherence hardening follow-up: wired `BindExposureAnalyzer.AnalyzeWebBinding(...)` into `Program.cs` startup validation, hid the unsupported hash-from-audio flag from public CLI/env exposure, and made enabling it fail startup regardless of `EnforceSecurity`.
+
+[2026-05-12T23:57:46Z] Feature-coherence hardening matrix: added validator-boundary coverage for auth-disabled loopback, localhost, Unix-socket-only, wildcard, private IPv4, IPv6 wildcard, unknown bind address, and remote-no-auth CIDR behavior. Updated the coherence backlog and implemented-security docs to reflect the completed matrix.

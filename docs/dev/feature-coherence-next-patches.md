@@ -42,18 +42,18 @@ Acceptance criteria:
 
 ## 3. Add HardeningValidator startup matrix tests
 
-Status: pending Program.cs wiring.
+Status: complete at the validator boundary with `BindExposureAnalyzer.AnalyzeWebBinding(...)`; full host construction coverage can still be added if startup regressions appear.
 
 Required cases:
 
-- Auth disabled + `127.0.0.1` + enforce => allowed.
-- Auth disabled + `localhost` + enforce => allowed.
-- Auth disabled + Unix socket only + enforce => allowed.
-- Auth disabled + `0.0.0.0` + enforce + no `AllowRemoteNoAuth` => fail.
-- Auth disabled + `192.168.x.x` + enforce + no `AllowRemoteNoAuth` => fail.
-- Auth disabled + `::` + enforce + no `AllowRemoteNoAuth` => fail.
-- Auth disabled + `AllowRemoteNoAuth` + no CIDRs => fail.
-- Auth disabled + `AllowRemoteNoAuth` + CIDRs => allowed.
+- Auth disabled + `127.0.0.1` + enforce => allowed. Done.
+- Auth disabled + `localhost` + enforce => allowed. Done.
+- Auth disabled + Unix socket only + enforce => allowed. Done.
+- Auth disabled + `0.0.0.0` + enforce + no `AllowRemoteNoAuth` => fail. Done.
+- Auth disabled + `192.168.x.x` + enforce + no `AllowRemoteNoAuth` => fail. Done.
+- Auth disabled + `::` + enforce + no `AllowRemoteNoAuth` => fail. Done.
+- Auth disabled + `AllowRemoteNoAuth` + no CIDRs => fail. Done.
+- Auth disabled + `AllowRemoteNoAuth` + CIDRs => allowed. Done.
 
 ## 4. Audit PathGuard call sites
 

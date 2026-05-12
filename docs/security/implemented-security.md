@@ -83,7 +83,7 @@ Implemented tests:
 
 Required follow-up:
 
-- Add startup-level HardeningValidator tests after the Program.cs wiring patch lands.
+- Add full-host startup tests if future changes bypass the validator/analyzer boundary.
 
 ## HardeningValidator
 
@@ -97,6 +97,13 @@ Current responsibilities:
 - Warn or fail when memory dumps are enabled while authentication is disabled.
 - Warn or fail when metrics auth has an empty password.
 - Fail startup when `HashFromAudioFileEnabled` is enabled because PCM extraction support is unavailable in this build.
+
+Implemented tests:
+
+- Auth-disabled local-only bindings (`127.0.0.1`, `localhost`, and Unix socket only) pass when security enforcement is enabled.
+- Auth-disabled wildcard, private-network, IPv6 wildcard, and unknown TCP binds fail without `AllowRemoteNoAuth`.
+- Remote no-auth requires explicit CIDR restrictions.
+- Unsupported audio hash-from-file fails startup regardless of `EnforceSecurity`.
 
 Required follow-up:
 

@@ -213,9 +213,126 @@ public class HardeningValidatorTests
         HardeningValidator.Validate(options, "Production", isBindingNonLoopback: false);
     }
 
+    [Theory]
+    [InlineData("127.0.0.1", 5030, null)]
+    [InlineData("localhost", 5030, null)]
+    [InlineData("127.0.0.1", 0, "/tmp/slskd.sock")]
+    public void EnforceSecurity_true_AuthDisabled_LocalOnlyBinding_does_not_throw(
+        string address,
+        int port,
+        string socket)
+    {
+        var options = CreateNoAuthStartupOptions(
+            address,
+            port,
+            socket,
+            allowRemoteNoAuth: false,
+            allowedCidrs: null);
+
+        var exposure = BindExposureAnalyzer.AnalyzeWebBinding(options);
+
+        HardeningValidator.Validate(
+            options,
+            "Production",
+            BindExposureAnalyzer.IsRemoteReachable(exposure));
+    }
+
+    [Theory]
+    [InlineData("0.0.0.0")]
+    [InlineData("192.168.1.20")]
+    [InlineData("::")]
+    [InlineData("not-a-valid-bind-address")]
+    public void EnforceSecurity_true_AuthDisabled_RemoteBindingWithoutAllowRemote_throws_AuthDisabledNonLoopback(
+        string address)
+    {
+        var options = CreateNoAuthStartupOptions(
+            address,
+            5030,
+            null,
+            allowRemoteNoAuth: false,
+            allowedCidrs: null);
+
+        var exposure = BindExposureAnalyzer.AnalyzeWebBinding(options);
+
+        var ex = Assert.Throws<HardeningValidationException>(
+            () => HardeningValidator.Validate(
+                options,
+                "Production",
+                BindExposureAnalyzer.IsRemoteReachable(exposure)));
+
+        Assert.Equal(HardeningValidator.RuleAuthDisabledNonLoopback, ex.RuleName);
+    }
+
+    [Fact]
+    public void EnforceSecurity_true_AuthDisabled_AllowRemoteNoAuthWithoutCidrs_throws_RemoteNoAuthWithoutCidrs()
+    {
+        var options = CreateNoAuthStartupOptions(
+            "0.0.0.0",
+            5030,
+            null,
+            allowRemoteNoAuth: true,
+            allowedCidrs: null);
+
+        var exposure = BindExposureAnalyzer.AnalyzeWebBinding(options);
+
+        var ex = Assert.Throws<HardeningValidationException>(
+            () => HardeningValidator.Validate(
+                options,
+                "Production",
+                BindExposureAnalyzer.IsRemoteReachable(exposure)));
+
+        Assert.Equal(HardeningValidator.RuleRemoteNoAuthWithoutCidrs, ex.RuleName);
+    }
+
+    [Fact]
+    public void EnforceSecurity_true_AuthDisabled_AllowRemoteNoAuthWithCidrs_does_not_throw()
+    {
+        var options = CreateNoAuthStartupOptions(
+            "0.0.0.0",
+            5030,
+            null,
+            allowRemoteNoAuth: true,
+            allowedCidrs: "192.168.1.0/24");
+
+        var exposure = BindExposureAnalyzer.AnalyzeWebBinding(options);
+
+        HardeningValidator.Validate(
+            options,
+            "Production",
+            BindExposureAnalyzer.IsRemoteReachable(exposure));
+    }
+
     [Fact]
     public void Options_null_does_not_throw()
     {
         HardeningValidator.Validate(null!, "Production", isBindingNonLoopback: true);
     }
+
+    private static OptionsAtStartup CreateNoAuthStartupOptions(
+        string address,
+        int port,
+        string socket,
+        bool allowRemoteNoAuth,
+        string allowedCidrs) => new()
+        {
+            Web = new Options.WebOptions
+            {
+                Address = address,
+                Port = port,
+                Socket = socket ?? string.Empty,
+                EnforceSecurity = true,
+                AllowRemoteNoAuth = allowRemoteNoAuth,
+                Authentication = new Options.WebOptions.WebAuthenticationOptions
+                {
+                    Disabled = true,
+                    Passthrough = new Options.WebOptions.WebAuthenticationOptions.PassthroughOptions
+                    {
+                        AllowedCidrs = allowedCidrs,
+                    },
+                },
+                Cors = new Options.WebOptions.CorsOptions { Enabled = true, AllowCredentials = false },
+                Https = new Options.WebOptions.HttpsOptions { Disabled = true },
+            },
+            Diagnostics = new Options.DiagnosticsOptions { AllowMemoryDump = false },
+        };
 }
