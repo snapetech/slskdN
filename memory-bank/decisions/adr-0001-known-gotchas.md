@@ -52,6 +52,99 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z380. Transfer API Filters Must Stay EF-Translatable
+
+**The Bug**: The live kspls0 Downloads and Uploads pages failed their active
+transfer poll with 500s because the API passed an expression containing
+`IsSuccessfulTerminalTransfer(t.State)` into the transfer store. EF Core cannot
+translate that helper method into SQL, so `/api/v0/transfers/downloads?includeCompleted=false`
+and `/api/v0/transfers/uploads?includeCompleted=false` threw before returning
+active transfers.
+
+**Files Affected**:
+- `src/slskd/Transfers/API/Controllers/TransfersController.cs`
+- `tests/slskd.Tests.Unit/Transfers/API/TransfersControllerTests.cs`
+
+**Wrong**:
+```csharp
+Transfers.Downloads.List(
+    expression: includeCompleted ? null : t => !IsSuccessfulTerminalTransfer(t.State));
+```
+
+**Correct**:
+```csharp
+Transfers.Downloads.List(
+    expression: includeCompleted ? null : t =>
+        (t.State & TransferStates.Completed) != TransferStates.Completed ||
+        (t.State & TransferStates.Succeeded) != TransferStates.Succeeded);
+```
+
+**Why This Keeps Happening**: Controller tests often compile predicates in
+memory, but production transfer stores may translate those predicates through
+EF Core. API query predicates must use expression-tree operations that the
+backing store can translate; helper methods belong only after materialization.
+
+### 0z381. Page Shells Must Not Wait For Live Feeds
+
+**The Bug**: The Search page rendered only a full-page loader until the SignalR
+search hub emitted its initial `list` event. On kspls0 that event lagged behind
+other startup work, so users waited several seconds before seeing even the
+search input.
+
+**Files Affected**:
+- `src/web/src/components/Search/Searches.jsx`
+- `src/web/src/components/Transfers/Transfers.jsx`
+
+**Wrong**:
+```jsx
+if (connecting) {
+  return <LoaderSegment />;
+}
+```
+
+**Correct**:
+```jsx
+return (
+  <>
+    <SearchControls />
+    <SearchResults loading={connecting && !hasLoadedInitialData} />
+  </>
+);
+```
+
+**Why This Keeps Happening**: SignalR connections, slow API calls, and remote
+peer lookups are background data sources, not prerequisites for drawing page
+chrome. Pages should paint controls and stable empty/loading states first, then
+merge live updates as they arrive.
+
+### 0z382. Footer Poll Endpoints Must Not Recompute Full Transfer History
+
+**The Bug**: The shared footer polls `/api/v0/transfers/speeds`; on kspls0 one
+startup request took multiple seconds because the endpoint recomputed session
+byte totals by scanning all downloads and uploads on every poll.
+
+**Files Affected**:
+- `src/slskd/Transfers/API/Controllers/TransfersController.cs`
+
+**Wrong**:
+```csharp
+var sessionBytesDownloaded = Transfers.Downloads.List(includeRemoved: true)
+    .Sum(t => t.BytesTransferred);
+```
+
+**Correct**:
+```csharp
+if (cachedSpeedsResponse is still fresh)
+{
+    return Ok(cachedSpeedsResponse);
+}
+```
+
+**Why This Keeps Happening**: A tiny footer component can become an app-wide
+latency source when it polls an endpoint that performs unbounded aggregate
+work. Shared poll endpoints must either read cheap counters or cache expensive
+aggregate values behind a short freshness window.
+
 ### 0z370. Docker Publish Must Copy Every Project Used By `bin/publish`
 
 **The Bug**: Docker release publishing failed after the VPN helper was added to
