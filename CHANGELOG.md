@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   `build-main-*` or `build-dev-*` tag. Post-publish artifact verification now
   fails if checksums, the VPN helper payload, or the bundled footer session
   transfer marker are missing.
+- Docker release publishing now copies the VPN helper project into the publish
+  stage before running the shared publish script, so container images can include
+  the same helper payload as archive releases.
 - Distributed Soulseek search requests now accept opaque signed 32-bit tokens, matching live peer traffic and stopping valid negative-token searches from being dropped after login.
 - Gluetun VPN status polling now uses a no-redirect local-control HTTP client, so loopback/private configured Gluetun endpoints such as `http://127.0.0.1:8010` are no longer blocked by the public outbound SSRF guard.
 - Search API timeout values now honor the documented seconds unit before mapping to Soulseek's millisecond timeout, and multi-source discovery now uses its intended multi-minute search window instead of an accidental sub-second window.

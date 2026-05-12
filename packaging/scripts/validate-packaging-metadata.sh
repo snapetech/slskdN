@@ -174,6 +174,7 @@ expect_line .github/workflows/release-packages.yml '\$\{\{ steps\.version\.outpu
 
 expect_literal Dockerfile 'gosu'
 expect_literal Dockerfile 'COPY packaging/docker/slskdn-container-start /usr/local/bin/slskdn-container-start'
+expect_literal Dockerfile 'COPY src/slskdN.VpnAgent src/slskdN.VpnAgent/.'
 expect_literal Dockerfile 'SLSKD_DOCKER_REVISION=$REVISION'
 expect_literal packaging/docker/slskdn-container-start 'exec gosu slskdn "$@"'
 reject_literal Dockerfile 'groupadd --gid 1000'

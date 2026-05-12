@@ -25,6 +25,7 @@ COPY LICENSE .
 COPY bin bin/.
 COPY config config/.
 COPY src/slskd src/slskd/.
+COPY src/slskdN.VpnAgent src/slskdN.VpnAgent/.
 COPY tests tests/.
 COPY vendor vendor/.
 
