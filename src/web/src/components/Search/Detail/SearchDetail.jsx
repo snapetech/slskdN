@@ -70,6 +70,21 @@ const sortDropdownOptions = [
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 
+const scheduleAfterPaint = (callback) => {
+  if (typeof window === 'undefined') {
+    callback();
+    return undefined;
+  }
+
+  if (typeof window.requestIdleCallback === 'function') {
+    const idleHandle = window.requestIdleCallback(callback, { timeout: 1_500 });
+    return () => window.cancelIdleCallback?.(idleHandle);
+  }
+
+  const timeout = window.setTimeout(callback, 250);
+  return () => window.clearTimeout(timeout);
+};
+
 export const mapUserNotesByUsername = (payload) =>
   (Array.isArray(payload) ? payload : []).reduce((accumulator, note) => {
     if (note?.username) {
@@ -126,17 +141,27 @@ const SearchDetail = ({
   const [graphOpen, setGraphOpen] = useState(false);
   const [graphRequest, setGraphRequest] = useState(null);
 
-  const fetchUserNotes = useCallback(async () => {
+  const fetchUserNotes = useCallback(async ({ isCancelled } = {}) => {
     try {
       const response = await getAllNotes();
-      setUserNotes(mapUserNotesByUsername(response.data));
+      if (!isCancelled?.()) {
+        setUserNotes(mapUserNotesByUsername(response.data));
+      }
     } catch (error_) {
       console.error('Failed to fetch user notes', error_);
     }
   }, []);
 
   useEffect(() => {
-    fetchUserNotes();
+    let cancelled = false;
+    const cancelScheduledFetch = scheduleAfterPaint(() =>
+      fetchUserNotes({ isCancelled: () => cancelled }),
+    );
+
+    return () => {
+      cancelled = true;
+      cancelScheduledFetch?.();
+    };
   }, [fetchUserNotes]);
 
   const [hasSavedDefault, setHasSavedDefault] = useState(
@@ -157,16 +182,24 @@ const SearchDetail = ({
 
   // Fetch user download stats for smart ranking
   useEffect(() => {
+    let cancelled = false;
+
     const fetchStats = async () => {
       try {
         const stats = await getUserDownloadStats();
-        setUserStats(stats);
+        if (!cancelled) {
+          setUserStats(stats);
+        }
       } catch {
         // Stats are optional, don't fail if unavailable
       }
     };
 
-    fetchStats();
+    const cancelScheduledFetch = scheduleAfterPaint(fetchStats);
+    return () => {
+      cancelled = true;
+      cancelScheduledFetch?.();
+    };
   }, []);
 
   // Handle blocking/unblocking users

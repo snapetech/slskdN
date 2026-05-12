@@ -107,6 +107,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
   lightweight shells, avoiding shared `FileList` prop mutation while sorting,
   and preventing inactive System Files explorers from fetching directory
   listings before their tab is selected.
+- Deferred optional Search Detail metadata fetches until after first paint,
+  rendered Library Health tabs active-only so large inactive tables are not
+  built, and fixed the System Shares contents modal to sort copied file lists
+  and pass boolean modal props.
 - Fixed downloads/uploads page spinner stalling on initial load due to queue-position API calls blocking the render; those are now fire-and-forget.
 - Dramatically reduced downloads/uploads page initial load time by fetching only active transfers on the 2-second poll; completed transfers are fetched separately on a 15-second interval for header bulk operations.
 - Added automatic re-queue for failed downloads: transfers ending in TimedOut, Errored, or Aborted state are automatically re-enqueued after a configurable delay (default 5 minutes). Cancelled and Rejected transfers are excluded.

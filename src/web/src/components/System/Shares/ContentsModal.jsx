@@ -13,15 +13,21 @@ const ContentsModal = ({ onClose, share, theme }) => {
   const { id, localPath, remotePath } = share || {};
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetch = async () => {
       setLoading(true);
 
       const result = await browse({ id });
 
+      if (cancelled) {
+        return;
+      }
+
       const directories = asArray(result).map((directory) => {
         const directoryName = asText(directory?.name);
         const lines = [directoryName.replace(remotePath, localPath)];
-        const directoryFilesOrderedByFilename = asArray(directory?.files).sort(
+        const directoryFilesOrderedByFilename = [...asArray(directory?.files)].sort(
           (file1, file2) => asText(file1?.filename).localeCompare(asText(file2?.filename)),
         );
 
@@ -34,8 +40,10 @@ const ContentsModal = ({ onClose, share, theme }) => {
         return lines.join('\n');
       });
 
-      setContents(directories.join('\n'));
-      setLoading(false);
+      if (!cancelled) {
+        setContents(directories.join('\n'));
+        setLoading(false);
+      }
     };
 
     if (id) {
@@ -44,12 +52,16 @@ const ContentsModal = ({ onClose, share, theme }) => {
       setLoading(true);
       setContents();
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Modal
       onClose={onClose}
-      open={share}
+      open={Boolean(share)}
       size="large"
     >
       <Modal.Header>

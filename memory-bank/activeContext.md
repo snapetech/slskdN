@@ -1,3 +1,18 @@
+## Update 2026-05-12 23:02:10Z
+
+- Current task: follow-up Web render/load performance pass completed.
+- Last activity:
+  - deferred Search Detail optional user notes and download stats until after first paint;
+  - changed Library Health to render only the active tab so hidden issue tables are not built;
+  - changed System Shares contents modal sorting to use copied file lists;
+  - fixed the System Shares contents modal `open` prop to pass a boolean.
+- Validation:
+  - Passed: focused Search Detail/Library Health/Shares/System Files/Chat Web tests (`14/14`).
+  - Passed: ESLint for touched files.
+  - Passed: production Web build.
+- Next steps:
+  1. Commit and push the follow-up Web render/load performance pass.
+
 ## Update 2026-05-12 22:56:27Z
 
 - Current task: additional hidden-work performance pass completed.

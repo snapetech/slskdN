@@ -862,7 +862,6 @@ const LibraryHealth = () => {
           setActiveIndex(nextIndex)
         }
         panes={panes}
-        renderActiveOnly={false}
       />
     </div>
   );

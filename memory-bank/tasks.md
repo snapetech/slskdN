@@ -2712,6 +2712,7 @@
 - [2026-05-12T22:43:00Z] Completed: deeper Web performance pass; deferred/deduped/bounded optional UserCard metadata fan-out and split optional Search/System route code into lazy chunks.
 - [2026-05-12T22:49:11Z] Completed: deeper render-path performance pass; inactive room tabs now render as lightweight shells, search responses use stable signatures instead of full serialization, search user-group metadata is deferred/cached, and transfer lists no longer sort props in place during render.
 - [2026-05-12T22:56:27Z] Completed: additional hidden-work performance pass; inactive chat tabs now render lightweight shells, shared file lists sort memoized copies, and inactive System Files explorers skip directory API calls until selected.
+- [2026-05-12T23:02:10Z] Completed: follow-up Web render/load performance pass; Search Detail optional notes/stats now defer until after paint, Library Health renders only the active tab, and the System Shares contents modal avoids mutating browse results while sorting.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.
 
