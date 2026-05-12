@@ -92,6 +92,29 @@ work visible. Expensive optional rendering should be skipped for hidden panes,
 derived collections should not mutate props, and change detection should use a
 stable domain signature instead of serializing whole payloads during updates.
 
+### 0z385. Semantic UI Boolean Props Must Receive Booleans
+
+**The Bug**: A modal passed the current `share` object directly to Semantic UI's
+`open` prop. It rendered because objects are truthy, but tests emitted prop-type
+warnings and future Semantic UI behavior could reject the value.
+
+**Files Affected**:
+- `src/web/src/components/System/Shares/ContentsModal.jsx`
+
+**Wrong**:
+```jsx
+<Modal open={share} />
+```
+
+**Correct**:
+```jsx
+<Modal open={Boolean(share)} />
+```
+
+**Why This Keeps Happening**: React truthiness and third-party component prop
+contracts are not the same thing. When a UI library declares a boolean prop,
+pass an actual boolean even if the current conditional value is truthy.
+
 ### 0z380. Transfer API Filters Must Stay EF-Translatable
 
 **The Bug**: The live kspls0 Downloads and Uploads pages failed their active
