@@ -52,6 +52,36 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z369. Release Artifact Verifiers Must Match The Active Web Bundler Layout
+
+**The Bug**: The post-release artifact verifier looked only for
+`wwwroot/static/js/*.js`, but current Vite builds ship JavaScript under
+`wwwroot/assets/*.js`. After adding the Vite path, the verifier still reported
+the marker missing because `grep -q` closed the pipe early, `unzip` received
+SIGPIPE, and `set -o pipefail` made the pipeline false even though the marker
+was present.
+
+**Files Affected**:
+- `scripts/verify-release-artifacts.sh`
+
+**Wrong**:
+```bash
+unzip -p "$LINUX_ZIP" 'wwwroot/static/js/*.js' | grep -Fq 'slskdn-footer-session-total'
+```
+
+**Correct**:
+```bash
+web_asset_dump="$WORK_DIR/web-assets-${web_asset_pattern//[^A-Za-z0-9]/_}.js"
+unzip -p "$LINUX_ZIP" "$web_asset_pattern" >"$web_asset_dump"
+grep -Fq 'slskdn-footer-session-total' "$web_asset_dump"
+```
+
+**Why This Keeps Happening**: Release verifiers often preserve assumptions from
+older build systems. Marker checks must follow the active packaged artifact
+layout, not a stale frontend framework convention, and `pipefail` scripts must
+not combine producers with early-exiting `grep -q` when a found match can still
+produce a failing pipeline.
+
 ### 0z368. New Check Scripts Must Be Registered In The Remediation Baseline
 
 **The Bug**: A new release guard script was added and called directly from the
