@@ -1,8 +1,8 @@
 # ADR-0005: Tag-Based Build and Release System
 
-**Status:** Active  
-**Date:** 2025-12-13  
-**Updated:** 2026-01-23  
+**Status:** Active
+**Date:** 2025-12-13
+**Updated:** 2026-05-12
 **Context:** Multi-channel CI/CD for dev and stable releases
 
 ---
@@ -13,7 +13,10 @@
 
 - ❌ **DO NOT** expect builds to happen automatically when pushing code
 - ❌ **DO NOT** modify workflows to trigger on branch pushes
-- ✅ **DO** create tags explicitly when you want to build/release
+- ❌ **DO NOT** create plain `slskdn.N` tags for releases; they do not trigger
+  the release packaging workflow
+- ✅ **DO** create release tags through `scripts/create-release-tag.sh` when you
+  want to build/release
 
 ---
 
@@ -48,8 +51,7 @@ build-<channel>-<version>
 **Usage:**
 ```bash
 VERSION="0.24.1.dev.$(date -u +%Y%m%d.%H%M%S)"
-git tag "build-dev-${VERSION}"
-git push origin "build-dev-${VERSION}"
+scripts/create-release-tag.sh "build-dev-${VERSION}"
 ```
 
 #### Main Channel: `build-main-*`
@@ -58,6 +60,10 @@ git push origin "build-dev-${VERSION}"
 
 **Version Format:** Semantic versioning `MAJOR.MINOR.PATCH`
 - Example: `0.25.0`, `1.0.0`, `1.2.3`
+
+The current fork stable stream may also use date-based public versions in the
+form `YYYYMMDDHH-slskdn.N` while local build scripts normalize that value for
+MSBuild/NuGet.
 
 **Publishes to:**
 - `slskdn` (AUR - **source** build from GitHub tarball)
@@ -70,10 +76,28 @@ git push origin "build-dev-${VERSION}"
 
 **Usage:**
 ```bash
-VERSION="0.25.0"
-git tag "build-main-${VERSION}"
-git push origin "build-main-${VERSION}"
+VERSION="2026051218-slskdn.240"
+scripts/create-release-tag.sh "build-main-${VERSION}"
 ```
+
+## Guarded Local Release Helper
+
+Use `scripts/create-release-tag.sh <tag>` instead of manual `git tag` and
+`git push` for local releases. The helper:
+
+- verifies the checkout targets `snapetech/slskdN`
+- rejects dirty working trees
+- verifies the current branch exactly matches its tracked upstream
+- rejects duplicate local or remote tags
+- validates `build-main-*` and `build-dev-*` tag shapes
+- runs `packaging/scripts/run-release-gate.sh`
+- pushes the release tag only after the gate passes
+
+After GitHub publishes the release, run
+`scripts/verify-release-artifacts.sh <tag>` to download the actual release
+assets, verify `SHA256SUMS.txt`, run the Linux binary version check, and assert
+that key aggregate features such as the VPN helper payload and Web footer
+session-total marker are present in the shipped archive.
 
 ## Workflow Logic
 
@@ -165,8 +189,7 @@ Dev uses binary-only (`slskdn-dev`) for faster iteration.
 ```bash
 # From experimental/multi-source-swarm branch
 VERSION="0.24.1.dev.$(date -u +%Y%m%d.%H%M%S)"
-git tag "build-dev-${VERSION}"
-git push origin "build-dev-${VERSION}"
+scripts/create-release-tag.sh "build-dev-${VERSION}"
 # Publishes to: slskdn-dev, ghcr.io/snapetech/slskdn:dev-latest, etc.
 ```
 
@@ -174,15 +197,16 @@ git push origin "build-dev-${VERSION}"
 
 ```bash
 # From main branch
-VERSION="0.25.0"
-git tag "build-main-${VERSION}"
-git push origin "build-main-${VERSION}"
+VERSION="2026051218-slskdn.240"
+scripts/create-release-tag.sh "build-main-${VERSION}"
 # Publishes to: slskdn, slskdn-bin, ghcr.io/snapetech/slskdn:latest, etc.
 ```
 
 ## Related Files
 
 - `.github/workflows/build-on-tag.yml` - Main CI/CD workflow
+- `scripts/create-release-tag.sh` - Guarded local tag creation path
+- `scripts/verify-release-artifacts.sh` - Post-publish asset verification
 - `CI_PACKAGE_PUBLISHING.md` - Package publishing documentation
 - `BUILD_RELEASE.md` - Build instructions
 - `packaging/aur/PKGBUILD` - AUR source package

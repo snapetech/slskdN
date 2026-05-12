@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] Guard release tagging against orphaned aggregate changes.
+ - Status: completed (2026-05-12)
+ - Priority: P1
+ - Notes: Added `scripts/create-release-tag.sh` as the only supported local release-tag path, with GitHub target verification, clean-tree enforcement, upstream branch sync, duplicate tag checks, release-tag shape validation, and full release-gate execution before pushing a `build-main-*` or `build-dev-*` tag. Hardened post-publish artifact verification to require `SHA256SUMS.txt`, expected platform archives, executable `vpn-agent/slskdN-vpn-agent`, and the bundled `slskdn-footer-session-total` Web marker. Updated release docs and packaging metadata validation so the guard stays wired.
+
 - [x] Fix Messaging V2 size controls, viewport bounds, and redeploy to kspls0.
  - Status: completed (2026-05-06)
  - Priority: P1

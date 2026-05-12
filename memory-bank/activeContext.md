@@ -1,18 +1,28 @@
 ## Update 2026-05-12 16:56:00Z
 
-- Current task: second packaging/cross-platform release-readiness pass completed.
+- Current task: guarded release tagging and aggregate artifact verification completed.
 - Last activity:
+  - added `scripts/create-release-tag.sh` so release tags can only be pushed
+    after target verification, clean-tree checks, upstream branch sync,
+    duplicate tag checks, tag-format validation, and the full release gate;
+  - hardened `scripts/verify-release-artifacts.sh` so downloaded GitHub
+    release assets must include `SHA256SUMS.txt`, expected platform archives,
+    executable `vpn-agent/slskdN-vpn-agent`, Linux binary version output, and
+    the bundled `slskdn-footer-session-total` Web marker;
+  - updated release docs, the tagging ADR, changelogs, task/progress logs, and
+    packaging metadata validation for the guarded path;
   - fixed macOS VPN helper pf enforcement so the anchor is installed and referenced from `/etc/pf.conf`;
   - added VPN helper payload publishing/checks to secondary Linux, PPA, and COPR release workflows;
   - exposed `slskdN-vpn-agent` from Homebrew and Chocolatey installs and kept the stable metadata updater in sync;
   - regenerated the API route inventory caught by the release gate;
   - fixed Transfers optimistic bulk-clear state so header rows disappear with the body rows.
 - Validation:
+  - Pending for latest guarded-tag documentation/script pass.
   - Passed: `packaging/scripts/run-release-gate.sh` end-to-end.
   - Passed within gate: packaging metadata, remediation baseline, Web install/tests/build/subpath smoke, backend unit/smoke tests, release integration smoke.
   - Passed separately: self-contained VPN helper publishes for `linux-x64`, `win-x64`, and `osx-x64`; local `./bin/publish --no-prebuild --runtime linux-x64 --output /tmp/slskdn-release-linux-x64-pass2` with `vpn-agent/` payload.
 - Next steps:
-  1. Commit remaining packaging workflow polish.
+  1. Run shell/packaging metadata validation for the guarded release path.
   2. Wait for explicit release tag/version before triggering a tag-only release.
 
 ## Update 2026-05-12 16:15:00Z

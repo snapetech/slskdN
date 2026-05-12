@@ -192,7 +192,7 @@ export const getAll = async () => {
 ### Build Rules
 - ❌ **DO NOT** expect builds on code pushes to master
 - ❌ **DO NOT** modify workflows to trigger on branch pushes
-- ✅ **DO** create tags explicitly when user requests a build
+- ✅ **DO** use `scripts/create-release-tag.sh` when user requests a build
 - ✅ **DO** wait for explicit user instruction before creating tags
 
 ### CI Workflow Triggers
@@ -204,13 +204,11 @@ export const getAll = async () => {
 ### To Trigger a Build (Only if User Requests)
 ```bash
 # Main/stable release
-git tag build-main-0.24.1-slskdn.41
-git push origin build-main-0.24.1-slskdn.41
+scripts/create-release-tag.sh build-main-2026051218-slskdn.240
 
 # Dev release
 VERSION="0.24.1.dev.$(date -u +%Y%m%d.%H%M%S)"
-git tag "build-dev-${VERSION}"
-git push origin "build-dev-${VERSION}"
+scripts/create-release-tag.sh "build-dev-${VERSION}"
 ```
 
 See `memory-bank/decisions/adr-0005-tagging-system.md` for complete details.

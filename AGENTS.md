@@ -209,12 +209,11 @@ See `memory-bank/decisions/adr-0003-anti-slop-rules.md` for the full list.
 
 ```bash
 # Main/stable release
-git tag build-main-0.24.1-slskdn.41
-git push origin build-main-0.24.1-slskdn.41
+scripts/create-release-tag.sh build-main-2026051218-slskdn.240
 
 # Dev release
-git tag build-dev-0.24.1.dev.$(date -u +%Y%m%d.%H%M%S)
-git push origin $(git describe --tags --abbrev=0)
+VERSION="0.24.1.dev.$(date -u +%Y%m%d.%H%M%S)"
+scripts/create-release-tag.sh "build-dev-${VERSION}"
 ```
 
 **Never create tags automatically** - always wait for explicit user instruction.
@@ -247,14 +246,13 @@ The CI workflow (`ci.yml`) is configured to:
 
 **For stable releases (main channel):**
 ```bash
-git tag build-main-0.24.1-slskdn.41
-git push origin build-main-0.24.1-slskdn.41
+scripts/create-release-tag.sh build-main-2026051218-slskdn.240
 ```
 
 **For dev releases:**
 ```bash
-git tag build-dev-0.24.1.dev.$(date -u +%Y%m%d.%H%M%S)
-git push origin build-dev-0.24.1.dev.$(date -u +%Y%m%d.%H%M%S)
+VERSION="0.24.1.dev.$(date -u +%Y%m%d.%H%M%S)"
+scripts/create-release-tag.sh "build-dev-${VERSION}"
 ```
 
 ### Build Workflows

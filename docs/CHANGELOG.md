@@ -48,6 +48,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
   secondary-release workflows before cutting the next tag.
 - Added a release-gate branch sync check so validated local commits must be
   pushed to the tracked upstream before a release tag is cut.
+- Added a guarded release-tag helper and post-publish artifact verification so
+  future releases must tag the pushed aggregate, run the full gate, and confirm
+  shipped archives contain key aggregate features such as the VPN helper and
+  footer session-transfer marker.
 - Fixed downloads/uploads page spinner stalling on initial load due to queue-position API calls blocking the render; those are now fire-and-forget.
 - Dramatically reduced downloads/uploads page initial load time by fetching only active transfers on the 2-second poll; completed transfers are fetched separately on a 15-second interval for header bulk operations.
 - Added automatic re-queue for failed downloads: transfers ending in TimedOut, Errored, or Aborted state are automatically re-enqueued after a configurable delay (default 5 minutes). Cancelled and Rejected transfers are excluded.

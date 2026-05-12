@@ -19,6 +19,7 @@ If the release claims to fix a reported bug, also run the reproduce-first workfl
 
 The release gate now covers:
 
+- branch sync with the tracked upstream before tagging
 - packaging metadata validation
 - frontend unit tests
 - frontend production build
@@ -58,9 +59,14 @@ The release gate now covers:
    - re-run the same path after the patch
    - identify any symptoms that remain unverified
 3. Push the code branch normally if needed.
-4. Only trigger build/release by creating the appropriate tag when explicitly desired.
+4. Only trigger build/release by running the guarded tag helper when explicitly desired:
+   - `scripts/create-release-tag.sh build-main-YYYYMMDDHH-slskdn.N`
+   - `scripts/create-release-tag.sh build-dev-MAJOR.MINOR.PATCH.dev.YYYYMMDD.HHMMSS`
+5. After GitHub publishes the release, verify the actual assets:
+   - `scripts/verify-release-artifacts.sh <tag>`
 
 Do not rely on a normal branch push to validate packaging or publish artifacts. This repo builds releases on tags.
+Do not create or push plain `slskdn.N` tags for releases; those do not run the release packaging workflow.
 
 ## Recommended extra checks for risky changes
 
@@ -87,3 +93,13 @@ Do not call a build "release-ready" unless:
 - any claimed bugfix has passed its issue-specific repro/acceptance checks, or is clearly labeled as an unverified mitigation
 - no known release-blocking packaging issue is open for the touched platform
 - the tag-triggered build is the next intended step
+
+## Orphaned-change guard
+
+The release source of truth is the pushed branch head plus a `build-main-*` or
+`build-dev-*` tag created by `scripts/create-release-tag.sh`. The helper refuses
+dirty trees, local-only commits, stale upstream branches, duplicate local/remote
+tags, and invalid tag names before it runs the full release gate and pushes the
+tag. The post-release artifact verifier then checks the downloaded GitHub assets
+for checksums, the VPN helper payload, and the bundled Web footer session-total
+marker so a release cannot silently miss recently merged aggregate code.

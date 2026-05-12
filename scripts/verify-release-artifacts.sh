@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Verify release artifacts: download, compute SHA256, optionally run binary for version.
+# Verify release artifacts: download, verify checksums, inspect bundled feature
+# markers, and run the Linux binary for version output.
 # Usage:
 #   ./scripts/verify-release-artifacts.sh [TAG]
 #   TAG defaults to latest dev tag (build-dev-*). Use e.g. build-dev-0.24.1.dev.91769607746
-set -e
+set -euo pipefail
 
 REPO="${REPO:-snapetech/slskdn}"
 TAG="${1:-}"
@@ -23,16 +24,60 @@ WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 cd "$WORK_DIR"
 
+fail() {
+  echo "ERROR: $1" >&2
+  exit 1
+}
+
 echo "Downloading assets from $REPO @ $TAG..."
-gh release download "$TAG" --repo "$REPO" --dir . || { echo "Download failed (gh auth? tag exists?)"; exit 1; }
+gh release download "$TAG" --repo "$REPO" --dir . || fail "Download failed (gh auth? tag exists?)"
+
+shopt -s nullglob
+zip_files=(*.zip)
+if [ "${#zip_files[@]}" -eq 0 ]; then
+  fail "No zip assets were downloaded for $TAG"
+fi
 
 echo ""
-echo "=== SHA256 checksums (computed from downloaded files) ==="
-for f in *.zip; do
-  [ -f "$f" ] || continue
+echo "=== SHA256 checksums ==="
+for f in "${zip_files[@]}"; do
   sha=$(sha256sum "$f" | awk '{print $1}')
   echo "$sha  $f"
 done
+
+if [ -f SHA256SUMS.txt ]; then
+  echo ""
+  echo "=== Published SHA256SUMS verification ==="
+  sha256sum --ignore-missing -c SHA256SUMS.txt
+else
+  fail "SHA256SUMS.txt is missing from release assets"
+fi
+
+echo ""
+echo "=== Required release asset checks ==="
+for required_asset in \
+  slskdn-main-linux-glibc-x64.zip \
+  slskdn-main-linux-glibc-arm64.zip \
+  slskdn-main-linux-musl-x64.zip \
+  slskdn-main-osx-x64.zip \
+  slskdn-main-osx-arm64.zip; do
+  if [[ "$TAG" == build-main-* && ! -f "$required_asset" ]]; then
+    fail "Missing required main release asset: $required_asset"
+  fi
+done
+
+if [[ "$TAG" == build-dev-* ]]; then
+  for required_asset in \
+    slskdn-dev-linux-glibc-x64.zip \
+    slskdn-dev-linux-glibc-arm64.zip \
+    slskdn-dev-linux-musl-x64.zip \
+    slskdn-dev-osx-x64.zip \
+    slskdn-dev-osx-arm64.zip; do
+    if [ ! -f "$required_asset" ]; then
+      fail "Missing required dev release asset: $required_asset"
+    fi
+  done
+fi
 
 echo ""
 echo "=== Version check (Linux x64 binary) ==="
@@ -42,18 +87,33 @@ for f in slskdn-dev-linux-glibc-x64.zip slskdn-main-linux-glibc-x64.zip slskdn-d
 done
 if [ -n "$LINUX_ZIP" ]; then
   unzip -q -o "$LINUX_ZIP" -d extracted
+  if [ -x extracted/vpn-agent/slskdN-vpn-agent ]; then
+    echo "VPN helper payload present."
+  else
+    fail "Linux x64 zip is missing executable vpn-agent/slskdN-vpn-agent"
+  fi
+
+  if unzip -p "$LINUX_ZIP" 'wwwroot/static/js/*.js' 2>/dev/null | grep -Fq 'slskdn-footer-session-total'; then
+    echo "Footer session-total marker present in bundled Web assets."
+  else
+    fail "Linux x64 zip Web bundle is missing slskdn-footer-session-total"
+  fi
+
   if [ -f extracted/slskd ]; then
     chmod +x extracted/slskd
-    ./extracted/slskd --version 2>/dev/null || ./extracted/slskd -v 2>/dev/null || echo "(binary did not print version)"
+    version_output="$(./extracted/slskd --version 2>/dev/null || ./extracted/slskd -v 2>/dev/null || true)"
+    if [ -z "$version_output" ]; then
+      fail "Linux x64 binary did not print version output"
+    fi
+    echo "$version_output"
   else
-    echo "No extracted/slskd found; listing:"
+    echo "No extracted/slskd found; listing:" >&2
     ls -la extracted/
+    fail "Linux x64 zip is missing slskd binary"
   fi
 else
-  echo "No Linux x64 zip found to run version check."
+  fail "No Linux x64 zip found to run version and payload checks."
 fi
 
 echo ""
-echo "To compare with published hashes:"
-echo "  - Chocolatey/Winget/release notes: SHA256 hex (as above)."
-echo "  - Nix flake.nix: uses SRI/base32 (nix-hash --type sha256 --flat --base32 <file>)."
+echo "Release artifact verification passed."

@@ -87,12 +87,10 @@ To trigger a build, create and push a tag:
 
 ```bash
 # Main/stable release
-git tag build-main-0.24.1-slskdn.41
-git push origin build-main-0.24.1-slskdn.41
+scripts/create-release-tag.sh build-main-2026051218-slskdn.240
 
 # Dev release
-git tag build-dev-0.24.1.dev.20260505
-git push origin build-dev-0.24.1.dev.20260505
+scripts/create-release-tag.sh build-dev-0.24.1.dev.20260512.180000
 ```
 
 See `memory-bank/decisions/adr-0005-tagging-system.md` for complete tag format details.
@@ -109,14 +107,21 @@ See `memory-bank/decisions/adr-0005-tagging-system.md` for complete tag format d
 
 **For stable releases:**
 ```bash
-git tag build-main-0.24.1-slskdn.41
-git push origin build-main-0.24.1-slskdn.41
+scripts/create-release-tag.sh build-main-2026051218-slskdn.240
 ```
 
 **For dev releases:**
 ```bash
-git tag build-dev-0.24.1.dev.20260505
-git push origin build-dev-0.24.1.dev.20260505
+scripts/create-release-tag.sh build-dev-0.24.1.dev.20260512.180000
+```
+
+The helper verifies the GitHub target, refuses dirty or unsynced branches, runs
+the full release gate, checks for duplicate tags, and only then pushes the
+release tag. After GitHub publishes the release, verify the actual uploaded
+assets with:
+
+```bash
+scripts/verify-release-artifacts.sh <tag>
 ```
 
 ### Build Workflows
