@@ -1,3 +1,17 @@
+## Update 2026-05-12 23:41:45Z
+
+- Current task: live room discovery polling regression fix in progress.
+- Last activity:
+  - confirmed `kspls0` room-list and room-join calls both timed out after repeated room-list polling;
+  - removed available-room discovery from general Messaging V2 hydration;
+  - made the backend room-list endpoint return empty optional data on SDK timeout.
+- Validation:
+  - Pending: focused Web Messaging tests.
+  - Pending: focused RoomsController tests.
+  - Pending: deploy and live API join check on `kspls0`.
+- Next steps:
+  1. Run focused tests, commit, push, rebuild, redeploy, and verify room join/list behavior live.
+
 ## Update 2026-05-12 23:32:51Z
 
 - Current task: room list reconnect hardening completed.

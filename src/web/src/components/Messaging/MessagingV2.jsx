@@ -164,13 +164,11 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
     const [
       serverConversations,
       serverJoinedRooms,
-      serverAvailableRooms,
       serverPods,
       serverDiscoveredPods,
     ] = await Promise.all([
       chat.getAll(),
       rooms.getJoined(),
-      Promise.resolve(rooms.getAvailable()).catch(() => []),
       pods.list().catch(() => []),
       Promise.resolve(
         typeof pods.discoverAll === 'function' ? pods.discoverAll(50) : [],
@@ -199,12 +197,6 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         }),
     );
     setJoinedRooms(asArray(serverJoinedRooms).filter(Boolean).sort());
-    setAvailableRooms(
-      asArray(serverAvailableRooms)
-        .map((room) => (typeof room === 'string' ? room : room?.name || room?.Name || ''))
-        .filter(Boolean)
-        .sort((a, b) => a.localeCompare(b)),
-    );
     setDiscoveredPods(
       asArray(serverDiscoveredPods)
         .filter((pod) => pod && typeof pod === 'object' && !Array.isArray(pod))
@@ -232,6 +224,16 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
     );
   }, []);
 
+  const loadAvailableRooms = useCallback(async () => {
+    const serverAvailableRooms = await Promise.resolve(rooms.getAvailable()).catch(() => []);
+    setAvailableRooms(
+      asArray(serverAvailableRooms)
+        .map((room) => (typeof room === 'string' ? room : room?.name || room?.Name || ''))
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b)),
+    );
+  }, []);
+
   useEffect(() => {
     hydrate().catch((error) => {
       console.error('Failed to hydrate v2 messaging workspace:', error);
@@ -243,6 +245,13 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
     }, 10_000);
     return () => window.clearInterval(interval);
   }, [hydrate]);
+
+  useEffect(() => {
+    if (!roomAddOpen) return;
+    loadAvailableRooms().catch((error) => {
+      console.error('Failed to load available rooms:', error);
+    });
+  }, [loadAvailableRooms, roomAddOpen]);
 
   const visiblePodChannels = useMemo(
     () => podChannels.filter((channel) => !isPodDirectChannel(channel)),
@@ -892,7 +901,10 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         <button
           aria-label="Refresh"
           className="msgv2-rail-pill msgv2-rail-icon"
-          onClick={() => hydrate()}
+          onClick={() => {
+            hydrate();
+            if (roomAddOpen) loadAvailableRooms();
+          }}
           title="Refresh"
           type="button"
         >
