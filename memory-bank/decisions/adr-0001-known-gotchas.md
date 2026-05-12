@@ -52,6 +52,40 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z384. Render-Time Work Must Not Scale With Hidden Or Unchanged Data
+
+**The Bug**: Performance fixes removed first-load blockers, but some render
+paths still did expensive work for data the user could not see or that had not
+meaningfully changed: inactive room tabs rendered full histories and user
+lists, transfer lists sorted props in place during render, and search responses
+deep-compared large payloads with `JSON.stringify`.
+
+**Files Affected**:
+- `src/web/src/components/Rooms/RoomSession.jsx`
+- `src/web/src/components/Search/Response.jsx`
+- `src/web/src/components/Transfers/TransferList.jsx`
+
+**Wrong**:
+```jsx
+const changed = JSON.stringify(nextResponse) !== JSON.stringify(prevResponse);
+files.sort(compareByName);
+return inactive ? <FullRoomSession /> : <FullRoomSession />;
+```
+
+**Correct**:
+```jsx
+const changed = getResponseSignature(nextResponse) !== previousSignature;
+const sortedFiles = [...files].sort(compareByName);
+return inactive ? <InactiveRoomShell /> : <FullRoomSession />;
+```
+
+**Why This Keeps Happening**: React components often look cheap when they are
+tested with one row, one room, or one response. On real nodes like kspls0, row
+counts, inactive tabs, duplicate users, and large search payloads make render
+work visible. Expensive optional rendering should be skipped for hidden panes,
+derived collections should not mutate props, and change detection should use a
+stable domain signature instead of serializing whole payloads during updates.
+
 ### 0z380. Transfer API Filters Must Stay EF-Translatable
 
 **The Bug**: The live kspls0 Downloads and Uploads pages failed their active
