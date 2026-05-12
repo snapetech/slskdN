@@ -1,3 +1,18 @@
+## Update 2026-05-12 21:45:00Z
+
+- Current task: replacement release follow-up in progress.
+- Last activity:
+  - confirmed replacement tag `.246` failed in the GitHub release gate before packaging;
+  - root-caused the failure to mesh transfer status publication ordering: pollers could observe `State = Failed` before `ErrorMessage` was populated;
+  - documented ADR-0001 gotcha `0z378`;
+  - changed `MeshTransferService` to publish terminal failure details before switching to `Failed`.
+- Validation:
+  - Passed: focused Release mesh-transfer failure test once, then 30 repeated Release runs.
+- Next steps:
+  1. Run packaging metadata, lint, and release-target checks.
+  2. Commit/push the status publication fix.
+  3. Cut and monitor a replacement release tag.
+
 ## Update 2026-05-12 21:35:00Z
 
 - Current task: replacement release follow-up in progress.

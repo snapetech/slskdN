@@ -307,8 +307,9 @@ public sealed class MeshTransferService : IMeshTransferService
             logger.LogError(ex, "[VSF-MESH-TRANSFER] {TransferId}: Transfer failed: {Message}",
                 transferId, ex.Message);
 
-            status.State = MeshTransferState.Failed;
             status.ErrorMessage = "Mesh transfer failed";
+            status.CompletedAt = DateTimeOffset.UtcNow;
+            status.State = MeshTransferState.Failed;
             PublishProgress(transferId, status);
         }
         finally
