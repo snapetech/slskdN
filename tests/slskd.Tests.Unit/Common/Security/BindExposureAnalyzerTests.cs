@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.Tests.Unit.Common.Security;
 
+using slskd;
 using slskd.Common.Security;
 using Xunit;
 
@@ -46,5 +47,83 @@ public class BindExposureAnalyzerTests
         var actual = BindExposureAnalyzer.IsRemoteReachable(exposure);
 
         Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void AnalyzeWebBinding_LoopbackHttpOnly_IsLoopbackOnly()
+    {
+        var options = new OptionsAtStartup
+        {
+            Web = new Options.WebOptions
+            {
+                Address = "127.0.0.1",
+                Port = 5030,
+                Https = new Options.WebOptions.HttpsOptions { Disabled = true },
+            },
+        };
+
+        var actual = BindExposureAnalyzer.AnalyzeWebBinding(options);
+
+        Assert.Equal(BindExposure.LoopbackOnly, actual);
+    }
+
+    [Fact]
+    public void AnalyzeWebBinding_UnixSocketOnly_IsUnixSocketOnly()
+    {
+        var options = new OptionsAtStartup
+        {
+            Web = new Options.WebOptions
+            {
+                Address = "127.0.0.1",
+                Port = 0,
+                Socket = "/tmp/slskd.sock",
+                Https = new Options.WebOptions.HttpsOptions { Disabled = true },
+            },
+        };
+
+        var actual = BindExposureAnalyzer.AnalyzeWebBinding(options);
+
+        Assert.Equal(BindExposure.UnixSocketOnly, actual);
+    }
+
+    [Fact]
+    public void AnalyzeWebBinding_HttpsEnabled_IsAnyAddress()
+    {
+        var options = new OptionsAtStartup
+        {
+            Web = new Options.WebOptions
+            {
+                Address = "127.0.0.1",
+                Port = 5030,
+                Https = new Options.WebOptions.HttpsOptions
+                {
+                    Disabled = false,
+                    Port = 5031,
+                },
+            },
+        };
+
+        var actual = BindExposureAnalyzer.AnalyzeWebBinding(options);
+
+        Assert.Equal(BindExposure.AnyAddress, actual);
+    }
+
+    [Fact]
+    public void AnalyzeWebBinding_InvalidTcpAddress_FailsClosedAsUnknown()
+    {
+        var options = new OptionsAtStartup
+        {
+            Web = new Options.WebOptions
+            {
+                Address = "not-an-ip",
+                Port = 5030,
+                Https = new Options.WebOptions.HttpsOptions { Disabled = true },
+            },
+        };
+
+        var actual = BindExposureAnalyzer.AnalyzeWebBinding(options);
+
+        Assert.Equal(BindExposure.Unknown, actual);
+        Assert.True(BindExposureAnalyzer.IsRemoteReachable(actual));
     }
 }

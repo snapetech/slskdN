@@ -711,12 +711,10 @@ namespace slskd
 
             /// <summary>
             ///     Gets a value indicating whether audio hash-from-file (PCM extraction) is enabled.
-            ///     When true and EnforceSecurity is on, startup fails: this gated feature requires FFmpeg/NAudio PCM extraction.
+            ///     Startup fails when true because this build does not provide PCM extraction support.
             ///     §11: Do not register incomplete features, or fail at startup, or 501 at runtime.
             /// </summary>
-            [Argument(default, "hash-from-audio-file")]
-            [EnvironmentVariable("HASH_FROM_AUDIO_FILE")]
-            [Description("enable audio hash from file (gated; fails startup when EnforceSecurity)")]
+            [Description("unsupported audio hash from file option; startup fails when true")]
             [RequiresRestart]
             public bool HashFromAudioFileEnabled { get; init; } = false;
 

@@ -125,6 +125,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   picker is opened.
 - Made room joins return a controlled 503 while Soulseek is reconnecting
   instead of surfacing an unhandled SDK state exception.
+- Tightened startup hardening so public bind exposure is classified through the
+  shared analyzer and unsupported hash-from-audio config fails consistently.
 - Fixed downloads/uploads page spinner stalling on initial load due to queue-position API calls blocking the render; those are now fire-and-forget.
 - Dramatically reduced downloads/uploads page initial load time by fetching only active transfers on the 2-second poll; completed transfers are fetched separately on a 15-second interval for header bulk operations.
 - Added automatic re-queue for failed downloads: transfers ending in TimedOut, Errored, or Aborted state are automatically re-enqueued after a configurable delay (default 5 minutes). Cancelled and Rejected transfers are excluded.

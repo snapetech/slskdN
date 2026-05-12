@@ -707,8 +707,8 @@ namespace slskd
             // bootstrap the ASP.NET application
             try
             {
-                var isBindingNonLoopback = OptionsAtStartup.Web.Port > 0 ||
-                    (!OptionsAtStartup.Web.Https.Disabled && OptionsAtStartup.Web.Https.Port > 0);
+                var bindExposure = BindExposureAnalyzer.AnalyzeWebBinding(OptionsAtStartup);
+                var isBindingNonLoopback = BindExposureAnalyzer.IsRemoteReachable(bindExposure);
                 Common.Security.HardeningValidator.Validate(
                     OptionsAtStartup,
                     System.Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production",

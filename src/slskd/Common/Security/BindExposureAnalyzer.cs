@@ -17,6 +17,26 @@ using System.Net.Sockets;
 public static class BindExposureAnalyzer
 {
     /// <summary>
+    /// Classifies the configured web listener posture.
+    /// </summary>
+    /// <param name="options">Startup options containing web listener settings.</param>
+    /// <returns>The most exposed listener classification.</returns>
+    public static BindExposure AnalyzeWebBinding(OptionsAtStartup options)
+    {
+        if (options?.Web == null)
+        {
+            return BindExposure.None;
+        }
+
+        var httpExposure = Analyze(options.Web.Address, options.Web.Port, options.Web.Socket);
+        var httpsExposure = options.Web.Https.Disabled
+            ? BindExposure.None
+            : Analyze(IPAddress.Any.ToString(), options.Web.Https.Port);
+
+        return MostExposed(httpExposure, httpsExposure);
+    }
+
+    /// <summary>
     /// Classifies a single web listener binding.
     /// </summary>
     /// <param name="address">Configured bind address. Wildcard values such as <c>*</c>, <c>0.0.0.0</c>, and <c>::</c> are remote reachable.</param>
@@ -99,6 +119,21 @@ public static class BindExposureAnalyzer
         var bytes = ipAddress.GetAddressBytes();
         return bytes.Length > 0 && (bytes[0] & 0xFE) == 0xFC;
     }
+
+    private static BindExposure MostExposed(BindExposure first, BindExposure second) =>
+        ExposureRank(first) >= ExposureRank(second) ? first : second;
+
+    private static int ExposureRank(BindExposure exposure) => exposure switch
+    {
+        BindExposure.None => 0,
+        BindExposure.UnixSocketOnly => 1,
+        BindExposure.LoopbackOnly => 2,
+        BindExposure.NonLoopbackPrivate => 3,
+        BindExposure.NonLoopbackPublic => 4,
+        BindExposure.AnyAddress => 5,
+        BindExposure.Unknown => 6,
+        _ => 6,
+    };
 }
 
 /// <summary>

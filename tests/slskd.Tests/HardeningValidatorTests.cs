@@ -128,7 +128,7 @@ public class HardeningValidatorTests
     }
 
     /// <summary>
-    /// §11: Flags.HashFromAudioFileEnabled when EnforceSecurity must fail startup.
+    /// §11: Flags.HashFromAudioFileEnabled must fail startup because PCM extraction is unavailable.
     /// </summary>
     [Fact]
     public void EnforceSecurity_true_HashFromAudioFileEnabled_throws_HashFromAudioFileEnabled()
@@ -151,6 +151,29 @@ public class HardeningValidatorTests
 
         Assert.Equal(HardeningValidator.RuleHashFromAudioFileEnabled, ex.RuleName);
         Assert.Contains("HashFromAudioFileEnabled", ex.Message);
+    }
+
+    [Fact]
+    public void EnforceSecurity_false_HashFromAudioFileEnabled_throws_HashFromAudioFileEnabled()
+    {
+        var options = new OptionsAtStartup
+        {
+            Web = new Options.WebOptions
+            {
+                EnforceSecurity = false,
+                AllowRemoteNoAuth = false,
+                Authentication = new Options.WebOptions.WebAuthenticationOptions { Disabled = false },
+                Cors = new Options.WebOptions.CorsOptions { Enabled = false },
+            },
+            Diagnostics = new Options.DiagnosticsOptions { AllowMemoryDump = false },
+            Flags = new Options.FlagsOptions { HashFromAudioFileEnabled = true },
+        };
+
+        var ex = Assert.Throws<HardeningValidationException>(
+            () => HardeningValidator.Validate(options, "Production", isBindingNonLoopback: false));
+
+        Assert.Equal(HardeningValidator.RuleHashFromAudioFileEnabled, ex.RuleName);
+        Assert.Contains("not supported", ex.Message);
     }
 
     [Fact]

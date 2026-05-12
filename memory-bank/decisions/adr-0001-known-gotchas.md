@@ -16724,3 +16724,11 @@ npm run check:council
 **Follow-on gotcha:** Remediation checks that assert workflow .NET versions must compare against `global.json`, not just the target-framework major. Otherwise the release gate blocks the exact SDK pin that prevents publish drift.
 
 **Second follow-on gotcha:** A local-only `global.json` is worse than no pin for releases. If workflows or validation depend on `global.json`, force-add it despite ignore rules and gate on `git ls-files global.json` so tag checkouts see the same SDK pin as local release gates.
+
+### 0z353. Startup Security Checks Need Real Listener Exposure
+
+**What went wrong:** Startup hardening treated “HTTP or HTTPS port is enabled” as equivalent to “the web app binds to a non-loopback address.” That can block safe loopback-only/no-auth deployments while still hiding the real source of exposure, such as HTTPS listening on all interfaces.
+
+**Why:** `HardeningValidator` received a boolean computed from configured port presence instead of a classification of the actual listener address/socket posture.
+
+**How to prevent:** Compute bind posture with `BindExposureAnalyzer.AnalyzeWebBinding(...)`, fail closed for unknown TCP bind addresses, and pass `BindExposureAnalyzer.IsRemoteReachable(...)` into hardening validation. Unsupported feature toggles such as audio hash-from-file should fail startup directly, not degrade to warning-only behavior when the dependency path is unavailable.

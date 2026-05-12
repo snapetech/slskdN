@@ -127,14 +127,11 @@ namespace slskd.Common.Security
                     Log.Warning("[{Rule}] {Message}", RuleWeakMetricsPassword, msg);
             }
 
-            // 5. §11: HashFromAudioFileEnabled requires PCM extraction support from FFmpeg/NAudio.
+            // 5. §11: HashFromAudioFileEnabled requires unavailable PCM extraction support.
             if (options.Flags?.HashFromAudioFileEnabled == true)
             {
-                const string msg = "Flags.HashFromAudioFileEnabled is true but audio hash from file requires unavailable PCM extraction support. Set to false unless FFmpeg/NAudio integration is available.";
-                if (enforce)
-                    throw new HardeningValidationException(RuleHashFromAudioFileEnabled, msg);
-                else
-                    Log.Warning("[{Rule}] {Message}", RuleHashFromAudioFileEnabled, msg);
+                const string msg = "Flags.HashFromAudioFileEnabled is true but audio hash from file requires unavailable PCM extraction support. Set it to false; this option is not supported in this build.";
+                throw new HardeningValidationException(RuleHashFromAudioFileEnabled, msg);
             }
         }
     }
