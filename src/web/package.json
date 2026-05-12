@@ -26,25 +26,25 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-responsive": "^10.0.1",
-    "react-router-dom": "^7.14.2",
+    "react-router-dom": "^7.15.0",
     "react-toastify": "^11.1.0",
     "semantic-ui-less": "^2.5.0",
     "semantic-ui-react": "^2.1.5",
     "signalr": "^2.4.1",
     "uuid": "^14.0.0",
-    "yaml": "^2.8.4"
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
-    "@playwright/test": "^1.59.1",
+    "@playwright/test": "^1.60.0",
     "@semantic-ui-react/css-patch": "^1.1.3",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
-    "@types/node": "^25.6.0",
+    "@types/node": "^25.6.2",
     "@vitejs/plugin-react": "^6.0.1",
-    "@vitest/coverage-v8": "^4.1.5",
+    "@vitest/coverage-v8": "^4.1.6",
     "esbuild": "^0.28.0",
     "eslint": "^9.39.4",
     "eslint-config-canonical": "^47.4.2",
@@ -55,8 +55,8 @@
     "jsdom": "^29.1.1",
     "less": "^4.6.4",
     "typescript": "^6.0.3",
-    "vite": "^8.0.10",
-    "vitest": "^4.1.5"
+    "vite": "^8.0.12",
+    "vitest": "^4.1.6"
   },
   "name": "web",
   "overrides": {
