@@ -126,6 +126,35 @@ while distro packages install into `/usr/bin` and run the app as `slskd`.
 Package recipes must adapt the unit files instead of copying the manual units
 verbatim.
 
+### 0z372. Dismissed Banners Must Not Be Keyed To Volatile Runtime State
+
+**The Bug**: The network endpoint migration banner stored dismissal against the
+current VPN forwarded-port signature. VPN/NAT mappings can legitimately change,
+so a banner the user already closed returned after the next port renewal or
+install using different forwarded ports.
+
+**Files Affected**:
+- `src/web/src/components/App.jsx`
+- `src/web/src/components/App.css`
+- `src/web/src/components/App.test.jsx`
+
+**Wrong**:
+```jsx
+const hasDismissedVpnPortNotice = (signature) =>
+  localStorage.getItem('slskdn.networkEndpoints.v2.dismissedSignature') === signature;
+```
+
+**Correct**:
+```jsx
+const hasDismissedVpnPortNotice = () =>
+  localStorage.getItem('slskdn.networkEndpoints.dismissedForever') === 'true';
+```
+
+**Why This Keeps Happening**: Some notices describe one-time user education,
+not a live alert that should re-arm on every data change. Dismissal keys for
+one-time banners must be stable across runtime state changes, upgrades, and
+future installs that keep the same browser profile.
+
 ### 0z369. Release Artifact Verifiers Must Match The Active Web Bundler Layout
 
 **The Bug**: The post-release artifact verifier looked only for
