@@ -20,6 +20,13 @@ if [ -z "$TAG" ]; then
   echo "Using tag: $TAG"
 fi
 
+RELEASE_TAG="$TAG"
+if [[ "$TAG" == build-main-* ]]; then
+  RELEASE_TAG="${TAG#build-main-}"
+elif [[ "$TAG" == build-dev-* ]]; then
+  RELEASE_TAG="${TAG#build-dev-}"
+fi
+
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 cd "$WORK_DIR"
@@ -29,8 +36,8 @@ fail() {
   exit 1
 }
 
-echo "Downloading assets from $REPO @ $TAG..."
-gh release download "$TAG" --repo "$REPO" --dir . || fail "Download failed (gh auth? tag exists?)"
+echo "Downloading assets from $REPO @ $RELEASE_TAG..."
+gh release download "$RELEASE_TAG" --repo "$REPO" --dir . || fail "Download failed (gh auth? release exists?)"
 
 shopt -s nullglob
 zip_files=(*.zip)
@@ -61,12 +68,12 @@ for required_asset in \
   slskdn-main-linux-musl-x64.zip \
   slskdn-main-osx-x64.zip \
   slskdn-main-osx-arm64.zip; do
-  if [[ "$TAG" == build-main-* && ! -f "$required_asset" ]]; then
+  if [[ ("$TAG" == build-main-* || "$TAG" =~ -slskdn\.[0-9]+$) && ! -f "$required_asset" ]]; then
     fail "Missing required main release asset: $required_asset"
   fi
 done
 
-if [[ "$TAG" == build-dev-* ]]; then
+if [[ "$TAG" == build-dev-* || "$TAG" =~ \.dev\. ]]; then
   for required_asset in \
     slskdn-dev-linux-glibc-x64.zip \
     slskdn-dev-linux-glibc-arm64.zip \
@@ -93,7 +100,17 @@ if [ -n "$LINUX_ZIP" ]; then
     fail "Linux x64 zip is missing executable vpn-agent/slskdN-vpn-agent"
   fi
 
-  if unzip -p "$LINUX_ZIP" 'wwwroot/static/js/*.js' 2>/dev/null | grep -Fq 'slskdn-footer-session-total'; then
+  marker_found=0
+  for web_asset_pattern in 'wwwroot/static/js/*.js' 'wwwroot/assets/*.js'; do
+    web_asset_dump="$WORK_DIR/web-assets-${web_asset_pattern//[^A-Za-z0-9]/_}.js"
+    if unzip -p "$LINUX_ZIP" "$web_asset_pattern" >"$web_asset_dump" 2>/dev/null &&
+       grep -Fq 'slskdn-footer-session-total' "$web_asset_dump"; then
+      marker_found=1
+      break
+    fi
+  done
+
+  if [ "$marker_found" -eq 1 ]; then
     echo "Footer session-total marker present in bundled Web assets."
   else
     fail "Linux x64 zip Web bundle is missing slskdn-footer-session-total"
