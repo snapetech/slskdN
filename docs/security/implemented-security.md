@@ -16,11 +16,22 @@ Current responsibilities:
 - Sanitize filenames.
 - Detect dangerous and safe-audio extensions.
 
+Implemented tests:
+
+- Normal relative peer paths with Unix and Windows separators.
+- Plain traversal and nested traversal attempts.
+- URL-encoded and double-encoded traversal attempts.
+- Absolute Unix paths, Windows drive-letter paths, and null-byte paths.
+- Root containment after normalization.
+- Filename sanitization for unsafe characters, separators, dot-only names, and null input.
+- Dangerous-extension and safe-audio-extension classification.
+- Detailed validation result for traversal violations.
+
 Required follow-up:
 
-- Add focused unit tests for traversal, double-encoding, Windows drive letters, absolute paths, root containment, Unicode normalization, and filename sanitization.
 - Audit all peer/server-supplied path call sites and record them in `FEATURE_INVENTORY.md`.
 - Confirm delete-file, streaming, downloads, browse, relay, and share paths use containment checks consistently.
+- Add targeted tests for any call site that bypasses `PathGuard` or handles absolute paths intentionally.
 
 ## ContentSafety
 
@@ -33,11 +44,21 @@ Current responsibilities:
 - Warn on mismatched known extensions.
 - Fail on dangerous executable content masquerading as non-executable content.
 
+Implemented tests:
+
+- Valid FLAC, MP3 ID3, Ogg, and M4A headers.
+- Executable/script content masquerading as media.
+- Known-extension signature mismatch warnings.
+- Unknown-extension handling without pretending the format was verified.
+- Too-short headers.
+- Executable-header detection.
+- Detected file type descriptions.
+
 Required follow-up:
 
-- Add tests for valid audio headers, short headers, unknown extensions, mismatched headers, and executable masquerading cases.
 - Confirm post-download call sites actually invoke verification when configured.
 - Decide whether warning results block, quarantine, log only, or surface to the UI.
+- Add integration tests once the post-download policy is clearly wired.
 
 ## BindExposureAnalyzer
 
