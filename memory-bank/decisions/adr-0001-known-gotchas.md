@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z363. Cross-Platform Helpers Must Not Resolve Linux UIDs During Static Init
+
+**The Bug**: The VPN helper's Windows/macOS split-routing path could still touch Linux-only `/etc/passwd` lookup code when shared configuration was initialized.
+
+**Files Affected**:
+- `src/slskdN.VpnAgent/Program.cs`
+
+**Wrong**:
+```csharp
+public static int ServiceUid { get; } = ResolveServiceUid();
+```
+
+**Correct**:
+```csharp
+public static int ServiceUid => OperatingSystem.IsLinux() ? ResolveServiceUid() : 0;
+```
+
+**Why This Keeps Happening**: Static property initializers run when the containing type is initialized, not when the specific Linux-only behavior is used. Cross-platform helpers must keep Linux-only discovery behind an OS guard so Windows/macOS command paths can access shared configuration safely.
+
 ### 0z362. Documented Snake Case Enum Config Must Not Bind Directly To CLR Enum
 
 **The Bug**: `kspls0` crash-looped on startup because `dht.vpn_port_sync: target_port` was documented in `slskd.example.yml`, but `DhtRendezvousOptions.VpnPortSync` was a CLR enum property and Microsoft configuration binding only accepted enum names such as `TargetPort`.

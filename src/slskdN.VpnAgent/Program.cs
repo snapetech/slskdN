@@ -1009,7 +1009,7 @@ static class AppConfig
     public static string SlskdUrl { get; } = Env.Get("SLSKD_API_URL", "http://127.0.0.1:5030");
     public static FileInfo SlskdConfig { get; } = new(Env.GetAny(["SLSKDN_CONFIG", "SLSKD_CONFIG"], "/etc/slskdN/slskd.yml"));
     public static string ServiceUser { get; } = Env.GetAny(["SLSKDN_SERVICE_USER", "SLSKD_USER"], "slskdN");
-    public static int ServiceUid => ResolveServiceUid();
+    public static int ServiceUid => OperatingSystem.IsLinux() ? ResolveServiceUid() : 0;
     public static string ProcessName { get; } = Env.GetAny(["SLSKDN_PROCESS_NAME", "SLSKD_PROCESS_NAME"], "slskdN");
     public static string ApplicationService { get; } = Env.GetAny(["SLSKDN_SERVICE_NAME", "SLSKD_SERVICE_NAME"], "slskdN");
     public static string ApplicationPath { get; } = Env.Get("SLSKDN_APP_PATH", "");

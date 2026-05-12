@@ -148,7 +148,7 @@ public class LidarrImportServiceTests
             AlbumReleaseId = 3,
             Tracks = [new LidarrTrackResource { Id = 4, Title = "Track" }],
             Quality = JsonSerializer.Deserialize<JsonElement>("{}"),
-            Rejections = [JsonSerializer.Deserialize<JsonElement>("\"ambiguous\"")],
+            Rejections = [JsonSerializer.Deserialize<JsonElement>("{\"reason\":\"ambiguous\"}")],
         };
 
     private sealed class FakeLidarrClient : ILidarrClient
@@ -166,6 +166,12 @@ public class LidarrImportServiceTests
 
         public Task<IReadOnlyList<LidarrWantedAlbum>> GetWantedMissingAsync(int pageSize, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<LidarrWantedAlbum>>([]);
+
+        public Task<(IReadOnlyList<LidarrWantedAlbum> Records, int TotalRecords)> GetWantedMissingPageAsync(
+            int page,
+            int pageSize,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult<(IReadOnlyList<LidarrWantedAlbum> Records, int TotalRecords)>(([], 0));
 
         public Task<IReadOnlyList<LidarrManualImportResource>> GetManualImportCandidatesAsync(
             string folder,
