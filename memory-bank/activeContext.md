@@ -1,3 +1,16 @@
+## Update 2026-05-12 23:06:00Z
+
+- Current task: Pods hidden polling cleanup completed.
+- Last activity:
+  - documented the Pods hidden pane polling gotcha in ADR-0001;
+  - changed the nested Pods detail Tab to render only the active pane;
+  - prevented hidden Port Forwarding from mounting and starting status/stats polling while VPN Gateway is active.
+- Validation:
+  - Passed: ESLint for `src/web/src/components/Pods/Pods.jsx`.
+  - Passed: production Web build.
+- Next steps:
+  1. Commit and push the Pods hidden polling cleanup.
+
 ## Update 2026-05-12 23:02:10Z
 
 - Current task: follow-up Web render/load performance pass completed.
