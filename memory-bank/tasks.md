@@ -2692,6 +2692,7 @@
 - [2026-05-12T16:56:00Z] Completed: second packaging/cross-platform polish pass; fixed macOS pf wiring, secondary release workflow payload drift, Homebrew/Chocolatey helper exposure, stale route inventory, and Transfers optimistic clear regression; full release gate passed.
 - [2026-05-12T20:03:59Z] Completed: fix distro VPN helper unit packaging regression; AUR/Debian/RPM packages now rewrite helper units to packaged `/usr/bin`, `/etc/slskd/slskd.yml`, and `slskd` service/user defaults, Arch `.pacnew` handling is documented, and `kspls0` is verified connected with VPN forwarding and watchdog healthy.
 - [2026-05-12T20:10:49Z] Completed: make the network endpoint/ports banner compact and permanently dismissible; dismissal now survives forwarded-port changes and future installs that keep browser storage.
+- [2026-05-12T20:28:14Z] Completed: triage `kspls0` logs after release fixes; accepted Windows-rooted remote Soulseek paths as valid remote store names, downgraded expected rescue metadata misses to debug, and confirmed app/VPN units are healthy while unrelated host Proton WireGuard units remain failed.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.
 

@@ -61,6 +61,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Condensed the network endpoint ports banner to one line and made dismissal
   permanent across VPN port changes and future installs that keep browser
   storage.
+- Fixed downloads from peers that advertise Windows-rooted remote Soulseek paths
+  by treating the drive/root as a remote store prefix, not a local destination
+  path.
+- Downgraded expected rescue skips for unresolved MusicBrainz Recording IDs from
+  warning to debug so log scans surface real faults more clearly.
 - Tracked `global.json` in the repo and taught packaging validation to fail if
   the SDK pin is missing from tag checkouts.
 - Fixed Arch, Debian, and RPM VPN helper service units so distro packages use

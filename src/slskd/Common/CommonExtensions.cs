@@ -485,13 +485,8 @@ namespace slskd
                 throw new ArgumentException($"Invalid remote filename; expected a non-whitespace value, received '{remoteFilename}'", nameof(remoteFilename));
             }
 
-            if (Path.IsPathRooted(remoteFilename) || Regex.IsMatch(remoteFilename, @"^[a-zA-Z]:"))
-            {
-                throw new ArgumentException("Remote filename must be relative", nameof(remoteFilename));
-            }
-
             // normalize path separators
-            var localizedRemoteFilename = remoteFilename.LocalizePath();
+            var localizedRemoteFilename = StripRemoteRoot(remoteFilename).LocalizePath();
 
             var parts = localizedRemoteFilename.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
 
@@ -516,6 +511,19 @@ namespace slskd
             return string.IsNullOrWhiteSpace(part) ||
                 string.Equals(part, ".", StringComparison.Ordinal) ||
                 string.Equals(part, "..", StringComparison.Ordinal);
+        }
+
+        private static string StripRemoteRoot(string remoteFilename)
+        {
+            var filename = Regex.Replace(remoteFilename.Trim(), @"^[a-zA-Z]:[\\/]*", string.Empty);
+            filename = filename.TrimStart('\\', '/');
+
+            if (string.IsNullOrWhiteSpace(filename))
+            {
+                throw new ArgumentException($"Invalid remote filename; expected a non-whitespace value, received '{remoteFilename}'", nameof(remoteFilename));
+            }
+
+            return filename;
         }
 
         /// <summary>

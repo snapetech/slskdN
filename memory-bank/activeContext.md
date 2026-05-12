@@ -1,3 +1,19 @@
+## Update 2026-05-12 20:28:14Z
+
+- Current task: `kspls0` log triage follow-up completed.
+- Last activity:
+  - confirmed `slskd.service` and `slskdN-vpn*` warning/error priority logs are clean and health API reports `Connected, LoggedIn`, VPN ready, and two port forwards;
+  - found broader app log noise from failed downloads where peers advertise Windows-rooted remote filenames such as `c:\users\...\track.flac`;
+  - changed remote filename localization to strip remote Windows/Unix roots before applying existing traversal and destination containment checks;
+  - downgraded expected rescue misses for unresolved MusicBrainz Recording IDs from warning to debug;
+  - documented ADR-0001 gotcha `0z373`;
+  - noted unrelated failed host Proton WireGuard units: `proton.VPN.service`, `wg-proton-health.service`, `wg-quick@proton-torrent.service`, and an old transient `run-p2108162...` unit.
+- Validation:
+  - Passed: focused `ToLocalRelativeFilenameTests` (`14/14`), `./bin/lint`, and `git diff --check`.
+- Next steps:
+  1. Commit and push the log-triage fixes.
+  2. Separately clean or disable stale host Proton WireGuard units if they are no longer used.
+
 ## Update 2026-05-12 20:10:49Z
 
 - Current task: ports banner dismissal and compact layout completed.

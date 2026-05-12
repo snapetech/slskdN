@@ -112,7 +112,7 @@ namespace slskd.Transfers.Rescue
 
             if (recordingId == null)
             {
-                log.Warning("[RESCUE] Cannot activate rescue: unable to resolve MusicBrainz Recording ID for {File}", filename);
+                log.Debug("[RESCUE] Cannot activate rescue: unable to resolve MusicBrainz Recording ID for {File}", filename);
                 return default;
             }
 

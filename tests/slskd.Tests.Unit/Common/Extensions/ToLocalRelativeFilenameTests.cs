@@ -44,6 +44,23 @@ namespace slskd.Tests.Unit.Common.Extensions
             Assert.Equal("file.ext", "file.ext".ToLocalRelativeFilename());
         }
 
+        [Theory]
+        [InlineData(@"C:\Users\edvinas\Downloads\Album\Track.flac")]
+        [InlineData(@"C:/Users/edvinas/Downloads/Album/Track.flac")]
+        [InlineData(@"\Users\edvinas\Downloads\Album\Track.flac")]
+        [InlineData(@"/Users/edvinas/Downloads/Album/Track.flac")]
+        public void Returns_Localized_Filename_And_Parent_Directory_For_Rooted_Remote_Path(string filename)
+        {
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+            {
+                Assert.Equal(@"Album\Track.flac", filename.ToLocalRelativeFilename());
+            }
+            else
+            {
+                Assert.Equal(@"Album/Track.flac", filename.ToLocalRelativeFilename());
+            }
+        }
+
         [Fact]
         public void Removes_Invalid_Characters_From_Path_And_Filename()
         {
@@ -60,8 +77,8 @@ namespace slskd.Tests.Unit.Common.Extensions
         [Theory]
         [InlineData("../file.ext")]
         [InlineData("path/../file.ext")]
-        [InlineData("/path/file.ext")]
-        [InlineData(@"C:\path\file.ext")]
+        [InlineData(@"C:\..\file.ext")]
+        [InlineData(@"C:\path\..\file.ext")]
         public void Throws_ArgumentException_Given_Traversal_Or_Rooted_Path(string filename)
         {
             var ex = Record.Exception(() => filename.ToLocalRelativeFilename());
