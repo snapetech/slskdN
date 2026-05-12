@@ -1,3 +1,17 @@
+## Update 2026-05-12 22:33:00Z
+
+- Current task: page shell audit follow-up completed.
+- Last activity:
+  - audited route-level Web loaders for the same page-shell blocking pattern;
+  - changed Collections, Shared with Me, Share Groups, Events, Files, Metrics, Network, and Source Providers to render stable page chrome before initial data arrives;
+  - left scoped modal/inline loaders in place where they do not block page navigation.
+- Validation:
+  - Passed: focused Collections/SharedWithMe/ShareGroups/System Web tests (`8/8`).
+  - Passed: ESLint for touched components.
+  - Passed: `git diff --check`.
+- Next steps:
+  1. Commit and push the follow-up page-shell fixes.
+
 ## Update 2026-05-12 22:18:00Z
 
 - Current task: kspls0 page-load stall fix completed.

@@ -1,6 +1,5 @@
 import { deleteDirectory, deleteFile, list } from '../../../lib/files';
 import { formatBytes, formatDate } from '../../../lib/util';
-import { LoaderSegment } from '../../Shared';
 import React, { useEffect, useState } from 'react';
 import { Header, Icon, Modal, Table } from 'semantic-ui-react';
 
@@ -157,10 +156,6 @@ const Explorer = ({ remoteFileManagement, root }) => {
     setSubdirectory(copy);
   };
 
-  if (loading) {
-    return <LoaderSegment />;
-  }
-
   const total =
     (directory?.directories?.length ?? 0) +
     (directory?.files?.length ?? 0);
@@ -203,7 +198,7 @@ const Explorer = ({ remoteFileManagement, root }) => {
                   textAlign: 'center',
                 }}
               >
-                No files or directories
+                {loading ? 'Loading files' : 'No files or directories'}
               </Table.Cell>
             </Table.Row>
           ) : (

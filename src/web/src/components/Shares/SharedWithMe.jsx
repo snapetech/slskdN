@@ -216,8 +216,6 @@ export default class SharedWithMe extends Component {
       shares,
     } = this.state;
 
-    if (loading) return <LoaderSegment />;
-
     return (
       <Container>
         <Header as="h1">
@@ -234,9 +232,9 @@ export default class SharedWithMe extends Component {
           <Segment placeholder>
             <Header icon>
               <Icon name="inbox" />
-              No shares yet
+              {loading ? 'Loading shares' : 'No shares yet'}
             </Header>
-            <p>Collections shared with you will appear here.</p>
+            {!loading && <p>Collections shared with you will appear here.</p>}
           </Segment>
         ) : (
           <Table>

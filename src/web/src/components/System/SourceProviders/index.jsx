@@ -6,7 +6,6 @@ import {
   Header,
   Icon,
   Label,
-  Loader,
   Message,
   Popup,
   Segment,
@@ -107,16 +106,17 @@ const SourceProviders = () => {
     load();
   }, []);
 
-  if (loading) {
-    return (
-      <Segment>
-        <Loader active inline="centered" />
-      </Segment>
-    );
-  }
-
   return (
     <div className="source-providers">
+      {loading && (
+        <Message info>
+          <Icon
+            loading
+            name="spinner"
+          />
+          Loading source providers
+        </Message>
+      )}
       {error && (
         <Message
           error

@@ -4,7 +4,7 @@ import {
   formatNetworkHealthReport,
 } from '../../../lib/networkHealthScore';
 import { getLocalStorageItem, setLocalStorageItem } from '../../../lib/storage';
-import { LoaderSegment, ShrinkableButton } from '../../Shared';
+import { ShrinkableButton } from '../../Shared';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import {
@@ -234,12 +234,17 @@ const Network = ({ theme }) => {
     toast.info('Clipboard unavailable; select the report text manually');
   };
 
-  if (loading) {
-    return <LoaderSegment />;
-  }
-
   return (
     <div className="network-dashboard">
+      {loading && (
+        <Message info>
+          <Icon
+            loading
+            name="spinner"
+          />
+          Loading network status
+        </Message>
+      )}
       {shouldExplainLanOnlyDht && (
         <Message
           className="network-diagnostic-message"

@@ -1,5 +1,4 @@
 import { getKpiMetrics } from '../../../lib/telemetry';
-import { LoaderSegment } from '../../Shared';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Divider,
@@ -175,8 +174,6 @@ const Metrics = () => {
     fetchMetrics();
   }, [fetchMetrics]);
 
-  if (loading && !metrics) return <LoaderSegment />;
-
   if (error) {
     return (
       <Message
@@ -195,10 +192,23 @@ const Metrics = () => {
           Prometheus Metrics
         </Header>
         <span style={{ color: 'grey', fontSize: '0.9em', cursor: 'pointer' }} onClick={fetchMetrics}>
-          <Icon name="refresh" />
+          <Icon
+            loading={loading}
+            name="refresh"
+          />
           {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : 'Refresh'}
         </span>
       </div>
+
+      {loading && !metrics && (
+        <Message info>
+          <Icon
+            loading
+            name="spinner"
+          />
+          Loading metrics
+        </Message>
+      )}
 
       <Grid stackable>
         {KPI_GROUPS.map((group) => (

@@ -356,8 +356,6 @@ export default class Collections extends Component {
       shares,
     } = this.state;
 
-    if (loading) return <LoaderSegment />;
-
     const typeOptions = [
       { key: 'Playlist', text: 'Playlist', value: 'Playlist' },
       { key: 'ShareList', text: 'Share List', value: 'ShareList' },
@@ -395,7 +393,7 @@ export default class Collections extends Component {
             <Segment placeholder>
               <Header icon>
                 <Icon name="list" />
-                No collections yet
+                {loading ? 'Loading collections' : 'No collections yet'}
               </Header>
               <Button
                 data-testid="collections-create-empty"

@@ -1,5 +1,4 @@
 import { list } from '../../../lib/events';
-import { LoaderSegment } from '../../Shared';
 import React, { useEffect, useState } from 'react';
 import { Icon, Pagination, Popup, Table } from 'semantic-ui-react';
 
@@ -49,10 +48,6 @@ const Events = () => {
     fetch();
   }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (loading) {
-    return <LoaderSegment />;
-  }
-
   return (
     <>
       <div className="header-buttons">
@@ -92,7 +87,7 @@ const Events = () => {
                   textAlign: 'center',
                 }}
               >
-                No events
+                {loading ? 'Loading events' : 'No events'}
               </Table.Cell>
             </Table.Row>
           ) : (

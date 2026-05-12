@@ -1,7 +1,6 @@
 import * as collectionsAPI from '../../lib/collections';
 import * as identityAPI from '../../lib/identity';
 import ErrorSegment from '../Shared/ErrorSegment';
-import LoaderSegment from '../Shared/LoaderSegment';
 import TooltipButton from '../Shared/TooltipButton';
 import React, { Component } from 'react';
 import {
@@ -265,8 +264,6 @@ export default class ShareGroups extends Component {
       value: c.peerId,
     }));
 
-    if (loading) return <LoaderSegment />;
-
     return (
       <Container>
         <Header as="h1">
@@ -297,7 +294,7 @@ export default class ShareGroups extends Component {
           <Segment placeholder>
             <Header icon>
               <Icon name="users" />
-              No share groups yet
+              {loading ? 'Loading share groups' : 'No share groups yet'}
             </Header>
             <Button
               onClick={() => this.setState({ createModalOpen: true })}
