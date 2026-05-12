@@ -82,6 +82,50 @@ subset. When shared publish scripts start building another project, Dockerfile
 source-copy rules must be updated and packaging validation must lock the new
 copy in place.
 
+### 0z371. Distro VPN Helper Units Must Be Rewritten To Distro Paths
+
+**The Bug**: AUR/Debian/RPM packages installed `slskdN-vpn-agent` to
+`/usr/bin`, but copied the release-bundle systemd units that execute
+`/usr/local/bin/slskdN-vpn-agent` and default to manual-install names like
+`slskdN` and `/etc/slskdN/slskd.yml`. Fresh package installs could therefore
+ship helper units that either start the wrong stale binary or fail helper health
+checks for the packaged `slskd` service.
+
+**Files Affected**:
+- `packaging/aur/PKGBUILD`
+- `packaging/aur/PKGBUILD-bin`
+- `packaging/debian/rules`
+- `packaging/rpm/slskdn.spec`
+- `packaging/scripts/validate-packaging-metadata.sh`
+
+**Wrong**:
+```bash
+install -Dm644 vpn-agent/systemd/slskdN-vpn-ingress.service \
+  "$pkgdir/usr/lib/systemd/system/slskdN-vpn-ingress.service"
+```
+
+**Correct**:
+```bash
+install_vpn_unit vpn-agent/systemd/slskdN-vpn-ingress.service \
+  "$pkgdir/usr/lib/systemd/system/slskdN-vpn-ingress.service"
+```
+
+The package-specific unit install must rewrite the binary path to
+`/usr/bin/slskdN-vpn-agent` and inject:
+
+```ini
+Environment=SLSKDN_CONFIG=/etc/slskd/slskd.yml
+Environment=SLSKDN_SERVICE_USER=slskd
+Environment=SLSKDN_PROCESS_NAME=slskd
+Environment=SLSKDN_SERVICE_NAME=slskd
+```
+
+**Why This Keeps Happening**: The same VPN helper unit files serve two
+install modes. Manual release-bundle installs intentionally use `/usr/local`,
+while distro packages install into `/usr/bin` and run the app as `slskd`.
+Package recipes must adapt the unit files instead of copying the manual units
+verbatim.
+
 ### 0z369. Release Artifact Verifiers Must Match The Active Web Bundler Layout
 
 **The Bug**: The post-release artifact verifier looked only for
