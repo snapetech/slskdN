@@ -39,6 +39,32 @@ Required follow-up:
 - Confirm post-download call sites actually invoke verification when configured.
 - Decide whether warning results block, quarantine, log only, or surface to the UI.
 
+## BindExposureAnalyzer
+
+`BindExposureAnalyzer` is an implemented bind-posture classifier used to make startup hardening checks reason about actual listener exposure rather than treating "port enabled" as equivalent to "remote reachable".
+
+Current responsibilities:
+
+- Classify no listener, Unix-socket-only, loopback-only, wildcard, private/link-local non-loopback, public non-loopback, and unknown TCP bind addresses.
+- Treat wildcard binds such as `*`, `0.0.0.0`, and `::` as remote reachable.
+- Treat invalid or unclassified enabled TCP bind addresses as remote reachable so hardening checks fail closed.
+- Provide `IsRemoteReachable()` for downstream startup validation.
+
+Implemented tests:
+
+- Loopback IPv4, loopback IPv6, and `localhost`.
+- Unix socket with no TCP listener.
+- Wildcard IPv4/IPv6/all-address binds.
+- RFC1918, link-local IPv4, unique-local IPv6, and link-local IPv6.
+- Public IPv4 and IPv6.
+- Invalid bind address fallback.
+- Remote-reachability classification for every exposure enum value.
+
+Required follow-up:
+
+- Wire `Program.cs` to pass `BindExposureAnalyzer.IsRemoteReachable(...)` into `HardeningValidator.Validate(...)` instead of deriving exposure from whether ports are enabled.
+- Add startup-level HardeningValidator tests after the Program.cs wiring patch lands.
+
 ## HardeningValidator
 
 `HardeningValidator` performs startup validation for dangerous configurations.
@@ -54,8 +80,7 @@ Current responsibilities:
 
 Required follow-up:
 
-- Fix bind exposure semantics. The validator must receive actual exposure information, not a boolean derived from whether ports are enabled.
-- Add a bind exposure analyzer and tests for loopback, unix socket, wildcard, IPv4, IPv6, private IP, public IP, and invalid address cases.
+- Wire bind exposure semantics through `BindExposureAnalyzer`; the validator must receive actual exposure information, not a boolean derived from whether ports are enabled.
 - Decide whether `HashFromAudioFileEnabled` should be removed, renamed as experimental, or made conditional on a real PCM extraction capability check.
 
 ## Authentication, metrics, and diagnostics posture
