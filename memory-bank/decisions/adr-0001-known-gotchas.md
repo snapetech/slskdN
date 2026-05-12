@@ -52,6 +52,37 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z386. Self-Hosted Workflow Jobs Must Add Dotnet To PATH
+
+**The Bug**: PR checks in `ci-enhancements.yml` failed immediately on
+self-hosted runners with `dotnet: command not found`. The workflow only ran
+`actions/setup-dotnet` for GitHub-hosted runners and assumed self-hosted runners
+already had `dotnet` on `PATH`.
+
+**Files Affected**:
+- `.github/workflows/ci-enhancements.yml`
+
+**Wrong**:
+```yaml
+- name: Verify .NET (self-hosted)
+  if: ${{ runner.environment == 'self-hosted' }}
+  run: dotnet --version
+```
+
+**Correct**:
+```yaml
+- name: Set up .NET (self-hosted)
+  if: ${{ runner.environment == 'self-hosted' }}
+  run: |
+    echo "/usr/share/dotnet" >> $GITHUB_PATH
+    /usr/share/dotnet/dotnet --version
+```
+
+**Why This Keeps Happening**: The self-hosted runner image has the SDK installed
+under `/usr/share/dotnet`, but not every job starts with that directory in
+`PATH`. Workflows that skip `actions/setup-dotnet` on self-hosted runners must
+add the SDK directory before any later `dotnet` command.
+
 ### 0z384. Render-Time Work Must Not Scale With Hidden Or Unchanged Data
 
 **The Bug**: Performance fixes removed first-load blockers, but some render
