@@ -147,10 +147,14 @@ describe('Messaging', () => {
     renderMessaging({ initialKind: 'room' });
 
     expect(await screen.findByText('#indie')).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('Message #indie'), {
+    const composer = screen.getByLabelText('Message #indie');
+    fireEvent.change(composer, {
       target: { value: '/leave' },
     });
-    fireEvent.keyDown(screen.getByLabelText('Message #indie'), {
+    await waitFor(() => {
+      expect(composer).toHaveValue('/leave');
+    });
+    fireEvent.keyDown(composer, {
       key: 'Enter',
     });
 

@@ -55,6 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - User info lookups now return a controlled `503` for expected Soulseek peer connection failures and timeouts instead of bubbling live peer unavailability as HTTP 500s.
 - Release-gate tests now handle expected content-verification cancellation without leaking active probe accounting.
 - Mesh transfer terminal failures now populate sanitized error details before exposing the `Failed` state to pollers.
+- Messaging slash-command tests now wait for controlled composer state before pressing Enter, preventing full-suite release-gate flakes.
 
 ### SongID
 

@@ -1,3 +1,17 @@
+## Update 2026-05-12 21:55:00Z
+
+- Current task: replacement release follow-up in progress.
+- Last activity:
+  - guarded `.247` did not push because the local release gate caught a Web full-suite Messaging slash-command test flake;
+  - documented ADR-0001 gotcha `0z379`;
+  - changed the test to wait for the controlled `/leave` composer value before firing Enter.
+- Validation:
+  - Passed: focused Messaging test file (`5/5`).
+- Next steps:
+  1. Run full Web tests through the guarded release flow.
+  2. Commit/push the test hardening.
+  3. Cut and monitor a replacement release tag.
+
 ## Update 2026-05-12 21:45:00Z
 
 - Current task: replacement release follow-up in progress.

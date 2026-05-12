@@ -2706,6 +2706,7 @@
 - [2026-05-12T20:36:17Z] Completed: fix failed transfer completion semantics; failed terminal downloads stay visible when hiding completed, clear completed only removes successful 100% transfers, and the UI labels failures as Error/Timed out/Aborted instead of Completed.
 - [2026-05-12T21:35:00Z] Completed: fix `.245` release-gate content-verification test flake; mock probe accounting now cleans up on expected verification cancellation.
 - [2026-05-12T21:45:00Z] Completed: fix `.246` release-gate mesh transfer status race; terminal status details are now populated before `Failed` is visible to pollers.
+- [2026-05-12T21:55:00Z] Completed: fix local `.247` release-gate Messaging slash-command test flake; test now waits for controlled composer state before Enter.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.
 

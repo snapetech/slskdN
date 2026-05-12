@@ -10028,3 +10028,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-12T21:35:00Z] Release gate flake fix: `.245` replacement release failed before packaging because `ContentVerificationServiceTests.VerifySourcesAsync_BoundsConcurrentSoulseekProbes` leaked its active-probe counter when the expected verification-stream cancellation path interrupted the mock write. Documented the gotcha and made the mock cleanup run in `finally`; focused Release test passed once plus 20 repeated runs.
 
 [2026-05-12T21:45:00Z] Release gate terminal-status fix: `.246` replacement release failed before packaging because mesh transfer status could publish `Failed` before the sanitized `ErrorMessage`. Documented the gotcha and changed failure publication to write terminal details before the terminal state; focused Release test passed once plus 30 repeated runs.
+
+[2026-05-12T21:55:00Z] Local release-gate Web test fix: guarded `.247` did not push because the local Web suite caught a Messaging slash-command timing flake. Documented the gotcha and made the test wait for controlled composer state before pressing Enter; focused Messaging test passed.
