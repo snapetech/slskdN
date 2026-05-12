@@ -4,7 +4,7 @@ import {
   formatSeconds,
   getFileName,
 } from '../../lib/util';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Checkbox, Header, Icon, List, Table } from 'semantic-ui-react';
 
 const FileList = ({
@@ -17,6 +17,15 @@ const FileList = ({
   onSelectionChange,
 }) => {
   const [folded, setFolded] = useState(false);
+  const sortedFiles = useMemo(
+    () =>
+      files
+        ? [...files].sort((a, b) => (a.filename > b.filename ? 1 : -1))
+        : [],
+    [files],
+  );
+  const allSelected =
+    sortedFiles.length > 0 && sortedFiles.every((file) => file.selected);
 
   return (
     <div
@@ -47,7 +56,7 @@ const FileList = ({
           )}
         </div>
       </Header>
-      {!folded && files && files.length > 0 && (
+      {!folded && sortedFiles.length > 0 && (
         <List>
           <List.Item>
             <Table className="filelist-table">
@@ -55,11 +64,11 @@ const FileList = ({
                 <Table.Row>
                   <Table.HeaderCell className="filelist-selector">
                     <Checkbox
-                      checked={files.filter((f) => !f.selected).length === 0}
+                      checked={allSelected}
                       disabled={disabled}
                       fitted
                       onChange={(event, data) =>
-                        files.map((f) => onSelectionChange(f, data.checked))
+                        sortedFiles.map((f) => onSelectionChange(f, data.checked))
                       }
                     />
                   </Table.HeaderCell>
@@ -78,35 +87,33 @@ const FileList = ({
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-                {files
-                  .sort((a, b) => (a.filename > b.filename ? 1 : -1))
-                  .map((f) => (
-                    <Table.Row key={f.filename}>
-                      <Table.Cell className="filelist-selector">
-                        <Checkbox
-                          checked={f.selected}
-                          disabled={disabled}
-                          fitted
-                          onChange={(event, data) =>
-                            onSelectionChange(f, data.checked)
-                          }
-                        />
-                      </Table.Cell>
-                      <Table.Cell className="filelist-filename">
-                        {locked ? <Icon name="lock" /> : ''}
-                        {getFileName(f.filename)}
-                      </Table.Cell>
-                      <Table.Cell className="filelist-size">
-                        {formatBytes(f.size)}
-                      </Table.Cell>
-                      <Table.Cell className="filelist-attributes">
-                        {formatAttributes(f)}
-                      </Table.Cell>
-                      <Table.Cell className="filelist-length">
-                        {formatSeconds(f.length)}
-                      </Table.Cell>
-                    </Table.Row>
-                  ))}
+                {sortedFiles.map((f) => (
+                  <Table.Row key={f.filename}>
+                    <Table.Cell className="filelist-selector">
+                      <Checkbox
+                        checked={f.selected}
+                        disabled={disabled}
+                        fitted
+                        onChange={(event, data) =>
+                          onSelectionChange(f, data.checked)
+                        }
+                      />
+                    </Table.Cell>
+                    <Table.Cell className="filelist-filename">
+                      {locked ? <Icon name="lock" /> : ''}
+                      {getFileName(f.filename)}
+                    </Table.Cell>
+                    <Table.Cell className="filelist-size">
+                      {formatBytes(f.size)}
+                    </Table.Cell>
+                    <Table.Cell className="filelist-attributes">
+                      {formatAttributes(f)}
+                    </Table.Cell>
+                    <Table.Cell className="filelist-length">
+                      {formatSeconds(f.length)}
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
               </Table.Body>
               {footer && (
                 <Table.Footer fullWidth>

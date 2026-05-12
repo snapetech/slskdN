@@ -198,6 +198,29 @@ class ChatSession extends Component {
       );
     }
 
+    if (this.props.active === false) {
+      return (
+        <Card className="chat-active-card">
+          <Card.Content>
+            <Card.Header>
+              <Icon
+                color="grey"
+                name="comment"
+              />
+              {username}
+              <Icon
+                className="close-button"
+                color="red"
+                link
+                name="close"
+                onClick={this.deleteConversation}
+              />
+            </Card.Header>
+          </Card.Content>
+        </Card>
+      );
+    }
+
     return (
       <Card
         className="chat-active-card"

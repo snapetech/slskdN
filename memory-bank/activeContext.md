@@ -1,3 +1,18 @@
+## Update 2026-05-12 22:56:27Z
+
+- Current task: additional hidden-work performance pass completed.
+- Last activity:
+  - extended ADR-0001 gotcha coverage for Chat, shared FileList, and System Files explorer hidden work;
+  - rendered inactive chat tabs as lightweight shells without polling or optional `UserCard` metadata;
+  - changed shared `FileList` to sort a memoized copy instead of mutating `files`;
+  - changed System Files explorers to skip directory listing calls while inactive and fetch when activated.
+- Validation:
+  - Passed: focused Chat/Search/Transfers/System Files Web tests (`21/21`).
+  - Passed: ESLint for touched files.
+  - Passed: production Web build.
+- Next steps:
+  1. Commit and push the additional hidden-work performance pass.
+
 ## Update 2026-05-12 22:49:11Z
 
 - Current task: deeper render-path performance pass completed.

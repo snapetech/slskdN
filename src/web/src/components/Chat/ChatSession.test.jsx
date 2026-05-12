@@ -44,4 +44,18 @@ describe('ChatSession', () => {
     });
     expect(screen.queryByText('bad')).not.toBeInTheDocument();
   });
+
+  it('renders inactive chats as a lightweight shell without polling messages', () => {
+    render(
+      <ChatSession
+        active={false}
+        user={{ username: 'me' }}
+        username="alice"
+      />,
+    );
+
+    expect(screen.getByText('alice')).toBeInTheDocument();
+    expect(chat.get).not.toHaveBeenCalled();
+    expect(chat.acknowledge).not.toHaveBeenCalled();
+  });
 });

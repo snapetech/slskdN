@@ -2711,6 +2711,7 @@
 - [2026-05-12T22:33:00Z] Completed: page shell audit follow-up; removed additional full-page initial loaders from Collections, Shared with Me, Share Groups, Events, Files, Metrics, Network, and Source Providers.
 - [2026-05-12T22:43:00Z] Completed: deeper Web performance pass; deferred/deduped/bounded optional UserCard metadata fan-out and split optional Search/System route code into lazy chunks.
 - [2026-05-12T22:49:11Z] Completed: deeper render-path performance pass; inactive room tabs now render as lightweight shells, search responses use stable signatures instead of full serialization, search user-group metadata is deferred/cached, and transfer lists no longer sort props in place during render.
+- [2026-05-12T22:56:27Z] Completed: additional hidden-work performance pass; inactive chat tabs now render lightweight shells, shared file lists sort memoized copies, and inactive System Files explorers skip directory API calls until selected.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.
 

@@ -13,6 +13,7 @@ const Files = ({ options } = {}) => {
       render: () => (
         <Tab.Pane>
           <Explorer
+            active={activeIndex === 0}
             remoteFileManagement={remoteFileManagement}
             root="downloads"
           />
@@ -25,6 +26,7 @@ const Files = ({ options } = {}) => {
       render: () => (
         <Tab.Pane>
           <Explorer
+            active={activeIndex === 1}
             remoteFileManagement={remoteFileManagement}
             root="incomplete"
           />
