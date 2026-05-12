@@ -52,36 +52,35 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
-### 0z386. Self-Hosted Workflow Jobs Must Add Dotnet To PATH
+### 0z386. Self-Hosted Workflow Jobs Must Not Assume Dotnet Paths
 
 **The Bug**: PR checks in `ci-enhancements.yml` failed immediately on
 self-hosted runners with `dotnet: command not found`. The workflow only ran
 `actions/setup-dotnet` for GitHub-hosted runners and assumed self-hosted runners
-already had `dotnet` on `PATH`.
+already had `dotnet` on `PATH` or in a fixed `/usr/share/dotnet` location.
 
 **Files Affected**:
 - `.github/workflows/ci-enhancements.yml`
 
 **Wrong**:
 ```yaml
-- name: Verify .NET (self-hosted)
-  if: ${{ runner.environment == 'self-hosted' }}
-  run: dotnet --version
+- name: Set up .NET (GitHub-hosted)
+  if: ${{ runner.environment == 'github-hosted' }}
+  uses: actions/setup-dotnet@v5
 ```
 
 **Correct**:
 ```yaml
-- name: Set up .NET (self-hosted)
-  if: ${{ runner.environment == 'self-hosted' }}
-  run: |
-    echo "/usr/share/dotnet" >> $GITHUB_PATH
-    /usr/share/dotnet/dotnet --version
+- name: Set up .NET
+  uses: actions/setup-dotnet@v5
+  with:
+    dotnet-version: ${{ env.DOTNET_VERSION }}
 ```
 
-**Why This Keeps Happening**: The self-hosted runner image has the SDK installed
-under `/usr/share/dotnet`, but not every job starts with that directory in
-`PATH`. Workflows that skip `actions/setup-dotnet` on self-hosted runners must
-add the SDK directory before any later `dotnet` command.
+**Why This Keeps Happening**: Self-hosted runner labels do not guarantee a
+specific SDK install path. Workflows that need `dotnet` should run
+`actions/setup-dotnet` unless a job has already proven and exported a specific
+runner-local SDK path.
 
 ### 0z387. Large Room Lists Need Search-First Join Controls
 
