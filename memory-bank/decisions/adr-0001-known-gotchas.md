@@ -126,6 +126,41 @@ while distro packages install into `/usr/bin` and run the app as `slskd`.
 Package recipes must adapt the unit files instead of copying the manual units
 verbatim.
 
+### 0z376. Debian Rules Run Under `/bin/sh`, Not Bash
+
+**The Bug**: The PPA Jammy build for `2026051220-slskdn.244` failed because
+`packaging/debian/rules` used Bash brace expansion in a `for` loop while
+Launchpad executes Debian rules recipes under `/bin/sh`. The build tried to
+edit a literal path named
+`slskdN-vpn-{split,ingress,gluetun-compat,watchdog}.service`.
+
+**Files Affected**:
+- `packaging/debian/rules`
+- `packaging/scripts/validate-packaging-metadata.sh`
+
+**Wrong**:
+```make
+for unit in debian/slskdn/lib/systemd/system/slskdN-vpn-{split,ingress,gluetun-compat,watchdog}.service; do \
+    sed -i ... "$$unit"; \
+done
+```
+
+**Correct**:
+```make
+for unit in \
+    debian/slskdn/lib/systemd/system/slskdN-vpn-split.service \
+    debian/slskdn/lib/systemd/system/slskdN-vpn-ingress.service \
+    debian/slskdn/lib/systemd/system/slskdN-vpn-gluetun-compat.service \
+    debian/slskdn/lib/systemd/system/slskdN-vpn-watchdog.service; do \
+    sed -i ... "$$unit"; \
+done
+```
+
+**Why This Keeps Happening**: Release workflows often run shell fragments under
+Bash, but Debian package recipes must stay POSIX-shell compatible. Packaging
+validation needs to reject Bash-only syntax in `debian/rules` whenever that
+file is changed.
+
 ### 0z372. Dismissed Banners Must Not Be Keyed To Volatile Runtime State
 
 **The Bug**: The network endpoint migration banner stored dismissal against the
