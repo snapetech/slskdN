@@ -14,7 +14,9 @@ fi
 
 target_major="$(sed -n 's/.*<TargetFramework>net\([0-9][0-9]*\)\..*/\1/p' "$project" | head -n1)"
 sdk_major=""
+sdk_version=""
 if [ -f "$global_json" ]; then
+  sdk_version="$(sed -n 's/.*"version": "\([^"]*\)".*/\1/p' "$global_json" | head -n1)"
   sdk_major="$(sed -n 's/.*"version": "\([0-9][0-9]*\)\..*/\1/p' "$global_json" | head -n1)"
 fi
 
@@ -28,8 +30,9 @@ if [ -n "$sdk_major" ] && [ "$target_major" != "$sdk_major" ]; then
   failed=1
 fi
 
-if ! rg -q "DOTNET_VERSION: '$target_major'" "$workflow"; then
-  printf 'CodeQL workflow must set DOTNET_VERSION to %s\n' "$target_major" >&2
+expected_version="${sdk_version:-$target_major}"
+if ! rg -q "DOTNET_VERSION: '$expected_version'" "$workflow"; then
+  printf 'CodeQL workflow must set DOTNET_VERSION to %s\n' "$expected_version" >&2
   failed=1
 fi
 
