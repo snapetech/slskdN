@@ -1,3 +1,21 @@
+## Update 2026-05-12 22:43:00Z
+
+- Current task: deeper Web performance pass completed.
+- Last activity:
+  - deferred optional `UserCard` metadata requests until after first paint;
+  - deduped in-flight username lookups, capped metadata fetch concurrency at four, and cached user metadata briefly;
+  - split optional Search panels with `React.lazy`;
+  - split System tabs with `React.lazy` so inactive admin tabs do not inflate the route shell.
+- Validation:
+  - Passed: focused Search/UserCard/Transfers/Search Response Web tests (`19/19`).
+  - Passed: focused System Web test (`1/1`).
+  - Passed: ESLint for touched files.
+  - Passed: `git diff --check`.
+  - Passed: production Web build.
+  - Build output: Search route chunk is ~68 kB; System shell chunk is ~8 kB, with heavy tabs/panels split into separate lazy chunks.
+- Next steps:
+  1. Commit and push the deeper performance pass.
+
 ## Update 2026-05-12 22:33:00Z
 
 - Current task: page shell audit follow-up completed.

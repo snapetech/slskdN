@@ -7,6 +7,67 @@ import React, { Component } from 'react';
 import { Icon, Popup } from 'semantic-ui-react';
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
+const USER_DATA_CACHE_TTL_MS = 5 * 60 * 1000;
+const USER_DATA_MAX_CONCURRENT = 4;
+const userDataCache = new Map();
+const userDataInflight = new Map();
+const userDataQueue = [];
+let activeUserDataRequests = 0;
+
+const getCachedUserData = (username) => {
+  const cached = userDataCache.get(username);
+
+  if (!cached || cached.expiresAt <= Date.now()) {
+    userDataCache.delete(username);
+    return null;
+  }
+
+  return cached.data;
+};
+
+const setCachedUserData = (username, data) => {
+  userDataCache.set(username, {
+    data,
+    expiresAt: Date.now() + USER_DATA_CACHE_TTL_MS,
+  });
+};
+
+const runNextUserDataRequest = () => {
+  while (
+    activeUserDataRequests < USER_DATA_MAX_CONCURRENT &&
+    userDataQueue.length > 0
+  ) {
+    const request = userDataQueue.shift();
+    activeUserDataRequests += 1;
+
+    request()
+      .catch(() => {})
+      .finally(() => {
+        activeUserDataRequests -= 1;
+        runNextUserDataRequest();
+      });
+  }
+};
+
+const enqueueUserDataRequest = (request) => {
+  userDataQueue.push(request);
+  runNextUserDataRequest();
+};
+
+const scheduleAfterPaint = (callback) => {
+  if (typeof window === 'undefined') {
+    callback();
+    return undefined;
+  }
+
+  if (typeof window.requestIdleCallback === 'function') {
+    const idleHandle = window.requestIdleCallback(callback, { timeout: 1_500 });
+    return () => window.cancelIdleCallback?.(idleHandle);
+  }
+
+  const timeout = window.setTimeout(callback, 250);
+  return () => window.clearTimeout(timeout);
+};
 
 class UserCard extends Component {
   constructor(props) {
@@ -20,57 +81,108 @@ class UserCard extends Component {
       opinionSummary: null,
       reputation: null,
     };
+    this.cancelScheduledFetch = null;
+    this.mounted = false;
   }
 
   componentDidMount() {
-    this.fetchUserData();
+    this.mounted = true;
+    this.scheduleUserDataFetch();
   }
 
   componentDidUpdate(previousProps) {
     if (previousProps.username !== this.props.username) {
+      this.cancelScheduledFetch?.();
       this.setState({
         interests: null,
         interestsError: null,
         interestsLoading: false,
+        info: null,
+        loading: false,
         opinionSummary: null,
+        reputation: null,
       });
-      this.fetchUserData();
+      this.scheduleUserDataFetch();
     }
   }
 
-  fetchUserData = async () => {
+  componentWillUnmount() {
+    this.mounted = false;
+    this.cancelScheduledFetch?.();
+  }
+
+  scheduleUserDataFetch = () => {
     const { username } = this.props;
     if (!username) return;
 
-    this.setState({ loading: true });
+    const cached = getCachedUserData(username);
+    if (cached) {
+      this.setState(cached);
+      return;
+    }
+
+    this.cancelScheduledFetch = scheduleAfterPaint(() => {
+      enqueueUserDataRequest(() => this.fetchUserData(username));
+    });
+  };
+
+  fetchUserData = async (username) => {
+    const cached = getCachedUserData(username);
+    if (cached) {
+      if (this.mounted && this.props.username === username) {
+        this.setState(cached);
+      }
+
+      return;
+    }
 
     try {
-      const [infoResponse, reputationData, opinionData] = await Promise.allSettled([
-        users.getInfo({ quietUnavailable: true, username }),
-        security.getReputation(username).catch(() => null),
-        opinions.getOpinionSummary({
-          subjectId: username,
-          subjectType: 'User',
-        }).catch(() => null),
-      ]);
+      if (this.mounted && this.props.username === username) {
+        this.setState({ loading: true });
+      }
 
-      this.setState({
-        info:
-          infoResponse.status === 'fulfilled' && infoResponse.value?.data
-            ? infoResponse.value.data
-            : null,
-        loading: false,
-        opinionSummary:
-          opinionData.status === 'fulfilled' && opinionData.value?.data
-            ? opinionData.value.data
-            : null,
-        reputation:
-          reputationData.status === 'fulfilled' && reputationData.value
-            ? reputationData.value
-            : null,
-      });
+      let userDataPromise = userDataInflight.get(username);
+
+      if (!userDataPromise) {
+        userDataPromise = Promise.allSettled([
+          users.getInfo({ quietUnavailable: true, username }),
+          security.getReputation(username).catch(() => null),
+          opinions.getOpinionSummary({
+            subjectId: username,
+            subjectType: 'User',
+          }).catch(() => null),
+        ]).then(([infoResponse, reputationData, opinionData]) => ({
+          info:
+            infoResponse.status === 'fulfilled' && infoResponse.value?.data
+              ? infoResponse.value.data
+              : null,
+          loading: false,
+          opinionSummary:
+            opinionData.status === 'fulfilled' && opinionData.value?.data
+              ? opinionData.value.data
+              : null,
+          reputation:
+            reputationData.status === 'fulfilled' && reputationData.value
+              ? reputationData.value
+              : null,
+        }));
+
+        userDataInflight.set(username, userDataPromise);
+      }
+
+      const userData = await userDataPromise;
+
+      setCachedUserData(username, userData);
+      userDataInflight.delete(username);
+
+      if (this.mounted && this.props.username === username) {
+        this.setState(userData);
+      }
     } catch {
-      this.setState({ loading: false });
+      userDataInflight.delete(username);
+      if (this.mounted && this.props.username === username) {
+        this.setState({ loading: false });
+      }
     }
   };
 

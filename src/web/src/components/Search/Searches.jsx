@@ -11,17 +11,15 @@ import { getLocalStorageItem, setLocalStorageItem } from '../../lib/storage';
 import * as library from '../../lib/searches';
 import ErrorSegment from '../Shared/ErrorSegment';
 import PlaceholderSegment from '../Shared/PlaceholderSegment';
-import AlbumCompletionPanel from './AlbumCompletionPanel';
-import ArtistReleaseRadarPanel from './ArtistReleaseRadarPanel';
-import DiscographyCoveragePanel from './DiscographyCoveragePanel';
-import DiscoveryGraphAtlasPanel from './DiscoveryGraphAtlasPanel';
-import FederatedTasteRecommendationsPanel from './FederatedTasteRecommendationsPanel';
 import SearchDetail from './Detail/SearchDetail';
 import SearchList from './List/SearchList';
-import MusicBrainzLookup from './MusicBrainzLookup';
-import SongIDPanel from './SongIDPanel';
-import SoulseekDiscoveryPanel from './SoulseekDiscoveryPanel';
-import React, { useEffect, useRef, useState } from 'react';
+import React, {
+  Suspense,
+  lazy,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   useLocation,
   useNavigate,
@@ -39,6 +37,17 @@ import {
   Segment,
 } from 'semantic-ui-react';
 import { v4 as uuidv4 } from 'uuid';
+
+const AlbumCompletionPanel = lazy(() => import('./AlbumCompletionPanel'));
+const ArtistReleaseRadarPanel = lazy(() => import('./ArtistReleaseRadarPanel'));
+const DiscographyCoveragePanel = lazy(() => import('./DiscographyCoveragePanel'));
+const DiscoveryGraphAtlasPanel = lazy(() => import('./DiscoveryGraphAtlasPanel'));
+const FederatedTasteRecommendationsPanel = lazy(() =>
+  import('./FederatedTasteRecommendationsPanel'),
+);
+const MusicBrainzLookup = lazy(() => import('./MusicBrainzLookup'));
+const SongIDPanel = lazy(() => import('./SongIDPanel'));
+const SoulseekDiscoveryPanel = lazy(() => import('./SoulseekDiscoveryPanel'));
 
 const isObject = (value) =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -119,7 +128,18 @@ const CollapsibleSection = ({
           }
         />
       </div>
-      {open ? children : null}
+      {open ? (
+        <Suspense
+          fallback={
+            <PlaceholderSegment
+              caption={`Loading ${title}`}
+              icon="circle notched"
+            />
+          }
+        >
+          {children}
+        </Suspense>
+      ) : null}
     </Segment>
   );
 };

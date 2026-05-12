@@ -1,30 +1,49 @@
 import './System.css';
-import AdminPolicies from './AdminPolicies';
 import { Switch } from '../Shared';
-import AutomationCenter from './AutomationCenter';
-import Bridge from './Bridge';
-import Data from './Data';
-import Events from './Events';
-import ExperienceSettings from './ExperienceSettings';
-import Files from './Files';
-import Info from './Info';
-import Integrations from './Integrations';
-import Jobs from './Jobs';
-import LibraryHealth from './LibraryHealth';
-import Logs from './Logs';
-import MediaCore from './MediaCore';
-import Mesh from './Mesh';
-import Metrics from './Metrics';
-import Network from './Network';
-import Options from './Options';
-import QuarantineJury from './QuarantineJury';
-import Security from './Security';
-import Shares from './Shares';
-import SourceProviders from './SourceProviders';
-import SwarmAnalytics from './SwarmAnalytics';
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { Icon, Menu, Segment, Tab } from 'semantic-ui-react';
+import { Icon, Menu, Message, Segment, Tab } from 'semantic-ui-react';
+
+const AdminPolicies = lazy(() => import('./AdminPolicies'));
+const AutomationCenter = lazy(() => import('./AutomationCenter'));
+const Bridge = lazy(() => import('./Bridge'));
+const Data = lazy(() => import('./Data'));
+const Events = lazy(() => import('./Events'));
+const ExperienceSettings = lazy(() => import('./ExperienceSettings'));
+const Files = lazy(() => import('./Files'));
+const Info = lazy(() => import('./Info'));
+const Integrations = lazy(() => import('./Integrations'));
+const Jobs = lazy(() => import('./Jobs'));
+const LibraryHealth = lazy(() => import('./LibraryHealth'));
+const Logs = lazy(() => import('./Logs'));
+const MediaCore = lazy(() => import('./MediaCore'));
+const Mesh = lazy(() => import('./Mesh'));
+const Metrics = lazy(() => import('./Metrics'));
+const Network = lazy(() => import('./Network'));
+const Options = lazy(() => import('./Options'));
+const QuarantineJury = lazy(() => import('./QuarantineJury'));
+const Security = lazy(() => import('./Security'));
+const Shares = lazy(() => import('./Shares'));
+const SourceProviders = lazy(() => import('./SourceProviders'));
+const SwarmAnalytics = lazy(() => import('./SwarmAnalytics'));
+
+const renderPane = (Component, props = {}, className) => (
+  <Tab.Pane className={className}>
+    <Suspense
+      fallback={
+        <Message info>
+          <Icon
+            loading
+            name="spinner"
+          />
+          Loading
+        </Message>
+      }
+    >
+      <Component {...props} />
+    </Suspense>
+  </Tab.Pane>
+);
 
 const System = ({ options = {}, state = {}, theme }) => {
   const navigate = useNavigate();
@@ -50,15 +69,7 @@ const System = ({ options = {}, state = {}, theme }) => {
           Info
         </Menu.Item>
       ),
-      render: () => (
-        <Tab.Pane>
-          <Info
-            options={options}
-            state={state}
-            theme={theme}
-          />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(Info, { options, state, theme }),
       route: 'info',
     },
     {
@@ -71,11 +82,7 @@ const System = ({ options = {}, state = {}, theme }) => {
           Network
         </Menu.Item>
       ),
-      render: () => (
-        <Tab.Pane>
-          <Network theme={theme} />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(Network, { theme }),
       route: 'network',
     },
     {
@@ -84,11 +91,7 @@ const System = ({ options = {}, state = {}, theme }) => {
         icon: 'share alternate',
         key: 'mesh',
       },
-      render: () => (
-        <Tab.Pane>
-          <Mesh />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(Mesh),
       route: 'mesh',
     },
     {
@@ -97,11 +100,7 @@ const System = ({ options = {}, state = {}, theme }) => {
         icon: 'exchange',
         key: 'bridge',
       },
-      render: () => (
-        <Tab.Pane>
-          <Bridge />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(Bridge),
       route: 'bridge',
     },
     {
@@ -110,11 +109,7 @@ const System = ({ options = {}, state = {}, theme }) => {
         icon: 'music',
         key: 'mediacore',
       },
-      render: () => (
-        <Tab.Pane>
-          <MediaCore />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(MediaCore),
       route: 'mediacore',
     },
     {
@@ -123,11 +118,7 @@ const System = ({ options = {}, state = {}, theme }) => {
         icon: 'shield alternate',
         key: 'security',
       },
-      render: () => (
-        <Tab.Pane>
-          <Security />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(Security),
       route: 'security',
     },
     {
@@ -136,11 +127,7 @@ const System = ({ options = {}, state = {}, theme }) => {
         icon: 'sliders horizontal',
         key: 'policies',
       },
-      render: () => (
-        <Tab.Pane className="full-height">
-          <AdminPolicies options={options} />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(AdminPolicies, { options }, 'full-height'),
       route: 'policies',
     },
     {
@@ -149,11 +136,7 @@ const System = ({ options = {}, state = {}, theme }) => {
         icon: 'compass',
         key: 'experience',
       },
-      render: () => (
-        <Tab.Pane className="full-height">
-          <ExperienceSettings />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(ExperienceSettings, {}, 'full-height'),
       route: 'experience',
     },
     {
@@ -162,14 +145,7 @@ const System = ({ options = {}, state = {}, theme }) => {
         icon: 'plug',
         key: 'integrations',
       },
-      render: () => (
-        <Tab.Pane className="full-height">
-          <Integrations
-            options={options}
-            state={state}
-          />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(Integrations, { options, state }, 'full-height'),
       route: 'integrations',
     },
     {
@@ -178,14 +154,7 @@ const System = ({ options = {}, state = {}, theme }) => {
         icon: 'options',
         key: 'options',
       },
-      render: () => (
-        <Tab.Pane className="full-height">
-          <Options
-            options={options}
-            theme={theme}
-          />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(Options, { options, theme }, 'full-height'),
       route: 'options',
     },
     {
@@ -206,14 +175,7 @@ const System = ({ options = {}, state = {}, theme }) => {
           Shares
         </Menu.Item>
       ),
-      render: () => (
-        <Tab.Pane>
-          <Shares
-            state={state.shares}
-            theme={theme}
-          />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(Shares, { state: state.shares, theme }),
       route: 'shares',
     },
     {
@@ -222,11 +184,7 @@ const System = ({ options = {}, state = {}, theme }) => {
         icon: 'tasks',
         key: 'jobs',
       },
-      render: () => (
-        <Tab.Pane className="full-height">
-          <Jobs />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(Jobs, {}, 'full-height'),
       route: 'jobs',
     },
     {
@@ -235,11 +193,7 @@ const System = ({ options = {}, state = {}, theme }) => {
         icon: 'magic',
         key: 'automations',
       },
-      render: () => (
-        <Tab.Pane className="full-height">
-          <AutomationCenter />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(AutomationCenter, {}, 'full-height'),
       route: 'automations',
     },
     {
@@ -248,11 +202,7 @@ const System = ({ options = {}, state = {}, theme }) => {
         icon: 'random',
         key: 'source-providers',
       },
-      render: () => (
-        <Tab.Pane className="full-height">
-          <SourceProviders />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(SourceProviders, {}, 'full-height'),
       route: 'source-providers',
     },
     {
@@ -261,11 +211,7 @@ const System = ({ options = {}, state = {}, theme }) => {
         icon: 'chart line',
         key: 'swarm-analytics',
       },
-      render: () => (
-        <Tab.Pane className="full-height">
-          <SwarmAnalytics />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(SwarmAnalytics, {}, 'full-height'),
       route: 'swarm-analytics',
     },
     {
@@ -274,11 +220,7 @@ const System = ({ options = {}, state = {}, theme }) => {
         icon: 'heartbeat',
         key: 'library-health',
       },
-      render: () => (
-        <Tab.Pane className="full-height">
-          <LibraryHealth />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(LibraryHealth, {}, 'full-height'),
       route: 'library-health',
     },
     {
@@ -287,11 +229,7 @@ const System = ({ options = {}, state = {}, theme }) => {
         icon: 'shield',
         key: 'quarantine-jury',
       },
-      render: () => (
-        <Tab.Pane className="full-height">
-          <QuarantineJury />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(QuarantineJury, {}, 'full-height'),
       route: 'quarantine-jury',
     },
     {
@@ -300,14 +238,7 @@ const System = ({ options = {}, state = {}, theme }) => {
         icon: 'folder open',
         key: 'files',
       },
-      render: () => (
-        <Tab.Pane className="full-height">
-          <Files
-            options={options}
-            theme={theme}
-          />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(Files, { options, theme }, 'full-height'),
       route: 'files',
     },
     {
@@ -316,11 +247,7 @@ const System = ({ options = {}, state = {}, theme }) => {
         icon: 'database',
         key: 'data',
       },
-      render: () => (
-        <Tab.Pane className="full-height">
-          <Data theme={theme} />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(Data, { theme }, 'full-height'),
       route: 'data',
     },
     {
@@ -329,11 +256,7 @@ const System = ({ options = {}, state = {}, theme }) => {
         icon: 'calendar check',
         key: 'events',
       },
-      render: () => (
-        <Tab.Pane className="full-height">
-          <Events />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(Events, {}, 'full-height'),
       route: 'events',
     },
     {
@@ -342,11 +265,7 @@ const System = ({ options = {}, state = {}, theme }) => {
         icon: 'file outline',
         key: 'logs',
       },
-      render: () => (
-        <Tab.Pane>
-          <Logs />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(Logs),
       route: 'logs',
     },
     {
@@ -355,11 +274,7 @@ const System = ({ options = {}, state = {}, theme }) => {
         icon: 'chart bar',
         key: 'metrics',
       },
-      render: () => (
-        <Tab.Pane className="full-height">
-          <Metrics />
-        </Tab.Pane>
-      ),
+      render: () => renderPane(Metrics, {}, 'full-height'),
       route: 'metrics',
     },
   ];

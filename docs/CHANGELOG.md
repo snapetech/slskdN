@@ -93,6 +93,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Removed additional full-page initial loaders from Collections, Shared with Me,
   Share Groups, Events, Files, Metrics, Network, and Source Providers so their
   page shells render while data refreshes in the background.
+- Deferred and bounded optional username metadata lookups in `UserCard`, with
+  in-flight dedupe and short caching to reduce request fan-out on transfer,
+  search, browse, chat, and room views.
+- Split optional Search panels and System tabs into lazy-loaded chunks so
+  collapsed panels and inactive admin tabs no longer inflate initial route
+  bundles.
 - Fixed downloads/uploads page spinner stalling on initial load due to queue-position API calls blocking the render; those are now fire-and-forget.
 - Dramatically reduced downloads/uploads page initial load time by fetching only active transfers on the 2-second poll; completed transfers are fetched separately on a 15-second interval for header bulk operations.
 - Added automatic re-queue for failed downloads: transfers ending in TimedOut, Errored, or Aborted state are automatically re-enqueued after a configurable delay (default 5 minutes). Cancelled and Rejected transfers are excluded.

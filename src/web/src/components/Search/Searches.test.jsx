@@ -123,7 +123,7 @@ describe('Searches', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Expand SongID' }));
 
-    expect(screen.getByTestId('songid-panel')).toBeInTheDocument();
+    expect(await screen.findByTestId('songid-panel')).toBeInTheDocument();
     expect(localStorage.getItem('slskdn.search.section.songid')).toBe('open');
   });
 
