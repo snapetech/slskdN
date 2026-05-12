@@ -80,13 +80,14 @@ portable setup path tried to install into a root-owned default location.
 
 ```yaml
 env:
-  DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
+  DOTNET_INSTALL_DIR: ${{ github.workspace }}/.dotnet
 ```
 
 **Why This Keeps Happening**: Self-hosted runner labels do not guarantee a
 specific SDK install path or root-write access. Workflows that need `dotnet`
-should run `actions/setup-dotnet` with a writable `DOTNET_INSTALL_DIR` unless a
-job has already proven and exported a specific runner-local SDK path.
+should run `actions/setup-dotnet` with a writable `DOTNET_INSTALL_DIR` based on
+a context available at workflow scope, unless a job has already proven and
+exported a specific runner-local SDK path.
 
 ### 0z387. Large Room Lists Need Search-First Join Controls
 
