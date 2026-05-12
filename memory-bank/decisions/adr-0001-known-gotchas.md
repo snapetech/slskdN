@@ -16032,3 +16032,5 @@ npm run check:council
 **How to prevent:** Keep release workflows pinned to the exact SDK version in `global.json`, and update the workflow pins in the same commit as any SDK bump. Avoid broad major/minor selectors for self-contained release publishing.
 
 **Follow-on gotcha:** Remediation checks that assert workflow .NET versions must compare against `global.json`, not just the target-framework major. Otherwise the release gate blocks the exact SDK pin that prevents publish drift.
+
+**Second follow-on gotcha:** A local-only `global.json` is worse than no pin for releases. If workflows or validation depend on `global.json`, force-add it despite ignore rules and gate on `git ls-files global.json` so tag checkouts see the same SDK pin as local release gates.
