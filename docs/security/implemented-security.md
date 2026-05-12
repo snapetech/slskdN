@@ -83,7 +83,6 @@ Implemented tests:
 
 Required follow-up:
 
-- Wire `Program.cs` to pass `BindExposureAnalyzer.IsRemoteReachable(...)` into `HardeningValidator.Validate(...)` instead of deriving exposure from whether ports are enabled.
 - Add startup-level HardeningValidator tests after the Program.cs wiring patch lands.
 
 ## HardeningValidator
@@ -97,12 +96,11 @@ Current responsibilities:
 - Warn or fail on CORS credentials with wildcard origins.
 - Warn or fail when memory dumps are enabled while authentication is disabled.
 - Warn or fail when metrics auth has an empty password.
-- Warn or fail when `HashFromAudioFileEnabled` is enabled despite unavailable PCM extraction support.
+- Fail startup when `HashFromAudioFileEnabled` is enabled because PCM extraction support is unavailable in this build.
 
 Required follow-up:
 
-- Wire bind exposure semantics through `BindExposureAnalyzer`; the validator must receive actual exposure information, not a boolean derived from whether ports are enabled.
-- Decide whether `HashFromAudioFileEnabled` should be removed, renamed as experimental, or made conditional on a real PCM extraction capability check.
+- Add an explicit PCM extraction capability check before any future audio-hash-from-file option can be exposed again.
 
 ## Authentication, metrics, and diagnostics posture
 

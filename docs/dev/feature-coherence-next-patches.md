@@ -24,13 +24,13 @@ Acceptance criteria:
 
 ## 2. Wire BindExposureAnalyzer into Program.cs
 
-Status: `BindExposureAnalyzer` and unit tests exist. Startup still needs wiring.
+Status: complete for direct startup wiring. `Program.cs` now passes analyzed web listener exposure to `HardeningValidator`.
 
 Target behavior:
 
 - Stop deriving remote exposure from whether a web port is enabled.
 - Classify the actual configured web bind address/socket.
-- Pass `BindExposureAnalyzer.IsRemoteReachable(exposure)` into `HardeningValidator.Validate(...)`.
+- Pass `BindExposureAnalyzer.IsRemoteReachable(exposure)` into `HardeningValidator.Validate(...)`. Done.
 - Log the computed exposure at startup for operator/debug visibility.
 
 Acceptance criteria:
@@ -85,7 +85,7 @@ Acceptance criteria:
 
 ## 6. Remove or hide HashFromAudioFileEnabled
 
-Status: `HardeningValidator` says this feature requires unavailable PCM extraction support.
+Status: direct public CLI/env exposure removed. `HardeningValidator` now fails startup whenever this unsupported option is true.
 
 Preferred resolution:
 
