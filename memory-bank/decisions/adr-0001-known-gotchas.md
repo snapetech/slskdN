@@ -155,6 +155,37 @@ not a live alert that should re-arm on every data change. Dismissal keys for
 one-time banners must be stable across runtime state changes, upgrades, and
 future installs that keep the same browser profile.
 
+### 0z373. Remote Soulseek Paths Can Be Windows-Rooted But Still Valid Remote Names
+
+**The Bug**: Downloads from peers advertising paths like
+`c:\users\name\downloads\album\track.flac` failed with
+`Remote filename must be relative`. The guard correctly prevented local path
+escape, but treated a remote peer's Windows drive prefix as if it were a local
+destination root.
+
+**Files Affected**:
+- `src/slskd/Common/CommonExtensions.cs`
+- `tests/slskd.Tests.Unit/Common/Extensions/ToLocalRelativeFilenameTests.cs`
+
+**Wrong**:
+```csharp
+if (Path.IsPathRooted(remoteFilename) || Regex.IsMatch(remoteFilename, @"^[a-zA-Z]:"))
+{
+    throw new ArgumentException("Remote filename must be relative", nameof(remoteFilename));
+}
+```
+
+**Correct**:
+```csharp
+var remoteStoreRelativeFilename = StripRemoteRoot(remoteFilename);
+var localizedRemoteFilename = remoteStoreRelativeFilename.LocalizePath();
+```
+
+**Why This Keeps Happening**: Soulseek filenames are remote store identifiers,
+not local filesystem paths. Security checks must reject traversal and local
+destination escape after normalizing the remote store root, while still
+accepting common Windows-rooted remote filenames from other clients.
+
 ### 0z369. Release Artifact Verifiers Must Match The Active Web Bundler Layout
 
 **The Bug**: The post-release artifact verifier looked only for
