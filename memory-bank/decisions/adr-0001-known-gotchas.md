@@ -193,6 +193,7 @@ paint and repeat the same lookups for duplicate usernames.
 
 **Files Affected**:
 - `src/web/src/components/Shared/UserCard.jsx`
+- `src/web/src/components/Search/Detail/SearchDetail.jsx`
 - `src/web/src/components/Search/Searches.jsx`
 - `src/web/src/components/System/System.jsx`
 
