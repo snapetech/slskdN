@@ -52,6 +52,36 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z370. Docker Publish Must Copy Every Project Used By `bin/publish`
+
+**The Bug**: Docker release publishing failed after the VPN helper was added to
+`bin/publish`, because the Docker build stage copied `src/slskd` but not
+`src/slskdN.VpnAgent`. `dotnet publish` then failed inside Docker with
+`MSB1009: Project file does not exist`.
+
+**Files Affected**:
+- `Dockerfile`
+- `bin/publish`
+- `packaging/scripts/validate-packaging-metadata.sh`
+
+**Wrong**:
+```dockerfile
+COPY src/slskd src/slskd/.
+RUN bash ./bin/publish --no-prebuild --platform $TARGETPLATFORM --version $VERSION --output ../../dist/${TARGETPLATFORM}
+```
+
+**Correct**:
+```dockerfile
+COPY src/slskd src/slskd/.
+COPY src/slskdN.VpnAgent src/slskdN.VpnAgent/.
+RUN bash ./bin/publish --no-prebuild --platform $TARGETPLATFORM --version $VERSION --output ../../dist/${TARGETPLATFORM}
+```
+
+**Why This Keeps Happening**: Docker build stages use an explicit copied source
+subset. When shared publish scripts start building another project, Dockerfile
+source-copy rules must be updated and packaging validation must lock the new
+copy in place.
+
 ### 0z369. Release Artifact Verifiers Must Match The Active Web Bundler Layout
 
 **The Bug**: The post-release artifact verifier looked only for
