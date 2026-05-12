@@ -46,17 +46,34 @@ public class RoomsControllerTests
     [Fact]
     public async Task JoinRoom_Trims_Room_Before_Dispatch()
     {
+        var client = new Mock<ISoulseekClient>();
+        client.SetupGet(x => x.State).Returns(SoulseekClientStates.LoggedIn);
         var roomService = new Mock<IRoomService>();
         roomService
             .Setup(x => x.JoinAsync("ambient"))
             .ReturnsAsync(new RoomData("ambient", Array.Empty<UserData>(), isPrivate: false));
-        var controller = CreateController(roomService: roomService.Object);
+        var controller = CreateController(client: client.Object, roomService: roomService.Object);
 
         var result = await controller.JoinRoom(" ambient ");
 
         var created = Assert.IsType<ObjectResult>(result);
         Assert.Equal(201, created.StatusCode);
         roomService.Verify(x => x.JoinAsync("ambient"), Times.Once);
+    }
+
+    [Fact]
+    public async Task JoinRoom_When_Reconnecting_Returns_ServiceUnavailable()
+    {
+        var client = new Mock<ISoulseekClient>();
+        client.SetupGet(x => x.State).Returns(SoulseekClientStates.Connecting);
+        var roomService = new Mock<IRoomService>();
+        var controller = CreateController(client: client.Object, roomService: roomService.Object);
+
+        var result = await controller.JoinRoom("ambient");
+
+        var unavailable = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(503, unavailable.StatusCode);
+        roomService.Verify(x => x.JoinAsync(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

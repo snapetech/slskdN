@@ -384,6 +384,11 @@ namespace slskd.Messaging.API
                 return Ok();
             }
 
+            if (!Client.State.HasFlag(SoulseekClientStates.LoggedIn))
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Soulseek is reconnecting; try again shortly.");
+            }
+
             try
             {
                 var roomData = await RoomService.JoinAsync(roomName);
@@ -396,6 +401,11 @@ namespace slskd.Messaging.API
                 if (ex.InnerException is RoomJoinForbiddenException)
                 {
                     return StatusCode(StatusCodes.Status403Forbidden, $"The server rejected your request to join {roomName}");
+                }
+
+                if (ex is InvalidOperationException)
+                {
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable, "Soulseek is reconnecting; try again shortly.");
                 }
 
                 throw;
