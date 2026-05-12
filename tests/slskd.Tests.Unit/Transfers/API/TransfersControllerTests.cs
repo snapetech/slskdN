@@ -175,6 +175,28 @@ public class TransfersControllerTests
     }
 
     [Fact]
+    public async Task GetPlaceInQueueAsync_WhenQueueLookupTimesOut_ReturnsGatewayTimeout()
+    {
+        var downloads = new Mock<IDownloadService>();
+        var transferId = Guid.NewGuid();
+        downloads
+            .Setup(service => service.Find(It.IsAny<Expression<Func<SlskdTransfer, bool>>>()))
+            .Returns(new SlskdTransfer { Id = transferId, Username = "alice" });
+        downloads
+            .Setup(service => service.GetPlaceInQueueAsync(transferId))
+            .ThrowsAsync(new TimeoutException("sensitive remote detail"));
+
+        var controller = CreateController(downloads);
+
+        var result = await controller.GetPlaceInQueueAsync("alice", transferId.ToString());
+
+        var error = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(504, error.StatusCode);
+        Assert.DoesNotContain("sensitive remote detail", error.Value?.ToString() ?? string.Empty);
+        Assert.Equal("Queue position lookup timed out", error.Value);
+    }
+
+    [Fact]
     public void GetDownloadsAsync_WhenCompletedHidden_KeepsFailedTerminalDownloadsVisible()
     {
         var completed = new SlskdTransfer

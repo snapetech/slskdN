@@ -69,6 +69,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Stopped labeling failed terminal transfers as "completed" in the Web UI and
   made hide/clear completed affect only successful 100% transfers, keeping
   retryable failed downloads visible and protected from completed-transfer purge.
+- Stopped double-logging remote queue-position lookup timeouts as app errors;
+  expected peer timeouts now return a controlled `504` response.
 - Tracked `global.json` in the repo and taught packaging validation to fail if
   the SDK pin is missing from tag checkouts.
 - Fixed Arch, Debian, and RPM VPN helper service units so distro packages use

@@ -609,6 +609,11 @@ namespace slskd.Transfers.API
             {
                 return NotFound();
             }
+            catch (TimeoutException)
+            {
+                Log.Debug("Timed out getting place in queue for {Username}/{TransferId}", username, guid);
+                return StatusCode(504, "Queue position lookup timed out");
+            }
             catch (Exception ex)
             {
                 Log.Error(ex, "Failed to get place in queue for {Username}/{TransferId}", username, guid);

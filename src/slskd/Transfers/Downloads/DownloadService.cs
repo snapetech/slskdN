@@ -707,29 +707,21 @@ namespace slskd.Transfers.Downloads
         /// <returns>The retrieved place in queue.</returns>
         public async Task<int> GetPlaceInQueueAsync(Guid id)
         {
-            try
+            using var context = ContextFactory.CreateDbContext();
+
+            var transfer = context.Transfers.Find(id);
+
+            if (transfer == default)
             {
-                using var context = ContextFactory.CreateDbContext();
-
-                var transfer = context.Transfers.Find(id);
-
-                if (transfer == default)
-                {
-                    throw new NotFoundException($"No download matching id ${id}");
-                }
-
-                var place = await Client.GetDownloadPlaceInQueueAsync(transfer.Username, transfer.Filename);
-
-                transfer.PlaceInQueue = place;
-                context.SaveChanges();
-
-                return place;
+                throw new NotFoundException($"No download matching id ${id}");
             }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Failed to get place in queue for download {Id}: {Message}", id, ex.Message);
-                throw;
-            }
+
+            var place = await Client.GetDownloadPlaceInQueueAsync(transfer.Username, transfer.Filename);
+
+            transfer.PlaceInQueue = place;
+            context.SaveChanges();
+
+            return place;
         }
 
         /// <summary>

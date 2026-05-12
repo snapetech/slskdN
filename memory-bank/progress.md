@@ -1,5 +1,12 @@
 ## 2026-05-12
 
+- Inspected live `slskd.service` app logs on `kspls0` after the broader host
+  checks. The only new app-level errors were duplicate queue-position timeout
+  logs from remote peer lookups, not VPN, mesh, or local service failures.
+  Removed the download service log-and-rethrow path, made the Transfers API
+  classify expected queue-position `TimeoutException`s as sanitized `504`
+  responses, and added focused controller coverage plus ADR-0001 gotcha
+  `0z375`.
 - Added `scripts/create-release-tag.sh` as the guarded release path so local
   releases verify the GitHub target, clean working tree, branch/upstream sync,
   duplicate local/remote tags, tag format, and full release gate before pushing

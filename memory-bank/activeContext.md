@@ -1,3 +1,17 @@
+## Update 2026-05-12 20:45:10Z
+
+- Current task: live slskd app-log triage follow-up completed.
+- Last activity:
+  - found `kspls0` slskd logs were clean except duplicate queue-position timeout errors from remote peer lookups;
+  - documented ADR-0001 gotcha `0z375`;
+  - removed the download service log-and-rethrow path;
+  - made the Transfers API return a sanitized 504 for expected queue-position timeouts while preserving the existing sanitized 500 path for unexpected failures;
+  - added focused controller regression coverage.
+- Validation:
+  - Passed: focused `TransfersControllerTests` (`14/14`), `./bin/lint`, and `git diff --check`.
+- Next steps:
+  1. Commit and push the app-log noise fix.
+
 ## Update 2026-05-12 20:36:17Z
 
 - Current task: failed transfer completion semantics completed.

@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [x] Quiet expected queue-position timeout noise from live app logs.
+ - Status: completed (2026-05-12)
+ - Priority: P2
+ - Notes: `kspls0` app logs showed only queue-position lookup timeouts from remote peers, double-logged by the download service and API controller. Removed the service log-and-rethrow path and made the controller return a sanitized 504 for expected timeouts while keeping unexpected failures on the existing sanitized 500 path. Added focused controller coverage and ADR-0001 gotcha `0z375`.
+
 - [x] Guard release tagging against orphaned aggregate changes.
  - Status: completed (2026-05-12)
  - Priority: P1
