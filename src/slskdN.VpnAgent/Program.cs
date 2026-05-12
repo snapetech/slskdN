@@ -388,28 +388,65 @@ static class Commands
     private static async Task<int> SplitMacOS()
     {
         var anchor = AppConfig.PfAnchorName;
+        ValidatePfIdentifier(anchor, "SLSKDN_VPN_PF_ANCHOR");
+        ValidatePfIdentifier(AppConfig.VpnIface, "SLSKDN_VPN_IFACE");
+        ValidatePfIdentifier(AppConfig.ServiceUser, "SLSKDN_SERVICE_USER");
+
         var rules = $$$"""
         pass out quick on lo0 all
         block drop out quick on ! {{{AppConfig.VpnIface}}} proto { tcp udp } user {{{AppConfig.ServiceUser}}}
         """;
-        var temp = Path.GetTempFileName();
-        await File.WriteAllTextAsync(temp, rules);
-        try
+
+        var anchorFile = AppConfig.PfAnchorFile;
+        Directory.CreateDirectory(anchorFile.DirectoryName!);
+        await File.WriteAllTextAsync(anchorFile.FullName, rules);
+        await EnsureMacOSPfAnchorReference(anchor, anchorFile.FullName);
+        await MustRun("pfctl", "-a", anchor, "-f", anchorFile.FullName);
+
+        var enabled = await ProcessUtil.Run("pfctl", "-s", "info");
+        if (!enabled.Stdout.Contains("Status: Enabled", StringComparison.OrdinalIgnoreCase))
         {
-            await MustRun("pfctl", "-a", anchor, "-f", temp);
-            var enabled = await ProcessUtil.Run("pfctl", "-s", "info");
-            if (!enabled.Stdout.Contains("Status: Enabled", StringComparison.OrdinalIgnoreCase))
-            {
-                await MustRun("pfctl", "-e");
-            }
-        }
-        finally
-        {
-            File.Delete(temp);
+            await MustRun("pfctl", "-e");
         }
 
-        Console.WriteLine($"Configured macOS pf anchor {anchor}: user {AppConfig.ServiceUser} can egress only on {AppConfig.VpnIface}");
+        Console.WriteLine($"Configured macOS pf anchor {anchor} from {anchorFile.FullName}: user {AppConfig.ServiceUser} can egress only on {AppConfig.VpnIface}");
         return 0;
+    }
+
+    private static async Task EnsureMacOSPfAnchorReference(string anchor, string anchorFile)
+    {
+        const string pfConf = "/etc/pf.conf";
+        if (!File.Exists(pfConf))
+        {
+            throw new InvalidOperationException($"{pfConf} does not exist; cannot install macOS pf anchor");
+        }
+
+        var anchorLine = $"anchor \"{anchor}\"";
+        var loadLine = $"load anchor \"{anchor}\" from \"{anchorFile}\"";
+        var content = await File.ReadAllTextAsync(pfConf);
+        if (!content.Contains(anchorLine, StringComparison.Ordinal) ||
+            !content.Contains(loadLine, StringComparison.Ordinal))
+        {
+            var backup = $"{pfConf}.slskdN-vpn.{DateTimeOffset.UtcNow:yyyyMMddHHmmss}.bak";
+            File.Copy(pfConf, backup, overwrite: false);
+            await File.AppendAllTextAsync(pfConf, $"""
+
+            # slskdN VPN fail-closed anchor
+            {anchorLine}
+            {loadLine}
+            """);
+            Console.WriteLine($"Added slskdN pf anchor reference to {pfConf}; backup: {backup}");
+        }
+
+        await MustRun("pfctl", "-f", pfConf);
+    }
+
+    private static void ValidatePfIdentifier(string value, string name)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Contains('\n', StringComparison.Ordinal) || value.Contains('"', StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"{name} contains invalid pf syntax");
+        }
     }
 
     public static async Task<int> Ingress()
@@ -1044,6 +1081,7 @@ static class AppConfig
     public static string IngressRenewTimer { get; } = Env.Get("SLSKDN_VPN_INGRESS_RENEW_TIMER", "slskdN-vpn-ingress-renew.timer");
     public static string WatchdogLogTag { get; } = Env.Get("SLSKDN_VPN_WATCHDOG_LOG_TAG", "slskdN-vpn-watchdog");
     public static string PfAnchorName { get; } = Env.Get("SLSKDN_VPN_PF_ANCHOR", "slskdN/vpn");
+    public static FileInfo PfAnchorFile { get; } = new(Env.Get("SLSKDN_VPN_PF_ANCHOR_FILE", "/etc/pf.anchors/slskdN-vpn"));
     public static FileInfo StateFile(string name) => new(Path.Combine(StateDir.FullName, name));
 
     private static int ResolveServiceUid()

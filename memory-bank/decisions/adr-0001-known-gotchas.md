@@ -52,6 +52,27 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z365. macOS pf Anchors Must Be Referenced From The Main Ruleset
+
+**The Bug**: The macOS VPN helper loaded rules into a named pf anchor, but the main `/etc/pf.conf` ruleset did not necessarily reference that anchor, so the fail-closed rules could be present but never evaluated.
+
+**Files Affected**:
+- `src/slskdN.VpnAgent/Program.cs`
+- `src/slskdN.VpnAgent/windows-macos.md`
+
+**Wrong**:
+```csharp
+await MustRun("pfctl", "-a", anchor, "-f", temp);
+```
+
+**Correct**:
+```csharp
+await EnsureMacOSPfAnchorReference(anchor, anchorFile.FullName);
+await MustRun("pfctl", "-a", anchor, "-f", anchorFile.FullName);
+```
+
+**Why This Keeps Happening**: `pfctl -a name -f file` loads rules into an anchor, but pf only evaluates anchors that are reached from the active ruleset. Platform firewall helpers must install both the anchor contents and the main ruleset reference, with a backup before editing host firewall configuration.
+
 ### 0z364. Local Build Scripts Must Normalize Legacy Tag Versions
 
 **The Bug**: `bin/publish` failed from checkouts whose nearest tag was a legacy value such as `slskdn.238`, because the script passed `slskdn.238+<sha>` directly to MSBuild as `Version`, which is not a valid .NET package version.

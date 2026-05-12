@@ -147,7 +147,8 @@ the `platform-split` command now provides platform-native fail-closed adapters:
 - Linux: this backend, using service UID policy routing and netns ingress slots
 - Windows: Windows Defender Firewall rules for the configured slskdN executable
   and non-VPN interfaces; set `SLSKDN_APP_PATH` and `SLSKDN_VPN_IFACE`
-- macOS: a `pf` anchor keyed by `SLSKDN_SERVICE_USER` and `SLSKDN_VPN_IFACE`
+- macOS: a `pf` anchor keyed by `SLSKDN_SERVICE_USER` and `SLSKDN_VPN_IFACE`;
+  the helper installs the anchor file and references it from `/etc/pf.conf`
 
 Provider-specific port claiming is still backend-dependent. Use static/provider
 forward files on Windows and macOS unless your provider exposes a claim API that

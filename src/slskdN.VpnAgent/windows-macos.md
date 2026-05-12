@@ -26,12 +26,21 @@ slskdN-vpn-agent platform-split
 ## macOS
 
 macOS uses a `pf` anchor keyed by the service user and active VPN interface. Run
-the command as root.
+the command as root. The helper writes the anchor rules to
+`/etc/pf.anchors/slskdN-vpn`, adds the matching `anchor` and `load anchor`
+lines to `/etc/pf.conf` when missing, and keeps a timestamped backup of the
+previous pf config.
 
 Required inputs:
 
 - `SLSKDN_SERVICE_USER`: the user running slskdN.
 - `SLSKDN_VPN_IFACE`: active VPN interface, usually `utunN`.
+
+Optional inputs:
+
+- `SLSKDN_VPN_PF_ANCHOR`: pf anchor name, default `slskdN/vpn`.
+- `SLSKDN_VPN_PF_ANCHOR_FILE`: anchor rules file, default
+  `/etc/pf.anchors/slskdN-vpn`.
 
 Example:
 

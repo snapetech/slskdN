@@ -35,6 +35,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   `slskdn.238` do not make MSBuild reject release smoke tests.
 - Updated release packaging validation so future package changes must keep the
   VPN helper payload and Linux installer wiring intact.
+- Fixed macOS VPN helper enforcement so the generated pf anchor is referenced
+  from `/etc/pf.conf`, not merely loaded into an unevaluated anchor namespace.
 - Fixed downloads/uploads page spinner stalling on initial load due to queue-position API calls blocking the render; those are now fire-and-forget.
 - Dramatically reduced downloads/uploads page initial load time by fetching only active transfers on the 2-second poll; completed transfers are fetched separately on a 15-second interval for header bulk operations.
 - Added automatic re-queue for failed downloads: transfers ending in TimedOut, Errored, or Aborted state are automatically re-enqueued after a configurable delay (default 5 minutes). Cancelled and Rejected transfers are excluded.
