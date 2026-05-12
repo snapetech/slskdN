@@ -5,7 +5,7 @@ import PlaceholderSegment from '../Shared/PlaceholderSegment';
 import RoomCreateModal from './RoomCreateModal';
 import RoomJoinModal from './RoomJoinModal';
 import RoomSession from './RoomSession';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
@@ -251,16 +251,20 @@ const Rooms = () => {
     [navigate],
   );
 
-  const roomOptions = availableRooms
-    .slice()
-    .sort((a, b) => (b.userCount || 0) - (a.userCount || 0))
-    .slice(0, 100)
-    .map((r) => ({
-      description: r.isPrivate ? 'Private' : '',
-      key: r.name,
-      text: `${r.name} (${r.userCount} users)`,
-      value: r.name,
-    }));
+  const roomOptions = useMemo(
+    () =>
+      availableRooms
+        .slice()
+        .sort((a, b) => (b.userCount || 0) - (a.userCount || 0))
+        .slice(0, 100)
+        .map((r) => ({
+          description: r.isPrivate ? 'Private' : '',
+          key: r.name,
+          text: `${r.name} (${r.userCount} users)`,
+          value: r.name,
+        })),
+    [availableRooms],
+  );
 
   const panes = tabs.map((tab, index) => ({
     menuItem: (

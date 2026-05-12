@@ -1,3 +1,20 @@
+## Update 2026-05-12 22:49:11Z
+
+- Current task: deeper render-path performance pass completed.
+- Last activity:
+  - documented the hidden render-cost gotcha in ADR-0001 and committed it separately;
+  - replaced Search response `JSON.stringify` update detection with a stable file signature;
+  - deferred and cached Search user-group metadata lookups;
+  - avoided mutating transfer file props while sorting rows;
+  - rendered inactive room tabs as lightweight shells while keeping sessions mounted.
+- Validation:
+  - Passed: focused Rooms/Search/Transfers Web tests (`18/18`).
+  - Passed: ESLint for touched files.
+  - Passed: `git diff --check`.
+  - Passed: production Web build.
+- Next steps:
+  1. Commit and push the render-path performance pass.
+
 ## Update 2026-05-12 22:43:00Z
 
 - Current task: deeper Web performance pass completed.

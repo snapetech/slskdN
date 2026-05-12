@@ -266,6 +266,31 @@ class RoomSession extends Component {
       );
     }
 
+    if (this.props.active === false) {
+      return (
+        <div className="room-session room-session-inactive">
+          <Card className="room-active-card">
+            <Card.Content>
+              <Card.Header>
+                <Icon
+                  color="grey"
+                  name="comments"
+                />
+                {roomName}
+                <Icon
+                  className="close-button"
+                  color="red"
+                  link
+                  name="close"
+                  onClick={() => onLeaveRoom && onLeaveRoom(roomName)}
+                />
+              </Card.Header>
+            </Card.Content>
+          </Card>
+        </div>
+      );
+    }
+
     return (
       <div className="room-session">
         <Card

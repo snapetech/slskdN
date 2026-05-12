@@ -39,6 +39,11 @@ const formatBytesTransferred = ({ size, transferred }) => {
   return `${t}/${s} ${sExtension}`;
 };
 
+const sortFilesByName = (files) =>
+  [...files].sort((a, b) =>
+    getFileName(a.filename).localeCompare(getFileName(b.filename)),
+  );
+
 class TransferList extends Component {
   constructor(props) {
     super(props);
@@ -71,6 +76,9 @@ class TransferList extends Component {
   render() {
     const { directoryName, files, onSelectionChange } = this.props;
     const { isFolded } = this.state;
+    const sortedFiles = sortFilesByName(files);
+    const allSelected =
+      sortedFiles.length > 0 && sortedFiles.every((file) => file.selected);
 
     return (
       <div>
@@ -93,10 +101,10 @@ class TransferList extends Component {
                   <Table.Row>
                     <Table.HeaderCell className="transferlist-selector">
                       <Checkbox
-                        checked={files.filter((f) => !f.selected).length === 0}
+                        checked={allSelected}
                         fitted
                         onChange={(event, data) =>
-                          files.map((file) =>
+                          sortedFiles.map((file) =>
                             onSelectionChange(
                               directoryName,
                               file,
@@ -121,73 +129,67 @@ class TransferList extends Component {
                   </Table.Row>
                 </Table.Header>
                 <Table.Body>
-                  {files
-                    .sort((a, b) =>
-                      getFileName(a.filename).localeCompare(
-                        getFileName(b.filename),
-                      ),
-                    )
-                    .map((f) => (
-                      <Table.Row key={f.filename}>
-                        <Table.Cell className="transferlist-selector">
-                          <Checkbox
-                            checked={f.selected}
-                            fitted
-                            onChange={(event, data) =>
-                              onSelectionChange(directoryName, f, data.checked)
-                            }
+                  {sortedFiles.map((f) => (
+                    <Table.Row key={f.filename}>
+                      <Table.Cell className="transferlist-selector">
+                        <Checkbox
+                          checked={f.selected}
+                          fitted
+                          onChange={(event, data) =>
+                            onSelectionChange(directoryName, f, data.checked)
+                          }
+                        />
+                      </Table.Cell>
+                      <Table.Cell className="transferlist-filename">
+                        {getFileName(f.filename)}
+                      </Table.Cell>
+                      <Table.Cell className="transferlist-progress">
+                        {f.state === 'InProgress' ? (
+                          <Progress
+                            color={getColor(f.state).color}
+                            percent={Math.round(f.percentComplete)}
+                            progress
+                            style={{ margin: 0 }}
                           />
-                        </Table.Cell>
-                        <Table.Cell className="transferlist-filename">
-                          {getFileName(f.filename)}
-                        </Table.Cell>
-                        <Table.Cell className="transferlist-progress">
-                          {f.state === 'InProgress' ? (
-                            <Progress
-                              color={getColor(f.state).color}
-                              percent={Math.round(f.percentComplete)}
-                              progress
-                              style={{ margin: 0 }}
-                            />
-                          ) : (
-                            <Button
-                              fluid
-                              size="mini"
-                              style={{
-                                cursor: f.direction === 'Upload' ? 'unset' : '',
-                                margin: 0,
-                                padding: 7,
-                              }}
-                              {...getColor(f.state)}
-                              active={f.direction === 'Upload'}
-                              onClick={() => this.handleClick(f)}
-                            >
-                              {f.direction === 'Download' &&
-                                isQueuedState(f.state) && (
-                                  <Icon name="refresh" />
-                                )}
-                              {f.direction === 'Download' &&
-                                isRetryableState(f.state) && (
-                                  <Icon name="redo" />
-                                )}
-                              {formatTransferState(f.state)}
-                              {f.placeInQueue ? ` (#${f.placeInQueue})` : ''}
-                            </Button>
-                          )}
-                        </Table.Cell>
-                        <Table.Cell className="transferlist-speed">
-                          {f.state === 'InProgress' && f.averageSpeed
-                            ? `${formatBytes(f.averageSpeed)}/s`
-                            : '—'}
-                        </Table.Cell>
-                        <Table.Cell className="transferlist-size">
-                          {formatBytesTransferred({
-                            size: f.size,
-                            transferred: f.bytesTransferred,
-                          })}
-                        </Table.Cell>
-                      </Table.Row>
-                    ))}
+                        ) : (
+                          <Button
+                            fluid
+                            size="mini"
+                            style={{
+                              cursor: f.direction === 'Upload' ? 'unset' : '',
+                              margin: 0,
+                              padding: 7,
+                            }}
+                            {...getColor(f.state)}
+                            active={f.direction === 'Upload'}
+                            onClick={() => this.handleClick(f)}
+                          >
+                            {f.direction === 'Download' &&
+                              isQueuedState(f.state) && (
+                                <Icon name="refresh" />
+                              )}
+                            {f.direction === 'Download' &&
+                              isRetryableState(f.state) && (
+                                <Icon name="redo" />
+                              )}
+                            {formatTransferState(f.state)}
+                            {f.placeInQueue ? ` (#${f.placeInQueue})` : ''}
+                          </Button>
+                        )}
+                      </Table.Cell>
+                      <Table.Cell className="transferlist-speed">
+                        {f.state === 'InProgress' && f.averageSpeed
+                          ? `${formatBytes(f.averageSpeed)}/s`
+                          : '—'}
+                      </Table.Cell>
+                      <Table.Cell className="transferlist-size">
+                        {formatBytesTransferred({
+                          size: f.size,
+                          transferred: f.bytesTransferred,
+                        })}
+                      </Table.Cell>
+                    </Table.Row>
+                  ))}
                 </Table.Body>
               </Table>
             </List.Item>

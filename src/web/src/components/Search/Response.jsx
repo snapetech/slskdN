@@ -24,6 +24,56 @@ import { Button, Card, Icon, Label, List, Modal, Popup } from 'semantic-ui-react
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const segment = (value) => encodeURIComponent(String(value));
+const USER_GROUP_CACHE_TTL_MS = 5 * 60 * 1000;
+const userGroupCache = new Map();
+
+const getFileSignature = (file) => [
+  file?.filename,
+  file?.size,
+  file?.locked === true ? 1 : 0,
+].join(':');
+
+const getResponseSignature = (response) => [
+  response?.username,
+  response?.token,
+  response?.fileCount,
+  response?.lockedFileCount,
+  asArray(response?.files).map(getFileSignature).join('\u001f'),
+  asArray(response?.lockedFiles).map(getFileSignature).join('\u001f'),
+].join('\u001e');
+
+const getCachedUserGroup = (username) => {
+  const cached = userGroupCache.get(username);
+
+  if (!cached || cached.expiresAt <= Date.now()) {
+    userGroupCache.delete(username);
+    return undefined;
+  }
+
+  return cached.value;
+};
+
+const setCachedUserGroup = (username, value) => {
+  userGroupCache.set(username, {
+    expiresAt: Date.now() + USER_GROUP_CACHE_TTL_MS,
+    value,
+  });
+};
+
+const scheduleAfterPaint = (callback) => {
+  if (typeof window === 'undefined') {
+    callback();
+    return undefined;
+  }
+
+  if (typeof window.requestIdleCallback === 'function') {
+    const idleHandle = window.requestIdleCallback(callback, { timeout: 1_500 });
+    return () => window.cancelIdleCallback?.(idleHandle);
+  }
+
+  const timeout = window.setTimeout(callback, 250);
+  return () => window.clearTimeout(timeout);
+};
 
 export const buildSearchItemActionPath = (searchId, itemId, action) =>
   `/searches/${segment(searchId)}/items/${segment(itemId)}/${action}`;
@@ -102,17 +152,20 @@ class Response extends Component {
       userGroup: null,
       userGroupLoading: false,
     };
+    this.cancelScheduledUserGroupFetch = null;
+    this.responseSignature = getResponseSignature(this.props.response);
+    this.mounted = false;
   }
 
   componentDidMount() {
-    this.fetchUserGroup();
+    this.mounted = true;
+    this.scheduleUserGroupFetch();
   }
 
   componentDidUpdate(previousProps) {
-    if (
-      JSON.stringify(this.props.response) !==
-      JSON.stringify(previousProps.response)
-    ) {
+    const responseSignature = getResponseSignature(this.props.response);
+    if (responseSignature !== this.responseSignature) {
+      this.responseSignature = responseSignature;
       this.setState({ tree: buildTree(this.props.response) });
     }
 
@@ -121,24 +174,51 @@ class Response extends Component {
     }
 
     if (this.props.response.username !== previousProps.response.username) {
-      this.fetchUserGroup();
+      this.cancelScheduledUserGroupFetch?.();
+      this.scheduleUserGroupFetch();
       this.setState({
         qualitySummary: getCommunityQualitySummary(this.props.response.username),
       });
     }
   }
 
-  fetchUserGroup = async () => {
+  componentWillUnmount() {
+    this.mounted = false;
+    this.cancelScheduledUserGroupFetch?.();
+  }
+
+  scheduleUserGroupFetch = () => {
     const { username } = this.props.response;
+    const cached = getCachedUserGroup(username);
+    if (cached !== undefined) {
+      this.setState({ userGroup: cached, userGroupLoading: false });
+      return;
+    }
+
+    this.cancelScheduledUserGroupFetch = scheduleAfterPaint(() => {
+      this.fetchUserGroup(username);
+    });
+  };
+
+  fetchUserGroup = async (username) => {
+    if (!this.mounted || this.props.response.username !== username) {
+      return;
+    }
 
     this.setState({ userGroupLoading: true });
 
     try {
       const response = await getGroup({ username });
-      this.setState({ userGroup: response.data, userGroupLoading: false });
+      setCachedUserGroup(username, response.data);
+      if (this.mounted && this.props.response.username === username) {
+        this.setState({ userGroup: response.data, userGroupLoading: false });
+      }
     } catch (error) {
       console.debug('Failed to fetch user group for', username, error);
-      this.setState({ userGroup: null, userGroupLoading: false });
+      setCachedUserGroup(username, null);
+      if (this.mounted && this.props.response.username === username) {
+        this.setState({ userGroup: null, userGroupLoading: false });
+      }
     }
   };
 
