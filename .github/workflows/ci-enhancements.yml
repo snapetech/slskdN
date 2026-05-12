@@ -14,7 +14,7 @@ on:
 
 env:
   DOTNET_VERSION: '10.0.202'
-  DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet
+  DOTNET_INSTALL_DIR: ${{ github.workspace }}/.dotnet
   NODE_VERSION: '20'
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
