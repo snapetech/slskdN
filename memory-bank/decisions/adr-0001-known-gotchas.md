@@ -61,6 +61,7 @@ workflow only ran `actions/setup-dotnet` for GitHub-hosted runners, then the
 portable setup path tried to install into a root-owned default location.
 
 **Files Affected**:
+- `.github/workflows/ci.yml`
 - `.github/workflows/ci-enhancements.yml`
 
 **Wrong**:
