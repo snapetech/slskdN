@@ -4,24 +4,28 @@ on:
   pull_request:
     paths:
       - README.md
+      - README.maturity.md
       - FEATURE_INVENTORY.md
       - docs/status.md
       - docs/security/**
       - docs/dependencies.md
       - docs/analyzer-suppressions.md
       - scripts/audit-feature-coherence.sh
+      - scripts/audit-readme-maturity-draft.sh
       - src/slskd/slskd.csproj
   push:
     branches:
       - chore/feature-coherence-audit
     paths:
       - README.md
+      - README.maturity.md
       - FEATURE_INVENTORY.md
       - docs/status.md
       - docs/security/**
       - docs/dependencies.md
       - docs/analyzer-suppressions.md
       - scripts/audit-feature-coherence.sh
+      - scripts/audit-readme-maturity-draft.sh
       - src/slskd/slskd.csproj
 
 jobs:
@@ -33,3 +37,6 @@ jobs:
 
       - name: Run feature coherence audit
         run: bash scripts/audit-feature-coherence.sh
+
+      - name: Run README maturity draft audit
+        run: bash scripts/audit-readme-maturity-draft.sh
