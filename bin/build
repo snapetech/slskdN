@@ -5,6 +5,19 @@ web_only=false
 dotnet_only=false
 skip_tests=false
 
+normalize_dotnet_version() {
+  local value="$1"
+  local base="${value%%+*}"
+
+  if [[ "$base" =~ ^([0-9]{8,10})-slskdn\.([0-9]+)$ ]]; then
+    printf '0.0.0-slskdn.%s.%s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"
+  elif [[ "$base" =~ ^slskdn\.([0-9]+)$ ]]; then
+    printf '0.0.0-slskdn.%s\n' "${BASH_REMATCH[1]}"
+  else
+    printf '%s\n' "${base//.dev./-dev-}"
+  fi
+}
+
 while test $# -gt 0; do
   case "$1" in
     -h|--help)
@@ -60,10 +73,7 @@ if [ -z "$version" ]; then
 fi
 
 public_version=$version
-dotnet_version=$version
-if [[ "$public_version" =~ ^([0-9]{8,10})-slskdn\.([0-9]+)$ ]]; then
-  dotnet_version="0.0.0-slskdn.${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
-fi
+dotnet_version=$(normalize_dotnet_version "$public_version")
 
 if [ "$dotnet_only" == true ]; then
   echo $'\n\t⏩  web build skipped\n'

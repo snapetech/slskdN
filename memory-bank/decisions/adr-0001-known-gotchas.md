@@ -52,6 +52,26 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z364. Local Build Scripts Must Normalize Legacy Tag Versions
+
+**The Bug**: `bin/publish` failed from checkouts whose nearest tag was a legacy value such as `slskdn.238`, because the script passed `slskdn.238+<sha>` directly to MSBuild as `Version`, which is not a valid .NET package version.
+
+**Files Affected**:
+- `bin/build`
+- `bin/publish`
+
+**Wrong**:
+```bash
+dotnet_version=$version
+```
+
+**Correct**:
+```bash
+dotnet_version=$(normalize_dotnet_version "$public_version")
+```
+
+**Why This Keeps Happening**: Git tag names are public release identifiers, but MSBuild `Version` must be NuGet/SemVer compatible. Local build helpers need the same normalization discipline as tagged CI workflows, especially for legacy fork tags and `.dev.` prerelease spelling.
+
 ### 0z363. Cross-Platform Helpers Must Not Resolve Linux UIDs During Static Init
 
 **The Bug**: The VPN helper's Windows/macOS split-routing path could still touch Linux-only `/etc/passwd` lookup code when shared configuration was initialized.

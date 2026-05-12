@@ -25,6 +25,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.
+- Packaged the slskdN VPN helper into release archives and Linux installers,
+  including AUR, Debian, RPM, and direct release installs, so VPN split-routing
+  and ingress units are available out of the box.
+- Published the VPN helper for Windows and macOS release archives with
+  platform split-routing docs, and fixed shared helper configuration so
+  non-Linux commands do not run Linux UID discovery.
+- Fixed local build/publish version normalization so legacy tags such as
+  `slskdn.238` do not make MSBuild reject release smoke tests.
 - Fixed downloads/uploads page spinner stalling on initial load due to queue-position API calls blocking the render; those are now fire-and-forget.
 - Dramatically reduced downloads/uploads page initial load time by fetching only active transfers on the 2-second poll; completed transfers are fetched separately on a 15-second interval for header bulk operations.
 - Added automatic re-queue for failed downloads: transfers ending in TimedOut, Errored, or Aborted state are automatically re-enqueued after a configurable delay (default 5 minutes). Cancelled and Rejected transfers are excluded.
