@@ -2704,6 +2704,7 @@
 - [2026-05-12T20:10:49Z] Completed: make the network endpoint/ports banner compact and permanently dismissible; dismissal now survives forwarded-port changes and future installs that keep browser storage.
 - [2026-05-12T20:28:14Z] Completed: triage `kspls0` logs after release fixes; accepted Windows-rooted remote Soulseek paths as valid remote store names, downgraded expected rescue metadata misses to debug, and confirmed app/VPN units are healthy while unrelated host Proton WireGuard units remain failed.
 - [2026-05-12T20:36:17Z] Completed: fix failed transfer completion semantics; failed terminal downloads stay visible when hiding completed, clear completed only removes successful 100% transfers, and the UI labels failures as Error/Timed out/Aborted instead of Completed.
+- [2026-05-12T21:35:00Z] Completed: fix `.245` release-gate content-verification test flake; mock probe accounting now cleans up on expected verification cancellation.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.
 

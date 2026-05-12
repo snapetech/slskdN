@@ -1,3 +1,18 @@
+## Update 2026-05-12 21:35:00Z
+
+- Current task: replacement release follow-up in progress.
+- Last activity:
+  - confirmed replacement tag `.245` failed in the GitHub release gate before packaging, not in PPA;
+  - root-caused the failure to a cancellation-sensitive unit-test mock counter in `ContentVerificationServiceTests.VerifySourcesAsync_BoundsConcurrentSoulseekProbes`;
+  - documented ADR-0001 gotcha `0z377`;
+  - changed the mock to decrement active probe accounting in `finally`.
+- Validation:
+  - Passed: focused Release content-verification tests once, then the concurrency test 20 repeated Release runs.
+- Next steps:
+  1. Run packaging metadata, lint, and release-target checks.
+  2. Commit/push the flake fix.
+  3. Cut and monitor a replacement release tag.
+
 ## Update 2026-05-12 21:17:26Z
 
 - Current task: PPA release failure follow-up in progress.

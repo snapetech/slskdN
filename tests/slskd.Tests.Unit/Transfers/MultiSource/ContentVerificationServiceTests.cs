@@ -78,22 +78,28 @@ public class ContentVerificationServiceTests
                 CancellationToken? cancellationToken) =>
             {
                 var current = Interlocked.Increment(ref active);
-                int observed;
-                do
+                try
                 {
-                    observed = Volatile.Read(ref maxActive);
-                    if (current <= observed)
+                    int observed;
+                    do
                     {
-                        break;
+                        observed = Volatile.Read(ref maxActive);
+                        if (current <= observed)
+                        {
+                            break;
+                        }
                     }
-                }
-                while (Interlocked.CompareExchange(ref maxActive, current, observed) != observed);
+                    while (Interlocked.CompareExchange(ref maxActive, current, observed) != observed);
 
-                await Task.Delay(50, cancellationToken ?? CancellationToken.None);
-                var stream = await outputStreamFactory();
-                await stream.WriteAsync(new byte[ContentVerificationService.VerificationChunkSize], cancellationToken ?? CancellationToken.None);
-                Interlocked.Decrement(ref active);
-                return new Transfer(TransferDirection.Download, username, remoteFilename, token ?? 1, TransferStates.Completed, size, 0, ContentVerificationService.VerificationChunkSize);
+                    await Task.Delay(50, cancellationToken ?? CancellationToken.None);
+                    var stream = await outputStreamFactory();
+                    await stream.WriteAsync(new byte[ContentVerificationService.VerificationChunkSize], cancellationToken ?? CancellationToken.None);
+                    return new Transfer(TransferDirection.Download, username, remoteFilename, token ?? 1, TransferStates.Completed, size, 0, ContentVerificationService.VerificationChunkSize);
+                }
+                finally
+                {
+                    Interlocked.Decrement(ref active);
+                }
             });
 
         var service = new ContentVerificationService(soulseekClient.Object);

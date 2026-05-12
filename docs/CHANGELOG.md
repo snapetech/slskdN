@@ -1525,6 +1525,7 @@ Relevant non-documentation commits preserved in this rollback line:
 - Added an E11 tag/organization dry run to Playlist Intake: matched rows can preview tag fields, organization templates, multi-artist behavior, cover-art policy, and ReplayGain policy with changed-field and destination-path summaries, without writing tags, moving files, running ReplayGain, contacting providers, searching, browsing peers, or downloading.
 
 - Fixed mesh self-descriptor publication so unsupported-QUIC hosts no longer advertise fake `DirectQuic` transports or legacy Soulseek-style `2234/2235` endpoints. Auto-detected mesh endpoints now use explicit `udp://...:<overlay-port>` legacy addresses derived from the real overlay listen port, and direct QUIC transport advertisement is suppressed when the running host cannot actually accept QUIC.
+- Fixed a release-gate flake in the content-verification concurrency test by making the mock Soulseek probe cleanup cancellation-safe.
 ## [0.24.5-slskdn.125] — 2026-04-13
 
 - Closed the remaining tester follow-up on issues `#200` and `#201` by fixing the last versioned Web UI/API route gaps, tightening MediaCore and Jobs API versioning, removing the blanket benign `Connection refused` suppression, and covering those production `/api/v0/...` paths in release smoke.
