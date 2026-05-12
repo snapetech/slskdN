@@ -61,6 +61,7 @@ lists, transfer lists sorted props in place during render, and search responses
 deep-compared large payloads with `JSON.stringify`.
 
 **Files Affected**:
+- `src/web/src/components/Chat/ChatSession.jsx`
 - `src/web/src/components/Rooms/RoomSession.jsx`
 - `src/web/src/components/Search/Response.jsx`
 - `src/web/src/components/Transfers/TransferList.jsx`
