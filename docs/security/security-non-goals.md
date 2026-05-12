@@ -13,6 +13,7 @@ Unless a feature is explicitly listed as implemented in `docs/security/implement
 - A global peer reputation or trust network.
 - Active honeypot/canary trap enforcement.
 - Entropy-based anomaly detection.
+- Paranoid-mode adversarial hardening.
 - Fully adversarial mesh or DHT hardening.
 - End-to-end anonymous or metadata-free operation.
 - Automatic safety for arbitrary executable, archive, or script downloads.

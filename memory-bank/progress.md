@@ -1,5 +1,6 @@
 ## 2026-05-12
 
+- Actioned the first feature-coherence/de-hallucination slice on `chore/feature-coherence-audit`: promoted the conservative maturity README into `README.md`, kept feature maturity anchored in `FEATURE_INVENTORY.md`, added explicit Paranoid-mode non-goal coverage, and made `scripts/audit-roadmap-claims.sh` repo-root aware. Validation passed: `bash scripts/audit-feature-coherence.sh`, `bash scripts/audit-readme-maturity-draft.sh`, `bash scripts/audit-roadmap-claims.sh`, and `git diff --check`.
 - Investigated the Launchpad failure email for
   `2026051220.slskdn.244-1ppa202605122102~jammy`. The app/release artifacts
   had built, but the Launchpad binary build failed because `debian/rules` used
@@ -25,7 +26,6 @@
 - Updated release documentation, tagging ADR, changelogs, task log, and
   packaging metadata validation to keep future releases from bypassing the
   guarded path.
-
 ## 2026-05-06
 
 - Deployed a Messaging V2 sizing/layout follow-up to `kspls0`: visible `-`/`+` whole-UI size controls now wrap the S/M/L/XL presets, Ctrl/Cmd+wheel is captured inside Messages for pane-only resizing, the pane height is bounded by nav/footer/player CSS variables, and inactive search matching does less per-row work. Validation passed: focused Messaging Vitest (`21/21`), Web lint, and production Web build. Synced the rebuilt web bundle to `/usr/lib/slskd/current/wwwroot`, restarted `slskd.service`, and verified HTTP 200, active PID `3071009`, startup completion, mesh neighbor connectivity, VPN readiness, and Soulseek login as `Jarvis1984`.

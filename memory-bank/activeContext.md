@@ -1,3 +1,20 @@
+## Update 2026-05-12 23:20:38Z
+
+- Current task: feature-coherence/de-hallucination first slice completed.
+- Last activity:
+  - replaced overclaiming `README.md` with the maturity-focused README;
+  - aligned `FEATURE_INVENTORY.md` with `HashFromAudioFileEnabled`;
+  - made Paranoid mode an explicit security non-goal;
+  - made the roadmap claim audit script repo-root aware.
+- Validation:
+  - Passed: `bash scripts/audit-feature-coherence.sh`.
+  - Passed: `bash scripts/audit-readme-maturity-draft.sh`.
+  - Passed: `bash scripts/audit-roadmap-claims.sh`.
+  - Passed: `git diff --check`.
+- Next steps:
+  1. Commit and push the coherence README/audit fix.
+  2. Continue the plan with bind-exposure wiring or public hash-from-audio cleanup as the next PR-sized slice.
+
 ## Update 2026-05-12 23:08:20Z
 
 - Current task: Contacts hidden pane cleanup completed.
@@ -319,7 +336,6 @@
   - Partial: full `dotnet test` ran `slskd.Tests` (`57/57`) and `slskd.Tests.Integration` (`276/276`) but exited nonzero because `slskd.Tests.Unit` has a pre-existing compile failure: `LidarrImportServiceTests.FakeLidarrClient` does not implement `ILidarrClient.GetWantedMissingPageAsync`.
 - Next steps:
   1. Fix the unrelated Lidarr unit-test fake compile failure when touching test infrastructure next.
-
 ## Update 2026-05-07 02:29:00Z
 
 - Current task: Messaging V2 sizing/performance follow-up deployed to `kspls0`.

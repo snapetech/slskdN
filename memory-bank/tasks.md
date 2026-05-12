@@ -2715,6 +2715,7 @@
 - [2026-05-12T23:02:10Z] Completed: follow-up Web render/load performance pass; Search Detail optional notes/stats now defer until after paint, Library Health renders only the active tab, and the System Shares contents modal avoids mutating browse results while sorting.
 - [2026-05-12T23:06:00Z] Completed: Pods hidden polling cleanup; nested Pods detail tabs now render only the active pane so hidden Port Forwarding does not mount and start polling while VPN Gateway is active.
 - [2026-05-12T23:08:20Z] Completed: Contacts hidden pane cleanup; Contacts tabs now render only the active pane so hidden contact/nearby peer lists are not built.
+- [2026-05-12T23:20:38Z] Completed: actioned first feature-coherence/de-hallucination slice on `chore/feature-coherence-audit`; replaced the overclaiming README with the maturity-focused version, aligned Hash-from-audio inventory naming with `HashFromAudioFileEnabled`, made Paranoid mode an explicit security non-goal, and verified all coherence audit scripts.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.
 
