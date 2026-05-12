@@ -277,36 +277,44 @@ public class TransfersControllerTests
     [Fact]
     public void GetSpeeds_UsesTransferredBytesWhenAverageSpeedHasNotUpdatedYet()
     {
+        var downloadTransfers = new List<SlskdTransfer>
+        {
+            new()
+            {
+                Id = Guid.NewGuid(),
+                Username = "remote-user",
+                Filename = "Music/song.flac",
+                BytesTransferred = 20_000,
+                StartedAt = DateTime.UtcNow.AddSeconds(-10),
+                State = TransferStates.InProgress,
+            },
+        };
+        var uploadTransfers = new List<SlskdTransfer>
+        {
+            new()
+            {
+                Id = Guid.NewGuid(),
+                Username = "remote-user",
+                Filename = "Uploads/song.flac",
+                AverageSpeed = 3_000,
+                State = TransferStates.InProgress,
+            },
+        };
         var downloads = new Mock<IDownloadService>();
         downloads
             .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>()))
-            .Returns(new List<SlskdTransfer>
-            {
-                new()
-                {
-                    Id = Guid.NewGuid(),
-                    Username = "remote-user",
-                    Filename = "Music/song.flac",
-                    BytesTransferred = 20_000,
-                    StartedAt = DateTime.UtcNow.AddSeconds(-10),
-                    State = TransferStates.InProgress,
-                },
-            });
+            .Returns(downloadTransfers);
+        downloads
+            .Setup(service => service.List(null, true))
+            .Returns(downloadTransfers);
 
         var uploads = new Mock<IUploadService>();
         uploads
             .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), false))
-            .Returns(new List<SlskdTransfer>
-            {
-                new()
-                {
-                    Id = Guid.NewGuid(),
-                    Username = "remote-user",
-                    Filename = "Uploads/song.flac",
-                    AverageSpeed = 3_000,
-                    State = TransferStates.InProgress,
-                },
-            });
+            .Returns(uploadTransfers);
+        uploads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), true))
+            .Returns(uploadTransfers);
 
         var controller = CreateController(downloads: downloads, uploads: uploads);
 

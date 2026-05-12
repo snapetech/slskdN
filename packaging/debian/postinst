@@ -12,6 +12,7 @@ case "$1" in
         install -dm775 -o slskd -g slskd /var/lib/slskd
         install -dm775 -o slskd -g slskd /var/lib/slskd/downloads
         install -dm775 -o slskd -g slskd /var/lib/slskd/incomplete
+        install -dm755 /var/lib/slskdN-vpn
         if [ -f /etc/slskd/slskd.yml ]; then
             chown slskd:slskd /etc/slskd/slskd.yml || true
             chmod 664 /etc/slskd/slskd.yml || true
@@ -32,13 +33,16 @@ case "$1" in
         echo "3. Access the web UI at:"
         echo "   http://localhost:5030"
         echo ""
+        echo "VPN helper:"
+        echo "   /usr/bin/slskdN-vpn-agent"
+        echo "   Configure WireGuard/static forwards before enabling slskdN-vpn-* units."
+        echo ""
         ;;
 esac
 
 #DEBHELPER#
 
 exit 0
-
 
 
 

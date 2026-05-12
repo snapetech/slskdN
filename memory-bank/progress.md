@@ -9984,3 +9984,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-07T03:21:15Z] Browse UI cleanup: hid folder download action on synthetic root/user row, clarified selected-folder file panel styling, and deployed frontend build to kspls0.
 
 [2026-05-07T19:37:00Z] kspls0 mesh/VPN fix: found DHT was discovering peers but advertising the unreachable local overlay port through a VPN that rewrites NAT-PMP public ports. Added `dht.advertised_overlay_port`, deployed a hotfix build on kspls0, renewed Soulseek and mesh NAT-PMP mappings, enabled Soulseek mesh rendezvous, and verified VPN egress, UI/health, external Soulseek/mesh ports, and one active inbound mesh overlay peer.
+
+[2026-05-12T16:15:00Z] Release packaging readiness: added `slskdN-vpn-agent` to release archive payloads for Linux/Windows/macOS, installed Linux helper units through direct/AUR/Debian/RPM packaging, fixed helper cross-platform config initialization and local build version normalization, and verified full Release tests plus packaging metadata, release asset matrix, lint, cross-platform helper publish, and local linux-x64 publish payload.

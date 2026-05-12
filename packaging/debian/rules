@@ -25,6 +25,16 @@ override_dh_auto_install:
 	
 	# Install systemd service
 	install -Dm644 lib/systemd/system/slskd.service debian/slskdn/lib/systemd/system/slskd.service
+	if [ -x usr/lib/slskd/vpn-agent/slskdN-vpn-agent ]; then \
+		install -Dm755 usr/lib/slskd/vpn-agent/slskdN-vpn-agent debian/slskdn/usr/bin/slskdN-vpn-agent; \
+		install -Dm644 usr/lib/slskd/vpn-agent/systemd/slskdN-vpn-split.service debian/slskdn/lib/systemd/system/slskdN-vpn-split.service; \
+		install -Dm644 usr/lib/slskd/vpn-agent/systemd/slskdN-vpn-ingress.service debian/slskdn/lib/systemd/system/slskdN-vpn-ingress.service; \
+		install -Dm644 usr/lib/slskd/vpn-agent/systemd/slskdN-vpn-ingress-renew.service debian/slskdn/lib/systemd/system/slskdN-vpn-ingress-renew.service; \
+		install -Dm644 usr/lib/slskd/vpn-agent/systemd/slskdN-vpn-ingress-renew.timer debian/slskdn/lib/systemd/system/slskdN-vpn-ingress-renew.timer; \
+		install -Dm644 usr/lib/slskd/vpn-agent/systemd/slskdN-vpn-gluetun-compat.service debian/slskdn/lib/systemd/system/slskdN-vpn-gluetun-compat.service; \
+		install -Dm644 usr/lib/slskd/vpn-agent/systemd/slskdN-vpn-watchdog.service debian/slskdn/lib/systemd/system/slskdN-vpn-watchdog.service; \
+		install -Dm644 usr/lib/slskd/vpn-agent/systemd/slskdN-vpn-watchdog.timer debian/slskdn/lib/systemd/system/slskdN-vpn-watchdog.timer; \
+	fi
 	
 	# Install config
 	install -Dm644 etc/slskd/slskd.yml debian/slskdn/etc/slskd/slskd.yml
@@ -34,6 +44,7 @@ override_dh_auto_install:
 
 	# Install tmpfiles rules
 	install -Dm644 usr/lib/tmpfiles.d/slskd.conf debian/slskdn/usr/lib/tmpfiles.d/slskd.conf
+	install -dm755 debian/slskdn/var/lib/slskdN-vpn
 
 override_dh_strip:
 	# Don't strip .NET binaries

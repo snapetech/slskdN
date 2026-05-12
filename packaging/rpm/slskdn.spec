@@ -86,6 +86,16 @@ ln -sf %{slskd_appdir}/slskd %{buildroot}%{_bindir}/slskd
 
 # Install systemd service
 install -Dm644 %{SOURCE1} %{buildroot}%{_unitdir}/slskd.service
+if [ -x %{buildroot}%{slskd_appdir}/vpn-agent/slskdN-vpn-agent ]; then
+  install -Dm755 %{buildroot}%{slskd_appdir}/vpn-agent/slskdN-vpn-agent %{buildroot}%{_bindir}/slskdN-vpn-agent
+  install -Dm644 %{buildroot}%{slskd_appdir}/vpn-agent/systemd/slskdN-vpn-split.service %{buildroot}%{_unitdir}/slskdN-vpn-split.service
+  install -Dm644 %{buildroot}%{slskd_appdir}/vpn-agent/systemd/slskdN-vpn-ingress.service %{buildroot}%{_unitdir}/slskdN-vpn-ingress.service
+  install -Dm644 %{buildroot}%{slskd_appdir}/vpn-agent/systemd/slskdN-vpn-ingress-renew.service %{buildroot}%{_unitdir}/slskdN-vpn-ingress-renew.service
+  install -Dm644 %{buildroot}%{slskd_appdir}/vpn-agent/systemd/slskdN-vpn-ingress-renew.timer %{buildroot}%{_unitdir}/slskdN-vpn-ingress-renew.timer
+  install -Dm644 %{buildroot}%{slskd_appdir}/vpn-agent/systemd/slskdN-vpn-gluetun-compat.service %{buildroot}%{_unitdir}/slskdN-vpn-gluetun-compat.service
+  install -Dm644 %{buildroot}%{slskd_appdir}/vpn-agent/systemd/slskdN-vpn-watchdog.service %{buildroot}%{_unitdir}/slskdN-vpn-watchdog.service
+  install -Dm644 %{buildroot}%{slskd_appdir}/vpn-agent/systemd/slskdN-vpn-watchdog.timer %{buildroot}%{_unitdir}/slskdN-vpn-watchdog.timer
+fi
 
 # Install config
 install -dm755 %{buildroot}%{_sysconfdir}/slskd
@@ -101,6 +111,7 @@ install -Dm644 %{SOURCE4} %{buildroot}%{_tmpfilesdir}/slskd.conf
 install -dm775 %{buildroot}%{_sharedstatedir}/slskd
 install -dm775 %{buildroot}%{_sharedstatedir}/slskd/downloads
 install -dm775 %{buildroot}%{_sharedstatedir}/slskd/incomplete
+install -dm755 %{buildroot}%{_sharedstatedir}/slskdN-vpn
 
 %pre
 getent passwd slskd >/dev/null || useradd -r -s /sbin/nologin -d %{_sharedstatedir}/slskd -c "slskd service account" slskd
@@ -120,6 +131,10 @@ echo ""
 echo "3. Access the web UI at:"
 echo "   http://localhost:5030"
 echo ""
+echo "VPN helper:"
+echo "   /usr/bin/slskdN-vpn-agent"
+echo "   Configure WireGuard/static forwards before enabling slskdN-vpn-* units."
+echo ""
 
 %preun
 %systemd_preun slskd.service
@@ -131,12 +146,21 @@ echo ""
 %license %{slskd_appdir}/LICENSE
 %{slskd_appdir}/
 %{_bindir}/slskd
+%{_bindir}/slskdN-vpn-agent
 %{_unitdir}/slskd.service
+%{_unitdir}/slskdN-vpn-split.service
+%{_unitdir}/slskdN-vpn-ingress.service
+%{_unitdir}/slskdN-vpn-ingress-renew.service
+%{_unitdir}/slskdN-vpn-ingress-renew.timer
+%{_unitdir}/slskdN-vpn-gluetun-compat.service
+%{_unitdir}/slskdN-vpn-watchdog.service
+%{_unitdir}/slskdN-vpn-watchdog.timer
 %{_tmpfilesdir}/slskd.conf
 %config(noreplace) %attr(0664,slskd,slskd) %{_sysconfdir}/slskd/slskd.yml
 %dir %attr(0775,slskd,slskd) %{_sharedstatedir}/slskd
 %dir %attr(0775,slskd,slskd) %{_sharedstatedir}/slskd/downloads
 %dir %attr(0775,slskd,slskd) %{_sharedstatedir}/slskd/incomplete
+%dir %attr(0755,root,root) %{_sharedstatedir}/slskdN-vpn
 %{_sysusersdir}/slskd.conf
 
 %changelog

@@ -135,6 +135,25 @@ web:
   port: 5030
   https:
     disabled: true
+
+# Mesh/DHT rendezvous defaults are enabled in slskdN. Forward 50305/tcp and
+# 50305/udp when exposing mesh publicly. If a VPN rewrites public ports, set
+# advertised_overlay_port manually or use vpn_port_sync after enabling the VPN
+# integration.
+# dht:
+#   enabled: true
+#   lan_only: false
+#   overlay_port: 50305
+#   advertised_overlay_port: 0
+#   vpn_port_sync: disabled
+#   dht_port: 50305
+
+# integrations:
+#   vpn:
+#     enabled: false
+#     port_forwarding: false
+#     gluetun:
+#       url: http://127.0.0.1:8010
 CFG
 
   chown "${USER}:${USER}" "$CONFIG_FILE"
@@ -170,6 +189,33 @@ ReadWritePaths=${DATA_DIR} ${CONFIG_DIR}
 WantedBy=multi-user.target
 SVC
 
+  systemctl daemon-reload
+}
+
+install_vpn_agent_payload() {
+  local agent_root="${DEST}/vpn-agent"
+  local agent_bin="${agent_root}/slskdN-vpn-agent"
+
+  if [ ! -x "$agent_bin" ]; then
+    echo "VPN agent payload not present in this release asset; skipping VPN helper install."
+    return
+  fi
+
+  install -d -m 0755 /usr/local/lib/slskdN-vpn-agent
+  install -m 0755 "$agent_bin" /usr/local/lib/slskdN-vpn-agent/slskdN-vpn-agent
+  ln -sfn /usr/local/lib/slskdN-vpn-agent/slskdN-vpn-agent /usr/local/bin/slskdN-vpn-agent
+
+  if [ -d "${agent_root}/systemd" ]; then
+    install -D -m 0644 "${agent_root}/systemd/slskdN-vpn-split.service" /etc/systemd/system/slskdN-vpn-split.service
+    install -D -m 0644 "${agent_root}/systemd/slskdN-vpn-ingress.service" /etc/systemd/system/slskdN-vpn-ingress.service
+    install -D -m 0644 "${agent_root}/systemd/slskdN-vpn-ingress-renew.service" /etc/systemd/system/slskdN-vpn-ingress-renew.service
+    install -D -m 0644 "${agent_root}/systemd/slskdN-vpn-ingress-renew.timer" /etc/systemd/system/slskdN-vpn-ingress-renew.timer
+    install -D -m 0644 "${agent_root}/systemd/slskdN-vpn-gluetun-compat.service" /etc/systemd/system/slskdN-vpn-gluetun-compat.service
+    install -D -m 0644 "${agent_root}/systemd/slskdN-vpn-watchdog.service" /etc/systemd/system/slskdN-vpn-watchdog.service
+    install -D -m 0644 "${agent_root}/systemd/slskdN-vpn-watchdog.timer" /etc/systemd/system/slskdN-vpn-watchdog.timer
+  fi
+
+  install -d -m 0755 /var/lib/slskdN-vpn
   systemctl daemon-reload
 }
 
@@ -216,6 +262,7 @@ main() {
     echo "Expected slskd.dll in ${DEST}; contents: $(ls -la "$DEST")" >&2
     exit 1
   fi
+  install_vpn_agent_payload
 
   echo "[4/7] Creating user and directories..."
   id -u "$USER" >/dev/null 2>&1 || useradd -r -s /usr/sbin/nologin -d "$DATA_DIR" "$USER"
@@ -235,6 +282,8 @@ main() {
   echo
   echo "Installed release ${SLSKDN_VERSION} to ${DEST}."
   echo "Systemd now runs: /usr/bin/dotnet ${DEST}/slskd.dll --config ${CONFIG_FILE}"
+  echo "VPN helper installed as /usr/local/bin/slskdN-vpn-agent when included in the release asset."
+  echo "After adding WireGuard/static-forward config, enable the slskdN-vpn-* units described in ${DEST}/vpn-agent/README.md or run ${DEST}/vpn-agent/install.sh."
   echo "Next: edit ${CONFIG_FILE}, then run: systemctl enable --now slskd"
 }
 

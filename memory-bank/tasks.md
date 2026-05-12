@@ -2683,6 +2683,7 @@
   - Notes: Incorporated the updated slskd council phase/negative-space gate, classified the new gate's false-negative gap, and fixed `BUG-20260506-092` by correcting controller boundary sink paths and making `scripts/check-council-negative-space.sh` enforce every declared boundary plus detailed remediation-baseline registration.
 
 - [2026-05-12T15:51:52Z] Completed: recover kspls0 mesh after VPN/config regression; fixed documented `dht.vpn_port_sync: target_port` binding, deployed rebuilt backend, restored VPN ingress, and verified two active inbound overlay peers.
+- [2026-05-12T16:15:00Z] Completed: package VPN helper for release users across Linux/Windows/macOS; Linux packages now install helper units out of the box, cross-platform helper publishes were verified, and full release validation passed.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.
 

@@ -132,6 +132,25 @@ jobs:
             /p:PackageVersion="$DOTNET_VERSION" \
             /p:AllowMissingPrunePackageData=true
 
+          dotnet publish src/slskdN.VpnAgent/slskdN-vpn-agent.csproj \
+            -c Release \
+            -o publish-${{ matrix.runtime }}/vpn-agent \
+            --self-contained true \
+            -r ${{ matrix.runtime }} \
+            /p:PublishSingleFile=true \
+            /p:Version="$DOTNET_VERSION" \
+            /p:InformationalVersion="$PUBLIC_VERSION" \
+            /p:PackageVersion="$DOTNET_VERSION"
+          cp src/slskdN.VpnAgent/README.md publish-${{ matrix.runtime }}/vpn-agent/README.md
+          cp src/slskdN.VpnAgent/windows-macos.md publish-${{ matrix.runtime }}/vpn-agent/windows-macos.md
+          case "${{ matrix.runtime }}" in
+            linux-*)
+              cp -r src/slskdN.VpnAgent/systemd publish-${{ matrix.runtime }}/vpn-agent/
+              cp src/slskdN.VpnAgent/install.sh publish-${{ matrix.runtime }}/vpn-agent/install.sh
+              chmod +x publish-${{ matrix.runtime }}/vpn-agent/slskdN-vpn-agent publish-${{ matrix.runtime }}/vpn-agent/install.sh
+              ;;
+          esac
+
       - name: Create Archive
         run: |
           cd publish-${{ matrix.runtime }}

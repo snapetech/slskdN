@@ -1,3 +1,21 @@
+## Update 2026-05-12 16:15:00Z
+
+- Current task: VPN helper packaging and cross-platform release readiness completed.
+- Last activity:
+  - packaged `slskdN-vpn-agent` into release archives for Linux, Windows, and macOS;
+  - wired Linux direct install, AUR, Debian, and RPM packages to install the helper binary, systemd units, and `/var/lib/slskdN-vpn`;
+  - fixed cross-platform helper config initialization so Windows/macOS split-routing paths do not resolve Linux service UIDs;
+  - fixed local `bin/build`/`bin/publish` version normalization for legacy `slskdn.N` tags;
+  - repaired stale unit-test fakes exposed by full release validation.
+- Validation:
+  - Passed: `dotnet test -c Release` (`57/57` core tests, `3953/3953` unit tests, `276/276` integration tests).
+  - Passed: `./bin/lint`, `packaging/scripts/validate-packaging-metadata.sh`, `scripts/check-release-asset-matrix.sh`.
+  - Passed: self-contained VPN helper publishes for `linux-x64`, `win-x64`, and `osx-x64`.
+  - Passed: `./bin/publish --no-prebuild --runtime linux-x64 --output /tmp/slskdn-release-linux-x64`, including `vpn-agent/` payload with docs, installer, and systemd units.
+- Next steps:
+  1. Commit remaining packaging/test changes.
+  2. Cut a tag-based release only after the exact release tag/version is confirmed.
+
 ## Update 2026-05-12 15:51:52Z
 
 - Current task: kspls0 mesh/VPN recovery completed.
