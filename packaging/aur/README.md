@@ -56,6 +56,22 @@ sudo systemctl restart slskd
 
 Your config at `/etc/slskd/slskd.yml` and data at `/var/lib/slskd/` are preserved.
 
+If an upgrade prints:
+
+```text
+warning: /etc/slskd/slskd.yml installed as /etc/slskd/slskd.yml.pacnew
+```
+
+pacman preserved your existing config and wrote the new packaged defaults to
+`.pacnew`. Review the diff and merge only the defaults you want:
+
+```bash
+sudo diff -u /etc/slskd/slskd.yml /etc/slskd/slskd.yml.pacnew
+sudo nano /etc/slskd/slskd.yml
+sudo rm /etc/slskd/slskd.yml.pacnew
+sudo systemctl restart slskd
+```
+
 AUR packages keep the drop-in launcher path at `/usr/lib/slskd/slskd`, but the bundled release payload now lives under `/usr/lib/slskd/current/` (backed by a versioned `releases/` directory). That keeps the compatibility path stable while avoiding pacman upgrade collisions with stale root-level payload files from older/manual installs.
 
 Package upgrades restart `slskd.service` only when it is already running. Fresh installs still leave the service stopped until you review the config and run `systemctl enable --now slskd`.

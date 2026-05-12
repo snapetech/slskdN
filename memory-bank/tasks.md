@@ -2690,6 +2690,7 @@
 - [2026-05-12T15:51:52Z] Completed: recover kspls0 mesh after VPN/config regression; fixed documented `dht.vpn_port_sync: target_port` binding, deployed rebuilt backend, restored VPN ingress, and verified two active inbound overlay peers.
 - [2026-05-12T16:15:00Z] Completed: package VPN helper for release users across Linux/Windows/macOS; Linux packages now install helper units out of the box, cross-platform helper publishes were verified, and full release validation passed.
 - [2026-05-12T16:56:00Z] Completed: second packaging/cross-platform polish pass; fixed macOS pf wiring, secondary release workflow payload drift, Homebrew/Chocolatey helper exposure, stale route inventory, and Transfers optimistic clear regression; full release gate passed.
+- [2026-05-12T20:03:59Z] Completed: fix distro VPN helper unit packaging regression; AUR/Debian/RPM packages now rewrite helper units to packaged `/usr/bin`, `/etc/slskd/slskd.yml`, and `slskd` service/user defaults, Arch `.pacnew` handling is documented, and `kspls0` is verified connected with VPN forwarding and watchdog healthy.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.
 

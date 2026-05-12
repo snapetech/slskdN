@@ -95,6 +95,17 @@ if [ -x %{buildroot}%{slskd_appdir}/vpn-agent/slskdN-vpn-agent ]; then
   install -Dm644 %{buildroot}%{slskd_appdir}/vpn-agent/systemd/slskdN-vpn-gluetun-compat.service %{buildroot}%{_unitdir}/slskdN-vpn-gluetun-compat.service
   install -Dm644 %{buildroot}%{slskd_appdir}/vpn-agent/systemd/slskdN-vpn-watchdog.service %{buildroot}%{_unitdir}/slskdN-vpn-watchdog.service
   install -Dm644 %{buildroot}%{slskd_appdir}/vpn-agent/systemd/slskdN-vpn-watchdog.timer %{buildroot}%{_unitdir}/slskdN-vpn-watchdog.timer
+  for unit in %{buildroot}%{_unitdir}/slskdN-vpn-{split,ingress,gluetun-compat,watchdog}.service; do
+    sed -i \
+      -e 's#/usr/local/bin/slskdN-vpn-agent#/usr/bin/slskdN-vpn-agent#g' \
+      -e 's#slskdN\.service#slskd.service#g' \
+      -e '/^Environment=SLSKDN_CONFIG=/d' \
+      -e '/^Environment=SLSKDN_SERVICE_USER=/d' \
+      -e '/^Environment=SLSKDN_PROCESS_NAME=/d' \
+      -e '/^Environment=SLSKDN_SERVICE_NAME=/d' \
+      "$unit"
+    sed -i '/^\[Service\]/a Environment=SLSKDN_CONFIG=/etc/slskd/slskd.yml\nEnvironment=SLSKDN_SERVICE_USER=slskd\nEnvironment=SLSKDN_PROCESS_NAME=slskd\nEnvironment=SLSKDN_SERVICE_NAME=slskd' "$unit"
+  done
 fi
 
 # Install config

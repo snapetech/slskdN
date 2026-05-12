@@ -1,3 +1,19 @@
+## Update 2026-05-12 20:03:59Z
+
+- Current task: distro VPN helper packaging regression and `kspls0` connectivity check completed.
+- Last activity:
+  - diagnosed the Arch installer report: `/etc/slskd/slskd.yml.pacnew` is expected pacman behavior for a changed backed-up config file, but package messaging/docs now call out the merge workflow explicitly;
+  - fixed the real packaging regression where distro-installed VPN helper units still referenced manual-install defaults (`/usr/local/bin/slskdN-vpn-agent`, `/etc/slskdN/slskd.yml`, `slskdN.service`, and `slskdN` service/user names);
+  - updated AUR source/bin, Debian, and RPM packaging to rewrite VPN helper units to packaged `/usr/bin`, `/etc/slskd/slskd.yml`, and `slskd` defaults;
+  - made the VPN helper prefer packaged config/service discovery when no explicit env is supplied, added watchdog timeout protection, and updated packaging metadata validation;
+  - repaired the live `kspls0` helper units, cleared a stale watchdog process, restarted helper units, and verified the latest `.243` build is connected.
+- Validation:
+  - Passed: packaging metadata validation, helper Release build, `git diff --check`, AUR source package build, AUR bin package build, and extracted package unit checks.
+  - Passed live on `kspls0`: app version `2026051219-slskdn.243`, server state `Connected, LoggedIn`, VPN ready, two port forwards, shares ready, `slskd.service` active, VPN ingress active, watchdog timer active, and watchdog service completed successfully.
+- Next steps:
+  1. Commit and push the packaging regression fix.
+  2. Cut a follow-up tag-only release only after the user confirms the release tag/version.
+
 ## Update 2026-05-12 16:56:00Z
 
 - Current task: guarded release tagging and aggregate artifact verification completed.
