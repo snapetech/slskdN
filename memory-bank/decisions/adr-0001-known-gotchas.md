@@ -65,6 +65,8 @@ deep-compared large payloads with `JSON.stringify`.
 - `src/web/src/components/Rooms/RoomSession.jsx`
 - `src/web/src/components/Search/Response.jsx`
 - `src/web/src/components/Shared/FileList.jsx`
+- `src/web/src/components/System/Files/Explorer.jsx`
+- `src/web/src/components/System/Files/index.jsx`
 - `src/web/src/components/Transfers/TransferList.jsx`
 
 **Wrong**:
