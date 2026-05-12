@@ -1,3 +1,17 @@
+## Update 2026-05-12 23:08:20Z
+
+- Current task: Contacts hidden pane cleanup completed.
+- Last activity:
+  - documented Contacts under the hidden render-cost gotcha;
+  - changed Contacts tabs to render only the active pane;
+  - verified parent-owned state preserves loaded contacts/nearby data.
+- Validation:
+  - Passed: focused Contacts Web tests (`5/5`).
+  - Passed: ESLint for `src/web/src/components/Contacts/Contacts.jsx`.
+  - Passed: production Web build.
+- Next steps:
+  1. Commit and push the Contacts hidden pane cleanup.
+
 ## Update 2026-05-12 23:06:00Z
 
 - Current task: Pods hidden polling cleanup completed.
