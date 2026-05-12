@@ -6403,3 +6403,9 @@ Completed Browse UI cleanup after live feedback. Root/user tree row no longer ha
 Completed kspls0 mesh/VPN diagnosis and hotfix. DHT now announces the VPN-assigned public overlay port separately from the local listener, Soulseek rendezvous is enabled, and kspls0 has a verified active mesh overlay peer.
 
 Next steps: package the mesh advertised-port fix in the next normal release; remove the live hotfix directory after kspls0 is upgraded to a release containing this change.
+
+## 2026-05-12T23:49:22Z Session update
+
+Completed the next feature-coherence hardening slice on `main`: wired real web bind exposure into startup hardening, and made the unavailable hash-from-audio option hidden from public CLI/env toggles and fail-fast if enabled.
+
+Next steps: continue the remaining feature-coherence PR series with Program.cs feature-module decomposition, feature gates for experimental API/UI surfaces, dependency ownership inventory, and DownloadService regression coverage.
