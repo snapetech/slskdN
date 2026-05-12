@@ -145,6 +145,48 @@ latency source when it polls an endpoint that performs unbounded aggregate
 work. Shared poll endpoints must either read cheap counters or cache expensive
 aggregate values behind a short freshness window.
 
+### 0z383. Optional Row Metadata Must Be Deferred, Deduped, And Bounded
+
+**The Bug**: Transfer, search, room, chat, and browse rows render `UserCard`.
+Each card immediately fetched Soulseek info, reputation, and opinions on mount,
+so transfer-heavy pages could produce dozens of optional requests during first
+paint and repeat the same lookups for duplicate usernames.
+
+**Files Affected**:
+- `src/web/src/components/Shared/UserCard.jsx`
+- `src/web/src/components/Search/Searches.jsx`
+- `src/web/src/components/System/System.jsx`
+
+**Wrong**:
+```jsx
+componentDidMount() {
+  this.fetchUserData();
+}
+```
+
+```jsx
+import MediaCore from './MediaCore';
+import Integrations from './Integrations';
+```
+
+**Correct**:
+```jsx
+componentDidMount() {
+  this.scheduleUserDataFetch();
+}
+```
+
+```jsx
+const MediaCore = lazy(() => import('./MediaCore'));
+const Integrations = lazy(() => import('./Integrations'));
+```
+
+**Why This Keeps Happening**: User-facing badges and optional admin panels feel
+small in component code, but they multiply by row count or route count. Optional
+metadata must wait until after first paint, share in-flight work per key, cap
+concurrency, and cache briefly. Optional panels should be lazy-loaded from the
+collapsed section or inactive tab instead of inflating the default route bundle.
+
 ### 0z370. Docker Publish Must Copy Every Project Used By `bin/publish`
 
 **The Bug**: Docker release publishing failed after the VPN helper was added to
