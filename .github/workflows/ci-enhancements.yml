@@ -31,17 +31,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up .NET (GitHub-hosted)
-        if: ${{ runner.environment == 'github-hosted' }}
+      - name: Set up .NET
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Verify .NET (self-hosted)
-        if: ${{ runner.environment == 'self-hosted' }}
-        run: |
-          echo "/usr/share/dotnet" >> $GITHUB_PATH
-          /usr/share/dotnet/dotnet --version
+      - name: Verify .NET
+        run: dotnet --version
 
       - name: Build Performance Benchmark Project
         run: |
@@ -91,17 +87,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Set up .NET (GitHub-hosted)
-        if: ${{ runner.environment == 'github-hosted' }}
+      - name: Set up .NET
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Verify .NET (self-hosted)
-        if: ${{ runner.environment == 'self-hosted' }}
-        run: |
-          echo "/usr/share/dotnet" >> $GITHUB_PATH
-          /usr/share/dotnet/dotnet --version
+      - name: Verify .NET
+        run: dotnet --version
 
       - name: Build Application
         run: |
@@ -219,17 +211,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Set up .NET (GitHub-hosted)
-        if: ${{ runner.environment == 'github-hosted' }}
+      - name: Set up .NET
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Set up .NET (self-hosted)
-        if: ${{ runner.environment == 'self-hosted' }}
-        run: |
-          echo "/usr/share/dotnet" >> $GITHUB_PATH
-          /usr/share/dotnet/dotnet --version
 
       - name: Scan NuGet Dependencies
         run: |
