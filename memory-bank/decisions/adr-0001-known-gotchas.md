@@ -16022,3 +16022,11 @@ npm run check:council
 **Why:** `Tab` was configured with `renderActiveOnly={false}` while panes were dynamic and included a synthetic add-tab pane. In the browser this could leave the selected dynamic tab without a mounted `BrowseSession`.
 
 **How to prevent:** Use active-pane rendering for dynamic Browse tabs, keep add-tab behavior in the tab menu only, and cover transfer-to-browse handoff with a headless browser test that asserts rendered browse content, not just API responses.
+
+### 0z352. Release Workflows Must Pin The Exact .NET SDK
+
+**What went wrong:** A release publish job used a broad `dotnet-version: 10` setup. GitHub resolved that to a newer SDK/runtime combination, then self-contained publish failed restoring `Microsoft.NETCore.App.Runtime.linux-x64` for the runner-selected runtime version.
+
+**Why:** The repo's tested SDK is pinned in `global.json`, but the release workflow used a looser setup-dotnet version selector. CI can pass locally and in the release gate while the later matrix publish jobs drift to a different SDK feature band.
+
+**How to prevent:** Keep release workflows pinned to the exact SDK version in `global.json`, and update the workflow pins in the same commit as any SDK bump. Avoid broad major/minor selectors for self-contained release publishing.
