@@ -192,6 +192,10 @@ compatibility wrappers.
 Owned physical file provider construction moved out of `Program.cs` into
 `Bootstrap/StartupFileSystem.cs` while preserving the Program compatibility
 wrapper.
+Web pipeline setup now calls extracted web rewrite, antiforgery recovery, and
+startup file-system helpers directly. Experimental mesh service registration now
+calls the QUIC overlay factory directly instead of routing through Program
+compatibility wrappers.
 
 Target modules:
 

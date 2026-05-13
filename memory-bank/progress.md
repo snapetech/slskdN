@@ -10162,3 +10162,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T16:21:10Z] Program decomposition filesystem provider split: moved owned physical file provider construction into `Bootstrap/StartupFileSystem`, with Program retaining the compatibility wrapper. `dotnet build src/slskd/slskd.csproj --no-restore`, focused Program/lifecycle tests (`46/46`), and `./bin/lint` passed.
 
 [2026-05-13T16:23:00Z] Parity/reconciliation MediaCore admin-control follow-up: kept retrieval stats and dashboard loading as the default path and grouped retrieval-cache clearing plus global MediaCore stats reset behind advanced disclosure. Focused MediaCore component tests (`3/3`) and focused Web lint passed.
+
+[2026-05-13T16:31:10Z] Program decomposition bootstrap dependency split: rewired Web pipeline setup to call extracted web rewrite, antiforgery, and startup file-system helpers directly, and rewired experimental mesh service registration to call the QUIC overlay factory directly instead of Program compatibility wrappers. `dotnet build src/slskd/slskd.csproj --no-restore`, focused Program/log lifecycle tests (`58/58`), and `./bin/lint` passed.

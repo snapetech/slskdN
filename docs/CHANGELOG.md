@@ -168,6 +168,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   preserving Program compatibility wrappers.
 - Moved owned physical file provider construction out of `Program.cs` into
   `StartupFileSystem` while preserving the Program compatibility wrapper.
+- Rewired web pipeline and experimental mesh bootstrap code to use extracted
+  rewrite, antiforgery, file-system, and QUIC helpers directly instead of
+  routing through Program compatibility wrappers.
 - Simplified MediaCore descriptor publishing by keeping retrieval/statistics as
   the default path and grouping descriptor publish, batch publish, update, and
   republish controls behind advanced disclosure.

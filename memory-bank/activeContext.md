@@ -1,3 +1,17 @@
+## Update 2026-05-13 16:31:10Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - rewired Web pipeline setup to call extracted web rewrite, antiforgery recovery, and startup file-system helpers directly;
+  - rewired experimental mesh service registration to call the QUIC overlay factory directly;
+  - kept Program compatibility wrappers for tests and existing callers.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests|FullyQualifiedName~ApplicationLifecycleTests|FullyQualifiedName~SharedEventEmitterTests|FullyQualifiedName~ApplicationControllerTests|FullyQualifiedName~LogsControllerTests" --no-restore` (`58/58`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Continue Program.cs decomposition with small compatibility-wrapper splits.
+  2. Continue scanning remaining MediaCore non-pod controls for read-first progressive disclosure.
 ## Update 2026-05-13 16:23:00Z
 
 - Current task: parity/reconciliation list follow-up in progress.

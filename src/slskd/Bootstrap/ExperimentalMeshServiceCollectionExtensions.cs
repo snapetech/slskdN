@@ -410,7 +410,7 @@ public static class ExperimentalMeshServiceCollectionExtensions
         var quicDataRequested = dataOverlayoptionsAtStartup.Enable;
         var sharedMeshUdpRequested = DhtRendezvousService.ShouldUseSharedMeshUdpListener(dhtoptionsAtStartup, overlayoptionsAtStartup);
 
-        if (Program.ShouldRunStandaloneUdpOverlayServer(overlayoptionsAtStartup.Enable, sharedMeshUdpRequested))
+        if (Mesh.Overlay.QuicOverlayFactory.ShouldRunStandaloneUdpOverlayServer(overlayoptionsAtStartup.Enable, sharedMeshUdpRequested))
         {
             services.AddHostedService(p =>
             {
@@ -431,7 +431,7 @@ public static class ExperimentalMeshServiceCollectionExtensions
             services.AddHostedService(p =>
             {
                 Log.Debug("[DI] Constructing QuicOverlayServer hosted service...");
-                var service = Program.CreateQuicOverlayServer(p);
+                var service = Mesh.Overlay.QuicOverlayFactory.CreateOverlayServer(p);
                 Log.Debug("[DI] QuicOverlayServer constructed");
                 return service;
             });
@@ -451,7 +451,7 @@ public static class ExperimentalMeshServiceCollectionExtensions
 #pragma warning disable CA1416 // Runtime platform guards apply in this branch.
             services.AddSingleton<Mesh.Overlay.IOverlayClient>(sp =>
             {
-                return Program.CreateQuicOverlayClient(sp);
+                return Mesh.Overlay.QuicOverlayFactory.CreateOverlayClient(sp);
             });
 #pragma warning restore CA1416
         }

@@ -116,7 +116,7 @@ public static class WebApplicationPipelineExtensions
         // inject urlBase into any html files we serve, and rewrite links to ./static or /static to
         // prepend the url base.
         app.UsePathBase(urlBase);
-        foreach (var (pattern, replacement) in Program.CreateWebHtmlRewriteRules(urlBase))
+        foreach (var (pattern, replacement) in WebHtmlRewriteRules.Create(urlBase))
         {
             app.UseHTMLRewrite(pattern, replacement);
         }
@@ -147,14 +147,18 @@ public static class WebApplicationPipelineExtensions
                 {
                     var antiforgery = context.RequestServices.GetRequiredService<Microsoft.AspNetCore.Antiforgery.IAntiforgery>();
 
-                    if (Program.StripKnownAntiforgeryCookiesFromRequest(context))
+                    if (Core.Security.AntiforgeryCookieRecovery.StripKnownCookiesFromRequest(context, optionsAtStartup.Web.Port))
                     {
-                        Program.ClearKnownAntiforgeryCookies(context);
+                        Core.Security.AntiforgeryCookieRecovery.ClearKnownCookies(context, optionsAtStartup.Web.Port);
                     }
 
                     // Only mint/store tokens on safe requests. Rotating them on the same unsafe request that
                     // later validates them can invalidate the frontend's header/cookie pair mid-flight.
-                    var tokens = Program.TryGetAndStoreAntiforgeryTokens(context, antiforgery);
+                    var tokens = Core.Security.AntiforgeryCookieRecovery.TryGetAndStoreTokens(
+                        context,
+                        antiforgery,
+                        optionsAtStartup.Web.Port,
+                        path => Log.Warning("[CSRF Middleware] Cleared stale antiforgery cookies for {Path} after key-ring mismatch", path));
 
                     // ASP.NET stores the antiforgery cookie token using the configured Cookie.Name.
                     // Only publish the JavaScript-readable request token here.
@@ -202,7 +206,7 @@ public static class WebApplicationPipelineExtensions
 
         fileServerOptions = new FileServerOptions
         {
-            FileProvider = Program.CreateOwnedPhysicalFileProvider(contentPath),
+            FileProvider = StartupFileSystem.CreateOwnedPhysicalFileProvider(contentPath),
             RequestPath = string.Empty,
             EnableDirectoryBrowsing = false,
             EnableDefaultFiles = true,
