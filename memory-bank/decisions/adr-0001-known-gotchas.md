@@ -52,6 +52,34 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z419. Classify Expected Peer Transfer Denials In Global Unobserved Handler
+
+**The Bug**: Soulseek runtime internals can surface normal peer-side transfer
+denials such as `File not shared.` or `Overwhelmed with requests; try again
+later.` through `TaskScheduler.UnobservedTaskException`. The transfer service
+handles these as expected remote failures, but the global classifier did not
+recognize the denial messages and logged them as `[FATAL]`.
+
+**Files Affected**:
+- `src/slskd/Soulseek/SoulseekNetworkExceptionClassifier.cs`
+
+**Wrong**:
+```csharp
+typeName.Contains("Soulseek.TransferRejectedException", StringComparison.Ordinal)
+// but only classify it expected when unrelated network substrings are present
+```
+
+**Correct**:
+```csharp
+details.Contains("File not shared", StringComparison.Ordinal) ||
+details.Contains("Overwhelmed with requests", StringComparison.Ordinal)
+```
+
+**Why This Keeps Happening**: Expected transfer denials are not always wrapped
+with transport stack frames or generic network text. If the runtime raises them
+from detached internals, the global unobserved-task hook must classify the
+denial message itself or normal peer behavior becomes fatal-looking log noise.
+
 ### 0z418. Do Not Burst Album-Sized Enqueue Requests At One Soulseek Peer
 
 **The Bug**: `DownloadService.EnqueueAsync(...)` allowed requests of 30 files or
