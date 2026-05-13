@@ -205,6 +205,9 @@ validation moved out of `Program.cs` into
 Startup configuration provider loading, binding, raw security-section
 diagnostics, and validation moved out of `Program.cs` into
 `Bootstrap/StartupConfiguration.cs`.
+Configured startup identity, system, directory, compatibility-warning, and
+logging-target diagnostics moved out of `Program.cs` into
+`Bootstrap/StartupDiagnostics.cs`.
 
 Target modules:
 
@@ -284,6 +287,8 @@ Target modules:
   application-directory default resolution and default directory validation.
 - `StartupConfiguration`. Implemented for startup configuration provider
   loading, binding, diagnostics, and validation.
+- `StartupDiagnostics`. Implemented for configured startup identity, system,
+  directory, compatibility-warning, and logging-target diagnostics.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`

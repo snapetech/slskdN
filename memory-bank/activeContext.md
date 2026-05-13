@@ -1,3 +1,17 @@
+## Update 2026-05-13 16:49:30Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - moved configured startup identity, system, directory, compatibility-warning, and logging-target diagnostics into `Bootstrap/StartupDiagnostics`;
+  - preserved SQLite initialization ordering by splitting identity logging before SQLite and configuration usage logging after SQLite;
+  - `Program.cs` is down to 754 lines.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests|FullyQualifiedName~ApplicationLifecycleTests|FullyQualifiedName~SharedEventEmitterTests|FullyQualifiedName~ApplicationControllerTests|FullyQualifiedName~LogsControllerTests" --no-restore` (`58/58`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Continue Program.cs decomposition by extracting the ASP.NET bootstrap/build/run flow.
+  2. Continue scanning MediaCore for remaining read-first reconciliation work.
 ## Update 2026-05-13 16:44:30Z
 
 - Current task: Program.cs decomposition follow-up in progress.

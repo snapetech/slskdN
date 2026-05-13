@@ -2778,6 +2778,7 @@
 - [2026-05-13T16:34:30Z] Completed: continue Program.cs decomposition by moving primitive startup command-mode handling into `Bootstrap/StartupCommandMode`.
 - [2026-05-13T16:38:20Z] Completed: continue Program.cs decomposition by moving startup application-directory resolution and default directory validation into `Bootstrap/StartupApplicationDirectoryResolver`.
 - [2026-05-13T16:44:30Z] Completed: continue Program.cs decomposition by moving startup configuration loading, binding, diagnostics, and validation into `Bootstrap/StartupConfiguration`.
+- [2026-05-13T16:49:30Z] Completed: continue Program.cs decomposition by moving configured startup diagnostics into `Bootstrap/StartupDiagnostics`.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.

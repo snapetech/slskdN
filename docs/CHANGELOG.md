@@ -178,6 +178,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   validation out of `Program.cs` into `StartupApplicationDirectoryResolver`.
 - Moved startup configuration provider loading, binding, raw security-section
   diagnostics, and validation out of `Program.cs` into `StartupConfiguration`.
+- Moved configured startup identity, system, directory, compatibility-warning,
+  and logging-target diagnostics out of `Program.cs` into `StartupDiagnostics`.
 - Simplified MediaCore descriptor publishing by keeping retrieval/statistics as
   the default path and grouping descriptor publish, batch publish, update, and
   republish controls behind advanced disclosure.

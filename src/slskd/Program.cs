@@ -507,65 +507,35 @@ namespace slskd
             // Install hard telemetry to catch silent exits
             InstallShutdownTelemetry();
 
-            if (!OptionsAtStartup.Flags.NoLogo)
-            {
-                PrintLogo(FullVersion);
-            }
+            var startupDiagnosticsContext = new StartupDiagnosticsContext(
+                FullVersion,
+                IsDevelopment,
+                IsCanary,
+                IssuesUrl,
+                ProcessId,
+                ExecutablePath,
+                BaseDirectory,
+                InvocationId,
+                AppDirectory,
+                ConfigurationFile,
+                DataDirectory,
+                LogDirectory);
 
-            Log.Information("Version: {Version}", FullVersion);
-
-            if (IsDevelopment)
-            {
-                Log.Warning("This is a Development build; YMMV");
-            }
-
-            if (IsCanary)
-            {
-                Log.Warning("This is a canary build");
-                Log.Warning("Canary builds are considered UNSTABLE and may be completely BROKEN");
-                Log.Warning($"Please report any issues here: {IssuesUrl}");
-            }
-
-            Log.Information("System: .NET {DotNet}, {OS}, {BitNess} bit, {ProcessorCount} processors", Environment.Version, Environment.OSVersion, Environment.Is64BitOperatingSystem ? 64 : 32, Environment.ProcessorCount);
-            Log.Information("Process ID: {ProcessId} ({BitNess} bit)", ProcessId, Environment.Is64BitProcess ? 64 : 32);
-            Log.Information("Executable path: {ExecutablePath}", ExecutablePath);
-            Log.Information("Base directory: {BaseDirectory}", BaseDirectory);
-
-            Log.Information("Invocation ID: {InvocationId}", InvocationId);
-            Log.Information("Instance Name: {InstanceName}", OptionsAtStartup.InstanceName);
-
-            Log.Information("Configuring application...");
+            StartupDiagnostics.LogStartupIdentity(
+                OptionsAtStartup,
+                startupDiagnosticsContext,
+                Log,
+                PrintLogo);
 
             // SQLite must have specific capabilities to function properly. this shouldn't be a concern for shrinkwrapped
             // binaries or in Docker, but if someone builds from source weird things can happen.
             InitSQLiteOrFailFast();
 
-            Log.Information("Using application directory {AppDirectory}", AppDirectory);
-            Log.Information("Using configuration file {ConfigurationFile}", ConfigurationFile);
-
-            foreach (var warning in ConfigurationCompatibilityWarnings.GetWarnings(ConfigurationFile, OptionsAtStartup))
-            {
-                Log.Warning("{Warning}", warning);
-            }
-
-            if (OptionsAtStartup.Flags.NoConfigWatch)
-            {
-                Log.Warning("Configuration watch DISABLED; all configuration changes will require a restart to take effect");
-            }
-
-            Log.Information("Storing application data in {DataDirectory}", DataDirectory);
-
-            if (OptionsAtStartup.Logger.Disk)
-            {
-                Log.Information("Saving application logs to {LogDirectory}", LogDirectory);
-            }
-
-            RecreateConfigurationFileIfMissing(ConfigurationFile);
-
-            if (!string.IsNullOrEmpty(OptionsAtStartup.Logger.Loki))
-            {
-                Log.Information("Forwarding logs to Grafana Loki instance at {LoggerLokiUrl}", OptionsAtStartup.Logger.Loki);
-            }
+            StartupDiagnostics.LogConfigurationUsage(
+                OptionsAtStartup,
+                startupDiagnosticsContext,
+                Log,
+                RecreateConfigurationFileIfMissing);
 
             // bootstrap the ASP.NET application
             try
