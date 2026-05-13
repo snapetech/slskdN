@@ -1,3 +1,22 @@
+## Update 2026-05-13 01:33:49Z
+
+- Current task: Program.cs decomposition multi-source split completed.
+- Last activity:
+  - moved multi-source transfer, swarm, tracing, warm-cache, playback-priority, and job-manifest registrations into `Bootstrap/MultiSourceFeatureServiceCollectionExtensions`;
+  - kept the broad experimental graph delegating to the new bounded bootstrap module;
+  - fixed partial integration test hosts to register a test `IFeatureGate` for controllers with `[FeatureGate(...)]` filters;
+  - documented the partial-host feature-gate gotcha in ADR-0001 and committed it separately;
+  - updated status, backlog, tasks, progress, and changelog tracking docs.
+- Validation:
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter RoomsControllerTests --no-restore` (`9/9`).
+  - Passed: `cd src/web && npm test -- Messaging.test.jsx` (`10/10`).
+  - Passed: focused integration rerun for feature-gated VirtualSoulfind/MultiSource routes (`36/36`).
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test` (`67/67` smoke, `4050/4050` unit, `276/276` integration).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Continue subdividing the remaining broad experimental feature graph by bounded context.
+
 ## Update 2026-05-12 23:41:45Z
 
 - Current task: live room discovery polling regression fix in progress.

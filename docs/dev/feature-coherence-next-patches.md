@@ -127,6 +127,9 @@ The top-level runtime DI composition list moved into
 Wishlist/source feeds, transfer automation, relay, FTP, AudioCore metadata,
 SongID, discovery graph, and notification registration moved out of the broad
 experimental graph into `Bootstrap/IntegrationAndMediaServiceCollectionExtensions.cs`.
+Multi-source transfer, swarm, tracing, warm-cache, playback-priority, and job
+manifest registrations moved out of the broad experimental graph into
+`Bootstrap/MultiSourceFeatureServiceCollectionExtensions.cs`.
 
 Target modules:
 
@@ -142,6 +145,9 @@ Target modules:
   composition wrapper.
 - `AddSlskdIntegrationAndMediaServices(...)`. Implemented for integration and
   media-adjacent registrations formerly at the tail of the experimental graph.
+- `AddSlskdMultiSourceFeatureServices(...)`. Implemented for multi-source
+  transfer, swarm, tracing, warm-cache, playback-priority, and job-manifest
+  registrations.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`

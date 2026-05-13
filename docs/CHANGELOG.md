@@ -81,6 +81,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   into a runtime bootstrap extension.
 - Moved integration and media-adjacent registrations out of the broad
   experimental graph into a dedicated bootstrap extension.
+- Moved multi-source transfer, swarm, tracing, warm-cache, playback-priority,
+  and related job-manifest registrations out of the broad experimental graph
+  into a dedicated bootstrap extension.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

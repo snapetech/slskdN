@@ -139,6 +139,7 @@ public class SlskdnTestClient : IAsyncDisposable
         // IOptionsMonitor<Options> for Native LibraryHealthController (api/slskdn/library)
         builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptionsMonitor<slskd.Options>>(_ =>
             new slskd.Tests.Integration.StaticOptionsMonitor<slskd.Options>(new slskd.Options()));
+        builder.Services.AddSingleton<global::slskd.Core.Features.IFeatureGate, slskd.Tests.Integration.TestFeatureGate>();
 
         // ISoulseekClient for ServerCompatibilityController (GET /api/server/status) - ProtocolContractTests
         // If Soulfind is running, we'd need a real client connection, but for stub mode we use a mock

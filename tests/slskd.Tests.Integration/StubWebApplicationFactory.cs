@@ -42,6 +42,7 @@ using global::slskd.Transfers;
 using global::slskd.Transfers.MultiSource.Caching;
 using slskd.Common.Moderation;
 using slskd.MediaCore;
+using slskd.Core.Features;
 using slskd.Shares;
 using slskd.VirtualSoulfind.v2.Backends;
 using slskd.VirtualSoulfind.v2.Catalogue;
@@ -215,6 +216,7 @@ public class StubWebApplicationFactory : WebApplicationFactory<ProgramStub>
                                     Title = "Test Release",
                                 })))
                         .AddSingleton<IJobServiceWithList>(new JobServiceListAdapter(discographyService, labelCrateService))
+                        .AddSingleton<IFeatureGate, TestFeatureGate>()
                         .AddSingleton<ILibraryHealthService, StubLibraryHealthService>()
                         .AddSingleton<IDownloadService, StubDownloadService>()
                         .AddSingleton<ITransferService>(_ => NullProxy<ITransferService>.Create())
@@ -269,6 +271,14 @@ public class StubWebApplicationFactory : WebApplicationFactory<ProgramStub>
                 });
             });
     }
+}
+
+internal sealed class TestFeatureGate : IFeatureGate
+{
+    public FeatureGateResult Get(FeatureId feature) =>
+        new(feature, FeatureStatus.Experimental, true, "Integration test feature gate is enabled.");
+
+    public bool IsEnabled(FeatureId feature) => true;
 }
 
 internal class StaticOptionsMonitor<T> : IOptionsMonitor<T> where T : class
