@@ -160,6 +160,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   rendering out of `Program.cs` into a focused bootstrap helper.
 - Moved SQLite provider initialization and threading fail-fast validation out
   of `Program.cs` into a focused bootstrap helper.
+- Moved runtime version/canary/development flag and executable-path calculation
+  out of `Program.cs` into a focused bootstrap helper while preserving the
+  public Program compatibility surface.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

@@ -1,3 +1,18 @@
+## Update 2026-05-13 16:01:27Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - moved assembly/informational version normalization, semantic/full version strings, canary/development flags, and executable-path lookup into `Bootstrap/ApplicationRuntimeInfo`;
+  - preserved Program's public compatibility fields/properties used by state, telemetry, integration, and API surfaces.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ApplicationControllerTests|FullyQualifiedName~ProgramPathNormalizationTests|FullyQualifiedName~SharedEventEmitterTests|FullyQualifiedName~ApplicationLifecycleTests|FullyQualifiedName~LogsControllerTests" --no-restore` (`58/58`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Re-scan MediaCore pod workflows for any remaining advanced forms that should move behind progressive disclosure.
+  2. Keep unrelated local edits in `global.json` and `DownloadService.cs` separate from Program decomposition commits.
+  3. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 15:54:58Z
 
 - Current task: Program.cs decomposition follow-up in progress.

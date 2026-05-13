@@ -182,6 +182,9 @@ CLI help output, environment-variable listing, and startup logo rendering moved
 out of `Program.cs` into `Bootstrap/StartupConsoleOutput.cs`.
 SQLite provider initialization and threading fail-fast validation moved out of
 `Program.cs` into `Bootstrap/StartupSqlite.cs`.
+Runtime version, canary/development flags, and executable-path calculation moved
+out of `Program.cs` into `Bootstrap/ApplicationRuntimeInfo.cs` while preserving
+the public Program compatibility surface.
 
 Target modules:
 
@@ -249,6 +252,9 @@ Target modules:
   environment-variable listing, and startup logo rendering.
 - `StartupSqlite.InitOrFailFast(...)`. Implemented for SQLitePCL provider
   initialization and serialized threading validation.
+- `ApplicationRuntimeInfo`. Implemented for assembly/informational version
+  normalization, semantic/full version strings, canary/development flags, and
+  executable-path lookup.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
@@ -280,7 +286,8 @@ Acceptance criteria:
   shutdown telemetry wiring are now owned by focused bootstrap helpers. CLI
   output and logo rendering are now owned by a focused bootstrap helper. SQLite
   provider initialization and threading validation are now owned by a focused
-  bootstrap helper.
+  bootstrap helper. Runtime version and executable-path calculation are now
+  owned by a focused bootstrap helper.
 - Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 

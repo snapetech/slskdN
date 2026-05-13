@@ -194,21 +194,17 @@ namespace slskd
         /// <summary>
         ///     Gets the current executable path when available.
         /// </summary>
-        public static readonly string ExecutablePath = TryGetExecutablePath();
+        public static readonly string ExecutablePath = ApplicationRuntimeInfo.TryGetExecutablePath();
 
         /// <remarks>
         ///     Inaccurate when running locally.
         /// </remarks>
-        private static readonly Version AssemblyVersion = (Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0, 0)).Equals(new Version(1, 0, 0, 0))
-            ? new Version(0, 0, 0, 0)
-            : (Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0, 0));
+        private static readonly Version AssemblyVersion = ApplicationRuntimeInfo.AssemblyVersion;
 
         /// <remarks>
         ///     Inaccurate when running locally.
         /// </remarks>
-        private static readonly string InformationalVersion = (Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0") == "1.0.0"
-            ? "0.0.0"
-            : (Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0");
+        private static readonly string InformationalVersion = ApplicationRuntimeInfo.InformationalVersion;
 
         /// <summary>
         ///     Occurs when a new log event is emitted.
@@ -218,22 +214,22 @@ namespace slskd
         /// <summary>
         ///     Gets the semantic application version.
         /// </summary>
-        public static string SemanticVersion { get; } = InformationalVersion.Split('+').First();
+        public static string SemanticVersion { get; } = ApplicationRuntimeInfo.SemanticVersion;
 
         /// <summary>
         ///     Gets the full application version, including both assembly and informational versions.
         /// </summary>
-        public static string FullVersion { get; } = $"{SemanticVersion} ({InformationalVersion})";
+        public static string FullVersion { get; } = ApplicationRuntimeInfo.FullVersion;
 
         /// <summary>
         ///     Gets a value indicating whether the current version is a Canary build.
         /// </summary>
-        public static bool IsCanary { get; } = AssemblyVersion.Revision == 65534;
+        public static bool IsCanary { get; } = ApplicationRuntimeInfo.IsCanary;
 
         /// <summary>
         ///     Gets a value indicating whether the current version is a Development build.
         /// </summary>
-        public static bool IsDevelopment { get; } = new Version(0, 0, 0, 0) == AssemblyVersion;
+        public static bool IsDevelopment { get; } = ApplicationRuntimeInfo.IsDevelopment;
 
         private static void RaiseLogEmitted(LogRecord record)
         {
@@ -254,18 +250,6 @@ namespace slskd
         ///     Gets a value indicating whether the application is being run in Relay Agent mode.
         /// </summary>
         public static bool IsRelayAgent { get; private set; }
-
-        private static string TryGetExecutablePath()
-        {
-            try
-            {
-                return System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
-            }
-            catch
-            {
-                return string.Empty;
-            }
-        }
 
         /// <summary>
         ///     Gets the application flags.

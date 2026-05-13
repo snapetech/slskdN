@@ -2768,6 +2768,7 @@
 - [2026-05-13T15:49:21Z] Completed: continue Program.cs decomposition by moving global Serilog setup into `Bootstrap/StartupLogging` and shutdown/unobserved-exception telemetry into `Bootstrap/StartupShutdownTelemetry`.
 - [2026-05-13T15:52:36Z] Completed: continue Program.cs decomposition by moving CLI help output, environment-variable listing, and startup logo rendering into `Bootstrap/StartupConsoleOutput`.
 - [2026-05-13T15:54:58Z] Completed: continue Program.cs decomposition by moving SQLite provider initialization and threading fail-fast validation into `Bootstrap/StartupSqlite`.
+- [2026-05-13T16:01:27Z] Completed: continue Program.cs decomposition by moving runtime version/canary/development flag and executable-path calculation into `Bootstrap/ApplicationRuntimeInfo`.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.
