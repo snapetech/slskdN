@@ -195,6 +195,163 @@ public class DownloadServiceTests
     }
 
     [Fact]
+    public async Task TryFail_AggregateTimeout_MarksTransferTimedOut()
+    {
+        var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var options = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+        var transferId = Guid.NewGuid();
+
+        await using (var context = new TransfersDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Transfers.Add(new slskd.Transfers.Transfer
+            {
+                Id = transferId,
+                Username = "alice",
+                Direction = TransferDirection.Download,
+                Filename = @"Music\slow.flac",
+                Size = 1234,
+                RequestedAt = DateTime.UtcNow,
+                State = TransferStates.InProgress,
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient
+            .SetupGet(client => client.Downloads)
+            .Returns(Array.Empty<Soulseek.Transfer>());
+
+        var service = CreateDownloadService(options, soulseekClient);
+
+        try
+        {
+            var exception = new AggregateException(new TimeoutException("The wait timed out after 15000 milliseconds"));
+
+            Assert.True(service.TryFail(transferId, exception));
+
+            await using var context = new TransfersDbContext(options);
+            var failedTransfer = await context.Transfers.SingleAsync(t => t.Id == transferId);
+            Assert.True(failedTransfer.State.HasFlag(TransferStates.Completed));
+            Assert.True(failedTransfer.State.HasFlag(TransferStates.TimedOut));
+            Assert.False(failedTransfer.State.HasFlag(TransferStates.Errored));
+        }
+        finally
+        {
+            service.Dispose();
+            DeleteDatabase(databasePath);
+        }
+    }
+
+    [Fact]
+    public async Task TryFail_TransferExceptionTimeoutMessage_MarksTransferTimedOut()
+    {
+        var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var options = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+        var transferId = Guid.NewGuid();
+
+        await using (var context = new TransfersDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Transfers.Add(new slskd.Transfers.Transfer
+            {
+                Id = transferId,
+                Username = "alice",
+                Direction = TransferDirection.Download,
+                Filename = @"Music\slow.flac",
+                Size = 1234,
+                RequestedAt = DateTime.UtcNow,
+                State = TransferStates.InProgress,
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient
+            .SetupGet(client => client.Downloads)
+            .Returns(Array.Empty<Soulseek.Transfer>());
+
+        var service = CreateDownloadService(options, soulseekClient);
+
+        try
+        {
+            var exception = new TransferException("The wait timed out after 15000 milliseconds");
+
+            Assert.True(service.TryFail(transferId, exception));
+
+            await using var context = new TransfersDbContext(options);
+            var failedTransfer = await context.Transfers.SingleAsync(t => t.Id == transferId);
+            Assert.True(failedTransfer.State.HasFlag(TransferStates.Completed));
+            Assert.True(failedTransfer.State.HasFlag(TransferStates.TimedOut));
+            Assert.False(failedTransfer.State.HasFlag(TransferStates.Errored));
+        }
+        finally
+        {
+            service.Dispose();
+            DeleteDatabase(databasePath);
+        }
+    }
+
+    [Fact]
+    public async Task EnqueueAsync_BackgroundAggregateTimeout_MarksTransferTimedOut()
+    {
+        var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var options = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+
+        await using (var context = new TransfersDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+        }
+
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient
+            .SetupGet(client => client.Downloads)
+            .Returns(Array.Empty<Soulseek.Transfer>());
+        soulseekClient
+            .Setup(client => client.DownloadAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<Task<Stream>>>(),
+                It.IsAny<long?>(),
+                It.IsAny<long>(),
+                It.IsAny<int?>(),
+                It.IsAny<TransferOptions>(),
+                It.IsAny<CancellationToken?>()))
+            .ThrowsAsync(new AggregateException(new TimeoutException("The wait timed out after 15000 milliseconds")));
+
+        var service = CreateDownloadService(options, soulseekClient);
+
+        try
+        {
+            var (enqueued, failed) = await service.EnqueueAsync(
+                "alice",
+                new[] { (Filename: @"Music\slow.flac", Size: 1234L) },
+                CancellationToken.None);
+
+            Assert.Single(enqueued);
+            Assert.Empty(failed);
+
+            var failedTransfer = await WaitForTransferAsync(
+                () => service.Find(t => t.Id == enqueued.Single().Id && t.State.HasFlag(TransferStates.Completed)),
+                TimeSpan.FromSeconds(5));
+
+            Assert.True(failedTransfer.State.HasFlag(TransferStates.TimedOut));
+            Assert.False(failedTransfer.State.HasFlag(TransferStates.Errored));
+        }
+        finally
+        {
+            service.Dispose();
+            DeleteDatabase(databasePath);
+        }
+    }
+
+    [Fact]
     public async Task EnqueueAsync_SameUserRequests_AreSerializedByUserSemaphore()
     {
         var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
@@ -723,6 +880,8 @@ public class DownloadServiceTests
         Mock<ISoulseekClient> soulseekClient)
     {
         var optionsMonitor = new TestOptionsMonitor<slskd.Options>(new slskd.Options());
+        var eventService = new Mock<EventService>(Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<EventsDbContext>>());
+        eventService.Setup(service => service.Add(It.IsAny<EventRecord>()));
 
         return new DownloadService(
             optionsMonitor,
@@ -731,7 +890,7 @@ public class DownloadServiceTests
             new FileService(optionsMonitor),
             Mock.Of<IRelayService>(),
             Mock.Of<IFTPService>(),
-            new EventBus(new EventService(Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<EventsDbContext>>())));
+            new EventBus(eventService.Object));
     }
 
     private static DownloadService CreateDownloadService(
@@ -739,6 +898,8 @@ public class DownloadServiceTests
         Mock<ISoulseekClient> soulseekClient)
     {
         var optionsMonitor = new TestOptionsMonitor<slskd.Options>(new slskd.Options());
+        var eventService = new Mock<EventService>(Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<EventsDbContext>>());
+        eventService.Setup(service => service.Add(It.IsAny<EventRecord>()));
 
         return new DownloadService(
             optionsMonitor,
@@ -747,7 +908,7 @@ public class DownloadServiceTests
             new FileService(optionsMonitor),
             Mock.Of<IRelayService>(),
             Mock.Of<IFTPService>(),
-            new EventBus(new EventService(Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<EventsDbContext>>())));
+            new EventBus(eventService.Object));
     }
 
     private static async Task WaitUntilAsync(Func<bool> predicate, TimeSpan timeout)

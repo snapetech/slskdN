@@ -64,7 +64,7 @@ public static class StartupLogging
                     var record = new LogRecord()
                     {
                         Timestamp = logEvent.Timestamp.LocalDateTime,
-                        Context = logEvent.Properties["SourceContext"].ToString().TrimStart('"').TrimEnd('"'),
+                        Context = GetLogProperty(logEvent, "SourceContext"),
                         SubContext = logEvent.Properties.ContainsKey("SubContext") ? logEvent.Properties["SubContext"].ToString().TrimStart('"').TrimEnd('"') : string.Empty,
                         Level = logEvent.Level.ToString(),
                         Message = message.TrimStart('"').TrimEnd('"'),
@@ -74,7 +74,7 @@ public static class StartupLogging
                 }
                 catch (Exception ex)
                 {
-                    Log.Error("Misconfigured delegating logger: {Exception}.  Message: {Message}", ex.Message, message);
+                    Console.Error.WriteLine($"Misconfigured delegating logger: {ex.Message}. Message: {message}");
                 }
             }))
             .CreateLogger();
@@ -105,4 +105,9 @@ public static class StartupLogging
 
         return Log.ForContext(typeof(Program));
     }
+
+    private static string GetLogProperty(LogEvent logEvent, string name)
+        => logEvent.Properties.TryGetValue(name, out var value)
+            ? value.ToString().TrimStart('"').TrimEnd('"')
+            : string.Empty;
 }

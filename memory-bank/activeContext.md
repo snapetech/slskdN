@@ -12,6 +12,7 @@
 - Next steps:
   1. Continue Program.cs decomposition with the remaining compatibility wrappers/static state.
   2. Continue scanning MediaCore for remaining read-first reconciliation work.
+
 ## Update 2026-05-13 16:49:30Z
 
 - Current task: Program.cs decomposition follow-up in progress.
@@ -26,6 +27,7 @@
 - Next steps:
   1. Continue Program.cs decomposition by extracting the ASP.NET bootstrap/build/run flow.
   2. Continue scanning MediaCore for remaining read-first reconciliation work.
+
 ## Update 2026-05-13 16:44:30Z
 
 - Current task: Program.cs decomposition follow-up in progress.
@@ -40,6 +42,7 @@
 - Next steps:
   1. Continue Program.cs decomposition by extracting another cohesive startup-flow segment.
   2. Continue scanning MediaCore for remaining read-first reconciliation work.
+
 ## Update 2026-05-13 16:38:20Z
 
 - Current task: Program.cs decomposition follow-up in progress.
@@ -54,6 +57,7 @@
 - Next steps:
   1. Continue Program.cs decomposition by extracting another cohesive startup-flow segment.
   2. Continue scanning MediaCore for any remaining read-first reconciliation work.
+
 ## Update 2026-05-13 16:34:30Z
 
 - Current task: Program.cs decomposition follow-up in progress.
@@ -68,6 +72,7 @@
 - Next steps:
   1. Continue Program.cs decomposition by extracting another cohesive startup-flow segment.
   2. Continue scanning MediaCore for any remaining read-first reconciliation work.
+
 ## Update 2026-05-13 16:31:10Z
 
 - Current task: Program.cs decomposition follow-up in progress.
@@ -82,6 +87,7 @@
 - Next steps:
   1. Continue Program.cs decomposition with small compatibility-wrapper splits.
   2. Continue scanning remaining MediaCore non-pod controls for read-first progressive disclosure.
+
 ## Update 2026-05-13 16:23:00Z
 
 - Current task: parity/reconciliation list follow-up in progress.
@@ -95,6 +101,7 @@
 - Next steps:
   1. Continue scanning for any remaining non-pod MediaCore admin controls that should be advanced-only.
   2. Continue Program.cs decomposition with small compatibility-wrapper splits when no UX slice remains.
+
 ## Update 2026-05-13 16:21:10Z
 
 - Current task: Program.cs decomposition follow-up in progress.
@@ -109,6 +116,7 @@
 - Next steps:
   1. Continue Program.cs decomposition with another small compatibility-wrapper split or switch back to remaining MediaCore reconciliation forms.
   2. Keep unrelated local edits in workflows, `global.json`, packaging, `StartupLogging`, and DownloadService files separate.
+
 ## Update 2026-05-13 16:13:40Z
 
 - Current task: Program.cs decomposition follow-up in progress.
@@ -137,6 +145,30 @@
 - Next steps:
   1. Continue simplifying any remaining non-pod MediaCore mutation-heavy forms.
   2. Keep unrelated local edits in workflows, `global.json`, packaging, and DownloadService files separate from reconciliation commits.
+
+## Update 2026-05-13 16:02:24Z
+
+- Current task: Bas Arch/download report handled; Program.cs decomposition still has unrelated local edits in progress.
+- Last activity:
+  - lowered the .NET SDK floor from `10.0.202` to `10.0.100` across `global.json` and workflow pins so Arch systems with SDK `10.0.104` can build the source package;
+  - fixed direct-download retry aggregate timeout classification so repeated remote `TimeoutException`s mark transfers as `TimedOut` instead of generic `Errored`;
+  - aligned Snap packaging metadata and checksum to stable release `2026051221-slskdn.247`;
+  - fixed a recursive Serilog sink startup crash found during local artifact smoke and documented ADR-0001 gotcha `0z355`;
+  - built manual deploy payload `0.0.0-manual.20260513161219.eff21f143493` at `/tmp/slskdn-deploy-current` and `/tmp/slskdn-deploy-current.tar.gz`;
+  - local isolated smoke reached `/api/v0/application` and reported the manual version.
+  - documented ADR-0001 gotcha `0z354` and committed that documentation separately.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~DownloadServiceTests|FullyQualifiedName~ApplicationControllerTests|FullyQualifiedName~LogsControllerTests" --no-restore` (`23/23`).
+  - Passed: `bash scripts/check-codeql-dotnet-version.sh`.
+  - Passed: `bash packaging/scripts/validate-packaging-metadata.sh`.
+  - Passed: `./bin/lint`.
+  - Passed: `git diff --check`.
+  - Blocked: `kspls0` deploy cannot proceed because SSH times out during banner exchange or resets pre-auth with `Not allowed at this time`; HTTP `:5030` accepts then times out.
+- Next steps:
+  1. Recover `kspls0` host access through reboot/local console/out-of-band service recovery.
+  2. Copy `/tmp/slskdn-deploy-current.tar.gz`, stop `slskd.service`, install under `/usr/lib/slskd/releases/`, repoint `/usr/lib/slskd/current`, restart, and verify HTTP/API/version.
+  3. Run live download timeout validation once the service is reachable.
 
 ## Update 2026-05-13 16:04:20Z
 
@@ -7027,3 +7059,13 @@ Added DownloadService per-user semaphore regression coverage. Same-user enqueue 
 Expanded Program.cs service-module decomposition by moving top-level runtime service composition into `Bootstrap/RuntimeServiceCollectionExtensions`, ASP.NET service registration into `Bootstrap/WebServiceCollectionExtensions`, ASP.NET request-pipeline registration into `Bootstrap/WebApplicationPipelineExtensions`, application-host wiring into `Bootstrap/ApplicationHostServiceCollectionExtensions`, core app services into `Bootstrap/CoreApplicationServiceCollectionExtensions`, integration/media registrations into `Bootstrap/IntegrationAndMediaServiceCollectionExtensions`, the large experimental feature graph into `Bootstrap/ExperimentalFeatureGraphServiceCollectionExtensions`, and user-data persistence registration into `Bootstrap/UserDataServiceCollectionExtensions` after the earlier SongID bootstrap extraction.
 
 Next steps: subdivide `ExperimentalFeatureGraphServiceCollectionExtensions` into smaller bounded modules, continue remaining DownloadService CTS cleanup cases, and resolve the runtime-vs-tooling decision for Roslyn CodeQuality helpers.
+
+## 2026-05-13T16:38:00Z Session update
+
+Completed the Arch build/download-timeout/Snap hotfix and kspls0 manual deployment. Current live build on kspls0 is `0.0.0-manual.20260513163650.c07c237919e0`; service is active/running, web root returns 200, application API reports connected/logged-in, shares are loaded, and fresh logs after the corrected deployment show no timeout-related `ERR` lines. No release tag was created.
+
+Next steps: create the requested release tag only after explicit tag/release confirmation; continue monitoring live download behavior for remote-peer failures that are separate from the aggregate timeout logging bug.
+
+## 2026-05-13T16:44:00Z Session update
+
+Completed post-deploy test pass. Full `dotnet test --no-restore` passed across smoke, unit, and integration suites, and `./bin/lint` passed. Live kspls0 reproduced the tester timeout signature only as warning/`Completed, TimedOut`; remaining download failures appear to be peer-side rejection, remote size mismatch, offline peers, and connection failures rather than the aggregate timeout bug.

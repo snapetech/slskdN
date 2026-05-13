@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed Arch/AUR source builds by lowering the .NET SDK floor to the 10.0.1xx
+  feature band with feature roll-forward, updated release workflow SDK pins to
+  match, and refreshed Snap metadata for `2026051221-slskdn.247`.
+- Fixed download timeout handling so aggregate-wrapped Soulseek timeouts and
+  timeout-text transfer exceptions are recorded as `TimedOut` and logged as
+  warnings instead of generic error stack traces.
 - Fixed startup hardening so no-auth exposure is based on actual web listener
   bind posture instead of port presence, and made the unavailable
   hash-from-audio option fail startup if enabled.

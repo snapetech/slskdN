@@ -620,6 +620,14 @@ namespace slskd.Transfers.Downloads
                                 {
                                     Log.Debug("Download enqueue for {File} from {Username} cancelled during shutdown: {Message}", transfer.Filename, transfer.Username, ex.Message);
                                 }
+                                catch (Exception ex) when (IsCancellationException(ex) || IsDownloadTimeout(ex))
+                                {
+                                    Log.Warning("Download of {File} from {Username} timed out or was cancelled while waiting for remote enqueue: {Message}", transfer.Filename, transfer.Username, ex.Message);
+                                    if (!TryFail(transferId, exception: ex))
+                                    {
+                                        Log.Debug("Transfer {Id} was already cleaned up after timed out or cancelled enqueue", transfer.Id);
+                                    }
+                                }
                                 catch (Exception ex)
                                 {
                                     Log.Error(ex, "Download of {File} from {Username} failed: {Message}", transfer.Filename, transfer.Username, ex.Message);
@@ -980,8 +988,8 @@ namespace slskd.Transfers.Downloads
             {
                 t.State = TransferStates.Completed | exception switch
                 {
-                    OperationCanceledException => TransferStates.Cancelled,
-                    TimeoutException => TransferStates.TimedOut,
+                    _ when IsCancellationException(exception) => TransferStates.Cancelled,
+                    _ when IsDownloadTimeout(exception) => TransferStates.TimedOut,
                     _ => TransferStates.Errored,
                 };
             }
@@ -1379,14 +1387,14 @@ namespace slskd.Transfers.Downloads
                 Log.Debug("Download of {Filename} from user {Username} cancelled during shutdown: {Message}", transfer.Filename, transfer.Username, ex.Message);
                 throw;
             }
-            catch (Exception ex) when (ex is OperationCanceledException || ex is TimeoutException)
+            catch (Exception ex) when (IsCancellationException(ex) || IsDownloadTimeout(ex))
             {
-                Log.Error(ex, "Download of {Filename} from user {Username} failed: {Message}", transfer.Filename, transfer.Username, ex.Message);
+                Log.Warning("Download of {Filename} from user {Username} timed out or was cancelled: {Message}", transfer.Filename, transfer.Username, ex.Message);
 
                 // Record failed/timed out chunk completion for peer metrics (Phase 2C - T-409)
                 if (PeerMetrics != null)
                 {
-                    var result = ex is TimeoutException ? ChunkCompletionResult.TimedOut : ChunkCompletionResult.Failed;
+                    var result = IsDownloadTimeout(ex) ? ChunkCompletionResult.TimedOut : ChunkCompletionResult.Failed;
                     _ = ObserveBackgroundTaskAsync(
                         PeerMetrics.RecordChunkCompletionAsync(
                             transfer.Username,
@@ -1479,13 +1487,13 @@ namespace slskd.Transfers.Downloads
             {
                 Log.Debug("Task for download of {Filename} from {Username} cancelled during shutdown: {Message}", filename, username, ex.Message);
             }
-            catch (OperationCanceledException ex)
+            catch (Exception ex) when (IsCancellationException(ex) || IsDownloadTimeout(ex))
             {
-                Log.Error(ex, "Task for download of {Filename} from {Username} did not complete successfully: {Error}", filename, username, ex.Message);
+                Log.Warning("Task for download of {Filename} from {Username} timed out or was cancelled: {Error}", filename, username, ex.Message);
 
                 if (!TryFail(transferId, exception: ex))
                 {
-                    Log.Error(ex, "Failed to clean up transfer {Id} after failed download", transferId);
+                    Log.Debug("Transfer {Id} was already cleaned up after timed out or cancelled download", transferId);
                 }
             }
             catch (Exception ex) when (IsExpectedRemoteDownloadFailure(ex))
@@ -1642,6 +1650,22 @@ namespace slskd.Transfers.Downloads
                 exception is Soulseek.TransferException { InnerException: UserOfflineException } ||
                 exception.Message.Contains("appears to be offline", StringComparison.OrdinalIgnoreCase);
         }
+
+        private static bool IsDownloadTimeout(Exception exception)
+        {
+            if (exception is AggregateException aggregateException)
+            {
+                return aggregateException.Flatten().InnerExceptions.Any(IsDownloadTimeout);
+            }
+
+            return exception is TimeoutException ||
+                (exception is TransferException { Message: var message } && IsTimeoutMessage(message)) ||
+                exception.InnerException is TimeoutException;
+        }
+
+        private static bool IsTimeoutMessage(string message)
+            => message.Contains("timed out", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("timeout", StringComparison.OrdinalIgnoreCase);
 
         private static bool IsDirectDownloadRetryable(Exception exception)
             => exception is not OperationCanceledException

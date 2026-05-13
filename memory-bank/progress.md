@@ -1,3 +1,40 @@
+## 2026-05-13
+
+- Investigated Bas's Arch report. The source package failed because
+  `global.json` requested SDK `10.0.202` while current Arch packages exposed
+  `10.0.104`; changed the repo and workflow SDK floor to `10.0.100` so
+  feature-band roll-forward accepts Arch's installed .NET 10 SDK.
+- Fixed the download timeout classification shown in the attached log:
+  repeated direct-download `TimeoutException`s wrapped by `Retry.Do` now
+  flatten as timeout failures, mark transfers `TimedOut`, and avoid treating
+  expected remote slowness as a generic error. Added focused
+  `DownloadServiceTests` coverage and ADR-0001 gotcha `0z354`.
+- Aligned Snap packaging metadata with the current stable release
+  `2026051221-slskdn.247`, including the published
+  `slskdn-main-linux-glibc-x64.zip` checksum from `SHA256SUMS.txt`.
+- While building the manual deploy payload, local artifact smoke exposed a
+  recursive Serilog sink crash from the Program decomposition logging split:
+  sink failures logged through Serilog and re-entered the same sink. Replaced
+  that catch-path with `Console.Error`, made `SourceContext` optional, and
+  documented ADR-0001 gotcha `0z355`.
+- Built manual Linux x64 deploy payload
+  `0.0.0-manual.20260513161219.eff21f143493` at
+  `/tmp/slskdn-deploy-current` with archive
+  `/tmp/slskdn-deploy-current.tar.gz`; local isolated smoke reached
+  `/api/v0/application` and reported the manual version with the rebuilt Web
+  bundle present.
+- Validation passed: `dotnet build src/slskd/slskd.csproj --no-restore`,
+  `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter
+  "FullyQualifiedName~DownloadServiceTests|FullyQualifiedName~ApplicationControllerTests|FullyQualifiedName~LogsControllerTests"
+  --no-restore`, `bash
+  scripts/check-codeql-dotnet-version.sh`, `bash
+  packaging/scripts/validate-packaging-metadata.sh`, `./bin/lint`, and
+  `git diff --check`.
+- Deployment to `kspls0` remains blocked: the host answers ping and TCP/22
+  accepts, but SSH either times out during banner exchange or resets before
+  auth with `Not allowed at this time`; `http://kspls0:5030` still accepts and
+  times out without an HTTP response.
+
 ## 2026-05-12
 
 - Actioned the first feature-coherence/de-hallucination slice on `chore/feature-coherence-audit`: promoted the conservative maturity README into `README.md`, kept feature maturity anchored in `FEATURE_INVENTORY.md`, added explicit Paranoid-mode non-goal coverage, and made `scripts/audit-roadmap-claims.sh` repo-root aware. Validation passed: `bash scripts/audit-feature-coherence.sh`, `bash scripts/audit-readme-maturity-draft.sh`, `bash scripts/audit-roadmap-claims.sh`, and `git diff --check`.
@@ -10174,3 +10211,7 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T16:49:30Z] Program decomposition startup diagnostics split: moved configured startup identity, system, directory, compatibility-warning, and logging-target diagnostics into `Bootstrap/StartupDiagnostics`, reducing `Program.cs` to 754 lines while preserving SQLite initialization ordering. `dotnet build src/slskd/slskd.csproj --no-restore`, focused Program/log lifecycle tests (`58/58`), and `./bin/lint` passed.
 
 [2026-05-13T16:56:30Z] Program decomposition ASP.NET runner split: moved hardening validation, WebApplication builder configuration, service registration, DI build, startup tasks, pipeline setup, no-start handling, and application run lifecycle into `Bootstrap/StartupWebApplicationRunner`, reducing `Program.cs` to 680 lines. `dotnet build src/slskd/slskd.csproj --no-restore`, focused Program/log lifecycle tests (`58/58`), and `./bin/lint` passed.
+
+[2026-05-13T16:38:00Z] Arch/download/Snap live hotfix: lowered `global.json` and workflow SDK pins to the installed .NET 10.0.1xx feature band with feature roll-forward, updated Snap metadata to release `2026051221-slskdn.247`, classified aggregate-wrapped download timeouts and timeout-text `TransferException`s as `TimedOut` instead of `Errored`, and made the download observer/enqueue paths log timeout/cancel completions as warnings instead of `ERR` stack traces. Also fixed the extracted startup logging sink to avoid recursive Serilog failures during early startup. Validation passed for focused DownloadService tests (`13/13`), broader focused unit tests (`24/24`), CodeQL SDK/version check, packaging metadata validation, frontend build, `./bin/lint`, and `git diff --check`. Deployed manual build `0.0.0-manual.20260513163650.c07c237919e0` to kspls0 after the user rebooted the wedged host; service is active with zero restarts, `/` returns 200, `/api/v0/application` reports connected/logged-in, and fresh logs after the corrected build show no timeout-related `ERR` lines.
+
+[2026-05-13T16:44:00Z] Post-deploy download validation: full `dotnet test --no-restore` passed across smoke (`67/67`), unit (`4053/4053`), and integration (`276/276`) projects; `./bin/lint` passed. Live kspls0 API still reports `0.0.0-manual.20260513163650.c07c237919e0` connected/logged-in. The tester timeout signature was reproduced live as `Completed, TimedOut`/warning rather than aggregate `ERR`; current transfer states show 1857 succeeded, 118 remotely queued, 5 in progress, 4 timed out, 80 errored, 55 aborted, and 169 rejected. Remaining failures are dominated by peer-side rejection, remote size mismatch, offline peers, connection establishment failures, and connection closes rather than the aggregate timeout bug.
