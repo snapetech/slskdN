@@ -1,18 +1,18 @@
-## Update 2026-05-13 02:01:55Z
+## Update 2026-05-13 02:09:41Z
 
 - Current task: Program.cs decomposition and parity/reconciliation follow-up in progress.
 - Last activity:
-  - moved VirtualSoulfind capture, shadow-index, scene, disaster-mode, bridge, v2 provider/backend, reconciliation, and processing registrations into `Bootstrap/VirtualSoulfindServiceCollectionExtensions`;
-  - moved backfill, mesh hash-sync, source discovery, rescue, accelerated download, content verification, peer metrics, and chunk scheduler registrations into `Bootstrap/TransferDiscoveryServiceCollectionExtensions`;
-  - reduced the remaining broad experimental graph from 1076 to 846 lines across the latest two splits;
+  - moved MediaCore, PodCore, content-domain provider, and peer-reputation registrations into `Bootstrap/MediaCorePodServiceCollectionExtensions`;
+  - moved mesh, DHT, overlay, transport, realm, governance, gossip, social-federation, privacy, NAT, and service-fabric registrations into `Bootstrap/ExperimentalMeshServiceCollectionExtensions`;
+  - reduced the remaining broad experimental graph coordinator to 105 lines;
   - updated feature-coherence and parity tracking docs.
 - Validation:
   - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
   - Passed: `./bin/lint`.
-  - Passed: `dotnet test tests/slskd.Tests.Integration/slskd.Tests.Integration.csproj --filter "FullyQualifiedName~VirtualSoulfind" --no-restore` (`64/64`).
-  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~DownloadServiceTests|FullyQualifiedName~ContentVerificationServiceTests" --no-restore` (`14/14`).
+  - Passed: `dotnet test tests/slskd.Tests.Integration/slskd.Tests.Integration.csproj --filter "FullyQualifiedName~PodCore|FullyQualifiedName~MediaCore|FullyQualifiedName~Mesh" --no-restore` (`80/80`).
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~PodCore|FullyQualifiedName~MediaCore|FullyQualifiedName~Mesh|FullyQualifiedName~Dht" --no-restore` (`1734/1734`).
 - Next steps:
-  1. Continue splitting the remaining experimental graph, likely MediaCore/PodCore or Mesh/DHT next.
+  1. Split the remaining capability/DHT-rendezvous/media-publisher coordinator if more Program decomposition is needed.
   2. Continue simplifying remaining MediaCore pod forms under the reconciliation plan.
 
 ## Update 2026-05-13 01:50:00Z

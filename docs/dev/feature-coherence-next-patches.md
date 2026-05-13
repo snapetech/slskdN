@@ -137,6 +137,12 @@ Backfill, mesh hash-sync, source discovery, rescue, accelerated download,
 content verification, peer metrics, and chunk scheduler registrations moved out
 of the broad experimental graph into
 `Bootstrap/TransferDiscoveryServiceCollectionExtensions.cs`.
+MediaCore, PodCore, content-domain provider, and peer-reputation registrations
+moved out of the broad experimental graph into
+`Bootstrap/MediaCorePodServiceCollectionExtensions.cs`.
+Mesh, DHT, overlay, transport, realm, governance, gossip, social-federation,
+privacy, NAT, and service-fabric registrations moved out of the broad
+experimental graph into `Bootstrap/ExperimentalMeshServiceCollectionExtensions.cs`.
 
 Target modules:
 
@@ -161,6 +167,11 @@ Target modules:
 - `AddSlskdTransferDiscoveryServices(...)`. Implemented for backfill, mesh
   hash sync, source discovery, rescue, accelerated download, content
   verification, peer metrics, and chunk scheduling registrations.
+- `AddSlskdMediaCorePodServices(...)`. Implemented for MediaCore, PodCore,
+  content-domain provider, and peer-reputation registrations.
+- `AddSlskdExperimentalMeshServices(...)`. Implemented for mesh, DHT, overlay,
+  transport, realm, governance, gossip, social-federation, privacy, NAT, and
+  service-fabric registrations.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
@@ -174,8 +185,9 @@ Acceptance criteria:
 
 - `Program.cs` no longer directly imports every experimental vertical. In progress;
   the broad graph moved and VirtualSoulfind/multi-source/transfer-discovery/
-  integration-media slices are now separate, but the remaining bootstrap module
-  still needs follow-up subdivision by bounded context.
+  MediaCore/PodCore/mesh/integration-media slices are now separate. The
+  remaining coordinator module still owns capability, DHT rendezvous, and
+  MediaCore publisher registration.
 - Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 
