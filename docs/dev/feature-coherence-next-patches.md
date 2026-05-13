@@ -122,6 +122,8 @@ API versioning, rate limiting, and Swagger moved into
 `Bootstrap/WebServiceCollectionExtensions.cs`.
 ASP.NET request-pipeline setup moved into
 `Bootstrap/WebApplicationPipelineExtensions.cs`.
+The top-level runtime DI composition list moved into
+`Bootstrap/RuntimeServiceCollectionExtensions.cs`.
 
 Target modules:
 
@@ -133,6 +135,8 @@ Target modules:
 - `AddSlskdWebServices(...)`. Implemented for ASP.NET service registration.
 - `UseSlskdWebPipeline(...)`. Implemented for ASP.NET middleware and endpoint
   registration.
+- `AddSlskdRuntimeServices(...)`. Implemented as the top-level runtime service
+  composition wrapper.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`

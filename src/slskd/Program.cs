@@ -801,7 +801,7 @@ namespace slskd
                 Log.Debug("[MAIN] About to configure ASP.NET services...");
                 builder.Services
                     .AddSlskdWebServices(Configuration!, OptionsAtStartup, AppName, DataDirectory, EnvironmentVariablePrefix, XmlDocumentationFile)
-                    .ConfigureDependencyInjectionContainer();
+                    .AddSlskdRuntimeServices(Configuration!, OptionsAtStartup, DataDirectory, SoulseekMinorVersion);
 
                 if (Environment.GetEnvironmentVariable("SLSKDN_E2E_TRACE_HOSTED") == "1")
                 {
@@ -1052,26 +1052,6 @@ namespace slskd
             {
                 Serilog.Log.CloseAndFlush();
             }
-        }
-
-        private static IServiceCollection ConfigureDependencyInjectionContainer(this IServiceCollection services)
-        {
-            Log.Debug("[DI] Starting ConfigureDependencyInjectionContainer...");
-
-            services.AddSlskdApplicationHost(Configuration!, AppName, OptionsAtStartup, SoulseekMinorVersion);
-
-            services.AddSlskdCoreApplicationServices(OptionsAtStartup, DataDirectory);
-
-            services.AddSlskdExperimentalFeatureGraph(Configuration!, OptionsAtStartup);
-
-            services.AddSlskdUserData();
-
-            // Security services (zero-trust hardening)
-            Log.Debug("[DI] About to call AddSlskdnSecurity...");
-            services.AddSlskdnSecurity(Configuration!);
-            Log.Debug("[DI] AddSlskdnSecurity completed");
-
-            return services;
         }
 
         private static void InitSQLiteOrFailFast()
