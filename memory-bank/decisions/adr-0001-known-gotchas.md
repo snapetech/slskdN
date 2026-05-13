@@ -52,6 +52,44 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z417. Do Not Dispose Ephemeral Semaphores Still Owned By Fire-And-Forget Work
+
+**The Bug**: `DownloadService.EnqueueAsync(...)` tried to dispose a per-call
+download enqueue throttle semaphore from a fire-and-forget cleanup continuation
+after tracked enqueue tasks completed. The semaphore was only an in-memory
+throttle, but the disposal path raced with retry enqueue work and produced live
+`ObjectDisposedException: Cannot access a disposed object` unobserved task
+exceptions during auto-retry scans.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+
+**Wrong**:
+```csharp
+_ = Task.WhenAll(runningTasks).ContinueWith(
+    completedTasks =>
+    {
+        _ = completedTasks.Exception;
+        semaphore.Dispose();
+    },
+    CancellationToken.None,
+    TaskContinuationOptions.ExecuteSynchronously,
+    TaskScheduler.Default);
+```
+
+**Correct**:
+```csharp
+// Ephemeral SemaphoreSlim throttle; do not hand its disposal to detached work.
+var enqueueSemaphore = new SemaphoreSlim(initialCount, maxCount);
+```
+
+**Why This Keeps Happening**: `SemaphoreSlim.Dispose()` is easy to treat as
+mandatory cleanup, but for short-lived async throttles it is often more
+dangerous than useful when child work is intentionally detached from the parent
+request. If a synchronization primitive is only a managed per-call throttle and
+background tasks may still touch it, prefer letting it become unreachable after
+the tasks drain over racing disposal from another detached task.
+
 ### 0z416. Observe Aggregate Tasks Created Only For Cleanup Continuations
 
 **The Bug**: Download enqueue cleanup used `Task.WhenAll(runningTasks)` only to
