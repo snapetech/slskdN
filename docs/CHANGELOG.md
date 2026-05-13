@@ -38,6 +38,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Kept download auto-retry enabled while making its Soulseek retry policy more
   conservative with slower scans, per-peer cooldowns, and global/per-peer
   per-cycle retry budgets.
+- Reduced warning noise for normal peer-side download denial/failure events
+  while leaving transfer failure handling intact.
 - Observed terminal download enqueue signal faults so expected remote transfer
   rejections do not surface as process-level unobserved task exceptions.
 - Archived stale working notes and removed obsolete local one-off remediation
