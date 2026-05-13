@@ -519,6 +519,32 @@ interfaces each registration block actually needs. After any DI extraction,
 run a clean project build immediately and carry both implementation namespaces
 and extension-method namespaces into the new owner.
 
+### 0z401. Program Helper Extractions Must Update Test Call Sites
+
+**The Bug**: Moving configuration compatibility warning parsing out of
+`Program.cs` left a focused unit test calling the old
+`Program.GetConfigurationCompatibilityWarnings(...)` helper. The app project
+still built, but the unit test project would fail because the helper no longer
+existed on `Program`.
+
+**Files Affected**:
+- `src/slskd/Configuration/ConfigurationCompatibilityWarnings.cs`
+- `tests/slskd.Tests.Unit/ProgramPathNormalizationTests.cs`
+
+**Wrong**:
+```csharp
+var warnings = Program.GetConfigurationCompatibilityWarnings(path, options);
+```
+
+**Correct**:
+```csharp
+var warnings = ConfigurationCompatibilityWarnings.GetWarnings(path, options);
+```
+
+**Why This Keeps Happening**: `Program.cs` contains internal helpers that are
+covered by narrow unit tests. When a helper moves to a named owner, search the
+test tree for the old method name before trusting an app-only build.
+
 ### 0z384. Render-Time Work Must Not Scale With Hidden Or Unchanged Data
 
 **The Bug**: Performance fixes removed first-load blockers, but some render
