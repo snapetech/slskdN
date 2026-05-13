@@ -52,6 +52,40 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z406. Keep Attribute Namespaces When Moving Startup Argument Parsing
+
+**The Bug**: Extracting command-line/environment population out of
+`Program.cs` and removing `using Utility.CommandLine;` breaks the build because
+`Program` still owns `[Argument]` attributes on its static startup properties.
+The namespace is needed for attribute binding even when `Arguments.Populate(...)`
+is called from another helper.
+
+**Files Affected**:
+- `src/slskd/Program.cs`
+- `src/slskd/Bootstrap/StartupInput.cs`
+
+**Wrong**:
+```csharp
+using Utility.EnvironmentVariables;
+
+[Argument('a', "app-dir", "path where application data is saved")]
+public static string AppDirectory { get; private set; } = string.Empty;
+```
+
+**Correct**:
+```csharp
+using Utility.CommandLine;
+using Utility.EnvironmentVariables;
+
+[Argument('a', "app-dir", "path where application data is saved")]
+public static string AppDirectory { get; private set; } = string.Empty;
+```
+
+**Why This Keeps Happening**: Program decomposition makes it tempting to remove
+imports tied to moved method calls, but C# attributes are also namespace-bound
+references. Before deleting a using during extraction, check attributes and
+type names in the remaining file, not just executable statements.
+
 ### 0z405. Classify Wrapped Expected Soulseek Peer Failures Before Logging Errors
 
 **The Bug**: Soulseek remote peer failures such as remote-client failure,
