@@ -1,6 +1,8 @@
 # Documentation Index
 
-Complete guide to all slskdn documentation.
+Maintained guide to current slskdn documentation. Historical snapshots,
+completed workstream notes, and incident reports live under
+[`archive/`](archive/) and should not be treated as current instructions.
 
 ## 🚀 Quick Start
 
@@ -38,7 +40,6 @@ Complete guide to all slskdn documentation.
 ### Security
 - [Security Implementation Specs](SECURITY_IMPLEMENTATION_SPECS.md) - Detailed security feature specifications
 - [CSRF Testing Guide](security/CSRF_TESTING_GUIDE.md) - CSRF protection testing and validation
-- [Security Comparison Analysis](security/SECURITY_COMPARISON_ANALYSIS.md) - Comparison with upstream slskd
 - [Documentation Audit - Security Claims](archive/audits/DOCUMENTATION_AUDIT_SECURITY_CLAIMS.md) - Security claims review
 
 ## 🔧 Implementation Guides
@@ -59,16 +60,16 @@ Complete guide to all slskdn documentation.
 - [Contributing](../CONTRIBUTING.md) - How to contribute to the project
 - [API Documentation](api-documentation.md) - Complete API reference
 - [Local Development](dev/LOCAL_DEVELOPMENT.md) - Development environment setup, including git hook installation
+- [Testing Policy](dev/testing-policy.md) - Required validation policy
+- [Release Checklist](dev/release-checklist.md) - Release validation and packaging checklist
 
 ## 🔍 Additional Resources
 
 - [Relay Mode](relay.md) - Relay server configuration
 - [Migrations](migrations.md) - Database migration guide
-- [Upstream Bug Testing](upstream-bug-testing.md) - Testing upstream issues
 
 ---
 
-**Note**: Historical implementation notes live under `docs/archive/` and may not
-match current defaults. Prefer this index, [Getting Started](getting-started.md),
+**Note**: Prefer this index, [Getting Started](getting-started.md),
 [Configuration](config.md), and feature-specific user guides for current
 behavior.

@@ -139,5 +139,5 @@
 ## Source
 
 - Exclusions: `tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj` — `Compile Remove`.
-- Plan: `docs/dev/40-fixes-plan.md`, `docs/dev/slskd-tests-unit-reenablement-execution-plan.md`, `docs/dev/slskd-tests-unit-future-work.md`.
-- **Completion plan (test-refactor first):** `docs/dev/slskd-tests-unit-completion-plan.md`.
+- Plan: `docs/dev/40-fixes-plan.md`, `docs/archive/dev-audits/slskd-tests-unit-reenablement-execution-plan.md`, `docs/archive/dev-audits/slskd-tests-unit-future-work.md`.
+- **Completion plan (test-refactor first):** `docs/archive/dev-audits/slskd-tests-unit-completion-plan.md`.

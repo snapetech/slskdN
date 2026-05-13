@@ -2347,7 +2347,7 @@
 
 - Current task: Production placeholder burn-down is in progress.
 - Last activity:
-  - added `docs/dev/placeholder-completion-plan-2026-05-01.md`
+  - added `docs/archive/dev-audits/placeholder-completion-plan-2026-05-01.md`
   - scoped the burn-down to production markers while excluding UI input
     placeholders, tests, generated assets, archive docs, and historical
     memory-bank notes
@@ -6149,7 +6149,7 @@ This is the #1 most important thing to do before ending a session. Future AI age
 ### Current focus (the rest)
 - **40-fixes plan (PR-00–PR-14):** Done. slskd.Tests 46, slskd.Tests.Unit 2257 pass; Epic implemented. Deferred table: status only.
 - **T-404+:** Done. t410-backfill-wire (RescueMode underperformance detector → RescueService); codec/fingerprint (T-420–T-430) done per dashboard.
-- **slskd.Tests.Unit re-enablement:** ✅ **COMPLETE** (2026-01-27): All phases (0-5) done. 2430 tests passing, 0 skipped, 0 failed. No `Compile Remove` remaining. All test files enabled and passing per `docs/dev/slskd-tests-unit-completion-plan.md`.
+- **slskd.Tests.Unit re-enablement:** ✅ **COMPLETE** (2026-01-27): All phases (0-5) done. 2430 tests passing, 0 skipped, 0 failed. No `Compile Remove` remaining. All test files enabled and passing per `docs/archive/dev-audits/slskd-tests-unit-completion-plan.md`.
 - **New product work**: As prioritized.
 
 **Research (9) implementation:** ✅ Complete. T-901–T-913 all done per `memory-bank/tasks.md`.
@@ -6537,7 +6537,7 @@ dotnet test
   - downgraded DHT, security hardening, multi-source, MusicBrainz, and Service Fabric status wording where appropriate
   - marked stale January status/test reports as historical snapshots
   - changed universal SSRF, guarantee, and prevention wording to scoped guardrail wording
-  - recorded the findings in `docs/dev/documentation-audit-2026-04-30.md`
+  - recorded the findings in `docs/archive/dev-audits/documentation-audit-2026-04-30.md`
 - Next steps:
   1. Review the documentation diff for release-copy tone.
   2. Continue feature-expansion work only after deciding whether these documentation changes should be committed separately.

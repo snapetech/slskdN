@@ -1273,7 +1273,7 @@
  - Status: done
  - Priority: P1
  - Branch: `dev/40-fixes`
- - Notes: Fixed `SqliteShareRepository.Keepalive()` method that was calling `Environment.Exit(1)` on transient errors. The method now properly handles FTS5 virtual tables and only exits on persistent database corruption, not transient errors like database locks during backup. See `docs/T916_NODE_EXIT_INVESTIGATION.md` for details. (2026-01-27)
+ - Notes: Fixed `SqliteShareRepository.Keepalive()` method that was calling `Environment.Exit(1)` on transient errors. The method now properly handles FTS5 virtual tables and only exits on persistent database corruption, not transient errors like database locks during backup. See `docs/archive/incidents/T916_NODE_EXIT_INVESTIGATION.md` for details. (2026-01-27)
 
 - [x] **T-914**: Cross-node share discovery (“Shared with Me”)
  - Status: done
@@ -2497,7 +2497,7 @@
 
 - [x] Complete production placeholder burn-down
   - Status: completed (2026-05-01)
-  - Notes: Added `docs/dev/placeholder-completion-plan-2026-05-01.md`, removed fake swarm analytics values, replaced misleading production placeholder/TODO wording with explicit capability-gate and unavailable-path behavior, and re-ran the documented production-source scan. Only `FeatureNotImplementedException` infrastructure and its startup handling remain, which the plan allows as feature-gate infrastructure.
+  - Notes: Added `docs/archive/dev-audits/placeholder-completion-plan-2026-05-01.md`, removed fake swarm analytics values, replaced misleading production placeholder/TODO wording with explicit capability-gate and unavailable-path behavior, and re-ran the documented production-source scan. Only `FeatureNotImplementedException` infrastructure and its startup handling remain, which the plan allows as feature-gate infrastructure.
 
 - [x] Fix standalone PPA web asset staging
   - Status: completed (2026-05-01)

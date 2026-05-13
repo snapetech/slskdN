@@ -35,7 +35,7 @@ Excluded:
 
 | Package | Area | Representative files | Completion criteria |
 |---------|------|----------------------|---------------------|
-| P0 | Inventory and scan hygiene | `docs/dev/placeholder-completion-plan-2026-05-01.md` | Production-only scan command is documented; false positives are excluded from the burn-down. |
+| P0 | Inventory and scan hygiene | `docs/archive/dev-audits/placeholder-completion-plan-2026-05-01.md` | Production-only scan command is documented; false positives are excluded from the burn-down. |
 | P1 | Swarm analytics fake values | `src/slskd/Transfers/MultiSource/Analytics/SwarmAnalyticsService.cs` | No hard-coded placeholder efficiency values; metrics are derived from active downloads and peer metrics, with zero meaning unavailable. |
 | P2 | Intentional disabled features | `Options.cs`, `HardeningValidator.cs`, config docs | Disabled features are described as explicit capability gates with tests, not accidental TODOs. |
 | P3 | Mesh service streaming | `DhtMeshService`, `HolePunchMeshService`, `MeshIntrospectionService`, `PrivateGatewayMeshService` | Streaming methods either support real protocol behavior or return a documented capability error used consistently by callers. |

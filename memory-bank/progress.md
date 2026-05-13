@@ -288,7 +288,7 @@
 - Updated README with Acquisition Review, System admin surfaces, unified Messages, System Policies/Experience status, native MilkDrop backend maturity, and new user-guide links.
 - Refreshed `docs/getting-started.md` for current ports, default credentials, System admin tour, manual Search vs Acquisition Review, unified Messages, and safer multi-source wording.
 - Added `docs/system-surfaces.md`, `docs/pods-and-rooms.md`, and `docs/songid-discovery.md` as current user-facing guides.
-- Updated `docs/README.md`, `docs/FEATURES.md`, `docs/advanced-features.md`, `docs/config.md`, `docs/dev/webui-surface-audit-2026-04-30.md`, and `docs/dev/documentation-audit-2026-04-30.md`.
+- Updated `docs/README.md`, `docs/FEATURES.md`, `docs/advanced-features.md`, `docs/config.md`, `docs/dev/webui-surface-audit-2026-04-30.md`, and `docs/archive/dev-audits/documentation-audit-2026-04-30.md`.
 - Validation: `bash ./bin/lint-docs`, targeted stale-reference search, and touched-file `git diff --check` passed.
 
 ## 2026-05-01 02:20:56Z
@@ -2641,7 +2641,7 @@
   - Created `src/web/src/setupTests.js` for Jest DOM matchers
   - All tests follow existing patterns and conventions
 - **Documentation**:
-  - Updated `docs/TEST_COVERAGE_ASSESSMENT.md` with P2 completion status
+  - Updated `docs/archive/test-plans/TEST_COVERAGE_ASSESSMENT.md` with P2 completion status
   - Updated test coverage goals table with all priorities complete
 
 ### Test Results
@@ -2681,7 +2681,7 @@
   - Registered `AnalyticsController` assembly in test factory
   - All tests follow existing patterns and conventions
 - **Documentation**:
-  - Updated `docs/TEST_COVERAGE_ASSESSMENT.md` with current test status
+  - Updated `docs/archive/test-plans/TEST_COVERAGE_ASSESSMENT.md` with current test status
   - Updated test coverage goals table with completion status
 
 ### Test Results
@@ -3412,7 +3412,7 @@
 ## 2026-01-27 (Afternoon) - T-1405, T-1410, Bridge Test Expansion, and Documentation Updates Complete
 
 ### Documentation Updates
-- Updated `docs/dev/next-steps-summary.md` to reflect:
+- Updated `docs/archive/status/2026-01/next-steps-summary.md` to reflect:
   - Phase 12 Database Poisoning Protection is **100% COMPLETE** (all 10 tasks done)
   - T-1405 and T-1410 are **COMPLETE** (not partial)
   - Removed outdated status information
@@ -3538,7 +3538,7 @@
 
 ### Backlog Items Verification
 - **Status**: ✅ **Verification Complete**
-- **Created**: `docs/dev/backlog-verification-summary.md` - Detailed verification report
+- **Created**: `docs/archive/dev-audits/backlog-verification-summary.md` - Detailed verification report
 - **Findings**:
   - **T-1401, T-1402, T-1403, T-1404**: ✅ Complete (Library Health, Rescue, Swarm)
   - **T-1406, T-1407**: ✅ Complete (Playback feedback integration, buffer tracking)
@@ -3662,7 +3662,7 @@
 ### Test Re-enablement Status Verification
 - **Status**: ✅ **ALREADY COMPLETE**
 - **Verified**: 2430 tests passing, 0 skipped, 0 failed
-- **All phases (0-5) complete** per `docs/dev/slskd-tests-unit-completion-plan.md`
+- **All phases (0-5) complete** per `docs/archive/dev-audits/slskd-tests-unit-completion-plan.md`
 - **No Compile Remove** remaining in `slskd.Tests.Unit.csproj`
 - **All test files enabled** and passing
 
@@ -3766,13 +3766,13 @@
 - **Status**: ✅ **COMPLETED**
 - **Chromaprint (PerceptualHasher):** MathNet.Numerics 5.0.0; FFT-based `ComputeChromaPrint`: downsample 11 025 Hz, 4096/2048 frame/hop, Hann, FFT, 24-bin chroma (tone-aware, 440 vs 880 Hz distinct), 8 super-bands, 8 frames → 64-bit median-threshold hash. Removed `GenerateHashFromPeaks`. `CrossCodecMatchingTests.DifferentContent_LowSimilarityScores` un-skipped; `SimilarContentDifferentQuality_HighSimilarityScores` tuned (2% noise, 0.5 threshold). `PerceptualHasherTests.ComputeAudioHash_Chromaprint_440vs880Hz_ProducesLowSimilarity` added.
 - **FuzzyMatcher:** `ScorePerceptualAsync` uses `IDescriptorRetriever.RetrieveAsync` + `GetBestNumericHash` (Chromaprint preferred) and `IPerceptualHasher.Similarity` when both descriptors have `PerceptualHash.NumericHash`; else falls back to `ComputeSimulatedPerceptualSimilarityAsync`. Ctor: `FuzzyMatcher(IPerceptualHasher, IDescriptorRetriever, ILogger)`. `FuzzyMatcherTests`: `IDescriptorRetriever` mock (default Found:false); `ScorePerceptualAsync_WhenDescriptorsHavePerceptualHashes_UsesPerceptualHasher` added. Integration: CrossCodecMatchingTests, MediaCorePerformanceTests, MediaCoreIntegrationTests pass `IDescriptorRetriever` (mock or real DescriptorRetriever) into FuzzyMatcher.
-- **Docs:** `docs/dev/slskd-tests-unit-completion-plan.md` (FuzzyMatcherTests DONE), `docs/dev/slskd-tests-unit-reenablement-execution-plan.md`, `docs/dev/slskd-tests-unit-skips-how-to-fix.md` (15b FuzzyMatcherTests, PerceptualHasher Chromaprint note).
+- **Docs:** `docs/archive/dev-audits/slskd-tests-unit-completion-plan.md` (FuzzyMatcherTests DONE), `docs/archive/dev-audits/slskd-tests-unit-reenablement-execution-plan.md`, `docs/archive/dev-audits/slskd-tests-unit-skips-how-to-fix.md` (15b FuzzyMatcherTests, PerceptualHasher Chromaprint note).
 
 ### slskd.Tests.Unit Re-enablement — COMPLETE (0 Compile Remove, 0 skips)
 - **Status**: ✅ **COMPLETED**
 - **Milestone:** No `Compile Remove` in slskd.Tests.Unit.csproj; no `[Fact(Skip)]`; **2255 pass, 0 skip.**
 - **Recent fixes (this session):** Obfs4TransportTests `IsAvailableAsync_VersionCheckFailure_ReturnsFalse` (IObfs4VersionChecker + path-that-exists); doc updates: WorkRef FromMusicItem FIXED (MusicItem.FromTrackEntry exists); RateLimitTimeout CleanupExpiredTunnels (3) FIXED (RunOneCleanupIterationAsync + reflection); 40-fixes deferred table cleared, slskd.Tests.Unit re-enablement moved to Completed.
-- **Docs:** `docs/dev/slskd-tests-unit-completion-plan.md`, `docs/dev/slskd-tests-unit-skips-how-to-fix.md`, `docs/dev/40-fixes-plan.md` (Deferred: slskd.Tests.Unit completed).
+- **Docs:** `docs/archive/dev-audits/slskd-tests-unit-completion-plan.md`, `docs/archive/dev-audits/slskd-tests-unit-skips-how-to-fix.md`, `docs/dev/40-fixes-plan.md` (Deferred: slskd.Tests.Unit completed).
 
 ### 40-fixes Deferred: slskd.Tests.Integration row updated
 - **Status**: ✅ **COMPLETED**
@@ -3787,7 +3787,7 @@
 
 ### slskd.Tests.Integration: runtime/skip audit
 - **Status**: ✅ **COMPLETED**
-- **Audit:** `docs/dev/slskd-tests-integration-audit.md`. Filtered runs: MediaCore 22; Mesh 28 pass / 1 fail (NatTraversal_SymmetricFallback); PodCore 15; Security 50+12; VirtualSoulfind/Moderation 6 pass / 17 skip. DisasterMode, Features|Backfill|DhtRendezvous, Soulbeet|MultiClient|… timeout. 40-fixes Deferred row updated with audit summary and actions.
+- **Audit:** `docs/archive/dev-audits/slskd-tests-integration-audit.md`. Filtered runs: MediaCore 22; Mesh 28 pass / 1 fail (NatTraversal_SymmetricFallback); PodCore 15; Security 50+12; VirtualSoulfind/Moderation 6 pass / 17 skip. DisasterMode, Features|Backfill|DhtRendezvous, Soulbeet|MultiClient|… timeout. 40-fixes Deferred row updated with audit summary and actions.
 
 ### slskd.Tests.Integration: NatTraversal_SymmetricFallback fixed
 - **Status**: ✅ **COMPLETED**
@@ -3798,7 +3798,7 @@
 ### slskd.Tests.Integration: granular timeout audit
 - **Status**: ✅ **COMPLETED**
 - **Hang:** DisasterModeTests, ProtocolContractTests (run with higher timeout or debug).
-- **OK in smaller filters:** Backfill 3, DhtRendezvous 3, Features 4 pass/2 skip, Soulbeet 16/1 skip, MultiClient|MultiSource 9, CoverTraffic 3, PortForwarding 3. Signals 2 skip. `docs/dev/slskd-tests-integration-audit.md` updated with full table.
+- **OK in smaller filters:** Backfill 3, DhtRendezvous 3, Features 4 pass/2 skip, Soulbeet 16/1 skip, MultiClient|MultiSource 9, CoverTraffic 3, PortForwarding 3. Signals 2 skip. `docs/archive/dev-audits/slskd-tests-integration-audit.md` updated with full table.
 
 ### slskd.Tests.Integration: DisasterModeTests + ProtocolContractTests — skip to prevent hang
 - **Status**: ✅ **COMPLETED**
@@ -3810,7 +3810,7 @@
 - **Status**: ✅ **COMPLETED**
 - **LoadTests:** HTTP smokes (disaster-mode/status, shadow-index) instead of placeholders; TestingReadme updated (no “skipped by default”).
 - **StubVirtualSoulfindServices:** Added (StubDescriptorPublisher, StubPeerReputationStore, StubShareRepository); ModerationIntegration LocalLibraryBackend assert instead of skip.
-- **Audit:** `docs/dev/slskd-tests-integration-audit.md` — 184 pass, 0 skip; LoadTests, StubVirtualSoulfind, ModerationIntegration notes. **40-fixes-plan.md** Deferred: slskd.Tests.Integration 184 pass.
+- **Audit:** `docs/archive/dev-audits/slskd-tests-integration-audit.md` — 184 pass, 0 skip; LoadTests, StubVirtualSoulfind, ModerationIntegration notes. **40-fixes-plan.md** Deferred: slskd.Tests.Integration 184 pass.
 
 ### slskd.Tests: Enforce subprocess test — --config, YAML shape, Skip (mutex)
 - **Status**: ✅ **COMPLETED**
@@ -3837,7 +3837,7 @@
 - **Status**: ✅ **COMPLETED**
 - **App:** `IControlEnvelopeValidator` added in `ControlEnvelopeValidator.cs`; `ControlDispatcher` ctor now takes `IControlEnvelopeValidator` (enables mocking without parameterless ctor). `ControlEnvelopeValidator` implements the interface; Program.cs unchanged (passes concrete to ctor, compatible).
 - **OverlayPrivacyIntegrationTests:** Switched `Mock<ControlEnvelopeValidator>` → `Mock<IControlEnvelopeValidator>`. Dispatcher tests that call `HandleAsync`: use `OverlayControlTypes.Ping` so `HandleControlLogicAsync` returns true (unknown types return false). All 6 tests pass (OverlayClientWithPrivacyLayer, ControlDispatcherWithPrivacyLayer, RoundTripPrivacyProcessing, PrivacyLayerDisabled, ControlDispatcherWithoutPrivacyLayer, PrivacyLayerIntegration).
-- **Docs:** `docs/dev/slskd-tests-unit-completion-plan.md` — Phase 1 OverlayPrivacy row marked DONE; removed from Remaining Compile Remove.
+- **Docs:** `docs/archive/dev-audits/slskd-tests-unit-completion-plan.md` — Phase 1 OverlayPrivacy row marked DONE; removed from Remaining Compile Remove.
 
 ### slskd.Tests.Unit Re-enablement (Phase 4 – Mesh ServiceFabric): DhtMeshServiceDirectoryTests, RouterStatsTests
 - **Status**: ✅ **COMPLETED**
@@ -3925,7 +3925,7 @@
 - **Status**: ✅ **COMPLETED**
 - **ContentBackendTests:** Removed `Compile Remove`. Types already aligned (ContentBackendType, NoopContentBackend, ContentItemId, SourceCandidate, SourceCandidateValidationResult, ContentDomain). 7 tests pass.
 - **HttpBackendTests:** Removed `Compile Remove`. FindCandidatesAsync/ValidateCandidateAsync: add CancellationToken.None; IHttpClientFactory: replace Moq with TestHttpClientFactory (CreateClient is extension, Moq can’t setup). 5 tests pass.
-- **Result:** **12 pass** (7+5). **Docs:** `docs/dev/slskd-tests-unit-completion-plan.md` § Completed, § Remaining — Compile Remove updated.
+- **Result:** **12 pass** (7+5). **Docs:** `docs/archive/dev-audits/slskd-tests-unit-completion-plan.md` § Completed, § Remaining — Compile Remove updated.
 
 ### slskd.Tests.Unit Re-enablement (Phase 4 – VirtualSoulfind v2: LanBackend, MeshTorrentBackend, SoulseekBackend)
 - **Status**: ✅ **COMPLETED**
@@ -9147,7 +9147,7 @@ Code quality improvements were completed as part of Option A:
 
 - Audited current public documentation for overstated readiness, security, and test-status claims.
 - Softened README advanced-feature and status-table language for mesh, security hardening, multi-source downloads, MusicBrainz, and Service Fabric.
-- Marked stale status/test docs as historical snapshots, changed universal SSRF and guarantee wording to path-specific guardrail language, and recorded the audit findings in `docs/dev/documentation-audit-2026-04-30.md`.
+- Marked stale status/test docs as historical snapshots, changed universal SSRF and guarantee wording to path-specific guardrail language, and recorded the audit findings in `docs/archive/dev-audits/documentation-audit-2026-04-30.md`.
 - Validation: focused overclaim text scan and `git diff --check` on the edited docs passed.
 
 ## 2026-04-30 20:02:58Z
@@ -9460,7 +9460,7 @@ Code quality improvements were completed as part of Option A:
 ## 2026-05-01 03:22:00Z
 
 - Started the production placeholder burn-down.
-- Added `docs/dev/placeholder-completion-plan-2026-05-01.md` to separate real
+- Added `docs/archive/dev-audits/placeholder-completion-plan-2026-05-01.md` to separate real
   runtime gaps from UI input placeholders, generated files, tests, and
   historical docs.
 - Replaced fake hard-coded swarm analytics efficiency values with values derived

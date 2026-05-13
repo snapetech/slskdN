@@ -148,28 +148,6 @@ To avoid every optional dependency prompt (or accidental “all”), install lik
 yay -S --noconfirm slskdn-bin
 ```
 
-### Optional fix for `python-torchaudio` download failures
-
-If `python-torchaudio` fails with:
-
-> `curl: (33) HTTP server does not seem to support byte ranges. Cannot resume.`
-
-it is a GitHub download issue in that package build, not a slskdn dependency problem.
-
-Use the local helper script in this repo (Arch Linux / AUR only):
-
-```bash
-cd /path/to/slskdn
-bash ./scripts/fix-python-torchaudio-no-resume.sh
-```
-
-Why this works:
-- the helper uses `wget -O` (no resume mode), which avoids `curl` resume errors,
-- it refreshes a clean AUR source checkout,
-- it builds and installs `python-torchaudio` without the interactive `pacman` prompt.
-
-If you are not on Arch Linux (or not using AUR), you do not need this script.
-
 ## Configuration
 
 The default config is at `/etc/slskd/slskd.yml`. Key settings:

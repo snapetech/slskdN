@@ -87,7 +87,7 @@ globally SSRF-safe until fixed.
 
 ### 3. Current Status Reads Like A Live Health Report
 
-`docs/CURRENT_STATUS.md` is dated `2026-01-27` but uses present-tense claims:
+`docs/archive/status/2026-01/CURRENT_STATUS.md` is dated `2026-01-27` but uses present-tense claims:
 
 - `All builds passing`
 - `All unit tests passing (2430)`
@@ -201,7 +201,7 @@ Recommended update:
 
 ### 3. Current Status Is Not Current
 
-`docs/CURRENT_STATUS.md` is dated `2026-01-27`, references branch
+`docs/archive/status/2026-01/CURRENT_STATUS.md` is dated `2026-01-27`, references branch
 `dev/40-fixes`, and claims `2430` unit tests passing with `0 skipped`. That is
 not useful as a current status document on April 30, 2026.
 
@@ -314,10 +314,10 @@ linked as live CI status.
 
 These docs contain January counts and claims:
 
-- `docs/TEST_COVERAGE_ASSESSMENT.md`
-- `docs/TEST_COVERAGE_SUMMARY.md`
-- `docs/dev/next-steps-summary.md`
-- `docs/dev/backlog-verification-summary.md`
+- `docs/archive/test-plans/TEST_COVERAGE_ASSESSMENT.md`
+- `docs/archive/test-plans/TEST_COVERAGE_SUMMARY.md`
+- `docs/archive/status/2026-01/next-steps-summary.md`
+- `docs/archive/dev-audits/backlog-verification-summary.md`
 
 They may still be useful as historical records, but should not be linked as
 "current" unless regenerated.
@@ -334,10 +334,10 @@ status.
 Several dev docs still describe tests as placeholders even after recent
 backfills:
 
-- `docs/TEST_COVERAGE_ASSESSMENT.md`
-- `docs/dev/slskd-tests-unit-completion-plan.md`
-- `docs/dev/slskd-tests-unit-lift-vs-requirements.md`
-- `docs/dev/placeholder-null-heavy-inventory.md`
+- `docs/archive/test-plans/TEST_COVERAGE_ASSESSMENT.md`
+- `docs/archive/dev-audits/slskd-tests-unit-completion-plan.md`
+- `docs/archive/dev-audits/slskd-tests-unit-lift-vs-requirements.md`
+- `docs/archive/dev-audits/placeholder-null-heavy-inventory.md`
 
 Recommendation: update these after the placeholder-test work lands, or move the
 old plans into archive to avoid reintroducing already-fixed work.

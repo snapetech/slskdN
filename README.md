@@ -115,6 +115,7 @@ Use the existing slskd-compatible setup paths while this maturity cleanup is und
 | [`docs/security/security-non-goals.md`](docs/security/security-non-goals.md) | Explicit non-goals and overclaim guardrails. |
 | [`docs/dependencies.md`](docs/dependencies.md) | Dependency ownership / feature mapping. |
 | [`docs/analyzer-suppressions.md`](docs/analyzer-suppressions.md) | Analyzer suppression audit. |
+| [`docs/FORKING.md`](docs/FORKING.md) | Fork attribution and identity guidance. |
 
 ## Release Rule
 

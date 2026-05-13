@@ -197,7 +197,7 @@ For any of the above: if a **type or API does not exist** in the app, **Discuss:
 
 ## Deferred: Skipped and Failed Tests
 
-**slskd.Tests.Unit:** 0 `[Fact(Skip)]` as of last audit (2257 pass). The list below and in **`docs/dev/slskd-tests-unit-skips-how-to-fix.md`** records previously skipped or integration/other-project items and how to fix or re-enable them.
+**slskd.Tests.Unit:** 0 `[Fact(Skip)]` as of last audit (2257 pass). The list below and in **`docs/archive/dev-audits/slskd-tests-unit-skips-how-to-fix.md`** records previously skipped or integration/other-project items and how to fix or re-enable them.
 
 ### Skipped (`[Fact(Skip = "...")]`)
 
@@ -252,5 +252,5 @@ For any of the above: if a **type or API does not exist** in the app, **Discuss:
 ## Source
 
 - Exclusions: `tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj` — `Compile Remove`.
-- LIFT vs REQUIREMENTS: `docs/dev/slskd-tests-unit-lift-vs-requirements.md`.
-- Execution plan: `docs/dev/slskd-tests-unit-reenablement-execution-plan.md`.
+- LIFT vs REQUIREMENTS: `docs/archive/dev-audits/slskd-tests-unit-lift-vs-requirements.md`.
+- Execution plan: `docs/archive/dev-audits/slskd-tests-unit-reenablement-execution-plan.md`.

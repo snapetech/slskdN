@@ -37,6 +37,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   integration, upload-limit, and retry-delay settings.
 - Observed terminal download enqueue signal faults so expected remote transfer
   rejections do not surface as process-level unobserved task exceptions.
+- Archived stale working notes and removed obsolete local one-off remediation
+  scripts from the active docs/scripts surface.
 - Strengthened mesh preview hash validation so hash-protected content is
   verified before any bytes are emitted to the browser stream, with producer
   tests covering Soulseek and mesh preview data flow.

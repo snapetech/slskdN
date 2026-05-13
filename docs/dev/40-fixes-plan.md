@@ -118,7 +118,7 @@ Items left out of completed PRs or not yet assigned to a ticket. **Must be sched
 
 | Source | Item | Action |
 |--------|------|--------|
-| **slskd.Tests.Integration** | **Build: OK.** **184 pass, 0 skip.** See `docs/dev/slskd-tests-integration-audit.md`. | — |
+| **slskd.Tests.Integration** | **Build: OK.** **184 pass, 0 skip.** See `docs/archive/dev-audits/slskd-tests-integration-audit.md`. | — |
 | **slskd.Tests** | **46 pass, 0 skip.** `Enforce_invalid_config_host_startup` un-skipped: runtime skip when mutex held; run `dotnet slskd.dll` (not `dotnet run --project`) to avoid host holding mutex; if subprocess exits 0 with "already running", treat as skip. | — |
 
 
@@ -674,7 +674,7 @@ PR numbers (see Implementation Ticket Index) can be batched for review; order be
 
 **Source of truth:** `tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj` and its `Compile Remove` entries and inline blocker comments.
 
-**Live status (done / remaining / deferred):** `docs/dev/slskd-tests-unit-completion-plan.md` (§ Completed, § Status and What Remains, § Remaining — Compile Remove, § Deferred: Skipped and Failed Tests). Prefer that doc when deciding what to do next.
+**Live status (done / remaining / deferred):** `docs/archive/dev-audits/slskd-tests-unit-completion-plan.md` (§ Completed, § Status and What Remains, § Remaining — Compile Remove, § Deferred: Skipped and Failed Tests). Prefer that doc when deciding what to do next.
 
 ### Phase 0 – API/type audit (prerequisite)
 

@@ -1,5 +1,10 @@
 # 🤖 AI Start Here - Complete Guide for AI Assistants
 
+> **Archived historical guide**: This file records December 2025 assistant
+> onboarding state and is not current project guidance. Use
+> `docs/README.md`, `AGENTS.md`, and the active memory-bank decision records
+> for current instructions.
+
 **Last Updated**: December 10, 2025 21:00 UTC  
 **Current Status**: **✅ SERVER RUNNING** - All DI issues resolved | **543 Tests Passing**  
 **Branch**: experimental/brainz

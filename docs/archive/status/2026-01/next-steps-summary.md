@@ -115,7 +115,7 @@
 
 ```bash
 # Check current status
-cat docs/CURRENT_STATUS.md
+cat docs/archive/status/2026-01/CURRENT_STATUS.md
 
 # View backlog items
 cat memory-bank/tasks-audit-gaps.md

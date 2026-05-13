@@ -4,7 +4,7 @@
 
 **Principle:** Fix prod and/or tests so the suite passes. If a type never existed in any branch, implement it from test expectations and prod usage.
 
-**Live status (what’s done / remaining):** `docs/dev/slskd-tests-unit-completion-plan.md` § Completed, § Status and What Remains, § Remaining — Compile Remove.
+**Live status (what’s done / remaining):** `docs/archive/dev-audits/slskd-tests-unit-completion-plan.md` § Completed, § Status and What Remains, § Remaining — Compile Remove.
 
 ---
 
@@ -255,9 +255,9 @@ For each excluded file in these areas:
 
 - Excluded list: `tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj` — `Compile Remove` and comments.
 - Plan and blockers: `docs/dev/40-fixes-plan.md` § slskd.Tests.Unit Re-enablement Plan.
-- This execution plan: `docs/dev/slskd-tests-unit-reenablement-execution-plan.md`.
-- **LIFT vs REQUIREMENTS** (lazy vs needs-build-first): `docs/dev/slskd-tests-unit-lift-vs-requirements.md`.
-- **Completion plan (test-refactor first, Discuss: app where needed):** `docs/dev/slskd-tests-unit-completion-plan.md`.
+- This execution plan: `docs/archive/dev-audits/slskd-tests-unit-reenablement-execution-plan.md`.
+- **LIFT vs REQUIREMENTS** (lazy vs needs-build-first): `docs/archive/dev-audits/slskd-tests-unit-lift-vs-requirements.md`.
+- **Completion plan (test-refactor first, Discuss: app where needed):** `docs/archive/dev-audits/slskd-tests-unit-completion-plan.md`.
 
 ---
 
