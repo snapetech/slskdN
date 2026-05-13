@@ -17653,3 +17653,36 @@ catch (Exception ex)
 ```
 
 **Why This Keeps Happening**: Serilog sink callbacks are part of the logging pipeline. Any exception handling inside a sink must avoid re-emitting through Serilog, and sink formatting must tolerate missing optional event properties such as `SourceContext`.
+
+### 0z356. Controller Error Responses Must Not Echo Exception Messages
+
+**The Bug**: Peer and mesh streaming controllers returned `ex.Message` for
+bad ticket requests and stream-limit failures. Council scans flagged the
+responses because exception messages can expose validation internals,
+configured limits, paths, peer identifiers, or OAuth/provider details when the
+same pattern spreads to other controllers.
+
+**Files Affected**:
+- `src/slskd/Streaming/MeshStreamsController.cs`
+- `src/slskd/Streaming/PeerStreamsController.cs`
+
+**Wrong**:
+```csharp
+catch (InvalidOperationException ex)
+{
+    return StatusCode(429, ex.Message);
+}
+```
+
+**Correct**:
+```csharp
+catch (InvalidOperationException)
+{
+    return StatusCode(429, "Peer stream limit reached.");
+}
+```
+
+**Why This Keeps Happening**: Controller catch blocks are easy places to leak
+implementation detail because returning `ex.Message` feels useful during
+manual testing. Public API responses need stable client-facing text; log
+details server-side only when operators need the raw exception.
