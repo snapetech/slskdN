@@ -214,6 +214,38 @@ commands. UI actions can race with startup/reconnect, so controllers must map
 transient client-state failures to controlled status codes instead of allowing
 SDK state exceptions to escape as 500s.
 
+### 0z391. Room Join UI Must Not Close On Failed Join
+
+**The Bug**: Messaging V2 treated every room-picker submit as successful. If
+the backend rejected the join during a Soulseek reconnect window or another
+network failure, the picker still cleared and closed, making it look like the
+room had joined but disappeared.
+
+**Files Affected**:
+- `src/web/src/components/Messaging/MessagingV2.jsx`
+- `src/web/src/components/Messaging/Messaging.test.jsx`
+
+**Wrong**:
+```jsx
+await joinRoomByName(roomName);
+setRoomDraft('');
+setRoomAddOpen(false);
+```
+
+**Correct**:
+```jsx
+const joined = await joinRoomByName(roomName);
+if (!joined) return;
+setRoomDraft('');
+setRoomAddOpen(false);
+```
+
+**Why This Keeps Happening**: Optional Soulseek room discovery and room joins
+share the same picker, but discovery failures are degraded to empty data while
+join failures require visible user feedback. Room submit handlers must return
+success/failure and only clear transient UI state after the room is actually
+joined or opened.
+
 ### 0z384. Render-Time Work Must Not Scale With Hidden Or Unchanged Data
 
 **The Bug**: Performance fixes removed first-load blockers, but some render
