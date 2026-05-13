@@ -25,6 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - ASP.NET service registration, including auth, controllers, SignalR, health
   checks, rate limiting, and Swagger, now lives under
   `Bootstrap/WebServiceCollectionExtensions`.
+- ASP.NET request-pipeline and endpoint registration now lives under
+  `Bootstrap/WebApplicationPipelineExtensions`.
 
 ### Fixed
 

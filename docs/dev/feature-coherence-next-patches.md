@@ -120,6 +120,8 @@ ASP.NET service registration for CORS, runtime metrics, data protection,
 authentication/authorization, moderation, controllers, SignalR, health checks,
 API versioning, rate limiting, and Swagger moved into
 `Bootstrap/WebServiceCollectionExtensions.cs`.
+ASP.NET request-pipeline setup moved into
+`Bootstrap/WebApplicationPipelineExtensions.cs`.
 
 Target modules:
 
@@ -129,6 +131,8 @@ Target modules:
 - `AddSlskdApplicationHost(...)`. Implemented for startup options, state,
   HTTP clients, Soulseek client, and `IApplication` hosting.
 - `AddSlskdWebServices(...)`. Implemented for ASP.NET service registration.
+- `UseSlskdWebPipeline(...)`. Implemented for ASP.NET middleware and endpoint
+  registration.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`

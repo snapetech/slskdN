@@ -74,6 +74,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Moved ASP.NET service registration, including auth, controllers, SignalR,
   health checks, rate limiting, and Swagger, out of `Program.cs` into a web
   bootstrap extension.
+- Moved ASP.NET request-pipeline and endpoint registration out of `Program.cs`
+  into a web pipeline bootstrap extension.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

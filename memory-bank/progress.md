@@ -10084,3 +10084,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T01:04:27Z] Program decomposition application-host pass: moved startup options binding, feature gate registration, managed state, HTTP client setup, Soulseek client construction, and `IApplication` hosted-service wiring into `Bootstrap/ApplicationHostServiceCollectionExtensions`. `dotnet build src/slskd/slskd.csproj --no-incremental` passed with 0 warnings.
 
 [2026-05-13T01:07:50Z] Program decomposition web-services pass: moved ASP.NET service registration for CORS, runtime metrics, data protection, authentication/authorization, moderation, controllers, SignalR, health checks, API versioning, rate limiting, and Swagger into `Bootstrap/WebServiceCollectionExtensions`. `dotnet build src/slskd/slskd.csproj --no-incremental` passed with 0 warnings.
+
+[2026-05-13T01:10:36Z] Program decomposition web-pipeline pass: moved ASP.NET middleware and endpoint registration into `Bootstrap/WebApplicationPipelineExtensions`, leaving `Program.cs` focused on process/configuration bootstrapping. `dotnet build src/slskd/slskd.csproj --no-incremental` passed with 0 warnings.

@@ -2735,6 +2735,7 @@
 - [2026-05-13T01:01:20Z] Completed: move core database, messaging/search/share/user, transfer, and source-ranking registrations into `Bootstrap/CoreApplicationServiceCollectionExtensions`.
 - [2026-05-13T01:04:27Z] Completed: move startup options, feature gates, managed state, HTTP clients, Soulseek client construction, and `IApplication` hosting into `Bootstrap/ApplicationHostServiceCollectionExtensions`.
 - [2026-05-13T01:07:50Z] Completed: move ASP.NET service registration into `Bootstrap/WebServiceCollectionExtensions`.
+- [2026-05-13T01:10:36Z] Completed: move ASP.NET request-pipeline and endpoint registration into `Bootstrap/WebApplicationPipelineExtensions`.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.

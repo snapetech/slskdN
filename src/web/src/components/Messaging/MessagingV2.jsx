@@ -252,7 +252,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         return previous;
       }
 
-      if (roomAddOpen && roomDirectoryRetryCount.current < 4 && !roomDirectoryRetryTimer.current) {
+      if (roomDirectoryRetryCount.current < 4 && !roomDirectoryRetryTimer.current) {
         roomDirectoryRetryCount.current += 1;
         retryScheduled = true;
         roomDirectoryRetryTimer.current = window.setTimeout(() => {
@@ -268,7 +268,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
     if (!retryScheduled) {
       setRoomDirectoryLoading(false);
     }
-  }, [roomAddOpen]);
+  }, []);
 
   useEffect(() => {
     hydrate().catch((error) => {
