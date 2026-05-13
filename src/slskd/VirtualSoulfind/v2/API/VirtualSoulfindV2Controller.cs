@@ -32,6 +32,7 @@ namespace slskd.VirtualSoulfind.v2.API
     [Produces("application/json")]
     [Consumes("application/json")]
     [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
+    [FeatureGate(FeatureId.VirtualSoulfind)]
     public class VirtualSoulfindV2Controller : ControllerBase
     {
         private readonly IIntentQueue _intentQueue;

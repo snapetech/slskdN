@@ -24,6 +24,7 @@ namespace slskd.SocialFederation.API
     [Route(".well-known")]
     [Authorize(Policy = AuthPolicy.Any)]
     [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
+    [FeatureGate(FeatureId.SocialFederation)]
     public class WebFingerController : ControllerBase
     {
         private readonly IOptionsMonitor<SocialFederationOptions> _federationOptions;

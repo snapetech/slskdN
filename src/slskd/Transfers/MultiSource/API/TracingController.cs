@@ -22,6 +22,7 @@ namespace slskd.Transfers.MultiSource.API
     [Consumes("application/json")]
     [Authorize(Policy = AuthPolicy.Any)]
     [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
+    [FeatureGate(FeatureId.MultiSourceDownloads)]
     public class TracingController : ControllerBase
     {
         private readonly ISwarmTraceSummarizer summarizer;

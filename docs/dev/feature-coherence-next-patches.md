@@ -122,7 +122,7 @@ Acceptance criteria:
 
 ## 8. Add feature gate enforcement
 
-Status: foundation implemented. `FeatureGate` now evaluates experimental feature IDs from existing options, and SongID, mesh, and DHT APIs are gated surfaces.
+Status: foundation implemented. `FeatureGate` now evaluates experimental feature IDs from existing options, and SongID, mesh, DHT, pods, social federation, VirtualSoulfind, and multi-source APIs are gated surfaces.
 
 Minimum implementation:
 
@@ -133,7 +133,7 @@ Minimum implementation:
 
 Acceptance criteria:
 
-- Disabled experimental API surfaces return explicit disabled/404/410 behavior. Started with SongID, mesh, and DHT.
+- Disabled experimental API surfaces return explicit disabled/404/410 behavior. Started with SongID, mesh, DHT, pods, social federation, VirtualSoulfind, and multi-source APIs.
 - Moved-to-slskr features can return 410 with a message/link.
 - Design-only features are not registered at runtime.
 

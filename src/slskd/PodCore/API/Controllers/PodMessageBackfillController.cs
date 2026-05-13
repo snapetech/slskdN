@@ -25,6 +25,7 @@ using Microsoft.Extensions.Logging;
 [Consumes("application/json")]
 [Authorize(Policy = AuthPolicy.Any)]
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
+[FeatureGate(FeatureId.Pods)]
 public class PodMessageBackfillController : ControllerBase
 {
     private readonly IPodMessageBackfill _backfillService;

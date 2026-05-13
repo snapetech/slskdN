@@ -17,6 +17,7 @@ using slskd.SocialFederation;
 [Consumes("application/json")]
 [Authorize(Policy = AuthPolicy.Any)]
 [ValidateCsrfForCookiesOnly]
+[FeatureGate(FeatureId.SocialFederation)]
 public sealed class TasteRecommendationsController : ControllerBase
 {
     private readonly ITasteRecommendationService _recommendationService;

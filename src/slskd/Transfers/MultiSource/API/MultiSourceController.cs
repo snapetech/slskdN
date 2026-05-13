@@ -27,6 +27,7 @@ namespace slskd.Transfers.MultiSource.API
     [Produces("application/json")]
     [Consumes("application/json")]
     [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
+    [FeatureGate(FeatureId.MultiSourceDownloads)]
     public class MultiSourceController : ControllerBase
     {
         /// <summary>

@@ -33,6 +33,7 @@ namespace slskd.SocialFederation.API
     [Route("actors")]
     [Authorize(Policy = AuthPolicy.Any)]
     [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
+    [FeatureGate(FeatureId.SocialFederation)]
     public class ActivityPubController : ControllerBase
     {
         private static int _verifySignaturesNoopWarningLogged;

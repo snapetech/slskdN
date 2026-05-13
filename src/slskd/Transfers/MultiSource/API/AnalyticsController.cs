@@ -23,6 +23,7 @@ using slskd.Transfers.MultiSource.Analytics;
 [Consumes("application/json")]
 [Authorize(Policy = AuthPolicy.Any)]
 [ValidateCsrfForCookiesOnly]
+[FeatureGate(FeatureId.MultiSourceDownloads)]
 public class AnalyticsController : ControllerBase
 {
     private readonly ISwarmAnalyticsService _analyticsService;

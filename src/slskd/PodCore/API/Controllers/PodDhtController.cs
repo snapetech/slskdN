@@ -23,6 +23,7 @@ using slskd.Core.Security;
 [ApiController]
 [Authorize(Policy = AuthPolicy.Any)]
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
+[FeatureGate(FeatureId.Pods)]
 public class PodDhtController : ControllerBase
 {
     private readonly ILogger<PodDhtController> _logger;

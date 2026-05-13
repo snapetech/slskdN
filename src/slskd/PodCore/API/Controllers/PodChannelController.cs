@@ -24,6 +24,7 @@ using Microsoft.Extensions.Logging;
 [Consumes("application/json")]
 [Authorize(Policy = AuthPolicy.Any)]
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
+[FeatureGate(FeatureId.Pods)]
 public class PodChannelController : ControllerBase
 {
     private readonly IPodService _podService;

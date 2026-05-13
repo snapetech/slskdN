@@ -19,6 +19,7 @@ using Microsoft.AspNetCore.Mvc;
 [ApiVersion("0")]
 [Produces("application/json")]
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
+[FeatureGate(FeatureId.VirtualSoulfind)]
 public class DisasterModeController : ControllerBase
 {
     private readonly ILogger<DisasterModeController> logger;

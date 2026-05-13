@@ -24,6 +24,7 @@ using slskd.SocialFederation;
 [Produces("application/json")]
 [Authorize(Policy = AuthPolicy.Any)]
 [ValidateCsrfForCookiesOnly]
+[FeatureGate(FeatureId.SocialFederation)]
 public sealed class FederationDiagnosticsController : ControllerBase
 {
     private readonly IOptionsMonitor<SocialFederationOptions> federationOptions;
