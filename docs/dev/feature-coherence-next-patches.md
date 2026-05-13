@@ -130,6 +130,9 @@ experimental graph into `Bootstrap/IntegrationAndMediaServiceCollectionExtension
 Multi-source transfer, swarm, tracing, warm-cache, playback-priority, and job
 manifest registrations moved out of the broad experimental graph into
 `Bootstrap/MultiSourceFeatureServiceCollectionExtensions.cs`.
+VirtualSoulfind capture, shadow index, scene, disaster-mode, bridge, v2
+provider/backend, reconciliation, and processing registrations moved out of the
+broad experimental graph into `Bootstrap/VirtualSoulfindServiceCollectionExtensions.cs`.
 
 Target modules:
 
@@ -148,6 +151,9 @@ Target modules:
 - `AddSlskdMultiSourceFeatureServices(...)`. Implemented for multi-source
   transfer, swarm, tracing, warm-cache, playback-priority, and job-manifest
   registrations.
+- `AddSlskdVirtualSoulfindServices(...)`. Implemented for VirtualSoulfind
+  capture, shadow-index, scene, disaster-mode, bridge, v2 provider/backend,
+  reconciliation, and processing registrations.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
@@ -160,8 +166,9 @@ Target modules:
 Acceptance criteria:
 
 - `Program.cs` no longer directly imports every experimental vertical. In progress;
-  the broad graph moved, but the new bootstrap module still needs follow-up
-  subdivision by bounded context.
+  the broad graph moved and VirtualSoulfind/multi-source/integration-media
+  slices are now separate, but the remaining bootstrap module still needs
+  follow-up subdivision by bounded context.
 - Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 

@@ -2740,6 +2740,7 @@
 - [2026-05-13T01:15:21Z] Completed: move integration/media registrations into `Bootstrap/IntegrationAndMediaServiceCollectionExtensions`.
 - [2026-05-13T01:33:49Z] Completed: move multi-source feature registrations into `Bootstrap/MultiSourceFeatureServiceCollectionExtensions`; fixed partial integration hosts for feature-gated controllers and passed full test/lint validation.
 - [2026-05-13T01:50:00Z] Completed: continue parity/reconciliation list; reconciled stale feature parity plan statuses with completed route/security remediation, refreshed generated route inventory, updated the outbound HTTP remediation check for bootstrap ownership moves, and simplified MediaCore pod discovery into read-only-first actions with advanced registry mutation disclosure.
+- [2026-05-13T01:58:19Z] Completed: continue Program.cs decomposition by moving VirtualSoulfind capture, shadow-index, scene, disaster-mode, bridge, v2 provider/backend, reconciliation, and processing registrations into `Bootstrap/VirtualSoulfindServiceCollectionExtensions`.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.

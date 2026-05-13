@@ -18,7 +18,7 @@ This matrix tracks backend surface area against visible UI coverage. It is inten
 | Mesh evidence policy | Local UI policy storage | System > Mesh | Covered | Local-only by design; no backend sync without explicit privacy review. |
 | Realm subject conflicts | Mesh subject index APIs | System > Mesh | Covered | Keep stale conflict cleanup visible. |
 | DHT/bootstrap/NAT internals | Mesh services and health routes | Partial System visibility | Partial | Expose actionable NAT/bootstrap warnings without leaking internal topology. |
-| Pods/native federation | `/api/v0/pods`, `/api/v0/podcore/*` | System > MediaCore pod workflow index | Partial | Workflow navigation, card-driven focus filtering, focused workflow label, active-card highlight, reset action, and per-workflow safety notices added; remaining work is deeper simplification of individual advanced forms. |
+| Pods/native federation | `/api/v0/pods`, `/api/v0/podcore/*` | System > MediaCore pod workflow index | Partial | Workflow navigation, card-driven focus filtering, focused workflow label, active-card highlight, reset action, per-workflow safety notices, and read-only-first pod discovery are added; remaining work is deeper simplification of individual advanced forms. |
 | Social federation/ActivityPub | federation routes plus `/api/v0/federation/diagnostics` | System > Integrations diagnostics | Covered for diagnostics | Keep public actor routes separate; do not add mutation UI without explicit privacy review. |
 | VirtualSoulfind v2 | backend providers and native APIs | Search-adjacent only | Gap | Map provider capabilities into Search UI only after backend route inventory is stable. |
 | Swarm visualization | swarm job status and trace routes | System > Jobs modal | Covered | Keep tied to active swarm jobs; no standalone route needed. |
@@ -26,8 +26,7 @@ This matrix tracks backend surface area against visible UI coverage. It is inten
 
 ## Current priority order
 
-1. Finish automated coverage for mesh rendezvous UI/API.
-2. Keep `docs/system-surfaces-current.md` current with `scripts/check-route-inventory.sh` during route remediation reviews.
-3. Simplify individual MediaCore pod forms now that workflow navigation, focus filtering, and safety framing are in place.
-4. Run validation and fix any concrete failures from the completed route alias tranche.
-5. Add explicit privacy/security notes for every surface that publishes data outside the local node.
+1. Keep `docs/system-surfaces-current.md` current with `scripts/check-route-inventory.sh` during route remediation reviews.
+2. Simplify remaining individual MediaCore pod forms now that workflow navigation, focus filtering, and safety framing are in place.
+3. Run validation and fix any concrete failures from the completed route alias tranche.
+4. Add explicit privacy/security notes for every surface that publishes data outside the local node.

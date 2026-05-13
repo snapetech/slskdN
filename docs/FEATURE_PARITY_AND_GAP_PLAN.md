@@ -211,7 +211,7 @@ Plan:
 - Reduce cognitive load in System by grouping experimental/admin panels.
 - Add clear “experimental” labels where behavior is not mature.
 
-Status: in progress. MediaCore pod workflow navigation, focus filtering, focused workflow labels, active-card highlighting, reset action, anchors, and per-workflow safety notices are implemented. Remaining work is simplifying individual advanced pod forms into task-focused panels or progressive disclosure.
+Status: in progress. MediaCore pod workflow navigation, focus filtering, focused workflow labels, active-card highlighting, reset action, anchors, and per-workflow safety notices are implemented. Pod discovery now keeps read-only discovery actions first and groups public registry mutation controls behind advanced disclosure. Remaining work is simplifying additional advanced pod forms into task-focused panels or progressive disclosure.
 
 ### G6. Full validation pass
 
