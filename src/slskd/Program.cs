@@ -483,37 +483,14 @@ namespace slskd
             // load and validate the configuration
             try
             {
-                Configuration = new ConfigurationBuilder()
-                    .AddSlskdConfigurationProviders(EnvironmentVariablePrefix, ConfigurationFile, reloadOnChange: !OptionsAtStartup.Flags.NoConfigWatch, VolatileOverlayConfigurationSource, Log)
-                    .Build();
-
-                Configuration.GetSection(AppName)
-                    .Bind(OptionsAtStartup, (o) => { o.BindNonPublicProperties = true; });
-
-                Log.Debug("[Config] After binding OptionsAtStartup.Security.Enabled = {Enabled}, Profile = {Profile}",
-                    OptionsAtStartup.Security?.Enabled ?? false,
-                    OptionsAtStartup.Security?.Profile.ToString() ?? "null");
-
-                var securitySection = Configuration.GetSection("security");
-                var slskdSecuritySection = Configuration.GetSection("slskd:security");
-                Log.Debug("[Config] Raw config sections - security.Exists={SecurityExists}, slskd:security.Exists={SlskdSecurityExists}",
-                    securitySection.Exists(),
-                    slskdSecuritySection.Exists());
-                if (securitySection.Exists())
-                {
-                    Log.Debug("[Config] Raw security section enabled value: {Enabled}", securitySection["enabled"]);
-                }
-
-                if (slskdSecuritySection.Exists())
-                {
-                    Log.Debug("[Config] Raw slskd:security section enabled value: {Enabled}", slskdSecuritySection["enabled"]);
-                }
-
-                if (!OptionsAtStartup.TryValidate(out var result))
-                {
-                    Log.Information(result.GetResultView());
-                    Exit(1);
-                }
+                Configuration = StartupConfiguration.LoadAndValidate(
+                    EnvironmentVariablePrefix,
+                    ConfigurationFile,
+                    VolatileOverlayConfigurationSource,
+                    OptionsAtStartup,
+                    AppName,
+                    Log,
+                    Exit);
             }
             catch (Exception ex)
             {

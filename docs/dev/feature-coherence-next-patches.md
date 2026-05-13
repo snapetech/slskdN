@@ -202,6 +202,9 @@ certificate generation, and secret generation moved out of `Program.cs` into
 Startup application-directory default resolution and default directory
 validation moved out of `Program.cs` into
 `Bootstrap/StartupApplicationDirectories.cs`.
+Startup configuration provider loading, binding, raw security-section
+diagnostics, and validation moved out of `Program.cs` into
+`Bootstrap/StartupConfiguration.cs`.
 
 Target modules:
 
@@ -279,6 +282,8 @@ Target modules:
 - `StartupCommandMode`. Implemented for primitive startup command-mode handling.
 - `StartupApplicationDirectoryResolver`. Implemented for startup
   application-directory default resolution and default directory validation.
+- `StartupConfiguration`. Implemented for startup configuration provider
+  loading, binding, diagnostics, and validation.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`

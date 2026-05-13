@@ -176,6 +176,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   `StartupCommandMode`.
 - Moved startup application-directory default resolution and default directory
   validation out of `Program.cs` into `StartupApplicationDirectoryResolver`.
+- Moved startup configuration provider loading, binding, raw security-section
+  diagnostics, and validation out of `Program.cs` into `StartupConfiguration`.
 - Simplified MediaCore descriptor publishing by keeping retrieval/statistics as
   the default path and grouping descriptor publish, batch publish, update, and
   republish controls behind advanced disclosure.
