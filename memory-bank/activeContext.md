@@ -7081,3 +7081,9 @@ Next steps: keep reducing Program static startup state where it still owns priva
 Continued Program.cs decomposition by moving startup environment/argument population into `Bootstrap/StartupInput` and removing stale Program dead code left by earlier helper extractions. `Program.cs` is now 483 lines. Build and focused Program/controller/log tests passed.
 
 Next steps: run lint, commit the startup-input cleanup, then continue either the remaining Program static-state split or the MediaCore reconciliation forms.
+
+## 2026-05-13T17:48:00Z Session update
+
+Continued Program.cs decomposition by moving startup directory preparation, single-instance mutex acquisition, configuration-file defaulting, and default directory validation into `Bootstrap/StartupApplicationDirectories`. `Program.cs` is now 453 lines. Build and focused Program/application-controller tests passed.
+
+Next steps: run lint, commit missing status docs, then continue with the remaining Program runtime-state wrappers or the MediaCore reconciliation forms.

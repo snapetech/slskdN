@@ -221,6 +221,9 @@ classification, and QUIC standalone-socket selection have been removed.
 Startup environment-variable and command-line argument population moved out of
 `Program.cs` into `Bootstrap/StartupInput.cs`, and leftover dead Program fields
 and wrappers from earlier helper extractions were removed.
+Startup application-directory resolution, single-instance mutex acquisition,
+configuration-file defaulting, and default directory validation moved out of
+`Program.cs` into `Bootstrap/StartupApplicationDirectories.cs`.
 
 Target modules:
 

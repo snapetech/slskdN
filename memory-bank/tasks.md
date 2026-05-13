@@ -2793,6 +2793,7 @@
 - [2026-05-13T17:03:20Z] Completed: continue Program.cs decomposition by rewiring remaining production call sites to extracted helpers instead of Program compatibility wrappers.
 - [2026-05-13T17:20:00Z] Completed: continue Program.cs decomposition by moving tests to extracted helpers and removing redundant test-only Program compatibility wrappers.
 - [2026-05-13T17:35:00Z] Completed: continue Program.cs decomposition by moving startup input population into `Bootstrap/StartupInput` and removing leftover dead Program wrappers.
+- [2026-05-13T17:48:00Z] Completed: continue Program.cs decomposition by moving startup directory preparation and mutex acquisition into `Bootstrap/StartupApplicationDirectories`.
 - [2026-05-13T16:38:00Z] Completed: fix Arch source build SDK floor, aggregate download timeout classification/logging, Snap package metadata, and startup logging sink crash; deployed manual build `0.0.0-manual.20260513163650.c07c237919e0` to kspls0 and verified web/API/service health.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
