@@ -5517,67 +5517,15 @@ const MediaCore = () => {
               </PodWorkflowNotice>
             </Card.Content>
 
-            {/* Publish Membership */}
             <Card.Content>
-              <Header size="small">Publish Membership Record</Header>
-              <Form>
-                <Form.TextArea
-                  label="Membership Record JSON"
-                  onChange={(e) => setMembershipRecord(e.target.value)}
-                  placeholder='{"podId": "pod:artist:mb:daft-punk-hash", "peerId": "alice", "role": "member", "isBanned": false, "publicKey": "base64-ed25519-key", "joinedAt": "2024-01-01T00:00:00Z"}'
-                  rows={4}
-                  value={membershipRecord}
-                />
-                <Button
-                  disabled={publishingMembership || !membershipRecord.trim()}
-                  loading={publishingMembership}
-                  onClick={handlePublishMembership}
-                  primary
-                >
-                  Publish Membership
-                </Button>
-              </Form>
-
-              {membershipPublishResult && (
-                <div style={{ marginTop: '1em' }}>
-                  {membershipPublishResult.error ? (
-                    <Message error>
-                      <p>
-                        Failed to publish membership:{' '}
-                        {membershipPublishResult.error}
-                      </p>
-                    </Message>
-                  ) : (
-                    <Message success>
-                      <Message.Header>
-                        Membership Published Successfully
-                      </Message.Header>
-                      <p>
-                        <strong>Pod ID:</strong> {membershipPublishResult.podId}
-                        <br />
-                        <strong>Peer ID:</strong>{' '}
-                        {membershipPublishResult.peerId}
-                        <br />
-                        <strong>DHT Key:</strong>{' '}
-                        {membershipPublishResult.dhtKey}
-                        <br />
-                        <strong>Published:</strong>{' '}
-                        {new Date(
-                          membershipPublishResult.publishedAt,
-                        ).toLocaleString()}
-                        <br />
-                        <strong>Expires:</strong>{' '}
-                        {new Date(
-                          membershipPublishResult.expiresAt,
-                        ).toLocaleString()}
-                      </p>
-                    </Message>
-                  )}
-                </div>
-              )}
-            </Card.Content>
-
-            <Card.Content>
+              <Message info>
+                <Message.Header>Verify membership before changing it</Message.Header>
+                <p>
+                  Getting, verifying, and loading membership stats are read-only.
+                  Publishing membership records, role changes, bans, and cleanup
+                  are grouped below as advanced membership mutation controls.
+                </p>
+              </Message>
               <Grid>
                 <Grid.Column width={8}>
                   {/* Get Membership */}
@@ -5699,6 +5647,13 @@ const MediaCore = () => {
                 </Grid.Column>
 
                 <Grid.Column width={8}>
+                  <details>
+                    <summary>Advanced member mutation controls</summary>
+                    <Message warning>
+                      Banning members and changing roles publish membership
+                      state for the selected pod and peer. Verify the current
+                      membership record before applying changes.
+                    </Message>
                   {/* Member Management */}
                   <Header size="small">Member Management</Header>
 
@@ -5770,8 +5725,77 @@ const MediaCore = () => {
                       <p>Member role changed successfully</p>
                     </Message>
                   )}
+                  </details>
                 </Grid.Column>
               </Grid>
+            </Card.Content>
+
+            {/* Publish Membership */}
+            <Card.Content>
+              <details>
+                <summary>Advanced membership publishing controls</summary>
+                <Message warning>
+                  Publishing membership records can expose peer IDs, roles,
+                  public keys, ban state, and pod participation history.
+                </Message>
+                <Header size="small">Publish Membership Record</Header>
+                <Form>
+                  <Form.TextArea
+                    label="Membership Record JSON"
+                    onChange={(e) => setMembershipRecord(e.target.value)}
+                    placeholder='{"podId": "pod:artist:mb:daft-punk-hash", "peerId": "alice", "role": "member", "isBanned": false, "publicKey": "base64-ed25519-key", "joinedAt": "2024-01-01T00:00:00Z"}'
+                    rows={4}
+                    value={membershipRecord}
+                  />
+                  <Button
+                    disabled={publishingMembership || !membershipRecord.trim()}
+                    loading={publishingMembership}
+                    onClick={handlePublishMembership}
+                    primary
+                  >
+                    Publish Membership
+                  </Button>
+                </Form>
+
+                {membershipPublishResult && (
+                  <div style={{ marginTop: '1em' }}>
+                    {membershipPublishResult.error ? (
+                      <Message error>
+                        <p>
+                          Failed to publish membership:{' '}
+                          {membershipPublishResult.error}
+                        </p>
+                      </Message>
+                    ) : (
+                      <Message success>
+                        <Message.Header>
+                          Membership Published Successfully
+                        </Message.Header>
+                        <p>
+                          <strong>Pod ID:</strong>{' '}
+                          {membershipPublishResult.podId}
+                          <br />
+                          <strong>Peer ID:</strong>{' '}
+                          {membershipPublishResult.peerId}
+                          <br />
+                          <strong>DHT Key:</strong>{' '}
+                          {membershipPublishResult.dhtKey}
+                          <br />
+                          <strong>Published:</strong>{' '}
+                          {new Date(
+                            membershipPublishResult.publishedAt,
+                          ).toLocaleString()}
+                          <br />
+                          <strong>Expires:</strong>{' '}
+                          {new Date(
+                            membershipPublishResult.expiresAt,
+                          ).toLocaleString()}
+                        </p>
+                      </Message>
+                    )}
+                  </div>
+                )}
+              </details>
             </Card.Content>
 
             {/* Membership Statistics */}
@@ -5785,13 +5809,21 @@ const MediaCore = () => {
                 >
                   Load Membership Stats
                 </Button>
+              </Button.Group>
+
+              <details style={{ marginTop: '1em' }}>
+                <summary>Advanced membership cleanup controls</summary>
+                <Message warning>
+                  Cleanup removes expired membership records from local
+                  membership state. Load stats before running cleanup.
+                </Message>
                 <Button
                   color="orange"
                   onClick={handleCleanupMemberships}
                 >
                   Cleanup Expired
                 </Button>
-              </Button.Group>
+              </details>
 
               {membershipStats && !membershipStats.error && (
                 <div style={{ marginTop: '1em' }}>

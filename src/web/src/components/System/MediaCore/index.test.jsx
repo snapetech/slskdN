@@ -79,6 +79,10 @@ describe('MediaCore', () => {
     expect(screen.getByText('Advanced backfill sync controls')).toBeInTheDocument();
     expect(screen.getByText('Retrieve DHT metadata first')).toBeInTheDocument();
     expect(screen.getByText('Advanced DHT publishing controls')).toBeInTheDocument();
+    expect(screen.getByText('Verify membership before changing it')).toBeInTheDocument();
+    expect(screen.getByText('Advanced member mutation controls')).toBeInTheDocument();
+    expect(screen.getByText('Advanced membership publishing controls')).toBeInTheDocument();
+    expect(screen.getByText('Advanced membership cleanup controls')).toBeInTheDocument();
   });
 
   it('focuses a pod workflow from the index card', async () => {
