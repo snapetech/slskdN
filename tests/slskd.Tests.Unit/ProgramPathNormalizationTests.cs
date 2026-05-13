@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Moq;
+using slskd.Configuration;
 using Soulseek;
 using Xunit;
 
@@ -195,7 +196,7 @@ public class ProgramPathNormalizationTests
                         files: 5
                 """);
 
-            var warnings = Program.GetConfigurationCompatibilityWarnings(
+            var warnings = ConfigurationCompatibilityWarnings.GetWarnings(
                 path,
                 new Options
                 {

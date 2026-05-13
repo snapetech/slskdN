@@ -156,6 +156,8 @@ Web listener/Kestrel configuration moved out of `Program.cs` into
 Application run/lifecycle hooks, E2E server probes, and LAN discovery
 advertising start/stop moved out of `Program.cs` into
 `Bootstrap/ApplicationRunExtensions.cs`.
+Configuration compatibility warning parsing moved out of `Program.cs` into
+`Configuration/ConfigurationCompatibilityWarnings.cs`.
 
 Target modules:
 
@@ -194,6 +196,8 @@ Target modules:
 - `ConfigureSlskdWebHost(...)`. Implemented for web listener/Kestrel setup.
 - `RunSlskdApplication(...)`. Implemented for application run/lifecycle hooks,
   E2E server probes, and LAN discovery advertising start/stop.
+- `ConfigurationCompatibilityWarnings.GetWarnings(...)`. Implemented for
+  legacy config-key and retry-floor compatibility warnings.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
@@ -212,7 +216,8 @@ Acceptance criteria:
   modules, and E2E host diagnostics plus post-build startup tasks are also
   owned by bootstrap extensions. Web listener/Kestrel setup is also owned by a
   bootstrap extension, and app run/lifecycle hooks are now owned by a bootstrap
-  extension.
+  extension. Configuration compatibility warning parsing is now owned by a
+  focused configuration helper.
 - Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 

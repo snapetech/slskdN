@@ -136,6 +136,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   configuration bootstrap extension.
 - Moved application run/lifecycle hooks, E2E server probes, and LAN discovery
   advertising start/stop out of `Program.cs` into a bootstrap extension.
+- Moved configuration compatibility warning parsing out of `Program.cs` into a
+  focused configuration helper.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

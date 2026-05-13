@@ -1,3 +1,18 @@
+## Update 2026-05-13 03:59:39Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - moved legacy configuration compatibility warning parsing into `Configuration/ConfigurationCompatibilityWarnings`;
+  - updated `ProgramPathNormalizationTests` to call the new helper owner;
+  - documented the test-callsite ownership gotcha in ADR-0001 and committed it separately.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests" --no-restore` (`36/36`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Continue reducing remaining `Program.cs` helper clusters where ownership is clear.
+  2. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 03:54:13Z
 
 - Current task: Program.cs decomposition follow-up in progress.
