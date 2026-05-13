@@ -2770,6 +2770,7 @@
 - [2026-05-13T15:54:58Z] Completed: continue Program.cs decomposition by moving SQLite provider initialization and threading fail-fast validation into `Bootstrap/StartupSqlite`.
 - [2026-05-13T16:01:27Z] Completed: continue Program.cs decomposition by moving runtime version/canary/development flag and executable-path calculation into `Bootstrap/ApplicationRuntimeInfo`.
 - [2026-05-13T16:04:20Z] Completed: continue parity/reconciliation list by simplifying MediaCore descriptor publishing so retrieval/statistics remain first and descriptor publish, batch publish, update, and republish controls are behind advanced disclosure.
+- [2026-05-13T16:08:10Z] Completed: continue parity/reconciliation list by simplifying MediaCore ContentID registration and metadata import so resolve/validate/export/conflict-analysis remain first and registration/import controls are behind advanced disclosure.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.

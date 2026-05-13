@@ -2545,36 +2545,44 @@ const MediaCore = () => {
               </Card.Description>
             </Card.Content>
             <Card.Content>
-              <Form>
-                <Form.Field>
-                  <label>External ID</label>
-                  <Input
-                    onChange={(e) => setExternalId(e.target.value)}
-                    placeholder="e.g., mb:recording:12345-6789-..."
-                    value={externalId}
-                  />
-                </Form.Field>
-                <Form.Field>
-                  <label>Content ID</label>
-                  <Input
-                    onChange={(e) => setDescriptorContentId(e.target.value)}
-                    placeholder="e.g., content:mb:recording:12345-6789-..."
-                    value={descriptorContentId}
-                  />
-                </Form.Field>
-                <Button
-                  disabled={
-                    !externalId.trim() ||
-                    !descriptorContentId.trim() ||
-                    registering
-                  }
-                  loading={registering}
-                  onClick={handleRegister}
-                  primary
-                >
-                  Register Mapping
-                </Button>
-              </Form>
+              <Message info size="small">
+                Resolve and validate existing identifiers first. Registering a
+                mapping changes the local ContentID registry and is grouped as
+                an advanced operation.
+              </Message>
+              <details>
+                <summary>Advanced ContentID registration controls</summary>
+                <Form style={{ marginTop: '1em' }}>
+                  <Form.Field>
+                    <label>External ID</label>
+                    <Input
+                      onChange={(e) => setExternalId(e.target.value)}
+                      placeholder="e.g., mb:recording:12345-6789-..."
+                      value={externalId}
+                    />
+                  </Form.Field>
+                  <Form.Field>
+                    <label>Content ID</label>
+                    <Input
+                      onChange={(e) => setDescriptorContentId(e.target.value)}
+                      placeholder="e.g., content:mb:recording:12345-6789-..."
+                      value={descriptorContentId}
+                    />
+                  </Form.Field>
+                  <Button
+                    disabled={
+                      !externalId.trim() ||
+                      !descriptorContentId.trim() ||
+                      registering
+                    }
+                    loading={registering}
+                    onClick={handleRegister}
+                    primary
+                  >
+                    Register Mapping
+                  </Button>
+                </Form>
+              </details>
             </Card.Content>
           </Card>
         </Grid.Column>
@@ -3734,15 +3742,6 @@ const MediaCore = () => {
                 >
                   Analyze Conflicts
                 </Button>
-                <Button
-                  disabled={!importPackage.trim() || importingMetadata}
-                  loading={importingMetadata}
-                  onClick={handleImportMetadata}
-                  primary
-                  style={{ marginLeft: '0.5em' }}
-                >
-                  Import Metadata
-                </Button>
               </Form>
 
               {/* Import Package Input */}
@@ -3757,6 +3756,22 @@ const MediaCore = () => {
                   />
                 </Form.Field>
               </Form>
+              <details style={{ marginTop: '1em' }}>
+                <summary>Advanced metadata import controls</summary>
+                <Message warning size="small">
+                  Importing applies package metadata to the local registry. Run
+                  conflict analysis first, then import only when the selected
+                  strategy is intentional.
+                </Message>
+                <Button
+                  disabled={!importPackage.trim() || importingMetadata}
+                  loading={importingMetadata}
+                  onClick={handleImportMetadata}
+                  primary
+                >
+                  Import Metadata
+                </Button>
+              </details>
 
               {/* Results */}
               {conflictAnalysis && (

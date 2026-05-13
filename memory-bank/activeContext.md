@@ -1,3 +1,17 @@
+## Update 2026-05-13 16:08:10Z
+
+- Current task: parity/reconciliation list follow-up in progress.
+- Last activity:
+  - simplified MediaCore ContentID registration so resolve/validate stay first and registry mutation sits behind advanced disclosure;
+  - simplified MediaCore metadata import so export/conflict-analysis stay first and import sits behind advanced disclosure;
+  - kept unrelated local edits in workflows, `global.json`, packaging, and DownloadService files separate from this work.
+- Validation:
+  - Passed: `cd src/web && npm run lint -- src/components/System/MediaCore/index.jsx src/components/System/MediaCore/index.test.jsx`.
+  - Passed: `cd src/web && npm test -- System/MediaCore/index.test.jsx` (`3/3`).
+- Next steps:
+  1. Continue simplifying any remaining non-pod MediaCore mutation-heavy forms.
+  2. Keep unrelated local edits in workflows, `global.json`, packaging, and DownloadService files separate from reconciliation commits.
+
 ## Update 2026-05-13 16:04:20Z
 
 - Current task: parity/reconciliation list follow-up in progress.
