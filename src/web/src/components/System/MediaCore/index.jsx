@@ -7753,7 +7753,15 @@ const MediaCore = () => {
 
             {/* Opinion Management */}
             <Card.Content>
-              <Header size="small">Opinion Management</Header>
+              <Header size="small">Review Opinions</Header>
+              <Message info>
+                <Message.Header>Read pod opinions first</Message.Header>
+                <p>
+                  Refreshing, listing, and aggregating opinions reads pod
+                  opinion state. Publishing opinions and recalculating affinity
+                  data are grouped below as advanced operations.
+                </p>
+              </Message>
 
               {/* Pod Selection */}
               <Input
@@ -7865,51 +7873,60 @@ const MediaCore = () => {
                 </div>
               )}
 
-              {/* Publish Opinion */}
-              <Header size="small">Publish New Opinion</Header>
+              <details>
+                <summary>Advanced opinion publishing controls</summary>
+                <Message warning>
+                  Publishing an opinion can expose the selected content ID,
+                  variant hash, score, note, and peer preference signal to pod
+                  participants.
+                </Message>
 
-              <Input
-                onChange={(e) => setOpinionVariantHash(e.target.value)}
-                placeholder="Variant Hash"
-                style={{ marginBottom: '1em', width: '100%' }}
-                value={opinionVariantHash}
-              />
+                {/* Publish Opinion */}
+                <Header size="small">Publish New Opinion</Header>
 
-              <div style={{ marginBottom: '1em' }}>
-                <label style={{ marginRight: '1em' }}>Score (0-10):</label>
-                <input
-                  max="10"
-                  min="0"
-                  onChange={(e) =>
-                    setOpinionScore(Number.parseFloat(e.target.value))
-                  }
-                  step="0.5"
-                  style={{ width: '200px' }}
-                  type="range"
-                  value={opinionScore}
+                <Input
+                  onChange={(e) => setOpinionVariantHash(e.target.value)}
+                  placeholder="Variant Hash"
+                  style={{ marginBottom: '1em', width: '100%' }}
+                  value={opinionVariantHash}
                 />
-                <span style={{ marginLeft: '1em' }}>{opinionScore}/10</span>
-              </div>
 
-              <Input
-                onChange={(e) => setOpinionNote(e.target.value)}
-                placeholder="Optional note about this variant"
-                style={{ marginBottom: '1em', width: '100%' }}
-                value={opinionNote}
-              />
+                <div style={{ marginBottom: '1em' }}>
+                  <label style={{ marginRight: '1em' }}>Score (0-10):</label>
+                  <input
+                    max="10"
+                    min="0"
+                    onChange={(e) =>
+                      setOpinionScore(Number.parseFloat(e.target.value))
+                    }
+                    step="0.5"
+                    style={{ width: '200px' }}
+                    type="range"
+                    value={opinionScore}
+                  />
+                  <span style={{ marginLeft: '1em' }}>{opinionScore}/10</span>
+                </div>
 
-              <Button
-                color="green"
-                disabled={
-                  !opinionPodId.trim() ||
-                  !opinionContentId.trim() ||
-                  !opinionVariantHash.trim()
-                }
-                loading={publishOpinionLoading}
-                onClick={() => handlePublishOpinion()}
-              >
-                Publish Opinion
-              </Button>
+                <Input
+                  onChange={(e) => setOpinionNote(e.target.value)}
+                  placeholder="Optional note about this variant"
+                  style={{ marginBottom: '1em', width: '100%' }}
+                  value={opinionNote}
+                />
+
+                <Button
+                  color="green"
+                  disabled={
+                    !opinionPodId.trim() ||
+                    !opinionContentId.trim() ||
+                    !opinionVariantHash.trim()
+                  }
+                  loading={publishOpinionLoading}
+                  onClick={() => handlePublishOpinion()}
+                >
+                  Publish Opinion
+                </Button>
+              </details>
             </Card.Content>
 
             {/* Opinion Aggregation */}
@@ -7947,6 +7964,15 @@ const MediaCore = () => {
                   Get Recommendations
                 </Button>
 
+              </div>
+
+              <details style={{ marginBottom: '1em' }}>
+                <summary>Advanced affinity recalculation controls</summary>
+                <Message warning>
+                  Updating member affinities recalculates stored relationship
+                  weights from pod opinion history. Review current opinions and
+                  affinities before running it.
+                </Message>
                 <Button
                   color="orange"
                   disabled={!opinionPodId.trim()}
@@ -7955,7 +7981,7 @@ const MediaCore = () => {
                 >
                   Update Affinities
                 </Button>
-              </div>
+              </details>
 
               {/* Aggregated Opinions */}
               {aggregatedOpinions && (

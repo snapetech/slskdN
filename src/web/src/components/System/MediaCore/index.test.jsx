@@ -70,6 +70,9 @@ describe('MediaCore', () => {
     expect(screen.getByText('Review channels before changing them')).toBeInTheDocument();
     expect(screen.getByText('Advanced channel mutation controls')).toBeInTheDocument();
     expect(screen.getByText(/changes how pod messages are organized/)).toBeInTheDocument();
+    expect(screen.getByText('Read pod opinions first')).toBeInTheDocument();
+    expect(screen.getByText('Advanced opinion publishing controls')).toBeInTheDocument();
+    expect(screen.getByText('Advanced affinity recalculation controls')).toBeInTheDocument();
   });
 
   it('focuses a pod workflow from the index card', async () => {
