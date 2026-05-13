@@ -104,6 +104,18 @@
   1. Push local commits before any release-tag validation, if the user wants release work.
   2. Run live/E2E checks only if needed for the target release.
 
+## Update 2026-05-13 18:23:23Z
+
+- Current task: route/UI parity reconciliation complete locally.
+- Last activity:
+  - updated DHT/bootstrap/NAT from partial System visibility to mostly covered via System Network/Mesh posture;
+  - updated VirtualSoulfind v2 from gap to mostly covered through Source Providers capability/risk/priority catalog and Search provider gating.
+- Validation:
+  - Documentation/status-only change; existing focused Source Providers/Search coverage already exercises the described surfaces.
+- Next steps:
+  1. Run focused Source Providers/Search tests if more confidence is needed after this doc update.
+  2. Push local commits before any release-tag validation, if the user wants release work.
+
 ## Update 2026-05-13 16:56:30Z
 
 - Current task: Program.cs decomposition follow-up in progress.

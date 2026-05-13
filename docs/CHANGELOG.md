@@ -31,6 +31,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   release branch sync guard.
 - Reconciled the feature parity plan and remediation completion report with the
   completed validation results and remaining release coordination work.
+- Reconciled route/UI parity rows for DHT/bootstrap/NAT visibility and
+  VirtualSoulfind provider capability visibility.
 
 ## [2026051318-slskdn.251] — 2026-05-13
 
