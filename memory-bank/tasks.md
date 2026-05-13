@@ -2755,6 +2755,7 @@
 - [2026-05-13T02:38:43Z] Completed: continue parity/reconciliation list by simplifying MediaCore PodCore DHT publishing so metadata retrieval/stats are first and publish/unpublish controls are behind progressive disclosure.
 - [2026-05-13T02:40:40Z] Completed: continue parity/reconciliation list by simplifying MediaCore pod membership management so get/verify/statistics are first and membership publishing, role/ban changes, and cleanup are behind progressive disclosure.
 - [2026-05-13T03:47:53Z] Completed: continue parity/reconciliation list by simplifying MediaCore pod message routing so deduplication checks/routing stats are first and send, mark-seen, and cleanup controls are behind progressive disclosure.
+- [2026-05-13T03:50:55Z] Completed: continue Program.cs decomposition by moving web listener/Kestrel setup into `Bootstrap/WebHostConfigurationExtensions`.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.

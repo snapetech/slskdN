@@ -1,3 +1,16 @@
+## Update 2026-05-13 03:50:55Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - moved web listener/Kestrel setup into `Bootstrap/WebHostConfigurationExtensions`;
+  - left `Program.cs` with `builder.ConfigureSlskdWebHost(OptionsAtStartup, AppName)`.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Re-scan `Program.cs` for any remaining bounded startup/lifecycle blocks worth extracting.
+  2. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 03:47:53Z
 
 - Current task: parity/reconciliation list follow-up in progress.

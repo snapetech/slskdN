@@ -10124,3 +10124,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T02:40:40Z] Parity/reconciliation MediaCore membership follow-up: simplified Pod Membership Management by keeping get/verify/statistics first and grouping membership publishing, role/ban changes, and cleanup under advanced disclosure. Focused MediaCore component tests (`3/3`) and focused Web lint passed.
 
 [2026-05-13T03:47:53Z] Parity/reconciliation MediaCore routing follow-up: simplified Pod Message Routing by keeping deduplication checks and routing stats first and grouping message send, mark-seen, and cleanup controls under advanced disclosure. Focused MediaCore component tests (`3/3`) and focused Web lint passed.
+
+[2026-05-13T03:50:55Z] Program decomposition web-host split: moved web listener/Kestrel setup into `Bootstrap/WebHostConfigurationExtensions`, leaving `Program.cs` with `builder.ConfigureSlskdWebHost(OptionsAtStartup, AppName)`. `dotnet build src/slskd/slskd.csproj --no-restore` and `./bin/lint` passed.

@@ -151,6 +151,8 @@ out of `Program.cs` into `Bootstrap/HostDiagnosticsServiceCollectionExtensions.c
 Post-build startup tasks, including database migration, optional audio
 reanalyze migration, and forced construction of event-subscriber integrations,
 moved out of `Program.cs` into `Bootstrap/ApplicationStartupTaskExtensions.cs`.
+Web listener/Kestrel configuration moved out of `Program.cs` into
+`Bootstrap/WebHostConfigurationExtensions.cs`.
 
 Target modules:
 
@@ -186,6 +188,7 @@ Target modules:
   and host startup timeout/concurrency options.
 - `RunSlskdStartupTasks(...)`. Implemented for database migrations, optional
   audio reanalysis, and event-subscriber integration construction.
+- `ConfigureSlskdWebHost(...)`. Implemented for web listener/Kestrel setup.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
@@ -202,7 +205,8 @@ Acceptance criteria:
   MediaCore/PodCore/mesh/capability-rendezvous/integration-media slices are now
   separate. The remaining coordinator module only delegates to named bootstrap
   modules, and E2E host diagnostics plus post-build startup tasks are also
-  owned by bootstrap extensions.
+  owned by bootstrap extensions. Web listener/Kestrel setup is also owned by a
+  bootstrap extension.
 - Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 

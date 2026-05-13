@@ -723,75 +723,10 @@ namespace slskd
                     System.Console.Error.WriteLine($"[ConfigProbe] slskd:web:port={portStr}");
                 }
 
-                // Note: OptionsAtStartup was bound earlier from a different Configuration instance.
-                // Since Options properties are init-only, we can't rebind them. Instead, we read
-                // values directly from builder.Configuration when needed (e.g., in UseKestrel below).
                 builder.Host
                     .UseSerilog();
 
-                var webPortSection = builder.Configuration.GetSection($"{AppName}:Web:Port");
-                var webPort = webPortSection.Exists() && int.TryParse(webPortSection.Value, out var port)
-                    ? port
-                    : OptionsAtStartup.Web.Port; // Fallback to OptionsAtStartup if not in config
-
-                var webAddressSection = builder.Configuration.GetSection($"{AppName}:Web:Address");
-                var webAddress = webAddressSection.Exists() && !string.IsNullOrEmpty(webAddressSection.Value)
-                    ? webAddressSection.Value
-                    : OptionsAtStartup.Web.Address; // Fallback to OptionsAtStartup if not in config
-
-                var configuredAddress = webAddress == "*" ? IPAddress.Any.ToString() : webAddress;
-                if (!IPAddress.TryParse(configuredAddress, out var listenAddress))
-                {
-                    Log.Warning("Invalid web bind address '{Address}', defaulting to 0.0.0.0", configuredAddress);
-                    listenAddress = IPAddress.Any;
-                }
-
-                var listenAddressUrl = listenAddress.AddressFamily == AddressFamily.InterNetworkV6
-                    ? $"[{listenAddress}]"
-                    : listenAddress.ToString();
-
-                builder.WebHost
-                    .UseUrls($"http://{listenAddressUrl}:{webPort}")
-                    .UseKestrel(options =>
-                    {
-                        // PR-09: Global body size cap; configurable via Web.MaxRequestBodySize (default 10 MB). MeshGateway and others may enforce lower per-route.
-                        options.Limits.MaxRequestBodySize = OptionsAtStartup.Web.MaxRequestBodySize;
-
-                        Log.Debug("[ConfigProbe] slskd:web:port={A} slskd:slskd:web:port={B} using={C}",
-                            builder.Configuration.GetValue<string>($"{AppName}:Web:Port") ?? "null",
-                            builder.Configuration.GetValue<string>($"{AppName}:{AppName}:Web:Port") ?? "null",
-                            webPort);
-
-                        Log.Information($"[Kestrel] Configuring HTTP listener at http://{listenAddressUrl}:{webPort}/ (from config: port={webPortSection.Exists()}, address={webAddressSection.Exists()})");
-                        options.Listen(listenAddress, webPort);
-                        Log.Debug($"[Kestrel] HTTP listener configured");
-
-                        if (!string.IsNullOrWhiteSpace(OptionsAtStartup.Web.Socket))
-                        {
-                            Log.Information($"Configuring HTTP listener on unix domain socket (UDS) {OptionsAtStartup.Web.Socket}");
-                            options.ListenUnixSocket(OptionsAtStartup.Web.Socket);
-                        }
-
-                        if (!OptionsAtStartup.Web.Https.Disabled)
-                        {
-                            Log.Information($"Configuring HTTPS listener at https://{IPAddress.Any}:{OptionsAtStartup.Web.Https.Port}/");
-                            options.Listen(IPAddress.Any, OptionsAtStartup.Web.Https.Port, listenOptions =>
-                            {
-                                var cert = OptionsAtStartup.Web.Https.Certificate;
-
-                                if (!string.IsNullOrEmpty(cert.Pfx))
-                                {
-                                    Log.Information($"Using certificate from {cert.Pfx}");
-                                    listenOptions.UseHttps(cert.Pfx, cert.Password);
-                                }
-                                else
-                                {
-                                    Log.Information($"Using randomly generated self-signed certificate");
-                                    listenOptions.UseHttps(X509.Generate(subject: AppName));
-                                }
-                            });
-                        }
-                    });
+                builder.ConfigureSlskdWebHost(OptionsAtStartup, AppName);
 
                 Log.Debug("[MAIN] About to configure ASP.NET services...");
                 builder.Services
