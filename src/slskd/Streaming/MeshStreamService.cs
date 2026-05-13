@@ -105,65 +105,14 @@ public sealed class MeshStreamService : IMeshStreamService
             }
 
             await using var output = writer.AsStream();
-            using var hash = string.IsNullOrWhiteSpace(claims.ExpectedHash) ? null : IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-            var expectedSize = claims.ExpectedSize;
-            long offset = 0;
-            while (!expectedSize.HasValue || offset < expectedSize.Value)
+            if (!string.IsNullOrWhiteSpace(claims.ExpectedHash))
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var remaining = expectedSize.HasValue ? expectedSize.Value - offset : MeshStreamChunkBytes;
-                var length = (int)Math.Min(MeshStreamChunkBytes, remaining);
-                if (length <= 0)
-                {
-                    break;
-                }
-
-                var result = await _contentFetcher.FetchAsync(
-                    peerId,
-                    claims.ContentId,
-                    expectedSize: length,
-                    expectedHash: null,
-                    offset: offset,
-                    length: length,
-                    cancellationToken: cancellationToken).ConfigureAwait(false);
-
-                if (result.Error != null || result.Data == null || !result.SizeValid)
-                {
-                    throw new MeshStreamException(result.Error ?? "Mesh content chunk validation failed.");
-                }
-
-                using (result.Data)
-                {
-                    var buffer = new byte[MeshStreamChunkBytes];
-                    int read;
-                    while ((read = await result.Data.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false)) > 0)
-                    {
-                        hash?.AppendData(buffer, 0, read);
-                        await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
-                    }
-                }
-
-                offset += result.Size;
-                if (_trafficAccounting != null && result.Size > 0)
-                {
-                    await _trafficAccounting.AddOverlayDownloadAsync(result.Size, cancellationToken).ConfigureAwait(false);
-                }
-
-                if (!expectedSize.HasValue && result.Size < MeshStreamChunkBytes)
-                {
-                    break;
-                }
+                await FetchVerifiedThenCopyAsync(claims, peerId, output, cancellationToken).ConfigureAwait(false);
+                await writer.CompleteAsync().ConfigureAwait(false);
+                return;
             }
 
-            if (hash != null)
-            {
-                var actualHash = Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
-                if (!string.Equals(actualHash, claims.ExpectedHash, StringComparison.OrdinalIgnoreCase))
-                {
-                    throw new MeshStreamException("Mesh content hash validation failed.");
-                }
-            }
-
+            await FetchAndCopyAsync(claims, peerId, output, cancellationToken).ConfigureAwait(false);
             await writer.CompleteAsync().ConfigureAwait(false);
         }
         catch (OperationCanceledException ex)
@@ -179,6 +128,87 @@ public sealed class MeshStreamService : IMeshStreamService
         {
             _logger.LogError(ex, "Mesh preview stream of {ContentId} failed: {Message}", claims.ContentId, ex.Message);
             await writer.CompleteAsync(ex).ConfigureAwait(false);
+        }
+    }
+
+    private async Task FetchVerifiedThenCopyAsync(MeshStreamTicket claims, string peerId, Stream output, CancellationToken cancellationToken)
+    {
+        var tempPath = Path.Combine(Path.GetTempPath(), $"slskdn-mesh-preview-{Guid.NewGuid():N}.tmp");
+        await using var temp = new FileStream(
+            tempPath,
+            FileMode.CreateNew,
+            FileAccess.ReadWrite,
+            FileShare.None,
+            MeshStreamChunkBytes,
+            FileOptions.Asynchronous | FileOptions.DeleteOnClose);
+
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        await FetchAndCopyAsync(claims, peerId, temp, cancellationToken, hash).ConfigureAwait(false);
+
+        var actualHash = Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
+        if (!string.Equals(actualHash, claims.ExpectedHash, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new MeshStreamException("Mesh content hash validation failed.");
+        }
+
+        temp.Position = 0;
+        await temp.CopyToAsync(output, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task FetchAndCopyAsync(
+        MeshStreamTicket claims,
+        string peerId,
+        Stream output,
+        CancellationToken cancellationToken,
+        IncrementalHash? hash = null)
+    {
+        var expectedSize = claims.ExpectedSize;
+        long offset = 0;
+        while (!expectedSize.HasValue || offset < expectedSize.Value)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var remaining = expectedSize.HasValue ? expectedSize.Value - offset : MeshStreamChunkBytes;
+            var length = (int)Math.Min(MeshStreamChunkBytes, remaining);
+            if (length <= 0)
+            {
+                break;
+            }
+
+            var result = await _contentFetcher.FetchAsync(
+                peerId,
+                claims.ContentId,
+                expectedSize: length,
+                expectedHash: null,
+                offset: offset,
+                length: length,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            if (result.Error != null || result.Data == null || !result.SizeValid)
+            {
+                throw new MeshStreamException(result.Error ?? "Mesh content chunk validation failed.");
+            }
+
+            using (result.Data)
+            {
+                var buffer = new byte[MeshStreamChunkBytes];
+                int read;
+                while ((read = await result.Data.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false)) > 0)
+                {
+                    hash?.AppendData(buffer, 0, read);
+                    await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
+                }
+            }
+
+            offset += result.Size;
+            if (_trafficAccounting != null && result.Size > 0)
+            {
+                await _trafficAccounting.AddOverlayDownloadAsync(result.Size, cancellationToken).ConfigureAwait(false);
+            }
+
+            if (!expectedSize.HasValue && result.Size < MeshStreamChunkBytes)
+            {
+                break;
+            }
         }
     }
 

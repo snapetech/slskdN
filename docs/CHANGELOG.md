@@ -30,6 +30,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Added ticketed mesh peer preview streams for non-local Pod results with
   fixed-size overlay chunks, fairness checks, traffic accounting, per-user
   limits, and expected hash validation.
+- Strengthened mesh preview hash validation so hash-protected content is
+  verified before any bytes are emitted to the browser stream, with producer
+  tests covering Soulseek and mesh preview data flow.
 - Downgraded additional expected Soulseek peer transport failures from error
   stack traces to single warning records, rate-limited malformed overlay
   datagram logging, and made DHT/overlay summaries identify
