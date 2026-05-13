@@ -70,7 +70,7 @@ Candidates requiring classification:
 - Dependency ownership has an initial call-site-backed inventory in `docs/dependencies.md`; `dotNetRDF` and `MathNet.Numerics` remain active for Solid/WebID and MediaCore hashing, while Roslyn CodeQuality helpers still need a runtime-vs-tooling decision.
 - Custom build quality tasks now live in `tools/slskd.BuildTasks`; remaining build-quality cleanup should target broad suppressions and runtime-adjacent Roslyn helpers.
 - Analyzer suppressions now have a first-pass audit in `docs/analyzer-suppressions.md`; the app build is warning-clean, but broad project suppressions still need reduction or targeting over time.
-- Download flow now has focused regression coverage for in-progress duplicate protection, completed-transfer supersession, and terminal failed cleanup; remaining semaphore/concurrency cases still need coverage before deeper rescue/swarm/ranking refactors.
+- Download flow now has focused regression coverage for in-progress duplicate protection, completed-transfer supersession, terminal failed cleanup, and per-user enqueue semaphore behavior; CTS cleanup remains the main targeted follow-up before deeper rescue/swarm/ranking refactors.
 
 ## Release rule
 

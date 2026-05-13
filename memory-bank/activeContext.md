@@ -6440,4 +6440,8 @@ Added the next DownloadService regression slice covering in-progress duplicate p
 
 Added SongID runtime capability reporting and the `/api/v0/songid/capabilities` endpoint. Optional recognition/provider lanes now report based on runtime config and tool availability, and `HashFromAudioFileEnabled` is explicitly broken/unavailable.
 
-Next steps: continue with remaining DownloadService semaphore/concurrency cases, Program.cs service-module decomposition, and the runtime-vs-tooling decision for Roslyn CodeQuality helpers.
+## 2026-05-13T01:35:00Z Session update
+
+Added DownloadService per-user semaphore regression coverage. Same-user enqueue requests serialize at the critical section, while different users can enter concurrently.
+
+Next steps: continue with remaining DownloadService CTS cleanup cases, Program.cs service-module decomposition, and the runtime-vs-tooling decision for Roslyn CodeQuality helpers.

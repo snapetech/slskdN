@@ -49,6 +49,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Added DownloadService regression coverage for in-progress duplicate
   protection, completed-transfer supersession, and terminal failed cleanup when
   background download startup fails.
+- Added DownloadService semaphore regression coverage proving same-user enqueue
+  requests serialize while different users can enter concurrently.
 - Added `/api/v0/songid/capabilities` so SongID reports runtime availability
   for optional providers and explicitly marks `HashFromAudioFileEnabled` broken.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as

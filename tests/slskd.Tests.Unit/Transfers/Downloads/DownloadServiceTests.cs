@@ -195,6 +195,119 @@ public class DownloadServiceTests
     }
 
     [Fact]
+    public async Task EnqueueAsync_SameUserRequests_AreSerializedByUserSemaphore()
+    {
+        var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var options = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+
+        await using (var context = new TransfersDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+        }
+
+        var blockingFactory = new BlockingFirstDbContextFactory(options);
+        var soulseekClient = CreateHangingSoulseekClient();
+        var service = CreateDownloadService(blockingFactory, soulseekClient);
+
+        try
+        {
+            var first = Task.Run(() => service.EnqueueAsync(
+                "alice",
+                new[] { (Filename: @"Music\first.flac", Size: 1234L) },
+                CancellationToken.None));
+
+            await blockingFactory.FirstCreateStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            var second = Task.Run(() => service.EnqueueAsync(
+                "alice",
+                new[] { (Filename: @"Music\second.flac", Size: 1234L) },
+                CancellationToken.None));
+
+            await Task.Delay(200);
+
+            Assert.False(second.IsCompleted);
+            Assert.Equal(1, blockingFactory.CreateCount);
+
+            blockingFactory.ReleaseFirstCreate();
+
+            var (firstEnqueued, firstFailed) = await first.WaitAsync(TimeSpan.FromSeconds(5));
+            var (secondEnqueued, secondFailed) = await second.WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.Single(firstEnqueued);
+            Assert.Empty(firstFailed);
+            Assert.Single(secondEnqueued);
+            Assert.Empty(secondFailed);
+            Assert.True(blockingFactory.CreateCount >= 2);
+
+            Assert.True(service.TryCancel(firstEnqueued.Single().Id));
+            Assert.True(service.TryCancel(secondEnqueued.Single().Id));
+        }
+        finally
+        {
+            blockingFactory.ReleaseFirstCreate();
+            service.Dispose();
+            DeleteDatabase(databasePath);
+        }
+    }
+
+    [Fact]
+    public async Task EnqueueAsync_DifferentUsers_CanEnterCriticalSectionConcurrently()
+    {
+        var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var options = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+
+        await using (var context = new TransfersDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+        }
+
+        var blockingFactory = new BlockingFirstDbContextFactory(options);
+        var soulseekClient = CreateHangingSoulseekClient();
+        var service = CreateDownloadService(blockingFactory, soulseekClient);
+
+        try
+        {
+            var first = Task.Run(() => service.EnqueueAsync(
+                "alice",
+                new[] { (Filename: @"Music\first.flac", Size: 1234L) },
+                CancellationToken.None));
+
+            await blockingFactory.FirstCreateStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            var second = Task.Run(() => service.EnqueueAsync(
+                "bob",
+                new[] { (Filename: @"Music\second.flac", Size: 1234L) },
+                CancellationToken.None));
+
+            await WaitUntilAsync(() => blockingFactory.CreateCount >= 2, TimeSpan.FromSeconds(5));
+
+            blockingFactory.ReleaseFirstCreate();
+
+            var (firstEnqueued, firstFailed) = await first.WaitAsync(TimeSpan.FromSeconds(5));
+            var (secondEnqueued, secondFailed) = await second.WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.Single(firstEnqueued);
+            Assert.Empty(firstFailed);
+            Assert.Single(secondEnqueued);
+            Assert.Empty(secondFailed);
+
+            Assert.True(service.TryCancel(firstEnqueued.Single().Id));
+            Assert.True(service.TryCancel(secondEnqueued.Single().Id));
+        }
+        finally
+        {
+            blockingFactory.ReleaseFirstCreate();
+            service.Dispose();
+            DeleteDatabase(databasePath);
+        }
+    }
+
+
+    [Fact]
     public async Task EnqueueAsync_DoesNotRequirePeerPreflightConnection()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
@@ -621,6 +734,39 @@ public class DownloadServiceTests
             new EventBus(new EventService(Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<EventsDbContext>>())));
     }
 
+    private static DownloadService CreateDownloadService(
+        Microsoft.EntityFrameworkCore.IDbContextFactory<TransfersDbContext> contextFactory,
+        Mock<ISoulseekClient> soulseekClient)
+    {
+        var optionsMonitor = new TestOptionsMonitor<slskd.Options>(new slskd.Options());
+
+        return new DownloadService(
+            optionsMonitor,
+            soulseekClient.Object,
+            contextFactory,
+            new FileService(optionsMonitor),
+            Mock.Of<IRelayService>(),
+            Mock.Of<IFTPService>(),
+            new EventBus(new EventService(Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<EventsDbContext>>())));
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> predicate, TimeSpan timeout)
+    {
+        var startedAt = DateTime.UtcNow;
+
+        while (DateTime.UtcNow - startedAt < timeout)
+        {
+            if (predicate())
+            {
+                return;
+            }
+
+            await Task.Delay(25);
+        }
+
+        throw new TimeoutException($"Timed out waiting {timeout.TotalSeconds} seconds for predicate");
+    }
+
     private static Mock<ISoulseekClient> CreateHangingSoulseekClient()
     {
         var soulseekClient = new Mock<ISoulseekClient>();
@@ -672,5 +818,38 @@ public class DownloadServiceTests
         }
 
         public TransfersDbContext CreateDbContext() => new(_options);
+    }
+
+    private sealed class BlockingFirstDbContextFactory : Microsoft.EntityFrameworkCore.IDbContextFactory<TransfersDbContext>
+    {
+        private readonly DbContextOptions<TransfersDbContext> _options;
+        private readonly ManualResetEventSlim _releaseFirstCreate = new(initialState: false);
+        private int _createCount;
+
+        public BlockingFirstDbContextFactory(DbContextOptions<TransfersDbContext> options)
+        {
+            _options = options;
+        }
+
+        public TaskCompletionSource FirstCreateStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public int CreateCount => Volatile.Read(ref _createCount);
+
+        public TransfersDbContext CreateDbContext()
+        {
+            var count = Interlocked.Increment(ref _createCount);
+            if (count == 1)
+            {
+                FirstCreateStarted.TrySetResult();
+                _releaseFirstCreate.Wait(TimeSpan.FromSeconds(5));
+            }
+
+            return new TransfersDbContext(_options);
+        }
+
+        public void ReleaseFirstCreate()
+        {
+            _releaseFirstCreate.Set();
+        }
     }
 }

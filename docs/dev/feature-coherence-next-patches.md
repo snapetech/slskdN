@@ -103,9 +103,10 @@ Acceptance criteria:
 
 ## 7. Split Program.cs service registration
 
-Status: started. Added focused coverage for in-progress duplicate protection,
-completed-transfer supersession, and terminal failed cleanup when the background
-download start path throws.
+Status: expanded. Added focused coverage for in-progress duplicate protection,
+completed-transfer supersession, terminal failed cleanup when the background
+download start path throws, same-user enqueue serialization, and different-user
+enqueue concurrency.
 
 Target modules:
 
@@ -181,8 +182,8 @@ Required cases:
 - Enqueue exception moves transfer to terminal failed state. Done.
 - CTS cleanup after cancel/fail/complete.
 - Shutdown cancels active transfers.
-- Per-user semaphore serializes same-user enqueue.
-- Different users can enqueue concurrently.
+- Per-user semaphore serializes same-user enqueue. Done.
+- Different users can enqueue concurrently. Done.
 - `AsNoTracking()` behavior remains intentional.
 
 ## 11. Add CI test job after branch builds locally
