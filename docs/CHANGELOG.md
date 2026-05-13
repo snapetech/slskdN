@@ -174,6 +174,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Simplified MediaCore ContentID and metadata portability workflows by keeping
   resolve, validate, export, and conflict-analysis paths first while grouping
   registration and import controls behind advanced disclosure.
+- Simplified MediaCore retrieval and dashboard management by keeping stats
+  loading first while grouping cache clearing and global stats reset controls
+  behind advanced disclosure.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

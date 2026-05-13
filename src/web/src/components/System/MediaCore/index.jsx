@@ -4598,8 +4598,16 @@ const MediaCore = () => {
                 >
                   Load Stats
                 </Button>
-                <Button onClick={handleClearRetrievalCache}>Clear Cache</Button>
               </Button.Group>
+              <details style={{ marginTop: '1em' }}>
+                <summary>Advanced retrieval cache controls</summary>
+                <Message warning size="small">
+                  Clear the retrieval cache only after reviewing stats. This
+                  removes cached descriptor lookup results and can increase
+                  follow-up DHT retrieval traffic.
+                </Message>
+                <Button onClick={handleClearRetrievalCache}>Clear Cache</Button>
+              </details>
 
               {/* Retrieval Stats */}
               {retrievalStats && (
@@ -4665,13 +4673,21 @@ const MediaCore = () => {
                 >
                   Load Full Dashboard
                 </Button>
+              </Button.Group>
+              <details style={{ marginTop: '1em' }}>
+                <summary>Advanced dashboard reset controls</summary>
+                <Message warning size="small">
+                  Resetting clears accumulated MediaCore statistics. Load and
+                  review the dashboard first so operational context is not lost
+                  accidentally.
+                </Message>
                 <Button
                   color="red"
                   onClick={handleResetMediaCoreStats}
                 >
                   Reset All Stats
                 </Button>
-              </Button.Group>
+              </details>
 
               {/* Dashboard Overview */}
               {mediaCoreDashboard && !mediaCoreDashboard.error && (

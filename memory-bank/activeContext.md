@@ -1,3 +1,16 @@
+## Update 2026-05-13 16:23:00Z
+
+- Current task: parity/reconciliation list follow-up in progress.
+- Last activity:
+  - simplified MediaCore retrieval management so cache clearing is advanced-only after stats review;
+  - simplified MediaCore dashboard management so global stats reset is advanced-only after dashboard review;
+  - kept unrelated local edits in workflows, `global.json`, packaging, `StartupLogging`, and DownloadService files separate.
+- Validation:
+  - Passed: `cd src/web && npm run lint -- src/components/System/MediaCore/index.jsx src/components/System/MediaCore/index.test.jsx`.
+  - Passed: `cd src/web && npm test -- System/MediaCore/index.test.jsx` (`3/3`).
+- Next steps:
+  1. Continue scanning for any remaining non-pod MediaCore admin controls that should be advanced-only.
+  2. Continue Program.cs decomposition with small compatibility-wrapper splits when no UX slice remains.
 ## Update 2026-05-13 16:21:10Z
 
 - Current task: Program.cs decomposition follow-up in progress.
