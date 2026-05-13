@@ -455,14 +455,14 @@ public class ProgramPathNormalizationTests
     [Fact]
     public void StripKnownAntiforgeryCookiesFromRequest_RemovesXsrfCookies_AndResetsParsedRequestCookies()
     {
-        var port = GetProgramValue<OptionsAtStartup>("OptionsAtStartup").Web.Port;
+        var port = new OptionsAtStartup().Web.Port;
         var context = new DefaultHttpContext();
         context.Request.Headers.Cookie = $"session=keep; XSRF-COOKIE-{port}=stale-cookie; theme=dark; XSRF-TOKEN-{port}=stale-request; XSRF-TOKEN=legacy";
 
         _ = context.Request.Cookies;
         Assert.NotNull(context.Features.Get<IRequestCookiesFeature>());
 
-        var stripped = Program.StripKnownAntiforgeryCookiesFromRequest(context);
+        var stripped = AntiforgeryCookieRecovery.StripKnownCookiesFromRequest(context, port);
 
         Assert.True(stripped);
         Assert.Equal("session=keep; theme=dark", context.Request.Headers.Cookie.ToString());
@@ -476,7 +476,7 @@ public class ProgramPathNormalizationTests
     [Fact]
     public void TryGetAndStoreAntiforgeryTokens_Retries_AfterClearingDirectCryptographicFailure()
     {
-        var port = GetProgramValue<OptionsAtStartup>("OptionsAtStartup").Web.Port;
+        var port = new OptionsAtStartup().Web.Port;
         var context = new DefaultHttpContext();
         context.Request.Scheme = "https";
         context.Request.Path = "/api/v0/session/enabled";
@@ -489,7 +489,7 @@ public class ProgramPathNormalizationTests
             .Throws(new CryptographicException("The key {abc} was not found in the key ring."))
             .Returns(expectedTokens);
 
-        var tokens = Program.TryGetAndStoreAntiforgeryTokens(context, antiforgery.Object);
+        var tokens = AntiforgeryCookieRecovery.TryGetAndStoreTokens(context, antiforgery.Object, port, _ => { });
 
         Assert.Same(expectedTokens, tokens);
         antiforgery.Verify(mock => mock.GetAndStoreTokens(context), Times.Exactly(2));
@@ -500,7 +500,7 @@ public class ProgramPathNormalizationTests
     [Fact]
     public void TryGetAndStoreAntiforgeryTokens_Retries_AfterClearingStaleCookies()
     {
-        var port = GetProgramValue<OptionsAtStartup>("OptionsAtStartup").Web.Port;
+        var port = new OptionsAtStartup().Web.Port;
         var context = new DefaultHttpContext();
         context.Request.Scheme = "https";
         context.Request.Path = "/api/v0/session/enabled";
@@ -513,21 +513,13 @@ public class ProgramPathNormalizationTests
             .Throws(new AntiforgeryValidationException("The antiforgery token could not be decrypted.", new CryptographicException("The key {abc} was not found in the key ring.")))
             .Returns(expectedTokens);
 
-        var tokens = Program.TryGetAndStoreAntiforgeryTokens(context, antiforgery.Object);
+        var tokens = AntiforgeryCookieRecovery.TryGetAndStoreTokens(context, antiforgery.Object, port, _ => { });
 
         Assert.Same(expectedTokens, tokens);
         antiforgery.Verify(mock => mock.GetAndStoreTokens(context), Times.Exactly(2));
         Assert.Contains(context.Response.Headers["Set-Cookie"], value => value.Contains($"XSRF-COOKIE-{port}=;", StringComparison.Ordinal));
         Assert.Contains(context.Response.Headers["Set-Cookie"], value => value.Contains($"XSRF-TOKEN-{port}=;", StringComparison.Ordinal));
     }
-
-    private static T GetProgramValue<T>(string propertyName)
-    {
-        var property = typeof(Program).GetProperty(propertyName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
-        Assert.NotNull(property);
-        return (T)property!.GetValue(null)!;
-    }
-
 
     private static void SetAppDirectory(string value)
     {

@@ -7084,6 +7084,12 @@ Next steps: run lint, commit the startup-input cleanup, then continue either the
 
 ## 2026-05-13T17:48:00Z Session update
 
-Continued Program.cs decomposition by moving startup directory preparation, single-instance mutex acquisition, configuration-file defaulting, and default directory validation into `Bootstrap/StartupApplicationDirectories`. `Program.cs` is now 453 lines. Build and focused Program/application-controller tests passed.
+Continued Program.cs decomposition by moving startup directory preparation, single-instance mutex acquisition, configuration-file defaulting, and default directory validation into `Bootstrap/StartupApplicationDirectories`. `Program.cs` is now 466 lines. Build and focused Program/application-controller tests passed.
 
 Next steps: run lint, commit missing status docs, then continue with the remaining Program runtime-state wrappers or the MediaCore reconciliation forms.
+
+## 2026-05-13T17:56:00Z Session update
+
+Removed the remaining antiforgery Program wrappers. The MVC CSRF filter now gets `OptionsAtStartup` from request services and calls `AntiforgeryCookieRecovery` directly, and focused tests call the helper directly with an explicit port. `Program.cs` is now 449 lines. Build and focused Program/CSRF/controller tests passed.
+
+Next steps: run lint and commit this wrapper cleanup, then continue reducing remaining Program startup/logging wrappers or move back to the MediaCore reconciliation forms.

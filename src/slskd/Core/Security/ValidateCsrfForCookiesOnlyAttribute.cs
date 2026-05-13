@@ -109,7 +109,8 @@ public class ValidateCsrfForCookiesOnlyAttribute : Attribute, IAsyncAuthorizatio
         {
             if (AntiforgeryCookieRecovery.IsStaleTokenException(ex))
             {
-                Program.ClearKnownAntiforgeryCookies(context.HttpContext);
+                var optionsAtStartup = context.HttpContext.RequestServices.GetRequiredService<OptionsAtStartup>();
+                AntiforgeryCookieRecovery.ClearKnownCookies(context.HttpContext, optionsAtStartup.Web.Port);
                 Log.Warning("[CSRF] Cleared stale antiforgery cookies for {Method} {Path} after key-ring mismatch",
                     request.Method, request.Path);
             }

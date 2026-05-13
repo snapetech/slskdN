@@ -224,6 +224,8 @@ and wrappers from earlier helper extractions were removed.
 Startup application-directory resolution, single-instance mutex acquisition,
 configuration-file defaulting, and default directory validation moved out of
 `Program.cs` into `Bootstrap/StartupApplicationDirectories.cs`.
+The remaining antiforgery Program wrappers were removed after the MVC CSRF
+filter and focused tests moved to `AntiforgeryCookieRecovery` directly.
 
 Target modules:
 

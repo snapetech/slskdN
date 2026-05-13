@@ -37,8 +37,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Moved startup application-directory resolution, default directory validation,
   configuration-file defaulting, and single-instance mutex preparation into
   `Bootstrap/StartupApplicationDirectories`.
+- Removed the remaining antiforgery `Program.cs` wrappers by making the MVC
+  CSRF filter and focused tests call `AntiforgeryCookieRecovery` directly.
 - Restored command-line argument population to `Program` so startup options
   such as `--config` continue to bind correctly.
+- Rewired CSRF stale-cookie recovery to call the extracted helper directly
+  instead of routing through `Program`.
 - Removed additional `Program.cs` compatibility wrappers after tests moved to
   the extracted bootstrap/security/path helper APIs directly.
 - Rewired remaining production call sites to use extracted path, Soulseek
