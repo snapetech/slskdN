@@ -1,3 +1,18 @@
+## Update 2026-05-13 04:06:02Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - moved expected Soulseek network/disconnect exception classification into `Soulseek/SoulseekNetworkExceptionClassifier`;
+  - kept `Program.IsExpectedSoulseekNetworkException(...)` as the internal compatibility wrapper;
+  - documented and separately committed the `slskd.Soulseek` namespace shadowing gotcha.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests|FullyQualifiedName~ProgramExpectedNetworkExceptionTests" --no-restore` (`38/38`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Re-scan `Program.cs` for remaining bounded helper clusters such as shutdown/logging, path/HTML rewrite helpers, or antiforgery helpers.
+  2. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 03:59:39Z
 
 - Current task: Program.cs decomposition follow-up in progress.

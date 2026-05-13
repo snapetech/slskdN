@@ -158,6 +158,8 @@ advertising start/stop moved out of `Program.cs` into
 `Bootstrap/ApplicationRunExtensions.cs`.
 Configuration compatibility warning parsing moved out of `Program.cs` into
 `Configuration/ConfigurationCompatibilityWarnings.cs`.
+Expected Soulseek network exception classification moved out of `Program.cs`
+into `Soulseek/SoulseekNetworkExceptionClassifier.cs`.
 
 Target modules:
 
@@ -198,6 +200,8 @@ Target modules:
   E2E server probes, and LAN discovery advertising start/stop.
 - `ConfigurationCompatibilityWarnings.GetWarnings(...)`. Implemented for
   legacy config-key and retry-floor compatibility warnings.
+- `SoulseekNetworkExceptionClassifier.IsExpected(...)`. Implemented for
+  expected Soulseek network/disconnect exception classification.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
@@ -217,7 +221,8 @@ Acceptance criteria:
   owned by bootstrap extensions. Web listener/Kestrel setup is also owned by a
   bootstrap extension, and app run/lifecycle hooks are now owned by a bootstrap
   extension. Configuration compatibility warning parsing is now owned by a
-  focused configuration helper.
+  focused configuration helper, and expected Soulseek network exception
+  classification is now owned by a focused helper.
 - Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 

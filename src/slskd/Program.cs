@@ -1334,9 +1334,7 @@ namespace slskd
 
         internal static bool IsExpectedSoulseekNetworkException(Exception exception)
         {
-            var flattened = FlattenExceptions(exception).ToList();
-
-            return flattened.Count > 0 && flattened.All(IsExpectedSoulseekNetworkExceptionCore);
+            return SoulseekExceptions.SoulseekNetworkExceptionClassifier.IsExpected(exception);
         }
 
         internal static Microsoft.AspNetCore.Antiforgery.AntiforgeryTokenSet? TryGetAndStoreAntiforgeryTokens(
@@ -1452,80 +1450,6 @@ namespace slskd
                     yield return innerException;
                 }
             }
-        }
-
-        private static bool IsExpectedSoulseekNetworkExceptionCore(Exception exception)
-        {
-            var typeName = exception.GetType().FullName ?? exception.GetType().Name;
-            var details = exception.ToString();
-            var isSoulseekMessageConnectionClosed =
-                exception is InvalidOperationException &&
-                details.Contains("The underlying Tcp connection is closed", StringComparison.Ordinal) &&
-                details.Contains("Soulseek.Network.MessageConnection.ReadContinuouslyAsync", StringComparison.Ordinal);
-            var isSoulseekTimerResetReadRace =
-                exception is NullReferenceException &&
-                details.Contains("Soulseek.Extensions.Reset(", StringComparison.Ordinal) &&
-                details.Contains("Soulseek.Network.MessageConnection.ReadContinuouslyAsync", StringComparison.Ordinal);
-            var isSoulseekTimerResetWriteRace =
-                exception is NullReferenceException &&
-                details.Contains("Soulseek.Extensions.Reset(", StringComparison.Ordinal) &&
-                details.Contains("Soulseek.Network.Tcp.Connection.WriteInternalAsync", StringComparison.Ordinal);
-            var isSoulseekTcpDoubleDisconnectRace =
-                exception is InvalidOperationException &&
-                details.Contains("An attempt was made to transition a task to a final state", StringComparison.Ordinal) &&
-                details.Contains("Soulseek.Network.Tcp.Connection.Disconnect", StringComparison.Ordinal);
-            var isSoulseekListenerSocketDisposed =
-                exception is ObjectDisposedException listenerDisposedException &&
-                string.Equals(listenerDisposedException.ObjectName, "System.Net.Sockets.Socket", StringComparison.Ordinal) &&
-                details.Contains("Soulseek.Network.Tcp.Listener.ListenContinuouslyAsync", StringComparison.Ordinal);
-
-            var isNetworkFailure =
-                exception is TimeoutException ||
-                exception is OperationCanceledException ||
-                exception is IOException ||
-                (exception is ObjectDisposedException objectDisposedException && string.Equals(objectDisposedException.ObjectName, "Connection", StringComparison.Ordinal)) ||
-                exception is System.Net.Sockets.SocketException ||
-                isSoulseekMessageConnectionClosed ||
-                isSoulseekTimerResetReadRace ||
-                isSoulseekTimerResetWriteRace ||
-                isSoulseekTcpDoubleDisconnectRace ||
-                isSoulseekListenerSocketDisposed ||
-                typeName.Contains("Soulseek.ConnectionReadException", StringComparison.Ordinal) ||
-                typeName.Contains("Soulseek.ConnectionException", StringComparison.Ordinal) ||
-                typeName.Contains("Soulseek.TransferException", StringComparison.Ordinal) ||
-                typeName.Contains("Soulseek.TransferRejectedException", StringComparison.Ordinal) ||
-                typeName.Contains("Soulseek.TransferReportedFailedException", StringComparison.Ordinal);
-
-            if (!isNetworkFailure)
-            {
-                return false;
-            }
-
-            return details.Contains("Soulseek.Network.PeerConnectionManager", StringComparison.Ordinal) ||
-                details.Contains("Soulseek.Network.DistributedConnectionManager", StringComparison.Ordinal) ||
-                details.Contains("Soulseek.Network.Tcp.Connection", StringComparison.Ordinal) ||
-                details.Contains("Soulseek.Network.Tcp.Listener", StringComparison.Ordinal) ||
-                details.Contains("Failed to connect", StringComparison.Ordinal) ||
-                details.Contains("Connection refused", StringComparison.Ordinal) ||
-                details.Contains("Connection reset by peer", StringComparison.Ordinal) ||
-                details.Contains("Remote connection closed", StringComparison.Ordinal) ||
-                details.Contains("The underlying Tcp connection is closed", StringComparison.Ordinal) ||
-                details.Contains("Download reported as failed by remote client", StringComparison.Ordinal) ||
-                details.Contains("Enqueue failed due to internal error", StringComparison.Ordinal) ||
-                details.Contains("Too many megabytes", StringComparison.Ordinal) ||
-                details.Contains("Too many files", StringComparison.Ordinal) ||
-                details.Contains("Transfer failed: Transfer complete", StringComparison.Ordinal) ||
-                details.Contains("No route to host", StringComparison.Ordinal) ||
-                details.Contains("Operation timed out", StringComparison.Ordinal) ||
-                details.Contains("Connection timed out", StringComparison.Ordinal) ||
-                details.Contains("The wait timed out", StringComparison.Ordinal) ||
-                details.Contains("Inactivity timeout", StringComparison.Ordinal) ||
-                details.Contains("Failed to read", StringComparison.Ordinal) ||
-                details.Contains("Unable to read data from the transport connection", StringComparison.Ordinal) ||
-                details.Contains("Operation canceled", StringComparison.Ordinal) ||
-                details.Contains("Operation cancelled", StringComparison.Ordinal) ||
-                details.Contains("Unknown PierceFirewall attempt", StringComparison.Ordinal) ||
-                details.Contains("Cannot access a disposed object.", StringComparison.Ordinal);
         }
 
     }
