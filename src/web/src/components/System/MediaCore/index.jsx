@@ -3359,51 +3359,61 @@ const MediaCore = () => {
               </Card.Description>
             </Card.Content>
             <Card.Content>
-              <Form>
-                <Form.Field>
-                  <label>Target ContentID</label>
-                  <Input
-                    onChange={(e) => setFindSimilarContentId(e.target.value)}
-                    placeholder="ContentID to find matches for"
-                    value={findSimilarContentId}
-                  />
-                </Form.Field>
-                <Form.Group widths="equal">
+              <Message info size="small">
+                Pairwise perceptual and text similarity are the default review
+                paths. Candidate search can scan registry entries, so it is
+                grouped as an advanced similarity search.
+              </Message>
+              <details>
+                <summary>Advanced similarity candidate search controls</summary>
+                <Form style={{ marginTop: '1em' }}>
                   <Form.Field>
-                    <label>Min Confidence</label>
+                    <label>Target ContentID</label>
                     <Input
-                      max="1"
-                      min="0"
-                      onChange={(e) =>
-                        setFindSimilarMinConfidence(e.target.value)
-                      }
-                      step="0.1"
-                      type="number"
-                      value={findSimilarMinConfidence}
+                      onChange={(e) => setFindSimilarContentId(e.target.value)}
+                      placeholder="ContentID to find matches for"
+                      value={findSimilarContentId}
                     />
                   </Form.Field>
-                  <Form.Field>
-                    <label>Max Results</label>
-                    <Input
-                      max="50"
-                      min="1"
-                      onChange={(e) => setFindSimilarMaxResults(e.target.value)}
-                      type="number"
-                      value={findSimilarMaxResults}
-                    />
-                  </Form.Field>
-                </Form.Group>
-                <Button
-                  disabled={
-                    !findSimilarContentId.trim() || findingSimilarContent
-                  }
-                  loading={findingSimilarContent}
-                  onClick={handleFindSimilarContent}
-                  primary
-                >
-                  Find Similar Content
-                </Button>
-              </Form>
+                  <Form.Group widths="equal">
+                    <Form.Field>
+                      <label>Min Confidence</label>
+                      <Input
+                        max="1"
+                        min="0"
+                        onChange={(e) =>
+                          setFindSimilarMinConfidence(e.target.value)
+                        }
+                        step="0.1"
+                        type="number"
+                        value={findSimilarMinConfidence}
+                      />
+                    </Form.Field>
+                    <Form.Field>
+                      <label>Max Results</label>
+                      <Input
+                        max="50"
+                        min="1"
+                        onChange={(e) =>
+                          setFindSimilarMaxResults(e.target.value)
+                        }
+                        type="number"
+                        value={findSimilarMaxResults}
+                      />
+                    </Form.Field>
+                  </Form.Group>
+                  <Button
+                    disabled={
+                      !findSimilarContentId.trim() || findingSimilarContent
+                    }
+                    loading={findingSimilarContent}
+                    onClick={handleFindSimilarContent}
+                    primary
+                  >
+                    Find Similar Content
+                  </Button>
+                </Form>
+              </details>
 
               {findSimilarResult && (
                 <div style={{ marginTop: '1em' }}>

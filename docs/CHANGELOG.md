@@ -22,12 +22,17 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Grouped MediaCore fuzzy candidate search behind advanced disclosure so
+  pairwise perceptual/text similarity remain the default review paths.
+
 ## [2026051318-slskdn.250] — 2026-05-13
 
 - Grouped MediaCore descriptor cache bypass and batch DHT retrieval controls
   behind advanced disclosure with network-impact guidance.
 - Added MediaCore component coverage for the advanced descriptor retrieval
   grouping.
+- Grouped MediaCore fuzzy candidate search behind advanced disclosure so
+  pairwise perceptual/text similarity remain the default review paths.
 
 ## [2026051317-slskdn.249] — 2026-05-13
 

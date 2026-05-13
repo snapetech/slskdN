@@ -25,6 +25,20 @@
   1. Continue scanning remaining non-pod MediaCore forms for controls that should be read-first or advanced-only.
   2. Keep Program.cs decomposition closed for this pass unless a concrete regression or wrapper reappears.
 
+## Update 2026-05-13 18:03:06Z
+
+- Current task: parity/reconciliation follow-up in progress.
+- Last activity:
+  - simplified MediaCore fuzzy matching so pairwise perceptual/text similarity remains the default path;
+  - grouped candidate search behind advanced disclosure because it can scan registry entries;
+  - covered the new advanced similarity search controls in the focused MediaCore component test.
+- Validation:
+  - Passed: `cd src/web && npm test -- --run src/components/System/MediaCore/index.test.jsx` (`4/4`).
+  - Passed: `cd src/web && npm run lint -- src/components/System/MediaCore/index.jsx src/components/System/MediaCore/index.test.jsx`.
+- Next steps:
+  1. Continue scanning remaining non-pod MediaCore forms for any final read-first progressive disclosure cleanup.
+  2. Keep Program.cs decomposition closed for this pass unless a concrete regression or wrapper reappears.
+
 ## Update 2026-05-13 16:56:30Z
 
 - Current task: Program.cs decomposition follow-up in progress.

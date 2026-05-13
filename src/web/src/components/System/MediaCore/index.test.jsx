@@ -93,6 +93,8 @@ describe('MediaCore', () => {
     expect(screen.getByText('Advanced batch DHT retrieval controls')).toBeInTheDocument();
     expect(screen.getByText(/Cached single-descriptor retrieval is the default path/)).toBeInTheDocument();
     expect(screen.getByText(/Batch retrieval can fan out across multiple descriptors/)).toBeInTheDocument();
+    expect(screen.getByText('Advanced similarity candidate search controls')).toBeInTheDocument();
+    expect(screen.getByText(/Candidate search can scan registry entries/)).toBeInTheDocument();
   });
 
   it('focuses a pod workflow from the index card', async () => {
