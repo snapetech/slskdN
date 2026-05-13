@@ -29,6 +29,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Recorded the G6 validation pass: full frontend tests/build, full backend
   tests, repo lint, and remediation baseline results through the expected
   release branch sync guard.
+- Reconciled the feature parity plan and remediation completion report with the
+  completed validation results and remaining release coordination work.
 
 ## [2026051318-slskdn.251] — 2026-05-13
 

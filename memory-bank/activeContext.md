@@ -92,6 +92,18 @@
   1. Push local commits before any release-tag validation, if the user wants release work.
   2. Run live/E2E checks only if needed for the target release.
 
+## Update 2026-05-13 18:20:52Z
+
+- Current task: parity/reconciliation documentation cleanup complete locally.
+- Last activity:
+  - updated the feature parity plan baseline, implementation order, current snapshot, and completion pass status to match the completed validation pass;
+  - updated the remediation completion report with MediaCore/System UI safety work and validation results.
+- Validation:
+  - Documentation/status-only change after the completed G6 validation pass.
+- Next steps:
+  1. Push local commits before any release-tag validation, if the user wants release work.
+  2. Run live/E2E checks only if needed for the target release.
+
 ## Update 2026-05-13 16:56:30Z
 
 - Current task: Program.cs decomposition follow-up in progress.

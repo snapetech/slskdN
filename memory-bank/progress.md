@@ -10251,3 +10251,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T18:10:58Z] G5 route/UI parity doc cleanup: updated the route/UI parity matrix and System surfaces guide to treat MediaCore form-disclosure work as mostly covered and to keep System admin/experimental labels current as feature panels move.
 
 [2026-05-13T18:17:19Z] G6 validation pass: full frontend tests passed (`131/131` files, `716/716` tests), frontend production build passed, full backend `dotnet test --no-restore` passed (`67/67` smoke, `4056/4056` unit, `276/276` integration), and `./bin/lint` passed. `npm run check:remediation` passed all substantive checks and stopped only at the release branch sync guard because local `main` is ahead of `origin/main`.
+
+[2026-05-13T18:20:52Z] Reconciliation documentation cleanup: updated the feature parity plan and remediation completion report so the baseline, current snapshot, and work-left sections match the completed validation pass. Remaining work is release coordination plus any target-specific live/E2E checks after local commits are pushed.

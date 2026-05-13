@@ -6,10 +6,15 @@ This document records the current feature/function/network/UI assessment and the
 
 ## Current baseline
 
-- Backend build passes with zero warnings.
-- Unit tests pass: 3836 tests.
-- Web production build passes.
-- Full frontend unit tests, backend integration tests, E2E browser tests, and live Soulseek/mesh network interop tests still need to be run after the current remediation series.
+- Full backend `dotnet test --no-restore` passed on 2026-05-13: `67/67`
+  smoke, `4056/4056` unit, and `276/276` integration tests.
+- Full frontend unit tests passed on 2026-05-13: `131/131` files and
+  `716/716` tests.
+- Web production build passed on 2026-05-13.
+- `./bin/lint` passed on 2026-05-13.
+- The remediation baseline passed all substantive checks on 2026-05-13 and
+  stopped only at the release branch sync guard because local `main` was ahead
+  of `origin/main`.
 
 ## Product parity summary
 
@@ -242,9 +247,9 @@ Status: complete for baseline allowlist controls. Anonymous and non-versioned ro
 
 ## Implementation order
 
-1. Continue simplifying MediaCore pod workflow forms into task-focused panels or progressive disclosure.
+1. Continue broader G5 guided-flow productization when a concrete guided flow is prioritized.
 2. Keep compatibility-only and experimental pages intentionally visible, hidden, or documented as admin-only in `docs/route-ui-parity-matrix.md`.
-3. Run release-target validation: backend build/tests, web unit tests, web build, remediation baseline, and any required live/E2E checks.
+3. Run any required live/E2E checks for the target release after local commits are pushed.
 4. Fix concrete validation failures as targeted defects.
 5. Update `docs/network-privacy-security-surfaces.md` whenever new externally visible mesh, federation, Solid, source-feed, or visualizer surfaces are added.
 
@@ -279,14 +284,15 @@ Implemented:
 - Library Health web client double-prefix fix and tests.
 - MediaCore pod route normalization and tests.
 - Direct fetch CSRF opt-in for mutating pod and port-forwarding helpers.
-- MediaCore pod workflow index, card-driven focus filtering, focused workflow label, active-card highlight, reset action, anchors, and per-workflow safety notices.
+- MediaCore pod workflow index, card-driven focus filtering, focused workflow label, active-card highlight, reset action, anchors, per-workflow safety notices, and read-only-first advanced controls.
+- System admin and experimental panel labels.
 
 Remaining:
 
-- Simplify individual MediaCore pod forms into task-focused panels or progressive disclosure.
 - Add versioned aliases for any additional active legacy-only backend surfaces discovered during feature work.
-- Decide whether compatibility-only or experimental pages should stay visible, move behind an experimental label, or be documented as admin-only.
-- Run full validation before release: backend build/tests, web unit tests, web build, and the remediation baseline check.
+- Keep compatibility-only and experimental pages visible, labeled, hidden, or documented as admin-only as feature ownership changes.
+- Push local commits before any release-tag validation so the remediation sync guard can pass.
+- Run any required live/E2E checks for the target release.
 - Add similar focused checks when a fixed regression is cheap to encode as a script.
 
 ## Additional backend hardening checks
@@ -315,11 +321,12 @@ Completed in the final remediation pass:
 
 Intentional remaining non-versioned routes are now compatibility shims, protocol-required surfaces, OAuth callback compatibility, or documented legacy compatibility routes retained alongside versioned aliases.
 
-Work left before release is validation, not feature remediation:
+Work left before release is release coordination and any target-specific
+live/E2E checks, not planned feature remediation:
 
-- Run backend build and unit tests.
-- Run web unit tests and web build.
-- Run `npm run check:remediation`.
-- Review any failures from validation and fix them as discrete defects.
+- Push local commits before cutting a release tag so the remediation sync guard
+  can pass.
+- Run any required live/E2E checks for the target release.
+- Review any failures from those checks and fix them as discrete defects.
 
 See `docs/REMEDIATION_COMPLETION_REPORT.md` for the consolidated completion status across feature parity, route parity, security hardening, UI safety, and remediation baseline checks.

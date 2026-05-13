@@ -2808,6 +2808,7 @@
 - [2026-05-13T18:08:19Z] Completed: continue G5 System grouping by labeling admin and experimental panels in the System tab menu.
 - [2026-05-13T18:10:58Z] Completed: update route/UI parity and System surfaces docs for System admin/experimental navigation labels.
 - [2026-05-13T18:17:19Z] Completed: run G6 validation pass; full frontend tests/build, full backend tests, and repo lint passed, while remediation baseline stopped only at the release branch sync guard.
+- [2026-05-13T18:20:52Z] Completed: reconcile feature parity plan and remediation completion report with completed validation and remaining release coordination work.
 - [2026-05-13T16:38:00Z] Completed: fix Arch source build SDK floor, aggregate download timeout classification/logging, Snap package metadata, and startup logging sink crash; deployed manual build `0.0.0-manual.20260513163650.c07c237919e0` to kspls0 and verified web/API/service health.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 

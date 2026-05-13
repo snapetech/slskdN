@@ -7,6 +7,10 @@ This report consolidates the remediation work completed across feature parity, r
 - Mesh rendezvous backend, API client, System > Mesh UI, privacy warning, disabled-by-default gate, and tests.
 - Federation diagnostics backend, API client, System > Integrations UI card, warning surfacing, and tests.
 - MediaCore pod workflow index, card-driven focus filtering, reset action, section anchors, active workflow highlighting, and per-workflow risk notices.
+- MediaCore read-only-first advanced controls for pod workflows, descriptor
+  publishing/retrieval, ContentID registry, metadata portability, retrieval
+  management, perceptual hashing, and fuzzy matching.
+- System tab labels for admin and experimental panels.
 - Library Health web client route fix from double-prefixed `/api/v0/api/...` paths to shared-client relative paths.
 - MediaCore pod helper route fix from incorrect `/mediacore/podcore/*` and absolute `apiBaseUrl` usage to shared-client `/podcore/*` paths.
 - Direct fetch CSRF opt-in added for mutating pod and port-forwarding wrappers.
@@ -54,9 +58,22 @@ Anonymous controller usage is documented in `docs/ANONYMOUS_ENDPOINT_ALLOWLIST.m
 
 ## Work left before release
 
-The remaining work is validation and defect correction, not planned feature remediation:
+The remaining work is release coordination and target-specific live/E2E checks,
+not planned feature remediation:
 
-- Run `npm run check:remediation`.
-- Run backend build and unit tests.
-- Run web unit tests and web build.
-- Fix any concrete validation failures as targeted defects.
+- Push local commits before cutting a release tag so the remediation sync guard
+  can pass.
+- Run any live/E2E checks required for the target release.
+- Fix any concrete failures as targeted defects.
+
+## Validation status
+
+Validated on 2026-05-13:
+
+- Full frontend unit tests: `131/131` files and `716/716` tests passed.
+- Frontend production build passed.
+- Full backend `dotnet test --no-restore`: `67/67` smoke, `4056/4056`
+  unit, and `276/276` integration tests passed.
+- `./bin/lint` passed.
+- `npm run check:remediation` passed all substantive checks and stopped only at
+  the release branch sync guard because local `main` was ahead of `origin/main`.
