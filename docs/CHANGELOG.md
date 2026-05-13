@@ -35,6 +35,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   VirtualSoulfind provider capability visibility.
 - Reconciled remaining stale parity status wording for Soulseek mesh
   rendezvous UI/privacy/test coverage and security route-audit artifacts.
+- Added top-level Web route smoke coverage for the reconciliation plan's stale
+  route/UI visibility follow-up.
 
 ## [2026051318-slskdn.251] — 2026-05-13
 

@@ -7253,3 +7253,9 @@ Next steps: commit the MediaCore example cleanup, then re-scan remaining non-pod
 Reconciled the remaining stale parity plan wording. Soulseek mesh rendezvous is now described as having System UI, privacy language, a disabled-by-default gate, and tests; security/privacy now points at the completed route audit artifacts while preserving future threat-model upkeep.
 
 Next steps: commit this doc cleanup, then leave the remaining reconciliation scope to release coordination, live/E2E checks for the target release, adverse-network validation, and any prioritized G5 guided-flow work.
+
+## 2026-05-13T18:33:19Z Session update
+
+Added top-level Web route smoke coverage in `App.test.jsx` for the G4 stale/orphan UI reconciliation item. The table covers the primary routes plus parameterized search, pod, channel, and System paths using page mocks so route wiring is checked without loading every page's data dependencies.
+
+Next steps: run focused Web lint, commit this route-smoke reconciliation slice, then continue only with broader G5 guided-flow work or release/live validation if requested.

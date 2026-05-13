@@ -67,6 +67,7 @@ vi.mock('./Contacts/Contacts', () => ({ default: () => <div>Contacts</div> }));
 vi.mock('./Search/DiscoveryGraphAtlasPage', () => ({
   default: () => <div>Discovery Graph</div>,
 }));
+vi.mock('./Lidarr/Lidarr', () => ({ default: () => <div>Lidarr</div> }));
 vi.mock('./LoginForm', () => ({ default: () => <div>Login Form</div> }));
 vi.mock('./Messaging/Messaging', () => ({ default: () => <div>Messages</div> }));
 vi.mock('./Pods/Pods', () => ({ default: () => <div>Pods</div> }));
@@ -195,6 +196,40 @@ describe('App', () => {
     });
 
     expect(document.title).toBe('slskdN');
+  });
+
+  it.each([
+    ['/collections', 'Collections'],
+    ['/solid', 'Solid'],
+    ['/discovery-graph', 'Discovery Graph'],
+    ['/playlist-intake', 'Playlist Intake'],
+    ['/searches', 'Searches'],
+    ['/searches/123', 'Searches'],
+    ['/wishlist', 'Wishlist'],
+    ['/lidarr', 'Lidarr'],
+    ['/browse', 'Browse'],
+    ['/users', 'Users'],
+    ['/contacts', 'Contacts'],
+    ['/sharegroups', 'Share Groups'],
+    ['/shared', 'Shared With Me'],
+    ['/chat', 'Messages'],
+    ['/pods', 'Messages'],
+    ['/pods/pod-1', 'Messages'],
+    ['/pods/pod-1/channels/channel-1', 'Messages'],
+    ['/rooms', 'Messages'],
+    ['/messages', 'Messages'],
+    ['/uploads', 'Transfers'],
+    ['/downloads', 'Transfers'],
+    ['/system', 'System'],
+    ['/system/info', 'System'],
+  ])('renders the top-level route %s', async (path, expectedText) => {
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    expect((await screen.findAllByText(expectedText)).length).toBeGreaterThan(0);
   });
 
   it('shows chat activity in the header when conversations have unread messages', async () => {

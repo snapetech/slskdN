@@ -212,7 +212,11 @@ Plan:
 - Reconnect intentionally hidden surfaces.
 - Add route smoke tests for all top-level routes.
 
-Status: partly complete. Swarm visualization is intentionally tied to active swarm jobs rather than restored as a standalone route. Compatibility-only and experimental pages still need periodic visibility review when their owning feature areas change.
+Status: partly complete. Swarm visualization is intentionally tied to active
+swarm jobs rather than restored as a standalone route. Top-level route smoke
+coverage is now in `src/web/src/components/App.test.jsx`. Compatibility-only
+and experimental pages still need periodic visibility review when their owning
+feature areas change.
 
 ### G5. Advanced-feature UX productization
 
@@ -299,6 +303,8 @@ Remaining:
 
 - Add versioned aliases for any additional active legacy-only backend surfaces discovered during feature work.
 - Keep compatibility-only and experimental pages visible, labeled, hidden, or documented as admin-only as feature ownership changes.
+- Maintain the top-level route smoke table in `src/web/src/components/App.test.jsx`
+  when adding or removing primary web routes.
 - Push local commits before any release-tag validation so the remediation sync guard can pass.
 - Run any required live/E2E checks for the target release.
 - Add similar focused checks when a fixed regression is cheap to encode as a script.
