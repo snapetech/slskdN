@@ -52,6 +52,39 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z404. Do Not Run `dotnet build` And `dotnet test` In Parallel In This Repo
+
+**The Bug**: Running `dotnet build src/slskd/slskd.csproj --no-restore` and a
+focused `dotnet test ... --no-restore` at the same time can make both processes
+build `tools/slskd.BuildTasks` concurrently. One process may hold
+`tools/slskd.BuildTasks/bin/Debug/net10.0/slskd.BuildTasks.deps.json` while the
+other tries to regenerate it, causing `GenerateDepsFile` to fail with an
+`IOException`.
+
+**Files Affected**:
+- `tools/slskd.BuildTasks/slskd.BuildTasks.csproj`
+- `tools/slskd.BuildTasks/bin/Debug/net10.0/slskd.BuildTasks.deps.json`
+
+**Wrong**:
+```bash
+dotnet build src/slskd/slskd.csproj --no-restore &
+dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests" --no-restore &
+wait
+```
+
+**Correct**:
+```bash
+dotnet build src/slskd/slskd.csproj --no-restore
+dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests" --no-restore
+rm -rf tools/slskd.BuildTasks/bin
+```
+
+**Why This Keeps Happening**: The repo uses a local build task project whose
+output is shared by build and test invocations. Parallel shell tool calls are
+usually safe for reads, but .NET validation commands here can write the same
+generated build-task files. Run backend build/test validation serially unless
+the commands have isolated output directories.
+
 ### 0z403. Fully Qualify Extracted Helpers Outside Program's Imported Namespaces
 
 **The Bug**: Extracting antiforgery recovery logic into
