@@ -101,6 +101,8 @@ public static class SoulseekNetworkExceptionClassifier
             details.Contains("The underlying Tcp connection is closed", StringComparison.Ordinal) ||
             details.Contains("Download reported as failed by remote client", StringComparison.Ordinal) ||
             details.Contains("Enqueue failed due to internal error", StringComparison.Ordinal) ||
+            details.Contains("File not shared", StringComparison.Ordinal) ||
+            details.Contains("Overwhelmed with requests", StringComparison.Ordinal) ||
             details.Contains("Too many megabytes", StringComparison.Ordinal) ||
             details.Contains("Too many files", StringComparison.Ordinal) ||
             details.Contains("Transfer failed: Transfer complete", StringComparison.Ordinal) ||

@@ -254,6 +254,16 @@ public class ProgramPathNormalizationTests
         Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }
 
+    [Theory]
+    [InlineData("File not shared.")]
+    [InlineData("Overwhelmed with requests; try again later.")]
+    public void IsExpectedSoulseekNetworkException_ReturnsTrue_ForPeerTransferDenials(string message)
+    {
+        var exception = new AggregateException(new TransferRejectedException(message));
+
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
+    }
+
     [Fact]
     public void IsExpectedSoulseekNetworkException_ReturnsTrue_ForPierceFirewallConnectionFailures()
     {
