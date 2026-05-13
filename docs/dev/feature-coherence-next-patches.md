@@ -226,6 +226,9 @@ configuration-file defaulting, and default directory validation moved out of
 `Program.cs` into `Bootstrap/StartupApplicationDirectories.cs`.
 Startup configuration load/validation exception handling moved out of
 `Program.cs` into `Bootstrap/StartupConfiguration.cs`.
+Startup command-mode console output, certificate generation, and startup logo
+rendering now call extracted bootstrap helpers directly instead of routing
+through Program wrappers.
 The remaining antiforgery Program wrappers were removed after the MVC CSRF
 filter and focused tests moved to `AntiforgeryCookieRecovery` directly.
 

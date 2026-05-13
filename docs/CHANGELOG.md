@@ -40,6 +40,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   `Bootstrap/StartupApplicationDirectories`.
 - Moved startup configuration load/validation exception handling into
   `Bootstrap/StartupConfiguration`.
+- Moved startup command-mode console output, certificate generation, and startup
+  logo rendering calls into the extracted bootstrap helpers, removing the
+  remaining Program console/certificate wrappers.
 - Simplified MediaCore perceptual hash workflows by keeping similarity
   review/statistics as the default path and grouping raw audio/image hash
   computation behind advanced disclosure.

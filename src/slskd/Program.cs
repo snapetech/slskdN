@@ -283,12 +283,12 @@ namespace slskd
                 FullVersion,
                 EnvironmentVariablePrefix,
                 AppName,
+                BaseDirectory,
                 typeof(Options),
+                IsDevelopment,
+                IsCanary,
                 Log,
-                PrintLogo,
-                PrintCommandLineArguments,
-                PrintEnvironmentVariables,
-                GenerateX509Certificate))
+                Exit))
             {
                 return;
             }
@@ -358,8 +358,7 @@ namespace slskd
             StartupDiagnostics.LogStartupIdentity(
                 OptionsAtStartup,
                 startupDiagnosticsContext,
-                Log,
-                PrintLogo);
+                Log);
 
             // SQLite must have specific capabilities to function properly. this shouldn't be a concern for shrinkwrapped
             // binaries or in Docker, but if someone builds from source weird things can happen.
@@ -410,26 +409,6 @@ namespace slskd
         private static void RecreateConfigurationFileIfMissing(string configurationFile)
         {
             StartupFileSystem.RecreateConfigurationFileIfMissing(configurationFile, AppName, AppContext.BaseDirectory, Log);
-        }
-
-        private static (string Filename, string Password) GenerateX509Certificate(string password, string filename)
-        {
-            return StartupFileSystem.GenerateX509Certificate(AppName, AppContext.BaseDirectory, password, filename, Log);
-        }
-
-        private static void PrintCommandLineArguments(Type targetType)
-        {
-            StartupConsoleOutput.PrintCommandLineArguments(targetType, Log);
-        }
-
-        private static void PrintEnvironmentVariables(Type targetType, string prefix)
-        {
-            StartupConsoleOutput.PrintEnvironmentVariables(targetType, prefix, Log);
-        }
-
-        private static void PrintLogo(string version)
-        {
-            StartupConsoleOutput.PrintLogo(version, IsDevelopment, IsCanary);
         }
 
         private static void InstallShutdownTelemetry()

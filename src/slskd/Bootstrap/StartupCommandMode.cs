@@ -23,12 +23,12 @@ public static class StartupCommandMode
         string fullVersion,
         string environmentVariablePrefix,
         string appName,
+        string baseDirectory,
         Type optionsType,
+        bool isDevelopment,
+        bool isCanary,
         ILogger log,
-        Action<string> printLogo,
-        Action<Type> printCommandLineArguments,
-        Action<Type, string> printEnvironmentVariables,
-        Func<string, string, (string Filename, string Password)> generateX509Certificate)
+        Action<int> exit)
     {
         if (options.ShowVersion)
         {
@@ -40,17 +40,17 @@ public static class StartupCommandMode
         {
             if (!options.NoLogo)
             {
-                printLogo(fullVersion);
+                StartupConsoleOutput.PrintLogo(fullVersion, isDevelopment, isCanary);
             }
 
             if (options.ShowHelp)
             {
-                printCommandLineArguments(optionsType);
+                StartupConsoleOutput.PrintCommandLineArguments(optionsType, log);
             }
 
             if (options.ShowEnvironmentVariables)
             {
-                printEnvironmentVariables(optionsType, environmentVariablePrefix);
+                StartupConsoleOutput.PrintEnvironmentVariables(optionsType, environmentVariablePrefix, log);
             }
 
             return true;
@@ -58,7 +58,12 @@ public static class StartupCommandMode
 
         if (options.GenerateCertificate)
         {
-            var (filename, password) = generateX509Certificate(Cryptography.Random.GetBytes(16).ToBase62(), $"{appName}.pfx");
+            var (filename, password) = StartupFileSystem.GenerateX509Certificate(
+                appName,
+                baseDirectory,
+                Cryptography.Random.GetBytes(16).ToBase62(),
+                $"{appName}.pfx",
+                log);
 
             log.Information("Certificate exported to {Filename}", filename);
             Console.WriteLine($"Password: {password}");
@@ -70,6 +75,7 @@ public static class StartupCommandMode
             if (options.GenerateSecret < 16 || options.GenerateSecret > 255)
             {
                 log.Error("Invalid command line input: secret length must be between 16 and 255, inclusive");
+                exit(1);
                 return true;
             }
 

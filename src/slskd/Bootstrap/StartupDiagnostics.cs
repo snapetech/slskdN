@@ -27,12 +27,11 @@ public static class StartupDiagnostics
     public static void LogStartupIdentity(
         OptionsAtStartup optionsAtStartup,
         StartupDiagnosticsContext context,
-        ILogger log,
-        Action<string> printLogo)
+        ILogger log)
     {
         if (!optionsAtStartup.Flags.NoLogo)
         {
-            printLogo(context.FullVersion);
+            StartupConsoleOutput.PrintLogo(context.FullVersion, context.IsDevelopment, context.IsCanary);
         }
 
         log.Information("Version: {Version}", context.FullVersion);

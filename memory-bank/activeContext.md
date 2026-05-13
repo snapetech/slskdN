@@ -7105,3 +7105,9 @@ Next steps: run lint and commit this configuration split, then continue with rem
 Continued the reconciliation plan in MediaCore by keeping similarity review/statistics as the default perceptual-hash path and grouping raw audio/image hash computation behind advanced disclosure. Focused MediaCore component tests and focused Web lint passed.
 
 Next steps: commit the MediaCore perceptual-hash cleanup, then continue with remaining non-pod MediaCore forms or another small Program startup wrapper split.
+
+## 2026-05-13T18:25:00Z Session update
+
+Continued Program.cs decomposition by moving startup command-mode console output, certificate generation, and startup logo rendering calls into extracted bootstrap helpers directly. `Program.cs` is now 424 lines. Build and focused Program/log lifecycle tests passed.
+
+Next steps: run lint, commit the console/certificate wrapper cleanup, then continue with remaining Program startup/logging wrappers or non-pod MediaCore forms.
