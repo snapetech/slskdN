@@ -37,6 +37,7 @@ import React, {
 import { useNavigate, useParams } from 'react-router-dom';
 
 const NETWORKS = ['all', 'soulseek', 'mesh'];
+const ROOM_DIRECTORY_MAX_RETRIES = 20;
 
 const COMPOSER_COMMANDS = [
   {
@@ -252,7 +253,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         return previous;
       }
 
-      if (roomDirectoryRetryCount.current < 4 && !roomDirectoryRetryTimer.current) {
+      if (roomDirectoryRetryCount.current < ROOM_DIRECTORY_MAX_RETRIES && !roomDirectoryRetryTimer.current) {
         roomDirectoryRetryCount.current += 1;
         retryScheduled = true;
         roomDirectoryRetryTimer.current = window.setTimeout(() => {
@@ -289,6 +290,16 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
       console.error('Failed to load available rooms:', error);
     });
   }, [loadAvailableRooms, roomAddOpen]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      roomDirectoryRetryCount.current = 0;
+      loadAvailableRooms().catch((error) => {
+        console.error('Failed to warm available rooms:', error);
+      });
+    }, 3_000);
+    return () => window.clearTimeout(timer);
+  }, [loadAvailableRooms]);
 
   const visiblePodChannels = useMemo(
     () => podChannels.filter((channel) => !isPodDirectChannel(channel)),
@@ -1544,17 +1555,17 @@ const RoomJoinSearch = ({
       {!query ? (
         <div className="msgv2-room-search-hint">
           {isLoading
-            ? 'Loading room directory...'
+            ? 'Loading room directory... type a room name any time.'
             : availableRooms.length > 0
               ? `${availableRooms.length.toLocaleString()} available rooms. Type to filter or enter a new room name.`
               : requested
-                ? 'Room directory is not available yet. Type a room name to join or create it.'
+                ? 'Still waiting for the room directory. Type a room name to join or create it.'
                 : 'Type a room name to join or create it.'}
         </div>
       ) : (
         <>
           {isLoading && matches.length === 0 && (
-            <div className="msgv2-room-search-hint">Loading matching rooms...</div>
+            <div className="msgv2-room-search-hint">Loading matching rooms... press Enter to join or create #{query} now.</div>
           )}
           {matches.length > 0 && (
             <div
