@@ -163,6 +163,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Moved runtime version/canary/development flag and executable-path calculation
   out of `Program.cs` into a focused bootstrap helper while preserving the
   public Program compatibility surface.
+- Simplified MediaCore descriptor publishing by keeping retrieval/statistics as
+  the default path and grouping descriptor publish, batch publish, update, and
+  republish controls behind advanced disclosure.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

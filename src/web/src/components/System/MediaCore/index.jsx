@@ -3849,42 +3849,50 @@ const MediaCore = () => {
               </Card.Description>
             </Card.Content>
             <Card.Content>
-              <Form>
-                <Form.Field>
-                  <label>ContentID</label>
-                  <Input
-                    onChange={(e) => setPublishContentId(e.target.value)}
-                    placeholder="content:audio:track:mb-12345"
-                    value={publishContentId}
-                  />
-                </Form.Field>
-                <Form.Group widths="equal">
+              <Message info size="small">
+                Descriptor publishing changes DHT-visible metadata. Retrieval
+                and stats are the default workflow; publishing controls are
+                grouped as advanced operations.
+              </Message>
+              <details>
+                <summary>Advanced descriptor publishing controls</summary>
+                <Form style={{ marginTop: '1em' }}>
                   <Form.Field>
-                    <label>Codec</label>
+                    <label>ContentID</label>
                     <Input
-                      onChange={(e) => setPublishCodec(e.target.value)}
-                      placeholder="mp3, flac, etc."
-                      value={publishCodec}
+                      onChange={(e) => setPublishContentId(e.target.value)}
+                      placeholder="content:audio:track:mb-12345"
+                      value={publishContentId}
                     />
                   </Form.Field>
-                  <Form.Field>
-                    <label>Size (bytes)</label>
-                    <Input
-                      onChange={(e) => setPublishSize(e.target.value)}
-                      type="number"
-                      value={publishSize}
-                    />
-                  </Form.Field>
-                </Form.Group>
-                <Button
-                  disabled={!publishContentId.trim() || publishingDescriptor}
-                  loading={publishingDescriptor}
-                  onClick={handlePublishDescriptor}
-                  primary
-                >
-                  Publish Descriptor
-                </Button>
-              </Form>
+                  <Form.Group widths="equal">
+                    <Form.Field>
+                      <label>Codec</label>
+                      <Input
+                        onChange={(e) => setPublishCodec(e.target.value)}
+                        placeholder="mp3, flac, etc."
+                        value={publishCodec}
+                      />
+                    </Form.Field>
+                    <Form.Field>
+                      <label>Size (bytes)</label>
+                      <Input
+                        onChange={(e) => setPublishSize(e.target.value)}
+                        type="number"
+                        value={publishSize}
+                      />
+                    </Form.Field>
+                  </Form.Group>
+                  <Button
+                    disabled={!publishContentId.trim() || publishingDescriptor}
+                    loading={publishingDescriptor}
+                    onClick={handlePublishDescriptor}
+                    primary
+                  >
+                    Publish Descriptor
+                  </Button>
+                </Form>
+              </details>
 
               {publishResult && (
                 <div style={{ marginTop: '1em' }}>
@@ -3927,25 +3935,33 @@ const MediaCore = () => {
               </Card.Description>
             </Card.Content>
             <Card.Content>
-              <Form>
-                <Form.Field>
-                  <label>ContentIDs (one per line)</label>
-                  <TextArea
-                    onChange={(e) => setBatchContentIds(e.target.value)}
-                    placeholder="content:audio:track:mb-12345&#10;content:video:movie:imdb-tt0111161&#10;..."
-                    rows={6}
-                    value={batchContentIds}
-                  />
-                </Form.Field>
-                <Button
-                  disabled={!batchContentIds.trim() || publishingBatch}
-                  loading={publishingBatch}
-                  onClick={handlePublishBatch}
-                  primary
-                >
-                  Publish Batch
-                </Button>
-              </Form>
+              <Message info size="small">
+                Batch publishing can expose multiple descriptors at once. Keep
+                retrieval and stats as the default path; use this only after
+                checking each ContentID.
+              </Message>
+              <details>
+                <summary>Advanced batch publishing controls</summary>
+                <Form style={{ marginTop: '1em' }}>
+                  <Form.Field>
+                    <label>ContentIDs (one per line)</label>
+                    <TextArea
+                      onChange={(e) => setBatchContentIds(e.target.value)}
+                      placeholder="content:audio:track:mb-12345&#10;content:video:movie:imdb-tt0111161&#10;..."
+                      rows={6}
+                      value={batchContentIds}
+                    />
+                  </Form.Field>
+                  <Button
+                    disabled={!batchContentIds.trim() || publishingBatch}
+                    loading={publishingBatch}
+                    onClick={handlePublishBatch}
+                    primary
+                  >
+                    Publish Batch
+                  </Button>
+                </Form>
+              </details>
 
               {batchPublishResult && (
                 <div style={{ marginTop: '1em' }}>
@@ -3995,50 +4011,58 @@ const MediaCore = () => {
               </Card.Description>
             </Card.Content>
             <Card.Content>
-              <Form>
-                <Form.Field>
-                  <label>Target ContentID</label>
-                  <Input
-                    onChange={(e) => setUpdateTargetId(e.target.value)}
-                    placeholder="ContentID to update"
-                    value={updateTargetId}
-                  />
-                </Form.Field>
-                <Form.Group widths="equal">
+              <Message info size="small">
+                Descriptor updates alter an existing publication. Retrieve and
+                verify the descriptor first, then use this advanced path only
+                for deliberate metadata corrections.
+              </Message>
+              <details>
+                <summary>Advanced descriptor update controls</summary>
+                <Form style={{ marginTop: '1em' }}>
                   <Form.Field>
-                    <label>New Codec</label>
+                    <label>Target ContentID</label>
                     <Input
-                      onChange={(e) => setUpdateCodec(e.target.value)}
-                      placeholder="Leave empty to keep current"
-                      value={updateCodec}
+                      onChange={(e) => setUpdateTargetId(e.target.value)}
+                      placeholder="ContentID to update"
+                      value={updateTargetId}
                     />
                   </Form.Field>
+                  <Form.Group widths="equal">
+                    <Form.Field>
+                      <label>New Codec</label>
+                      <Input
+                        onChange={(e) => setUpdateCodec(e.target.value)}
+                        placeholder="Leave empty to keep current"
+                        value={updateCodec}
+                      />
+                    </Form.Field>
+                    <Form.Field>
+                      <label>New Size (bytes)</label>
+                      <Input
+                        onChange={(e) => setUpdateSize(e.target.value)}
+                        placeholder="Leave empty to keep current"
+                        value={updateSize}
+                      />
+                    </Form.Field>
+                  </Form.Group>
                   <Form.Field>
-                    <label>New Size (bytes)</label>
+                    <label>New Confidence (0.0-1.0)</label>
                     <Input
-                      onChange={(e) => setUpdateSize(e.target.value)}
+                      onChange={(e) => setUpdateConfidence(e.target.value)}
                       placeholder="Leave empty to keep current"
-                      value={updateSize}
+                      value={updateConfidence}
                     />
                   </Form.Field>
-                </Form.Group>
-                <Form.Field>
-                  <label>New Confidence (0.0-1.0)</label>
-                  <Input
-                    onChange={(e) => setUpdateConfidence(e.target.value)}
-                    placeholder="Leave empty to keep current"
-                    value={updateConfidence}
-                  />
-                </Form.Field>
-                <Button
-                  disabled={!updateTargetId.trim() || updatingDescriptor}
-                  loading={updatingDescriptor}
-                  onClick={handleUpdateDescriptor}
-                  primary
-                >
-                  Update Descriptor
-                </Button>
-              </Form>
+                  <Button
+                    disabled={!updateTargetId.trim() || updatingDescriptor}
+                    loading={updatingDescriptor}
+                    onClick={handleUpdateDescriptor}
+                    primary
+                  >
+                    Update Descriptor
+                  </Button>
+                </Form>
+              </details>
 
               {updateResult && (
                 <div style={{ marginTop: '1em' }}>
@@ -4081,13 +4105,6 @@ const MediaCore = () => {
             <Card.Content>
               <Button.Group fluid>
                 <Button
-                  disabled={republishing}
-                  loading={republishing}
-                  onClick={handleRepublishExpiring}
-                >
-                  Republish Expiring
-                </Button>
-                <Button
                   disabled={loadingStats}
                   loading={loadingStats}
                   onClick={handleLoadPublishingStats}
@@ -4095,6 +4112,21 @@ const MediaCore = () => {
                   Load Stats
                 </Button>
               </Button.Group>
+              <details style={{ marginTop: '1em' }}>
+                <summary>Advanced descriptor republishing controls</summary>
+                <Message warning size="small">
+                  Republish only after reviewing publishing statistics. This
+                  refreshes DHT-visible descriptor records that are close to
+                  expiry.
+                </Message>
+                <Button
+                  disabled={republishing}
+                  loading={republishing}
+                  onClick={handleRepublishExpiring}
+                >
+                  Republish Expiring
+                </Button>
+              </details>
 
               {/* Republish Results */}
               {republishResult && (

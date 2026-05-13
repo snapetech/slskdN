@@ -1,3 +1,18 @@
+## Update 2026-05-13 16:04:20Z
+
+- Current task: parity/reconciliation list follow-up in progress.
+- Last activity:
+  - simplified MediaCore descriptor publishing so retrieval/statistics remain the default path;
+  - grouped descriptor publish, batch publish, descriptor update, and republish-expiring controls behind advanced disclosure;
+  - kept unrelated local edits in workflows, `global.json`, and DownloadService files separate from this work.
+- Validation:
+  - Passed: `cd src/web && npm run lint -- src/components/System/MediaCore/index.jsx src/components/System/MediaCore/index.test.jsx`.
+  - Passed: `cd src/web && npm test -- System/MediaCore/index.test.jsx` (`3/3`).
+- Next steps:
+  1. Continue simplifying additional advanced MediaCore forms into task-focused panels or progressive disclosure.
+  2. Keep unrelated local edits in workflows, `global.json`, and DownloadService files separate from reconciliation commits.
+  3. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 16:01:27Z
 
 - Current task: Program.cs decomposition follow-up in progress.
