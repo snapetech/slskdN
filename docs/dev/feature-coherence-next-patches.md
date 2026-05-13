@@ -143,6 +143,8 @@ Status: first pass complete. `docs/dependencies.md` now classifies active runtim
 
 Remaining follow-up:
 
+- Revisit `dotNetRDF` only if Solid/WebID moves out of this app.
+- Revisit `MathNet.Numerics` only if MediaCore hashing changes implementation.
 - Move Microsoft.Build and Microsoft.CodeAnalysis tooling out of the runtime app project.
 - Decide whether telemetry/metrics and LAN discovery need explicit feature gates beyond existing options.
 

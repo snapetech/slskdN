@@ -10059,4 +10059,4 @@ Code quality improvements were completed as part of Option A:
 
 [2026-05-13T00:04:31Z] Feature-gate foundation: added `FeatureId`, `FeatureStatus`, `IFeatureGate`, and `FeatureGate` backed by existing options, added enabled-by-default experimental switches under `feature`, and gated SongID, mesh, DHT, pods, social federation, VirtualSoulfind, and multi-source APIs with unit coverage for the reusable MVC filter.
 
-[2026-05-13T00:17:13Z] Dependency coherence inventory: updated `docs/dependencies.md` with call-site-backed ownership classifications for active packages, marked `dotNetRDF` and `MathNet.Numerics` as prune candidates without active runtime call sites, and kept Microsoft.Build/CodeAnalysis packages flagged as build-only relocation work.
+[2026-05-13T00:17:13Z] Dependency coherence inventory: updated `docs/dependencies.md` with call-site-backed ownership classifications for active packages. Confirmed `dotNetRDF` and `MathNet.Numerics` still have active Solid/WebID and MediaCore hashing call sites after a failed prune attempt, and kept Microsoft.Build/CodeAnalysis packages flagged as build-only relocation work.
