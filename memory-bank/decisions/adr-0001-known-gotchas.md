@@ -396,6 +396,38 @@ empty directory. Cache the last successful server snapshot in the backend so
 all clients get stable suggestions across transient room-list no-response
 windows.
 
+### 0z397. Room Picker Must Show Loading Before Degraded Empty State
+
+**The Bug**: Messaging V2 opened the room picker with "Room directory
+unavailable or empty" before the first room-directory request finished. The
+API could load hundreds of rooms seconds later, but humans saw a broken empty
+state first and assumed room search did not work.
+
+**Files Affected**:
+- `src/web/src/components/Messaging/MessagingV2.jsx`
+- `src/web/src/components/Messaging/MessagingV2.css`
+
+**Wrong**:
+```jsx
+availableRooms.length > 0
+  ? `${availableRooms.length} available`
+  : 'Room directory unavailable or empty.'
+```
+
+**Correct**:
+```jsx
+isLoading
+  ? 'Loading room directory...'
+  : availableRooms.length > 0
+    ? `${availableRooms.length} available rooms. Type to filter.`
+    : 'Room directory is not available yet. Type a room name to join or create it.'
+```
+
+**Why This Keeps Happening**: Optional Soulseek discovery is slow and flaky,
+but the picker is an interactive command surface. It needs explicit loading,
+loaded, and degraded states; an empty array before the first response is not the
+same UX state as an unavailable room directory.
+
 ### 0z384. Render-Time Work Must Not Scale With Hidden Or Unchanged Data
 
 **The Bug**: Performance fixes removed first-load blockers, but some render
