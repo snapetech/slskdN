@@ -161,7 +161,7 @@ Plan:
 - Add System -> Mesh panel card with privacy warning, status, add/remove controls, and user list.
 - Add tests.
 
-Status: backend status endpoint and System -> Mesh UI controls implemented. Tests still pending.
+Status: complete. Backend status endpoint, System -> Mesh UI controls, privacy framing, disabled-by-default gate, and tests are implemented.
 
 ### G2. Generated route inventory
 
@@ -173,7 +173,7 @@ Plan:
 - Commit generated `docs/system-surfaces-current.md`.
 - Mark each route as UI-called, external/API-only, or anonymous-public.
 
-Status: pending.
+Status: complete. `scripts/check-route-inventory.sh` generates and verifies `docs/system-surfaces-current.md`, and the remediation baseline keeps the generated route inventory fresh.
 
 ### G3. API version consistency
 
@@ -186,7 +186,7 @@ Plan:
 - Add versioned aliases for inconsistent routes.
 - Preserve old routes where compatibility matters.
 
-Status: pending.
+Status: complete for the active remediation tranche. Versioned aliases were added for active legacy-only native slskdN, VirtualSoulfind, Audio, Discography, Label Crate, and Library Health route families while preserving compatibility routes.
 
 ### G4. Stale/orphan UI modules
 
@@ -199,7 +199,7 @@ Plan:
 - Reconnect intentionally hidden surfaces.
 - Add route smoke tests for all top-level routes.
 
-Status: pending.
+Status: partly complete. Swarm visualization is intentionally tied to active swarm jobs rather than restored as a standalone route. Compatibility-only and experimental pages still need periodic visibility review when their owning feature areas change.
 
 ### G5. Advanced-feature UX productization
 
@@ -211,7 +211,7 @@ Plan:
 - Reduce cognitive load in System by grouping experimental/admin panels.
 - Add clear “experimental” labels where behavior is not mature.
 
-Status: pending.
+Status: in progress. MediaCore pod workflow navigation, focus filtering, focused workflow labels, active-card highlighting, reset action, anchors, and per-workflow safety notices are implemented. Remaining work is simplifying individual advanced pod forms into task-focused panels or progressive disclosure.
 
 ### G6. Full validation pass
 
@@ -225,7 +225,7 @@ Plan:
 - Run Soulseek runtime interop contract tests.
 - Run mesh/DHT adverse-network smoke tests.
 
-Status: pending.
+Status: partly complete. Backend tests and lint passed in recent remediation work, and the combined remediation baseline exists. Release validation still needs the explicit web unit/build pass and any live/E2E checks required for the target release.
 
 ### G7. Security allowlist and threat model
 
@@ -238,18 +238,15 @@ Plan:
 - Threat-model mesh service fabric, relay, streaming tickets, source feeds, ActivityPub/WebFinger, Solid, and external visualizer.
 - Add tests for expected auth/CSRF behavior.
 
-Status: pending.
+Status: complete for baseline allowlist controls. Anonymous and non-versioned route allowlists are documented and checked by the remediation baseline. Deeper threat-model notes should still be updated when new externally visible mesh, federation, Solid, source-feed, or visualizer surfaces are added.
 
 ## Implementation order
 
-1. Implement Mesh rendezvous UX and tests.
-2. Generate route inventory and current surface documentation.
-3. Add route/UI parity matrix.
-4. Clean or reconnect stale UI modules.
-5. Normalize or document API version exceptions.
-6. Add full-route smoke tests and run full frontend test suite.
-7. Run backend integration/E2E/network validation.
-8. Complete security allowlist and threat model.
+1. Continue simplifying MediaCore pod workflow forms into task-focused panels or progressive disclosure.
+2. Keep compatibility-only and experimental pages intentionally visible, hidden, or documented as admin-only in `docs/route-ui-parity-matrix.md`.
+3. Run release-target validation: backend build/tests, web unit tests, web build, remediation baseline, and any required live/E2E checks.
+4. Fix concrete validation failures as targeted defects.
+5. Update `docs/network-privacy-security-surfaces.md` whenever new externally visible mesh, federation, Solid, source-feed, or visualizer surfaces are added.
 
 ## Completion criteria
 

@@ -6135,97 +6135,16 @@ const MediaCore = () => {
               </PodWorkflowNotice>
             </Card.Content>
 
-            {/* Pod Registration */}
             <Card.Content>
-              <Header size="small">Register Pod for Discovery</Header>
-              <Form>
-                <Form.TextArea
-                  label="Pod JSON (must have Visibility: Listed)"
-                  onChange={(e) => setPodToRegister(e.target.value)}
-                  placeholder='{"podId": "pod:artist:mb:daft-punk-hash", "name": "Daft Punk Fans", "visibility": "Listed", "focusContentId": "content:audio:artist:daft-punk", "tags": ["electronic", "french-house"]}'
-                  rows={3}
-                  value={podToRegister}
-                />
-                <Button
-                  disabled={registeringPod || !podToRegister.trim()}
-                  loading={registeringPod}
-                  onClick={handleRegisterPodForDiscovery}
-                  primary
-                >
-                  Register Pod
-                </Button>
-              </Form>
-
-              {podRegistrationResult && (
-                <div style={{ marginTop: '1em' }}>
-                  {podRegistrationResult.error ? (
-                    <Message error>
-                      <p>
-                        Failed to register pod: {podRegistrationResult.error}
-                      </p>
-                    </Message>
-                  ) : (
-                    <Message success>
-                      <Message.Header>
-                        Pod Registered for Discovery
-                      </Message.Header>
-                      <p>
-                        <strong>Pod ID:</strong> {podRegistrationResult.podId}
-                        <br />
-                        <strong>Discovery Keys:</strong>{' '}
-                        {podRegistrationResult.discoveryKeys?.join(', ')}
-                        <br />
-                        <strong>Registered:</strong>{' '}
-                        {new Date(
-                          podRegistrationResult.registeredAt,
-                        ).toLocaleString()}
-                        <br />
-                        <strong>Expires:</strong>{' '}
-                        {new Date(
-                          podRegistrationResult.expiresAt,
-                        ).toLocaleString()}
-                      </p>
-                    </Message>
-                  )}
-                </div>
-              )}
-            </Card.Content>
-
-            <Card.Content>
-              <Header size="small">Unregister Pod from Discovery</Header>
-              <Form>
-                <Form.Input
-                  label="Pod ID"
-                  onChange={(e) => setPodToUnregister(e.target.value)}
-                  placeholder="pod:artist:mb:daft-punk-hash"
-                  value={podToUnregister}
-                />
-                <Button
-                  color="red"
-                  disabled={unregisteringPod || !podToUnregister.trim()}
-                  loading={unregisteringPod}
-                  onClick={handleUnregisterPodFromDiscovery}
-                >
-                  Unregister Pod
-                </Button>
-              </Form>
-
-              {podUnregistrationResult && (
-                <div style={{ marginTop: '1em' }}>
-                  {podUnregistrationResult.error ? (
-                    <Message error>
-                      <p>
-                        Failed to unregister pod:{' '}
-                        {podUnregistrationResult.error}
-                      </p>
-                    </Message>
-                  ) : (
-                    <Message success>
-                      <p>Pod unregistered from discovery successfully</p>
-                    </Message>
-                  )}
-                </div>
-              )}
+              <Message
+                info
+                size="small"
+              >
+                <Message.Header>Find pods first</Message.Header>
+                Name, tag, content, and limited registry searches are the
+                normal discovery path. Registry mutation controls are grouped
+                below because they publish or remove public discovery records.
+              </Message>
             </Card.Content>
 
             <Card.Content>
@@ -6494,6 +6413,116 @@ const MediaCore = () => {
                   )}
                 </Grid.Column>
               </Grid>
+            </Card.Content>
+
+            <Card.Content>
+              <details>
+                <summary>
+                  Advanced registry publishing controls
+                </summary>
+                <Message
+                  size="small"
+                  warning
+                >
+                  Registering, unregistering, updating, or refreshing pod
+                  discovery entries changes public DHT-visible pod metadata.
+                </Message>
+                <Grid stackable>
+                  <Grid.Column width={8}>
+                    <Header size="small">Register Pod for Discovery</Header>
+                    <Form>
+                      <Form.TextArea
+                        label="Pod JSON (must have Visibility: Listed)"
+                        onChange={(e) => setPodToRegister(e.target.value)}
+                        placeholder='{"podId": "pod:artist:mb:daft-punk-hash", "name": "Daft Punk Fans", "visibility": "Listed", "focusContentId": "content:audio:artist:daft-punk", "tags": ["electronic", "french-house"]}'
+                        rows={3}
+                        value={podToRegister}
+                      />
+                      <Button
+                        disabled={registeringPod || !podToRegister.trim()}
+                        loading={registeringPod}
+                        onClick={handleRegisterPodForDiscovery}
+                        primary
+                      >
+                        Register Pod
+                      </Button>
+                    </Form>
+
+                    {podRegistrationResult && (
+                      <div style={{ marginTop: '1em' }}>
+                        {podRegistrationResult.error ? (
+                          <Message error>
+                            <p>
+                              Failed to register pod:{' '}
+                              {podRegistrationResult.error}
+                            </p>
+                          </Message>
+                        ) : (
+                          <Message success>
+                            <Message.Header>
+                              Pod Registered for Discovery
+                            </Message.Header>
+                            <p>
+                              <strong>Pod ID:</strong>{' '}
+                              {podRegistrationResult.podId}
+                              <br />
+                              <strong>Discovery Keys:</strong>{' '}
+                              {podRegistrationResult.discoveryKeys?.join(', ')}
+                              <br />
+                              <strong>Registered:</strong>{' '}
+                              {new Date(
+                                podRegistrationResult.registeredAt,
+                              ).toLocaleString()}
+                              <br />
+                              <strong>Expires:</strong>{' '}
+                              {new Date(
+                                podRegistrationResult.expiresAt,
+                              ).toLocaleString()}
+                            </p>
+                          </Message>
+                        )}
+                      </div>
+                    )}
+                  </Grid.Column>
+
+                  <Grid.Column width={8}>
+                    <Header size="small">Unregister Pod from Discovery</Header>
+                    <Form>
+                      <Form.Input
+                        label="Pod ID"
+                        onChange={(e) => setPodToUnregister(e.target.value)}
+                        placeholder="pod:artist:mb:daft-punk-hash"
+                        value={podToUnregister}
+                      />
+                      <Button
+                        color="red"
+                        disabled={unregisteringPod || !podToUnregister.trim()}
+                        loading={unregisteringPod}
+                        onClick={handleUnregisterPodFromDiscovery}
+                      >
+                        Unregister Pod
+                      </Button>
+                    </Form>
+
+                    {podUnregistrationResult && (
+                      <div style={{ marginTop: '1em' }}>
+                        {podUnregistrationResult.error ? (
+                          <Message error>
+                            <p>
+                              Failed to unregister pod:{' '}
+                              {podUnregistrationResult.error}
+                            </p>
+                          </Message>
+                        ) : (
+                          <Message success>
+                            <p>Pod unregistered from discovery successfully</p>
+                          </Message>
+                        )}
+                      </div>
+                    )}
+                  </Grid.Column>
+                </Grid>
+              </details>
             </Card.Content>
           </Card>
         </Grid.Column>

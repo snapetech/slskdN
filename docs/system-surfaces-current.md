@@ -1,6 +1,6 @@
 # Current API surface inventory
 
-Generated: 2026-05-12T16:51:11Z
+Generated: 2026-05-13T01:50:01Z
 
 This inventory is generated from controller attributes. It is intended for parity/security review, not as a replacement for Swagger or integration tests.
 
@@ -112,7 +112,7 @@ Route bucket policy: new web-consumed JSON APIs should be versioned. Non-version
 | `src/slskd/SocialFederation/API/TasteRecommendationsController.cs` | `"api/v{version:apiVersion}/taste-recommendations"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | no | 4 |
 | `src/slskd/SocialFederation/API/WebFingerController.cs` | `".well-known"` | federation-protocol | [Authorize(Policy = AuthPolicy.Any)] | yes | yes | 1 |
 | `src/slskd/Solid/API/SolidController.cs` | `"api/v{version:apiVersion}/solid"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | no | 2 |
-| `src/slskd/SongID/API/SongIdController.cs` | `"api/v{version:apiVersion}/songid"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] | yes | no | 6 |
+| `src/slskd/SongID/API/SongIdController.cs` | `"api/v{version:apiVersion}/songid"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] | yes | no | 7 |
 | `src/slskd/SoulseekDiscovery/API/SoulseekDiscoveryController.cs` | `"api/v{version:apiVersion}/soulseek"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | no | 16 |
 | `src/slskd/SourceFeeds/API/SourceFeedImportsController.cs` | `"api/source-feed-imports"<br>"api/v{version:apiVersion}/source-feed-imports"` | versioned | [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 3 |
 | `src/slskd/SourceFeeds/API/SpotifyConnectionController.cs` | `"api/integrations/spotify"<br>"api/v{version:apiVersion}/integrations/spotify"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | yes | 4 |
@@ -187,53 +187,53 @@ None found.
   - 102:    [HttpGet("radio/{partyId}/{contentId}")]
   - 103:    [AllowAnonymous]
 - src/slskd/PodCore/API/Controllers/PodDhtController.cs
-  - 48:    [HttpPost("publish")]
-  - 97:    [HttpPost("update")]
-  - 146:    [HttpDelete("unpublish/{*podId}")]
-  - 184:    [HttpGet("metadata/{*podId}")]
-  - 185:    [AllowAnonymous]
-  - 220:    [HttpPost("refresh/{*podId}")]
-  - 257:    [HttpGet("stats")]
+  - 49:    [HttpPost("publish")]
+  - 98:    [HttpPost("update")]
+  - 147:    [HttpDelete("unpublish/{*podId}")]
+  - 185:    [HttpGet("metadata/{*podId}")]
+  - 186:    [AllowAnonymous]
+  - 221:    [HttpPost("refresh/{*podId}")]
+  - 258:    [HttpGet("stats")]
 - src/slskd/PodCore/API/Controllers/PodDiscoveryController.cs
-  - 45:    [HttpPost("register")]
-  - 94:    [HttpDelete("unregister/{podId}")]
-  - 132:    [HttpPost("update")]
-  - 181:    [HttpGet("name/{name}")]
-  - 182:    [AllowAnonymous]
-  - 209:    [HttpGet("tag/{tag}")]
-  - 210:    [AllowAnonymous]
-  - 237:    [HttpGet("tags/{tags}")]
-  - 238:    [AllowAnonymous]
-  - 277:    [HttpGet("all")]
-  - 278:    [AllowAnonymous]
-  - 304:    [HttpGet("content/{*contentId}")]
-  - 330:    [HttpGet("stats")]
-  - 350:    [HttpPost("refresh")]
+  - 46:    [HttpPost("register")]
+  - 95:    [HttpDelete("unregister/{podId}")]
+  - 133:    [HttpPost("update")]
+  - 182:    [HttpGet("name/{name}")]
+  - 183:    [AllowAnonymous]
+  - 210:    [HttpGet("tag/{tag}")]
+  - 211:    [AllowAnonymous]
+  - 238:    [HttpGet("tags/{tags}")]
+  - 239:    [AllowAnonymous]
+  - 278:    [HttpGet("all")]
+  - 279:    [AllowAnonymous]
+  - 305:    [HttpGet("content/{*contentId}")]
+  - 331:    [HttpGet("stats")]
+  - 351:    [HttpPost("refresh")]
 - src/slskd/PodCore/API/Controllers/PodVerificationController.cs
-  - 45:    [HttpGet("membership/{podId}/{peerId}")]
-  - 46:    [AllowAnonymous]
-  - 76:    [HttpPost("message")]
-  - 77:    [AllowAnonymous]
-  - 122:    [HttpGet("role/{podId}/{peerId}/{requiredRole}")]
-  - 123:    [AllowAnonymous]
-  - 153:    [HttpGet("stats")]
+  - 46:    [HttpGet("membership/{podId}/{peerId}")]
+  - 47:    [AllowAnonymous]
+  - 77:    [HttpPost("message")]
+  - 78:    [AllowAnonymous]
+  - 123:    [HttpGet("role/{podId}/{peerId}/{requiredRole}")]
+  - 124:    [AllowAnonymous]
+  - 154:    [HttpGet("stats")]
 - src/slskd/SocialFederation/API/ActivityPubController.cs
-  - 98:        [HttpGet("{actorName}")]
-  - 99:        [AllowAnonymous]
-  - 151:        [HttpGet("{actorName}/inbox")]
-  - 152:        [AllowAnonymous]
-  - 200:        [HttpPost("{actorName}/inbox")]
-  - 201:        [AllowAnonymous]
-  - 292:        [HttpGet("{actorName}/outbox")]
-  - 293:        [AllowAnonymous]
-  - 352:        [HttpGet("{actorName}/followers")]
-  - 353:        [AllowAnonymous]
-  - 379:        [HttpGet("{actorName}/following")]
-  - 380:        [AllowAnonymous]
-  - 417:        [HttpPost("{actorName}/outbox")]
+  - 99:        [HttpGet("{actorName}")]
+  - 100:        [AllowAnonymous]
+  - 152:        [HttpGet("{actorName}/inbox")]
+  - 153:        [AllowAnonymous]
+  - 201:        [HttpPost("{actorName}/inbox")]
+  - 202:        [AllowAnonymous]
+  - 293:        [HttpGet("{actorName}/outbox")]
+  - 294:        [AllowAnonymous]
+  - 353:        [HttpGet("{actorName}/followers")]
+  - 354:        [AllowAnonymous]
+  - 380:        [HttpGet("{actorName}/following")]
+  - 381:        [AllowAnonymous]
+  - 418:        [HttpPost("{actorName}/outbox")]
 - src/slskd/SocialFederation/API/WebFingerController.cs
-  - 60:        [HttpGet("webfinger")]
-  - 61:        [AllowAnonymous]
+  - 61:        [HttpGet("webfinger")]
+  - 62:        [AllowAnonymous]
 - src/slskd/SourceFeeds/API/SpotifyConnectionController.cs
   - 33:    [HttpGet("status")]
   - 41:    [HttpPost("authorize")]

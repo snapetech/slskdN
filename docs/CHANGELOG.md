@@ -84,6 +84,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Moved multi-source transfer, swarm, tracing, warm-cache, playback-priority,
   and related job-manifest registrations out of the broad experimental graph
   into a dedicated bootstrap extension.
+- Reconciled the feature parity plan with completed route/security remediation
+  work and simplified the MediaCore pod discovery workflow by keeping read-only
+  discovery actions first while grouping public registry mutation controls
+  behind progressive disclosure.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

@@ -1,3 +1,20 @@
+## Update 2026-05-13 01:50:00Z
+
+- Current task: parity/reconciliation list follow-up in progress.
+- Last activity:
+  - reconciled stale statuses in `docs/FEATURE_PARITY_AND_GAP_PLAN.md` with completed route/security remediation;
+  - regenerated `docs/system-surfaces-current.md`;
+  - simplified MediaCore pod discovery so read-only discovery actions come first and public registry mutation controls are grouped under advanced disclosure;
+  - updated `scripts/check-outbound-http-guards.sh` to follow the new bootstrap ownership for guarded HTTP client registration;
+  - documented the bootstrap-check ownership gotcha in ADR-0001 and committed it separately.
+- Validation:
+  - Passed: `cd src/web && npm test -- System/MediaCore/index.test.jsx` (`3/3`).
+  - Passed: `cd src/web && npm run lint -- src/components/System/MediaCore/index.jsx src/components/System/MediaCore/index.test.jsx`.
+  - Partial: `npm run check:remediation` passes all focused remediation checks, then fails at release branch sync because local `main` is ahead of `origin/main`.
+- Next steps:
+  1. Commit the parity/reconciliation slice.
+  2. Continue simplifying other MediaCore pod workflow forms or push the current commits before rerunning the release-sync-inclusive remediation baseline.
+
 ## Update 2026-05-13 01:33:49Z
 
 - Current task: Program.cs decomposition multi-source split completed.

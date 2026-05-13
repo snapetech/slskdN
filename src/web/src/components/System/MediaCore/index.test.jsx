@@ -58,6 +58,9 @@ describe('MediaCore', () => {
       'href',
       '#podcore-dht-publishing',
     );
+    expect(screen.getByText('Find pods first')).toBeInTheDocument();
+    expect(screen.getByText('Advanced registry publishing controls')).toBeInTheDocument();
+    expect(screen.getByText(/changes public DHT-visible pod metadata/)).toBeInTheDocument();
   });
 
   it('focuses a pod workflow from the index card', async () => {

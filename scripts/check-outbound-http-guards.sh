@@ -48,13 +48,13 @@ while IFS= read -r file; do
   fi
 done < <(find "$repo_root/src/slskd" -type f -name '*.cs' | sort)
 
-expect_literal src/slskd/Program.cs 'AddHttpClient<SocialFederation.IHttpSignatureKeyFetcher, SocialFederation.HttpSignatureKeyFetcher>'
-expect_literal src/slskd/Program.cs '.ConfigurePrimaryHttpMessageHandler(Common.Security.OutboundUriGuard.CreateNoRedirectHandler)'
+expect_literal src/slskd/Bootstrap/ApplicationHostServiceCollectionExtensions.cs 'AddHttpClient<SocialFederation.IHttpSignatureKeyFetcher, SocialFederation.HttpSignatureKeyFetcher>'
+expect_literal src/slskd/Bootstrap/ApplicationHostServiceCollectionExtensions.cs '.ConfigurePrimaryHttpMessageHandler(Common.Security.OutboundUriGuard.CreateNoRedirectHandler)'
 expect_literal src/slskd/SocialFederation/ServiceCollectionExtensions.cs '.ConfigurePrimaryHttpMessageHandler(OutboundUriGuard.CreateNoRedirectHandler)'
 expect_literal src/slskd/Sharing/API/SharesController.cs 'using var httpHandler = OutboundUriGuard.CreateNoRedirectHandler();'
 
 if grep -Fq 'new SocketsHttpHandler { AllowAutoRedirect = false }' "$repo_root/src/slskd/SocialFederation/ServiceCollectionExtensions.cs" ||
-  grep -Fq 'new SocketsHttpHandler { AllowAutoRedirect = false }' "$repo_root/src/slskd/Program.cs"; then
+  grep -Fq 'new SocketsHttpHandler { AllowAutoRedirect = false }' "$repo_root/src/slskd/Bootstrap/ApplicationHostServiceCollectionExtensions.cs"; then
   printf 'ActivityPub HTTP clients must use OutboundUriGuard.CreateNoRedirectHandler, not a plain no-redirect handler\n' >&2
   failed=1
 fi
