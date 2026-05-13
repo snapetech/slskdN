@@ -1369,19 +1369,37 @@ namespace slskd
                     ///     Gets the minimum time in seconds a download must remain in a failed state before it is retried.
                     /// </summary>
                     [Range(10, 86400)]
-                    public int RetryDelaySeconds { get; init; } = 300;
+                    public int RetryDelaySeconds { get; init; } = 1800;
 
                     /// <summary>
                     ///     Gets the interval in seconds between auto-retry scans.
                     /// </summary>
                     [Range(10, 3600)]
-                    public int CheckIntervalSeconds { get; init; } = 60;
+                    public int CheckIntervalSeconds { get; init; } = 300;
 
                     /// <summary>
                     ///     Gets the maximum number of automatic retry attempts per file per process lifetime.
                     /// </summary>
                     [Range(1, 100)]
-                    public int MaxAttempts { get; init; } = 10;
+                    public int MaxAttempts { get; init; } = 5;
+
+                    /// <summary>
+                    ///     Gets the maximum number of failed files automatically re-queued in one scan.
+                    /// </summary>
+                    [Range(1, 100)]
+                    public int MaxFilesPerCycle { get; init; } = 10;
+
+                    /// <summary>
+                    ///     Gets the maximum number of failed files automatically re-queued for one peer in one scan.
+                    /// </summary>
+                    [Range(1, 20)]
+                    public int MaxFilesPerPeerPerCycle { get; init; } = 1;
+
+                    /// <summary>
+                    ///     Gets the minimum time in seconds before auto-retry contacts the same peer again.
+                    /// </summary>
+                    [Range(60, 86400)]
+                    public int PeerCooldownSeconds { get; init; } = 900;
                 }
             }
         }

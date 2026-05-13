@@ -4,6 +4,7 @@
 namespace slskd.Tests.Unit.Transfers.Downloads;
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -411,6 +412,66 @@ public class DownloadServiceTests
             service.Dispose();
             DeleteDatabase(databasePath);
         }
+    }
+
+    [Fact]
+    public void CreateRetryPlan_RespectsGlobalPerPeerAndCooldownBudgets()
+    {
+        var now = DateTime.UtcNow;
+        var opts = new slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions();
+        var transfers = new[]
+        {
+            CreateFailedDownload("alice", "a-1.flac", now.AddMinutes(-40)),
+            CreateFailedDownload("alice", "a-2.flac", now.AddMinutes(-39)),
+            CreateFailedDownload("bob", "b-1.flac", now.AddMinutes(-38)),
+            CreateFailedDownload("carol", "c-1.flac", now.AddMinutes(-37)),
+            CreateFailedDownload("dave", "d-1.flac", now.AddMinutes(-36)),
+            CreateFailedDownload("erin", "e-1.flac", now.AddMinutes(-35)),
+            CreateFailedDownload("frank", "f-1.flac", now.AddMinutes(-34)),
+            CreateFailedDownload("grace", "g-1.flac", now.AddMinutes(-33)),
+            CreateFailedDownload("heidi", "h-1.flac", now.AddMinutes(-32)),
+            CreateFailedDownload("ivan", "i-1.flac", now.AddMinutes(-31)),
+            CreateFailedDownload("judy", "j-1.flac", now.AddMinutes(-30)),
+            CreateFailedDownload("mallory", "m-1.flac", now.AddMinutes(-29)),
+        };
+
+        var plan = DownloadAutoRetryService.CreateRetryPlan(
+            transfers,
+            new HashSet<Guid>(),
+            new System.Collections.Concurrent.ConcurrentDictionary<string, int>(),
+            new System.Collections.Concurrent.ConcurrentDictionary<string, DateTime>(
+                new[] { new KeyValuePair<string, DateTime>("carol", now.AddMinutes(5)) },
+                StringComparer.OrdinalIgnoreCase),
+            opts,
+            now);
+
+        Assert.Equal(10, plan.Count);
+        Assert.DoesNotContain(plan, t => t.Username == "carol");
+        Assert.Single(plan.Where(t => t.Username == "alice"));
+        Assert.All(
+            plan.GroupBy(t => t.Username, StringComparer.OrdinalIgnoreCase),
+            group => Assert.True(group.Count() <= opts.MaxFilesPerPeerPerCycle));
+    }
+
+    [Fact]
+    public void CreateRetryPlan_SkipsAlreadyRetriedAndMaxAttemptFiles()
+    {
+        var now = DateTime.UtcNow;
+        var alreadyRetried = CreateFailedDownload("alice", "old.flac", now.AddMinutes(-40));
+        var maxed = CreateFailedDownload("bob", "maxed.flac", now.AddMinutes(-39));
+        var eligible = CreateFailedDownload("carol", "ok.flac", now.AddMinutes(-38));
+        var retryCounts = new System.Collections.Concurrent.ConcurrentDictionary<string, int>();
+        retryCounts[$"{maxed.Username}:{maxed.Filename}"] = new slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions().MaxAttempts;
+
+        var plan = DownloadAutoRetryService.CreateRetryPlan(
+            new[] { alreadyRetried, maxed, eligible },
+            new HashSet<Guid> { alreadyRetried.Id },
+            retryCounts,
+            new System.Collections.Concurrent.ConcurrentDictionary<string, DateTime>(),
+            new slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions(),
+            now);
+
+        Assert.Equal(new[] { eligible.Id }, plan.Select(t => t.Id));
     }
 
     [Fact]
@@ -1011,6 +1072,19 @@ public class DownloadServiceTests
                 "Failed to download file Music\\remote-failed.flac from user alice: Failed to establish a direct or indirect transfer connection to alice (203.0.113.10:50300)",
                 new ConnectionException("Failed to establish a direct or indirect transfer connection to alice (203.0.113.10:50300)")),
             _ => throw new ArgumentOutOfRangeException(nameof(failureKind)),
+        };
+
+    private static slskd.Transfers.Transfer CreateFailedDownload(string username, string filename, DateTime endedAt)
+        => new()
+        {
+            Id = Guid.NewGuid(),
+            Username = username,
+            Direction = TransferDirection.Download,
+            Filename = filename,
+            Size = 1234,
+            RequestedAt = endedAt.AddMinutes(-5),
+            EndedAt = endedAt,
+            State = TransferStates.Completed | TransferStates.Errored,
         };
 
     private static Mock<ISoulseekClient> CreateHangingSoulseekClient()

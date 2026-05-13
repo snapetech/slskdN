@@ -31,6 +31,9 @@ namespace slskd.Transfers.Downloads
         // Tracks how many times each (username, filename) has been auto-retried this process lifetime.
         private readonly ConcurrentDictionary<string, int> retryCounts = new();
 
+        // Keeps retries from repeatedly contacting the same Soulseek peer after failures.
+        private readonly ConcurrentDictionary<string, DateTime> peerRetryCooldowns = new(StringComparer.OrdinalIgnoreCase);
+
         public DownloadAutoRetryService(
             IDownloadService downloadService,
             ISoulseekClient client,
@@ -93,16 +96,29 @@ namespace slskd.Transfers.Downloads
                      && t.EndedAt < cutoff,
                 includeRemoved: false);
 
-            var toRetry = failed.Where(t => !retriedIds.Contains(t.Id)).ToList();
+            var now = DateTime.UtcNow;
+            var plan = CreateRetryPlan(
+                failed,
+                retriedIds,
+                retryCounts,
+                peerRetryCooldowns,
+                opts,
+                now);
 
-            if (toRetry.Count == 0)
+            if (plan.Count == 0)
             {
                 return;
             }
 
-            log.Information("[AUTO-RETRY] Found {Count} failed downloads eligible for retry", toRetry.Count);
+            log.Information(
+                "[AUTO-RETRY] Re-queueing {Count} failed download(s) across {PeerCount} peer(s); limits: global={GlobalLimit}, perPeer={PerPeerLimit}, peerCooldown={PeerCooldownSeconds}s",
+                plan.Count,
+                plan.Select(t => t.Username).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
+                opts.MaxFilesPerCycle,
+                opts.MaxFilesPerPeerPerCycle,
+                opts.PeerCooldownSeconds);
 
-            foreach (var group in toRetry.GroupBy(t => t.Username))
+            foreach (var group in plan.GroupBy(t => t.Username))
             {
                 if (ct.IsCancellationRequested)
                 {
@@ -129,6 +145,8 @@ namespace slskd.Transfers.Downloads
                 {
                     retriedIds.Add(t.Id);
                 }
+
+                peerRetryCooldowns[username] = DateTime.UtcNow.AddSeconds(opts.PeerCooldownSeconds);
 
                 try
                 {
@@ -161,5 +179,29 @@ namespace slskd.Transfers.Downloads
         }
 
         private static string RetryKey(slskd.Transfers.Transfer t) => $"{t.Username}:{t.Filename}";
+
+        internal static IReadOnlyList<slskd.Transfers.Transfer> CreateRetryPlan(
+            IEnumerable<slskd.Transfers.Transfer> failed,
+            ISet<Guid> alreadyRetried,
+            ConcurrentDictionary<string, int> retryCounts,
+            ConcurrentDictionary<string, DateTime> peerRetryCooldowns,
+            slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions opts,
+            DateTime now)
+        {
+            var perPeerLimit = Math.Max(1, opts.MaxFilesPerPeerPerCycle);
+            var globalLimit = Math.Max(1, opts.MaxFilesPerCycle);
+
+            return failed
+                .Where(t => !alreadyRetried.Contains(t.Id))
+                .Where(t => retryCounts.GetOrAdd(RetryKey(t), 0) < opts.MaxAttempts)
+                .Where(t => !peerRetryCooldowns.TryGetValue(t.Username, out var retryAfter) || retryAfter <= now)
+                .GroupBy(t => t.Username, StringComparer.OrdinalIgnoreCase)
+                .OrderBy(g => g.Min(t => t.EndedAt ?? DateTime.MaxValue))
+                .SelectMany(g => g
+                    .OrderBy(t => t.EndedAt ?? DateTime.MaxValue)
+                    .Take(perPeerLimit))
+                .Take(globalLimit)
+                .ToList();
+        }
     }
 }
