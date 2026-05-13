@@ -10267,3 +10267,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T18:37:49Z] Reconciliation closeout wording: marked G4 stale/orphan UI and G5 advanced-feature UX as complete for the current reconciliation pass, with future work limited to periodic visibility reviews or explicitly prioritized new guided-flow pages.
 
 [2026-05-13T18:42:45Z] Reconciliation validation follow-up: `npm run check:soulseek-network-health` passed, installed the missing local Playwright Chromium browser, then ran focused no-connect Web E2E core page smoke with `SLSKDN_TEST_NO_CONNECT=true npm run test:e2e:ci -- e2e/core-pages.spec.ts`; all 4 tests passed against an isolated harness node.
+
+[2026-05-13T18:44:14Z] Mesh/adverse validation follow-up: focused deterministic integration slice passed with `dotnet test tests/slskd.Tests.Integration/slskd.Tests.Integration.csproj --no-restore --filter "FullyQualifiedName~MeshSearchLoopbackTests|FullyQualifiedName~MeshOnlyTests"` (`5/5`), covering mesh search loopback and mesh-only partition behavior without live Soulseek credentials.

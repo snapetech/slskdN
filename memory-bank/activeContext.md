@@ -7283,3 +7283,9 @@ Next steps: commit this closeout wording. Remaining items are release/live valid
 Ran the remaining locally actionable validation slice. `npm run check:soulseek-network-health` passed. The first focused E2E run exposed only a missing Playwright Chromium cache, so `npx playwright install chromium` was run; then `SLSKDN_TEST_NO_CONNECT=true npm run test:e2e:ci -- e2e/core-pages.spec.ts` passed all 4 tests against an isolated harness node.
 
 Next steps: commit the validation documentation. Remaining reconciliation scope is push/release coordination, target-specific live/E2E validation, live/stub Soulseek interop, and adverse-network mesh/DHT testing.
+
+## 2026-05-13T18:44:14Z Session update
+
+Ran the focused deterministic mesh/adverse integration slice: `MeshSearchLoopbackTests` and `MeshOnlyTests` passed (`5/5`). This covers mesh search loopback and mesh-only partition behavior without requiring live Soulseek credentials.
+
+Next steps: commit the validation documentation. Remaining reconciliation scope is push/release coordination plus any target-specific live-account or external-network validation the release owner wants.

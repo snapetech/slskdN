@@ -2816,6 +2816,7 @@
 - [2026-05-13T18:36:36Z] Completed: map G5 guided-flow tracks to current System and top-level UI surfaces so remaining productization work is limited to genuinely missing workflow pages.
 - [2026-05-13T18:37:49Z] Completed: reconcile G4/G5 status wording so the current local pass is closed and future work is clearly scoped.
 - [2026-05-13T18:42:45Z] Completed: run reconciliation validation follow-up for Soulseek network-health guardrails and focused no-connect Web E2E core page smoke.
+- [2026-05-13T18:44:14Z] Completed: run focused deterministic mesh/adverse integration validation for mesh search loopback and mesh-only partition behavior.
 - [2026-05-13T16:38:00Z] Completed: fix Arch source build SDK floor, aggregate download timeout classification/logging, Snap package metadata, and startup logging sink crash; deployed manual build `0.0.0-manual.20260513163650.c07c237919e0` to kspls0 and verified web/API/service health.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 

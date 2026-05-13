@@ -87,3 +87,6 @@ Validated on 2026-05-13:
   `SLSKDN_TEST_NO_CONNECT=true npm run test:e2e:ci -- e2e/core-pages.spec.ts`
   (`4/4`). The first attempt only exposed a missing local Playwright Chromium
   browser cache; after `npx playwright install chromium`, the smoke passed.
+- Focused deterministic mesh/adverse integration slice passed:
+  `dotnet test tests/slskd.Tests.Integration/slskd.Tests.Integration.csproj --no-restore --filter "FullyQualifiedName~MeshSearchLoopbackTests|FullyQualifiedName~MeshOnlyTests"`
+  (`5/5`).

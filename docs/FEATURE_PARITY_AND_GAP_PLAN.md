@@ -19,6 +19,9 @@ This document records the current feature/function/network/UI assessment and the
 - Focused no-connect Web E2E core page smoke passed on 2026-05-13:
   `SLSKDN_TEST_NO_CONNECT=true npm run test:e2e:ci -- e2e/core-pages.spec.ts`
   (`4/4`).
+- Focused deterministic mesh/adverse integration slice passed on 2026-05-13:
+  `dotnet test tests/slskd.Tests.Integration/slskd.Tests.Integration.csproj --no-restore --filter "FullyQualifiedName~MeshSearchLoopbackTests|FullyQualifiedName~MeshOnlyTests"`
+  (`5/5`).
 
 ## Product parity summary
 
@@ -246,7 +249,7 @@ Plan:
 - Run Soulseek runtime interop contract tests.
 - Run mesh/DHT adverse-network smoke tests.
 
-Status: partly complete. Full frontend unit tests (`131/131` files, `716/716` tests), frontend production build, full backend `dotnet test --no-restore` (`67/67` smoke, `4056/4056` unit, `276/276` integration), and `./bin/lint` passed on 2026-05-13. The remediation baseline passed all substantive checks and stopped only at the release branch sync guard because local `main` is ahead of `origin/main`. Focused no-connect Web E2E core page smoke also passed on 2026-05-13 (`4/4`) after installing the missing local Playwright Chromium browser. Release validation still needs target-specific live/E2E checks after the branch is pushed.
+Status: partly complete. Full frontend unit tests (`131/131` files, `716/716` tests), frontend production build, full backend `dotnet test --no-restore` (`67/67` smoke, `4056/4056` unit, `276/276` integration), and `./bin/lint` passed on 2026-05-13. The remediation baseline passed all substantive checks and stopped only at the release branch sync guard because local `main` is ahead of `origin/main`. Focused no-connect Web E2E core page smoke also passed on 2026-05-13 (`4/4`) after installing the missing local Playwright Chromium browser. Focused deterministic mesh/adverse integration tests passed on 2026-05-13 (`5/5`). Release validation still needs target-specific live/E2E checks after the branch is pushed.
 
 ### G7. Security allowlist and threat model
 
