@@ -492,10 +492,13 @@ even though production DI is still correct.
 **The Bug**: Extracting MediaCore/PodCore registrations from the experimental
 feature graph initially failed clean build because the moved block used
 `AddContentDomainProviders()` and `IRoomService`, but the new bootstrap file
-did not import `slskd.VirtualSoulfind.Core` or `slskd.Messaging`.
+did not import `slskd.VirtualSoulfind.Core` or `slskd.Messaging`. The follow-on
+mesh split repeated the pattern for `IMeshContentFetcher`, which lives under
+`slskd.Streaming`.
 
 **Files Affected**:
 - `src/slskd/Bootstrap/MediaCorePodServiceCollectionExtensions.cs`
+- `src/slskd/Bootstrap/ExperimentalMeshServiceCollectionExtensions.cs`
 
 **Wrong**:
 ```csharp
@@ -505,6 +508,7 @@ using slskd.Transfers.MultiSource;
 **Correct**:
 ```csharp
 using slskd.Messaging;
+using slskd.Streaming;
 using slskd.Transfers.MultiSource;
 using slskd.VirtualSoulfind.Core;
 ```
