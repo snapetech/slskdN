@@ -17686,3 +17686,33 @@ catch (InvalidOperationException)
 implementation detail because returning `ex.Message` feels useful during
 manual testing. Public API responses need stable client-facing text; log
 details server-side only when operators need the raw exception.
+
+### 0z357. Wishlist Searches Must Use Network Scope With Wishlist Safety Source
+
+**The Bug**: Wishlist automation used `SearchScope.Wishlist`, which bypassed
+the council guard that expects Soulseek-facing automation to use the normal
+network search path with `safetySource: "wishlist"`. That weakens shared search
+budget enforcement and makes wishlist behavior drift from the manually tested
+network search pipeline.
+
+**Files Affected**:
+- `src/slskd/Wishlist/WishlistService.cs`
+- `tests/slskd.Tests.Unit/Wishlist/WishlistControllerTests.cs`
+
+**Wrong**:
+```csharp
+var scope = SearchScope.Wishlist;
+await SearchService.StartAsync(searchId, query, scope, searchOptions, requestedProviders: null, safetySource: "wishlist");
+```
+
+**Correct**:
+```csharp
+var scope = SearchScope.Network;
+await SearchService.StartAsync(searchId, query, scope, searchOptions, requestedProviders: null, safetySource: "wishlist");
+```
+
+**Why This Keeps Happening**: A semantically named scope feels appropriate for
+feature-specific automation, but Soulseek network health depends on all
+network-facing automation going through the same conservative search path and
+budget source. Feature labels belong in the safety source, not in a separate
+search scope that can bypass guardrails.
