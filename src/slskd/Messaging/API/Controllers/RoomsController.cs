@@ -44,6 +44,9 @@ namespace slskd.Messaging.API
     [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
     public class RoomsController : ControllerBase
     {
+        private static readonly object RoomDirectorySyncRoot = new();
+        private static IReadOnlyList<RoomInfoResponse> lastKnownRoomDirectory = Array.Empty<RoomInfoResponse>();
+
         public RoomsController(
             ISoulseekClient soulseekClient,
             IRoomService roomService,
@@ -334,23 +337,15 @@ namespace slskd.Messaging.API
             }
             catch (TimeoutException)
             {
-                return Ok(Array.Empty<RoomInfoResponse>());
+                return Ok(GetLastKnownRoomDirectory());
             }
             catch (InvalidOperationException)
             {
-                return Ok(Array.Empty<RoomInfoResponse>());
+                return Ok(GetLastKnownRoomDirectory());
             }
 
-            var response = new List<RoomInfoResponse>();
-
-            response.AddRange(list.Public.Select(r => RoomInfoResponse.FromRoomInfo(r)));
-            response.AddRange(list.Private.Select(r => RoomInfoResponse.FromRoomInfo(r, isPrivate: true)));
-            response.AddRange(list.Owned.Select(r => RoomInfoResponse.FromRoomInfo(r, isPrivate: true, isOwned: true)));
-
-            foreach (var room in response)
-            {
-                room.IsModerated = list.ModeratedRoomNames.Contains(room.Name);
-            }
+            var response = MapRoomList(list);
+            SetLastKnownRoomDirectory(response);
 
             return Ok(response);
         }
@@ -473,6 +468,38 @@ namespace slskd.Messaging.API
         private static string NormalizeRequiredValue(string? value)
         {
             return value?.Trim() ?? string.Empty;
+        }
+
+        private static List<RoomInfoResponse> MapRoomList(RoomList list)
+        {
+            var response = new List<RoomInfoResponse>();
+
+            response.AddRange(list.Public.Select(r => RoomInfoResponse.FromRoomInfo(r)));
+            response.AddRange(list.Private.Select(r => RoomInfoResponse.FromRoomInfo(r, isPrivate: true)));
+            response.AddRange(list.Owned.Select(r => RoomInfoResponse.FromRoomInfo(r, isPrivate: true, isOwned: true)));
+
+            foreach (var room in response)
+            {
+                room.IsModerated = list.ModeratedRoomNames.Contains(room.Name);
+            }
+
+            return response;
+        }
+
+        private static IReadOnlyList<RoomInfoResponse> GetLastKnownRoomDirectory()
+        {
+            lock (RoomDirectorySyncRoot)
+            {
+                return lastKnownRoomDirectory.ToArray();
+            }
+        }
+
+        private static void SetLastKnownRoomDirectory(IReadOnlyList<RoomInfoResponse> rooms)
+        {
+            lock (RoomDirectorySyncRoot)
+            {
+                lastKnownRoomDirectory = rooms.ToArray();
+            }
         }
     }
 }

@@ -126,6 +126,7 @@ public class RoomsControllerTests
     [Fact]
     public async Task GetRooms_When_Room_List_Times_Out_Returns_Empty_List()
     {
+        ResetRoomDirectoryCache();
         var client = new Mock<ISoulseekClient>();
         client.SetupGet(x => x.State).Returns(SoulseekClientStates.LoggedIn);
         client
@@ -138,6 +139,33 @@ public class RoomsControllerTests
         var ok = Assert.IsType<OkObjectResult>(result);
         var rooms = Assert.IsAssignableFrom<IEnumerable<RoomInfoResponse>>(ok.Value);
         Assert.Empty(rooms);
+    }
+
+    [Fact]
+    public async Task GetRooms_When_Room_List_Times_Out_Returns_Last_Good_Directory()
+    {
+        ResetRoomDirectoryCache();
+        var client = new Mock<ISoulseekClient>();
+        client.SetupGet(x => x.State).Returns(SoulseekClientStates.LoggedIn);
+        client
+            .SetupSequence(x => x.GetRoomListAsync(null))
+            .ReturnsAsync(new RoomList(
+                new[] { new RoomInfo("ambient", 12) },
+                Array.Empty<RoomInfo>(),
+                Array.Empty<RoomInfo>(),
+                Array.Empty<string>()))
+            .ThrowsAsync(new TimeoutException());
+        var controller = CreateController(client: client.Object);
+
+        await controller.GetRooms();
+
+        var result = await controller.GetRooms();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var rooms = Assert.IsAssignableFrom<IEnumerable<RoomInfoResponse>>(ok.Value).ToArray();
+        var room = Assert.Single(rooms);
+        Assert.Equal("ambient", room.Name);
+        Assert.Equal(12, room.UserCount);
     }
 
     private static RoomsController CreateController(
@@ -177,5 +205,13 @@ public class RoomsControllerTests
             });
 
         return tracker;
+    }
+
+    private static void ResetRoomDirectoryCache()
+    {
+        var cache = typeof(RoomsController).GetField(
+            "lastKnownRoomDirectory",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        cache?.SetValue(null, Array.Empty<RoomInfoResponse>());
     }
 }

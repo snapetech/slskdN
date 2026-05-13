@@ -35,6 +35,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Fixed Messaging V2 room search/rejoin recovery when the initial room
   directory request times out and Soulseek reports an existing room join as
   "no response."
+- Cached the last successful backend Soulseek room directory so transient
+  room-list timeouts do not clear search suggestions.
 - Updated the dependency ownership inventory with call-site-backed
   classifications and explicit prune/relocation follow-ups.
 - Documented the app project analyzer suppressions, including the debug-only
