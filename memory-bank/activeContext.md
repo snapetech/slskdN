@@ -7301,3 +7301,31 @@ Next steps: commit the validation documentation. Remaining reconciliation scope 
 Updated the core Soulseek risk wording so it reflects the passed optional live mesh smoke. Broader downstream compatibility checks remain release-owner scope instead of local reconciliation cleanup.
 
 Next steps: commit this wording cleanup. Remaining reconciliation work is branch sync/release coordination and any release-owner-specific checks.
+
+## 2026-05-13T19:05:00Z Session update
+
+Answered the live-test coverage gap by adding an optional slskdN/Soulseek.NET runtime native transfer smoke. The test starts a full slskdN instance, exposes its Soulseek listen port to the harness, uses a deterministic test endpoint override for the raw runtime client, then verifies raw `SoulseekClient` browse and download against a tiny slskdN-hosted probe. Both the flag-unset and live-flag test runs passed.
+
+Next steps: upstream `slskd/slskd` daemon compatibility still needs an external upstream binary/container harness if release owners want that specific app-to-app check; local reconciliation coverage now includes slskdN mesh live transfer and raw Soulseek.NET runtime native transfer.
+
+## 2026-05-13T19:15:00Z Session update
+
+Added the upstream `slskd/slskd` compatibility harness. The runner can use `SLSKDN_UPSTREAM_SLSKD_BINARY_PATH` or clone/build upstream into `/tmp/slskdn-upstream-compat/slskd`; the test starts upstream plus slskdN, scans an upstream-hosted probe, and has slskdN enqueue the native Soulseek download. Upstream built successfully, and the default opt-in-off integration path passed.
+
+Live same-host validation currently reaches login, share scan, enqueue, and upstream upload request, then fails because upstream tries to connect back to slskdN through the public Soulseek endpoint reported by the server. That local endpoint is not routable here. The test is useful for a two-host or port-forwarded release environment; same-host NAT/firewall runs need routable listen ports or they will fail at the upstream upload callback stage.
+
+## 2026-05-13T19:30:03Z Session update
+
+Extended the upstream compatibility harness for per-credential VPN isolation. Full-instance runners now lease VPN configs through a shared allocator, so an upstream daemon and a slskdN daemon can run through different WireGuard namespaces in the same test. The runner also has an opt-in namespace entrypoint that runs `natpmpc` before daemon startup to claim the daemon's Soulseek listen port when the provider supports it.
+
+Validation: the inert `SlskdnSoulseekRuntimeInteropTests` integration filter passed (`2/2`). Live VPN runs with Proton configs 2/3 reached login, share scan, API control, and slskdN enqueue across separate namespaces, but transfer completion still requires inbound VPN port forwarding. With NAT-PMP claiming enabled, the provider gateway `10.2.0.1` returned `the gateway does not support nat-pmp`, so this local VPN stack cannot complete upstream app-to-app native transfers until working forwarded-port configs/static forwards are available.
+
+Correction: config 2 is marked `NAT-PMP (Port Forwarding) = off`; configs 3 and 4 are NAT-PMP capable. The harness now skips NAT-PMP-off configs when port-forward claiming is enabled. It also follows the Proton behavior documented and used by slskR: accept a random public port, rewrite `soulseek.listen_port` before daemon login, and redirect the provider-mapped private port to the rewritten listener inside the namespace. Live upstream `slskd` -> slskdN native transfer passed with separate Proton configs 3/4.
+
+## 2026-05-13T20:10:00Z Session update
+
+Implemented the upstream PR idea pass in slskdN style without copying upstream code. Current changes include group overlap validation, safe completed-download destination routing with migration, derived download batch summaries, named browser-local search filters, shift-range file selection, configured native Soulseek liked/disliked interest publishing, and Lidarr/Wishlist acquisition hardening.
+
+Validation so far: focused backend unit tests passed (`36/36`), `dotnet build src/slskd/slskd.csproj -c Release --no-restore` passed, `cd src/web && npm run lint` passed, and `cd src/web && npm run build` passed.
+
+Next steps: run repo lint/full backend tests after final formatting cleanup, then decide whether to deploy this build to kspls0 for live validation.

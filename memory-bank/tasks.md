@@ -2819,6 +2819,11 @@
 - [2026-05-13T18:44:14Z] Completed: run focused deterministic mesh/adverse integration validation for mesh search loopback and mesh-only partition behavior.
 - [2026-05-13T18:47:32Z] Completed: run optional live Soulseek-account mesh smoke for the reconciliation interop gap.
 - [2026-05-13T18:48:39Z] Completed: reconcile stale core Soulseek live/stub interop risk wording after live mesh validation passed.
+- [2026-05-13T19:05:00Z] Completed: add optional live slskdN-to-raw-Soulseek.NET runtime browse/download transfer coverage for the reconciliation interop gap.
+- [2026-05-13T19:15:00Z] Completed: add optional upstream slskd compatibility harness and live transfer test; local same-host live run exposed a routable-endpoint requirement for upstream upload callbacks.
+- [2026-05-13T19:30:03Z] Completed: extend the upstream compatibility harness so each live credential set can run through a unique VPN namespace/config and optionally claim a NAT-PMP Soulseek listen-port forward before daemon login.
+- [2026-05-13T19:41:08Z] Completed: correct the upstream compatibility VPN harness for Proton NAT-PMP random public ports and verify live upstream slskd -> slskdN native transfer through separate NAT-PMP-capable Proton configs.
+- [2026-05-13T20:10:00Z] Completed: implement selected upstream PR ideas in slskdN style: group overlap validation, safe download destination routing, derived batch summaries, named search filters, shift-range file selection, configured native interests, and Lidarr/Wishlist hardening.
 - [2026-05-13T16:38:00Z] Completed: fix Arch source build SDK floor, aggregate download timeout classification/logging, Snap package metadata, and startup logging sink crash; deployed manual build `0.0.0-manual.20260513163650.c07c237919e0` to kspls0 and verified web/API/service health.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
