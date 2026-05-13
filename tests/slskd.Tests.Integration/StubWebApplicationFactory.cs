@@ -253,6 +253,7 @@ public class StubWebApplicationFactory : WebApplicationFactory<ProgramStub>
                     // Mesh services for remote pod download
                     services.AddSingleton<IMeshContentFetcher, StubMeshContentFetcher>();
                     services.AddSingleton<IMeshDirectory, StubMeshDirectory>();
+                    services.AddSingleton<IMeshStreamTicketService, MeshStreamTicketService>();
 
                     // Bridge (NicotinePlus / legacy client) — BridgeController, BridgeAdminController
                     services.AddSingleton<StubBridgeApi>();

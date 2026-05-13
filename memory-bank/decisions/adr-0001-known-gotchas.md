@@ -52,6 +52,37 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z411. Test Host Service Overrides Must Track Controller Constructor Dependencies
+
+**The Bug**: `SearchActionsController` gained an `IMeshStreamTicketService`
+constructor dependency, but the integration test host only registered the
+production core DI path and its own search/mesh stubs. Full integration tests
+then failed controller activation with "Unable to resolve service" even though
+the app project and focused unit tests built cleanly.
+
+**Files Affected**:
+- `src/slskd/Search/API/Controllers/SearchActionsController.cs`
+- `tests/slskd.Tests.Integration/StubWebApplicationFactory.cs`
+
+**Wrong**:
+```csharp
+services.AddSingleton<IMeshContentFetcher, StubMeshContentFetcher>();
+services.AddSingleton<IMeshDirectory, StubMeshDirectory>();
+```
+
+**Correct**:
+```csharp
+services.AddSingleton<IMeshContentFetcher, StubMeshContentFetcher>();
+services.AddSingleton<IMeshDirectory, StubMeshDirectory>();
+services.AddSingleton<IMeshStreamTicketService, MeshStreamTicketService>();
+```
+
+**Why This Keeps Happening**: Integration factories often replace large parts
+of production DI with stubs, so adding a constructor dependency to a controller
+requires updating both the production composition root and any test-host
+composition roots. Focused unit tests that instantiate controllers manually do
+not prove MVC activation will work in the integration host.
+
 ### 0z410. Reconstruct Browse Paths And Seed Endpoint Caches In Same-Host Soulseek Transfer Tests
 
 **The Bug**: A raw Soulseek.NET client could browse a slskdN-hosted probe but
