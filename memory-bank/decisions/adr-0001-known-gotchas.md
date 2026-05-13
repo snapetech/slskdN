@@ -52,6 +52,38 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z414. Stream Ticket Controllers Must Preserve Validation Messages
+
+**The Bug**: Peer stream ticket validation threw a specific `ArgumentException`
+such as "Only audio files can be preview streamed from peers.", but the
+controller caught it and returned a generic bad-request message. Unit tests and
+users then lost the actionable reason.
+
+**Files Affected**:
+- `src/slskd/Streaming/PeerStreamsController.cs`
+- `src/slskd/Streaming/MeshStreamsController.cs`
+
+**Wrong**:
+```csharp
+catch (ArgumentException)
+{
+    return BadRequest("Invalid peer stream ticket request.");
+}
+```
+
+**Correct**:
+```csharp
+catch (ArgumentException ex)
+{
+    return BadRequest(ex.Message);
+}
+```
+
+**Why This Keeps Happening**: The ticket services own the validation rules and
+already provide user-facing messages. Controllers should translate the
+exception to HTTP 400 without replacing the message unless the service throws a
+non-user-facing error.
+
 ### 0z413. Do Not Rely On Path.IsPathRooted For Windows Drive Paths On Linux
 
 **The Bug**: Stream ticket filename validation rejected rooted Unix paths but
