@@ -22,6 +22,9 @@ This document records the current feature/function/network/UI assessment and the
 - Focused deterministic mesh/adverse integration slice passed on 2026-05-13:
   `dotnet test tests/slskd.Tests.Integration/slskd.Tests.Integration.csproj --no-restore --filter "FullyQualifiedName~MeshSearchLoopbackTests|FullyQualifiedName~MeshOnlyTests"`
   (`5/5`).
+- Optional live Soulseek-account mesh smoke passed on 2026-05-13:
+  `SLSKDN_RUN_LIVE_MESH_ACCOUNT_TESTS=1 dotnet test tests/slskd.Tests.Integration/slskd.Tests.Integration.csproj --no-restore --filter "FullyQualifiedName~OptionalLiveAccounts_CanSearchAndDownloadHostedProbeOverOverlayMesh"`
+  (`1/1`).
 
 ## Product parity summary
 
@@ -249,7 +252,7 @@ Plan:
 - Run Soulseek runtime interop contract tests.
 - Run mesh/DHT adverse-network smoke tests.
 
-Status: partly complete. Full frontend unit tests (`131/131` files, `716/716` tests), frontend production build, full backend `dotnet test --no-restore` (`67/67` smoke, `4056/4056` unit, `276/276` integration), and `./bin/lint` passed on 2026-05-13. The remediation baseline passed all substantive checks and stopped only at the release branch sync guard because local `main` is ahead of `origin/main`. Focused no-connect Web E2E core page smoke also passed on 2026-05-13 (`4/4`) after installing the missing local Playwright Chromium browser. Focused deterministic mesh/adverse integration tests passed on 2026-05-13 (`5/5`). Release validation still needs target-specific live/E2E checks after the branch is pushed.
+Status: locally complete pending release coordination. Full frontend unit tests (`131/131` files, `716/716` tests), frontend production build, full backend `dotnet test --no-restore` (`67/67` smoke, `4056/4056` unit, `276/276` integration), and `./bin/lint` passed on 2026-05-13. The remediation baseline passed all substantive checks and stopped only at the release branch sync guard because local `main` is ahead of `origin/main`. Focused no-connect Web E2E core page smoke also passed on 2026-05-13 (`4/4`) after installing the missing local Playwright Chromium browser. Focused deterministic mesh/adverse integration tests passed on 2026-05-13 (`5/5`). Optional live Soulseek-account mesh smoke passed on 2026-05-13 (`1/1`). Release validation still needs branch sync and any target-specific checks the release owner requests.
 
 ### G7. Security allowlist and threat model
 
@@ -315,7 +318,7 @@ Remaining:
 - Maintain the top-level route smoke table in `src/web/src/components/App.test.jsx`
   when adding or removing primary web routes.
 - Push local commits before any release-tag validation so the remediation sync guard can pass.
-- Run any target-specific live/E2E checks for the release.
+- Run any additional target-specific live/E2E checks requested for the release.
 - Add similar focused checks when a fixed regression is cheap to encode as a script.
 
 ## Additional backend hardening checks
@@ -344,12 +347,13 @@ Completed in the final remediation pass:
 
 Intentional remaining non-versioned routes are now compatibility shims, protocol-required surfaces, OAuth callback compatibility, or documented legacy compatibility routes retained alongside versioned aliases.
 
-Work left before release is release coordination and any target-specific
-live/E2E checks, not planned feature remediation:
+Work left before release is release coordination and any additional
+target-specific checks requested by the release owner, not planned feature
+remediation:
 
 - Push local commits before cutting a release tag so the remediation sync guard
   can pass.
-- Run any required live/E2E checks for the target release.
+- Run any additional live/E2E checks requested for the target release.
 - Review any failures from those checks and fix them as discrete defects.
 
 See `docs/REMEDIATION_COMPLETION_REPORT.md` for the consolidated completion status across feature parity, route parity, security hardening, UI safety, and remediation baseline checks.

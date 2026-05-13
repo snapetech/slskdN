@@ -7289,3 +7289,9 @@ Next steps: commit the validation documentation. Remaining reconciliation scope 
 Ran the focused deterministic mesh/adverse integration slice: `MeshSearchLoopbackTests` and `MeshOnlyTests` passed (`5/5`). This covers mesh search loopback and mesh-only partition behavior without requiring live Soulseek credentials.
 
 Next steps: commit the validation documentation. Remaining reconciliation scope is push/release coordination plus any target-specific live-account or external-network validation the release owner wants.
+
+## 2026-05-13T18:47:32Z Session update
+
+Ran the optional live Soulseek-account mesh smoke with `SLSKDN_RUN_LIVE_MESH_ACCOUNT_TESTS=1`; `OptionalLiveAccounts_CanSearchAndDownloadHostedProbeOverOverlayMesh` passed (`1/1`). This closes the locally runnable live interop validation gap.
+
+Next steps: commit the validation documentation. Remaining reconciliation scope is branch sync/release coordination and any additional release-owner-specific checks.

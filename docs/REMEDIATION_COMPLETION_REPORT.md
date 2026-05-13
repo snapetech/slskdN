@@ -90,3 +90,6 @@ Validated on 2026-05-13:
 - Focused deterministic mesh/adverse integration slice passed:
   `dotnet test tests/slskd.Tests.Integration/slskd.Tests.Integration.csproj --no-restore --filter "FullyQualifiedName~MeshSearchLoopbackTests|FullyQualifiedName~MeshOnlyTests"`
   (`5/5`).
+- Optional live Soulseek-account mesh smoke passed:
+  `SLSKDN_RUN_LIVE_MESH_ACCOUNT_TESTS=1 dotnet test tests/slskd.Tests.Integration/slskd.Tests.Integration.csproj --no-restore --filter "FullyQualifiedName~OptionalLiveAccounts_CanSearchAndDownloadHostedProbeOverOverlayMesh"`
+  (`1/1`).
