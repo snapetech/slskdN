@@ -26,6 +26,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   cognitive load around advanced surfaces.
 - Updated System surface and route/UI parity docs to reflect the new
   admin/experimental navigation labels.
+- Recorded the G6 validation pass: full frontend tests/build, full backend
+  tests, repo lint, and remediation baseline results through the expected
+  release branch sync guard.
 
 ## [2026051318-slskdn.251] — 2026-05-13
 

@@ -225,7 +225,7 @@ Plan:
 - Run Soulseek runtime interop contract tests.
 - Run mesh/DHT adverse-network smoke tests.
 
-Status: partly complete. Backend tests and lint passed in recent remediation work, and the combined remediation baseline exists. Release validation still needs the explicit web unit/build pass and any live/E2E checks required for the target release.
+Status: partly complete. Full frontend unit tests (`131/131` files, `716/716` tests), frontend production build, full backend `dotnet test --no-restore` (`67/67` smoke, `4056/4056` unit, `276/276` integration), and `./bin/lint` passed on 2026-05-13. The remediation baseline passed all substantive checks and stopped only at the release branch sync guard because local `main` is ahead of `origin/main`. Release validation still needs any live/E2E checks required for the target release after the branch is pushed.
 
 ### G7. Security allowlist and threat model
 

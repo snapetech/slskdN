@@ -76,6 +76,22 @@
   1. Run broader reconciliation validation or continue G5 guided-flow work.
   2. Keep Program.cs decomposition closed for this pass unless a concrete regression or wrapper reappears.
 
+## Update 2026-05-13 18:17:19Z
+
+- Current task: parity/reconciliation validation pass mostly complete.
+- Last activity:
+  - ran full frontend tests, frontend production build, full backend tests, repo lint, and remediation baseline;
+  - remediation baseline passed all substantive checks and stopped only at the release branch sync guard because local `main` is ahead of `origin/main`.
+- Validation:
+  - Passed: `cd src/web && npm test` (`131/131` files, `716/716` tests).
+  - Passed: `cd src/web && npm run build`.
+  - Passed: `dotnet test --no-restore` (`67/67` smoke, `4056/4056` unit, `276/276` integration).
+  - Passed: `./bin/lint`.
+  - Partial: `npm run check:remediation` reached only the release branch sync guard.
+- Next steps:
+  1. Push local commits before any release-tag validation, if the user wants release work.
+  2. Run live/E2E checks only if needed for the target release.
+
 ## Update 2026-05-13 16:56:30Z
 
 - Current task: Program.cs decomposition follow-up in progress.
