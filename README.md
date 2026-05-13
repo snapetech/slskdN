@@ -55,9 +55,9 @@ These areas have concrete implementation signals, but should remain conservative
 - VPN binding / port-forward agent.
 - Type-1 Soulseek peer/distributed/file-transfer obfuscation.
 
-## Experimental / Opt-In Distributed Systems
+## Experimental / Gated Distributed Systems
 
-These must be disabled by default or explicitly gated until proven safe and documented:
+These must be explicitly gated and documented until proven stable:
 
 - DHT rendezvous.
 - Mesh overlay.

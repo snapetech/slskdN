@@ -2721,7 +2721,7 @@
 - [2026-05-12T23:41:45Z] Completed: stopped Messaging V2 from polling Soulseek room discovery during general hydration and mapped room-list timeouts to empty optional data so room joins are not blocked by repeated directory fetches.
 - [2026-05-12T23:49:22Z] Completed: continue feature-coherence hardening from the merged audit branch; fixed startup bind-exposure semantics, hid the unavailable hash-from-audio CLI/env toggle, and made the unsupported flag fail startup if set.
 - [2026-05-12T23:57:46Z] Completed: add feature-coherence HardeningValidator bind-exposure matrix coverage for local-only, remote-reachable, unknown-address, and remote-no-auth CIDR cases.
-- [2026-05-13T00:04:31Z] Completed: add feature-gate foundation and gate SongID APIs behind disabled-by-default `feature.SongId`.
+- [2026-05-13T00:04:31Z] Completed: add feature-gate foundation and gate SongID APIs behind enabled-by-default `feature.SongId`.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.

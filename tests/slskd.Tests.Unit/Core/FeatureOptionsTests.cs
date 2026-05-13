@@ -16,16 +16,16 @@ public class FeatureOptionsTests
     }
 
     [Fact]
-    public void Defaults_KeepExperimentalFeatureGatesDisabled()
+    public void Defaults_KeepExperimentalFeatureGatesEnabled()
     {
         var options = new slskd.Options();
 
-        Assert.False(options.Feature.SongId);
-        Assert.False(options.Feature.Mesh);
-        Assert.False(options.Feature.Dht);
-        Assert.False(options.Feature.Pods);
-        Assert.False(options.Feature.SocialFederation);
-        Assert.False(options.Feature.VirtualSoulfind);
-        Assert.False(options.Feature.MultiSourceDownloads);
+        Assert.True(options.Feature.SongId);
+        Assert.True(options.Feature.Mesh);
+        Assert.True(options.Feature.Dht);
+        Assert.True(options.Feature.Pods);
+        Assert.True(options.Feature.SocialFederation);
+        Assert.True(options.Feature.VirtualSoulfind);
+        Assert.True(options.Feature.MultiSourceDownloads);
     }
 }

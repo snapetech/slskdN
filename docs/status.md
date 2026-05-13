@@ -65,7 +65,7 @@ Candidates requiring classification:
 - Some security documentation is written as implementation plans and pseudo-code, not shipped behavior.
 - Startup hardening now uses bind exposure analysis instead of treating “port enabled” as equivalent to “non-loopback bind”; broader startup matrix tests still need to be added around full host construction.
 - `HashFromAudioFileEnabled` is known-unavailable by startup validation and has no public command-line or environment toggle; any future re-exposure needs a real PCM extraction capability check.
-- Experimental feature gates now exist for high-risk surfaces. SongID APIs are the first gated surface and are disabled by default through `feature.SongId`.
+- Experimental feature gates now exist for high-risk surfaces. SongID APIs are the first gated surface and remain enabled by default through `feature.SongId`.
 - Custom build quality tasks are loaded from the application assembly, which is fragile and should be split into a build-tasks project.
 - Analyzer suppressions need documented reasons and reduction over time.
 - Download flow needs regression tests before experimental rescue/swarm/ranking code is refactored around it.

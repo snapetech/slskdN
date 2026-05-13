@@ -304,13 +304,13 @@
 #                                # Keep disabled if you want the proven upstream-compatible Soulseek search path.
 #                                # Pod results can be downloaded from remote mesh peers if not available locally.
 #                                # Scene results use the standard Soulseek download pipeline.
-#   SongId: false               # Experimental SongID analysis APIs (default: false).
-#   Mesh: false                 # Experimental mesh overlay/hash gossip APIs (default: false).
-#   Dht: false                  # Experimental DHT rendezvous and overlay discovery APIs (default: false).
-#   Pods: false                 # Experimental pod community APIs (default: false).
-#   SocialFederation: false     # Experimental ActivityPub/social federation APIs (default: false).
-#   VirtualSoulfind: false      # Experimental VirtualSoulfind APIs (default: false).
-#   MultiSourceDownloads: false # Experimental multi-source/swarm download APIs (default: false).
+#   SongId: true                # Experimental SongID analysis APIs (default: true).
+#   Mesh: true                  # Experimental mesh overlay/hash gossip APIs (default: true).
+#   Dht: true                   # Experimental DHT rendezvous and overlay discovery APIs (default: true).
+#   Pods: true                  # Experimental pod community APIs (default: true).
+#   SocialFederation: true      # Experimental ActivityPub/social federation APIs (default: true).
+#   VirtualSoulfind: true       # Experimental VirtualSoulfind APIs (default: true).
+#   MultiSourceDownloads: true  # Experimental multi-source/swarm download APIs (default: true).
 #   ScenePodBridgeOptions:
 #     ProxyTransfers: false     # Proxy scene downloads through pod (future feature, intentionally disabled)
 #     ExportPodAvailability: false  # Export pod availability to scene (future feature, intentionally disabled)

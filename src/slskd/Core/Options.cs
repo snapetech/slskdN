@@ -1690,26 +1690,26 @@ namespace slskd
             /// <summary>Scene ↔ Pod Bridging: Unified search aggregation from Pod/Mesh and Soulseek Scene. When false, search behaves as before.</summary>
             public bool ScenePodBridge { get; init; } = false;
 
-            /// <summary>SongID analysis/evidence APIs. Experimental and disabled by default.</summary>
-            public bool SongId { get; init; } = false;
+            /// <summary>SongID analysis/evidence APIs. Experimental and gated.</summary>
+            public bool SongId { get; init; } = true;
 
-            /// <summary>Mesh overlay/hash gossip APIs. Experimental and disabled by default.</summary>
-            public bool Mesh { get; init; } = false;
+            /// <summary>Mesh overlay/hash gossip APIs. Experimental and gated.</summary>
+            public bool Mesh { get; init; } = true;
 
-            /// <summary>DHT rendezvous and overlay discovery APIs. Experimental and disabled by default.</summary>
-            public bool Dht { get; init; } = false;
+            /// <summary>DHT rendezvous and overlay discovery APIs. Experimental and gated.</summary>
+            public bool Dht { get; init; } = true;
 
-            /// <summary>Pod community APIs. Experimental and disabled by default.</summary>
-            public bool Pods { get; init; } = false;
+            /// <summary>Pod community APIs. Experimental and gated.</summary>
+            public bool Pods { get; init; } = true;
 
-            /// <summary>Social federation APIs. Experimental and disabled by default.</summary>
-            public bool SocialFederation { get; init; } = false;
+            /// <summary>Social federation APIs. Experimental and gated.</summary>
+            public bool SocialFederation { get; init; } = true;
 
-            /// <summary>VirtualSoulfind APIs. Experimental and disabled by default.</summary>
-            public bool VirtualSoulfind { get; init; } = false;
+            /// <summary>VirtualSoulfind APIs. Experimental and gated.</summary>
+            public bool VirtualSoulfind { get; init; } = true;
 
-            /// <summary>Multi-source/swarm download APIs. Experimental and disabled by default.</summary>
-            public bool MultiSourceDownloads { get; init; } = false;
+            /// <summary>Multi-source/swarm download APIs. Experimental and gated.</summary>
+            public bool MultiSourceDownloads { get; init; } = true;
 
             /// <summary>Scene ↔ Pod Bridging options.</summary>
             public ScenePodBridgeOptions ScenePodBridgeOptions { get; init; } = new ScenePodBridgeOptions();

@@ -6414,6 +6414,6 @@ Completed the hardening startup matrix at the validator/analyzer boundary for lo
 
 ## 2026-05-13T00:04:31Z Session update
 
-Added the initial runtime feature-gate foundation and gated SongID APIs behind disabled-by-default `feature.SongId`.
+Added the initial runtime feature-gate foundation and gated SongID APIs behind enabled-by-default `feature.SongId`.
 
 Next steps: continue feature-gating mesh/DHT/pods/multi-source API surfaces, then move into dependency ownership inventory and Program.cs service-module decomposition.

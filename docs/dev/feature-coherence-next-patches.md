@@ -117,7 +117,7 @@ Target modules:
 Acceptance criteria:
 
 - `Program.cs` no longer directly imports every experimental vertical.
-- Experimental features are disabled by default or explicitly gated.
+- Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 
 ## 8. Add feature gate enforcement

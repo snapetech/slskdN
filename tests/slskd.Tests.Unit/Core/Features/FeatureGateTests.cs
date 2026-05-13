@@ -13,31 +13,31 @@ using Xunit;
 public class FeatureGateTests
 {
     [Fact]
-    public void Get_SongId_DefaultsDisabled()
+    public void Get_SongId_DefaultsEnabled()
     {
         var gate = CreateGate(new slskd.Options());
 
         var result = gate.Get(FeatureId.SongId);
 
-        Assert.False(result.IsEnabled);
-        Assert.Equal(FeatureStatus.Disabled, result.Status);
+        Assert.True(result.IsEnabled);
+        Assert.Equal(FeatureStatus.Experimental, result.Status);
     }
 
     [Fact]
-    public void Get_SongId_WhenOptionEnabled_ReturnsExperimental()
+    public void Get_SongId_WhenOptionDisabled_ReturnsDisabled()
     {
         var gate = CreateGate(new slskd.Options
         {
             Feature = new slskd.Options.FeatureOptions
             {
-                SongId = true,
+                SongId = false,
             },
         });
 
         var result = gate.Get(FeatureId.SongId);
 
-        Assert.True(result.IsEnabled);
-        Assert.Equal(FeatureStatus.Experimental, result.Status);
+        Assert.False(result.IsEnabled);
+        Assert.Equal(FeatureStatus.Disabled, result.Status);
     }
 
     [Fact]
