@@ -29,21 +29,21 @@ rg "MonoTorrent|AWSSDK|dotNetRDF|Zeroconf|MathNet|Microsoft.CodeAnalysis|Microso
 | Serilog and sinks | Logging | required-core / required-feature | Loki/HTTP sinks may be optional integration dependencies. |
 | prometheus-net / DotNetRuntime / SystemMetrics | Metrics endpoint and dashboard | experimental-feature | Confirm metrics auth and feature gate. |
 | OpenTelemetry packages | Telemetry/exporters | experimental-feature | Gate exporters and document egress. |
-| TagLibSharp | Audio metadata/library/player/SongID surfaces | experimental-feature | Confirm concrete call sites and tests. |
+| TagLibSharp | HashDb media attribute probing (`HashDbService`) and audio/library surfaces | required-feature | Keep because active share/media probing call sites exist; ensure slow/remote storage opt-out remains documented. |
 | FluentFTP | FTP integration | experimental-feature | Gate integration and document credentials/egress. |
 | Mono.Nat | NAT/port mapping | experimental-feature | Gate under mesh/VPN/network features. |
-| MonoTorrent | DHT/rendezvous experiments | experimental-feature | Gate; do not bootstrap by default. |
-| NSec.Cryptography | Mesh/security crypto | experimental-feature | Confirm protocol use and tests. |
-| MathNet.Numerics | Ranking/SongID/analytics math | unknown | Keep only with concrete call sites. |
-| AWSSDK.S3 | Object storage/source feeds/backup experiments | unknown | Remove or gate unless call sites justify it. |
-| Zeroconf | Discovery/network experiments | experimental-feature | Gate; document network behavior. |
-| dotNetRDF | Federation/metadata graph experiments | unknown | Remove or gate unless concrete call sites exist. |
-| Dapper | Direct DB access | unknown | Confirm call sites; prefer one DB access pattern unless justified. |
+| MonoTorrent | DHT rendezvous and BitTorrent-backed swarm experiments | experimental-feature | Gated by DHT/multi-source surfaces; confirm public bootstrap policy in runtime docs. |
+| NSec.Cryptography | Mesh transport signing and ActivityPub key/signature work | experimental-feature | Keep with mesh/social federation gates; expand protocol tests before stable claims. |
+| MathNet.Numerics | Ranking/SongID/analytics math | unknown | No active call site found in `src/slskd`; remove unless a concrete call site appears. |
+| AWSSDK.S3 | VirtualSoulfind v2 S3 backend | experimental-feature | Gated by VirtualSoulfind; document credential/egress behavior before stable claims. |
+| Zeroconf | Identity/Friends LAN discovery (`LanDiscoveryService`) | experimental-feature | Gate via identity/friends or discovery posture; document multicast behavior. |
+| dotNetRDF | Solid/WebID roadmap/docs | unused | No active `VDS.RDF` call site found in `src/slskd`; remove unless Solid implementation lands. |
+| Dapper | VirtualSoulfind v2 SQLite catalogue store | experimental-feature | Gated by VirtualSoulfind; acceptable while catalogue store remains active. |
 | MessagePack | Mesh/protocol serialization | experimental-feature | Gate under protocol features. |
-| System.Reactive | Event/reactive flows | unknown | Confirm call sites. |
+| System.Reactive | VirtualSoulfind disaster-mode transfer progress subjects | experimental-feature | Gated by VirtualSoulfind; keep while `MeshTransferService` uses `Subject<T>`. |
 | Microsoft.Build.* | Custom build tasks | build-only | Move out of runtime app project if tasks remain. |
 | Microsoft.CodeAnalysis.* | Static analysis/build tooling | build-only | Move out of runtime app project if tasks remain. |
 
 ## Release rule
 
-No dependency should remain `unknown` when a feature is promoted to `stable`. Experimental-only dependencies should be disabled by default and documented in `FEATURE_INVENTORY.md`.
+No dependency should remain `unknown` when a feature is promoted to `stable`. Experimental-only dependencies should be feature-gated and documented in `FEATURE_INVENTORY.md`.

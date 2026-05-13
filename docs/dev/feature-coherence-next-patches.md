@@ -137,6 +137,17 @@ Acceptance criteria:
 - Moved-to-slskr features can return 410 with a message/link.
 - Design-only features are not registered at runtime.
 
+## 8a. Dependency ownership inventory
+
+Status: first pass complete. `docs/dependencies.md` now classifies active runtime call sites for TagLibSharp, AWSSDK.S3, Zeroconf, Dapper, System.Reactive, MonoTorrent, NSec, MessagePack, telemetry, and build-only tooling.
+
+Remaining follow-up:
+
+- Remove `dotNetRDF` unless an active Solid/WebID implementation lands.
+- Remove `MathNet.Numerics` unless a concrete ranking/SongID/analytics call site appears.
+- Move Microsoft.Build and Microsoft.CodeAnalysis tooling out of the runtime app project.
+- Decide whether telemetry/metrics and LAN discovery need explicit feature gates beyond existing options.
+
 ## 9. Move custom MSBuild tasks out of the app assembly
 
 Status: documented only.
