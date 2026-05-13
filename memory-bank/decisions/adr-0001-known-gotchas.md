@@ -52,6 +52,49 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z407. Update Example Fill Helpers When Form State Is Renamed
+
+**The Bug**: Moving a mutation form behind progressive disclosure and renaming
+its state can leave example-fill helpers writing to the old state variable, so
+example buttons appear to work but no longer populate the active form field.
+
+**Files Affected**:
+- `src/web/src/components/System/MediaCore/index.jsx`
+
+**Wrong**:
+```jsx
+const [descriptorContentId, setDescriptorContentId] = useState('');
+
+const fillExample = (domain, type) => {
+  const example = contentExamples[domain]?.[type];
+  if (example) {
+    setExternalId(example.external);
+    setContentId(example.content);
+  }
+};
+```
+
+**Correct**:
+```jsx
+const [descriptorContentId, setDescriptorContentId] = useState('');
+
+const fillExample = (domain, type) => {
+  const example = contentExamples[domain]?.[type];
+  if (example) {
+    setExternalId(example.external);
+    setResolveId(example.external);
+    setDescriptorContentId(example.content);
+    setValidateContentIdInput(example.content);
+  }
+};
+```
+
+**Why This Keeps Happening**: MediaCore has many similarly named ContentID
+state variables for registry, descriptor, validation, graph, and pod workflows.
+When a form is moved or renamed, search for every helper that pre-fills or
+clears that state, then add a focused render interaction test for the example
+path.
+
 ### 0z406. Keep Attribute Namespaces When Moving Startup Argument Parsing
 
 **The Bug**: Extracting command-line/environment population out of
