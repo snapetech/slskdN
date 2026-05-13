@@ -17157,3 +17157,32 @@ exception switch
 ```
 
 **Why This Keeps Happening**: The retry helper returns the history as an aggregate after the last attempt, but transfer state classification originally matched only the outer exception type. Any download failure classification that drives user-visible state or log severity must flatten aggregate exceptions before deciding whether the failure was timeout, cancellation, or peer policy.
+
+### 0z355. Serilog Sinks Must Not Log Through Serilog On Sink Failure
+
+**The Bug**: The startup log-emitted sink caught sink formatting failures and called `Log.Error(...)` from inside the Serilog sink callback. When a log event without `SourceContext` hit the sink, the catch path emitted another Serilog event, recursively re-entered the same broken sink, and aborted startup.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/StartupLogging.cs`
+
+**Wrong**:
+```csharp
+Context = logEvent.Properties["SourceContext"].ToString();
+...
+catch (Exception ex)
+{
+    Log.Error("Misconfigured delegating logger: {Exception}", ex.Message);
+}
+```
+
+**Correct**:
+```csharp
+Context = GetLogProperty(logEvent, "SourceContext");
+...
+catch (Exception ex)
+{
+    Console.Error.WriteLine($"Misconfigured delegating logger: {ex.Message}");
+}
+```
+
+**Why This Keeps Happening**: Serilog sink callbacks are part of the logging pipeline. Any exception handling inside a sink must avoid re-emitting through Serilog, and sink formatting must tolerate missing optional event properties such as `SourceContext`.
