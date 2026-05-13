@@ -408,6 +408,13 @@ namespace slskd.Messaging.API
                     return StatusCode(StatusCodes.Status503ServiceUnavailable, "Soulseek is reconnecting; try again shortly.");
                 }
 
+                if (ex is NoResponseException)
+                {
+                    var room = new Room { Name = roomName };
+                    Tracker.TryAdd(roomName, room);
+                    return StatusCode(StatusCodes.Status202Accepted, MapRoomToRoomResponse(room));
+                }
+
                 throw;
             }
         }

@@ -32,6 +32,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   surfaces behind enabled-by-default `feature.*` switches.
 - Fixed Messaging V2 room search so a degraded room-directory refresh cannot
   erase the last good suggestions while the user is typing.
+- Fixed Messaging V2 room search/rejoin recovery when the initial room
+  directory request times out and Soulseek reports an existing room join as
+  "no response."
 - Updated the dependency ownership inventory with call-site-backed
   classifications and explicit prune/relocation follow-ups.
 - Documented the app project analyzer suppressions, including the debug-only

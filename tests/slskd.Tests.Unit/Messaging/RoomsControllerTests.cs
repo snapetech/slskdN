@@ -77,6 +77,28 @@ public class RoomsControllerTests
     }
 
     [Fact]
+    public async Task JoinRoom_When_Server_Does_Not_Acknowledge_Adds_Degraded_Room()
+    {
+        var client = new Mock<ISoulseekClient>();
+        client.SetupGet(x => x.State).Returns(SoulseekClientStates.LoggedIn);
+        var tracker = CreateTracker();
+        var roomService = new Mock<IRoomService>();
+        roomService
+            .Setup(x => x.JoinAsync("slskd"))
+            .ThrowsAsync(new NoResponseException("already joined"));
+        var controller = CreateController(
+            client: client.Object,
+            roomService: roomService.Object,
+            tracker: tracker.Object);
+
+        var result = await controller.JoinRoom("slskd");
+
+        var accepted = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(202, accepted.StatusCode);
+        Assert.True(tracker.Object.Rooms.ContainsKey("slskd"));
+    }
+
+    [Fact]
     public void GetByRoomName_With_Blank_Name_Returns_BadRequest()
     {
         var controller = CreateController();
@@ -142,6 +164,9 @@ public class RoomsControllerTests
         var tracker = new Mock<IRoomTracker>();
         var roomMap = new System.Collections.Concurrent.ConcurrentDictionary<string, Room>();
         tracker.SetupGet(x => x.Rooms).Returns(roomMap);
+        tracker
+            .Setup(x => x.TryAdd(It.IsAny<string>(), It.IsAny<Room>()))
+            .Callback((string roomName, Room room) => roomMap.TryAdd(roomName, room));
         tracker
             .Setup(x => x.TryGet(It.IsAny<string>(), out It.Ref<Room?>.IsAny))
             .Returns((string roomName, out Room? room) =>

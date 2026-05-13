@@ -135,6 +135,9 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
 
   useEffect(() => () => {
     if (persistTimer.current) window.clearTimeout(persistTimer.current);
+    if (roomDirectoryRetryTimer.current) {
+      window.clearTimeout(roomDirectoryRetryTimer.current);
+    }
   }, []);
 
   const [conversations, setConversations] = useState([]);
@@ -159,6 +162,8 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   const [composerDraft, setComposerDraft] = useState('');
   const composerInputRef = useRef(null);
   const lastWheelZoomAt = useRef(0);
+  const roomDirectoryRetryTimer = useRef(null);
+  const roomDirectoryRetryCount = useRef(0);
   const currentUser = state?.user?.username;
 
   const hydrate = useCallback(async () => {
@@ -232,11 +237,29 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         .filter(Boolean)
         .sort((a, b) => a.localeCompare(b));
 
-    setAvailableRooms((previous) =>
-      nextAvailableRooms.length === 0 && previous.length > 0
-        ? previous
-        : nextAvailableRooms);
-  }, []);
+    setAvailableRooms((previous) => {
+      if (nextAvailableRooms.length > 0) {
+        roomDirectoryRetryCount.current = 0;
+        return nextAvailableRooms;
+      }
+
+      if (previous.length > 0) {
+        return previous;
+      }
+
+      if (roomAddOpen && roomDirectoryRetryCount.current < 4 && !roomDirectoryRetryTimer.current) {
+        roomDirectoryRetryCount.current += 1;
+        roomDirectoryRetryTimer.current = window.setTimeout(() => {
+          roomDirectoryRetryTimer.current = null;
+          loadAvailableRooms().catch((error) => {
+            console.error('Failed to retry available rooms:', error);
+          });
+        }, 1_500);
+      }
+
+      return nextAvailableRooms;
+    });
+  }, [roomAddOpen]);
 
   useEffect(() => {
     hydrate().catch((error) => {
@@ -252,6 +275,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
 
   useEffect(() => {
     if (!roomAddOpen) return;
+    roomDirectoryRetryCount.current = 0;
     loadAvailableRooms().catch((error) => {
       console.error('Failed to load available rooms:', error);
     });

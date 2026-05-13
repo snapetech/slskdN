@@ -6,7 +6,7 @@ import React from 'react';
 import * as rooms from '../../lib/rooms';
 import { MemoryRouter } from 'react-router-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../lib/chat', () => ({
   acknowledge: vi.fn(),
@@ -48,6 +48,7 @@ const renderMessaging = (props = {}) =>
 describe('Messaging', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    vi.useRealTimers();
     vi.clearAllMocks();
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     chat.get.mockResolvedValue({ messages: [] });
@@ -67,6 +68,10 @@ describe('Messaging', () => {
     rooms.join.mockResolvedValue({});
     rooms.leave.mockResolvedValue({});
     rooms.sendMessage.mockResolvedValue({});
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('renders the V2 workspace without requiring the legacy feature flag', async () => {
@@ -154,6 +159,33 @@ describe('Messaging', () => {
     });
 
     expect(await screen.findByRole('button', { name: 'Join jazz' })).toBeInTheDocument();
+  });
+
+  it('retries room directory loading when the first response is degraded', async () => {
+    vi.useFakeTimers();
+    rooms.getAvailable
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(['ambient']);
+
+    renderMessaging();
+
+    fireEvent.click(await screen.findByLabelText('Join or create a room'));
+
+    await waitFor(() => {
+      expect(rooms.getAvailable).toHaveBeenCalledTimes(1);
+    });
+
+    await vi.advanceTimersByTimeAsync(1_500);
+
+    await waitFor(() => {
+      expect(rooms.getAvailable).toHaveBeenCalledTimes(2);
+    });
+
+    fireEvent.change(screen.getByLabelText('Search or create Soulseek room'), {
+      target: { value: 'amb' },
+    });
+
+    expect(await screen.findByRole('button', { name: 'Join ambient' })).toBeInTheDocument();
   });
 
   it('suggests joined rooms from the room search form', async () => {
