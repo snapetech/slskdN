@@ -10088,3 +10088,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T01:10:36Z] Program decomposition web-pipeline pass: moved ASP.NET middleware and endpoint registration into `Bootstrap/WebApplicationPipelineExtensions`, leaving `Program.cs` focused on process/configuration bootstrapping. `dotnet build src/slskd/slskd.csproj --no-incremental` passed with 0 warnings.
 
 [2026-05-13T01:13:27Z] Program decomposition runtime wrapper pass: moved the top-level runtime service composition list into `Bootstrap/RuntimeServiceCollectionExtensions`, so `Program.cs` now delegates service setup to named bootstrap modules. `dotnet build src/slskd/slskd.csproj --no-incremental` passed with 0 warnings.
+
+[2026-05-13T01:15:21Z] Experimental graph split: moved wishlist/source feeds, transfer automation, relay, FTP, AudioCore metadata, SongID, discovery graph, and notification registration into `Bootstrap/IntegrationAndMediaServiceCollectionExtensions`. `dotnet build src/slskd/slskd.csproj --no-incremental` passed with 0 warnings.

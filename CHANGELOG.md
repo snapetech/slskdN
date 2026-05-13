@@ -29,6 +29,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   `Bootstrap/WebApplicationPipelineExtensions`.
 - Top-level runtime service composition now lives under
   `Bootstrap/RuntimeServiceCollectionExtensions`.
+- Integration and media-adjacent registrations now live under
+  `Bootstrap/IntegrationAndMediaServiceCollectionExtensions`.
 
 ### Fixed
 

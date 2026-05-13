@@ -1104,63 +1104,7 @@ public static class ExperimentalFeatureGraphServiceCollectionExtensions
                 enableCostBasedScheduling: enableCostBasedScheduling);
         });
 
-        // Wishlist services
-        var wishlistDbPath = Path.Combine(Program.AppDirectory, "wishlist.db");
-        services.AddDbContextFactory<Wishlist.WishlistDbContext>(options =>
-        {
-            options.UseSqlite($"Data Source={wishlistDbPath}");
-        });
-
-        // Ensure wishlist database is created
-        using (var wishlistContext = new Wishlist.WishlistDbContext(
-            new DbContextOptionsBuilder<Wishlist.WishlistDbContext>()
-                .UseSqlite($"Data Source={wishlistDbPath}")
-                .Options))
-        {
-            wishlistContext.Database.EnsureCreated();
-        }
-
-        services.AddSingleton<Wishlist.IWishlistService, Wishlist.WishlistService>();
-        services.AddHostedService(provider => (Wishlist.WishlistService)provider.GetRequiredService<Wishlist.IWishlistService>());
-        services.AddSingleton<SourceFeeds.ISpotifyConnectionService, SourceFeeds.SpotifyConnectionService>();
-        services.AddSingleton<SourceFeeds.ISourceFeedImportService, SourceFeeds.SourceFeedImportService>();
-
-        // Auto-replace services
-        services.AddSingleton<Transfers.AutoReplace.IAutoReplaceService, Transfers.AutoReplace.AutoReplaceService>();
-        services.AddSingleton<Transfers.AutoReplace.AutoReplaceBackgroundService>();
-        services.AddHostedService(provider => provider.GetRequiredService<Transfers.AutoReplace.AutoReplaceBackgroundService>());
-
-        // Auto-retry: re-enqueue failed downloads automatically
-        services.AddHostedService<Transfers.Downloads.DownloadAutoRetryService>();
-
-        services.AddSingleton<IRelayService, RelayService>();
-
-        // HARDENING-2026-04-20 H8: loud, periodic reminder when relay controller TLS validation is reduced.
-        services.AddHostedService<Relay.RelayTlsWarningService>();
-
-        // HARDENING-2026-04-20 H12: loud, periodic reminder that public DHT rendezvous publishes this node's IP.
-        services.AddHostedService<DhtRendezvous.DhtExposureWarningService>();
-
-        services.AddSingleton<IFTPClientFactory, FTPClientFactory>();
-        services.AddSingleton<IFTPService, FTPService>();
-
-        // AudioCore: IChromaprintService, IFingerprintExtractionService in AddAudioCore
-        services.AddSingleton<IAcoustIdClient, AcoustIdClient>();
-        services.AddSingleton<IAutoTaggingService, AutoTaggingService>();
-        services.AddSingleton<IMusicBrainzClient, MusicBrainzClient>();
-        services.AddSingleton<Integrations.Brainz.IBrainzClient, Integrations.Brainz.BrainzClient>();
-        services.AddAudioCore(Program.AppDirectory);
-        services.AddSingleton<IMetadataFacade>(sp => new MetadataFacade(
-            sp.GetRequiredService<IMusicBrainzClient>(),
-            sp.GetRequiredService<IAcoustIdClient>(),
-            sp.GetRequiredService<IFingerprintExtractionService>(),
-            sp.GetRequiredService<IOptionsMonitor<slskd.Options>>(),
-            sp.GetRequiredService<ILogger<MetadataFacade>>(),
-            sp.GetService<IMemoryCache>()));
-        services.AddSlskdSongId();
-        services.AddSingleton<DiscoveryGraph.IDiscoveryGraphService, DiscoveryGraph.DiscoveryGraphService>();
-        services.AddSingleton<IPushbulletService, PushbulletService>();
-        services.AddSingleton<Integrations.Notifications.INotificationService, Integrations.Notifications.NotificationService>();
+        services.AddSlskdIntegrationAndMediaServices();
 
         return services;
     }

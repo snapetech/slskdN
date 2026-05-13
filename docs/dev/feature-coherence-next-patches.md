@@ -124,6 +124,9 @@ ASP.NET request-pipeline setup moved into
 `Bootstrap/WebApplicationPipelineExtensions.cs`.
 The top-level runtime DI composition list moved into
 `Bootstrap/RuntimeServiceCollectionExtensions.cs`.
+Wishlist/source feeds, transfer automation, relay, FTP, AudioCore metadata,
+SongID, discovery graph, and notification registration moved out of the broad
+experimental graph into `Bootstrap/IntegrationAndMediaServiceCollectionExtensions.cs`.
 
 Target modules:
 
@@ -137,6 +140,8 @@ Target modules:
   registration.
 - `AddSlskdRuntimeServices(...)`. Implemented as the top-level runtime service
   composition wrapper.
+- `AddSlskdIntegrationAndMediaServices(...)`. Implemented for integration and
+  media-adjacent registrations formerly at the tail of the experimental graph.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
