@@ -52,12 +52,13 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
-### 0z414. Stream Ticket Controllers Must Preserve Validation Messages
+### 0z414. Stream Ticket Controllers Must Preserve Only Known-Safe Validation Messages
 
 **The Bug**: Peer stream ticket validation threw a specific `ArgumentException`
 such as "Only audio files can be preview streamed from peers.", but the
 controller caught it and returned a generic bad-request message. Unit tests and
-users then lost the actionable reason.
+users then lost the actionable reason. A later fix returned `ex.Message`
+directly, which violated the controller exception-body council check.
 
 **Files Affected**:
 - `src/slskd/Streaming/PeerStreamsController.cs`
@@ -69,20 +70,25 @@ catch (ArgumentException)
 {
     return BadRequest("Invalid peer stream ticket request.");
 }
-```
 
-**Correct**:
-```csharp
 catch (ArgumentException ex)
 {
     return BadRequest(ex.Message);
 }
 ```
 
+**Correct**:
+```csharp
+catch (ArgumentException ex)
+{
+    return BadRequest(ToTicketValidationMessage(ex));
+}
+```
+
 **Why This Keeps Happening**: The ticket services own the validation rules and
-already provide user-facing messages. Controllers should translate the
-exception to HTTP 400 without replacing the message unless the service throws a
-non-user-facing error.
+some messages are user-facing. Controllers should translate only the known-safe
+validation messages to HTTP 400 and use a stable generic fallback for anything
+unexpected; they must not return raw exception messages.
 
 ### 0z413. Do Not Rely On Path.IsPathRooted For Windows Drive Paths On Linux
 
