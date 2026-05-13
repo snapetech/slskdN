@@ -38,6 +38,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Moved startup application-directory resolution, default directory validation,
   configuration-file defaulting, and single-instance mutex preparation into
   `Bootstrap/StartupApplicationDirectories`.
+- Moved startup configuration load/validation exception handling into
+  `Bootstrap/StartupConfiguration`.
 - Removed the remaining antiforgery `Program.cs` wrappers by making the MVC
   CSRF filter and focused tests call `AntiforgeryCookieRecovery` directly.
 - Restored command-line argument population to `Program` so startup options

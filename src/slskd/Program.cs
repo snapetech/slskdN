@@ -318,22 +318,18 @@ namespace slskd
             DefaultIncompleteDirectory = directories.DefaultIncompleteDirectory;
             ConfigurationFile = preparedDirectories.ConfigurationFile;
 
-            // load and validate the configuration
-            try
+            Configuration = StartupConfiguration.TryLoadAndValidate(
+                EnvironmentVariablePrefix,
+                ConfigurationFile,
+                VolatileOverlayConfigurationSource,
+                OptionsAtStartup,
+                AppName,
+                Log,
+                Exit);
+
+            if (Configuration is null)
             {
-                Configuration = StartupConfiguration.LoadAndValidate(
-                    EnvironmentVariablePrefix,
-                    ConfigurationFile,
-                    VolatileOverlayConfigurationSource,
-                    OptionsAtStartup,
-                    AppName,
-                    Log,
-                    Exit);
-            }
-            catch (Exception ex)
-            {
-                Log.Information($"Invalid configuration: {(!OptionsAtStartup.Debug ? ex : ex.Message)}");
-                Exit(1);
+                return;
             }
 
             IsRelayAgent = OptionsAtStartup.Relay.Enabled && OptionsAtStartup.Relay.Mode.ToEnum<RelayMode>() == RelayMode.Agent;

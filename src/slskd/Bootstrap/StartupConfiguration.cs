@@ -12,6 +12,34 @@ using slskd.Validation;
 
 public static class StartupConfiguration
 {
+    public static IConfigurationRoot? TryLoadAndValidate(
+        string environmentVariablePrefix,
+        string configurationFile,
+        VolatileOverlayConfigurationSource<OptionsOverlay> volatileOverlayConfigurationSource,
+        OptionsAtStartup optionsAtStartup,
+        string appName,
+        ILogger log,
+        Action<int> exit)
+    {
+        try
+        {
+            return LoadAndValidate(
+                environmentVariablePrefix,
+                configurationFile,
+                volatileOverlayConfigurationSource,
+                optionsAtStartup,
+                appName,
+                log,
+                exit);
+        }
+        catch (Exception ex)
+        {
+            log.Information($"Invalid configuration: {(!optionsAtStartup.Debug ? ex : ex.Message)}");
+            exit(1);
+            return null;
+        }
+    }
+
     public static IConfigurationRoot LoadAndValidate(
         string environmentVariablePrefix,
         string configurationFile,

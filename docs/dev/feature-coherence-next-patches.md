@@ -224,6 +224,8 @@ the command-line library binds static `[Argument]` properties from that context.
 Startup application-directory resolution, single-instance mutex acquisition,
 configuration-file defaulting, and default directory validation moved out of
 `Program.cs` into `Bootstrap/StartupApplicationDirectories.cs`.
+Startup configuration load/validation exception handling moved out of
+`Program.cs` into `Bootstrap/StartupConfiguration.cs`.
 The remaining antiforgery Program wrappers were removed after the MVC CSRF
 filter and focused tests moved to `AntiforgeryCookieRecovery` directly.
 
