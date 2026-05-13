@@ -1,3 +1,18 @@
+## Update 2026-05-13 16:13:40Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - moved startup mutex-name construction into `Bootstrap/StartupSingleInstance`;
+  - moved unobserved-task exception classification into `Bootstrap/StartupExceptionClassifier`;
+  - documented ADR-0001 gotcha `0z404` after parallel dotnet validation caused a build-task generated-file lock.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests|FullyQualifiedName~ApplicationLifecycleTests|FullyQualifiedName~SharedEventEmitterTests" --no-restore` (`46/46`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Continue Program.cs decomposition with another small compatibility-wrapper split.
+  2. Run backend validation serially to avoid `tools/slskd.BuildTasks` output locks.
+
 ## Update 2026-05-13 16:08:10Z
 
 - Current task: parity/reconciliation list follow-up in progress.

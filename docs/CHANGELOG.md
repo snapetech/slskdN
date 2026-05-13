@@ -163,6 +163,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Moved runtime version/canary/development flag and executable-path calculation
   out of `Program.cs` into a focused bootstrap helper while preserving the
   public Program compatibility surface.
+- Moved startup mutex-name construction and unobserved-task exception
+  classification out of `Program.cs` into focused bootstrap helpers while
+  preserving Program compatibility wrappers.
 - Simplified MediaCore descriptor publishing by keeping retrieval/statistics as
   the default path and grouping descriptor publish, batch publish, update, and
   republish controls behind advanced disclosure.

@@ -338,9 +338,7 @@ namespace slskd
 
         private static string GetMutexName()
         {
-            // Use app directory in mutex name if set, otherwise use default
-            var dir = AppDirectory ?? DefaultAppDirectory;
-            return $"{AppName}_{Compute.Sha256Hash(dir)}";
+            return StartupSingleInstance.GetMutexName(AppName, AppDirectory, DefaultAppDirectory);
         }
 
         internal static string GetWriteBaseDirectory()
@@ -370,17 +368,7 @@ namespace slskd
 
         internal static bool IsBenignUnobservedTaskException(Exception exception)
         {
-            var aggregate = exception as AggregateException;
-            var exceptions = aggregate != null
-                ? aggregate.Flatten().InnerExceptions.ToArray()
-                : new[] { exception };
-
-            return exceptions.Length > 0 && exceptions.All(IsBenignUnobservedTaskInnerException);
-        }
-
-        private static bool IsBenignUnobservedTaskInnerException(Exception exception)
-        {
-            return false;
+            return StartupExceptionClassifier.IsBenignUnobservedTaskException(exception);
         }
 
         private static IDisposable? DotNetRuntimeStats { get; set; }

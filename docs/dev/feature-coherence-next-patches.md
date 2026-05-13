@@ -185,6 +185,10 @@ SQLite provider initialization and threading fail-fast validation moved out of
 Runtime version, canary/development flags, and executable-path calculation moved
 out of `Program.cs` into `Bootstrap/ApplicationRuntimeInfo.cs` while preserving
 the public Program compatibility surface.
+Startup mutex-name construction and unobserved-task exception classification
+moved out of `Program.cs` into `Bootstrap/StartupSingleInstance.cs` and
+`Bootstrap/StartupExceptionClassifier.cs` while preserving Program
+compatibility wrappers.
 
 Target modules:
 
@@ -255,6 +259,9 @@ Target modules:
 - `ApplicationRuntimeInfo`. Implemented for assembly/informational version
   normalization, semantic/full version strings, canary/development flags, and
   executable-path lookup.
+- `StartupSingleInstance`. Implemented for startup mutex-name construction.
+- `StartupExceptionClassifier`. Implemented for unobserved-task exception
+  classification.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
