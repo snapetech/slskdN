@@ -58,6 +58,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Moved startup logging configuration and shutdown telemetry installation calls
   to extracted bootstrap helpers directly, removing the remaining Program
   logging/shutdown wrappers.
+- Marked the Program decomposition pass complete after reducing Program to
+  entrypoint orchestration, public process state, command-line binding, and the
+  public log event/buffer bridge.
 - Simplified MediaCore perceptual hash workflows by keeping similarity
   review/statistics as the default path and grouping raw audio/image hash
   computation behind advanced disclosure.

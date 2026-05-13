@@ -1,3 +1,16 @@
+## Update 2026-05-13 17:57:08Z
+
+- Current task: Program.cs decomposition complete for this pass; parity/reconciliation follow-up remains in progress.
+- Last activity:
+  - verified `Program.cs` is 404 lines and now owns entrypoint orchestration, public process state, command-line attribute binding, and the public log event/buffer bridge;
+  - updated `docs/dev/feature-coherence-next-patches.md` to mark the Program split acceptance criterion complete for this pass;
+  - left `RaiseLogEmitted` in Program because it protects the public `LogEmitted` event surface.
+- Validation:
+  - Documentation/status-only change after the last passing Program build, focused Program/log lifecycle tests, and lint.
+- Next steps:
+  1. Continue remaining MediaCore/G5 UX reconciliation forms and broader validation.
+  2. Avoid moving command-line argument population out of `Program.cs`; ADR-0001 `0z406` documents why it must stay.
+
 ## Update 2026-05-13 16:56:30Z
 
 - Current task: Program.cs decomposition follow-up in progress.

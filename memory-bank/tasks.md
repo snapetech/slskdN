@@ -2801,6 +2801,7 @@
 - [2026-05-13T18:35:00Z] Completed: continue Program.cs decomposition by removing startup SQLite and missing-config recreation Program wrappers.
 - [2026-05-13T17:50:33Z] Completed: continue Program.cs decomposition by removing startup logging and shutdown telemetry Program wrappers.
 - [2026-05-13T17:54:03Z] Completed: continue parity/reconciliation list by fixing MediaCore ContentID examples to populate read-first resolve/validation fields and advanced registration fields.
+- [2026-05-13T17:57:08Z] Completed: reconcile Program.cs decomposition status as complete for this pass; remaining work shifts to MediaCore/G5 UX cleanup and validation.
 - [2026-05-13T16:38:00Z] Completed: fix Arch source build SDK floor, aggregate download timeout classification/logging, Snap package metadata, and startup logging sink crash; deployed manual build `0.0.0-manual.20260513163650.c07c237919e0` to kspls0 and verified web/API/service health.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 

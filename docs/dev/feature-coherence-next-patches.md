@@ -331,28 +331,20 @@ Target modules:
 
 Acceptance criteria:
 
-- `Program.cs` no longer directly imports every experimental vertical. In progress;
-  the broad graph moved and VirtualSoulfind/multi-source/transfer-discovery/
-  MediaCore/PodCore/mesh/capability-rendezvous/integration-media slices are now
-  separate. The remaining coordinator module only delegates to named bootstrap
-  modules, and E2E host diagnostics plus post-build startup tasks are also
-  owned by bootstrap extensions. Web listener/Kestrel setup is also owned by a
-  bootstrap extension, and app run/lifecycle hooks are now owned by a bootstrap
-  extension. Configuration compatibility warning parsing is now owned by a
-  focused configuration helper, and expected Soulseek network exception
-  classification plus initial Soulseek client option construction are now owned
-  by focused helpers. App-relative path resolution and web HTML rewrite rules
-  are also now owned by focused helpers. Antiforgery stale-cookie recovery is
-  now owned by a focused security helper, and configuration provider composition
-  is now owned by a focused configuration extension. Startup filesystem checks,
-  config recreation, and certificate export are now owned by a focused
-  bootstrap helper. QUIC overlay construction and standalone UDP overlay
-  selection are now owned by a focused mesh helper. Global logging setup and
-  shutdown telemetry wiring are now owned by focused bootstrap helpers. CLI
-  output and logo rendering are now owned by a focused bootstrap helper. SQLite
-  provider initialization and threading validation are now owned by a focused
-  bootstrap helper. Runtime version and executable-path calculation are now
-  owned by a focused bootstrap helper.
+- `Program.cs` no longer directly imports every experimental vertical. Complete
+  for this pass; Program now owns entrypoint orchestration, public process
+  state, command-line attribute binding, and the public log event/buffer bridge.
+  Runtime service registration, the experimental feature graph,
+  VirtualSoulfind, multi-source/transfer-discovery, MediaCore/PodCore,
+  mesh/DHT, capability-rendezvous, integration/media, host diagnostics,
+  post-build startup tasks, Web listener/Kestrel setup, app run/lifecycle hooks,
+  configuration compatibility warnings, Soulseek option construction,
+  app-relative path resolution, web HTML rewrite rules, antiforgery recovery,
+  configuration provider composition, startup filesystem checks, QUIC overlay
+  construction, logging/shutdown telemetry, CLI output, SQLite initialization,
+  runtime identity, startup directory preparation, startup configuration
+  loading, startup diagnostics, and ASP.NET build/pipeline/run flow are owned by
+  focused helpers.
 - Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 
