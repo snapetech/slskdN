@@ -258,13 +258,14 @@ body.msgv2-resizing {
 }
 
 .msgv2-tree-add-panel {
-  padding: 4px 8px 6px 18px;
+  padding: 6px 8px 8px 10px;
   border-bottom: 1px dashed var(--msgv2-border);
 }
 
 .msgv2-tree-add {
   display: flex;
   gap: 4px;
+  align-items: stretch;
 }
 
 .msgv2-tree-add-input {
@@ -292,7 +293,11 @@ body.msgv2-resizing {
   color: var(--msgv2-fg);
   cursor: pointer;
   font-size: var(--msg-font);
-  padding: 2px 8px;
+  max-width: 76px;
+  overflow: hidden;
+  padding: 2px 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .msgv2-tree-add-go:disabled {
@@ -309,6 +314,7 @@ body.msgv2-resizing {
 .msgv2-room-search-hint {
   color: var(--msgv2-fg-faint);
   font-size: 0.9em;
+  line-height: 1.25;
 }
 
 .msgv2-room-search-error {

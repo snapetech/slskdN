@@ -37,6 +37,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   "no response."
 - Cached the last successful backend Soulseek room directory so transient
   room-list timeouts do not clear search suggestions.
+- Polished Messaging V2 room search so the picker shows a real loading state,
+  keeps the section count focused on joined rooms, and gives the search box
+  enough room to be usable.
 - Updated the dependency ownership inventory with call-site-backed
   classifications and explicit prune/relocation follow-ups.
 - Documented the app project analyzer suppressions, including the debug-only

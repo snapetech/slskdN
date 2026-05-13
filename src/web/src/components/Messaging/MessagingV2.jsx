@@ -157,6 +157,8 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   const [dmAddOpen, setDmAddOpen] = useState(false);
   const [roomAddOpen, setRoomAddOpen] = useState(false);
   const [roomJoinError, setRoomJoinError] = useState('');
+  const [roomDirectoryLoading, setRoomDirectoryLoading] = useState(false);
+  const [roomDirectoryRequested, setRoomDirectoryRequested] = useState(false);
   const [podAddOpen, setPodAddOpen] = useState(false);
   const [userPopover, setUserPopover] = useState(null);
   const [composerDraft, setComposerDraft] = useState('');
@@ -231,6 +233,8 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   }, []);
 
   const loadAvailableRooms = useCallback(async () => {
+    setRoomDirectoryRequested(true);
+    setRoomDirectoryLoading(true);
     const serverAvailableRooms = await Promise.resolve(rooms.getAvailable()).catch(() => null);
     const nextAvailableRooms = asArray(serverAvailableRooms)
         .map((room) => (typeof room === 'string' ? room : room?.name || room?.Name || ''))
@@ -259,6 +263,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
 
       return nextAvailableRooms;
     });
+    setRoomDirectoryLoading(false);
   }, [roomAddOpen]);
 
   useEffect(() => {
@@ -1018,6 +1023,8 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
                 availableRooms={joinableRooms}
                 joinedRooms={joinedRooms}
                 error={roomJoinError}
+                isLoading={roomDirectoryLoading}
+                requested={roomDirectoryRequested}
                 onCancel={() => {
                   setRoomAddOpen(false);
                   setRoomDraft('');
@@ -1032,7 +1039,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
               />
             }
             collapsed={workspace.collapsedSections.soulseekRooms}
-            count={joinedRooms.length + joinableRooms.length}
+            count={joinedRooms.length}
             onAddToggle={() => setRoomAddOpen((open) => !open)}
             onToggle={() => toggleSection('soulseekRooms')}
             showAdd={roomAddOpen}
@@ -1446,10 +1453,12 @@ const TreeSubhead = ({ children }) => (
 const RoomJoinSearch = ({
   availableRooms,
   error,
+  isLoading,
   joinedRooms,
   onCancel,
   onChange,
   onJoinRoom,
+  requested,
   value,
 }) => {
   const inputRef = useRef(null);
@@ -1530,12 +1539,19 @@ const RoomJoinSearch = ({
       </div>
       {!query ? (
         <div className="msgv2-room-search-hint">
-          {availableRooms.length > 0
-            ? `${availableRooms.length.toLocaleString()} available. Type to filter.`
-            : 'Room directory unavailable or empty. Type a room name to join/create.'}
+          {isLoading
+            ? 'Loading room directory...'
+            : availableRooms.length > 0
+              ? `${availableRooms.length.toLocaleString()} available rooms. Type to filter or enter a new room name.`
+              : requested
+                ? 'Room directory is not available yet. Type a room name to join or create it.'
+                : 'Type a room name to join or create it.'}
         </div>
       ) : (
         <>
+          {isLoading && matches.length === 0 && (
+            <div className="msgv2-room-search-hint">Loading matching rooms...</div>
+          )}
           {matches.length > 0 && (
             <div
               aria-label="Matching Soulseek rooms"
