@@ -109,6 +109,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Moved MediaCore publisher, capability bridge, and DHT rendezvous
   registrations out of the experimental feature graph coordinator into a
   dedicated bootstrap extension.
+- Moved E2E hosted-service tracing and host startup timeout/concurrency options
+  out of `Program.cs` into a host diagnostics bootstrap extension.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

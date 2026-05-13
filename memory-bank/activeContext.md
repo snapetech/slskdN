@@ -1,3 +1,16 @@
+## Update 2026-05-13 02:27:56Z
+
+- Current task: Program.cs decomposition and parity/reconciliation follow-up in progress.
+- Last activity:
+  - moved E2E hosted-service tracing and host startup timeout/concurrency options into `Bootstrap/HostDiagnosticsServiceCollectionExtensions`;
+  - left `Program.cs` with a single `.AddSlskdHostDiagnostics()` call after runtime service registration.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Continue simplifying remaining MediaCore pod mutation-heavy forms, likely opinion publishing or content-linked pod creation.
+  2. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 02:18:57Z
 
 - Current task: parity/reconciliation list follow-up in progress.

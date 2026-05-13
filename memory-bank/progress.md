@@ -10108,3 +10108,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T02:17:30Z] Parity/reconciliation MediaCore signing follow-up: simplified Pod Message Signing by moving verification/statistics into the default panel and grouping private-key signing/key generation under advanced disclosure. Focused MediaCore component tests (`3/3`) and focused Web lint passed.
 
 [2026-05-13T02:18:57Z] Parity/reconciliation MediaCore channel follow-up: simplified Pod Channel Management by making load/review the default flow and grouping channel create/edit/delete controls under advanced disclosure. Focused MediaCore component tests (`3/3`) and focused Web lint passed.
+
+[2026-05-13T02:27:56Z] Program decomposition host diagnostics split: moved E2E hosted-service tracing and host startup timeout/concurrency options into `Bootstrap/HostDiagnosticsServiceCollectionExtensions`, leaving `Program.cs` with a single host diagnostics registration call after runtime services. `dotnet build src/slskd/slskd.csproj --no-restore` and `./bin/lint` passed.

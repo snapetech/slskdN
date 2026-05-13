@@ -27,7 +27,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using slskd.AudioCore;
 using slskd.Bootstrap;
-using slskd.Core.Diagnostics;
 using slskd.Mesh.Gossip;
 using slskd.Mesh.Governance;
 using slskd.Mesh.Realm;
@@ -801,56 +800,8 @@ namespace slskd
                 Log.Debug("[MAIN] About to configure ASP.NET services...");
                 builder.Services
                     .AddSlskdWebServices(Configuration!, OptionsAtStartup, AppName, DataDirectory, EnvironmentVariablePrefix, XmlDocumentationFile)
-                    .AddSlskdRuntimeServices(Configuration!, OptionsAtStartup, DataDirectory, SoulseekMinorVersion);
-
-                if (Environment.GetEnvironmentVariable("SLSKDN_E2E_TRACE_HOSTED") == "1")
-                {
-                    Console.Error.WriteLine("[HostedServiceTracer] Enabled (SLSKDN_E2E_TRACE_HOSTED=1)");
-
-                    // Replace hosted services with a tracer to pinpoint startup blockers
-                    var hostedDescriptors = builder.Services
-                        .Where(d => d.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService))
-                        .ToList();
-
-                    foreach (var descriptor in hostedDescriptors)
-                    {
-                        builder.Services.Remove(descriptor);
-                    }
-
-                    builder.Services.AddSingleton<IEnumerable<Microsoft.Extensions.Hosting.IHostedService>>(sp =>
-                    {
-                        var list = new List<Microsoft.Extensions.Hosting.IHostedService>();
-                        foreach (var descriptor in hostedDescriptors)
-                        {
-                            var svcName = descriptor.ImplementationType?.FullName
-                                          ?? descriptor.ImplementationInstance?.GetType().FullName
-                                          ?? "factory";
-                            Console.Error.WriteLine($"[HostedServiceTracer] create {svcName} begin");
-
-                            var svc = descriptor.ImplementationInstance as Microsoft.Extensions.Hosting.IHostedService
-                                      ?? (descriptor.ImplementationFactory?.Invoke(sp) as Microsoft.Extensions.Hosting.IHostedService)
-                                      ?? (Microsoft.Extensions.Hosting.IHostedService)ActivatorUtilities.CreateInstance(sp, descriptor.ImplementationType!);
-                            list.Add(svc);
-
-                            Console.Error.WriteLine($"[HostedServiceTracer] create {svcName} end");
-                        }
-
-                        return list;
-                    });
-
-                    builder.Services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService, HostedServiceTracer>();
-                }
-
-                // Add startup timeout for fail-fast in E2E tests (prevents infinite hangs)
-                builder.Services.Configure<Microsoft.Extensions.Hosting.HostOptions>(options =>
-                {
-                    options.StartupTimeout = TimeSpan.FromSeconds(30);
-                    if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SLSKDN_E2E_CONCURRENT_START")))
-                    {
-                        options.ServicesStartConcurrently = true;
-                        options.ServicesStopConcurrently = true;
-                    }
-                });
+                    .AddSlskdRuntimeServices(Configuration!, OptionsAtStartup, DataDirectory, SoulseekMinorVersion)
+                    .AddSlskdHostDiagnostics();
 
                 // Enable detailed logging for host lifetime and Kestrel in test/dev environments
                 builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", Microsoft.Extensions.Logging.LogLevel.Information);

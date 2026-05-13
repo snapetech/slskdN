@@ -146,6 +146,8 @@ experimental graph into `Bootstrap/ExperimentalMeshServiceCollectionExtensions.c
 MediaCore publisher, capability bridge, and DHT rendezvous registrations moved
 out of the broad experimental graph into
 `Bootstrap/CapabilitiesAndRendezvousServiceCollectionExtensions.cs`.
+E2E hosted-service tracing and host startup timeout/concurrency options moved
+out of `Program.cs` into `Bootstrap/HostDiagnosticsServiceCollectionExtensions.cs`.
 
 Target modules:
 
@@ -177,6 +179,8 @@ Target modules:
   service-fabric registrations.
 - `AddSlskdCapabilitiesAndRendezvousServices(...)`. Implemented for MediaCore
   publishing, capability bridge, and DHT rendezvous registrations.
+- `AddSlskdHostDiagnostics(...)`. Implemented for E2E hosted-service tracing
+  and host startup timeout/concurrency options.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
@@ -192,7 +196,7 @@ Acceptance criteria:
   the broad graph moved and VirtualSoulfind/multi-source/transfer-discovery/
   MediaCore/PodCore/mesh/capability-rendezvous/integration-media slices are now
   separate. The remaining coordinator module only delegates to named bootstrap
-  modules.
+  modules, and E2E host diagnostics are also owned by a bootstrap extension.
 - Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 

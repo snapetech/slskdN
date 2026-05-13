@@ -2747,6 +2747,7 @@
 - [2026-05-13T02:15:08Z] Completed: finish the current Program.cs experimental graph split by moving MediaCore publisher, capability bridge, and DHT rendezvous registrations into `Bootstrap/CapabilitiesAndRendezvousServiceCollectionExtensions`, leaving `ExperimentalFeatureGraphServiceCollectionExtensions` as a delegation-only coordinator.
 - [2026-05-13T02:17:30Z] Completed: continue parity/reconciliation list by simplifying the MediaCore pod message signing workflow so verification/statistics are first and private-key signing/key generation is behind progressive disclosure.
 - [2026-05-13T02:18:57Z] Completed: continue parity/reconciliation list by simplifying MediaCore pod channel management so channel load/review is first and create/edit/delete controls are behind progressive disclosure.
+- [2026-05-13T02:27:56Z] Completed: continue Program.cs decomposition by moving E2E hosted-service tracing and host startup timeout/concurrency options into `Bootstrap/HostDiagnosticsServiceCollectionExtensions`.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.
