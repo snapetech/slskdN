@@ -1,3 +1,17 @@
+## Update 2026-05-13 16:34:30Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - moved primitive startup command-mode handling into `Bootstrap/StartupCommandMode`;
+  - Program now delegates version/help/env output, certificate generation, and secret generation to that helper;
+  - `Program.cs` is down to 816 lines.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests|FullyQualifiedName~ApplicationLifecycleTests|FullyQualifiedName~SharedEventEmitterTests|FullyQualifiedName~ApplicationControllerTests|FullyQualifiedName~LogsControllerTests" --no-restore` (`58/58`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Continue Program.cs decomposition by extracting another cohesive startup-flow segment.
+  2. Continue scanning MediaCore for any remaining read-first reconciliation work.
 ## Update 2026-05-13 16:31:10Z
 
 - Current task: Program.cs decomposition follow-up in progress.

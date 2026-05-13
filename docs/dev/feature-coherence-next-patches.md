@@ -196,6 +196,9 @@ Web pipeline setup now calls extracted web rewrite, antiforgery recovery, and
 startup file-system helpers directly. Experimental mesh service registration now
 calls the QUIC overlay factory directly instead of routing through Program
 compatibility wrappers.
+Primitive startup command-mode handling for version/help/env output,
+certificate generation, and secret generation moved out of `Program.cs` into
+`Bootstrap/StartupCommandMode.cs`.
 
 Target modules:
 
@@ -270,6 +273,7 @@ Target modules:
 - `StartupSingleInstance`. Implemented for startup mutex-name construction.
 - `StartupExceptionClassifier`. Implemented for unobserved-task exception
   classification.
+- `StartupCommandMode`. Implemented for primitive startup command-mode handling.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`

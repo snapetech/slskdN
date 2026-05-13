@@ -425,51 +425,18 @@ namespace slskd
                 return;
             }
 
-            // if a user has used one of the arguments above, perform the requested task, then quit
-            if (ShowVersion)
+            if (StartupCommandMode.TryRun(
+                new StartupCommandModeOptions(ShowVersion, ShowHelp, ShowEnvironmentVariables, NoLogo, GenerateCertificate, GenerateSecret),
+                FullVersion,
+                EnvironmentVariablePrefix,
+                AppName,
+                typeof(Options),
+                Log,
+                PrintLogo,
+                PrintCommandLineArguments,
+                PrintEnvironmentVariables,
+                GenerateX509Certificate))
             {
-                Log.Information(FullVersion);
-                return;
-            }
-
-            if (ShowHelp || ShowEnvironmentVariables)
-            {
-                if (!NoLogo)
-                {
-                    PrintLogo(FullVersion);
-                }
-
-                if (ShowHelp)
-                {
-                    PrintCommandLineArguments(typeof(Options));
-                }
-
-                if (ShowEnvironmentVariables)
-                {
-                    PrintEnvironmentVariables(typeof(Options), EnvironmentVariablePrefix);
-                }
-
-                return;
-            }
-
-            if (GenerateCertificate)
-            {
-                var (filename, password) = GenerateX509Certificate(password: Cryptography.Random.GetBytes(16).ToBase62(), filename: $"{AppName}.pfx");
-
-                Log.Information($"Certificate exported to {filename}");
-                Console.WriteLine($"Password: {password}");
-                return;
-            }
-
-            if (GenerateSecret > 0)
-            {
-                if (GenerateSecret < 16 || GenerateSecret > 255)
-                {
-                    Log.Error("Invalid command line input: secret length must be between 16 and 255, inclusive");
-                    return;
-                }
-
-                Log.Information(Cryptography.Random.GetBytes(GenerateSecret).ToBase62());
                 return;
             }
 

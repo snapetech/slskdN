@@ -171,6 +171,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Rewired web pipeline and experimental mesh bootstrap code to use extracted
   rewrite, antiforgery, file-system, and QUIC helpers directly instead of
   routing through Program compatibility wrappers.
+- Moved primitive startup command-mode handling for version/help/env output,
+  certificate generation, and secret generation out of `Program.cs` into
+  `StartupCommandMode`.
 - Simplified MediaCore descriptor publishing by keeping retrieval/statistics as
   the default path and grouping descriptor publish, batch publish, update, and
   republish controls behind advanced disclosure.
