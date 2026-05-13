@@ -89,11 +89,12 @@ the commands have isolated output directories.
 
 **The Bug**: Extracting antiforgery recovery logic into
 `slskd.Core.Security.AntiforgeryCookieRecovery` left `Program.cs` calling
-`AntiforgeryCookieRecovery` unqualified. A later configuration helper
-extraction also imported only `Microsoft.Extensions.FileProviders.Physical`
-even though `PhysicalFileProvider` lives in `Microsoft.Extensions.FileProviders`.
-Both app builds failed because extracted call sites/files did not import or
-qualify the namespaces they now own.
+`AntiforgeryCookieRecovery` unqualified. Later file-provider helper extractions
+also confused `PhysicalFileProvider` and `ExclusionFilters`: the provider type
+lives in `Microsoft.Extensions.FileProviders`, while `ExclusionFilters` lives
+in `Microsoft.Extensions.FileProviders.Physical`. These app builds failed
+because extracted call sites/files did not import or qualify the namespaces
+they now own.
 
 **Files Affected**:
 - `src/slskd/Program.cs`
