@@ -537,94 +537,20 @@ namespace slskd
                 Log,
                 RecreateConfigurationFileIfMissing);
 
-            // bootstrap the ASP.NET application
-            try
-            {
-                var bindExposure = BindExposureAnalyzer.AnalyzeWebBinding(OptionsAtStartup);
-                var isBindingNonLoopback = BindExposureAnalyzer.IsRemoteReachable(bindExposure);
-                Common.Security.HardeningValidator.Validate(
-                    OptionsAtStartup,
-                    System.Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production",
-                    isBindingNonLoopback);
-
-                var builder = WebApplication.CreateBuilder(args);
-
-                builder.Configuration
-                    .AddSlskdConfigurationProviders(EnvironmentVariablePrefix, ConfigurationFile, reloadOnChange: !OptionsAtStartup.Flags.NoConfigWatch, VolatileOverlayConfigurationSource, Log);
-
-                // Deterministic port probe for E2E startup debugging.
-                var portStr = builder.Configuration[$"{AppName}:Web:Port"] ?? "<null>";
-                if (Environment.GetEnvironmentVariable("SLSKDN_E2E_SERVER_PROBE") == "1")
-                {
-                    System.Console.Error.WriteLine($"[ConfigProbe] slskd:web:port={portStr}");
-                }
-
-                builder.Host
-                    .UseSerilog();
-
-                builder.ConfigureSlskdWebHost(OptionsAtStartup, AppName);
-
-                Log.Debug("[MAIN] About to configure ASP.NET services...");
-                builder.Services
-                    .AddSlskdWebServices(Configuration!, OptionsAtStartup, AppName, DataDirectory, EnvironmentVariablePrefix, XmlDocumentationFile)
-                    .AddSlskdRuntimeServices(Configuration!, OptionsAtStartup, DataDirectory, SoulseekMinorVersion)
-                    .AddSlskdHostDiagnostics();
-
-                // Enable detailed logging for host lifetime and Kestrel in test/dev environments
-                builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", Microsoft.Extensions.Logging.LogLevel.Information);
-                builder.Logging.AddFilter("Microsoft.AspNetCore.Server.Kestrel", Microsoft.Extensions.Logging.LogLevel.Debug);
-
-                Log.Debug("[MAIN] Services configured, building DI container...");
-                WebApplication app;
-                try
-                {
-                    Log.Debug("Building DI container...");
-                    Log.Debug("[DI] About to call builder.Build() - this will construct all singleton services...");
-                    app = builder.Build();
-                    Log.Debug("DI container built successfully!");
-                }
-                catch (Exception diEx)
-                {
-                    Log.Fatal(diEx, "FAILED to build DI container");
-                    throw;
-                }
-
-                app.RunSlskdStartupTasks(OptionsAtStartup);
-
-                Log.Debug("[DI] About to configure ASP.NET pipeline...");
-                try
-                {
-                    app.UseSlskdWebPipeline(OptionsAtStartup);
-                    Log.Debug("[DI] ASP.NET pipeline configured");
-                }
-                catch (Exception pipelineEx)
-                {
-                    Log.Error(pipelineEx, "[DI] EXCEPTION configuring ASP.NET pipeline: {Message}", pipelineEx.Message);
-                    throw;
-                }
-
-                if (OptionsAtStartup.Flags.NoStart)
-                {
-                    Log.Information("Quitting because 'no-start' option is enabled");
-                    return;
-                }
-
-                app.RunSlskdApplication(OptionsAtStartup);
-            }
-            catch (Common.Security.HardeningValidationException hex)
-            {
-                Console.Error.WriteLine($"[HardeningValidation] {hex.RuleName}: {hex.Message}");
-                Log.Fatal(hex, "Hardening validation failed: {Message}", hex.Message);
-                Exit(1);
-            }
-            catch (Exception ex)
-            {
-                Log.Fatal(ex, "Application terminated unexpectedly");
-            }
-            finally
-            {
-                Serilog.Log.CloseAndFlush();
-            }
+            StartupWebApplicationRunner.Run(
+                new StartupWebApplicationContext(
+                    args,
+                    EnvironmentVariablePrefix,
+                    ConfigurationFile,
+                    VolatileOverlayConfigurationSource,
+                    Configuration!,
+                    AppName,
+                    DataDirectory,
+                    XmlDocumentationFile,
+                    SoulseekMinorVersion),
+                OptionsAtStartup,
+                Log,
+                Exit);
         }
 
         private static void InitSQLiteOrFailFast()

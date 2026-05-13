@@ -1,3 +1,17 @@
+## Update 2026-05-13 16:56:30Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - moved ASP.NET hardening validation, builder configuration, service registration, DI build, pipeline setup, no-start handling, and run lifecycle into `Bootstrap/StartupWebApplicationRunner`;
+  - updated ADR-0001 gotcha `0z403` for the extracted runner logger ambiguity;
+  - `Program.cs` is down to 680 lines.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests|FullyQualifiedName~ApplicationLifecycleTests|FullyQualifiedName~SharedEventEmitterTests|FullyQualifiedName~ApplicationControllerTests|FullyQualifiedName~LogsControllerTests" --no-restore` (`58/58`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Continue Program.cs decomposition with the remaining compatibility wrappers/static state.
+  2. Continue scanning MediaCore for remaining read-first reconciliation work.
 ## Update 2026-05-13 16:49:30Z
 
 - Current task: Program.cs decomposition follow-up in progress.

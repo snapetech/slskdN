@@ -208,6 +208,9 @@ diagnostics, and validation moved out of `Program.cs` into
 Configured startup identity, system, directory, compatibility-warning, and
 logging-target diagnostics moved out of `Program.cs` into
 `Bootstrap/StartupDiagnostics.cs`.
+ASP.NET hardening validation, builder configuration, service registration, DI
+build, pipeline setup, no-start handling, and run lifecycle moved out of
+`Program.cs` into `Bootstrap/StartupWebApplicationRunner.cs`.
 
 Target modules:
 
@@ -289,6 +292,9 @@ Target modules:
   loading, binding, diagnostics, and validation.
 - `StartupDiagnostics`. Implemented for configured startup identity, system,
   directory, compatibility-warning, and logging-target diagnostics.
+- `StartupWebApplicationRunner`. Implemented for ASP.NET hardening validation,
+  builder configuration, service registration, DI build, pipeline setup,
+  no-start handling, and run lifecycle.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
