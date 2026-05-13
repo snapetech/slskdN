@@ -7295,3 +7295,9 @@ Next steps: commit the validation documentation. Remaining reconciliation scope 
 Ran the optional live Soulseek-account mesh smoke with `SLSKDN_RUN_LIVE_MESH_ACCOUNT_TESTS=1`; `OptionalLiveAccounts_CanSearchAndDownloadHostedProbeOverOverlayMesh` passed (`1/1`). This closes the locally runnable live interop validation gap.
 
 Next steps: commit the validation documentation. Remaining reconciliation scope is branch sync/release coordination and any additional release-owner-specific checks.
+
+## 2026-05-13T18:48:39Z Session update
+
+Updated the core Soulseek risk wording so it reflects the passed optional live mesh smoke. Broader downstream compatibility checks remain release-owner scope instead of local reconciliation cleanup.
+
+Next steps: commit this wording cleanup. Remaining reconciliation work is branch sync/release coordination and any release-owner-specific checks.

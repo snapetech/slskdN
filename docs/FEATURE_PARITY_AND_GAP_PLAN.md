@@ -60,7 +60,9 @@ Implemented surfaces:
 
 Risks:
 
-- Real protocol compatibility still needs live/stub Soulseek interop testing after the vendored runtime sync.
+- Optional live Soulseek-account mesh smoke passed after the vendored runtime
+  sync; broader downstream compatibility clients should still be checked when
+  a target release needs that assurance.
 - Compatibility APIs should be route-inventoried and compared against downstream client expectations.
 
 ### Transfers and acquisition
