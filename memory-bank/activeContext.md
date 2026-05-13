@@ -6416,4 +6416,8 @@ Completed the hardening startup matrix at the validator/analyzer boundary for lo
 
 Added the initial runtime feature-gate foundation and gated SongID, mesh, DHT, pods, social federation, VirtualSoulfind, and multi-source APIs behind enabled-by-default `feature.*` switches.
 
-Next steps: continue feature-gating mesh/DHT/pods/multi-source API surfaces, then move into dependency ownership inventory and Program.cs service-module decomposition.
+## 2026-05-13T00:17:13Z Session update
+
+Updated dependency ownership inventory with concrete call-site classifications and explicit prune/relocation follow-ups for `dotNetRDF`, `MathNet.Numerics`, Microsoft.Build, and Microsoft.CodeAnalysis packages.
+
+Next steps: continue with build-task relocation/pruning decisions, then Program.cs service-module decomposition and DownloadService regression coverage.
