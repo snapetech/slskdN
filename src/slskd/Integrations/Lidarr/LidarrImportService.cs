@@ -41,6 +41,8 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
 
     private ConcurrentDictionary<string, DateTime> RecentlyProcessed { get; } = new(StringComparer.Ordinal);
 
+    private SemaphoreSlim ImportGate { get; } = new(1, 1);
+
     private ILogger Log { get; } = Serilog.Log.ForContext<LidarrImportService>();
 
     public async Task<LidarrImportResult> ImportCompletedDirectoryAsync(string localDirectory, CancellationToken cancellationToken = default)
@@ -62,61 +64,69 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
             return new LidarrImportResult { Enabled = true, AutoImportEnabled = true, Directory = lidarrDirectory, SkippedReason = "Recently processed" };
         }
 
-        var candidates = await LidarrClient
-            .GetManualImportCandidatesAsync(
-                lidarrDirectory,
-                filterExistingFiles: false,
-                replaceExistingFiles: options.ImportReplaceExistingFiles,
-                cancellationToken)
-            .ConfigureAwait(false);
-
-        var safeCandidates = candidates
-            .Where(candidate => candidate.IsSafeAutomaticImportCandidate)
-            .ToList();
-
-        foreach (var candidate in safeCandidates)
+        await ImportGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            candidate.ReplaceExistingFiles = options.ImportReplaceExistingFiles;
-        }
+            var candidates = await LidarrClient
+                .GetManualImportCandidatesAsync(
+                    lidarrDirectory,
+                    filterExistingFiles: false,
+                    replaceExistingFiles: options.ImportReplaceExistingFiles,
+                    cancellationToken)
+                .ConfigureAwait(false);
 
-        var result = new LidarrImportResult
-        {
-            Enabled = true,
-            AutoImportEnabled = true,
-            Directory = lidarrDirectory,
-            CandidateCount = candidates.Count,
-            SafeCandidateCount = safeCandidates.Count,
-            RejectedCandidateCount = candidates.Count - safeCandidates.Count,
-        };
+            var safeCandidates = candidates
+                .Where(candidate => candidate.IsSafeAutomaticImportCandidate)
+                .ToList();
 
-        if (safeCandidates.Count == 0)
-        {
-            result.SkippedReason = candidates.Count == 0
-                ? "Lidarr found no import candidates"
-                : "Lidarr candidates had rejections or ambiguous matches";
+            foreach (var candidate in safeCandidates)
+            {
+                candidate.ReplaceExistingFiles = options.ImportReplaceExistingFiles;
+            }
+
+            var result = new LidarrImportResult
+            {
+                Enabled = true,
+                AutoImportEnabled = true,
+                Directory = lidarrDirectory,
+                CandidateCount = candidates.Count,
+                SafeCandidateCount = safeCandidates.Count,
+                RejectedCandidateCount = candidates.Count - safeCandidates.Count,
+            };
+
+            if (safeCandidates.Count == 0)
+            {
+                result.SkippedReason = candidates.Count == 0
+                    ? "Lidarr found no import candidates"
+                    : "Lidarr candidates had rejections or ambiguous matches";
+                Log.Information(
+                    "Lidarr auto-import skipped {Directory}: {Reason} ({Candidates} candidates)",
+                    lidarrDirectory,
+                    result.SkippedReason,
+                    candidates.Count);
+                return result;
+            }
+
+            var importMode = NormalizeImportMode(options.ImportMode);
+            var command = await LidarrClient
+                .StartManualImportAsync(safeCandidates, importMode, options.ImportReplaceExistingFiles, cancellationToken)
+                .ConfigureAwait(false);
+
+            result.CommandId = command.Id;
+            result.ImportMode = importMode;
             Log.Information(
-                "Lidarr auto-import skipped {Directory}: {Reason} ({Candidates} candidates)",
+                "Queued Lidarr manual import command {CommandId} for {Directory}: {SafeCandidates}/{Candidates} safe candidates",
+                command.Id,
                 lidarrDirectory,
-                result.SkippedReason,
+                safeCandidates.Count,
                 candidates.Count);
+
             return result;
         }
-
-        var importMode = NormalizeImportMode(options.ImportMode);
-        var command = await LidarrClient
-            .StartManualImportAsync(safeCandidates, importMode, options.ImportReplaceExistingFiles, cancellationToken)
-            .ConfigureAwait(false);
-
-        result.CommandId = command.Id;
-        result.ImportMode = importMode;
-        Log.Information(
-            "Queued Lidarr manual import command {CommandId} for {Directory}: {SafeCandidates}/{Candidates} safe candidates",
-            command.Id,
-            lidarrDirectory,
-            safeCandidates.Count,
-            candidates.Count);
-
-        return result;
+        finally
+        {
+            ImportGate.Release();
+        }
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

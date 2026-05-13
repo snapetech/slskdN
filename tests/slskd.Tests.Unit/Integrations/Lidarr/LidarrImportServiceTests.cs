@@ -141,6 +141,24 @@ public class LidarrImportServiceTests
         Assert.Equal("Recently processed", result.SkippedReason);
     }
 
+    [Fact]
+    public async Task ImportCompletedDirectoryAsync_SerializesDifferentDirectoryImports()
+    {
+        var client = new FakeLidarrClient
+        {
+            Candidates = [SafeCandidate()],
+            CandidateDelay = TimeSpan.FromMilliseconds(50),
+        };
+        var service = CreateService(client, EnabledImportOptions());
+
+        await Task.WhenAll(
+            service.ImportCompletedDirectoryAsync("/downloads/music/Artist/Album One"),
+            service.ImportCompletedDirectoryAsync("/downloads/music/Artist/Album Two"));
+
+        Assert.Equal(2, client.CandidateRequestCount);
+        Assert.Equal(1, client.MaxConcurrentCandidateRequests);
+    }
+
     private static LidarrImportService CreateService(FakeLidarrClient client, Options.IntegrationOptions.LidarrOptions lidarrOptions)
         => new(
             client,
@@ -197,6 +215,10 @@ public class LidarrImportServiceTests
 
         public int CandidateRequestCount { get; private set; }
 
+        public int MaxConcurrentCandidateRequests { get; private set; }
+
+        private int _activeCandidateRequests;
+
         public string LastCandidateFolder { get; private set; } = string.Empty;
 
         public string LastImportMode { get; private set; } = string.Empty;
@@ -221,30 +243,49 @@ public class LidarrImportServiceTests
             bool replaceExistingFiles,
             CancellationToken cancellationToken = default)
         {
-            CandidateRequestCount++;
-            LastCandidateFolder = folder;
-            if (CandidateDelay > TimeSpan.Zero)
+            var activeRequests = Interlocked.Increment(ref _activeCandidateRequests);
+            try
             {
-                return GetManualImportCandidatesWithDelayAsync(cancellationToken);
-            }
+                CandidateRequestCount++;
+                MaxConcurrentCandidateRequests = Math.Max(MaxConcurrentCandidateRequests, activeRequests);
+                LastCandidateFolder = folder;
+                if (CandidateDelay > TimeSpan.Zero)
+                {
+                    return GetManualImportCandidatesWithDelayAsync(cancellationToken);
+                }
 
-            if (CandidateException is not null)
+                if (CandidateException is not null)
+                {
+                    return Task.FromException<IReadOnlyList<LidarrManualImportResource>>(CandidateException);
+                }
+
+                return Task.FromResult(Candidates);
+            }
+            finally
             {
-                return Task.FromException<IReadOnlyList<LidarrManualImportResource>>(CandidateException);
+                if (CandidateDelay == TimeSpan.Zero)
+                {
+                    Interlocked.Decrement(ref _activeCandidateRequests);
+                }
             }
-
-            return Task.FromResult(Candidates);
         }
 
         private async Task<IReadOnlyList<LidarrManualImportResource>> GetManualImportCandidatesWithDelayAsync(CancellationToken cancellationToken)
         {
-            await Task.Delay(CandidateDelay, cancellationToken);
-            if (CandidateException is not null)
+            try
             {
-                throw CandidateException;
-            }
+                await Task.Delay(CandidateDelay, cancellationToken);
+                if (CandidateException is not null)
+                {
+                    throw CandidateException;
+                }
 
-            return Candidates;
+                return Candidates;
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _activeCandidateRequests);
+            }
         }
 
         public Task<LidarrCommandResponse> StartManualImportAsync(
