@@ -226,10 +226,8 @@ namespace slskd
             .WriteTo.Sink(new ConsoleWriteLineLogger())
             .CreateLogger();
 
-        // Mutex is created lazily after AppDirectory is set to allow multiple test instances with different app dirs
+        // Mutex is created lazily after AppDirectory is set to allow multiple test instances with different app dirs.
         private static Mutex? Mutex { get; set; }
-
-        private static string GetMutexName() => StartupSingleInstance.GetMutexName(AppName, AppDirectory, DefaultAppDirectory);
 
         private static VolatileOverlayConfigurationSource<OptionsOverlay> VolatileOverlayConfigurationSource { get; set; } = new VolatileOverlayConfigurationSource<OptionsOverlay>();
 
@@ -291,19 +289,22 @@ namespace slskd
                 return;
             }
 
-            var directories = StartupApplicationDirectoryResolver.Resolve(AppDirectory, DefaultAppDirectory, AppName);
-            AppDirectory = directories.AppDirectory;
+            var preparedDirectories = StartupApplicationDirectoryResolver.TryPrepare(
+                AppDirectory,
+                DefaultAppDirectory,
+                AppName,
+                ConfigurationFile,
+                Log,
+                Exit);
 
-            // the application isn't being run in command mode. check the mutex to ensure
-            // only one long-running instance per app directory.
-            // Create mutex with name that includes app directory to allow multiple test instances
-            Mutex = new Mutex(initiallyOwned: true, GetMutexName());
-            if (!Mutex.WaitOne(millisecondsTimeout: 0, exitContext: false))
+            if (preparedDirectories is null)
             {
-                Log.Fatal($"An instance of {AppName} is already running in app directory: {AppDirectory}");
                 return;
             }
 
+            var directories = preparedDirectories.Directories;
+            AppDirectory = directories.AppDirectory;
+            Mutex = preparedDirectories.Mutex;
             DataDirectory = directories.DataDirectory;
             DataBackupDirectory = directories.DataBackupDirectory;
             LogDirectory = directories.LogDirectory;
@@ -311,25 +312,7 @@ namespace slskd
             DefaultConfigurationFile = directories.DefaultConfigurationFile;
             DefaultDownloadsDirectory = directories.DefaultDownloadsDirectory;
             DefaultIncompleteDirectory = directories.DefaultIncompleteDirectory;
-
-            // the location of the configuration file might have been overridden by command line or envar.
-            // if not, set it to the default.
-            if (string.IsNullOrWhiteSpace(ConfigurationFile))
-            {
-                ConfigurationFile = DefaultConfigurationFile;
-            }
-
-            // verify(create if needed) default application directories. if the downloads or complete
-            // directories are overridden in config, those will be validated after the config is loaded.
-            try
-            {
-                StartupApplicationDirectoryResolver.VerifyDefaults(directories);
-            }
-            catch (Exception ex)
-            {
-                Log.Information($"Filesystem exception: {ex.Message}");
-                Exit(1);
-            }
+            ConfigurationFile = preparedDirectories.ConfigurationFile;
 
             // load and validate the configuration
             try

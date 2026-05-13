@@ -34,6 +34,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Cleaned up now-unused `Program.cs` imports after the bootstrap decomposition.
 - Moved startup environment and command-line population into `Bootstrap/StartupInput`
   and removed leftover Program dead code from earlier startup helper extractions.
+- Moved startup application-directory resolution, default directory validation,
+  configuration-file defaulting, and single-instance mutex preparation into
+  `Bootstrap/StartupApplicationDirectories`.
 - Removed additional `Program.cs` compatibility wrappers after tests moved to
   the extracted bootstrap/security/path helper APIs directly.
 - Rewired remaining production call sites to use extracted path, Soulseek
