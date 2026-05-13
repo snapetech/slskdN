@@ -2,7 +2,7 @@ import './System.css';
 import { Switch } from '../Shared';
 import React, { Suspense, lazy } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { Icon, Menu, Message, Segment, Tab } from 'semantic-ui-react';
+import { Icon, Label, Menu, Message, Segment, Tab } from 'semantic-ui-react';
 
 const AdminPolicies = lazy(() => import('./AdminPolicies'));
 const AutomationCenter = lazy(() => import('./AutomationCenter'));
@@ -43,6 +43,22 @@ const renderPane = (Component, props = {}, className) => (
       <Component {...props} />
     </Suspense>
   </Tab.Pane>
+);
+
+const labeledMenuItem = ({ icon, key, label, labelColor = 'grey', text }) => (
+  <Menu.Item key={key}>
+    <Icon name={icon} />
+    {text}
+    {label && (
+      <Label
+        className="system-tab-label"
+        color={labelColor}
+        size="mini"
+      >
+        {label}
+      </Label>
+    )}
+  </Menu.Item>
 );
 
 const System = ({ options = {}, state = {}, theme }) => {
@@ -86,29 +102,35 @@ const System = ({ options = {}, state = {}, theme }) => {
       route: 'network',
     },
     {
-      menuItem: {
-        content: 'Mesh',
+      menuItem: labeledMenuItem({
         icon: 'share alternate',
         key: 'mesh',
-      },
+        label: 'Experimental',
+        labelColor: 'violet',
+        text: 'Mesh',
+      }),
       render: () => renderPane(Mesh),
       route: 'mesh',
     },
     {
-      menuItem: {
-        content: 'Bridge',
+      menuItem: labeledMenuItem({
         icon: 'exchange',
         key: 'bridge',
-      },
+        label: 'Experimental',
+        labelColor: 'violet',
+        text: 'Bridge',
+      }),
       render: () => renderPane(Bridge),
       route: 'bridge',
     },
     {
-      menuItem: {
-        content: 'MediaCore',
+      menuItem: labeledMenuItem({
         icon: 'music',
         key: 'mediacore',
-      },
+        label: 'Experimental',
+        labelColor: 'violet',
+        text: 'MediaCore',
+      }),
       render: () => renderPane(MediaCore),
       route: 'mediacore',
     },
@@ -122,11 +144,12 @@ const System = ({ options = {}, state = {}, theme }) => {
       route: 'security',
     },
     {
-      menuItem: {
-        content: 'Policies',
+      menuItem: labeledMenuItem({
         icon: 'sliders horizontal',
         key: 'policies',
-      },
+        label: 'Admin',
+        text: 'Policies',
+      }),
       render: () => renderPane(AdminPolicies, { options }, 'full-height'),
       route: 'policies',
     },
@@ -140,20 +163,22 @@ const System = ({ options = {}, state = {}, theme }) => {
       route: 'experience',
     },
     {
-      menuItem: {
-        content: 'Integrations',
+      menuItem: labeledMenuItem({
         icon: 'plug',
         key: 'integrations',
-      },
+        label: 'Admin',
+        text: 'Integrations',
+      }),
       render: () => renderPane(Integrations, { options, state }, 'full-height'),
       route: 'integrations',
     },
     {
-      menuItem: {
-        content: 'Options',
+      menuItem: labeledMenuItem({
         icon: 'options',
         key: 'options',
-      },
+        label: 'Admin',
+        text: 'Options',
+      }),
       render: () => renderPane(Options, { options, theme }, 'full-height'),
       route: 'options',
     },
@@ -188,29 +213,34 @@ const System = ({ options = {}, state = {}, theme }) => {
       route: 'jobs',
     },
     {
-      menuItem: {
-        content: 'Automations',
+      menuItem: labeledMenuItem({
         icon: 'magic',
         key: 'automations',
-      },
+        label: 'Admin',
+        text: 'Automations',
+      }),
       render: () => renderPane(AutomationCenter, {}, 'full-height'),
       route: 'automations',
     },
     {
-      menuItem: {
-        content: 'Source Providers',
+      menuItem: labeledMenuItem({
         icon: 'random',
         key: 'source-providers',
-      },
+        label: 'Experimental',
+        labelColor: 'violet',
+        text: 'Source Providers',
+      }),
       render: () => renderPane(SourceProviders, {}, 'full-height'),
       route: 'source-providers',
     },
     {
-      menuItem: {
-        content: 'Swarm Analytics',
+      menuItem: labeledMenuItem({
         icon: 'chart line',
         key: 'swarm-analytics',
-      },
+        label: 'Experimental',
+        labelColor: 'violet',
+        text: 'Swarm Analytics',
+      }),
       render: () => renderPane(SwarmAnalytics, {}, 'full-height'),
       route: 'swarm-analytics',
     },
@@ -224,11 +254,12 @@ const System = ({ options = {}, state = {}, theme }) => {
       route: 'library-health',
     },
     {
-      menuItem: {
-        content: 'Quarantine Jury',
+      menuItem: labeledMenuItem({
         icon: 'shield',
         key: 'quarantine-jury',
-      },
+        label: 'Admin',
+        text: 'Quarantine Jury',
+      }),
       render: () => renderPane(QuarantineJury, {}, 'full-height'),
       route: 'quarantine-jury',
     },
@@ -242,11 +273,12 @@ const System = ({ options = {}, state = {}, theme }) => {
       route: 'files',
     },
     {
-      menuItem: {
-        content: 'Data',
+      menuItem: labeledMenuItem({
         icon: 'database',
         key: 'data',
-      },
+        label: 'Admin',
+        text: 'Data',
+      }),
       render: () => renderPane(Data, { theme }, 'full-height'),
       route: 'data',
     },
@@ -260,20 +292,22 @@ const System = ({ options = {}, state = {}, theme }) => {
       route: 'events',
     },
     {
-      menuItem: {
-        content: 'Logs',
+      menuItem: labeledMenuItem({
         icon: 'file outline',
         key: 'logs',
-      },
+        label: 'Admin',
+        text: 'Logs',
+      }),
       render: () => renderPane(Logs),
       route: 'logs',
     },
     {
-      menuItem: {
-        content: 'Metrics',
+      menuItem: labeledMenuItem({
         icon: 'chart bar',
         key: 'metrics',
-      },
+        label: 'Admin',
+        text: 'Metrics',
+      }),
       render: () => renderPane(Metrics, {}, 'full-height'),
       route: 'metrics',
     },

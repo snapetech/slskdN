@@ -51,6 +51,19 @@
   1. Continue G5 with guided flows or System grouping.
   2. Run broader validation when the reconciliation pass is ready to close.
 
+## Update 2026-05-13 18:08:19Z
+
+- Current task: parity/reconciliation follow-up in progress.
+- Last activity:
+  - labeled System admin and experimental panels directly in the tab menu;
+  - added focused System component coverage for the labels.
+- Validation:
+  - Passed: `cd src/web && npm test -- --run src/components/System/System.test.jsx` (`2/2`).
+  - Passed: `cd src/web && npm run lint -- src/components/System/System.jsx src/components/System/System.test.jsx`.
+- Next steps:
+  1. Continue G5 guided-flow work or run broader validation for the reconciliation pass.
+  2. Keep Program.cs decomposition closed for this pass unless a concrete regression or wrapper reappears.
+
 ## Update 2026-05-13 16:56:30Z
 
 - Current task: Program.cs decomposition follow-up in progress.

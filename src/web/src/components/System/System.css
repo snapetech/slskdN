@@ -14,6 +14,10 @@
   gap: 14px;
 }
 
+.system-tab-label.ui.label {
+  margin-left: 6px;
+}
+
 .automation-center {
   display: flex;
   flex-direction: column;

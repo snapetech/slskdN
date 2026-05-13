@@ -54,4 +54,21 @@ describe('System', () => {
 
     expect(await screen.findByTestId('location')).toHaveTextContent('/system/info');
   });
+
+  it('labels admin and experimental system panels in the tab menu', async () => {
+    render(
+      <MemoryRouter initialEntries={['/system/info']}>
+        <Routes>
+          <Route
+            element={<System />}
+            path="/system/:tab"
+          />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('MediaCore')).toBeInTheDocument();
+    expect(screen.getAllByText('Experimental').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Admin').length).toBeGreaterThan(0);
+  });
 });

@@ -22,8 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Labeled System admin and experimental panels in the tab menu to reduce
+  cognitive load around advanced surfaces.
+
 ## [2026051318-slskdn.251] — 2026-05-13
 
+- Labeled System admin and experimental panels in the tab menu to reduce
+  cognitive load around advanced surfaces.
 - Grouped MediaCore fuzzy candidate search behind advanced disclosure so
   pairwise perceptual/text similarity remain the default review paths.
 
