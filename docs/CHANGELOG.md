@@ -30,10 +30,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Added a runtime feature-gate foundation and put the experimental SongID,
   mesh, DHT, pods, social federation, VirtualSoulfind, and multi-source API
   surfaces behind enabled-by-default `feature.*` switches.
+- Fixed Messaging V2 room search so a degraded room-directory refresh cannot
+  erase the last good suggestions while the user is typing.
 - Updated the dependency ownership inventory with call-site-backed
   classifications and explicit prune/relocation follow-ups.
 - Documented the app project analyzer suppressions, including the debug-only
   binding suppressions and the current unsuppressed CA2000 transport warnings.
+- Moved custom MSBuild quality tasks into `tools/slskd.BuildTasks` so the app
+  project no longer loads build tasks from `slskd.dll` or carries
+  `Microsoft.Build.*` runtime package references.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

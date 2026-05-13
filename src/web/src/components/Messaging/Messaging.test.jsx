@@ -132,6 +132,30 @@ describe('Messaging', () => {
     });
   });
 
+  it('keeps room suggestions after a degraded directory refresh', async () => {
+    rooms.getAvailable
+      .mockResolvedValueOnce(['ambient', 'jazz', 'slskdn'])
+      .mockResolvedValueOnce([]);
+
+    renderMessaging();
+
+    fireEvent.click(await screen.findByLabelText('Join or create a room'));
+    fireEvent.change(screen.getByLabelText('Search or create Soulseek room'), {
+      target: { value: 'amb' },
+    });
+    expect(await screen.findByRole('button', { name: 'Join ambient' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Refresh'));
+    fireEvent.change(screen.getByLabelText('Search or create Soulseek room'), {
+      target: { value: '' },
+    });
+    fireEvent.change(screen.getByLabelText('Search or create Soulseek room'), {
+      target: { value: 'jaz' },
+    });
+
+    expect(await screen.findByRole('button', { name: 'Join jazz' })).toBeInTheDocument();
+  });
+
   it('suggests joined rooms from the room search form', async () => {
     rooms.getJoined.mockResolvedValue(['slskdn']);
 

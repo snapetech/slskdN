@@ -226,13 +226,16 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   }, []);
 
   const loadAvailableRooms = useCallback(async () => {
-    const serverAvailableRooms = await Promise.resolve(rooms.getAvailable()).catch(() => []);
-    setAvailableRooms(
-      asArray(serverAvailableRooms)
+    const serverAvailableRooms = await Promise.resolve(rooms.getAvailable()).catch(() => null);
+    const nextAvailableRooms = asArray(serverAvailableRooms)
         .map((room) => (typeof room === 'string' ? room : room?.name || room?.Name || ''))
         .filter(Boolean)
-        .sort((a, b) => a.localeCompare(b)),
-    );
+        .sort((a, b) => a.localeCompare(b));
+
+    setAvailableRooms((previous) =>
+      nextAvailableRooms.length === 0 && previous.length > 0
+        ? previous
+        : nextAvailableRooms);
   }, []);
 
   useEffect(() => {
