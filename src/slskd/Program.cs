@@ -754,7 +754,7 @@ namespace slskd
 
         [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The assigned framework options/configuration source owns the file provider lifecycle.")]
         internal static PhysicalFileProvider CreateOwnedPhysicalFileProvider(string root, ExclusionFilters exclusionFilters = ExclusionFilters.Sensitive)
-            => new(root, exclusionFilters);
+            => StartupFileSystem.CreateOwnedPhysicalFileProvider(root, exclusionFilters);
 
         private static void PrintCommandLineArguments(Type targetType)
         {

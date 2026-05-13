@@ -6,6 +6,8 @@ namespace slskd.Bootstrap;
 
 using System;
 using System.IO;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.FileProviders.Physical;
 using System.Security.Cryptography.X509Certificates;
 using Serilog;
 using slskd.Cryptography;
@@ -97,4 +99,7 @@ public static class StartupFileSystem
 
         return (filename, password);
     }
+
+    public static PhysicalFileProvider CreateOwnedPhysicalFileProvider(string root, ExclusionFilters exclusionFilters = ExclusionFilters.Sensitive)
+        => new(root, exclusionFilters);
 }

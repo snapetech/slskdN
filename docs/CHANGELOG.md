@@ -166,6 +166,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Moved startup mutex-name construction and unobserved-task exception
   classification out of `Program.cs` into focused bootstrap helpers while
   preserving Program compatibility wrappers.
+- Moved owned physical file provider construction out of `Program.cs` into
+  `StartupFileSystem` while preserving the Program compatibility wrapper.
 - Simplified MediaCore descriptor publishing by keeping retrieval/statistics as
   the default path and grouping descriptor publish, batch publish, update, and
   republish controls behind advanced disclosure.

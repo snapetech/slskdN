@@ -1,3 +1,17 @@
+## Update 2026-05-13 16:21:10Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - moved owned physical file provider construction into `Bootstrap/StartupFileSystem`;
+  - kept Program's compatibility wrapper for current tests and call sites;
+  - updated ADR-0001 gotcha `0z403` after the extraction repeated the provider namespace trap.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests|FullyQualifiedName~ApplicationLifecycleTests|FullyQualifiedName~SharedEventEmitterTests" --no-restore` (`46/46`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Continue Program.cs decomposition with another small compatibility-wrapper split or switch back to remaining MediaCore reconciliation forms.
+  2. Keep unrelated local edits in workflows, `global.json`, packaging, `StartupLogging`, and DownloadService files separate.
 ## Update 2026-05-13 16:13:40Z
 
 - Current task: Program.cs decomposition follow-up in progress.

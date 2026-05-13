@@ -189,6 +189,9 @@ Startup mutex-name construction and unobserved-task exception classification
 moved out of `Program.cs` into `Bootstrap/StartupSingleInstance.cs` and
 `Bootstrap/StartupExceptionClassifier.cs` while preserving Program
 compatibility wrappers.
+Owned physical file provider construction moved out of `Program.cs` into
+`Bootstrap/StartupFileSystem.cs` while preserving the Program compatibility
+wrapper.
 
 Target modules:
 
@@ -245,7 +248,8 @@ Target modules:
   environment variables, YAML, command-line values, and volatile overlay
   configuration source composition.
 - `StartupFileSystem`. Implemented for startup directory validation,
-  configuration-file recreation, and generated certificate export.
+  configuration-file recreation, generated certificate export, and owned
+  physical file provider construction.
 - `QuicOverlayFactory`. Implemented for QUIC overlay/data client construction,
   overlay server construction, and standalone UDP overlay selection.
 - `StartupLogging.Configure(...)`. Implemented for global Serilog setup and
