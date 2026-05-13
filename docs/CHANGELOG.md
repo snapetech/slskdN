@@ -32,6 +32,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   surfaces behind enabled-by-default `feature.*` switches.
 - Updated the dependency ownership inventory with call-site-backed
   classifications and explicit prune/relocation follow-ups.
+- Documented the app project analyzer suppressions, including the debug-only
+  binding suppressions and the current unsuppressed CA2000 transport warnings.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

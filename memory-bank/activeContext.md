@@ -6420,4 +6420,8 @@ Added the initial runtime feature-gate foundation and gated SongID, mesh, DHT, p
 
 Updated dependency ownership inventory with concrete call-site classifications and explicit prune/relocation follow-ups for `dotNetRDF`, `MathNet.Numerics`, Microsoft.Build, and Microsoft.CodeAnalysis packages.
 
+## 2026-05-13T00:28:00Z Session update
+
+Completed the analyzer suppression audit slice. `docs/analyzer-suppressions.md` now matches the app-project `NoWarn` set and records the remaining CA2000 transport warnings as code follow-up, while feature gates remain enabled by default.
+
 Next steps: continue with build-task relocation/pruning decisions, then Program.cs service-module decomposition and DownloadService regression coverage.

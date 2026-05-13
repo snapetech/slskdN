@@ -150,13 +150,15 @@ Remaining follow-up:
 
 ## 9. Move custom MSBuild tasks out of the app assembly
 
-Status: documented only.
+Status: analyzer suppression audit documented. Build tasks are still loaded from
+the app assembly and still need relocation.
 
 Acceptance criteria:
 
 - `src/slskd/slskd.csproj` no longer loads MSBuild tasks from `slskd.dll`.
 - Build tasks live in a separate project or are removed.
 - Runtime package dependencies for MSBuild/Roslyn are removed unless truly needed at runtime.
+- `docs/analyzer-suppressions.md` stays in sync with project-wide `NoWarn` entries.
 
 ## 10. Add DownloadService regression tests
 

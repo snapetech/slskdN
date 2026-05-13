@@ -2723,6 +2723,7 @@
 - [2026-05-12T23:57:46Z] Completed: add feature-coherence HardeningValidator bind-exposure matrix coverage for local-only, remote-reachable, unknown-address, and remote-no-auth CIDR cases.
 - [2026-05-13T00:04:31Z] Completed: add feature-gate foundation and gate SongID, mesh, DHT, pods, social federation, VirtualSoulfind, and multi-source APIs behind enabled-by-default `feature.*` switches.
 - [2026-05-13T00:17:13Z] Completed: update dependency ownership inventory with active call-site classifications, keeping `dotNetRDF` and `MathNet.Numerics` because clean build exposed active Solid/WebID and MediaCore hashing call sites.
+- [2026-05-13T00:28:00Z] Completed: document analyzer suppression audit; `docs/analyzer-suppressions.md` now maps every app-project `NoWarn` entry to scope, current reason, risk, and required reduction action, and records the current unsuppressed CA2000 transport warnings.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.
