@@ -431,21 +431,12 @@ namespace slskd.Transfers.Downloads
                 /*
                     determine how many concurrent enqueue requests we want to send to the remote client.
 
-                    sending a ton of them can bog the client down and fail transfers due to resource contention on both sides,
-                    but both clients should be able to handle momentary 'bursts'.
-
-                    if the request contains 30 files or fewer, send all of the requests at the same time. the average number
-                    of tracks in a single album is 15, so this is 2x as many as most enqueue requests will need.
-
-                    if that number is more than 30, send only 5 at a time; transfers will be starting as we are still
-                    enqueueing files, and this raises the risk of errors considerably.
+                    Keep this deliberately low. Some peers reject album-sized
+                    enqueue bursts as "Overwhelmed with requests", and the
+                    transfer queue can still carry throughput once files are
+                    accepted remotely.
                 */
-                var concurrentEnqueueRequests = 5;
-
-                if (fileList.Count <= 30)
-                {
-                    concurrentEnqueueRequests = fileList.Count;
-                }
+                var concurrentEnqueueRequests = Math.Min(fileList.Count, 2);
 
                 var maxTimeToWaitForEnqueueRequestAck = TimeSpan.FromMinutes(3);
 #pragma warning disable CA2000 // Ephemeral async throttle; detached enqueue tasks may still touch it after this method returns.
