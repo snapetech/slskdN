@@ -93,6 +93,15 @@ listener, the upstream upload fails even though login, browse/share API, and
 enqueue all worked. Run upstream app-to-app transfer tests in a two-host,
 port-forwarded, or otherwise routable listen-port environment.
 
+VPN namespace isolation alone is not enough for upstream app-to-app transfer
+tests. A WireGuard namespace gives each credential set its own outbound address,
+but Soulseek transfers still require the uploader's advertised listen port to be
+reachable inbound. If `natpmpc` returns `the gateway does not support nat-pmp`
+or maps a different public port than the daemon advertises, the test can log in
+and enqueue but the download will time out waiting for remote enqueue. Use VPN
+configs/providers with working per-connection port forwarding, static forwarded
+ports, or a two-host routable setup.
+
 ### 0z409. Classify Peer Transport Disconnects As Expected Download Failures
 
 **The Bug**: Download failures caused by remote transport behavior, such as
