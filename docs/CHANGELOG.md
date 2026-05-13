@@ -41,6 +41,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   `Microsoft.Build.*` runtime package references; the linked CodeQuality async
   paths now use `ConfigureAwait(false)` so the new task project builds without
   adding CA2007 warning noise.
+- Scoped the CA2000 transport handler ownership suppressions locally so the app
+  project now builds with zero warnings instead of carrying broad warning noise.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

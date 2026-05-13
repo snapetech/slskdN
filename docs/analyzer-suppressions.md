@@ -31,16 +31,17 @@ Debug also suppresses `1701` and `1702`; Release does not.
 | `CS8981` | Debug and Release | Lowercase type names exist for compatibility/generated-style surfaces. | Lowercase type naming can point to generated or placeholder code. | Audit source of warning and target suppressions where compatibility requires it. |
 | `1701` / `1702` | Debug only | Local Debug builds can see assembly binding/version mismatch noise during dependency churn. | Can hide real binding problems if kept after cleanup. | Recheck after build-task relocation and dependency cleanup. |
 
-## Current observed unsuppressed warnings
+## Current observed warning posture
 
 `dotnet build src/slskd/slskd.csproj --no-incremental` currently succeeds and
-reports two unsuppressed `CA2000` warnings:
+reports zero warnings.
 
-- `src/slskd/Common/Security/HttpTunnelTransport.cs`
-- `src/slskd/Common/Security/MeekTransport.cs`
-
-These are not added to `NoWarn`. They should be fixed in code or explicitly
-scoped after verifying the `HttpClient`/handler ownership model.
+The previous `CA2000` transport warnings in
+`src/slskd/Common/Security/HttpTunnelTransport.cs` and
+`src/slskd/Common/Security/MeekTransport.cs` are handled with local pragma
+scopes around the `HttpClient` construction. The handlers are passed with
+`disposeHandler: true`, so `HttpClient` owns the handler lifetime; do not move
+these into project-wide `NoWarn`.
 
 ## Required follow-up
 

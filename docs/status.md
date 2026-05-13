@@ -68,7 +68,7 @@ Candidates requiring classification:
 - Experimental feature gates now exist for high-risk surfaces. SongID, mesh, DHT, pods, social federation, VirtualSoulfind, and multi-source APIs are gated and remain enabled by default through their `feature.*` switches.
 - Dependency ownership has an initial call-site-backed inventory in `docs/dependencies.md`; `dotNetRDF` and `MathNet.Numerics` remain active for Solid/WebID and MediaCore hashing, while Roslyn CodeQuality helpers still need a runtime-vs-tooling decision.
 - Custom build quality tasks now live in `tools/slskd.BuildTasks`; remaining build-quality cleanup should target broad suppressions and runtime-adjacent Roslyn helpers.
-- Analyzer suppressions now have a first-pass audit in `docs/analyzer-suppressions.md`; broad suppressions still need reduction or targeting over time.
+- Analyzer suppressions now have a first-pass audit in `docs/analyzer-suppressions.md`; the app build is warning-clean, but broad project suppressions still need reduction or targeting over time.
 - Download flow needs regression tests before experimental rescue/swarm/ranking code is refactored around it.
 
 ## Release rule

@@ -39,8 +39,9 @@ public class MeekTransport : IAnonymityTransport, IDisposable
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        var handler = OutboundUriGuard.CreateNoRedirectHandler();
-        _httpClient = new HttpClient(handler, disposeHandler: true)
+#pragma warning disable CA2000 // HttpClient owns and disposes the handler because disposeHandler is true.
+        _httpClient = new HttpClient(OutboundUriGuard.CreateNoRedirectHandler(), disposeHandler: true)
+#pragma warning restore CA2000
         {
             Timeout = TimeSpan.FromSeconds(60) // Meek can be slow due to domain fronting
         };

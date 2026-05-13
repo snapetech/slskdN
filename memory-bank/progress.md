@@ -10064,3 +10064,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T00:28:00Z] Analyzer suppression audit: expanded `docs/analyzer-suppressions.md` from a generic checklist into a project-file-aligned audit of every `NoWarn` entry, including scope, current reason, risk, and reduction action. Recorded the current unsuppressed CA2000 warnings in `HttpTunnelTransport` and `MeekTransport` as code follow-up instead of hiding them.
 
 [2026-05-13T00:42:00Z] Build-task relocation: added `tools/slskd.BuildTasks` and moved the three custom MSBuild task types out of the runtime app compile. `src/slskd/slskd.csproj` now loads tasks from the tool assembly, excludes the task classes from the app, and drops direct `Microsoft.Build.*` package references. Build validation passed; only the existing CA2000 transport warnings remain.
+
+[2026-05-13T00:50:00Z] Build warning cleanup: scoped the CA2000 handler-ownership suppressions locally in `HttpTunnelTransport` and `MeekTransport` after confirming `HttpClient` owns the handler with `disposeHandler: true`. `dotnet build src/slskd/slskd.csproj --no-incremental` now passes with 0 warnings and 0 errors.

@@ -6428,4 +6428,8 @@ Completed the analyzer suppression audit slice. `docs/analyzer-suppressions.md` 
 
 Completed the build-task relocation slice. The runtime app no longer compiles `CodeAnalysisBuildTask`, `TestCoverageBuildTask`, or `RegressionBuildTask`, and no longer references `Microsoft.Build.*`; those tasks now build from linked CodeQuality sources in `tools/slskd.BuildTasks`.
 
+## 2026-05-13T00:50:00Z Session update
+
+Cleaned up the remaining app build warnings with local CA2000 scopes in the two guarded transport constructors. The app project now builds cleanly with zero warnings.
+
 Next steps: continue with Program.cs service-module decomposition, DownloadService regression coverage, and the remaining runtime-vs-tooling decision for Roslyn CodeQuality helpers.
