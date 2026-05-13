@@ -62,6 +62,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   behavior and registration order.
 - Moved user notes, collections/sharing, identity/friends, and Solid/WebID
   registrations out of `Program.cs` into a user-data bootstrap extension.
+- Moved core app service registrations, including database contexts,
+  messaging/search/share/user services, transfers, and source ranking, out of
+  `Program.cs` into a core bootstrap extension.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

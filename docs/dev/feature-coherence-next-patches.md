@@ -110,10 +110,15 @@ wishlist/source feeds, relay, FTP, AudioCore metadata, notifications) moved out
 of `Program.cs` into `Bootstrap/ExperimentalFeatureGraphServiceCollectionExtensions.cs`.
 User notes, collections/sharing, identity/friends, and Solid/WebID registration
 also moved into `Bootstrap/UserDataServiceCollectionExtensions.cs`.
+Core database context setup, event/telemetry registration, app-owned
+integrations, messaging/search/share/user services, transfer services, and
+source ranking moved into `Bootstrap/CoreApplicationServiceCollectionExtensions.cs`.
 
 Target modules:
 
 - `AddSlskdCore(...)`
+- `AddSlskdCoreApplicationServices(...)`. Implemented for app persistence,
+  messaging/search/share/user, transfers, and source ranking.
 - `AddSlskdWeb(...)`
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`

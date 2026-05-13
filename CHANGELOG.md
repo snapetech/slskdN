@@ -16,6 +16,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   live under `Bootstrap/ExperimentalFeatureGraphServiceCollectionExtensions`.
 - User notes, collections/sharing, identity/friends, and Solid/WebID
   registrations now live under `Bootstrap/UserDataServiceCollectionExtensions`.
+- Core database context setup, messaging/search/share/user services, transfer
+  services, and source ranking now live under
+  `Bootstrap/CoreApplicationServiceCollectionExtensions`.
 
 ### Fixed
 
