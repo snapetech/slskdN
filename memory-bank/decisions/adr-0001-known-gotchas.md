@@ -52,6 +52,38 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z410. Reconstruct Browse Paths And Seed Endpoint Caches In Same-Host Soulseek Transfer Tests
+
+**The Bug**: A raw Soulseek.NET client could browse a slskdN-hosted probe but
+failed to download it because the test requested only the file entry name, then
+failed again because slskdN could not connect back to the raw runtime client
+using the public server-reported endpoint.
+
+**Files Affected**:
+- `tests/slskd.Tests.Integration/SoulseekInterop/SlskdnSoulseekRuntimeInteropTests.cs`
+- `tests/slskd.Tests.Integration/Harness/SlskdnFullInstanceRunner.cs`
+- `src/slskd/Application.cs`
+
+**Wrong**:
+```csharp
+return file.Filename;
+```
+
+**Correct**:
+```csharp
+return string.IsNullOrWhiteSpace(directory.Name)
+    ? file.Filename
+    : $"{directory.Name}\\{file.Filename}";
+```
+
+**Why This Keeps Happening**: Soulseek browse responses group files by
+directory and slskdN intentionally omits the directory from each file entry to
+save bandwidth. Download requests still need the full masked remote path.
+Same-host live transfer tests also need deterministic endpoint-cache seeding
+for both clients; otherwise one side may browse over an existing peer
+connection but fail when the upload path opens a transfer callback connection
+using the server-reported public endpoint instead of loopback.
+
 ### 0z409. Classify Peer Transport Disconnects As Expected Download Failures
 
 **The Bug**: Download failures caused by remote transport behavior, such as
