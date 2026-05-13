@@ -105,6 +105,18 @@ describe('MediaCore', () => {
     expect(screen.queryByText(/Showing DHT Publishing/)).not.toBeInTheDocument();
   });
 
+  it('fills read-first ContentID fields from examples', async () => {
+    render(<MediaCore />);
+
+    fireEvent.click(await screen.findByText('audio:track'));
+
+    expect(screen.getAllByDisplayValue('mb:recording:12345').length).toBeGreaterThan(0);
+    expect(screen.getAllByDisplayValue('content:audio:track:mb-12345').length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(/Click any example to fill the read-only resolve and validation fields/),
+    ).toBeInTheDocument();
+  });
+
   it('treats malformed pod channel payloads as empty lists', async () => {
     mediacore.getChannels.mockResolvedValue('bad');
 
