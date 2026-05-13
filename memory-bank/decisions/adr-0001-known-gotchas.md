@@ -17130,3 +17130,30 @@ npm run check:council
 **Why:** `HardeningValidator` received a boolean computed from configured port presence instead of a classification of the actual listener address/socket posture.
 
 **How to prevent:** Compute bind posture with `BindExposureAnalyzer.AnalyzeWebBinding(...)`, fail closed for unknown TCP bind addresses, and pass `BindExposureAnalyzer.IsRemoteReachable(...)` into hardening validation. Unsupported feature toggles such as audio hash-from-file should fail startup directly, not degrade to warning-only behavior when the dependency path is unavailable.
+
+### 0z354. Retry Aggregate Exceptions Must Preserve Transfer Failure Kind
+
+**The Bug**: Download retries wrapped repeated `TimeoutException` failures in an `AggregateException`, so transfer cleanup classified the final failure as generic `Errored` and logged it as an unexpected error instead of `TimedOut`.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+
+**Wrong**:
+```csharp
+exception switch
+{
+    TimeoutException => TransferStates.TimedOut,
+    _ => TransferStates.Errored,
+};
+```
+
+**Correct**:
+```csharp
+exception switch
+{
+    _ when IsDownloadTimeout(exception) => TransferStates.TimedOut,
+    _ => TransferStates.Errored,
+};
+```
+
+**Why This Keeps Happening**: The retry helper returns the history as an aggregate after the last attempt, but transfer state classification originally matched only the outer exception type. Any download failure classification that drives user-visible state or log severity must flatten aggregate exceptions before deciding whether the failure was timeout, cancellation, or peer policy.
