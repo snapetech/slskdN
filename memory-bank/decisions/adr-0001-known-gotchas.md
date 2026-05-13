@@ -56,12 +56,16 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 **The Bug**: Extracting antiforgery recovery logic into
 `slskd.Core.Security.AntiforgeryCookieRecovery` left `Program.cs` calling
-`AntiforgeryCookieRecovery` unqualified. The app build failed because
-`Program.cs` did not import that namespace.
+`AntiforgeryCookieRecovery` unqualified. A later configuration helper
+extraction also imported only `Microsoft.Extensions.FileProviders.Physical`
+even though `PhysicalFileProvider` lives in `Microsoft.Extensions.FileProviders`.
+Both app builds failed because extracted call sites/files did not import or
+qualify the namespaces they now own.
 
 **Files Affected**:
 - `src/slskd/Program.cs`
 - `src/slskd/Core/Security/AntiforgeryCookieRecovery.cs`
+- `src/slskd/Configuration/SlskdConfigurationBuilderExtensions.cs`
 
 **Wrong**:
 ```csharp
@@ -73,11 +77,16 @@ return AntiforgeryCookieRecovery.IsStaleTokenException(exception);
 return Core.Security.AntiforgeryCookieRecovery.IsStaleTokenException(exception);
 ```
 
+```csharp
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.FileProviders.Physical;
+```
+
 **Why This Keeps Happening**: `Program.cs` has accumulated many broad imports,
 but new helpers often live in narrower feature namespaces. Program decomposition
 wrappers should either add an explicit using intentionally or fully qualify the
-new helper in the wrapper so the extraction compiles before broader call-site
-cleanup.
+new helper in the wrapper, and extracted helper files should verify concrete
+type namespaces instead of copying nearby namespace names.
 
 ### 0z402. Do Not Add Local `slskd.Soulseek` Namespaces
 
