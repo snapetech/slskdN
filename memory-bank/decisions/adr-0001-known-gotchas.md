@@ -84,6 +84,15 @@ for both clients; otherwise one side may browse over an existing peer
 connection but fail when the upload path opens a transfer callback connection
 using the server-reported public endpoint instead of loopback.
 
+**Upstream Compatibility Trap**: The unmodified upstream `slskd/slskd`
+daemon has no slskdN test endpoint override hook. In same-host compatibility
+tests, upstream may accept the request and enqueue the upload, then try to open
+the transfer connection back to the public endpoint reported by the Soulseek
+server. If that public endpoint is not routable back to the local slskdN
+listener, the upstream upload fails even though login, browse/share API, and
+enqueue all worked. Run upstream app-to-app transfer tests in a two-host,
+port-forwarded, or otherwise routable listen-port environment.
+
 ### 0z409. Classify Peer Transport Disconnects As Expected Download Failures
 
 **The Bug**: Download failures caused by remote transport behavior, such as
