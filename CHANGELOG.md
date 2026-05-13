@@ -19,6 +19,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Core database context setup, messaging/search/share/user services, transfer
   services, and source ranking now live under
   `Bootstrap/CoreApplicationServiceCollectionExtensions`.
+- Startup options, feature gates, managed state, HTTP clients, Soulseek client
+  construction, and `IApplication` hosting now live under
+  `Bootstrap/ApplicationHostServiceCollectionExtensions`.
 
 ### Fixed
 

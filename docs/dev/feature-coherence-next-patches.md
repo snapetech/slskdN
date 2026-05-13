@@ -113,12 +113,17 @@ also moved into `Bootstrap/UserDataServiceCollectionExtensions.cs`.
 Core database context setup, event/telemetry registration, app-owned
 integrations, messaging/search/share/user services, transfer services, and
 source ranking moved into `Bootstrap/CoreApplicationServiceCollectionExtensions.cs`.
+Startup options, feature gates, managed state, HTTP clients, Soulseek client
+construction, and the `IApplication` hosted-service wrapper moved into
+`Bootstrap/ApplicationHostServiceCollectionExtensions.cs`.
 
 Target modules:
 
 - `AddSlskdCore(...)`
 - `AddSlskdCoreApplicationServices(...)`. Implemented for app persistence,
   messaging/search/share/user, transfers, and source ranking.
+- `AddSlskdApplicationHost(...)`. Implemented for startup options, state,
+  HTTP clients, Soulseek client, and `IApplication` hosting.
 - `AddSlskdWeb(...)`
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
