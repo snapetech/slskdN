@@ -12,6 +12,7 @@ namespace slskd.Transfers.MultiSource.Tracing
     using System.Threading;
     using System.Threading.Tasks;
     using Serilog;
+    using slskd.Configuration;
 
     public interface ISwarmEventStore
     {
@@ -41,7 +42,7 @@ namespace slskd.Transfers.MultiSource.Tracing
 
         public SwarmEventStore()
         {
-            sessionsDir = Path.Combine(Program.GetWriteBaseDirectory(), "logs", "sessions");
+            sessionsDir = Path.Combine(AppPathResolver.GetWriteBaseDirectory(Program.AppDirectory, Program.DefaultAppDirectory), "logs", "sessions");
             Directory.CreateDirectory(sessionsDir);
         }
 

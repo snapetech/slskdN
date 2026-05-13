@@ -8,6 +8,7 @@ namespace slskd.Jobs.Manifests
     using System.Threading;
     using System.Threading.Tasks;
     using slskd.Common.IO;
+    using slskd.Configuration;
     using YamlDotNet.Serialization;
     using YamlDotNet.Serialization.NamingConventions;
 
@@ -56,7 +57,7 @@ namespace slskd.Jobs.Manifests
                 .Build();
 
             // Place manifests under <AppDirectory>/jobs/{active|completed}
-            jobsRoot = Path.Combine(Program.GetWriteBaseDirectory(), "jobs");
+            jobsRoot = Path.Combine(AppPathResolver.GetWriteBaseDirectory(Program.AppDirectory, Program.DefaultAppDirectory), "jobs");
         }
 
         public async Task<string> ExportAsync(JobManifest manifest, bool completed = false, CancellationToken ct = default)

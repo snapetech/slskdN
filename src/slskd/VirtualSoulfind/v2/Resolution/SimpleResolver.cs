@@ -12,6 +12,7 @@ namespace slskd.VirtualSoulfind.v2.Resolution
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Options;
+    using slskd.Configuration;
     using slskd.Mesh.ServiceFabric;
     using slskd.Signals.Swarm;
     using slskd.VirtualSoulfind.v2.Backends;
@@ -205,7 +206,7 @@ namespace slskd.VirtualSoulfind.v2.Resolution
 
             var downloadDir = string.IsNullOrWhiteSpace(_options.CurrentValue.DownloadDirectory)
                 ? Path.GetTempPath()
-                : Program.ResolveOptionalAppRelativePath(_options.CurrentValue.DownloadDirectory!)!;
+                : AppPathResolver.ResolveOptionalAppRelativePath(_options.CurrentValue.DownloadDirectory!, Program.AppDirectory, Program.DefaultAppDirectory)!;
 
             Directory.CreateDirectory(downloadDir);
 

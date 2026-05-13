@@ -28,7 +28,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Fixed download timeout handling so aggregate-wrapped Soulseek timeouts and
   timeout-text transfer exceptions are recorded as `TimedOut` and logged as
   warnings instead of generic error stack traces.
+- Downgraded expected remote peer download failures such as rejection,
+  remote-reported failure, and remote size mismatch from error stack traces to
+  warnings.
 - Cleaned up now-unused `Program.cs` imports after the bootstrap decomposition.
+- Rewired remaining production call sites to use extracted path, Soulseek
+  option, QUIC data-plane, and antiforgery helpers directly instead of routing
+  through Program compatibility wrappers.
 - Fixed startup hardening so no-auth exposure is based on actual web listener
   bind posture instead of port presence, and made the unavailable
   hash-from-audio option fail startup if enabled.

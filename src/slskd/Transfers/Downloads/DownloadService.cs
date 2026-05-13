@@ -1646,8 +1646,20 @@ namespace slskd.Transfers.Downloads
             }
 
             return exception is UserOfflineException ||
+                exception is TransferRejectedException ||
+                exception is TransferReportedFailedException ||
+                exception is TransferSizeMismatchException ||
                 exception.InnerException is UserOfflineException ||
+                exception.InnerException is TransferRejectedException ||
+                exception.InnerException is TransferReportedFailedException ||
+                exception.InnerException is TransferSizeMismatchException ||
                 exception is Soulseek.TransferException { InnerException: UserOfflineException } ||
+                exception is Soulseek.TransferException { InnerException: TransferRejectedException } ||
+                exception is Soulseek.TransferException { InnerException: TransferReportedFailedException } ||
+                exception is Soulseek.TransferException { InnerException: TransferSizeMismatchException } ||
+                exception.Message.Contains("Download reported as failed by remote client", StringComparison.OrdinalIgnoreCase) ||
+                exception.Message.Contains("Transfer rejected:", StringComparison.OrdinalIgnoreCase) ||
+                exception.Message.Contains("Transfer aborted: the remote size", StringComparison.OrdinalIgnoreCase) ||
                 exception.Message.Contains("appears to be offline", StringComparison.OrdinalIgnoreCase);
         }
 

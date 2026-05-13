@@ -22,6 +22,7 @@ using slskd.Signals;
 using slskd.Transfers;
 using slskd.Users;
 using slskd.Validation;
+using slskd.SoulseekRuntime;
 using Soulseek;
 
 public static class ApplicationHostServiceCollectionExtensions
@@ -84,7 +85,7 @@ public static class ApplicationHostServiceCollectionExtensions
         // add a partially configured instance of SoulseekClient. the Application instance will
         // complete configuration at startup.
         services.AddSingleton<ISoulseekClient, SoulseekClient>(_ =>
-            new SoulseekClient(soulseekMinorVersion, options: Program.CreateInitialSoulseekClientOptions(optionsAtStartup)));
+            new SoulseekClient(soulseekMinorVersion, options: SoulseekClientOptionsFactory.CreateInitial(optionsAtStartup)));
 
         // add the core application service to DI as well as a hosted service so that other services can
         // access instance methods

@@ -242,8 +242,8 @@ namespace slskd
             Client.LoggedIn += Client_LoggedIn;
             Client.StateChanged += Client_StateChanged;
             Client.DistributedNetworkStateChanged += Client_DistributedNetworkStateChanged;
-            _downloadDeniedHandler = (e, args) => Log.Error("Download of {Filename} from {Username} was denied by the remote user: {Message}", args.Filename, args.Username, args.Message);
-            _downloadFailedHandler = (e, args) => Log.Error("Download of {Filename} from {Username} reported as failed by the remote user", args.Filename, args.Username);
+            _downloadDeniedHandler = (e, args) => Log.Warning("Download of {Filename} from {Username} was denied by the remote user: {Message}", args.Filename, args.Username, args.Message);
+            _downloadFailedHandler = (e, args) => Log.Warning("Download of {Filename} from {Username} reported as failed by the remote user", args.Filename, args.Username);
             Client.DownloadDenied += _downloadDeniedHandler;
             Client.DownloadFailed += _downloadFailedHandler;
 

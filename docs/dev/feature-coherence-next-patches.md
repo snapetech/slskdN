@@ -211,6 +211,9 @@ logging-target diagnostics moved out of `Program.cs` into
 ASP.NET hardening validation, builder configuration, service registration, DI
 build, pipeline setup, no-start handling, and run lifecycle moved out of
 `Program.cs` into `Bootstrap/StartupWebApplicationRunner.cs`.
+Production call sites now use extracted path, Soulseek option, QUIC data-plane,
+and antiforgery helpers directly instead of routing through Program
+compatibility wrappers.
 
 Target modules:
 

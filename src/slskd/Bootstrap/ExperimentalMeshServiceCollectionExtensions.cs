@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Serilog;
 using slskd.Common.Security;
+using slskd.Configuration;
 using slskd.DhtRendezvous;
 using slskd.Mesh;
 using slskd.Mesh.Gossip;
@@ -80,11 +81,11 @@ public static class ExperimentalMeshServiceCollectionExtensions
         services.AddOptions<Mesh.Overlay.DataOverlayOptions>().Bind(configuration.GetSection($"{Program.AppName}:OverlayData"));
         services.PostConfigure<Mesh.MeshOptions>(options =>
         {
-            options.DataDirectory = Program.ResolveAppRelativePath(options.DataDirectory, "data");
+            options.DataDirectory = AppPathResolver.ResolveAppRelativePath(options.DataDirectory, "data", Program.AppDirectory, Program.DefaultAppDirectory);
         });
         services.PostConfigure<Mesh.Overlay.OverlayOptions>(options =>
         {
-            options.KeyPath = Program.ResolveAppRelativePath(options.KeyPath, "mesh-overlay.key");
+            options.KeyPath = AppPathResolver.ResolveAppRelativePath(options.KeyPath, "mesh-overlay.key", Program.AppDirectory, Program.DefaultAppDirectory);
         });
         services.AddOptions<Mesh.ServiceFabric.MeshGatewayOptions>()
             .Bind(configuration.GetSection($"{Program.AppName}:MeshGateway"))
@@ -469,7 +470,7 @@ public static class ExperimentalMeshServiceCollectionExtensions
         if (quicDataRequested && quicRuntimeAvailable)
         {
 #pragma warning disable CA1416 // Runtime platform guards apply in this branch.
-            services.AddSingleton<Mesh.Overlay.IOverlayDataPlane>(sp => Program.CreateQuicDataClient(sp));
+            services.AddSingleton<Mesh.Overlay.IOverlayDataPlane>(sp => Mesh.Overlay.QuicOverlayFactory.CreateDataClient(sp));
 #pragma warning restore CA1416
         }
 

@@ -351,6 +351,64 @@ public class DownloadServiceTests
         }
     }
 
+    [Theory]
+    [InlineData("reported")]
+    [InlineData("size")]
+    [InlineData("rejected")]
+    public async Task EnqueueAsync_BackgroundExpectedRemoteFailure_MarksTransferTerminalFailed(string failureKind)
+    {
+        var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var options = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+
+        await using (var context = new TransfersDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+        }
+
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient
+            .SetupGet(client => client.Downloads)
+            .Returns(Array.Empty<Soulseek.Transfer>());
+        soulseekClient
+            .Setup(client => client.DownloadAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<Task<Stream>>>(),
+                It.IsAny<long?>(),
+                It.IsAny<long>(),
+                It.IsAny<int?>(),
+                It.IsAny<TransferOptions>(),
+                It.IsAny<CancellationToken?>()))
+            .ThrowsAsync(new AggregateException(CreateExpectedRemoteFailure(failureKind)));
+
+        var service = CreateDownloadService(options, soulseekClient);
+
+        try
+        {
+            var (enqueued, failed) = await service.EnqueueAsync(
+                "alice",
+                new[] { (Filename: @"Music\remote-failed.flac", Size: 1234L) },
+                CancellationToken.None);
+
+            Assert.Single(enqueued);
+            Assert.Empty(failed);
+
+            var failedTransfer = await WaitForTransferAsync(
+                () => service.Find(t => t.Id == enqueued.Single().Id && t.State.HasFlag(TransferStates.Completed)),
+                TimeSpan.FromSeconds(5));
+
+            Assert.True(failedTransfer.State.HasFlag(TransferStates.Errored));
+            Assert.False(failedTransfer.State.HasFlag(TransferStates.TimedOut));
+        }
+        finally
+        {
+            service.Dispose();
+            DeleteDatabase(databasePath);
+        }
+    }
+
     [Fact]
     public async Task EnqueueAsync_SameUserRequests_AreSerializedByUserSemaphore()
     {
@@ -927,6 +985,17 @@ public class DownloadServiceTests
 
         throw new TimeoutException($"Timed out waiting {timeout.TotalSeconds} seconds for predicate");
     }
+
+    private static Exception CreateExpectedRemoteFailure(string failureKind)
+        => failureKind switch
+        {
+            "reported" => new SoulseekClientException(
+                "Failed to download file Music\\remote-failed.flac from user alice: Download reported as failed by remote client",
+                new TransferReportedFailedException("Download reported as failed by remote client")),
+            "size" => new TransferSizeMismatchException("Transfer aborted: the remote size of 2000 does not match expected size 1234", 1234, 2000),
+            "rejected" => new TransferRejectedException("Transfer rejected: File not shared."),
+            _ => throw new ArgumentOutOfRangeException(nameof(failureKind)),
+        };
 
     private static Mock<ISoulseekClient> CreateHangingSoulseekClient()
     {
