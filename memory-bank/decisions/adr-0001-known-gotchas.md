@@ -52,6 +52,45 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z405. Classify Wrapped Expected Soulseek Peer Failures Before Logging Errors
+
+**The Bug**: Soulseek remote peer failures such as remote-client failure,
+rejection, and size mismatch can arrive wrapped in `AggregateException` or
+`SoulseekClientException`. If `DownloadService` only treats direct exception
+types as expected, normal peer/content failures are logged as `ERR` stack
+traces and look like application failures during live downloads.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+- `src/slskd/Application.cs`
+- `tests/slskd.Tests.Unit/Transfers/Downloads/DownloadServiceTests.cs`
+
+**Wrong**:
+```csharp
+return exception is UserOfflineException ||
+    exception.Message.Contains("appears to be offline", StringComparison.OrdinalIgnoreCase);
+```
+
+**Correct**:
+```csharp
+if (exception is AggregateException aggregateException)
+{
+    return aggregateException.Flatten().InnerExceptions.Any(IsExpectedRemoteDownloadFailure);
+}
+
+return exception is TransferRejectedException ||
+    exception is TransferReportedFailedException ||
+    exception is TransferSizeMismatchException ||
+    exception.InnerException is TransferReportedFailedException ||
+    exception.Message.Contains("Download reported as failed by remote client", StringComparison.OrdinalIgnoreCase);
+```
+
+**Why This Keeps Happening**: `Retry.Do` and Soulseek.NET preserve useful
+remote-failure details while wrapping them. The transfer state may already show
+`Completed, Aborted` or `Completed, Errored`, but the observer task sees the
+outer wrapper. Always classify the flattened exception chain and common
+message text before choosing `Log.Error` for download failures.
+
 ### 0z404. Do Not Run `dotnet build` And `dotnet test` In Parallel In This Repo
 
 **The Bug**: Running `dotnet build src/slskd/slskd.csproj --no-restore` and a
