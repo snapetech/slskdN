@@ -52,6 +52,41 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z409. Classify Peer Transport Disconnects As Expected Download Failures
+
+**The Bug**: Download failures caused by remote transport behavior, such as
+`Connection reset by peer`, `Remote connection closed`, or failed direct/indirect
+message connection establishment, were still logged as `ERR` stack traces even
+though they are normal peer/network failures.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+- `src/slskd/DhtRendezvous/SharedMeshUdpListener.cs`
+
+**Wrong**:
+```csharp
+catch (Exception ex)
+{
+    Log.Error(ex, "Download of {Filename} from user {Username} failed", filename, username);
+}
+```
+
+**Correct**:
+```csharp
+catch (Exception ex) when (IsExpectedRemoteDownloadFailure(ex))
+{
+    Log.Warning("Download of {Filename} from user {Username} failed because the remote peer is unavailable: {Message}", filename, username, ex.Message);
+}
+```
+
+**Why This Keeps Happening**: Soulseek remote-peer failures are often wrapped in
+`AggregateException`, `SoulseekClientException`, or transport exceptions whose
+type names do not directly say "rejected" or "reported failed". Always classify
+the flattened exception chain and common peer/network message text before
+logging download failures as application errors. For UDP overlay parsing, random
+or incompatible datagrams should be rate-limited short warnings with debug
+details, not repeated warning stack traces.
+
 ### 0z408. Keep Antiforgery Cookie HttpOnly When Adding JS-Readable CSRF Tokens
 
 **The Bug**: Setting the framework antiforgery cookie to `HttpOnly = false`
