@@ -32,8 +32,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   remote-reported failure, and remote size mismatch from error stack traces to
   warnings.
 - Cleaned up now-unused `Program.cs` imports after the bootstrap decomposition.
-- Moved startup environment and command-line population into `Bootstrap/StartupInput`
-  and removed leftover Program dead code from earlier startup helper extractions.
+- Removed leftover Program dead code from earlier startup helper extractions,
+  while keeping command-line argument population in `Program` for correct
+  `[Argument]` binding.
 - Moved startup application-directory resolution, default directory validation,
   configuration-file defaulting, and single-instance mutex preparation into
   `Bootstrap/StartupApplicationDirectories`.

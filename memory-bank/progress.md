@@ -10216,7 +10216,7 @@ Code quality improvements were completed as part of Option A:
 
 [2026-05-13T17:20:00Z] Program decomposition test-wrapper cleanup: moved focused Program path/rewrite/network helper tests and ProfileService write-base lookup onto the extracted helpers directly, then removed redundant test-only Program compatibility wrappers. `dotnet build src/slskd/slskd.csproj --no-restore` and focused Program/ProfileService tests (`51/51`) passed.
 
-[2026-05-13T17:35:00Z] Program decomposition startup-input cleanup: moved environment-variable and command-line argument population into `Bootstrap/StartupInput`, removed leftover dead Program runtime/version/stat/provider wrappers from earlier extractions, and reduced `Program.cs` to 483 lines. `dotnet build src/slskd/slskd.csproj --no-restore` and focused Program/controller/log tests (`52/52`) passed.
+[2026-05-13T17:35:00Z] Program decomposition startup dead-code cleanup: removed leftover dead Program runtime/version/stat/provider wrappers from earlier extractions while keeping command-line argument population in `Program` for correct `[Argument]` binding. `dotnet build src/slskd/slskd.csproj --no-restore` and focused Program/controller/log tests (`52/52`) passed.
 
 [2026-05-13T17:48:00Z] Program decomposition directory-preparation split: moved startup application-directory resolution, configuration-file defaulting, default directory validation, and single-instance mutex acquisition into `Bootstrap/StartupApplicationDirectories`, reducing `Program.cs` to 466 lines. `dotnet build src/slskd/slskd.csproj --no-restore` and focused Program/application controller tests (`54/54`) passed.
 

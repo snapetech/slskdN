@@ -2792,7 +2792,7 @@
 - [2026-05-13T16:56:30Z] Completed: continue Program.cs decomposition by moving ASP.NET hardening/build/pipeline/run startup flow into `Bootstrap/StartupWebApplicationRunner`.
 - [2026-05-13T17:03:20Z] Completed: continue Program.cs decomposition by rewiring remaining production call sites to extracted helpers instead of Program compatibility wrappers.
 - [2026-05-13T17:20:00Z] Completed: continue Program.cs decomposition by moving tests to extracted helpers and removing redundant test-only Program compatibility wrappers.
-- [2026-05-13T17:35:00Z] Completed: continue Program.cs decomposition by moving startup input population into `Bootstrap/StartupInput` and removing leftover dead Program wrappers.
+- [2026-05-13T17:35:00Z] Completed: continue Program.cs decomposition by removing leftover dead Program wrappers while keeping command-line argument population in `Program`.
 - [2026-05-13T17:48:00Z] Completed: continue Program.cs decomposition by moving startup directory preparation and mutex acquisition into `Bootstrap/StartupApplicationDirectories`.
 - [2026-05-13T17:56:00Z] Completed: continue Program.cs decomposition by removing remaining antiforgery Program wrappers.
 - [2026-05-13T16:38:00Z] Completed: fix Arch source build SDK floor, aggregate download timeout classification/logging, Snap package metadata, and startup logging sink crash; deployed manual build `0.0.0-manual.20260513163650.c07c237919e0` to kspls0 and verified web/API/service health.

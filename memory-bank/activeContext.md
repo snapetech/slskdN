@@ -7078,7 +7078,7 @@ Next steps: keep reducing Program static startup state where it still owns priva
 
 ## 2026-05-13T17:35:00Z Session update
 
-Continued Program.cs decomposition by moving startup environment/argument population into `Bootstrap/StartupInput` and removing stale Program dead code left by earlier helper extractions. `Program.cs` is now 483 lines. Build and focused Program/controller/log tests passed.
+Continued Program.cs decomposition by removing stale Program dead code left by earlier helper extractions while keeping command-line argument population in `Program` for correct `[Argument]` binding. Build and focused Program/controller/log tests passed.
 
 Next steps: run lint, commit the startup-input cleanup, then continue either the remaining Program static-state split or the MediaCore reconciliation forms.
 
