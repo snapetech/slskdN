@@ -102,6 +102,7 @@ they now own.
 - `src/slskd/Configuration/SlskdConfigurationBuilderExtensions.cs`
 - `src/slskd/Bootstrap/StartupFileSystem.cs`
 - `src/slskd/Bootstrap/StartupConfiguration.cs`
+- `src/slskd/Bootstrap/StartupWebApplicationRunner.cs`
 
 **Wrong**:
 ```csharp
@@ -120,6 +121,10 @@ using Microsoft.Extensions.FileProviders.Physical;
 
 ```csharp
 using slskd.Validation;
+```
+
+```csharp
+Serilog.ILogger log
 ```
 
 **Why This Keeps Happening**: `Program.cs` has accumulated many broad imports,
