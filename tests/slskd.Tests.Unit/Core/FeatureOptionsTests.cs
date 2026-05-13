@@ -14,4 +14,18 @@ public class FeatureOptionsTests
 
         Assert.False(options.Feature.ScenePodBridge);
     }
+
+    [Fact]
+    public void Defaults_KeepExperimentalFeatureGatesDisabled()
+    {
+        var options = new slskd.Options();
+
+        Assert.False(options.Feature.SongId);
+        Assert.False(options.Feature.Mesh);
+        Assert.False(options.Feature.Dht);
+        Assert.False(options.Feature.Pods);
+        Assert.False(options.Feature.SocialFederation);
+        Assert.False(options.Feature.VirtualSoulfind);
+        Assert.False(options.Feature.MultiSourceDownloads);
+    }
 }

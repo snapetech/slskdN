@@ -27,6 +27,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   hash-from-audio option fail startup if enabled.
 - Added startup hardening matrix coverage for loopback, Unix socket,
   remote-reachable, unknown bind, and remote no-auth CIDR behavior.
+- Added a runtime feature-gate foundation and disabled the experimental SongID
+  API surface by default behind `feature.SongId`.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

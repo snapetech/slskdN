@@ -10056,3 +10056,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-12T23:49:22Z] Feature-coherence hardening follow-up: wired `BindExposureAnalyzer.AnalyzeWebBinding(...)` into `Program.cs` startup validation, hid the unsupported hash-from-audio flag from public CLI/env exposure, and made enabling it fail startup regardless of `EnforceSecurity`.
 
 [2026-05-12T23:57:46Z] Feature-coherence hardening matrix: added validator-boundary coverage for auth-disabled loopback, localhost, Unix-socket-only, wildcard, private IPv4, IPv6 wildcard, unknown bind address, and remote-no-auth CIDR behavior. Updated the coherence backlog and implemented-security docs to reflect the completed matrix.
+
+[2026-05-13T00:04:31Z] Feature-gate foundation: added `FeatureId`, `FeatureStatus`, `IFeatureGate`, and `FeatureGate` backed by existing options, added disabled-by-default experimental switches under `feature`, and gated SongID APIs behind `feature.SongId` with unit coverage.

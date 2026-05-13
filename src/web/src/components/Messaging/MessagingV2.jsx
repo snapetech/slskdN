@@ -153,6 +153,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   const [podDraft, setPodDraft] = useState('');
   const [dmAddOpen, setDmAddOpen] = useState(false);
   const [roomAddOpen, setRoomAddOpen] = useState(false);
+  const [roomJoinError, setRoomJoinError] = useState('');
   const [podAddOpen, setPodAddOpen] = useState(false);
   const [userPopover, setUserPopover] = useState(null);
   const [composerDraft, setComposerDraft] = useState('');
@@ -511,18 +512,27 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
 
   const joinRoomByName = useCallback(async (roomName) => {
     const trimmed = roomName.trim();
-    if (!trimmed) return;
+    if (!trimmed) return false;
+    setRoomJoinError('');
     try {
       await rooms.join({ roomName: trimmed });
       await hydrate();
       openTab('room', trimmed);
+      return true;
     } catch (error) {
       console.error('Failed to join room:', error);
+      const detail = error?.response?.data;
+      const message = typeof detail === 'string'
+        ? detail
+        : detail?.detail || detail?.message || error?.message || 'Room join failed. Try again shortly.';
+      setRoomJoinError(message);
+      return false;
     }
   }, [hydrate, openTab]);
 
   const joinRoomFromPicker = useCallback(async (roomName) => {
-    await joinRoomByName(roomName);
+    const joined = await joinRoomByName(roomName);
+    if (!joined) return;
     setRoomDraft('');
     setRoomAddOpen(false);
   }, [joinRoomByName]);
@@ -980,11 +990,16 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
               <RoomJoinSearch
                 availableRooms={joinableRooms}
                 joinedRooms={joinedRooms}
+                error={roomJoinError}
                 onCancel={() => {
                   setRoomAddOpen(false);
                   setRoomDraft('');
+                  setRoomJoinError('');
                 }}
-                onChange={setRoomDraft}
+                onChange={(nextValue) => {
+                  setRoomDraft(nextValue);
+                  if (roomJoinError) setRoomJoinError('');
+                }}
                 onJoinRoom={joinRoomFromPicker}
                 value={roomDraft}
               />
@@ -1403,6 +1418,7 @@ const TreeSubhead = ({ children }) => (
 
 const RoomJoinSearch = ({
   availableRooms,
+  error,
   joinedRooms,
   onCancel,
   onChange,
@@ -1421,17 +1437,24 @@ const RoomJoinSearch = ({
     const exact = [];
     const startsWith = [];
     const contains = [];
-    availableRooms.forEach((roomName) => {
+    const seen = new Set();
+    const addMatch = (roomName, status) => {
       const normalizedRoom = roomName.toLocaleLowerCase();
-      if (joinedLookup.has(normalizedRoom)) return;
-      if (normalizedRoom === normalizedQuery) exact.push(roomName);
-      else if (normalizedRoom.startsWith(normalizedQuery)) startsWith.push(roomName);
-      else if (normalizedRoom.includes(normalizedQuery)) contains.push(roomName);
-    });
+      if (seen.has(normalizedRoom)) return;
+      seen.add(normalizedRoom);
+      const match = { roomName, status };
+      if (normalizedRoom === normalizedQuery) exact.push(match);
+      else if (normalizedRoom.startsWith(normalizedQuery)) startsWith.push(match);
+      else if (normalizedRoom.includes(normalizedQuery)) contains.push(match);
+    };
+    joinedRooms.forEach((roomName) => addMatch(roomName, 'joined'));
+    availableRooms.forEach((roomName) => addMatch(roomName, 'available'));
     return [...exact, ...startsWith, ...contains].slice(0, 16);
-  }, [availableRooms, joinedLookup, normalizedQuery]);
+  }, [availableRooms, joinedRooms, normalizedQuery]);
   const exactAvailable = matches.some(
-    (roomName) => roomName.toLocaleLowerCase() === normalizedQuery,
+    (match) =>
+      match.status === 'available' &&
+      match.roomName.toLocaleLowerCase() === normalizedQuery,
   );
   const exactJoined = normalizedQuery && joinedLookup.has(normalizedQuery);
   const canSubmit = query.length > 0;
@@ -1480,7 +1503,9 @@ const RoomJoinSearch = ({
       </div>
       {!query ? (
         <div className="msgv2-room-search-hint">
-          {availableRooms.length.toLocaleString()} available. Type to filter.
+          {availableRooms.length > 0
+            ? `${availableRooms.length.toLocaleString()} available. Type to filter.`
+            : 'Room directory unavailable or empty. Type a room name to join/create.'}
         </div>
       ) : (
         <>
@@ -1489,18 +1514,20 @@ const RoomJoinSearch = ({
               aria-label="Matching Soulseek rooms"
               className="msgv2-room-search-results"
             >
-              {matches.map((roomName) => (
+              {matches.map(({ roomName, status }) => (
                 <button
-                  aria-label={`Join ${roomName}`}
+                  aria-label={`${status === 'joined' ? 'Open' : 'Join'} ${roomName}`}
                   className="msgv2-room-search-result"
                   key={roomName}
                   onClick={() => onJoinRoom(roomName)}
-                  title={`Join ${roomName}`}
+                  title={`${status === 'joined' ? 'Open' : 'Join'} ${roomName}`}
                   type="button"
                 >
                   <span className="msgv2-tree-row-prefix">#</span>
                   <span className="msgv2-tree-row-name">{roomName}</span>
-                  <span className="msgv2-room-search-result-meta">Join</span>
+                  <span className="msgv2-room-search-result-meta">
+                    {status === 'joined' ? 'Open' : 'Join'}
+                  </span>
                 </button>
               ))}
             </div>
@@ -1520,6 +1547,7 @@ const RoomJoinSearch = ({
           )}
         </>
       )}
+      {error && <div className="msgv2-room-search-error">{error}</div>}
     </div>
   );
 };

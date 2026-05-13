@@ -6412,4 +6412,8 @@ Completed the next feature-coherence hardening slice on `main`: wired real web b
 
 Completed the hardening startup matrix at the validator/analyzer boundary for loopback, localhost, Unix socket, wildcard, private IPv4, IPv6 wildcard, unknown bind address, and remote no-auth CIDR behavior.
 
-Next steps: continue the remaining feature-coherence PR series with Program.cs feature-module decomposition, feature gates for experimental API/UI surfaces, dependency ownership inventory, and DownloadService regression coverage.
+## 2026-05-13T00:04:31Z Session update
+
+Added the initial runtime feature-gate foundation and gated SongID APIs behind disabled-by-default `feature.SongId`.
+
+Next steps: continue feature-gating mesh/DHT/pods/multi-source API surfaces, then move into dependency ownership inventory and Program.cs service-module decomposition.

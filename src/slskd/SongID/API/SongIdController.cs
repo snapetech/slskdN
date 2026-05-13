@@ -5,9 +5,11 @@ namespace slskd.SongID.API;
 
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using slskd.Authentication;
+using slskd.Core.Features;
 using slskd.Core.Security;
 
 [ApiController]
@@ -20,10 +22,12 @@ using slskd.Core.Security;
 public sealed class SongIdController : ControllerBase
 {
     private readonly ISongIdService _songIdService;
+    private readonly IFeatureGate? _featureGate;
 
-    public SongIdController(ISongIdService songIdService)
+    public SongIdController(ISongIdService songIdService, IFeatureGate? featureGate = null)
     {
         _songIdService = songIdService;
+        _featureGate = featureGate;
     }
 
     [HttpPost("runs")]
@@ -33,6 +37,12 @@ public sealed class SongIdController : ControllerBase
         if (Program.IsRelayAgent)
         {
             return Forbid();
+        }
+
+        var disabled = DisabledResult();
+        if (disabled != null)
+        {
+            return disabled;
         }
 
         if (request == null)
@@ -69,6 +79,12 @@ public sealed class SongIdController : ControllerBase
             return Forbid();
         }
 
+        var disabled = DisabledResult();
+        if (disabled != null)
+        {
+            return disabled;
+        }
+
         limit = limit <= 0 ? 10 : limit;
         return Ok(_songIdService.List(limit));
     }
@@ -82,6 +98,12 @@ public sealed class SongIdController : ControllerBase
             return Forbid();
         }
 
+        var disabled = DisabledResult();
+        if (disabled != null)
+        {
+            return disabled;
+        }
+
         activeLimit = activeLimit <= 0 ? 25 : activeLimit;
         return Ok(_songIdService.GetQueueSummary(activeLimit));
     }
@@ -92,6 +114,12 @@ public sealed class SongIdController : ControllerBase
         if (Program.IsRelayAgent)
         {
             return Forbid();
+        }
+
+        var disabled = DisabledResult();
+        if (disabled != null)
+        {
+            return disabled;
         }
 
         var run = _songIdService.Get(id);
@@ -108,6 +136,12 @@ public sealed class SongIdController : ControllerBase
             return Forbid();
         }
 
+        var disabled = DisabledResult();
+        if (disabled != null)
+        {
+            return disabled;
+        }
+
         var package = _songIdService.GetEvidencePackage(id);
         return package == null ? NotFound() : Ok(package);
     }
@@ -120,6 +154,12 @@ public sealed class SongIdController : ControllerBase
             return Forbid();
         }
 
+        var disabled = DisabledResult();
+        if (disabled != null)
+        {
+            return disabled;
+        }
+
         var run = _songIdService.Get(id);
         if (run == null || run.ForensicMatrix == null)
         {
@@ -127,6 +167,22 @@ public sealed class SongIdController : ControllerBase
         }
 
         return Ok(run.ForensicMatrix);
+    }
+
+    private ObjectResult? DisabledResult()
+    {
+        if (_featureGate?.IsEnabled(FeatureId.SongId) != false)
+        {
+            return null;
+        }
+
+        var gate = _featureGate.Get(FeatureId.SongId);
+        return StatusCode(StatusCodes.Status404NotFound, new
+        {
+            feature = gate.Feature.ToString(),
+            status = gate.Status.ToString(),
+            error = gate.Message,
+        });
     }
 }
 

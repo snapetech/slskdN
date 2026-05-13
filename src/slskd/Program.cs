@@ -87,6 +87,7 @@ namespace slskd
     using slskd.Common.Security;
     using slskd.Configuration;
     using slskd.Core.API;
+    using slskd.Core.Features;
     using slskd.Cryptography;
     using slskd.DhtRendezvous;
     using slskd.DhtRendezvous.Security;
@@ -994,8 +995,8 @@ namespace slskd
                                         {
                                             Log.Warning(ex, "[Program] Failed to start LAN discovery advertising");
                                         }
-                                    }
-                                    , CancellationToken.None),
+                                    },
+                                    CancellationToken.None),
                                     ex => Log.Warning(ex, "[Program] Unobserved LAN discovery startup failure"));
                             }
                         }
@@ -1076,6 +1077,8 @@ namespace slskd
 
                     return true;
                 });
+
+            services.AddSingleton<IFeatureGate, FeatureGate>();
 
             // add IManagedState, IStateMutator, IStateMonitor, and IStateSnapshot state to DI.
             // the mutator should be used any time application state needs to be mutated (as the name implies)

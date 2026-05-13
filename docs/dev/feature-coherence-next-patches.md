@@ -122,18 +122,18 @@ Acceptance criteria:
 
 ## 8. Add feature gate enforcement
 
-Status: design documented, not implemented.
+Status: foundation implemented. `FeatureGate` now evaluates experimental feature IDs from existing options, and SongID APIs are the first gated surface.
 
 Minimum implementation:
 
-- `FeatureId` enum.
-- `FeatureGate` service.
+- `FeatureId` enum. Done.
+- `FeatureGate` service. Done.
 - Controller/action attribute or explicit helper for experimental API endpoints.
 - UI route metadata or status endpoint so the frontend can hide disabled features.
 
 Acceptance criteria:
 
-- Disabled experimental API surfaces return explicit disabled/404/410 behavior.
+- Disabled experimental API surfaces return explicit disabled/404/410 behavior. Started with SongID.
 - Moved-to-slskr features can return 410 with a message/link.
 - Design-only features are not registered at runtime.
 

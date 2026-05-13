@@ -311,6 +311,12 @@ body.msgv2-resizing {
   font-size: 0.9em;
 }
 
+.msgv2-room-search-error {
+  color: #ff8585;
+  font-size: 0.9em;
+  line-height: 1.25;
+}
+
 .msgv2-room-search-results {
   display: flex;
   flex-direction: column;

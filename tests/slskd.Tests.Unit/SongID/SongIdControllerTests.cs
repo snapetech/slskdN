@@ -5,12 +5,33 @@ namespace slskd.Tests.Unit.SongID;
 
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using slskd.Core.Features;
 using slskd.SongID;
 using slskd.SongID.API;
 using Xunit;
 
 public sealed class SongIdControllerTests
 {
+    [Fact]
+    public async Task CreateRun_WhenFeatureDisabled_ReturnsNotFound()
+    {
+        var service = new Mock<ISongIdService>(MockBehavior.Strict);
+        var gate = new Mock<IFeatureGate>();
+        gate.Setup(instance => instance.IsEnabled(FeatureId.SongId)).Returns(false);
+        gate.Setup(instance => instance.Get(FeatureId.SongId)).Returns(new FeatureGateResult(
+            FeatureId.SongId,
+            FeatureStatus.Disabled,
+            false,
+            "Experimental feature is disabled."));
+        var controller = new SongIdController(service.Object, gate.Object);
+
+        var result = await controller.CreateRun(new SongIdRunRequest { Source = "https://youtu.be/example" }, CancellationToken.None);
+
+        var notFound = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        service.VerifyNoOtherCalls();
+    }
+
     [Fact]
     public async Task CreateRun_WithEmptySource_ReturnsBadRequest()
     {

@@ -88,7 +88,8 @@ Implemented security controls currently documented separately:
 
 - `PathGuard` filesystem/path containment utilities.
 - `ContentSafety` magic-byte / executable masquerading checks.
-- `HardeningValidator` startup checks, pending bind-exposure correction.
+- `HardeningValidator` startup checks with bind-exposure analysis.
+- `FeatureGate` runtime checks for experimental surfaces, starting with SongID APIs.
 
 ## Known Broken Or Unavailable Surfaces
 

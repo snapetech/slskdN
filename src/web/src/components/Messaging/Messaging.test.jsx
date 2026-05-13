@@ -132,6 +132,41 @@ describe('Messaging', () => {
     });
   });
 
+  it('suggests joined rooms from the room search form', async () => {
+    rooms.getJoined.mockResolvedValue(['slskdn']);
+
+    renderMessaging();
+
+    fireEvent.click(await screen.findByLabelText('Join or create a room'));
+    fireEvent.change(screen.getByLabelText('Search or create Soulseek room'), {
+      target: { value: 'sls' },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: 'Open slskdn' }));
+
+    await waitFor(() => {
+      expect(rooms.join).toHaveBeenCalledWith({ roomName: 'slskdn' });
+    });
+  });
+
+  it('keeps the room picker open when join fails', async () => {
+    rooms.join.mockRejectedValueOnce({
+      response: {
+        data: 'Soulseek is reconnecting; try again shortly.',
+      },
+    });
+
+    renderMessaging();
+
+    fireEvent.click(await screen.findByLabelText('Join or create a room'));
+    fireEvent.change(screen.getByLabelText('Search or create Soulseek room'), {
+      target: { value: 'slskdn' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Join/Create room' }));
+
+    expect(await screen.findByText('Soulseek is reconnecting; try again shortly.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Search or create Soulseek room')).toHaveValue('slskdn');
+  });
+
   it('keeps pod direct channels hidden while showing pod room channels', async () => {
     pods.list.mockResolvedValue([
       {
