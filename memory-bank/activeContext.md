@@ -1,14 +1,16 @@
-## Update 2026-05-13 01:58:19Z
+## Update 2026-05-13 02:01:55Z
 
 - Current task: Program.cs decomposition and parity/reconciliation follow-up in progress.
 - Last activity:
   - moved VirtualSoulfind capture, shadow-index, scene, disaster-mode, bridge, v2 provider/backend, reconciliation, and processing registrations into `Bootstrap/VirtualSoulfindServiceCollectionExtensions`;
-  - reduced the remaining broad experimental graph from 1076 to 885 lines;
+  - moved backfill, mesh hash-sync, source discovery, rescue, accelerated download, content verification, peer metrics, and chunk scheduler registrations into `Bootstrap/TransferDiscoveryServiceCollectionExtensions`;
+  - reduced the remaining broad experimental graph from 1076 to 846 lines across the latest two splits;
   - updated feature-coherence and parity tracking docs.
 - Validation:
   - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
   - Passed: `./bin/lint`.
   - Passed: `dotnet test tests/slskd.Tests.Integration/slskd.Tests.Integration.csproj --filter "FullyQualifiedName~VirtualSoulfind" --no-restore` (`64/64`).
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~DownloadServiceTests|FullyQualifiedName~ContentVerificationServiceTests" --no-restore` (`14/14`).
 - Next steps:
   1. Continue splitting the remaining experimental graph, likely MediaCore/PodCore or Mesh/DHT next.
   2. Continue simplifying remaining MediaCore pod forms under the reconciliation plan.

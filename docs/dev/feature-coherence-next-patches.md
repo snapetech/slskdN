@@ -133,6 +133,10 @@ manifest registrations moved out of the broad experimental graph into
 VirtualSoulfind capture, shadow index, scene, disaster-mode, bridge, v2
 provider/backend, reconciliation, and processing registrations moved out of the
 broad experimental graph into `Bootstrap/VirtualSoulfindServiceCollectionExtensions.cs`.
+Backfill, mesh hash-sync, source discovery, rescue, accelerated download,
+content verification, peer metrics, and chunk scheduler registrations moved out
+of the broad experimental graph into
+`Bootstrap/TransferDiscoveryServiceCollectionExtensions.cs`.
 
 Target modules:
 
@@ -154,6 +158,9 @@ Target modules:
 - `AddSlskdVirtualSoulfindServices(...)`. Implemented for VirtualSoulfind
   capture, shadow-index, scene, disaster-mode, bridge, v2 provider/backend,
   reconciliation, and processing registrations.
+- `AddSlskdTransferDiscoveryServices(...)`. Implemented for backfill, mesh
+  hash sync, source discovery, rescue, accelerated download, content
+  verification, peer metrics, and chunk scheduling registrations.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
@@ -166,9 +173,9 @@ Target modules:
 Acceptance criteria:
 
 - `Program.cs` no longer directly imports every experimental vertical. In progress;
-  the broad graph moved and VirtualSoulfind/multi-source/integration-media
-  slices are now separate, but the remaining bootstrap module still needs
-  follow-up subdivision by bounded context.
+  the broad graph moved and VirtualSoulfind/multi-source/transfer-discovery/
+  integration-media slices are now separate, but the remaining bootstrap module
+  still needs follow-up subdivision by bounded context.
 - Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 

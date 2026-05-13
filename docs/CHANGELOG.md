@@ -91,6 +91,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Moved VirtualSoulfind capture, shadow-index, scene, disaster-mode, bridge,
   v2 provider/backend, reconciliation, and processing registrations out of the
   broad experimental feature graph into a dedicated bootstrap extension.
+- Moved backfill, mesh hash-sync, source discovery, rescue, accelerated
+  download, content verification, peer metrics, and chunk scheduler
+  registrations out of the broad experimental feature graph into a dedicated
+  bootstrap extension.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.
