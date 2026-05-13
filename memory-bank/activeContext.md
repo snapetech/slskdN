@@ -7111,3 +7111,9 @@ Next steps: commit the MediaCore perceptual-hash cleanup, then continue with rem
 Continued Program.cs decomposition by moving startup command-mode console output, certificate generation, and startup logo rendering calls into extracted bootstrap helpers directly. `Program.cs` is now 424 lines. Build and focused Program/log lifecycle tests passed.
 
 Next steps: run lint, commit the console/certificate wrapper cleanup, then continue with remaining Program startup/logging wrappers or non-pod MediaCore forms.
+
+## 2026-05-13T18:35:00Z Session update
+
+Continued Program.cs decomposition by moving startup SQLite initialization and missing-configuration recreation calls to extracted bootstrap helpers directly. `Program.cs` is now 414 lines. Build and focused Program/log lifecycle tests passed.
+
+Next steps: run lint, commit this startup helper wrapper cleanup, then continue with the last Program logging/shutdown wrapper cluster or non-pod MediaCore forms.

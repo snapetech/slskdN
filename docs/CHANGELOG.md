@@ -43,6 +43,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Moved startup command-mode console output, certificate generation, and startup
   logo rendering calls into the extracted bootstrap helpers, removing the
   remaining Program console/certificate wrappers.
+- Moved startup SQLite initialization and missing-config recreation calls to
+  use extracted bootstrap helpers directly, removing more private Program
+  wrappers.
 - Simplified MediaCore perceptual hash workflows by keeping similarity
   review/statistics as the default path and grouping raw audio/image hash
   computation behind advanced disclosure.

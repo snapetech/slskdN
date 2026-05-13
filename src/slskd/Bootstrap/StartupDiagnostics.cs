@@ -62,8 +62,8 @@ public static class StartupDiagnostics
     public static void LogConfigurationUsage(
         OptionsAtStartup optionsAtStartup,
         StartupDiagnosticsContext context,
-        ILogger log,
-        Action<string> recreateConfigurationFileIfMissing)
+        string appName,
+        ILogger log)
     {
         log.Information("Using application directory {AppDirectory}", context.AppDirectory);
         log.Information("Using configuration file {ConfigurationFile}", context.ConfigurationFile);
@@ -85,7 +85,7 @@ public static class StartupDiagnostics
             log.Information("Saving application logs to {LogDirectory}", context.LogDirectory);
         }
 
-        recreateConfigurationFileIfMissing(context.ConfigurationFile);
+        StartupFileSystem.RecreateConfigurationFileIfMissing(context.ConfigurationFile, appName, context.BaseDirectory, log);
 
         if (!string.IsNullOrEmpty(optionsAtStartup.Logger.Loki))
         {

@@ -362,13 +362,13 @@ namespace slskd
 
             // SQLite must have specific capabilities to function properly. this shouldn't be a concern for shrinkwrapped
             // binaries or in Docker, but if someone builds from source weird things can happen.
-            InitSQLiteOrFailFast();
+            StartupSqlite.InitOrFailFast(Log);
 
             StartupDiagnostics.LogConfigurationUsage(
                 OptionsAtStartup,
                 startupDiagnosticsContext,
-                Log,
-                RecreateConfigurationFileIfMissing);
+                AppName,
+                Log);
 
             StartupWebApplicationRunner.Run(
                 new StartupWebApplicationContext(
@@ -386,11 +386,6 @@ namespace slskd
                 Exit);
         }
 
-        private static void InitSQLiteOrFailFast()
-        {
-            StartupSqlite.InitOrFailFast(Log);
-        }
-
         private static void ConfigureGlobalLogger()
         {
             Log = StartupLogging.Configure(
@@ -404,11 +399,6 @@ namespace slskd
                     LogBuffer.Enqueue(record);
                     RaiseLogEmitted(record);
                 });
-        }
-
-        private static void RecreateConfigurationFileIfMissing(string configurationFile)
-        {
-            StartupFileSystem.RecreateConfigurationFileIfMissing(configurationFile, AppName, AppContext.BaseDirectory, Log);
         }
 
         private static void InstallShutdownTelemetry()
