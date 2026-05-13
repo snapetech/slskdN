@@ -86,6 +86,12 @@ imports tied to moved method calls, but C# attributes are also namespace-bound
 references. Before deleting a using during extraction, check attributes and
 type names in the remaining file, not just executable statements.
 
+**Additional Trap**: `Arguments.Populate(...)` must also be invoked from
+`Program`, not from an extracted helper, because the command-line library uses
+the calling type/assembly context to find the static `[Argument]` properties.
+If the call is moved to `StartupInput`, arguments such as `--config` can be
+silently ignored and startup will fall back to the default user config.
+
 ### 0z405. Classify Wrapped Expected Soulseek Peer Failures Before Logging Errors
 
 **The Bug**: Soulseek remote peer failures such as remote-client failure,

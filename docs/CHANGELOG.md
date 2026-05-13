@@ -37,6 +37,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Moved startup application-directory resolution, default directory validation,
   configuration-file defaulting, and single-instance mutex preparation into
   `Bootstrap/StartupApplicationDirectories`.
+- Restored command-line argument population to `Program` so startup options
+  such as `--config` continue to bind correctly.
 - Removed additional `Program.cs` compatibility wrappers after tests moved to
   the extracted bootstrap/security/path helper APIs directly.
 - Rewired remaining production call sites to use extracted path, Soulseek

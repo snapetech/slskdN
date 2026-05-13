@@ -25,7 +25,6 @@ namespace slskd
     using System;
     using System.IO;
     using System.Threading;
-    using Microsoft.AspNetCore.Http;
     using Microsoft.Extensions.Configuration;
     using slskd.Configuration;
     using slskd.Relay;
@@ -267,10 +266,15 @@ namespace slskd
         /// <param name="args">Command line arguments.</param>
         public static void Main(string[] args)
         {
-            // populate the properties above so that we can override the default config file if needed, and to
-            // check if the application is being run in command mode (run task and quit).
-            if (!StartupInput.TryPopulate(EnvironmentVariablePrefix, Log))
+            EnvironmentVariables.Populate(prefix: EnvironmentVariablePrefix);
+
+            try
             {
+                Arguments.Populate(clearExistingValues: false);
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Invalid command line input: {ex.Message.Replace(".  See inner exception for details.", string.Empty)}");
                 return;
             }
 
@@ -439,27 +443,6 @@ namespace slskd
                 StartupExceptionClassifier.IsBenignUnobservedTaskException,
                 SoulseekExceptions.SoulseekNetworkExceptionClassifier.IsExpected,
                 () => Log);
-        }
-
-        internal static Microsoft.AspNetCore.Antiforgery.AntiforgeryTokenSet? TryGetAndStoreAntiforgeryTokens(
-            HttpContext context,
-            Microsoft.AspNetCore.Antiforgery.IAntiforgery antiforgery)
-        {
-            return Core.Security.AntiforgeryCookieRecovery.TryGetAndStoreTokens(
-                context,
-                antiforgery,
-                OptionsAtStartup.Web.Port,
-                path => Log.Warning("[CSRF Middleware] Cleared stale antiforgery cookies for {Path} after key-ring mismatch", path));
-        }
-
-        internal static bool StripKnownAntiforgeryCookiesFromRequest(HttpContext context)
-        {
-            return Core.Security.AntiforgeryCookieRecovery.StripKnownCookiesFromRequest(context, OptionsAtStartup.Web.Port);
-        }
-
-        internal static void ClearKnownAntiforgeryCookies(HttpContext context)
-        {
-            Core.Security.AntiforgeryCookieRecovery.ClearKnownCookies(context, OptionsAtStartup.Web.Port);
         }
 
     }
