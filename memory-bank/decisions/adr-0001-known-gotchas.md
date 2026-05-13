@@ -52,6 +52,66 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z413. Do Not Rely On Path.IsPathRooted For Windows Drive Paths On Linux
+
+**The Bug**: Stream ticket filename validation rejected rooted Unix paths but
+accepted Windows drive-letter paths like `C:\tmp\secret.flac` on Linux because
+`Path.IsPathRooted()` is platform-specific.
+
+**Files Affected**:
+- `src/slskd/Streaming/PeerStreamTicketService.cs`
+- `src/slskd/Streaming/MeshStreamTicketService.cs`
+
+**Wrong**:
+```csharp
+if (Path.IsPathRooted(filename))
+{
+    throw new ArgumentException("Filename is required.", nameof(filename));
+}
+```
+
+**Correct**:
+```csharp
+if (Path.IsPathRooted(filename) || WindowsDriveRegex().IsMatch(filename))
+{
+    throw new ArgumentException("Filename is required.", nameof(filename));
+}
+```
+
+**Why This Keeps Happening**: slskdN commonly runs on Linux/Arch, but peer and
+API input can contain Windows-style paths. `Path` helpers interpret paths using
+the current OS rules, so security validation for untrusted cross-platform path
+strings must explicitly reject Windows drive-letter roots as well as Unix roots.
+
+### 0z412. Fault Download Enqueue Signals Must Be Observed Even When Another Task Handles The Transfer
+
+**The Bug**: Live `kspls0` validation emitted repeated `[FATAL] Unobserved task exception`
+logs for normal Soulseek transfer rejections such as "Overwhelmed with requests;
+try again later." The download task observer had already handled the rejection
+and marked the transfer terminal, but the separate enqueue `TaskCompletionSource`
+could still be faulted by the terminal state transition and later collected
+without anyone observing its exception.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+
+**Wrong**:
+```csharp
+var enqueuedTcs = new TaskCompletionSource<Transfer>(TaskCreationOptions.RunContinuationsAsynchronously);
+```
+
+**Correct**:
+```csharp
+var enqueuedTcs = new TaskCompletionSource<Transfer>(TaskCreationOptions.RunContinuationsAsynchronously);
+TaskObservation.Observe(enqueuedTcs.Task, ex => Log.Debug("Observed enqueue signal fault: {Message}", ex.Message));
+```
+
+**Why This Keeps Happening**: Download enqueue and download execution are
+tracked by separate background tasks. Expected peer failures can complete both
+paths, and whichever path is not actively awaited still needs an explicit
+fault observer or the process-level unobserved-task telemetry will report a
+fake fatal crash.
+
 ### 0z411. Test Host Service Overrides Must Track Controller Constructor Dependencies
 
 **The Bug**: `SearchActionsController` gained an `IMeshStreamTicketService`

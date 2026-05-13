@@ -30,6 +30,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Added ticketed mesh peer preview streams for non-local Pod results with
   fixed-size overlay chunks, fairness checks, traffic accounting, per-user
   limits, and expected hash validation.
+- Observed terminal download enqueue signal faults so expected remote transfer
+  rejections do not surface as process-level unobserved task exceptions.
 - Strengthened mesh preview hash validation so hash-protected content is
   verified before any bytes are emitted to the browser stream, with producer
   tests covering Soulseek and mesh preview data flow.

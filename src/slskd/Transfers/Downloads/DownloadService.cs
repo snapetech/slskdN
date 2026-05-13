@@ -20,6 +20,7 @@
 // </copyright>
 using Microsoft.Extensions.Options;
 using Soulseek;
+using slskd.Common.CodeQuality;
 using slskd.Common.Security;
 using slskd.Transfers.MultiSource.Metrics;
 
@@ -540,6 +541,13 @@ namespace slskd.Transfers.Downloads
                                 in the right place once the transfer hits the UI
                             */
                             var enqueuedTcs = new TaskCompletionSource<Transfer>(TaskCreationOptions.RunContinuationsAsynchronously);
+                            _ = TaskObservation.Observe(
+                                enqueuedTcs.Task,
+                                ex => Log.Debug(
+                                    "Observed terminal download enqueue signal fault for {Filename} from {Username}: {Message}",
+                                    file.Filename,
+                                    username,
+                                    ex.Message));
 
                             // satisfies condition #3; CancellationTokenSource set cancelled by the user (via API call)
                             var cts = new CancellationTokenSource();
