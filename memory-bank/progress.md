@@ -1514,7 +1514,7 @@
 - Added fork-specific compatibility for the post-0.25 config shape: `transfers` aliases the internal transfer/global options, `integrations` aliases integration options, and group limits nested under `upload` bind back to existing group limit options.
 - Added startup warnings for legacy `global`, legacy `integration`, group-level sibling `limits`, and retry max-delay values below the 30 second operational floor.
 - Added regex username blacklist patterns through a DI-backed matcher and wired them into existing blacklist checks.
-- Fixed Search Again to pass the intended `search` field, switched favicon/manifest/icon references to reverse-proxy-safe relative paths, and added `FORKING.md`.
+- Fixed Search Again to pass the intended `search` field, switched favicon/manifest/icon references to reverse-proxy-safe relative paths, and added `docs/FORKING.md`.
 - Verified the existing retry batch file layout was already present, added the 30 second retry max-delay clamp, added reload/schema regression coverage, and confirmed no SignalR `HubException` catch pattern needed removal.
 
 ## 2026-04-29 16:56Z - Fixed transient overlay-connect integration failure

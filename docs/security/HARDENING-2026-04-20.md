@@ -152,7 +152,7 @@ Added a privacy tradeoff callout to the README immediately after the MusicBrainz
 
 The three audit artefacts tracked in the repo had hard-coded paths and one LAN IP fragment replaced with placeholders:
 - `SECURITY-AUDIT-2026-03-15.md`: `<repo-root>` → `<repo-root>`.
-- `SLSKDN-security-audit.feb26.md`: `/home/phantasm/git/slskdn` → `<slskdn-repo>`, `/home/phantasm/git/zdfinder/` → `<zdfinder-tool>/`, `192.168.1.151` → `[REDACTED-LAN-IP]`.
+- `docs/archive/security/SLSKDN-security-audit.feb26.md`: `/home/phantasm/git/slskdn` → `<slskdn-repo>`, `/home/phantasm/git/zdfinder/` → `<zdfinder-tool>/`, `192.168.1.151` → `[REDACTED-LAN-IP]`.
 - `task_validation_results.json`: reviewed, clean as-is.
 
 ### H15 — Federation defaults already hermit / disabled

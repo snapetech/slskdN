@@ -15234,9 +15234,9 @@ Note: TWO spaces before `--`, specific date format.
 
 ---
 
-### 18. TODO.md vs memory-bank/tasks.md
+### 18. docs/archive/root/TODO.md vs memory-bank/tasks.md
 
-- `TODO.md` - Human-maintained high-level todos
+- `docs/archive/root/TODO.md` - Human-maintained high-level todos
 - `memory-bank/tasks.md` - AI-managed task backlog
 
 **Don't** duplicate tasks between them. Reference each other instead.

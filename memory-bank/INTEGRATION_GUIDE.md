@@ -58,7 +58,7 @@ Add reference to new ADR in the "Important Docs" section:
 
 - `FORK_VISION.md` - Full feature roadmap and philosophy
 - `DEVELOPMENT_HISTORY.md` - Release timeline and feature status
-- `TODO.md` - Current pending work
+- `memory-bank/tasks.md` - Current pending work
 - `CONTRIBUTING.md` - Contribution workflow
 - `docs/` - User-facing documentation
 - `memory-bank/decisions/adr-0007-senior-engineer-coding-standards.md` - Coding standards for all contributions

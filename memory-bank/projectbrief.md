@@ -78,7 +78,7 @@ slskdN is a community fork of slskd that takes the opposite approach to the upst
 
 - `FORK_VISION.md` - Full feature roadmap and philosophy
 - `DEVELOPMENT_HISTORY.md` - Release timeline and feature status
-- `TODO.md` - Current pending work
+- `memory-bank/tasks.md` - Current pending work
 - `CONTRIBUTING.md` - Contribution workflow
 - `docs/` - User-facing documentation
 

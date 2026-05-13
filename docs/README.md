@@ -57,6 +57,7 @@ completed workstream notes, and incident reports live under
 
 - [Development History](archive/DEVELOPMENT_HISTORY.md) - Feature completion timeline and releases
 - [Fork Vision](archive/FORK_VISION.md) - Project philosophy and roadmap
+- [Forking Guidance](FORKING.md) - Attribution and identity guidance for forks
 - [Contributing](../CONTRIBUTING.md) - How to contribute to the project
 - [API Documentation](api-documentation.md) - Complete API reference
 - [Local Development](dev/LOCAL_DEVELOPMENT.md) - Development environment setup, including git hook installation

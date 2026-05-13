@@ -1313,7 +1313,7 @@
 
 ## Optionals / Follow-up (40-fixes, Research, Packaging)
 
-> All items below must be done. Source: `docs/dev/40-fixes-plan.md` Deferred/optional, Research follow-ups, TODO.md, Out of Scope. Verify against “Completed” list in 40-fixes when marking done.
+> All items below must be done. Source: `docs/dev/40-fixes-plan.md` Deferred/optional, Research follow-ups, docs/archive/root/TODO.md, Out of Scope. Verify against “Completed” list in 40-fixes when marking done.
 ### 40-fixes plan (PR / § / J)
 
 - [x] **PR-03 Passthrough AllowedCidrs**: Add `Web.Authentication.Passthrough.AllowedCidrs` (e.g. `"127.0.0.1/32,::1/128"`) for explicit CIDR allowlist instead of/in addition to loopback check.
@@ -1337,7 +1337,7 @@
 - [x] **T-908 StubBitTorrentBackend / TorrentBackend**: `MonoTorrentBitTorrentBackend` registered in DI; respects `PrivateMode` (DisableDht, DisablePex, InviteList). `StubBitTorrentBackend` class remains in `SwarmSignalHandlers` but is not in DI. Done.
 - [x] **T-912 Soulseek adapter**: `IMetadataFacade.GetBySoulseekFilenameAsync(username, filename)` parses common patterns (Artist - Title, Album - NN - Title, NN. Title) and returns `MetadataResult` with `SourceSoulseek`. Done.
 
-### Packaging (TODO.md)
+### Packaging (docs/archive/root/TODO.md)
 
 - [x] **Proxmox LXC templates**: `packaging/proxmox-lxc/` — README, `slskdn.conf.example`, `setup-inside-ct.sh` (Debian 12/Ubuntu 22.04: .NET 8, slskdn zip to /opt/slskdn, systemd, /etc/slskd, /var/lib/slskd). Done.
 - [x] **Remove obsolete slskdn-dev package channel**: Completed 2026-05-01. Removed active `build-dev-*`/`slskdn-dev` release automation, dev manifests, dev-only packaging docs, and validation expectations. Stable `build-main-*` releases remain the supported package path.
@@ -1431,7 +1431,7 @@
 
 - [x] **chore (2026-01-25):** Research (9) **unpinned**; implementation started. T-901–T-913 moved to tasks.md § Medium Priority (Research implementation). Suggested order: T-912 → T-911 → T-913 → T-901 → T-902 → T-903 → T-906 → T-907 → T-908. Start: T-912 (Metadata facade).
 
-- [x] **T-014 (2026-01-25):** Helm chart for generic Kubernetes at `packaging/helm/slskdn/`. Chart.yaml, values.yaml, templates (_helpers, Deployment, Service, PVCs, Ingress). No TrueCharts; standard K8s; PVCs for config/downloads/shares/incomplete. TODO.md Helm Charts marked done.
+- [x] **T-014 (2026-01-25):** Helm chart for generic Kubernetes at `packaging/helm/slskdn/`. Chart.yaml, values.yaml, templates (_helpers, Deployment, Service, PVCs, Ingress). No TrueCharts; standard K8s; PVCs for config/downloads/shares/incomplete. docs/archive/root/TODO.md Helm Charts marked done.
 
 - [x] **chore (2026-01-25):** slskd.Tests.Unit completion plan: Phase 1 and Phase 3 marked **DONE** (PrivacyLayerIntegration, ContentDomain, SimpleMatchEngine, RealmAwareGossip/Governance/RealmService, MeshCircuitBuilder/MeshSyncSecurity/MeshTransportService/Phase8, MembershipGate, FederationService, ActivityPubBridge, BridgeFlow*, Realm* suite, CircuitMaintenanceService, ActivityPubKeyStore). Execution order §0–3 updated. 2257 pass, 0 skip.
 
@@ -1523,7 +1523,7 @@
   - Status: Done (2025-12-12)
   - Priority: High
   - Branch: experimental/whatAmIThinking
-  - Related: `TODO.md`, Browse tabs implementation
+  - Related: `docs/archive/root/TODO.md`, Browse tabs implementation
   - Notes: Implemented tabbed interface like Browse. Reuses `Browse.jsx`/`BrowseSession.jsx` patterns.
 
 - [x] **T-002**: Scheduled Rate Limits

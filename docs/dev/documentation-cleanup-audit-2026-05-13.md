@@ -105,19 +105,19 @@ cleaner:
 - `docs/TESTING-STRATEGY.md`, `docs/dev/testing-policy.md`, and
   `docs/dev/e2e-testing-guide.md`
 
-## Root Cleanup Left
+## Root Cleanup
 
-Root still has several markdown files that compete with `docs/`:
+Moved:
 
-- `FEATURE_INVENTORY.md` should stay if it remains canonical for public claims.
-- `README.maturity.md` should either be linked from README or moved under
-  `docs/dev/`.
-- `SLSKDN-security-audit.feb26.md` should move under `docs/security/` or
-  `docs/archive/security/` with a date banner.
-- `TODO.md` should either become a short pointer to `memory-bank/tasks.md` or
-  be deleted after its unique items are migrated.
-- `FORKING.md` is short and can stay if linked from README; otherwise move under
-  `docs/`.
+- `docs/archive/security/SLSKDN-security-audit.feb26.md`
+- `docs/archive/root/TODO.md`
+- `docs/FORKING.md`
+
+Kept at root:
+
+- `FEATURE_INVENTORY.md`, because it remains canonical for public claims.
+- `README.maturity.md`, because the feature-coherence workflow and audit
+  scripts still treat it as a maintained README draft.
 
 ## Script Cleanup
 
@@ -175,9 +175,6 @@ The active docs need fewer files and clearer owners:
 1. Consolidate security docs into one active status page plus detailed archived
    plans.
 2. Consolidate testing docs into one policy plus one E2E guide.
-3. Decide whether `README.maturity.md`, `SLSKDN-security-audit.feb26.md`,
-   `TODO.md`, and `FORKING.md` should stay at repo root.
-4. Review the remaining optional audit scripts and either wire them into release
+3. Review the remaining optional audit scripts and either wire them into release
    policy or archive them.
-5. Continue updating `docs/README.md` whenever active docs are merged or moved.
-
+4. Continue updating `docs/README.md` whenever active docs are merged or moved.
