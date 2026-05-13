@@ -1143,11 +1143,7 @@ namespace slskd
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         internal static Mesh.Overlay.QuicOverlayClient CreateQuicOverlayClient(IServiceProvider serviceProvider)
         {
-            var logger = serviceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Mesh.Overlay.QuicOverlayClient>>();
-            var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<Mesh.Overlay.OverlayOptions>>();
-            var signer = serviceProvider.GetRequiredService<Mesh.Overlay.IControlSigner>();
-            var privacyLayer = serviceProvider.GetService<Mesh.Privacy.IPrivacyLayer>();
-            return new Mesh.Overlay.QuicOverlayClient(logger, options, signer, privacyLayer);
+            return Mesh.Overlay.QuicOverlayFactory.CreateOverlayClient(serviceProvider);
         }
 
         [System.Runtime.Versioning.SupportedOSPlatform("linux")]
@@ -1155,9 +1151,7 @@ namespace slskd
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         internal static Mesh.Overlay.QuicDataClient CreateQuicDataClient(IServiceProvider serviceProvider)
         {
-            var logger = serviceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Mesh.Overlay.QuicDataClient>>();
-            var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<Mesh.Overlay.DataOverlayOptions>>();
-            return new Mesh.Overlay.QuicDataClient(logger, options);
+            return Mesh.Overlay.QuicOverlayFactory.CreateDataClient(serviceProvider);
         }
 
         [System.Runtime.Versioning.SupportedOSPlatform("linux")]
@@ -1165,12 +1159,12 @@ namespace slskd
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         internal static Mesh.Overlay.QuicOverlayServer CreateQuicOverlayServer(IServiceProvider serviceProvider)
         {
-            return ActivatorUtilities.CreateInstance<Mesh.Overlay.QuicOverlayServer>(serviceProvider);
+            return Mesh.Overlay.QuicOverlayFactory.CreateOverlayServer(serviceProvider);
         }
 
         internal static bool ShouldRunStandaloneUdpOverlayServer(bool overlayEnabled, bool sharedMeshUdpRequested)
         {
-            return overlayEnabled && !sharedMeshUdpRequested;
+            return Mesh.Overlay.QuicOverlayFactory.ShouldRunStandaloneUdpOverlayServer(overlayEnabled, sharedMeshUdpRequested);
         }
 
         internal static bool IsExpectedSoulseekNetworkException(Exception exception)

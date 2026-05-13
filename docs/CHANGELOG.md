@@ -152,6 +152,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Moved startup filesystem checks, missing configuration-file recreation, and
   generated certificate export out of `Program.cs` into a focused bootstrap
   helper.
+- Moved QUIC overlay client/server construction and standalone UDP overlay
+  selection out of `Program.cs` into a focused mesh helper.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

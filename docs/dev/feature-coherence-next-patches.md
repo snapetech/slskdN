@@ -172,6 +172,8 @@ Startup configuration provider composition moved out of `Program.cs` into
 `Configuration/SlskdConfigurationBuilderExtensions.cs`.
 Startup filesystem checks, missing configuration-file recreation, and generated
 certificate export moved out of `Program.cs` into `Bootstrap/StartupFileSystem.cs`.
+QUIC overlay client/server construction and standalone UDP overlay selection
+moved out of `Program.cs` into `Mesh/Overlay/QuicOverlayFactory.cs`.
 
 Target modules:
 
@@ -229,6 +231,8 @@ Target modules:
   configuration source composition.
 - `StartupFileSystem`. Implemented for startup directory validation,
   configuration-file recreation, and generated certificate export.
+- `QuicOverlayFactory`. Implemented for QUIC overlay/data client construction,
+  overlay server construction, and standalone UDP overlay selection.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
@@ -255,7 +259,8 @@ Acceptance criteria:
   now owned by a focused security helper, and configuration provider composition
   is now owned by a focused configuration extension. Startup filesystem checks,
   config recreation, and certificate export are now owned by a focused
-  bootstrap helper.
+  bootstrap helper. QUIC overlay construction and standalone UDP overlay
+  selection are now owned by a focused mesh helper.
 - Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 

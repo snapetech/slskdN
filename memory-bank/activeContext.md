@@ -1,3 +1,17 @@
+## Update 2026-05-13 14:53:23Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - moved QUIC overlay/data client construction, overlay server construction, and standalone UDP overlay selection into `Mesh/Overlay/QuicOverlayFactory`;
+  - kept existing Program wrappers for current mesh bootstrap call sites.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests" --no-restore` (`36/36`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Continue Program.cs decomposition with a deliberate logging/shutdown telemetry split, or leave it until the public `LogEmitted`/`LogBuffer` coupling is designed.
+  2. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 14:50:52Z
 
 - Current task: Program.cs decomposition follow-up in progress.
