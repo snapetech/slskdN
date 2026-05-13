@@ -7099,3 +7099,9 @@ Next steps: run lint and commit this wrapper cleanup, then continue reducing rem
 Moved startup configuration load/validation exception handling into `Bootstrap/StartupConfiguration.TryLoadAndValidate`, leaving `Program` to publish the resulting configuration state. `Program.cs` is now 445 lines. Build and focused Program/config/hardening tests passed.
 
 Next steps: run lint and commit this configuration split, then continue with remaining Program startup/logging wrappers or the MediaCore reconciliation forms.
+
+## 2026-05-13T18:15:00Z Session update
+
+Continued the reconciliation plan in MediaCore by keeping similarity review/statistics as the default perceptual-hash path and grouping raw audio/image hash computation behind advanced disclosure. Focused MediaCore component tests and focused Web lint passed.
+
+Next steps: commit the MediaCore perceptual-hash cleanup, then continue with remaining non-pod MediaCore forms or another small Program startup wrapper split.

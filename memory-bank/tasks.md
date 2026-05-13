@@ -2796,6 +2796,7 @@
 - [2026-05-13T17:48:00Z] Completed: continue Program.cs decomposition by moving startup directory preparation and mutex acquisition into `Bootstrap/StartupApplicationDirectories`.
 - [2026-05-13T17:56:00Z] Completed: continue Program.cs decomposition by removing remaining antiforgery Program wrappers.
 - [2026-05-13T18:05:00Z] Completed: continue Program.cs decomposition by moving startup configuration load/validation exception handling into `Bootstrap/StartupConfiguration`.
+- [2026-05-13T18:15:00Z] Completed: continue parity/reconciliation list by simplifying MediaCore perceptual-hash raw computation controls behind advanced disclosure.
 - [2026-05-13T16:38:00Z] Completed: fix Arch source build SDK floor, aggregate download timeout classification/logging, Snap package metadata, and startup logging sink crash; deployed manual build `0.0.0-manual.20260513163650.c07c237919e0` to kspls0 and verified web/API/service health.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 

@@ -40,6 +40,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   `Bootstrap/StartupApplicationDirectories`.
 - Moved startup configuration load/validation exception handling into
   `Bootstrap/StartupConfiguration`.
+- Simplified MediaCore perceptual hash workflows by keeping similarity
+  review/statistics as the default path and grouping raw audio/image hash
+  computation behind advanced disclosure.
 - Removed the remaining antiforgery `Program.cs` wrappers by making the MVC
   CSRF filter and focused tests call `AntiforgeryCookieRecovery` directly.
 - Restored command-line argument population to `Program` so startup options

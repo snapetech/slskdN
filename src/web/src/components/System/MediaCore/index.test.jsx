@@ -86,6 +86,9 @@ describe('MediaCore', () => {
     expect(screen.getByText('Check routing state before sending')).toBeInTheDocument();
     expect(screen.getByText('Advanced message routing controls')).toBeInTheDocument();
     expect(screen.getByText('Advanced seen-state cleanup controls')).toBeInTheDocument();
+    expect(screen.getByText('Advanced raw audio hash controls')).toBeInTheDocument();
+    expect(screen.getByText('Advanced raw image hash controls')).toBeInTheDocument();
+    expect(screen.getAllByText(/Similarity review and hashing statistics/).length).toBeGreaterThan(0);
   });
 
   it('focuses a pod workflow from the index card', async () => {

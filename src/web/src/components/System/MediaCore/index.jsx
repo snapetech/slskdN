@@ -3081,50 +3081,58 @@ const MediaCore = () => {
               </Card.Description>
             </Card.Content>
             <Card.Content>
-              <Form>
-                <Form.Group widths="equal">
+              <Message info size="small">
+                Similarity review and hashing statistics are the default path.
+                Raw sample hashing is a diagnostic operation for prepared sample
+                arrays.
+              </Message>
+              <details>
+                <summary>Advanced raw audio hash controls</summary>
+                <Form style={{ marginTop: '1em' }}>
+                  <Form.Group widths="equal">
+                    <Form.Field>
+                      <label>Algorithm</label>
+                      <Dropdown
+                        onChange={(e, { value }) => setAudioAlgorithm(value)}
+                        options={
+                          asArray(supportedAlgorithms?.algorithms).map((alg) => ({
+                            key: alg,
+                            text: alg,
+                            value: alg,
+                          }))
+                        }
+                        selection
+                        value={audioAlgorithm}
+                      />
+                    </Form.Field>
+                    <Form.Field>
+                      <label>Sample Rate (Hz)</label>
+                      <Input
+                        onChange={(e) => setSampleRate(e.target.value)}
+                        type="number"
+                        value={sampleRate}
+                      />
+                    </Form.Field>
+                  </Form.Group>
                   <Form.Field>
-                    <label>Algorithm</label>
-                    <Dropdown
-                      onChange={(e, { value }) => setAudioAlgorithm(value)}
-                      options={
-                        asArray(supportedAlgorithms?.algorithms).map((alg) => ({
-                          key: alg,
-                          text: alg,
-                          value: alg,
-                        }))
-                      }
-                      selection
-                      value={audioAlgorithm}
+                    <label>Audio Samples (comma-separated floats)</label>
+                    <TextArea
+                      onChange={(e) => setAudioSamples(e.target.value)}
+                      placeholder="0.1, -0.2, 0.3, ... (normalized -1.0 to 1.0)"
+                      rows={3}
+                      value={audioSamples}
                     />
                   </Form.Field>
-                  <Form.Field>
-                    <label>Sample Rate (Hz)</label>
-                    <Input
-                      onChange={(e) => setSampleRate(e.target.value)}
-                      type="number"
-                      value={sampleRate}
-                    />
-                  </Form.Field>
-                </Form.Group>
-                <Form.Field>
-                  <label>Audio Samples (comma-separated floats)</label>
-                  <TextArea
-                    onChange={(e) => setAudioSamples(e.target.value)}
-                    placeholder="0.1, -0.2, 0.3, ... (normalized -1.0 to 1.0)"
-                    rows={3}
-                    value={audioSamples}
-                  />
-                </Form.Field>
-                <Button
-                  disabled={!audioSamples.trim() || computingAudioHash}
-                  loading={computingAudioHash}
-                  onClick={handleComputeAudioHash}
-                  primary
-                >
-                  Compute Audio Hash
-                </Button>
-              </Form>
+                  <Button
+                    disabled={!audioSamples.trim() || computingAudioHash}
+                    loading={computingAudioHash}
+                    onClick={handleComputeAudioHash}
+                    primary
+                  >
+                    Compute Audio Hash
+                  </Button>
+                </Form>
+              </details>
 
               {audioHashResult && (
                 <div style={{ marginTop: '1em' }}>
@@ -3164,58 +3172,66 @@ const MediaCore = () => {
               </Card.Description>
             </Card.Content>
             <Card.Content>
-              <Form>
-                <Form.Group widths="equal">
+              <Message info size="small">
+                Similarity review and hashing statistics are the default path.
+                Raw pixel hashing is a diagnostic operation for prepared image
+                buffers.
+              </Message>
+              <details>
+                <summary>Advanced raw image hash controls</summary>
+                <Form style={{ marginTop: '1em' }}>
+                  <Form.Group widths="equal">
+                    <Form.Field>
+                      <label>Algorithm</label>
+                      <Dropdown
+                        onChange={(e, { value }) => setImageAlgorithm(value)}
+                        options={
+                          asArray(supportedAlgorithms?.algorithms)
+                            .filter((alg) => alg !== 'ChromaPrint')
+                            .map((alg) => ({
+                              key: alg,
+                              text: alg,
+                              value: alg,
+                            }))
+                        }
+                        selection
+                        value={imageAlgorithm}
+                      />
+                    </Form.Field>
+                    <Form.Field>
+                      <label>Dimensions</label>
+                      <Input
+                        onChange={(e) => {
+                          const [w, h] = e.target.value
+                            .split('x')
+                            .map((s) => Number.parseInt(s.trim()));
+                          if (!isNaN(w)) setImageWidth(w);
+                          if (!isNaN(h)) setImageHeight(h);
+                        }}
+                        placeholder="Width x Height"
+                        value={`${imageWidth}x${imageHeight}`}
+                      />
+                    </Form.Field>
+                  </Form.Group>
                   <Form.Field>
-                    <label>Algorithm</label>
-                    <Dropdown
-                      onChange={(e, { value }) => setImageAlgorithm(value)}
-                      options={
-                        asArray(supportedAlgorithms?.algorithms)
-                          .filter((alg) => alg !== 'ChromaPrint')
-                          .map((alg) => ({
-                            key: alg,
-                            text: alg,
-                            value: alg,
-                          }))
-                      }
-                      selection
-                      value={imageAlgorithm}
+                    <label>Pixel Data (comma-separated bytes 0-255)</label>
+                    <TextArea
+                      onChange={(e) => setImagePixels(e.target.value)}
+                      placeholder="255, 128, 64, ... (RGBA pixel data)"
+                      rows={3}
+                      value={imagePixels}
                     />
                   </Form.Field>
-                  <Form.Field>
-                    <label>Dimensions</label>
-                    <Input
-                      onChange={(e) => {
-                        const [w, h] = e.target.value
-                          .split('x')
-                          .map((s) => Number.parseInt(s.trim()));
-                        if (!isNaN(w)) setImageWidth(w);
-                        if (!isNaN(h)) setImageHeight(h);
-                      }}
-                      placeholder="Width x Height"
-                      value={`${imageWidth}x${imageHeight}`}
-                    />
-                  </Form.Field>
-                </Form.Group>
-                <Form.Field>
-                  <label>Pixel Data (comma-separated bytes 0-255)</label>
-                  <TextArea
-                    onChange={(e) => setImagePixels(e.target.value)}
-                    placeholder="255, 128, 64, ... (RGBA pixel data)"
-                    rows={3}
-                    value={imagePixels}
-                  />
-                </Form.Field>
-                <Button
-                  disabled={!imagePixels.trim() || computingImageHash}
-                  loading={computingImageHash}
-                  onClick={handleComputeImageHash}
-                  primary
-                >
-                  Compute Image Hash
-                </Button>
-              </Form>
+                  <Button
+                    disabled={!imagePixels.trim() || computingImageHash}
+                    loading={computingImageHash}
+                    onClick={handleComputeImageHash}
+                    primary
+                  >
+                    Compute Image Hash
+                  </Button>
+                </Form>
+              </details>
 
               {imageHashResult && (
                 <div style={{ marginTop: '1em' }}>
