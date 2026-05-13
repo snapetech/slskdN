@@ -44,6 +44,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   retry budgets, and unlimited retries by default.
 - Added polite alternate-source selection for auto-retry, preferring cooled-down
   local HashDb candidates and limiting network alternative searches per scan.
+- Removed an unreachable auto-retry fallback path so the app build stays
+  warning-clean.
 - Reduced warning noise for normal peer-side download denial/failure events
   while leaving transfer failure handling intact.
 - Preserved peer and mesh preview stream validation messages in ticket API

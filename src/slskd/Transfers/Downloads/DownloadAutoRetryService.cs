@@ -240,8 +240,10 @@ namespace slskd.Transfers.Downloads
                 return RetryTarget.Original(failed);
             }
 
+            var usedNetworkSearch = false;
             try
             {
+                usedNetworkSearch = true;
                 var alternatives = await autoReplace.FindAlternativesAsync(
                     new FindAlternativeRequest
                     {
@@ -261,6 +263,8 @@ namespace slskd.Transfers.Downloads
                 {
                     return new RetryTarget(failed, candidate.Username, candidate.Filename, candidate.Size, "search", UsedNetworkSearch: true);
                 }
+
+                return RetryTarget.Original(failed, usedNetworkSearch: true);
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("Search rate limit exceeded", StringComparison.OrdinalIgnoreCase))
             {
@@ -275,7 +279,7 @@ namespace slskd.Transfers.Downloads
                 log.Debug(ex, "[AUTO-RETRY] Alternative-source search failed for {Filename}: {Message}", failed.Filename, ex.Message);
             }
 
-            return RetryTarget.Original(failed);
+            return RetryTarget.Original(failed, usedNetworkSearch);
         }
 
         private async Task<RetryTarget?> FindLocalHashDbCandidateAsync(
@@ -390,8 +394,8 @@ namespace slskd.Transfers.Downloads
             string SourceKind,
             bool UsedNetworkSearch)
         {
-            public static RetryTarget Original(slskd.Transfers.Transfer source)
-                => new(source, source.Username, source.Filename, source.Size, "original", UsedNetworkSearch: false);
+            public static RetryTarget Original(slskd.Transfers.Transfer source, bool usedNetworkSearch = false)
+                => new(source, source.Username, source.Filename, source.Size, "original", usedNetworkSearch);
         }
     }
 }

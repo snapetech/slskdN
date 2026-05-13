@@ -579,6 +579,29 @@ public class DownloadServiceTests
     }
 
     [Fact]
+    public async Task ResolveRetryTargetAsync_ConsumesNetworkSearchBudgetWhenNoAlternativeFound()
+    {
+        var now = DateTime.UtcNow;
+        var failed = CreateFailedDownload("alice", @"Album\track.flac", now.AddMinutes(-40), size: 1234);
+        var autoReplace = new Mock<IAutoReplaceService>();
+        autoReplace.Setup(x => x.FindAlternativesAsync(It.IsAny<FindAlternativeRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<AlternativeCandidate>());
+
+        var service = CreateAutoRetryService(autoReplace: autoReplace.Object);
+
+        var target = await service.ResolveRetryTargetAsync(
+            failed,
+            new slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions(),
+            now,
+            allowNetworkSearch: true,
+            CancellationToken.None);
+
+        Assert.Equal("alice", target.Username);
+        Assert.Equal("original", target.SourceKind);
+        Assert.True(target.UsedNetworkSearch);
+    }
+
+    [Fact]
     public async Task EnqueueAsync_SameUserRequests_AreSerializedByUserSemaphore()
     {
         var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
