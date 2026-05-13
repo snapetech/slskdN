@@ -52,6 +52,35 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z418. Do Not Burst Album-Sized Enqueue Requests At One Soulseek Peer
+
+**The Bug**: `DownloadService.EnqueueAsync(...)` allowed requests of 30 files or
+fewer to enqueue every file concurrently to the same remote peer. Live peers can
+reject that pattern with `TransferRejectedException: Overwhelmed with requests;
+try again later`, and the Soulseek runtime can surface those peer-side
+rejections through process-level unobserved task exception logging.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+
+**Wrong**:
+```csharp
+if (fileList.Count <= 30)
+{
+    concurrentEnqueueRequests = fileList.Count;
+}
+```
+
+**Correct**:
+```csharp
+var concurrentEnqueueRequests = Math.Min(fileList.Count, 2);
+```
+
+**Why This Keeps Happening**: Local enqueue bookkeeping is cheap, but each
+remote enqueue still asks a peer client to handle more Soulseek work. Treating
+an album as a harmless local burst can overwhelm real peers. Keep per-peer
+enqueue concurrency low and let the existing transfer queue carry throughput.
+
 ### 0z417. Do Not Dispose Ephemeral Semaphores Still Owned By Fire-And-Forget Work
 
 **The Bug**: `DownloadService.EnqueueAsync(...)` tried to dispose a per-call
