@@ -27,10 +27,13 @@ coverage.json
 **/[Tt]mp/
 **/[Tt]mp*/
 **/[Tt]emp/
-**/[Tt]emp*/
+**/[Tt]emp-*/
+**/[Tt]emp_*/
 **/[Aa]rtifact/
 **/[Aa]rtifacts/
 **/*[Aa]rtifact*/
+!/docs/archive/test-artifacts/
+!/docs/archive/test-artifacts/**
 **/[Tt]est[Rr]esults/
 **/[Tt]est-[Rr]esults/
 **/playwright-report/
