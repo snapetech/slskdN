@@ -52,6 +52,40 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z408. Keep Antiforgery Cookie HttpOnly When Adding JS-Readable CSRF Tokens
+
+**The Bug**: Setting the framework antiforgery cookie to `HttpOnly = false`
+to make CSRF data readable by JavaScript exposes the protected cookie token and
+triggers CodeQL `cs/web/cookie-httponly-not-set`.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/WebServiceCollectionExtensions.cs`
+- `src/slskd/Bootstrap/WebApplicationPipelineExtensions.cs`
+
+**Wrong**:
+```csharp
+options.Cookie.Name = $"XSRF-COOKIE-{optionsAtStartup.Web.Port}";
+options.Cookie.HttpOnly = false;
+```
+
+**Correct**:
+```csharp
+options.Cookie.Name = $"XSRF-COOKIE-{optionsAtStartup.Web.Port}";
+options.Cookie.HttpOnly = true;
+
+context.Response.Cookies.Append($"XSRF-TOKEN-{optionsAtStartup.Web.Port}", tokens.RequestToken,
+    new CookieOptions
+    {
+        HttpOnly = false,
+    });
+```
+
+**Why This Keeps Happening**: ASP.NET antiforgery uses two token concepts. The
+cookie token should remain protected from JavaScript, while the separate
+request token can be emitted in a dedicated JS-readable cookie/header path for
+the SPA. Do not make the framework cookie readable just because the frontend
+needs a CSRF request token.
+
 ### 0z407. Update Example Fill Helpers When Form State Is Renamed
 
 **The Bug**: Moving a mutation form behind progressive disclosure and renaming

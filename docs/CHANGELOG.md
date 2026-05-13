@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Kept the framework antiforgery cookie HTTP-only while preserving the
+  separate JS-readable CSRF request-token cookie, resolving the CodeQL
+  `cs/web/cookie-httponly-not-set` alert.
 - Fixed Arch/AUR source builds by lowering the .NET SDK floor to the 10.0.1xx
   feature band with feature roll-forward, updated release workflow SDK pins to
   match, and refreshed Snap metadata for `2026051221-slskdn.247`.

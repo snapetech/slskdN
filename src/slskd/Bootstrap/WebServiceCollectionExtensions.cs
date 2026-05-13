@@ -328,7 +328,7 @@ public static class WebServiceCollectionExtensions
             options.HeaderName = "X-CSRF-TOKEN";
             options.Cookie.SameSite = SameSiteMode.Strict;
             options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; // HTTPS in prod, HTTP in dev
-            options.Cookie.HttpOnly = false; // JavaScript needs to read this
+            options.Cookie.HttpOnly = true;
 
             // IMPORTANT: Don't auto-validate - we use custom ValidateCsrfForCookiesOnlyAttribute
             // This ensures GET requests are never validated automatically
