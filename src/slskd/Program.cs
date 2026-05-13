@@ -23,13 +23,10 @@ using slskd.Bootstrap;
 namespace slskd
 {
     using System;
-    using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Threading;
     using Microsoft.AspNetCore.Http;
     using Microsoft.Extensions.Configuration;
-    using Microsoft.Extensions.FileProviders;
-    using Microsoft.Extensions.FileProviders.Physical;
     using slskd.Configuration;
     using slskd.Relay;
     using Utility.CommandLine;
@@ -101,16 +98,6 @@ namespace slskd
         ///     Gets the current executable path when available.
         /// </summary>
         public static readonly string ExecutablePath = ApplicationRuntimeInfo.TryGetExecutablePath();
-
-        /// <remarks>
-        ///     Inaccurate when running locally.
-        /// </remarks>
-        private static readonly Version AssemblyVersion = ApplicationRuntimeInfo.AssemblyVersion;
-
-        /// <remarks>
-        ///     Inaccurate when running locally.
-        /// </remarks>
-        private static readonly string InformationalVersion = ApplicationRuntimeInfo.InformationalVersion;
 
         /// <summary>
         ///     Occurs when a new log event is emitted.
@@ -244,7 +231,6 @@ namespace slskd
 
         private static string GetMutexName() => StartupSingleInstance.GetMutexName(AppName, AppDirectory, DefaultAppDirectory);
 
-        private static IDisposable? DotNetRuntimeStats { get; set; }
         private static VolatileOverlayConfigurationSource<OptionsOverlay> VolatileOverlayConfigurationSource { get; set; } = new VolatileOverlayConfigurationSource<OptionsOverlay>();
 
         [Argument('g', "generate-cert", "generate X509 certificate and password for HTTPs")]
@@ -285,16 +271,8 @@ namespace slskd
         {
             // populate the properties above so that we can override the default config file if needed, and to
             // check if the application is being run in command mode (run task and quit).
-            EnvironmentVariables.Populate(prefix: EnvironmentVariablePrefix);
-
-            try
+            if (!StartupInput.TryPopulate(EnvironmentVariablePrefix, Log))
             {
-                Arguments.Populate(clearExistingValues: false);
-            }
-            catch (Exception ex)
-            {
-                // this is pretty hacky, but i don't have a good way of trapping errors that bubble up here.
-                Log.Error($"Invalid command line input: {ex.Message.Replace(".  See inner exception for details.", string.Empty)}");
                 return;
             }
 
@@ -456,10 +434,6 @@ namespace slskd
             return StartupFileSystem.GenerateX509Certificate(AppName, AppContext.BaseDirectory, password, filename, Log);
         }
 
-        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The assigned framework options/configuration source owns the file provider lifecycle.")]
-        internal static PhysicalFileProvider CreateOwnedPhysicalFileProvider(string root, ExclusionFilters exclusionFilters = ExclusionFilters.Sensitive)
-            => StartupFileSystem.CreateOwnedPhysicalFileProvider(root, exclusionFilters);
-
         private static void PrintCommandLineArguments(Type targetType)
         {
             StartupConsoleOutput.PrintCommandLineArguments(targetType, Log);
@@ -475,11 +449,6 @@ namespace slskd
             StartupConsoleOutput.PrintLogo(version, IsDevelopment, IsCanary);
         }
 
-        private static void VerifyDirectory(string directory, bool createIfMissing = true, bool verifyWriteable = true)
-        {
-            StartupFileSystem.VerifyDirectory(directory, createIfMissing, verifyWriteable);
-        }
-
         private static void InstallShutdownTelemetry()
         {
             StartupShutdownTelemetry.Install(
@@ -489,9 +458,6 @@ namespace slskd
                 () => Log);
         }
 
-        [System.Runtime.Versioning.SupportedOSPlatform("linux")]
-        [System.Runtime.Versioning.SupportedOSPlatform("macos")]
-        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
         internal static Microsoft.AspNetCore.Antiforgery.AntiforgeryTokenSet? TryGetAndStoreAntiforgeryTokens(
             HttpContext context,
             Microsoft.AspNetCore.Antiforgery.IAntiforgery antiforgery)

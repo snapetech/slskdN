@@ -7075,3 +7075,9 @@ Completed post-deploy test pass. Full `dotnet test --no-restore` passed across s
 Continued Program.cs decomposition after the production wrapper unwiring. Focused tests now call extracted startup/path/network helpers directly, and redundant test-only Program wrappers were removed. `dotnet build src/slskd/slskd.csproj --no-restore` and focused Program/ProfileService tests passed.
 
 Next steps: keep reducing Program static startup state where it still owns private runtime configuration, then continue the remaining MediaCore reconciliation forms.
+
+## 2026-05-13T17:35:00Z Session update
+
+Continued Program.cs decomposition by moving startup environment/argument population into `Bootstrap/StartupInput` and removing stale Program dead code left by earlier helper extractions. `Program.cs` is now 483 lines. Build and focused Program/controller/log tests passed.
+
+Next steps: run lint, commit the startup-input cleanup, then continue either the remaining Program static-state split or the MediaCore reconciliation forms.

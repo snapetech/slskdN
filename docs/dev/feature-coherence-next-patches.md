@@ -218,6 +218,9 @@ Focused tests now exercise the extracted helpers directly, and redundant
 test-only Program compatibility wrappers for paths, rewrite rules, Soulseek
 options, startup exception classification, expected Soulseek network exception
 classification, and QUIC standalone-socket selection have been removed.
+Startup environment-variable and command-line argument population moved out of
+`Program.cs` into `Bootstrap/StartupInput.cs`, and leftover dead Program fields
+and wrappers from earlier helper extractions were removed.
 
 Target modules:
 
