@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Downgraded additional expected Soulseek peer transport failures from error
+  stack traces to warnings, rate-limited malformed overlay datagram logging,
+  and made DHT/overlay summaries identify discovered-but-unreachable mesh peers.
 - Labeled System admin and experimental panels in the tab menu to reduce
   cognitive load around advanced surfaces.
 - Updated System surface and route/UI parity docs to reflect the new

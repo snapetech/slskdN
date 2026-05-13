@@ -355,6 +355,9 @@ public class DownloadServiceTests
     [InlineData("reported")]
     [InlineData("size")]
     [InlineData("rejected")]
+    [InlineData("connection-reset")]
+    [InlineData("remote-closed")]
+    [InlineData("message-connection")]
     public async Task EnqueueAsync_BackgroundExpectedRemoteFailure_MarksTransferTerminalFailed(string failureKind)
     {
         var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
@@ -994,6 +997,15 @@ public class DownloadServiceTests
                 new TransferReportedFailedException("Download reported as failed by remote client")),
             "size" => new TransferSizeMismatchException("Transfer aborted: the remote size of 2000 does not match expected size 1234", 1234, 2000),
             "rejected" => new TransferRejectedException("Transfer rejected: File not shared."),
+            "connection-reset" => new SoulseekClientException(
+                "Failed to download file Music\\remote-failed.flac from user alice: Transfer failed: Read error: Unable to read data from the transport connection: Connection reset by peer.",
+                new ConnectionException("Transfer failed: Read error: Unable to read data from the transport connection: Connection reset by peer.")),
+            "remote-closed" => new SoulseekClientException(
+                "Failed to download file Music\\remote-failed.flac from user alice: Transfer failed: Read error: Remote connection closed",
+                new ConnectionException("Transfer failed: Read error: Remote connection closed")),
+            "message-connection" => new SoulseekClientException(
+                "Failed to download file Music\\remote-failed.flac from user alice: Failed to establish a direct or indirect message connection to alice (203.0.113.10:50300)",
+                new ConnectionException("Failed to establish a direct or indirect message connection to alice (203.0.113.10:50300)")),
             _ => throw new ArgumentOutOfRangeException(nameof(failureKind)),
         };
 

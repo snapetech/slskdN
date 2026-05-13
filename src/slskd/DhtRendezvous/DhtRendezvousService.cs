@@ -1000,10 +1000,17 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
             .Select(endpoint => $"{endpoint.Endpoint}:{endpoint.LastFailureReason}x{endpoint.ConsecutiveFailureCount}")
             .ToArray();
 
+        var connectivity = DescribeOverlayConnectivity(
+            ActiveMeshConnections,
+            DiscoveredPeerCount,
+            _totalConnectionsAttempted,
+            _totalConnectionsSucceeded);
+
         _logger.LogInformation(
-            "DHT/overlay summary: state={State} nodes={NodeCount} activeMesh={ActiveMesh} discovered={Discovered} seen={Seen} accepted={Accepted} skippedPort={SkippedPort} skippedCapacity={SkippedCapacity} deferredCapacity={DeferredCapacity} retryBackoff={RetryBackoff} attempts={Attempts} successes={Successes} cooldownSkips={CooldownSkips} failureMix=[{FailureMix}] degraded=[{DegradedEndpoints}]",
+            "DHT/overlay summary: state={State} nodes={NodeCount} connectivity={Connectivity} activeMesh={ActiveMesh} discovered={Discovered} seen={Seen} accepted={Accepted} skippedPort={SkippedPort} skippedCapacity={SkippedCapacity} deferredCapacity={DeferredCapacity} retryBackoff={RetryBackoff} attempts={Attempts} successes={Successes} cooldownSkips={CooldownSkips} failureMix=[{FailureMix}] degraded=[{DegradedEndpoints}]",
             _dhtEngine?.State ?? DhtState.NotReady,
             DhtNodeCount,
+            connectivity,
             ActiveMeshConnections,
             DiscoveredPeerCount,
             _totalCandidateEndpointsSeen,
@@ -1017,6 +1024,35 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
             connectorStats.EndpointCooldownSkips,
             topFailures.Count > 0 ? string.Join(", ", topFailures) : "none",
             degradedEndpoints.Length > 0 ? string.Join(", ", degradedEndpoints) : "none");
+    }
+
+    internal static string DescribeOverlayConnectivity(
+        int activeMeshConnections,
+        int discoveredPeerCount,
+        long totalConnectionsAttempted,
+        long totalConnectionsSucceeded)
+    {
+        if (activeMeshConnections > 0)
+        {
+            return "connected";
+        }
+
+        if (discoveredPeerCount <= 0)
+        {
+            return "searching-no-peers";
+        }
+
+        if (totalConnectionsAttempted <= 0)
+        {
+            return "peers-discovered-awaiting-connect";
+        }
+
+        if (totalConnectionsSucceeded <= 0)
+        {
+            return "peers-discovered-unreachable";
+        }
+
+        return "previously-connected-no-active-links";
     }
 
     private static void AppendFailureReason(ICollection<string> reasons, string label, long count)

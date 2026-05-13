@@ -20,6 +20,7 @@ using slskd.Mesh.Transport;
 public sealed class SharedMeshUdpListener : IDhtListener, IDisposable
 {
     private static readonly TimeSpan SessionIdleTimeout = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan MalformedOverlayDatagramLogInterval = TimeSpan.FromMinutes(1);
     private readonly IPEndPoint _listenEndPoint;
     private readonly IPEndPoint? _quicBackendEndPoint;
     private readonly ILogger<SharedMeshUdpListener> _logger;
@@ -33,6 +34,8 @@ public sealed class SharedMeshUdpListener : IDhtListener, IDisposable
     private readonly List<Task> _receiveTasks = new();
     private UdpClient? _defaultPublicUdp;
     private ListenerStatus _status = ListenerStatus.NotListening;
+    private long _malformedOverlayDatagramCount;
+    private DateTimeOffset _lastMalformedOverlayDatagramWarning = DateTimeOffset.MinValue;
 
     public SharedMeshUdpListener(
         IPEndPoint listenEndPoint,
@@ -221,7 +224,7 @@ public sealed class SharedMeshUdpListener : IDhtListener, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[Overlay] Failed to decode envelope");
+            LogMalformedOverlayDatagram(remoteEndPoint, buffer.Length, ex);
             return;
         }
 
@@ -231,6 +234,27 @@ public sealed class SharedMeshUdpListener : IDhtListener, IDisposable
         }
 
         await _overlayDispatcher!.HandleAsync(envelope, cancellationToken).ConfigureAwait(false);
+    }
+
+    private void LogMalformedOverlayDatagram(IPEndPoint remoteEndPoint, int size, Exception exception)
+    {
+        var count = Interlocked.Increment(ref _malformedOverlayDatagramCount);
+        var now = DateTimeOffset.UtcNow;
+        if (now - _lastMalformedOverlayDatagramWarning >= MalformedOverlayDatagramLogInterval)
+        {
+            _lastMalformedOverlayDatagramWarning = now;
+            _logger.LogWarning(
+                "[Overlay] Dropped malformed overlay datagram from {Endpoint} size={Size} count={Count}; enable debug logging for decode details",
+                OverlayLogSanitizer.Endpoint(remoteEndPoint),
+                size,
+                count);
+        }
+
+        _logger.LogDebug(
+            exception,
+            "[Overlay] Failed to decode malformed overlay datagram from {Endpoint} size={Size}",
+            OverlayLogSanitizer.Endpoint(remoteEndPoint),
+            size);
     }
 
     private void PruneIdleQuicSessions()

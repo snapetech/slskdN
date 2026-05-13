@@ -39,6 +39,7 @@ namespace slskd.Transfers.Downloads
     using slskd.Files;
     using slskd.Integrations.FTP;
     using slskd.Relay;
+    using slskd.SoulseekExceptions;
 
     /// <summary>
     ///     Manages downloads.
@@ -628,6 +629,14 @@ namespace slskd.Transfers.Downloads
                                         Log.Debug("Transfer {Id} was already cleaned up after timed out or cancelled enqueue", transfer.Id);
                                     }
                                 }
+                                catch (Exception ex) when (IsExpectedRemoteDownloadFailure(ex))
+                                {
+                                    Log.Warning("Download of {File} from {Username} failed while waiting for remote enqueue because the remote peer is unavailable: {Message}", transfer.Filename, transfer.Username, ex.Message);
+                                    if (!TryFail(transferId, exception: ex))
+                                    {
+                                        Log.Debug("Transfer {Id} was already cleaned up after expected remote enqueue failure", transfer.Id);
+                                    }
+                                }
                                 catch (Exception ex)
                                 {
                                     Log.Error(ex, "Download of {File} from {Username} failed: {Message}", transfer.Filename, transfer.Username, ex.Message);
@@ -649,6 +658,17 @@ namespace slskd.Transfers.Downloads
                             Log.Debug("Download enqueue Task status for {Filename} from {Username}: {Status}", file.Filename, username, downloadEnqueueTask.Status);
                             Log.Information("Successfully locally enqueued download of {Filename} from {Username} (id: {Id})", file.Filename, username, transferId);
                             enqueued.Add(transfer);
+                        }
+                        catch (Exception ex) when (IsExpectedRemoteDownloadFailure(ex))
+                        {
+                            Log.Warning("Failed to enqueue download of {Filename} from {Username} because the remote peer is unavailable: {Message}", file.Filename, username, ex.Message);
+                            TryFail(transferId, exception: ex);
+                            failed.Add(file.Filename);
+
+                            if (CancellationTokens.TryRemove(transferId, out var cts))
+                            {
+                                cts?.Dispose();
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -1660,7 +1680,12 @@ namespace slskd.Transfers.Downloads
                 exception.Message.Contains("Download reported as failed by remote client", StringComparison.OrdinalIgnoreCase) ||
                 exception.Message.Contains("Transfer rejected:", StringComparison.OrdinalIgnoreCase) ||
                 exception.Message.Contains("Transfer aborted: the remote size", StringComparison.OrdinalIgnoreCase) ||
-                exception.Message.Contains("appears to be offline", StringComparison.OrdinalIgnoreCase);
+                exception.Message.Contains("appears to be offline", StringComparison.OrdinalIgnoreCase) ||
+                exception.Message.Contains("Failed to establish a direct or indirect message connection", StringComparison.OrdinalIgnoreCase) ||
+                exception.Message.Contains("Connection reset by peer", StringComparison.OrdinalIgnoreCase) ||
+                exception.Message.Contains("Remote connection closed", StringComparison.OrdinalIgnoreCase) ||
+                exception.Message.Contains("Unable to read data from the transport connection", StringComparison.OrdinalIgnoreCase) ||
+                SoulseekNetworkExceptionClassifier.IsExpected(exception);
         }
 
         private static bool IsDownloadTimeout(Exception exception)

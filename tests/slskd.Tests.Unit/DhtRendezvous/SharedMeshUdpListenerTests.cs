@@ -6,6 +6,7 @@ namespace slskd.Tests.Unit.DhtRendezvous;
 using System.Net;
 using System.Net.Sockets;
 using MessagePack;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using slskd.DhtRendezvous;
 using slskd.Mesh.Overlay;
@@ -111,6 +112,47 @@ public class SharedMeshUdpListenerTests
         Assert.Equal(OverlayControlTypes.Ping, received.Type);
     }
 
+    [Fact]
+    public async Task SharedListener_MalformedOverlayDatagram_LogsRateLimitedWarningWithoutException()
+    {
+        var logger = new CapturingLogger<SharedMeshUdpListener>();
+        using var listener = new SharedMeshUdpListener(
+            new IPEndPoint(IPAddress.Loopback, 0),
+            quicBackendEndPoint: null,
+            logger,
+            new CapturingDispatcher());
+        using var client = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+
+        listener.Start();
+
+        await client.SendAsync(new byte[] { 0x96, 0xa4, 0x70 }, listener.LocalEndPoint);
+
+        await WaitUntilAsync(
+            () => logger.Entries.Any(entry => entry.Level == LogLevel.Warning),
+            TimeSpan.FromSeconds(2));
+
+        var warning = Assert.Single(logger.Entries.Where(entry => entry.Level == LogLevel.Warning));
+        Assert.Contains("Dropped malformed overlay datagram", warning.Message, StringComparison.Ordinal);
+        Assert.Null(warning.Exception);
+        Assert.Contains(logger.Entries, entry => entry.Level == LogLevel.Debug && entry.Exception is not null);
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> predicate, TimeSpan timeout)
+    {
+        var startedAt = DateTimeOffset.UtcNow;
+        while (DateTimeOffset.UtcNow - startedAt < timeout)
+        {
+            if (predicate())
+            {
+                return;
+            }
+
+            await Task.Delay(25);
+        }
+
+        throw new TimeoutException("Timed out waiting for predicate.");
+    }
+
     private sealed class CapturingDispatcher : IControlDispatcher
     {
         public TaskCompletionSource<ControlEnvelope> Received { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -126,4 +168,27 @@ public class SharedMeshUdpListenerTests
             return HandleAsync(envelope, ct);
         }
     }
+
+    private sealed class CapturingLogger<T> : ILogger<T>
+    {
+        public List<LogEntry> Entries { get; } = new();
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull
+            => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            Entries.Add(new LogEntry(logLevel, formatter(state, exception), exception));
+        }
+    }
+
+    private sealed record LogEntry(LogLevel Level, string Message, Exception? Exception);
 }

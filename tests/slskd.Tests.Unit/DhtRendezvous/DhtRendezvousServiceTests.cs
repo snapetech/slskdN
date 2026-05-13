@@ -493,6 +493,28 @@ public class DhtRendezvousServiceTests
             DhtRendezvousService.GetPeerReconnectInterval(consecutiveFailures));
     }
 
+    [Theory]
+    [InlineData(1, 12, 3, 1, "connected")]
+    [InlineData(0, 0, 0, 0, "searching-no-peers")]
+    [InlineData(0, 12, 0, 0, "peers-discovered-awaiting-connect")]
+    [InlineData(0, 12, 4, 0, "peers-discovered-unreachable")]
+    [InlineData(0, 12, 4, 2, "previously-connected-no-active-links")]
+    public void DescribeOverlayConnectivity_SummarizesDiscoveredPeerState(
+        int activeMeshConnections,
+        int discoveredPeerCount,
+        long totalConnectionsAttempted,
+        long totalConnectionsSucceeded,
+        string expected)
+    {
+        Assert.Equal(
+            expected,
+            DhtRendezvousService.DescribeOverlayConnectivity(
+                activeMeshConnections,
+                discoveredPeerCount,
+                totalConnectionsAttempted,
+                totalConnectionsSucceeded));
+    }
+
     private static void SetLastAttempt(DhtRendezvousService service, string peerId, DateTimeOffset lastAttempt)
     {
         var field = typeof(DhtRendezvousService).GetField("_peerConnectionAttemptedAt", BindingFlags.Instance | BindingFlags.NonPublic)
