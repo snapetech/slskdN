@@ -19,21 +19,15 @@ namespace slskd.Tests.Integration.Security;
 /// Tests SOCKS protocol implementation, circuit establishment, and stream isolation.
 /// </summary>
 [Collection("Integration")] // Run these tests separately to avoid conflicts
-public class TorIntegrationTests : IDisposable
+public class TorIntegrationTests
 {
     private readonly ITestOutputHelper _output;
     private readonly ILogger<TorSocksTransport> _logger;
-    private MockSocksServer? _mockServer;
 
     public TorIntegrationTests(ITestOutputHelper output)
     {
         _output = output;
         _logger = new XunitLogger<TorSocksTransport>(output);
-    }
-
-    public void Dispose()
-    {
-        _mockServer?.Dispose();
     }
 
     [Fact]

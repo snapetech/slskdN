@@ -196,7 +196,6 @@ public class BridgePerformanceTests : IAsyncLifetime
         // Arrange
         const int messageCount = 1000;
         var streams = new List<MemoryStream>();
-        const long retentionToleranceBytes = 512 * 1024;
 
         // Act
         var memoryBefore = GC.GetTotalMemory(true);

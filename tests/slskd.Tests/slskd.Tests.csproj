@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>annotations</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
