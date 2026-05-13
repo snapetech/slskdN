@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed Lidarr auto-import debounce tracking so a directory is marked in-flight
+  before processing and no longer re-marked only after selected exits.
 - Updated council guardrail artifacts for peer/mesh preview streaming, stopped
   streaming controllers from returning raw exception messages, and restored
   Wishlist searches to the shared network search scope with wishlist safety

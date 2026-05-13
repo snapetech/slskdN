@@ -57,7 +57,7 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
         }
 
         var lidarrDirectory = MapPath(localDirectory, options.ImportPathFrom, options.ImportPathTo);
-        if (IsDebounced(lidarrDirectory))
+        if (!TryBeginProcessing(lidarrDirectory))
         {
             return new LidarrImportResult { Enabled = true, AutoImportEnabled = true, Directory = lidarrDirectory, SkippedReason = "Recently processed" };
         }
@@ -99,7 +99,6 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
                 lidarrDirectory,
                 result.SkippedReason,
                 candidates.Count);
-            MarkProcessed(lidarrDirectory);
             return result;
         }
 
@@ -117,7 +116,6 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
             safeCandidates.Count,
             candidates.Count);
 
-        MarkProcessed(lidarrDirectory);
         return result;
     }
 
@@ -187,7 +185,7 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
         return Path.Combine(toPrefix, relative);
     }
 
-    private bool IsDebounced(string directory)
+    private bool TryBeginProcessing(string directory)
     {
         var now = DateTime.UtcNow;
         foreach (var item in RecentlyProcessed.Where(item => now - item.Value > TimeSpan.FromHours(1)).ToArray())
@@ -195,12 +193,7 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
             RecentlyProcessed.TryRemove(item.Key, out _);
         }
 
-        return RecentlyProcessed.ContainsKey(directory);
-    }
-
-    private void MarkProcessed(string directory)
-    {
-        RecentlyProcessed[directory] = DateTime.UtcNow;
+        return RecentlyProcessed.TryAdd(directory, now);
     }
 
     private static bool IsSameOrChildPath(string path, string prefix)
