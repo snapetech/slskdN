@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026051318-slskdn.250] — 2026-05-13
+
 - Grouped MediaCore descriptor cache bypass and batch DHT retrieval controls
   behind advanced disclosure with network-impact guidance.
 - Added MediaCore component coverage for the advanced descriptor retrieval
