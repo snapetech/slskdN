@@ -428,6 +428,35 @@ but the picker is an interactive command surface. It needs explicit loading,
 loaded, and degraded states; an empty array before the first response is not the
 same UX state as an unavailable room directory.
 
+### 0z398. Partial Integration Hosts Must Register Feature Gates
+
+**The Bug**: Integration tests using `StubWebApplicationFactory` failed with
+`Unable to resolve service for type 'slskd.Core.Features.IFeatureGate'` after
+controllers gained `[FeatureGate(...)]` filters. The partial host loaded the
+real controllers but did not run normal application-host DI registration.
+
+**Files Affected**:
+- `tests/slskd.Tests.Integration/StubWebApplicationFactory.cs`
+
+**Wrong**:
+```csharp
+services.AddControllers()
+    .AddApplicationPart(typeof(BridgeController).Assembly);
+```
+
+**Correct**:
+```csharp
+services.AddSingleton<IFeatureGate, TestFeatureGate>();
+services.AddControllers()
+    .AddApplicationPart(typeof(BridgeController).Assembly);
+```
+
+**Why This Keeps Happening**: Test hosts that cherry-pick controllers bypass
+production bootstrap modules. Any controller-level filter, model binder, or
+authorization dependency added to production controllers must also be
+registered in those partial hosts, or route tests fail at filter activation
+before reaching the action.
+
 ### 0z384. Render-Time Work Must Not Scale With Hidden Or Unchanged Data
 
 **The Bug**: Performance fixes removed first-load blockers, but some render
