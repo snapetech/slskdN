@@ -246,6 +246,32 @@ join failures require visible user feedback. Room submit handlers must return
 success/failure and only clear transient UI state after the room is actually
 joined or opened.
 
+### 0z392. Nested Namespaces Can Shadow Root Options
+
+**The Bug**: New code under `slskd.Core.Features` used
+`IOptionsMonitor<Options>`, which resolved to the `Microsoft.Extensions.Options`
+static `Options` helper instead of the root application options type and broke
+compilation.
+
+**Files Affected**:
+- `src/slskd/Core/Features/FeatureGate.cs`
+
+**Wrong**:
+```csharp
+private readonly IOptionsMonitor<Options> options;
+```
+
+**Correct**:
+```csharp
+private readonly IOptionsMonitor<global::slskd.Options> options;
+```
+
+**Why This Keeps Happening**: Feature code often imports
+`Microsoft.Extensions.Options`, and nested namespaces can make short type names
+ambiguous or resolve to framework helper types. When referencing the root
+application `Options` type from a nested namespace, fully qualify it as
+`global::slskd.Options`.
+
 ### 0z384. Render-Time Work Must Not Scale With Hidden Or Unchanged Data
 
 **The Bug**: Performance fixes removed first-load blockers, but some render
