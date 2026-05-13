@@ -457,6 +457,36 @@ authorization dependency added to production controllers must also be
 registered in those partial hosts, or route tests fail at filter activation
 before reaching the action.
 
+### 0z399. Remediation Checks Must Track Bootstrap Ownership Moves
+
+**The Bug**: `npm run check:remediation` failed after Program.cs service
+registration was decomposed because `scripts/check-outbound-http-guards.sh`
+still expected guarded HTTP client registration literals in `Program.cs`.
+The production registration had moved to
+`Bootstrap/ApplicationHostServiceCollectionExtensions.cs`.
+
+**Files Affected**:
+- `scripts/check-outbound-http-guards.sh`
+- `src/slskd/Bootstrap/ApplicationHostServiceCollectionExtensions.cs`
+
+**Wrong**:
+```bash
+expect_literal src/slskd/Program.cs \
+  'AddHttpClient<SocialFederation.IHttpSignatureKeyFetcher, SocialFederation.HttpSignatureKeyFetcher>'
+```
+
+**Correct**:
+```bash
+expect_literal src/slskd/Bootstrap/ApplicationHostServiceCollectionExtensions.cs \
+  'AddHttpClient<SocialFederation.IHttpSignatureKeyFetcher, SocialFederation.HttpSignatureKeyFetcher>'
+```
+
+**Why This Keeps Happening**: Focused remediation checks often assert exact
+source ownership locations, not just behavior. When a bootstrap module is
+extracted from `Program.cs`, update any check scripts that pin security-critical
+registrations to the old file or the combined remediation baseline will fail
+even though production DI is still correct.
+
 ### 0z384. Render-Time Work Must Not Scale With Hidden Or Unchanged Data
 
 **The Bug**: Performance fixes removed first-load blockers, but some render
