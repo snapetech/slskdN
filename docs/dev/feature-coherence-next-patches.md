@@ -214,6 +214,10 @@ build, pipeline setup, no-start handling, and run lifecycle moved out of
 Production call sites now use extracted path, Soulseek option, QUIC data-plane,
 and antiforgery helpers directly instead of routing through Program
 compatibility wrappers.
+Focused tests now exercise the extracted helpers directly, and redundant
+test-only Program compatibility wrappers for paths, rewrite rules, Soulseek
+options, startup exception classification, expected Soulseek network exception
+classification, and QUIC standalone-socket selection have been removed.
 
 Target modules:
 

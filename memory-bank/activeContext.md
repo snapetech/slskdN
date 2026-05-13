@@ -7069,3 +7069,9 @@ Next steps: create the requested release tag only after explicit tag/release con
 ## 2026-05-13T16:44:00Z Session update
 
 Completed post-deploy test pass. Full `dotnet test --no-restore` passed across smoke, unit, and integration suites, and `./bin/lint` passed. Live kspls0 reproduced the tester timeout signature only as warning/`Completed, TimedOut`; remaining download failures appear to be peer-side rejection, remote size mismatch, offline peers, and connection failures rather than the aggregate timeout bug.
+
+## 2026-05-13T17:20:00Z Session update
+
+Continued Program.cs decomposition after the production wrapper unwiring. Focused tests now call extracted startup/path/network helpers directly, and redundant test-only Program wrappers were removed. `dotnet build src/slskd/slskd.csproj --no-restore` and focused Program/ProfileService tests passed.
+
+Next steps: keep reducing Program static startup state where it still owns private runtime configuration, then continue the remaining MediaCore reconciliation forms.
