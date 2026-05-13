@@ -530,8 +530,8 @@ public class SearchActionsControllerTests : IClassFixture<slskd.Tests.Integratio
         Assert.NotNull(result);
         Assert.NotNull(result.stream_url);
         Assert.Equal(contentId, result.content_id);
-        Assert.Equal("pod", result.source);
-        Assert.Contains("/api/v0/streams/", result.stream_url);
+        Assert.Equal("mesh", result.source);
+        Assert.Contains("/api/v0/mesh-streams/", result.stream_url);
     }
 
     [Fact]
