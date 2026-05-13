@@ -24,7 +24,6 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
     private static readonly TimeSpan ApiStartupTimeout = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan ApiStartupProbeDelay = TimeSpan.FromMilliseconds(500);
     private const int CapturedLogLineLimit = 200;
-    private static int vpnWrapperIndex;
     private readonly ILogger<SlskdnFullInstanceRunner> logger;
     private readonly string testId;
     private readonly string appDir;
@@ -69,6 +68,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
     public int? BridgePort => bridgePort;
     public int? OverlayPort => overlayPort;
     public int? DhtPort => dhtPort;
+    public int? SoulseekListenPort => soulseekListenPort;
     public bool IsRunning => isRunning;
     public string ApiUrl => $"http://{apiHost}:{apiPort}";
     public string OverlayAddress => apiHost;
@@ -85,6 +85,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
         bool noConnect = true,
         string? soulseekUsername = null,
         string? soulseekPassword = null,
+        IReadOnlyDictionary<string, int>? soulseekEndpointOverrides = null,
         CancellationToken ct = default)
     {
         logger.LogInformation("[TEST-SLSKDN-FULL] Starting full instance {TestId}", testId);
@@ -129,6 +130,12 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
         }
 
         startInfo.Environment["APP_DIR"] = appDir;
+        if (soulseekEndpointOverrides is { Count: > 0 })
+        {
+            startInfo.Environment["SLSKDN_TEST_USER_ENDPOINT_OVERRIDES"] = string.Join(
+                ';',
+                soulseekEndpointOverrides.Select(overrideEntry => $"{overrideEntry.Key}=127.0.0.1:{overrideEntry.Value}"));
+        }
 
         slskdnProcess = Process.Start(startInfo);
         if (slskdnProcess == null)
@@ -203,7 +210,7 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
         // Cleanup
         try
         {
-            if (Directory.Exists(appDir))
+            if (Directory.Exists(appDir) && !ShouldKeepArtifacts())
             {
                 Directory.Delete(appDir, recursive: true);
             }
@@ -334,41 +341,35 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
             WorkingDirectory = appDir
         };
 
-        var wrapper = Environment.GetEnvironmentVariable("SLSKDN_FULL_INSTANCE_VPN_WRAPPER");
-        var vpnConfigs = Environment.GetEnvironmentVariable("SLSKDN_FULL_INSTANCE_VPN_CONFIGS")?
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        if (!string.IsNullOrWhiteSpace(wrapper) && vpnConfigs is { Length: > 0 })
+        var vpnLease = VpnNamespaceLeaseAllocator.Allocate();
+        if (vpnLease != null)
         {
-            var index = Interlocked.Increment(ref vpnWrapperIndex) - 1;
-            var config = vpnConfigs[index % vpnConfigs.Length];
-            var subnetOctet = 230 + index;
-            var namespacePrefix = Environment.GetEnvironmentVariable("SLSKDN_FULL_INSTANCE_VPN_NAMESPACE_PREFIX") ?? "sln";
-            var namespaceName = BuildVpnNamespaceName(namespacePrefix, index);
-            var namespaceIp = $"10.{subnetOctet}.0.2";
-            var namespaceHostIp = $"10.{subnetOctet}.0.1";
-            apiHost = namespaceIp;
-            vpnNamespaceName = namespaceName;
-            vpnNamespaceHostIp = namespaceHostIp;
+            apiHost = vpnLease.NamespaceIp;
+            vpnNamespaceName = vpnLease.NamespaceName;
+            vpnNamespaceHostIp = vpnLease.NamespaceHostIp;
 
-            startInfo.FileName = wrapper;
-            startInfo.ArgumentList.Add(namespaceName);
-            startInfo.ArgumentList.Add(config);
+            startInfo.FileName = vpnLease.Wrapper;
+            startInfo.ArgumentList.Add(vpnLease.NamespaceName);
+            startInfo.ArgumentList.Add(vpnLease.Config);
+            startInfo.ArgumentList.Add(GetVpnEntrypointPath());
             startInfo.ArgumentList.Add(binaryPath);
             startInfo.ArgumentList.Add("--config");
             startInfo.ArgumentList.Add(configPath);
             startInfo.ArgumentList.Add("--app-dir");
             startInfo.ArgumentList.Add(appDir);
 
-            startInfo.Environment["SLSKR_NETNS_HOST_IP"] = namespaceHostIp;
-            startInfo.Environment["SLSKR_NETNS_IP"] = namespaceIp;
-            startInfo.Environment["SLSKR_NETNS_SUBNET"] = $"10.{subnetOctet}.0.0/24";
+            startInfo.Environment["SLSKR_NETNS_HOST_IP"] = vpnLease.NamespaceHostIp;
+            startInfo.Environment["SLSKR_NETNS_IP"] = vpnLease.NamespaceIp;
+            startInfo.Environment["SLSKR_NETNS_SUBNET"] = vpnLease.NamespaceSubnet;
+            startInfo.Environment["SLSKDN_VPN_TEST_FORWARD_PORT"] = (soulseekListenPort ?? 50300).ToString();
+            startInfo.Environment["SLSKDN_VPN_TEST_FORWARD_NAMESPACE"] = vpnLease.NamespaceName;
+            startInfo.Environment["SLSKDN_VPN_TEST_FORWARD_STATE_FILE"] = Path.Combine(appDir, "vpn-port-forward.env");
 
             logger.LogInformation(
                 "[TEST-SLSKDN-FULL] Routing instance {TestId} through VPN namespace {Namespace} using config {Config}",
                 testId,
-                namespaceName,
-                Path.GetFileName(config));
+                vpnLease.NamespaceName,
+                Path.GetFileName(vpnLease.Config));
 
             return startInfo;
         }
@@ -383,8 +384,12 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
 
     private static bool IsVpnWrapperConfigured()
     {
-        return !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SLSKDN_FULL_INSTANCE_VPN_WRAPPER")) &&
-            !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("SLSKDN_FULL_INSTANCE_VPN_CONFIGS"));
+        return VpnNamespaceLeaseAllocator.IsConfigured();
+    }
+
+    private static string GetVpnEntrypointPath()
+    {
+        return Path.Combine(AppContext.BaseDirectory, "Harness", "run-with-vpn-port-forward.sh");
     }
 
     private static string GetSoulseekAddressForConfig()
@@ -399,17 +404,6 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
             .FirstOrDefault(candidate => candidate.AddressFamily == AddressFamily.InterNetwork);
 
         return address?.ToString() ?? configuredAddress;
-    }
-
-    private static string BuildVpnNamespaceName(string prefix, int index)
-    {
-        var safePrefix = new string(prefix.Where(char.IsLetterOrDigit).Take(4).ToArray());
-        if (string.IsNullOrWhiteSpace(safePrefix))
-        {
-            safePrefix = "sln";
-        }
-
-        return $"{safePrefix}{index:D2}";
     }
 
     private async Task ConfigureVpnWrapperTestRouteAsync(CancellationToken ct)
@@ -676,6 +670,15 @@ public class SlskdnFullInstanceRunner : IAsyncDisposable
     {
         return "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
     }
+
+    private static bool ShouldKeepArtifacts()
+    {
+        var value = Environment.GetEnvironmentVariable("SLSKDN_TEST_KEEP_ARTIFACTS");
+        return string.Equals(value, "1", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static void CaptureProcessLogLine(ConcurrentQueue<string> lines, string logPath, string? line)
     {
         if (string.IsNullOrWhiteSpace(line))

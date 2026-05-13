@@ -121,6 +121,16 @@ jobs:
 - `SLSKDN_TEST_TIMEOUT`: Test timeout in seconds (default: 300)
 - `SLSKDN_TEST_LOG_LEVEL`: Logging level (Debug, Information, Warning, Error)
 - `SLSKDN_RUN_LIVE_MESH_ACCOUNT_TESTS`: Set to `1`, `true`, or `yes` to run the live Soulseek-account mesh smoke. This test also requires two configured `SLSKDN_MESH_ACCOUNT_*` username/password pairs or the local ignored `local-mesh-account*.env` files. Leave unset for release preflight; the normal full-instance mesh tests do not require Soulseek login.
+- `SLSKDN_RUN_LIVE_SOULSEEK_INTEROP_TESTS`: Set to `1`, `true`, or `yes` to run the live slskdN/Soulseek.NET runtime transfer smoke. This test uses two configured `SLSKDN_MESH_ACCOUNT_*` accounts, starts one full slskdN instance, and verifies a raw `SoulseekClient` can browse and download a tiny slskdN-hosted probe over the native Soulseek transfer path. Leave unset for release preflight.
+- `SLSKDN_RUN_UPSTREAM_SLSKD_COMPAT_TESTS`: Set to `1`, `true`, or `yes` to run the live upstream slskd compatibility smoke. This test starts one upstream `slskd/slskd` daemon and one slskdN daemon, then verifies slskdN can enqueue and download an upstream-hosted probe over the native Soulseek transfer path. This requires the upstream daemon to be able to open a transfer connection back to slskdN using the endpoint reported by the live Soulseek server, so same-host NAT/firewall environments without a routable slskdN listen port can fail even though login, browse, and enqueue work.
+- `SLSKDN_UPSTREAM_SLSKD_BINARY_PATH`: Optional path to an upstream `slskd` binary for `SLSKDN_RUN_UPSTREAM_SLSKD_COMPAT_TESTS`.
+- `SLSKDN_BUILD_UPSTREAM_SLSKD`: Set to `1`, `true`, or `yes` to let the upstream compatibility runner clone/build `https://github.com/slskd/slskd.git` under `/tmp/slskdn-upstream-compat/slskd` when no upstream binary path is provided.
+- `SLSKDN_UPSTREAM_SLSKD_SOURCE_DIR`: Optional source directory override for the upstream clone/build cache.
+- `SLSKDN_FULL_INSTANCE_VPN_WRAPPER`: Optional wrapper script for full-instance live tests. The wrapper must accept `<namespace> <wireguard-conf> <command> [args...]`.
+- `SLSKDN_FULL_INSTANCE_VPN_CONFIGS`: Comma-separated WireGuard configs. Each full-instance runner leases the next config so each live test credential set can run through a distinct VPN connection.
+- `SLSKDN_FULL_INSTANCE_VPN_CLAIM_PORT_FORWARDING`: Set to `1` to have the VPN namespace entrypoint run `natpmpc` before daemon startup and claim the daemon's Soulseek TCP listen port. This is required for upstream app-to-app transfer compatibility when the peers are isolated behind VPNs. For providers such as Proton that return a random public port, the harness rewrites `soulseek.listen_port` to the public port and redirects the provider-mapped private port to that listener inside the namespace. Config files marked `NAT-PMP (Port Forwarding) = off` are skipped when this flag is enabled.
+- `SLSKDN_VPN_TEST_FORWARD_GATEWAY`: NAT-PMP gateway for `SLSKDN_FULL_INSTANCE_VPN_CLAIM_PORT_FORWARDING` (default: `10.2.0.1`).
+- `SLSKDN_FULL_INSTANCE_VPN_NAMESPACE_PREFIX`: Optional namespace prefix for the per-process VPN wrappers (default: `sln`).
 
 ## Test Data
 

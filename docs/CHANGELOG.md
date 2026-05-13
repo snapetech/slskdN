@@ -23,8 +23,21 @@ For dev or build tags, use the same logical version string embedded in the tag.
 ## [Unreleased]
 
 - Downgraded additional expected Soulseek peer transport failures from error
-  stack traces to warnings, rate-limited malformed overlay datagram logging,
-  and made DHT/overlay summaries identify discovered-but-unreachable mesh peers.
+  stack traces to single warning records, rate-limited malformed overlay
+  datagram logging, and made DHT/overlay summaries identify
+  discovered-but-unreachable mesh peers.
+- Gave the mesh overlay TCP listener a longer graceful-restart retry window and
+  kept expected bind-retry exceptions out of error logs.
+- Downgraded startup search attempts while Soulseek is still logging in from
+  errors to deferred-search warnings.
+- Improved Lidarr/Wishlist acquisition by deduping Lidarr wanted syncs by
+  search plus filter, using native Soulseek wishlist search scope, processing
+  older wishlist rows first, and disabling auto-download rows only after files
+  are actually enqueued.
+- Added explicit user-group overlap validation, safe per-request download
+  destination routing, derived download batch summaries, named local search
+  filters, shift-range file selection, and configured native Soulseek interest
+  publishing.
 - Labeled System admin and experimental panels in the tab menu to reduce
   cognitive load around advanced surfaces.
 - Updated System surface and route/UI parity docs to reflect the new

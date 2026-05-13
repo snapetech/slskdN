@@ -728,7 +728,7 @@ namespace slskd
             // race and, in some cases, leaving the listener permanently stopped so all
             // incoming peer connections are refused and every transfer fails.
             return new SoulseekClientOptionsPatch(
-                userEndPointCache: new UserEndPointCache(),
+                userEndPointCache: CreateUserEndPointCache(),
                 maximumUploadSpeed: optionsAtStartup.Global.Upload.SpeedLimit,
                 maximumDownloadSpeed: optionsAtStartup.Global.Download.SpeedLimit,
                 autoAcknowledgePrivateMessages: false,
@@ -746,6 +746,45 @@ namespace slskd
                 searchResponseCache: new SearchResponseCache(),
                 searchResponseResolver: searchResponseResolver,
                 placeInQueueResolver: placeInQueueResolver);
+        }
+
+        private static UserEndPointCache CreateUserEndPointCache()
+        {
+            var cache = new UserEndPointCache();
+            var overrides = Environment.GetEnvironmentVariable("SLSKDN_TEST_USER_ENDPOINT_OVERRIDES");
+            if (string.IsNullOrWhiteSpace(overrides))
+            {
+                return cache;
+            }
+
+            foreach (var entry in overrides.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                var separatorIndex = entry.IndexOf('=');
+                if (separatorIndex <= 0 || separatorIndex == entry.Length - 1)
+                {
+                    continue;
+                }
+
+                var username = entry[..separatorIndex].Trim();
+                var endpointText = entry[(separatorIndex + 1)..].Trim();
+                var endpointSeparatorIndex = endpointText.LastIndexOf(':');
+                if (endpointSeparatorIndex <= 0 || endpointSeparatorIndex == endpointText.Length - 1)
+                {
+                    continue;
+                }
+
+                var addressText = endpointText[..endpointSeparatorIndex];
+                var portText = endpointText[(endpointSeparatorIndex + 1)..];
+                if (IPAddress.TryParse(addressText, out var address) &&
+                    int.TryParse(portText, out var port) &&
+                    port > 0 &&
+                    port <= 65535)
+                {
+                    cache.AddOrUpdate(username, new IPEndPoint(address, port));
+                }
+            }
+
+            return cache;
         }
 
         async Task IHostedService.StopAsync(CancellationToken cancellationToken)
@@ -1386,6 +1425,8 @@ namespace slskd
             // fetch our average upload speed from the server, so we can provide it along with search results
             await RefreshUserStatistics(force: true);
 
+            await PublishConfiguredInterestsAsync();
+
             // we previously saved a list of all of the download ids that were active at the previous shutdown; fetch the latest
             // record for those transfers from the db and ensure they haven't been removed from the UI while the application was offline
             // the user doesn't want those transfers anymore and we don't want to add them back.
@@ -1416,6 +1457,44 @@ namespace slskd
 
             // clear the ids we saved at startup; we don't want to re-request these again if the connection is cycled
             ActiveDownloadIdsAtPreviousShutdown = [];
+        }
+
+        private async Task PublishConfiguredInterestsAsync()
+        {
+            var liked = OptionsMonitor.CurrentValue.Soulseek.LikedInterests
+                .Select(interest => interest?.Trim())
+                .Where(interest => !string.IsNullOrWhiteSpace(interest))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var hated = OptionsMonitor.CurrentValue.Soulseek.HatedInterests
+                .Select(interest => interest?.Trim())
+                .Where(interest => !string.IsNullOrWhiteSpace(interest))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            foreach (var interest in liked)
+            {
+                try
+                {
+                    await Client.AddInterestAsync(interest).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning("Failed to publish configured Soulseek liked interest {Interest}: {Message}", interest, ex.Message);
+                }
+            }
+
+            foreach (var interest in hated)
+            {
+                try
+                {
+                    await Client.AddHatedInterestAsync(interest).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning("Failed to publish configured Soulseek disliked interest {Interest}: {Message}", interest, ex.Message);
+                }
+            }
         }
 
         private void Client_PrivateMessageReceived(object? sender, PrivateMessageReceivedEventArgs args)
