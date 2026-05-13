@@ -24,6 +24,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 - Grouped MediaCore descriptor cache bypass and batch DHT retrieval controls
   behind advanced disclosure with network-impact guidance.
+- Added MediaCore component coverage for the advanced descriptor retrieval
+  grouping.
 
 ## [2026051317-slskdn.249] — 2026-05-13
 

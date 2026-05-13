@@ -89,6 +89,10 @@ describe('MediaCore', () => {
     expect(screen.getByText('Advanced raw audio hash controls')).toBeInTheDocument();
     expect(screen.getByText('Advanced raw image hash controls')).toBeInTheDocument();
     expect(screen.getAllByText(/Similarity review and hashing statistics/).length).toBeGreaterThan(0);
+    expect(screen.getByText('Advanced fresh DHT retrieval controls')).toBeInTheDocument();
+    expect(screen.getByText('Advanced batch DHT retrieval controls')).toBeInTheDocument();
+    expect(screen.getByText(/Cached single-descriptor retrieval is the default path/)).toBeInTheDocument();
+    expect(screen.getByText(/Batch retrieval can fan out across multiple descriptors/)).toBeInTheDocument();
   });
 
   it('focuses a pod workflow from the index card', async () => {
