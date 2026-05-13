@@ -52,6 +52,49 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z416. Observe Aggregate Tasks Created Only For Cleanup Continuations
+
+**The Bug**: Download enqueue cleanup used `Task.WhenAll(runningTasks)` only to
+dispose a semaphore after active tasks drained. The individual enqueue/download
+tasks were observed elsewhere, but the `WhenAll` aggregate task faults when any
+child task faults. Because the cleanup continuation never read
+`completedTasks.Exception`, normal remote transfer rejections such as
+"File not shared." surfaced later as process-level unobserved task exceptions.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+
+**Wrong**:
+```csharp
+_ = Task.WhenAll(runningTasks).ContinueWith(
+    _ => semaphore.Dispose(),
+    CancellationToken.None,
+    TaskContinuationOptions.ExecuteSynchronously,
+    TaskScheduler.Default);
+```
+
+**Correct**:
+```csharp
+_ = Task.WhenAll(runningTasks).ContinueWith(
+    completedTasks =>
+    {
+        if (completedTasks.IsFaulted)
+        {
+            _ = completedTasks.Exception;
+        }
+
+        semaphore.Dispose();
+    },
+    CancellationToken.None,
+    TaskContinuationOptions.ExecuteSynchronously,
+    TaskScheduler.Default);
+```
+
+**Why This Keeps Happening**: Observing child tasks is not enough if a new
+aggregate task is created with `Task.WhenAll`. Any fire-and-forget aggregate
+used for cleanup must also observe its own fault state, even when every child
+task has separate handling.
+
 ### 0z415. Debounce Event-Driven External Imports Before The HTTP Call
 
 **The Bug**: Lidarr auto-import marked completed directories as processed only
