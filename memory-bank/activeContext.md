@@ -7123,3 +7123,9 @@ Next steps: run lint, commit this startup helper wrapper cleanup, then continue 
 Continued Program.cs decomposition by moving startup logging configuration and shutdown telemetry installation calls to extracted bootstrap helpers directly. `Program.cs` is now 404 lines. Build and focused Program/log lifecycle tests passed.
 
 Next steps: run lint, commit this logging/shutdown wrapper cleanup, then re-scan for any remaining Program-owned startup wrappers or continue the remaining non-pod MediaCore reconciliation forms.
+
+## 2026-05-13T17:54:03Z Session update
+
+Continued the parity/reconciliation list by fixing MediaCore ContentID examples after the advanced registration split. Example buttons now fill read-first resolve/validation fields and the advanced registration fields, and the focused component test covers that path. Focused MediaCore component tests and focused Web lint passed.
+
+Next steps: commit the MediaCore example cleanup, then re-scan remaining non-pod MediaCore forms or reassess whether Program.cs has any remaining practical decomposition beyond static state/orchestration.
