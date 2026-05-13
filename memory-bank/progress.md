@@ -10104,3 +10104,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T02:12:19Z] Parity/reconciliation MediaCore pod workflow follow-up: simplified Pod Join/Leave by moving pending-request review ahead of mutation controls and grouping signed membership event publishing/approval under advanced disclosure. Focused MediaCore component tests (`3/3`) and focused Web lint passed.
 
 [2026-05-13T02:15:08Z] Program decomposition capability/rendezvous split: moved MediaCore publisher, capability bridge, and DHT rendezvous registrations into `Bootstrap/CapabilitiesAndRendezvousServiceCollectionExtensions`. The experimental graph coordinator now only delegates to named bootstrap modules. `dotnet build src/slskd/slskd.csproj --no-restore`, `./bin/lint`, and focused capability/rendezvous unit tests (`146/146`) passed.
+
+[2026-05-13T02:17:30Z] Parity/reconciliation MediaCore signing follow-up: simplified Pod Message Signing by moving verification/statistics into the default panel and grouping private-key signing/key generation under advanced disclosure. Focused MediaCore component tests (`3/3`) and focused Web lint passed.

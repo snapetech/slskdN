@@ -1,3 +1,17 @@
+## Update 2026-05-13 02:17:30Z
+
+- Current task: parity/reconciliation list follow-up in progress.
+- Last activity:
+  - simplified MediaCore Pod Message Signing so verification/statistics appear first;
+  - grouped private-key signing and key generation controls behind advanced disclosure;
+  - updated parity plan, changelog, tasks, and progress notes.
+- Validation:
+  - Passed: `cd src/web && npm test -- System/MediaCore/index.test.jsx` (`3/3`).
+  - Passed: `cd src/web && npm run lint -- src/components/System/MediaCore/index.jsx src/components/System/MediaCore/index.test.jsx`.
+- Next steps:
+  1. Continue simplifying remaining MediaCore pod mutation-heavy forms, likely channel management or opinion publishing.
+  2. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 02:15:08Z
 
 - Current task: Program.cs decomposition and parity/reconciliation follow-up in progress.

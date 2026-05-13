@@ -8109,66 +8109,15 @@ const MediaCore = () => {
               </PodWorkflowNotice>
             </Card.Content>
 
-            {/* Message Signing */}
             <Card.Content>
-              <Header size="small">Sign Pod Message</Header>
-              <Form>
-                <Form.TextArea
-                  label="Pod Message JSON"
-                  onChange={(e) => setMessageToSign(e.target.value)}
-                  placeholder='{"messageId": "msg123", "channelId": "pod:artist:mb:daft-punk-hash:general", "senderPeerId": "alice", "body": "Hello pod!", "timestampUnixMs": 1703123456789}'
-                  rows={3}
-                  value={messageToSign}
-                />
-                <Form.Input
-                  label="Private Key"
-                  onChange={(e) => setPrivateKeyForSigning(e.target.value)}
-                  placeholder="base64-encoded private key"
-                  type="password"
-                  value={privateKeyForSigning}
-                />
-                <Button
-                  disabled={
-                    signingMessage ||
-                    !messageToSign.trim() ||
-                    !privateKeyForSigning.trim()
-                  }
-                  loading={signingMessage}
-                  onClick={handleSignMessage}
-                  primary
-                >
-                  Sign Message
-                </Button>
-              </Form>
-
-              {signedMessageResult && (
-                <div style={{ marginTop: '1em' }}>
-                  {signedMessageResult.error ? (
-                    <Message error>
-                      <p>Failed to sign message: {signedMessageResult.error}</p>
-                    </Message>
-                  ) : (
-                    <Message success>
-                      <Message.Header>
-                        Message Signed Successfully
-                      </Message.Header>
-                      <p>
-                        <strong>Message ID:</strong>{' '}
-                        {signedMessageResult.messageId}
-                        <br />
-                        <strong>Channel:</strong>{' '}
-                        {signedMessageResult.channelId}
-                        <br />
-                        <strong>Signature:</strong>{' '}
-                        {signedMessageResult.signature?.slice(0, 50)}...
-                      </p>
-                    </Message>
-                  )}
-                </div>
-              )}
-            </Card.Content>
-
-            <Card.Content>
+              <Message info>
+                <Message.Header>Verify before generating signatures</Message.Header>
+                <p>
+                  Signature verification and signing statistics do not expose
+                  private key material. Signing and key generation controls are
+                  grouped below as advanced operations.
+                </p>
+              </Message>
               <Grid>
                 <Grid.Column width={8}>
                   {/* Signature Verification */}
@@ -8211,57 +8160,9 @@ const MediaCore = () => {
                     </div>
                   )}
                 </Grid.Column>
-
                 <Grid.Column width={8}>
-                  {/* Key Pair Generation */}
-                  <Header size="small">Generate Key Pair</Header>
-                  <Form>
-                    <Button
-                      disabled={generatingKeyPair}
-                      fluid
-                      loading={generatingKeyPair}
-                      onClick={handleGenerateKeyPair}
-                    >
-                      Generate New Key Pair
-                    </Button>
-                  </Form>
-
-                  {generatedKeyPair && (
-                    <div style={{ marginTop: '0.5em' }}>
-                      {generatedKeyPair.error ? (
-                        <Message
-                          error
-                          size="tiny"
-                        >
-                          <p>{generatedKeyPair.error}</p>
-                        </Message>
-                      ) : (
-                        <Message
-                          size="tiny"
-                          success
-                        >
-                          <Message.Header>Key Pair Generated</Message.Header>
-                          <p>
-                            <strong>Public Key:</strong>{' '}
-                            {generatedKeyPair.publicKey?.slice(0, 30)}...
-                            <br />
-                            <strong>Private Key:</strong>{' '}
-                            {generatedKeyPair.privateKey?.slice(0, 30)}...
-                            <br />
-                            <em>⚠️ Keep private key secure!</em>
-                          </p>
-                        </Message>
-                      )}
-                    </div>
-                  )}
-
                   {/* Signing Statistics */}
-                  <Header
-                    size="small"
-                    style={{ marginTop: '1em' }}
-                  >
-                    Signing Statistics
-                  </Header>
+                  <Header size="small">Signing Statistics</Header>
                   <Button.Group fluid>
                     <Button
                       disabled={loadingSigningStats}
@@ -8309,6 +8210,122 @@ const MediaCore = () => {
                   )}
                 </Grid.Column>
               </Grid>
+            </Card.Content>
+
+            <Card.Content>
+              <details>
+                <summary>Advanced key material and signing controls</summary>
+                <Message warning>
+                  These controls handle private keys or create signed payloads
+                  that may be routed to other pod members. Keep generated
+                  private keys out of logs and screenshots.
+                </Message>
+                <Grid>
+                  <Grid.Column width={8}>
+                    <Header size="small">Sign Pod Message</Header>
+                    <Form>
+                      <Form.TextArea
+                        label="Pod Message JSON"
+                        onChange={(e) => setMessageToSign(e.target.value)}
+                        placeholder='{"messageId": "msg123", "channelId": "pod:artist:mb:daft-punk-hash:general", "senderPeerId": "alice", "body": "Hello pod!", "timestampUnixMs": 1703123456789}'
+                        rows={3}
+                        value={messageToSign}
+                      />
+                      <Form.Input
+                        label="Private Key"
+                        onChange={(e) => setPrivateKeyForSigning(e.target.value)}
+                        placeholder="base64-encoded private key"
+                        type="password"
+                        value={privateKeyForSigning}
+                      />
+                      <Button
+                        disabled={
+                          signingMessage ||
+                          !messageToSign.trim() ||
+                          !privateKeyForSigning.trim()
+                        }
+                        loading={signingMessage}
+                        onClick={handleSignMessage}
+                        primary
+                      >
+                        Sign Message
+                      </Button>
+                    </Form>
+
+                    {signedMessageResult && (
+                      <div style={{ marginTop: '1em' }}>
+                        {signedMessageResult.error ? (
+                          <Message error>
+                            <p>
+                              Failed to sign message:{' '}
+                              {signedMessageResult.error}
+                            </p>
+                          </Message>
+                        ) : (
+                          <Message success>
+                            <Message.Header>
+                              Message Signed Successfully
+                            </Message.Header>
+                            <p>
+                              <strong>Message ID:</strong>{' '}
+                              {signedMessageResult.messageId}
+                              <br />
+                              <strong>Channel:</strong>{' '}
+                              {signedMessageResult.channelId}
+                              <br />
+                              <strong>Signature:</strong>{' '}
+                              {signedMessageResult.signature?.slice(0, 50)}...
+                            </p>
+                          </Message>
+                        )}
+                      </div>
+                    )}
+                  </Grid.Column>
+
+                  <Grid.Column width={8}>
+                    <Header size="small">Generate Key Pair</Header>
+                    <Form>
+                      <Button
+                        disabled={generatingKeyPair}
+                        fluid
+                        loading={generatingKeyPair}
+                        onClick={handleGenerateKeyPair}
+                      >
+                        Generate New Key Pair
+                      </Button>
+                    </Form>
+
+                    {generatedKeyPair && (
+                      <div style={{ marginTop: '0.5em' }}>
+                        {generatedKeyPair.error ? (
+                          <Message
+                            error
+                            size="tiny"
+                          >
+                            <p>{generatedKeyPair.error}</p>
+                          </Message>
+                        ) : (
+                          <Message
+                            size="tiny"
+                            success
+                          >
+                            <Message.Header>Key Pair Generated</Message.Header>
+                            <p>
+                              <strong>Public Key:</strong>{' '}
+                              {generatedKeyPair.publicKey?.slice(0, 30)}...
+                              <br />
+                              <strong>Private Key:</strong>{' '}
+                              {generatedKeyPair.privateKey?.slice(0, 30)}...
+                              <br />
+                              <em>Keep private key secure.</em>
+                            </p>
+                          </Message>
+                        )}
+                      </div>
+                    )}
+                  </Grid.Column>
+                </Grid>
+              </details>
             </Card.Content>
           </Card>
         </Grid.Column>

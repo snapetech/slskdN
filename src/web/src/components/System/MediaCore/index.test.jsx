@@ -64,6 +64,9 @@ describe('MediaCore', () => {
     expect(screen.getByText('Review pending requests first')).toBeInTheDocument();
     expect(screen.getByText('Advanced signed membership event controls')).toBeInTheDocument();
     expect(screen.getByText(/submit signed JSON payloads/)).toBeInTheDocument();
+    expect(screen.getByText('Verify before generating signatures')).toBeInTheDocument();
+    expect(screen.getByText('Advanced key material and signing controls')).toBeInTheDocument();
+    expect(screen.getByText(/handle private keys/)).toBeInTheDocument();
   });
 
   it('focuses a pod workflow from the index card', async () => {
