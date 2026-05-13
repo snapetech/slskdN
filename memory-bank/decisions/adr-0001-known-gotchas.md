@@ -52,6 +52,43 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z415. Debounce Event-Driven External Imports Before The HTTP Call
+
+**The Bug**: Lidarr auto-import marked completed directories as processed only
+after the manual-import HTTP call finished. When several files completed in the
+same album directory, fire-and-forget directory-complete events could start
+duplicate concurrent Lidarr candidate lookups before the debounce marker was
+set, causing repeated HTTP timeouts and noisy warning stacks under load.
+
+**Files Affected**:
+- `src/slskd/Integrations/Lidarr/LidarrImportService.cs`
+
+**Wrong**:
+```csharp
+if (IsDebounced(directory))
+{
+    return skipped;
+}
+
+var candidates = await LidarrClient.GetManualImportCandidatesAsync(directory, ...);
+MarkProcessed(directory);
+```
+
+**Correct**:
+```csharp
+if (!TryBeginProcessing(directory))
+{
+    return skipped;
+}
+
+var candidates = await LidarrClient.GetManualImportCandidatesAsync(directory, ...);
+```
+
+**Why This Keeps Happening**: `EventBus` subscribers run fire-and-forget and
+can overlap. Debouncing external side effects must reserve the work atomically
+before awaiting any network call; marking only after success leaves a race
+window where bursts create duplicate requests.
+
 ### 0z414. Stream Ticket Controllers Must Preserve Only Known-Safe Validation Messages
 
 **The Bug**: Peer stream ticket validation threw a specific `ArgumentException`

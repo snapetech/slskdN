@@ -105,6 +105,42 @@ public class LidarrImportServiceTests
         Assert.Equal("/lidarr/inbox/Artist/Album", client.LastCandidateFolder);
     }
 
+    [Fact]
+    public async Task ImportCompletedDirectoryAsync_DebouncesConcurrentDirectoryAttempts()
+    {
+        var client = new FakeLidarrClient
+        {
+            Candidates = [SafeCandidate()],
+            CandidateDelay = TimeSpan.FromMilliseconds(50),
+        };
+        var service = CreateService(client, EnabledImportOptions());
+
+        var first = service.ImportCompletedDirectoryAsync("/downloads/music/Artist/Album");
+        var second = service.ImportCompletedDirectoryAsync("/downloads/music/Artist/Album");
+
+        var results = await Task.WhenAll(first, second);
+
+        Assert.Equal(1, client.CandidateRequestCount);
+        Assert.Single(results, result => result.CommandId == 42);
+        Assert.Single(results, result => result.SkippedReason == "Recently processed");
+    }
+
+    [Fact]
+    public async Task ImportCompletedDirectoryAsync_DebouncesFailedDirectoryAttempt()
+    {
+        var client = new FakeLidarrClient
+        {
+            CandidateException = new TimeoutException("lidarr slow"),
+        };
+        var service = CreateService(client, EnabledImportOptions());
+
+        await Assert.ThrowsAsync<TimeoutException>(() => service.ImportCompletedDirectoryAsync("/downloads/music/Artist/Album"));
+        var result = await service.ImportCompletedDirectoryAsync("/downloads/music/Artist/Album");
+
+        Assert.Equal(1, client.CandidateRequestCount);
+        Assert.Equal("Recently processed", result.SkippedReason);
+    }
+
     private static LidarrImportService CreateService(FakeLidarrClient client, Options.IntegrationOptions.LidarrOptions lidarrOptions)
         => new(
             client,
@@ -155,6 +191,12 @@ public class LidarrImportServiceTests
     {
         public IReadOnlyList<LidarrManualImportResource> Candidates { get; init; } = [];
 
+        public TimeSpan CandidateDelay { get; init; } = TimeSpan.Zero;
+
+        public Exception? CandidateException { get; init; }
+
+        public int CandidateRequestCount { get; private set; }
+
         public string LastCandidateFolder { get; private set; } = string.Empty;
 
         public string LastImportMode { get; private set; } = string.Empty;
@@ -179,8 +221,30 @@ public class LidarrImportServiceTests
             bool replaceExistingFiles,
             CancellationToken cancellationToken = default)
         {
+            CandidateRequestCount++;
             LastCandidateFolder = folder;
+            if (CandidateDelay > TimeSpan.Zero)
+            {
+                return GetManualImportCandidatesWithDelayAsync(cancellationToken);
+            }
+
+            if (CandidateException is not null)
+            {
+                return Task.FromException<IReadOnlyList<LidarrManualImportResource>>(CandidateException);
+            }
+
             return Task.FromResult(Candidates);
+        }
+
+        private async Task<IReadOnlyList<LidarrManualImportResource>> GetManualImportCandidatesWithDelayAsync(CancellationToken cancellationToken)
+        {
+            await Task.Delay(CandidateDelay, cancellationToken);
+            if (CandidateException is not null)
+            {
+                throw CandidateException;
+            }
+
+            return Candidates;
         }
 
         public Task<LidarrCommandResponse> StartManualImportAsync(
