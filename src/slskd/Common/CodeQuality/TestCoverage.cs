@@ -108,7 +108,7 @@ namespace slskd.Common.CodeQuality
             // Run critical path regression tests
             foreach (var subsystem in CriticalSubsystems)
             {
-                var subsystemResults = await RunSubsystemRegressionTestsAsync(subsystem, testAssemblies, logger);
+                var subsystemResults = await RunSubsystemRegressionTestsAsync(subsystem, testAssemblies, logger).ConfigureAwait(false);
                 results.SubsystemResults.Add(subsystemResults);
             }
 

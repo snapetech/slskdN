@@ -136,12 +136,12 @@ namespace slskd.Common.CodeQuality
         {
             // Note: In a real implementation, this would use proper dependency injection
             // For now, we'll run with basic assembly loading
-            return await RegressionHarness.RunRegressionSuiteAsync(testAssemblies);
+            return await RegressionHarness.RunRegressionSuiteAsync(testAssemblies).ConfigureAwait(false);
         }
 
         private async Task<PerformanceBenchmarkResults> RunPerformanceBenchmarksAsync(int iterations)
         {
-            return await RegressionHarness.RunPerformanceBenchmarksAsync(iterations);
+            return await RegressionHarness.RunPerformanceBenchmarksAsync(iterations).ConfigureAwait(false);
         }
 
         private void GenerateReports(

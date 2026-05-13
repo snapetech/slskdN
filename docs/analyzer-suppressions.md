@@ -7,7 +7,7 @@ This document explains warning suppressions used by the slskdN app project. Supp
 - Do not add broad `NoWarn` entries without a row in this document.
 - Prefer targeted `#pragma` or `.editorconfig` scope over project-wide suppression.
 - Prefer fixing warnings over suppressing them.
-- Build/tooling warnings should not be suppressed in the runtime project when they belong in a separate build-tasks project.
+- Build/tooling warnings should not be suppressed in the runtime project when they belong in `tools/slskd.BuildTasks`.
 - Security analyzers require explicit justification and an issue/PR reference.
 
 ## Current suppressions
@@ -29,7 +29,7 @@ Debug also suppresses `1701` and `1702`; Release does not.
 | `CA3003` | Debug and Release | Direct SQL/string construction paths exist in data/catalogue code. | Security-sensitive SQL injection analyzer suppression. | Audit all SQL/direct DB paths; do not promote SQL-backed features to stable until reviewed. |
 | `CA2208` | Debug and Release | Legacy argument exception names have not been fully corrected. | Incorrect parameter names reduce debugging quality. | Fix in touched code. |
 | `CS8981` | Debug and Release | Lowercase type names exist for compatibility/generated-style surfaces. | Lowercase type naming can point to generated or placeholder code. | Audit source of warning and target suppressions where compatibility requires it. |
-| `1701` / `1702` | Debug only | Local Debug builds can see assembly binding/version mismatch noise during dependency churn. | Can hide real binding problems if kept after cleanup. | Confirm still required after build-task relocation and dependency cleanup. |
+| `1701` / `1702` | Debug only | Local Debug builds can see assembly binding/version mismatch noise during dependency churn. | Can hide real binding problems if kept after cleanup. | Recheck after build-task relocation and dependency cleanup. |
 
 ## Current observed unsuppressed warnings
 

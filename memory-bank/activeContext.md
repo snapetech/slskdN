@@ -6424,4 +6424,8 @@ Updated dependency ownership inventory with concrete call-site classifications a
 
 Completed the analyzer suppression audit slice. `docs/analyzer-suppressions.md` now matches the app-project `NoWarn` set and records the remaining CA2000 transport warnings as code follow-up, while feature gates remain enabled by default.
 
-Next steps: continue with build-task relocation/pruning decisions, then Program.cs service-module decomposition and DownloadService regression coverage.
+## 2026-05-13T00:42:00Z Session update
+
+Completed the build-task relocation slice. The runtime app no longer compiles `CodeAnalysisBuildTask`, `TestCoverageBuildTask`, or `RegressionBuildTask`, and no longer references `Microsoft.Build.*`; those tasks now build from linked CodeQuality sources in `tools/slskd.BuildTasks`.
+
+Next steps: continue with Program.cs service-module decomposition, DownloadService regression coverage, and the remaining runtime-vs-tooling decision for Roslyn CodeQuality helpers.

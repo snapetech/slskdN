@@ -14,16 +14,14 @@ namespace slskd.Common.CodeQuality
     ///     A controller feature provider that gracefully handles assembly load failures
     ///     when enumerating types for controller discovery.
     ///
-    ///     Required because the MSBuild task classes (CodeAnalysisBuildTask, etc.) live in this
-    ///     assembly and inherit from <c>Microsoft.Build.Utilities.Task</c>, a build-time-only
-    ///     dependency.  Patched versions of <c>Microsoft.Build.Utilities.Core</c> (18.x+) target
-    ///     net9.0+, so their runtime DLL is absent from a net8.0 output directory.  ASP.NET Core's
-    ///     default scanner calls <c>Module.GetTypes()</c> which throws before any individual type
-    ///     is inspected.  This provider inherits <see cref="ControllerFeatureProvider"/> so the
-    ///     ASP.NET Core guard (<c>!manager.FeatureProviders.OfType&lt;ControllerFeatureProvider&gt;().Any()</c>)
-    ///     considers it present and does not add an additional default provider.  It also explicitly
-    ///     reimplements <see cref="IApplicationFeatureProvider{ControllerFeature}"/> so that the
-    ///     safe implementation is used for interface dispatch rather than the base-class version.
+    ///     Retained as a defensive controller scanner for optional or build-adjacent dependencies
+    ///     that can fail during assembly type enumeration. ASP.NET Core's default scanner calls
+    ///     <c>Module.GetTypes()</c>, which throws before any individual type is inspected. This
+    ///     provider inherits <see cref="ControllerFeatureProvider"/> so the ASP.NET Core guard
+    ///     (<c>!manager.FeatureProviders.OfType&lt;ControllerFeatureProvider&gt;().Any()</c>) considers
+    ///     it present and does not add an additional default provider. It also explicitly
+    ///     reimplements <see cref="IApplicationFeatureProvider{ControllerFeature}"/> so interface
+    ///     dispatch uses this safe implementation rather than the base-class version.
     /// </summary>
     internal class SafeControllerFeatureProvider
         : ControllerFeatureProvider, IApplicationFeatureProvider<ControllerFeature>

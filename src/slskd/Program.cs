@@ -2973,10 +2973,8 @@ namespace slskd
                 .ConfigureApplicationPartManager(manager =>
                 {
                     // Replace the default ControllerFeatureProvider with a resilient one that
-                    // handles Assembly.GetTypes() failures for build-time-only dependencies.
-                    // Needed because MSBuild task classes in this assembly inherit from
-                    // Microsoft.Build.Utilities.Task, and patched Microsoft.Build.Utilities.Core
-                    // (18.x+) targets net9.0+ so its runtime DLL is absent from a net8.0 output.
+                    // handles Assembly.GetTypes() failures from optional or build-adjacent
+                    // dependencies before controller discovery can inspect individual types.
                     var existing = manager.FeatureProviders
                         .OfType<IApplicationFeatureProvider<ControllerFeature>>().ToList();
                     foreach (var p in existing)

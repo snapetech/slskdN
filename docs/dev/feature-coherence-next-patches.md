@@ -145,19 +145,23 @@ Remaining follow-up:
 
 - Revisit `dotNetRDF` only if Solid/WebID moves out of this app.
 - Revisit `MathNet.Numerics` only if MediaCore hashing changes implementation.
-- Move Microsoft.Build and Microsoft.CodeAnalysis tooling out of the runtime app project.
+- Decide whether the remaining Microsoft.CodeAnalysis helpers belong in runtime or a tooling project.
 - Decide whether telemetry/metrics and LAN discovery need explicit feature gates beyond existing options.
 
 ## 9. Move custom MSBuild tasks out of the app assembly
 
-Status: analyzer suppression audit documented. Build tasks are still loaded from
-the app assembly and still need relocation.
+Status: build task relocation complete. Analyzer suppression audit documented.
+`CodeAnalysisBuildTask`, `TestCoverageBuildTask`, and `RegressionBuildTask` now
+compile from linked CodeQuality sources in `tools/slskd.BuildTasks`, while the
+runtime app excludes those task classes and no longer references
+`Microsoft.Build.*` packages directly.
 
 Acceptance criteria:
 
-- `src/slskd/slskd.csproj` no longer loads MSBuild tasks from `slskd.dll`.
-- Build tasks live in a separate project or are removed.
-- Runtime package dependencies for MSBuild/Roslyn are removed unless truly needed at runtime.
+- `src/slskd/slskd.csproj` no longer loads MSBuild tasks from `slskd.dll`. Done.
+- Build tasks live in a separate project or are removed. Done.
+- Runtime package dependencies for MSBuild are removed. Done.
+- Runtime Roslyn dependencies remain because `BuildTimeAnalyzer` and `SlskdnAnalyzer` still compile in the app; split them later if those helpers leave runtime.
 - `docs/analyzer-suppressions.md` stays in sync with project-wide `NoWarn` entries.
 
 ## 10. Add DownloadService regression tests

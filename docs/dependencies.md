@@ -41,8 +41,8 @@ rg "MonoTorrent|AWSSDK|dotNetRDF|Zeroconf|MathNet|Microsoft.CodeAnalysis|Microso
 | Dapper | VirtualSoulfind v2 SQLite catalogue store | experimental-feature | Gated by VirtualSoulfind; acceptable while catalogue store remains active. |
 | MessagePack | Mesh/protocol serialization | experimental-feature | Gate under protocol features. |
 | System.Reactive | VirtualSoulfind disaster-mode transfer progress subjects | experimental-feature | Gated by VirtualSoulfind; keep while `MeshTransferService` uses `Subject<T>`. |
-| Microsoft.Build.* | Custom build tasks | build-only | Move out of runtime app project if tasks remain. |
-| Microsoft.CodeAnalysis.* | Static analysis/build tooling | build-only | Move out of runtime app project if tasks remain. |
+| Microsoft.Build.* | Custom build tasks | build-only | Moved to `tools/slskd.BuildTasks`; keep out of the runtime app project. |
+| Microsoft.CodeAnalysis.* | Static analysis/build tooling | build-only / runtime-adjacent | Still used by `BuildTimeAnalyzer` / `SlskdnAnalyzer`; split further if runtime CodeQuality helpers are removed. |
 
 ## Release rule
 

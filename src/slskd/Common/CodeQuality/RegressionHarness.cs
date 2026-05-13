@@ -102,7 +102,7 @@ namespace slskd.Common.CodeQuality
 
             foreach (var scenario in CriticalScenarios)
             {
-                var scenarioResult = await RunCriticalScenarioAsync(scenario, testAssemblies, logger);
+                var scenarioResult = await RunCriticalScenarioAsync(scenario, testAssemblies, logger).ConfigureAwait(false);
                 results.Scenarios.Add(scenarioResult);
 
                 // Fail fast on critical scenario failures
@@ -189,7 +189,7 @@ namespace slskd.Common.CodeQuality
 
             foreach (var benchmark in benchmarks)
             {
-                var result = await RunBenchmarkAsync(benchmark, iterations, logger);
+                var result = await RunBenchmarkAsync(benchmark, iterations, logger).ConfigureAwait(false);
                 results.Benchmarks.Add(result);
             }
 
@@ -268,7 +268,7 @@ namespace slskd.Common.CodeQuality
 
                 foreach (var testMethodName in testMethods)
                 {
-                    var testResult = await RunTestMethodAsync(testMethodName, testClasses, logger);
+                    var testResult = await RunTestMethodAsync(testMethodName, testClasses, logger).ConfigureAwait(false);
                     result.TestResults.Add(testResult);
                 }
 
@@ -333,7 +333,7 @@ namespace slskd.Common.CodeQuality
                     // Create instance and invoke test method
                     var instance = Activator.CreateInstance(testMethod.DeclaringType!);
                     var task = (Task)testMethod.Invoke(instance, null)!;
-                    await task;
+                    await task.ConfigureAwait(false);
 
                     result.Success = true;
                 }
@@ -370,7 +370,7 @@ namespace slskd.Common.CodeQuality
 
                 for (int i = 0; i < iterations; i++)
                 {
-                    await benchmark.Operation();
+                    await benchmark.Operation().ConfigureAwait(false);
                 }
 
                 stopwatch.Stop();
@@ -408,25 +408,25 @@ namespace slskd.Common.CodeQuality
             Random.Shared.NextBytes(message);
 
             // Simulate encryption operation
-            await Task.Delay(1); // Simulate async crypto operation
+            await Task.Delay(1).ConfigureAwait(false); // Simulate async crypto operation
         }
 
         private static async Task BenchmarkMultiSourcePlanningAsync()
         {
             // Simulate multi-source planning benchmark
-            await Task.Delay(5); // Simulate planning complexity
+            await Task.Delay(5).ConfigureAwait(false); // Simulate planning complexity
         }
 
         private static async Task BenchmarkModerationCheckAsync()
         {
             // Simulate moderation check benchmark
-            await Task.Delay(1); // Simulate database/hash lookups
+            await Task.Delay(1).ConfigureAwait(false); // Simulate database/hash lookups
         }
 
         private static async Task BenchmarkMeshTransportAsync()
         {
             // Simulate mesh transport benchmark
-            await Task.Delay(10); // Simulate network operations
+            await Task.Delay(10).ConfigureAwait(false); // Simulate network operations
         }
 
         private static List<PerformanceRegression> DetectPerformanceRegressions(List<ScenarioResult> scenarios)

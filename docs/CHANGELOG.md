@@ -38,7 +38,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   binding suppressions and the current unsuppressed CA2000 transport warnings.
 - Moved custom MSBuild quality tasks into `tools/slskd.BuildTasks` so the app
   project no longer loads build tasks from `slskd.dll` or carries
-  `Microsoft.Build.*` runtime package references.
+  `Microsoft.Build.*` runtime package references; the linked CodeQuality async
+  paths now use `ConfigureAwait(false)` so the new task project builds without
+  adding CA2007 warning noise.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.
