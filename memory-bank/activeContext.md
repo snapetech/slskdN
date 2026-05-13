@@ -1,3 +1,18 @@
+## Update 2026-05-13 15:54:58Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - moved SQLitePCL provider initialization and serialized threading fail-fast validation into `Bootstrap/StartupSqlite`;
+  - kept Program's private SQLite startup wrapper intact.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests|FullyQualifiedName~SharedEventEmitterTests|FullyQualifiedName~ApplicationLifecycleTests|FullyQualifiedName~LogsControllerTests" --no-restore` (`47/47`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Re-scan the parity/reconciliation plan for any non-Program follow-ups still open.
+  2. Consider whether remaining Program public/static state should stay as the process bootstrap surface.
+  3. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 15:52:36Z
 
 - Current task: Program.cs decomposition follow-up in progress.

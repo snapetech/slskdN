@@ -158,6 +158,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   out of `Program.cs` into focused bootstrap helpers.
 - Moved CLI help output, environment-variable listing, and startup logo
   rendering out of `Program.cs` into a focused bootstrap helper.
+- Moved SQLite provider initialization and threading fail-fast validation out
+  of `Program.cs` into a focused bootstrap helper.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.
