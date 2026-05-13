@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026051318-slskdn.251] — 2026-05-13
+
 - Grouped MediaCore fuzzy candidate search behind advanced disclosure so
   pairwise perceptual/text similarity remain the default review paths.
 
