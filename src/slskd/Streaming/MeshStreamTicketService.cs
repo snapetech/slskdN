@@ -5,12 +5,14 @@ namespace slskd.Streaming;
 
 using System.Collections.Concurrent;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Security.Cryptography;
+using slskd.Common.Security;
 
 /// <summary>
 /// In-memory ticket service for manual mesh preview streams.
 /// </summary>
-public sealed class MeshStreamTicketService : IMeshStreamTicketService
+public sealed partial class MeshStreamTicketService : IMeshStreamTicketService
 {
     private const int MaxTickets = 1000;
     private const int MaxIdLength = 512;
@@ -59,7 +61,7 @@ public sealed class MeshStreamTicketService : IMeshStreamTicketService
             filename,
             peerId,
             request.ExpectedSize,
-            string.IsNullOrWhiteSpace(request.ExpectedHash) ? null : request.ExpectedHash.Trim(),
+            NormalizeExpectedHash(request.ExpectedHash),
             ownerKey,
             DateTimeOffset.UtcNow.Add(lifetime),
             contentType);
@@ -105,12 +107,33 @@ public sealed class MeshStreamTicketService : IMeshStreamTicketService
     private static string NormalizeFilename(string filename)
     {
         filename = filename?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(filename) || filename.Length > MaxFilenameLength || filename.Any(char.IsControl))
+        if (string.IsNullOrWhiteSpace(filename) ||
+            filename.Length > MaxFilenameLength ||
+            filename.Any(char.IsControl) ||
+            PathGuard.ContainsTraversal(filename) ||
+            Path.IsPathRooted(filename) ||
+            WindowsDriveRegex().IsMatch(filename))
         {
             throw new ArgumentException("Filename is required.", nameof(filename));
         }
 
         return filename;
+    }
+
+    private static string? NormalizeExpectedHash(string? expectedHash)
+    {
+        expectedHash = expectedHash?.Trim();
+        if (string.IsNullOrWhiteSpace(expectedHash))
+        {
+            return null;
+        }
+
+        if (!Sha256HexRegex().IsMatch(expectedHash))
+        {
+            throw new ArgumentException("Expected hash must be a SHA-256 hex digest.", nameof(expectedHash));
+        }
+
+        return expectedHash.ToLowerInvariant();
     }
 
     private static string ResolveAudioContentType(string filename)
@@ -135,4 +158,10 @@ public sealed class MeshStreamTicketService : IMeshStreamTicketService
             }
         }
     }
+
+    [GeneratedRegex("^[0-9a-fA-F]{64}$")]
+    private static partial Regex Sha256HexRegex();
+
+    [GeneratedRegex("^[a-zA-Z]:")]
+    private static partial Regex WindowsDriveRegex();
 }

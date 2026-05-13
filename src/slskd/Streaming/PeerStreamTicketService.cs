@@ -6,11 +6,13 @@ namespace slskd.Streaming;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
+using slskd.Common.Security;
 
 /// <summary>
 /// In-memory ticket service for manual peer preview streams.
 /// </summary>
-public sealed class PeerStreamTicketService : IPeerStreamTicketService
+public sealed partial class PeerStreamTicketService : IPeerStreamTicketService
 {
     private const int MaxTickets = 1000;
     private const int MaxUsernameLength = 256;
@@ -100,7 +102,12 @@ public sealed class PeerStreamTicketService : IPeerStreamTicketService
     private static string NormalizeFilename(string filename)
     {
         filename = filename?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(filename) || filename.Length > MaxFilenameLength || filename.Any(char.IsControl))
+        if (string.IsNullOrWhiteSpace(filename) ||
+            filename.Length > MaxFilenameLength ||
+            filename.Any(char.IsControl) ||
+            PathGuard.ContainsTraversal(filename) ||
+            Path.IsPathRooted(filename) ||
+            WindowsDriveRegex().IsMatch(filename))
         {
             throw new ArgumentException("Filename is required.", nameof(filename));
         }
@@ -130,4 +137,7 @@ public sealed class PeerStreamTicketService : IPeerStreamTicketService
             }
         }
     }
+
+    [GeneratedRegex("^[a-zA-Z]:")]
+    private static partial Regex WindowsDriveRegex();
 }

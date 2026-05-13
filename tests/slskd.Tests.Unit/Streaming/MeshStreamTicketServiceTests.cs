@@ -13,12 +13,14 @@ public class MeshStreamTicketServiceTests
     {
         var service = new MeshStreamTicketService();
 
-        var ticket = service.Create(new MeshStreamTicketRequest("content-1", "track.flac", "peer-1", 123, "abc"), "user:alice", TimeSpan.FromMinutes(2));
+        var expectedHash = new string('A', 64);
+        var ticket = service.Create(new MeshStreamTicketRequest("content-1", "track.flac", "peer-1", 123, expectedHash), "user:alice", TimeSpan.FromMinutes(2));
 
         Assert.False(string.IsNullOrWhiteSpace(ticket.Ticket));
         Assert.Equal("content-1", ticket.ContentId);
         Assert.Equal("peer-1", ticket.PeerId);
         Assert.Equal("audio/flac", ticket.ContentType);
+        Assert.Equal(expectedHash.ToLowerInvariant(), ticket.ExpectedHash);
         Assert.Same(ticket, service.Validate(ticket.Ticket));
     }
 
@@ -29,6 +31,33 @@ public class MeshStreamTicketServiceTests
 
         Assert.Throws<ArgumentException>(() =>
             service.Create(new MeshStreamTicketRequest("content-1", "archive.zip", "peer-1", 123, null), "user:alice", TimeSpan.FromMinutes(2)));
+    }
+
+    [Theory]
+    [InlineData(@"..\secret.flac")]
+    [InlineData(@"Music\..\secret.flac")]
+    [InlineData("%2e%2e/secret.flac")]
+    [InlineData("/tmp/secret.flac")]
+    [InlineData("C:\\tmp\\secret.flac")]
+    public void Create_TraversalOrRootedFilename_RejectsPreviewStream(string filename)
+    {
+        var service = new MeshStreamTicketService();
+
+        Assert.Throws<ArgumentException>(() =>
+            service.Create(new MeshStreamTicketRequest("content-1", filename, "peer-1", 123, null), "user:alice", TimeSpan.FromMinutes(2)));
+    }
+
+    [Theory]
+    [InlineData("abc")]
+    [InlineData("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")]
+    [InlineData("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
+    [InlineData("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
+    public void Create_InvalidExpectedHash_RejectsPreviewStream(string expectedHash)
+    {
+        var service = new MeshStreamTicketService();
+
+        Assert.Throws<ArgumentException>(() =>
+            service.Create(new MeshStreamTicketRequest("content-1", "track.flac", "peer-1", 123, expectedHash), "user:alice", TimeSpan.FromMinutes(2)));
     }
 
     [Fact]

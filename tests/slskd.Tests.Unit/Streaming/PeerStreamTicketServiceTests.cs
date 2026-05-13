@@ -32,6 +32,20 @@ public class PeerStreamTicketServiceTests
             service.Create(new PeerStreamTicketRequest("user", "archive.zip", 123), "user:alice", TimeSpan.FromMinutes(2)));
     }
 
+    [Theory]
+    [InlineData(@"..\secret.flac")]
+    [InlineData(@"Music\..\secret.flac")]
+    [InlineData("%2e%2e/secret.flac")]
+    [InlineData("/tmp/secret.flac")]
+    [InlineData("C:\\tmp\\secret.flac")]
+    public void Create_TraversalOrRootedFilename_RejectsPreviewStream(string filename)
+    {
+        var service = new PeerStreamTicketService();
+
+        Assert.Throws<ArgumentException>(() =>
+            service.Create(new PeerStreamTicketRequest("user", filename, 123), "user:alice", TimeSpan.FromMinutes(2)));
+    }
+
     [Fact]
     public void Validate_ExpiredTicket_ReturnsNull()
     {

@@ -30,6 +30,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Added ticketed mesh peer preview streams for non-local Pod results with
   fixed-size overlay chunks, fairness checks, traffic accounting, per-user
   limits, and expected hash validation.
+- Hardened peer and mesh preview stream tickets against traversal-looking
+  filenames, rooted filenames, Windows drive-letter roots, and malformed mesh
+  SHA-256 hash expectations.
+- Added config compatibility warning coverage for legacy transfer, group,
+  integration, upload-limit, and retry-delay settings.
 - Observed terminal download enqueue signal faults so expected remote transfer
   rejections do not surface as process-level unobserved task exceptions.
 - Strengthened mesh preview hash validation so hash-protected content is
