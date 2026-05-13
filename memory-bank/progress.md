@@ -10239,3 +10239,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T17:54:03Z] Parity/reconciliation MediaCore ContentID example cleanup: fixed ContentID example buttons to populate read-first resolve/validation fields and the advanced registration ContentID field after the registration form split. Focused MediaCore component tests (`4/4`) and focused Web lint passed.
 
 [2026-05-13T17:57:08Z] Program decomposition reconciliation: marked the Program split complete for this pass after verifying `Program.cs` is down to entrypoint orchestration, public process state, command-line attribute binding, and the public log event/buffer bridge. Remaining reconciliation work should focus on MediaCore/G5 UX cleanup and broader validation rather than more Program wrapper extraction.
+
+[2026-05-13T18:00:54Z] Parity/reconciliation MediaCore descriptor retrieval cleanup: kept cached single descriptor lookup as the default path and grouped cache bypass plus batch DHT retrieval behind advanced disclosure with network-impact guidance. Focused MediaCore component tests (`4/4`) and focused Web lint passed.

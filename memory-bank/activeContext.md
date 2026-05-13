@@ -11,6 +11,20 @@
   1. Continue remaining MediaCore/G5 UX reconciliation forms and broader validation.
   2. Avoid moving command-line argument population out of `Program.cs`; ADR-0001 `0z406` documents why it must stay.
 
+## Update 2026-05-13 18:00:54Z
+
+- Current task: parity/reconciliation follow-up in progress.
+- Last activity:
+  - simplified MediaCore descriptor retrieval so cached single lookup remains the default path;
+  - grouped cache bypass and batch DHT retrieval behind advanced disclosure with network-impact guidance;
+  - covered the new advanced retrieval controls in the focused MediaCore component test.
+- Validation:
+  - Passed: `cd src/web && npm test -- --run src/components/System/MediaCore/index.test.jsx` (`4/4`).
+  - Passed: `cd src/web && npm run lint -- src/components/System/MediaCore/index.jsx src/components/System/MediaCore/index.test.jsx`.
+- Next steps:
+  1. Continue scanning remaining non-pod MediaCore forms for controls that should be read-first or advanced-only.
+  2. Keep Program.cs decomposition closed for this pass unless a concrete regression or wrapper reappears.
+
 ## Update 2026-05-13 16:56:30Z
 
 - Current task: Program.cs decomposition follow-up in progress.
