@@ -394,6 +394,7 @@ public class SearchActionsControllerTests
             (downloadService ?? new Mock<IDownloadService>()).Object,
             Mock.Of<IContentLocator>(),
             (meshFetcher ?? new Mock<IMeshContentFetcher>()).Object,
+            Mock.Of<IMeshStreamTicketService>(),
             (meshDirectory ?? new Mock<IMeshDirectory>()).Object,
             options.Object,
             NullLogger<SearchActionsController>.Instance);

@@ -5,6 +5,7 @@ namespace slskd.Search.API;
 
 using System;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Asp.Versioning;
@@ -40,6 +41,7 @@ public class SearchActionsController : ControllerBase
     private readonly IDownloadService _downloadService;
     private readonly IContentLocator _contentLocator;
     private readonly IMeshContentFetcher _meshContentFetcher;
+    private readonly IMeshStreamTicketService _meshStreamTickets;
     private readonly IMeshDirectory _meshDirectory;
     private readonly IOptionsMonitor<slskd.Options> _optionsMonitor;
     private readonly ILogger<SearchActionsController> _logger;
@@ -49,6 +51,7 @@ public class SearchActionsController : ControllerBase
         IDownloadService downloadService,
         IContentLocator contentLocator,
         IMeshContentFetcher meshContentFetcher,
+        IMeshStreamTicketService meshStreamTickets,
         IMeshDirectory meshDirectory,
         IOptionsMonitor<slskd.Options> optionsMonitor,
         ILogger<SearchActionsController> logger)
@@ -57,6 +60,7 @@ public class SearchActionsController : ControllerBase
         _downloadService = downloadService ?? throw new ArgumentNullException(nameof(downloadService));
         _contentLocator = contentLocator ?? throw new ArgumentNullException(nameof(contentLocator));
         _meshContentFetcher = meshContentFetcher ?? throw new ArgumentNullException(nameof(meshContentFetcher));
+        _meshStreamTickets = meshStreamTickets ?? throw new ArgumentNullException(nameof(meshStreamTickets));
         _meshDirectory = meshDirectory ?? throw new ArgumentNullException(nameof(meshDirectory));
         _optionsMonitor = optionsMonitor ?? throw new ArgumentNullException(nameof(optionsMonitor));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -214,6 +218,21 @@ public class SearchActionsController : ControllerBase
         }
 
         var response = search.Responses.ElementAt(responseIndex);
+        var itemParts = itemId.Split(':', StringSplitOptions.TrimEntries);
+        var explicitFileIndex = itemParts.Length == 2;
+        var file = fileIndex >= 0 && fileIndex < response.Files.Count
+            ? response.Files.ElementAt(fileIndex)
+            : explicitFileIndex ? null : response.Files.FirstOrDefault();
+        if (file == null)
+        {
+            return NotFound(new ProblemDetails
+            {
+                Type = "file_not_found",
+                Title = "File not found",
+                Detail = "Search result file not found"
+            });
+        }
+
         var primarySource = response.PrimarySource ?? "scene";
 
         if (primarySource != "pod" || response.PodContentRef == null)
@@ -226,15 +245,35 @@ public class SearchActionsController : ControllerBase
             });
         }
 
-        // Pod streaming - return stream URL
-        var contentId = response.PodContentRef.ContentId;
-        var streamUrl = $"/api/v0/streams/{Uri.EscapeDataString(contentId)}";
+        var contentId = !string.IsNullOrWhiteSpace(file.ContentId)
+            ? file.ContentId
+            : response.PodContentRef.ContentId;
+        var local = _contentLocator.Resolve(contentId, cancellationToken);
+        if (local != null)
+        {
+            return Ok(new
+            {
+                stream_url = $"/api/v0/streams/{Uri.EscapeDataString(contentId)}",
+                content_id = contentId,
+                source = "pod-local"
+            });
+        }
+
+        var ticket = _meshStreamTickets.Create(
+            new MeshStreamTicketRequest(
+                contentId,
+                file.Filename,
+                response.Username,
+                file.Size > 0 ? file.Size : null,
+                file.Hash),
+            "user:" + GetAuthenticatedOwnerKey(),
+            TimeSpan.FromMinutes(2));
 
         return Ok(new
         {
-            stream_url = streamUrl,
+            stream_url = $"/api/v0/mesh-streams/{Uri.EscapeDataString(ticket.Ticket)}",
             content_id = contentId,
-            source = "pod"
+            source = "mesh"
         });
     }
 
@@ -369,6 +408,11 @@ public class SearchActionsController : ControllerBase
                 Detail = "Pod download failed"
             });
         }
+    }
+
+    private string GetAuthenticatedOwnerKey()
+    {
+        return User.FindFirstValue(ClaimTypes.Name) ?? _optionsMonitor.CurrentValue.Soulseek.Username ?? string.Empty;
     }
 
     private static void TryDeletePartialPodDownload(string localFilename)

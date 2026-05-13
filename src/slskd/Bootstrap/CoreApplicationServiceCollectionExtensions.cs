@@ -22,6 +22,7 @@ using slskd.Integrations.Scripts;
 using slskd.Integrations.VPN;
 using slskd.Integrations.Webhooks;
 using slskd.ListeningParty;
+using slskd.Mesh;
 using slskd.Messaging;
 using slskd.Relay;
 using slskd.Search;
@@ -153,6 +154,15 @@ public static class CoreApplicationServiceCollectionExtensions
         services.AddSingleton<IStreamTicketService, StreamTicketService>();
         services.AddSingleton<IPeerStreamTicketService, PeerStreamTicketService>();
         services.AddSingleton<IPeerStreamService, PeerStreamService>();
+        services.AddSingleton<IMeshStreamTicketService, MeshStreamTicketService>();
+        services.AddSingleton<IMeshStreamService>(sp => new MeshStreamService(
+            sp.GetRequiredService<IMeshStreamTicketService>(),
+            sp.GetRequiredService<IStreamSessionLimiter>(),
+            sp.GetRequiredService<IMeshDirectory>(),
+            sp.GetRequiredService<IMeshContentFetcher>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<MeshStreamService>>(),
+            sp.GetService<Transfers.MultiSource.Metrics.IFairnessGuard>(),
+            sp.GetService<Transfers.MultiSource.Metrics.ITrafficAccountingService>()));
         services.AddSingleton<IShareTokenService, ShareTokenService>();
 
         // Register search providers for Scene ↔ Pod Bridging

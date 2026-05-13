@@ -7329,3 +7329,11 @@ Implemented the upstream PR idea pass in slskdN style without copying upstream c
 Validation so far: focused backend unit tests passed (`36/36`), `dotnet build src/slskd/slskd.csproj -c Release --no-restore` passed, `cd src/web && npm run lint` passed, and `cd src/web && npm run build` passed.
 
 Next steps: run repo lint/full backend tests after final formatting cleanup, then decide whether to deploy this build to kspls0 for live validation.
+
+## 2026-05-13T19:58:55Z Session update
+
+Integrated the other agent's mesh streaming work into main instead of treating it as discardable scratch. The slice adds mesh stream ticket/service/controller files, wires the services into core DI, and changes pod search stream actions to return local stream URLs for already-local content or short-lived mesh stream URLs for remote mesh content. Added focused unit coverage for mesh tickets/controller plus the updated SearchActions constructor path.
+
+Validation: `dotnet build src/slskd/slskd.csproj --no-restore` passed with zero warnings, and focused backend unit tests passed (`36/36`) for mesh streams, peer streams, and SearchActions.
+
+Next steps: commit and push this mesh streaming merge slice, then re-check branch cleanliness before deleting any obsolete branch refs.
