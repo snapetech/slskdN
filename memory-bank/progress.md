@@ -10116,3 +10116,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T02:31:03Z] Parity/reconciliation MediaCore content-linking follow-up: simplified Pod Content Linking by keeping search/validation as the default flow and grouping content-linked pod creation under advanced disclosure after validation. Focused MediaCore component tests (`3/3`) and focused Web lint passed.
 
 [2026-05-13T02:32:50Z] Parity/reconciliation MediaCore storage/backfill follow-up: simplified Pod Message Storage and Pod Message Backfill by keeping stats/search/timestamp review first and grouping local maintenance plus backfill sync under advanced disclosure. Focused MediaCore component tests (`3/3`) and focused Web lint passed.
+
+[2026-05-13T02:36:16Z] Program decomposition startup-task split: moved database migration, optional audio analyzer migration, and forced construction of event-subscriber integrations into `Bootstrap/ApplicationStartupTaskExtensions`, leaving `Program.cs` with `app.RunSlskdStartupTasks(OptionsAtStartup)`. `dotnet build src/slskd/slskd.csproj --no-restore` and `./bin/lint` passed.

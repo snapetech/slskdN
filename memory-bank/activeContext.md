@@ -1,3 +1,16 @@
+## Update 2026-05-13 02:36:16Z
+
+- Current task: Program.cs decomposition and parity/reconciliation follow-up in progress.
+- Last activity:
+  - moved database migration, optional audio reanalysis, and forced construction of event-subscriber integrations into `Bootstrap/ApplicationStartupTaskExtensions`;
+  - left `Program.cs` with `app.RunSlskdStartupTasks(OptionsAtStartup)`.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Continue simplifying remaining MediaCore pod mutation-heavy forms, likely DHT pod publishing or message routing.
+  2. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 02:32:50Z
 
 - Current task: parity/reconciliation list follow-up in progress.

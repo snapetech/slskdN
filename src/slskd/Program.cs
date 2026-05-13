@@ -82,7 +82,6 @@ namespace slskd
     using Serilog.Formatting.Display;
     using Serilog.Sinks.Grafana.Loki;
     using Serilog.Sinks.SystemConsole.Themes;
-    using slskd.Audio;
     using slskd.Authentication;
     using slskd.Common.Security;
     using slskd.Configuration;
@@ -102,9 +101,6 @@ namespace slskd
     using slskd.Integrations.Lidarr;
     using slskd.Integrations.MusicBrainz;
     using slskd.Integrations.Pushbullet;
-    using slskd.Integrations.Scripts;
-    using slskd.Integrations.VPN;
-    using slskd.Integrations.Webhooks;
     using slskd.LibraryHealth;
     using slskd.ListeningParty;
     using slskd.Mesh;
@@ -822,30 +818,7 @@ namespace slskd
                     throw;
                 }
 
-                if (!OptionsAtStartup.Flags.Volatile)
-                {
-                    Log.Debug($"Running Migrate()...");
-
-                    // note: if this ever throws, we've forgotten to register a Migrator following database DI config
-                    app.Services.GetRequiredService<Migrator>().Migrate(force: OptionsAtStartup.Flags.ForceMigrations);
-                }
-
-                if (OptionsAtStartup.Flags.AudioReanalyze && !OptionsAtStartup.Flags.Volatile)
-                {
-                    Log.Information("[AudioReanalyze] Running analyzer migration (force={Force})...", OptionsAtStartup.Flags.AudioReanalyzeForce);
-                    var migrationService = app.Services.GetRequiredService<IAnalyzerMigrationService>();
-                    var n = migrationService.MigrateAsync("audioqa-1", OptionsAtStartup.Flags.AudioReanalyzeForce, default).GetAwaiter().GetResult();
-                    Log.Information("[AudioReanalyze] Updated {Count} variants", n);
-                }
-
-                // hack: services that exist only to subscribe to the event bus are not referenced by anything else
-                //       and are thus never instantiated.  force a reference here so they are created.
-                Log.Debug("[DI] Forcing construction of ScriptService, WebhookService, VPNService, and TrafficObserverIntegrationService...");
-                _ = app.Services.GetService<ScriptService>();
-                _ = app.Services.GetService<WebhookService>();
-                _ = app.Services.GetService<VPNService>();
-                _ = app.Services.GetService<VirtualSoulfind.Capture.TrafficObserverIntegrationService>();
-                Log.Debug("[DI] ScriptService, WebhookService, VPNService, and TrafficObserverIntegrationService constructed");
+                app.RunSlskdStartupTasks(OptionsAtStartup);
 
                 Log.Debug("[DI] About to configure ASP.NET pipeline...");
                 try
