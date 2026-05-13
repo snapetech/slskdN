@@ -7101,7 +7101,15 @@ const MediaCore = () => {
 
             {/* Message Storage */}
             <Card.Content>
-              <Header size="small">Storage Management</Header>
+              <Header size="small">Storage Review</Header>
+              <Message info>
+                <Message.Header>Review storage before maintenance</Message.Header>
+                <p>
+                  Storage statistics and message search are read-only.
+                  Cleanup, index rebuild, and vacuum operations are grouped
+                  below as advanced local maintenance actions.
+                </p>
+              </Message>
 
               <div style={{ marginBottom: '1em' }}>
                 <Button
@@ -7112,7 +7120,15 @@ const MediaCore = () => {
                 >
                   Get Storage Stats
                 </Button>
+              </div>
 
+              <details style={{ marginBottom: '1em' }}>
+                <summary>Advanced storage maintenance controls</summary>
+                <Message warning>
+                  Cleanup, search-index rebuild, and vacuum operations mutate
+                  local pod message storage. Review storage stats before
+                  running maintenance.
+                </Message>
                 <Button
                   color="purple"
                   loading={cleanupLoading}
@@ -7139,7 +7155,7 @@ const MediaCore = () => {
                 >
                   Vacuum Database
                 </Button>
-              </div>
+              </details>
 
               {storageStats && (
                 <Message
@@ -7304,32 +7320,38 @@ const MediaCore = () => {
                 </Message>
               )}
 
-              <Header size="small">Pod Backfill Sync</Header>
+              <Header size="small">Pod Backfill Review</Header>
               <Input
                 action={
-                  <>
-                    <Button
-                      color="blue"
-                      disabled={!backfillPodId.trim()}
-                      onClick={() => handleGetLastSeenTimestamps()}
-                    >
-                      Get Timestamps
-                    </Button>
-                    <Button
-                      color="green"
-                      disabled={!backfillPodId.trim()}
-                      loading={syncBackfillLoading}
-                      onClick={() => handleSyncPodBackfill()}
-                    >
-                      Sync Backfill
-                    </Button>
-                  </>
+                  <Button
+                    color="blue"
+                    disabled={!backfillPodId.trim()}
+                    onClick={() => handleGetLastSeenTimestamps()}
+                  >
+                    Get Timestamps
+                  </Button>
                 }
                 onChange={(e) => setBackfillPodId(e.target.value)}
                 placeholder="Pod ID for backfill sync"
                 style={{ marginBottom: '1em', width: '100%' }}
                 value={backfillPodId}
               />
+
+              <details style={{ marginBottom: '1em' }}>
+                <summary>Advanced backfill sync controls</summary>
+                <Message warning>
+                  Backfill sync can request missed messages for the selected
+                  pod. Confirm timestamps and pod ID before starting sync.
+                </Message>
+                <Button
+                  color="green"
+                  disabled={!backfillPodId.trim()}
+                  loading={syncBackfillLoading}
+                  onClick={() => handleSyncPodBackfill()}
+                >
+                  Sync Backfill
+                </Button>
+              </details>
 
               {Object.keys(asObject(lastSeenTimestamps)).length > 0 && (
                   <Message size="small">

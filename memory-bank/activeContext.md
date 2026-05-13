@@ -1,3 +1,17 @@
+## Update 2026-05-13 02:32:50Z
+
+- Current task: parity/reconciliation list follow-up in progress.
+- Last activity:
+  - simplified MediaCore Pod Message Storage so stats/search remain the default path;
+  - grouped local cleanup, search-index rebuild, and vacuum controls behind advanced disclosure;
+  - simplified Pod Message Backfill so stats/timestamp review remains first and sync is behind advanced disclosure.
+- Validation:
+  - Passed: `cd src/web && npm test -- System/MediaCore/index.test.jsx` (`3/3`).
+  - Passed: `cd src/web && npm run lint -- src/components/System/MediaCore/index.jsx src/components/System/MediaCore/index.test.jsx`.
+- Next steps:
+  1. Continue simplifying remaining MediaCore pod mutation-heavy forms, likely DHT pod publishing or message routing.
+  2. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 02:31:03Z
 
 - Current task: parity/reconciliation list follow-up in progress.

@@ -74,6 +74,9 @@ describe('MediaCore', () => {
     expect(screen.getByText('Advanced opinion publishing controls')).toBeInTheDocument();
     expect(screen.getByText('Advanced affinity recalculation controls')).toBeInTheDocument();
     expect(screen.queryByText('Advanced content-linked pod creation controls')).not.toBeInTheDocument();
+    expect(screen.getByText('Review storage before maintenance')).toBeInTheDocument();
+    expect(screen.getByText('Advanced storage maintenance controls')).toBeInTheDocument();
+    expect(screen.getByText('Advanced backfill sync controls')).toBeInTheDocument();
   });
 
   it('focuses a pod workflow from the index card', async () => {

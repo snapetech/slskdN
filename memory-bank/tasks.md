@@ -2750,6 +2750,7 @@
 - [2026-05-13T02:27:56Z] Completed: continue Program.cs decomposition by moving E2E hosted-service tracing and host startup timeout/concurrency options into `Bootstrap/HostDiagnosticsServiceCollectionExtensions`.
 - [2026-05-13T02:29:32Z] Completed: continue parity/reconciliation list by simplifying MediaCore pod opinion management so review/aggregation actions are first and opinion publishing plus affinity recalculation are behind progressive disclosure.
 - [2026-05-13T02:31:03Z] Completed: continue parity/reconciliation list by simplifying MediaCore pod content linking so content search/validation is first and content-linked pod creation is behind progressive disclosure after validation.
+- [2026-05-13T02:32:50Z] Completed: continue parity/reconciliation list by simplifying MediaCore pod message storage/backfill so stats/search/timestamp review is first and local maintenance plus backfill sync are behind progressive disclosure.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.
