@@ -487,6 +487,34 @@ extracted from `Program.cs`, update any check scripts that pin security-critical
 registrations to the old file or the combined remediation baseline will fail
 even though production DI is still correct.
 
+### 0z400. Bootstrap Splits Must Carry Extension And Service Namespaces
+
+**The Bug**: Extracting MediaCore/PodCore registrations from the experimental
+feature graph initially failed clean build because the moved block used
+`AddContentDomainProviders()` and `IRoomService`, but the new bootstrap file
+did not import `slskd.VirtualSoulfind.Core` or `slskd.Messaging`.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/MediaCorePodServiceCollectionExtensions.cs`
+
+**Wrong**:
+```csharp
+using slskd.Transfers.MultiSource;
+```
+
+**Correct**:
+```csharp
+using slskd.Messaging;
+using slskd.Transfers.MultiSource;
+using slskd.VirtualSoulfind.Core;
+```
+
+**Why This Keeps Happening**: Program and large bootstrap files accumulate
+wide namespace imports that hide which feature extension methods and service
+interfaces each registration block actually needs. After any DI extraction,
+run a clean project build immediately and carry both implementation namespaces
+and extension-method namespaces into the new owner.
+
 ### 0z384. Render-Time Work Must Not Scale With Hidden Or Unchanged Data
 
 **The Bug**: Performance fixes removed first-load blockers, but some render
