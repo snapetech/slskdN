@@ -10072,3 +10072,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T01:24:00Z] SongID capability reporting: added `SongIdCapabilityReporter`, registered it in DI, and exposed `GET /api/v0/songid/capabilities`. The endpoint reports config/tool-backed availability for MusicBrainz, AcoustID, Chromaprint, yt-dlp, ffmpeg, SongRec, Panako, Audfprint, Demucs, Whisper, Tesseract, C2PA, and marks `HashFromAudioFileEnabled` as broken/unavailable. Focused SongID unit tests passed.
 
 [2026-05-13T01:35:00Z] DownloadService semaphore coverage: added tests around the per-user enqueue semaphore. A blocked same-user enqueue keeps a second same-user request out of the critical section, while a different user can enter concurrently. Focused DownloadService unit tests passed.
+
+[2026-05-13T01:43:00Z] Program decomposition started: moved SongID registration out of `Program.cs` and into `Bootstrap/SongIdServiceCollectionExtensions`, preserving the enabled-by-default feature gate posture while creating the first focused service-registration module.

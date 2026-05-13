@@ -6444,4 +6444,8 @@ Added SongID runtime capability reporting and the `/api/v0/songid/capabilities` 
 
 Added DownloadService per-user semaphore regression coverage. Same-user enqueue requests serialize at the critical section, while different users can enter concurrently.
 
-Next steps: continue with remaining DownloadService CTS cleanup cases, Program.cs service-module decomposition, and the runtime-vs-tooling decision for Roslyn CodeQuality helpers.
+## 2026-05-13T01:43:00Z Session update
+
+Started Program.cs service-module decomposition by moving SongID registrations into `Bootstrap/SongIdServiceCollectionExtensions`.
+
+Next steps: continue with more Program.cs service-module extraction, remaining DownloadService CTS cleanup cases, and the runtime-vs-tooling decision for Roslyn CodeQuality helpers.

@@ -103,10 +103,8 @@ Acceptance criteria:
 
 ## 7. Split Program.cs service registration
 
-Status: expanded. Added focused coverage for in-progress duplicate protection,
-completed-transfer supersession, terminal failed cleanup when the background
-download start path throws, same-user enqueue serialization, and different-user
-enqueue concurrency.
+Status: started. SongID service registration moved into
+`Bootstrap/SongIdServiceCollectionExtensions.cs`.
 
 Target modules:
 
@@ -118,7 +116,7 @@ Target modules:
 - `AddSlskdTelemetry(...)`
 - `AddExperimentalDiscovery(...)`
 - `AddExperimentalMesh(...)`
-- `AddExperimentalSongId(...)`
+- `AddExperimentalSongId(...)` / `AddSlskdSongId(...)`. Started.
 
 Acceptance criteria:
 
@@ -172,7 +170,10 @@ Acceptance criteria:
 
 ## 10. Add DownloadService regression tests
 
-Status: pending.
+Status: expanded. Added focused coverage for in-progress duplicate protection,
+completed-transfer supersession, terminal failed cleanup when the background
+download start path throws, same-user enqueue serialization, and different-user
+enqueue concurrency.
 
 Required cases:
 

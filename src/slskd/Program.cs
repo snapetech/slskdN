@@ -26,6 +26,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using slskd.AudioCore;
+using slskd.Bootstrap;
 using slskd.Core.Diagnostics;
 using slskd.Mesh.Gossip;
 using slskd.Mesh.Governance;
@@ -2520,9 +2521,7 @@ namespace slskd
                 sp.GetRequiredService<IOptionsMonitor<Options>>(),
                 sp.GetRequiredService<ILogger<MetadataFacade>>(),
                 sp.GetService<IMemoryCache>()));
-            services.AddSingleton<ISongIdRunStore, SongIdRunStore>();
-            services.AddSingleton<ISongIdCapabilityReporter, SongIdCapabilityReporter>();
-            services.AddSingleton<ISongIdService, SongIdService>();
+            services.AddSlskdSongId();
             services.AddSingleton<DiscoveryGraph.IDiscoveryGraphService, DiscoveryGraph.DiscoveryGraphService>();
             services.AddSingleton<IPushbulletService, PushbulletService>();
             services.AddSingleton<Integrations.Notifications.INotificationService, Integrations.Notifications.NotificationService>();

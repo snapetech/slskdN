@@ -61,7 +61,7 @@ Candidates requiring classification:
 ## Known gaps
 
 - README feature claims are broader than the verified stable implementation set.
-- `Program.cs` imports and wires many experimental verticals directly, making maturity unclear.
+- `Program.cs` imports and wires many experimental verticals directly, making maturity unclear; SongID registration has started moving into bootstrap modules.
 - Some security documentation is written as implementation plans and pseudo-code, not shipped behavior.
 - Startup hardening now uses bind exposure analysis instead of treating “port enabled” as equivalent to “non-loopback bind”; broader startup matrix tests still need to be added around full host construction.
 - `HashFromAudioFileEnabled` is known-unavailable by startup validation and has no public command-line or environment toggle; any future re-exposure needs a real PCM extraction capability check.
