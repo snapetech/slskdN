@@ -77,6 +77,8 @@ describe('MediaCore', () => {
     expect(screen.getByText('Review storage before maintenance')).toBeInTheDocument();
     expect(screen.getByText('Advanced storage maintenance controls')).toBeInTheDocument();
     expect(screen.getByText('Advanced backfill sync controls')).toBeInTheDocument();
+    expect(screen.getByText('Retrieve DHT metadata first')).toBeInTheDocument();
+    expect(screen.getByText('Advanced DHT publishing controls')).toBeInTheDocument();
   });
 
   it('focuses a pod workflow from the index card', async () => {

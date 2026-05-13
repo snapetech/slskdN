@@ -5237,55 +5237,75 @@ const MediaCore = () => {
               </PodWorkflowNotice>
             </Card.Content>
 
-            {/* Publish Pod */}
             <Card.Content>
-              <Header size="small">Publish Pod to DHT</Header>
+              <Message info>
+                <Message.Header>Retrieve DHT metadata first</Message.Header>
+                <p>
+                  Metadata retrieval and publishing statistics are read-only.
+                  Publishing and unpublishing pod metadata are grouped below as
+                  advanced DHT mutation controls.
+                </p>
+              </Message>
+              {/* Retrieve Pod Metadata */}
+              <Header size="small">Retrieve Pod Metadata</Header>
               <Form>
-                <Form.TextArea
-                  label="Pod JSON"
-                  onChange={(e) => setPodToPublish(e.target.value)}
-                  placeholder='{"id": {"value": "pod:artist:mb:daft-punk-hash"}, "displayName": "Daft Punk Fans", "visibility": "Listed", "focusType": "ContentId", "focusContentId": {"domain": "audio", "type": "artist", "id": "daft-punk-hash"}, "tags": ["electronic", "french-house"], "createdAt": "2024-01-01T00:00:00Z", "createdBy": "alice", "metadata": {"description": "A community for Daft Punk fans", "memberCount": 150}}'
-                  rows={6}
-                  value={podToPublish}
+                <Form.Input
+                  label="Pod ID"
+                  onChange={(e) => setPodMetadataToRetrieve(e.target.value)}
+                  placeholder="pod:artist:mb:daft-punk-hash"
+                  value={podMetadataToRetrieve}
                 />
                 <Button
-                  disabled={publishingPod || !podToPublish.trim()}
-                  loading={publishingPod}
-                  onClick={handlePublishPod}
-                  primary
+                  disabled={
+                    retrievingPodMetadata || !podMetadataToRetrieve.trim()
+                  }
+                  loading={retrievingPodMetadata}
+                  onClick={handleRetrievePodMetadata}
                 >
-                  Publish Pod
+                  Retrieve Metadata
                 </Button>
               </Form>
 
-              {podPublishingResult && (
+              {podMetadataResult && (
                 <div style={{ marginTop: '1em' }}>
-                  {podPublishingResult.error ? (
+                  {podMetadataResult.error ? (
                     <Message error>
-                      <p>Failed to publish pod: {podPublishingResult.error}</p>
+                      <p>
+                        Failed to retrieve metadata: {podMetadataResult.error}
+                      </p>
                     </Message>
-                  ) : (
+                  ) : podMetadataResult.found ? (
                     <Message success>
                       <Message.Header>
-                        Pod Published Successfully
+                        Pod Metadata Retrieved
                       </Message.Header>
                       <p>
                         <strong>Pod ID:</strong>{' '}
-                        {podPublishingResult.podId?.value ||
-                          podPublishingResult.podId}
+                        {podMetadataResult.podId?.value ||
+                          podMetadataResult.podId}
                         <br />
-                        <strong>DHT Key:</strong> {podPublishingResult.dhtKey}
+                        <strong>Signature Valid:</strong>{' '}
+                        {podMetadataResult.isValidSignature ? 'Yes' : 'No'}
                         <br />
-                        <strong>Published:</strong>{' '}
+                        <strong>Retrieved:</strong>{' '}
                         {new Date(
-                          podPublishingResult.publishedAt,
+                          podMetadataResult.retrievedAt,
                         ).toLocaleString()}
                         <br />
                         <strong>Expires:</strong>{' '}
-                        {new Date(
-                          podPublishingResult.expiresAt,
-                        ).toLocaleString()}
+                        {new Date(podMetadataResult.expiresAt).toLocaleString()}
+                        <br />
+                        <strong>Display Name:</strong>{' '}
+                        {podMetadataResult.publishedPod?.displayName}
+                        <br />
+                        <strong>Members:</strong>{' '}
+                        {podMetadataResult.publishedPod?.metadata?.memberCount ||
+                          'Unknown'}
                       </p>
+                    </Message>
+                  ) : (
+                    <Message warning>
+                      <p>Pod not found in DHT</p>
                     </Message>
                   )}
                 </div>
@@ -5293,72 +5313,65 @@ const MediaCore = () => {
             </Card.Content>
 
             <Card.Content>
-              <Grid>
-                <Grid.Column width={8}>
-                  {/* Retrieve Pod Metadata */}
-                  <Header size="small">Retrieve Pod Metadata</Header>
+              <details>
+                <summary>Advanced DHT publishing controls</summary>
+                <Message warning>
+                  Publishing or unpublishing pod metadata changes DHT-visible
+                  records. Confirm visibility, tags, focus content, and target
+                  pod ID before applying changes.
+                </Message>
+                <Grid>
+                  <Grid.Column width={8}>
+                  <Header size="small">Publish Pod to DHT</Header>
                   <Form>
-                    <Form.Input
-                      label="Pod ID"
-                      onChange={(e) => setPodMetadataToRetrieve(e.target.value)}
-                      placeholder="pod:artist:mb:daft-punk-hash"
-                      value={podMetadataToRetrieve}
+                    <Form.TextArea
+                      label="Pod JSON"
+                      onChange={(e) => setPodToPublish(e.target.value)}
+                      placeholder='{"id": {"value": "pod:artist:mb:daft-punk-hash"}, "displayName": "Daft Punk Fans", "visibility": "Listed", "focusType": "ContentId", "focusContentId": {"domain": "audio", "type": "artist", "id": "daft-punk-hash"}, "tags": ["electronic", "french-house"], "createdAt": "2024-01-01T00:00:00Z", "createdBy": "alice", "metadata": {"description": "A community for Daft Punk fans", "memberCount": 150}}'
+                      rows={6}
+                      value={podToPublish}
                     />
                     <Button
-                      disabled={
-                        retrievingPodMetadata || !podMetadataToRetrieve.trim()
-                      }
-                      fluid
-                      loading={retrievingPodMetadata}
-                      onClick={handleRetrievePodMetadata}
+                      disabled={publishingPod || !podToPublish.trim()}
+                      loading={publishingPod}
+                      onClick={handlePublishPod}
+                      primary
                     >
-                      Retrieve Metadata
+                      Publish Pod
                     </Button>
                   </Form>
 
-                  {podMetadataResult && (
+                  {podPublishingResult && (
                     <div style={{ marginTop: '1em' }}>
-                      {podMetadataResult.error ? (
+                      {podPublishingResult.error ? (
                         <Message error>
                           <p>
-                            Failed to retrieve metadata:{' '}
-                            {podMetadataResult.error}
+                            Failed to publish pod: {podPublishingResult.error}
                           </p>
                         </Message>
-                      ) : podMetadataResult.found ? (
+                      ) : (
                         <Message success>
                           <Message.Header>
-                            Pod Metadata Retrieved
+                            Pod Published Successfully
                           </Message.Header>
                           <p>
                             <strong>Pod ID:</strong>{' '}
-                            {podMetadataResult.podId?.value ||
-                              podMetadataResult.podId}
+                            {podPublishingResult.podId?.value ||
+                              podPublishingResult.podId}
                             <br />
-                            <strong>Signature Valid:</strong>{' '}
-                            {podMetadataResult.isValidSignature ? 'Yes' : 'No'}
+                            <strong>DHT Key:</strong>{' '}
+                            {podPublishingResult.dhtKey}
                             <br />
-                            <strong>Retrieved:</strong>{' '}
+                            <strong>Published:</strong>{' '}
                             {new Date(
-                              podMetadataResult.retrievedAt,
+                              podPublishingResult.publishedAt,
                             ).toLocaleString()}
                             <br />
                             <strong>Expires:</strong>{' '}
                             {new Date(
-                              podMetadataResult.expiresAt,
+                              podPublishingResult.expiresAt,
                             ).toLocaleString()}
-                            <br />
-                            <strong>Display Name:</strong>{' '}
-                            {podMetadataResult.publishedPod?.displayName}
-                            <br />
-                            <strong>Members:</strong>{' '}
-                            {podMetadataResult.publishedPod?.metadata
-                              ?.memberCount || 'Unknown'}
                           </p>
-                        </Message>
-                      ) : (
-                        <Message warning>
-                          <p>Pod not found in DHT</p>
                         </Message>
                       )}
                     </div>
@@ -5403,6 +5416,7 @@ const MediaCore = () => {
                   )}
                 </Grid.Column>
               </Grid>
+              </details>
             </Card.Content>
 
             {/* Pod Publishing Statistics */}

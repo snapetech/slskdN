@@ -123,6 +123,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Moved post-build startup tasks out of `Program.cs` into a bootstrap
   extension, covering database migration, optional audio reanalysis, and forced
   construction of event-subscriber integrations.
+- Simplified the MediaCore PodCore DHT publishing workflow by keeping metadata
+  retrieval and publishing statistics first while grouping publish/unpublish
+  controls behind progressive disclosure.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.
