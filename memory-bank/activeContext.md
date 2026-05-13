@@ -6432,4 +6432,8 @@ Completed the build-task relocation slice. The runtime app no longer compiles `C
 
 Cleaned up the remaining app build warnings with local CA2000 scopes in the two guarded transport constructors. The app project now builds cleanly with zero warnings.
 
-Next steps: continue with Program.cs service-module decomposition, DownloadService regression coverage, and the remaining runtime-vs-tooling decision for Roslyn CodeQuality helpers.
+## 2026-05-13T01:05:00Z Session update
+
+Added the next DownloadService regression slice covering in-progress duplicate protection, completed-transfer supersession, and terminal failed cleanup when background download startup fails. Focused DownloadService unit tests passed.
+
+Next steps: continue with remaining DownloadService semaphore/concurrency cases, Program.cs service-module decomposition, and the runtime-vs-tooling decision for Roslyn CodeQuality helpers.

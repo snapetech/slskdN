@@ -26,6 +26,175 @@ using Xunit;
 public class DownloadServiceTests
 {
     [Fact]
+    public async Task EnqueueAsync_ExistingInProgressTransfer_IsRejectedWithoutStartingDownload()
+    {
+        var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var options = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+
+        await using (var context = new TransfersDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Transfers.Add(new slskd.Transfers.Transfer
+            {
+                Id = Guid.NewGuid(),
+                Username = "alice",
+                Direction = TransferDirection.Download,
+                Filename = @"Music\track.flac",
+                Size = 1234,
+                RequestedAt = DateTime.UtcNow.AddMinutes(-1),
+                State = TransferStates.InProgress,
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient
+            .SetupGet(client => client.Downloads)
+            .Returns(Array.Empty<Soulseek.Transfer>());
+
+        var service = CreateDownloadService(options, soulseekClient);
+
+        try
+        {
+            var (enqueued, failed) = await service.EnqueueAsync(
+                "alice",
+                new[] { (Filename: @"Music\track.flac", Size: 1234L) },
+                CancellationToken.None);
+
+            Assert.Empty(enqueued);
+            Assert.Equal(new[] { @"Music\track.flac" }, failed);
+            soulseekClient.Verify(client => client.DownloadAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<Task<Stream>>>(),
+                It.IsAny<long?>(),
+                It.IsAny<long>(),
+                It.IsAny<int?>(),
+                It.IsAny<TransferOptions>(),
+                It.IsAny<CancellationToken?>()), Times.Never);
+        }
+        finally
+        {
+            service.Dispose();
+            DeleteDatabase(databasePath);
+        }
+    }
+
+    [Fact]
+    public async Task EnqueueAsync_CompletedExistingTransfer_IsSupersededByNewRecord()
+    {
+        var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var options = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+        var existingId = Guid.NewGuid();
+
+        await using (var context = new TransfersDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Transfers.Add(new slskd.Transfers.Transfer
+            {
+                Id = existingId,
+                Username = "alice",
+                Direction = TransferDirection.Download,
+                Filename = @"Music\track.flac",
+                Size = 1234,
+                RequestedAt = DateTime.UtcNow.AddHours(-1),
+                EndedAt = DateTime.UtcNow.AddMinutes(-30),
+                State = TransferStates.Completed | TransferStates.Succeeded,
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var soulseekClient = CreateHangingSoulseekClient();
+        var service = CreateDownloadService(options, soulseekClient);
+
+        try
+        {
+            var (enqueued, failed) = await service.EnqueueAsync(
+                "alice",
+                new[] { (Filename: @"Music\track.flac", Size: 1234L) },
+                CancellationToken.None);
+
+            Assert.Single(enqueued);
+            Assert.Empty(failed);
+
+            await using var context = new TransfersDbContext(options);
+            var existing = await context.Transfers.SingleAsync(t => t.Id == existingId);
+            var replacement = await context.Transfers.SingleAsync(t => t.Id == enqueued.Single().Id);
+
+            Assert.True(existing.Removed);
+            Assert.False(replacement.Removed);
+            Assert.Equal(TransferStates.Queued | TransferStates.Locally, replacement.State);
+
+            Assert.True(service.TryCancel(replacement.Id));
+        }
+        finally
+        {
+            service.Dispose();
+            DeleteDatabase(databasePath);
+        }
+    }
+
+    [Fact]
+    public async Task EnqueueAsync_BackgroundDownloadStartFailure_MarksTransferTerminalFailed()
+    {
+        var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var options = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+
+        await using (var context = new TransfersDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+        }
+
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient
+            .SetupGet(client => client.Downloads)
+            .Returns(Array.Empty<Soulseek.Transfer>());
+        soulseekClient
+            .Setup(client => client.DownloadAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<Task<Stream>>>(),
+                It.IsAny<long?>(),
+                It.IsAny<long>(),
+                It.IsAny<int?>(),
+                It.IsAny<TransferOptions>(),
+                It.IsAny<CancellationToken?>()))
+            .ThrowsAsync(new InvalidOperationException("synthetic enqueue failure"));
+
+        var service = CreateDownloadService(options, soulseekClient);
+
+        try
+        {
+            var (enqueued, failed) = await service.EnqueueAsync(
+                "alice",
+                new[] { (Filename: @"Music\track.flac", Size: 1234L) },
+                CancellationToken.None);
+
+            Assert.Single(enqueued);
+            Assert.Empty(failed);
+
+            var failedTransfer = await WaitForTransferAsync(
+                () => service.Find(t => t.Id == enqueued.Single().Id && t.State.HasFlag(TransferStates.Completed)),
+                TimeSpan.FromSeconds(5));
+
+            Assert.True(failedTransfer.State.HasFlag(TransferStates.Errored));
+            Assert.Contains("synthetic enqueue failure", failedTransfer.Exception, StringComparison.Ordinal);
+            Assert.False(service.TryCancel(failedTransfer.Id));
+        }
+        finally
+        {
+            service.Dispose();
+            DeleteDatabase(databasePath);
+        }
+    }
+
+    [Fact]
     public async Task EnqueueAsync_DoesNotRequirePeerPreflightConnection()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
@@ -434,6 +603,63 @@ public class DownloadServiceTests
             ?? throw new InvalidOperationException("Application.ShuttingDown property was not found.");
 
         property.SetValue(null, value);
+    }
+
+    private static DownloadService CreateDownloadService(
+        DbContextOptions<TransfersDbContext> options,
+        Mock<ISoulseekClient> soulseekClient)
+    {
+        var optionsMonitor = new TestOptionsMonitor<slskd.Options>(new slskd.Options());
+
+        return new DownloadService(
+            optionsMonitor,
+            soulseekClient.Object,
+            new TestDbContextFactory(options),
+            new FileService(optionsMonitor),
+            Mock.Of<IRelayService>(),
+            Mock.Of<IFTPService>(),
+            new EventBus(new EventService(Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<EventsDbContext>>())));
+    }
+
+    private static Mock<ISoulseekClient> CreateHangingSoulseekClient()
+    {
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient
+            .SetupGet(client => client.Downloads)
+            .Returns(Array.Empty<Soulseek.Transfer>());
+        soulseekClient
+            .Setup(client => client.DownloadAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<Task<Stream>>>(),
+                It.IsAny<long?>(),
+                It.IsAny<long>(),
+                It.IsAny<int?>(),
+                It.IsAny<TransferOptions>(),
+                It.IsAny<CancellationToken?>()))
+            .Returns(async (
+                string username,
+                string remoteFilename,
+                Func<Task<Stream>> outputStreamFactory,
+                long? size,
+                long startOffset,
+                int? token,
+                TransferOptions transferOptions,
+                CancellationToken? cancellationToken) =>
+            {
+                await Task.Delay(Timeout.Infinite, cancellationToken ?? CancellationToken.None);
+                return null!;
+            });
+
+        return soulseekClient;
+    }
+
+    private static void DeleteDatabase(string databasePath)
+    {
+        if (System.IO.File.Exists(databasePath))
+        {
+            System.IO.File.Delete(databasePath);
+        }
     }
 
     private sealed class TestDbContextFactory : Microsoft.EntityFrameworkCore.IDbContextFactory<TransfersDbContext>

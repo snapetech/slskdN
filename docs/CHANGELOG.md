@@ -43,6 +43,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   adding CA2007 warning noise.
 - Scoped the CA2000 transport handler ownership suppressions locally so the app
   project now builds with zero warnings instead of carrying broad warning noise.
+- Added DownloadService regression coverage for in-progress duplicate
+  protection, completed-transfer supersession, and terminal failed cleanup when
+  background download startup fails.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

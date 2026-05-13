@@ -100,7 +100,9 @@ Acceptance criteria:
 
 ## 7. Split Program.cs service registration
 
-Status: pending.
+Status: started. Added focused coverage for in-progress duplicate protection,
+completed-transfer supersession, and terminal failed cleanup when the background
+download start path throws.
 
 Target modules:
 
@@ -171,9 +173,9 @@ Status: pending.
 Required cases:
 
 - Duplicate enqueue rejected.
-- Existing in-progress transfer protected.
-- Completed old transfer can be superseded.
-- Enqueue exception moves transfer to terminal failed state.
+- Existing in-progress transfer protected. Done.
+- Completed old transfer can be superseded. Done.
+- Enqueue exception moves transfer to terminal failed state. Done.
 - CTS cleanup after cancel/fail/complete.
 - Shutdown cancels active transfers.
 - Per-user semaphore serializes same-user enqueue.
