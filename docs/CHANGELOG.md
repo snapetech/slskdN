@@ -28,6 +28,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Fixed download timeout handling so aggregate-wrapped Soulseek timeouts and
   timeout-text transfer exceptions are recorded as `TimedOut` and logged as
   warnings instead of generic error stack traces.
+- Cleaned up now-unused `Program.cs` imports after the bootstrap decomposition.
 - Fixed startup hardening so no-auth exposure is based on actual web listener
   bind posture instead of port presence, and made the unavailable
   hash-from-audio option fail startup if enabled.
