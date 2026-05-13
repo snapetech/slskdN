@@ -100,6 +100,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   bootstrap extension.
 - Moved MediaCore/PodCore and mesh/DHT/overlay registrations out of the broad
   experimental feature graph into dedicated bootstrap extensions.
+- Moved MediaCore publisher, capability bridge, and DHT rendezvous
+  registrations out of the experimental feature graph coordinator into a
+  dedicated bootstrap extension.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

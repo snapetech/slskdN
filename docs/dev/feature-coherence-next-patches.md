@@ -143,6 +143,9 @@ moved out of the broad experimental graph into
 Mesh, DHT, overlay, transport, realm, governance, gossip, social-federation,
 privacy, NAT, and service-fabric registrations moved out of the broad
 experimental graph into `Bootstrap/ExperimentalMeshServiceCollectionExtensions.cs`.
+MediaCore publisher, capability bridge, and DHT rendezvous registrations moved
+out of the broad experimental graph into
+`Bootstrap/CapabilitiesAndRendezvousServiceCollectionExtensions.cs`.
 
 Target modules:
 
@@ -172,6 +175,8 @@ Target modules:
 - `AddSlskdExperimentalMeshServices(...)`. Implemented for mesh, DHT, overlay,
   transport, realm, governance, gossip, social-federation, privacy, NAT, and
   service-fabric registrations.
+- `AddSlskdCapabilitiesAndRendezvousServices(...)`. Implemented for MediaCore
+  publishing, capability bridge, and DHT rendezvous registrations.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
@@ -185,9 +190,9 @@ Acceptance criteria:
 
 - `Program.cs` no longer directly imports every experimental vertical. In progress;
   the broad graph moved and VirtualSoulfind/multi-source/transfer-discovery/
-  MediaCore/PodCore/mesh/integration-media slices are now separate. The
-  remaining coordinator module still owns capability, DHT rendezvous, and
-  MediaCore publisher registration.
+  MediaCore/PodCore/mesh/capability-rendezvous/integration-media slices are now
+  separate. The remaining coordinator module only delegates to named bootstrap
+  modules.
 - Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 

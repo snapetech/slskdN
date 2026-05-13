@@ -1,3 +1,17 @@
+## Update 2026-05-13 02:15:08Z
+
+- Current task: Program.cs decomposition and parity/reconciliation follow-up in progress.
+- Last activity:
+  - moved MediaCore publisher, capability bridge, and DHT rendezvous registrations into `Bootstrap/CapabilitiesAndRendezvousServiceCollectionExtensions`;
+  - reduced `Bootstrap/ExperimentalFeatureGraphServiceCollectionExtensions` to a delegation-only coordinator.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `./bin/lint`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~Capability|FullyQualifiedName~DhtRendezvous|FullyQualifiedName~MeshNeighbor|FullyQualifiedName~ContentPublisher" --no-restore` (`146/146`).
+- Next steps:
+  1. Continue simplifying remaining MediaCore pod mutation-heavy forms, likely message signing, channel management, or opinion publishing.
+  2. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 02:09:41Z
 
 - Current task: Program.cs decomposition and parity/reconciliation follow-up in progress.
