@@ -272,6 +272,33 @@ ambiguous or resolve to framework helper types. When referencing the root
 application `Options` type from a nested namespace, fully qualify it as
 `global::slskd.Options`.
 
+### 0z393. Dependency Pruning Must Use A Compile Check, Not Search Notes
+
+**The Bug**: `MathNet.Numerics` and `dotNetRDF` were removed from
+`slskd.csproj` after a documentation inventory said no active call sites were
+found. Release build then failed because `MediaCore/PerceptualHasher.cs` uses
+MathNet and `Solid/SolidWebIdResolver.cs` uses VDS/dotNetRDF.
+
+**Files Affected**:
+- `src/slskd/slskd.csproj`
+- `src/slskd/MediaCore/PerceptualHasher.cs`
+- `src/slskd/Solid/SolidWebIdResolver.cs`
+
+**Wrong**:
+```xml
+<!-- Removed because docs claimed no active runtime call site. -->
+```
+
+**Correct**:
+```bash
+dotnet build src/slskd/slskd.csproj --no-incremental
+```
+
+**Why This Keeps Happening**: `rg`-based dependency inventories can miss
+namespace usage, generated references, or package-to-namespace name mismatches.
+Never commit package removals from inventory notes alone; run a clean compile
+after changing package references and treat the compiler as the source of truth.
+
 ### 0z384. Render-Time Work Must Not Scale With Hidden Or Unchanged Data
 
 **The Bug**: Performance fixes removed first-load blockers, but some render
