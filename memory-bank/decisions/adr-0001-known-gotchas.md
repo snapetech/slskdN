@@ -52,6 +52,33 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z403. Fully Qualify Extracted Helpers Outside Program's Imported Namespaces
+
+**The Bug**: Extracting antiforgery recovery logic into
+`slskd.Core.Security.AntiforgeryCookieRecovery` left `Program.cs` calling
+`AntiforgeryCookieRecovery` unqualified. The app build failed because
+`Program.cs` did not import that namespace.
+
+**Files Affected**:
+- `src/slskd/Program.cs`
+- `src/slskd/Core/Security/AntiforgeryCookieRecovery.cs`
+
+**Wrong**:
+```csharp
+return AntiforgeryCookieRecovery.IsStaleTokenException(exception);
+```
+
+**Correct**:
+```csharp
+return Core.Security.AntiforgeryCookieRecovery.IsStaleTokenException(exception);
+```
+
+**Why This Keeps Happening**: `Program.cs` has accumulated many broad imports,
+but new helpers often live in narrower feature namespaces. Program decomposition
+wrappers should either add an explicit using intentionally or fully qualify the
+new helper in the wrapper so the extraction compiles before broader call-site
+cleanup.
+
 ### 0z402. Do Not Add Local `slskd.Soulseek` Namespaces
 
 **The Bug**: Extracting a helper into `namespace slskd.Soulseek` caused
