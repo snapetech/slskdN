@@ -116,6 +116,10 @@ source ranking moved into `Bootstrap/CoreApplicationServiceCollectionExtensions.
 Startup options, feature gates, managed state, HTTP clients, Soulseek client
 construction, and the `IApplication` hosted-service wrapper moved into
 `Bootstrap/ApplicationHostServiceCollectionExtensions.cs`.
+ASP.NET service registration for CORS, runtime metrics, data protection,
+authentication/authorization, moderation, controllers, SignalR, health checks,
+API versioning, rate limiting, and Swagger moved into
+`Bootstrap/WebServiceCollectionExtensions.cs`.
 
 Target modules:
 
@@ -124,7 +128,7 @@ Target modules:
   messaging/search/share/user, transfers, and source ranking.
 - `AddSlskdApplicationHost(...)`. Implemented for startup options, state,
   HTTP clients, Soulseek client, and `IApplication` hosting.
-- `AddSlskdWeb(...)`
+- `AddSlskdWebServices(...)`. Implemented for ASP.NET service registration.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`

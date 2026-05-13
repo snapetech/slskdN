@@ -22,6 +22,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Startup options, feature gates, managed state, HTTP clients, Soulseek client
   construction, and `IApplication` hosting now live under
   `Bootstrap/ApplicationHostServiceCollectionExtensions`.
+- ASP.NET service registration, including auth, controllers, SignalR, health
+  checks, rate limiting, and Swagger, now lives under
+  `Bootstrap/WebServiceCollectionExtensions`.
 
 ### Fixed
 

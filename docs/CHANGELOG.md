@@ -71,6 +71,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Moved startup options, feature gates, managed state, HTTP clients, Soulseek
   client construction, and the `IApplication` hosted-service wrapper out of
   `Program.cs` into an application-host bootstrap extension.
+- Moved ASP.NET service registration, including auth, controllers, SignalR,
+  health checks, rate limiting, and Swagger, out of `Program.cs` into a web
+  bootstrap extension.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

@@ -240,6 +240,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         .map((room) => (typeof room === 'string' ? room : room?.name || room?.Name || ''))
         .filter(Boolean)
         .sort((a, b) => a.localeCompare(b));
+    let retryScheduled = false;
 
     setAvailableRooms((previous) => {
       if (nextAvailableRooms.length > 0) {
@@ -253,6 +254,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
 
       if (roomAddOpen && roomDirectoryRetryCount.current < 4 && !roomDirectoryRetryTimer.current) {
         roomDirectoryRetryCount.current += 1;
+        retryScheduled = true;
         roomDirectoryRetryTimer.current = window.setTimeout(() => {
           roomDirectoryRetryTimer.current = null;
           loadAvailableRooms().catch((error) => {
@@ -263,7 +265,9 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
 
       return nextAvailableRooms;
     });
-    setRoomDirectoryLoading(false);
+    if (!retryScheduled) {
+      setRoomDirectoryLoading(false);
+    }
   }, [roomAddOpen]);
 
   useEffect(() => {
