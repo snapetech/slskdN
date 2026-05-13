@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+## [2026051317-slskdn.249] — 2026-05-13
+
 - Kept the framework antiforgery cookie HTTP-only while preserving the
   separate JS-readable CSRF request-token cookie, resolving the CodeQL
   `cs/web/cookie-httponly-not-set` alert.
