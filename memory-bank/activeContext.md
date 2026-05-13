@@ -6436,4 +6436,8 @@ Cleaned up the remaining app build warnings with local CA2000 scopes in the two 
 
 Added the next DownloadService regression slice covering in-progress duplicate protection, completed-transfer supersession, and terminal failed cleanup when background download startup fails. Focused DownloadService unit tests passed.
 
+## 2026-05-13T01:24:00Z Session update
+
+Added SongID runtime capability reporting and the `/api/v0/songid/capabilities` endpoint. Optional recognition/provider lanes now report based on runtime config and tool availability, and `HashFromAudioFileEnabled` is explicitly broken/unavailable.
+
 Next steps: continue with remaining DownloadService semaphore/concurrency cases, Program.cs service-module decomposition, and the runtime-vs-tooling decision for Roslyn CodeQuality helpers.

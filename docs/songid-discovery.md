@@ -22,6 +22,18 @@ SongID runs in a durable queue with persisted queue position and worker slot.
 The configured concurrency is controlled by `songid.max_concurrent_runs` /
 `--songid-max-concurrent-runs` / `SONGID_MAX_CONCURRENT_RUNS`.
 
+Runtime provider availability is exposed at:
+
+```text
+GET /api/v0/songid/capabilities
+```
+
+The capability response is the operator-facing truth for optional providers
+such as `yt-dlp`, `ffmpeg`, SongRec, Panako, Audfprint, Demucs, Whisper,
+Tesseract, C2PA, MusicBrainz, AcoustID, and Chromaprint. The intentionally
+unsupported `HashFromAudioFileEnabled` hardening flag is reported as `broken`
+and unavailable.
+
 ## Result Review
 
 SongID surfaces:

@@ -2727,6 +2727,7 @@
 - [2026-05-13T00:42:00Z] Completed: move custom MSBuild quality tasks out of the app assembly; `CodeAnalysisBuildTask`, `TestCoverageBuildTask`, and `RegressionBuildTask` now compile in `tools/slskd.BuildTasks`, and the runtime app project no longer carries `Microsoft.Build.*` package references.
 - [2026-05-13T00:50:00Z] Completed: clean up remaining app build warnings; CA2000 transport handler ownership is now locally scoped and `dotnet build src/slskd/slskd.csproj --no-incremental` reports 0 warnings.
 - [2026-05-13T01:05:00Z] Completed: add DownloadService regression coverage for in-progress duplicate protection, completed-transfer supersession, and terminal failed cleanup on background download startup failure.
+- [2026-05-13T01:24:00Z] Completed: add SongID runtime capability reporter and `/api/v0/songid/capabilities` endpoint so optional providers and the broken hash-from-audio flag are reported truthfully.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.

@@ -12,10 +12,47 @@ using Xunit;
 public sealed class SongIdControllerTests
 {
     [Fact]
+    public async Task GetCapabilities_ReturnsReporterPayload()
+    {
+        var service = new Mock<ISongIdService>(MockBehavior.Strict);
+        var capabilityReporter = new Mock<ISongIdCapabilityReporter>();
+        capabilityReporter
+            .Setup(instance => instance.GetCapabilitiesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new SongIdCapability
+                {
+                    Id = "text_query",
+                    Label = "Text query analysis",
+                    Status = "stable",
+                    Available = true,
+                    Reason = "available",
+                },
+                new SongIdCapability
+                {
+                    Id = "hash_from_audio_file_flag",
+                    Label = "HashFromAudioFileEnabled flag",
+                    Status = "broken",
+                    Available = false,
+                    Reason = "unavailable",
+                },
+            });
+        var controller = new SongIdController(service.Object, capabilityReporter.Object);
+
+        var result = await controller.GetCapabilities(CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var capabilities = Assert.IsAssignableFrom<IReadOnlyList<SongIdCapability>>(ok.Value);
+        Assert.Equal(2, capabilities.Count);
+        Assert.Contains(capabilities, capability => capability.Id == "text_query" && capability.Available);
+        Assert.Contains(capabilities, capability => capability.Id == "hash_from_audio_file_flag" && !capability.Available);
+    }
+
+    [Fact]
     public async Task CreateRun_WithEmptySource_ReturnsBadRequest()
     {
         var service = new Mock<ISongIdService>(MockBehavior.Strict);
-        var controller = new SongIdController(service.Object);
+        var controller = CreateController(service.Object);
 
         var result = await controller.CreateRun(new SongIdRunRequest { Source = " " }, CancellationToken.None);
 
@@ -40,7 +77,7 @@ public sealed class SongIdControllerTests
             .Setup(instance => instance.QueueAnalyzeAsync(expectedRun.Source, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedRun);
 
-        var controller = new SongIdController(service.Object);
+        var controller = CreateController(service.Object);
 
         var result = await controller.CreateRun(new SongIdRunRequest { Source = expectedRun.Source }, CancellationToken.None);
 
@@ -61,7 +98,7 @@ public sealed class SongIdControllerTests
             .Setup(instance => instance.QueueAnalyzeAsync("bad-source", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new ArgumentException("sensitive source path /srv/private/file.flac"));
 
-        var controller = new SongIdController(service.Object);
+        var controller = CreateController(service.Object);
 
         var result = await controller.CreateRun(new SongIdRunRequest { Source = "bad-source" }, CancellationToken.None);
 
@@ -77,7 +114,7 @@ public sealed class SongIdControllerTests
             .Setup(instance => instance.QueueAnalyzeAsync("https://open.spotify.com/track/example", It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("ffmpeg exited with code 1: local stderr detail"));
 
-        var controller = new SongIdController(service.Object);
+        var controller = CreateController(service.Object);
 
         var result = await controller.CreateRun(new SongIdRunRequest { Source = "https://open.spotify.com/track/example" }, CancellationToken.None);
 
@@ -99,7 +136,7 @@ public sealed class SongIdControllerTests
             .Setup(instance => instance.QueueAnalyzeAsync(expectedRun.Source, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedRun);
 
-        var controller = new SongIdController(service.Object);
+        var controller = CreateController(service.Object);
 
         await controller.CreateRun(new SongIdRunRequest { Source = " https://youtu.be/example " }, CancellationToken.None);
 
@@ -117,7 +154,7 @@ public sealed class SongIdControllerTests
         var service = new Mock<ISongIdService>();
         service.Setup(instance => instance.List(2)).Returns(runs);
 
-        var controller = new SongIdController(service.Object);
+        var controller = CreateController(service.Object);
 
         var result = controller.ListRuns(2);
 
@@ -132,7 +169,7 @@ public sealed class SongIdControllerTests
         var service = new Mock<ISongIdService>();
         service.Setup(instance => instance.List(10)).Returns(Array.Empty<SongIdRun>());
 
-        var controller = new SongIdController(service.Object);
+        var controller = CreateController(service.Object);
 
         var result = controller.ListRuns(0);
 
@@ -147,7 +184,7 @@ public sealed class SongIdControllerTests
         var service = new Mock<ISongIdService>();
         service.Setup(instance => instance.Get(id)).Returns((SongIdRun?)null);
 
-        var controller = new SongIdController(service.Object);
+        var controller = CreateController(service.Object);
 
         var result = controller.GetRun(id);
 
@@ -166,7 +203,7 @@ public sealed class SongIdControllerTests
         var service = new Mock<ISongIdService>();
         service.Setup(instance => instance.Get(run.Id)).Returns(run);
 
-        var controller = new SongIdController(service.Object);
+        var controller = CreateController(service.Object);
 
         var result = controller.GetRun(run.Id);
 
@@ -187,7 +224,7 @@ public sealed class SongIdControllerTests
             Status = "completed",
         });
 
-        var controller = new SongIdController(service.Object);
+        var controller = CreateController(service.Object);
 
         var result = controller.GetForensicMatrix(id);
 
@@ -204,7 +241,7 @@ public sealed class SongIdControllerTests
         };
         var service = new Mock<ISongIdService>();
         service.Setup(instance => instance.GetQueueSummary(5)).Returns(summary);
-        var controller = new SongIdController(service.Object);
+        var controller = CreateController(service.Object);
 
         var result = controller.GetQueueSummary(5);
 
@@ -219,7 +256,7 @@ public sealed class SongIdControllerTests
         var id = Guid.NewGuid();
         var service = new Mock<ISongIdService>();
         service.Setup(instance => instance.GetEvidencePackage(id)).Returns((SongIdRunEvidencePackage?)null);
-        var controller = new SongIdController(service.Object);
+        var controller = CreateController(service.Object);
 
         var result = controller.GetEvidencePackage(id);
 
@@ -236,7 +273,7 @@ public sealed class SongIdControllerTests
         };
         var service = new Mock<ISongIdService>();
         service.Setup(instance => instance.GetEvidencePackage(package.RunId)).Returns(package);
-        var controller = new SongIdController(service.Object);
+        var controller = CreateController(service.Object);
 
         var result = controller.GetEvidencePackage(package.RunId);
 
@@ -275,7 +312,7 @@ public sealed class SongIdControllerTests
         var service = new Mock<ISongIdService>();
         service.Setup(instance => instance.Get(run.Id)).Returns(run);
 
-        var controller = new SongIdController(service.Object);
+        var controller = CreateController(service.Object);
 
         var result = controller.GetForensicMatrix(run.Id);
 
@@ -286,5 +323,15 @@ public sealed class SongIdControllerTests
         Assert.Equal(0.84, matrix.PerturbationStability);
         Assert.Contains("strong_identity_suppresses_synthetic_overclaim", matrix.Notes);
         Assert.Equal(0.88, matrix.ConfidenceLane.Score);
+    }
+
+    private static SongIdController CreateController(ISongIdService service)
+    {
+        var capabilityReporter = new Mock<ISongIdCapabilityReporter>();
+        capabilityReporter
+            .Setup(instance => instance.GetCapabilitiesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<SongIdCapability>());
+
+        return new SongIdController(service, capabilityReporter.Object);
     }
 }

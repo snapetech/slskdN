@@ -22,10 +22,25 @@ using slskd.Core.Security;
 public sealed class SongIdController : ControllerBase
 {
     private readonly ISongIdService _songIdService;
+    private readonly ISongIdCapabilityReporter _capabilityReporter;
 
-    public SongIdController(ISongIdService songIdService)
+    public SongIdController(ISongIdService songIdService, ISongIdCapabilityReporter capabilityReporter)
     {
         _songIdService = songIdService;
+        _capabilityReporter = capabilityReporter;
+    }
+
+    [HttpGet("capabilities")]
+    [ProducesResponseType(typeof(IReadOnlyList<SongIdCapability>), 200)]
+    public async Task<IActionResult> GetCapabilities(CancellationToken cancellationToken)
+    {
+        if (Program.IsRelayAgent)
+        {
+            return Forbid();
+        }
+
+        var capabilities = await _capabilityReporter.GetCapabilitiesAsync(cancellationToken).ConfigureAwait(false);
+        return Ok(capabilities);
     }
 
     [HttpPost("runs")]

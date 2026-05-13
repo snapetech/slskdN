@@ -49,6 +49,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Added DownloadService regression coverage for in-progress duplicate
   protection, completed-transfer supersession, and terminal failed cleanup when
   background download startup fails.
+- Added `/api/v0/songid/capabilities` so SongID reports runtime availability
+  for optional providers and explicitly marks `HashFromAudioFileEnabled` broken.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

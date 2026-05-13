@@ -2521,6 +2521,7 @@ namespace slskd
                 sp.GetRequiredService<ILogger<MetadataFacade>>(),
                 sp.GetService<IMemoryCache>()));
             services.AddSingleton<ISongIdRunStore, SongIdRunStore>();
+            services.AddSingleton<ISongIdCapabilityReporter, SongIdCapabilityReporter>();
             services.AddSingleton<ISongIdService, SongIdService>();
             services.AddSingleton<DiscoveryGraph.IDiscoveryGraphService, DiscoveryGraph.DiscoveryGraphService>();
             services.AddSingleton<IPushbulletService, PushbulletService>();

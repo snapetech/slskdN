@@ -85,13 +85,16 @@ Acceptance criteria:
 
 ## 6. Remove or hide HashFromAudioFileEnabled
 
-Status: direct public CLI/env exposure removed. `HardeningValidator` now fails startup whenever this unsupported option is true.
+Status: complete for current exposure. Direct public CLI/env exposure was
+removed, `HardeningValidator` now fails startup whenever this unsupported
+option is true, and the SongID capability reporter marks the flag `broken` and
+unavailable.
 
 Preferred resolution:
 
 - Remove public docs/config exposure for `HashFromAudioFileEnabled`, or rename to `ExperimentalHashFromAudioFileEnabled`.
-- Add a runtime capability check if the feature is kept.
-- Ensure SongID docs/UI do not imply local audio hashing works unless capability is present.
+- Add a runtime capability check if the feature is kept. Done via `/api/v0/songid/capabilities`.
+- Ensure SongID docs/UI do not imply local audio hashing works unless capability is present. Docs now point to runtime capabilities.
 
 Acceptance criteria:
 
