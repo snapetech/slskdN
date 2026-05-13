@@ -1,3 +1,18 @@
+## Update 2026-05-13 03:47:53Z
+
+- Current task: parity/reconciliation list follow-up in progress.
+- Last activity:
+  - simplified MediaCore Pod Message Routing so deduplication checks and routing stats appear first;
+  - grouped message send, mark-seen, and cleanup controls behind advanced disclosure;
+  - updated parity plan, changelog, tasks, and progress notes.
+- Validation:
+  - Passed: `cd src/web && npm run lint -- src/components/System/MediaCore/index.jsx src/components/System/MediaCore/index.test.jsx`.
+  - Passed: `cd src/web && npm test -- System/MediaCore/index.test.jsx` (`3/3`).
+- Next steps:
+  1. Re-scan MediaCore pod workflows for any remaining mutation controls that should be advanced-only.
+  2. Continue Program.cs decomposition if another bounded startup block is worth extracting.
+  3. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 02:40:40Z
 
 - Current task: parity/reconciliation list follow-up in progress.

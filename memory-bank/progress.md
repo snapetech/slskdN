@@ -10122,3 +10122,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T02:38:43Z] Parity/reconciliation MediaCore DHT publishing follow-up: simplified PodCore DHT Publishing by keeping metadata retrieval and publishing stats first and grouping publish/unpublish controls under advanced disclosure. Focused MediaCore component tests (`3/3`) and focused Web lint passed.
 
 [2026-05-13T02:40:40Z] Parity/reconciliation MediaCore membership follow-up: simplified Pod Membership Management by keeping get/verify/statistics first and grouping membership publishing, role/ban changes, and cleanup under advanced disclosure. Focused MediaCore component tests (`3/3`) and focused Web lint passed.
+
+[2026-05-13T03:47:53Z] Parity/reconciliation MediaCore routing follow-up: simplified Pod Message Routing by keeping deduplication checks and routing stats first and grouping message send, mark-seen, and cleanup controls under advanced disclosure. Focused MediaCore component tests (`3/3`) and focused Web lint passed.

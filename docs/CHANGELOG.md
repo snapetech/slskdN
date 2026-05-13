@@ -129,6 +129,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Simplified the MediaCore pod membership management workflow by keeping
   get/verify/statistics first while grouping membership publishing, role/ban
   changes, and cleanup behind progressive disclosure.
+- Simplified the MediaCore pod message routing workflow by keeping deduplication
+  checks and routing statistics first while grouping message send, mark-seen,
+  and cleanup controls behind progressive disclosure.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

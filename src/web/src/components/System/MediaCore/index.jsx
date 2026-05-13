@@ -6855,124 +6855,17 @@ const MediaCore = () => {
               </PodWorkflowNotice>
             </Card.Content>
 
-            {/* Manual Message Routing */}
             <Card.Content>
-              <Header size="small">Manual Message Routing</Header>
-              <Form>
-                <Form.TextArea
-                  label="Pod Message JSON"
-                  onChange={(e) => setRouteMessageData(e.target.value)}
-                  placeholder='{"messageId": "msg123", "channelId": "pod:artist:mb:daft-punk-hash:general", "senderPeerId": "alice", "body": "Hello pod!", "timestampUnixMs": 1703123456789, "signature": "base64-signature"}'
-                  rows={4}
-                  value={routeMessageData}
-                />
-                <Button
-                  disabled={routingMessage || !routeMessageData.trim()}
-                  loading={routingMessage}
-                  onClick={handleRouteMessage}
-                  primary
-                >
-                  Route Message
-                </Button>
-              </Form>
-
-              {routingResult && (
-                <div style={{ marginTop: '1em' }}>
-                  {routingResult.error ? (
-                    <Message error>
-                      <p>Failed to route message: {routingResult.error}</p>
-                    </Message>
-                  ) : (
-                    <Message success>
-                      <Message.Header>
-                        Message Routed Successfully
-                      </Message.Header>
-                      <p>
-                        <strong>Message ID:</strong> {routingResult.messageId}
-                        <br />
-                        <strong>Pod ID:</strong> {routingResult.podId}
-                        <br />
-                        <strong>Target Peers:</strong>{' '}
-                        {routingResult.targetPeerCount}
-                        <br />
-                        <strong>Successfully Routed:</strong>{' '}
-                        {routingResult.successfullyRoutedCount}
-                        <br />
-                        <strong>Failed:</strong>{' '}
-                        {routingResult.failedRoutingCount}
-                        <br />
-                        <strong>Duration:</strong>{' '}
-                        {routingResult.routingDuration?.totalMilliseconds?.toFixed(
-                          0,
-                        )}
-                        ms
-                      </p>
-                    </Message>
-                  )}
-                </div>
-              )}
-            </Card.Content>
-
-            <Card.Content>
+              <Message info>
+                <Message.Header>Check routing state before sending</Message.Header>
+                <p>
+                  Deduplication checks and routing statistics are read-only.
+                  Sending messages, marking messages as seen, and cleanup are
+                  grouped below as advanced routing controls.
+                </p>
+              </Message>
               <Grid>
                 <Grid.Column width={8}>
-                  {/* Route to Specific Peers */}
-                  <Header size="small">Route to Specific Peers</Header>
-                  <Form>
-                    <Form.TextArea
-                      label="Pod Message JSON"
-                      onChange={(e) => setRouteToPeersMessage(e.target.value)}
-                      placeholder='{"messageId": "msg123", "channelId": "pod:artist:mb:daft-punk-hash:general", "senderPeerId": "alice", "body": "Direct message", "timestampUnixMs": 1703123456789, "signature": "base64-signature"}'
-                      rows={3}
-                      value={routeToPeersMessage}
-                    />
-                    <Form.Input
-                      label="Target Peer IDs (comma-separated)"
-                      onChange={(e) => setRouteToPeersIds(e.target.value)}
-                      placeholder="bob,charlie,diana"
-                      value={routeToPeersIds}
-                    />
-                    <Button
-                      disabled={
-                        routingToPeers ||
-                        !routeToPeersMessage.trim() ||
-                        !routeToPeersIds.trim()
-                      }
-                      fluid
-                      loading={routingToPeers}
-                      onClick={handleRouteMessageToPeers}
-                    >
-                      Route to Peers
-                    </Button>
-                  </Form>
-
-                  {routingToPeersResult && (
-                    <div style={{ marginTop: '0.5em' }}>
-                      {routingToPeersResult.error ? (
-                        <Message
-                          error
-                          size="tiny"
-                        >
-                          <p>{routingToPeersResult.error}</p>
-                        </Message>
-                      ) : (
-                        <Message
-                          info
-                          size="tiny"
-                        >
-                          <p>
-                            Routed to{' '}
-                            {routingToPeersResult.successfullyRoutedCount}/
-                            {routingToPeersResult.targetPeerCount} peers
-                          </p>
-                        </Message>
-                      )}
-                    </div>
-                  )}
-                </Grid.Column>
-
-                <Grid.Column width={8}>
-                  {/* Message Deduplication */}
                   <Header size="small">Message Deduplication</Header>
                   <Form>
                     <Form.Group widths="equal">
@@ -6989,26 +6882,18 @@ const MediaCore = () => {
                         value={checkPodId}
                       />
                     </Form.Group>
-                    <Button.Group fluid>
-                      <Button
-                        disabled={
-                          checkingMessageSeen ||
-                          !checkMessageId.trim() ||
-                          !checkPodId.trim()
-                        }
-                        loading={checkingMessageSeen}
-                        onClick={handleCheckMessageSeen}
-                      >
-                        Check Seen
-                      </Button>
-                      <Button
-                        color="blue"
-                        disabled={!checkMessageId.trim() || !checkPodId.trim()}
-                        onClick={handleRegisterMessageSeen}
-                      >
-                        Mark Seen
-                      </Button>
-                    </Button.Group>
+                    <Button
+                      disabled={
+                        checkingMessageSeen ||
+                        !checkMessageId.trim() ||
+                        !checkPodId.trim()
+                      }
+                      fluid
+                      loading={checkingMessageSeen}
+                      onClick={handleCheckMessageSeen}
+                    >
+                      Check Seen
+                    </Button>
                   </Form>
 
                   {messageSeenResult && (
@@ -7034,19 +6919,210 @@ const MediaCore = () => {
                     </div>
                   )}
                 </Grid.Column>
+
+                <Grid.Column width={8}>
+                  <Header size="small">Routing Statistics</Header>
+                  <Button
+                    disabled={loadingRoutingStats}
+                    fluid
+                    loading={loadingRoutingStats}
+                    onClick={handleLoadRoutingStats}
+                    primary
+                  >
+                    Load Routing Stats
+                  </Button>
+
+                  {routingStats && !routingStats.error && (
+                    <div style={{ marginTop: '1em' }}>
+                      <Message>
+                        <Message.Header>Message Routing Statistics</Message.Header>
+                        <p>
+                          <strong>Total Messages Routed:</strong>{' '}
+                          {routingStats.totalMessagesRouted}
+                          <br />
+                          <strong>Total Routing Attempts:</strong>{' '}
+                          {routingStats.totalRoutingAttempts}
+                          <br />
+                          <strong>Successful Routes:</strong>{' '}
+                          {routingStats.successfulRoutingCount}
+                          <br />
+                          <strong>Failed Routes:</strong>{' '}
+                          {routingStats.failedRoutingCount}
+                          <br />
+                          <strong>Avg Routing Time:</strong>{' '}
+                          {routingStats.averageRoutingTimeMs.toFixed(2)}ms
+                          <br />
+                          <strong>Deduplication Items:</strong>{' '}
+                          {routingStats.activeDeduplicationItems}
+                          <br />
+                          <strong>Bloom Filter Fill:</strong>{' '}
+                          {(routingStats.bloomFilterFillRatio * 100).toFixed(1)}%
+                          <br />
+                          <strong>Est. False Positive:</strong>{' '}
+                          {(routingStats.estimatedFalsePositiveRate * 100).toFixed(4)}%
+                          <br />
+                          <strong>Last Operation:</strong>{' '}
+                          {routingStats.lastRoutingOperation
+                            ? new Date(
+                                routingStats.lastRoutingOperation,
+                              ).toLocaleString()
+                            : 'Never'}
+                        </p>
+                      </Message>
+                    </div>
+                  )}
+
+                  {routingStats?.error && (
+                    <Message
+                      error
+                      style={{ marginTop: '1em' }}
+                    >
+                      <p>Failed to load routing stats: {routingStats.error}</p>
+                    </Message>
+                  )}
+                </Grid.Column>
               </Grid>
             </Card.Content>
 
-            {/* Routing Statistics */}
             <Card.Content>
-              <Button.Group fluid>
+              <details>
+                <summary>Advanced message routing controls</summary>
+                <Message warning>
+                  Routing sends message bodies and sender identifiers to pod
+                  peers or overlay routes. Confirm deduplication state before
+                  resending messages.
+                </Message>
+                <Grid>
+                  <Grid.Column width={8}>
+                    <Header size="small">Manual Message Routing</Header>
+                    <Form>
+                      <Form.TextArea
+                        label="Pod Message JSON"
+                        onChange={(e) => setRouteMessageData(e.target.value)}
+                        placeholder='{"messageId": "msg123", "channelId": "pod:artist:mb:daft-punk-hash:general", "senderPeerId": "alice", "body": "Hello pod!", "timestampUnixMs": 1703123456789, "signature": "base64-signature"}'
+                        rows={4}
+                        value={routeMessageData}
+                      />
+                      <Button
+                        disabled={routingMessage || !routeMessageData.trim()}
+                        loading={routingMessage}
+                        onClick={handleRouteMessage}
+                        primary
+                      >
+                        Route Message
+                      </Button>
+                    </Form>
+
+                    {routingResult && (
+                      <div style={{ marginTop: '1em' }}>
+                        {routingResult.error ? (
+                          <Message error>
+                            <p>Failed to route message: {routingResult.error}</p>
+                          </Message>
+                        ) : (
+                          <Message success>
+                            <Message.Header>
+                              Message Routed Successfully
+                            </Message.Header>
+                            <p>
+                              <strong>Message ID:</strong>{' '}
+                              {routingResult.messageId}
+                              <br />
+                              <strong>Pod ID:</strong> {routingResult.podId}
+                              <br />
+                              <strong>Target Peers:</strong>{' '}
+                              {routingResult.targetPeerCount}
+                              <br />
+                              <strong>Successfully Routed:</strong>{' '}
+                              {routingResult.successfullyRoutedCount}
+                              <br />
+                              <strong>Failed:</strong>{' '}
+                              {routingResult.failedRoutingCount}
+                              <br />
+                              <strong>Duration:</strong>{' '}
+                              {routingResult.routingDuration?.totalMilliseconds?.toFixed(
+                                0,
+                              )}
+                              ms
+                            </p>
+                          </Message>
+                        )}
+                      </div>
+                    )}
+                  </Grid.Column>
+
+                  <Grid.Column width={8}>
+                    <Header size="small">Route to Specific Peers</Header>
+                    <Form>
+                      <Form.TextArea
+                        label="Pod Message JSON"
+                        onChange={(e) => setRouteToPeersMessage(e.target.value)}
+                        placeholder='{"messageId": "msg123", "channelId": "pod:artist:mb:daft-punk-hash:general", "senderPeerId": "alice", "body": "Direct message", "timestampUnixMs": 1703123456789, "signature": "base64-signature"}'
+                        rows={3}
+                        value={routeToPeersMessage}
+                      />
+                      <Form.Input
+                        label="Target Peer IDs (comma-separated)"
+                        onChange={(e) => setRouteToPeersIds(e.target.value)}
+                        placeholder="bob,charlie,diana"
+                        value={routeToPeersIds}
+                      />
+                      <Button
+                        disabled={
+                          routingToPeers ||
+                          !routeToPeersMessage.trim() ||
+                          !routeToPeersIds.trim()
+                        }
+                        fluid
+                        loading={routingToPeers}
+                        onClick={handleRouteMessageToPeers}
+                      >
+                        Route to Peers
+                      </Button>
+                    </Form>
+
+                    {routingToPeersResult && (
+                      <div style={{ marginTop: '0.5em' }}>
+                        {routingToPeersResult.error ? (
+                          <Message
+                            error
+                            size="tiny"
+                          >
+                            <p>{routingToPeersResult.error}</p>
+                          </Message>
+                        ) : (
+                          <Message
+                            info
+                            size="tiny"
+                          >
+                            <p>
+                              Routed to{' '}
+                              {routingToPeersResult.successfullyRoutedCount}/
+                              {routingToPeersResult.targetPeerCount} peers
+                            </p>
+                          </Message>
+                        )}
+                      </div>
+                    )}
+                  </Grid.Column>
+                </Grid>
+              </details>
+            </Card.Content>
+
+            <Card.Content>
+              <details>
+                <summary>Advanced seen-state cleanup controls</summary>
+                <Message warning>
+                  Marking messages as seen and cleanup mutate local routing
+                  deduplication state. Use them only after checking the target
+                  message and pod IDs.
+                </Message>
                 <Button
-                  disabled={loadingRoutingStats}
-                  loading={loadingRoutingStats}
-                  onClick={handleLoadRoutingStats}
-                  primary
+                  color="blue"
+                  disabled={!checkMessageId.trim() || !checkPodId.trim()}
+                  onClick={handleRegisterMessageSeen}
                 >
-                  Load Routing Stats
+                  Mark Seen
                 </Button>
                 <Button
                   color="red"
@@ -7054,75 +7130,7 @@ const MediaCore = () => {
                 >
                   Cleanup Seen Messages
                 </Button>
-              </Button.Group>
-
-              {routingStats && !routingStats.error && (
-                <div style={{ marginTop: '1em' }}>
-                  <Message>
-                    <Message.Header>Message Routing Statistics</Message.Header>
-                    <p>
-                      <strong>Total Messages Routed:</strong>{' '}
-                      {routingStats.totalMessagesRouted}
-                      <br />
-                      <strong>Total Routing Attempts:</strong>{' '}
-                      {routingStats.totalRoutingAttempts}
-                      <br />
-                      <strong>Successful Routes:</strong>{' '}
-                      {routingStats.successfulRoutingCount}
-                      <br />
-                      <strong>Failed Routes:</strong>{' '}
-                      {routingStats.failedRoutingCount}
-                      <br />
-                      <strong>Avg Routing Time:</strong>{' '}
-                      {routingStats.averageRoutingTimeMs.toFixed(2)}ms
-                      <br />
-                      <strong>Deduplication Items:</strong>{' '}
-                      {routingStats.activeDeduplicationItems}
-                      <br />
-                      <strong>Bloom Filter Fill:</strong>{' '}
-                      {(routingStats.bloomFilterFillRatio * 100).toFixed(1)}%
-                      <br />
-                      <strong>Est. False Positive:</strong>{' '}
-                      {(routingStats.estimatedFalsePositiveRate * 100).toFixed(
-                        4,
-                      )}
-                      %<br />
-                      <strong>Last Operation:</strong>{' '}
-                      {routingStats.lastRoutingOperation
-                        ? new Date(
-                            routingStats.lastRoutingOperation,
-                          ).toLocaleString()
-                        : 'Never'}
-                    </p>
-                  </Message>
-
-                  <Button
-                    color="blue"
-                    loading={rebuildIndexLoading}
-                    onClick={() => handleRebuildSearchIndex()}
-                    size="tiny"
-                  >
-                    Rebuild Search Index
-                  </Button>
-                  <Button
-                    color="orange"
-                    loading={vacuumLoading}
-                    onClick={() => handleVacuumDatabase()}
-                    size="tiny"
-                  >
-                    Vacuum Database
-                  </Button>
-                </div>
-              )}
-
-              {routingStats?.error && (
-                <Message
-                  error
-                  style={{ marginTop: '1em' }}
-                >
-                  <p>Failed to load routing stats: {routingStats.error}</p>
-                </Message>
-              )}
+              </details>
             </Card.Content>
           </Card>
         </Grid.Column>

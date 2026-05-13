@@ -83,6 +83,9 @@ describe('MediaCore', () => {
     expect(screen.getByText('Advanced member mutation controls')).toBeInTheDocument();
     expect(screen.getByText('Advanced membership publishing controls')).toBeInTheDocument();
     expect(screen.getByText('Advanced membership cleanup controls')).toBeInTheDocument();
+    expect(screen.getByText('Check routing state before sending')).toBeInTheDocument();
+    expect(screen.getByText('Advanced message routing controls')).toBeInTheDocument();
+    expect(screen.getByText('Advanced seen-state cleanup controls')).toBeInTheDocument();
   });
 
   it('focuses a pod workflow from the index card', async () => {
