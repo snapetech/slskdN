@@ -418,6 +418,77 @@ public class DownloadServiceTests
     }
 
     [Fact]
+    public async Task EnqueueAsync_BackgroundExpectedRemoteFailure_DoesNotLeakCleanupAggregateTaskFault()
+    {
+        var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var options = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+
+        await using (var context = new TransfersDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+        }
+
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient
+            .SetupGet(client => client.Downloads)
+            .Returns(Array.Empty<Soulseek.Transfer>());
+        soulseekClient
+            .Setup(client => client.DownloadAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<Task<Stream>>>(),
+                It.IsAny<long?>(),
+                It.IsAny<long>(),
+                It.IsAny<int?>(),
+                It.IsAny<TransferOptions>(),
+                It.IsAny<CancellationToken?>()))
+            .ThrowsAsync(new AggregateException(CreateExpectedRemoteFailure("rejected")));
+
+        var service = CreateDownloadService(options, soulseekClient);
+        var unobservedExceptions = new List<Exception>();
+
+        void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs args)
+        {
+            unobservedExceptions.Add(args.Exception);
+            args.SetObserved();
+        }
+
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
+        try
+        {
+            var (enqueued, failed) = await service.EnqueueAsync(
+                "alice",
+                new[] { (Filename: @"Music\remote-failed.flac", Size: 1234L) },
+                CancellationToken.None);
+
+            Assert.Single(enqueued);
+            Assert.Empty(failed);
+
+            _ = await WaitForTransferAsync(
+                () => service.Find(t => t.Id == enqueued.Single().Id && t.State.HasFlag(TransferStates.Completed)),
+                TimeSpan.FromSeconds(5));
+
+            service.Dispose();
+            service = null!;
+
+            await ForceTaskFinalizersAsync();
+
+            Assert.DoesNotContain(
+                unobservedExceptions,
+                exception => exception.ToString().Contains("File not shared", StringComparison.Ordinal));
+        }
+        finally
+        {
+            TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
+            service?.Dispose();
+            DeleteDatabase(databasePath);
+        }
+    }
+
+    [Fact]
     public void CreateRetryPlan_RespectsGlobalPerPeerAndCooldownBudgets()
     {
         var now = DateTime.UtcNow;
@@ -1107,6 +1178,17 @@ public class DownloadServiceTests
         }
 
         throw new TimeoutException($"Timed out waiting {timeout.TotalSeconds} seconds for transfer state update");
+    }
+
+    private static async Task ForceTaskFinalizersAsync()
+    {
+        for (var i = 0; i < 3; i++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            await Task.Delay(50);
+        }
     }
 
     private static int GetStaticEventInvocationCount(Type type, string eventName)

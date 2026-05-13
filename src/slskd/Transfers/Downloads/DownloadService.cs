@@ -1684,7 +1684,15 @@ namespace slskd.Transfers.Downloads
             }
 
             _ = Task.WhenAll(runningTasks).ContinueWith(
-                _ => semaphore.Dispose(),
+                completedTasks =>
+                {
+                    if (completedTasks.IsFaulted)
+                    {
+                        _ = completedTasks.Exception;
+                    }
+
+                    semaphore.Dispose();
+                },
                 CancellationToken.None,
                 TaskContinuationOptions.ExecuteSynchronously,
                 TaskScheduler.Default);

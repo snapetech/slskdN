@@ -56,6 +56,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   bad-request responses.
 - Observed terminal download enqueue signal faults so expected remote transfer
   rejections do not surface as process-level unobserved task exceptions.
+- Observed download enqueue cleanup aggregate faults so expected remote transfer
+  rejections do not surface as process-level unobserved task exceptions.
 - Archived stale working notes and removed obsolete local one-off remediation
   scripts from the active docs/scripts surface.
 - Strengthened mesh preview hash validation so hash-protected content is
