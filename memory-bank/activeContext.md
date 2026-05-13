@@ -39,6 +39,18 @@
   1. Continue scanning remaining non-pod MediaCore forms for any final read-first progressive disclosure cleanup.
   2. Keep Program.cs decomposition closed for this pass unless a concrete regression or wrapper reappears.
 
+## Update 2026-05-13 18:04:47Z
+
+- Current task: parity/reconciliation follow-up in progress.
+- Last activity:
+  - reconciled G5 status after the MediaCore form-disclosure cleanup;
+  - recorded that the remaining work is broader guided flows, System panel grouping, and validation of advanced/admin labels rather than more obvious MediaCore mutation-form disclosure.
+- Validation:
+  - Documentation/status-only change after focused MediaCore component tests and focused Web lint passed.
+- Next steps:
+  1. Continue G5 with guided flows or System grouping.
+  2. Run broader validation when the reconciliation pass is ready to close.
+
 ## Update 2026-05-13 16:56:30Z
 
 - Current task: Program.cs decomposition follow-up in progress.

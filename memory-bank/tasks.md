@@ -2804,6 +2804,7 @@
 - [2026-05-13T17:57:08Z] Completed: reconcile Program.cs decomposition status as complete for this pass; remaining work shifts to MediaCore/G5 UX cleanup and validation.
 - [2026-05-13T18:00:54Z] Completed: continue parity/reconciliation list by grouping MediaCore descriptor cache bypass and batch DHT retrieval behind advanced disclosure.
 - [2026-05-13T18:03:06Z] Completed: continue parity/reconciliation list by grouping MediaCore fuzzy candidate search behind advanced disclosure.
+- [2026-05-13T18:04:47Z] Completed: reconcile G5 status after MediaCore form-disclosure cleanup; remaining work is broader guided flows/System grouping/label validation.
 - [2026-05-13T16:38:00Z] Completed: fix Arch source build SDK floor, aggregate download timeout classification/logging, Snap package metadata, and startup logging sink crash; deployed manual build `0.0.0-manual.20260513163650.c07c237919e0` to kspls0 and verified web/API/service health.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
