@@ -7259,3 +7259,9 @@ Next steps: commit this doc cleanup, then leave the remaining reconciliation sco
 Added top-level Web route smoke coverage in `App.test.jsx` for the G4 stale/orphan UI reconciliation item. The table covers the primary routes plus parameterized search, pod, channel, and System paths using page mocks so route wiring is checked without loading every page's data dependencies.
 
 Next steps: run focused Web lint, commit this route-smoke reconciliation slice, then continue only with broader G5 guided-flow work or release/live validation if requested.
+
+## 2026-05-13T18:34:38Z Session update
+
+Strengthened System label validation so the test now verifies each expected admin and experimental panel carries the correct navigation label instead of only checking that some labels exist.
+
+Next steps: commit this label-validation slice, then the remaining local reconciliation scope is broader G5 guided-flow productization. Release/live validation still waits on push/release coordination.

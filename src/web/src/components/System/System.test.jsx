@@ -1,7 +1,7 @@
 import System from './System';
 import React from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 
 vi.mock('./AdminPolicies', () => ({ default: () => null }));
 vi.mock('./AutomationCenter', () => ({ default: () => null }));
@@ -68,7 +68,32 @@ describe('System', () => {
     );
 
     expect(await screen.findByText('MediaCore')).toBeInTheDocument();
-    expect(screen.getAllByText('Experimental').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Admin').length).toBeGreaterThan(0);
+
+    [
+      'Mesh',
+      'Bridge',
+      'MediaCore',
+      'Source Providers',
+      'Swarm Analytics',
+    ].forEach((panel) => {
+      expect(
+        within(screen.getByText(panel).closest('.item')).getByText('Experimental'),
+      ).toBeInTheDocument();
+    });
+
+    [
+      'Policies',
+      'Integrations',
+      'Options',
+      'Automations',
+      'Quarantine Jury',
+      'Data',
+      'Logs',
+      'Metrics',
+    ].forEach((panel) => {
+      expect(
+        within(screen.getByText(panel).closest('.item')).getByText('Admin'),
+      ).toBeInTheDocument();
+    });
   });
 });

@@ -10259,3 +10259,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T18:25:58Z] Reconciliation status wording cleanup: updated the feature parity plan so the search/discovery, network/mesh, and security/privacy sections match completed Soulseek mesh rendezvous UI/privacy/test coverage and the current anonymous/non-versioned route audit artifacts. Remaining items stay scoped to live/E2E release checks, adverse-network validation, broader G5 guided flows, and future threat-model updates when external surfaces change.
 
 [2026-05-13T18:33:19Z] Route smoke reconciliation: added a mocked App route smoke table covering the primary Web routes, including parameterized search, pod, channel, and System routes. Focused `src/components/App.test.jsx` passed (`34/34`).
+
+[2026-05-13T18:34:38Z] System label validation reconciliation: strengthened the System component test to assert each expected admin and experimental panel carries the correct navigation label. Focused System test passed (`2/2`) and focused Web lint passed.

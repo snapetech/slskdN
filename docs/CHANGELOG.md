@@ -37,6 +37,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   rendezvous UI/privacy/test coverage and security route-audit artifacts.
 - Added top-level Web route smoke coverage for the reconciliation plan's stale
   route/UI visibility follow-up.
+- Strengthened System navigation tests to verify every expected admin and
+  experimental panel carries the correct label.
 
 ## [2026051318-slskdn.251] — 2026-05-13
 
