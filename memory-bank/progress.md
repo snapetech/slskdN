@@ -10057,4 +10057,4 @@ Code quality improvements were completed as part of Option A:
 
 [2026-05-12T23:57:46Z] Feature-coherence hardening matrix: added validator-boundary coverage for auth-disabled loopback, localhost, Unix-socket-only, wildcard, private IPv4, IPv6 wildcard, unknown bind address, and remote-no-auth CIDR behavior. Updated the coherence backlog and implemented-security docs to reflect the completed matrix.
 
-[2026-05-13T00:04:31Z] Feature-gate foundation: added `FeatureId`, `FeatureStatus`, `IFeatureGate`, and `FeatureGate` backed by existing options, added enabled-by-default experimental switches under `feature`, and gated SongID APIs behind `feature.SongId` with unit coverage.
+[2026-05-13T00:04:31Z] Feature-gate foundation: added `FeatureId`, `FeatureStatus`, `IFeatureGate`, and `FeatureGate` backed by existing options, added enabled-by-default experimental switches under `feature`, and gated SongID, mesh, and DHT APIs with unit coverage for the reusable MVC filter.

@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using slskd.Core.Features;
 using slskd.DhtRendezvous.Security;
 
 /// <summary>
@@ -23,6 +24,7 @@ using slskd.DhtRendezvous.Security;
 [Route("api/v{version:apiVersion}")]
 [Authorize(Policy = AuthPolicy.Any)]
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
+[FeatureGate(FeatureId.Dht)]
 public class DhtRendezvousController : ControllerBase
 {
     private readonly IDhtRendezvousService _dhtService;

@@ -10,6 +10,7 @@ namespace slskd.Mesh.API
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Serilog;
+    using slskd.Core.Features;
     using slskd.Mesh.Messages;
     using slskd.Core.Security;
 
@@ -20,6 +21,7 @@ namespace slskd.Mesh.API
     [ApiVersion("0")]
     [ApiController]
     [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
+    [FeatureGate(FeatureId.Mesh)]
     public class MeshController : ControllerBase
     {
         /// <summary>
