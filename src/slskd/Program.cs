@@ -554,7 +554,7 @@ namespace slskd
             try
             {
                 Configuration = new ConfigurationBuilder()
-                    .AddConfigurationProviders(EnvironmentVariablePrefix, ConfigurationFile, reloadOnChange: !OptionsAtStartup.Flags.NoConfigWatch)
+                    .AddSlskdConfigurationProviders(EnvironmentVariablePrefix, ConfigurationFile, reloadOnChange: !OptionsAtStartup.Flags.NoConfigWatch, VolatileOverlayConfigurationSource, Log)
                     .Build();
 
                 Configuration.GetSection(AppName)
@@ -673,7 +673,7 @@ namespace slskd
                 var builder = WebApplication.CreateBuilder(args);
 
                 builder.Configuration
-                    .AddConfigurationProviders(EnvironmentVariablePrefix, ConfigurationFile, reloadOnChange: !OptionsAtStartup.Flags.NoConfigWatch);
+                    .AddSlskdConfigurationProviders(EnvironmentVariablePrefix, ConfigurationFile, reloadOnChange: !OptionsAtStartup.Flags.NoConfigWatch, VolatileOverlayConfigurationSource, Log);
 
                 // Deterministic port probe for E2E startup debugging.
                 var portStr = builder.Configuration[$"{AppName}:Web:Port"] ?? "<null>";
@@ -858,63 +858,6 @@ namespace slskd
                     Serilog.Log.Logger.Error(exception, "Unhandled exception: {Message}", exception?.Message ?? "Unknown exception");
                 }
             };
-        }
-
-        /// <summary>
-        /// Gets a configuration section under the slskd: namespace.
-        /// This ensures all options bind correctly to the YAML provider's namespace.
-        /// </summary>
-        private static IConfigurationSection GetSlskdSection(this IConfiguration configuration, string sectionName)
-        {
-            return configuration.GetSection($"{AppName}:{sectionName}");
-        }
-
-        private static IConfigurationBuilder AddConfigurationProviders(this IConfigurationBuilder builder, string environmentVariablePrefix, string configurationFile, bool reloadOnChange)
-        {
-            configurationFile = Path.GetFullPath(configurationFile);
-            Log.Information("[Config] Loading configuration from {ConfigFile}", configurationFile);
-
-            var multiValuedArguments = typeof(Options)
-                .GetPropertiesRecursively()
-                .Where(p => p.PropertyType.IsArray)
-                .SelectMany(p =>
-                    p.CustomAttributes
-                        .Where(a => a.AttributeType == typeof(ArgumentAttribute))
-                        .Select(a => new[] { a.ConstructorArguments[0].Value, a.ConstructorArguments[1].Value })
-                        .SelectMany(v => v))
-                .Select(v => v?.ToString())
-                .Where(v => v != "\u0000")
-                .OfType<string>()
-                .ToArray();
-
-            var configurationDirectory = Path.GetDirectoryName(configurationFile);
-            if (string.IsNullOrWhiteSpace(configurationDirectory))
-            {
-                throw new InvalidOperationException($"Configuration file path '{configurationFile}' does not have a directory component.");
-            }
-
-            var result = builder
-                .AddDefaultValues(
-                    targetType: typeof(Options))
-                .AddEnvironmentVariables(
-                    targetType: typeof(Options),
-                    prefix: environmentVariablePrefix)
-#pragma warning disable CA2000 // Framework configuration infrastructure owns the file provider lifecycle.
-                .AddYamlFile(
-                    path: Path.GetFileName(configurationFile),
-                    targetType: typeof(Options),
-                    optional: true,
-                    reloadOnChange: reloadOnChange,
-                    provider: CreateOwnedPhysicalFileProvider(configurationDirectory, ExclusionFilters.None)) // required for locations outside of the app directory
-#pragma warning restore CA2000
-                .AddCommandLine(
-                    targetType: typeof(Options),
-                    multiValuedArguments,
-                    commandLine: Environment.CommandLine)
-                .Add(VolatileOverlayConfigurationSource); // this must come last in order to supersede all other sources
-
-            Log.Information("[Config] Configuration providers added, YAML file: {ConfigFile}", configurationFile);
-            return result;
         }
 
         private static void RecreateConfigurationFileIfMissing(string configurationFile)
@@ -1300,115 +1243,26 @@ namespace slskd
             HttpContext context,
             Microsoft.AspNetCore.Antiforgery.IAntiforgery antiforgery)
         {
-            try
-            {
-                return antiforgery.GetAndStoreTokens(context);
-            }
-            catch (Exception ex) when (IsStaleAntiforgeryTokenException(ex))
-            {
-                ClearKnownAntiforgeryCookies(context);
-                Log.Warning("[CSRF Middleware] Cleared stale antiforgery cookies for {Path} after key-ring mismatch", context.Request.Path);
-                return antiforgery.GetAndStoreTokens(context);
-            }
+            return Core.Security.AntiforgeryCookieRecovery.TryGetAndStoreTokens(
+                context,
+                antiforgery,
+                OptionsAtStartup.Web.Port,
+                path => Log.Warning("[CSRF Middleware] Cleared stale antiforgery cookies for {Path} after key-ring mismatch", path));
         }
 
         internal static bool IsStaleAntiforgeryTokenException(Exception exception)
         {
-            return FlattenExceptions(exception).Any(innerException =>
-                innerException is CryptographicException ||
-                innerException.Message.Contains("could not be decrypted", StringComparison.OrdinalIgnoreCase) ||
-                innerException.Message.Contains("key ring", StringComparison.OrdinalIgnoreCase));
+            return Core.Security.AntiforgeryCookieRecovery.IsStaleTokenException(exception);
         }
 
         internal static bool StripKnownAntiforgeryCookiesFromRequest(HttpContext context)
         {
-            var filteredSegments = new List<string>();
-            var removed = false;
-
-            foreach (var headerValue in context.Request.Headers.Cookie)
-            {
-                if (headerValue is null)
-                {
-                    continue;
-                }
-
-                foreach (var segment in headerValue.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                {
-                    var separatorIndex = segment.IndexOf('=');
-                    var cookieName = separatorIndex >= 0 ? segment[..separatorIndex].Trim() : segment.Trim();
-
-                    if (string.Equals(cookieName, $"XSRF-COOKIE-{OptionsAtStartup.Web.Port}", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(cookieName, $"XSRF-TOKEN-{OptionsAtStartup.Web.Port}", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(cookieName, "XSRF-COOKIE", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(cookieName, "XSRF-TOKEN", StringComparison.OrdinalIgnoreCase))
-                    {
-                        removed = true;
-                        continue;
-                    }
-
-                    filteredSegments.Add(segment);
-                }
-            }
-
-            if (!removed)
-            {
-                return false;
-            }
-
-            if (filteredSegments.Count == 0)
-            {
-                context.Request.Headers.Remove("Cookie");
-            }
-            else
-            {
-                context.Request.Headers.Cookie = string.Join("; ", filteredSegments);
-            }
-
-            context.Features.Set<Microsoft.AspNetCore.Http.Features.IRequestCookiesFeature>(
-                new Microsoft.AspNetCore.Http.Features.RequestCookiesFeature(context.Features));
-
-            return true;
+            return Core.Security.AntiforgeryCookieRecovery.StripKnownCookiesFromRequest(context, OptionsAtStartup.Web.Port);
         }
 
         internal static void ClearKnownAntiforgeryCookies(HttpContext context)
         {
-            var options = new CookieOptions
-            {
-                Path = "/",
-                Secure = context.Request.IsHttps,
-                SameSite = SameSiteMode.Strict,
-            };
-
-            context.Response.Cookies.Delete($"XSRF-COOKIE-{OptionsAtStartup.Web.Port}", options);
-            context.Response.Cookies.Delete($"XSRF-TOKEN-{OptionsAtStartup.Web.Port}", options);
-            context.Response.Cookies.Delete("XSRF-COOKIE", options);
-            context.Response.Cookies.Delete("XSRF-TOKEN", options);
-        }
-
-        private static IEnumerable<Exception> FlattenExceptions(Exception exception)
-        {
-            if (exception is AggregateException aggregateException)
-            {
-                foreach (var innerException in aggregateException.Flatten().InnerExceptions)
-                {
-                    foreach (var flattenedInnerException in FlattenExceptions(innerException))
-                    {
-                        yield return flattenedInnerException;
-                    }
-                }
-
-                yield break;
-            }
-
-            yield return exception;
-
-            if (exception.InnerException is not null)
-            {
-                foreach (var innerException in FlattenExceptions(exception.InnerException))
-                {
-                    yield return innerException;
-                }
-            }
+            Core.Security.AntiforgeryCookieRecovery.ClearKnownCookies(context, OptionsAtStartup.Web.Port);
         }
 
     }

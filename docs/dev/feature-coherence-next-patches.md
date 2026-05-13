@@ -165,6 +165,11 @@ Initial Soulseek client option construction moved out of `Program.cs` into
 App-relative path resolution moved out of `Program.cs` into
 `Configuration/AppPathResolver.cs`, and web HTML asset rewrite rule construction
 moved into `Bootstrap/WebHtmlRewriteRules.cs`.
+Antiforgery stale-cookie recovery, request-cookie stripping, and stale-token
+classification moved out of `Program.cs` into
+`Core/Security/AntiforgeryCookieRecovery.cs`.
+Startup configuration provider composition moved out of `Program.cs` into
+`Configuration/SlskdConfigurationBuilderExtensions.cs`.
 
 Target modules:
 
@@ -214,6 +219,12 @@ Target modules:
   write-path resolution.
 - `WebHtmlRewriteRules.Create(...)`. Implemented for URL-base-aware web asset
   rewrite rules.
+- `AntiforgeryCookieRecovery`. Implemented for stale antiforgery token
+  detection, stale cookie stripping, and retrying token issuance after key-ring
+  mismatch.
+- `AddSlskdConfigurationProviders(...)`. Implemented for default values,
+  environment variables, YAML, command-line values, and volatile overlay
+  configuration source composition.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
@@ -236,7 +247,9 @@ Acceptance criteria:
   focused configuration helper, and expected Soulseek network exception
   classification plus initial Soulseek client option construction are now owned
   by focused helpers. App-relative path resolution and web HTML rewrite rules
-  are also now owned by focused helpers.
+  are also now owned by focused helpers. Antiforgery stale-cookie recovery is
+  now owned by a focused security helper, and configuration provider composition
+  is now owned by a focused configuration extension.
 - Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 

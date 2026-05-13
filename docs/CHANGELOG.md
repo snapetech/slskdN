@@ -145,6 +145,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
   focused helper.
 - Moved app-relative path resolution and web HTML rewrite rule construction out
   of `Program.cs` into focused helpers.
+- Moved antiforgery stale-cookie recovery and stale-token classification out of
+  `Program.cs` into a focused security helper.
+- Moved startup configuration provider composition out of `Program.cs` into a
+  focused configuration extension.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

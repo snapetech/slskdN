@@ -1,3 +1,32 @@
+## Update 2026-05-13 13:54:37Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - moved startup configuration provider composition into `Configuration/SlskdConfigurationBuilderExtensions`;
+  - kept Program responsible for choosing the configuration file, reload posture, volatile overlay source, and startup logger.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests" --no-restore` (`36/36`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Continue Program.cs decomposition with the next bounded helper cluster, likely certificate generation, shutdown/logging helpers, or remaining QUIC overlay construction wrappers.
+  2. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
+## Update 2026-05-13 13:49:54Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - moved stale antiforgery token detection, stale XSRF cookie stripping, cookie clearing, and retry-on-key-ring-mismatch token issuance into `Core/Security/AntiforgeryCookieRecovery`;
+  - kept existing `Program` wrappers for current call sites and tests;
+  - documented and separately committed the extracted-helper namespace qualification gotcha.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests" --no-restore` (`36/36`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Continue Program.cs decomposition with the next bounded helper cluster, likely configuration provider setup, certificate generation, or shutdown/logging helpers.
+  2. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 13:45:26Z
 
 - Current task: Program.cs decomposition follow-up in progress.
