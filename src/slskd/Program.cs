@@ -335,11 +335,25 @@ namespace slskd
             IsRelayAgent = OptionsAtStartup.Relay.Enabled && OptionsAtStartup.Relay.Mode.ToEnum<RelayMode>() == RelayMode.Agent;
             Flags = OptionsAtStartup.Flags;
 
-            ConfigureGlobalLogger();
+            Log = StartupLogging.Configure(
+                OptionsAtStartup,
+                AppName,
+                LogDirectory,
+                InvocationId,
+                ProcessId,
+                record =>
+                {
+                    LogBuffer.Enqueue(record);
+                    RaiseLogEmitted(record);
+                });
             Log = Serilog.Log.ForContext(typeof(Program));
 
             // Install hard telemetry to catch silent exits
-            InstallShutdownTelemetry();
+            StartupShutdownTelemetry.Install(
+                () => Application.IsShuttingDown,
+                StartupExceptionClassifier.IsBenignUnobservedTaskException,
+                SoulseekExceptions.SoulseekNetworkExceptionClassifier.IsExpected,
+                () => Log);
 
             var startupDiagnosticsContext = new StartupDiagnosticsContext(
                 FullVersion,
@@ -384,30 +398,6 @@ namespace slskd
                 OptionsAtStartup,
                 Log,
                 Exit);
-        }
-
-        private static void ConfigureGlobalLogger()
-        {
-            Log = StartupLogging.Configure(
-                OptionsAtStartup,
-                AppName,
-                LogDirectory,
-                InvocationId,
-                ProcessId,
-                record =>
-                {
-                    LogBuffer.Enqueue(record);
-                    RaiseLogEmitted(record);
-                });
-        }
-
-        private static void InstallShutdownTelemetry()
-        {
-            StartupShutdownTelemetry.Install(
-                () => Application.IsShuttingDown,
-                StartupExceptionClassifier.IsBenignUnobservedTaskException,
-                SoulseekExceptions.SoulseekNetworkExceptionClassifier.IsExpected,
-                () => Log);
         }
 
     }

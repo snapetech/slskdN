@@ -7117,3 +7117,9 @@ Next steps: run lint, commit the console/certificate wrapper cleanup, then conti
 Continued Program.cs decomposition by moving startup SQLite initialization and missing-configuration recreation calls to extracted bootstrap helpers directly. `Program.cs` is now 414 lines. Build and focused Program/log lifecycle tests passed.
 
 Next steps: run lint, commit this startup helper wrapper cleanup, then continue with the last Program logging/shutdown wrapper cluster or non-pod MediaCore forms.
+
+## 2026-05-13T17:50:33Z Session update
+
+Continued Program.cs decomposition by moving startup logging configuration and shutdown telemetry installation calls to extracted bootstrap helpers directly. `Program.cs` is now 404 lines. Build and focused Program/log lifecycle tests passed.
+
+Next steps: run lint, commit this logging/shutdown wrapper cleanup, then re-scan for any remaining Program-owned startup wrappers or continue the remaining non-pod MediaCore reconciliation forms.

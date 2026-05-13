@@ -46,6 +46,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Moved startup SQLite initialization and missing-config recreation calls to
   use extracted bootstrap helpers directly, removing more private Program
   wrappers.
+- Moved startup logging configuration and shutdown telemetry installation calls
+  to extracted bootstrap helpers directly, removing the remaining Program
+  logging/shutdown wrappers.
 - Simplified MediaCore perceptual hash workflows by keeping similarity
   review/statistics as the default path and grouping raw audio/image hash
   computation behind advanced disclosure.
