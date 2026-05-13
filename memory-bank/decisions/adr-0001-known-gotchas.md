@@ -52,6 +52,37 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z402. Do Not Add Local `slskd.Soulseek` Namespaces
+
+**The Bug**: Extracting a helper into `namespace slskd.Soulseek` caused
+existing `Soulseek.*` references to bind against the local namespace instead of
+the vendor Soulseek package, producing hundreds of missing-type build errors.
+
+**Files Affected**:
+- `src/slskd/Soulseek/SoulseekNetworkExceptionClassifier.cs`
+- `src/slskd/Program.cs`
+
+**Wrong**:
+```csharp
+namespace slskd.Soulseek;
+
+return Soulseek.SoulseekNetworkExceptionClassifier.IsExpected(exception);
+```
+
+**Correct**:
+```csharp
+namespace slskd.SoulseekExceptions;
+
+return SoulseekExceptions.SoulseekNetworkExceptionClassifier.IsExpected(exception);
+```
+
+**Why This Keeps Happening**: The application already consumes the external
+`Soulseek` root namespace widely. Adding a local nested namespace with the same
+name changes unqualified namespace resolution inside `slskd` code, so fork
+helpers should use a distinct local namespace such as `SoulseekExceptions`,
+`SoulseekDiscovery`, or another feature-specific name. Also check for existing
+using aliases before choosing a helper namespace.
+
 ### 0z386. Self-Hosted Workflow Jobs Must Not Assume Dotnet Paths
 
 **The Bug**: PR checks in `ci-enhancements.yml` failed immediately on
