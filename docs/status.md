@@ -66,7 +66,7 @@ Candidates requiring classification:
 - Startup hardening now uses bind exposure analysis instead of treating “port enabled” as equivalent to “non-loopback bind”; broader startup matrix tests still need to be added around full host construction.
 - `HashFromAudioFileEnabled` is known-unavailable by startup validation and has no public command-line or environment toggle; any future re-exposure needs a real PCM extraction capability check.
 - Experimental feature gates now exist for high-risk surfaces. SongID, mesh, DHT, pods, social federation, VirtualSoulfind, and multi-source APIs are gated and remain enabled by default through their `feature.*` switches.
-- Dependency ownership has an initial call-site-backed inventory in `docs/dependencies.md`; `dotNetRDF`, `MathNet.Numerics`, and build-task packages still need pruning or relocation decisions.
+- Dependency ownership has an initial call-site-backed inventory in `docs/dependencies.md`; `dotNetRDF` and `MathNet.Numerics` were removed after no active runtime call sites were found, while build-task packages still need relocation decisions.
 - Custom build quality tasks are loaded from the application assembly, which is fragile and should be split into a build-tasks project.
 - Analyzer suppressions need documented reasons and reduction over time.
 - Download flow needs regression tests before experimental rescue/swarm/ranking code is refactored around it.

@@ -34,10 +34,10 @@ rg "MonoTorrent|AWSSDK|dotNetRDF|Zeroconf|MathNet|Microsoft.CodeAnalysis|Microso
 | Mono.Nat | NAT/port mapping | experimental-feature | Gate under mesh/VPN/network features. |
 | MonoTorrent | DHT rendezvous and BitTorrent-backed swarm experiments | experimental-feature | Gated by DHT/multi-source surfaces; confirm public bootstrap policy in runtime docs. |
 | NSec.Cryptography | Mesh transport signing and ActivityPub key/signature work | experimental-feature | Keep with mesh/social federation gates; expand protocol tests before stable claims. |
-| MathNet.Numerics | Ranking/SongID/analytics math | unknown | No active call site found in `src/slskd`; remove unless a concrete call site appears. |
+| MathNet.Numerics | Ranking/SongID/analytics math | removed | Removed after no active call site was found in `src/slskd`; re-add only with a concrete owner. |
 | AWSSDK.S3 | VirtualSoulfind v2 S3 backend | experimental-feature | Gated by VirtualSoulfind; document credential/egress behavior before stable claims. |
 | Zeroconf | Identity/Friends LAN discovery (`LanDiscoveryService`) | experimental-feature | Gate via identity/friends or discovery posture; document multicast behavior. |
-| dotNetRDF | Solid/WebID roadmap/docs | unused | No active `VDS.RDF` call site found in `src/slskd`; remove unless Solid implementation lands. |
+| dotNetRDF | Solid/WebID roadmap/docs | removed | Removed after no active `VDS.RDF` call site was found in `src/slskd`; re-add only when Solid parsing lands. |
 | Dapper | VirtualSoulfind v2 SQLite catalogue store | experimental-feature | Gated by VirtualSoulfind; acceptable while catalogue store remains active. |
 | MessagePack | Mesh/protocol serialization | experimental-feature | Gate under protocol features. |
 | System.Reactive | VirtualSoulfind disaster-mode transfer progress subjects | experimental-feature | Gated by VirtualSoulfind; keep while `MeshTransferService` uses `Subject<T>`. |

@@ -143,8 +143,6 @@ Status: first pass complete. `docs/dependencies.md` now classifies active runtim
 
 Remaining follow-up:
 
-- Remove `dotNetRDF` unless an active Solid/WebID implementation lands.
-- Remove `MathNet.Numerics` unless a concrete ranking/SongID/analytics call site appears.
 - Move Microsoft.Build and Microsoft.CodeAnalysis tooling out of the runtime app project.
 - Decide whether telemetry/metrics and LAN discovery need explicit feature gates beyond existing options.
 
