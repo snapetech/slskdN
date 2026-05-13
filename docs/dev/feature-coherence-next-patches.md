@@ -153,6 +153,9 @@ reanalyze migration, and forced construction of event-subscriber integrations,
 moved out of `Program.cs` into `Bootstrap/ApplicationStartupTaskExtensions.cs`.
 Web listener/Kestrel configuration moved out of `Program.cs` into
 `Bootstrap/WebHostConfigurationExtensions.cs`.
+Application run/lifecycle hooks, E2E server probes, and LAN discovery
+advertising start/stop moved out of `Program.cs` into
+`Bootstrap/ApplicationRunExtensions.cs`.
 
 Target modules:
 
@@ -189,6 +192,8 @@ Target modules:
 - `RunSlskdStartupTasks(...)`. Implemented for database migrations, optional
   audio reanalysis, and event-subscriber integration construction.
 - `ConfigureSlskdWebHost(...)`. Implemented for web listener/Kestrel setup.
+- `RunSlskdApplication(...)`. Implemented for application run/lifecycle hooks,
+  E2E server probes, and LAN discovery advertising start/stop.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
@@ -206,7 +211,8 @@ Acceptance criteria:
   separate. The remaining coordinator module only delegates to named bootstrap
   modules, and E2E host diagnostics plus post-build startup tasks are also
   owned by bootstrap extensions. Web listener/Kestrel setup is also owned by a
-  bootstrap extension.
+  bootstrap extension, and app run/lifecycle hooks are now owned by a bootstrap
+  extension.
 - Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 

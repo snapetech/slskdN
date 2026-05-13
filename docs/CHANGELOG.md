@@ -134,6 +134,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   and cleanup controls behind progressive disclosure.
 - Moved web listener/Kestrel setup out of `Program.cs` into a web host
   configuration bootstrap extension.
+- Moved application run/lifecycle hooks, E2E server probes, and LAN discovery
+  advertising start/stop out of `Program.cs` into a bootstrap extension.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.
