@@ -7337,15 +7337,3 @@ Integrated the other agent's mesh streaming work into main instead of treating i
 Validation: `dotnet build src/slskd/slskd.csproj --no-restore` passed with zero warnings, and focused backend unit tests passed (`36/36`) for mesh streams, peer streams, and SearchActions.
 
 Next steps: commit and push this mesh streaming merge slice, then re-check branch cleanliness before deleting any obsolete branch refs.
-
-## 2026-05-13T20:25:00Z Session update
-
-Audited all upstream `slskd/slskd` PRs and issues updated since 2025-12-01 and wrote the local slskdN action intake note at `docs/dev/upstream-intake-action-notes-2026-05-13.md`. The note groups follow-up work by release blockers, high-value near-term items, security hardening, packaging, UI polish, runtime-fork watchlist, already-covered local items, and lower-priority holding items, with the full screened source inventory included.
-
-Next steps: triage the release-blocking candidates from the intake note before cutting the next release, starting with path traversal/encoded path handling, streaming authorization/range tests, transfer timeout/retry state, blacklist/group matching, and config migration compatibility.
-
-## 2026-05-13T20:45:00Z Session update
-
-Reconciled the intake list against existing slskdN code and avoided duplicate work. Built the concrete gaps found in this pass: peer/mesh stream ticket filename hardening, mesh expected-hash validation, and config compatibility warning tests. Focused backend and frontend tests verified the already-present transfer retry/batch, upload cancel/remove, queue-position, clear-search, saved-filter, group validation, blacklist, and Wishlist/Lidarr coverage.
-
-Next steps: run broader validation (`dotnet build`, `./bin/lint`, and relevant frontend lint/build) before committing this hardening slice. Larger product expansions from the intake note remain intentionally deferred unless prioritized as feature work.
