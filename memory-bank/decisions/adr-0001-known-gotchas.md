@@ -363,6 +363,39 @@ send the expected acknowledgement because the client is already in the room."
 Treat this path as a degraded open/join success so the UI can open the room and
 subsequent room events can fill in users/messages.
 
+### 0z396. Backend Room Directory Must Cache Last Good Snapshot
+
+**The Bug**: `/api/v0/rooms/available` returned `[]` on every transient
+Soulseek room-list timeout. The live server often times out several requests in
+a row before returning data, so search suggestions could disappear even after a
+successful room directory fetch.
+
+**Files Affected**:
+- `src/slskd/Messaging/API/Controllers/RoomsController.cs`
+- `tests/slskd.Tests.Unit/Messaging/RoomsControllerTests.cs`
+
+**Wrong**:
+```csharp
+catch (TimeoutException)
+{
+    return Ok(Array.Empty<RoomInfoResponse>());
+}
+```
+
+**Correct**:
+```csharp
+catch (TimeoutException)
+{
+    return Ok(GetLastKnownRoomDirectory());
+}
+```
+
+**Why This Keeps Happening**: The Soulseek room directory is optional and
+eventually available, but not reliable enough to treat each timeout as a fresh
+empty directory. Cache the last successful server snapshot in the backend so
+all clients get stable suggestions across transient room-list no-response
+windows.
+
 ### 0z384. Render-Time Work Must Not Scale With Hidden Or Unchanged Data
 
 **The Bug**: Performance fixes removed first-load blockers, but some render
