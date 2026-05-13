@@ -4,6 +4,10 @@ This guide maps the current System area to the operator work it supports.
 Advanced features should be controlled from these guided surfaces where
 possible, with raw YAML left as the escape hatch.
 
+The System tab menu labels admin and experimental panels directly. Keep those
+labels current when a panel changes maturity or starts exposing privileged
+actions.
+
 ## Start Here
 
 - **System -> Info**: daemon status, version, pending restart/reconnect signals,

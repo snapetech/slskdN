@@ -10247,3 +10247,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T18:04:47Z] Parity/reconciliation status cleanup: reconciled G5 to show the remaining work has moved from obvious MediaCore mutation-form disclosure to broader guided flows, System panel grouping, and validation of advanced/admin labeling.
 
 [2026-05-13T18:08:19Z] G5 System grouping cleanup: labeled System admin and experimental panels in the tab menu so advanced surfaces are visible at navigation time. Focused System component tests (`2/2`) and focused Web lint passed.
+
+[2026-05-13T18:10:58Z] G5 route/UI parity doc cleanup: updated the route/UI parity matrix and System surfaces guide to treat MediaCore form-disclosure work as mostly covered and to keep System admin/experimental labels current as feature panels move.

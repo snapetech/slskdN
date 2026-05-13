@@ -64,6 +64,18 @@
   1. Continue G5 guided-flow work or run broader validation for the reconciliation pass.
   2. Keep Program.cs decomposition closed for this pass unless a concrete regression or wrapper reappears.
 
+## Update 2026-05-13 18:10:58Z
+
+- Current task: parity/reconciliation follow-up in progress.
+- Last activity:
+  - updated the route/UI parity matrix for MediaCore form-disclosure completion and System admin/experimental label maintenance;
+  - updated the System surfaces guide to document that those navigation labels should stay current.
+- Validation:
+  - Documentation/status-only change after focused System component tests and focused Web lint passed.
+- Next steps:
+  1. Run broader reconciliation validation or continue G5 guided-flow work.
+  2. Keep Program.cs decomposition closed for this pass unless a concrete regression or wrapper reappears.
+
 ## Update 2026-05-13 16:56:30Z
 
 - Current task: Program.cs decomposition follow-up in progress.
