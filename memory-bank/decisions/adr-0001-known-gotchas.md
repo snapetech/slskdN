@@ -102,6 +102,15 @@ and enqueue but the download will time out waiting for remote enqueue. Use VPN
 configs/providers with working per-connection port forwarding, static forwarded
 ports, or a two-host routable setup.
 
+For Proton-style NAT-PMP, the public port is normally random. Do not require the
+mapped public port to equal the daemon's initially selected private port. For
+daemons like upstream `slskd` that do not expose a separate advertised-port
+setting, claim `public -> private`, rewrite `soulseek.listen_port` to the public
+port before login, and install a namespace redirect from the provider private
+port to the rewritten daemon listener. Also honor config metadata: test configs
+marked `NAT-PMP (Port Forwarding) = off` are valid outbound VPN configs but must
+not be used for live transfer tests that require inbound Soulseek reachability.
+
 ### 0z409. Classify Peer Transport Disconnects As Expected Download Failures
 
 **The Bug**: Download failures caused by remote transport behavior, such as
