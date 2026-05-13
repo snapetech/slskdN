@@ -84,6 +84,19 @@ public class PeerStreamsControllerTests
     }
 
     [Fact]
+    public void CreateTicket_UnexpectedValidationError_ReturnsGenericBadRequest()
+    {
+        var controller = CreateController();
+        _tickets.Setup(x => x.Create(It.IsAny<PeerStreamTicketRequest>(), It.IsAny<string>(), It.IsAny<TimeSpan>()))
+            .Throws(new ArgumentException("internal detail"));
+
+        var result = controller.CreateTicket(new PeerStreamTicketRequest("peer", "track.mp3", 10));
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Invalid peer stream ticket request.", badRequest.Value);
+    }
+
+    [Fact]
     public async Task Get_MissingTicket_ReturnsNotFound()
     {
         var controller = CreateController();

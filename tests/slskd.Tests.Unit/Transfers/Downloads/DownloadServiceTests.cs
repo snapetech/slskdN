@@ -15,10 +15,13 @@ using Microsoft.Extensions.Options;
 using Moq;
 using slskd.Events;
 using slskd.Files;
+using slskd.HashDb;
+using slskd.HashDb.Models;
 using slskd.Integrations.FTP;
 using slskd.Relay;
 using slskd.Tests.Unit;
 using slskd.Transfers;
+using slskd.Transfers.AutoReplace;
 using slskd.Transfers.Downloads;
 using Soulseek;
 using Xunit;
@@ -492,6 +495,87 @@ public class DownloadServiceTests
             now);
 
         Assert.Equal(new[] { retriedManyTimes.Id }, plan.Select(t => t.Id));
+    }
+
+    [Fact]
+    public async Task ResolveRetryTargetAsync_PrefersCooledDownHashDbAlternate()
+    {
+        var now = DateTime.UtcNow;
+        var failed = CreateFailedDownload("alice", @"Album\track.flac", now.AddMinutes(-40), size: 1234);
+        var hashDb = new Mock<IHashDbService>();
+        hashDb.Setup(x => x.GetFlacEntriesBySizeAsync(1234, 50, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new FlacInventoryEntry { PeerId = "alice", Path = @"Album\track.flac", Size = 1234 },
+                new FlacInventoryEntry { PeerId = "bob", Path = @"Other\track.flac", Size = 1234 },
+            });
+
+        var service = CreateAutoRetryService(hashDb: hashDb.Object);
+
+        var target = await service.ResolveRetryTargetAsync(
+            failed,
+            new slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions(),
+            now,
+            allowNetworkSearch: true,
+            CancellationToken.None);
+
+        Assert.Equal("bob", target.Username);
+        Assert.Equal(@"Other\track.flac", target.Filename);
+        Assert.Equal("hashdb", target.SourceKind);
+        Assert.False(target.UsedNetworkSearch);
+    }
+
+    [Fact]
+    public async Task ResolveRetryTargetAsync_UsesBoundedSearchWhenLocalCandidateUnavailable()
+    {
+        var now = DateTime.UtcNow;
+        var failed = CreateFailedDownload("alice", @"Album\track.flac", now.AddMinutes(-40), size: 1234);
+        var hashDb = new Mock<IHashDbService>();
+        hashDb.Setup(x => x.GetFlacEntriesBySizeAsync(1234, 50, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<FlacInventoryEntry>());
+
+        var autoReplace = new Mock<IAutoReplaceService>();
+        autoReplace.Setup(x => x.FindAlternativesAsync(
+                It.Is<FindAlternativeRequest>(r => r.Username == "alice" && r.Filename == failed.Filename && r.Size == failed.Size),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<AlternativeCandidate>
+            {
+                new() { Username = "carol", Filename = @"Other\track.flac", Size = 1234 },
+            });
+
+        var service = CreateAutoRetryService(hashDb: hashDb.Object, autoReplace: autoReplace.Object);
+
+        var target = await service.ResolveRetryTargetAsync(
+            failed,
+            new slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions(),
+            now,
+            allowNetworkSearch: true,
+            CancellationToken.None);
+
+        Assert.Equal("carol", target.Username);
+        Assert.Equal("search", target.SourceKind);
+        Assert.True(target.UsedNetworkSearch);
+    }
+
+    [Fact]
+    public async Task ResolveRetryTargetAsync_FallsBackToOriginalWhenNetworkSearchBudgetUnavailable()
+    {
+        var now = DateTime.UtcNow;
+        var failed = CreateFailedDownload("alice", @"Album\track.flac", now.AddMinutes(-40), size: 1234);
+        var autoReplace = new Mock<IAutoReplaceService>(MockBehavior.Strict);
+        var service = CreateAutoRetryService(autoReplace: autoReplace.Object);
+
+        var target = await service.ResolveRetryTargetAsync(
+            failed,
+            new slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions(),
+            now,
+            allowNetworkSearch: false,
+            CancellationToken.None);
+
+        Assert.Equal("alice", target.Username);
+        Assert.Equal(failed.Filename, target.Filename);
+        Assert.Equal("original", target.SourceKind);
+        Assert.False(target.UsedNetworkSearch);
     }
 
     [Fact]
@@ -1054,6 +1138,21 @@ public class DownloadServiceTests
             new EventBus(eventService.Object));
     }
 
+    private static DownloadAutoRetryService CreateAutoRetryService(
+        IHashDbService? hashDb = null,
+        IAutoReplaceService? autoReplace = null)
+    {
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient.SetupGet(client => client.State).Returns(SoulseekClientStates.Connected);
+
+        return new DownloadAutoRetryService(
+            Mock.Of<IDownloadService>(),
+            soulseekClient.Object,
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            hashDb,
+            autoReplace);
+    }
+
     private static async Task WaitUntilAsync(Func<bool> predicate, TimeSpan timeout)
     {
         var startedAt = DateTime.UtcNow;
@@ -1094,14 +1193,14 @@ public class DownloadServiceTests
             _ => throw new ArgumentOutOfRangeException(nameof(failureKind)),
         };
 
-    private static slskd.Transfers.Transfer CreateFailedDownload(string username, string filename, DateTime endedAt)
+    private static slskd.Transfers.Transfer CreateFailedDownload(string username, string filename, DateTime endedAt, long size = 1234)
         => new()
         {
             Id = Guid.NewGuid(),
             Username = username,
             Direction = TransferDirection.Download,
             Filename = filename,
-            Size = 1234,
+            Size = size,
             RequestedAt = endedAt.AddMinutes(-5),
             EndedAt = endedAt,
             State = TransferStates.Completed | TransferStates.Errored,

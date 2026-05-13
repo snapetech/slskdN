@@ -42,6 +42,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Kept download auto-retry enabled while making its Soulseek retry policy more
   conservative with slower scans, per-peer cooldowns, global/per-peer per-cycle
   retry budgets, and unlimited retries by default.
+- Added polite alternate-source selection for auto-retry, preferring cooled-down
+  local HashDb candidates and limiting network alternative searches per scan.
 - Reduced warning noise for normal peer-side download denial/failure events
   while leaving transfer failure handling intact.
 - Preserved peer and mesh preview stream validation messages in ticket API

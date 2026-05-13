@@ -1400,6 +1400,23 @@ namespace slskd
                     /// </summary>
                     [Range(60, 86400)]
                     public int PeerCooldownSeconds { get; init; } = 900;
+
+                    /// <summary>
+                    ///     Gets a value indicating whether auto-retry can try alternate sources before falling back to the original peer.
+                    /// </summary>
+                    public bool AlternateSourcesEnabled { get; init; } = true;
+
+                    /// <summary>
+                    ///     Gets the maximum number of network alternative-source searches started in one auto-retry scan.
+                    /// </summary>
+                    [Range(0, 10)]
+                    public int MaxAlternateSourceSearchesPerCycle { get; init; } = 1;
+
+                    /// <summary>
+                    ///     Gets the maximum size difference percentage accepted for alternate-source retry candidates.
+                    /// </summary>
+                    [Range(0, 100)]
+                    public double AlternateSourceSizeTolerancePercent { get; init; } = 5.0;
                 }
             }
         }

@@ -92,6 +92,9 @@
 #       max_files_per_cycle: 10 # global Soulseek retry budget per scan
 #       max_files_per_peer_per_cycle: 1 # avoid repeatedly hitting one remote peer in a scan
 #       peer_cooldown_seconds: 900 # wait this long before contacting the same peer again via auto-retry
+#       alternate_sources_enabled: true # prefer cooled-down alternate sources from local HashDb/search before retrying the same peer
+#       max_alternate_source_searches_per_cycle: 1 # bounded network searches per scan when local evidence has no alternate
+#       alternate_source_size_tolerance_percent: 5 # maximum size difference for alternate-source retry candidates
 #     auto_replace_stuck: true
 #     auto_replace_threshold: 5.0
 #     auto_replace_interval: 60

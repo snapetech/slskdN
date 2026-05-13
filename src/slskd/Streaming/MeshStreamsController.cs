@@ -66,7 +66,7 @@ public sealed class MeshStreamsController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(ToTicketValidationMessage(ex));
         }
         catch (InvalidOperationException)
         {
@@ -108,4 +108,16 @@ public sealed class MeshStreamsController : ControllerBase
     {
         return User.FindFirstValue(ClaimTypes.Name) ?? CurrentUserId;
     }
+
+    private static string ToTicketValidationMessage(ArgumentException exception)
+        => exception.Message switch
+        {
+            "Expected size must be greater than or equal to zero." => "Expected size must be greater than or equal to zero.",
+            "ContentId is required." => "ContentId is required.",
+            "PeerId is required." => "PeerId is required.",
+            "Filename is required." => "Filename is required.",
+            "Expected hash must be a SHA-256 hex digest." => "Expected hash must be a SHA-256 hex digest.",
+            "Only audio files can be preview streamed from mesh peers." => "Only audio files can be preview streamed from mesh peers.",
+            _ => "Invalid mesh stream ticket request.",
+        };
 }

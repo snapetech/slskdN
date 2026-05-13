@@ -65,6 +65,19 @@ public class MeshStreamsControllerTests
     }
 
     [Fact]
+    public void CreateTicket_UnexpectedValidationError_ReturnsGenericBadRequestMessage()
+    {
+        var controller = CreateController();
+        _tickets.Setup(x => x.Create(It.IsAny<MeshStreamTicketRequest>(), It.IsAny<string>(), It.IsAny<TimeSpan>()))
+            .Throws(new ArgumentException("internal detail"));
+
+        var result = controller.CreateTicket(new MeshStreamTicketRequest("content-1", "track.mp3", "peer-1", 10, null));
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Invalid mesh stream ticket request.", badRequest.Value);
+    }
+
+    [Fact]
     public async Task Get_ValidTicket_ReturnsNonRangeFileStream()
     {
         await using var stream = new MemoryStream(new byte[] { 1, 2, 3 });

@@ -64,7 +64,7 @@ public sealed class PeerStreamsController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(ToTicketValidationMessage(ex));
         }
         catch (InvalidOperationException)
         {
@@ -106,4 +106,14 @@ public sealed class PeerStreamsController : ControllerBase
     {
         return User.FindFirstValue(ClaimTypes.Name) ?? CurrentUserId;
     }
+
+    private static string ToTicketValidationMessage(ArgumentException exception)
+        => exception.Message switch
+        {
+            "Size must be greater than or equal to zero." => "Size must be greater than or equal to zero.",
+            "Username is required." => "Username is required.",
+            "Filename is required." => "Filename is required.",
+            "Only audio files can be preview streamed from peers." => "Only audio files can be preview streamed from peers.",
+            _ => "Invalid peer stream ticket request.",
+        };
 }
