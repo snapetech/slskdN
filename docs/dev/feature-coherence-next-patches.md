@@ -174,6 +174,10 @@ Startup filesystem checks, missing configuration-file recreation, and generated
 certificate export moved out of `Program.cs` into `Bootstrap/StartupFileSystem.cs`.
 QUIC overlay client/server construction and standalone UDP overlay selection
 moved out of `Program.cs` into `Mesh/Overlay/QuicOverlayFactory.cs`.
+Serilog startup configuration moved out of `Program.cs` into
+`Bootstrap/StartupLogging.cs`, and shutdown/unobserved-exception telemetry moved
+into `Bootstrap/StartupShutdownTelemetry.cs` while `Program` retains the public
+log event and buffer surface.
 
 Target modules:
 
@@ -233,6 +237,10 @@ Target modules:
   configuration-file recreation, and generated certificate export.
 - `QuicOverlayFactory`. Implemented for QUIC overlay/data client construction,
   overlay server construction, and standalone UDP overlay selection.
+- `StartupLogging.Configure(...)`. Implemented for global Serilog setup and
+  log-record emission into the existing Program log event/buffer surface.
+- `StartupShutdownTelemetry.Install(...)`. Implemented for process-exit,
+  unhandled-exception, and unobserved-task telemetry wiring.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
@@ -260,7 +268,8 @@ Acceptance criteria:
   is now owned by a focused configuration extension. Startup filesystem checks,
   config recreation, and certificate export are now owned by a focused
   bootstrap helper. QUIC overlay construction and standalone UDP overlay
-  selection are now owned by a focused mesh helper.
+  selection are now owned by a focused mesh helper. Global logging setup and
+  shutdown telemetry wiring are now owned by focused bootstrap helpers.
 - Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 

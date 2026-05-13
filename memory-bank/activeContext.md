@@ -1,3 +1,19 @@
+## Update 2026-05-13 15:49:21Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - moved global Serilog setup into `Bootstrap/StartupLogging`;
+  - moved process-exit, unhandled-exception, and unobserved-task telemetry wiring into `Bootstrap/StartupShutdownTelemetry`;
+  - kept Program's public `LogEmitted`/`LogBuffer` surface and private `RaiseLogEmitted` wrapper intact.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests|FullyQualifiedName~SharedEventEmitterTests|FullyQualifiedName~ApplicationLifecycleTests|FullyQualifiedName~LogsControllerTests" --no-restore` (`47/47`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Continue Program.cs decomposition with remaining primitive CLI/help/version/SQLite helpers if worth extracting.
+  2. Re-scan the parity/reconciliation plan for any non-Program follow-ups still open.
+  3. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 14:53:23Z
 
 - Current task: Program.cs decomposition follow-up in progress.

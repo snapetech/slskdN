@@ -154,6 +154,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   helper.
 - Moved QUIC overlay client/server construction and standalone UDP overlay
   selection out of `Program.cs` into a focused mesh helper.
+- Moved global Serilog setup and shutdown/unobserved-exception telemetry wiring
+  out of `Program.cs` into focused bootstrap helpers.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

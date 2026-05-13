@@ -777,87 +777,17 @@ namespace slskd
 
         private static void ConfigureGlobalLogger()
         {
-            Serilog.Log.Logger = (OptionsAtStartup.Debug ? new LoggerConfiguration().MinimumLevel.Debug() : new LoggerConfiguration().MinimumLevel.Information())
-                .MinimumLevel.Override("Microsoft", LogEventLevel.Error)
-                .MinimumLevel.Override("System.Net.Http.HttpClient", OptionsAtStartup.Debug ? LogEventLevel.Warning : LogEventLevel.Fatal)
-                .MinimumLevel.Override("slskd.Authentication.PassthroughAuthenticationHandler", LogEventLevel.Warning)
-                .MinimumLevel.Override("slskd.Authentication.ApiKeyAuthenticationHandler", LogEventLevel.Warning)
-                .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning) // bump this down to Information to show SQL
-                .Enrich.WithProperty("InstanceName", OptionsAtStartup.InstanceName)
-                .Enrich.WithProperty("InvocationId", InvocationId)
-                .Enrich.WithProperty("ProcessId", ProcessId)
-                .Enrich.FromLogContext()
-                .WriteTo.Console(
-                    theme: (OptionsAtStartup.Logger.NoColor || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("NO_COLOR"))) ? ConsoleTheme.None : SystemConsoleTheme.Literate,
-                    outputTemplate: (OptionsAtStartup.Debug ? "[{SourceContext}] " : string.Empty) + "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
-                .WriteTo.Async(config =>
-                    config.Conditional(
-                        e => OptionsAtStartup.Logger.Disk,
-                        config => config.File(
-                            Path.Combine(LogDirectory, $"{AppName}-.log"),
-                            outputTemplate: (OptionsAtStartup.Debug ? "[{SourceContext}] " : string.Empty) + "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
-                            rollingInterval: RollingInterval.Day,
-                            retainedFileTimeLimit: TimeSpan.FromDays(OptionsAtStartup.Retention.Logs))))
-                .WriteTo.Conditional(
-                    e => !string.IsNullOrEmpty(OptionsAtStartup.Logger.Loki),
-                    config => config.GrafanaLoki(
-                        OptionsAtStartup.Logger.Loki ?? string.Empty,
-                        textFormatter: new MessageTemplateTextFormatter("[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}", null)))
-                .WriteTo.Sink(new DelegatingSink(logEvent =>
+            Log = StartupLogging.Configure(
+                OptionsAtStartup,
+                AppName,
+                LogDirectory,
+                InvocationId,
+                ProcessId,
+                record =>
                 {
-                    string message = string.Empty;
-
-                    try
-                    {
-                        message = logEvent.RenderMessage();
-
-                        if (logEvent.Exception != null)
-                        {
-                            message = $"{message}: {logEvent.Exception}";
-                        }
-
-                        var record = new LogRecord()
-                        {
-                            Timestamp = logEvent.Timestamp.LocalDateTime,
-                            Context = logEvent.Properties["SourceContext"].ToString().TrimStart('"').TrimEnd('"'),
-                            SubContext = logEvent.Properties.ContainsKey("SubContext") ? logEvent.Properties["SubContext"].ToString().TrimStart('"').TrimEnd('"') : string.Empty,
-                            Level = logEvent.Level.ToString(),
-                            Message = message.TrimStart('"').TrimEnd('"'),
-                        };
-
-                        LogBuffer.Enqueue(record);
-                        RaiseLogEmitted(record);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error("Misconfigured delegating logger: {Exception}.  Message: {Message}", ex.Message, message);
-                    }
-                }))
-                .CreateLogger();
-
-            if (OptionsAtStartup.Flags.LogUnobservedExceptions)
-            {
-                // log Exceptions raised on fired-and-forgotten tasks, which adds very little value but might help debug someday
-                TaskScheduler.UnobservedTaskException += (sender, e) =>
-                {
-                    Serilog.Log.Logger.Error(e.Exception, "Unobserved exception: {Message}", e.Exception.Message);
-                    e.SetObserved();
-                };
-            }
-
-            AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
-            {
-                var exception = e.ExceptionObject as Exception;
-
-                if (e.IsTerminating)
-                {
-                    Serilog.Log.Logger.Fatal(exception, "Unhandled fatal exception: {Message}", e.IsTerminating);
-                }
-                else
-                {
-                    Serilog.Log.Logger.Error(exception, "Unhandled exception: {Message}", exception?.Message ?? "Unknown exception");
-                }
-            };
+                    LogBuffer.Enqueue(record);
+                    RaiseLogEmitted(record);
+                });
         }
 
         private static void RecreateConfigurationFileIfMissing(string configurationFile)
@@ -1044,98 +974,11 @@ namespace slskd
 
         private static void InstallShutdownTelemetry()
         {
-            // Install hard telemetry to catch silent exits and unhandled exceptions
-            // This ensures we always know WHY the process terminated
-            AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
-            {
-                var expectedShutdown = Application.IsShuttingDown;
-                var msg = expectedShutdown
-                    ? "ProcessExit event fired during expected shutdown"
-                    : "[FATAL] ProcessExit event fired - process terminating";
-                if (!expectedShutdown)
-                {
-                    Console.Error.WriteLine(msg);
-                }
-
-                try
-                {
-                    if (expectedShutdown)
-                    {
-                        Log?.Information(msg);
-                    }
-                    else
-                    {
-                        Log?.Fatal(msg);
-                    }
-                }
-                catch
-                {
-                }
-            };
-
-            AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
-            {
-                var ex = e.ExceptionObject as Exception;
-                var msg = $"[FATAL] Unhandled exception: {ex?.Message ?? e.ExceptionObject?.ToString() ?? "unknown"}";
-                Console.Error.WriteLine(msg);
-                Console.Error.WriteLine(ex?.StackTrace ?? "no stack trace");
-                try
-                {
-                    Log?.Fatal(ex, msg);
-                }
-                catch
-                {
-                }
-            };
-
-            TaskScheduler.UnobservedTaskException += (sender, e) =>
-            {
-                if (IsBenignUnobservedTaskException(e.Exception))
-                {
-                    var msg = $"[WARN] Ignoring benign unobserved task exception: {e.Exception.Message}";
-                    Console.Error.WriteLine(msg);
-                    try
-                    {
-                        Log?.Warning(e.Exception, msg);
-                    }
-                    catch
-                    {
-                    }
-
-                    e.SetObserved();
-                    return;
-                }
-
-                var baseException = e.Exception.GetBaseException();
-
-                if (IsExpectedSoulseekNetworkException(e.Exception))
-                {
-                    var warningMessage = $"Ignoring expected Soulseek peer/distributed network exception: {baseException.Message}";
-                    try
-                    {
-                        Log?.Debug(baseException, warningMessage);
-                    }
-                    catch
-                    {
-                    }
-
-                    e.SetObserved();
-                    return;
-                }
-
-                var fatalMessage = $"[FATAL] Unobserved task exception: {e.Exception.Message}";
-                Console.Error.WriteLine(fatalMessage);
-                Console.Error.WriteLine(e.Exception.StackTrace);
-                try
-                {
-                    Log?.Fatal(e.Exception, fatalMessage);
-                }
-                catch
-                {
-                }
-
-                e.SetObserved(); // Prevent process termination
-            };
+            StartupShutdownTelemetry.Install(
+                () => Application.IsShuttingDown,
+                IsBenignUnobservedTaskException,
+                IsExpectedSoulseekNetworkException,
+                () => Log);
         }
 
         [System.Runtime.Versioning.SupportedOSPlatform("linux")]
