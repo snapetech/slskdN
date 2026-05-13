@@ -33,6 +33,7 @@ namespace slskd.Transfers
                 Size = transfer.Size,
                 StartOffset = t.StartOffset,
                 BatchId = transfer.BatchId,
+                DestinationDirectory = transfer.DestinationDirectory,
                 Attempts = transfer.Attempts,
                 NextAttemptAt = transfer.NextAttemptAt,
                 State = t.State,

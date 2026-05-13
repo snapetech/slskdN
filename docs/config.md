@@ -650,6 +650,25 @@ soulseek:
   password: <password>
 ```
 
+## Native Interests
+
+slskdN can publish configured native Soulseek liked and disliked interests after login. These values are public to Soulseek interest/recommendation features, so keep them intentional and concise.
+
+| Command-Line              | Environment Variable           | Description                                             |
+| ------------------------- | ------------------------------ | ------------------------------------------------------- |
+| `--slsk-liked-interests`  | `SLSKD_SLSK_LIKED_INTERESTS`   | Native Soulseek interests to publish as likes after login |
+| `--slsk-hated-interests`  | `SLSKD_SLSK_HATED_INTERESTS`   | Native Soulseek interests to publish as dislikes after login |
+
+#### **YAML**
+```yaml
+soulseek:
+  liked_interests:
+    - jazz
+    - lossless
+  hated_interests:
+    - low bitrate
+```
+
 ## Distributed Network
 
 Options for the Soulseek distributed network, which is how search requests are delivered.

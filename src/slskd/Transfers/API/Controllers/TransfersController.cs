@@ -35,9 +35,10 @@ namespace slskd.Transfers.API
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Serilog;
+    using slskd.Common.Security;
+    using slskd.Core.Security;
     using slskd.Transfers.AutoReplace;
     using slskd.Transfers.Downloads;
-    using slskd.Core.Security;
 
     /// <summary>
     ///     Transfers.
@@ -389,6 +390,7 @@ namespace slskd.Transfers.API
         /// </summary>
         /// <param name="username">The username of the download source.</param>
         /// <param name="requests">The list of download requests.</param>
+        /// <param name="destination">An optional completed-file destination directory.</param>
         /// <returns></returns>
         /// <response code="201">The download was successfully enqueued.</response>
         /// <response code="403">The download was rejected.</response>
@@ -398,7 +400,7 @@ namespace slskd.Transfers.API
         [ProducesResponseType(201)]
         [ProducesResponseType(typeof(string), 403)]
         [ProducesResponseType(typeof(string), 500)]
-        public async Task<IActionResult> EnqueueAsync([FromRoute, Required] string username, [FromBody, Required] IEnumerable<QueueDownloadRequest> requests)
+        public async Task<IActionResult> EnqueueAsync([FromRoute, Required] string username, [FromBody, Required] IEnumerable<QueueDownloadRequest> requests, [FromQuery] string? destination = null)
         {
             username = username?.Trim() ?? string.Empty;
 
@@ -443,6 +445,12 @@ namespace slskd.Transfers.API
                 return BadRequest("Each file requires a non-empty filename");
             }
 
+            var destinationDirectory = NormalizeDownloadDestination(destination);
+            if (!string.IsNullOrWhiteSpace(destination) && destinationDirectory == null)
+            {
+                return BadRequest("Destination must be an absolute path inside the configured downloads directory or a configured destination folder");
+            }
+
             if (!DownloadRequestLimiter.Wait(0))
             {
                 return StatusCode(429, "Only one concurrent operation is permitted. Wait until the previous request completes");
@@ -456,7 +464,7 @@ namespace slskd.Transfers.API
 
                 var (enqueued, failed) = await Transfers.Downloads.EnqueueAsync(
                     username,
-                    normalizedRequests.Select(r => (r.Filename, r.Size, r.BatchId ?? batchId)));
+                    normalizedRequests.Select(r => (r.Filename, r.Size, r.BatchId ?? batchId, DestinationDirectory: destinationDirectory)));
 
                 return StatusCode(201, new { Enqueued = enqueued, Failed = failed });
             }
@@ -468,6 +476,31 @@ namespace slskd.Transfers.API
             finally
             {
                 DownloadRequestLimiter.Release();
+            }
+        }
+
+        private string? NormalizeDownloadDestination(string? destination)
+        {
+            if (string.IsNullOrWhiteSpace(destination))
+            {
+                return null;
+            }
+
+            return PathGuard.NormalizeAbsolutePathWithinRoots(destination, GetAllowedDownloadDestinationRoots());
+        }
+
+        private IEnumerable<string> GetAllowedDownloadDestinationRoots()
+        {
+            var options = OptionsSnapshot.Value;
+
+            yield return options.Directories.Downloads;
+
+            foreach (var configuredDestination in options.Destinations?.Folders ?? Enumerable.Empty<Options.DestinationOption>())
+            {
+                if (!string.IsNullOrWhiteSpace(configuredDestination.Path))
+                {
+                    yield return configuredDestination.Path;
+                }
             }
         }
 
@@ -546,6 +579,57 @@ namespace slskd.Transfers.API
             };
 
             return Ok(response);
+        }
+
+        /// <summary>
+        ///     Gets downloads associated with the specified batch id.
+        /// </summary>
+        /// <param name="id">The batch id.</param>
+        /// <returns>The batch response.</returns>
+        /// <response code="200">The request completed successfully.</response>
+        /// <response code="400">The batch id is invalid.</response>
+        /// <response code="404">The batch was not found.</response>
+        [HttpGet("downloads/batches/{id}")]
+        [Authorize(Policy = AuthPolicy.Any)]
+        [ProducesResponseType(typeof(DownloadBatchResponse), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public IActionResult GetDownloadBatch([FromRoute, Required] string id)
+        {
+            id = id?.Trim() ?? string.Empty;
+
+            if (Program.IsRelayAgent)
+            {
+                return Forbid();
+            }
+
+            if (!Guid.TryParse(id, out var batchId))
+            {
+                return BadRequest();
+            }
+
+            var downloads = Transfers.Downloads
+                .List(t => t.Direction == Soulseek.TransferDirection.Download && t.BatchId == batchId)
+                .OrderBy(t => t.RequestedAt)
+                .ThenBy(t => t.Filename)
+                .ToList();
+
+            if (downloads.Count == 0)
+            {
+                return NotFound();
+            }
+
+            return Ok(new DownloadBatchResponse
+            {
+                Id = batchId,
+                Transfers = downloads,
+                TransferCount = downloads.Count,
+                CompletedCount = downloads.Count(t => t.State.HasFlag(Soulseek.TransferStates.Completed)),
+                SucceededCount = downloads.Count(t => IsSuccessfulTerminalTransfer(t.State)),
+                FailedCount = downloads.Count(t =>
+                    t.State.HasFlag(Soulseek.TransferStates.Completed) &&
+                    !t.State.HasFlag(Soulseek.TransferStates.Succeeded)),
+            });
         }
 
         [HttpGet("downloads/{username}/{id}")]

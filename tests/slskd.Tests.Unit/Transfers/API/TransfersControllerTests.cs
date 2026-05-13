@@ -5,6 +5,7 @@ namespace slskd.Tests.Unit.Transfers.API;
 
 using System.Linq;
 using System.Linq.Expressions;
+using System.IO;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -33,7 +34,7 @@ public class TransfersControllerTests
         downloads.Verify(
             service => service.EnqueueAsync(
                 It.IsAny<string>(),
-                It.IsAny<IEnumerable<(string Filename, long Size, Guid? BatchId)>>(),
+                It.IsAny<IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)>>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -45,7 +46,7 @@ public class TransfersControllerTests
         downloads
             .Setup(service => service.EnqueueAsync(
                 It.IsAny<string>(),
-                It.IsAny<IEnumerable<(string Filename, long Size, Guid? BatchId)>>(),
+                It.IsAny<IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<SlskdTransfer>(), new List<string>()));
 
@@ -60,7 +61,7 @@ public class TransfersControllerTests
         downloads.Verify(
             service => service.EnqueueAsync(
                 "alice",
-                It.Is<IEnumerable<(string Filename, long Size, Guid? BatchId)>>(files =>
+                It.Is<IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)>>(files =>
                     files.Single().Filename == "Music/song.flac" && files.Single().BatchId == null),
                 It.IsAny<CancellationToken>()),
             Times.Once);
@@ -70,13 +71,13 @@ public class TransfersControllerTests
     public async Task EnqueueAsync_WithMultipleFiles_AssignsSharedBatchId()
     {
         var downloads = new Mock<IDownloadService>();
-        List<(string Filename, long Size, Guid? BatchId)> queued = new();
+        List<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)> queued = new();
         downloads
             .Setup(service => service.EnqueueAsync(
                 It.IsAny<string>(),
-                It.IsAny<IEnumerable<(string Filename, long Size, Guid? BatchId)>>(),
+                It.IsAny<IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)>>(),
                 It.IsAny<CancellationToken>()))
-            .Callback<string, IEnumerable<(string Filename, long Size, Guid? BatchId)>, CancellationToken>((_, files, _) => queued = files.ToList())
+            .Callback<string, IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)>, CancellationToken>((_, files, _) => queued = files.ToList())
             .ReturnsAsync((new List<SlskdTransfer>(), new List<string>()));
 
         var controller = CreateController(downloads);
@@ -94,6 +95,77 @@ public class TransfersControllerTests
         Assert.Equal(2, queued.Count);
         Assert.NotNull(queued[0].BatchId);
         Assert.Equal(queued[0].BatchId, queued[1].BatchId);
+    }
+
+    [Fact]
+    public async Task EnqueueAsync_WithConfiguredDestination_PassesNormalizedDestination()
+    {
+        var destination = System.IO.Directory.CreateTempSubdirectory("slskdn-transfer-destination-");
+        try
+        {
+            var downloads = new Mock<IDownloadService>();
+            List<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)> queued = new();
+            downloads
+                .Setup(service => service.EnqueueAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)>>(),
+                    It.IsAny<CancellationToken>()))
+                .Callback<string, IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)>, CancellationToken>((_, files, _) => queued = files.ToList())
+                .ReturnsAsync((new List<SlskdTransfer>(), new List<string>()));
+
+            var options = new slskd.Options
+            {
+                Directories = new slskd.Options.DirectoriesOptions { Downloads = destination.FullName },
+            };
+            var controller = CreateController(downloads, options: options);
+
+            var result = await controller.EnqueueAsync(
+                "alice",
+                new[] { new QueueDownloadRequest { Filename = "Music/song.flac", Size = 10 } },
+                destination.FullName);
+
+            var created = Assert.IsType<ObjectResult>(result);
+            Assert.Equal(201, created.StatusCode);
+            Assert.Equal(Path.GetFullPath(destination.FullName), queued.Single().DestinationDirectory);
+        }
+        finally
+        {
+            destination.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task EnqueueAsync_WithDestinationOutsideAllowedRoots_ReturnsBadRequest()
+    {
+        var allowed = System.IO.Directory.CreateTempSubdirectory("slskdn-transfer-allowed-");
+        var outside = System.IO.Directory.CreateTempSubdirectory("slskdn-transfer-outside-");
+        try
+        {
+            var downloads = new Mock<IDownloadService>();
+            var options = new slskd.Options
+            {
+                Directories = new slskd.Options.DirectoriesOptions { Downloads = allowed.FullName },
+            };
+            var controller = CreateController(downloads, options: options);
+
+            var result = await controller.EnqueueAsync(
+                "alice",
+                new[] { new QueueDownloadRequest { Filename = "Music/song.flac", Size = 10 } },
+                outside.FullName);
+
+            Assert.IsType<BadRequestObjectResult>(result);
+            downloads.Verify(
+                service => service.EnqueueAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)>>(),
+                    It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
+        finally
+        {
+            allowed.Delete(recursive: true);
+            outside.Delete(recursive: true);
+        }
     }
 
     [Fact]
@@ -136,7 +208,7 @@ public class TransfersControllerTests
         downloads
             .Setup(service => service.EnqueueAsync(
                 It.IsAny<string>(),
-                It.IsAny<IEnumerable<(string Filename, long Size, Guid? BatchId)>>(),
+                It.IsAny<IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)>>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("sensitive detail"));
 
@@ -194,6 +266,56 @@ public class TransfersControllerTests
         Assert.Equal(504, error.StatusCode);
         Assert.DoesNotContain("sensitive remote detail", error.Value?.ToString() ?? string.Empty);
         Assert.Equal("Queue position lookup timed out", error.Value);
+    }
+
+    [Fact]
+    public void GetDownloadBatch_WithInvalidId_ReturnsBadRequest()
+    {
+        var controller = CreateController();
+
+        var result = controller.GetDownloadBatch("not-a-guid");
+
+        Assert.IsType<BadRequestResult>(result);
+    }
+
+    [Fact]
+    public void GetDownloadBatch_WithExistingBatch_ReturnsSummary()
+    {
+        var batchId = Guid.NewGuid();
+        var downloads = new Mock<IDownloadService>();
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), false))
+            .Returns<Expression<Func<SlskdTransfer, bool>>?, bool>((expression, _) =>
+                new[]
+                {
+                    new SlskdTransfer
+                    {
+                        Id = Guid.NewGuid(),
+                        BatchId = batchId,
+                        Direction = TransferDirection.Download,
+                        Filename = "Album\\done.flac",
+                        State = TransferStates.Completed | TransferStates.Succeeded,
+                    },
+                    new SlskdTransfer
+                    {
+                        Id = Guid.NewGuid(),
+                        BatchId = batchId,
+                        Direction = TransferDirection.Download,
+                        Filename = "Album\\failed.flac",
+                        State = TransferStates.Completed | TransferStates.Errored,
+                    },
+                }.Where(expression!.Compile()).ToList());
+        var controller = CreateController(downloads);
+
+        var result = controller.GetDownloadBatch(batchId.ToString());
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<DownloadBatchResponse>(ok.Value);
+        Assert.Equal(batchId, response.Id);
+        Assert.Equal(2, response.TransferCount);
+        Assert.Equal(2, response.CompletedCount);
+        Assert.Equal(1, response.SucceededCount);
+        Assert.Equal(1, response.FailedCount);
     }
 
     [Fact]

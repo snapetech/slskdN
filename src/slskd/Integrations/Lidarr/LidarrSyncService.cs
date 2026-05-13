@@ -51,7 +51,7 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
 
         var existing = await WishlistService.ListAsync().ConfigureAwait(false);
         var existingSearches = existing
-            .Select(item => item.SearchText)
+            .Select(item => BuildWishlistKey(item.SearchText, item.Filter))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var result = new LidarrSyncResult { Enabled = true };
@@ -82,7 +82,8 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
                     continue;
                 }
 
-                if (existingSearches.Contains(searchText))
+                var wishlistKey = BuildWishlistKey(searchText, options.WishlistFilter);
+                if (existingSearches.Contains(wishlistKey))
                 {
                     result.DuplicateCount++;
                     continue;
@@ -98,7 +99,7 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
                 };
 
                 await WishlistService.CreateAsync(item).ConfigureAwait(false);
-                existingSearches.Add(searchText);
+                existingSearches.Add(wishlistKey);
                 result.CreatedCount++;
 
                 if (result.CreatedCount >= options.MaxItemsPerSync)
@@ -126,9 +127,13 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
 
         SyncState.LastSyncAt = DateTime.UtcNow;
         SyncState.LastResult = result;
+        SyncState.LastError = null;
 
         return result;
     }
+
+    private static string BuildWishlistKey(string searchText, string filter)
+        => searchText.Trim() + "\u001f" + filter.Trim();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

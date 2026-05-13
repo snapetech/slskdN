@@ -358,6 +358,7 @@ public class DownloadServiceTests
     [InlineData("connection-reset")]
     [InlineData("remote-closed")]
     [InlineData("message-connection")]
+    [InlineData("transfer-connection")]
     public async Task EnqueueAsync_BackgroundExpectedRemoteFailure_MarksTransferTerminalFailed(string failureKind)
     {
         var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
@@ -1006,6 +1007,9 @@ public class DownloadServiceTests
             "message-connection" => new SoulseekClientException(
                 "Failed to download file Music\\remote-failed.flac from user alice: Failed to establish a direct or indirect message connection to alice (203.0.113.10:50300)",
                 new ConnectionException("Failed to establish a direct or indirect message connection to alice (203.0.113.10:50300)")),
+            "transfer-connection" => new SoulseekClientException(
+                "Failed to download file Music\\remote-failed.flac from user alice: Failed to establish a direct or indirect transfer connection to alice (203.0.113.10:50300)",
+                new ConnectionException("Failed to establish a direct or indirect transfer connection to alice (203.0.113.10:50300)")),
             _ => throw new ArgumentOutOfRangeException(nameof(failureKind)),
         };
 

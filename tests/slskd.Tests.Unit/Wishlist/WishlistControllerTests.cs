@@ -194,7 +194,7 @@ public class WishlistControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task RunSearch_UsesNetworkScopeAndWishlistSafetySource()
+    public async Task RunSearch_UsesWishlistScopeAndWishlistSafetySource()
     {
         var itemId = Guid.NewGuid();
         await using (var context = _contextFactory.CreateDbContext())
@@ -254,10 +254,172 @@ public class WishlistControllerTests : IDisposable
 
         var result = await service.RunSearchAsync(itemId);
 
-        Assert.Equal(SearchScopeType.Network, capturedScope?.Type);
+        Assert.Equal(SearchScopeType.Wishlist, capturedScope?.Type);
         Assert.Equal("wishlist", capturedSafetySource);
         Assert.Equal(25, capturedOptions?.ResponseLimit);
         Assert.Equal(3, result.ResponseCount);
+    }
+
+    [Fact]
+    public async Task RunSearch_WhenAutoDownloadEnqueueFails_DoesNotDisableWishlistItem()
+    {
+        var itemId = Guid.NewGuid();
+        await using (var context = _contextFactory.CreateDbContext())
+        {
+            context.WishlistItems.Add(new WishlistItem
+            {
+                Id = itemId,
+                SearchText = "artist title",
+                Filter = "flac",
+                AutoDownload = true,
+                Enabled = true,
+                MaxResults = 25,
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var searchService = CreateCompletedSearchService(itemId);
+        var rankingService = new Mock<ISourceRankingService>();
+        rankingService
+            .Setup(service => service.RankSourcesAsync(It.IsAny<IEnumerable<SourceCandidate>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<SourceCandidate> candidates, CancellationToken cancellationToken) =>
+                candidates.Select(candidate => new RankedSource
+                {
+                    Username = candidate.Username,
+                    Filename = candidate.Filename,
+                    Size = candidate.Size,
+                    SmartScore = 10,
+                }));
+        var downloadService = new Mock<IDownloadService>();
+        downloadService
+            .Setup(service => service.EnqueueAsync(
+                It.IsAny<string>(),
+                It.IsAny<IEnumerable<(string Filename, long Size)>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((new List<slskd.Transfers.Transfer>(), new List<string> { "failed.flac" }));
+
+        var service = new WishlistService(
+            _contextFactory,
+            searchService.Object,
+            Mock.Of<ISoulseekClient>(),
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            rankingService.Object,
+            downloadService.Object);
+
+        await service.RunSearchAsync(itemId);
+
+        await using var verifyContext = _contextFactory.CreateDbContext();
+        var item = await verifyContext.WishlistItems.FindAsync(itemId);
+        Assert.NotNull(item);
+        Assert.True(item.Enabled);
+        Assert.Equal(0, item.TotalDownloadCount);
+    }
+
+    [Fact]
+    public async Task RunSearch_WhenAutoDownloadEnqueuesFiles_DisablesWishlistItemAndCountsEnqueued()
+    {
+        var itemId = Guid.NewGuid();
+        await using (var context = _contextFactory.CreateDbContext())
+        {
+            context.WishlistItems.Add(new WishlistItem
+            {
+                Id = itemId,
+                SearchText = "artist title",
+                Filter = "flac",
+                AutoDownload = true,
+                Enabled = true,
+                MaxResults = 25,
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var searchService = CreateCompletedSearchService(itemId);
+        var rankingService = new Mock<ISourceRankingService>();
+        rankingService
+            .Setup(service => service.RankSourcesAsync(It.IsAny<IEnumerable<SourceCandidate>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<SourceCandidate> candidates, CancellationToken cancellationToken) =>
+                candidates.Select(candidate => new RankedSource
+                {
+                    Username = candidate.Username,
+                    Filename = candidate.Filename,
+                    Size = candidate.Size,
+                    SmartScore = 10,
+                }));
+        var downloadService = new Mock<IDownloadService>();
+        downloadService
+            .Setup(service => service.EnqueueAsync(
+                It.IsAny<string>(),
+                It.IsAny<IEnumerable<(string Filename, long Size)>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((
+                new List<slskd.Transfers.Transfer>
+                {
+                    new() { Id = Guid.NewGuid(), Username = "alice", Filename = @"Music\Album\01 Song.flac" },
+                    new() { Id = Guid.NewGuid(), Username = "alice", Filename = @"Music\Album\02 Song.flac" },
+                },
+                new List<string>()));
+
+        var service = new WishlistService(
+            _contextFactory,
+            searchService.Object,
+            Mock.Of<ISoulseekClient>(),
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            rankingService.Object,
+            downloadService.Object);
+
+        await service.RunSearchAsync(itemId);
+
+        await using var verifyContext = _contextFactory.CreateDbContext();
+        var item = await verifyContext.WishlistItems.FindAsync(itemId);
+        Assert.NotNull(item);
+        Assert.False(item.Enabled);
+        Assert.Equal(2, item.TotalDownloadCount);
+    }
+
+    private static Mock<ISearchService> CreateCompletedSearchService(Guid searchId)
+    {
+        var searchService = new Mock<ISearchService>();
+        searchService
+            .Setup(service => service.StartAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<SearchQuery>(),
+                It.IsAny<SearchScope>(),
+                It.IsAny<SearchOptions?>(),
+                It.IsAny<List<string>?>(),
+                It.IsAny<string>()))
+            .ReturnsAsync((Guid id, SearchQuery query, SearchScope scope, SearchOptions? options, List<string>? providers, string safetySource) =>
+                new SlskdSearch
+                {
+                    Id = id,
+                    SearchText = query.SearchText,
+                    State = SearchStates.Requested,
+                });
+        searchService
+            .Setup(service => service.FindAsync(It.IsAny<Expression<Func<SlskdSearch, bool>>>(), true))
+            .ReturnsAsync(new SlskdSearch
+            {
+                Id = searchId,
+                SearchText = "artist title",
+                State = SearchStates.Completed,
+                ResponseCount = 1,
+                Responses =
+                [
+                    new Response
+                    {
+                        Username = "alice",
+                        HasFreeUploadSlot = true,
+                        QueueLength = 0,
+                        UploadSpeed = 1000,
+                        Files =
+                        [
+                            new slskd.Search.File { Filename = @"Music\Album\01 Song.flac", Size = 100 },
+                            new slskd.Search.File { Filename = @"Music\Album\02 Song.flac", Size = 200 },
+                        ],
+                    },
+                ],
+            });
+
+        return searchService;
     }
 
     private sealed class WishlistDbContextFactory : IDbContextFactory<WishlistDbContext>

@@ -40,6 +40,7 @@ namespace slskd.Transfers
         public long Size { get; set; }
         public long StartOffset { get; init; }
         public Guid? BatchId { get; init; }
+        public string? DestinationDirectory { get; init; }
         public int Attempts { get; set; } = 1;
         public DateTime? NextAttemptAt { get; set; }
 

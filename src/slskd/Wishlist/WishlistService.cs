@@ -256,7 +256,7 @@ namespace slskd.Wishlist
             // miss the first interval on a fresh start when the network is still coming up.
             var warmupDeadline = DateTime.UtcNow.AddSeconds(60);
             while (!stoppingToken.IsCancellationRequested
-                   && !Client.State.HasFlag(SoulseekClientStates.Connected)
+                   && !IsClientSearchReady()
                    && DateTime.UtcNow < warmupDeadline)
             {
                 await Task.Delay(2000, stoppingToken).ConfigureAwait(false);
@@ -271,10 +271,14 @@ namespace slskd.Wishlist
 
                 try
                 {
-                    if (options.Wishlist?.Enabled == true && Client.State.HasFlag(SoulseekClientStates.Connected))
+                    if (options.Wishlist?.Enabled == true && IsClientSearchReady())
                     {
                         await ProcessWishlistItemsAsync(stoppingToken);
                     }
+                }
+                catch (InvalidOperationException ex) when (IsExpectedSearchDeferral(ex))
+                {
+                    Log.Warning("Deferred wishlist cycle because search is temporarily unavailable: {Message}", ex.Message);
                 }
                 catch (Exception ex)
                 {
@@ -437,6 +441,8 @@ namespace slskd.Wishlist
 
             var enabledItems = await context.WishlistItems
                 .Where(w => w.Enabled)
+                .OrderBy(w => w.LastSearchedAt ?? DateTime.MinValue)
+                .ThenBy(w => w.CreatedAt)
                 .ToListAsync(cancellationToken);
 
             Log.Information("Processing {Count} enabled wishlist items", enabledItems.Count);
@@ -455,6 +461,16 @@ namespace slskd.Wishlist
                     // Small delay between searches to avoid hammering the network
                     await Task.Delay(5000, cancellationToken);
                 }
+                catch (InvalidOperationException ex) when (IsSearchRateLimitExceeded(ex))
+                {
+                    Log.Warning("Stopping wishlist cycle early because the Soulseek search safety budget is exhausted");
+                    break;
+                }
+                catch (InvalidOperationException ex) when (IsSearchUnavailableDuringLogin(ex))
+                {
+                    Log.Warning("Stopping wishlist cycle early because Soulseek is still logging in: {Message}", ex.Message);
+                    break;
+                }
                 catch (Exception ex)
                 {
                     Log.Warning(ex, "Error executing wishlist search for {Id}: {Message}", item.Id, ex.Message);
@@ -471,7 +487,7 @@ namespace slskd.Wishlist
 
             var searchId = Guid.NewGuid();
             var query = new SearchQuery(item.SearchText);
-            var scope = SearchScope.Network;
+            var scope = SearchScope.Wishlist;
 
             var searchOptions = new SearchOptions(
                 searchTimeout: 15000,
@@ -516,21 +532,24 @@ namespace slskd.Wishlist
             // If auto-download is enabled and we have results, download the best ones
             if (item.AutoDownload && searchWithResponses?.Responses?.Any() == true)
             {
-                var downloaded = await AutoDownloadBestResultsAsync(searchWithResponses, item.Filter, cancellationToken);
-                if (downloaded)
+                var downloadResult = await AutoDownloadBestResultsAsync(searchWithResponses, item.Filter, cancellationToken);
+                if (downloadResult.EnqueuedCount > 0)
                 {
-                    item.TotalDownloadCount++;
+                    item.TotalDownloadCount += downloadResult.EnqueuedCount;
                     item.Enabled = false;
                     context.WishlistItems.Update(item);
                     await context.SaveChangesAsync(cancellationToken);
-                    Log.Information("Wishlist item {Id} disabled after successful download", item.Id);
+                    Log.Information(
+                        "Wishlist item {Id} disabled after enqueuing {Count} download(s)",
+                        item.Id,
+                        downloadResult.EnqueuedCount);
                 }
             }
 
             return searchWithResponses ?? search;
         }
 
-        private async Task<bool> AutoDownloadBestResultsAsync(SlskdSearch search, string filter, CancellationToken cancellationToken)
+        private async Task<WishlistDownloadResult> AutoDownloadBestResultsAsync(SlskdSearch search, string filter, CancellationToken cancellationToken)
         {
             try
             {
@@ -563,7 +582,7 @@ namespace slskd.Wishlist
 
                 if (candidates.Count == 0)
                 {
-                    return false;
+                    return WishlistDownloadResult.Empty;
                 }
 
                 // Group by (user, directory) so we can download a complete album at once.
@@ -578,7 +597,7 @@ namespace slskd.Wishlist
                 var bestRep = ranked.FirstOrDefault();
                 if (bestRep == null)
                 {
-                    return false;
+                    return WishlistDownloadResult.Empty;
                 }
 
                 var bestDir = GetParentDirectory(bestRep.Filename);
@@ -594,13 +613,22 @@ namespace slskd.Wishlist
                     bestDir,
                     bestRep.SmartScore);
 
-                await DownloadService.EnqueueAsync(bestRep.Username, filesToDownload, cancellationToken);
-                return true;
+                var (enqueued, failed) = await DownloadService.EnqueueAsync(bestRep.Username, filesToDownload, cancellationToken);
+                if (failed.Count > 0)
+                {
+                    Log.Warning(
+                        "Wishlist auto-download could not enqueue {FailedCount}/{RequestedCount} file(s) from {Username}",
+                        failed.Count,
+                        filesToDownload.Count,
+                        bestRep.Username);
+                }
+
+                return new WishlistDownloadResult(enqueued.Count, failed.Count);
             }
             catch (Exception ex)
             {
                 Log.Warning(ex, "Error auto-downloading wishlist results: {Message}", ex.Message);
-                return false;
+                return WishlistDownloadResult.Empty;
             }
         }
 
@@ -609,6 +637,33 @@ namespace slskd.Wishlist
             var normalized = filename.Replace('\\', '/');
             var lastSlash = normalized.LastIndexOf('/');
             return lastSlash < 0 ? string.Empty : normalized[..lastSlash];
+        }
+
+        private bool IsClientSearchReady()
+        {
+            return Client.State.HasFlag(SoulseekClientStates.Connected)
+                && Client.State.HasFlag(SoulseekClientStates.LoggedIn);
+        }
+
+        private static bool IsExpectedSearchDeferral(Exception exception)
+        {
+            return IsSearchRateLimitExceeded(exception) || IsSearchUnavailableDuringLogin(exception);
+        }
+
+        private static bool IsSearchRateLimitExceeded(Exception exception)
+        {
+            return exception.Message.Contains("Search rate limit exceeded", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsSearchUnavailableDuringLogin(Exception exception)
+        {
+            return exception.Message.Contains("must be connected and logged in", StringComparison.OrdinalIgnoreCase)
+                && exception.Message.Contains("LoggingIn", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private readonly record struct WishlistDownloadResult(int EnqueuedCount, int FailedCount)
+        {
+            public static WishlistDownloadResult Empty { get; } = new(0, 0);
         }
     }
 }

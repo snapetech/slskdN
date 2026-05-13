@@ -298,8 +298,8 @@ internal class StaticOptionsMonitor<T> : IOptionsMonitor<T> where T : class
 
 internal class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
-    public TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder, ISystemClock clock)
-        : base(options, logger, encoder, clock) { }
+    public TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder)
+        : base(options, logger, encoder) { }
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
@@ -588,9 +588,12 @@ internal sealed class StubDownloadService : IDownloadService
         => EnqueueAsync(username, files.Select(file => (file.Filename, file.Size, BatchId: (Guid?)null)), cancellationToken);
 
     public Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(string username, IEnumerable<(string Filename, long Size, Guid? BatchId)> files, CancellationToken cancellationToken = default)
+        => EnqueueAsync(username, files.Select(file => (file.Filename, file.Size, file.BatchId, DestinationDirectory: (string?)null)), cancellationToken);
+
+    public Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(string username, IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)> files, CancellationToken cancellationToken = default)
     {
         var enqueued = new List<Transfer>();
-        foreach (var (fn, size, batchId) in files)
+        foreach (var (fn, size, batchId, destinationDirectory) in files)
         {
             var t = new Transfer
             {
@@ -604,6 +607,7 @@ internal sealed class StubDownloadService : IDownloadService
                 AverageSpeed = 0,
                 RequestedAt = DateTime.UtcNow,
                 BatchId = batchId,
+                DestinationDirectory = destinationDirectory,
             };
             _storage[t.Id] = t;
             enqueued.Add(t);

@@ -17,6 +17,7 @@ const FileList = ({
   onSelectionChange,
 }) => {
   const [folded, setFolded] = useState(false);
+  const [lastSelectedIndex, setLastSelectedIndex] = useState(null);
   const sortedFiles = useMemo(
     () =>
       files
@@ -26,6 +27,23 @@ const FileList = ({
   );
   const allSelected =
     sortedFiles.length > 0 && sortedFiles.every((file) => file.selected);
+  const handleSelectionChange = (event, file, index, checked) => {
+    if (
+      event.shiftKey &&
+      lastSelectedIndex !== null &&
+      lastSelectedIndex !== index
+    ) {
+      const start = Math.min(lastSelectedIndex, index);
+      const end = Math.max(lastSelectedIndex, index);
+      sortedFiles
+        .slice(start, end + 1)
+        .forEach((rangeFile) => onSelectionChange(rangeFile, checked));
+    } else {
+      onSelectionChange(file, checked);
+    }
+
+    setLastSelectedIndex(index);
+  };
 
   return (
     <div
@@ -87,7 +105,7 @@ const FileList = ({
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-                {sortedFiles.map((f) => (
+                {sortedFiles.map((f, index) => (
                   <Table.Row key={f.filename}>
                     <Table.Cell className="filelist-selector">
                       <Checkbox
@@ -95,7 +113,7 @@ const FileList = ({
                         disabled={disabled}
                         fitted
                         onChange={(event, data) =>
-                          onSelectionChange(f, data.checked)
+                          handleSelectionChange(event, f, index, data.checked)
                         }
                       />
                     </Table.Cell>

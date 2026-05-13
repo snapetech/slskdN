@@ -1480,7 +1480,32 @@ namespace slskd
                 var builtInGroups = new[] { Application.PrivilegedGroup, Application.DefaultGroup, Application.LeecherGroup };
                 var intersection = UserDefined.Keys.Intersect(builtInGroups);
 
-                return intersection.Select(group => new ValidationResult($"User defined group '{group}' collides with a built in group.  Choose a different name."));
+                foreach (var group in intersection)
+                {
+                    yield return new ValidationResult($"User defined group '{group}' collides with a built in group.  Choose a different name.");
+                }
+
+                var explicitMemberships = UserDefined
+                    .SelectMany(group => (group.Value.Members ?? Array.Empty<string>())
+                        .Where(member => !string.IsNullOrWhiteSpace(member))
+                        .Select(member => new { Username = member.Trim(), Group = group.Key }))
+                    .Concat((Blacklisted.Members ?? Array.Empty<string>())
+                        .Where(member => !string.IsNullOrWhiteSpace(member))
+                        .Select(member => new { Username = member.Trim(), Group = Application.BlacklistedGroup }))
+                    .ToList();
+
+                var duplicatedUsers = explicitMemberships
+                    .GroupBy(member => member.Username, StringComparer.OrdinalIgnoreCase)
+                    .Where(group => group.Select(member => member.Group).Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1)
+                    .Select(group => group.Key)
+                    .OrderBy(username => username, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (duplicatedUsers.Count > 0)
+                {
+                    yield return new ValidationResult(
+                        $"One or more users are defined in multiple groups: {string.Join(", ", duplicatedUsers)}. Each user can only belong to one explicit group.");
+                }
             }
 
             /// <summary>
@@ -2405,6 +2430,22 @@ namespace slskd
             [Description("user picture for the Soulseek network")]
             [FileExists(FileAccess.Read)]
             public string Picture { get; init; } = string.Empty;
+
+            /// <summary>
+            ///     Gets the native Soulseek interests to publish as likes after login.
+            /// </summary>
+            [Argument(default, "slsk-liked-interests")]
+            [EnvironmentVariable("SLSK_LIKED_INTERESTS")]
+            [Description("native Soulseek interests to publish as likes after login")]
+            public string[] LikedInterests { get; init; } = Array.Empty<string>();
+
+            /// <summary>
+            ///     Gets the native Soulseek interests to publish as dislikes after login.
+            /// </summary>
+            [Argument(default, "slsk-hated-interests")]
+            [EnvironmentVariable("SLSK_HATED_INTERESTS")]
+            [Description("native Soulseek interests to publish as dislikes after login")]
+            public string[] HatedInterests { get; init; } = Array.Empty<string>();
 
             /// <summary>
             ///     Gets the local IP address on which to listen for incoming connections.

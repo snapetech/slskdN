@@ -50,6 +50,11 @@ namespace slskd.Transfers.API
         public Guid? BatchId { get; set; }
 
         /// <summary>
+        ///     Gets the requested destination directory for the completed file, if one was supplied.
+        /// </summary>
+        public string? DestinationDirectory { get; set; }
+
+        /// <summary>
         ///     Gets the number of direct Soulseek attempts made for this transfer.
         /// </summary>
         public int Attempts { get; set; }

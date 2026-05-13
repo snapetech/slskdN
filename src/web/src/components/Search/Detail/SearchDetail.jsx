@@ -17,6 +17,11 @@ import { buildDiscoveryGraph } from '../../../lib/discoveryGraph';
 import { rankSearchResponses } from '../../../lib/searchCandidateRanking';
 import { deduplicateSearchResponses } from '../../../lib/searchResultDeduplication';
 import {
+  getSavedSearchFilters,
+  removeSavedSearchFilter,
+  saveSearchFilter,
+} from '../../../lib/savedSearchFilters';
+import {
   getLocalStorageItem,
   removeLocalStorageItem,
   setLocalStorageItem,
@@ -129,6 +134,7 @@ const SearchDetail = ({
   const [resultFilters, setResultFilters] = useState(
     getLocalStorageItem('slskd-default-search-filter', ''),
   );
+  const [savedFilters, setSavedFilters] = useState(getSavedSearchFilters());
   const [pageSize, setPageSize] = useState(
     Number.parseInt(getLocalStorageItem('slskd-search-page-size', '25'), 10),
   );
@@ -478,6 +484,35 @@ const SearchDetail = ({
     toast.info('Saved default filter cleared');
   };
 
+  const saveNamedFilter = () => {
+    const name = window.prompt('Filter name', search.searchText || 'Search filter');
+    const next = saveSearchFilter({ name, value: resultFilters });
+    setSavedFilters(next);
+
+    if (name?.trim() && resultFilters.trim()) {
+      toast.success('Search filter saved');
+    }
+  };
+
+  const loadNamedFilter = (name) => {
+    const filter = savedFilters.find((item) => item.name === name);
+    if (!filter) {
+      return;
+    }
+
+    setResultFilters(filter.value);
+  };
+
+  const deleteNamedFilter = () => {
+    const current = savedFilters.find((item) => item.value === resultFilters);
+    if (!current) {
+      return;
+    }
+
+    setSavedFilters(removeSavedSearchFilter(current.name));
+    toast.info('Saved search filter removed');
+  };
+
   const focusAlbumCandidate = (candidate) => {
     const filter = getAlbumCandidateFilter(candidate);
     if (!filter) {
@@ -631,12 +666,43 @@ const SearchDetail = ({
             <Input
               action={
                 <Button.Group>
+                  {savedFilters.length > 0 && (
+                    <Dropdown
+                      button
+                      className="icon"
+                      floating
+                      icon="bookmark"
+                      onChange={(_event, { value }) => loadNamedFilter(value)}
+                      options={savedFilters.map((filter) => ({
+                        key: filter.name,
+                        text: filter.name,
+                        value: filter.name,
+                      }))}
+                      title="Load saved filter"
+                    />
+                  )}
                   {Boolean(resultFilters) && (
                     <Button
                       color="red"
                       icon="x"
                       onClick={() => setResultFilters('')}
                       title="Clear current filter"
+                    />
+                  )}
+                  {Boolean(resultFilters) && (
+                    <Button
+                      color="teal"
+                      icon="bookmark"
+                      onClick={saveNamedFilter}
+                      title="Save named filter"
+                    />
+                  )}
+                  {savedFilters.some((filter) => filter.value === resultFilters) && (
+                    <Button
+                      color="orange"
+                      icon="minus circle"
+                      onClick={deleteNamedFilter}
+                      title="Delete matching saved filter"
                     />
                   )}
                   <Button

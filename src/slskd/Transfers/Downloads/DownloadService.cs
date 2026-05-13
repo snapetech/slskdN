@@ -86,6 +86,15 @@ namespace slskd.Transfers.Downloads
         Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(string username, IEnumerable<(string Filename, long Size, Guid? BatchId)> files, CancellationToken cancellationToken = default);
 
         /// <summary>
+        ///     Enqueues the requested list of <paramref name="files"/> with optional completed-file destinations.
+        /// </summary>
+        /// <param name="username">The username of remote user.</param>
+        /// <param name="files">The list of files to enqueue.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation.</param>
+        /// <returns>The operation context.</returns>
+        Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(string username, IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)> files, CancellationToken cancellationToken = default);
+
+        /// <summary>
         ///     Finds a single download matching the specified <paramref name="expression"/>.
         /// </summary>
         /// <param name="expression">The expression to use to match downloads.</param>
@@ -330,7 +339,10 @@ namespace slskd.Transfers.Downloads
         /// <exception cref="ArgumentException">Thrown when no files are requested.</exception>
         /// <exception cref="AggregateException">Thrown when at least one of the requested files throws.</exception>
         public Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(string username, IEnumerable<(string Filename, long Size)> files, CancellationToken cancellationToken = default)
-            => EnqueueAsync(username, files.Select(f => (f.Filename, f.Size, BatchId: (Guid?)null)), cancellationToken);
+            => EnqueueAsync(username, files.Select(f => (f.Filename, f.Size, BatchId: (Guid?)null, DestinationDirectory: (string?)null)), cancellationToken);
+
+        public Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(string username, IEnumerable<(string Filename, long Size, Guid? BatchId)> files, CancellationToken cancellationToken = default)
+            => EnqueueAsync(username, files.Select(f => (f.Filename, f.Size, f.BatchId, DestinationDirectory: (string?)null)), cancellationToken);
 
         /// <summary>
         ///     Enqueues the requested list of <paramref name="files"/>.
@@ -342,7 +354,7 @@ namespace slskd.Transfers.Downloads
         /// <exception cref="ArgumentException">Thrown when the username is null or an empty string.</exception>
         /// <exception cref="ArgumentException">Thrown when no files are requested.</exception>
         /// <exception cref="AggregateException">Thrown when at least one of the requested files throws.</exception>
-        public async Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(string username, IEnumerable<(string Filename, long Size, Guid? BatchId)> files, CancellationToken cancellationToken = default)
+        public async Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(string username, IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)> files, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(username))
             {
@@ -499,6 +511,7 @@ namespace slskd.Transfers.Downloads
                                 Filename = file.Filename, // important! use the remote filename
                                 Size = file.Size,
                                 BatchId = file.BatchId,
+                                DestinationDirectory = file.DestinationDirectory,
                                 StartOffset = 0, // todo: maybe implement resumeable downloads?
                                 RequestedAt = DateTime.UtcNow,
                                 State = TransferStates.Queued | TransferStates.Locally,
@@ -631,7 +644,7 @@ namespace slskd.Transfers.Downloads
                                 }
                                 catch (Exception ex) when (IsExpectedRemoteDownloadFailure(ex))
                                 {
-                                    Log.Warning("Download of {File} from {Username} failed while waiting for remote enqueue because the remote peer is unavailable: {Message}", transfer.Filename, transfer.Username, ex.Message);
+                                    Log.Debug("Download of {File} from {Username} failed while waiting for remote enqueue because the remote peer is unavailable: {Message}", transfer.Filename, transfer.Username, ex.Message);
                                     if (!TryFail(transferId, exception: ex))
                                     {
                                         Log.Debug("Transfer {Id} was already cleaned up after expected remote enqueue failure", transfer.Id);
@@ -1254,7 +1267,14 @@ namespace slskd.Transfers.Downloads
                     transfer.Attempts = attempt;
                     transfer.Exception = ex.Message;
                     SynchronizedUpdate(transfer, semaphore: updateSyncRoot, cancellationToken: CancellationToken.None);
-                    Log.Warning("Attempt {Attempt} to download {Filename} from {Username} failed: {Message}", attempt, transfer.Filename, transfer.Username, ex.Message);
+                    if (IsExpectedRemoteDownloadFailure(ex))
+                    {
+                        Log.Debug("Attempt {Attempt} to download {Filename} from {Username} failed because the remote peer is unavailable: {Message}", attempt, transfer.Filename, transfer.Username, ex.Message);
+                    }
+                    else
+                    {
+                        Log.Warning("Attempt {Attempt} to download {Filename} from {Username} failed: {Message}", attempt, transfer.Filename, transfer.Username, ex.Message);
+                    }
                 }
 
                 var completedTransfer = await Retry.Do(
@@ -1327,10 +1347,14 @@ namespace slskd.Transfers.Downloads
                 Log.Debug("Successfully updated Transfer for {Filename} from {Username} (state: {State}, progress: {Progress})", transfer.Filename, transfer.Username, transfer.State, transfer.PercentComplete);
 
                 // move the file from incomplete to complete
+                var completedRoot = !string.IsNullOrWhiteSpace(transfer.DestinationDirectory)
+                    ? transfer.DestinationDirectory
+                    : OptionsMonitor.CurrentValue.Directories.Downloads;
+
                 var destinationDirectory = transfer.BatchId.HasValue
-                    ? System.IO.Path.Combine(OptionsMonitor.CurrentValue.Directories.Downloads, transfer.BatchId.Value.ToString())
-                    : System.IO.Path.GetDirectoryName(transfer.Filename.ToLocalFilename(baseDirectory: OptionsMonitor.CurrentValue.Directories.Downloads))
-                        ?? OptionsMonitor.CurrentValue.Directories.Downloads;
+                    ? System.IO.Path.Combine(completedRoot, transfer.BatchId.Value.ToString())
+                    : System.IO.Path.GetDirectoryName(transfer.Filename.ToLocalFilename(baseDirectory: completedRoot))
+                        ?? completedRoot;
 
                 var finalFilename = Files.MoveFile(
                     sourceFilename: incompleteFilename,
@@ -1518,7 +1542,7 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex) when (IsExpectedRemoteDownloadFailure(ex))
             {
-                Log.Warning("Task for download of {Filename} from {Username} ended with expected remote peer failure: {Error}", filename, username, ex.Message);
+                Log.Debug("Task for download of {Filename} from {Username} ended with expected remote peer failure: {Error}", filename, username, ex.Message);
 
                 if (!TryFail(transferId, exception: ex))
                 {
@@ -1558,7 +1582,7 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex) when (IsExpectedRemoteDownloadFailure(ex))
             {
-                Log.Warning("Task for enqueue of {Filename} from {Username} ended with expected remote peer failure: {Error}", filename, username, ex.Message);
+                Log.Debug("Task for enqueue of {Filename} from {Username} ended with expected remote peer failure: {Error}", filename, username, ex.Message);
 
                 if (!TryFail(transferId, exception: ex))
                 {
@@ -1682,6 +1706,7 @@ namespace slskd.Transfers.Downloads
                 exception.Message.Contains("Transfer aborted: the remote size", StringComparison.OrdinalIgnoreCase) ||
                 exception.Message.Contains("appears to be offline", StringComparison.OrdinalIgnoreCase) ||
                 exception.Message.Contains("Failed to establish a direct or indirect message connection", StringComparison.OrdinalIgnoreCase) ||
+                exception.Message.Contains("Failed to establish a direct or indirect transfer connection", StringComparison.OrdinalIgnoreCase) ||
                 exception.Message.Contains("Connection reset by peer", StringComparison.OrdinalIgnoreCase) ||
                 exception.Message.Contains("Remote connection closed", StringComparison.OrdinalIgnoreCase) ||
                 exception.Message.Contains("Unable to read data from the transport connection", StringComparison.OrdinalIgnoreCase) ||

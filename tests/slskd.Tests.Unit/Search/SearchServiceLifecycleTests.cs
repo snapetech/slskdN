@@ -99,6 +99,24 @@ public class SearchServiceLifecycleTests
     }
 
     [Fact]
+    public void IsSearchUnavailableDuringLogin_WhenSoulseekStillLoggingIn_ReturnsTrue()
+    {
+        var result = SearchService.IsSearchUnavailableDuringLogin(
+            new InvalidOperationException("The server connection must be connected and logged in to perform a search (currently: Connected, LoggingIn)"));
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsSearchUnavailableDuringLogin_WhenDifferentInvalidOperation_ReturnsFalse()
+    {
+        var result = SearchService.IsSearchUnavailableDuringLogin(
+            new InvalidOperationException("Search rate limit exceeded. See Soulseek safety configuration."));
+
+        Assert.False(result);
+    }
+
+    [Fact]
     public void ApplyResponseSummary_IncludesEarlyMeshResponses()
     {
         var search = new slskd.Search.Search();

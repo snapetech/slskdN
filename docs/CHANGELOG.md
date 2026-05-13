@@ -38,6 +38,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   destination routing, derived download batch summaries, named local search
   filters, shift-range file selection, and configured native Soulseek interest
   publishing.
+- Hardened Lidarr/Wishlist auto-acquisition and transfer enqueue routing around
+  these reconciliation fixes.
 - Labeled System admin and experimental panels in the tab menu to reduce
   cognitive load around advanced surfaces.
 - Updated System surface and route/UI parity docs to reflect the new

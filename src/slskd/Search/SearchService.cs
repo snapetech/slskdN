@@ -501,6 +501,11 @@ namespace slskd.Search
                                 Log.Information("Search for '{Query}' was cancelled{Reason}", query, reason);
                                 search.State = SearchStates.Completed | SearchStates.Cancelled;
                             }
+                            else if (IsSearchUnavailableDuringLogin(ex))
+                            {
+                                Log.Warning("Search for '{Query}' deferred because Soulseek is still logging in: {Message}", query, ex.Message);
+                                search.State = SearchStates.Completed | SearchStates.Cancelled;
+                            }
                             else
                             {
                                 Log.Error(ex, "Failed to execute search for '{Query}': {Message}", query, ex.Message);
@@ -635,7 +640,14 @@ namespace slskd.Search
             {
                 // we'll end up here if the initial call throws for an ArgumentException, InvalidOperationException if
                 // the app isn't connected, and a few other straightforward issues that arise before even requesting the search
-                Log.Error(ex, "Failed to execute search {Search}: {Message}", new { query, scope, options }, ex.Message);
+                if (IsSearchUnavailableDuringLogin(ex))
+                {
+                    Log.Warning("Search {Search} deferred because Soulseek is still logging in: {Message}", new { query, scope, options }, ex.Message);
+                }
+                else
+                {
+                    Log.Error(ex, "Failed to execute search {Search}: {Message}", new { query, scope, options }, ex.Message);
+                }
 
                 // selectively 'undo' whatever actions we were able to take successfully
                 if (searchCreated)
@@ -658,6 +670,13 @@ namespace slskd.Search
         {
             return exception is OperationCanceledException
                 && (searchCancellationToken.IsCancellationRequested || applicationIsShuttingDown);
+        }
+
+        internal static bool IsSearchUnavailableDuringLogin(Exception exception)
+        {
+            return exception is InvalidOperationException
+                && exception.Message.Contains("must be connected and logged in", StringComparison.OrdinalIgnoreCase)
+                && exception.Message.Contains("LoggingIn", StringComparison.OrdinalIgnoreCase);
         }
 
         internal static List<Response> MergeSearchResponses(IEnumerable<SearchResponse> soulseekResponses, IReadOnlyList<Response> meshResponses)
