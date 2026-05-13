@@ -99,6 +99,7 @@ qualify the namespaces they now own.
 - `src/slskd/Program.cs`
 - `src/slskd/Core/Security/AntiforgeryCookieRecovery.cs`
 - `src/slskd/Configuration/SlskdConfigurationBuilderExtensions.cs`
+- `src/slskd/Bootstrap/StartupFileSystem.cs`
 
 **Wrong**:
 ```csharp
