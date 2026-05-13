@@ -1,6 +1,7 @@
 import * as discoveryGraph from '../../lib/discoveryGraph';
 import api from '../../lib/api';
 import * as searches from '../../lib/searches';
+import * as streaming from '../../lib/streaming';
 import * as transfers from '../../lib/transfers';
 import {
   buildSearchActionPreview,
@@ -283,6 +284,29 @@ class Response extends Component {
     });
   };
 
+  streamPreview = async (username, file) => {
+    if (!file) return;
+
+    try {
+      const result = await streaming.createPeerStreamTicket({
+        username,
+        filename: file.filename,
+        size: file.size,
+      });
+      const streamUrl = streaming.buildPeerStreamUrl(result.streamUrl);
+      if (streamUrl) {
+        window.open(streamUrl, '_blank', 'noopener');
+      }
+    } catch (error) {
+      toast.error(
+        error?.response?.data ||
+          error?.response?.data?.detail ||
+          error?.message ||
+          'Stream preview failed',
+      );
+    }
+  };
+
   getFullDirectory = async (username, directory) => {
     this.setState({ fetchingDirectoryContents: true });
 
@@ -544,9 +568,6 @@ class Response extends Component {
     const noSelection = selectedFiles.length === 0;
     const { candidateRank, response } = this.props;
     const { qualitySummary } = this.state;
-    const sourceProviders = asArray(response.sourceProviders);
-    const hasPodSource = sourceProviders.includes('pod');
-    const primarySource = response.primarySource || 'scene';
     const preview = buildSearchActionPreview({
       candidateRank,
       communityQualitySummary: response.communityQualitySummary || qualitySummary,
@@ -597,59 +618,26 @@ class Response extends Component {
               />
             }
           />
-          {hasPodSource && selectedFiles.length > 0 && (
-            <Popup
-              content={`Stream from Pod (${primarySource === 'pod' ? 'preferred' : 'available'})`}
-              position="top center"
-              trigger={
-                <Button
-                  basic
-                  color="blue"
-                  content="Stream"
-                  disabled={
-                    noSelection ||
-                    this.props.disabled ||
-                    downloadRequest === 'inProgress'
-                  }
-                  icon="play"
-                  onClick={async () => {
-                    // Stream first selected file
-                    const firstFile = selectedFiles[0];
-                    const {
-                      response: responseProperty,
-                      responseIndex,
-                      searchId,
-                    } = this.props;
-                    if (!firstFile || !searchId) return;
-
-                    try {
-                      const fileIndex =
-                        responseProperty.files?.findIndex(
-                          (f) => f.filename === firstFile.filename,
-                        ) ?? -1;
-                      if (fileIndex < 0) return;
-
-                      const itemId = `${responseIndex ?? 0}:${fileIndex}`;
-                      const result = await api.post(
-                        buildSearchItemActionPath(searchId, itemId, 'stream'),
-                      );
-
-                      if (result.data?.stream_url) {
-                        // Open stream URL in new tab or redirect
-                        window.open(result.data.stream_url, '_blank');
-                      }
-                    } catch (error) {
-                      toast.error(
-                        error?.response?.data?.detail ||
-                          error?.message ||
-                          'Stream failed',
-                      );
-                    }
-                  }}
-                />
-              }
-            />
-          )}
+          <Popup
+            content="Preview the first selected audio file directly from this Soulseek peer. This is a manual, limited stream and does not save the file or start a batch download."
+            position="top center"
+            trigger={
+              <Button
+                basic
+                color="blue"
+                content="Stream"
+                disabled={
+                  noSelection ||
+                  this.props.disabled ||
+                  downloadRequest === 'inProgress'
+                }
+                icon="play"
+                onClick={() =>
+                  this.streamPreview(this.props.response.username, selectedFiles[0])
+                }
+              />
+            }
+          />
           {downloadRequest === 'inProgress' && (
             <Icon
               loading

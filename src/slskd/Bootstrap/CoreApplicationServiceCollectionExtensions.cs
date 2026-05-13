@@ -151,6 +151,8 @@ public static class CoreApplicationServiceCollectionExtensions
         services.AddSingleton<IContentLocator, ContentLocator>();
         services.AddSingleton<IStreamSessionLimiter, StreamSessionLimiter>();
         services.AddSingleton<IStreamTicketService, StreamTicketService>();
+        services.AddSingleton<IPeerStreamTicketService, PeerStreamTicketService>();
+        services.AddSingleton<IPeerStreamService, PeerStreamService>();
         services.AddSingleton<IShareTokenService, ShareTokenService>();
 
         // Register search providers for Scene ↔ Pod Bridging
