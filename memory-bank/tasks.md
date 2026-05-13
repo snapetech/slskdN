@@ -2731,6 +2731,7 @@
 - [2026-05-13T01:35:00Z] Completed: add DownloadService per-user semaphore regression coverage for same-user serialization and different-user concurrency.
 - [2026-05-13T01:43:00Z] Completed: start Program.cs decomposition by moving SongID registrations into `Bootstrap/SongIdServiceCollectionExtensions`.
 - [2026-05-13T00:52:47Z] Completed: broad Program.cs decomposition pass by moving the large experimental feature graph into `Bootstrap/ExperimentalFeatureGraphServiceCollectionExtensions`; follow-up is to subdivide that bootstrap module by bounded context.
+- [2026-05-13T00:55:02Z] Completed: move user notes, collections/sharing, identity/friends, and Solid/WebID registrations into `Bootstrap/UserDataServiceCollectionExtensions`.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.

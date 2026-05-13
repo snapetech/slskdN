@@ -61,7 +61,7 @@ Candidates requiring classification:
 ## Known gaps
 
 - README feature claims are broader than the verified stable implementation set.
-- `Program.cs` still owns app host/web/security bootstrapping, but the largest experimental feature graph now lives in `Bootstrap/ExperimentalFeatureGraphServiceCollectionExtensions.cs`; continue splitting that module into smaller bounded registrations.
+- `Program.cs` still owns app host/web/security bootstrapping, but the largest experimental feature graph now lives in `Bootstrap/ExperimentalFeatureGraphServiceCollectionExtensions.cs`, and user-data persistence registration now lives in `Bootstrap/UserDataServiceCollectionExtensions.cs`; continue splitting the broad experimental module into smaller bounded registrations.
 - Some security documentation is written as implementation plans and pseudo-code, not shipped behavior.
 - Startup hardening now uses bind exposure analysis instead of treating “port enabled” as equivalent to “non-loopback bind”; broader startup matrix tests still need to be added around full host construction.
 - `HashFromAudioFileEnabled` is known-unavailable by startup validation and has no public command-line or environment toggle; any future re-exposure needs a real PCM extraction capability check.

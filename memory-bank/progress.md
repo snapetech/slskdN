@@ -10076,3 +10076,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T01:43:00Z] Program decomposition started: moved SongID registration out of `Program.cs` and into `Bootstrap/SongIdServiceCollectionExtensions`, preserving the enabled-by-default feature gate posture while creating the first focused service-registration module.
 
 [2026-05-13T00:52:47Z] Program decomposition broad pass: moved the large experimental feature graph out of `Program.cs` into `Bootstrap/ExperimentalFeatureGraphServiceCollectionExtensions`, covering multi-source, VirtualSoulfind, MediaCore, pods, mesh/DHT, wishlist/source feeds, relay, FTP, AudioCore metadata, discovery graph, and notifications while preserving existing registration order and default-on feature posture. `dotnet build src/slskd/slskd.csproj --no-incremental` passed with 0 warnings.
+
+[2026-05-13T00:55:02Z] Program decomposition user-data pass: moved user notes, collections/sharing schema setup, identity/friends, and Solid/WebID service registration into `Bootstrap/UserDataServiceCollectionExtensions`. `dotnet build src/slskd/slskd.csproj --no-incremental` passed with 0 warnings.

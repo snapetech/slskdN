@@ -108,6 +108,8 @@ Status: in progress. SongID service registration moved into
 feature graph (multi-source, VirtualSoulfind, MediaCore, pods, mesh/DHT,
 wishlist/source feeds, relay, FTP, AudioCore metadata, notifications) moved out
 of `Program.cs` into `Bootstrap/ExperimentalFeatureGraphServiceCollectionExtensions.cs`.
+User notes, collections/sharing, identity/friends, and Solid/WebID registration
+also moved into `Bootstrap/UserDataServiceCollectionExtensions.cs`.
 
 Target modules:
 
@@ -117,6 +119,7 @@ Target modules:
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
 - `AddSlskdTelemetry(...)`
+- `AddSlskdUserData(...)`. Implemented.
 - `AddExperimentalDiscovery(...)`. Partly covered by `AddSlskdExperimentalFeatureGraph(...)`.
 - `AddExperimentalMesh(...)`. Partly covered by `AddSlskdExperimentalFeatureGraph(...)`.
 - `AddExperimentalSongId(...)` / `AddSlskdSongId(...)`. Started.

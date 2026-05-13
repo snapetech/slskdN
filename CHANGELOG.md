@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   graph; multi-source, VirtualSoulfind, MediaCore, pods, mesh/DHT, wishlist,
   relay, FTP, AudioCore metadata, discovery, and notification registrations now
   live under `Bootstrap/ExperimentalFeatureGraphServiceCollectionExtensions`.
+- User notes, collections/sharing, identity/friends, and Solid/WebID
+  registrations now live under `Bootstrap/UserDataServiceCollectionExtensions`.
 
 ### Fixed
 
