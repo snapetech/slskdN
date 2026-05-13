@@ -87,8 +87,11 @@ Implemented:
 
 Risks:
 
-- Native Soulseek mesh rendezvous was API-only after the runtime update. It now needs explicit UI, privacy language, and tests.
-- Discovery surfaces should consistently explain source trust and whether they trigger network calls.
+- Native Soulseek mesh rendezvous now has System UI, privacy language, a
+  disabled-by-default gate, and tests; keep live behavior behind explicit
+  operator opt-in.
+- Discovery surfaces should consistently explain source trust and whether they
+  trigger network calls.
 
 ### Player/media UX
 
@@ -130,13 +133,16 @@ Implemented:
 
 Risks:
 
-- Mesh/DHT/QUIC/service fabric is the highest-complexity area and needs dedicated adverse-network tests.
+- Mesh/DHT/QUIC/service fabric is the highest-complexity area and needs
+  dedicated adverse-network tests.
 - Public discovery paths must remain explicit and documented.
-- Anonymous network endpoints need an allowlist and abuse-control review.
+- Anonymous network endpoints are allowlisted and checked; keep abuse-control
+  rationale current when public surfaces change.
 
 ### Security/privacy
 
-Status: broad controls, needs endpoint-level audit artifact.
+Status: baseline controls and route audit artifacts are in place; continue
+focused threat-model updates for new externally visible surfaces.
 
 Good current properties:
 
@@ -148,8 +154,10 @@ Good current properties:
 
 Risks:
 
-- Anonymous endpoints need a documented allowlist.
-- Mesh service fabric and HTTP gateway need a focused threat model.
+- Anonymous endpoints need the documented allowlist to stay synchronized with
+  route changes.
+- Mesh service fabric and HTTP gateway threat-model notes should be kept current
+  when externally visible behavior changes.
 - Source integrations and MediaCore retrieval paths need SSRF/path traversal verification.
 - Logs, diagnostics, reports, metrics, and route debugging must avoid leaking sensitive environment details.
 

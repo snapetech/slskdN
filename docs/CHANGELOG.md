@@ -33,6 +33,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   completed validation results and remaining release coordination work.
 - Reconciled route/UI parity rows for DHT/bootstrap/NAT visibility and
   VirtualSoulfind provider capability visibility.
+- Reconciled remaining stale parity status wording for Soulseek mesh
+  rendezvous UI/privacy/test coverage and security route-audit artifacts.
 
 ## [2026051318-slskdn.251] — 2026-05-13
 

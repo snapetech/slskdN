@@ -7247,3 +7247,9 @@ Next steps: run lint, commit this logging/shutdown wrapper cleanup, then re-scan
 Continued the parity/reconciliation list by fixing MediaCore ContentID examples after the advanced registration split. Example buttons now fill read-first resolve/validation fields and the advanced registration fields, and the focused component test covers that path. Focused MediaCore component tests and focused Web lint passed.
 
 Next steps: commit the MediaCore example cleanup, then re-scan remaining non-pod MediaCore forms or reassess whether Program.cs has any remaining practical decomposition beyond static state/orchestration.
+
+## 2026-05-13T18:25:58Z Session update
+
+Reconciled the remaining stale parity plan wording. Soulseek mesh rendezvous is now described as having System UI, privacy language, a disabled-by-default gate, and tests; security/privacy now points at the completed route audit artifacts while preserving future threat-model upkeep.
+
+Next steps: commit this doc cleanup, then leave the remaining reconciliation scope to release coordination, live/E2E checks for the target release, adverse-network validation, and any prioritized G5 guided-flow work.

@@ -10255,3 +10255,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T18:20:52Z] Reconciliation documentation cleanup: updated the feature parity plan and remediation completion report so the baseline, current snapshot, and work-left sections match the completed validation pass. Remaining work is release coordination plus any target-specific live/E2E checks after local commits are pushed.
 
 [2026-05-13T18:23:23Z] Route/UI parity reconciliation: updated DHT/bootstrap/NAT and VirtualSoulfind v2 rows to reflect current System Network/Mesh visibility, Source Providers capability/risk/priority catalog, and Search provider gating.
+
+[2026-05-13T18:25:58Z] Reconciliation status wording cleanup: updated the feature parity plan so the search/discovery, network/mesh, and security/privacy sections match completed Soulseek mesh rendezvous UI/privacy/test coverage and the current anonymous/non-versioned route audit artifacts. Remaining items stay scoped to live/E2E release checks, adverse-network validation, broader G5 guided flows, and future threat-model updates when external surfaces change.
