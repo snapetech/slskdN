@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using slskd;
+using slskd.Configuration;
 using slskd.Identity;
 using slskd.Mesh.Transport;
 using slskd.Tests.Unit;
@@ -317,5 +318,6 @@ public class ProfileServiceTests : IDisposable
         setter!.Invoke(null, new object[] { value ?? string.Empty });
     }
 
-    private static string GetProfileFilePath() => Path.Combine(Program.GetWriteBaseDirectory(), "peer-profile.json");
+    private static string GetProfileFilePath()
+        => Path.Combine(AppPathResolver.GetWriteBaseDirectory(Program.AppDirectory, Program.DefaultAppDirectory), "peer-profile.json");
 }

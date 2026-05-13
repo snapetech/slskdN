@@ -15,7 +15,12 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Moq;
+using slskd.Bootstrap;
 using slskd.Configuration;
+using slskd.Core.Security;
+using slskd.Mesh.Overlay;
+using slskd.SoulseekExceptions;
+using slskd.SoulseekRuntime;
 using Soulseek;
 using Xunit;
 
@@ -31,7 +36,7 @@ public class ProgramPathNormalizationTests
         {
             SetAppDirectory(Path.Combine(Path.GetTempPath(), $"slskdn-appdir-{Guid.NewGuid():N}"));
 
-            var resolved = Program.ResolveAppRelativePath("mesh-overlay.key", "mesh-overlay.key");
+            var resolved = AppPathResolver.ResolveAppRelativePath("mesh-overlay.key", "mesh-overlay.key", Program.AppDirectory, Program.DefaultAppDirectory);
 
             Assert.Equal(Path.Combine(Program.AppDirectory, "mesh-overlay.key"), resolved);
         }
@@ -46,7 +51,7 @@ public class ProgramPathNormalizationTests
     {
         var absolutePath = Path.Combine(Path.GetTempPath(), $"slskdn-absolute-{Guid.NewGuid():N}", "mesh-overlay.key");
 
-        var resolved = Program.ResolveAppRelativePath(absolutePath, "mesh-overlay.key");
+        var resolved = AppPathResolver.ResolveAppRelativePath(absolutePath, "mesh-overlay.key", Program.AppDirectory, Program.DefaultAppDirectory);
 
         Assert.Equal(absolutePath, resolved);
     }
@@ -60,7 +65,7 @@ public class ProgramPathNormalizationTests
         {
             SetAppDirectory(Path.Combine(Path.GetTempPath(), $"slskdn-appdir-{Guid.NewGuid():N}"));
 
-            var resolved = Program.ResolveAppRelativePath(string.Empty, "data");
+            var resolved = AppPathResolver.ResolveAppRelativePath(string.Empty, "data", Program.AppDirectory, Program.DefaultAppDirectory);
 
             Assert.Equal(Path.Combine(Program.AppDirectory, "data"), resolved);
         }
@@ -79,7 +84,7 @@ public class ProgramPathNormalizationTests
         {
             SetAppDirectory(Path.Combine(Path.GetTempPath(), $"slskdn-appdir-{Guid.NewGuid():N}"));
 
-            var resolved = Program.ResolveOptionalAppRelativePath("quarantine");
+            var resolved = AppPathResolver.ResolveOptionalAppRelativePath("quarantine", Program.AppDirectory, Program.DefaultAppDirectory);
 
             Assert.Equal(Path.Combine(Program.AppDirectory, "quarantine"), resolved);
         }
@@ -92,7 +97,7 @@ public class ProgramPathNormalizationTests
     [Fact]
     public void ResolveOptionalAppRelativePath_LeavesBlankValuesBlank()
     {
-        var resolved = Program.ResolveOptionalAppRelativePath(string.Empty);
+        var resolved = AppPathResolver.ResolveOptionalAppRelativePath(string.Empty, Program.AppDirectory, Program.DefaultAppDirectory);
 
         Assert.Equal(string.Empty, resolved);
     }
@@ -106,7 +111,7 @@ public class ProgramPathNormalizationTests
         {
             SetAppDirectory(string.Empty);
 
-            var baseDirectory = Program.GetWriteBaseDirectory();
+            var baseDirectory = AppPathResolver.GetWriteBaseDirectory(Program.AppDirectory, Program.DefaultAppDirectory);
 
             Assert.Equal(Program.DefaultAppDirectory, baseDirectory);
         }
@@ -134,7 +139,7 @@ public class ProgramPathNormalizationTests
             },
         };
 
-        var options = Program.CreateInitialSoulseekClientOptions(optionsAtStartup);
+        var options = SoulseekClientOptionsFactory.CreateInitial(optionsAtStartup);
 
         Assert.True(options.EnableListener);
         Assert.Equal("127.0.0.1", options.ListenIPAddress.ToString());
@@ -149,7 +154,7 @@ public class ProgramPathNormalizationTests
     [Fact]
     public void CreateWebHtmlRewriteRules_PrefixesAssetAndManifestPaths_ForUrlBase()
     {
-        var rules = Program.CreateWebHtmlRewriteRules("/system");
+        var rules = WebHtmlRewriteRules.Create("/system");
 
         var html = """
             <head>
@@ -230,7 +235,7 @@ public class ProgramPathNormalizationTests
     {
         var exception = new AggregateException(new SocketException((int)SocketError.ConnectionRefused));
 
-        Assert.False(Program.IsBenignUnobservedTaskException(exception));
+        Assert.False(StartupExceptionClassifier.IsBenignUnobservedTaskException(exception));
     }
 
     [Fact]
@@ -238,7 +243,7 @@ public class ProgramPathNormalizationTests
     {
         var exception = new AggregateException(new InvalidOperationException("boom"));
 
-        Assert.False(Program.IsBenignUnobservedTaskException(exception));
+        Assert.False(StartupExceptionClassifier.IsBenignUnobservedTaskException(exception));
     }
 
     [Fact]
@@ -246,7 +251,7 @@ public class ProgramPathNormalizationTests
     {
         var exception = new AggregateException(new ObjectDisposedException("Connection"));
 
-        Assert.True(Program.IsExpectedSoulseekNetworkException(exception));
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }
 
     [Fact]
@@ -255,7 +260,7 @@ public class ProgramPathNormalizationTests
         var exception = new AggregateException(new IOException(
             "Unknown PierceFirewall attempt with token 46 from x.x.x.x:44490 (id: abcdef)"));
 
-        Assert.True(Program.IsExpectedSoulseekNetworkException(exception));
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }
 
     [Fact]
@@ -263,7 +268,7 @@ public class ProgramPathNormalizationTests
     {
         var exception = new AggregateException(new IOException("Remote connection closed"));
 
-        Assert.True(Program.IsExpectedSoulseekNetworkException(exception));
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }
 
     [Fact]
@@ -271,7 +276,7 @@ public class ProgramPathNormalizationTests
     {
         var exception = new AggregateException(new IOException("Connection refused"));
 
-        Assert.True(Program.IsExpectedSoulseekNetworkException(exception));
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }
 
     [Fact]
@@ -279,7 +284,7 @@ public class ProgramPathNormalizationTests
     {
         var exception = new AggregateException(new SocketException((int)SocketError.ConnectionReset));
 
-        Assert.True(Program.IsExpectedSoulseekNetworkException(exception));
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }
 
     [Fact]
@@ -287,7 +292,7 @@ public class ProgramPathNormalizationTests
     {
         var exception = new AggregateException(new TransferReportedFailedException("Download reported as failed by remote client"));
 
-        Assert.True(Program.IsExpectedSoulseekNetworkException(exception));
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }
 
     [Fact]
@@ -295,7 +300,7 @@ public class ProgramPathNormalizationTests
     {
         var exception = new AggregateException(new TransferRejectedException("Enqueue failed due to internal error"));
 
-        Assert.True(Program.IsExpectedSoulseekNetworkException(exception));
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }
 
     [Theory]
@@ -305,7 +310,7 @@ public class ProgramPathNormalizationTests
     {
         var exception = new AggregateException(new TransferRejectedException(reason));
 
-        Assert.True(Program.IsExpectedSoulseekNetworkException(exception));
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }
 
     [Fact]
@@ -313,7 +318,7 @@ public class ProgramPathNormalizationTests
     {
         var exception = new AggregateException(new ConnectionException("Transfer failed: Transfer complete"));
 
-        Assert.True(Program.IsExpectedSoulseekNetworkException(exception));
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }
 
     [Fact]
@@ -325,7 +330,7 @@ public class ProgramPathNormalizationTests
             "   at Soulseek.Network.MessageConnection.ReadContinuouslyAsync()");
         var exception = new AggregateException(inner);
 
-        Assert.True(Program.IsExpectedSoulseekNetworkException(exception));
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }
 
     [Fact]
@@ -339,7 +344,7 @@ public class ProgramPathNormalizationTests
             "   at Soulseek.Network.MessageConnection.ReadContinuouslyAsync()");
         var exception = new AggregateException(inner);
 
-        Assert.True(Program.IsExpectedSoulseekNetworkException(exception));
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }
 
     [Fact]
@@ -352,7 +357,7 @@ public class ProgramPathNormalizationTests
             "   at Soulseek.Network.Tcp.Connection.WriteInternalAsync(Int64 length, Stream inputStream, Func`3 governor, Action`3 reporter, CancellationToken cancellationToken)");
         var exception = new AggregateException(inner);
 
-        Assert.True(Program.IsExpectedSoulseekNetworkException(exception));
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }
 
     [Fact]
@@ -379,7 +384,7 @@ public class ProgramPathNormalizationTests
 
         var exception = new AggregateException(connectionException);
 
-        Assert.True(Program.IsExpectedSoulseekNetworkException(exception));
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }
 
     [Fact]
@@ -393,7 +398,7 @@ public class ProgramPathNormalizationTests
             "   at Soulseek.Network.MessageConnection.ReadContinuouslyAsync()");
         var exception = new AggregateException(inner);
 
-        Assert.True(Program.IsExpectedSoulseekNetworkException(exception));
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }
 
     [Fact]
@@ -408,7 +413,7 @@ public class ProgramPathNormalizationTests
             "   at Soulseek.Network.Tcp.Listener.ListenContinuouslyAsync()");
         var exception = new AggregateException(inner);
 
-        Assert.True(Program.IsExpectedSoulseekNetworkException(exception));
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }
 
     [Fact]
@@ -436,7 +441,7 @@ public class ProgramPathNormalizationTests
         bool sharedMeshUdpRequested,
         bool expected)
     {
-        Assert.Equal(expected, Program.ShouldRunStandaloneUdpOverlayServer(overlayEnabled, sharedMeshUdpRequested));
+        Assert.Equal(expected, QuicOverlayFactory.ShouldRunStandaloneUdpOverlayServer(overlayEnabled, sharedMeshUdpRequested));
     }
 
     [Fact]
@@ -444,7 +449,7 @@ public class ProgramPathNormalizationTests
     {
         var exception = new AntiforgeryValidationException("The antiforgery token could not be decrypted.", new CryptographicException("The key {abc} was not found in the key ring."));
 
-        Assert.True(Program.IsStaleAntiforgeryTokenException(exception));
+        Assert.True(AntiforgeryCookieRecovery.IsStaleTokenException(exception));
     }
 
     [Fact]

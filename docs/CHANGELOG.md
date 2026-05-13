@@ -32,6 +32,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   remote-reported failure, and remote size mismatch from error stack traces to
   warnings.
 - Cleaned up now-unused `Program.cs` imports after the bootstrap decomposition.
+- Removed additional `Program.cs` compatibility wrappers after tests moved to
+  the extracted bootstrap/security/path helper APIs directly.
 - Rewired remaining production call sites to use extracted path, Soulseek
   option, QUIC data-plane, and antiforgery helpers directly instead of routing
   through Program compatibility wrappers.

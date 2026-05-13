@@ -23,7 +23,6 @@ using slskd.Bootstrap;
 namespace slskd
 {
     using System;
-    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.IO;
     using System.Threading;
@@ -33,8 +32,6 @@ namespace slskd
     using Microsoft.Extensions.FileProviders.Physical;
     using slskd.Configuration;
     using slskd.Relay;
-    using slskd.SoulseekRuntime;
-    using Soulseek;
     using Utility.CommandLine;
     using Utility.EnvironmentVariables;
 
@@ -245,40 +242,7 @@ namespace slskd
         // Mutex is created lazily after AppDirectory is set to allow multiple test instances with different app dirs
         private static Mutex? Mutex { get; set; }
 
-        private static string GetMutexName()
-        {
-            return StartupSingleInstance.GetMutexName(AppName, AppDirectory, DefaultAppDirectory);
-        }
-
-        internal static string GetWriteBaseDirectory()
-        {
-            return AppPathResolver.GetWriteBaseDirectory(AppDirectory, DefaultAppDirectory);
-        }
-
-        internal static string ResolveOptionalAppRelativePath(string? path)
-        {
-            return AppPathResolver.ResolveOptionalAppRelativePath(path, AppDirectory, DefaultAppDirectory);
-        }
-
-        internal static string ResolveAppRelativePath(string path, string fallbackRelativePath)
-        {
-            return AppPathResolver.ResolveAppRelativePath(path, fallbackRelativePath, AppDirectory, DefaultAppDirectory);
-        }
-
-        internal static IReadOnlyList<(string Pattern, string Replacement)> CreateWebHtmlRewriteRules(string urlBase)
-        {
-            return WebHtmlRewriteRules.Create(urlBase);
-        }
-
-        internal static SoulseekClientOptions CreateInitialSoulseekClientOptions(OptionsAtStartup optionsAtStartup)
-        {
-            return SoulseekRuntime.SoulseekClientOptionsFactory.CreateInitial(optionsAtStartup);
-        }
-
-        internal static bool IsBenignUnobservedTaskException(Exception exception)
-        {
-            return StartupExceptionClassifier.IsBenignUnobservedTaskException(exception);
-        }
+        private static string GetMutexName() => StartupSingleInstance.GetMutexName(AppName, AppDirectory, DefaultAppDirectory);
 
         private static IDisposable? DotNetRuntimeStats { get; set; }
         private static VolatileOverlayConfigurationSource<OptionsOverlay> VolatileOverlayConfigurationSource { get; set; } = new VolatileOverlayConfigurationSource<OptionsOverlay>();
@@ -520,45 +484,14 @@ namespace slskd
         {
             StartupShutdownTelemetry.Install(
                 () => Application.IsShuttingDown,
-                IsBenignUnobservedTaskException,
-                IsExpectedSoulseekNetworkException,
+                StartupExceptionClassifier.IsBenignUnobservedTaskException,
+                SoulseekExceptions.SoulseekNetworkExceptionClassifier.IsExpected,
                 () => Log);
         }
 
         [System.Runtime.Versioning.SupportedOSPlatform("linux")]
         [System.Runtime.Versioning.SupportedOSPlatform("macos")]
         [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-        internal static Mesh.Overlay.QuicOverlayClient CreateQuicOverlayClient(IServiceProvider serviceProvider)
-        {
-            return Mesh.Overlay.QuicOverlayFactory.CreateOverlayClient(serviceProvider);
-        }
-
-        [System.Runtime.Versioning.SupportedOSPlatform("linux")]
-        [System.Runtime.Versioning.SupportedOSPlatform("macos")]
-        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-        internal static Mesh.Overlay.QuicDataClient CreateQuicDataClient(IServiceProvider serviceProvider)
-        {
-            return Mesh.Overlay.QuicOverlayFactory.CreateDataClient(serviceProvider);
-        }
-
-        [System.Runtime.Versioning.SupportedOSPlatform("linux")]
-        [System.Runtime.Versioning.SupportedOSPlatform("macos")]
-        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-        internal static Mesh.Overlay.QuicOverlayServer CreateQuicOverlayServer(IServiceProvider serviceProvider)
-        {
-            return Mesh.Overlay.QuicOverlayFactory.CreateOverlayServer(serviceProvider);
-        }
-
-        internal static bool ShouldRunStandaloneUdpOverlayServer(bool overlayEnabled, bool sharedMeshUdpRequested)
-        {
-            return Mesh.Overlay.QuicOverlayFactory.ShouldRunStandaloneUdpOverlayServer(overlayEnabled, sharedMeshUdpRequested);
-        }
-
-        internal static bool IsExpectedSoulseekNetworkException(Exception exception)
-        {
-            return SoulseekExceptions.SoulseekNetworkExceptionClassifier.IsExpected(exception);
-        }
-
         internal static Microsoft.AspNetCore.Antiforgery.AntiforgeryTokenSet? TryGetAndStoreAntiforgeryTokens(
             HttpContext context,
             Microsoft.AspNetCore.Antiforgery.IAntiforgery antiforgery)
@@ -568,11 +501,6 @@ namespace slskd
                 antiforgery,
                 OptionsAtStartup.Web.Port,
                 path => Log.Warning("[CSRF Middleware] Cleared stale antiforgery cookies for {Path} after key-ring mismatch", path));
-        }
-
-        internal static bool IsStaleAntiforgeryTokenException(Exception exception)
-        {
-            return Core.Security.AntiforgeryCookieRecovery.IsStaleTokenException(exception);
         }
 
         internal static bool StripKnownAntiforgeryCookiesFromRequest(HttpContext context)

@@ -4,6 +4,7 @@
 namespace slskd.Tests.Unit;
 
 using System;
+using slskd.SoulseekExceptions;
 using Xunit;
 
 [Collection("ProgramAppDirectory")]
@@ -15,7 +16,7 @@ public class ProgramExpectedNetworkExceptionTests
         var exception = new AggregateException(
             new TimeoutException("The wait timed out after 10000 milliseconds in Soulseek.Network.PeerConnectionManager."));
 
-        Assert.True(Program.IsExpectedSoulseekNetworkException(exception));
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }
 
     [Fact]
@@ -24,6 +25,6 @@ public class ProgramExpectedNetworkExceptionTests
         var exception = new AggregateException(
             new OperationCanceledException("Operation canceled in Soulseek.Network.DistributedConnectionManager."));
 
-        Assert.True(Program.IsExpectedSoulseekNetworkException(exception));
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }
 }
