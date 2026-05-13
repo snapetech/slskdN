@@ -342,7 +342,7 @@ transfers:
       enabled: true
       retry_delay_seconds: 1800
       check_interval_seconds: 300
-      max_attempts: 5
+      max_attempts: 0
       max_files_per_cycle: 10
       max_files_per_peer_per_cycle: 1
       peer_cooldown_seconds: 900
@@ -350,13 +350,13 @@ transfers:
 
 The older `global` key is still accepted so existing deployments can upgrade without an immediate edit. New configuration should use `transfers`.
 
-Download auto-retry is enabled by default, but it is intentionally conservative
-for Soulseek network health. Retries are delayed after a failure, scans are
-bounded globally, and each scan only contacts a small number of files per peer
-with a peer cooldown between attempts. Mesh/swarm retry policies can be more
-aggressive because those paths use slskdN-controlled transport budgets; direct
-Soulseek retry should stay respectful of remote client queue, file, and
-megabyte limits.
+Download auto-retry is enabled by default, and `max_attempts: 0` keeps retrying
+forever. The loop is intentionally conservative for Soulseek network health:
+retries are delayed after a failure, scans are bounded globally, and each scan
+only contacts a small number of files per peer with a peer cooldown between
+attempts. Mesh/swarm retry policies can be more aggressive because those paths
+use slskdN-controlled transport budgets; direct Soulseek retry should stay
+respectful of remote client queue, file, and megabyte limits.
 
 ## Global Upload Limits
 

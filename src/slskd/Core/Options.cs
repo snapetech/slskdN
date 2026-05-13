@@ -1378,10 +1378,10 @@ namespace slskd
                     public int CheckIntervalSeconds { get; init; } = 300;
 
                     /// <summary>
-                    ///     Gets the maximum number of automatic retry attempts per file per process lifetime.
+                    ///     Gets the maximum number of automatic retry attempts per file per process lifetime. 0 means unlimited.
                     /// </summary>
-                    [Range(1, 100)]
-                    public int MaxAttempts { get; init; } = 5;
+                    [Range(0, 100)]
+                    public int MaxAttempts { get; init; } = 0;
 
                     /// <summary>
                     ///     Gets the maximum number of failed files automatically re-queued in one scan.

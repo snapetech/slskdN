@@ -454,24 +454,44 @@ public class DownloadServiceTests
     }
 
     [Fact]
-    public void CreateRetryPlan_SkipsAlreadyRetriedAndMaxAttemptFiles()
+    public void CreateRetryPlan_SkipsAlreadyRetriedAndFiniteMaxAttemptFiles()
     {
         var now = DateTime.UtcNow;
         var alreadyRetried = CreateFailedDownload("alice", "old.flac", now.AddMinutes(-40));
         var maxed = CreateFailedDownload("bob", "maxed.flac", now.AddMinutes(-39));
         var eligible = CreateFailedDownload("carol", "ok.flac", now.AddMinutes(-38));
         var retryCounts = new System.Collections.Concurrent.ConcurrentDictionary<string, int>();
-        retryCounts[$"{maxed.Username}:{maxed.Filename}"] = new slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions().MaxAttempts;
+        var opts = new slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions { MaxAttempts = 5 };
+        retryCounts[$"{maxed.Username}:{maxed.Filename}"] = opts.MaxAttempts;
 
         var plan = DownloadAutoRetryService.CreateRetryPlan(
             new[] { alreadyRetried, maxed, eligible },
             new HashSet<Guid> { alreadyRetried.Id },
             retryCounts,
             new System.Collections.Concurrent.ConcurrentDictionary<string, DateTime>(),
-            new slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions(),
+            opts,
             now);
 
         Assert.Equal(new[] { eligible.Id }, plan.Select(t => t.Id));
+    }
+
+    [Fact]
+    public void CreateRetryPlan_DefaultMaxAttemptsAllowsUnlimitedRetries()
+    {
+        var now = DateTime.UtcNow;
+        var retriedManyTimes = CreateFailedDownload("alice", "forever.flac", now.AddMinutes(-40));
+        var retryCounts = new System.Collections.Concurrent.ConcurrentDictionary<string, int>();
+        retryCounts[$"{retriedManyTimes.Username}:{retriedManyTimes.Filename}"] = 500;
+
+        var plan = DownloadAutoRetryService.CreateRetryPlan(
+            new[] { retriedManyTimes },
+            new HashSet<Guid>(),
+            retryCounts,
+            new System.Collections.Concurrent.ConcurrentDictionary<string, DateTime>(),
+            new slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions(),
+            now);
+
+        Assert.Equal(new[] { retriedManyTimes.Id }, plan.Select(t => t.Id));
     }
 
     [Fact]

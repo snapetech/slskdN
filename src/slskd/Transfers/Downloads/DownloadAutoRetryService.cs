@@ -131,7 +131,7 @@ namespace slskd.Transfers.Downloads
                     .Where(t =>
                     {
                         var key = RetryKey(t);
-                        return retryCounts.GetOrAdd(key, 0) < opts.MaxAttempts;
+                        return IsWithinAttemptBudget(retryCounts.GetOrAdd(key, 0), opts);
                     })
                     .ToList();
 
@@ -161,7 +161,7 @@ namespace slskd.Transfers.Downloads
                             t.Filename,
                             username,
                             attempt,
-                            opts.MaxAttempts,
+                            opts.MaxAttempts == 0 ? "unlimited" : opts.MaxAttempts.ToString(),
                             t.State);
                     }
                 }
@@ -193,7 +193,7 @@ namespace slskd.Transfers.Downloads
 
             return failed
                 .Where(t => !alreadyRetried.Contains(t.Id))
-                .Where(t => retryCounts.GetOrAdd(RetryKey(t), 0) < opts.MaxAttempts)
+                .Where(t => IsWithinAttemptBudget(retryCounts.GetOrAdd(RetryKey(t), 0), opts))
                 .Where(t => !peerRetryCooldowns.TryGetValue(t.Username, out var retryAfter) || retryAfter <= now)
                 .GroupBy(t => t.Username, StringComparer.OrdinalIgnoreCase)
                 .OrderBy(g => g.Min(t => t.EndedAt ?? DateTime.MaxValue))
@@ -203,5 +203,10 @@ namespace slskd.Transfers.Downloads
                 .Take(globalLimit)
                 .ToList();
         }
+
+        private static bool IsWithinAttemptBudget(
+            int currentAttempts,
+            slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions opts)
+            => opts.MaxAttempts == 0 || currentAttempts < opts.MaxAttempts;
     }
 }
