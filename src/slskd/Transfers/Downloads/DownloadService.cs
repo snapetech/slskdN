@@ -448,7 +448,7 @@ namespace slskd.Transfers.Downloads
                 }
 
                 var maxTimeToWaitForEnqueueRequestAck = TimeSpan.FromMinutes(3);
-#pragma warning disable CA2000 // Ownership is intentionally transferred to deferred idle-disposal helper.
+#pragma warning disable CA2000 // Ephemeral async throttle; detached enqueue tasks may still touch it after this method returns.
                 enqueueSemaphore = new SemaphoreSlim(initialCount: concurrentEnqueueRequests, maxCount: concurrentEnqueueRequests);
 #pragma warning restore CA2000
                 try
@@ -711,7 +711,7 @@ namespace slskd.Transfers.Downloads
                 }
                 finally
                 {
-                    DisposeEnqueueSemaphoreWhenIdle(enqueueSemaphore, trackedEnqueueTasks);
+                    ObserveEnqueueTasksWhenIdle(trackedEnqueueTasks);
                 }
             }
             catch (Exception ex)
@@ -1670,16 +1670,10 @@ namespace slskd.Transfers.Downloads
             }
         }
 
-        private static void DisposeEnqueueSemaphoreWhenIdle(SemaphoreSlim? semaphore, IReadOnlyCollection<Task> runningTasks)
+        private static void ObserveEnqueueTasksWhenIdle(IReadOnlyCollection<Task> runningTasks)
         {
-            if (semaphore is null)
-            {
-                return;
-            }
-
             if (runningTasks.Count == 0)
             {
-                semaphore.Dispose();
                 return;
             }
 
@@ -1690,8 +1684,6 @@ namespace slskd.Transfers.Downloads
                     {
                         _ = completedTasks.Exception;
                     }
-
-                    semaphore.Dispose();
                 },
                 CancellationToken.None,
                 TaskContinuationOptions.ExecuteSynchronously,

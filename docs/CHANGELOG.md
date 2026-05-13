@@ -58,6 +58,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   rejections do not surface as process-level unobserved task exceptions.
 - Observed download enqueue cleanup aggregate faults so expected remote transfer
   rejections do not surface as process-level unobserved task exceptions.
+- Stopped asynchronously disposing ephemeral download enqueue throttle semaphores
+  so auto-retry enqueue cleanup cannot race into disposed synchronization state.
 - Archived stale working notes and removed obsolete local one-off remediation
   scripts from the active docs/scripts surface.
 - Strengthened mesh preview hash validation so hash-protected content is
