@@ -52,6 +52,19 @@ public class MeshStreamsControllerTests
     }
 
     [Fact]
+    public void CreateTicket_InvalidRequest_ReturnsBadRequestMessage()
+    {
+        var controller = CreateController();
+        _tickets.Setup(x => x.Create(It.IsAny<MeshStreamTicketRequest>(), It.IsAny<string>(), It.IsAny<TimeSpan>()))
+            .Throws(new ArgumentException("Only audio files can be preview streamed from mesh peers."));
+
+        var result = controller.CreateTicket(new MeshStreamTicketRequest("content-1", "archive.zip", "peer-1", 10, null));
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Only audio files can be preview streamed from mesh peers.", badRequest.Value);
+    }
+
+    [Fact]
     public async Task Get_ValidTicket_ReturnsNonRangeFileStream()
     {
         await using var stream = new MemoryStream(new byte[] { 1, 2, 3 });

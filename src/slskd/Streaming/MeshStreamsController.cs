@@ -64,9 +64,9 @@ public sealed class MeshStreamsController : ControllerBase
                 source = "mesh",
             });
         }
-        catch (ArgumentException)
+        catch (ArgumentException ex)
         {
-            return BadRequest("Invalid mesh stream ticket request.");
+            return BadRequest(ex.Message);
         }
         catch (InvalidOperationException)
         {

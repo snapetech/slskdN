@@ -44,6 +44,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   retry budgets, and unlimited retries by default.
 - Reduced warning noise for normal peer-side download denial/failure events
   while leaving transfer failure handling intact.
+- Preserved peer and mesh preview stream validation messages in ticket API
+  bad-request responses.
 - Observed terminal download enqueue signal faults so expected remote transfer
   rejections do not surface as process-level unobserved task exceptions.
 - Archived stale working notes and removed obsolete local one-off remediation

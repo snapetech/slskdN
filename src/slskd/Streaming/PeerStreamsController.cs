@@ -62,9 +62,9 @@ public sealed class PeerStreamsController : ControllerBase
                 contentType = ticket.ContentType,
             });
         }
-        catch (ArgumentException)
+        catch (ArgumentException ex)
         {
-            return BadRequest("Invalid peer stream ticket request.");
+            return BadRequest(ex.Message);
         }
         catch (InvalidOperationException)
         {
