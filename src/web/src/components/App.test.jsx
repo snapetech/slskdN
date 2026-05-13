@@ -143,7 +143,7 @@ describe('App', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Searches')).toBeInTheDocument();
+      expect(screen.getByTestId('nav-search').closest('a')).toHaveAttribute('href', '/searches');
     });
 
     expect(consoleError).not.toHaveBeenCalledWith('[Router] Route miss for:', '/');

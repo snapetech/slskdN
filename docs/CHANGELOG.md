@@ -29,6 +29,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   `cs/web/cookie-httponly-not-set` alert.
 - Fixed MediaCore ContentID example buttons so they populate the active
   read-first resolve and validation fields after the workflow simplification.
+- Aligned the frontend root-route regression test with the current Search
+  navigation label so the release gate checks the `/searches` target directly.
 - Fixed Arch/AUR source builds by lowering the .NET SDK floor to the 10.0.1xx
   feature band with feature roll-forward, updated release workflow SDK pins to
   match, and refreshed Snap metadata for `2026051221-slskdn.247`.
