@@ -4263,6 +4263,11 @@ const MediaCore = () => {
               </Card.Description>
             </Card.Content>
             <Card.Content>
+              <Message info size="small">
+                Cached single-descriptor retrieval is the default path. Force a
+                fresh lookup only when cache state is suspect because it can
+                trigger additional DHT traffic.
+              </Message>
               <Form>
                 <Form.Field>
                   <label>ContentID</label>
@@ -4270,13 +4275,6 @@ const MediaCore = () => {
                     onChange={(e) => setRetrieveContentId(e.target.value)}
                     placeholder="content:audio:track:mb-12345"
                     value={retrieveContentId}
-                  />
-                </Form.Field>
-                <Form.Field>
-                  <Checkbox
-                    checked={bypassCache}
-                    label="Bypass cache (force fresh retrieval)"
-                    onChange={(e, { checked }) => setBypassCache(checked)}
                   />
                 </Form.Field>
                 <Button
@@ -4288,6 +4286,18 @@ const MediaCore = () => {
                   Retrieve Descriptor
                 </Button>
               </Form>
+              <details style={{ marginTop: '1em' }}>
+                <summary>Advanced fresh DHT retrieval controls</summary>
+                <Form style={{ marginTop: '1em' }}>
+                  <Form.Field>
+                    <Checkbox
+                      checked={bypassCache}
+                      label="Bypass cache (force fresh retrieval)"
+                      onChange={(e, { checked }) => setBypassCache(checked)}
+                    />
+                  </Form.Field>
+                </Form>
+              </details>
 
               {retrievalResult && (
                 <div style={{ marginTop: '1em' }}>
@@ -4360,25 +4370,35 @@ const MediaCore = () => {
               </Card.Description>
             </Card.Content>
             <Card.Content>
-              <Form>
-                <Form.Field>
-                  <label>ContentIDs (one per line)</label>
-                  <TextArea
-                    onChange={(e) => setBatchRetrieveContentIds(e.target.value)}
-                    placeholder="content:audio:track:mb-12345&#10;content:video:movie:imdb-tt0111161&#10;..."
-                    rows={6}
-                    value={batchRetrieveContentIds}
-                  />
-                </Form.Field>
-                <Button
-                  disabled={!batchRetrieveContentIds.trim() || retrievingBatch}
-                  loading={retrievingBatch}
-                  onClick={handleRetrieveBatch}
-                  primary
-                >
-                  Retrieve Batch
-                </Button>
-              </Form>
+              <Message info size="small">
+                Use single-descriptor retrieval first. Batch retrieval can fan
+                out across multiple descriptors and is grouped as an advanced
+                DHT retrieval operation.
+              </Message>
+              <details>
+                <summary>Advanced batch DHT retrieval controls</summary>
+                <Form style={{ marginTop: '1em' }}>
+                  <Form.Field>
+                    <label>ContentIDs (one per line)</label>
+                    <TextArea
+                      onChange={(e) =>
+                        setBatchRetrieveContentIds(e.target.value)
+                      }
+                      placeholder="content:audio:track:mb-12345&#10;content:video:movie:imdb-tt0111161&#10;..."
+                      rows={6}
+                      value={batchRetrieveContentIds}
+                    />
+                  </Form.Field>
+                  <Button
+                    disabled={!batchRetrieveContentIds.trim() || retrievingBatch}
+                    loading={retrievingBatch}
+                    onClick={handleRetrieveBatch}
+                    primary
+                  >
+                    Retrieve Batch
+                  </Button>
+                </Form>
+              </details>
 
               {batchRetrievalResult && (
                 <div style={{ marginTop: '1em' }}>
