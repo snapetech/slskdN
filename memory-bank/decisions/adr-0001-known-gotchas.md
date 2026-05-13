@@ -328,6 +328,41 @@ setAvailableRooms((previous) => {
 data, not authoritative local state. Empty degraded responses should not erase a
 previously successful directory snapshot while the user is actively searching.
 
+### 0z395. Soulseek NoResponse Room Join Can Mean Already Joined
+
+**The Bug**: `SoulseekClient.JoinRoomAsync()` can throw
+`Soulseek.NoResponseException` after waiting for the server to acknowledge a
+room join. The exception message explicitly says this probably means the room is
+already joined, but the API surfaced it as a 500 and made rejoining/opening
+existing rooms fail.
+
+**Files Affected**:
+- `src/slskd/Messaging/API/Controllers/RoomsController.cs`
+- `tests/slskd.Tests.Unit/Messaging/RoomsControllerTests.cs`
+
+**Wrong**:
+```csharp
+catch (Exception ex)
+{
+    throw;
+}
+```
+
+**Correct**:
+```csharp
+catch (NoResponseException)
+{
+    Tracker.TryAdd(roomName, new Room { Name = roomName });
+    return Accepted(MapRoomToRoomResponse(room));
+}
+```
+
+**Why This Keeps Happening**: Soulseek room joins are server-event-driven, and
+the SDK cannot always distinguish "server never joined" from "server did not
+send the expected acknowledgement because the client is already in the room."
+Treat this path as a degraded open/join success so the UI can open the room and
+subsequent room events can fill in users/messages.
+
 ### 0z384. Render-Time Work Must Not Scale With Hidden Or Unchanged Data
 
 **The Bug**: Performance fixes removed first-load blockers, but some render
