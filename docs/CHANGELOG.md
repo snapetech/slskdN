@@ -114,6 +114,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Simplified the MediaCore pod opinion workflow by keeping opinion review and
   aggregation actions first while grouping opinion publishing and affinity
   recalculation behind progressive disclosure.
+- Simplified the MediaCore pod content-linking workflow by keeping content
+  search and validation first while grouping content-linked pod creation behind
+  progressive disclosure after validation.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

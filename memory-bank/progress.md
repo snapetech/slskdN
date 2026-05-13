@@ -10112,3 +10112,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T02:27:56Z] Program decomposition host diagnostics split: moved E2E hosted-service tracing and host startup timeout/concurrency options into `Bootstrap/HostDiagnosticsServiceCollectionExtensions`, leaving `Program.cs` with a single host diagnostics registration call after runtime services. `dotnet build src/slskd/slskd.csproj --no-restore` and `./bin/lint` passed.
 
 [2026-05-13T02:29:32Z] Parity/reconciliation MediaCore opinion follow-up: simplified Pod Opinion Management by keeping refresh/list/statistics/aggregation/recommendation actions first and grouping opinion publishing plus affinity recalculation under advanced disclosure. Focused MediaCore component tests (`3/3`) and focused Web lint passed.
+
+[2026-05-13T02:31:03Z] Parity/reconciliation MediaCore content-linking follow-up: simplified Pod Content Linking by keeping search/validation as the default flow and grouping content-linked pod creation under advanced disclosure after validation. Focused MediaCore component tests (`3/3`) and focused Web lint passed.

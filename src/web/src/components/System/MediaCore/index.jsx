@@ -7696,7 +7696,14 @@ const MediaCore = () => {
 
               {/* Pod Creation */}
               {contentValidation?.isValid && (
-                <div>
+                <details>
+                  <summary>Advanced content-linked pod creation controls</summary>
+                  <Message warning>
+                    Creating a content-linked pod can publish the selected
+                    content identifier, pod name, and visibility setting. Keep
+                    private or draft discussions unlisted unless public
+                    discovery is intended.
+                  </Message>
                   <Header size="small">Create Content-Linked Pod</Header>
 
                   <Input
@@ -7726,7 +7733,7 @@ const MediaCore = () => {
                   >
                     Create Content-Linked Pod
                   </Button>
-                </div>
+                </details>
               )}
             </Card.Content>
           </Card>

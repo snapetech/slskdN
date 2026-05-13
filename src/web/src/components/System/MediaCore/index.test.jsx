@@ -73,6 +73,7 @@ describe('MediaCore', () => {
     expect(screen.getByText('Read pod opinions first')).toBeInTheDocument();
     expect(screen.getByText('Advanced opinion publishing controls')).toBeInTheDocument();
     expect(screen.getByText('Advanced affinity recalculation controls')).toBeInTheDocument();
+    expect(screen.queryByText('Advanced content-linked pod creation controls')).not.toBeInTheDocument();
   });
 
   it('focuses a pod workflow from the index card', async () => {
