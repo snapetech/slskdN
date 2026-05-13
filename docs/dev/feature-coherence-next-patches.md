@@ -178,6 +178,8 @@ Serilog startup configuration moved out of `Program.cs` into
 `Bootstrap/StartupLogging.cs`, and shutdown/unobserved-exception telemetry moved
 into `Bootstrap/StartupShutdownTelemetry.cs` while `Program` retains the public
 log event and buffer surface.
+CLI help output, environment-variable listing, and startup logo rendering moved
+out of `Program.cs` into `Bootstrap/StartupConsoleOutput.cs`.
 
 Target modules:
 
@@ -241,6 +243,8 @@ Target modules:
   log-record emission into the existing Program log event/buffer surface.
 - `StartupShutdownTelemetry.Install(...)`. Implemented for process-exit,
   unhandled-exception, and unobserved-task telemetry wiring.
+- `StartupConsoleOutput`. Implemented for command-line argument help,
+  environment-variable listing, and startup logo rendering.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
@@ -269,7 +273,8 @@ Acceptance criteria:
   config recreation, and certificate export are now owned by a focused
   bootstrap helper. QUIC overlay construction and standalone UDP overlay
   selection are now owned by a focused mesh helper. Global logging setup and
-  shutdown telemetry wiring are now owned by focused bootstrap helpers.
+  shutdown telemetry wiring are now owned by focused bootstrap helpers. CLI
+  output and logo rendering are now owned by a focused bootstrap helper.
 - Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 

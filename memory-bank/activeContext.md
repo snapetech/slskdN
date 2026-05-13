@@ -1,3 +1,18 @@
+## Update 2026-05-13 15:52:36Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - moved command-line argument help, environment-variable listing, and startup logo rendering into `Bootstrap/StartupConsoleOutput`;
+  - kept Program's private wrappers for the existing primitive CLI flow.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests|FullyQualifiedName~SharedEventEmitterTests|FullyQualifiedName~ApplicationLifecycleTests|FullyQualifiedName~LogsControllerTests" --no-restore` (`47/47`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Continue Program.cs decomposition with remaining SQLite/runtime identity helpers if worth extracting.
+  2. Re-scan the parity/reconciliation plan for any non-Program follow-ups still open.
+  3. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 15:49:21Z
 
 - Current task: Program.cs decomposition follow-up in progress.
