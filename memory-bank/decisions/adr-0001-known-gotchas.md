@@ -55,10 +55,12 @@ This is not optional. This is the highest priority action after fixing a bug.
 ### 0z415. Debounce Event-Driven External Imports Before The HTTP Call
 
 **The Bug**: Lidarr auto-import marked completed directories as processed only
-after the manual-import HTTP call finished. When several files completed in the
-same album directory, fire-and-forget directory-complete events could start
-duplicate concurrent Lidarr candidate lookups before the debounce marker was
-set, causing repeated HTTP timeouts and noisy warning stacks under load.
+after the manual-import HTTP call finished, and allowed different directories
+to import concurrently. When several files completed in one or more album
+directories, fire-and-forget directory-complete events could start duplicate
+or parallel Lidarr candidate/manual-import calls, causing repeated HTTP
+timeouts, SQLite `database is locked` failures, and noisy warning stacks under
+load.
 
 **Files Affected**:
 - `src/slskd/Integrations/Lidarr/LidarrImportService.cs`
@@ -81,13 +83,24 @@ if (!TryBeginProcessing(directory))
     return skipped;
 }
 
-var candidates = await LidarrClient.GetManualImportCandidatesAsync(directory, ...);
+await ImportGate.WaitAsync(cancellationToken);
+try
+{
+    var candidates = await LidarrClient.GetManualImportCandidatesAsync(directory, ...);
+}
+finally
+{
+    ImportGate.Release();
+}
 ```
 
 **Why This Keeps Happening**: `EventBus` subscribers run fire-and-forget and
 can overlap. Debouncing external side effects must reserve the work atomically
 before awaiting any network call; marking only after success leaves a race
-window where bursts create duplicate requests.
+window where bursts create duplicate requests. Integrations backed by SQLite
+also need explicit serialization around write-ish workflows such as manual
+import, because several individually valid API requests can lock the remote
+application when they run together.
 
 ### 0z414. Stream Ticket Controllers Must Preserve Only Known-Safe Validation Messages
 
