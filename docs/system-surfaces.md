@@ -16,6 +16,29 @@ actions.
 - **System -> Logs / Events / Metrics / Jobs**: operational history and current
   background work.
 
+## Guided Flow Map
+
+Use these current surfaces for the G5 guided-flow tracks before adding another
+page:
+
+- **Network Health**: System -> Network gives a local readiness score,
+  connectivity diagnostics, DHT exposure notices, and a copyable report without
+  contacting peers.
+- **Improve Downloads**: System -> Swarm Analytics, System -> Source Providers,
+  and Transfers expose multisource/rescue posture, provider priority, and active
+  transfer state. Keep live acquisition actions explicit.
+- **Discover Music**: Search, Wishlist, Discovery Graph, System -> Source
+  Providers, and System -> MediaCore cover manual discovery, background search,
+  provider capability review, and pod/native discovery checks.
+- **Share Collection**: Collections and System -> Shares cover collection share
+  actions and local share-scan posture; System -> Library Health covers
+  review-first repair/export work.
+- **Play Local Files**: the persistent player, collection play actions, and
+  System -> Library Health expose local playback and library readiness.
+- **Join Listening Party**: Messages/pod routes and the persistent player cover
+  current listen-along entry points; keep new broadcast features opt-in and
+  privacy-reviewed.
+
 ## Policies
 
 **System -> Policies** is the guided YAML editor for operator settings that used

@@ -7265,3 +7265,9 @@ Next steps: run focused Web lint, commit this route-smoke reconciliation slice, 
 Strengthened System label validation so the test now verifies each expected admin and experimental panel carries the correct navigation label instead of only checking that some labels exist.
 
 Next steps: commit this label-validation slice, then the remaining local reconciliation scope is broader G5 guided-flow productization. Release/live validation still waits on push/release coordination.
+
+## 2026-05-13T18:36:36Z Session update
+
+Mapped the G5 guided-flow tracks to current UI entry points in `docs/system-surfaces.md`: Network, Swarm Analytics, Source Providers, Search/Wishlist/Discovery Graph, Collections, Shares, Library Health, Messages/pods, and the player. The feature parity plan now treats future G5 work as new workflow pages only when current surfaces are insufficient.
+
+Next steps: commit this doc reconciliation slice. Remaining reconciliation work is release/live validation after push coordination, adverse-network testing, and any explicitly prioritized new guided-flow build.
