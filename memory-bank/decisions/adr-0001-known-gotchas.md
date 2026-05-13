@@ -101,6 +101,7 @@ they now own.
 - `src/slskd/Core/Security/AntiforgeryCookieRecovery.cs`
 - `src/slskd/Configuration/SlskdConfigurationBuilderExtensions.cs`
 - `src/slskd/Bootstrap/StartupFileSystem.cs`
+- `src/slskd/Bootstrap/StartupConfiguration.cs`
 
 **Wrong**:
 ```csharp
@@ -115,6 +116,10 @@ return Core.Security.AntiforgeryCookieRecovery.IsStaleTokenException(exception);
 ```csharp
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.FileProviders.Physical;
+```
+
+```csharp
+using slskd.Validation;
 ```
 
 **Why This Keeps Happening**: `Program.cs` has accumulated many broad imports,
