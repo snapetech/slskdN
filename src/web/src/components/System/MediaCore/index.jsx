@@ -7386,7 +7386,15 @@ const MediaCore = () => {
 
             {/* Channel Management */}
             <Card.Content>
-              <Header size="small">Pod Channel Operations</Header>
+              <Header size="small">Load Pod Channels</Header>
+              <Message info>
+                <Message.Header>Review channels before changing them</Message.Header>
+                <p>
+                  Loading channels only reads local pod structure. Create,
+                  edit, and delete controls are grouped below as advanced
+                  operations because they change pod routing and history shape.
+                </p>
+              </Message>
 
               <Input
                 action={
@@ -7405,39 +7413,48 @@ const MediaCore = () => {
                 value={channelPodId}
               />
 
-              {/* Create New Channel */}
-              <Header size="tiny">Create New Channel</Header>
-              <Input
-                action={
-                  <>
-                    <select
-                      onChange={(e) => setNewChannelKind(e.target.value)}
-                      style={{
-                        border: '1px solid #ccc',
-                        borderRadius: '4px',
-                        padding: '0.5em',
-                      }}
-                      value={newChannelKind}
-                    >
-                      <option value="General">General</option>
-                      <option value="Custom">Custom</option>
-                      <option value="Bound">Bound</option>
-                    </select>
-                    <Button
-                      color="green"
-                      disabled={!newChannelName.trim() || !channelPodId.trim()}
-                      loading={createChannelLoading}
-                      onClick={() => handleCreateChannel()}
-                    >
-                      Create
-                    </Button>
-                  </>
-                }
-                onChange={(e) => setNewChannelName(e.target.value)}
-                placeholder="Channel name"
-                style={{ marginBottom: '1em', width: '100%' }}
-                value={newChannelName}
-              />
+              <details style={{ marginBottom: '1em' }}>
+                <summary>Advanced channel mutation controls</summary>
+                <Message warning>
+                  Creating, renaming, or deleting channels changes how pod
+                  messages are organized for members. Confirm the target pod ID
+                  before applying changes.
+                </Message>
+
+                {/* Create New Channel */}
+                <Header size="tiny">Create New Channel</Header>
+                <Input
+                  action={
+                    <>
+                      <select
+                        onChange={(e) => setNewChannelKind(e.target.value)}
+                        style={{
+                          border: '1px solid #ccc',
+                          borderRadius: '4px',
+                          padding: '0.5em',
+                        }}
+                        value={newChannelKind}
+                      >
+                        <option value="General">General</option>
+                        <option value="Custom">Custom</option>
+                        <option value="Bound">Bound</option>
+                      </select>
+                      <Button
+                        color="green"
+                        disabled={!newChannelName.trim() || !channelPodId.trim()}
+                        loading={createChannelLoading}
+                        onClick={() => handleCreateChannel()}
+                      >
+                        Create
+                      </Button>
+                    </>
+                  }
+                  onChange={(e) => setNewChannelName(e.target.value)}
+                  placeholder="Channel name"
+                  style={{ marginBottom: '1em', width: '100%' }}
+                  value={newChannelName}
+                />
+              </details>
 
               {/* Channels List */}
               {channels.length > 0 && (
@@ -7505,7 +7522,8 @@ const MediaCore = () => {
                                     ` • Binding: ${channel.bindingInfo}`}
                                 </div>
                               </div>
-                              <div>
+                              <details>
+                                <summary>Actions</summary>
                                 <Button
                                   disabled={
                                     channel.name.toLowerCase() === 'general' &&
@@ -7533,7 +7551,7 @@ const MediaCore = () => {
                                 >
                                   Delete
                                 </Button>
-                              </div>
+                              </details>
                             </div>
                           )}
                         </Card.Content>
@@ -7548,8 +7566,8 @@ const MediaCore = () => {
                   info
                   size="small"
                 >
-                  No channels found in pod {channelPodId}. Create the first
-                  channel above.
+                  No channels found in pod {channelPodId}. Use advanced channel
+                  mutation controls to create the first channel.
                 </Message>
               )}
             </Card.Content>

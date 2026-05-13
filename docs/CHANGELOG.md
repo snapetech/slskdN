@@ -94,6 +94,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Simplified the MediaCore pod message signing workflow by putting verification
   and statistics first while grouping private-key signing and key generation
   behind progressive disclosure.
+- Simplified the MediaCore pod channel management workflow by putting channel
+  loading/review first while grouping create, edit, and delete controls behind
+  progressive disclosure.
 - Moved VirtualSoulfind capture, shadow-index, scene, disaster-mode, bridge,
   v2 provider/backend, reconciliation, and processing registrations out of the
   broad experimental feature graph into a dedicated bootstrap extension.

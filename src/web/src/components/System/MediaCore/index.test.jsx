@@ -67,6 +67,9 @@ describe('MediaCore', () => {
     expect(screen.getByText('Verify before generating signatures')).toBeInTheDocument();
     expect(screen.getByText('Advanced key material and signing controls')).toBeInTheDocument();
     expect(screen.getByText(/handle private keys/)).toBeInTheDocument();
+    expect(screen.getByText('Review channels before changing them')).toBeInTheDocument();
+    expect(screen.getByText('Advanced channel mutation controls')).toBeInTheDocument();
+    expect(screen.getByText(/changes how pod messages are organized/)).toBeInTheDocument();
   });
 
   it('focuses a pod workflow from the index card', async () => {
@@ -94,7 +97,7 @@ describe('MediaCore', () => {
     fireEvent.click(screen.getByText('Load Channels'));
 
     await waitFor(() => expect(mediacore.getChannels).toHaveBeenCalledWith('pod/with/slash'));
-    expect(await screen.findByText('Pod Channel Operations')).toBeInTheDocument();
+    expect(await screen.findByText('Load Pod Channels')).toBeInTheDocument();
     expect(screen.queryByText('Existing Channels')).not.toBeInTheDocument();
   });
 });
