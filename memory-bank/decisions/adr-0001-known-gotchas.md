@@ -115,7 +115,7 @@ not be used for live transfer tests that require inbound Soulseek reachability.
 
 **The Bug**: Download failures caused by remote transport behavior, such as
 `Connection reset by peer`, `Remote connection closed`, or failed direct/indirect
-message connection establishment, were still logged as `ERR` stack traces even
+message/transfer connection establishment, were still logged as `ERR` stack traces even
 though they are normal peer/network failures.
 
 **Files Affected**:
@@ -144,7 +144,88 @@ type names do not directly say "rejected" or "reported failed". Always classify
 the flattened exception chain and common peer/network message text before
 logging download failures as application errors. For UDP overlay parsing, random
 or incompatible datagrams should be rate-limited short warnings with debug
-details, not repeated warning stack traces.
+details, not repeated warning stack traces. When a background observer catches
+an expected remote-peer failure that was already classified by the download
+pipeline, keep the observer log at debug; otherwise each peer rejection or
+disconnect produces several warning lines for one transfer.
+
+Overlay TCP startup can also hit a short address-in-use window immediately
+after service restart. The rendezvous service should own retry/warning policy
+for that expected case, and the lower-level listener should keep the bind
+exception at debug so startup retries do not produce false error stack traces.
+
+Startup background searches can race Soulseek login and fail with "must be
+connected and logged in" while the client is `Connected, LoggingIn`. Treat that
+as a deferred startup search warning/cancelled search, not an application error.
+
+### 0z410. Do Not Disable Wishlist Items On Failed Enqueue
+
+**The Bug**: Wishlist auto-download treated `DownloadService.EnqueueAsync()` as
+successful whenever the call returned, even if the returned `Enqueued` list was
+empty and `Failed` contained every requested file. That disabled Wishlist items
+without actually putting downloads in the queue.
+
+**Files Affected**:
+- `src/slskd/Wishlist/WishlistService.cs`
+- `src/slskd/Integrations/Lidarr/LidarrSyncService.cs`
+
+**Wrong**:
+```csharp
+await DownloadService.EnqueueAsync(username, files, cancellationToken);
+item.Enabled = false;
+```
+
+**Correct**:
+```csharp
+var (enqueued, failed) = await DownloadService.EnqueueAsync(username, files, cancellationToken);
+if (enqueued.Count > 0)
+{
+    item.TotalDownloadCount += enqueued.Count;
+    item.Enabled = false;
+}
+```
+
+**Why This Keeps Happening**: slskd enqueue APIs return both successful and
+failed file lists instead of throwing for partial or total enqueue failure.
+Automation must inspect the returned counts before marking acquisition work as
+complete. Wishlist/background searches should also use `SearchScope.Wishlist`
+for recurring saved-search work so they follow Soulseek wishlist semantics, and
+they should wait for `Connected | LoggedIn` before searching. `Connected |
+LoggingIn` is not enough.
+
+### 0z411. Keep Transfer Destination Parameters Wired End To End
+
+**The Bug**: The web transfer client accepted a `destination` argument and sent
+it as a query string, but the backend enqueue endpoint ignored it. Downloads
+silently landed in the default downloads tree even when the UI or integration
+requested a configured destination.
+
+**Files Affected**:
+- `src/web/src/lib/transfers.js`
+- `src/slskd/Transfers/API/Controllers/TransfersController.cs`
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+- `src/slskd/Transfers/Types/Transfer.cs`
+
+**Wrong**:
+```csharp
+public Task<IActionResult> EnqueueAsync(string username, IEnumerable<QueueDownloadRequest> requests)
+{
+    return Downloads.EnqueueAsync(username, requests.Select(r => (r.Filename, r.Size, r.BatchId)));
+}
+```
+
+**Correct**:
+```csharp
+var destinationDirectory = NormalizeDownloadDestination(destination);
+return Downloads.EnqueueAsync(username, requests.Select(r =>
+    (r.Filename, r.Size, r.BatchId, destinationDirectory)));
+```
+
+**Why This Keeps Happening**: Destination routing crosses the frontend, API,
+transfer record, retry path, and final move path. Adding the parameter to only
+one layer creates a false-success bug. Always validate destination roots at the
+API boundary, persist the normalized destination with the transfer, and carry it
+through retry/finalization logic.
 
 ### 0z408. Keep Antiforgery Cookie HttpOnly When Adding JS-Readable CSRF Tokens
 

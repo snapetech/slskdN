@@ -61,7 +61,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
     private readonly ConcurrentDictionary<string, byte> _pendingPeerConnections = new();
     private const int MaxDiscoveredPeers = 1000;
     internal const int MaxConcurrentPeerConnectionAttempts = MeshOverlayConnector.MaxConcurrentAttempts;
-    internal const int MaxOverlayStartAttempts = 5;
+    internal const int MaxOverlayStartAttempts = 30;
     private static readonly TimeSpan PeerReconnectInterval = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan MaxPeerReconnectInterval = TimeSpan.FromHours(1);
     private static readonly TimeSpan OverlayStartRetryDelay = TimeSpan.FromSeconds(1);

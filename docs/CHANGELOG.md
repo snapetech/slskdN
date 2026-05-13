@@ -28,6 +28,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
   discovered-but-unreachable mesh peers.
 - Gave the mesh overlay TCP listener a longer graceful-restart retry window and
   kept expected bind-retry exceptions out of error logs.
+- Recorded the associated mesh/Soulseek transfer gotchas for future agents.
 - Downgraded startup search attempts while Soulseek is still logging in from
   errors to deferred-search warnings.
 - Improved Lidarr/Wishlist acquisition by deduping Lidarr wanted syncs by

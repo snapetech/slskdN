@@ -112,6 +112,13 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
 
             _acceptLoopTask = AcceptLoopAsync(_cts.Token);
         }
+        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
+        {
+            _logger.LogDebug(ex, "Mesh overlay server port {Port} is already in use", ListenPortConfig);
+            _listener.Stop();
+            _listener = null;
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to start mesh overlay server on port {Port}", ListenPortConfig);
