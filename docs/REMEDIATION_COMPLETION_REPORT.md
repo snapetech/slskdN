@@ -11,6 +11,11 @@ This report consolidates the remediation work completed across feature parity, r
   publishing/retrieval, ContentID registry, metadata portability, retrieval
   management, perceptual hashing, and fuzzy matching.
 - System tab labels for admin and experimental panels.
+- Top-level Web route smoke coverage and focused System admin/experimental
+  label validation.
+- Guided-flow mapping for Network Health, Improve Downloads, Discover Music,
+  Share Collection, Play Local Files, and Join Listening Party across current
+  System and top-level surfaces.
 - Library Health web client route fix from double-prefixed `/api/v0/api/...` paths to shared-client relative paths.
 - MediaCore pod helper route fix from incorrect `/mediacore/podcore/*` and absolute `apiBaseUrl` usage to shared-client `/podcore/*` paths.
 - Direct fetch CSRF opt-in added for mutating pod and port-forwarding wrappers.

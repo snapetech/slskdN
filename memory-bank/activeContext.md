@@ -7271,3 +7271,9 @@ Next steps: commit this label-validation slice, then the remaining local reconci
 Mapped the G5 guided-flow tracks to current UI entry points in `docs/system-surfaces.md`: Network, Swarm Analytics, Source Providers, Search/Wishlist/Discovery Graph, Collections, Shares, Library Health, Messages/pods, and the player. The feature parity plan now treats future G5 work as new workflow pages only when current surfaces are insufficient.
 
 Next steps: commit this doc reconciliation slice. Remaining reconciliation work is release/live validation after push coordination, adverse-network testing, and any explicitly prioritized new guided-flow build.
+
+## 2026-05-13T18:37:49Z Session update
+
+Closed the local G4/G5 reconciliation wording: stale/orphan UI and advanced-feature UX are complete for this pass, while future work is limited to periodic compatibility/experimental visibility review or explicitly prioritized new guided-flow pages.
+
+Next steps: commit this closeout wording. Remaining items are release/live validation after push coordination and adverse-network testing.

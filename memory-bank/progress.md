@@ -10263,3 +10263,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T18:34:38Z] System label validation reconciliation: strengthened the System component test to assert each expected admin and experimental panel carries the correct navigation label. Focused System test passed (`2/2`) and focused Web lint passed.
 
 [2026-05-13T18:36:36Z] Guided-flow reconciliation: added a System surfaces guided-flow map that ties Network Health, Improve Downloads, Discover Music, Share Collection, Play Local Files, and Join Listening Party tracks to current UI entry points. Updated the feature parity plan so remaining G5 work is scoped to new workflow pages only where existing surfaces are insufficient.
+
+[2026-05-13T18:37:49Z] Reconciliation closeout wording: marked G4 stale/orphan UI and G5 advanced-feature UX as complete for the current reconciliation pass, with future work limited to periodic visibility reviews or explicitly prioritized new guided-flow pages.
