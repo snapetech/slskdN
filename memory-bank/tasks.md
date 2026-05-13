@@ -2743,6 +2743,7 @@
 - [2026-05-13T01:58:19Z] Completed: continue Program.cs decomposition by moving VirtualSoulfind capture, shadow-index, scene, disaster-mode, bridge, v2 provider/backend, reconciliation, and processing registrations into `Bootstrap/VirtualSoulfindServiceCollectionExtensions`.
 - [2026-05-13T02:01:55Z] Completed: continue Program.cs decomposition by moving backfill, mesh hash-sync, source discovery, rescue, accelerated download, content verification, peer metrics, and chunk scheduler registrations into `Bootstrap/TransferDiscoveryServiceCollectionExtensions`.
 - [2026-05-13T02:09:41Z] Completed: continue Program.cs decomposition by moving MediaCore/PodCore/content-domain/peer-reputation registrations into `Bootstrap/MediaCorePodServiceCollectionExtensions` and mesh/DHT/overlay/transport/realm/governance/gossip/service-fabric registrations into `Bootstrap/ExperimentalMeshServiceCollectionExtensions`.
+- [2026-05-13T02:12:19Z] Completed: continue parity/reconciliation list by simplifying the MediaCore pod join/leave workflow so pending-request review is first and signed membership event publishing is behind progressive disclosure.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.

@@ -61,6 +61,9 @@ describe('MediaCore', () => {
     expect(screen.getByText('Find pods first')).toBeInTheDocument();
     expect(screen.getByText('Advanced registry publishing controls')).toBeInTheDocument();
     expect(screen.getByText(/changes public DHT-visible pod metadata/)).toBeInTheDocument();
+    expect(screen.getByText('Review pending requests first')).toBeInTheDocument();
+    expect(screen.getByText('Advanced signed membership event controls')).toBeInTheDocument();
+    expect(screen.getByText(/submit signed JSON payloads/)).toBeInTheDocument();
   });
 
   it('focuses a pod workflow from the index card', async () => {

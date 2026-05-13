@@ -15,6 +15,20 @@
   1. Split the remaining capability/DHT-rendezvous/media-publisher coordinator if more Program decomposition is needed.
   2. Continue simplifying remaining MediaCore pod forms under the reconciliation plan.
 
+## Update 2026-05-13 02:12:19Z
+
+- Current task: parity/reconciliation list follow-up in progress.
+- Last activity:
+  - simplified MediaCore Pod Join/Leave so pending-request review appears first;
+  - grouped signed join, leave, and approval JSON publishing controls behind advanced disclosure;
+  - updated parity plan, changelog, tasks, and progress notes.
+- Validation:
+  - Passed: `cd src/web && npm test -- System/MediaCore/index.test.jsx` (`3/3`).
+  - Passed: `cd src/web && npm run lint -- src/components/System/MediaCore/index.jsx src/components/System/MediaCore/index.test.jsx`.
+- Next steps:
+  1. Continue simplifying remaining MediaCore pod mutation-heavy forms, likely message signing, channel management, or opinion publishing.
+  2. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 01:50:00Z
 
 - Current task: parity/reconciliation list follow-up in progress.
