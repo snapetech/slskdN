@@ -194,7 +194,7 @@ public class WishlistControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task RunSearch_UsesWishlistScopeAndWishlistSafetySource()
+    public async Task RunSearch_UsesNetworkScopeAndWishlistSafetySource()
     {
         var itemId = Guid.NewGuid();
         await using (var context = _contextFactory.CreateDbContext())
@@ -254,7 +254,7 @@ public class WishlistControllerTests : IDisposable
 
         var result = await service.RunSearchAsync(itemId);
 
-        Assert.Equal(SearchScopeType.Wishlist, capturedScope?.Type);
+        Assert.Equal(SearchScopeType.Network, capturedScope?.Type);
         Assert.Equal("wishlist", capturedSafetySource);
         Assert.Equal(25, capturedOptions?.ResponseLimit);
         Assert.Equal(3, result.ResponseCount);

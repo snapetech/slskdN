@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Updated council guardrail artifacts for peer/mesh preview streaming, stopped
+  streaming controllers from returning raw exception messages, and restored
+  Wishlist searches to the shared network search scope with wishlist safety
+  budget labeling.
 - Added authenticated, ticketed manual peer-to-browser audio preview streams
   with bounded buffering, per-user concurrency limits, and search-result UI
   access that does not save files or trigger batch downloads.

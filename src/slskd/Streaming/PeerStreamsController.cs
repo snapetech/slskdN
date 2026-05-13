@@ -62,13 +62,13 @@ public sealed class PeerStreamsController : ControllerBase
                 contentType = ticket.ContentType,
             });
         }
-        catch (ArgumentException ex)
+        catch (ArgumentException)
         {
-            return BadRequest(ex.Message);
+            return BadRequest("Invalid peer stream ticket request.");
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException)
         {
-            return StatusCode(429, ex.Message);
+            return StatusCode(429, "Peer stream limit reached.");
         }
     }
 
@@ -96,9 +96,9 @@ public sealed class PeerStreamsController : ControllerBase
             Response.Headers.AcceptRanges = "none";
             return File(lease.Stream, lease.ContentType, enableRangeProcessing: false);
         }
-        catch (PeerStreamLimitException ex)
+        catch (PeerStreamLimitException)
         {
-            return StatusCode(429, ex.Message);
+            return StatusCode(429, "Peer stream limit reached.");
         }
     }
 

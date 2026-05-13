@@ -1,18 +1,18 @@
 # Current API surface inventory
 
-Generated: 2026-05-13T01:50:01Z
+Generated: 2026-05-13T21:11:08Z
 
 This inventory is generated from controller attributes. It is intended for parity/security review, not as a replacement for Swagger or integration tests.
 
 ## Summary
 
-- Controller files: 113
-- Versioned API controllers: 103
+- Controller files: 115
+- Versioned API controllers: 105
 - Legacy or compatibility API controllers: 7
 - Protocol controllers outside versioned API routing: 3
 - Other route buckets: 0
 - Controllers with mutating HTTP methods and CSRF attribute missing: 0
-- Controller files containing AllowAnonymous endpoints: 11
+- Controller files containing AllowAnonymous endpoints: 13
 
 Route bucket policy: new web-consumed JSON APIs should be versioned. Non-versioned routes should be compatibility shims, protocol-required endpoints, or explicitly documented exceptions.
 
@@ -116,11 +116,13 @@ Route bucket policy: new web-consumed JSON APIs should be versioned. Non-version
 | `src/slskd/SoulseekDiscovery/API/SoulseekDiscoveryController.cs` | `"api/v{version:apiVersion}/soulseek"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | no | 16 |
 | `src/slskd/SourceFeeds/API/SourceFeedImportsController.cs` | `"api/source-feed-imports"<br>"api/v{version:apiVersion}/source-feed-imports"` | versioned | [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 3 |
 | `src/slskd/SourceFeeds/API/SpotifyConnectionController.cs` | `"api/integrations/spotify"<br>"api/v{version:apiVersion}/integrations/spotify"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | yes | 4 |
+| `src/slskd/Streaming/MeshStreamsController.cs` | `"api/v{version:apiVersion}/mesh-streams"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | yes | 2 |
+| `src/slskd/Streaming/PeerStreamsController.cs` | `"api/v{version:apiVersion}/peer-streams"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | yes | 2 |
 | `src/slskd/Streaming/StreamsController.cs` | `"api/v{version:apiVersion}/streams"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] /// <summary>Stream content by ID. Auth: ?ticket=, ?token=, Authorization: Bearer (share:token), or normal [Authorize]. Single byte-range only; multi-range returns 400.</summary> | yes | yes | 2 |
 | `src/slskd/Telemetry/API/MetricsController.cs` | `"api/v{version:apiVersion}/telemetry/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 2 |
 | `src/slskd/Telemetry/API/ReportsController.cs` | `"api/v{version:apiVersion}/telemetry/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 7 |
 | `src/slskd/Telemetry/API/TelemetryController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 2 |
-| `src/slskd/Transfers/API/Controllers/TransfersController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 22 |
+| `src/slskd/Transfers/API/Controllers/TransfersController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 23 |
 | `src/slskd/Transfers/AutoReplace/API/AutoReplaceController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | no | 3 |
 | `src/slskd/Transfers/MultiSource/API/AnalyticsController.cs` | `"api/v{version:apiVersion}/swarm/analytics"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 5 |
 | `src/slskd/Transfers/MultiSource/API/FairnessController.cs` | `"api/v{version:apiVersion}/fairness"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
@@ -240,6 +242,14 @@ None found.
   - 58:    [HttpGet("callback")]
   - 59:    [AllowAnonymous]
   - 90:    [HttpDelete]
+- src/slskd/Streaming/MeshStreamsController.cs
+  - 42:    [HttpPost("tickets")]
+  - 77:    [HttpGet("{ticket}")]
+  - 78:    [AllowAnonymous]
+- src/slskd/Streaming/PeerStreamsController.cs
+  - 42:    [HttpPost("tickets")]
+  - 75:    [HttpGet("{ticket}")]
+  - 76:    [AllowAnonymous]
 - src/slskd/Streaming/StreamsController.cs
   - 58:    [HttpPost("{contentId}/ticket")]
   - 82:    [HttpGet("{contentId}")]

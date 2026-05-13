@@ -64,13 +64,13 @@ public sealed class MeshStreamsController : ControllerBase
                 source = "mesh",
             });
         }
-        catch (ArgumentException ex)
+        catch (ArgumentException)
         {
-            return BadRequest(ex.Message);
+            return BadRequest("Invalid mesh stream ticket request.");
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException)
         {
-            return StatusCode(429, ex.Message);
+            return StatusCode(429, "Mesh stream limit reached.");
         }
     }
 
@@ -98,9 +98,9 @@ public sealed class MeshStreamsController : ControllerBase
             Response.Headers.AcceptRanges = "none";
             return File(lease.Stream, lease.ContentType, enableRangeProcessing: false);
         }
-        catch (MeshStreamLimitException ex)
+        catch (MeshStreamLimitException)
         {
-            return StatusCode(429, ex.Message);
+            return StatusCode(429, "Mesh stream limit reached.");
         }
     }
 

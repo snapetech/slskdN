@@ -487,7 +487,7 @@ namespace slskd.Wishlist
 
             var searchId = Guid.NewGuid();
             var query = new SearchQuery(item.SearchText);
-            var scope = SearchScope.Wishlist;
+            var scope = SearchScope.Network;
 
             var searchOptions = new SearchOptions(
                 searchTimeout: 15000,

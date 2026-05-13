@@ -14,4 +14,6 @@ Anonymous endpoints must be deliberate and reviewed. This allowlist is file-scop
 | `src/slskd/SocialFederation/API/ActivityPubController.cs` | ActivityPub actor, inbox, outbox, followers, and following routes are protocol-required public surfaces. |
 | `src/slskd/SocialFederation/API/WebFingerController.cs` | WebFinger discovery is protocol-required. |
 | `src/slskd/SourceFeeds/API/SpotifyConnectionController.cs` | Spotify OAuth callback must be reachable by the provider redirect flow. |
+| `src/slskd/Streaming/MeshStreamsController.cs` | Mesh preview playback redeems short-lived opaque tickets created by an authenticated read/write user; the unauthenticated GET exists so browser media elements can fetch the stream without exposing API credentials. |
+| `src/slskd/Streaming/PeerStreamsController.cs` | Peer preview playback redeems short-lived opaque tickets created by an authenticated read/write user; the unauthenticated GET exists so browser media elements can fetch the stream without exposing API credentials. |
 | `src/slskd/Streaming/StreamsController.cs` | Stream endpoint supports explicit ticket/token playback access. |
