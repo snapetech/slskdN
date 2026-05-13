@@ -1,3 +1,18 @@
+## Update 2026-05-13 13:45:26Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - moved app-relative write-path resolution into `Configuration/AppPathResolver`;
+  - moved web HTML asset rewrite rule construction into `Bootstrap/WebHtmlRewriteRules`;
+  - kept existing `Program` wrappers for current call sites and tests.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests" --no-restore` (`36/36`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Continue Program.cs decomposition with the next bounded helper cluster, likely antiforgery-cookie helpers or configuration provider setup.
+  2. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 04:09:53Z
 
 - Current task: Program.cs decomposition follow-up in progress.

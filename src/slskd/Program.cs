@@ -361,44 +361,22 @@ namespace slskd
 
         internal static string GetWriteBaseDirectory()
         {
-            return string.IsNullOrWhiteSpace(AppDirectory) ? DefaultAppDirectory : AppDirectory;
+            return AppPathResolver.GetWriteBaseDirectory(AppDirectory, DefaultAppDirectory);
         }
 
         internal static string ResolveOptionalAppRelativePath(string? path)
         {
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                return string.Empty;
-            }
-
-            return Path.IsPathRooted(path) ? path : Path.Combine(GetWriteBaseDirectory(), path);
+            return AppPathResolver.ResolveOptionalAppRelativePath(path, AppDirectory, DefaultAppDirectory);
         }
 
         internal static string ResolveAppRelativePath(string path, string fallbackRelativePath)
         {
-            var candidate = string.IsNullOrWhiteSpace(path) ? fallbackRelativePath : path;
-            return ResolveOptionalAppRelativePath(candidate);
+            return AppPathResolver.ResolveAppRelativePath(path, fallbackRelativePath, AppDirectory, DefaultAppDirectory);
         }
 
         internal static IReadOnlyList<(string Pattern, string Replacement)> CreateWebHtmlRewriteRules(string urlBase)
         {
-            var normalizedUrlBase = string.IsNullOrWhiteSpace(urlBase) || urlBase == "/"
-                ? string.Empty
-                : (urlBase.StartsWith("/") ? urlBase : "/" + urlBase).TrimEnd('/');
-
-            string Prefix(string path) => string.IsNullOrEmpty(normalizedUrlBase) ? path : $"{normalizedUrlBase}{path}";
-            string BaseTag() => string.IsNullOrEmpty(normalizedUrlBase)
-                ? "<head>"
-                : $"<head><base href=\"{normalizedUrlBase}/\" />";
-
-            return new List<(string Pattern, string Replacement)>
-            {
-                ("<head>", BaseTag()),
-                ("((?:src|href)=\")/assets/", $"$1{Prefix("/assets/")}"),
-                ("((?:src|href)=\")/manifest\\.json", $"$1{Prefix("/manifest.json")}"),
-                ("((?:src|href)=\")/logo192\\.png", $"$1{Prefix("/logo192.png")}"),
-                ("((?:src|href)=\")/logo512\\.png", $"$1{Prefix("/logo512.png")}"),
-            };
+            return WebHtmlRewriteRules.Create(urlBase);
         }
 
         internal static SoulseekClientOptions CreateInitialSoulseekClientOptions(OptionsAtStartup optionsAtStartup)

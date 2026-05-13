@@ -162,6 +162,9 @@ Expected Soulseek network exception classification moved out of `Program.cs`
 into `Soulseek/SoulseekNetworkExceptionClassifier.cs`.
 Initial Soulseek client option construction moved out of `Program.cs` into
 `Soulseek/SoulseekClientOptionsFactory.cs`.
+App-relative path resolution moved out of `Program.cs` into
+`Configuration/AppPathResolver.cs`, and web HTML asset rewrite rule construction
+moved into `Bootstrap/WebHtmlRewriteRules.cs`.
 
 Target modules:
 
@@ -207,6 +210,10 @@ Target modules:
 - `SoulseekClientOptionsFactory.CreateInitial(...)`. Implemented for initial
   Soulseek client listener, transfer, diagnostics, and obfuscation runtime
   options.
+- `AppPathResolver.ResolveAppRelativePath(...)`. Implemented for app-relative
+  write-path resolution.
+- `WebHtmlRewriteRules.Create(...)`. Implemented for URL-base-aware web asset
+  rewrite rules.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
@@ -228,7 +235,8 @@ Acceptance criteria:
   extension. Configuration compatibility warning parsing is now owned by a
   focused configuration helper, and expected Soulseek network exception
   classification plus initial Soulseek client option construction are now owned
-  by focused helpers.
+  by focused helpers. App-relative path resolution and web HTML rewrite rules
+  are also now owned by focused helpers.
 - Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 
