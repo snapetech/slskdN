@@ -141,6 +141,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Moved expected Soulseek network exception classification out of `Program.cs`
   into a focused helper while retaining the existing Program compatibility
   wrapper for current call sites.
+- Moved initial Soulseek client option construction out of `Program.cs` into a
+  focused helper.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

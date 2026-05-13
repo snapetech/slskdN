@@ -1,3 +1,17 @@
+## Update 2026-05-13 04:09:53Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - moved initial Soulseek client listener, transfer-limit, diagnostics, and obfuscation option construction into `Soulseek/SoulseekClientOptionsFactory`;
+  - kept `Program.CreateInitialSoulseekClientOptions(...)` as the internal compatibility wrapper.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests|FullyQualifiedName~ProgramExpectedNetworkExceptionTests" --no-restore` (`38/38`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Re-scan `Program.cs` for remaining bounded helper clusters such as path/HTML rewrite helpers, shutdown/logging, or antiforgery helpers.
+  2. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 04:06:02Z
 
 - Current task: Program.cs decomposition follow-up in progress.

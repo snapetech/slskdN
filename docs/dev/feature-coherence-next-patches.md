@@ -160,6 +160,8 @@ Configuration compatibility warning parsing moved out of `Program.cs` into
 `Configuration/ConfigurationCompatibilityWarnings.cs`.
 Expected Soulseek network exception classification moved out of `Program.cs`
 into `Soulseek/SoulseekNetworkExceptionClassifier.cs`.
+Initial Soulseek client option construction moved out of `Program.cs` into
+`Soulseek/SoulseekClientOptionsFactory.cs`.
 
 Target modules:
 
@@ -202,6 +204,9 @@ Target modules:
   legacy config-key and retry-floor compatibility warnings.
 - `SoulseekNetworkExceptionClassifier.IsExpected(...)`. Implemented for
   expected Soulseek network/disconnect exception classification.
+- `SoulseekClientOptionsFactory.CreateInitial(...)`. Implemented for initial
+  Soulseek client listener, transfer, diagnostics, and obfuscation runtime
+  options.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
@@ -222,7 +227,8 @@ Acceptance criteria:
   bootstrap extension, and app run/lifecycle hooks are now owned by a bootstrap
   extension. Configuration compatibility warning parsing is now owned by a
   focused configuration helper, and expected Soulseek network exception
-  classification is now owned by a focused helper.
+  classification plus initial Soulseek client option construction are now owned
+  by focused helpers.
 - Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 
