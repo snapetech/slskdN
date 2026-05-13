@@ -299,6 +299,35 @@ namespace usage, generated references, or package-to-namespace name mismatches.
 Never commit package removals from inventory notes alone; run a clean compile
 after changing package references and treat the compiler as the source of truth.
 
+### 0z394. Optional Room Directory Refresh Must Preserve Last Good Data
+
+**The Bug**: Messaging V2 replaced the available-room list with `[]` whenever
+the optional Soulseek room directory timed out or returned degraded empty data.
+After a user typed, deleted, and kept searching, suggestions could suddenly stop
+appearing even though the picker and matcher still worked.
+
+**Files Affected**:
+- `src/web/src/components/Messaging/MessagingV2.jsx`
+- `src/web/src/components/Messaging/Messaging.test.jsx`
+
+**Wrong**:
+```jsx
+const serverAvailableRooms = await rooms.getAvailable().catch(() => []);
+setAvailableRooms(mapRooms(serverAvailableRooms));
+```
+
+**Correct**:
+```jsx
+setAvailableRooms((previous) => {
+  const next = mapRooms(serverAvailableRooms);
+  return next.length === 0 && previous.length > 0 ? previous : next;
+});
+```
+
+**Why This Keeps Happening**: The room directory is optional network discovery
+data, not authoritative local state. Empty degraded responses should not erase a
+previously successful directory snapshot while the user is actively searching.
+
 ### 0z384. Render-Time Work Must Not Scale With Hidden Or Unchanged Data
 
 **The Bug**: Performance fixes removed first-load blockers, but some render
