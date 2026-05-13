@@ -10265,3 +10265,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-13T18:36:36Z] Guided-flow reconciliation: added a System surfaces guided-flow map that ties Network Health, Improve Downloads, Discover Music, Share Collection, Play Local Files, and Join Listening Party tracks to current UI entry points. Updated the feature parity plan so remaining G5 work is scoped to new workflow pages only where existing surfaces are insufficient.
 
 [2026-05-13T18:37:49Z] Reconciliation closeout wording: marked G4 stale/orphan UI and G5 advanced-feature UX as complete for the current reconciliation pass, with future work limited to periodic visibility reviews or explicitly prioritized new guided-flow pages.
+
+[2026-05-13T18:42:45Z] Reconciliation validation follow-up: `npm run check:soulseek-network-health` passed, installed the missing local Playwright Chromium browser, then ran focused no-connect Web E2E core page smoke with `SLSKDN_TEST_NO_CONNECT=true npm run test:e2e:ci -- e2e/core-pages.spec.ts`; all 4 tests passed against an isolated harness node.

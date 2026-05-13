@@ -10,11 +10,15 @@ This document records the current feature/function/network/UI assessment and the
   smoke, `4056/4056` unit, and `276/276` integration tests.
 - Full frontend unit tests passed on 2026-05-13: `131/131` files and
   `716/716` tests.
-- Web production build passed on 2026-05-13.
+- Web production build passed on 2026-05-13, including the focused E2E smoke
+  prebuild.
 - `./bin/lint` passed on 2026-05-13.
 - The remediation baseline passed all substantive checks on 2026-05-13 and
   stopped only at the release branch sync guard because local `main` was ahead
   of `origin/main`.
+- Focused no-connect Web E2E core page smoke passed on 2026-05-13:
+  `SLSKDN_TEST_NO_CONNECT=true npm run test:e2e:ci -- e2e/core-pages.spec.ts`
+  (`4/4`).
 
 ## Product parity summary
 
@@ -242,7 +246,7 @@ Plan:
 - Run Soulseek runtime interop contract tests.
 - Run mesh/DHT adverse-network smoke tests.
 
-Status: partly complete. Full frontend unit tests (`131/131` files, `716/716` tests), frontend production build, full backend `dotnet test --no-restore` (`67/67` smoke, `4056/4056` unit, `276/276` integration), and `./bin/lint` passed on 2026-05-13. The remediation baseline passed all substantive checks and stopped only at the release branch sync guard because local `main` is ahead of `origin/main`. Release validation still needs any live/E2E checks required for the target release after the branch is pushed.
+Status: partly complete. Full frontend unit tests (`131/131` files, `716/716` tests), frontend production build, full backend `dotnet test --no-restore` (`67/67` smoke, `4056/4056` unit, `276/276` integration), and `./bin/lint` passed on 2026-05-13. The remediation baseline passed all substantive checks and stopped only at the release branch sync guard because local `main` is ahead of `origin/main`. Focused no-connect Web E2E core page smoke also passed on 2026-05-13 (`4/4`) after installing the missing local Playwright Chromium browser. Release validation still needs target-specific live/E2E checks after the branch is pushed.
 
 ### G7. Security allowlist and threat model
 
@@ -274,6 +278,7 @@ Status: complete for baseline allowlist controls. Anonymous and non-versioned ro
 - Core slskd compatibility routes are checked against downstream expectations.
 - Mesh rendezvous is explicitly opt-in, visible, and reversible from the UI.
 - Full validation suite results are documented.
+- Focused no-connect Web E2E core page smoke is documented.
 
 ## Implemented remediation baseline checks
 
@@ -307,7 +312,7 @@ Remaining:
 - Maintain the top-level route smoke table in `src/web/src/components/App.test.jsx`
   when adding or removing primary web routes.
 - Push local commits before any release-tag validation so the remediation sync guard can pass.
-- Run any required live/E2E checks for the target release.
+- Run any target-specific live/E2E checks for the release.
 - Add similar focused checks when a fixed regression is cheap to encode as a script.
 
 ## Additional backend hardening checks

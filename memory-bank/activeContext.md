@@ -7277,3 +7277,9 @@ Next steps: commit this doc reconciliation slice. Remaining reconciliation work 
 Closed the local G4/G5 reconciliation wording: stale/orphan UI and advanced-feature UX are complete for this pass, while future work is limited to periodic compatibility/experimental visibility review or explicitly prioritized new guided-flow pages.
 
 Next steps: commit this closeout wording. Remaining items are release/live validation after push coordination and adverse-network testing.
+
+## 2026-05-13T18:42:45Z Session update
+
+Ran the remaining locally actionable validation slice. `npm run check:soulseek-network-health` passed. The first focused E2E run exposed only a missing Playwright Chromium cache, so `npx playwright install chromium` was run; then `SLSKDN_TEST_NO_CONNECT=true npm run test:e2e:ci -- e2e/core-pages.spec.ts` passed all 4 tests against an isolated harness node.
+
+Next steps: commit the validation documentation. Remaining reconciliation scope is push/release coordination, target-specific live/E2E validation, live/stub Soulseek interop, and adverse-network mesh/DHT testing.

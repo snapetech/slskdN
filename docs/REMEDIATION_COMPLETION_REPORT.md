@@ -82,3 +82,8 @@ Validated on 2026-05-13:
 - `./bin/lint` passed.
 - `npm run check:remediation` passed all substantive checks and stopped only at
   the release branch sync guard because local `main` was ahead of `origin/main`.
+- `npm run check:soulseek-network-health` passed.
+- Focused no-connect Web E2E core page smoke passed:
+  `SLSKDN_TEST_NO_CONNECT=true npm run test:e2e:ci -- e2e/core-pages.spec.ts`
+  (`4/4`). The first attempt only exposed a missing local Playwright Chromium
+  browser cache; after `npx playwright install chromium`, the smoke passed.
