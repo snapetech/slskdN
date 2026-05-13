@@ -103,8 +103,11 @@ Acceptance criteria:
 
 ## 7. Split Program.cs service registration
 
-Status: started. SongID service registration moved into
-`Bootstrap/SongIdServiceCollectionExtensions.cs`.
+Status: in progress. SongID service registration moved into
+`Bootstrap/SongIdServiceCollectionExtensions.cs`, and the large experimental
+feature graph (multi-source, VirtualSoulfind, MediaCore, pods, mesh/DHT,
+wishlist/source feeds, relay, FTP, AudioCore metadata, notifications) moved out
+of `Program.cs` into `Bootstrap/ExperimentalFeatureGraphServiceCollectionExtensions.cs`.
 
 Target modules:
 
@@ -114,13 +117,15 @@ Target modules:
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
 - `AddSlskdTelemetry(...)`
-- `AddExperimentalDiscovery(...)`
-- `AddExperimentalMesh(...)`
+- `AddExperimentalDiscovery(...)`. Partly covered by `AddSlskdExperimentalFeatureGraph(...)`.
+- `AddExperimentalMesh(...)`. Partly covered by `AddSlskdExperimentalFeatureGraph(...)`.
 - `AddExperimentalSongId(...)` / `AddSlskdSongId(...)`. Started.
 
 Acceptance criteria:
 
-- `Program.cs` no longer directly imports every experimental vertical.
+- `Program.cs` no longer directly imports every experimental vertical. In progress;
+  the broad graph moved, but the new bootstrap module still needs follow-up
+  subdivision by bounded context.
 - Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 

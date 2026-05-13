@@ -55,6 +55,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   for optional providers and explicitly marks `HashFromAudioFileEnabled` broken.
 - Started decomposing `Program.cs` by moving SongID service registration into a
   dedicated bootstrap extension.
+- Moved the large experimental feature registration graph out of `Program.cs`
+  into a bootstrap extension while preserving existing default-on feature
+  behavior and registration order.
 - Fixed DHT VPN port sync config binding so documented snake_case values such as
   `dht.vpn_port_sync: target_port` no longer crash startup, and so mesh DHT
   announcements can follow the VPN port-forward slot for the overlay listener.

@@ -6446,6 +6446,6 @@ Added DownloadService per-user semaphore regression coverage. Same-user enqueue 
 
 ## 2026-05-13T01:43:00Z Session update
 
-Started Program.cs service-module decomposition by moving SongID registrations into `Bootstrap/SongIdServiceCollectionExtensions`.
+Expanded Program.cs service-module decomposition by moving the large experimental feature graph into `Bootstrap/ExperimentalFeatureGraphServiceCollectionExtensions` after the earlier SongID bootstrap extraction.
 
-Next steps: continue with more Program.cs service-module extraction, remaining DownloadService CTS cleanup cases, and the runtime-vs-tooling decision for Roslyn CodeQuality helpers.
+Next steps: subdivide `ExperimentalFeatureGraphServiceCollectionExtensions` into smaller bounded modules, continue remaining DownloadService CTS cleanup cases, and resolve the runtime-vs-tooling decision for Roslyn CodeQuality helpers.

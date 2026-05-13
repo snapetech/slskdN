@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- `Program.cs` no longer contains the large experimental feature registration
+  graph; multi-source, VirtualSoulfind, MediaCore, pods, mesh/DHT, wishlist,
+  relay, FTP, AudioCore metadata, discovery, and notification registrations now
+  live under `Bootstrap/ExperimentalFeatureGraphServiceCollectionExtensions`.
+
 ### Fixed
 
 - Release creation now has a guarded helper that verifies the GitHub target,
