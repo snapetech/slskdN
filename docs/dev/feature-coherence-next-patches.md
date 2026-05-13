@@ -170,6 +170,8 @@ classification moved out of `Program.cs` into
 `Core/Security/AntiforgeryCookieRecovery.cs`.
 Startup configuration provider composition moved out of `Program.cs` into
 `Configuration/SlskdConfigurationBuilderExtensions.cs`.
+Startup filesystem checks, missing configuration-file recreation, and generated
+certificate export moved out of `Program.cs` into `Bootstrap/StartupFileSystem.cs`.
 
 Target modules:
 
@@ -225,6 +227,8 @@ Target modules:
 - `AddSlskdConfigurationProviders(...)`. Implemented for default values,
   environment variables, YAML, command-line values, and volatile overlay
   configuration source composition.
+- `StartupFileSystem`. Implemented for startup directory validation,
+  configuration-file recreation, and generated certificate export.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`
@@ -249,7 +253,9 @@ Acceptance criteria:
   by focused helpers. App-relative path resolution and web HTML rewrite rules
   are also now owned by focused helpers. Antiforgery stale-cookie recovery is
   now owned by a focused security helper, and configuration provider composition
-  is now owned by a focused configuration extension.
+  is now owned by a focused configuration extension. Startup filesystem checks,
+  config recreation, and certificate export are now owned by a focused
+  bootstrap helper.
 - Experimental features are explicitly gated.
 - Startup logs show enabled experimental features.
 

@@ -1,3 +1,17 @@
+## Update 2026-05-13 14:50:52Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - moved startup directory validation, missing config-file recreation, and generated X509 certificate export into `Bootstrap/StartupFileSystem`;
+  - kept private Program wrappers for existing startup call sites.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests" --no-restore` (`36/36`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Continue Program.cs decomposition with the next bounded helper cluster, likely logging/shutdown telemetry or remaining QUIC overlay construction wrappers.
+  2. Run release-target validation when the branch is ready; remediation sync still requires pushing local commits first.
+
 ## Update 2026-05-13 13:54:37Z
 
 - Current task: Program.cs decomposition follow-up in progress.

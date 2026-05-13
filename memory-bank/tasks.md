@@ -2763,6 +2763,7 @@
 - [2026-05-13T13:45:26Z] Completed: continue Program.cs decomposition by moving app-relative path resolution into `Configuration/AppPathResolver` and web HTML rewrite rule construction into `Bootstrap/WebHtmlRewriteRules` while retaining existing Program wrappers.
 - [2026-05-13T13:49:54Z] Completed: continue Program.cs decomposition by moving antiforgery stale-cookie recovery and stale-token classification into `Core/Security/AntiforgeryCookieRecovery` while retaining existing Program wrappers.
 - [2026-05-13T13:54:37Z] Completed: continue Program.cs decomposition by moving startup configuration provider composition into `Configuration/SlskdConfigurationBuilderExtensions`.
+- [2026-05-13T14:50:52Z] Completed: continue Program.cs decomposition by moving startup filesystem checks, missing config recreation, and generated certificate export into `Bootstrap/StartupFileSystem`.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.

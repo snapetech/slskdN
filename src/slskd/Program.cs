@@ -862,41 +862,12 @@ namespace slskd
 
         private static void RecreateConfigurationFileIfMissing(string configurationFile)
         {
-            if (!IOFile.Exists(configurationFile))
-            {
-                try
-                {
-                    Log.Warning("Configuration file {ConfigurationFile} does not exist; creating from example", configurationFile);
-                    var source = Path.Combine(AppContext.BaseDirectory, "config", $"{AppName}.example.yml");
-                    var destination = configurationFile;
-                    IOFile.Copy(source, destination);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error("Failed to create configuration file {ConfigurationFile}: {Message}", configurationFile, ex.Message);
-                }
-            }
+            StartupFileSystem.RecreateConfigurationFileIfMissing(configurationFile, AppName, AppContext.BaseDirectory, Log);
         }
 
         private static (string Filename, string Password) GenerateX509Certificate(string password, string filename)
         {
-            filename = Path.Combine(AppContext.BaseDirectory, filename);
-
-            using var cert = X509.Generate(subject: AppName, password, X509KeyStorageFlags.Exportable);
-            IOFile.WriteAllBytes(filename, cert.Export(X509ContentType.Pkcs12, password));
-            if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
-            {
-                try
-                {
-                    IOFile.SetUnixFileMode(filename, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-                }
-                catch (Exception ex)
-                {
-                    Log.Warning(ex, "Could not set restrictive permissions on generated certificate {Filename}", filename);
-                }
-            }
-
-            return (filename, password);
+            return StartupFileSystem.GenerateX509Certificate(AppName, AppContext.BaseDirectory, password, filename, Log);
         }
 
         [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The assigned framework options/configuration source owns the file provider lifecycle.")]
@@ -1068,39 +1039,7 @@ namespace slskd
 
         private static void VerifyDirectory(string directory, bool createIfMissing = true, bool verifyWriteable = true)
         {
-            if (!System.IO.Directory.Exists(directory))
-            {
-                if (createIfMissing)
-                {
-                    try
-                    {
-                        System.IO.Directory.CreateDirectory(directory);
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new IOException($"Directory {directory} does not exist, and could not be created: {ex.Message}", ex);
-                    }
-                }
-                else
-                {
-                    throw new IOException($"Directory {directory} does not exist");
-                }
-            }
-
-            if (verifyWriteable)
-            {
-                try
-                {
-                    var file = Guid.NewGuid().ToString();
-                    var probe = Path.Combine(directory, file);
-                    IOFile.WriteAllText(probe, string.Empty);
-                    IOFile.Delete(probe);
-                }
-                catch (Exception ex)
-                {
-                    throw new IOException($"Directory {directory} is not writeable: {ex.Message}", ex);
-                }
-            }
+            StartupFileSystem.VerifyDirectory(directory, createIfMissing, verifyWriteable);
         }
 
         private static void InstallShutdownTelemetry()
