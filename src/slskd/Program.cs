@@ -440,11 +440,8 @@ namespace slskd
                 return;
             }
 
-            // derive the application directory value and defaults that are dependent upon it
-            if (string.IsNullOrWhiteSpace(AppDirectory))
-            {
-                AppDirectory = DefaultAppDirectory;
-            }
+            var directories = StartupApplicationDirectoryResolver.Resolve(AppDirectory, DefaultAppDirectory, AppName);
+            AppDirectory = directories.AppDirectory;
 
             // the application isn't being run in command mode. check the mutex to ensure
             // only one long-running instance per app directory.
@@ -456,14 +453,13 @@ namespace slskd
                 return;
             }
 
-            DataDirectory = Path.Combine(AppDirectory, "data");
-            DataBackupDirectory = Path.Combine(DataDirectory, "backups");
-            LogDirectory = Path.Combine(AppDirectory, "logs");
-            ScriptDirectory = Path.Combine(AppDirectory, "scripts");
-
-            DefaultConfigurationFile = Path.Combine(AppDirectory, $"{AppName}.yml");
-            DefaultDownloadsDirectory = Path.Combine(AppDirectory, "downloads");
-            DefaultIncompleteDirectory = Path.Combine(AppDirectory, "incomplete");
+            DataDirectory = directories.DataDirectory;
+            DataBackupDirectory = directories.DataBackupDirectory;
+            LogDirectory = directories.LogDirectory;
+            ScriptDirectory = directories.ScriptDirectory;
+            DefaultConfigurationFile = directories.DefaultConfigurationFile;
+            DefaultDownloadsDirectory = directories.DefaultDownloadsDirectory;
+            DefaultIncompleteDirectory = directories.DefaultIncompleteDirectory;
 
             // the location of the configuration file might have been overridden by command line or envar.
             // if not, set it to the default.
@@ -476,12 +472,7 @@ namespace slskd
             // directories are overridden in config, those will be validated after the config is loaded.
             try
             {
-                VerifyDirectory(AppDirectory, createIfMissing: true, verifyWriteable: true);
-                VerifyDirectory(DataDirectory, createIfMissing: true, verifyWriteable: true);
-                VerifyDirectory(DataBackupDirectory, createIfMissing: true, verifyWriteable: true);
-                VerifyDirectory(ScriptDirectory, createIfMissing: true, verifyWriteable: false);
-                VerifyDirectory(DefaultDownloadsDirectory, createIfMissing: true, verifyWriteable: true);
-                VerifyDirectory(DefaultIncompleteDirectory, createIfMissing: true, verifyWriteable: true);
+                StartupApplicationDirectoryResolver.VerifyDefaults(directories);
             }
             catch (Exception ex)
             {

@@ -199,6 +199,9 @@ compatibility wrappers.
 Primitive startup command-mode handling for version/help/env output,
 certificate generation, and secret generation moved out of `Program.cs` into
 `Bootstrap/StartupCommandMode.cs`.
+Startup application-directory default resolution and default directory
+validation moved out of `Program.cs` into
+`Bootstrap/StartupApplicationDirectories.cs`.
 
 Target modules:
 
@@ -274,6 +277,8 @@ Target modules:
 - `StartupExceptionClassifier`. Implemented for unobserved-task exception
   classification.
 - `StartupCommandMode`. Implemented for primitive startup command-mode handling.
+- `StartupApplicationDirectoryResolver`. Implemented for startup
+  application-directory default resolution and default directory validation.
 - `AddSlskdTransfers(...)`
 - `AddSlskdSecurity(...)`
 - `AddSlskdIntegrations(...)`

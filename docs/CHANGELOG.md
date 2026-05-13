@@ -174,6 +174,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Moved primitive startup command-mode handling for version/help/env output,
   certificate generation, and secret generation out of `Program.cs` into
   `StartupCommandMode`.
+- Moved startup application-directory default resolution and default directory
+  validation out of `Program.cs` into `StartupApplicationDirectoryResolver`.
 - Simplified MediaCore descriptor publishing by keeping retrieval/statistics as
   the default path and grouping descriptor publish, batch publish, update, and
   republish controls behind advanced disclosure.

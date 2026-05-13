@@ -1,3 +1,17 @@
+## Update 2026-05-13 16:38:20Z
+
+- Current task: Program.cs decomposition follow-up in progress.
+- Last activity:
+  - moved startup application-directory resolution into `Bootstrap/StartupApplicationDirectoryResolver`;
+  - moved derived default directory calculation and default directory validation into the same helper;
+  - `Program.cs` is down to 807 lines.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~ProgramPathNormalizationTests|FullyQualifiedName~ApplicationLifecycleTests|FullyQualifiedName~SharedEventEmitterTests|FullyQualifiedName~ApplicationControllerTests|FullyQualifiedName~LogsControllerTests" --no-restore` (`58/58`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Continue Program.cs decomposition by extracting another cohesive startup-flow segment.
+  2. Continue scanning MediaCore for any remaining read-first reconciliation work.
 ## Update 2026-05-13 16:34:30Z
 
 - Current task: Program.cs decomposition follow-up in progress.
