@@ -316,6 +316,7 @@ public class ProgramPathNormalizationTests
     [Theory]
     [InlineData("Too many megabytes")]
     [InlineData("Too many files")]
+    [InlineData("File read error.")]
     public void IsExpectedSoulseekNetworkException_ReturnsTrue_ForRemoteTransferRejectedPolicyFailures(string reason)
     {
         var exception = new AggregateException(new TransferRejectedException(reason));

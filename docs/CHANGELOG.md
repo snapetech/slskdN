@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Classified Soulseek `File read error` transfer rejections as expected peer
+  denials so detached runtime transfer cleanup does not log as fatal.
 - Hid legacy duplicate job route controllers from Swagger discovery and made
   Swagger tolerate duplicate compatibility routes so OpenAPI generation no
   longer fails on repeated method/path operations.
