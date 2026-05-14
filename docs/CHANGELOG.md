@@ -27,6 +27,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   commit messages.
 - Wired the local-identity release gate to accept a private GitHub Actions
   denylist secret and report only redacted file/line locations for matches.
+- Generalized the local-identity release gate so other repositories can reuse
+  the same scanner with opt-in commit-message checks.
 - Synced Snap packaging metadata with the latest stable release baseline so
   the release gate can validate all package channels consistently.
 - Logged expected Lidarr HTTP status failures during wanted sync without stack
