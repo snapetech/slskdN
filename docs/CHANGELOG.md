@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Routed HTTP LLM moderation endpoint checks through the shared DNS-aware
+  outbound guard so hostnames resolving to non-public ranges are blocked before
+  any request is sent.
 - Logged expected Lidarr auto-import HTTP failures without stack traces so
   external connection refusals and 5xx responses stay readable in daemon logs.
 - Fixed concurrent HashDb peer creation so simultaneous passive peer-tracking

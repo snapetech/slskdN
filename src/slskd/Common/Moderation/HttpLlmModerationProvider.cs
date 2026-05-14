@@ -7,7 +7,6 @@ namespace slskd.Common.Moderation
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
-    using System.Net;
     using System.Net.Http;
     using System.Net.Http.Json;
     using System.Text.Json;
@@ -236,7 +235,8 @@ namespace slskd.Common.Moderation
                 throw new InvalidOperationException("LLM moderation endpoint is invalid");
             }
 
-            if (!IsSafeEndpoint(endpointUri, out var endpointError))
+            var (safe, endpointError) = await OutboundUriGuard.CheckAsync(endpointUri, cancellationToken).ConfigureAwait(false);
+            if (!safe)
             {
                 throw new InvalidOperationException($"LLM moderation endpoint blocked: {endpointError}");
             }
@@ -271,42 +271,6 @@ namespace slskd.Common.Moderation
                 Timestamp = DateTimeOffset.UtcNow,
                 FromCache = false
             };
-        }
-
-        private static bool IsSafeEndpoint(Uri endpointUri, out string error)
-        {
-            error = string.Empty;
-
-            if (endpointUri.Scheme != Uri.UriSchemeHttps && endpointUri.Scheme != Uri.UriSchemeHttp)
-            {
-                error = "only http/https endpoints are allowed";
-                return false;
-            }
-
-            var host = endpointUri.DnsSafeHost?.Trim();
-            if (string.IsNullOrWhiteSpace(host))
-            {
-                error = "host is empty";
-                return false;
-            }
-
-            if (host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
-                host.EndsWith(".local", StringComparison.OrdinalIgnoreCase) ||
-                host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase) ||
-                host.EndsWith(".internal", StringComparison.OrdinalIgnoreCase))
-            {
-                error = "local/internal host names are not allowed";
-                return false;
-            }
-
-            if (IPAddress.TryParse(host, out var literal) &&
-                (IpRangeClassifier.IsBlocked(literal) || IpRangeClassifier.IsPrivate(literal)))
-            {
-                error = "non-public IP literals are not allowed";
-                return false;
-            }
-
-            return true;
         }
 
         private string GetSystemPrompt(LlmModeration.ContentType contentType)

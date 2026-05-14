@@ -164,7 +164,7 @@ namespace slskd.Tests.Unit.Common.Moderation
             // Test with missing API key
             optionsMock.Setup(x => x.CurrentValue).Returns(new LlmModerationOptions
             {
-                Endpoint = "https://api.example.com",
+                Endpoint = "https://8.8.8.8",
                 ApiKey = string.Empty // Missing API key
             });
 
@@ -182,7 +182,7 @@ namespace slskd.Tests.Unit.Common.Moderation
             var optionsMock = new Mock<IOptionsMonitor<LlmModerationOptions>>();
             optionsMock.Setup(x => x.CurrentValue).Returns(new LlmModerationOptions
             {
-                Endpoint = "https://api.example.com",
+                Endpoint = "https://8.8.8.8",
                 ApiKey = "test-key"
             });
             var loggerMock = new Mock<ILogger<HttpLlmModerationProvider>>();
@@ -209,7 +209,7 @@ namespace slskd.Tests.Unit.Common.Moderation
             var optionsMock = new Mock<IOptionsMonitor<LlmModerationOptions>>();
             optionsMock.Setup(x => x.CurrentValue).Returns(new LlmModerationOptions
             {
-                Endpoint = "https://api.example.com",
+                Endpoint = "https://8.8.8.8",
                 ApiKey = "test-key",
                 Timeout = TimeSpan.FromSeconds(1)
             });
@@ -239,6 +239,38 @@ namespace slskd.Tests.Unit.Common.Moderation
         }
 
         [Fact]
+        public async Task HttpLlmModerationProvider_BlocksUnsafeEndpointBeforeHttpSend()
+        {
+            var handler = new MockHttpMessageHandler();
+            handler.SetupResponse(
+                req => req.RequestUri?.ToString().Contains("/chat/completions") == true,
+                HttpStatusCode.OK,
+                "{\"choices\":[{\"message\":{\"content\":\"{}\"}}]}");
+
+            using var httpClient = new HttpClient(handler);
+            var optionsMock = new Mock<IOptionsMonitor<LlmModerationOptions>>();
+            optionsMock.Setup(x => x.CurrentValue).Returns(new LlmModerationOptions
+            {
+                Endpoint = "http://127.0.0.1:11434",
+                ApiKey = "test-key",
+                Timeout = TimeSpan.FromSeconds(1)
+            });
+            var loggerMock = new Mock<ILogger<HttpLlmModerationProvider>>();
+
+            using var provider = new HttpLlmModerationProvider(httpClient, optionsMock.Object, loggerMock.Object);
+
+            var response = await provider.ModerateAsync(new LlmModerationRequest
+            {
+                ContentType = LlmModeration.ContentType.Text,
+                Content = "Test content"
+            });
+
+            Assert.Equal(ModerationVerdict.Unknown, response.Verdict);
+            Assert.Equal("LLM moderation request failed", response.Error);
+            Assert.Equal(0, handler.RequestCount);
+        }
+
+        [Fact]
         public async Task HttpLlmModerationProvider_ParseFailure_DoesNotLeakParserDetails()
         {
             var handler = new MockHttpMessageHandler();
@@ -251,7 +283,7 @@ namespace slskd.Tests.Unit.Common.Moderation
             var optionsMock = new Mock<IOptionsMonitor<LlmModerationOptions>>();
             optionsMock.Setup(x => x.CurrentValue).Returns(new LlmModerationOptions
             {
-                Endpoint = "https://api.example.com",
+                Endpoint = "https://8.8.8.8",
                 ApiKey = "test-key",
                 Timeout = TimeSpan.FromSeconds(1)
             });
@@ -377,6 +409,8 @@ namespace slskd.Tests.Unit.Common.Moderation
         {
             private readonly Dictionary<Func<HttpRequestMessage, bool>, (HttpStatusCode StatusCode, string Content)> _responses = new();
 
+            public int RequestCount { get; private set; }
+
             public void SetupResponse(Func<HttpRequestMessage, bool> predicate, HttpStatusCode statusCode, string content)
             {
                 _responses[predicate] = (statusCode, content);
@@ -384,6 +418,8 @@ namespace slskd.Tests.Unit.Common.Moderation
 
             protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
+                RequestCount++;
+
                 foreach (var (predicate, (statusCode, content)) in _responses)
                 {
                     if (predicate(request))
