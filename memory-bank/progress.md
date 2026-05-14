@@ -1,5 +1,15 @@
 ## 2026-05-14
 
+- Rechecked live logs after the manual deploy and fixed the remaining actionable
+  noise. Download timeout observer warnings are now debug-only, planned
+  shutdown cancellation in wishlist/download retry paths no longer logs as
+  warning stack traces, and incomplete-download directories are preflighted
+  before starting Soulseek transfer attempts. Repaired stale group-write
+  permissions on the live incomplete-download tree. Deployed
+  `0.0.0-manual.20260514234659.e73f72f935b3`; the service is active with
+  `NRestarts=0`, Web `5030` returns `200`, and a current-build marker scan
+  found no fatal/error, permission-denied, SQLite, duplicate timeout,
+  shutdown-cancellation, or expected HTTP stack-trace signatures.
 - Ran an additional red-team pass across slskdN and the vendored
   slskNet.Runtime with the standalone runtime sync requirement in mind. Guard
   scripts passed for outbound HTTP, path containment, async task observation,

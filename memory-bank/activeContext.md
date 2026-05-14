@@ -1,3 +1,19 @@
+## Update 2026-05-14 23:49:41Z
+
+- Current task: live log cleanup and final manual deploy complete.
+- Last activity:
+  - checked current `kspls0` logs and found no recurrence of the HashDb or Lidarr stack traces;
+  - fixed duplicate expected download timeout warnings, planned-shutdown cancellation warning stack traces, and local incomplete-directory permission failures escaping as unobserved task stack traces;
+  - repaired group-write permissions on the live incomplete-download directory tree;
+  - deployed `0.0.0-manual.20260514234659.e73f72f935b3` to `kspls0`.
+- Validation:
+  - Passed: focused `DownloadServiceTests` (`28/28`), focused Download/Wishlist slice (`46/46`), `./bin/lint`, and `git diff --check`.
+  - Passed live: `slskd.service` active/running with `NRestarts=0`, Web `5030` returned `200`, current symlink points at the final manual release, and the executable reports `0.0.0-manual.20260514234659.e73f72f935b3`.
+  - Passed live current-build scan: no fatal/error, permission-denied, SQLite, duplicate timeout, shutdown-cancellation, `HttpRequestException`, `ObjectDisposed`, or `MessageConnection` signatures.
+- Next steps:
+  1. Continue monitoring tester traffic on the current manual build.
+  2. Cut a release tag only if the user explicitly asks for release work.
+
 ## Update 2026-05-14 22:33:00Z
 
 - Current task: second slskdN/slskNet.Runtime red-team pass complete locally.

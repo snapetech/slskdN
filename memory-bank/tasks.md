@@ -24,7 +24,7 @@
 - [x] Recover kspls0 service-plane access and deploy manual build.
  - Status: completed (2026-05-14)
  - Priority: P1
- - Notes: Host access recovered after reboot. Deployed successive manual builds for tester-feedback and log-cleanup fixes, ending on `0.0.0-manual.20260514212132.6b0e566d4144`; verified service active with `NRestarts=0`, `/swagger/v0/swagger.json` returns `200` JSON, `/` returns `200`, Soulseek connected/logged in, VPN ready/connected, shares ready, downloads completing, and no post-restart fatal/error/SQLite unique-constraint/HttpRequestException stack-trace/Swagger conflict signatures.
+ - Notes: Host access recovered after reboot. Deployed successive manual builds for tester-feedback and log-cleanup fixes, ending on `0.0.0-manual.20260514234659.e73f72f935b3`; verified service active with `NRestarts=0`, `/swagger/v0/swagger.json` returns `200` JSON, `/` returns `200`, Soulseek connected/logged in, VPN ready/connected, shares ready, downloads completing, stale incomplete-directory permissions repaired, and no current-build fatal/error/SQLite unique-constraint/HttpRequestException stack-trace/permission-denied/duplicate-timeout/shutdown-cancellation signatures.
 
 - [x] Fix Launchpad PPA Jammy build failure for VPN helper packaging.
  - Status: completed (2026-05-12)
