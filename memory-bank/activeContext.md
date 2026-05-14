@@ -1,3 +1,19 @@
+## Update 2026-05-14 21:19:42Z
+
+- Current task: second `kspls0` log cleanup pass complete locally.
+- Last activity:
+  - rechecked live logs and confirmed the HashDb `Peers.peer_id` SQLite warning had not recurred recently;
+  - identified repeated Lidarr auto-import `HttpRequestException` stack traces for external connection refusals and 5xx responses;
+  - changed Lidarr auto-import to classify expected external HTTP failures like wanted sync and log concise warnings without stack traces;
+  - added focused classifier coverage and ADR-0001 gotcha `0z426`;
+  - committed the fix as `88940a84a`.
+- Validation:
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter "FullyQualifiedName~LidarrImportServiceTests|FullyQualifiedName~LidarrSyncServiceTests" --no-restore` (`13/13`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Deploy or release a build containing `88940a84a` and `9bd3645d3` when ready.
+  2. After deployment, recheck `kspls0` logs for Lidarr stack traces and HashDb peer unique-constraint warnings.
+
 ## Update 2026-05-14 20:29:58Z
 
 - Current task: HashDb concurrent peer-creation warning fix complete locally.

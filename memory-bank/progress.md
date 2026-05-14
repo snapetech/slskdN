@@ -1,5 +1,13 @@
 ## 2026-05-14
 
+- Rechecked live `kspls0` logs after the HashDb fix. The peer creation SQLite
+  warning had not recurred in the recent window; the main fresh issue was
+  repeated Lidarr auto-import `HttpRequestException` stack traces for external
+  connection refusals and 5xx responses. Matched auto-import behavior to the
+  existing wanted-sync classifier so expected external HTTP failures log as
+  concise warnings, added focused coverage, documented ADR-0001 gotcha `0z426`,
+  and committed the fix as `88940a84a`. Validation passed: focused Lidarr unit
+  tests (`13/13`) and `./bin/lint`.
 - Investigated the live `kspls0` non-fatal HashDb stack trace:
   `GetOrCreatePeerAsync` could race when concurrent passive peer-tracking
   events tried to create the same Soulseek username. Replaced the plain insert
