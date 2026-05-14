@@ -25,6 +25,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Added a release-gate check that blocks private local hostnames, local OS
   usernames, and home-directory paths from release-facing text and recent
   commit messages.
+- Wired the local-identity release gate to accept a private GitHub Actions
+  denylist secret and report only redacted file/line locations for matches.
 - Synced Snap packaging metadata with the latest stable release baseline so
   the release gate can validate all package channels consistently.
 - Logged expected Lidarr HTTP status failures during wanted sync without stack

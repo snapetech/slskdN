@@ -54,6 +54,7 @@ ensure_tool() {
 }
 
 ensure_tool rg ripgrep
+ensure_tool jq jq
 
 run_step "Verify release branch sync" 120 \
     bash scripts/check-release-branch-sync.sh

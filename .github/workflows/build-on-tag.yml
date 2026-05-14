@@ -72,6 +72,8 @@ jobs:
           cache-dependency-path: src/web/package-lock.json
 
       - name: Release Gate
+        env:
+          SLSKDN_LOCAL_IDENTITY_DENYLIST: ${{ secrets.SLSKDN_LOCAL_IDENTITY_DENYLIST }}
         run: bash packaging/scripts/run-release-gate.sh
 
       - name: Upload Web Content

@@ -64,15 +64,24 @@ failed=0
 check_stream() {
   local label="$1"
   local path="$2"
+  local display_path="${3:-$path}"
+  local matches=""
 
-  if rg -n --fixed-strings --ignore-case --file "$tmp_tokens" "$path"; then
+  matches="$(
+    rg --json --fixed-strings --ignore-case --file "$tmp_tokens" "$path" |
+      jq -r --arg label "$label" --arg display_path "$display_path" 'select(.type == "match") | "\($label): \($display_path):\(.data.line_number)"' |
+      sort -u || true
+  )"
+
+  if [[ -n "$matches" ]]; then
+    printf '%s\n' "$matches" >&2
     printf 'Local hostname/username leaked into %s. Use generic wording like "live validation host" or "operator account".\n' "$label" >&2
     failed=1
   fi
 }
 
-check_stream "docs/CHANGELOG.md Unreleased" "$tmp_unreleased"
-check_stream "recent commit messages" "$tmp_commits"
+check_stream "docs/CHANGELOG.md Unreleased" "$tmp_unreleased" "docs/CHANGELOG.md#Unreleased"
+check_stream "recent commit messages" "$tmp_commits" "git log"
 
 for path in \
   .github/release-notes/main.md.tmpl \

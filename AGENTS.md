@@ -67,6 +67,7 @@ If you skip this step, you WILL generate slop.
 - Use generic wording such as "live validation host", "test host", "operator account", or "local checkout"
 - Do not mention deployment hostnames, workstation names, shell usernames, or paths like `/home/<user>`
 - `scripts/check-local-identity-leaks.sh` is part of the release/remediation gate and blocks known local identifiers from release-facing text and recent commit messages
+- CI can pass extra private denylist terms through the `SLSKDN_LOCAL_IDENTITY_DENYLIST` GitHub secret; local-only terms can live in an untracked file such as `.local/identity-denylist.txt` and be passed with `SLSKDN_LOCAL_IDENTITY_DENYLIST_FILE`
 
 ### Network Health First 🌐
 

@@ -17,6 +17,7 @@
 /dist/
 /publish/
 /logs/
+/.local/
 /node_modules/
 /package-lock.json
 coverage.json
