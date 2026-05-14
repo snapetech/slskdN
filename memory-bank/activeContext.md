@@ -1,3 +1,19 @@
+## Update 2026-05-14 21:25:57Z
+
+- Current task: `kspls0` manual deploy and log-soak validation complete.
+- Last activity:
+  - built manual Linux x64 payload `0.0.0-manual.20260514212132.6b0e566d4144` from current HEAD;
+  - deployed it over the package build on `kspls0` by updating `/usr/lib/slskd/current` and restarting `slskd.service`;
+  - verified Web `5030`, authenticated application state, Soulseek login, VPN readiness, shares readiness, and completed downloads;
+  - soaked logs after restart and confirmed the fixed HashDb unique-constraint warning and Lidarr `HttpRequestException` stack traces did not recur.
+- Validation:
+  - Passed before deploy: focused HashDb unit tests (`52/52`), focused Lidarr unit tests (`13/13`), and `./bin/lint`.
+  - Passed live after deploy: `slskd.service` active with `NRestarts=0`, Web `5030` returned `200`, app API reported the manual version/executable path, Soulseek was `Connected, LoggedIn`, VPN was ready/connected, and shares were ready.
+  - Passed live log soak: no fatal/error, HashDb unique-constraint, SQLite, `HttpRequestException` stack-trace, `ObjectDisposed`, or `MessageConnection` signatures; Lidarr connection failures now log concise warnings because the external Lidarr endpoint is refusing requests.
+- Next steps:
+  1. Continue monitoring tester traffic on the manual build.
+  2. Cut the next stable release when the user explicitly asks for release/tag work.
+
 ## Update 2026-05-14 21:19:42Z
 
 - Current task: second `kspls0` log cleanup pass complete locally.

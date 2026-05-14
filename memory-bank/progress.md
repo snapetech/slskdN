@@ -1,5 +1,16 @@
 ## 2026-05-14
 
+- Built and manually deployed `0.0.0-manual.20260514212132.6b0e566d4144`
+  from current HEAD to `kspls0`, repointed `/usr/lib/slskd/current`, and
+  restarted `slskd.service`. Live checks passed: service active with
+  `NRestarts=0`, Web `5030` returned `200`, the authenticated application API
+  reported the manual release-directory executable, Soulseek was
+  `Connected, LoggedIn`, VPN was ready/connected, shares were ready, and
+  downloads completed after restart. A 90-second post-deploy log soak found no
+  fatal/error, HashDb unique-constraint, SQLite, `HttpRequestException`
+  stack-trace, `ObjectDisposed`, or `MessageConnection` signatures; Lidarr
+  connection failures still appear as concise warnings because the external
+  Lidarr service is refusing requests.
 - Rechecked live `kspls0` logs after the HashDb fix. The peer creation SQLite
   warning had not recurred in the recent window; the main fresh issue was
   repeated Lidarr auto-import `HttpRequestException` stack traces for external
