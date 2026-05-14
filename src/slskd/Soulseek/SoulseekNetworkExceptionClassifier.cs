@@ -98,6 +98,7 @@ public static class SoulseekNetworkExceptionClassifier
             details.Contains("Connection refused", StringComparison.Ordinal) ||
             details.Contains("Connection reset by peer", StringComparison.Ordinal) ||
             details.Contains("Remote connection closed", StringComparison.Ordinal) ||
+            details.Contains("The connection was closed unexpectedly", StringComparison.Ordinal) ||
             details.Contains("The underlying Tcp connection is closed", StringComparison.Ordinal) ||
             details.Contains("Download reported as failed by remote client", StringComparison.Ordinal) ||
             details.Contains("Enqueue failed due to internal error", StringComparison.Ordinal) ||

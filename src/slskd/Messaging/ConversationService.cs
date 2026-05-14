@@ -143,7 +143,9 @@ namespace slskd.Messaging
 
         // HARDENING: DM pod creation rate limiting
         private readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTimeOffset> lastPodCreationByPeer = new();
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Threading.SemaphoreSlim> dmPodCreationLocks = new();
         private readonly object rateLimitLock = new();
+        private readonly object conversationActivationLock = new();
         private const int MinHoursBetweenPodCreationsPerPeer = 24; // 1 pod per peer per day
         private const int MaxNewPodsPerDay = 50; // Global limit
         private DateTimeOffset currentDayStart = DateTimeOffset.UtcNow.Date;
@@ -224,6 +226,8 @@ namespace slskd.Messaging
         /// </summary>
         private async Task EnsureDmPodAsync(string username)
         {
+            var creationLock = dmPodCreationLocks.GetOrAdd(username, _ => new System.Threading.SemaphoreSlim(1, 1));
+            await creationLock.WaitAsync();
             try
             {
                 // HARDENING: Validate username format
@@ -309,6 +313,10 @@ namespace slskd.Messaging
             catch (Exception ex)
             {
                 Log.Error(ex, "Error creating DM pod for user {Username}", username);
+            }
+            finally
+            {
+                creationLock.Release();
             }
         }
 
@@ -611,30 +619,31 @@ namespace slskd.Messaging
 
         private void ActivateConversation(string username)
         {
-            using var context = ContextFactory.CreateDbContext();
+            var created = false;
 
-            var conversation = context.Conversations.FirstOrDefault(c => c.Username == username);
-
-            if (conversation != default)
+            lock (conversationActivationLock)
             {
-                conversation.IsActive = true;
-            }
-            else
-            {
-                context.Conversations.Add(new Conversation { Username = username, IsActive = true });
+                using var context = ContextFactory.CreateDbContext();
 
-                // HARDENING: Create DM pod for new conversation
-                _ = ObserveBackgroundTaskAsync(Task.Run(() => EnsureDmPodAsync(username), CancellationToken.None), username);
-            }
+                var conversation = context.Conversations.FirstOrDefault(c => c.Username == username);
 
-            try
-            {
+                if (conversation != default)
+                {
+                    conversation.IsActive = true;
+                }
+                else
+                {
+                    context.Conversations.Add(new Conversation { Username = username, IsActive = true });
+                    created = true;
+                }
+
                 context.SaveChanges();
             }
-            catch (DbUpdateException ex) when (ex.InnerException?.Message?.Contains("UNIQUE constraint failed: Conversations.Username") == true)
+
+            if (created)
             {
-                // Duplicate insert under contention; safe to ignore
-                Log.Debug("Ignored duplicate conversation insert for {Username}", username);
+                // HARDENING: Create DM pod for new conversation
+                _ = ObserveBackgroundTaskAsync(Task.Run(() => EnsureDmPodAsync(username), CancellationToken.None), username);
             }
         }
 

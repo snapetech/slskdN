@@ -4,6 +4,7 @@
 namespace slskd.Tests.Unit;
 
 using System;
+using System.IO;
 using slskd.SoulseekExceptions;
 using Xunit;
 
@@ -24,6 +25,15 @@ public class ProgramExpectedNetworkExceptionTests
     {
         var exception = new AggregateException(
             new OperationCanceledException("Operation canceled in Soulseek.Network.DistributedConnectionManager."));
+
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
+    }
+
+    [Fact]
+    public void IsExpectedSoulseekNetworkException_ReturnsTrue_ForUnexpectedConnectionCloseFailures()
+    {
+        var exception = new AggregateException(
+            new IOException("The connection was closed unexpectedly in Soulseek.Network.Tcp.Connection."));
 
         Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }

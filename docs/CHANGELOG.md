@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Classified completed peer connection closes as expected Soulseek network
+  noise and serialized DM conversation pod creation to avoid duplicate startup
+  SQLite errors under private-message bursts.
 - Fixed Lidarr auto-import debounce tracking so a directory is marked in-flight
   before processing and no longer re-marked only after selected exits.
 - Serialized Lidarr auto-import candidate and command calls so completed album
