@@ -63,6 +63,7 @@ operation per HTTP method/path and returned HTTP 500 for `/swagger/v0/swagger.js
 - `src/slskd/Jobs/API/DiscographyJobsController.cs`
 - `src/slskd/Jobs/API/LabelCrateJobsController.cs`
 - `src/slskd/API/Native/JobsController.cs`
+- `src/slskd/Bootstrap/WebServiceCollectionExtensions.cs`
 
 **Wrong**:
 ```csharp
@@ -77,13 +78,17 @@ public class DiscographyJobsController : ControllerBase
 [Route("api/v{version:apiVersion}/jobs/discography")]
 [ApiExplorerSettings(IgnoreApi = true)]
 public class DiscographyJobsController : ControllerBase
+
+// And configure Swagger to tolerate any remaining compatibility duplicates.
+options.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
 ```
 
 **Why This Keeps Happening**: Compatibility controllers are useful for old
 clients, but OpenAPI generation sees every controller action as a documentable
 operation. When a consolidated controller owns the public API surface, hide the
 legacy duplicate controller from API Explorer instead of changing or deleting
-its runtime route.
+its runtime route. Also keep Swagger's conflict resolver enabled, because
+versioned and compatibility aliases can collide in more than one surface.
 
 ### 0z422. Classify MessageConnection Dispose Races As Expected Soulseek Teardown
 
