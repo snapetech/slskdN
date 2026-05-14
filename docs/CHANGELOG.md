@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Avoided duplicate warning logs for expected download timeouts by leaving the
+  user-visible warning in the transfer path and downgrading the observer wrapper
+  to debug.
 - Routed HTTP LLM moderation endpoint checks through the shared DNS-aware
   outbound guard so hostnames resolving to non-public ranges are blocked before
   any request is sent.

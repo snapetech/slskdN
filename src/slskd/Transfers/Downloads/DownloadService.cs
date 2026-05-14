@@ -1532,7 +1532,7 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex) when (IsCancellationException(ex) || IsDownloadTimeout(ex))
             {
-                Log.Warning("Task for download of {Filename} from {Username} timed out or was cancelled: {Error}", filename, username, ex.Message);
+                Log.Debug("Task for download of {Filename} from {Username} ended with expected timeout or cancellation: {Error}", filename, username, ex.Message);
 
                 if (!TryFail(transferId, exception: ex))
                 {
