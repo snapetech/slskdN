@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Classified Soulseek `MessageConnection` disposal races as expected peer
+  teardown so detached runtime read-loop cleanup does not log as fatal.
 - Classified completed peer connection closes as expected Soulseek network
   noise and serialized DM conversation pod creation to avoid duplicate startup
   SQLite errors under private-message bursts.

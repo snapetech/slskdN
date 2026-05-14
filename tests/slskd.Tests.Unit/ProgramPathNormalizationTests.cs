@@ -346,6 +346,18 @@ public class ProgramPathNormalizationTests
     }
 
     [Fact]
+    public void IsExpectedSoulseekNetworkException_ReturnsTrue_ForSoulseekMessageConnectionDisposedTeardown()
+    {
+        var inner = new ObjectDisposedException("MessageConnection");
+        ExceptionDispatchInfo.SetRemoteStackTrace(
+            inner,
+            "   at Soulseek.Network.MessageConnection.ReadContinuouslyAsync()");
+        var exception = new AggregateException(inner);
+
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
+    }
+
+    [Fact]
     public void IsExpectedSoulseekNetworkException_ReturnsTrue_ForSoulseekTimerResetReadLoopRace()
     {
         var inner = new NullReferenceException("Object reference not set to an instance of an object.");

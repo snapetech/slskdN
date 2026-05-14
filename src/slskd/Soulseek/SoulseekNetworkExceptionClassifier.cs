@@ -73,6 +73,7 @@ public static class SoulseekNetworkExceptionClassifier
             exception is OperationCanceledException ||
             exception is IOException ||
             (exception is ObjectDisposedException objectDisposedException && string.Equals(objectDisposedException.ObjectName, "Connection", StringComparison.Ordinal)) ||
+            (exception is ObjectDisposedException messageConnectionDisposedException && string.Equals(messageConnectionDisposedException.ObjectName, "MessageConnection", StringComparison.Ordinal)) ||
             exception is System.Net.Sockets.SocketException ||
             isSoulseekMessageConnectionClosed ||
             isSoulseekTimerResetReadRace ||
