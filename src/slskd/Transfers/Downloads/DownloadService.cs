@@ -1231,6 +1231,7 @@ namespace slskd.Transfers.Downloads
                     SynchronizedUpdate(transfer, semaphore: updateSyncRoot, cancellationToken: CancellationToken.None);
 
                     var outputPlan = PlanIncompleteOutput(incompleteFilename, incompleteStrategy, transfer);
+                    EnsureIncompleteDirectoryReady(incompleteFilename, unixFileMode);
 
                     return Client.DownloadAsync(
                         username: transfer.Username,
@@ -1297,6 +1298,56 @@ namespace slskd.Transfers.Downloads
                         : OptionsMonitor.CurrentValue.Directories.Incomplete;
 
                     return pendingTransfer.Filename.ToLocalFilename(baseDirectory: retryDirectory);
+                }
+
+                void EnsureIncompleteDirectoryReady(string localFilename, System.IO.UnixFileMode? createMode)
+                {
+                    var directory = System.IO.Path.GetDirectoryName(localFilename);
+                    if (string.IsNullOrWhiteSpace(directory))
+                    {
+                        throw new System.IO.IOException($"Failed to determine incomplete directory for file {localFilename}");
+                    }
+
+                    if (!System.IO.Directory.Exists(directory))
+                    {
+                        if (!OperatingSystem.IsWindows() && createMode.HasValue)
+                        {
+                            System.IO.Directory.CreateDirectory(directory, createMode.Value.WithExecuteFlagsForEachReadFlag());
+                        }
+                        else
+                        {
+                            System.IO.Directory.CreateDirectory(directory);
+                        }
+                    }
+
+                    var probeFilename = System.IO.Path.Combine(directory, $".slskdn-write-probe-{Guid.NewGuid():N}.tmp");
+                    try
+                    {
+                        using var probeStream = new System.IO.FileStream(
+                            probeFilename,
+                            new System.IO.FileStreamOptions
+                            {
+                                Access = System.IO.FileAccess.Write,
+                                Mode = System.IO.FileMode.CreateNew,
+                                Share = System.IO.FileShare.None,
+                                Options = System.IO.FileOptions.DeleteOnClose,
+                            });
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new System.IO.IOException($"Incomplete directory '{directory}' is not writable: {ex.Message}", ex);
+                    }
+                    finally
+                    {
+                        try
+                        {
+                            System.IO.File.Delete(probeFilename);
+                        }
+                        catch
+                        {
+                            // best-effort cleanup for filesystems that do not honor DeleteOnClose
+                        }
+                    }
                 }
 
                 (System.IO.FileMode Mode, long StartOffset) PlanIncompleteOutput(
@@ -1734,9 +1785,26 @@ namespace slskd.Transfers.Downloads
 
         private static bool IsDirectDownloadRetryable(Exception exception)
             => exception is not OperationCanceledException
+                && !ContainsException<UnauthorizedAccessException>(exception)
                 && exception is not TransferRejectedException
                 && exception is not DuplicateTransferException
                 && exception is not TransferSizeMismatchException;
+
+        private static bool ContainsException<TException>(Exception exception)
+            where TException : Exception
+        {
+            if (exception is TException)
+            {
+                return true;
+            }
+
+            if (exception is AggregateException aggregateException)
+            {
+                return aggregateException.Flatten().InnerExceptions.Any(ContainsException<TException>);
+            }
+
+            return exception.InnerException is not null && ContainsException<TException>(exception.InnerException);
+        }
 
         private static bool IsShutdownCancellation(Exception exception)
         {

@@ -27,6 +27,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   to debug.
 - Quieted planned-shutdown cancellation noise from wishlist search processing
   and direct download retry attempt logging.
+- Preflighted incomplete-download directories before starting Soulseek transfer
+  attempts so local permission failures are observed and classified without
+  detached task stack-trace noise.
 - Routed HTTP LLM moderation endpoint checks through the shared DNS-aware
   outbound guard so hostnames resolving to non-public ranges are blocked before
   any request is sent.
