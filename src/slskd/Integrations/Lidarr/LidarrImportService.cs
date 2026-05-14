@@ -150,6 +150,13 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
                 }
+                catch (OperationCanceledException ex) when (IsHttpClientTimeout(ex))
+                {
+                    Log.Warning(
+                        "Lidarr auto-import timed out for {Directory}: {Message}",
+                        evt.LocalDirectoryName,
+                        ex.Message);
+                }
                 catch (Exception ex)
                 {
                     Log.Warning(ex, "Lidarr auto-import failed for {Directory}: {Message}", evt.LocalDirectoryName, ex.Message);
@@ -171,6 +178,9 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
 
     private static string NormalizeImportMode(string importMode)
         => string.Equals(importMode, "copy", StringComparison.OrdinalIgnoreCase) ? "Copy" : "Move";
+
+    private static bool IsHttpClientTimeout(OperationCanceledException exception)
+        => exception.Message.Contains("HttpClient.Timeout", StringComparison.Ordinal);
 
     private static string MapPath(string path, string fromPrefix, string toPrefix)
     {

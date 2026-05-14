@@ -64,6 +64,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   are less likely to trigger peer-side "overwhelmed with requests" rejections.
 - Classified expected Soulseek peer transfer denials in the global unobserved
   task handler so normal "file not shared" responses are not logged as fatal.
+- Logged Lidarr auto-import HTTP timeouts as concise warnings instead of
+  emitting full stack traces for transient slow Lidarr responses.
 - Archived stale working notes and removed obsolete local one-off remediation
   scripts from the active docs/scripts surface.
 - Strengthened mesh preview hash validation so hash-protected content is
