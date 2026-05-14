@@ -96,13 +96,10 @@
 ### 1. Project Overview
 ```bash
 cd <repo-root>/docs
-cat FINAL_PLANNING_SUMMARY.md  # Big picture (10 min)
 ```
 
 ### 2. Current Status
 ```bash
-cat docs/archive/status/TASK_STATUS_DASHBOARD.md  # Progress tracking
-cat docs/archive/sessions/SESSION_STATUS_2025-12-11.md  # Latest work
 ```
 
 ### 3. Architecture
@@ -112,7 +109,6 @@ cat VISUAL_ARCHITECTURE_GUIDE.md  # System design
 
 ### 4. Implementation Guide
 ```bash
-cat docs/archive/planning/COMPLETE_PLANNING_INDEX.md  # Navigation map
 ```
 
 ---
@@ -123,12 +119,8 @@ cat docs/archive/planning/COMPLETE_PLANNING_INDEX.md  # Navigation map
 ```
 docs/
 ├── AI_START_HERE.md                    ← YOU ARE HERE
-├── TASK_STATUS_DASHBOARD.md            ← Progress tracking
-├── FINAL_PLANNING_SUMMARY.md           ← Big picture
 ├── AUDIT_CONSOLIDATED_2025-12-11.md    ← All audit findings
-├── SESSION_STATUS_2025-12-11.md        ← Latest session summary
 ├── security/
-│   ├── SECURITY_IMPLEMENTATION_STATUS_2025-12-11.md  ← Security work
 │   ├── database-poisoning-tasks.md
 │   └── database-poisoning-analysis.md
 ├── phase2-*.md                         ← Phase 2 designs (4 files)
@@ -419,7 +411,6 @@ git commit -m "fix(mesh): correct quarantine sliding window logic"
 
 ### Check Overall Progress
 ```bash
-cat docs/archive/status/TASK_STATUS_DASHBOARD.md
 ```
 
 ### Current Status
@@ -524,10 +515,7 @@ Phase 12:    slskdn + Privacy → Secure P2P
 
 ### Documentation
 - **This file**: `docs/AI_START_HERE.md`
-- **Task dashboard**: `docs/archive/status/TASK_STATUS_DASHBOARD.md`
-- **Security status**: `docs/security/SECURITY_IMPLEMENTATION_STATUS_2025-12-11.md`
 - **Audit report**: `docs/archive/audits/AUDIT_CONSOLIDATED_2025-12-11.md`
-- **Session status**: `docs/archive/sessions/SESSION_STATUS_2025-12-11.md`
 
 ### Memory Bank
 - **Tasks**: `memory-bank/tasks.md` (SOURCE OF TRUTH)
@@ -546,7 +534,6 @@ Phase 12:    slskdn + Privacy → Secure P2P
 ### For Security Work (Phase 12S)
 ```bash
 cd <repo-root>
-cat docs/security/SECURITY_IMPLEMENTATION_STATUS_2025-12-11.md
 cat docs/security/database-poisoning-tasks.md
 # Start with T-1438 or T-1439
 ```
@@ -562,7 +549,6 @@ cat docs/phase8-meshcore-research.md
 ### For Continued Implementation (Phases 2-5)
 ```bash
 cd <repo-root>
-cat docs/FINAL_PLANNING_SUMMARY.md
 # Follow phase guides as specified
 ```
 

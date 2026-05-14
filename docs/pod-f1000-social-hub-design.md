@@ -436,4 +436,3 @@ Additional specific requirements:
 - `docs/social-federation-design.md` - ActivityPub integration
 - `docs/moderation-v1-design.md` - MCP design and hardening
 - `docs/security-hardening-guidelines.md` - Global security principles
-- `docs/archive/status/TASK_STATUS_DASHBOARD.md` - T-SOCIAL-01 through T-SOCIAL-06 tasks

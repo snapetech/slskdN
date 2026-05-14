@@ -23,7 +23,7 @@ Each finding references the source location it affects. Follow-ups that are out 
 | H13 | NowPlaying webhook vs Plex Bearer auth | Medium | ✅ scope-restricted API keys shipped; webhook requires `nowplaying` scope |
 | H14 | MusicBrainz / AcoustID phone-home | Medium | ✅ README privacy callout added |
 | H15 | Federation enabled on local test host exposes actors if port-forwarded | Medium | ✅ already safe — defaults are `Enabled=false` + `Mode="Hermit"` |
-| H16 | Plaintext token fragments in `SECURITY-AUDIT-*.md` / validation JSON | Medium | ✅ scrubbed (paths and LAN IP redacted) |
+| H16 | Plaintext token fragments in audit artefacts / validation JSON | Medium | ✅ scrubbed or removed (paths and LAN IP redacted) |
 
 ---
 
@@ -148,12 +148,9 @@ The four NowPlaying endpoints split into two tiers: `GET/PUT/DELETE` remain on `
 
 Added a privacy tradeoff callout to the README immediately after the MusicBrainz Integration & Library Health section, making explicit that (a) AcoustID uploads a submitted audio fingerprint per scan, (b) MusicBrainz sees per-track MBID lookups from the node's egress IP, and (c) operators have three mitigations: leave AcoustID disabled (default), point MusicBrainz at a self-hosted mirror / VPN egress, or disable auto-tagging. No code change — these integrations are already opt-in.
 
-### H16 — Audit docs scrubbed
+### H16 — Audit artefacts scrubbed or removed
 
-The three audit artefacts tracked in the repo had hard-coded paths and one LAN IP fragment replaced with placeholders:
-- `SECURITY-AUDIT-2026-03-15.md`: `<repo-root>` → `<repo-root>`.
-- `docs/archive/security/SLSKDN-security-audit.feb26.md`: `/home/phantasm/git/slskdn` → `<slskdn-repo>`, `/home/phantasm/git/zdfinder/` → `<zdfinder-tool>/`, `192.168.1.151` → `[REDACTED-LAN-IP]`.
-- `task_validation_results.json`: reviewed, clean as-is.
+Audit artefacts tracked in the repo had hard-coded paths and one LAN IP fragment replaced with placeholders; stale generated validation outputs and root-level audit notes were later removed.
 
 ### H15 — Federation defaults already hermit / disabled
 

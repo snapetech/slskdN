@@ -208,8 +208,6 @@ These 9 tasks are **research / future-enhancement** items. Implementation is opt
 
 ## References
 
-- `docs/archive/planning/COMPLETE_PLANNING_INDEX_V2.md` — ⏸️ Remaining: 9 Research
-- `docs/archive/status/TASK_STATUS_DASHBOARD.md` — 9 Research/Design Tasks
 - `memory-bank/tasks.md` — Research implementation (T-901–T-913) § Medium Priority
 - `memory-bank/activeContext.md` — Current: T-912
 

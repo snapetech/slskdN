@@ -3412,7 +3412,6 @@
 ## 2026-01-27 (Afternoon) - T-1405, T-1410, Bridge Test Expansion, and Documentation Updates Complete
 
 ### Documentation Updates
-- Updated `docs/archive/status/2026-01/next-steps-summary.md` to reflect:
   - Phase 12 Database Poisoning Protection is **100% COMPLETE** (all 10 tasks done)
   - T-1405 and T-1410 are **COMPLETE** (not partial)
   - Removed outdated status information
@@ -3538,7 +3537,6 @@
 
 ### Backlog Items Verification
 - **Status**: ✅ **Verification Complete**
-- **Created**: `docs/archive/dev-audits/backlog-verification-summary.md` - Detailed verification report
 - **Findings**:
   - **T-1401, T-1402, T-1403, T-1404**: ✅ Complete (Library Health, Rescue, Swarm)
   - **T-1406, T-1407**: ✅ Complete (Playback feedback integration, buffer tracking)
@@ -3546,7 +3544,6 @@
   - **T-1405**: ⚠️ Partial (chunk reassignment - TODO remains but basic retry exists)
   - **T-1410**: ⚠️ Partial (Jobs API - basic filtering exists, pagination/sorting missing)
   - **T-1400**: ⏸️ Deferred (unified BrainzClient - not needed, current approach sufficient)
-- **Updated**: `memory-bank/tasks-audit-gaps.md` with verification status
 
 ---
 
@@ -3662,7 +3659,6 @@
 ### Test Re-enablement Status Verification
 - **Status**: ✅ **ALREADY COMPLETE**
 - **Verified**: 2430 tests passing, 0 skipped, 0 failed
-- **All phases (0-5) complete** per `docs/archive/dev-audits/slskd-tests-unit-completion-plan.md`
 - **No Compile Remove** remaining in `slskd.Tests.Unit.csproj`
 - **All test files enabled** and passing
 
@@ -3750,9 +3746,7 @@
 
 ## 2026-01-25
 
-### tasks.md work: Sync DEVELOPMENT_HISTORY, Reconcile tasks-audit-gaps, slskd.Tests.Unit
 - **Sync DEVELOPMENT_HISTORY Pending**: `docs/archive/DEVELOPMENT_HISTORY.md` — Phase 8 Create Chat Rooms and Predictable Search URLs set to ✅ (T-006, T-007). "Pending Features" replaced with pointer to `memory-bank/tasks.md` and list of done (T-001–T-007) and still-pending. tasks.md: [x].
-- **Reconcile tasks-audit-gaps**: `memory-bank/tasks-audit-gaps.md` — Reconciliation (2026-01) added. Phase 8: T-1421 (Ed25519KeyPair.Generate), T-1422 (KeyedSigner/ControlSigner), T-1423 (QuicOverlayServer), T-1425 (QuicDataServer), T-1429 (ControlDispatcher) implemented. T-1424, T-1426, T-1427, T-1428 and Phases 1–6 remain as backlog. tasks.md: [x].
 - **slskd.Tests.Unit Phase 2–6**: Completion-plan reports 0 Compile Remove, 0 skips; `dotnet test` slskd.Tests.Unit 2294 pass, 0 fail, 0 skip. tasks.md: [x].
 
 ### CHANGELOG and option docs (40-fixes, I2P, RelayOnly, ExtractPcmSamples)
@@ -3766,13 +3760,11 @@
 - **Status**: ✅ **COMPLETED**
 - **Chromaprint (PerceptualHasher):** MathNet.Numerics 5.0.0; FFT-based `ComputeChromaPrint`: downsample 11 025 Hz, 4096/2048 frame/hop, Hann, FFT, 24-bin chroma (tone-aware, 440 vs 880 Hz distinct), 8 super-bands, 8 frames → 64-bit median-threshold hash. Removed `GenerateHashFromPeaks`. `CrossCodecMatchingTests.DifferentContent_LowSimilarityScores` un-skipped; `SimilarContentDifferentQuality_HighSimilarityScores` tuned (2% noise, 0.5 threshold). `PerceptualHasherTests.ComputeAudioHash_Chromaprint_440vs880Hz_ProducesLowSimilarity` added.
 - **FuzzyMatcher:** `ScorePerceptualAsync` uses `IDescriptorRetriever.RetrieveAsync` + `GetBestNumericHash` (Chromaprint preferred) and `IPerceptualHasher.Similarity` when both descriptors have `PerceptualHash.NumericHash`; else falls back to `ComputeSimulatedPerceptualSimilarityAsync`. Ctor: `FuzzyMatcher(IPerceptualHasher, IDescriptorRetriever, ILogger)`. `FuzzyMatcherTests`: `IDescriptorRetriever` mock (default Found:false); `ScorePerceptualAsync_WhenDescriptorsHavePerceptualHashes_UsesPerceptualHasher` added. Integration: CrossCodecMatchingTests, MediaCorePerformanceTests, MediaCoreIntegrationTests pass `IDescriptorRetriever` (mock or real DescriptorRetriever) into FuzzyMatcher.
-- **Docs:** `docs/archive/dev-audits/slskd-tests-unit-completion-plan.md` (FuzzyMatcherTests DONE), `docs/archive/dev-audits/slskd-tests-unit-reenablement-execution-plan.md`, `docs/archive/dev-audits/slskd-tests-unit-skips-how-to-fix.md` (15b FuzzyMatcherTests, PerceptualHasher Chromaprint note).
 
 ### slskd.Tests.Unit Re-enablement — COMPLETE (0 Compile Remove, 0 skips)
 - **Status**: ✅ **COMPLETED**
 - **Milestone:** No `Compile Remove` in slskd.Tests.Unit.csproj; no `[Fact(Skip)]`; **2255 pass, 0 skip.**
 - **Recent fixes (this session):** Obfs4TransportTests `IsAvailableAsync_VersionCheckFailure_ReturnsFalse` (IObfs4VersionChecker + path-that-exists); doc updates: WorkRef FromMusicItem FIXED (MusicItem.FromTrackEntry exists); RateLimitTimeout CleanupExpiredTunnels (3) FIXED (RunOneCleanupIterationAsync + reflection); 40-fixes deferred table cleared, slskd.Tests.Unit re-enablement moved to Completed.
-- **Docs:** `docs/archive/dev-audits/slskd-tests-unit-completion-plan.md`, `docs/archive/dev-audits/slskd-tests-unit-skips-how-to-fix.md`, `docs/dev/40-fixes-plan.md` (Deferred: slskd.Tests.Unit completed).
 
 ### 40-fixes Deferred: slskd.Tests.Integration row updated
 - **Status**: ✅ **COMPLETED**
@@ -3837,7 +3829,6 @@
 - **Status**: ✅ **COMPLETED**
 - **App:** `IControlEnvelopeValidator` added in `ControlEnvelopeValidator.cs`; `ControlDispatcher` ctor now takes `IControlEnvelopeValidator` (enables mocking without parameterless ctor). `ControlEnvelopeValidator` implements the interface; Program.cs unchanged (passes concrete to ctor, compatible).
 - **OverlayPrivacyIntegrationTests:** Switched `Mock<ControlEnvelopeValidator>` → `Mock<IControlEnvelopeValidator>`. Dispatcher tests that call `HandleAsync`: use `OverlayControlTypes.Ping` so `HandleControlLogicAsync` returns true (unknown types return false). All 6 tests pass (OverlayClientWithPrivacyLayer, ControlDispatcherWithPrivacyLayer, RoundTripPrivacyProcessing, PrivacyLayerDisabled, ControlDispatcherWithoutPrivacyLayer, PrivacyLayerIntegration).
-- **Docs:** `docs/archive/dev-audits/slskd-tests-unit-completion-plan.md` — Phase 1 OverlayPrivacy row marked DONE; removed from Remaining Compile Remove.
 
 ### slskd.Tests.Unit Re-enablement (Phase 4 – Mesh ServiceFabric): DhtMeshServiceDirectoryTests, RouterStatsTests
 - **Status**: ✅ **COMPLETED**
@@ -3925,7 +3916,6 @@
 - **Status**: ✅ **COMPLETED**
 - **ContentBackendTests:** Removed `Compile Remove`. Types already aligned (ContentBackendType, NoopContentBackend, ContentItemId, SourceCandidate, SourceCandidateValidationResult, ContentDomain). 7 tests pass.
 - **HttpBackendTests:** Removed `Compile Remove`. FindCandidatesAsync/ValidateCandidateAsync: add CancellationToken.None; IHttpClientFactory: replace Moq with TestHttpClientFactory (CreateClient is extension, Moq can’t setup). 5 tests pass.
-- **Result:** **12 pass** (7+5). **Docs:** `docs/archive/dev-audits/slskd-tests-unit-completion-plan.md` § Completed, § Remaining — Compile Remove updated.
 
 ### slskd.Tests.Unit Re-enablement (Phase 4 – VirtualSoulfind v2: LanBackend, MeshTorrentBackend, SoulseekBackend)
 - **Status**: ✅ **COMPLETED**
@@ -3955,7 +3945,6 @@
 - **DnsSecurityServiceTests:** Un-skipped 2 tests: `ResolveAndValidateAsync_WithPrivateIpAndPrivateNotAllowed_ReturnsFailure`, `ResolveAndValidateAsync_PrivateRangeWithoutPermission_Blocked`. `DnsSecurityService.IsIpAllowedForTunneling` now enforces `AllowPrivateRanges` (removed "if (isPrivate) return true" that always allowed private IPs). 23 pass, 0 skip.
 - **DestinationAllowlistTests:** `IDnsSecurityService` added; `CreateService(ITunnelConnectivity?, IDnsSecurityService?)`; `OpenTunnel_PrivateIpWithoutPrivateAllowed_Rejected` and `OpenTunnel_MixedAllowedAndBlockedIPs_Rejected` un-skipped (mock `ResolveAndValidateAsync` for Mixed). 14 pass, 0 skip.
 - **PrivateGatewayMeshServiceTests, LibraryReconciliationServiceTests:** Already built and passing (no `Compile Remove`). PrivateGateway `HandleCallAsync_OpenTunnel_PrivateAddressNotAllowed` updated: allowlist includes `192.168.1.100:80`, expects `ServiceUnavailable` and "not allowed".
-- **Docs:** `slskd-tests-unit-completion-plan.md` — Deferred: removed DnsSecurityServiceTests (2) and both DestinationAllowlistTests rows; Phase 2/4 DestinationAllowlist 14 pass 0 skip; Phase 4 PrivateGateway, LibraryReconciliation DONE; Remaining Compile Remove updated.
 
 ### slskd.Tests.Unit Re-enablement (Continue remaining): completion-plan Phase 4 table
 - **Status**: ✅ **COMPLETED**
@@ -4135,7 +4124,6 @@
 - **Architecture**: TCP tunnels over authenticated overlay, pod-scoped policies, strict quotas, minimal logging
 - **Integration Points**: PodCore extension, ServiceFabric service, WebGUI management, existing overlay transport
 - **Task Status Updated**: Added Phase 14 to `memory-bank/tasks.md` with full task definitions
-- **Dashboard Updated**: Added Phase 14 summary to `docs/archive/status/TASK_STATUS_DASHBOARD.md` with counts and percentages
 - **Next Steps**: Begin implementation with T-1400 (Pod Policy Model & Persistence)
 
 ### T-1313: Mesh Unit Tests (Gap Task - P1)
@@ -6901,7 +6889,6 @@ See `COMPILE_FIX_FOLLOWUP.md` for detailed list:
 
 **Status**: ✅ **VERIFIED COMPLETE** (items were already implemented)
 
-Verified that all Phase 8 open items from tasks-audit-gaps.md are actually complete:
 
 1. **T-1424 (QuicOverlayClient)**: ✅ Fully implemented
    - File: `src/slskd/Mesh/Overlay/QuicOverlayClient.cs`
@@ -6922,7 +6909,6 @@ Verified that all Phase 8 open items from tasks-audit-gaps.md are actually compl
    - Has proper fallback to "slskdn" if state not available
 
 **Files Updated**:
-- `memory-bank/tasks-audit-gaps.md` (updated status)
 
 **Note**: Previous audit was outdated. All Phase 8 items are complete.
 
@@ -8244,14 +8230,12 @@ Code quality improvements were completed as part of Option A:
 
 - Folded in the concurrent security hardening work in `CertificatePinStore`: pin-store saves now write to `cert_pins.json.tmp`, flush to disk, and atomically rename over the live file, which closes the durability bug where an interrupted in-place write could corrupt the whole TOFU pin database and silently reset peer trust on restart.
 - Added a focused `CertificatePinStoreTests` persistence check proving the pin file reloads correctly and no stray `.tmp` file is left behind after save.
-- Added `docs/security/dht-mesh-audit-2026-04.md` documenting the current DHT / mesh overlay threat-surface review, the attack-surface gates, and the decisions explicitly kept as-is versus fixed.
 
 ## 2026-04-18 17:54:41Z
 
 - Added classified outbound overlay failure diagnostics after re-checking issue `#209` from the live host instead of from synthetic gates. `MeshOverlayConnector` now buckets failures by reachability/TLS/protocol/registration/blocklist cause, `/api/v0/overlay/stats` exposes those counters, and focused unit tests cover both the classifier and the controller response shape.
 - Installed the missing `aspnet-runtime 10.0` package on `local test host`, restarted the host on the latest framework-dependent build, and validated the new diagnostics against a real DHT discovery cycle. The live node now reports `successfulConnections: 0`, `failedConnections: 8`, with `failureReasons = { connectTimeouts: 7, noRouteFailures: 1 }` and zero TLS/protocol failures on that run.
 - Confirmed from live API state that the remaining issue `#209` behavior is now dominated by bad remote candidates rather than another hidden local regression: DHT is healthy (`dhtNodeCount: 95`), the overlay listener is up, security peer stats no longer overstate onion-capable peers, and the candidate list is still full of unverified `dht-discovered` endpoints.
-- Folded in the concurrent security changes in the same working tree: `WebSocketTransport` now only skips WSS certificate validation when a new explicit lab-only option is enabled, `ShareScanner` now skips `ReparsePoint` symlinks/junctions, and `docs/security/full-app-audit-2026-04.md` was added to capture the broader audit snapshot.
 
 ## 2026-04-19 02:00:00Z
 
@@ -9460,7 +9444,6 @@ Code quality improvements were completed as part of Option A:
 ## 2026-05-01 03:22:00Z
 
 - Started the production placeholder burn-down.
-- Added `docs/archive/dev-audits/placeholder-completion-plan-2026-05-01.md` to separate real
   runtime gaps from UI input placeholders, generated files, tests, and
   historical docs.
 - Replaced fake hard-coded swarm analytics efficiency values with values derived
@@ -10130,7 +10113,6 @@ Code quality improvements were completed as part of Option A:
 
 [2026-05-13T01:33:49Z] Multi-source feature graph split: moved multi-source transfer, swarm, tracing, warm-cache, playback-priority, and job-manifest registrations into `Bootstrap/MultiSourceFeatureServiceCollectionExtensions`, reducing the remaining broad experimental graph while preserving registration order. Fixed the partial integration hosts to register a test `IFeatureGate` for feature-gated controllers and documented that gotcha separately. Focused room-controller, Messaging V2, and integration feature-gate tests passed; full `dotnet test` passed with 67 smoke, 4050 unit, and 276 integration tests; `./bin/lint` passed.
 
-[2026-05-13T01:50:00Z] Parity/reconciliation follow-up: reconciled `docs/FEATURE_PARITY_AND_GAP_PLAN.md` with the completed route inventory, versioned alias, allowlist, and remediation baseline work; regenerated `docs/system-surfaces-current.md`; moved MediaCore pod discovery toward task-focused progressive disclosure by keeping read-only discovery actions first and grouping registry publish/unpublish controls under advanced disclosure. Updated the outbound HTTP guard check to follow `ApplicationHostServiceCollectionExtensions` after Program.cs decomposition and documented that gotcha separately. Focused MediaCore tests and Web lint passed. `npm run check:remediation` now reaches the release branch sync guard and fails only because local `main` is ahead of `origin/main`.
 
 [2026-05-13T01:58:19Z] Program decomposition VirtualSoulfind split: moved VirtualSoulfind capture, shadow-index, scene, disaster-mode, bridge, v2 provider/backend, reconciliation, and processing registrations into `Bootstrap/VirtualSoulfindServiceCollectionExtensions`, reducing the remaining broad experimental graph from 1076 to 885 lines. `dotnet build src/slskd/slskd.csproj --no-restore`, `./bin/lint`, and focused VirtualSoulfind integration tests (`64/64`) passed.
 

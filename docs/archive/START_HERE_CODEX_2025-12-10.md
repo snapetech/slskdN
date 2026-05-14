@@ -50,7 +50,6 @@ Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 6X (optional)
 ### Step 1: Read the Overview
 ```bash
 cd <repo-root>/docs
-cat FINAL_PLANNING_SUMMARY.md  # Big picture (10 min read)
 ```
 
 ### Step 2: Read Phase 2 Overview
@@ -98,8 +97,6 @@ cat phase2-canonical-scoring-design.md  # Your first task (30 min read)
 ## 📚 Documentation Map
 
 ### Must-Read (In Order)
-1. **`FINAL_PLANNING_SUMMARY.md`** ← Start here (overview)
-2. **`COMPLETE_PLANNING_INDEX.md`** ← Navigation map
 3. **`phase2-implementation-guide.md`** ← Phase 2 overview
 4. **`phase2-canonical-scoring-design.md`** ← First task (T-400)
 
@@ -271,7 +268,6 @@ cd <repo-root>
 git checkout experimental/brainz
 
 # Read overview
-cat docs/FINAL_PLANNING_SUMMARY.md
 
 # Read Phase 2 guide
 cat docs/phase2-implementation-guide.md
@@ -402,7 +398,6 @@ Follow existing patterns in the codebase:
 
 **Your first command**:
 ```bash
-cd <repo-root>/docs && cat FINAL_PLANNING_SUMMARY.md
 ```
 
 **Then**:
@@ -435,9 +430,7 @@ You have:
 
 ---
 
-**Questions? Start here**: `docs/FINAL_PLANNING_SUMMARY.md`  
 **Task list**: `memory-bank/tasks.md`  
-**Task dashboard**: `docs/TASK_STATUS_DASHBOARD.md`  
 **Phase 12 (new)**: `docs/phase12-adversarial-resilience-design.md`  
 **Current status**: Phases 1-11 complete, Phase 12 ready to start
 

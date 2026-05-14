@@ -165,7 +165,7 @@ Add API key requirement to all state-changing endpoints (similar to Service Fabr
 - **Peer Reputation** - Behavioral scoring
 - **Cryptographic Commitment** - Pre-transfer hash commitment
 
-See [SECURITY_COMPARISON_ANALYSIS.md](SECURITY_COMPARISON_ANALYSIS.md) for details.
+Keep implementation notes scoped to slskdN behavior unless a current upstream comparison has been revalidated.
 ```
 
 #### B. Create SECURITY.md (2-3 hours)
@@ -178,7 +178,6 @@ Standard security policy file:
 #### C. Update Existing Security Docs (4-6 hours)
 - [x] `SECURITY-GUIDELINES.md` - Add CSRF guidelines
 - [x] `docs/SECURITY_IMPLEMENTATION_SPECS.md` - Document CSRF implementation
-- [x] `docs/security/SECURITY_COMPARISON_ANALYSIS.md` - Already done ✅
 
 #### D. Add Security Dashboard Documentation (2-3 hours)
 Document the Security tab in the Web UI:

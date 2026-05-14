@@ -40,7 +40,6 @@ Read these documents in order to understand the full architecture:
 - Permissions model
 - Desktop + web compatibility
 
-**Implementation Tasks**: See Phase 8 in [TASK_STATUS_DASHBOARD.md](./docs/archive/status/TASK_STATUS_DASHBOARD.md)
 - T-APPHOST-01 through T-APPHOST-08
 
 **Read this** to implement the client shell.
@@ -62,7 +61,6 @@ Read these documents in order to understand the full architecture:
 - Mapping to `pods://` URIs
 - Security considerations
 
-**Implementation Tasks**: See Phase 9 in [TASK_STATUS_DASHBOARD.md](./docs/archive/status/TASK_STATUS_DASHBOARD.md)
 - T-PODAPI-01 through T-PODAPI-06
 
 **Read this** to implement the server-side API.
@@ -164,13 +162,11 @@ App Host translates these to HTTP calls with auth and permissions.
 ### For Client Developers
 1. Read [ecosystem-shell-architecture.md](./ecosystem-shell-architecture.md)
 2. Read [app-host-design.md](./app-host-design.md)
-3. Implement Phase 8 tasks from [TASK_STATUS_DASHBOARD.md](./docs/archive/status/TASK_STATUS_DASHBOARD.md)
 4. Start with T-APPHOST-01 (extension skeleton)
 
 ### For Server Developers
 1. Read [ecosystem-shell-architecture.md](./ecosystem-shell-architecture.md)
 2. Read [pod-api-design.md](./pod-api-design.md)
-3. Implement Phase 9 tasks from [TASK_STATUS_DASHBOARD.md](./docs/archive/status/TASK_STATUS_DASHBOARD.md)
 4. Start with T-PODAPI-01 (response envelope)
 
 ### For Both
@@ -183,7 +179,6 @@ Client and server can be developed **in parallel**:
 
 ## 📋 Implementation Tasks
 
-See [TASK_STATUS_DASHBOARD.md](./docs/archive/status/TASK_STATUS_DASHBOARD.md) for complete task lists:
 
 **Phase 8: App Host** (8 tasks)
 - Extension skeleton, context, manifests, surfaces, permissions
@@ -241,7 +236,6 @@ After initial implementation (mock data, basic surfaces):
 ## 📖 Additional Documentation
 
 Other relevant docs in this directory:
-- [TASK_STATUS_DASHBOARD.md](./docs/archive/status/TASK_STATUS_DASHBOARD.md) – All tasks
 - [security-hardening-guidelines.md](./security-hardening-guidelines.md) – Security requirements
 - [CURSOR-META-INSTRUCTIONS.md](./CURSOR-META-INSTRUCTIONS.md) – Development rules
 

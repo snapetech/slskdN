@@ -37,7 +37,6 @@ You are working on the **experimental/whatAmIThinking** branch. The design and t
 - `docs/social-federation-design.md` - ActivityPub integration
 - `docs/moderation-v1-design.md` - MCP architecture
 - `docs/engineering-standards.md` - Code quality standards
-- `docs/archive/status/TASK_STATUS_DASHBOARD.md` - All tasks (T-VC*, T-VID*, T-BK*, T-UI*, T-FED*, H-*, T-MCP-LM*)
 
 ### Supporting Docs
 

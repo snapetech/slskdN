@@ -1564,9 +1564,7 @@ class Program
 
 ---
 
-## 3. SYNCHRONIZE WITH TASK_STATUS_DASHBOARD.md
 
-If the project uses `TASK_STATUS_DASHBOARD.md` or similar, add entries:
 
 ```markdown
 ## Service Fabric Implementation (T-SF01 through T-SF07)
@@ -1631,7 +1629,6 @@ Code Examples:
 - samples/mesh-gateway-client/client.cs: C# HTTP gateway client
 
 Updates:
-- TASK_STATUS_DASHBOARD.md: Service fabric completion status and links
 
 All examples tested and verified against actual implementation.
 Documentation matches real code and config keys.

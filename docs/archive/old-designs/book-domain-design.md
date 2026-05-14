@@ -240,7 +240,6 @@ All external metadata and mesh interactions MUST:
 
 ## Implementation Tasks
 
-See `docs/archive/status/TASK_STATUS_DASHBOARD.md`:
 
 - **T-BK01**: Book Domain Types & Provider Interface
 - **T-BK02**: Book Metadata Extraction & Scanner Integration

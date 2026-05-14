@@ -674,7 +674,6 @@ PR numbers (see Implementation Ticket Index) can be batched for review; order be
 
 **Source of truth:** `tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj` and its `Compile Remove` entries and inline blocker comments.
 
-**Live status (done / remaining / deferred):** `docs/archive/dev-audits/slskd-tests-unit-completion-plan.md` (§ Completed, § Status and What Remains, § Remaining — Compile Remove, § Deferred: Skipped and Failed Tests). Prefer that doc when deciding what to do next.
 
 ### Phase 0 – API/type audit (prerequisite)
 

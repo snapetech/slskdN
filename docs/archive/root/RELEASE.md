@@ -313,7 +313,6 @@
 ### Architecture Docs (4 features)
 - ✅ **AI_START_HERE.md** - Complete AI assistant guide
 - ✅ **FORK_VISION.md** - Long-term vision and roadmap
-- ✅ **TASK_STATUS_DASHBOARD.md** - Progress tracking
 - ✅ **Visual Architecture Guide** - System design diagrams
 
 ### Phase Documentation (5 features)

@@ -961,7 +961,6 @@ All metrics:
 ---
 
 **Status**: Task briefs complete, ready to integrate into roadmap  
-**Next Step**: Insert into COMPLETE-SUMMARY.md and update task ordering  
 **Paranoia Level**: MAXIMUM (these are the riskiest features, must be bulletproof)  
 **Genius Level**: ALSO MAXIMUM (solves real problems without creating liabilities)
 

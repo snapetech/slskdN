@@ -1360,7 +1360,6 @@
 - [x] **slskd.Tests.Unit Phase 2–6**: Completion-plan shows 0 Compile Remove, 0 skips; `dotnet test` slskd.Tests.Unit 2294 pass, 0 fail, 0 skip. Re-enablement complete.
 - [x] **Triage src/ TODO/FIXME/placeholder**: Triaged in `memory-bank/triage-todo-fixme.md`: ~13 accepted, ~100 defer, 7 task. Follow-up [ ] below. Done.
 - [x] **Triage follow-up (task)**: Options realm validation re-enabled (`Realm.Validate()`, `MultiRealm.Validate()` in Options.Validate). QuicDataServer TODO replaced with defer comment (IOverlayDataPayloadHandler). RescueService/Scene* remain in triage-todo-fixme as defer. Done.
-- [x] **Reconcile tasks-audit-gaps**: Phase 8 reconciled: T-1421, T-1422, T-1423, T-1425, T-1429 implemented (Ed25519, KeyedSigner/ControlSigner, QuicOverlayServer, QuicDataServer, ControlDispatcher). Tasks-audit-gaps.md updated. T-1424, T-1426, T-1427, T-1428 and Phases 1–6 remain as backlog; promote to [ ] when prioritizing.
 
 ### Design / Backlog (ShareGroups, Collections, Streaming, Hybrid Search)
 
@@ -1437,19 +1436,14 @@
 
 - [x] **t410-backfill-wire (2026-01-25):** RescueMode underperformance detector → RescueService. RescueModeOptions (Enabled, MaxQueueTimeSeconds, MinThroughputKBps, MinDurationSeconds, StalledTimeoutSeconds, CheckIntervalSeconds); IRescueService.IsRescueActive; UnderperformanceDetectorHostedService (QueuedTooLong, ThroughputTooLow, Stalled); IRescueService, RescueGuardrailService, UnderperformanceDetectorHostedService in Program.cs. RescueMode.Enabled=false by default.
 
-- [x] **T-404+ (2026-01-25):** Phase 2 continuation done. t410-backfill-wire (rescue wire) completed; codec fingerprinting / quality (T-420–T-430) already done per TASK_STATUS_DASHBOARD.
 
 - [x] **40-fixes plan (PR-00–PR-14) (2026-01-25):** Epic implemented per `docs/dev/40-fixes-plan.md`. slskd.Tests 46 pass, slskd.Tests.Unit 2257 pass; Integration 184 pass per audit. Enforce, HardeningValidator, default-deny, passthrough loopback, CORS, exception handler, dump, ModelState, MeshGateway body/413, rate limiting, ControlEnvelope/KeyedSigner, MessagePadder Unpad, Pod MessageSigner/Router, ActivityPub HTTP signatures. Deferred table: status only.
 
-- [x] **chore (2026-01-25):** Research (9) **pinned for future build**. Moved to tasks.md § Pinned; COMPLETE_PLANNING_INDEX_V2, TASK_STATUS_DASHBOARD, `docs/research/9-research-design-scope.md` updated. activeContext: Current focus = 40-fixes (PR-00–PR-14), T-404+ (optional), new product.
 
-- [x] **chore (2026-01-25):** Research (9) design/scope: `docs/research/9-research-design-scope.md` — scope, deps, open questions, suggested order for T-901–T-913. Linked from COMPLETE_PLANNING_INDEX_V2, tasks.md, activeContext.
 
 - [x] **chore (2026-01-25):** activeContext: Next Steps first, then Research (9). Next Steps revised: slskd.Tests.Unit, Phase 14, Packaging T-010–T-013, T-003/T-004 done; T-404+ optional; 40-fixes deferred. New "Then: Research (9)" section. tasks.md: Research (9) "Do after activeContext Next Steps".
 
-- [x] **chore (2026-01-25):** COMPLETE_PLANNING_INDEX_V2: Phase 6X (T-850–T-860) marked Complete to match TASK_STATUS_DASHBOARD (bridge lifecycle, Soulfind proxy, API, MBID resolution, filename synthesis, anonymization, room→scene, transfer proxying, config UI, status dashboard, Nicotine+ tests).
 
-- [x] **chore (2026-01-25):** COMPLETE_PLANNING_INDEX_V2: Phases 2, 2-Ext, 3, 4, 5, 6, 7 marked Complete; 9 research tasks (T-901, T-902, T-903, T-906–T-908, T-911–T-913) as ⏸️ optional. tasks.md: Research (9) in Low Priority.
 
 - [x] **T-427 (2026-01-25):** Phase 2-Ext: Analyzer migration force; --audio-reanalyze and --audio-reanalyze-force at startup; POST /api/audio/analyzers/migrate?force=true.
 
@@ -1626,7 +1620,6 @@
   - Status: done
   - Priority: P2
   - Notes: Phase 6 (Virtual Soulfind Mesh) is complete (T-800 to T-840, 41 tasks). All core Phase 6 features implemented. T-800+ refers to future enhancements beyond current Phase 6 scope, which are documented in planning docs but not yet prioritized (2026-01-27).
-  - See `docs/archive/planning/COMPLETE_PLANNING_INDEX.md` for full Phase 6 task list
   - **Note**: Phase 6 (Virtual Soulfind Mesh) is already complete (T-800 to T-840, 41 tasks)
   - **Future Phase 6+**: Additional advanced features beyond current Phase 6 scope
 
@@ -1648,13 +1641,11 @@
   - Priority: P2
   - Notes: Extended swarm downloads to work with Movies, TV, Books, and GenericFile domains. Swarm system already domain-agnostic via hash-based matching. Backend selection rules enforced (Soulseek only for Music) (2026-01-27).
 
-**Reference**: See `docs/multi-swarm-roadmap.md` and `docs/archive/planning/COMPLETE_PLANNING_INDEX.md` for detailed planning documents.
 
 ### Backlog Items (P2-P3)
 
 **Priority**: P2-P3 (Low-Medium)  
 **Status**: Most items verified complete, few optional enhancements remain  
-**Reference**: `memory-bank/tasks-audit-gaps.md`
 
 #### Phase 1 Gap Tasks
 - [x] **T-1400**: Unified BrainzClient
@@ -2497,7 +2488,6 @@
 
 - [x] Complete production placeholder burn-down
   - Status: completed (2026-05-01)
-  - Notes: Added `docs/archive/dev-audits/placeholder-completion-plan-2026-05-01.md`, removed fake swarm analytics values, replaced misleading production placeholder/TODO wording with explicit capability-gate and unavailable-path behavior, and re-ran the documented production-source scan. Only `FeatureNotImplementedException` infrastructure and its startup handling remain, which the plan allows as feature-gate infrastructure.
 
 - [x] Fix standalone PPA web asset staging
   - Status: completed (2026-05-01)

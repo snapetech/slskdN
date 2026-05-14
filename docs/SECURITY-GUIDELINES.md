@@ -142,7 +142,7 @@ Before committing code:
 
 ## Enforcement
 
-- **Pre-commit hook**: `SECURITY-AUDIT.md` validation
+- **Pre-commit hook**: logging hygiene validation
 - **CI/CD**: Automated grep checks for forbidden patterns
 - **Code review**: Mandatory security review for logging changes
 - **Runtime**: LoggingSanitizer enforces sanitization patterns

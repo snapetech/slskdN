@@ -103,7 +103,6 @@ src/web/src/lib/api.js
 ```
 docs/security/CSRF_TESTING_GUIDE.md (NEW)
 docs/security/CSRF_PROTECTION_SUMMARY.md (NEW)
-docs/security/SECURITY_COMPARISON_ANALYSIS.md
 docs/security/IMPLEMENTATION_EFFORT_ANALYSIS.md
 ```
 
@@ -307,7 +306,6 @@ This is a **slskdN-exclusive feature**, not present in the parent `slskd` projec
 
 ### Design Documents:
 - [CSRF Testing Guide](CSRF_TESTING_GUIDE.md)
-- [Security Comparison Analysis](SECURITY_COMPARISON_ANALYSIS.md)
 - [Implementation Effort Analysis](IMPLEMENTATION_EFFORT_ANALYSIS.md)
 
 ### External Resources:

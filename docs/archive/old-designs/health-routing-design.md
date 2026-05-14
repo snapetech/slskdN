@@ -203,5 +203,4 @@ Planner, transport layers, and backends:
 - `docs/replication-policy-design.md` - Replication & redundancy policy
 - `docs/gossip-signals-design.md` - Optional gossip feeds for health/abuse signals
 - `docs/security-hardening-guidelines.md` - Global security principles
-- `docs/archive/status/TASK_STATUS_DASHBOARD.md` - T-RES-01 through T-RES-05 tasks
 

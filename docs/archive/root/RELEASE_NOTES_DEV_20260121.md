@@ -112,7 +112,6 @@ If you're using cookies for automation (not recommended), you now need to includ
 **Documentation** (New):
 - `docs/security/CSRF_PROTECTION_SUMMARY.md` - Complete implementation guide
 - `docs/security/CSRF_TESTING_GUIDE.md` - Testing procedures and examples
-- `docs/security/SECURITY_COMPARISON_ANALYSIS.md` - Comparison with upstream
 - `docs/security/IMPLEMENTATION_EFFORT_ANALYSIS.md` - Implementation details
 - `docs/security/DOCUMENTATION_AUDIT_SECURITY_CLAIMS.md` - Security claims audit
 
@@ -276,7 +275,6 @@ If you encounter any issues:
 **Complete documentation available**:
 - [CSRF Protection Summary](docs/security/CSRF_PROTECTION_SUMMARY.md)
 - [Testing Guide](docs/security/CSRF_TESTING_GUIDE.md)
-- [Security Comparison Analysis](docs/security/SECURITY_COMPARISON_ANALYSIS.md)
 - [Implementation Effort Analysis](docs/security/IMPLEMENTATION_EFFORT_ANALYSIS.md)
 
 ---

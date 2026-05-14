@@ -502,7 +502,6 @@ This merged build contains **ALL features from both experimental branches**:
 ### 12.1 Architecture Docs
 - ✅ **AI_START_HERE.md** - Complete AI assistant guide
 - ✅ **FORK_VISION.md** - Long-term vision and roadmap
-- ✅ **TASK_STATUS_DASHBOARD.md** - Progress tracking
 - ✅ **Visual Architecture Guide** - System design diagrams
 
 ### 12.2 Phase Documentation

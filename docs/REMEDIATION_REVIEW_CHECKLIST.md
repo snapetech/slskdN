@@ -46,7 +46,6 @@ Update these files when relevant:
 - `docs/api-route-versioning-policy.md` for versioning exceptions or alias tranches.
 - `docs/network-privacy-security-surfaces.md` for externally visible data flows.
 - `docs/route-ui-parity-matrix.md` for feature/UI parity status.
-- `docs/FEATURE_PARITY_AND_GAP_PLAN.md` for plan-level status changes.
 
 ## Direct fetch review
 

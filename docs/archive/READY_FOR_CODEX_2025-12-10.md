@@ -145,7 +145,6 @@ dotnet run --project src/slskd/slskd.csproj
 - `adr-0001-known-gotchas.md` - Known issues and workarounds
 
 ### Task Dashboard
-- `docs/TASK_STATUS_DASHBOARD.md` - Visual progress tracking
 
 ---
 

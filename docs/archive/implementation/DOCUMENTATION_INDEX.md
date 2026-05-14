@@ -11,17 +11,12 @@
 - **`AI_START_HERE.md`** ← Complete guide, current status, next steps
 
 ### For Humans
-- **`FINAL_PLANNING_SUMMARY.md`** ← Project overview
-- **`docs/archive/status/TASK_STATUS_DASHBOARD.md`** ← Progress dashboard
 - **`README.md`** ← User documentation
 
 ---
 
 ## 📊 Status & Progress
 
-- **`docs/archive/status/TASK_STATUS_DASHBOARD.md`** - Visual progress by phase
-- **`docs/archive/sessions/SESSION_STATUS_2025-12-11.md`** - Latest session summary
-- **`SESSION_SUMMARY.md`** - Historical session notes
 - **`docs/archive/audits/AUDIT_CONSOLIDATED_2025-12-11.md`** - All audit findings combined
 - **`DEVELOPMENT_HISTORY.md`** - Release history
 
@@ -30,7 +25,6 @@
 ## 🔒 Security Documentation
 
 ### Current Work
-- **`security/SECURITY_IMPLEMENTATION_STATUS_2025-12-11.md`** ← Latest security status
 - **`security/database-poisoning-tasks.md`** - Task breakdown
 - **`security/database-poisoning-analysis.md`** - Threat analysis
 - **`security/security-audit-summary-2025-12-10.md`** - Initial audit
@@ -79,7 +73,6 @@
 - **`PHASE_10_COMPREHENSIVE_STUB_AUDIT.md`** - 20 issues
 - **`PHASE_11_DETAILED_AUDIT.md`** - Phase 11 gaps
 - **`PHASE_11_CODE_QUALITY_AUDIT.md`** - Code quality
-- **`PHASE_11_COMPLETION_SUMMARY.md`** - Phase 11 done
 - **`PHASE_12_COMPREHENSIVE_STUB_AUDIT.md`** - Phase 12 audit
 
 ### Supporting
@@ -154,9 +147,7 @@ Historical documents (timestamped versions):
 
 ### New to Project?
 1. Read `AI_START_HERE.md`
-2. Read `FINAL_PLANNING_SUMMARY.md`
 3. Read `VISUAL_ARCHITECTURE_GUIDE.md`
-4. Check `docs/archive/status/TASK_STATUS_DASHBOARD.md`
 
 ### Starting Implementation?
 1. Read `AI_START_HERE.md`
@@ -165,7 +156,6 @@ Historical documents (timestamped versions):
 4. Check `memory-bank/decisions/adr-*` for patterns
 
 ### Reviewing Security?
-1. Read `security/SECURITY_IMPLEMENTATION_STATUS_2025-12-11.md`
 2. Check `security/database-poisoning-tasks.md`
 3. Review `docs/archive/audits/AUDIT_CONSOLIDATED_2025-12-11.md`
 
