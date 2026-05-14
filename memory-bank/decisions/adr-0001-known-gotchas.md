@@ -52,6 +52,36 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z422. Classify MessageConnection Dispose Races As Expected Soulseek Teardown
+
+**The Bug**: Soulseek.NET can surface `ObjectDisposedException` with object name
+`MessageConnection` from its continuous peer-message read loop after a peer
+connection is closed. The transfer continues/retries correctly, but the global
+unobserved-task hook logged the detached runtime fault as `[FATAL]`.
+
+**Files Affected**:
+- `src/slskd/Soulseek/SoulseekNetworkExceptionClassifier.cs`
+- `tests/slskd.Tests.Unit/ProgramPathNormalizationTests.cs`
+
+**Wrong**:
+```csharp
+(exception is ObjectDisposedException objectDisposedException &&
+    objectDisposedException.ObjectName == "Connection")
+```
+
+**Correct**:
+```csharp
+(exception is ObjectDisposedException objectDisposedException &&
+    objectDisposedException.ObjectName == "Connection") ||
+(exception is ObjectDisposedException messageConnectionDisposedException &&
+    messageConnectionDisposedException.ObjectName == "MessageConnection")
+```
+
+**Why This Keeps Happening**: Soulseek.NET has multiple connection wrapper
+types that can race disposal against detached read-loop tasks. The app-level
+classifier must cover the runtime object name emitted by the live stack trace,
+not only the lower-level TCP connection wrapper.
+
 ### 0z421. Incomplete Directory Cleanup Must Not Fail Completed Downloads
 
 **The Bug**: Completed downloads moved out of the incomplete directory with
