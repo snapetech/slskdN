@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Synced Snap packaging metadata with the latest stable release baseline so
+  the release gate can validate all package channels consistently.
 - Logged expected Lidarr HTTP status failures during wanted sync without stack
   traces so external 4xx/5xx responses stay readable in daemon logs.
 - Classified Soulseek `File read error` transfer rejections as expected peer
