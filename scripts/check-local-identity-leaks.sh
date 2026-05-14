@@ -28,10 +28,19 @@ add_token "${USER:-}"
 add_token "$(id -un 2>/dev/null || true)"
 add_token "$(basename "${HOME:-}" 2>/dev/null || true)"
 
-# Known private live-validation names must never appear in release-facing text.
-add_token "kspls0"
-add_token "/home/keith"
-add_token "keith"
+if [[ -n "${SLSKDN_LOCAL_IDENTITY_DENYLIST:-}" ]]; then
+  IFS=',' read -ra denylist_tokens <<<"$SLSKDN_LOCAL_IDENTITY_DENYLIST"
+  for token in "${denylist_tokens[@]}"; do
+    add_token "$token"
+  done
+fi
+
+if [[ -n "${SLSKDN_LOCAL_IDENTITY_DENYLIST_FILE:-}" && -f "$SLSKDN_LOCAL_IDENTITY_DENYLIST_FILE" ]]; then
+  while IFS= read -r token; do
+    [[ "$token" =~ ^[[:space:]]*# ]] && continue
+    add_token "$token"
+  done <"$SLSKDN_LOCAL_IDENTITY_DENYLIST_FILE"
+fi
 
 sort -u "$tmp_tokens" -o "$tmp_tokens"
 
