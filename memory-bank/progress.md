@@ -1,3 +1,13 @@
+## 2026-05-14
+
+- Investigated the live `kspls0` non-fatal HashDb stack trace:
+  `GetOrCreatePeerAsync` could race when concurrent passive peer-tracking
+  events tried to create the same Soulseek username. Replaced the plain insert
+  with `INSERT OR IGNORE`, reloaded the row after insert, added concurrent
+  regression coverage, documented ADR-0001 gotcha `0z425`, and committed the
+  fix as `9bd3645d3`. Validation passed: focused HashDb unit tests (`52/52`)
+  and `./bin/lint`.
+
 ## 2026-05-13
 
 - Investigated Bas's Arch report. The source package failed because

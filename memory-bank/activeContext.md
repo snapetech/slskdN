@@ -1,3 +1,18 @@
+## Update 2026-05-14 20:29:58Z
+
+- Current task: HashDb concurrent peer-creation warning fix complete locally.
+- Last activity:
+  - traced the live `kspls0` SQLite warning to `HashDbService.GetOrCreatePeerAsync` racing on concurrent passive peer-tracking events for the same username;
+  - changed peer creation to use `INSERT OR IGNORE` and then reload the row;
+  - added a concurrent same-peer regression test and ADR-0001 gotcha `0z425`;
+  - committed the fix as `9bd3645d3`.
+- Validation:
+  - Passed: `dotnet test tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj --filter FullyQualifiedName~HashDbServiceTests --no-restore` (`52/52`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Deploy or release a build containing `9bd3645d3` when ready.
+  2. After deployment, recheck `kspls0` logs for `UNIQUE constraint failed: Peers.peer_id`.
+
 ## Update 2026-05-14 16:02:46Z
 
 - Current task: `kspls0` log cleanup and manual-build validation complete.
