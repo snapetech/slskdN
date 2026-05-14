@@ -9100,6 +9100,9 @@ var isSoulseekListenerSocketDisposed =
 sudo ln -sfn "$release" /usr/lib/slskd/current
 sudo systemctl restart slskd
 /usr/lib/slskd/current/slskd --version
+
+# Also wrong: nested quoting can expand $@ locally and write a broken wrapper.
+ssh host "printf '%s\n' '#!/bin/sh' 'exec /usr/lib/slskd/current/slskd \"$@\"' | sudo tee /usr/lib/slskd/slskd"
 ```
 
 **Correct**:
@@ -9108,11 +9111,16 @@ sudo ln -sfn "$release" /usr/lib/slskd/current
 printf '%s\n' '#!/bin/sh' 'exec /usr/lib/slskd/current/slskd "$@"' \
   | sudo tee /usr/lib/slskd/slskd >/dev/null
 sudo chmod 755 /usr/lib/slskd/slskd
+sudo sed -n '1,3p' /usr/lib/slskd/slskd
 sudo systemctl restart slskd
 curl -H "Authorization: Bearer $token" http://host:5030/api/v0/application
 ```
 
 **Why This Keeps Happening**: The AUR layout intentionally keeps a stable `/usr/lib/slskd/slskd` service path and moves the mutable payload behind `/usr/lib/slskd/current`. Manual deploys that only update `current` can silently leave a stale root apphost in place. Always verify the running API's `runtime.executablePath` and version after restart, not just the target release binary.
+When rewriting the wrapper through SSH, quote the remote command so `$@` survives
+into the file, and inspect the file before restarting. A broken wrapper such as
+`exec /usr/lib/slskd/current/slskd ""` drops systemd's `--config` argument and
+makes the app fall back to the service user's local config.
 
 ### 0z107. User Info Peer Failures Must Not Bubble As HTTP 500
 
