@@ -471,6 +471,11 @@ namespace slskd.Wishlist
                     Log.Warning("Stopping wishlist cycle early because Soulseek is still logging in: {Message}", ex.Message);
                     break;
                 }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    Log.Debug("Wishlist cycle cancelled during shutdown");
+                    break;
+                }
                 catch (Exception ex)
                 {
                     Log.Warning(ex, "Error executing wishlist search for {Id}: {Message}", item.Id, ex.Message);

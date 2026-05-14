@@ -1270,6 +1270,10 @@ namespace slskd.Transfers.Downloads
                     {
                         Log.Debug("Attempt {Attempt} to download {Filename} from {Username} failed because the remote peer is unavailable: {Message}", attempt, transfer.Filename, transfer.Username, ex.Message);
                     }
+                    else if (IsCancellationException(ex) || IsDownloadTimeout(ex))
+                    {
+                        Log.Debug("Attempt {Attempt} to download {Filename} from {Username} ended with expected timeout or cancellation: {Message}", attempt, transfer.Filename, transfer.Username, ex.Message);
+                    }
                     else
                     {
                         Log.Warning("Attempt {Attempt} to download {Filename} from {Username} failed: {Message}", attempt, transfer.Filename, transfer.Username, ex.Message);
