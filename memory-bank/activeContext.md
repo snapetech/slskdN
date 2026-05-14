@@ -1,3 +1,23 @@
+## Update 2026-05-14 22:07:00Z
+
+- Current task: slskdN/slskNet.Runtime red-team pass complete locally.
+- Last activity:
+  - reviewed runtime message framing/parsing, decompression, protocol counts, and high-risk slskd HTTP/filesystem surfaces;
+  - confirmed runtime wire guards already cover message lengths, buffered reads, decompressed payload size, string slices, picture payloads, and protocol collection counts;
+  - fixed HTTP LLM moderation endpoint validation to use the shared DNS-aware outbound guard before sending any request;
+  - added regression coverage proving unsafe local endpoints do not reach the HTTP handler;
+  - documented ADR-0001 gotcha `0z427` and committed the fix as `36145133c`.
+- Validation:
+  - Passed: focused moderation unit tests (`13/13`).
+  - Passed: focused slskNet.Runtime parser/framing tests (`67/67`).
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: `./bin/lint`.
+  - Passed: outbound HTTP guard, sensitive placeholder, and local identity leak scripts.
+  - Passed: `git diff --check`.
+- Next steps:
+  1. Push local commits when ready.
+  2. Cut a release tag only if the user explicitly asks for release work.
+
 ## Update 2026-05-14 21:25:57Z
 
 - Current task: `kspls0` manual deploy and log-soak validation complete.

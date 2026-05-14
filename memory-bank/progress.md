@@ -1,5 +1,16 @@
 ## 2026-05-14
 
+- Red-teamed slskdN and slskNet.Runtime parser/network surfaces. Runtime
+  framing, buffered reads, decompression, and protocol count parsing already
+  had bounded guards in place. Fixed the concrete remaining SSRF gap in HTTP
+  LLM moderation by replacing its local hostname-only endpoint check with the
+  shared DNS-aware outbound guard, added regression coverage proving unsafe
+  endpoints do not reach the HTTP handler, documented ADR-0001 gotcha `0z427`,
+  and committed the fix as `36145133c`. Validation passed: focused moderation
+  unit tests (`13/13`), focused runtime parser/framing tests (`67/67`),
+  `dotnet build src/slskd/slskd.csproj --no-restore`, `./bin/lint`, guard
+  scripts for outbound HTTP/sensitive placeholders/local identity leaks, and
+  `git diff --check`.
 - Built and manually deployed `0.0.0-manual.20260514212132.6b0e566d4144`
   from current HEAD to `kspls0`, repointed `/usr/lib/slskd/current`, and
   restarted `slskd.service`. Live checks passed: service active with
