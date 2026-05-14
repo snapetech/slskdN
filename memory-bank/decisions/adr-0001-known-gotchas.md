@@ -52,6 +52,40 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z427. Operator-Configured External HTTP Must Use DNS-Aware SSRF Guards
+
+**The Bug**: `HttpLlmModerationProvider` checked only URI scheme, local host
+suffixes, and IP literals before posting to an operator-configured endpoint.
+A hostname that resolved to loopback, private, link-local, or metadata
+addresses could bypass that local check unless the provider was constructed
+with a guarded HTTP handler.
+
+**Files Affected**:
+- `src/slskd/Common/Moderation/HttpLlmModerationProvider.cs`
+- `tests/slskd.Tests.Unit/Common/Moderation/LlmModerationTests.cs`
+
+**Wrong**:
+```csharp
+if (!IsSafeEndpoint(endpointUri, out var endpointError))
+{
+    throw new InvalidOperationException($"LLM moderation endpoint blocked: {endpointError}");
+}
+```
+
+**Correct**:
+```csharp
+var (safe, reason) = await OutboundUriGuard.CheckAsync(endpointUri, cancellationToken);
+if (!safe)
+{
+    throw new InvalidOperationException($"LLM moderation endpoint blocked: {reason}");
+}
+```
+
+**Why This Keeps Happening**: SSRF checks that only inspect the hostname string
+miss DNS rebinding and ordinary hostnames resolving to non-public ranges. Use
+the shared outbound guard for every operator-configured external HTTP endpoint,
+and prefer guarded no-redirect HTTP clients at DI boundaries.
+
 ### 0z426. Lidarr Auto-Import HTTP Failures Should Not Log Stack Traces
 
 **The Bug**: Lidarr auto-import treated ordinary external HTTP failures
