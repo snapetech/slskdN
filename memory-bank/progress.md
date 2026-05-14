@@ -1,5 +1,18 @@
 ## 2026-05-14
 
+- Ran an additional red-team pass across slskdN and the vendored
+  slskNet.Runtime with the standalone runtime sync requirement in mind. Guard
+  scripts passed for outbound HTTP, path containment, async task observation,
+  sensitive placeholders, and local identity leaks. Rechecked process launch,
+  filesystem write/delete, bridge download, streaming, runtime framing,
+  obfuscated transfer, and peer capability envelope surfaces; no new behavior
+  change was needed in slskdN. Focused validation passed: slskdN
+  path/stream/bridge/moderation tests (`156/156`) and runtime
+  parser/framing/obfuscation/listener/envelope tests (`113/113`). Synced the
+  standalone `/home/keith/Documents/code/slskNet.Runtime` checkout with the
+  vendored runtime dependency baseline by committing `System.Memory` `4.6.3`
+  as `09b16f96`; the user-provided `/home/keith/Documents/code/slskdNet.Runtime`
+  path does not exist on this machine.
 - Red-teamed slskdN and slskNet.Runtime parser/network surfaces. Runtime
   framing, buffered reads, decompression, and protocol count parsing already
   had bounded guards in place. Fixed the concrete remaining SSRF gap in HTTP

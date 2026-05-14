@@ -14,7 +14,7 @@
 - [x] Red-team slskdN and slskNet.Runtime for conservative hardening gaps.
  - Status: completed (2026-05-14)
  - Priority: P1
- - Notes: Reviewed runtime wire parsing/framing and slskd externally influenced HTTP/filesystem surfaces. Runtime message length, buffered read, decompression, string slice, picture length, and protocol collection count guards were already bounded. Fixed the concrete HTTP LLM moderation SSRF gap by using the shared DNS-aware outbound guard before sending requests, added regression coverage, documented ADR-0001 gotcha `0z427`, and validated with focused slskd/runtime tests, build, lint, guard scripts, and `git diff --check`.
+ - Notes: Reviewed runtime wire parsing/framing and slskd externally influenced HTTP/filesystem surfaces. Runtime message length, buffered read, decompression, string slice, picture length, and protocol collection count guards were already bounded. Fixed the concrete HTTP LLM moderation SSRF gap by using the shared DNS-aware outbound guard before sending requests, added regression coverage, documented ADR-0001 gotcha `0z427`, and validated with focused slskd/runtime tests, build, lint, guard scripts, and `git diff --check`. A second pass over process launch, path/write/delete, bridge download, streaming, runtime obfuscated transfer, listener, and peer capability envelope surfaces found no additional conservative slskdN behavior fix. Synced standalone `/home/keith/Documents/code/slskNet.Runtime` dependency metadata to the vendored runtime `System.Memory` `4.6.3` baseline as commit `09b16f96`; `/home/keith/Documents/code/slskdNet.Runtime` does not exist on this host.
 
 - [x] Fix Arch source build SDK floor and classify aggregate download timeouts.
  - Status: completed (2026-05-13)

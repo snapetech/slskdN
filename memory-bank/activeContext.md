@@ -1,3 +1,30 @@
+## Update 2026-05-14 22:33:00Z
+
+- Current task: second slskdN/slskNet.Runtime red-team pass complete locally.
+- Last activity:
+  - rechecked slskdN process launch, path/write/delete, bridge download,
+    streaming, outbound HTTP, and runtime parser/framing/obfuscated-transfer
+    surfaces;
+  - found no additional slskdN behavior fix that could be made conservatively;
+  - compared vendored slskNet.Runtime with the standalone runtime checkout and
+    found source drift only in dependency metadata;
+  - synced standalone `/home/keith/Documents/code/slskNet.Runtime` to the
+    vendored runtime `System.Memory` `4.6.3` baseline and committed it there as
+    `09b16f96`;
+  - noted that `/home/keith/Documents/code/slskdNet.Runtime` does not exist on
+    this host.
+- Validation:
+  - Passed: slskdN guard scripts for outbound HTTP, path containment, async task
+    observation, sensitive placeholders, and local identity leaks.
+  - Passed: focused slskdN path/stream/bridge/moderation tests (`156/156`).
+  - Passed: focused slskNet.Runtime parser/framing/obfuscation/listener/envelope
+    tests in both the vendored and standalone runtime checkouts (`113/113`
+    each).
+  - Passed: standalone runtime `git diff --check` and local identity leak scan.
+- Next steps:
+  1. Push local commits in slskdN and slskNet.Runtime when ready.
+  2. Cut a release tag only if the user explicitly asks for release work.
+
 ## Update 2026-05-14 22:07:00Z
 
 - Current task: slskdN/slskNet.Runtime red-team pass complete locally.
