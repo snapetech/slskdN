@@ -52,6 +52,37 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z431. Preflight Destination Paths Before Moving Completed Downloads
+
+**The Bug**: A completed transfer could fail while moving from incomplete to
+the final download directory when an existing destination directory lacked
+write permission. The download path logged the move failure and the task
+observer logged the same local filesystem failure again.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+
+**Wrong**:
+```csharp
+var finalFilename = Files.MoveFile(
+    sourceFilename: incompleteFilename,
+    destinationDirectory: destinationDirectory);
+```
+
+**Correct**:
+```csharp
+EnsureDirectoryReady(destinationDirectory, unixFileMode, transfer.Filename, "Destination");
+var finalFilename = Files.MoveFile(
+    sourceFilename: incompleteFilename,
+    destinationDirectory: destinationDirectory);
+```
+
+**Why This Keeps Happening**: Live library trees can contain directories with
+stale modes from earlier manual operations or mount recovery. Preflight both
+incomplete and final destination directories before handing off or moving data,
+and keep observer handling of local filesystem failures debug-only so the
+operation boundary logs the actionable error once.
+
 ### 0z430. Preflight Local Output Paths Before Soulseek Transfer Attempts
 
 **The Bug**: When an incomplete-download directory was not writable by the
