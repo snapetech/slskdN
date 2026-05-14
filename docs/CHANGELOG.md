@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Added a release-gate check that blocks private local hostnames, local OS
+  usernames, and home-directory paths from release-facing text and recent
+  commit messages.
 - Synced Snap packaging metadata with the latest stable release baseline so
   the release gate can validate all package channels consistently.
 - Logged expected Lidarr HTTP status failures during wanted sync without stack
@@ -861,7 +864,7 @@ changelog section was missing.
 - Switched slskdN to the private `slskNet.Runtime` Soulseek.NET-derived
   runtime fork for local builds, vendored the runtime source under
   `vendor/slskNet.Runtime`, activated Soulseek type-1 peer-message
-  obfuscation runtime wiring, and live-validated `kspls0` with regular and
+  obfuscation runtime wiring, and live-validated a test host with regular and
   obfuscated listeners plus a successful Soulseek search/download smoke.
 - Added Docker Hub publishing as a release image channel at `snapetech/slskdn`
   when `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` are configured, while keeping
@@ -910,7 +913,7 @@ changelog section was missing.
 - Removed the standalone Discovery Inbox and Import Staging surfaces from the
   active Web UI path, folded the intake/review wording into current docs and
   settings, and kept the player visualizer deployment notes current after live
-  `kspls0` Playwright verification.
+  test-host Playwright verification.
 - Removed stale Wishlist feed-import and Discovery Inbox review entry points
   from the active Wishlist surface.
 - Removed remaining player, playlist-intake, and search-test references to

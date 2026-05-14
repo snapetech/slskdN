@@ -60,6 +60,14 @@ If you skip this step, you WILL generate slop.
 - Prefer passing the repo explicitly to GitHub tooling when possible (`snapetech/slskdN`)
 - If the target repo is ambiguous, stop and resolve it before taking any write action
 
+### Local Identity Privacy
+
+**Never include private local hostnames, local OS usernames, home-directory paths, or operator-specific machine names in commit messages, changelogs, release notes, public docs, or GitHub release text.**
+
+- Use generic wording such as "live validation host", "test host", "operator account", or "local checkout"
+- Do not mention deployment hostnames, workstation names, shell usernames, or paths like `/home/<user>`
+- `scripts/check-local-identity-leaks.sh` is part of the release/remediation gate and blocks known local identifiers from release-facing text and recent commit messages
+
 ### Network Health First 🌐
 
 **slskdn prioritizes Soulseek network health in ALL design decisions.**
