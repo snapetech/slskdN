@@ -1,0 +1,24 @@
+name: Local Identity Leak Check
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+jobs:
+  local-identity-leaks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install scanner dependencies
+        run: sudo apt-get update && sudo apt-get install -y jq ripgrep
+
+      - name: Check release-facing text
+        env:
+          LOCAL_IDENTITY_DENYLIST: ${{ secrets.LOCAL_IDENTITY_DENYLIST }}
+          LOCAL_IDENTITY_SCAN_COMMITS: "1"
+        run: bash scripts/check-local-identity-leaks.sh

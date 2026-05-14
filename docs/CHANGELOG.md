@@ -29,6 +29,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   denylist secret and report only redacted file/line locations for matches.
 - Generalized the local-identity release gate so other repositories can reuse
   the same scanner with opt-in commit-message checks.
+- Added a reusable local-identity GitHub Actions workflow so the scanner can
+  run independently of the release gate.
 - Synced Snap packaging metadata with the latest stable release baseline so
   the release gate can validate all package channels consistently.
 - Logged expected Lidarr HTTP status failures during wanted sync without stack
