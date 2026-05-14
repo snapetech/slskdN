@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Logged expected Lidarr HTTP status failures during wanted sync without stack
+  traces so external 4xx/5xx responses stay readable in daemon logs.
 - Classified Soulseek `File read error` transfer rejections as expected peer
   denials so detached runtime transfer cleanup does not log as fatal.
 - Hid legacy duplicate job route controllers from Swagger discovery and made

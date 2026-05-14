@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.Tests.Unit.Integrations.Lidarr;
 
+using System.Net.Http;
 using slskd.Integrations.Lidarr;
 using slskd.Wishlist;
 using Xunit;
@@ -67,6 +68,22 @@ public class LidarrSyncServiceTests
         Assert.Equal(0, result.CreatedCount);
         Assert.Equal(1, result.DuplicateCount);
         Assert.Empty(wishlist.Created);
+    }
+
+    [Fact]
+    public void IsExpectedExternalHttpFailure_ReturnsTrue_ForHttpRequestException()
+    {
+        var ex = new HttpRequestException("Response status code does not indicate success: 500 (Internal Server Error).");
+
+        Assert.True(LidarrSyncService.IsExpectedExternalHttpFailure(ex));
+    }
+
+    [Fact]
+    public void IsExpectedExternalHttpFailure_ReturnsFalse_ForUnexpectedException()
+    {
+        var ex = new InvalidOperationException("local bug");
+
+        Assert.False(LidarrSyncService.IsExpectedExternalHttpFailure(ex));
     }
 
     private static LidarrSyncService CreateService(FakeLidarrClient lidarr, FakeWishlistService wishlist, string wishlistFilter)

@@ -5,6 +5,7 @@ namespace slskd.Integrations.Lidarr;
 
 using System;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
@@ -156,6 +157,11 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
             {
                 break;
             }
+            catch (Exception ex) when (IsExpectedExternalHttpFailure(ex))
+            {
+                Log.Warning("Lidarr wanted sync failed: {Message}", ex.Message);
+                SyncState.LastError = ex.Message;
+            }
             catch (Exception ex)
             {
                 Log.Warning(ex, "Lidarr wanted sync failed: {Message}", ex.Message);
@@ -170,6 +176,9 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
             await Task.Delay(delay, stoppingToken).ConfigureAwait(false);
         }
     }
+
+    internal static bool IsExpectedExternalHttpFailure(Exception ex)
+        => ex is HttpRequestException || ex.InnerException is HttpRequestException;
 }
 
 public sealed record LidarrSyncResult
