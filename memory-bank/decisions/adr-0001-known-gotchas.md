@@ -52,6 +52,39 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z429. Planned Shutdown Cancellation Is Not a Warning
+
+**The Bug**: During a manual service restart, background wishlist searches and
+download retry attempts logged `OperationCanceledException` / `TaskCanceledException`
+as warnings with stack traces even though the host cancellation token was
+requested.
+
+**Files Affected**:
+- `src/slskd/Wishlist/WishlistService.cs`
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+
+**Wrong**:
+```csharp
+catch (Exception ex)
+{
+    Log.Warning(ex, "Error executing wishlist search for {Id}: {Message}", item.Id, ex.Message);
+}
+```
+
+**Correct**:
+```csharp
+catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+{
+    Log.Debug("Wishlist cycle cancelled during shutdown");
+    break;
+}
+```
+
+**Why This Keeps Happening**: Background services often have broad catch blocks
+so one failed item does not stop the loop. Always place host-token cancellation
+filters before broad catches, and keep expected retry cancellation debug-only
+when shutdown is driving the cancellation.
+
 ### 0z428. Expected Download Timeouts Should Warn Once
 
 **The Bug**: A timed-out download logged two warnings for the same expected
