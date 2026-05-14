@@ -7,6 +7,7 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
@@ -157,6 +158,13 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
                         evt.LocalDirectoryName,
                         ex.Message);
                 }
+                catch (Exception ex) when (IsExpectedExternalHttpFailure(ex))
+                {
+                    Log.Warning(
+                        "Lidarr auto-import failed for {Directory}: {Message}",
+                        evt.LocalDirectoryName,
+                        ex.Message);
+                }
                 catch (Exception ex)
                 {
                     Log.Warning(ex, "Lidarr auto-import failed for {Directory}: {Message}", evt.LocalDirectoryName, ex.Message);
@@ -181,6 +189,9 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
 
     private static bool IsHttpClientTimeout(OperationCanceledException exception)
         => exception.Message.Contains("HttpClient.Timeout", StringComparison.Ordinal);
+
+    internal static bool IsExpectedExternalHttpFailure(Exception ex)
+        => ex is HttpRequestException || ex.InnerException is HttpRequestException;
 
     private static string MapPath(string path, string fromPrefix, string toPrefix)
     {

@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Logged expected Lidarr auto-import HTTP failures without stack traces so
+  external connection refusals and 5xx responses stay readable in daemon logs.
 - Fixed concurrent HashDb peer creation so simultaneous passive peer-tracking
   events for the same Soulseek username no longer log SQLite unique-constraint
   warnings.

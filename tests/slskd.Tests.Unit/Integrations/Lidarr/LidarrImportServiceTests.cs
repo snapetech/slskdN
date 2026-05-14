@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.Tests.Unit.Integrations.Lidarr;
 
+using System.Net.Http;
 using System.Text.Json;
 using slskd.Events;
 using slskd.Integrations.Lidarr;
@@ -157,6 +158,24 @@ public class LidarrImportServiceTests
 
         Assert.Equal(2, client.CandidateRequestCount);
         Assert.Equal(1, client.MaxConcurrentCandidateRequests);
+    }
+
+    [Fact]
+    public void IsExpectedExternalHttpFailure_ReturnsTrue_ForHttpRequestException()
+    {
+        var ex = new HttpRequestException("Response status code does not indicate success: 500 (Internal Server Error).");
+
+        Assert.True(LidarrImportService.IsExpectedExternalHttpFailure(ex));
+    }
+
+    [Fact]
+    public void IsExpectedExternalHttpFailure_ReturnsTrue_ForWrappedHttpRequestException()
+    {
+        var ex = new InvalidOperationException(
+            "wrapped",
+            new HttpRequestException("Connection refused"));
+
+        Assert.True(LidarrImportService.IsExpectedExternalHttpFailure(ex));
     }
 
     private static LidarrImportService CreateService(FakeLidarrClient client, Options.IntegrationOptions.LidarrOptions lidarrOptions)

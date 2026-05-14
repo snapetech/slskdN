@@ -52,6 +52,41 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z426. Lidarr Auto-Import HTTP Failures Should Not Log Stack Traces
+
+**The Bug**: Lidarr auto-import treated ordinary external HTTP failures
+(`Connection refused`, `500 Internal Server Error`) as unexpected exceptions
+and logged full stack traces for every completed-directory import attempt.
+
+**Files Affected**:
+- `src/slskd/Integrations/Lidarr/LidarrImportService.cs`
+- `tests/slskd.Tests.Unit/Integrations/Lidarr/LidarrImportServiceTests.cs`
+
+**Wrong**:
+```csharp
+catch (Exception ex)
+{
+    Log.Warning(ex, "Lidarr auto-import failed for {Directory}: {Message}", directory, ex.Message);
+}
+```
+
+**Correct**:
+```csharp
+catch (Exception ex) when (IsExpectedExternalHttpFailure(ex))
+{
+    Log.Warning("Lidarr auto-import failed for {Directory}: {Message}", directory, ex.Message);
+}
+catch (Exception ex)
+{
+    Log.Warning(ex, "Lidarr auto-import failed for {Directory}: {Message}", directory, ex.Message);
+}
+```
+
+**Why This Keeps Happening**: External service downtime and HTTP 5xx responses
+are operational conditions, not slskdN faults. Keep stack traces for unexpected
+local failures, but classify `HttpRequestException` the same way background
+Lidarr wanted sync does so live logs remain actionable.
+
 ### 0z425. HashDb Peer Creation Must Be Atomic Under Concurrent Events
 
 **The Bug**: Concurrent peer-discovery events can call
