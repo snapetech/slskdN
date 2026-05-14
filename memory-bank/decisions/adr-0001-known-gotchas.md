@@ -52,6 +52,35 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z430. Preflight Local Output Paths Before Soulseek Transfer Attempts
+
+**The Bug**: When an incomplete-download directory was not writable by the
+service user, the output stream factory failed inside Soulseek transfer setup.
+The local permission error then surfaced as repeated unobserved task exception
+stack traces instead of one observed transfer failure.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+
+**Wrong**:
+```csharp
+return Client.DownloadAsync(
+    outputStreamFactory: () => Task.FromResult(Files.CreateFile(filename: incompleteFilename)));
+```
+
+**Correct**:
+```csharp
+EnsureIncompleteDirectoryReady(incompleteFilename, unixFileMode);
+return Client.DownloadAsync(
+    outputStreamFactory: () => Task.FromResult(Files.CreateFile(filename: incompleteFilename)));
+```
+
+**Why This Keeps Happening**: Soulseek transfer setup owns async work outside
+the download service. Local filesystem errors must be detected before handing
+the attempt to Soulseek so they stay on the observed retry/download path, and
+local `UnauthorizedAccessException` should not be retried as if it were a
+remote peer problem.
+
 ### 0z429. Planned Shutdown Cancellation Is Not a Warning
 
 **The Bug**: During a manual service restart, background wishlist searches and
