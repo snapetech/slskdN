@@ -1,17 +1,20 @@
 ## Update 2026-05-14 14:50:21Z
 
-- Current task: stable release tester feedback fixes implemented locally.
+- Current task: stable release tester feedback fixes deployed to `kspls0`.
 - Last activity:
   - inspected `kspls0` logs after the release and found expected remote peer failures plus actionable local incomplete-file cleanup failures;
   - made completed-download directory cleanup best-effort and retried file creation once when sibling transfer cleanup removes the incomplete directory between mkdir/open;
   - added direct search-detail loading for `/searches/:id` so opening search result pages in fresh tabs does not depend on the initial search list snapshot.
+  - deployed `0.0.0-manual.20260514145223.b781b218c2f0` to `kspls0` and restored the package-style root entrypoint wrapper so `ExecStart=/usr/lib/slskd/slskd` runs `/usr/lib/slskd/current/slskd`.
 - Validation:
   - Passed: focused backend file/classifier tests (`68/68`).
   - Passed: focused Search/Browse Web tests (`15/15`) and focused Web lint.
   - Passed: `dotnet build src/slskd/slskd.csproj --no-restore` and `git diff --check`.
+  - Passed live: `kspls0` authenticated application API reports the manual build, release-directory executable path, and `Connected, LoggedIn`.
+  - Passed live: 90-second journal watch found no fixed download failure signatures.
 - Next steps:
-  1. Commit and push the tester-feedback fixes.
-  2. Deploy or cut a follow-up release if the user wants this in tester hands immediately.
+  1. Let testers retry downloads and search-result new-tab flows on `kspls0`.
+  2. Cut a follow-up stable release if this manual build validates cleanly.
 
 ## Update 2026-05-13 17:57:08Z
 
