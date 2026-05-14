@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Hid legacy duplicate job route controllers from Swagger discovery so OpenAPI
+  generation no longer fails on duplicate `api/jobs/*` operations.
 - Classified Soulseek `MessageConnection` disposal races as expected peer
   teardown so detached runtime read-loop cleanup does not log as fatal.
 - Classified completed peer connection closes as expected Soulseek network

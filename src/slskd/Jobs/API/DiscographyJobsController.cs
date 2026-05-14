@@ -18,6 +18,7 @@ namespace slskd.Jobs.API
     [ApiVersion("0")]
     [Authorize(Policy = AuthPolicy.Any)]
     [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
+    [ApiExplorerSettings(IgnoreApi = true)]
     public class DiscographyJobsController : ControllerBase
     {
         private readonly IDiscographyJobService jobService;
