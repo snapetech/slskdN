@@ -6,6 +6,10 @@ export const getAll = async (limit = 500) => {
   return (await api.get(`/searches?limit=${limit}`)).data;
 };
 
+export const get = async ({ id }) => {
+  return (await api.get(`/searches/${encodeURIComponent(id)}`)).data;
+};
+
 export const stop = ({ id }) => {
   return api.put(`/searches/${encodeURIComponent(id)}`);
 };

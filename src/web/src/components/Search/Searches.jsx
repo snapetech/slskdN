@@ -336,9 +336,30 @@ const Searches = ({ server } = {}) => {
   }, []);
 
   useEffect(() => {
-    if (searchId && initialSearchesLoaded && !searches[searchId]) {
-      routerNavigate('/searches', { replace: true });
+    if (!searchId || !initialSearchesLoaded || searches[searchId]) {
+      return;
     }
+
+    let cancelled = false;
+
+    const loadSearch = async () => {
+      try {
+        const search = await library.get({ id: searchId });
+        if (!cancelled && hasSearchId(search)) {
+          onUpdate((old) => ({ ...old, [search.id]: search }));
+        }
+      } catch {
+        if (!cancelled) {
+          routerNavigate('/searches', { replace: true });
+        }
+      }
+    };
+
+    loadSearch();
+
+    return () => {
+      cancelled = true;
+    };
   }, [initialSearchesLoaded, routerNavigate, searchId, searches]);
 
   // create a new search, and optionally navigate to it to display the details

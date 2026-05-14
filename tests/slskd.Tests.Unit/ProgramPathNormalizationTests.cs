@@ -323,10 +323,12 @@ public class ProgramPathNormalizationTests
         Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }
 
-    [Fact]
-    public void IsExpectedSoulseekNetworkException_ReturnsTrue_ForTransferCompleteTeardownFailures()
+    [Theory]
+    [InlineData("Transfer failed: Transfer complete")]
+    [InlineData("Transfer failed: Transfer error")]
+    public void IsExpectedSoulseekNetworkException_ReturnsTrue_ForTransferTeardownFailures(string message)
     {
-        var exception = new AggregateException(new ConnectionException("Transfer failed: Transfer complete"));
+        var exception = new AggregateException(new ConnectionException(message));
 
         Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }

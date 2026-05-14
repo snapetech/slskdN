@@ -107,6 +107,7 @@ public static class SoulseekNetworkExceptionClassifier
             details.Contains("Too many megabytes", StringComparison.Ordinal) ||
             details.Contains("Too many files", StringComparison.Ordinal) ||
             details.Contains("Transfer failed: Transfer complete", StringComparison.Ordinal) ||
+            details.Contains("Transfer failed: Transfer error", StringComparison.Ordinal) ||
             details.Contains("No route to host", StringComparison.Ordinal) ||
             details.Contains("Operation timed out", StringComparison.Ordinal) ||
             details.Contains("Connection timed out", StringComparison.Ordinal) ||

@@ -73,6 +73,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   references so the release gate accepts new main release tags.
 - Included Snap metadata in the post-release stable metadata commit so the
   updater cannot silently leave `snapcraft.yaml` stale.
+- Made completed download moves tolerate concurrent incomplete-directory
+  cleanup, and added direct search-detail loading so search result pages open
+  reliably in new tabs.
 - Archived stale working notes and removed obsolete local one-off remediation
   scripts from the active docs/scripts surface.
 - Strengthened mesh preview hash validation so hash-protected content is

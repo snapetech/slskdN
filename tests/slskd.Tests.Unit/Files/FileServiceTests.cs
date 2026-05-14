@@ -198,6 +198,46 @@ namespace slskd.Tests.Unit.Files
         }
 
         [Fact]
+        public void MoveFile_Does_Not_Fail_When_Source_Directory_Cleanup_Races_With_Other_Files()
+        {
+            var downloads = Path.Combine(Temp, "downloads");
+            var incomplete = Path.Combine(Temp, "incomplete", "album");
+
+            Directory.CreateDirectory(downloads);
+            Directory.CreateDirectory(incomplete);
+
+            OptionsMonitorMock.Setup(o => o.CurrentValue).Returns(new Options
+            {
+                Directories = new Options.DirectoriesOptions
+                {
+                    Downloads = downloads,
+                    Incomplete = Path.Combine(Temp, "incomplete"),
+                },
+                Permissions = new Options.PermissionsOptions
+                {
+                    File = new Options.PermissionsOptions.FileOptions
+                    {
+                        Mode = string.Empty,
+                    },
+                },
+            });
+
+            var sourceFilename = Path.Combine(incomplete, "move-me.bin");
+            var siblingFilename = Path.Combine(incomplete, "still-downloading.bin");
+            File.WriteAllText(sourceFilename, "test");
+            File.WriteAllText(siblingFilename, "other");
+
+            var movedFilename = FileService.MoveFile(
+                sourceFilename,
+                downloads,
+                deleteSourceDirectoryIfEmptyAfterMove: true);
+
+            Assert.Equal(Path.Combine(downloads, "move-me.bin"), movedFilename);
+            Assert.True(File.Exists(movedFilename));
+            Assert.True(File.Exists(siblingFilename));
+        }
+
+        [Fact]
         public async Task DeleteFilesAsync_Throws_ArgumentException_Given_Relative_Path()
         {
             var ex = await Record.ExceptionAsync(() => FileService.DeleteFilesAsync("../foo.bar"));

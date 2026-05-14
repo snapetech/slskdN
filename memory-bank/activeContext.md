@@ -1,3 +1,18 @@
+## Update 2026-05-14 14:50:21Z
+
+- Current task: stable release tester feedback fixes implemented locally.
+- Last activity:
+  - inspected `kspls0` logs after the release and found expected remote peer failures plus actionable local incomplete-file cleanup failures;
+  - made completed-download directory cleanup best-effort and retried file creation once when sibling transfer cleanup removes the incomplete directory between mkdir/open;
+  - added direct search-detail loading for `/searches/:id` so opening search result pages in fresh tabs does not depend on the initial search list snapshot.
+- Validation:
+  - Passed: focused backend file/classifier tests (`68/68`).
+  - Passed: focused Search/Browse Web tests (`15/15`) and focused Web lint.
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore` and `git diff --check`.
+- Next steps:
+  1. Commit and push the tester-feedback fixes.
+  2. Deploy or cut a follow-up release if the user wants this in tester hands immediately.
+
 ## Update 2026-05-13 17:57:08Z
 
 - Current task: Program.cs decomposition complete for this pass; parity/reconciliation follow-up remains in progress.

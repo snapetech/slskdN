@@ -408,6 +408,19 @@ namespace slskd.Files
             {
                 return new FileStream(filename, streamOptions);
             }
+            catch (DirectoryNotFoundException) when (!Directory.Exists(path))
+            {
+                if (!OperatingSystem.IsWindows() && unixCreateMode.HasValue)
+                {
+                    Directory.CreateDirectory(path, unixCreateMode.Value.WithExecuteFlagsForEachReadFlag());
+                }
+                else
+                {
+                    Directory.CreateDirectory(path);
+                }
+
+                return new FileStream(filename, streamOptions);
+            }
             catch (Exception ex)
             {
                 // the operation above can throw quite a few exceptions, all granular variations of
@@ -494,12 +507,7 @@ namespace slskd.Files
                     Log.Debug("Successfully set Unix file mode to {Mode}", unixCreateMode);
                 }
 
-                // if the parent directory is empty after the move, delete it
-                var sourceDirectory = Path.GetDirectoryName(sourceFilename);
-                if (deleteSourceDirectoryIfEmptyAfterMove && !string.IsNullOrWhiteSpace(sourceDirectory) && !Directory.EnumerateFileSystemEntries(sourceDirectory).Any())
-                {
-                    Directory.Delete(sourceDirectory);
-                }
+                TryDeleteDirectoryIfEmpty(Path.GetDirectoryName(sourceFilename), deleteSourceDirectoryIfEmptyAfterMove);
 
                 return destinationFilename;
             }
@@ -508,6 +516,30 @@ namespace slskd.Files
                 // the operation above can throw quite a few exceptions, all granular variations of
                 // IOException. to make handling downstream easier, wrap them all up and re-throw.
                 throw new IOException($"Failed to move file {sourceFilename}: {ex.Message}", ex);
+            }
+        }
+
+        private void TryDeleteDirectoryIfEmpty(string? directory, bool enabled)
+        {
+            if (!enabled || string.IsNullOrWhiteSpace(directory))
+            {
+                return;
+            }
+
+            try
+            {
+                if (Directory.Exists(directory) && !Directory.EnumerateFileSystemEntries(directory).Any())
+                {
+                    Directory.Delete(directory);
+                }
+            }
+            catch (IOException ex)
+            {
+                Log.Debug(ex, "Skipped cleanup of non-empty source directory {Directory}", directory);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Log.Debug(ex, "Skipped cleanup of source directory {Directory}", directory);
             }
         }
     }

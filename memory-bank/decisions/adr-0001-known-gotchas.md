@@ -52,6 +52,35 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z421. Incomplete Directory Cleanup Must Not Fail Completed Downloads
+
+**The Bug**: Completed downloads moved out of the incomplete directory with
+`deleteSourceDirectoryIfEmptyAfterMove: true`. If a sibling transfer still had
+files in the same incomplete album directory, the cleanup delete could throw
+`Directory not empty` after the file had already moved, causing the completed
+download to be recorded as failed.
+
+**Files Affected**:
+- `src/slskd/Files/FileService.cs`
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+
+**Wrong**:
+```csharp
+File.Move(sourceFilename, destinationFilename, overwrite: overwrite);
+Directory.Delete(sourceDirectory);
+```
+
+**Correct**:
+```csharp
+File.Move(sourceFilename, destinationFilename, overwrite: overwrite);
+TryDeleteDirectoryIfEmpty(sourceDirectory, deleteSourceDirectoryIfEmptyAfterMove);
+```
+
+**Why This Keeps Happening**: Directory cleanup is post-move housekeeping, not
+part of the transfer itself. Concurrent album downloads can share incomplete
+directories, so cleanup must be best-effort and must never convert a successful
+file move into a failed transfer.
+
 ### 0z420. Stable Metadata Commits Must Add Every File The Updater Rewrites
 
 **The Bug**: The stable release metadata updater rewrote

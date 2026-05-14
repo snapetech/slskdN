@@ -8,7 +8,7 @@ import { getCapabilities } from '../../lib/slskdn';
 import * as library from '../../lib/searches';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 vi.mock('../../lib/hubFactory', () => ({
   createSearchHubConnection: vi.fn(),
@@ -18,6 +18,7 @@ vi.mock('../../lib/slskdn', () => ({
 }));
 vi.mock('../../lib/searches', () => ({
   create: vi.fn(),
+  get: vi.fn(),
   getAll: vi.fn(),
   remove: vi.fn(),
   removeAll: vi.fn(),
@@ -31,7 +32,9 @@ vi.mock('./MusicBrainzLookup', () => ({ default: () => null }));
 vi.mock('./SongIDPanel', () => ({
   default: () => <div data-testid="songid-panel">SongID panel</div>,
 }));
-vi.mock('./Detail/SearchDetail', () => ({ default: () => null }));
+vi.mock('./Detail/SearchDetail', () => ({
+  default: ({ search }) => <div data-testid="search-detail">{search.id}</div>,
+}));
 vi.mock('./List/SearchList', () => ({
   default: ({ searches = {} }) => (
     <div data-testid="search-list">{Object.keys(searches).join(',')}</div>
@@ -60,7 +63,16 @@ const renderSearches = async ({
 
   render(
     <MemoryRouter initialEntries={initialEntries}>
-      <Searches server={{ isConnected: true }} />
+      <Routes>
+        <Route
+          element={<Searches server={{ isConnected: true }} />}
+          path="/searches"
+        />
+        <Route
+          element={<Searches server={{ isConnected: true }} />}
+          path="/searches/:id"
+        />
+      </Routes>
     </MemoryRouter>,
   );
 
@@ -73,6 +85,8 @@ describe('Searches', () => {
     localStorage.clear();
     getCapabilities.mockResolvedValue({ features: [] });
     library.create.mockResolvedValue({});
+    library.get.mockRejectedValue({ response: { status: 404 } });
+    library.getAll.mockResolvedValue([]);
   });
 
   it('keeps ScenePodBridge disabled by default and creates ordinary searches without providers', async () => {
@@ -125,6 +139,28 @@ describe('Searches', () => {
 
     expect(await screen.findByTestId('songid-panel')).toBeInTheDocument();
     expect(localStorage.getItem('slskdn.search.section.songid')).toBe('open');
+  });
+
+  it('loads a direct search detail URL when the initial list does not include it', async () => {
+    library.get.mockResolvedValue({
+      fileCount: 1,
+      id: 'search-older-than-list',
+      isComplete: true,
+      lockedFileCount: 0,
+      responseCount: 1,
+      searchText: 'older result',
+      state: 'Complete',
+    });
+
+    await renderSearches({
+      initialEntries: ['/searches/search-older-than-list'],
+      waitForInput: false,
+    });
+
+    expect(await screen.findByTestId('search-detail')).toHaveTextContent(
+      'search-older-than-list',
+    );
+    expect(library.get).toHaveBeenCalledWith({ id: 'search-older-than-list' });
   });
 
   it('shows and persists the selected acquisition profile', async () => {
