@@ -18114,3 +18114,33 @@ feature-specific automation, but Soulseek network health depends on all
 network-facing automation going through the same conservative search path and
 budget source. Feature labels belong in the safety source, not in a separate
 search scope that can bypass guardrails.
+
+### 0z358. External HTTP Status Failures Should Not Emit Stack Traces In Background Loops
+
+**The Bug**: Lidarr wanted sync logged `HttpRequestException` with the full
+exception object when Lidarr returned a normal HTTP failure such as 500. The
+sync loop recovered, but logs showed a stack trace that looked like an
+application crash and obscured real defects.
+
+**Files Affected**:
+- `src/slskd/Integrations/Lidarr/LidarrSyncService.cs`
+
+**Wrong**:
+```csharp
+catch (Exception ex)
+{
+    Log.Warning(ex, "Lidarr wanted sync failed: {Message}", ex.Message);
+}
+```
+
+**Correct**:
+```csharp
+catch (Exception ex) when (IsExpectedExternalHttpFailure(ex))
+{
+    Log.Warning("Lidarr wanted sync failed: {Message}", ex.Message);
+}
+```
+
+**Why This Keeps Happening**: Background sync loops often call external
+services that can validly return 4xx/5xx responses. Those should be concise
+operator warnings; reserve full exception logging for unexpected local bugs.
