@@ -477,6 +477,7 @@ public static class WebServiceCollectionExtensions
                 // types with the same short name in different namespaces (e.g. slskd.Search.File
                 // vs Soulseek.File both map to "File" by default, crashing Swagger generation).
                 options.CustomSchemaIds(type => type.FullName?.Replace("+", "."));
+                options.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
                 options.SwaggerDoc("v0", new OpenApiInfo
                 {
                     Version = "v0",
