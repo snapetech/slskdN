@@ -52,6 +52,39 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z423. Legacy Duplicate Routes Must Not Both Enter Swagger
+
+**The Bug**: `DiscographyJobsController` and `LabelCrateJobsController` kept
+legacy route aliases that duplicate the consolidated native `JobsController`
+paths. Runtime routing can tolerate the aliases, but Swashbuckle requires one
+operation per HTTP method/path and returned HTTP 500 for `/swagger/v0/swagger.json`.
+
+**Files Affected**:
+- `src/slskd/Jobs/API/DiscographyJobsController.cs`
+- `src/slskd/Jobs/API/LabelCrateJobsController.cs`
+- `src/slskd/API/Native/JobsController.cs`
+
+**Wrong**:
+```csharp
+[Route("api/jobs/discography")]
+[Route("api/v{version:apiVersion}/jobs/discography")]
+public class DiscographyJobsController : ControllerBase
+```
+
+**Correct**:
+```csharp
+[Route("api/jobs/discography")]
+[Route("api/v{version:apiVersion}/jobs/discography")]
+[ApiExplorerSettings(IgnoreApi = true)]
+public class DiscographyJobsController : ControllerBase
+```
+
+**Why This Keeps Happening**: Compatibility controllers are useful for old
+clients, but OpenAPI generation sees every controller action as a documentable
+operation. When a consolidated controller owns the public API surface, hide the
+legacy duplicate controller from API Explorer instead of changing or deleting
+its runtime route.
+
 ### 0z422. Classify MessageConnection Dispose Races As Expected Soulseek Teardown
 
 **The Bug**: Soulseek.NET can surface `ObjectDisposedException` with object name
