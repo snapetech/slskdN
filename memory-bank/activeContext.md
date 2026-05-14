@@ -7368,3 +7368,11 @@ Integrated the other agent's mesh streaming work into main instead of treating i
 Validation: `dotnet build src/slskd/slskd.csproj --no-restore` passed with zero warnings, and focused backend unit tests passed (`36/36`) for mesh streams, peer streams, and SearchActions.
 
 Next steps: commit and push this mesh streaming merge slice, then re-check branch cleanliness before deleting any obsolete branch refs.
+
+## 2026-05-14T16:42:00Z Session update
+
+Continued kspls0 log cleanup after the manual release build. Classified Soulseek `File read error` transfer rejections as expected peer denials, then reduced Lidarr wanted-sync HTTP status failures to concise one-line warnings instead of stack traces while keeping unexpected Lidarr exceptions fully logged.
+
+Validation: focused classifier/Program path tests passed (`41/41`), focused Lidarr sync tests passed (`4/4`), `dotnet build src/slskd/slskd.csproj --no-restore` passed after rerunning serially to avoid a transient SDK file lock, and manual build `0.0.0-manual.20260514164010.60039cee8323` is running on kspls0 with `NRestarts=0`.
+
+Next steps: keep watching PID-scoped kspls0 logs for fresh warning/error signatures. Current post-deploy sample from PID `614254` has no warnings, errors, exceptions, or fatal entries.
