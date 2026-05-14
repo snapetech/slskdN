@@ -30,6 +30,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Preflighted incomplete-download directories before starting Soulseek transfer
   attempts so local permission failures are observed and classified without
   detached task stack-trace noise.
+- Preflighted completed-download destination directories before moving finished
+  files so stale directory permissions fail once on the observed transfer path.
 - Routed HTTP LLM moderation endpoint checks through the shared DNS-aware
   outbound guard so hostnames resolving to non-public ranges are blocked before
   any request is sent.

@@ -1231,7 +1231,11 @@ namespace slskd.Transfers.Downloads
                     SynchronizedUpdate(transfer, semaphore: updateSyncRoot, cancellationToken: CancellationToken.None);
 
                     var outputPlan = PlanIncompleteOutput(incompleteFilename, incompleteStrategy, transfer);
-                    EnsureIncompleteDirectoryReady(incompleteFilename, unixFileMode);
+                    EnsureDirectoryReady(
+                        System.IO.Path.GetDirectoryName(incompleteFilename),
+                        unixFileMode,
+                        incompleteFilename,
+                        "Incomplete");
 
                     return Client.DownloadAsync(
                         username: transfer.Username,
@@ -1300,12 +1304,15 @@ namespace slskd.Transfers.Downloads
                     return pendingTransfer.Filename.ToLocalFilename(baseDirectory: retryDirectory);
                 }
 
-                void EnsureIncompleteDirectoryReady(string localFilename, System.IO.UnixFileMode? createMode)
+                void EnsureDirectoryReady(
+                    string? directory,
+                    System.IO.UnixFileMode? createMode,
+                    string localFilename,
+                    string purpose)
                 {
-                    var directory = System.IO.Path.GetDirectoryName(localFilename);
                     if (string.IsNullOrWhiteSpace(directory))
                     {
-                        throw new System.IO.IOException($"Failed to determine incomplete directory for file {localFilename}");
+                        throw new System.IO.IOException($"Failed to determine {purpose.ToLowerInvariant()} directory for file {localFilename}");
                     }
 
                     if (!System.IO.Directory.Exists(directory))
@@ -1335,7 +1342,7 @@ namespace slskd.Transfers.Downloads
                     }
                     catch (Exception ex)
                     {
-                        throw new System.IO.IOException($"Incomplete directory '{directory}' is not writable: {ex.Message}", ex);
+                        throw new System.IO.IOException($"{purpose} directory '{directory}' is not writable: {ex.Message}", ex);
                     }
                     finally
                     {
@@ -1409,6 +1416,12 @@ namespace slskd.Transfers.Downloads
                     ? System.IO.Path.Combine(completedRoot, transfer.BatchId.Value.ToString())
                     : System.IO.Path.GetDirectoryName(transfer.Filename.ToLocalFilename(baseDirectory: completedRoot))
                         ?? completedRoot;
+
+                EnsureDirectoryReady(
+                    destinationDirectory,
+                    unixFileMode,
+                    transfer.Filename,
+                    "Destination");
 
                 var finalFilename = Files.MoveFile(
                     sourceFilename: incompleteFilename,
@@ -1603,6 +1616,15 @@ namespace slskd.Transfers.Downloads
                     Log.Debug("Transfer {Id} was already cleaned up after expected remote download failure", transferId);
                 }
             }
+            catch (Exception ex) when (IsLocalFilesystemFailure(ex))
+            {
+                Log.Debug("Task for download of {Filename} from {Username} ended with observed local filesystem failure: {Error}", filename, username, ex.Message);
+
+                if (!TryFail(transferId, exception: ex))
+                {
+                    Log.Debug("Transfer {Id} was already cleaned up after local filesystem download failure", transferId);
+                }
+            }
             catch (Exception ex)
             {
                 Log.Error(ex, "Task for download of {Filename} from {Username} did not complete successfully: {Error}", filename, username, ex.Message);
@@ -1785,10 +1807,13 @@ namespace slskd.Transfers.Downloads
 
         private static bool IsDirectDownloadRetryable(Exception exception)
             => exception is not OperationCanceledException
-                && !ContainsException<UnauthorizedAccessException>(exception)
+                && !IsLocalFilesystemFailure(exception)
                 && exception is not TransferRejectedException
                 && exception is not DuplicateTransferException
                 && exception is not TransferSizeMismatchException;
+
+        private static bool IsLocalFilesystemFailure(Exception exception)
+            => ContainsException<UnauthorizedAccessException>(exception);
 
         private static bool ContainsException<TException>(Exception exception)
             where TException : Exception
