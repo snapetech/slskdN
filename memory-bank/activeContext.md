@@ -1,3 +1,19 @@
+## Update 2026-05-14 16:02:46Z
+
+- Current task: `kspls0` log cleanup and manual-build validation complete.
+- Last activity:
+  - inspected live `kspls0` logs and found a real current `MessageConnection` unobserved-task fatal, then classified that Soulseek.NET dispose race as expected teardown;
+  - fixed live Swagger 500s from duplicate compatibility routes by hiding duplicate legacy job controllers from API Explorer and enabling Swagger conflict resolution;
+  - corrected the manual deploy wrapper after a bad nested-quote rewrite dropped systemd's `--config` argument.
+- Validation:
+  - Passed: focused classifier tests (`40/40`), focused job/route tests (`22/22`), and serial backend builds.
+  - Deployed `0.0.0-manual.20260514160011.57326ef1fe5b` to `kspls0`.
+  - Live: service active with `NRestarts=0`, `/swagger/v0/swagger.json` returns `200` JSON, `/` returns `200`, Soulseek is connected, and downloads completed after restart.
+  - Live: post-restart log scan found no `[ERR]`, `[FATAL]`, `MessageConnection`, remote-close, file create/move, directory cleanup, Lidarr timeout, or Swagger conflict signatures.
+- Next steps:
+  1. Let the final manual build soak under tester traffic.
+  2. Cut the next stable release when the user is ready.
+
 ## Update 2026-05-14 14:50:21Z
 
 - Current task: stable release tester feedback fixes deployed to `kspls0`.

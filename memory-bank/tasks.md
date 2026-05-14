@@ -16,10 +16,10 @@
  - Priority: P1
  - Notes: Bas reported the AUR source build failing because `global.json` requested .NET SDK `10.0.202` while Arch had `10.0.104`; lowered the repo/workflow SDK floor to `10.0.100` so `rollForward: latestFeature` accepts Arch's installed SDK feature band. Also fixed direct download retry timeout aggregation so repeated `TimeoutException`s wrapped by `Retry.Do` mark transfers as `TimedOut` instead of generic `Errored`, added focused `DownloadServiceTests` coverage, aligned Snap metadata/checksum to `2026051221-slskdn.247`, and documented ADR-0001 gotcha `0z354`. Validation passed: `dotnet build src/slskd/slskd.csproj --no-restore`, focused `DownloadServiceTests`, `scripts/check-codeql-dotnet-version.sh`, `packaging/scripts/validate-packaging-metadata.sh`, `./bin/lint`, and `git diff --check`.
 
-- [ ] Recover kspls0 service-plane access and deploy manual build.
- - Status: blocked (2026-05-13)
+- [x] Recover kspls0 service-plane access and deploy manual build.
+ - Status: completed (2026-05-14)
  - Priority: P1
- - Notes: Manual payload `0.0.0-manual.20260513161219.eff21f143493` is built at `/tmp/slskdn-deploy-current` and archived at `/tmp/slskdn-deploy-current.tar.gz`; local isolated smoke reached `/api/v0/application`. `kspls0` remains reachable by ping but SSH times out during banner exchange or resets pre-auth with `Not allowed at this time`, and `http://kspls0:5030` accepts then times out. Need host reboot/local console/out-of-band recovery before copying the payload, stopping `slskd.service`, repointing `/usr/lib/slskd/current`, restarting, and running live HTTP/download validation.
+ - Notes: Host access recovered after reboot. Deployed successive manual builds for tester-feedback and log-cleanup fixes, ending on `0.0.0-manual.20260514160011.57326ef1fe5b`; verified service active with `NRestarts=0`, `/swagger/v0/swagger.json` returns `200` JSON, `/` returns `200`, Soulseek connected, downloads completing, and no post-restart fatal/error/remote-close/file-move/Swagger conflict signatures.
 
 - [x] Fix Launchpad PPA Jammy build failure for VPN helper packaging.
  - Status: completed (2026-05-12)
