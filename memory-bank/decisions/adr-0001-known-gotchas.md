@@ -52,6 +52,36 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z428. Expected Download Timeouts Should Warn Once
+
+**The Bug**: A timed-out download logged two warnings for the same expected
+peer failure: one from `DownloadAsync(...)`, where transfer state and peer
+metrics are updated, and another from the detached task observer.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+
+**Wrong**:
+```csharp
+catch (Exception ex) when (IsCancellationException(ex) || IsDownloadTimeout(ex))
+{
+    Log.Warning("Task for download of {Filename} from {Username} timed out or was cancelled: {Error}", filename, username, ex.Message);
+}
+```
+
+**Correct**:
+```csharp
+catch (Exception ex) when (IsCancellationException(ex) || IsDownloadTimeout(ex))
+{
+    Log.Debug("Task for download of {Filename} from {Username} ended with expected timeout or cancellation: {Error}", filename, username, ex.Message);
+}
+```
+
+**Why This Keeps Happening**: Detached task observers are there to observe and
+clean up background work, but expected failures often already have a
+user-facing warning at the operation boundary. Keep the operation warning and
+make the observer's duplicate expected-failure record debug-only.
+
 ### 0z427. Operator-Configured External HTTP Must Use DNS-Aware SSRF Guards
 
 **The Bug**: `HttpLlmModerationProvider` checked only URI scheme, local host
