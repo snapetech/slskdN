@@ -68,6 +68,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   emitting full stack traces for transient slow Lidarr responses.
 - Synchronized Snap stable release metadata with the current stable package
   references so the release gate accepts new main release tags.
+- Included Snap metadata in the post-release stable metadata commit so the
+  updater cannot silently leave `snapcraft.yaml` stale.
 - Archived stale working notes and removed obsolete local one-off remediation
   scripts from the active docs/scripts surface.
 - Strengthened mesh preview hash validation so hash-protected content is

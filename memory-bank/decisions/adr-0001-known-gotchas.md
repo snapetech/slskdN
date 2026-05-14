@@ -52,6 +52,43 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z420. Stable Metadata Commits Must Add Every File The Updater Rewrites
+
+**The Bug**: The stable release metadata updater rewrote
+`packaging/snap/snapcraft.yaml`, but the `build-on-tag.yml` metadata commit
+step did not include that file in `git add`. The release workflow could update
+Snap in its workspace, commit the rest of the package matrix, and leave the
+repository with stale Snap metadata for the next release gate.
+
+**Files Affected**:
+- `.github/workflows/build-on-tag.yml`
+- `packaging/scripts/validate-packaging-metadata.sh`
+- `packaging/snap/snapcraft.yaml`
+
+**Wrong**:
+```yaml
+git add \
+  flake.nix \
+  Formula/slskdn.rb \
+  packaging/homebrew/Formula/slskdn.rb \
+  packaging/flatpak/io.github.slskd.slskdn.yml
+```
+
+**Correct**:
+```yaml
+git add \
+  flake.nix \
+  Formula/slskdn.rb \
+  packaging/homebrew/Formula/slskdn.rb \
+  packaging/snap/snapcraft.yaml \
+  packaging/flatpak/io.github.slskd.slskdn.yml
+```
+
+**Why This Keeps Happening**: Release metadata generation and release metadata
+commit file lists drift independently. Whenever `update-stable-release-metadata.sh`
+starts rewriting a file, update the workflow `git add` list and packaging
+metadata validator in the same change.
+
 ### 0z419. Classify Expected Peer Transfer Denials In Global Unobserved Handler
 
 **The Bug**: Soulseek runtime internals can surface normal peer-side transfer

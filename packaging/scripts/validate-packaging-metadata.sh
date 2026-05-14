@@ -151,6 +151,7 @@ expect_literal .github/workflows/build-on-tag.yml 'dotnet publish src/slskdN.Vpn
 expect_literal .github/workflows/build-on-tag.yml 'publish-${{ matrix.runtime }}/vpn-agent'
 expect_literal .github/workflows/build-on-tag.yml 'cp src/slskdN.VpnAgent/windows-macos.md publish-${{ matrix.runtime }}/vpn-agent/windows-macos.md'
 expect_literal .github/workflows/build-on-tag.yml 'cp -r src/slskdN.VpnAgent/systemd publish-${{ matrix.runtime }}/vpn-agent/'
+expect_literal .github/workflows/build-on-tag.yml 'packaging/snap/snapcraft.yaml'
 expect_literal .github/workflows/build-on-tag.yml 'cp ../packaging/aur/slskd.tmpfiles slskd.tmpfiles'
 expect_literal .github/workflows/build-on-tag.yml 'cp packaging/aur/slskd.tmpfiles ~/rpmbuild/SOURCES/'
 expect_literal .github/workflows/build-on-tag.yml 'cp packaging/aur/slskd.tmpfiles slskdn-${VERSION}/usr/lib/tmpfiles.d/slskd.conf'

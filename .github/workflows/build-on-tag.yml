@@ -1134,6 +1134,7 @@ jobs:
               Formula/slskdn.rb \
               packaging/winget/ \
               packaging/homebrew/Formula/slskdn.rb \
+              packaging/snap/snapcraft.yaml \
               packaging/flatpak/io.github.slskd.slskdn.yml \
               packaging/truenas-scale/charts/slskdn/Chart.yaml \
               packaging/helm/slskdn/Chart.yaml \
