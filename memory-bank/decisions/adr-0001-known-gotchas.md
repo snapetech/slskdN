@@ -52,6 +52,36 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z424. Classify File Read Error Transfer Rejections As Expected Peer Denials
+
+**The Bug**: Soulseek peers can reject a requested transfer with
+`TransferRejectedException: File read error.`. The transfer path keeps running,
+but Soulseek.NET can surface the detached rejection through the global
+unobserved-task handler, where it was logged as `[FATAL]`.
+
+**Files Affected**:
+- `src/slskd/Soulseek/SoulseekNetworkExceptionClassifier.cs`
+- `tests/slskd.Tests.Unit/ProgramPathNormalizationTests.cs`
+
+**Wrong**:
+```csharp
+details.Contains("File not shared", StringComparison.Ordinal) ||
+details.Contains("Overwhelmed with requests", StringComparison.Ordinal)
+```
+
+**Correct**:
+```csharp
+details.Contains("File not shared", StringComparison.Ordinal) ||
+details.Contains("File read error", StringComparison.Ordinal) ||
+details.Contains("Overwhelmed with requests", StringComparison.Ordinal)
+```
+
+**Why This Keeps Happening**: Soulseek peer denial reasons are plain strings
+inside runtime exceptions, and new clients expose additional denial text over
+time. When a `TransferRejectedException` reaches global unobserved handling,
+classify known peer-side denial reasons by message text so ordinary remote
+failures do not look like application crashes.
+
 ### 0z423. Legacy Duplicate Routes Must Not Both Enter Swagger
 
 **The Bug**: `DiscographyJobsController` and `LabelCrateJobsController` kept
