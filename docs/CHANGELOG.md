@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed concurrent HashDb peer creation so simultaneous passive peer-tracking
+  events for the same Soulseek username no longer log SQLite unique-constraint
+  warnings.
 - Added a release-gate check that blocks private local hostnames, local OS
   usernames, and home-directory paths from release-facing text and recent
   commit messages.

@@ -945,16 +945,30 @@ namespace slskd.HashDb
                 }
             }
 
-            // Create new
+            // Create new. Peer discovery can report the same username from
+            // multiple event paths concurrently, so this must tolerate another
+            // connection inserting the row after the read above.
             using (var cmd = conn.CreateCommand())
             {
-                cmd.CommandText = @"INSERT INTO Peers (peer_id, last_seen) VALUES (@peer_id, @last_seen)";
+                cmd.CommandText = @"INSERT OR IGNORE INTO Peers (peer_id, last_seen) VALUES (@peer_id, @last_seen)";
                 cmd.Parameters.AddWithValue("@peer_id", username);
                 cmd.Parameters.AddWithValue("@last_seen", now);
                 await cmd.ExecuteNonQueryAsync(cancellationToken);
             }
 
-            return new Peer { PeerId = username, LastSeen = now };
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "SELECT * FROM Peers WHERE peer_id = @peer_id";
+                cmd.Parameters.AddWithValue("@peer_id", username);
+
+                using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+                if (await reader.ReadAsync(cancellationToken))
+                {
+                    return ReadPeer(reader);
+                }
+            }
+
+            throw new InvalidOperationException($"Failed to create or load peer '{username}'.");
         }
 
         /// <inheritdoc/>

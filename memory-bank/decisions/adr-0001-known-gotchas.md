@@ -52,6 +52,41 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z425. HashDb Peer Creation Must Be Atomic Under Concurrent Events
+
+**The Bug**: Concurrent peer-discovery events can call
+`HashDbService.GetOrCreatePeerAsync(...)` for the same username at the same
+time. A read-then-insert implementation can let both callers observe no row,
+then one insert wins and the other logs `SQLite Error 19: 'UNIQUE constraint
+failed: Peers.peer_id'`.
+
+**Files Affected**:
+- `src/slskd/HashDb/HashDbService.cs`
+- `tests/slskd.Tests.Unit/HashDb/HashDbServiceTests.cs`
+
+**Wrong**:
+```csharp
+cmd.CommandText = "SELECT * FROM Peers WHERE peer_id = @peer_id";
+// ...
+cmd.CommandText = "INSERT INTO Peers (peer_id, last_seen) VALUES (@peer_id, @last_seen)";
+await cmd.ExecuteNonQueryAsync(cancellationToken);
+return new Peer { PeerId = username, LastSeen = now };
+```
+
+**Correct**:
+```csharp
+cmd.CommandText = "INSERT OR IGNORE INTO Peers (peer_id, last_seen) VALUES (@peer_id, @last_seen)";
+await cmd.ExecuteNonQueryAsync(cancellationToken);
+
+cmd.CommandText = "SELECT * FROM Peers WHERE peer_id = @peer_id";
+```
+
+**Why This Keeps Happening**: Passive HashDb peer tracking is fed by live
+Soulseek events that can arrive concurrently from search, download, and
+capability paths. Any create-if-missing code for unique SQLite rows must use an
+atomic insert/upsert form and then load the row, not depend on a prior read
+remaining true.
+
 ### 0z424. Classify File Read Error Transfer Rejections As Expected Peer Denials
 
 **The Bug**: Soulseek peers can reject a requested transfer with

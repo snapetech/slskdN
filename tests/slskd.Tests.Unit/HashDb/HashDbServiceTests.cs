@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using slskd.Audio;
 using slskd.HashDb;
@@ -89,6 +90,29 @@ public class HashDbServiceTests : IDisposable
         // Assert
         Assert.NotNull(peer);
         Assert.Equal("testuser", peer.PeerId);
+    }
+
+    [Fact]
+    public async Task GetOrCreatePeerAsync_WithConcurrentSamePeer_ReturnsSinglePeer()
+    {
+        const string username = "testuser";
+        using var start = new ManualResetEventSlim();
+
+        var tasks = Enumerable.Range(0, 32)
+            .Select(_ => Task.Run(async () =>
+            {
+                start.Wait();
+                return await service.GetOrCreatePeerAsync(username);
+            }))
+            .ToArray();
+
+        start.Set();
+        var peers = await Task.WhenAll(tasks);
+
+        Assert.All(peers, peer => Assert.Equal(username, peer.PeerId));
+
+        var stats = service.GetStats();
+        Assert.Equal(1, stats.TotalPeers);
     }
 
     [Fact]
