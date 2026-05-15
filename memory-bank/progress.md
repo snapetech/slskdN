@@ -10372,3 +10372,16 @@ Code quality improvements were completed as part of Option A:
 [2026-05-15T20:08:00Z] Docker/container hardening pass: reviewed the live Docker deployment and the packaged Docker defaults. Live container is non-root, loopback-only for Web, read-only rootfs, capability-free, no-new-privileges, pids/memory limited, and healthy. Hardened future images by stripping setuid/setgid bits from runtime OS utilities and making `/.net` sticky (`1777`) instead of plain world-writable. Added Docker docs for the hardened run pattern. Live setup follow-up: removed `other+w` from the mounted media roots (`2775`) while confirming container download writes still work and the library mount remains read-only. Validation passed: packaging metadata validation, Docker image build `slskdn:hardening-test`, and image filesystem check showing no setuid/setgid files and sticky `/.net`.
 
 [2026-05-15T20:18:00Z] Container packaging hardening follow-up: tightened the Docker build context ignore list so local Git metadata, env files, private key/certificate material, SQLite databases, and generated package/release output are not sent to Docker builds. Hardened the generic Helm chart by defaulting to `SLSKD_APP_DIR=/app/config`, `DOTNET_BUNDLE_EXTRACT_BASE_DIR=/tmp/.net`, `SLSKD_UMASK=0007`, RuntimeDefault seccomp, dropped capabilities, no service-account token mount, read-only root filesystem, and memory-backed `/tmp` plus `/run`. Added matching low-risk TrueNAS defaults for app dir, bundle extraction, umask, seccomp, and dropped capabilities while leaving rootfs writable for the platform chart. Packaging metadata validation now gates these defaults. Validation passed: Helm template render, packaging metadata validation, and `git diff --check`.
+# 2026-05-15 20:36:00Z
+
+- Added opt-in Docker AppArmor hardening via
+  `packaging/docker/apparmor/slskdn-docker` and documented the hardened Docker
+  launch flag.
+- Added app-directory permission cleanup for Docker: world-writable app dirs
+  now warn, and `SLSKD_STRICT_APP_DIR_PERMISSIONS=true` sets only the mounted
+  app directory itself to `0770`.
+- Local validation caught and fixed the strict-permission path for capless
+  `--user` containers; documented this as ADR gotcha `0z437`.
+- Validated with AppArmor parser syntax check, packaging metadata gate, local
+  Docker build, local hardened container smoke, API checks, and headless
+  Chromium.

@@ -54,6 +54,36 @@
   3. Consider a slower maintenance-window recursive cleanup for any
      world-writable subdirectories under the live media tree.
 
+## Update 2026-05-15 20:36:00Z
+
+- Current task: Docker AppArmor and app-directory permission hardening complete
+  locally.
+- Last activity:
+  - added an opt-in Docker AppArmor profile at
+    `packaging/docker/apparmor/slskdn-docker`;
+  - documented loading the profile and using
+    `--security-opt apparmor=slskdn-docker` for hardened Docker launches;
+  - added non-breaking app-directory permission warnings and opt-in
+    `SLSKD_STRICT_APP_DIR_PERMISSIONS=true` handling that sets only the app
+    directory itself to `0770`;
+  - documented gotcha `0z437` after local validation caught the first strict
+    mode implementation missing the capless `--user` startup path.
+- Validation:
+  - Passed: `bash -n packaging/docker/slskdn-container-start`.
+  - Passed: `apparmor_parser -Q -T packaging/docker/apparmor/slskdn-docker`.
+  - Passed: `bash packaging/scripts/validate-packaging-metadata.sh`.
+  - Passed: local Docker image build `slskdn:apparmor-perms-test2`.
+  - Passed local hardened container smoke with `--user`, read-only rootfs,
+    tmpfs `/tmp` and `/run`, dropped capabilities, no-new-privileges, seccomp,
+    strict app dir, and read-only shares.
+  - Passed local API smoke: `/` HTTP 200, `/health` HTTP 200, protected
+    `/api/v0/application` HTTP 401.
+  - Passed local headless Chromium load of the Web UI root.
+- Next steps:
+  1. Push the hardening commit when ready.
+  2. Load the AppArmor profile only on Docker hosts with AppArmor enabled; hosts
+     without AppArmor should keep the other Docker hardening flags.
+
 ## Update 2026-05-15 08:36:00Z
 
 - Current task: `kspls0` stale-browser/direct-tab fix deployed and verified with
