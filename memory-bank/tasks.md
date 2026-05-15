@@ -2823,6 +2823,7 @@
 - [2026-05-13T16:38:00Z] Completed: fix Arch source build SDK floor, aggregate download timeout classification/logging, Snap package metadata, and startup logging sink crash; deployed manual build `0.0.0-manual.20260513163650.c07c237919e0` to kspls0 and verified web/API/service health.
 - [2026-05-14T20:29:58Z] Completed: fix HashDb concurrent peer creation race that logged SQLite `Peers.peer_id` unique-constraint warnings under live passive peer-tracking events.
 - [2026-05-14T21:19:42Z] Completed: reduce Lidarr auto-import HTTP failure log noise by treating expected external `HttpRequestException`s as concise warnings.
+- [2026-05-15T00:08:45Z] Completed: extend `kspls0` live log cleanup by fixing completed-download destination preflight and search shutdown cancellation-source disposal noise; deployed manual build `0.0.0-manual.20260515000445.401ac6b42bb6` and confirmed a clean fresh soak.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.

@@ -1,3 +1,19 @@
+## Update 2026-05-15 00:08:45Z
+
+- Current task: extended `kspls0` live log cleanup and manual deploy complete.
+- Last activity:
+  - watched the live service longer after LVM returned and found one completed-download destination permission failure plus a search finalization disposal stack trace from the old process during deploy shutdown;
+  - repaired group-write permissions on the live music destination tree;
+  - fixed completed-download destination preflight and search cancellation-token capture;
+  - deployed `0.0.0-manual.20260515000445.401ac6b42bb6` to `kspls0`.
+- Validation:
+  - Passed: focused `DownloadServiceTests` (`28/28`), focused `SearchServiceLifecycleTests` (`9/9`), `./bin/lint`, and `git diff --check`.
+  - Passed live: `slskd.service` active/running with PID `1839564`, `NRestarts=0`, Web `5030` returned `200`, current symlink points at the manual release, and the executable reports `0.0.0-manual.20260515000445.401ac6b42bb6`.
+  - Passed live fresh soak: no fatal/error, exception, permission-denied, SQLite, search-finalization, or warning markers in the sampled current-process window.
+- Next steps:
+  1. Continue monitoring tester traffic on the current manual build.
+  2. Cut a release tag only if the user explicitly asks for release work.
+
 ## Update 2026-05-14 23:49:41Z
 
 - Current task: live log cleanup and final manual deploy complete.
