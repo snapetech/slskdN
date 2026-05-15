@@ -52,6 +52,37 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z435. Compatibility Obfuscation Must Not Prefer Outbound Transfer Dials
+
+**The Bug**: Soulseek type-1 obfuscation `compatibility` mode still copied
+`prefer_outbound: true` into the runtime options. Queued download second-chance
+transfer setup could then choose a compatible obfuscated transfer endpoint,
+successfully write the transfer-token request, cancel the regular transfer
+candidates, and fail the first data read with `Remote connection closed` even
+though the same file still transfers through regular Soulseek clients.
+
+**Files Affected**:
+- `src/slskd/SoulseekObfuscationSupport.cs`
+- `src/slskd/Core/Options.cs`
+- `vendor/slskNet.Runtime/src/Network/PeerConnectionManager.cs`
+
+**Wrong**:
+```csharp
+PreferOutbound: options.PreferOutbound,
+```
+
+**Correct**:
+```csharp
+PreferOutbound: mode == SoulseekObfuscationMode.Prefer && options.PreferOutbound,
+```
+
+**Why This Keeps Happening**: "Compatibility" can sound like "enable every
+compatible path and let the connection race pick the fastest one." For Soulseek
+transfers, that changes legacy behavior because the first successful setup write
+wins before the file payload is proven readable. Compatibility mode must keep
+regular outbound peer, distributed, and transfer dials first; only explicit
+`prefer` mode may prioritize obfuscated outbound candidates.
+
 ### 0z434. Peer Browse Connection Failures Must Not Bubble As API 500s
 
 **The Bug**: Browsing while the Soulseek client is still disconnected, or
