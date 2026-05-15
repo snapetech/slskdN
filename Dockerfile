@@ -49,6 +49,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   wget \
   tini \
   && \
+  find / -xdev -type f \( -perm -4000 -o -perm -2000 \) -exec chmod a-s {} + \
+  && \
   rm -rf \
   /tmp/* \
   /var/lib/apt/lists/* \
@@ -58,7 +60,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 RUN groupadd --system slskdn \
   && useradd --system --gid slskdn --home-dir /app --shell /usr/sbin/nologin slskdn \
   && mkdir -p /.net \
-  && chmod 777 /.net
+  && chmod 1777 /.net
 
 HEALTHCHECK --interval=60s --timeout=3s --start-period=60m --retries=3 CMD wget -q -O - http://localhost:${SLSKD_HTTP_PORT}/health
 

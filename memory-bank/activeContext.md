@@ -28,6 +28,32 @@
      availability unless there is a reproducible local pattern across multiple
      peers/files.
 
+## Update 2026-05-15 20:08:00Z
+
+- Current task: Docker/container hardening pass complete locally; release
+  workflow for `build-main-2026051519-slskdn.257` is still running remotely.
+- Last activity:
+  - reviewed the live Docker service and container isolation on the validation
+    host;
+  - hardened future Docker images by removing setuid/setgid bits from runtime
+    OS utilities and changing `/.net` from `0777` to sticky `1777`;
+  - documented the hardened Docker run pattern;
+  - removed world-write permission from the live media mount roots while
+    preserving group-write access for the media group.
+- Validation:
+  - Passed: `bash packaging/scripts/validate-packaging-metadata.sh`.
+  - Passed: local Docker build `slskdn:hardening-test`.
+  - Passed: image filesystem check showed no setuid/setgid files and sticky
+    `/.net`.
+  - Passed live: container can still write the download mount, and the library
+    mount is not writable from inside the container.
+- Next steps:
+  1. Commit/push the Docker hardening patch when ready.
+  2. Continue watching the `build-main-2026051519-slskdn.257` release workflow
+     until it publishes or fails.
+  3. Consider a slower maintenance-window recursive cleanup for any
+     world-writable subdirectories under the live media tree.
+
 ## Update 2026-05-15 08:36:00Z
 
 - Current task: `kspls0` stale-browser/direct-tab fix deployed and verified with

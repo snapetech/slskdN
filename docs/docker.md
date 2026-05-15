@@ -20,9 +20,44 @@ docker run -d \
   ghcr.io/snapetech/slskdn:latest
 ```
 
+For an internet-facing or always-on host, prefer a hardened container launch.
+This keeps the web UI on loopback for a reverse proxy or SSH tunnel, drops
+Linux capabilities, prevents privilege escalation, and makes the container
+filesystem read-only except for explicit state and download mounts:
+
+```shell
+docker run -d \
+  --name slskd \
+  --network host \
+  --user <uid>:<gid> \
+  --read-only \
+  --tmpfs /tmp:rw,noexec,nosuid,nodev,size=256m \
+  --tmpfs /run:rw,noexec,nosuid,nodev,size=32m,mode=1777 \
+  --cap-drop ALL \
+  --security-opt no-new-privileges:true \
+  --pids-limit 512 \
+  --memory 4g \
+  --memory-swap 4g \
+  -e SLSKD_HTTP_ADDRESS=127.0.0.1 \
+  -e SLSKD_NO_HTTPS=true \
+  -e SLSKD_UMASK=0007 \
+  -v <path/to/slskd.yml>:/etc/slskd/slskd.yml:ro \
+  -v <path/to/application/data>:/app \
+  -v <path/to/downloads>:/downloads \
+  -v <path/to/shares>:/shares:ro \
+  ghcr.io/snapetech/slskdn:latest \
+  ./slskd --config /etc/slskd/slskd.yml --app-dir /app
+```
+
+Keep writable mounts as narrow as possible. Shared libraries that slskd only
+serves to Soulseek peers should be mounted read-only; only application state,
+incomplete downloads, and final download destinations need write access.
+Avoid world-writable host media directories; use a dedicated media group and
+group-writable permissions instead.
+
 This configuration, however, doesn't include any shared directories.
 
-First, you need to map each share to the container as a volume. Then each local directory within the container needs to be added to the configuration. You may also need to specify the user and group ID that should run the container and own files created by slskd. The default is `root:root`, but Docker will accept any numeric values in the `UID:GID` format, such as `1000:1000` in this example.
+First, you need to map each share to the container as a volume. Then each local directory within the container needs to be added to the configuration. The image starts as root only long enough to prepare the application directory and then drops to the built-in `slskdn` user. You may specify the user and group ID that should run the container and own files created by slskd. Docker accepts numeric values in the `UID:GID` format, such as `1000:1000` in this example.
 
 In the following example, assume that the slskd application directory will be `/var/slskd` on the docker host. Assume that the directories `/home/JohnDoe/Music` and `/home/JohnDoe/eBooks` will be shared. 
 
