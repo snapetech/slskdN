@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Kept regular outbound Soulseek transfer dials first in compatibility
+  obfuscation mode so second-chance downloads do not prefer obfuscated
+  endpoints unless the operator explicitly selects prefer mode.
 - Updated Web build-output release gates to validate root-absolute Vite asset
   paths plus server-side subpath rewriting for deep links.
 - Updated service-worker retirement coverage so the release gate validates

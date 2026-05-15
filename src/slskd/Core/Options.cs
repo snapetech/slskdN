@@ -2580,11 +2580,11 @@ namespace slskd
                 public bool AdvertiseRegularPort { get; init; } = true;
 
                 /// <summary>
-                ///     Gets a value indicating whether outbound peer/distributed/transfer dials should prefer compatible obfuscated metadata.
+                ///     Gets a value indicating whether prefer mode should choose compatible obfuscated metadata before regular outbound dials.
                 /// </summary>
                 [Argument(default, "slsk-obfuscation-prefer-outbound")]
                 [EnvironmentVariable("SLSK_OBFUSCATION_PREFER_OUTBOUND")]
-                [Description("prefer type-1 obfuscated outbound peer/distributed/transfer connections when peer metadata supports them")]
+                [Description("in prefer mode, choose type-1 obfuscated outbound peer/distributed/transfer connections when peer metadata supports them")]
                 [RequiresReconnect]
                 public bool PreferOutbound { get; init; } = true;
 

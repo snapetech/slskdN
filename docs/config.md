@@ -766,7 +766,7 @@ Modes:
 | `--slsk-obfuscation-mode`                | `SLSKD_SLSK_OBFUSCATION_MODE`                | Obfuscation posture: `compatibility`, `prefer`, or `only` |
 | `--slsk-obfuscation-listen-port`         | `SLSKD_SLSK_OBFUSCATION_LISTEN_PORT`         | Dedicated type-1 obfuscated peer/distributed/transfer listen port; `0` derives from `listen_port + 1` when runtime support exists |
 | `--slsk-obfuscation-advertise-regular-port` | `SLSKD_SLSK_OBFUSCATION_ADVERTISE_REGULAR_PORT` | Advertises the regular listen port alongside obfuscation metadata |
-| `--slsk-obfuscation-prefer-outbound`     | `SLSKD_SLSK_OBFUSCATION_PREFER_OUTBOUND`     | Prefers compatible type-1 obfuscated outbound peer/distributed/transfer dials |
+| `--slsk-obfuscation-prefer-outbound`     | `SLSKD_SLSK_OBFUSCATION_PREFER_OUTBOUND`     | In `prefer` mode, prefers compatible type-1 obfuscated outbound peer/distributed/transfer dials |
 
 #### **YAML**
 ```yaml
@@ -777,7 +777,7 @@ soulseek:
     mode: compatibility
     listen_port: 0
     advertise_regular_port: true
-    prefer_outbound: true
+    prefer_outbound: true  # only changes outbound priority when mode is prefer
 ```
 
 Mesh/DHT privacy uses the separate `security.adversarial` transport options. Those options can prefer Tor, I2P, WebSocket tunnel, HTTP tunnel, obfs4, or meek for slskdN mesh paths while falling back to normal mesh routing when private/obfuscated transports are unavailable. They do not wrap the official Soulseek server connection.

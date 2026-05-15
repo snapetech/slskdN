@@ -59,7 +59,7 @@ public static class SoulseekObfuscationSupport
             RequestedListenPort: requestedListenPort,
             EffectiveListenPort: effectiveListenPort,
             AdvertiseRegularPort: options.AdvertiseRegularPort,
-            PreferOutbound: options.PreferOutbound,
+            PreferOutbound: mode == SoulseekObfuscationMode.Prefer && options.PreferOutbound,
             SupportedConnectionTypes: SupportedConnectionTypes,
             RuntimeSupported: RuntimeSupportsType1PeerDistributedAndTransfers,
             RuntimeState: runtimeState,
@@ -96,7 +96,7 @@ public static class SoulseekObfuscationSupport
 
         var posture = mode switch
         {
-            SoulseekObfuscationMode.Compatibility => "Compatibility mode keeps regular peer/distributed/transfer paths available and adds obfuscated reachability.",
+            SoulseekObfuscationMode.Compatibility => "Compatibility mode keeps regular outbound peer/distributed/transfer dials first and adds obfuscated reachability.",
             SoulseekObfuscationMode.Prefer => "Prefer mode uses obfuscated peer/distributed/transfer dials when peers advertise type-1 metadata and keeps regular fallback.",
             SoulseekObfuscationMode.Only => "Only mode is not currently supported; the runtime keeps regular Soulseek fallback for legacy compatibility.",
             _ => "Soulseek type-1 peer/distributed/transfer obfuscation is configured.",

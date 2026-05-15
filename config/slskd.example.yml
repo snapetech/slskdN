@@ -386,10 +386,10 @@
 #   listen_port: 50300
 #   obfuscation:
 #     enabled: true
-#     mode: compatibility      # compatibility, prefer, or only
+#     mode: compatibility      # compatibility keeps regular outbound dials first; prefer prioritizes compatible obfuscated dials
 #     listen_port: 0           # 0 derives from listen_port + 1 when runtime support exists
 #     advertise_regular_port: true
-#     prefer_outbound: true
+#     prefer_outbound: true    # only changes outbound priority when mode is prefer
 #   diagnostic_level: Info
 #   distributed_network:
 #     disabled: false

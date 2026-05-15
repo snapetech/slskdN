@@ -79,7 +79,7 @@
 
 ### Soulseek Type-1 Message Obfuscation
 - Runtime-backed type-1 obfuscated peer-message, distributed-message, and file-transfer listener support through the vendored `slskNet.Runtime`
-- Default compatibility posture keeps regular peer, distributed, and transfer paths available for legacy clients
+- Default compatibility posture keeps regular peer, distributed, and transfer outbound dials first for legacy clients
 - Prefer mode can prioritize compatible obfuscated outbound peer, distributed, and transfer dials while keeping regular direct and indirect fallback
 - System → Network reports enablement, configured mode, effective obfuscated port, fallback posture, and runtime activation state
 - Scope includes peer-message, distributed-message, and file-transfer streams while regular Soulseek fallback remains available

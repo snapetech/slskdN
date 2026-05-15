@@ -46,14 +46,14 @@ soulseek:
     mode: compatibility
     listen_port: 0
     advertise_regular_port: true
-    prefer_outbound: true
+    prefer_outbound: true  # only changes outbound priority when mode is prefer
 ```
 
 CLI and environment equivalents are documented in `docs/config.md`.
 
 ## Network Health Rules
 
-Type-1 obfuscation is enabled for Soulseek peer-message (`P`), distributed-message (`D`), and file-transfer (`F`) streams. Implementations must preserve regular fallback in `compatibility` and `prefer` modes and rate-limit connection retries. Distributed parent selection and transfer setup keep regular direct and indirect candidates active while adding an obfuscated direct candidate only when compatible metadata is known. If an obfuscated distributed or transfer candidate connects first but fails setup negotiation, the runtime keeps the regular candidates alive and falls back before failing the operation.
+Type-1 obfuscation is enabled for Soulseek peer-message (`P`), distributed-message (`D`), and file-transfer (`F`) streams. Implementations must preserve regular fallback in `compatibility` and `prefer` modes and rate-limit connection retries. Compatibility mode keeps regular outbound dials first. Prefer mode can add an obfuscated direct candidate when compatible metadata is known. If an obfuscated distributed or transfer candidate connects first but fails setup negotiation, the runtime keeps the regular candidates alive and falls back before failing the operation.
 
 File transfer (`F`) streams can use type-1 obfuscated framing when compatible metadata is available. Regular transfer paths remain advertised and available, so legacy clients that do not support obfuscation continue to use normal Soulseek transfers.
 

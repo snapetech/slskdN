@@ -150,6 +150,35 @@ public class SoulseekOptionsValidationTests
         Assert.Contains("peer/distributed/transfer", plan.Summary);
     }
 
+    [Fact]
+    public void SoulseekObfuscationPlan_CompatibilityModeDoesNotPreferOutbound()
+    {
+        var plan = SoulseekObfuscationSupport.BuildPlan(new Options.SoulseekOptions
+        {
+            ListenPort = 50300,
+            Obfuscation = new Options.SoulseekOptions.ObfuscationOptions
+            {
+                Enabled = true,
+                Mode = SoulseekObfuscationMode.Compatibility.ToString(),
+                PreferOutbound = true,
+            },
+        });
+
+        var runtime = SoulseekObfuscationSupport.BuildRuntimeOptions(new Options.SoulseekOptions
+        {
+            ListenPort = 50300,
+            Obfuscation = new Options.SoulseekOptions.ObfuscationOptions
+            {
+                Enabled = true,
+                Mode = SoulseekObfuscationMode.Compatibility.ToString(),
+                PreferOutbound = true,
+            },
+        });
+
+        Assert.False(plan.PreferOutbound);
+        Assert.False(runtime.PreferOutbound);
+    }
+
     private static void AssertRejectsUnsupportedOnlyMode(
         System.Collections.Generic.IReadOnlyCollection<ValidationResult> results)
     {
