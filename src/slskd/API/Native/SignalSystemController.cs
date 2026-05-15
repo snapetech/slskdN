@@ -35,7 +35,7 @@ public class SignalSystemController : ControllerBase
     /// Get current signal system configuration.
     /// </summary>
     [HttpGet("config")]
-    [Authorize]
+    [Authorize(Policy = AuthPolicy.Any)]
     public IActionResult GetConfiguration()
     {
         var options = _optionsMonitor.CurrentValue;
@@ -64,7 +64,7 @@ public class SignalSystemController : ControllerBase
     /// Get signal system status and statistics.
     /// </summary>
     [HttpGet("status")]
-    [Authorize]
+    [Authorize(Policy = AuthPolicy.Any)]
     public IActionResult GetStatus()
     {
         var options = _optionsMonitor.CurrentValue;

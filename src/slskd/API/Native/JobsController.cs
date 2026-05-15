@@ -50,7 +50,7 @@ public class JobsController : ControllerBase
     /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
     [HttpPost("mb-release")]
     [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
-    [Authorize]
+    [Authorize(Policy = AuthPolicy.Any)]
     public async Task<IActionResult> CreateMbReleaseJob(
         [FromBody] MbReleaseJobRequest request,
         CancellationToken cancellationToken)
@@ -99,7 +99,7 @@ public class JobsController : ControllerBase
     /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
     [HttpPost("discography")]
     [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
-    [Authorize]
+    [Authorize(Policy = AuthPolicy.Any)]
     public async Task<IActionResult> CreateDiscographyJob(
         [FromBody] DiscographyJobRequest request,
         CancellationToken cancellationToken)
@@ -139,7 +139,7 @@ public class JobsController : ControllerBase
     /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
     [HttpPost("label-crate")]
     [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
-    [Authorize]
+    [Authorize(Policy = AuthPolicy.Any)]
     public async Task<IActionResult> CreateLabelCrateJob(
         [FromBody] LabelCrateJobRequest request,
         CancellationToken cancellationToken)
@@ -173,7 +173,7 @@ public class JobsController : ControllerBase
     /// </summary>
     /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
     [HttpGet]
-    [Authorize]
+    [Authorize(Policy = AuthPolicy.Any)]
     public Task<IActionResult> GetJobs(
         [FromQuery] string? type,
         [FromQuery] string? status,
@@ -306,7 +306,7 @@ public class JobsController : ControllerBase
     /// </summary>
     /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
     [HttpGet("{id}")]
-    [Authorize]
+    [Authorize(Policy = AuthPolicy.Any)]
     public async Task<IActionResult> GetJob(
         string id,
         CancellationToken cancellationToken)

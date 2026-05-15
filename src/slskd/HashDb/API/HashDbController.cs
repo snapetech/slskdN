@@ -199,6 +199,27 @@ namespace slskd.HashDb.API
         }
 
         /// <summary>
+        ///     Gets hash database entries for dashboard views.
+        /// </summary>
+        [HttpGet("entries")]
+        [Authorize(Policy = AuthPolicy.Any)]
+        public async Task<IActionResult> GetEntries([FromQuery] int limit = 100, [FromQuery] long offset = 0)
+        {
+            limit = Math.Clamp(limit, 1, 1000);
+            offset = Math.Max(0, offset);
+
+            var entries = await HashDb.GetEntriesSinceSeqAsync(offset, limit);
+            var latestSeq = await HashDb.GetLatestSeqIdAsync();
+
+            return Ok(new
+            {
+                latestSeq,
+                count = entries.Count(),
+                entries,
+            });
+        }
+
+        /// <summary>
         ///     Gets entries since a sequence ID (for mesh sync).
         /// </summary>
         [HttpGet("sync/since/{sinceSeq}")]

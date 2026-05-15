@@ -643,7 +643,7 @@ namespace slskd.Transfers.Downloads
                                 }
                                 catch (Exception ex) when (IsExpectedRemoteDownloadFailure(ex))
                                 {
-                                    Log.Debug("Download of {File} from {Username} failed while waiting for remote enqueue because the remote peer is unavailable: {Diagnostic}", transfer.Filename, transfer.Username, DescribeRemoteDownloadFailure(ex));
+                                    Log.Debug("Download of {File} from {Username} failed while waiting for remote enqueue because {Reason}: {Diagnostic}", transfer.Filename, transfer.Username, DescribeExpectedRemoteDownloadFailureReason(ex), DescribeRemoteDownloadFailure(ex));
                                     if (!TryFail(transferId, exception: ex))
                                     {
                                         Log.Debug("Transfer {Id} was already cleaned up after expected remote enqueue failure", transfer.Id);
@@ -673,7 +673,7 @@ namespace slskd.Transfers.Downloads
                         }
                         catch (Exception ex) when (IsExpectedRemoteDownloadFailure(ex))
                         {
-                            Log.Warning("Failed to enqueue download of {Filename} from {Username} because the remote peer is unavailable: {Diagnostic}", file.Filename, username, DescribeRemoteDownloadFailure(ex));
+                            Log.Warning("Failed to enqueue download of {Filename} from {Username} because {Reason}: {Diagnostic}", file.Filename, username, DescribeExpectedRemoteDownloadFailureReason(ex), DescribeRemoteDownloadFailure(ex));
                             TryFail(transferId, exception: ex);
                             failed.Add(file.Filename);
 
@@ -1273,7 +1273,7 @@ namespace slskd.Transfers.Downloads
                     SynchronizedUpdate(transfer, semaphore: updateSyncRoot, cancellationToken: CancellationToken.None);
                     if (IsExpectedRemoteDownloadFailure(ex))
                     {
-                        Log.Debug("Attempt {Attempt} to download {Filename} from {Username} failed because the remote peer is unavailable: {Diagnostic}", attempt, transfer.Filename, transfer.Username, DescribeRemoteDownloadFailure(ex));
+                        Log.Debug("Attempt {Attempt} to download {Filename} from {Username} failed because {Reason}: {Diagnostic}", attempt, transfer.Filename, transfer.Username, DescribeExpectedRemoteDownloadFailureReason(ex), DescribeRemoteDownloadFailure(ex));
                     }
                     else if (IsCancellationException(ex) || IsDownloadTimeout(ex))
                     {
@@ -1523,7 +1523,7 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex) when (IsExpectedRemoteDownloadFailure(ex))
             {
-                Log.Warning("Download of {Filename} from user {Username} failed because the remote peer is unavailable: {Diagnostic}", transfer.Filename, transfer.Username, DescribeRemoteDownloadFailure(ex));
+                Log.Warning("Download of {Filename} from user {Username} failed because {Reason}: {Diagnostic}", transfer.Filename, transfer.Username, DescribeExpectedRemoteDownloadFailureReason(ex), DescribeRemoteDownloadFailure(ex));
 
                 if (PeerMetrics != null)
                 {
@@ -1787,6 +1787,29 @@ namespace slskd.Transfers.Downloads
             return rejection is null
                 ? chain
                 : $"{chain}; remoteReason={rejection}";
+        }
+
+        private static string DescribeExpectedRemoteDownloadFailureReason(Exception exception)
+        {
+            if (ContainsException<TransferRejectedException>(exception) ||
+                exception.Message.Contains("Transfer rejected:", StringComparison.OrdinalIgnoreCase))
+            {
+                return "the remote peer rejected the transfer";
+            }
+
+            if (ContainsException<TransferReportedFailedException>(exception) ||
+                exception.Message.Contains("Download reported as failed by remote client", StringComparison.OrdinalIgnoreCase))
+            {
+                return "the remote peer reported the transfer as failed";
+            }
+
+            if (ContainsException<TransferSizeMismatchException>(exception) ||
+                exception.Message.Contains("Transfer aborted: the remote size", StringComparison.OrdinalIgnoreCase))
+            {
+                return "the remote peer reported a different file size";
+            }
+
+            return "the remote peer is unavailable";
         }
 
         private static bool IsExpectedRemoteDownloadFailure(Exception exception)

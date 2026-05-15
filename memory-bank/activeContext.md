@@ -155,6 +155,29 @@
   1. Include `ac5c6379f` in the next manual Docker build/release if we want
      bundled media prerequisites live on the validation host.
 
+## Update 2026-05-15 22:00:00Z
+
+- Current task: live Docker UI/API validation and first burn-down pass in
+  progress.
+- Last activity:
+  - ran headless live UI/API crawl against the Docker install;
+  - found no UI route render failures, console errors, or page exceptions
+    across the top-level application routes;
+  - fixed duplicate telemetry metrics routing, native API-key auth mismatches,
+    missing hashdb dashboard endpoint, and remote transfer rejection wording;
+  - documented route-collision and transfer-wording gotchas.
+- Validation:
+  - Passed: `dotnet build --no-restore`.
+  - Passed: `./bin/lint`.
+  - Passed: backend unit test project during `dotnet test --no-restore`.
+  - Known gap: full integration test project still fails five harness cases
+    because the spawned test app config points at a non-existent Web content
+    path.
+- Next steps:
+  1. Build and deploy a fresh manual Docker image with these fixes.
+  2. Re-run the live headless crawl and log monitor against that image.
+  3. Continue remaining TODOs from `memory-bank/tasks.md`.
+
 ## Update 2026-05-15 21:08:00Z
 
 - Current task: Optional heavier SongID Docker tooling support complete

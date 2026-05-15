@@ -39,7 +39,7 @@ public class CapabilitiesController : ControllerBase
     /// Get slskdn capabilities and feature flags.
     /// </summary>
     [HttpGet("capabilities")]
-    [Authorize]
+    [Authorize(Policy = AuthPolicy.Any)]
     public IActionResult GetCapabilities()
     {
         logger.LogDebug("Capabilities endpoint called");

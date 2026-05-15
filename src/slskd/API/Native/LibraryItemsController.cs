@@ -59,7 +59,7 @@ public class LibraryItemsController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>List of library items with stable contentId.</returns>
     [HttpGet]
-    [Authorize]
+    [Authorize(Policy = AuthPolicy.Any)]
     public async Task<IActionResult> SearchItems(
         [FromQuery] string? query = null,
         [FromQuery] string? kinds = null,
@@ -154,7 +154,7 @@ public class LibraryItemsController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Folder entries and a paged file result set.</returns>
     [HttpGet("browser")]
-    [Authorize]
+    [Authorize(Policy = AuthPolicy.Any)]
     public async Task<IActionResult> BrowseItems(
         [FromQuery] string? path = null,
         [FromQuery] string? query = null,
@@ -407,7 +407,7 @@ public class LibraryItemsController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Library item metadata.</returns>
     [HttpGet("{contentId}")]
-    [Authorize]
+    [Authorize(Policy = AuthPolicy.Any)]
     public async Task<IActionResult> GetItem(
             string contentId,
             CancellationToken cancellationToken = default)

@@ -41,7 +41,7 @@ public class LibraryHealthController : ControllerBase
     /// Get library health summary and issues.
     /// </summary>
     [HttpGet("health")]
-    [Authorize]
+    [Authorize(Policy = AuthPolicy.Any)]
     public async Task<IActionResult> GetHealth(
         [FromQuery] string? path,
         [FromQuery] int limit = 100,
@@ -89,7 +89,7 @@ public class LibraryHealthController : ControllerBase
     /// </summary>
     [HttpPost("remediate")]
     [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
-    [Authorize]
+    [Authorize(Policy = AuthPolicy.Any)]
     public async Task<IActionResult> CreateRemediationJob(
         [FromBody] LibraryRemediationRequest request,
         CancellationToken cancellationToken = default)

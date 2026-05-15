@@ -44,7 +44,7 @@ public class WarmCacheController : ControllerBase
     /// </summary>
     [HttpPost("hints")]
     [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
-    [Authorize]
+    [Authorize(Policy = AuthPolicy.Any)]
     public async Task<IActionResult> SubmitHints(
         [FromBody] WarmCacheHintsRequest request,
         CancellationToken cancellationToken)

@@ -2855,3 +2855,15 @@
 - [2026-05-07T03:21:15Z] Completed: clean up Browse root download action and selected-folder file panel presentation.
 
 - [2026-05-07T19:37:00Z] Completed: diagnose and fix kspls0 mesh peering behind VPN NAT-PMP; added separate DHT advertised overlay port support, deployed live hotfix, enabled Soulseek rendezvous, and verified one active mesh overlay peer.
+
+## 2026-05-15 Live Docker UI/API Validation Follow-ups
+
+- [2026-05-15T22:00:00Z] Completed: fix duplicate telemetry metrics routing so `GET /api/v0/telemetry/metrics` no longer throws `AmbiguousMatchException`.
+- [2026-05-15T22:00:00Z] Completed: normalize slskdN native controllers to `AuthPolicy.Any` so API-key deployments can use native UI/API surfaces instead of JWT-only failures.
+- [2026-05-15T22:00:00Z] Completed: add `/api/v0/hashdb/entries` compatibility endpoint for the dashboard helper that already calls it.
+- [2026-05-15T22:00:00Z] Completed: split expected transfer failure wording so explicit remote rejections are not logged as offline peers.
+- [ ] Re-test live Docker UI/API after deploying the fixed manual image; expected remaining API probe exceptions are admin-only debug/visualizer endpoints and intentionally capped-vs-unlimited search listing behavior.
+- [ ] Review whether API-key deployments should expose read-only status for `/api/v0/player/external-visualizer` or keep it admin-only.
+- [ ] Decide whether `GET /api/v0/searches` should apply a conservative default server-side limit when no `limit` query is provided; the Web UI already passes `limit=500`, but direct callers can still request an expensive unlimited list.
+- [ ] Reduce noisy mesh-health warnings when DHT/mesh is enabled but no healthy mesh peers are reachable; preserve actionable startup/connectivity diagnostics.
+- [ ] Investigate Lidarr auto-import timeout behavior under busy download bursts and decide whether it needs backoff, queue visibility, or longer timeout controls.

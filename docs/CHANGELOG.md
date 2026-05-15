@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fixed duplicate telemetry metrics routing so `GET /api/v0/telemetry/metrics`
+  no longer throws an ambiguous-route 500.
+- Allowed API-key authentication on native slskdN API controllers that
+  previously required JWT-only authentication.
+- Added `/api/v0/hashdb/entries` for hash database dashboard views.
+- Kept explicit remote transfer rejections distinct from offline-peer failures
+  in download logs.
 - Ignored invalid optional obfuscated ports in Soulseek `ConnectToPeer`
   messages so malformed extension metadata does not drop otherwise usable
   regular peer-connection hints.

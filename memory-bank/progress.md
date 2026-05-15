@@ -10466,3 +10466,20 @@ Code quality improvements were completed as part of Option A:
   validation, `git diff --check`, local Docker image build
   `slskdn:optional-tools-test`, image smoke for the installer/core tools/QUIC,
   and `./bin/lint`.
+
+# 2026-05-15 22:00:00Z
+
+- Ran a headless live Docker UI/API pass across 25 top-level routes and 72
+  read-only API probes. All UI routes rendered without browser console errors
+  or page exceptions.
+- Fixed live-proven backend issues: duplicate telemetry metrics route causing
+  `AmbiguousMatchException`, API-key auth mismatches on native slskdN
+  controllers, missing `/api/v0/hashdb/entries`, and misleading transfer
+  rejection wording.
+- Recorded remaining follow-ups in `memory-bank/tasks.md`: admin-only
+  external visualizer status, direct unlimited `/searches`, mesh-health warning
+  noise, and Lidarr auto-import timeouts under busy download bursts.
+- Validation: `dotnet build --no-restore` passed, `./bin/lint` passed,
+  backend unit tests passed. Full `dotnet test --no-restore` still has five
+  integration harness failures caused by spawned test instances using a
+  non-existent Web content path.

@@ -20,7 +20,7 @@ using slskd.PodCore;
 [Route("api/v{version:apiVersion}/pods")]
 [ApiVersion("0")]
 [Produces("application/json")]
-[Authorize]
+[Authorize(Policy = AuthPolicy.Any)]
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
 public class PodsController : ControllerBase
 {

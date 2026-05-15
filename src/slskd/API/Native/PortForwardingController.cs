@@ -20,7 +20,7 @@ using slskd.Core.Security;
 [Route("api/v{version:apiVersion}/[controller]")]
 [ApiVersion("0")]
 [ApiController]
-[Authorize]
+[Authorize(Policy = AuthPolicy.Any)]
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
 public class PortForwardingController : ControllerBase
 {

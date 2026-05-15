@@ -36,7 +36,7 @@ using Serilog;
 /// <summary>
 ///     Telemetry.
 /// </summary>
-[Route("api/v{version:apiVersion}/telemetry/[controller]")]
+[Route("api/v{version:apiVersion}/telemetry/prometheus")]
 [Tags("Telemetry")]
 [ApiVersion("0")]
 [ApiController]
