@@ -7844,3 +7844,15 @@ other open follow-ups are documented in `memory-bank/tasks.md`.
 Fixed the negative completed-transfer speed display found in the latest live
 logs. This is ready to include in the next manual image/release pass; the live
 container has not been rebuilt again for this last cosmetic log fix yet.
+
+## 2026-05-15T22:48:00Z Session update
+
+The live Docker host is now running the all-tools manual image from revision
+`b2ebabc43e` after a verified tar reload. Docker health is healthy, restart
+count is zero, optional tools are present, and the post-deploy crawl is clean
+for routes and browser behavior.
+
+Known remaining follow-ups are unchanged: admin-only debug/visualizer API
+semantics, direct uncapped `/api/v0/searches`, noisy mesh-health warnings when
+no mesh peers are reachable, Lidarr 500s, and the host unit bypassing the image
+entrypoint so live `umask` remains `0022`.

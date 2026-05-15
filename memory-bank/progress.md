@@ -10508,3 +10508,23 @@ Code quality improvements were completed as part of Option A:
   to zero.
 - Documented the gotcha in ADR-0001 and validated the focused unit coverage,
   `git diff --check`, and `./bin/lint`.
+
+# 2026-05-15 22:48:00Z
+
+- Built and deployed the manual all-tools Docker image for revision
+  `b2ebabc43e` after the first direct pipe transfer produced a corrupt remote
+  image layer. Re-transferred the image as a tar with SHA-256 verification,
+  reloaded it cleanly, and restarted the live Docker service.
+- Verified the running container reports version
+  `0.0.0-manual.20260515222858.b2ebabc43e`, Docker health is healthy, restart
+  count is zero, capabilities are dropped, no-new-privileges and seccomp are
+  enabled, and optional media tools are present.
+- Re-ran the headless crawl against the live image: 25 routes, zero route
+  failures, zero browser console/page errors, zero bad responses, and zero
+  failed browser requests. API probes still show only the known exceptions:
+  admin-only debug status, direct uncapped `/api/v0/searches` timeout behavior,
+  and admin-only external visualizer control.
+- Fresh logs are free of route ambiguity, API 404s, permission/read-only
+  failures, and image checksum errors after the verified reload. Remaining
+  noisy signals are mesh-health warnings with no reachable mesh peers and
+  intermittent Lidarr 500 responses.
