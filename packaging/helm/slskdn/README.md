@@ -36,7 +36,7 @@ helm install slskdn ./packaging/helm/slskdn \
 | **persistence** | `config.enabled` | `true` | PVC for `/app/config` |
 | | `config.size` | `1Gi` | Size (and optional `storageClass`) |
 | | `downloads` | `10Gi` | `/app/downloads` |
-| | `shares` | `10Gi` | `/app/shared` |
+| | `shares` | `10Gi` | `/app/shared`, mounted read-only by default |
 | | `incomplete` | `5Gi` | `/app/incomplete` |
 | **env** | `SLSKD_*` | (see `values.yaml`) | Soulseek, API, mesh, privacy, etc. |
 | **ingress** | `enabled` | `false` | Create Ingress |

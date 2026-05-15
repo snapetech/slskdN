@@ -45,6 +45,7 @@ persistence:
     mountPath: /app/shared
     type: hostPath
     hostPath: "{{ .Values.hostPath }}/shared"
+    readOnly: true
   incomplete:
     enabled: true
     mountPath: /app/incomplete

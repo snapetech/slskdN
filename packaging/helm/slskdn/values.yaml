@@ -28,6 +28,7 @@ persistence:
     storageClass: ""
   shares:
     enabled: true
+    readOnly: true
     size: 10Gi
     storageClass: ""
   incomplete:

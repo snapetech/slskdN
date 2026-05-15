@@ -57,6 +57,7 @@ spec:
             {{- if .Values.persistence.shares.enabled }}
             - name: shares
               mountPath: /app/shared
+              readOnly: {{ .Values.persistence.shares.readOnly | default true }}
             {{- end }}
             {{- if .Values.persistence.incomplete.enabled }}
             - name: incomplete
