@@ -1,3 +1,24 @@
+## Update 2026-05-15 08:12:21Z
+
+- Current task: tester feedback triage partly complete.
+- Last activity:
+  - verified the stable release tag and Linux x64 release artifact are current,
+    including bundled direct search-detail route code;
+  - identified stale browser service workers as the likely reason fixed search
+    result tabs can still look broken after upgrade;
+  - retired the web service worker, added startup cleanup for old workers and
+    caches, documented ADR-0001 gotcha `0z432`, and committed `0f111e324`.
+- Validation:
+  - Passed: `scripts/verify-release-artifacts.sh build-main-2026051501-slskdn.253`.
+  - Passed: focused Web tests for service-worker/Search route behavior
+    (`13/13`) and focused Web lint.
+- Next steps:
+  1. Ask tester to hard reload or use a browser profile after deploying a build
+     containing `0f111e324`, then retry opening search-result tabs.
+  2. For downloads, collect one failed transfer's username, remote filename,
+     UI transfer state, and nearby daemon log lines; current evidence only shows
+     expected remote peer closes, not a proven local packaging/stale-code issue.
+
 ## Update 2026-05-15 00:08:45Z
 
 - Current task: extended `kspls0` live log cleanup and manual deploy complete.

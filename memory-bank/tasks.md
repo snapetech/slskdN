@@ -11,6 +11,11 @@
 
 *No high priority tasks currently active
 
+- [ ] Collect failed direct-download evidence from stable tester build.
+ - Status: pending (2026-05-15)
+ - Priority: P1
+ - Notes: Tester reports selected downloads still fail with only `Remote connection closed`. The stable release artifact is current and contains the recent route/download fixes, so the next useful evidence is one failed transfer's username, remote filename, UI transfer state, and nearby daemon log lines to distinguish expected remote peer closes from a local transfer regression.
+
 - [x] Red-team slskdN and slskNet.Runtime for conservative hardening gaps.
  - Status: completed (2026-05-14)
  - Priority: P1

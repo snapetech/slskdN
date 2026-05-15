@@ -1,3 +1,16 @@
+## 2026-05-15
+
+- Investigated tester feedback that the stable release still failed direct
+  search-result tabs and downloads. Verified `build-main-2026051501-slskdn.253`
+  points at current `HEAD`, release artifact checksums pass, the Linux x64
+  binary reports `2026051501-slskdn.253`, and the bundled web assets contain
+  the direct `/searches/{id}` loader. Retired the web service worker, cleared
+  stale caches during startup, documented ADR-0001 gotcha `0z432`, and
+  committed `0f111e324`. Validation passed: focused service-worker/Search
+  Vitest (`13/13`) and focused Web lint. Remaining download feedback still
+  needs peer/request-level evidence because `Remote connection closed` is
+  currently classified as an expected remote peer failure.
+
 ## 2026-05-14
 
 - Rechecked live logs after the manual deploy and fixed the remaining actionable
