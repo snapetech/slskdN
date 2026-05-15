@@ -32,6 +32,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   detached task stack-trace noise.
 - Preflighted completed-download destination directories before moving finished
   files so stale directory permissions fail once on the observed transfer path.
+- Captured search cancellation tokens before publishing their sources so normal
+  shutdown no longer logs search finalization disposal stack traces.
 - Routed HTTP LLM moderation endpoint checks through the shared DNS-aware
   outbound guard so hostnames resolving to non-public ranges are blocked before
   any request is sent.

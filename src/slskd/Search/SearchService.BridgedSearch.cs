@@ -31,6 +31,7 @@ public sealed partial class SearchService
     private async Task<Search> StartBridgedSearchAsync(Guid id, SearchQuery query, SearchScope scope, SearchOptions? options = null, List<ISearchProvider>? providersToUse = null)
     {
         var cancellationTokenSource = new CancellationTokenSource();
+        var searchCancellationToken = cancellationTokenSource.Token;
         CancellationTokens.TryAdd(id, cancellationTokenSource);
 
         // Initialize search record
@@ -65,7 +66,7 @@ public sealed partial class SearchService
 
             // Aggregate results from requested providers (or all if not specified)
             var providers = providersToUse ?? SearchProviders;
-            var aggregatedResults = await aggregator.AggregateAsync(providers, providerRequest, cancellationTokenSource.Token);
+            var aggregatedResults = await aggregator.AggregateAsync(providers, providerRequest, searchCancellationToken);
 
             // Convert SearchResult back to Response format for compatibility
             // Responses already have provenance attached by providers
@@ -87,7 +88,7 @@ public sealed partial class SearchService
 
             return search;
         }
-        catch (OperationCanceledException) when (cancellationTokenSource.Token.IsCancellationRequested)
+        catch (OperationCanceledException) when (searchCancellationToken.IsCancellationRequested)
         {
             Log.Information("[ScenePodBridge] Search for '{Query}' was cancelled", query.SearchText);
             search.State = SearchStates.Completed | SearchStates.Cancelled;

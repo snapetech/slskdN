@@ -347,6 +347,7 @@ namespace slskd.Search
             var token = Client.GetNextToken();
 
             var cancellationTokenSource = new CancellationTokenSource();
+            var searchCancellationToken = cancellationTokenSource.Token;
             CancellationTokens.TryAdd(id, cancellationTokenSource);
 
             using var rateLimiter = new RateLimiter(250);
@@ -462,7 +463,7 @@ namespace slskd.Search
                     scope,
                     token,
                     options,
-                    cancellationToken: cancellationTokenSource.Token);
+                    cancellationToken: searchCancellationToken);
 
                 // search looks ok so far; let the rest of the logic run asynchronously
                 // on a background thread. this logic needs to clean up after itself and
@@ -477,7 +478,7 @@ namespace slskd.Search
                         var meshEnabled = OptionsMonitor.CurrentValue.Feature.MeshParallelSearch
                             || OptionsMonitor.CurrentValue.VirtualSoulfind?.MeshSearch?.Enabled == true;
                         var meshTask = (meshEnabled && MeshOverlaySearchService != null)
-                            ? MeshOverlaySearchService.SearchAsync(query.SearchText, cancellationTokenSource.Token)
+                            ? MeshOverlaySearchService.SearchAsync(query.SearchText, searchCancellationToken)
                             : Task.FromResult((IReadOnlyList<Response>)Array.Empty<Response>());
 
                         var meshPublicationTask = PublishMeshResultsWhenReadyAsync(meshTask);
@@ -495,7 +496,7 @@ namespace slskd.Search
 
                             // OperationCanceledException might be thrown somewhere deeper, and we don't want that to count.
                             // User-cancelled searches trip the search token; host shutdown trips the app lifecycle flag.
-                            if (IsExpectedSearchCancellation(ex, cancellationTokenSource.Token, Application.IsShuttingDown))
+                            if (IsExpectedSearchCancellation(ex, searchCancellationToken, Application.IsShuttingDown))
                             {
                                 var reason = Application.IsShuttingDown ? " during shutdown" : string.Empty;
                                 Log.Information("Search for '{Query}' was cancelled{Reason}", query, reason);
@@ -815,6 +816,7 @@ namespace slskd.Search
             Log.Information("[VSF-DISASTER-SEARCH] Starting mesh-only search for query: {Query} (id: {Id})", query.SearchText, id);
 
             var cancellationTokenSource = new CancellationTokenSource();
+            var searchCancellationToken = cancellationTokenSource.Token;
             CancellationTokens.TryAdd(id, cancellationTokenSource);
 
             // Initialize search record for mesh-only search
@@ -837,7 +839,7 @@ namespace slskd.Search
 
                 // T-823: Mesh-only search implementation
                 // Step 1: Resolve query to MBIDs (MusicBrainz IDs)
-                var mbids = await ResolveQueryToMbidsAsync(query.SearchText, cancellationTokenSource.Token);
+                var mbids = await ResolveQueryToMbidsAsync(query.SearchText, searchCancellationToken);
 
                 if (mbids.Count == 0)
                 {
@@ -847,7 +849,7 @@ namespace slskd.Search
                     {
                         try
                         {
-                            overlayResponses = await MeshOverlaySearchService.SearchAsync(query.SearchText, cancellationTokenSource.Token);
+                            overlayResponses = await MeshOverlaySearchService.SearchAsync(query.SearchText, searchCancellationToken);
                         }
                         catch (Exception ex)
                         {
@@ -886,7 +888,7 @@ namespace slskd.Search
                             continue;
                         }
 
-                        var mbidResult = await MeshSearchService.SearchByMbidAsync(mbid, cancellationTokenSource.Token);
+                        var mbidResult = await MeshSearchService.SearchByMbidAsync(mbid, searchCancellationToken);
                         if (mbidResult == null)
                         {
                             continue;
