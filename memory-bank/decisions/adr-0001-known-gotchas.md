@@ -52,6 +52,34 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z443. Expected Transfer Failures Still Need Specific User-Facing Reasons
+
+**The Bug**: Download failures from offline peers, explicit remote transfer
+rejections, remote failed-transfer reports, and size mismatches were all logged
+as "remote peer is unavailable." When a remote client rejected a transfer with
+a quota reason, operators saw an offline-peer diagnosis even though the peer
+was reachable and deliberately refused the request.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+
+**Wrong**:
+```csharp
+Log.Warning("Download failed because the remote peer is unavailable: {Diagnostic}", diagnostic);
+```
+
+**Correct**:
+```csharp
+Log.Warning("Download failed because {Reason}: {Diagnostic}",
+    DescribeExpectedRemoteDownloadFailureReason(ex),
+    diagnostic);
+```
+
+**Why This Keeps Happening**: It is useful to group noisy remote/network
+failures into one expected-failure path, but that grouping must not erase the
+specific reason when the app reports it back to operators. Keep broad retry and
+failure handling separate from log/UI wording.
+
 ### 0z442. API Controllers Must Not Reclaim Existing Route Paths
 
 **The Bug**: A newer metrics controller used the route template
