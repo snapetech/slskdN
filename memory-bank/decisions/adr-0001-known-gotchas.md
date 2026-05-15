@@ -52,6 +52,45 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z442. API Controllers Must Not Reclaim Existing Route Paths
+
+**The Bug**: A newer metrics controller used the route template
+`api/v{version}/telemetry/[controller]`, which expanded to
+`/api/v0/telemetry/metrics` and collided with the existing telemetry
+controller's `GET /api/v0/telemetry/metrics` action. ASP.NET Core accepted the
+app at startup but threw `AmbiguousMatchException` and returned 500 when the
+endpoint was requested.
+
+**Files Affected**:
+- `src/slskd/Telemetry/API/MetricsController.cs`
+- `src/slskd/Telemetry/API/TelemetryController.cs`
+
+**Wrong**:
+```csharp
+[Route("api/v{version:apiVersion}/telemetry/[controller]")]
+public class MetricsController : ControllerBase
+{
+    [HttpGet("")]
+    public async Task<IActionResult> Get() { ... }
+}
+```
+
+**Correct**:
+```csharp
+[Route("api/v{version:apiVersion}/telemetry/prometheus")]
+public class MetricsController : ControllerBase
+{
+    [HttpGet("")]
+    public async Task<IActionResult> Get() { ... }
+}
+```
+
+**Why This Keeps Happening**: Attribute routes that use `[controller]` hide the
+final URL during review, and overlapping controllers can compile cleanly until
+a live request hits the ambiguous path. Before adding or moving an API
+controller, grep for the final public route and prefer explicit route segments
+when a feature namespace already has a compatibility controller.
+
 ### 0z441. Optional Tool "All" Installers Must Actually Cover Every Advertised Engine
 
 **The Bug**: The Docker `install-optional-media-tools all` profile omitted
