@@ -7838,3 +7838,9 @@ errors, fatal entries, route ambiguity, API 404s, permission denials, or
 read-only filesystem failures. The remaining item to burn down first is noisy
 mesh-health warning output when mesh/DHT has no reachable healthy peers; the
 other open follow-ups are documented in `memory-bank/tasks.md`.
+
+## 2026-05-15T22:35:00Z Session update
+
+Fixed the negative completed-transfer speed display found in the latest live
+logs. This is ready to include in the next manual image/release pass; the live
+container has not been rebuilt again for this last cosmetic log fix yet.

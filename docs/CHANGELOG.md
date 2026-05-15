@@ -29,6 +29,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Added `/api/v0/hashdb/entries` for hash database dashboard views.
 - Kept explicit remote transfer rejections distinct from offline-peer failures
   in download logs.
+- Clamped completed-transfer display speed to zero when immediate failed
+  transfers report transient negative throughput.
 - Ignored invalid optional obfuscated ports in Soulseek `ConnectToPeer`
   messages so malformed extension metadata does not drop otherwise usable
   regular peer-connection hints.

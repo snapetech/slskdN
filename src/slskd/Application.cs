@@ -1917,7 +1917,7 @@ namespace slskd
 
             var completed = xfer.State.HasFlag(TransferStates.Completed);
 
-            Log.Information($"[{direction}] [{user}/{file}] {oldState} => {state}{(completed ? $" ({xfer.BytesTransferred}/{xfer.Size} = {xfer.PercentComplete}%) @ {xfer.AverageSpeed.SizeSuffix()}/s" : string.Empty)}");
+            Log.Information($"[{direction}] [{user}/{file}] {oldState} => {state}{(completed ? FormatCompletedTransferProgress(xfer.BytesTransferred, xfer.Size, xfer.PercentComplete, xfer.AverageSpeed) : string.Empty)}");
 
             // Broadcast transfer activity to connected clients
             var activity = TransferActivity.FromTransferStateChange(xfer, oldState);
@@ -1934,6 +1934,12 @@ namespace slskd
                     "Failed to report upload speed for {Username}",
                     xfer.Username);
             }
+        }
+
+        internal static string FormatCompletedTransferProgress(long bytesTransferred, long size, double percentComplete, double averageSpeed)
+        {
+            var displaySpeed = Math.Max(0, averageSpeed);
+            return $" ({bytesTransferred}/{size} = {percentComplete}%) @ {displaySpeed.SizeSuffix()}/s";
         }
 
         private void Client_UserStatusChanged(object? sender, UserStatus args)

@@ -10499,3 +10499,12 @@ Code quality improvements were completed as part of Option A:
   `AmbiguousMatchException`, API 404s, permission failures, or read-only
   filesystem failures appeared; the remaining noisy signal is mesh-health
   warnings when mesh/DHT has no reachable healthy peers.
+
+# 2026-05-15 22:35:00Z
+
+- Fixed one additional live-log finding from the fresh post-deploy check:
+  immediate failed 0-byte transfers can carry transient negative
+  `AverageSpeed`, so completed-transfer log formatting now clamps display speed
+  to zero.
+- Documented the gotcha in ADR-0001 and validated the focused unit coverage,
+  `git diff --check`, and `./bin/lint`.

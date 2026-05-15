@@ -72,6 +72,18 @@ public class ApplicationLifecycleTests
     }
 
     [Fact]
+    public void FormatCompletedTransferProgress_ClampsNegativeAverageSpeed()
+    {
+        var formatted = Application.FormatCompletedTransferProgress(
+            bytesTransferred: 0,
+            size: 40_203_136,
+            percentComplete: 0,
+            averageSpeed: -18_400_000_000);
+
+        Assert.Equal(" (0/40203136 = 0%) @ 0.0 bytes/s", formatted);
+    }
+
+    [Fact]
     public void Dispose_DetachesManagedStateSubscriptions()
     {
         var optionsMonitor = new TestOptionsMonitor<Options>(new Options());

@@ -52,6 +52,32 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z444. Completed Transfer Logs Must Clamp Transient Negative Speeds
+
+**The Bug**: Failed transfers that completed immediately with zero bytes could
+carry a transient negative `AverageSpeed`, which made the transfer state log
+print impossible values such as `@ -18.4 GB/s`.
+
+**Files Affected**:
+- `src/slskd/Application.cs`
+
+**Wrong**:
+```csharp
+$"@ {xfer.AverageSpeed.SizeSuffix()}/s"
+```
+
+**Correct**:
+```csharp
+var displaySpeed = Math.Max(0, averageSpeed);
+return $"@ {displaySpeed.SizeSuffix()}/s";
+```
+
+**Why This Keeps Happening**: Transfer speed is an event payload from a
+stateful remote/network operation and can contain transient math artifacts
+during immediate failure paths. Logs and UI-facing formatting should sanitize
+display-only values instead of treating every raw event number as physically
+meaningful.
+
 ### 0z443. Expected Transfer Failures Still Need Specific User-Facing Reasons
 
 **The Bug**: Download failures from offline peers, explicit remote transfer
