@@ -60,7 +60,10 @@ function resolveFilePath(requestPath) {
 }
 
 function injectBaseHref(html) {
-  return html.replace('<head>', `<head><base href="${mountPath}" />`);
+  return html
+    .replace('<head>', `<head><base href="${mountPath}" />`)
+    .replaceAll('src="/assets/', `src="${mountPath}assets/`)
+    .replaceAll('href="/assets/', `href="${mountPath}assets/`);
 }
 
 if (!fs.existsSync(indexPath)) {
@@ -114,14 +117,14 @@ server.listen(0, '127.0.0.1', async () => {
 
     const indexHtml = await indexResponse.text();
     if (/(?:src|href)="\/assets\//.test(indexHtml)) {
-      fail('Expected built index.html to avoid root-relative /assets references');
+      fail('Expected served subpath index.html to prefix root-absolute /assets references with the mount path');
     }
 
     if (!indexHtml.includes(`<base href="${mountPath}" />`)) {
       fail('Expected served index.html to inject a mount base href for deep-link asset resolution');
     }
 
-    const assetMatches = [...indexHtml.matchAll(/(?:src|href)="(\.\/assets\/[^"]+)"/g)];
+    const assetMatches = [...indexHtml.matchAll(/(?:src|href)="(\/slskd\/assets\/[^"]+)"/g)];
     const assetPaths = [...new Set(assetMatches.map((match) => match[1]))];
 
     if (assetPaths.length === 0) {
@@ -129,7 +132,7 @@ server.listen(0, '127.0.0.1', async () => {
     }
 
     for (const assetPath of assetPaths) {
-      const assetUrl = new URL(assetPath, `${origin}${mountPath}`);
+      const assetUrl = new URL(assetPath, origin);
       const assetResponse = await fetch(assetUrl);
 
       if (!assetResponse.ok) {
@@ -147,7 +150,7 @@ server.listen(0, '127.0.0.1', async () => {
       }
     }
 
-    console.log('Verified built web output loads correctly from a deep link under /slskd/ with relative assets and a mounted base href.');
+    console.log('Verified built web output loads correctly from a deep link under /slskd/ with prefixed assets and a mounted base href.');
   } catch (error) {
     fail(error instanceof Error ? error.message : String(error));
   } finally {

@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Updated Web build-output release gates to validate root-absolute Vite asset
+  paths plus server-side subpath rewriting for deep links.
 - Updated service-worker retirement coverage so the release gate validates
   cache cleanup instead of the removed precache path.
 - Labeled expected remote download failures as `Peer unavailable` in the

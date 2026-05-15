@@ -104,6 +104,8 @@ page.
 **Files Affected**:
 - `src/web/vite.config.js`
 - `src/slskd/Bootstrap/WebHtmlRewriteRules.cs`
+- `src/web/scripts/verify-build-output.mjs`
+- `src/web/scripts/smoke-subpath-build.mjs`
 
 **Wrong**:
 ```csharp
@@ -129,6 +131,10 @@ unless `index.html` always declares the app base path. Prefer root-absolute
 Vite asset URLs so raw fallback HTML is correct even before any response
 rewriter is considered; the existing HTML rewrite rules prefix those absolute
 paths for non-root `url_base` deployments.
+
+Release/build-output gates must enforce the same contract: raw Vite output
+uses `/assets/...`, and subpath smoke tests must emulate the server-side
+rewrite to `/url_base/assets/...` before checking asset fetches.
 
 ### 0z432. Retire Service Workers Before Debugging Stale Web Regressions
 
