@@ -52,6 +52,34 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z433. Root SPA Fallbacks Need A Base Tag For Deep Routes
+
+**The Bug**: Directly opening a client-side route such as `/searches/{id}` on
+a root `url_base` deployment served `index.html`, but Vite's relative
+`./assets/...` references resolved under `/searches/assets/...`. The browser
+received 404s for every JS/CSS asset and React never started, leaving a blank
+page.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/WebHtmlRewriteRules.cs`
+
+**Wrong**:
+```csharp
+string BaseTag() => string.IsNullOrEmpty(normalizedUrlBase)
+    ? "<head>"
+    : $"<head><base href=\"{normalizedUrlBase}/\" />";
+```
+
+**Correct**:
+```csharp
+string BaseTag() => $"<head><base href=\"{(string.IsNullOrEmpty(normalizedUrlBase) ? "/" : $"{normalizedUrlBase}/")}\" />";
+```
+
+**Why This Keeps Happening**: Root deployments look like they do not need a
+base tag when testing `/`, but SPA fallback pages are served at the requested
+deep route. Relative Vite asset URLs then resolve relative to that deep route
+unless `index.html` always declares the app base path.
+
 ### 0z432. Retire Service Workers Before Debugging Stale Web Regressions
 
 **The Bug**: A fixed web release can still appear broken when an older browser

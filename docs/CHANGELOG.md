@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Added a root SPA base tag so direct deep links such as `/searches/{id}` load
+  Vite assets from `/assets` instead of `/searches/assets`.
 - Retired the web service worker and cleared stale browser caches during
   startup so upgraded clients load current SPA route code instead of old bundles.
 - Avoided duplicate warning logs for expected download timeouts by leaving the

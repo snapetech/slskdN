@@ -152,6 +152,25 @@ public class ProgramPathNormalizationTests
     }
 
     [Fact]
+    public void CreateWebHtmlRewriteRules_AddsRootBase_ForRootUrlBase()
+    {
+        var rules = WebHtmlRewriteRules.Create("/");
+
+        var html = """
+            <head>
+            <script type="module" src="./assets/index.js"></script>
+            """;
+
+        foreach (var (pattern, replacement) in rules)
+        {
+            html = System.Text.RegularExpressions.Regex.Replace(html, pattern, replacement);
+        }
+
+        Assert.Contains("<head><base href=\"/\" />", html);
+        Assert.Contains("src=\"./assets/index.js\"", html);
+    }
+
+    [Fact]
     public void CreateWebHtmlRewriteRules_PrefixesAssetAndManifestPaths_ForUrlBase()
     {
         var rules = WebHtmlRewriteRules.Create("/system");

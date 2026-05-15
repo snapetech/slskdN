@@ -13,9 +13,7 @@ public static class WebHtmlRewriteRules
             : (urlBase.StartsWith("/") ? urlBase : "/" + urlBase).TrimEnd('/');
 
         string Prefix(string path) => string.IsNullOrEmpty(normalizedUrlBase) ? path : $"{normalizedUrlBase}{path}";
-        string BaseTag() => string.IsNullOrEmpty(normalizedUrlBase)
-            ? "<head>"
-            : $"<head><base href=\"{normalizedUrlBase}/\" />";
+        string BaseTag() => $"<head><base href=\"{(string.IsNullOrEmpty(normalizedUrlBase) ? "/" : $"{normalizedUrlBase}/")}\" />";
 
         return new List<(string Pattern, string Replacement)>
         {
