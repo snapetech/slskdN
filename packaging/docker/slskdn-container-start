@@ -10,6 +10,22 @@ warn_ephemeral_app_dir() {
   fi
 }
 
+warn_permissive_app_dir() {
+  local mode
+  mode="$(stat -c '%a' "$app_dir" 2>/dev/null || true)"
+  if [[ "$mode" =~ [2367]$ ]]; then
+    echo "slskdN warning: $app_dir is writable by others (mode $mode); use a dedicated owner/group or set SLSKD_STRICT_APP_DIR_PERMISSIONS=true." >&2
+  fi
+}
+
+apply_strict_app_dir_permissions() {
+  case "${SLSKD_STRICT_APP_DIR_PERMISSIONS:-false}" in
+    true|TRUE|1|yes|YES)
+      chmod 0770 "$app_dir"
+      ;;
+  esac
+}
+
 require_app_dir_access() {
   if [ ! -r "$app_dir" ] || [ ! -w "$app_dir" ]; then
     echo "slskdN error: $app_dir must be readable and writable by $(id -u):$(id -g)." >&2
@@ -25,7 +41,9 @@ if [ "$(id -u)" -ne 0 ]; then
   fi
 
   mkdir -p "$app_dir" 2>/dev/null || true
+  apply_strict_app_dir_permissions
   require_app_dir_access
+  warn_permissive_app_dir
   warn_ephemeral_app_dir
   exec "$@"
 fi
@@ -40,6 +58,8 @@ if [ -z "${PUID:-}" ] && [ -z "${PGID:-}" ]; then
     echo "slskdN hint: fix host ownership or run with PUID/PGID matching the directory owner." >&2
     exit 1
   }
+  apply_strict_app_dir_permissions
+  warn_permissive_app_dir
   warn_ephemeral_app_dir
   exec gosu slskdn "$@"
 fi
@@ -75,6 +95,8 @@ if [ "$(stat -c '%u:%g' "$app_dir")" != "$target_uid:$target_gid" ]; then
   chown "$target_uid:$target_gid" "$app_dir"
 fi
 
+apply_strict_app_dir_permissions
 require_app_dir_access
+warn_permissive_app_dir
 warn_ephemeral_app_dir
 exec gosu "$target_uid:$target_gid" "$@"

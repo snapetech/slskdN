@@ -35,6 +35,7 @@ docker run -d \
   --tmpfs /run:rw,noexec,nosuid,nodev,size=32m,mode=1777 \
   --cap-drop ALL \
   --security-opt no-new-privileges:true \
+  --security-opt apparmor=slskdn-docker \
   --pids-limit 512 \
   --memory 4g \
   --memory-swap 4g \
@@ -49,11 +50,26 @@ docker run -d \
   ./slskd --config /etc/slskd/slskd.yml --app-dir /app
 ```
 
+The optional AppArmor profile lives at
+`packaging/docker/apparmor/slskdn-docker`. Load it on hosts where AppArmor is
+enabled before using `--security-opt apparmor=slskdn-docker`:
+
+```shell
+sudo apparmor_parser -r packaging/docker/apparmor/slskdn-docker
+```
+
+If AppArmor is disabled on the Docker host, omit the AppArmor security option
+and keep the other hardening flags. Docker will reject an unknown or unloaded
+profile.
+
 Keep writable mounts as narrow as possible. Shared libraries that slskd only
 serves to Soulseek peers should be mounted read-only; only application state,
 incomplete downloads, and final download destinations need write access.
 Avoid world-writable host media directories; use a dedicated media group and
-group-writable permissions instead.
+group-writable permissions instead. The container warns when the app directory
+is world-writable. Set `SLSKD_STRICT_APP_DIR_PERMISSIONS=true` to make the
+entrypoint set only the app directory itself to `0770`; it does not recursively
+change mounted media trees.
 
 This configuration, however, doesn't include any shared directories.
 

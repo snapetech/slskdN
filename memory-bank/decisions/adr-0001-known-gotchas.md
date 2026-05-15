@@ -52,6 +52,34 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z437. Docker Strict App-Dir Permissions Must Cover `--user` Startup
+
+**The Bug**: Container strict app-directory permissions were applied only on
+root/PUID startup paths. Hardened Docker deployments commonly use `--user`
+with pre-owned mounts and `--cap-drop ALL`, so the app directory stayed at its
+host mode even when `SLSKD_STRICT_APP_DIR_PERMISSIONS=true` was set.
+
+**Files Affected**:
+- `packaging/docker/slskdn-container-start`
+
+**Wrong**:
+```bash
+mkdir -p "$app_dir" 2>/dev/null || true
+require_app_dir_access
+```
+
+**Correct**:
+```bash
+mkdir -p "$app_dir" 2>/dev/null || true
+apply_strict_app_dir_permissions
+require_app_dir_access
+```
+
+**Why This Keeps Happening**: Docker hardening often shifts startup from root
+entrypoint setup to explicit `--user` execution. Permission features must be
+validated in the exact capless `--user` mode recommended in the hardened Docker
+docs, not only in the default root entrypoint path.
+
 ### 0z436. Optional ConnectToPeer Obfuscation Metadata Must Be Tolerant
 
 **The Bug**: The Soulseek server can send `ConnectToPeer` messages with an
