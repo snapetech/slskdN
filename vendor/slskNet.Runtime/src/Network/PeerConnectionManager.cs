@@ -580,7 +580,7 @@ namespace Soulseek.Network
         /// <returns>The operation context.</returns>
         public async Task<(IConnection Connection, int RemoteToken)> GetTransferConnectionAsync(string username, int token, IConnection incomingConnection)
         {
-            Diagnostic.Debug($"Inbound transfer connection to {username} ({incomingConnection.IPEndPoint}) for token {token} accepted. (type: {incomingConnection.Type}, id: {incomingConnection.Id}");
+            Diagnostic.Debug($"Inbound transfer connection to {username} ({incomingConnection.IPEndPoint}) for token {token} accepted before transfer setup. (type: {incomingConnection.Type}, obfuscated: {incomingConnection.Obfuscated}, id: {incomingConnection.Id})");
 
             var connection = incomingConnection.Obfuscated
                 ? ConnectionFactory.GetObfuscatedTransferConnection(
@@ -595,7 +595,7 @@ namespace Soulseek.Network
             connection.Type = ConnectionTypes.Inbound | ConnectionTypes.Direct;
             connection.Disconnected += (sender, e) => Diagnostic.Debug($"Transfer connection to {username} ({connection.IPEndPoint}) for token {token} disconnected: {e.Exception?.Message ?? e.Message}. (type: {connection.Type}, id: {connection.Id})");
 
-            Diagnostic.Debug($"Inbound {(incomingConnection.Obfuscated ? "obfuscated " : string.Empty)}transfer connection to {username} ({connection.IPEndPoint}) for token {token} handed off. (old: {incomingConnection.Id}, new: {connection.Id})");
+            Diagnostic.Debug($"Inbound {(incomingConnection.Obfuscated ? "obfuscated " : string.Empty)}transfer connection to {username} ({connection.IPEndPoint}) for token {token} handed off before remote token read. (old: {incomingConnection.Id}, new: {connection.Id})");
 
             int remoteToken;
 
@@ -606,7 +606,7 @@ namespace Soulseek.Network
             }
             catch (Exception ex)
             {
-                var msg = $"Failed to establish an inbound transfer connection to {username} ({incomingConnection.IPEndPoint}) for token {token}: {ex.Message}";
+                var msg = $"Failed to establish an inbound transfer connection to {username} ({incomingConnection.IPEndPoint}) for token {token} before remote token read: {ex.GetType().Name}: {ex.Message}";
                 Diagnostic.Debug($"{msg} (type: {connection.Type}, id: {connection.Id})");
                 connection.Dispose();
                 throw new ConnectionException(msg, ex);
@@ -627,7 +627,7 @@ namespace Soulseek.Network
             var useObfuscated = ShouldUseObfuscatedEndpoint(connectToPeerResponse.HasObfuscatedEndpoint);
             var endPoint = useObfuscated ? connectToPeerResponse.ObfuscatedIPEndPoint : connectToPeerResponse.IPEndPoint;
 
-            Diagnostic.Debug($"Attempting inbound indirect {(useObfuscated ? "obfuscated " : string.Empty)}transfer connection to {connectToPeerResponse.Username} ({endPoint}) for token {connectToPeerResponse.Token}");
+            Diagnostic.Debug($"Attempting inbound indirect {(useObfuscated ? "obfuscated " : string.Empty)}transfer connection to {connectToPeerResponse.Username}: path={(useObfuscated ? "obfuscated indirect" : "regular indirect")}, regular={connectToPeerResponse.IPEndPoint}, obfuscationType={connectToPeerResponse.ObfuscationType}, obfuscatedPort={connectToPeerResponse.ObfuscatedPort}, selected={endPoint}, token={connectToPeerResponse.Token}");
 
             var connection = useObfuscated
                 ? ConnectionFactory.GetObfuscatedTransferConnection(
@@ -654,7 +654,7 @@ namespace Soulseek.Network
             }
             catch (Exception ex)
             {
-                var msg = $"Failed to establish an inbound indirect {(useObfuscated ? "obfuscated " : string.Empty)}transfer connection to {connectToPeerResponse.Username} ({endPoint}): {ex.Message}";
+                var msg = $"Failed to establish an inbound indirect {(useObfuscated ? "obfuscated " : string.Empty)}transfer connection to {connectToPeerResponse.Username} ({endPoint}) before remote token read: {ex.GetType().Name}: {ex.Message}";
                 Diagnostic.Debug(msg);
                 connection.Dispose();
 
@@ -696,13 +696,13 @@ namespace Soulseek.Network
 
             var obfuscatedEndPoint = GetPreferredObfuscatedEndPoint(username, ipEndPoint);
 
-            Diagnostic.Debug($"Attempting simultaneous direct{(obfuscatedEndPoint != null ? ", obfuscated direct," : string.Empty)} and indirect transfer connections to {username} ({ipEndPoint})");
+            Diagnostic.Debug($"Attempting simultaneous direct{(obfuscatedEndPoint != null ? ", obfuscated direct," : string.Empty)} and indirect transfer connections to {username} ({ipEndPoint}); candidates=regular direct{(obfuscatedEndPoint != null ? ", obfuscated direct" : string.Empty)}, indirect; regular={ipEndPoint}, obfuscated={obfuscatedEndPoint?.ToString() ?? "none"}, preferOutbound={SoulseekClient.Options.PeerObfuscationOptions.PreferOutbound}, obfuscationEnabled={SoulseekClient.Options.PeerObfuscationOptions.Enabled}, token={token}");
 
             var direct = GetTransferConnectionOutboundDirectAsync(ipEndPoint, token, directLinkedCts.Token);
             Task<IConnection> obfuscated = null;
             if (obfuscatedEndPoint != null)
             {
-                Diagnostic.Debug($"Compatible obfuscated transfer endpoint found for {username} ({obfuscatedEndPoint}); adding obfuscated direct transfer candidate");
+                Diagnostic.Debug($"Compatible obfuscated transfer endpoint found for {username} ({obfuscatedEndPoint}); adding obfuscated direct transfer candidate for token {token}");
                 obfuscated = GetTransferConnectionOutboundObfuscatedDirectAsync(obfuscatedEndPoint, token, obfuscatedLinkedCts.Token);
             }
 
@@ -720,7 +720,7 @@ namespace Soulseek.Network
 
             if (task.Status != TaskStatus.RanToCompletion)
             {
-                var msg = $"Failed to establish a direct or indirect transfer connection to {username} ({ipEndPoint})";
+                var msg = $"Failed to establish a direct or indirect transfer connection to {username} ({ipEndPoint}); attempted regular direct, indirect{(obfuscatedEndPoint != null ? $", obfuscated direct {obfuscatedEndPoint}" : string.Empty)}; token={token}";
                 Diagnostic.Debug(msg);
                 throw new ConnectionException(msg);
             }
@@ -731,7 +731,7 @@ namespace Soulseek.Network
                 var isDirect = task == direct;
                 var isObfuscated = obfuscated != null && task == obfuscated;
 
-                Diagnostic.Debug($"{(isObfuscated ? "Obfuscated direct" : isDirect ? "Direct" : "Indirect")} transfer connection to {username} ({connection.IPEndPoint}) established first, negotiating transfer setup before cancelling remaining candidates.");
+                Diagnostic.Debug($"{(isObfuscated ? "Obfuscated direct" : isDirect ? "Regular direct" : "Indirect")} transfer connection to {username} ({connection.IPEndPoint}) established first, negotiating transfer setup before cancelling remaining candidates. (token: {token}, type: {connection.Type}, obfuscated: {connection.Obfuscated}, id: {connection.Id})");
 
                 try
                 {
@@ -739,15 +739,17 @@ namespace Soulseek.Network
                     {
                         var request = new PeerInit(SoulseekClient.Username, Constants.ConnectionType.Transfer, token).ToByteArray();
                         await connection.WriteAsync(request, cancellationToken).ConfigureAwait(false);
+                        Diagnostic.Debug($"Wrote transfer PeerInit to {username} on {(isObfuscated ? "obfuscated direct" : "regular direct")} connection before transfer token write. (token: {token}, endpoint: {connection.IPEndPoint}, id: {connection.Id})");
                     }
 
                     var tokenBytes = new byte[4];
                     BinaryPrimitives.WriteInt32LittleEndian(tokenBytes, token);
                     await connection.WriteAsync(tokenBytes, cancellationToken).ConfigureAwait(false);
+                    Diagnostic.Debug($"Wrote transfer token to {username}; transfer setup negotiation complete before payload. (path: {(isObfuscated ? "obfuscated direct" : isDirect ? "regular direct" : "indirect")}, token: {token}, endpoint: {connection.IPEndPoint}, id: {connection.Id})");
                 }
                 catch (Exception ex) when (isObfuscated && tasks.Count > 0)
                 {
-                    Diagnostic.Debug($"Failed to negotiate obfuscated transfer connection to {username} ({connection.IPEndPoint}); preserving regular fallback candidates: {ex.Message}");
+                    Diagnostic.Debug($"Failed to negotiate obfuscated transfer connection to {username} ({connection.IPEndPoint}) before transfer token write; preserving regular fallback candidates: {ex.GetType().Name}: {ex.Message}");
                     connection.Dispose();
 
                     do
@@ -768,7 +770,7 @@ namespace Soulseek.Network
                 }
                 catch (Exception ex)
                 {
-                    var msg = $"Failed to negotiate transfer connection to {username} ({ipEndPoint}): {ex.Message}";
+                    var msg = $"Failed to negotiate transfer connection to {username} ({ipEndPoint}) before payload transfer using path {(isObfuscated ? "obfuscated direct" : isDirect ? "regular direct" : "indirect")}: {ex.GetType().Name}: {ex.Message}";
                     Diagnostic.Debug($"{msg} (type: {connection.Type}, id: {connection.Id})");
                     connection.Dispose();
                     throw new ConnectionException(msg, ex);
@@ -778,7 +780,7 @@ namespace Soulseek.Network
                 obfuscatedCts.Cancel();
                 indirectCts.Cancel();
 
-                Diagnostic.Debug($"{(connection.Obfuscated ? "Obfuscated t" : "T")}ransfer connection to {username} ({connection.IPEndPoint}) established. (type: {connection.Type}, id: {connection.Id})");
+                Diagnostic.Debug($"{(connection.Obfuscated ? "Obfuscated t" : "T")}ransfer connection to {username} ({connection.IPEndPoint}) established. after transfer setup. (path: {(connection.Obfuscated ? "obfuscated direct" : connection.Type.HasFlag(ConnectionTypes.Direct) ? "regular direct" : "indirect")}, token: {token}, type: {connection.Type}, id: {connection.Id})");
                 return connection;
             }
         }
@@ -1014,7 +1016,7 @@ namespace Soulseek.Network
                 throw new ConnectionException("Obfuscated transfer connections are disabled");
             }
 
-            Diagnostic.Debug($"Attempting {(obfuscated ? "obfuscated " : string.Empty)}direct transfer connection for token {token} to {ipEndPoint}");
+            Diagnostic.Debug($"Attempting {(obfuscated ? "obfuscated " : "regular ")}direct transfer connection for token {token} to {ipEndPoint}");
 
             var connection = obfuscated
                 ? ConnectionFactory.GetObfuscatedTransferConnection(ipEndPoint, SoulseekClient.Options.TransferConnectionOptions)
@@ -1029,18 +1031,18 @@ namespace Soulseek.Network
             }
             catch (Exception ex)
             {
-                Diagnostic.Debug($"Failed to establish a {(obfuscated ? "obfuscated " : string.Empty)}direct transfer connection for token {token} to ({ipEndPoint}): {ex.Message}");
+                Diagnostic.Debug($"Failed to establish a {(obfuscated ? "obfuscated " : string.Empty)}direct transfer connection for token {token} to ({ipEndPoint}) before transfer setup: {ex.GetType().Name}: {ex.Message}");
                 connection.Dispose();
                 throw;
             }
 
-            Diagnostic.Debug($"{(obfuscated ? "Obfuscated d" : "D")}irect transfer connection for {token} to {connection.IPEndPoint} established. (type: {connection.Type}, id: {connection.Id})");
+            Diagnostic.Debug($"{(obfuscated ? "Obfuscated d" : "Regular d")}irect transfer connection for {token} to {connection.IPEndPoint} established before transfer setup. (type: {connection.Type}, obfuscated: {connection.Obfuscated}, id: {connection.Id})");
             return connection;
         }
 
         private async Task<IConnection> GetTransferConnectionOutboundIndirectAsync(string username, int token, CancellationToken cancellationToken)
         {
-            Diagnostic.Debug($"Soliciting indirect transfer connection to {username} with token {token}");
+            Diagnostic.Debug($"Soliciting indirect transfer connection to {username} with transfer token {token}");
 
             var solicitationToken = SoulseekClient.GetNextToken();
 
@@ -1066,17 +1068,17 @@ namespace Soulseek.Network
                         SoulseekClient.Options.TransferConnectionOptions,
                         incomingConnection.HandoffTcpClient());
 
-                Diagnostic.Debug($"Indirect {(incomingConnection.Obfuscated ? "obfuscated " : string.Empty)}transfer connection to {username} ({incomingConnection.IPEndPoint}) handed off. (old: {incomingConnection.Id}, new: {connection.Id})");
+                Diagnostic.Debug($"Indirect {(incomingConnection.Obfuscated ? "obfuscated " : "regular ")}transfer connection to {username} ({incomingConnection.IPEndPoint}) handed off before transfer setup. (solicitationToken: {solicitationToken}, transferToken: {token}, old: {incomingConnection.Id}, new: {connection.Id})");
 
                 connection.Type = ConnectionTypes.Outbound | ConnectionTypes.Indirect;
                 connection.Disconnected += (sender, e) => Diagnostic.Debug($"Transfer connection for token {token} ({incomingConnection.IPEndPoint}) disconnected: {e.Exception?.Message ?? e.Message}. (type: {connection.Type}, id: {connection.Id})");
 
-                Diagnostic.Debug($"Indirect transfer connection for {token} ({connection.IPEndPoint}) established. (type: {connection.Type}, id: {connection.Id})");
+                Diagnostic.Debug($"Indirect transfer connection for {token} ({connection.IPEndPoint}) established before transfer setup. (type: {connection.Type}, obfuscated: {connection.Obfuscated}, id: {connection.Id})");
                 return connection;
             }
             catch (Exception ex)
             {
-                Diagnostic.Debug($"Failed to establish an indirect transfer connection to {username} with token {token}: {ex.Message}");
+                Diagnostic.Debug($"Failed to establish an indirect transfer connection to {username} with transfer token {token} before transfer setup: {ex.GetType().Name}: {ex.Message}");
                 throw;
             }
             finally

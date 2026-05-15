@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Added transfer-path diagnostics for remote download failures, including
+  regular/direct, obfuscated/direct, indirect, endpoint metadata, transfer
+  tokens, remote rejection reasons, exception types, and whether the peer
+  closed before or after transfer setup.
 - Kept regular outbound Soulseek transfer dials first in compatibility
   obfuscation mode so second-chance downloads do not prefer obfuscated
   endpoints unless the operator explicitly selects prefer mode.

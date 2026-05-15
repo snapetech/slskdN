@@ -3741,7 +3741,7 @@ namespace Soulseek
                 UpdateState(TransferStates.Requested);
 
                 var transferRequestAcknowledgement = await transferRequestAcknowledged.ConfigureAwait(false);
-                Diagnostic.Debug($"Received transfer request ACK for download of {GetDiagnosticLogValue(download.Filename)} from {username}: allowed: {transferRequestAcknowledgement.IsAllowed}, message: {transferRequestAcknowledgement.Message} (token: {token})");
+                Diagnostic.Debug($"Received transfer request ACK for download of {GetDiagnosticLogValue(download.Filename)} from {username}: allowed={transferRequestAcknowledgement.IsAllowed}, message={transferRequestAcknowledgement.Message}, localToken={token}, remoteToken={transferRequestAcknowledgement.Token}, fileSize={transferRequestAcknowledgement.FileSize}");
 
                 if (transferRequestAcknowledgement.IsAllowed)
                 {
@@ -3769,6 +3769,7 @@ namespace Soulseek
                 }
                 else if (!string.Equals(transferRequestAcknowledgement.Message.TrimEnd('.'), "Queued", StringComparison.OrdinalIgnoreCase))
                 {
+                    Diagnostic.Debug($"Remote client rejected download of {GetDiagnosticLogValue(download.Filename)} from {username}: reason={transferRequestAcknowledgement.Message}, localToken={token}, remoteToken={transferRequestAcknowledgement.Token}");
                     throw new TransferRejectedException($"Transfer rejected: {transferRequestAcknowledgement.Message}");
                 }
                 else
@@ -3778,6 +3779,7 @@ namespace Soulseek
 
                     // wait for the peer to respond that they are ready to start the transfer
                     var transferStartRequest = await transferStartRequested.ConfigureAwait(false);
+                    Diagnostic.Debug($"Remote client requested transfer start for download of {GetDiagnosticLogValue(download.Filename)} from {username}: localToken={token}, remoteToken={transferStartRequest.Token}, fileSize={transferStartRequest.FileSize}");
 
                     // the size of the remote file may have changed since it was sent in a search or browse response
                     if (download.Size.HasValue && download.Size.Value != transferStartRequest.FileSize)
@@ -3849,6 +3851,8 @@ namespace Soulseek
                 download.Connection.DataRead += (sender, e) => UpdateProgress(download.StartOffset + e.CurrentLength);
                 download.Connection.Disconnected += (sender, e) =>
                 {
+                    Diagnostic.Debug($"Download transfer connection for {GetDiagnosticLogValue(download.Filename)} from {username} closed after transfer setup: {e.Exception?.GetType().Name ?? "none"}: {e.Exception?.Message ?? e.Message} (type: {download.Connection.Type}, obfuscated: {download.Connection.Obfuscated}, id: {download.Connection.Id})");
+
                     if (e.Exception is OperationCanceledException || e.Exception is TimeoutException)
                     {
                         disconnectedTaskCancellationSource.TrySetException(e.Exception);
@@ -4260,6 +4264,8 @@ namespace Soulseek
                     {
                         ObfuscatedPeerEndPointDictionary.TryRemove(username, out _);
                     }
+
+                    Diagnostic.Debug($"Resolved endpoint for {username}: regular={response.IPEndPoint}, obfuscationType={response.ObfuscationType}, obfuscatedPort={response.ObfuscatedPort}, hasObfuscatedEndpoint={response.HasObfuscatedEndpoint}");
 
                     return new IPEndPoint(response.IPAddress, response.Port);
                 }
