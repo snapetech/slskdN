@@ -66,8 +66,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Bundled Microsoft `libmsquic` in Docker images so .NET QUIC mesh transports
   work in the default Linux container instead of being disabled at startup.
 - Added a Docker `install-optional-media-tools` helper for heavyweight SongID
-  experiments so operators can populate OCR, Whisper/Demucs, C2PA, Audfprint,
-  and Panako support after startup or in a derived image.
+  experiments so operators can populate OCR, Whisper/Demucs, SongRec, C2PA,
+  Audfprint, and Panako support after startup or in a derived image.
 - Added an opt-in experimental media Docker image recipe for heavier SongID
   prerequisites, and updated capability reporting with Docker guidance when
   optional recognizer tools are missing.

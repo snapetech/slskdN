@@ -15,19 +15,24 @@ Profiles:
   ai-python   Install Python tools into /opt/slskdn-media-tools/python:
               openai-whisper and demucs.
   c2pa        Install c2patool with Cargo into /usr/local/bin.
+  songrec     Install SongRec with Cargo into /usr/local/bin.
   audfprint   Clone audfprint into /opt/slskdn-media-tools/audfprint and expose
               audfprint.py on PATH.
-  panako      Download panako.jar to /usr/local/share/java/panako.jar. Requires
-              PANAKO_JAR_URL.
-  all         Install distro, ai-python, c2pa, audfprint, and panako.
+  panako      Install panako.jar to /usr/local/share/java/panako.jar. Downloads
+              PANAKO_JAR_URL when set; otherwise builds JorenSix/Panako.
+  all         Install distro, ai-python, c2pa, songrec, audfprint, and panako.
 
 Environment:
   SLSKDN_MEDIA_TOOLS_ROOT       Default: /opt/slskdn-media-tools
   SLSKDN_PIP_PACKAGES           Default: openai-whisper demucs
   SLSKDN_C2PATOOL_CRATE_VERSION Default: empty, installs latest c2patool
+  SLSKDN_SONGREC_CRATE_VERSION  Default: empty, installs latest songrec
+  SLSKDN_RUST_TOOLCHAIN         Default: stable, used for SongRec
   AUDFPRINT_REPO                Default: https://github.com/dpwe/audfprint.git
   AUDFPRINT_REF                 Default: master
-  PANAKO_JAR_URL                Required for panako profile
+  PANAKO_JAR_URL                Optional direct jar URL for panako profile
+  PANAKO_REPO                   Default: https://github.com/JorenSix/Panako.git
+  PANAKO_REF                    Default: master
 
 Examples:
   docker exec -u root slskd install-optional-media-tools distro ai-python
@@ -61,7 +66,19 @@ apt_install_base() {
   apt-get install --no-install-recommends -y \
     build-essential \
     cargo \
+    curl \
     git \
+    intltool \
+    libasound2-dev \
+    libadwaita-1-dev \
+    libdbus-1-dev \
+    libglib2.0-dev \
+    libgtk-4-dev \
+    libpipewire-0.3-dev \
+    libpulse-dev \
+    libsoup-3.0-dev \
+    libssl-dev \
+    openjdk-17-jdk-headless \
     openjdk-21-jre-headless \
     pkg-config \
     python3 \
@@ -71,6 +88,17 @@ apt_install_base() {
     rustc \
     tesseract-ocr
   rm -rf /var/lib/apt/lists/* /var/cache/apt/*
+}
+
+install_rustup_toolchain() {
+  mkdir -p "${TOOLS_ROOT}/rustup" "${TOOLS_ROOT}/rustup-cargo"
+  export RUSTUP_HOME="${TOOLS_ROOT}/rustup"
+  export CARGO_HOME="${TOOLS_ROOT}/rustup-cargo"
+  if [[ ! -x "${CARGO_HOME}/bin/cargo" ]]; then
+    curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs \
+      | sh -s -- -y --no-modify-path --profile minimal --default-toolchain "${SLSKDN_RUST_TOOLCHAIN:-stable}"
+  fi
+  export PATH="${CARGO_HOME}/bin:${PATH}"
 }
 
 install_ai_python() {
@@ -87,14 +115,26 @@ install_ai_python() {
 
 install_c2pa() {
   apt_install_base
-  mkdir -p "${TOOLS_ROOT}/cargo-home" "${TOOLS_ROOT}/cargo-bin"
-  export CARGO_HOME="${TOOLS_ROOT}/cargo-home"
+  install_rustup_toolchain
+  mkdir -p "${TOOLS_ROOT}/c2pa-bin"
   local crate_version_args=()
   if [[ -n "${SLSKDN_C2PATOOL_CRATE_VERSION:-}" ]]; then
     crate_version_args=(--version "${SLSKDN_C2PATOOL_CRATE_VERSION}")
   fi
-  cargo install c2patool "${crate_version_args[@]}" --root "${TOOLS_ROOT}/cargo-bin"
-  ln -sf "${TOOLS_ROOT}/cargo-bin/bin/c2patool" "${BIN_DIR}/c2patool"
+  cargo install c2patool "${crate_version_args[@]}" --root "${TOOLS_ROOT}/c2pa-bin"
+  ln -sf "${TOOLS_ROOT}/c2pa-bin/bin/c2patool" "${BIN_DIR}/c2patool"
+}
+
+install_songrec() {
+  apt_install_base
+  install_rustup_toolchain
+  mkdir -p "${TOOLS_ROOT}/songrec-bin"
+  local crate_version_args=()
+  if [[ -n "${SLSKDN_SONGREC_CRATE_VERSION:-}" ]]; then
+    crate_version_args=(--version "${SLSKDN_SONGREC_CRATE_VERSION}")
+  fi
+  cargo install songrec "${crate_version_args[@]}" --no-default-features --root "${TOOLS_ROOT}/songrec-bin"
+  ln -sf "${TOOLS_ROOT}/songrec-bin/bin/songrec" "${BIN_DIR}/songrec"
 }
 
 install_audfprint() {
@@ -109,14 +149,25 @@ install_audfprint() {
 }
 
 install_panako() {
-  if [[ -z "${PANAKO_JAR_URL:-}" ]]; then
-    echo "PANAKO_JAR_URL must be set for the panako profile." >&2
-    exit 1
-  fi
-
   apt_install_base
   mkdir -p "${JAVA_DIR}"
-  wget -q -O "${JAVA_DIR}/panako.jar" "${PANAKO_JAR_URL}"
+  if [[ -n "${PANAKO_JAR_URL:-}" ]]; then
+    wget -q -O "${JAVA_DIR}/panako.jar" "${PANAKO_JAR_URL}"
+  else
+    local repo="${PANAKO_REPO:-https://github.com/JorenSix/Panako.git}"
+    local ref="${PANAKO_REF:-master}"
+    local target="${TOOLS_ROOT}/panako-src"
+    rm -rf "${target}"
+    git clone --depth 1 --branch "${ref}" "${repo}" "${target}"
+    (cd "${target}" && JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew --no-daemon shadowJar)
+    local jar
+    jar="$(find "${target}/build/libs" -maxdepth 1 -type f \( -name '*-all.jar' -o -name 'panako.jar' \) | sort | tail -n 1)"
+    if [[ -z "${jar}" ]]; then
+      echo "Panako build completed but no runnable jar was found in ${target}/build/libs." >&2
+      exit 1
+    fi
+    cp "${jar}" "${JAVA_DIR}/panako.jar"
+  fi
   chmod 0644 "${JAVA_DIR}/panako.jar"
 }
 
@@ -131,6 +182,9 @@ run_profile() {
     c2pa)
       install_c2pa
       ;;
+    songrec)
+      install_songrec
+      ;;
     audfprint)
       install_audfprint
       ;;
@@ -140,6 +194,7 @@ run_profile() {
     all)
       install_ai_python
       install_c2pa
+      install_songrec
       install_audfprint
       install_panako
       ;;

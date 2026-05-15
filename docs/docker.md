@@ -39,17 +39,18 @@ The installer supports explicit profiles:
 
 | Profile | Installs |
 | --- | --- |
-| `distro` | Java, Python venv support, Tesseract OCR, build tools, Git, Rust/Cargo |
+| `distro` | Java 17/21, Python venv support, Tesseract OCR, build tools, Git, Rust/Cargo, curl, and native build libraries used by Cargo-installed recognizers, including SongRec's Linux GUI/audio headers |
 | `ai-python` | `openai-whisper` and `demucs` in `/opt/slskdn-media-tools/python`, with `whisper` and `demucs` on `PATH` |
 | `c2pa` | `c2patool` via Cargo |
+| `songrec` | SongRec via a rustup-managed Cargo toolchain, exposed on `PATH` |
 | `audfprint` | `audfprint.py` cloned under `/opt/slskdn-media-tools/audfprint` and exposed on `PATH` |
-| `panako` | Downloads `panako.jar` to `/usr/local/share/java/panako.jar`; requires `PANAKO_JAR_URL` |
-| `all` | Runs every profile; requires `PANAKO_JAR_URL` |
+| `panako` | Installs `panako.jar` to `/usr/local/share/java/panako.jar`; downloads `PANAKO_JAR_URL` when set, otherwise builds JorenSix/Panako from source |
+| `all` | Runs every profile |
 
 Examples:
 
 ```shell
-docker exec -u root slskd install-optional-media-tools distro ai-python c2pa audfprint
+docker exec -u root slskd install-optional-media-tools distro ai-python c2pa songrec audfprint
 
 docker exec -u root \
   -e PANAKO_JAR_URL=https://example.invalid/panako.jar \
@@ -62,7 +63,7 @@ mutating a running container:
 ```dockerfile
 FROM ghcr.io/snapetech/slskdn:latest
 
-RUN install-optional-media-tools distro ai-python c2pa audfprint
+RUN install-optional-media-tools all
 ```
 
 Use `SLSKDN_PIP_PACKAGES` to pin or replace the Python tool set in a derived
@@ -74,6 +75,10 @@ FROM ghcr.io/snapetech/slskdn:latest
 ENV SLSKDN_PIP_PACKAGES="openai-whisper==20250625 demucs==4.0.1"
 RUN install-optional-media-tools distro ai-python
 ```
+
+Use `SLSKDN_RUST_TOOLCHAIN` and `SLSKDN_SONGREC_CRATE_VERSION` to pin the
+SongRec toolchain and crate version when baking reproducible local-validation
+images.
 
 The app does not install these tools automatically when a UI feature is enabled.
 That is intentional: installing Python, Java, Rust-built, or externally hosted
@@ -96,8 +101,10 @@ recognizer experiments: `tesseract-ocr`, Java, Python, build tools, Git, and
 Rust/Cargo. Tools without a stable distro package in the base image, such as
 Whisper, Demucs, SongRec, Panako, Audfprint, and C2PA tooling, should still be
 installed with `install-optional-media-tools`, installed in a pinned derived
-image, or mounted into the container. The SongID capabilities API reports which
-specific command or file is missing and points Docker users at the installer.
+image, or mounted into the container. For local validation where image size is
+less important than feature coverage, run `install-optional-media-tools all` in
+a derived image. The SongID capabilities API reports which specific command or
+file is missing and points Docker users at the installer.
 
 For an internet-facing or always-on host, prefer a hardened container launch.
 This keeps the web UI on loopback for a reverse proxy or SSH tunnel, drops

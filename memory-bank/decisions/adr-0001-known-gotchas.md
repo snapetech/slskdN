@@ -52,6 +52,49 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z441. Optional Tool "All" Installers Must Actually Cover Every Advertised Engine
+
+**The Bug**: The Docker `install-optional-media-tools all` profile omitted
+SongRec even though SongID capability reporting advertised SongRec as an
+optional Docker-installable engine. The first attempted fix used Ubuntu noble's
+distro Cargo, but current SongRec dependencies require a newer Rust/Cargo than
+the distro package provides. Panako source builds also fail under Java 21
+because its Gradle 7.2 wrapper cannot parse Java 21 class files; use Java 17
+for that build.
+
+**Files Affected**:
+- `packaging/docker/install-optional-media-tools`
+- `packaging/scripts/validate-packaging-metadata.sh`
+- `docs/docker.md`
+
+**Wrong**:
+```bash
+all)
+  install_ai_python
+  install_c2pa
+  install_audfprint
+  install_panako
+  ;;
+```
+
+**Correct**:
+```bash
+all)
+  install_ai_python
+  install_c2pa
+  install_songrec
+  install_audfprint
+  install_panako
+  ;;
+```
+
+**Why This Keeps Happening**: Capability reporting, docs, and installer
+profiles drift when optional engines are treated as prose instead of a tested
+tool matrix. Packaging validation needs explicit checks for every advertised
+optional engine, and Cargo-installed tools may need a pinned or rustup-managed
+toolchain instead of the base distro Cargo. Java-built optional tools need the
+build JDK tested too, not just a runtime `java` command on `PATH`.
+
 ### 0z440. Docker Images Need Native QUIC Runtime Dependencies
 
 **The Bug**: The Docker runtime image shipped .NET code that can use mesh QUIC
