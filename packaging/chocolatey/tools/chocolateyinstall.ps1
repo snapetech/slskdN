@@ -1,6 +1,6 @@
 $toolsDir   = "$(Split-Path -parent $MyInvocation.MyCommand.Definition)"
-$url        = "https://github.com/snapetech/slskdn/releases/download/2026051416-slskdn.252/slskdn-main-win-x64.zip"
-$checksum   = "f7c478cc8ffedb0e468adfb953033c9cdca562d779fe1de424f773657fd6e3c7"
+$url        = "https://github.com/snapetech/slskdn/releases/download/2026051501-slskdn.253/slskdn-main-win-x64.zip"
+$checksum   = "ef9cec1a4792a7143ff52eeb0d9226febc212116d78c85034eaaf9870f4034ec"
 
 Install-ChocolateyZipPackage -PackageName 'slskdn' -Url $url -UnzipLocation $toolsDir -Checksum $checksum -ChecksumType 'sha256'
 
