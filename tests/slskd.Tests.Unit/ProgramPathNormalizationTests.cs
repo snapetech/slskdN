@@ -158,7 +158,7 @@ public class ProgramPathNormalizationTests
 
         var html = """
             <head>
-            <script type="module" src="./assets/index.js"></script>
+            <script type="module" src="/assets/index.js"></script>
             """;
 
         foreach (var (pattern, replacement) in rules)
@@ -167,7 +167,7 @@ public class ProgramPathNormalizationTests
         }
 
         Assert.Contains("<head><base href=\"/\" />", html);
-        Assert.Contains("src=\"./assets/index.js\"", html);
+        Assert.Contains("src=\"/assets/index.js\"", html);
     }
 
     [Fact]
@@ -177,9 +177,9 @@ public class ProgramPathNormalizationTests
 
         var html = """
             <head>
-            <link rel="manifest" href="./manifest.json" />
-            <link rel="apple-touch-icon" href="./logo192.png" />
-            <script type="module" src="./assets/index.js"></script>
+            <link rel="manifest" href="/manifest.json" />
+            <link rel="apple-touch-icon" href="/logo192.png" />
+            <script type="module" src="/assets/index.js"></script>
             """;
 
         foreach (var (pattern, replacement) in rules)
@@ -188,9 +188,9 @@ public class ProgramPathNormalizationTests
         }
 
         Assert.Contains("<head><base href=\"/system/\" />", html);
-        Assert.Contains("href=\"./manifest.json\"", html);
-        Assert.Contains("href=\"./logo192.png\"", html);
-        Assert.Contains("src=\"./assets/index.js\"", html);
+        Assert.Contains("href=\"/system/manifest.json\"", html);
+        Assert.Contains("href=\"/system/logo192.png\"", html);
+        Assert.Contains("src=\"/system/assets/index.js\"", html);
     }
 
     [Fact]

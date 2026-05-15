@@ -61,6 +61,7 @@ received 404s for every JS/CSS asset and React never started, leaving a blank
 page.
 
 **Files Affected**:
+- `src/web/vite.config.js`
 - `src/slskd/Bootstrap/WebHtmlRewriteRules.cs`
 
 **Wrong**:
@@ -74,11 +75,19 @@ string BaseTag() => string.IsNullOrEmpty(normalizedUrlBase)
 ```csharp
 string BaseTag() => $"<head><base href=\"{(string.IsNullOrEmpty(normalizedUrlBase) ? "/" : $"{normalizedUrlBase}/")}\" />";
 ```
+```javascript
+export default defineConfig({
+  base: '/',
+});
+```
 
 **Why This Keeps Happening**: Root deployments look like they do not need a
 base tag when testing `/`, but SPA fallback pages are served at the requested
 deep route. Relative Vite asset URLs then resolve relative to that deep route
-unless `index.html` always declares the app base path.
+unless `index.html` always declares the app base path. Prefer root-absolute
+Vite asset URLs so raw fallback HTML is correct even before any response
+rewriter is considered; the existing HTML rewrite rules prefix those absolute
+paths for non-root `url_base` deployments.
 
 ### 0z432. Retire Service Workers Before Debugging Stale Web Regressions
 
