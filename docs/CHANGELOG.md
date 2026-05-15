@@ -63,6 +63,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   tool noise.
 - Bundled Docker runtime media prerequisites for the default audio/SongID paths:
   `ffmpeg`/`ffprobe`, `yt-dlp`, and Chromaprint `fpcalc`.
+- Added an opt-in experimental media Docker image recipe for heavier SongID
+  prerequisites, and updated capability reporting with Docker guidance when
+  optional recognizer tools are missing.
 - Routed HTTP LLM moderation endpoint checks through the shared DNS-aware
   outbound guard so hostnames resolving to non-public ranges are blocked before
   any request is sent.

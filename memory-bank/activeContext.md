@@ -155,6 +155,30 @@
   1. Include `ac5c6379f` in the next manual Docker build/release if we want
      bundled media prerequisites live on the validation host.
 
+## Update 2026-05-15 21:08:00Z
+
+- Current task: Optional heavier SongID Docker tooling support complete
+  locally.
+- Last activity:
+  - added `packaging/docker/Dockerfile.experimental-media` for opt-in OCR,
+    Java, and Python runtime prerequisites;
+  - documented the experimental media build path and derived-image guidance for
+    Whisper, Demucs, SongRec, Panako, Audfprint, and C2PA tooling;
+  - updated SongID capability reasons to tell Docker users which tool/file is
+    missing and how to supply it without runtime self-install.
+- Validation:
+  - Passed: focused `SongIdCapabilityReporterTests`.
+  - Passed: `bash packaging/scripts/validate-packaging-metadata.sh`.
+  - Passed: `git diff --check`.
+  - Passed: local Docker build `slskdn:experimental-media-test`.
+  - Passed: image check for `tesseract`, `java`, `python3`, `pip3`, and no
+    setuid/setgid files.
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Push the optional media tooling commit.
+  2. Build a new manual Docker image from the pushed head before deploying this
+     path to a validation host.
+
 ## Update 2026-05-15 08:36:00Z
 
 - Current task: `kspls0` stale-browser/direct-tab fix deployed and verified with

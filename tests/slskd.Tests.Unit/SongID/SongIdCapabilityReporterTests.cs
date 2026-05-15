@@ -72,6 +72,25 @@ public sealed class SongIdCapabilityReporterTests
         AssertCapability(capabilities, "whisper_transcripts", available: false, status: "experimental");
     }
 
+    [Fact]
+    public async Task GetCapabilities_ReportsDockerGuidanceForMissingExperimentalMediaTools()
+    {
+        var reporter = new SongIdCapabilityReporter(
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            (_, _) => Task.FromResult(false),
+            _ => false);
+
+        var capabilities = await reporter.GetCapabilitiesAsync(CancellationToken.None);
+
+        AssertReasonContains(capabilities, "songrec", "experimental media image");
+        AssertReasonContains(capabilities, "panako", "derived experimental media image");
+        AssertReasonContains(capabilities, "audfprint", "derived experimental media image");
+        AssertReasonContains(capabilities, "demucs", "experimental media image");
+        AssertReasonContains(capabilities, "whisper_transcripts", "experimental media image");
+        AssertReasonContains(capabilities, "ocr_frames", "experimental media image");
+        AssertReasonContains(capabilities, "c2pa_provenance", "experimental media image");
+    }
+
     private static void AssertCapability(
         IReadOnlyList<SongIdCapability> capabilities,
         string id,
@@ -82,5 +101,14 @@ public sealed class SongIdCapabilityReporterTests
         Assert.Equal(available, capability.Available);
         Assert.Equal(status, capability.Status);
         Assert.False(string.IsNullOrWhiteSpace(capability.Reason));
+    }
+
+    private static void AssertReasonContains(
+        IReadOnlyList<SongIdCapability> capabilities,
+        string id,
+        string expected)
+    {
+        var capability = Assert.Single(capabilities, item => item.Id == id);
+        Assert.Contains(expected, capability.Reason, StringComparison.Ordinal);
     }
 }

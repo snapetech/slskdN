@@ -10421,3 +10421,18 @@ Code quality improvements were completed as part of Option A:
 - Validated a local Docker build and hardened container smoke; tool presence,
   no setuid/setgid files, sticky `/.net`, Web/API health, headless Chromium,
   and absence of missing-ffmpeg log signatures all passed.
+
+# 2026-05-15 21:08:00Z
+
+- Added `packaging/docker/Dockerfile.experimental-media` as an opt-in image
+  layer for heavier SongID media experiments. It installs conservative
+  distro-level prerequisites: `tesseract-ocr`, Java, Python, pip, and venv
+  support, while leaving Whisper, Demucs, SongRec, Panako, Audfprint, and C2PA
+  tooling to pinned derived images or explicit mounts.
+- Updated SongID capability reporting so missing optional recognizers include
+  Docker-specific guidance instead of implying runtime self-install.
+- Documented the experimental media image build path and added packaging
+  metadata validation coverage.
+- Validated focused SongID capability tests, packaging metadata validation,
+  `git diff --check`, local Docker build `slskdn:experimental-media-test`,
+  image tool checks, no setuid/setgid files, and `./bin/lint`.

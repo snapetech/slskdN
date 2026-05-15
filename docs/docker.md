@@ -26,6 +26,24 @@ experimental recognizers such as Whisper, Demucs, SongRec, Panako, Audfprint,
 C2PA tooling, and OCR engines are not bundled by default; mount or install them
 in a derived image when you intentionally enable those workflows.
 
+For opt-in experimental media work, build an experimental media image from the
+released runtime image:
+
+```shell
+docker build -t slskdn:experimental-media \
+  -f packaging/docker/Dockerfile.experimental-media \
+  --build-arg BASE_IMAGE=ghcr.io/snapetech/slskdn:latest \
+  .
+```
+
+This variant adds the conservative distro-level prerequisites for OCR and local
+recognizer experiments: `tesseract-ocr`, Java, and Python. Tools without a
+stable distro package in the base image, such as Whisper, Demucs, SongRec,
+Panako, Audfprint, and C2PA tooling, should still be installed in a pinned
+derived image or mounted into the container. The SongID capabilities API reports
+which specific command or file is missing and points Docker users at this
+experimental image path.
+
 For an internet-facing or always-on host, prefer a hardened container launch.
 This keeps the web UI on loopback for a reverse proxy or SSH tunnel, drops
 Linux capabilities, prevents privilege escalation, and makes the container

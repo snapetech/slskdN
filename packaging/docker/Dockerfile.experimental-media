@@ -1,0 +1,23 @@
+# Optional heavier media tooling layer for operators who intentionally enable
+# experimental SongID workflows.
+ARG BASE_IMAGE=ghcr.io/snapetech/slskdn:latest
+FROM ${BASE_IMAGE}
+
+USER root
+
+RUN apt-get update && apt-get install --no-install-recommends -y \
+  openjdk-21-jre-headless \
+  python3 \
+  python3-pip \
+  python3-venv \
+  tesseract-ocr \
+  && \
+  find / -xdev -type f \( -perm -4000 -o -perm -2000 \) -exec chmod a-s {} + \
+  && \
+  rm -rf \
+  /tmp/* \
+  /var/lib/apt/lists/* \
+  /var/cache/apt/* \
+  /var/tmp/*
+
+LABEL org.opencontainers.image.description="slskdN optional experimental media tooling image with OCR, Java, and Python runtimes for intentionally enabled SongID workflows"

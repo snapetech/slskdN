@@ -16,6 +16,11 @@
  - Priority: P1
  - Notes: Tester reports selected downloads still fail with only `Remote connection closed`. The stable release artifact is current and contains the recent route/download fixes, so the next useful evidence is one failed transfer's username, remote filename, UI transfer state, and nearby daemon log lines to distinguish expected remote peer closes from a local transfer regression.
 
+- [x] Add opt-in Docker support and guidance for heavier SongID media tools.
+ - Status: completed (2026-05-15)
+ - Priority: P2
+ - Notes: Added an experimental media Dockerfile for conservative distro-level OCR/Java/Python prerequisites, documented derived-image usage for heavier recognizers, and updated SongID capability reasons to point Docker users at the image/derived-image path when optional tools are missing.
+
 - [x] Red-team slskdN and slskNet.Runtime for conservative hardening gaps.
  - Status: completed (2026-05-14)
  - Priority: P1

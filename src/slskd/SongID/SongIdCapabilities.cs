@@ -27,6 +27,8 @@ public sealed class SongIdCapability
 
 public sealed class SongIdCapabilityReporter : ISongIdCapabilityReporter
 {
+    private const string DockerExperimentalMediaHint = "For Docker, use the experimental media image or install the tool in a derived image and keep it on PATH.";
+
     private readonly IOptionsMonitor<slskd.Options> options;
     private readonly Func<string, CancellationToken, Task<bool>> commandExists;
     private readonly Func<string, bool> fileExists;
@@ -74,16 +76,29 @@ public sealed class SongIdCapabilityReporter : ISongIdCapabilityReporter
             Capability("local_file_intake", "Local file intake", "experimental", true, "Local files are accepted when they are under configured safe directories."),
             Capability("chromaprint_fingerprint", "Chromaprint fingerprinting", "experimental", chromaprintConfigured && ffmpeg, chromaprintConfigured && ffmpeg ? "Chromaprint is enabled and ffmpeg is available." : "Requires integration.chromaprint.enabled and ffmpeg.", "integration.chromaprint.enabled", "ffmpeg", "libchromaprint"),
             Capability("acoustid_lookup", "AcoustID lookup", "experimental", acoustIdConfigured, acoustIdConfigured ? "AcoustID is enabled with a client id." : "Requires integration.acoustid.enabled and a client id.", "integration.acoustid.enabled", "integration.acoustid.client_id"),
-            Capability("songrec", "SongRec recognition", "experimental", songrec, songrec ? "songrec is available." : "songrec was not found on PATH.", "songrec"),
-            Capability("panako", "Panako local corpus matching", "experimental", !string.IsNullOrWhiteSpace(panakoJar), !string.IsNullOrWhiteSpace(panakoJar) ? $"Panako jar found at {panakoJar}." : "panako.jar was not found in known locations or PATH.", "java", "panako.jar"),
-            Capability("audfprint", "Audfprint local corpus matching", "experimental", !string.IsNullOrWhiteSpace(audfprint), !string.IsNullOrWhiteSpace(audfprint) ? $"Audfprint script found at {audfprint}." : "audfprint.py was not found in known locations or PATH.", "python", "audfprint.py"),
-            Capability("demucs", "Demucs stem extraction", "experimental", demucs && ffmpeg, demucs && ffmpeg ? "demucs and ffmpeg are available." : "Requires demucs and ffmpeg.", "demucs", "ffmpeg"),
-            Capability("whisper_transcripts", "Whisper transcript extraction", "experimental", whisper && ffmpeg, whisper && ffmpeg ? "whisper and ffmpeg are available." : "Requires whisper and ffmpeg.", "whisper", "ffmpeg"),
-            Capability("ocr_frames", "OCR frame scanning", "experimental", tesseract && ffmpeg, tesseract && ffmpeg ? "tesseract and ffmpeg are available." : "Requires tesseract and ffmpeg.", "tesseract", "ffmpeg"),
+            Capability("songrec", "SongRec recognition", "experimental", songrec, songrec ? "songrec is available." : MissingCommandReason("songrec"), "songrec"),
+            Capability("panako", "Panako local corpus matching", "experimental", !string.IsNullOrWhiteSpace(panakoJar), !string.IsNullOrWhiteSpace(panakoJar) ? $"Panako jar found at {panakoJar}." : "panako.jar was not found in known locations or PATH. For Docker, mount panako.jar at /usr/share/java/panako.jar or install it in a derived experimental media image.", "java", "panako.jar"),
+            Capability("audfprint", "Audfprint local corpus matching", "experimental", !string.IsNullOrWhiteSpace(audfprint), !string.IsNullOrWhiteSpace(audfprint) ? $"Audfprint script found at {audfprint}." : "audfprint.py was not found in known locations or PATH. For Docker, mount audfprint.py at /slskd/external/audfprint/audfprint.py or install it in a derived experimental media image.", "python", "audfprint.py"),
+            Capability("demucs", "Demucs stem extraction", "experimental", demucs && ffmpeg, demucs && ffmpeg ? "demucs and ffmpeg are available." : MissingCommandReason("demucs", commandMissing: !demucs, ffmpegMissing: !ffmpeg), "demucs", "ffmpeg"),
+            Capability("whisper_transcripts", "Whisper transcript extraction", "experimental", whisper && ffmpeg, whisper && ffmpeg ? "whisper and ffmpeg are available." : MissingCommandReason("whisper", commandMissing: !whisper, ffmpegMissing: !ffmpeg), "whisper", "ffmpeg"),
+            Capability("ocr_frames", "OCR frame scanning", "experimental", tesseract && ffmpeg, tesseract && ffmpeg ? "tesseract and ffmpeg are available." : MissingCommandReason("tesseract", commandMissing: !tesseract, ffmpegMissing: !ffmpeg), "tesseract", "ffmpeg"),
             Capability("comments_and_chapters", "YouTube comments and chapters", "experimental", ytDlp, ytDlp ? "yt-dlp is available." : "Requires yt-dlp.", "yt-dlp"),
-            Capability("c2pa_provenance", "C2PA provenance signal detection", "experimental", c2paTool, c2paTool ? "c2patool is available." : "c2patool was not found on PATH.", "c2patool"),
+            Capability("c2pa_provenance", "C2PA provenance signal detection", "experimental", c2paTool, c2paTool ? "c2patool is available." : MissingCommandReason("c2patool"), "c2patool"),
             Capability("hash_from_audio_file_flag", "HashFromAudioFileEnabled flag", "broken", false, "Startup validation rejects this flag because PCM extraction support for that hardening path is unavailable."),
         };
+    }
+
+    private static string MissingCommandReason(string command, bool commandMissing = true, bool ffmpegMissing = false)
+    {
+        var missing = (commandMissing, ffmpegMissing) switch
+        {
+            (true, true) => $"{command} and ffmpeg were not found on PATH.",
+            (true, false) => $"{command} was not found on PATH.",
+            (false, true) => "ffmpeg was not found on PATH.",
+            _ => "Required tools were not found on PATH.",
+        };
+
+        return $"{missing} {DockerExperimentalMediaHint}";
     }
 
     private static SongIdCapability Capability(
