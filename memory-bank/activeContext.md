@@ -1,3 +1,35 @@
+## Update 2026-05-15 08:36:00Z
+
+- Current task: `kspls0` stale-browser/direct-tab fix deployed and verified with
+  live headless browser coverage.
+- Last activity:
+  - confirmed the service-worker cleanup build did not fix direct search tabs by
+    itself; headless Playwright hit `/searches/assets/...` 404s and an empty
+    React root;
+  - fixed the deep-link asset path by keeping Vite asset URLs root-absolute and
+    retaining base-tag/url_base rewrite coverage;
+  - committed `dc475fd9c` and deployed
+    `0.0.0-manual.20260515083307.dc475fd9c371` after stopping the previous
+    service on `kspls0`.
+- Validation:
+  - Passed: focused `CreateWebHtmlRewriteRules` unit tests (`2/2`).
+  - Passed: production Web build emits root-absolute script/style assets.
+  - Passed live raw check: direct `/searches/{id}` HTML references
+    `/assets/index-DFWW6rUd.js`; `/searches/assets/index-DFWW6rUd.js` is 404,
+    while `/assets/index-DFWW6rUd.js` is 200 JavaScript.
+  - Passed live headless check: two fresh direct search tabs stayed on the
+    route, both search API calls returned 200, 62 asset requests loaded, and
+    there were no `/searches/assets/` requests, failed requests, bad asset
+    responses, or console errors.
+  - Passed live service check: `slskd.service` active, PID `3986614`,
+    `NRestarts=0`, and the post-start journal scan had no error/fatal/exception,
+    `Remote connection closed`, or `/searches/assets` matches.
+- Next steps:
+  1. Tester can retry direct search result tabs on the live build.
+  2. Continue collecting separate failed-download evidence if the tester still
+     sees `Remote connection closed`; this task only proves the tab/deep-link
+     regression is fixed.
+
 ## Update 2026-05-15 08:28:42Z
 
 - Current task: `kspls0` stale-browser/deep-tab fix deployed and verified.
