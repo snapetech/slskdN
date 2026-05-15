@@ -172,7 +172,7 @@ class TransferList extends Component {
                               isRetryableState(f.state) && (
                                 <Icon name="redo" />
                               )}
-                            {formatTransferState(f.state)}
+                            {formatTransferState(f.state, f.exception)}
                             {f.placeInQueue ? ` (#${f.placeInQueue})` : ''}
                           </Button>
                         )}

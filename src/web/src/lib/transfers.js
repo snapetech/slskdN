@@ -94,7 +94,17 @@ export const isStateCancellable = (state) =>
 
 export const isStateRemovable = (state) => isStateTerminal(state);
 
-export const formatTransferState = (state) => {
+const isRemoteUnavailableTransferError = (message = '') =>
+  [
+    'Remote connection closed',
+    'Connection reset by peer',
+    'Failed to establish a direct or indirect message connection',
+    'Failed to establish a direct or indirect transfer connection',
+    'Download reported as failed by remote client',
+    'Transfer rejected:',
+  ].some((token) => message.includes(token));
+
+export const formatTransferState = (state, exception = '') => {
   switch (state) {
     case 'Completed, Succeeded':
       return 'Complete';
@@ -103,7 +113,9 @@ export const formatTransferState = (state) => {
     case 'Completed, TimedOut':
       return 'Timed out';
     case 'Completed, Errored':
-      return 'Error';
+      return isRemoteUnavailableTransferError(exception)
+        ? 'Peer unavailable'
+        : 'Error';
     case 'Completed, Rejected':
       return 'Rejected';
     case 'Completed, Aborted':

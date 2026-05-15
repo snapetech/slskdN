@@ -72,4 +72,30 @@ describe('TransferGroup', () => {
     expect(screen.getByRole('button', { name: /Error/u })).toBeInTheDocument();
     expect(screen.queryByText(/Completed/u)).not.toBeInTheDocument();
   });
+
+  it('labels expected remote download failures as peer unavailable', () => {
+    render(
+      <TransferList
+        direction="download"
+        directoryName="Album"
+        files={[
+          {
+            bytesTransferred: 0,
+            direction: 'Download',
+            exception: 'Transfer failed: Read error: Remote connection closed',
+            filename: 'Album\\track.flac',
+            percentComplete: 0,
+            size: 100,
+            state: 'Completed, Errored',
+          },
+        ]}
+        onPlaceInQueueRequested={vi.fn()}
+        onRetryRequested={vi.fn()}
+        onSelectionChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /Peer unavailable/u })).toBeInTheDocument();
+    expect(screen.queryByText(/^Error$/u)).not.toBeInTheDocument();
+  });
 });
