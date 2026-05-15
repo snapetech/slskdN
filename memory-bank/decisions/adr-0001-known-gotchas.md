@@ -83,6 +83,36 @@ incomplete and final destination directories before handing off or moving data,
 and keep observer handling of local filesystem failures debug-only so the
 operation boundary logs the actionable error once.
 
+### 0z360. Remediation Scripts Must Be Registered In The Baseline
+
+**The Bug**: New release-gate scripts existed in `scripts/` but were not called
+from `scripts/check-remediation-baseline.sh`. The registry check correctly
+blocked release tagging because orphan guard scripts can silently drift away
+from the release gate.
+
+**Files Affected**:
+- `scripts/check-remediation-baseline.sh`
+- `scripts/check-remediation-script-registry.sh`
+
+**Wrong**:
+```bash
+"$repo_root/scripts/check-council-negative-space.sh"
+"$repo_root/scripts/check-bug-council-all-phases.sh"
+```
+
+**Correct**:
+```bash
+"$repo_root/scripts/check-council-active-backlog.sh"
+"$repo_root/scripts/check-council-sweep-counts.sh"
+"$repo_root/scripts/check-council-negative-space.sh"
+"$repo_root/scripts/check-bug-council-all-phases.sh"
+```
+
+**Why This Keeps Happening**: Adding a guard script feels complete once the
+script itself exists, but this repo's release safety depends on every guard
+being reachable from the aggregate baseline. Add new `check-*.sh` gates to the
+baseline in the same change that introduces them.
+
 ### 0z430. Preflight Local Output Paths Before Soulseek Transfer Attempts
 
 **The Bug**: When an incomplete-download directory was not writable by the
