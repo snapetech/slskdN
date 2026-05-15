@@ -18371,3 +18371,36 @@ catch (Exception ex) when (IsExpectedExternalHttpFailure(ex))
 **Why This Keeps Happening**: Background sync loops often call external
 services that can validly return 4xx/5xx responses. Those should be concise
 operator warnings; reserve full exception logging for unexpected local bugs.
+
+### 0z359. Capture CancellationToken Before Publishing CancellationTokenSource
+
+**The Bug**: Search startup stored a `CancellationTokenSource` in the shared
+search cancellation dictionary, then background finalization later read
+`cancellationTokenSource.Token`. Shutdown or user cancellation can remove and
+dispose that source while the background finalizer is still running, so reading
+`Token` after disposal throws `ObjectDisposedException` and logs a misleading
+finalization stack trace during normal stop.
+
+**Files Affected**:
+- `src/slskd/Search/SearchService.cs`
+- `src/slskd/Search/SearchService.BridgedSearch.cs`
+
+**Wrong**:
+```csharp
+var cancellationTokenSource = new CancellationTokenSource();
+CancellationTokens.TryAdd(id, cancellationTokenSource);
+await worker.RunAsync(cancellationTokenSource.Token);
+```
+
+**Correct**:
+```csharp
+var cancellationTokenSource = new CancellationTokenSource();
+var searchCancellationToken = cancellationTokenSource.Token;
+CancellationTokens.TryAdd(id, cancellationTokenSource);
+await worker.RunAsync(searchCancellationToken);
+```
+
+**Why This Keeps Happening**: A `CancellationTokenSource` feels like a stable
+owner object, but the shared dictionary makes it externally disposable. Once it
+is published, background code must use a captured `CancellationToken` value and
+avoid reading properties from the source again.
