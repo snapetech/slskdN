@@ -1,3 +1,29 @@
+## Update 2026-05-15 08:28:42Z
+
+- Current task: `kspls0` stale-browser/deep-tab fix deployed and verified.
+- Last activity:
+  - deployed `0.0.0-manual.20260515081737.9b5a8ba0df76` with the service-worker
+    cleanup, then headless Playwright proved direct `/searches/{id}` tabs still
+    failed because assets loaded from `/searches/assets/...`;
+  - fixed root SPA fallback base-tag injection, documented ADR-0001 gotcha
+    `0z433`, and committed `13f062dd2`;
+  - rebuilt and deployed `0.0.0-manual.20260515082423.13f062dd254a` to
+    `kspls0`.
+- Validation:
+  - Passed: focused `CreateWebHtmlRewriteRules` unit tests (`2/2`).
+  - Passed live: authenticated Playwright opened two direct search detail tabs
+    against `http://kspls0:5030/searches/{id}`; both stayed on the route, loaded
+    search detail responses with HTTP 200, had zero asset 404s, zero failed
+    requests, and no console errors.
+  - Passed live service check: `slskd.service` active, PID `3937120`,
+    `NRestarts=0`, running executable path is the new manual release, and recent
+    logs had no error/fatal/exception or `/searches/assets` signatures.
+- Next steps:
+  1. Let the tester retry direct search result tabs on the live build.
+  2. Continue collecting failed direct-download evidence separately if
+     `Remote connection closed` remains reproducible; the current live sample
+     shows some downloads completing on this build.
+
 ## Update 2026-05-15 08:12:21Z
 
 - Current task: tester feedback triage partly complete.

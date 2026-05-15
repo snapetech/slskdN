@@ -1,5 +1,16 @@
 ## 2026-05-15
 
+- Deployed `0.0.0-manual.20260515082423.13f062dd254a` to `kspls0` after
+  headless validation proved the previous service-worker-only build still
+  failed direct `/searches/{id}` tabs: SPA fallback served `index.html`, but
+  root deployments lacked a `<base href="/">`, causing the browser to request
+  `/searches/assets/...` and receive 404s. Added root base-tag injection,
+  documented ADR-0001 gotcha `0z433`, redeployed, and reran authenticated
+  Playwright against the live host. Result: two direct tabs stayed on the
+  search detail route, loaded search detail responses with HTTP 200, had zero
+  asset 404s, zero failed requests, and no console errors. Live service stayed
+  active with `NRestarts=0`; recent logs showed no error/fatal/exception or
+  `/searches/assets` signatures and included completed live downloads.
 - Investigated tester feedback that the stable release still failed direct
   search-result tabs and downloads. Verified `build-main-2026051501-slskdn.253`
   points at current `HEAD`, release artifact checksums pass, the Linux x64
