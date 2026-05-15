@@ -77,6 +77,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Added a Docker `install-optional-media-tools` helper for heavyweight SongID
   experiments so operators can populate OCR, Whisper/Demucs, SongRec, C2PA,
   Audfprint, and Panako support after startup or in a derived image.
+- Added a cached all-tools Docker recipe for local validation builds so repeat
+  optional-tool images reuse apt, Python, Rust, and Gradle downloads instead of
+  fetching the heavyweight stack from scratch.
 - Added an opt-in experimental media Docker image recipe for heavier SongID
   prerequisites, and updated capability reporting with Docker guidance when
   optional recognizer tools are missing.

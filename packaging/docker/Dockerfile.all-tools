@@ -1,0 +1,25 @@
+# syntax=docker/dockerfile:1.7
+
+ARG BASE_IMAGE=ghcr.io/snapetech/slskdn:latest
+
+FROM ${BASE_IMAGE}
+
+USER root
+
+ENV SLSKDN_KEEP_PACKAGE_CACHES=true
+
+COPY packaging/docker/install-optional-media-tools /usr/local/bin/install-optional-media-tools
+RUN chmod +x /usr/local/bin/install-optional-media-tools
+
+RUN --mount=type=cache,id=slskdn-optional-apt-cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=slskdn-optional-apt-lists,target=/var/lib/apt/lists,sharing=locked \
+    --mount=type=cache,id=slskdn-optional-pip,target=/root/.cache/pip,sharing=locked \
+    --mount=type=cache,id=slskdn-optional-rustup,target=/opt/slskdn-media-tools/rustup,sharing=locked \
+    --mount=type=cache,id=slskdn-optional-cargo,target=/opt/slskdn-media-tools/rustup-cargo,sharing=locked \
+    --mount=type=cache,id=slskdn-optional-cargo-target,target=/opt/slskdn-media-tools/cargo-target,sharing=locked \
+    --mount=type=cache,id=slskdn-optional-gradle,target=/root/.gradle,sharing=locked \
+    install-optional-media-tools all \
+    && find / -xdev -type f \( -perm -4000 -o -perm -2000 \) -exec chmod a-s {} + \
+    && rm -rf \
+      /tmp/* \
+      /var/tmp/*

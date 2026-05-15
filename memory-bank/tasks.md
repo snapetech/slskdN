@@ -2866,7 +2866,8 @@
 - [2026-05-15T22:25:00Z] Completed: re-tested live Docker UI/API after deploying the fixed manual image; expected remaining API probe exceptions are admin-only debug/visualizer endpoints and intentionally capped-vs-unlimited search listing behavior.
 - [2026-05-15T22:35:00Z] Completed: clamp completed-transfer speed display to zero for immediate failed transfers so logs do not show impossible negative throughput.
 - [2026-05-15T22:48:00Z] Completed: deployed the all-tools manual Docker image for revision `b2ebabc43e` to the live Docker host, verified container health, optional tool presence, hardening flags, and the post-deploy headless route/API crawl.
+- [2026-05-15T23:35:00Z] Completed: add cached all-tools Docker image recipe so repeated local validation builds reuse apt package indexes/packages, Python wheels, Rust toolchain/crates/build targets, and Gradle artifacts instead of redownloading the heavyweight optional stack.
 - [ ] Review whether API-key deployments should expose read-only status for `/api/v0/player/external-visualizer` or keep it admin-only.
-- [ ] Decide whether `GET /api/v0/searches` should apply a conservative default server-side limit when no `limit` query is provided; the Web UI already passes `limit=500`, but direct callers can still request an expensive unlimited list.
-- [ ] Reduce noisy mesh-health warnings when DHT/mesh is enabled but no healthy mesh peers are reachable; preserve actionable startup/connectivity diagnostics.
-- [ ] Investigate Lidarr auto-import timeout behavior under busy download bursts and decide whether it needs backoff, queue visibility, or longer timeout controls.
+- [2026-05-15T22:55:55Z] Completed: cap default `GET /api/v0/searches` responses when no `limit` query is provided.
+- [2026-05-15T22:55:55Z] Completed: reduce repeated mesh-health warnings when DHT/mesh is enabled but no healthy mesh peers are reachable.
+- [2026-05-15T22:55:55Z] Completed: downgrade expected Lidarr HTTP failure/timeout log noise while preserving concise unavailability messages.

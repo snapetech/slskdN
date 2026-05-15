@@ -66,6 +66,23 @@ FROM ghcr.io/snapetech/slskdn:latest
 RUN install-optional-media-tools all
 ```
 
+For repeated local validation builds, use the bundled all-tools Dockerfile. It
+uses BuildKit cache mounts for apt packages, Python wheels, Rust crates/toolchain
+downloads, and Gradle artifacts, so the first build is large but later rebuilds
+reuse the downloaded optional-tool dependencies:
+
+```shell
+DOCKER_BUILDKIT=1 docker build -t slskdn:all-tools \
+  -f packaging/docker/Dockerfile.all-tools \
+  --build-arg BASE_IMAGE=ghcr.io/snapetech/slskdn:latest \
+  .
+```
+
+The all-tools image is intentionally large because it includes the complete
+optional recognizer stack, including the Python AI packages and their transitive
+runtime wheels. Keep substantial free Docker storage available for the final
+image, temporary build layers, and cache mounts.
+
 Use `SLSKDN_PIP_PACKAGES` to pin or replace the Python tool set in a derived
 image, for example:
 
@@ -102,9 +119,10 @@ Rust/Cargo. Tools without a stable distro package in the base image, such as
 Whisper, Demucs, SongRec, Panako, Audfprint, and C2PA tooling, should still be
 installed with `install-optional-media-tools`, installed in a pinned derived
 image, or mounted into the container. For local validation where image size is
-less important than feature coverage, run `install-optional-media-tools all` in
-a derived image. The SongID capabilities API reports which specific command or
-file is missing and points Docker users at the installer.
+less important than feature coverage, build
+`packaging/docker/Dockerfile.all-tools`. The SongID capabilities API reports
+which specific command or file is missing and points Docker users at the
+installer.
 
 For an internet-facing or always-on host, prefer a hardened container launch.
 This keeps the web UI on loopback for a reverse proxy or SSH tunnel, drops

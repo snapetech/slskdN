@@ -33,6 +33,8 @@ Environment:
   PANAKO_JAR_URL                Optional direct jar URL for panako profile
   PANAKO_REPO                   Default: https://github.com/JorenSix/Panako.git
   PANAKO_REF                    Default: master
+  SLSKDN_KEEP_PACKAGE_CACHES    Default: false. Set to true in derived Docker
+                                 builds that use BuildKit cache mounts.
 
 Examples:
   docker exec -u root slskd install-optional-media-tools distro ai-python
@@ -59,9 +61,22 @@ TOOLS_ROOT="${SLSKDN_MEDIA_TOOLS_ROOT:-/opt/slskdn-media-tools}"
 PYTHON_VENV="${TOOLS_ROOT}/python"
 BIN_DIR="/usr/local/bin"
 JAVA_DIR="/usr/local/share/java"
+APT_BASE_INSTALLED=0
+
+keep_package_caches() {
+  [[ "${SLSKDN_KEEP_PACKAGE_CACHES:-false}" =~ ^([Tt][Rr][Uu][Ee]|1|[Yy][Ee][Ss])$ ]]
+}
 
 apt_install_base() {
+  if [[ "${APT_BASE_INSTALLED}" == "1" ]]; then
+    return
+  fi
+
   export DEBIAN_FRONTEND=noninteractive
+  if keep_package_caches; then
+    rm -f /etc/apt/apt.conf.d/docker-clean
+  fi
+
   apt-get update
   apt-get install --no-install-recommends -y \
     build-essential \
@@ -87,13 +102,18 @@ apt_install_base() {
     python3-venv \
     rustc \
     tesseract-ocr
-  rm -rf /var/lib/apt/lists/* /var/cache/apt/*
+  APT_BASE_INSTALLED=1
+
+  if ! keep_package_caches; then
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/*
+  fi
 }
 
 install_rustup_toolchain() {
   mkdir -p "${TOOLS_ROOT}/rustup" "${TOOLS_ROOT}/rustup-cargo"
   export RUSTUP_HOME="${TOOLS_ROOT}/rustup"
   export CARGO_HOME="${TOOLS_ROOT}/rustup-cargo"
+  export CARGO_TARGET_DIR="${TOOLS_ROOT}/cargo-target"
   if [[ ! -x "${CARGO_HOME}/bin/cargo" ]]; then
     curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs \
       | sh -s -- -y --no-modify-path --profile minimal --default-toolchain "${SLSKDN_RUST_TOOLCHAIN:-stable}"
@@ -212,5 +232,9 @@ done
 
 find / -xdev -type f \( -perm -4000 -o -perm -2000 \) -exec chmod a-s {} +
 rm -rf /tmp/* /var/tmp/*
+
+if ! keep_package_caches; then
+  rm -rf /root/.cache /root/.cargo/registry /root/.cargo/git
+fi
 
 echo "Optional media tool installation complete."

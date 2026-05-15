@@ -1,3 +1,26 @@
+## Update 2026-05-15 23:35:00Z
+
+- Current task: Docker optional-tools repeated-download fix is complete locally.
+- Last activity:
+  - added `packaging/docker/Dockerfile.all-tools` for cached local validation
+    images;
+  - made `install-optional-media-tools` cache-aware with
+    `SLSKDN_KEEP_PACKAGE_CACHES=true`;
+  - copied the current installer into the derived all-tools image before
+    running it, so derived builds do not silently use an older base-image
+    installer;
+  - documented the derived-Docker installer gotcha.
+- Validation:
+  - Passed: `bash -n packaging/docker/install-optional-media-tools`.
+  - Passed: one full cached all-tools Docker image build.
+  - Partial: a second rebuild confirmed apt cache hits and cached Python
+    Torch/CUDA wheels, then failed because the local Docker host had only about
+    5 GB free.
+- Next steps:
+  1. Free local Docker storage before doing another all-tools rebuild or live
+     image transfer.
+  2. Commit/push the cache-aware Docker recipe when ready.
+
 ## Update 2026-05-15 22:55:55Z
 
 - Current task: live Docker log investigation and low-risk hardening fixes are
