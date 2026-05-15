@@ -39,7 +39,7 @@ const loadServiceWorker = () => {
 };
 
 describe('service worker caching', () => {
-  it('precaches only the static shell assets', async () => {
+  it('retires the shell cache instead of precaching assets', async () => {
     const { cache, context, listeners } = loadServiceWorker();
     let pending;
 
@@ -51,13 +51,31 @@ describe('service worker caching', () => {
 
     await pending;
 
-    expect(context.caches.open).toHaveBeenCalledWith('slskdn-shell-v2');
-    expect(cache.addAll).toHaveBeenCalledWith([
-      './manifest.json',
-      './logo192.png',
-      './logo512.png',
-    ]);
+    expect(context.caches.delete).toHaveBeenCalledWith('slskdn-shell-retired-v3');
+    expect(context.caches.open).not.toHaveBeenCalled();
+    expect(cache.addAll).not.toHaveBeenCalled();
     expect(context.self.skipWaiting).toHaveBeenCalled();
+  });
+
+  it('clears old caches and unregisters on activation', async () => {
+    const { context, listeners } = loadServiceWorker();
+    context.self.registration = {
+      unregister: vi.fn().mockResolvedValue(true),
+    };
+    let pending;
+
+    listeners.get('activate')({
+      waitUntil: (promise) => {
+        pending = promise;
+      },
+    });
+
+    await pending;
+
+    expect(context.caches.keys).toHaveBeenCalled();
+    expect(context.caches.delete).toHaveBeenCalledWith('slskdn-shell-v1');
+    expect(context.self.registration.unregister).toHaveBeenCalled();
+    expect(context.self.clients.claim).toHaveBeenCalled();
   });
 
   it('uses network-first fetches for navigation requests', async () => {

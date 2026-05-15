@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Updated service-worker retirement coverage so the release gate validates
+  cache cleanup instead of the removed precache path.
 - Labeled expected remote download failures as `Peer unavailable` in the
   transfer list instead of the generic `Error`.
 - Returned controlled 503 responses when browse is requested before Soulseek

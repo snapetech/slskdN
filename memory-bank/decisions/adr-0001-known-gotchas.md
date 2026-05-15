@@ -140,6 +140,7 @@ the release artifact contains the fix.
 **Files Affected**:
 - `src/web/public/service-worker.js`
 - `src/web/src/registerServiceWorker.js`
+- `src/web/src/serviceWorkerCaching.test.js`
 
 **Wrong**:
 ```javascript
@@ -158,7 +159,10 @@ await Promise.all((registrations || []).map((registration) => registration.unreg
 for this app; a service worker adds another cache layer that survives deploys
 and can hide fixed route/loading behavior. Clear old workers and caches when
 shipping client-side route fixes, and verify release zips for the expected
-minified markers before assuming the tag built stale code.
+minified markers before assuming the tag built stale code. Keep the service
+worker tests aligned to retirement behavior; stale precache assertions can
+block the release gate after the production worker has intentionally stopped
+caching assets.
 
 ### 0z431. Preflight Destination Paths Before Moving Completed Downloads
 
