@@ -21,6 +21,11 @@
  - Priority: P2
  - Notes: Added an experimental media Dockerfile for conservative distro-level OCR/Java/Python prerequisites, documented derived-image usage for heavier recognizers, and updated SongID capability reasons to point Docker users at the image/derived-image path when optional tools are missing.
 
+- [x] Bundle Docker QUIC runtime support.
+ - Status: completed (2026-05-15)
+ - Priority: P2
+ - Notes: Added Microsoft `libmsquic` to the default Docker image so .NET QUIC mesh transports can run in Linux containers. Measured current default image at ~339.1 MB, QUIC image at ~344.1 MB, and experimental media image at ~428.1 MB.
+
 - [x] Red-team slskdN and slskNet.Runtime for conservative hardening gaps.
  - Status: completed (2026-05-14)
  - Priority: P1

@@ -10436,3 +10436,16 @@ Code quality improvements were completed as part of Option A:
 - Validated focused SongID capability tests, packaging metadata validation,
   `git diff --check`, local Docker build `slskdn:experimental-media-test`,
   image tool checks, no setuid/setgid files, and `./bin/lint`.
+
+# 2026-05-15 21:14:00Z
+
+- Added Microsoft `libmsquic` to the default Docker image so .NET QUIC mesh
+  transports can run in Linux containers instead of being disabled at startup.
+- Avoided adding the Microsoft apt repository globally by downloading the
+  architecture-specific `libmsquic` package from packages.microsoft.com during
+  the Docker build and installing it as a local package.
+- Measured image size impact: current default image ~339.1 MB, QUIC-enabled
+  image ~344.1 MB, and experimental media image ~428.1 MB.
+- Validated `libmsquic` dynamic linker visibility, default media tools,
+  setuid/setgid stripping, sticky `/.net`, packaging metadata validation, and
+  `git diff --check`.

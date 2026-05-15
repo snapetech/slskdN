@@ -21,10 +21,11 @@ docker run -d \
 ```
 
 The Docker image includes the core runtime tools used by the built-in media and
-SongID paths: `ffmpeg`/`ffprobe`, `yt-dlp`, and Chromaprint `fpcalc`. Larger
+SongID paths: `ffmpeg`/`ffprobe`, `yt-dlp`, Chromaprint `fpcalc`, and
+Microsoft `libmsquic` for .NET QUIC mesh transports on Linux. Larger
 experimental recognizers such as Whisper, Demucs, SongRec, Panako, Audfprint,
-C2PA tooling, and OCR engines are not bundled by default; mount or install them
-in a derived image when you intentionally enable those workflows.
+C2PA tooling, and OCR engines are not bundled by default; mount or install
+them in a derived image when you intentionally enable those workflows.
 
 For opt-in experimental media work, build an experimental media image from the
 released runtime image:

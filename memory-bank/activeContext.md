@@ -179,6 +179,28 @@
   2. Build a new manual Docker image from the pushed head before deploying this
      path to a validation host.
 
+## Update 2026-05-15 21:14:00Z
+
+- Current task: Docker QUIC runtime support implemented locally.
+- Last activity:
+  - added Microsoft `libmsquic` to the default Docker image via a pinned
+    architecture-specific package download;
+  - documented QUIC as a bundled Docker runtime prerequisite;
+  - documented gotcha `0z440` for missing native QUIC runtime dependencies in
+    Linux containers.
+- Validation:
+  - Passed: local Docker build `slskdn:manual-quic-66d3fc39e`.
+  - Passed: `ldconfig` sees `libmsquic.so.2`.
+  - Passed: image tool check for `ffmpeg`, `ffprobe`, `fpcalc`, `yt-dlp`,
+    `jq`, `wget`, `tini`, and `gosu`.
+  - Passed: no setuid/setgid files and sticky `/.net`.
+  - Passed: `bash packaging/scripts/validate-packaging-metadata.sh`.
+  - Passed: `git diff --check`.
+- Next steps:
+  1. Commit and push the Docker QUIC change.
+  2. Deploy the QUIC-enabled manual image to the validation host and confirm the
+     startup logs no longer report QUIC runtime support unavailable.
+
 ## Update 2026-05-15 08:36:00Z
 
 - Current task: `kspls0` stale-browser/direct-tab fix deployed and verified with

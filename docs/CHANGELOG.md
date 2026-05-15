@@ -63,6 +63,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   tool noise.
 - Bundled Docker runtime media prerequisites for the default audio/SongID paths:
   `ffmpeg`/`ffprobe`, `yt-dlp`, and Chromaprint `fpcalc`.
+- Bundled Microsoft `libmsquic` in Docker images so .NET QUIC mesh transports
+  work in the default Linux container instead of being disabled at startup.
 - Added an opt-in experimental media Docker image recipe for heavier SongID
   prerequisites, and updated capability reporting with Docker guidance when
   optional recognizer tools are missing.

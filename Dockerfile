@@ -42,8 +42,10 @@ ARG TAG=0.0.1
 ARG VERSION=0.0.1.65534-local
 ARG REVISION=0
 ARG BUILD_DATE
+ARG LIBMSQUIC_VERSION=2.4.18
 
 RUN apt-get update && apt-get install --no-install-recommends -y \
+  ca-certificates \
   ffmpeg \
   gosu \
   jq \
@@ -51,6 +53,19 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   wget \
   tini \
   yt-dlp \
+  && \
+  arch="$(dpkg --print-architecture)" \
+  && \
+  case "$arch" in \
+    amd64) deb_arch=amd64 ;; \
+    arm64) deb_arch=arm64 ;; \
+    armhf) deb_arch=armhf ;; \
+    *) echo "Unsupported architecture for libmsquic: $arch" >&2; exit 1 ;; \
+  esac \
+  && \
+  wget -q -O /tmp/libmsquic.deb "https://packages.microsoft.com/ubuntu/24.04/prod/pool/main/libm/libmsquic/libmsquic_${LIBMSQUIC_VERSION}_${deb_arch}.deb" \
+  && \
+  apt-get install --no-install-recommends -y /tmp/libmsquic.deb \
   && \
   find / -xdev -type f \( -perm -4000 -o -perm -2000 \) -exec chmod a-s {} + \
   && \
