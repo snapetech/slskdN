@@ -1049,10 +1049,10 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
 
         if (totalConnectionsSucceeded <= 0)
         {
-            return "peers-discovered-unreachable";
+            return "opportunistic-peers-not-connected";
         }
 
-        return "previously-connected-no-active-links";
+        return "opportunistic-no-active-links";
     }
 
     private static void AppendFailureReason(ICollection<string> reasons, string label, long count)

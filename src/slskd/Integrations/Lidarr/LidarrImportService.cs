@@ -153,15 +153,15 @@ public sealed class LidarrImportService : BackgroundService, ILidarrImportServic
                 }
                 catch (OperationCanceledException ex) when (IsHttpClientTimeout(ex))
                 {
-                    Log.Warning(
-                        "Lidarr auto-import timed out for {Directory}: {Message}",
+                    Log.Information(
+                        "Lidarr auto-import unavailable for {Directory}: {Message}",
                         evt.LocalDirectoryName,
                         ex.Message);
                 }
                 catch (Exception ex) when (IsExpectedExternalHttpFailure(ex))
                 {
-                    Log.Warning(
-                        "Lidarr auto-import failed for {Directory}: {Message}",
+                    Log.Information(
+                        "Lidarr auto-import unavailable for {Directory}: {Message}",
                         evt.LocalDirectoryName,
                         ex.Message);
                 }

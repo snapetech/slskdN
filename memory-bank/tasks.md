@@ -2840,6 +2840,7 @@
 - [2026-05-14T21:19:42Z] Completed: reduce Lidarr auto-import HTTP failure log noise by treating expected external `HttpRequestException`s as concise warnings.
 - [2026-05-15T00:08:45Z] Completed: extend `kspls0` live log cleanup by fixing completed-download destination preflight and search shutdown cancellation-source disposal noise; deployed manual build `0.0.0-manual.20260515000445.401ac6b42bb6` and confirmed a clean fresh soak.
 - [2026-05-15T21:18:36Z] Completed: add Docker `install-optional-media-tools` helper and docs so heavyweight SongID prerequisites can be installed after startup or baked into derived images without bloating the default image.
+- [2026-05-15T22:55:55Z] Completed: investigate live Docker log noise and harden the actionable paths: capped default search-list API responses, bounded auto-retry lifetime attempts by default, downgraded expected mesh/Lidarr/queue-position noise, clarified DHT opportunistic-connectivity wording, and kept cancellation/transfer failure logs specific without stack traces.
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.

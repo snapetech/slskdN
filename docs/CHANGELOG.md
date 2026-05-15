@@ -101,6 +101,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   the release gate can validate all package channels consistently.
 - Logged expected Lidarr HTTP status failures during wanted sync without stack
   traces so external 4xx/5xx responses stay readable in daemon logs.
+- Capped default search-list API responses, bounded default download
+  auto-retry attempts, and downgraded expected mesh/Lidarr/queue-position
+  runtime noise so live Docker logs stay actionable under busy traffic.
 - Classified Soulseek `File read error` transfer rejections as expected peer
   denials so detached runtime transfer cleanup does not log as fatal.
 - Hid legacy duplicate job route controllers from Swagger discovery and made

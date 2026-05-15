@@ -669,10 +669,12 @@ namespace slskd.Transfers.API
         /// <param name="id">The id of the download.</param>
         /// <returns></returns>
         /// <response code="200">The request completed successfully.</response>
+        /// <response code="204">The queue position is currently unavailable.</response>
         /// <response code="404">The specified download was not found.</response>
         [HttpGet("downloads/{username}/{id}/position")]
         [Authorize(Policy = AuthPolicy.Any)]
-        [ProducesResponseType(typeof(API.Transfer), 200)]
+        [ProducesResponseType(typeof(int), 200)]
+        [ProducesResponseType(204)]
         [ProducesResponseType(404)]
         public async Task<IActionResult> GetPlaceInQueueAsync([FromRoute, Required] string username, [FromRoute, Required] string id)
         {
@@ -707,12 +709,12 @@ namespace slskd.Transfers.API
             catch (TimeoutException)
             {
                 Log.Debug("Timed out getting place in queue for {Username}/{TransferId}", username, guid);
-                return StatusCode(504, "Queue position lookup timed out");
+                return NoContent();
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Failed to get place in queue for {Username}/{TransferId}", username, guid);
-                return StatusCode(500, "Failed to get queue position");
+                Log.Debug(ex, "Queue position unavailable for {Username}/{TransferId}: {Message}", username, guid, ex.Message);
+                return NoContent();
             }
         }
 

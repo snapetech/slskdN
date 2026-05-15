@@ -121,7 +121,7 @@ public sealed class SoulseekHealthMonitor : ISoulseekHealthMonitor, IHostedServi
                 var oldHealth = currentHealth;
                 currentHealth = value;
 
-                logger.LogWarning("[VSF-HEALTH] Soulseek health changed: {Old} → {New}",
+                logger.LogInformation("[VSF-HEALTH] Soulseek health changed: {Old} → {New}",
                     oldHealth, value);
 
                 RaiseHealthChanged(new SoulseekHealthChangedEventArgs

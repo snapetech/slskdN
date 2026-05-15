@@ -143,6 +143,10 @@ namespace slskd
                     {
                         staged?.Invoke();
                     }
+                    catch (OperationCanceledException ex)
+                    {
+                        Log.Debug(ex, "RateLimiter staged callback cancelled");
+                    }
                     catch (Exception ex)
                     {
                         Log.Warning(ex, "RateLimiter staged callback failed");

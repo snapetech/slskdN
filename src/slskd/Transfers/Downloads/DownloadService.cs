@@ -572,7 +572,7 @@ namespace slskd.Transfers.Downloads
                                     using var timeoutCts = new CancellationTokenSource(maxTimeToWaitForEnqueueRequestAck);
                                     timeoutCts.Token.Register(() =>
                                     {
-                                        Log.Warning("Download of {Filename} from {Username} failed to enqueue remotely after hard time limit of {Duration} seconds. State transition history: {History}", transfer.Filename, username, maxTimeToWaitForEnqueueRequestAck.TotalSeconds, string.Join(", ", transitions));
+                                        Log.Information("Download of {Filename} from {Username} did not enqueue remotely within {Duration} seconds. State transition history: {History}", transfer.Filename, username, maxTimeToWaitForEnqueueRequestAck.TotalSeconds, string.Join(", ", transitions));
                                         enqueuedTcs.TrySetException(new TimeoutException($"Download failed to enqueue remotely after hard time limit of {maxTimeToWaitForEnqueueRequestAck.TotalSeconds} secs"));
                                     });
 
@@ -635,7 +635,7 @@ namespace slskd.Transfers.Downloads
                                 }
                                 catch (Exception ex) when (IsCancellationException(ex) || IsDownloadTimeout(ex))
                                 {
-                                    Log.Warning("Download of {File} from {Username} timed out or was cancelled while waiting for remote enqueue: {Message}", transfer.Filename, transfer.Username, ex.Message);
+                                    Log.Information("Download of {File} from {Username} timed out or was cancelled while waiting for remote enqueue: {Message}", transfer.Filename, transfer.Username, ex.Message);
                                     if (!TryFail(transferId, exception: ex))
                                     {
                                         Log.Debug("Transfer {Id} was already cleaned up after timed out or cancelled enqueue", transfer.Id);
@@ -673,7 +673,7 @@ namespace slskd.Transfers.Downloads
                         }
                         catch (Exception ex) when (IsExpectedRemoteDownloadFailure(ex))
                         {
-                            Log.Warning("Failed to enqueue download of {Filename} from {Username} because {Reason}: {Diagnostic}", file.Filename, username, DescribeExpectedRemoteDownloadFailureReason(ex), DescribeRemoteDownloadFailure(ex));
+                            Log.Information("Failed to enqueue download of {Filename} from {Username} because {Reason}: {Diagnostic}", file.Filename, username, DescribeExpectedRemoteDownloadFailureReason(ex), DescribeRemoteDownloadFailure(ex));
                             TryFail(transferId, exception: ex);
                             failed.Add(file.Filename);
 
@@ -1500,7 +1500,7 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex) when (IsCancellationException(ex) || IsDownloadTimeout(ex))
             {
-                Log.Warning("Download of {Filename} from user {Username} timed out or was cancelled: {Message}", transfer.Filename, transfer.Username, ex.Message);
+                Log.Information("Download of {Filename} from user {Username} timed out or was cancelled: {Message}", transfer.Filename, transfer.Username, ex.Message);
 
                 // Record failed/timed out chunk completion for peer metrics (Phase 2C - T-409)
                 if (PeerMetrics != null)
@@ -1523,7 +1523,7 @@ namespace slskd.Transfers.Downloads
             }
             catch (Exception ex) when (IsExpectedRemoteDownloadFailure(ex))
             {
-                Log.Warning("Download of {Filename} from user {Username} failed because {Reason}: {Diagnostic}", transfer.Filename, transfer.Username, DescribeExpectedRemoteDownloadFailureReason(ex), DescribeRemoteDownloadFailure(ex));
+                Log.Information("Download of {Filename} from user {Username} failed because {Reason}: {Diagnostic}", transfer.Filename, transfer.Username, DescribeExpectedRemoteDownloadFailureReason(ex), DescribeRemoteDownloadFailure(ex));
 
                 if (PeerMetrics != null)
                 {
@@ -1791,6 +1791,12 @@ namespace slskd.Transfers.Downloads
 
         private static string DescribeExpectedRemoteDownloadFailureReason(Exception exception)
         {
+            if (ContainsException<UserOfflineException>(exception) ||
+                exception.Message.Contains("appears to be offline", StringComparison.OrdinalIgnoreCase))
+            {
+                return "the remote peer is unavailable";
+            }
+
             if (ContainsException<TransferRejectedException>(exception) ||
                 exception.Message.Contains("Transfer rejected:", StringComparison.OrdinalIgnoreCase))
             {

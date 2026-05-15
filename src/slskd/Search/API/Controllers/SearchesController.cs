@@ -45,6 +45,8 @@ namespace slskd.Search.API
     [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
     public class SearchesController : ControllerBase
     {
+        private const int DefaultListLimit = 500;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="SearchesController"/> class.
         /// </summary>
@@ -213,7 +215,7 @@ namespace slskd.Search.API
         /// <summary>
         ///     Gets the list of active and completed searches.
         /// </summary>
-        /// <param name="limit">Maximum number of searches to return (0 for unlimited, which is the default).</param>
+        /// <param name="limit">Maximum number of searches to return (0 uses the default list cap).</param>
         /// <param name="offset">Number of searches to skip (for pagination).</param>
         /// <returns>The list of searches.</returns>
         [HttpGet("")]
@@ -230,7 +232,8 @@ namespace slskd.Search.API
                 return BadRequest();
             }
 
-            var searches = await Searches.ListAsync(limit: limit, offset: offset);
+            var effectiveLimit = limit == 0 ? DefaultListLimit : limit;
+            var searches = await Searches.ListAsync(limit: effectiveLimit, offset: offset);
             return Ok(searches);
         }
 

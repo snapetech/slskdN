@@ -82,12 +82,12 @@ public class MeshHealthCheck : IHealthCheck
 
             if (!routingTableHealthy)
             {
-                _logger.LogWarning("[MeshHealth] Routing table is empty or unhealthy");
+                _logger.LogDebug("[MeshHealth] Routing table is empty or unhealthy");
             }
 
             if (!peerConnectivityHealthy)
             {
-                _logger.LogWarning("[MeshHealth] No peer connectivity detected");
+                _logger.LogDebug("[MeshHealth] No peer connectivity detected");
             }
 
             _logger.LogDebug(

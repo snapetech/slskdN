@@ -159,7 +159,7 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
             }
             catch (Exception ex) when (IsExpectedExternalHttpFailure(ex))
             {
-                Log.Warning("Lidarr wanted sync failed: {Message}", ex.Message);
+                Log.Information("Lidarr wanted sync unavailable: {Message}", ex.Message);
                 SyncState.LastError = ex.Message;
             }
             catch (Exception ex)

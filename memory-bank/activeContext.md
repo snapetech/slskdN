@@ -1,3 +1,26 @@
+## Update 2026-05-15 22:55:55Z
+
+- Current task: live Docker log investigation and low-risk hardening fixes are
+  complete locally.
+- Last activity:
+  - sampled recent Docker/service logs from the live validation host;
+  - fixed the actionable code/config issues behind the noise: uncapped
+    search-list responses, unlimited default auto-retry churn, repeated
+    mesh-health degraded warnings, expected Lidarr unavailability warnings,
+    queue-position lookup noise, shutdown cancellation noise, and vague expected
+    transfer failure wording;
+  - documented the capped-list API gotcha.
+- Validation:
+  - Passed: focused touched-area unit tests (`110/110`).
+  - Passed: full unit suite (`4147/4147`).
+  - Passed: `dotnet build --no-restore`.
+  - Passed: `./bin/lint`.
+  - Passed: `git diff --check`.
+- Next steps:
+  1. Commit and push the log-hardening patch.
+  2. Build/deploy a manual Docker image for live validation only if the operator
+     wants this patch running before the next tagged build.
+
 ## Update 2026-05-15 08:55:00Z
 
 - Current task: `kspls0` direct search tabs, direct browse tabs, and tester

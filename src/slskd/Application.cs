@@ -2400,6 +2400,11 @@ namespace slskd
                     // response will be sent to the requestor.
                     return response;
                 }
+                catch (Exception ex) when (IsCancellationException(ex))
+                {
+                    Log.Debug("Search response resolution for query '{Query}' requested by {Username} was cancelled: {Message}", query.SearchText, username, ex.Message);
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     Log.Warning(ex, "Failed to resolve search response: {Message}", ex.Message);
@@ -2410,6 +2415,22 @@ namespace slskd
             {
                 IncomingSearchRequestSemaphore.Release();
             }
+        }
+
+        private static bool IsCancellationException(Exception exception)
+        {
+            if (exception is OperationCanceledException)
+            {
+                return true;
+            }
+
+            if (exception is AggregateException aggregateException)
+            {
+                var flattened = aggregateException.Flatten().InnerExceptions;
+                return flattened.Count > 0 && flattened.All(IsCancellationException);
+            }
+
+            return exception.InnerException is not null && IsCancellationException(exception.InnerException);
         }
 
         private void ShareState_OnChange((ShareState Previous, ShareState Current) state)

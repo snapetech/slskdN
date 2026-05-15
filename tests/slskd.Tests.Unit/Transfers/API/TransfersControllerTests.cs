@@ -225,7 +225,7 @@ public class TransfersControllerTests
     }
 
     [Fact]
-    public async Task GetPlaceInQueueAsync_WhenQueueLookupThrows_DoesNotLeakExceptionMessage()
+    public async Task GetPlaceInQueueAsync_WhenQueueLookupThrows_ReturnsNoContent()
     {
         var downloads = new Mock<IDownloadService>();
         var transferId = Guid.NewGuid();
@@ -240,14 +240,11 @@ public class TransfersControllerTests
 
         var result = await controller.GetPlaceInQueueAsync("alice", transferId.ToString());
 
-        var error = Assert.IsType<ObjectResult>(result);
-        Assert.Equal(500, error.StatusCode);
-        Assert.DoesNotContain("sensitive detail", error.Value?.ToString() ?? string.Empty);
-        Assert.Equal("Failed to get queue position", error.Value);
+        Assert.IsType<NoContentResult>(result);
     }
 
     [Fact]
-    public async Task GetPlaceInQueueAsync_WhenQueueLookupTimesOut_ReturnsGatewayTimeout()
+    public async Task GetPlaceInQueueAsync_WhenQueueLookupTimesOut_ReturnsNoContent()
     {
         var downloads = new Mock<IDownloadService>();
         var transferId = Guid.NewGuid();
@@ -262,10 +259,7 @@ public class TransfersControllerTests
 
         var result = await controller.GetPlaceInQueueAsync("alice", transferId.ToString());
 
-        var error = Assert.IsType<ObjectResult>(result);
-        Assert.Equal(504, error.StatusCode);
-        Assert.DoesNotContain("sensitive remote detail", error.Value?.ToString() ?? string.Empty);
-        Assert.Equal("Queue position lookup timed out", error.Value);
+        Assert.IsType<NoContentResult>(result);
     }
 
     [Fact]

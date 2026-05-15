@@ -497,8 +497,8 @@ public class DhtRendezvousServiceTests
     [InlineData(1, 12, 3, 1, "connected")]
     [InlineData(0, 0, 0, 0, "searching-no-peers")]
     [InlineData(0, 12, 0, 0, "peers-discovered-awaiting-connect")]
-    [InlineData(0, 12, 4, 0, "peers-discovered-unreachable")]
-    [InlineData(0, 12, 4, 2, "previously-connected-no-active-links")]
+    [InlineData(0, 12, 4, 0, "opportunistic-peers-not-connected")]
+    [InlineData(0, 12, 4, 2, "opportunistic-no-active-links")]
     public void DescribeOverlayConnectivity_SummarizesDiscoveredPeerState(
         int activeMeshConnections,
         int discoveredPeerCount,

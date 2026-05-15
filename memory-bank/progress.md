@@ -10528,3 +10528,5 @@ Code quality improvements were completed as part of Option A:
   failures, and image checksum errors after the verified reload. Remaining
   noisy signals are mesh-health warnings with no reachable mesh peers and
   intermittent Lidarr 500 responses.
+
+[2026-05-15T22:55:55Z] Live Docker log follow-up: sampled recent container and service logs from the Docker deployment. No crash/restart/OOM pattern was present, and downloads were completing, but several operationally noisy paths were worth fixing. Capped omitted `GET /api/v0/searches` limits to 500 so accidental callers do not pull the full history, changed default download auto-retry from unlimited to 5 attempts per username+filename per process lifetime, downgraded expected Lidarr HTTP/timeout unavailability, mesh health degraded probes, queue-position lookup failures, Soulseek health transitions, and shutdown cancellation to lower-noise logs, and kept remote transfer failure wording specific. Validation passed: focused touched-area unit tests (`110/110`), full unit suite (`4147/4147`), `dotnet build --no-restore`, `./bin/lint`, and `git diff --check`.

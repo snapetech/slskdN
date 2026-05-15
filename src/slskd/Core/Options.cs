@@ -1381,7 +1381,7 @@ namespace slskd
                     ///     Gets the maximum number of automatic retry attempts per file per process lifetime. 0 means unlimited.
                     /// </summary>
                     [Range(0, 100)]
-                    public int MaxAttempts { get; init; } = 0;
+                    public int MaxAttempts { get; init; } = 5;
 
                     /// <summary>
                     ///     Gets the maximum number of failed files automatically re-queued in one scan.

@@ -342,7 +342,7 @@ transfers:
       enabled: true
       retry_delay_seconds: 1800
       check_interval_seconds: 300
-      max_attempts: 0
+      max_attempts: 5
       max_files_per_cycle: 10
       max_files_per_peer_per_cycle: 1
       peer_cooldown_seconds: 900
@@ -353,13 +353,15 @@ transfers:
 
 The older `global` key is still accepted so existing deployments can upgrade without an immediate edit. New configuration should use `transfers`.
 
-Download auto-retry is enabled by default, and `max_attempts: 0` keeps retrying
-forever. The loop is intentionally conservative for Soulseek network health:
-retries are delayed after a failure, scans are bounded globally, and each scan
-only contacts a small number of files per peer with a peer cooldown between
-attempts. When alternate sources are enabled, auto-retry first tries cooled-down
-local HashDb inventory candidates, then uses at most the configured number of
-bounded alternative-source searches per scan before falling back to the original
+Download auto-retry is enabled by default, and `max_attempts: 5` bounds retry
+churn per username and filename for the current process. Set `max_attempts: 0`
+only when you explicitly want unlimited automatic retries. The loop is
+intentionally conservative for Soulseek network health: retries are delayed
+after a failure, scans are bounded globally, and each scan only contacts a small
+number of files per peer with a peer cooldown between attempts. When alternate
+sources are enabled, auto-retry first tries cooled-down local HashDb inventory
+candidates, then uses at most the configured number of bounded alternative-source
+searches per scan before falling back to the original
 peer. Mesh/swarm retry policies can be more aggressive because those paths use
 slskdN-controlled transport budgets; direct Soulseek retry should stay
 respectful of remote client queue, file, and megabyte limits.

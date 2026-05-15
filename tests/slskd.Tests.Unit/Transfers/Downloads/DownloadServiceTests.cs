@@ -550,7 +550,7 @@ public class DownloadServiceTests
     }
 
     [Fact]
-    public void CreateRetryPlan_DefaultMaxAttemptsAllowsUnlimitedRetries()
+    public void CreateRetryPlan_DefaultMaxAttemptsStopsAfterBoundedRetries()
     {
         var now = DateTime.UtcNow;
         var retriedManyTimes = CreateFailedDownload("alice", "forever.flac", now.AddMinutes(-40));
@@ -565,7 +565,7 @@ public class DownloadServiceTests
             new slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions(),
             now);
 
-        Assert.Equal(new[] { retriedManyTimes.Id }, plan.Select(t => t.Id));
+        Assert.Empty(plan);
     }
 
     [Fact]

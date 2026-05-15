@@ -206,6 +206,22 @@ public class SearchesControllerTests
     }
 
     [Fact]
+    public async Task GetAll_WithDefaultLimit_AppliesConservativeServerCap()
+    {
+        var searchService = new Mock<ISearchService>();
+        searchService
+            .Setup(service => service.ListAsync(null, 500, 0))
+            .ReturnsAsync(new List<slskd.Search.Search>());
+
+        var controller = CreateController(searchService);
+
+        var result = await controller.GetAll(limit: 0, offset: 0);
+
+        Assert.IsType<OkObjectResult>(result);
+        searchService.Verify(service => service.ListAsync(null, 500, 0), Times.Once);
+    }
+
+    [Fact]
     public async Task Post_WhenSearchServiceThrowsArgumentException_DoesNotLeakExceptionMessage()
     {
         var searchService = new Mock<ISearchService>();
