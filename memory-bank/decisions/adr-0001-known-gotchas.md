@@ -52,6 +52,52 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z440. Docker Images Need Native QUIC Runtime Dependencies
+
+**The Bug**: The Docker runtime image shipped .NET code that can use mesh QUIC
+transports, but the Linux image omitted the native `libmsquic` library required
+by `System.Net.Quic`. Container startup then logged that QUIC runtime support
+was unavailable and disabled direct QUIC mesh paths even when the app feature
+was configured.
+
+**Files Affected**:
+- `Dockerfile`
+- `packaging/scripts/validate-packaging-metadata.sh`
+
+**Wrong**:
+```dockerfile
+RUN apt-get update && apt-get install --no-install-recommends -y \
+  ffmpeg \
+  gosu \
+  jq \
+  libchromaprint-tools \
+  wget \
+  tini \
+  yt-dlp
+```
+
+**Correct**:
+```dockerfile
+ARG LIBMSQUIC_VERSION=2.4.18
+
+RUN apt-get update && apt-get install --no-install-recommends -y \
+  ca-certificates \
+  ffmpeg \
+  gosu \
+  jq \
+  libchromaprint-tools \
+  wget \
+  tini \
+  yt-dlp \
+  && wget -q -O /tmp/libmsquic.deb "https://packages.microsoft.com/ubuntu/24.04/prod/pool/main/libm/libmsquic/libmsquic_${LIBMSQUIC_VERSION}_${deb_arch}.deb" \
+  && apt-get install --no-install-recommends -y /tmp/libmsquic.deb
+```
+
+**Why This Keeps Happening**: .NET includes QUIC support in managed APIs, but
+Linux containers still need the native MsQuic package. If mesh QUIC is a
+supported container feature, the Docker image must carry `libmsquic` and the
+packaging gate must check for it.
+
 ### 0z439. Docker Images Must Carry Core Media Runtime Tools
 
 **The Bug**: The Docker runtime image omitted core media tools that the app
