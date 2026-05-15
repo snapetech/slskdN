@@ -20,6 +20,12 @@ docker run -d \
   ghcr.io/snapetech/slskdn:latest
 ```
 
+The Docker image includes the core runtime tools used by the built-in media and
+SongID paths: `ffmpeg`/`ffprobe`, `yt-dlp`, and Chromaprint `fpcalc`. Larger
+experimental recognizers such as Whisper, Demucs, SongRec, Panako, Audfprint,
+C2PA tooling, and OCR engines are not bundled by default; mount or install them
+in a derived image when you intentionally enable those workflows.
+
 For an internet-facing or always-on host, prefer a hardened container launch.
 This keeps the web UI on loopback for a reverse proxy or SSH tunnel, drops
 Linux capabilities, prevents privilege escalation, and makes the container

@@ -44,10 +44,13 @@ ARG REVISION=0
 ARG BUILD_DATE
 
 RUN apt-get update && apt-get install --no-install-recommends -y \
+  ffmpeg \
   gosu \
   jq \
+  libchromaprint-tools \
   wget \
   tini \
+  yt-dlp \
   && \
   find / -xdev -type f \( -perm -4000 -o -perm -2000 \) -exec chmod a-s {} + \
   && \

@@ -52,6 +52,44 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z439. Docker Images Must Carry Core Media Runtime Tools
+
+**The Bug**: The Docker runtime image omitted core media tools that the app
+uses by default or advertises in built-in capability checks. Busy Docker nodes
+then skipped AudioSketch hashes and reported missing `ffmpeg`, even though the
+container is supposed to be the batteries-included deployment path.
+
+**Files Affected**:
+- `Dockerfile`
+- `packaging/scripts/validate-packaging-metadata.sh`
+
+**Wrong**:
+```dockerfile
+RUN apt-get update && apt-get install --no-install-recommends -y \
+  gosu \
+  jq \
+  wget \
+  tini
+```
+
+**Correct**:
+```dockerfile
+RUN apt-get update && apt-get install --no-install-recommends -y \
+  ffmpeg \
+  gosu \
+  jq \
+  libchromaprint-tools \
+  wget \
+  tini \
+  yt-dlp
+```
+
+**Why This Keeps Happening**: Docker image minimization can accidentally drop
+runtime tools that package installs provide or that feature capability checks
+expect. Keep core audio/SongID tools in the default Docker image, and gate them
+in packaging validation. Leave heavyweight experimental tools for derived
+images or explicit operator installs.
+
 ### 0z438. Missing Optional Tools Must Not Warn Once Per File
 
 **The Bug**: Audio sketch hashing logged a warning every time a downloaded file

@@ -200,6 +200,9 @@ expect_literal packaging/chocolatey/tools/chocolateyinstall.ps1 'Install-BinFile
 expect_line .github/workflows/release-packages.yml '\$\{\{ steps\.version\.outputs\.tag \}\}-linux-x64\.zip'
 
 expect_literal Dockerfile 'gosu'
+expect_literal Dockerfile 'ffmpeg'
+expect_literal Dockerfile 'libchromaprint-tools'
+expect_literal Dockerfile 'yt-dlp'
 expect_literal Dockerfile 'COPY packaging/docker/slskdn-container-start /usr/local/bin/slskdn-container-start'
 expect_literal Dockerfile 'COPY src/slskdN.VpnAgent src/slskdN.VpnAgent/.'
 expect_literal Dockerfile 'SLSKD_DOCKER_REVISION=$REVISION'

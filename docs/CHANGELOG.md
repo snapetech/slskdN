@@ -61,6 +61,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Logged missing optional AudioSketch `ffmpeg` support only once per process so
   busy Docker nodes do not bury actionable warnings under per-download optional
   tool noise.
+- Bundled Docker runtime media prerequisites for the default audio/SongID paths:
+  `ffmpeg`/`ffprobe`, `yt-dlp`, and Chromaprint `fpcalc`.
 - Routed HTTP LLM moderation endpoint checks through the shared DNS-aware
   outbound guard so hostnames resolving to non-public ranges are blocked before
   any request is sent.
