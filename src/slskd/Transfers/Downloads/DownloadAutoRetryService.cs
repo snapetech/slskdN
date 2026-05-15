@@ -296,11 +296,13 @@ namespace slskd.Transfers.Downloads
             try
             {
                 var expectedExtension = GetExtension(failed.Filename);
+                var expectedLeaf = GetLeaf(failed.Filename);
                 var entries = await hashDb.GetFlacEntriesBySizeAsync(failed.Size, limit: 50, cancellationToken).ConfigureAwait(false);
                 var candidates = entries
                     .Where(e => !IsSamePeer(e.PeerId, failed.Username))
                     .Where(e => !IsPeerCoolingDown(e.PeerId, now))
                     .Where(e => string.Equals(GetExtension(e.Path), expectedExtension, StringComparison.OrdinalIgnoreCase))
+                    .Where(e => string.Equals(GetLeaf(e.Path), expectedLeaf, StringComparison.OrdinalIgnoreCase))
                     .Select(e => new SourceCandidate
                     {
                         Username = e.PeerId,
@@ -351,10 +353,15 @@ namespace slskd.Transfers.Downloads
 
         private static string GetExtension(string filename)
         {
-            var lastSlash = filename.LastIndexOfAny(['\\', '/']);
-            var leaf = lastSlash >= 0 ? filename[(lastSlash + 1)..] : filename;
+            var leaf = GetLeaf(filename);
             var lastDot = leaf.LastIndexOf('.');
             return lastDot >= 0 ? leaf[lastDot..].ToLowerInvariant() : string.Empty;
+        }
+
+        private static string GetLeaf(string filename)
+        {
+            var lastSlash = filename.LastIndexOfAny(['\\', '/']);
+            return lastSlash >= 0 ? filename[(lastSlash + 1)..] : filename;
         }
 
         internal static IReadOnlyList<slskd.Transfers.Transfer> CreateRetryPlan(

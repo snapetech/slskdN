@@ -7902,3 +7902,19 @@ Known remaining follow-ups are unchanged: admin-only debug/visualizer API
 semantics, direct uncapped `/api/v0/searches`, noisy mesh-health warnings when
 no mesh peers are reachable, Lidarr 500s, and the host unit bypassing the image
 entrypoint so live `umask` remains `0022`.
+
+## 2026-05-15T23:50:00Z Session update
+
+The live Docker host is running the cached all-tools manual image from revision
+`983466e9cf`. Docker health is healthy, restart count is zero, the optional
+media/tooling stack is present, and authenticated headless checks confirmed the
+Browse and Search routes render without stale asset failures.
+
+Fresh logs revealed an unsafe auto-retry local HashDb candidate path: same-size
+same-extension files could be treated as alternates even when their filenames
+were unrelated. The fix now requires local HashDb retry alternates to have the
+same leaf filename as the failed transfer, and ADR-0001 documents this gotcha.
+
+Next steps: commit and push the HashDb auto-retry fix, then build/deploy a
+manual image from current HEAD if we want this auto-retry safety patch live
+before the next tagged release.

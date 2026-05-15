@@ -80,6 +80,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Added a cached all-tools Docker recipe for local validation builds so repeat
   optional-tool images reuse apt, Python, Rust, and Gradle downloads instead of
   fetching the heavyweight stack from scratch.
+- Required local HashDb auto-retry alternates to match the failed transfer's
+  leaf filename so same-size unrelated audio files are not queued as automatic
+  replacements.
 - Added an opt-in experimental media Docker image recipe for heavier SongID
   prerequisites, and updated capability reporting with Docker guidance when
   optional recognizer tools are missing.

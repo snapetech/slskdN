@@ -578,6 +578,7 @@ public class DownloadServiceTests
             .ReturnsAsync(new[]
             {
                 new FlacInventoryEntry { PeerId = "alice", Path = @"Album\track.flac", Size = 1234 },
+                new FlacInventoryEntry { PeerId = "mallory", Path = @"Other\wrong-track.flac", Size = 1234 },
                 new FlacInventoryEntry { PeerId = "bob", Path = @"Other\track.flac", Size = 1234 },
             });
 
@@ -594,6 +595,32 @@ public class DownloadServiceTests
         Assert.Equal(@"Other\track.flac", target.Filename);
         Assert.Equal("hashdb", target.SourceKind);
         Assert.False(target.UsedNetworkSearch);
+    }
+
+    [Fact]
+    public async Task ResolveRetryTargetAsync_IgnoresHashDbAlternatesWithDifferentFilename()
+    {
+        var now = DateTime.UtcNow;
+        var failed = CreateFailedDownload("alice", @"Album\track.flac", now.AddMinutes(-40), size: 1234);
+        var hashDb = new Mock<IHashDbService>();
+        hashDb.Setup(x => x.GetFlacEntriesBySizeAsync(1234, 50, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new FlacInventoryEntry { PeerId = "mallory", Path = @"Other\wrong-track.flac", Size = 1234 },
+            });
+
+        var service = CreateAutoRetryService(hashDb: hashDb.Object);
+
+        var target = await service.ResolveRetryTargetAsync(
+            failed,
+            new slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions(),
+            now,
+            allowNetworkSearch: false,
+            CancellationToken.None);
+
+        Assert.Equal("alice", target.Username);
+        Assert.Equal(@"Album\track.flac", target.Filename);
+        Assert.Equal("original", target.SourceKind);
     }
 
     [Fact]
