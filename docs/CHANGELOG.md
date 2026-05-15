@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Returned controlled 503 responses when browse is requested before Soulseek
+  has finished reconnecting after daemon startup.
 - Returned controlled 503 responses for expected peer browse connection
   failures and showed the peer-unavailable reason in the Browse UI.
 - Added a root SPA base tag so direct deep links such as `/searches/{id}` load

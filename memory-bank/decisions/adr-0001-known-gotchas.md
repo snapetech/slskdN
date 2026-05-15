@@ -54,11 +54,11 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ### 0z434. Peer Browse Connection Failures Must Not Bubble As API 500s
 
-**The Bug**: Browsing a peer who cannot establish a direct or indirect message
-connection threw `SoulseekClientException` from `/api/v0/users/{user}/browse`.
-The controller only handled offline users, so expected Soulseek peer failures
-became unhandled API 500s and the Browse UI could only show a generic
-"Failed to browse" message.
+**The Bug**: Browsing while the Soulseek client is still disconnected, or
+browsing a peer who cannot establish a direct or indirect message connection,
+threw from `/api/v0/users/{user}/browse`. The controller only handled offline
+users, so expected Soulseek unready/peer failures became unhandled API 500s and
+the Browse UI could only show a generic "Failed to browse" message.
 
 **Files Affected**:
 - `src/slskd/Users/API/Controllers/UsersController.cs`
@@ -75,6 +75,11 @@ catch (UserOfflineException ex)
 
 **Correct**:
 ```csharp
+if (!Client.State.HasFlag(SoulseekClientStates.Connected) || !Client.State.HasFlag(SoulseekClientStates.LoggedIn))
+{
+    return StatusCode(503, "Soulseek server connection is not ready");
+}
+
 catch (SoulseekClientException ex) when (IsExpectedBrowseFailure(ex))
 {
     Log.Information("Unable to browse user {Username}: {Message}", username, ex.Message);

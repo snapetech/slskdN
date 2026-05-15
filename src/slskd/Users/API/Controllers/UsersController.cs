@@ -136,6 +136,11 @@ namespace slskd.Users.API
                 return BadRequest("Username is required");
             }
 
+            if (!Client.State.HasFlag(SoulseekClientStates.Connected) || !Client.State.HasFlag(SoulseekClientStates.LoggedIn))
+            {
+                return StatusCode(503, "Soulseek server connection is not ready");
+            }
+
             // H-08: Check Soulseek safety caps before initiating browse
             if (!SafetyLimiter.TryConsumeBrowse("user"))
             {

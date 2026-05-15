@@ -213,6 +213,7 @@ namespace slskd.Tests.Unit.Users
             await cts.CancelAsync();
 
             var soulseekClientMock = new Mock<ISoulseekClient>(MockBehavior.Strict);
+            soulseekClientMock.SetupGet(client => client.State).Returns(SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
             soulseekClientMock
                 .Setup(client => client.BrowseAsync("testuser", It.IsAny<BrowseOptions>(), cts.Token))
                 .ThrowsAsync(new OperationCanceledException(cts.Token));
@@ -236,6 +237,7 @@ namespace slskd.Tests.Unit.Users
         public async Task Browse_WhenLimiterRejects_DoesNotBrowseNetwork()
         {
             var soulseekClientMock = new Mock<ISoulseekClient>(MockBehavior.Strict);
+            soulseekClientMock.SetupGet(client => client.State).Returns(SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
             var safetyLimiterMock = new Mock<ISoulseekSafetyLimiter>();
             safetyLimiterMock
                 .Setup(limiter => limiter.TryConsumeBrowse("user"))
@@ -252,6 +254,29 @@ namespace slskd.Tests.Unit.Users
 
             var rejected = Assert.IsType<ObjectResult>(result);
             Assert.Equal(429, rejected.StatusCode);
+            soulseekClientMock.VerifyGet(client => client.State, Times.Exactly(2));
+            soulseekClientMock.VerifyNoOtherCalls();
+        }
+
+        [Fact]
+        public async Task Browse_WhenSoulseekIsNotLoggedIn_ReturnsServiceUnavailable()
+        {
+            var soulseekClientMock = new Mock<ISoulseekClient>(MockBehavior.Strict);
+            soulseekClientMock.SetupGet(client => client.State).Returns(SoulseekClientStates.Disconnected);
+
+            var controller = new UsersController(
+                soulseekClient: soulseekClientMock.Object,
+                browseTracker: Mock.Of<IBrowseTracker>(),
+                userService: Mock.Of<IUserService>(),
+                safetyLimiter: Mock.Of<ISoulseekSafetyLimiter>(),
+                optionsSnapshot: Mock.Of<Microsoft.Extensions.Options.IOptionsSnapshot<slskd.Options>>());
+
+            var result = await controller.Browse("testuser", CancellationToken.None);
+
+            var unavailable = Assert.IsType<ObjectResult>(result);
+            Assert.Equal(503, unavailable.StatusCode);
+            Assert.Equal("Soulseek server connection is not ready", unavailable.Value);
+            soulseekClientMock.VerifyGet(client => client.State, Times.Once);
             soulseekClientMock.VerifyNoOtherCalls();
         }
 
@@ -259,6 +284,7 @@ namespace slskd.Tests.Unit.Users
         public async Task Browse_WhenPeerConnectionFails_ReturnsServiceUnavailable()
         {
             var soulseekClientMock = new Mock<ISoulseekClient>();
+            soulseekClientMock.SetupGet(client => client.State).Returns(SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
             soulseekClientMock
                 .Setup(client => client.BrowseAsync("testuser", It.IsAny<BrowseOptions>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new SoulseekClientException(
