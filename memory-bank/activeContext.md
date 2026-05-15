@@ -131,6 +131,30 @@
   1. Include `643852d09` in the next manual Docker build/release if we want the
      quieter AudioSketch logging live on the validation host.
 
+## Update 2026-05-15 20:52:00Z
+
+- Current task: Docker runtime media prerequisites added locally.
+- Last activity:
+  - added `ffmpeg`, `yt-dlp`, and `libchromaprint-tools` to the Docker runtime
+    image so default audio/SongID paths have `ffmpeg`, `ffprobe`, `yt-dlp`, and
+    `fpcalc` available;
+  - documented that heavier experimental tools remain derived-image/operator
+    installs;
+  - added packaging validation coverage and gotcha `0z439`.
+- Validation:
+  - Passed: `bash packaging/scripts/validate-packaging-metadata.sh`.
+  - Passed: local Docker build `slskdn:docker-prereqs-test`.
+  - Passed: image tool check for `ffmpeg`, `ffprobe`, `fpcalc`, `yt-dlp`, `jq`,
+    `wget`, `tini`, and `gosu`.
+  - Passed: image hardening check showed no setuid/setgid files and sticky
+    `/.net`.
+  - Passed: hardened local container smoke with Web/API/headless Chromium and
+    no missing ffmpeg/tool log signatures.
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Include `ac5c6379f` in the next manual Docker build/release if we want
+     bundled media prerequisites live on the validation host.
+
 ## Update 2026-05-15 08:36:00Z
 
 - Current task: `kspls0` stale-browser/direct-tab fix deployed and verified with

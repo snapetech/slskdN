@@ -10410,3 +10410,14 @@ Code quality improvements were completed as part of Option A:
 - Fixed optional AudioSketch ffmpeg warning spam by logging the missing optional
   tool once per process instead of once per downloaded file; documented gotcha
   `0z438`.
+
+# 2026-05-15 20:52:00Z
+
+- Added core Docker runtime media prerequisites: `ffmpeg`/`ffprobe`, `yt-dlp`,
+  and Chromaprint `fpcalc` via `libchromaprint-tools`.
+- Documented the included Docker tools and left heavyweight experimental tools
+  such as Whisper, Demucs, SongRec, Panako, Audfprint, C2PA, and OCR for
+  derived images or explicit operator installs.
+- Validated a local Docker build and hardened container smoke; tool presence,
+  no setuid/setgid files, sticky `/.net`, Web/API health, headless Chromium,
+  and absence of missing-ffmpeg log signatures all passed.
