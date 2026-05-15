@@ -52,6 +52,38 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z446. Derived Docker Tool Images Must Copy The Current Installer
+
+**The Bug**: `packaging/docker/Dockerfile.all-tools` originally ran
+`install-optional-media-tools all` from the base image. That silently used the
+old installer baked into `ghcr.io/snapetech/slskdn:latest` or a manual base
+image, so repo changes for cache behavior and idempotency had no effect in the
+derived build.
+
+**Files Affected**:
+- `packaging/docker/Dockerfile.all-tools`
+- `packaging/docker/install-optional-media-tools`
+
+**Wrong**:
+```dockerfile
+FROM ghcr.io/snapetech/slskdn:latest
+RUN install-optional-media-tools all
+```
+
+**Correct**:
+```dockerfile
+FROM ghcr.io/snapetech/slskdn:latest
+COPY packaging/docker/install-optional-media-tools /usr/local/bin/install-optional-media-tools
+RUN chmod +x /usr/local/bin/install-optional-media-tools
+RUN --mount=type=cache,target=/root/.cache/pip install-optional-media-tools all
+```
+
+**Why This Keeps Happening**: Derived Dockerfiles feel like they are part of the
+current checkout, but every command before an explicit `COPY` uses the parent
+image filesystem. Any derived-image behavior that depends on a changed repo
+script must copy that script into the image before running it, especially for
+manual validation images built from older release bases.
+
 ### 0z445. List APIs Need A Conservative Default Cap
 
 **The Bug**: `GET /api/v0/searches` treated an omitted `limit` query as
