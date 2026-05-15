@@ -52,6 +52,37 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z447. HashDb Auto-Retry Candidates Need More Than Size And Extension
+
+**The Bug**: Download auto-retry used local HashDb alternates that matched only
+file size and extension. Live logs showed retries where the replacement path
+and original path were clearly different songs, because unrelated FLAC files can
+share the same byte size.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadAutoRetryService.cs`
+- `tests/slskd.Tests.Unit/Transfers/Downloads/DownloadServiceTests.cs`
+
+**Wrong**:
+```csharp
+var candidates = entries
+    .Where(e => e.Size == failed.Size)
+    .Where(e => string.Equals(GetExtension(e.Path), expectedExtension, StringComparison.OrdinalIgnoreCase));
+```
+
+**Correct**:
+```csharp
+var expectedLeaf = GetLeaf(failed.Filename);
+var candidates = entries
+    .Where(e => string.Equals(GetExtension(e.Path), expectedExtension, StringComparison.OrdinalIgnoreCase))
+    .Where(e => string.Equals(GetLeaf(e.Path), expectedLeaf, StringComparison.OrdinalIgnoreCase));
+```
+
+**Why This Keeps Happening**: Size is useful as a lookup index but it is not
+identity evidence. Any automatic transfer replacement path must require a
+stronger match before queueing without user review; otherwise a cache or index
+turns into a wrong-download generator.
+
 ### 0z446. Derived Docker Tool Images Must Copy The Current Installer
 
 **The Bug**: `packaging/docker/Dockerfile.all-tools` originally ran
