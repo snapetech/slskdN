@@ -208,6 +208,10 @@ expect_literal packaging/docker/slskdn-container-start 'SLSKD_STRICT_APP_DIR_PER
 expect_literal packaging/docker/slskdn-container-start 'writable by others'
 expect_literal docs/docker.md '--security-opt apparmor=slskdn-docker'
 expect_literal docs/docker.md 'SLSKD_STRICT_APP_DIR_PERMISSIONS=true'
+expect_literal docs/docker.md 'run-docker-apparmor-smoke.sh'
+expect_literal packaging/scripts/run-docker-apparmor-smoke.sh '--security-opt apparmor=slskdn-docker'
+expect_literal packaging/scripts/run-docker-apparmor-smoke.sh 'Docker daemon is not advertising AppArmor support'
+expect_literal packaging/scripts/run-docker-apparmor-smoke.sh 'headless Chromium'
 expect_literal packaging/docker/apparmor/slskdn-docker 'profile slskdn-docker'
 expect_literal packaging/docker/apparmor/slskdn-docker 'deny mount,'
 expect_literal packaging/docker/apparmor/slskdn-docker '/shares/** r,'
@@ -218,6 +222,7 @@ reject_literal Dockerfile 'useradd --uid 1000'
 reject_literal Dockerfile 'SLSKD_DOCKER_REVISON'
 reject_literal Dockerfile 'VOLUME /app'
 test -x packaging/docker/slskdn-container-start || fail 'packaging/docker/slskdn-container-start must be executable'
+test -x packaging/scripts/run-docker-apparmor-smoke.sh || fail 'packaging/scripts/run-docker-apparmor-smoke.sh must be executable'
 test -f packaging/docker/apparmor/slskdn-docker || fail 'packaging/docker/apparmor/slskdn-docker is missing'
 
 sdk_version=$(awk -F '"' '/"version"/ { print $4; exit }' global.json)

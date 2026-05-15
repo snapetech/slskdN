@@ -10385,3 +10385,15 @@ Code quality improvements were completed as part of Option A:
 - Validated with AppArmor parser syntax check, packaging metadata gate, local
   Docker build, local hardened container smoke, API checks, and headless
   Chromium.
+
+# 2026-05-15 20:46:00Z
+
+- Added `packaging/scripts/run-docker-apparmor-smoke.sh`, an enforced AppArmor
+  Docker smoke that loads the profile, starts a hardened local container, checks
+  Web/API behavior, validates process hardening, verifies app/download writes,
+  verifies share write denial, and runs headless Chromium when available.
+- Confirmed this local host cannot enforce AppArmor (`apparmor=disabled` at the
+  kernel and no Docker AppArmor security option), so the smoke exits with an
+  explicit skip instead of producing a false pass.
+- Documented the AppArmor smoke command in Docker docs and added packaging
+  metadata validation coverage.

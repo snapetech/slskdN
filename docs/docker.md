@@ -62,6 +62,19 @@ If AppArmor is disabled on the Docker host, omit the AppArmor security option
 and keep the other hardening flags. Docker will reject an unknown or unloaded
 profile.
 
+To prove the profile on an AppArmor-enabled Docker host, build or pull the
+image you want to test and run:
+
+```shell
+SLSKDN_DOCKER_IMAGE=ghcr.io/snapetech/slskdn:latest \
+  bash packaging/scripts/run-docker-apparmor-smoke.sh
+```
+
+The smoke test loads the profile, starts a local container with the hardened
+Docker flags, checks the Web UI and API, verifies capability/seccomp/no-new-
+privileges state, verifies writable app/download mounts, and verifies the share
+mount rejects writes.
+
 Keep writable mounts as narrow as possible. Shared libraries that slskd only
 serves to Soulseek peers should be mounted read-only; only application state,
 incomplete downloads, and final download destinations need write access.

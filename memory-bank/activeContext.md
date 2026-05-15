@@ -84,6 +84,29 @@
   2. Load the AppArmor profile only on Docker hosts with AppArmor enabled; hosts
      without AppArmor should keep the other Docker hardening flags.
 
+## Update 2026-05-15 20:46:00Z
+
+- Current task: AppArmor enforced-container proof follow-up complete as a
+  reusable smoke; local host cannot enforce AppArmor.
+- Last activity:
+  - confirmed the local Docker host reports seccomp/cgroupns only and
+    `/sys/module/apparmor/parameters/enabled` is `N`;
+  - added `packaging/scripts/run-docker-apparmor-smoke.sh` to load the profile
+    and run the full hardened Docker/API/headless proof on AppArmor-enabled
+    hosts;
+  - documented the smoke command in `docs/docker.md`;
+  - added packaging validation coverage for the smoke script.
+- Validation:
+  - Passed: `bash -n packaging/scripts/run-docker-apparmor-smoke.sh`.
+  - Passed: `bash packaging/scripts/validate-packaging-metadata.sh`.
+  - Local enforced smoke result: skipped with
+    `SKIP: kernel AppArmor support is not enabled`, which is the expected
+    result on this host.
+- Next steps:
+  1. Run `SLSKDN_DOCKER_IMAGE=<image> bash packaging/scripts/run-docker-apparmor-smoke.sh`
+     on an AppArmor-enabled Docker host before considering AppArmor as a
+     default-on deployment feature.
+
 ## Update 2026-05-15 08:36:00Z
 
 - Current task: `kspls0` stale-browser/direct-tab fix deployed and verified with
