@@ -1,3 +1,33 @@
+## Update 2026-05-15 08:55:00Z
+
+- Current task: `kspls0` direct search tabs, direct browse tabs, and tester
+  remote-close download UI follow-up complete.
+- Last activity:
+  - deployed final manual build
+    `0.0.0-manual.20260515085246.cc822043da4d` to `kspls0`;
+  - verified direct `/browse?user=mysteryguest842` loads the SPA correctly and
+    returns a controlled peer-unavailable 503 instead of an unhandled 500;
+  - verified direct `/browse?user=xtdeck` succeeds live with HTTP 200 and
+    renders `1320 directories, 15820 files`;
+  - changed expected remote download failures such as `Remote connection closed`
+    to display as `Peer unavailable` in the transfer list instead of generic
+    `Error`.
+- Validation:
+  - Passed: focused backend Browse controller tests (`4/4`).
+  - Passed: focused Browse UI tests (`5/5`).
+  - Passed: focused Transfer UI tests (`4/4`).
+  - Passed live: final app API reports
+    `0.0.0-manual.20260515085246.cc822043da4d`, server state
+    `Connected, LoggedIn`, service PID `4083276`, `NRestarts=0`.
+  - Passed live headless: no direct browse/search deep-asset requests, no bad
+    app asset responses, `mysteryguest842` reports peer unavailable cleanly, and
+    `xtdeck` browse renders a directory/file count.
+- Next steps:
+  1. Tester can retry search-result tabs and Browse tabs on the live build.
+  2. Treat `Remote connection closed` download failures as remote peer
+     availability unless there is a reproducible local pattern across multiple
+     peers/files.
+
 ## Update 2026-05-15 08:36:00Z
 
 - Current task: `kspls0` stale-browser/direct-tab fix deployed and verified with
