@@ -256,6 +256,35 @@ namespace slskd.Tests.Unit.Users
         }
 
         [Fact]
+        public async Task Browse_WhenPeerConnectionFails_ReturnsServiceUnavailable()
+        {
+            var soulseekClientMock = new Mock<ISoulseekClient>();
+            soulseekClientMock
+                .Setup(client => client.BrowseAsync("testuser", It.IsAny<BrowseOptions>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new SoulseekClientException(
+                    "Failed to browse user testuser",
+                    new ConnectionException("Failed to establish a direct or indirect message connection")));
+
+            var safetyLimiterMock = new Mock<ISoulseekSafetyLimiter>();
+            safetyLimiterMock
+                .Setup(limiter => limiter.TryConsumeBrowse("user"))
+                .Returns(true);
+
+            var controller = new UsersController(
+                soulseekClient: soulseekClientMock.Object,
+                browseTracker: Mock.Of<IBrowseTracker>(),
+                userService: Mock.Of<IUserService>(),
+                safetyLimiter: safetyLimiterMock.Object,
+                optionsSnapshot: Mock.Of<Microsoft.Extensions.Options.IOptionsSnapshot<slskd.Options>>());
+
+            var result = await controller.Browse("testuser", CancellationToken.None);
+
+            var unavailable = Assert.IsType<ObjectResult>(result);
+            Assert.Equal(503, unavailable.StatusCode);
+            Assert.Equal("Unable to browse user; the remote peer is unavailable", unavailable.Value);
+        }
+
+        [Fact]
         public async Task Directory_WhenSoulseekIsNotLoggedIn_ReturnsServiceUnavailable()
         {
             var soulseekClientMock = new Mock<ISoulseekClient>();

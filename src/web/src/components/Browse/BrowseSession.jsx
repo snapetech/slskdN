@@ -57,6 +57,20 @@ const MAX_BROWSE_CACHE_ENTRIES = 50;
 const BROWSE_CACHE_PREFIX = 'slskd-browse-state-';
 const BROWSE_CACHE_VERSION = 2;
 
+const getBrowseErrorMessage = (error) => {
+  const data = error?.response?.data;
+
+  if (typeof data === 'string' && data.trim()) {
+    return data.trim();
+  }
+
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    return data.detail || data.message || data.error || data.title;
+  }
+
+  return error?.message || 'Browse failed';
+};
+
 // Cleanup old browse cache entries using LRU strategy
 const cleanupBrowseCache = () => {
   try {
@@ -241,7 +255,10 @@ class BrowseSession extends Component {
           .catch((error) => {
             // Stop polling on error too
             this.stopPolling();
-            this.setState({ browseError: error, browseState: 'error' });
+            this.setState({
+              browseError: getBrowseErrorMessage(error),
+              browseState: 'error',
+            });
           });
       },
     );
@@ -558,7 +575,9 @@ class BrowseSession extends Component {
         ) : (
           <div>
             {browseError ? (
-              <span className="browse-error">Failed to browse {username}</span>
+              <span className="browse-error">
+                Failed to browse {username}: {browseError}
+              </span>
             ) : (
               <div className="browse-container">
                 {emptyTree ? (

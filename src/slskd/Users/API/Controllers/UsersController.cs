@@ -120,6 +120,7 @@ namespace slskd.Users.API
         [Authorize(Policy = AuthPolicy.Any)]
         [ProducesResponseType(typeof(IEnumerable<Directory>), 200)]
         [ProducesResponseType(404)]
+        [ProducesResponseType(503)]
         public async Task<IActionResult> Browse(
             [FromRoute, Required] string username,
             CancellationToken cancellationToken = default)
@@ -159,6 +160,16 @@ namespace slskd.Users.API
             {
                 Log.Information(ex, "User {Username} is offline for browse", username);
                 return NotFound("User is offline");
+            }
+            catch (SoulseekClientException ex) when (IsExpectedBrowseFailure(ex))
+            {
+                Log.Information("Unable to browse user {Username}: {Message}", username, ex.Message);
+                return StatusCode(503, "Unable to browse user; the remote peer is unavailable");
+            }
+            catch (TimeoutException ex)
+            {
+                Log.Information("Timed out browsing user {Username}: {Message}", username, ex.Message);
+                return StatusCode(503, "Unable to browse user; the remote peer is unavailable");
             }
         }
 
@@ -347,6 +358,11 @@ namespace slskd.Users.API
         }
 
         private static bool IsExpectedUserInfoFailure(SoulseekClientException exception)
+        {
+            return exception.InnerException is ConnectionException or TimeoutException;
+        }
+
+        private static bool IsExpectedBrowseFailure(SoulseekClientException exception)
         {
             return exception.InnerException is ConnectionException or TimeoutException;
         }

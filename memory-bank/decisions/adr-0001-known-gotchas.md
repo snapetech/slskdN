@@ -52,6 +52,42 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z434. Peer Browse Connection Failures Must Not Bubble As API 500s
+
+**The Bug**: Browsing a peer who cannot establish a direct or indirect message
+connection threw `SoulseekClientException` from `/api/v0/users/{user}/browse`.
+The controller only handled offline users, so expected Soulseek peer failures
+became unhandled API 500s and the Browse UI could only show a generic
+"Failed to browse" message.
+
+**Files Affected**:
+- `src/slskd/Users/API/Controllers/UsersController.cs`
+- `src/web/src/components/Browse/BrowseSession.jsx`
+
+**Wrong**:
+```csharp
+catch (UserOfflineException ex)
+{
+    Log.Information(ex, "User {Username} is offline for browse", username);
+    return NotFound("User is offline");
+}
+```
+
+**Correct**:
+```csharp
+catch (SoulseekClientException ex) when (IsExpectedBrowseFailure(ex))
+{
+    Log.Information("Unable to browse user {Username}: {Message}", username, ex.Message);
+    return StatusCode(503, "Unable to browse user; the remote peer is unavailable");
+}
+```
+
+**Why This Keeps Happening**: Search results and queued downloads prove that a
+peer exists, but browse uses a message connection and can still fail separately.
+Treat connection and timeout browse failures like other expected peer
+unavailable paths: controlled 503, information-level log, and user-visible
+message.
+
 ### 0z433. Root SPA Fallbacks Need A Base Tag For Deep Routes
 
 **The Bug**: Directly opening a client-side route such as `/searches/{id}` on
