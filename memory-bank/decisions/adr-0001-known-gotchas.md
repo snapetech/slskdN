@@ -52,6 +52,37 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z445. List APIs Need A Conservative Default Cap
+
+**The Bug**: `GET /api/v0/searches` treated an omitted `limit` query as
+unlimited. Live installs with large search history could make direct API probes
+or accidental callers pull the whole search table and time out, even though the
+Web UI already uses an explicit cap.
+
+**Files Affected**:
+- `src/slskd/Search/API/Controllers/SearchesController.cs`
+- `tests/slskd.Tests.Unit/Search/API/SearchesControllerTests.cs`
+
+**Wrong**:
+```csharp
+public async Task<IActionResult> GetAll([FromQuery] int limit = 0, [FromQuery] int offset = 0)
+{
+    var searches = await Searches.ListAsync(limit: limit, offset: offset);
+    return Ok(searches);
+}
+```
+
+**Correct**:
+```csharp
+var effectiveLimit = limit == 0 ? DefaultListLimit : limit;
+var searches = await Searches.ListAsync(limit: effectiveLimit, offset: offset);
+```
+
+**Why This Keeps Happening**: Upstream-compatible "0 means unlimited" semantics
+are tempting for list endpoints, but operational UIs and crawlers need safe
+default behavior. Preserve explicit caller opt-in for large pages only when the
+API contract actually needs it; otherwise use a bounded default and document it.
+
 ### 0z444. Completed Transfer Logs Must Clamp Transient Negative Speeds
 
 **The Bug**: Failed transfers that completed immediately with zero bytes could
