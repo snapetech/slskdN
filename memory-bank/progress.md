@@ -10397,3 +10397,16 @@ Code quality improvements were completed as part of Option A:
   explicit skip instead of producing a false pass.
 - Documented the AppArmor smoke command in Docker docs and added packaging
   metadata validation coverage.
+
+# 2026-05-15 20:44:00Z
+
+- Checked the live Docker container logs on the validation host after the
+  manual hardened image deploy. The container stayed healthy with no
+  fatal/error, permission-denied, read-only filesystem, stale obfuscated-port,
+  or remote-connection-closed signatures.
+- Classified current transfer errors as expected remote peer unavailable,
+  rejection, timeout, or connection failures while successful downloads
+  continued in the same window.
+- Fixed optional AudioSketch ffmpeg warning spam by logging the missing optional
+  tool once per process instead of once per downloaded file; documented gotcha
+  `0z438`.

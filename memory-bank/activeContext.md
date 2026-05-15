@@ -107,6 +107,30 @@
      on an AppArmor-enabled Docker host before considering AppArmor as a
      default-on deployment feature.
 
+## Update 2026-05-15 20:44:00Z
+
+- Current task: `kspls0` Docker log check complete; optional-tool warning spam
+  fix pushed.
+- Last activity:
+  - inspected the live Docker container running
+    `0.0.0-manual.20260515.c18c019a8`;
+  - confirmed container health is healthy, no restarts, dropped capabilities,
+    no-new-privileges, seccomp, read-only root filesystem, writable download
+    mount, and read-only library mount;
+  - reviewed current-process logs and found no fatal/error, permission-denied,
+    read-only filesystem, remote-connection-closed, or invalid obfuscated-port
+    signatures;
+  - found frequent `[AudioSketch] ffmpeg not configured or missing` warnings
+    because optional ffmpeg is absent in the container;
+  - changed AudioSketch to log missing ffmpeg once per process instead of once
+    per downloaded file and documented gotcha `0z438`.
+- Validation:
+  - Passed: focused `AudioSketchServiceTests`.
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Include `643852d09` in the next manual Docker build/release if we want the
+     quieter AudioSketch logging live on the validation host.
+
 ## Update 2026-05-15 08:36:00Z
 
 - Current task: `kspls0` stale-browser/direct-tab fix deployed and verified with
