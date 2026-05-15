@@ -42,6 +42,10 @@ helm install slskdn ./packaging/helm/slskdn \
 | **ingress** | `enabled` | `false` | Create Ingress |
 | | `hosts[].host` | `slskdn.local` | Host(s) and paths |
 | | `tls` | `[]` | TLS entries |
+| **networkPolicy** | `enabled` | `false` | Create opt-in NetworkPolicy |
+| | `ingress.web.from` | `[]` | Optional Web UI source selectors |
+| | `ingress.soulseek.from` | `[]` | Optional Soulseek source selectors |
+| | `egress.enabled` | `false` | Enable explicit egress policy |
 
 ## Required env (override in `env` or via `--set`)
 
@@ -49,6 +53,18 @@ helm install slskdn ./packaging/helm/slskdn \
 - `SLSKD_SLSK_PASSWORD` – Soulseek password
 
 Use a Secret and `env` / `envFrom` in a custom values file for production.
+
+## Optional NetworkPolicy
+
+`networkPolicy.enabled` is off by default to avoid changing network behavior on
+clusters without a policy controller. When enabled, the chart creates an ingress
+policy for the Web UI and Soulseek listen port. Leave `from: []` to allow any
+source to that port, or set Kubernetes `podSelector`, `namespaceSelector`, or
+`ipBlock` entries to restrict access.
+
+Be careful with `networkPolicy.egress.enabled`: Soulseek clients need outbound
+TCP to the Soulseek server and remote peers, plus DNS if the cluster requires
+it. Only enable egress policy when those destinations are explicitly allowed.
 
 ## Upgrade / Uninstall
 

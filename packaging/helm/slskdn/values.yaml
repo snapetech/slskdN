@@ -123,3 +123,18 @@ ingress:
   #  - secretName: slskdn-tls
   #    hosts:
   #      - slskdn.local
+
+# NetworkPolicy is disabled by default so installs keep the same networking
+# behavior unless an operator explicitly opts into cluster-level isolation.
+networkPolicy:
+  enabled: false
+  ingress:
+    web:
+      enabled: true
+      from: []
+    soulseek:
+      enabled: true
+      from: []
+  egress:
+    enabled: false
+    to: []
