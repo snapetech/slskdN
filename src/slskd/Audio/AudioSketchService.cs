@@ -21,6 +21,7 @@ namespace slskd.Audio
         private const int TargetDurationSeconds = 12;
 
         private readonly ILogger log = Log.ForContext<AudioSketchService>();
+        private bool missingFfmpegWarningLogged;
         private readonly IOptionsMonitor<slskd.Options> optionsMonitor;
 
         public AudioSketchService(IOptionsMonitor<slskd.Options> optionsMonitor)
@@ -39,7 +40,12 @@ namespace slskd.Audio
             var resolvedFfmpegPath = ResolveExecutablePath(ffmpegPath);
             if (resolvedFfmpegPath is null)
             {
-                log.Warning("[AudioSketch] ffmpeg not configured or missing: {Path}", ffmpegPath);
+                if (!missingFfmpegWarningLogged)
+                {
+                    missingFfmpegWarningLogged = true;
+                    log.Warning("[AudioSketch] ffmpeg not configured or missing: {Path}; audio sketch hashes will be skipped until ffmpeg is available", ffmpegPath);
+                }
+
                 return null;
             }
 

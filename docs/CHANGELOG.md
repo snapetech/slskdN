@@ -58,6 +58,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   files so stale directory permissions fail once on the observed transfer path.
 - Captured search cancellation tokens before publishing their sources so normal
   shutdown no longer logs search finalization disposal stack traces.
+- Logged missing optional AudioSketch `ffmpeg` support only once per process so
+  busy Docker nodes do not bury actionable warnings under per-download optional
+  tool noise.
 - Routed HTTP LLM moderation endpoint checks through the shared DNS-aware
   outbound guard so hostnames resolving to non-public ranges are blocked before
   any request is sent.

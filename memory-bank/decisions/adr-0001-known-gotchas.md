@@ -52,6 +52,37 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z438. Missing Optional Tools Must Not Warn Once Per File
+
+**The Bug**: Audio sketch hashing logged a warning every time a downloaded file
+was indexed when optional `ffmpeg` was absent from the container. A busy node
+could produce dozens of identical `[AudioSketch] ffmpeg not configured or
+missing` warnings in minutes, hiding genuinely actionable warnings.
+
+**Files Affected**:
+- `src/slskd/Audio/AudioSketchService.cs`
+
+**Wrong**:
+```csharp
+log.Warning("[AudioSketch] ffmpeg not configured or missing: {Path}", ffmpegPath);
+return null;
+```
+
+**Correct**:
+```csharp
+if (!missingFfmpegWarningLogged)
+{
+    missingFfmpegWarningLogged = true;
+    log.Warning("[AudioSketch] ffmpeg not configured or missing: {Path}; audio sketch hashes will be skipped until ffmpeg is available", ffmpegPath);
+}
+
+return null;
+```
+
+**Why This Keeps Happening**: Optional integration tools are checked from hot
+paths such as per-file indexing. Missing optional tools should emit a concise
+startup/first-use signal, not repeated per-item warning noise.
+
 ### 0z437. Docker Strict App-Dir Permissions Must Cover `--user` Startup
 
 **The Bug**: Container strict app-directory permissions were applied only on
