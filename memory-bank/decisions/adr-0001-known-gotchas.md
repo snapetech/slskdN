@@ -52,6 +52,36 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z432. Retire Service Workers Before Debugging Stale Web Regressions
+
+**The Bug**: A fixed web release can still appear broken when an older browser
+service worker serves stale application code after upgrade. Direct client-side
+routes such as `/searches/{id}` then behave like the previous build even though
+the release artifact contains the fix.
+
+**Files Affected**:
+- `src/web/public/service-worker.js`
+- `src/web/src/registerServiceWorker.js`
+
+**Wrong**:
+```javascript
+await navigator.serviceWorker.register(getServiceWorkerUrl(), {
+  scope: getServiceWorkerScope(),
+});
+```
+
+**Correct**:
+```javascript
+const registrations = await navigator.serviceWorker.getRegistrations?.();
+await Promise.all((registrations || []).map((registration) => registration.unregister()));
+```
+
+**Why This Keeps Happening**: Hashed Vite bundles and SPA fallbacks are enough
+for this app; a service worker adds another cache layer that survives deploys
+and can hide fixed route/loading behavior. Clear old workers and caches when
+shipping client-side route fixes, and verify release zips for the expected
+minified markers before assuming the tag built stale code.
+
 ### 0z431. Preflight Destination Paths Before Moving Completed Downloads
 
 **The Bug**: A completed transfer could fail while moving from incomplete to

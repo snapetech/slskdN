@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Retired the web service worker and cleared stale browser caches during
+  startup so upgraded clients load current SPA route code instead of old bundles.
 - Avoided duplicate warning logs for expected download timeouts by leaving the
   user-visible warning in the transfer path and downgrading the observer wrapper
   to debug.

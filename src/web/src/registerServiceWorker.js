@@ -25,9 +25,17 @@ export const registerServiceWorker = () => {
 
   const register = async () => {
     try {
-      await navigator.serviceWorker.register(getServiceWorkerUrl(), {
+      const registrations = await navigator.serviceWorker.getRegistrations?.();
+      await Promise.all(
+        (registrations || []).map((registration) => registration.unregister()),
+      );
+      await globalThis.caches?.keys?.().then((keys) =>
+        Promise.all(keys.map((key) => globalThis.caches.delete(key))),
+      );
+      const registration = await navigator.serviceWorker.register(getServiceWorkerUrl(), {
         scope: getServiceWorkerScope(),
       });
+      await registration.unregister();
     } catch (error) {
       console.debug('Service worker registration failed:', error);
     }
