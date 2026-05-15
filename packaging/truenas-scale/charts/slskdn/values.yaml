@@ -56,10 +56,13 @@ hostPath: "/mnt/{{ .Release.Namespace }}/slskdn"
 
 # Environment variables
 env:
+  DOTNET_BUNDLE_EXTRACT_BASE_DIR: "/tmp/.net"
+  SLSKD_APP_DIR: "/app/config"
   # Basic configuration
   SLSKD_SLSK_USERNAME: ""
   SLSKD_SLSK_PASSWORD: ""
   SLSKD_HTTP_PORT: "5030"
+  SLSKD_UMASK: "0007"
 
   # Data directories
   SLSKD_SHARED_DIR: "/app/shared"
@@ -115,7 +118,6 @@ podOptions:
 # Security context
 securityContext:
   privileged: false
-  readOnlyRootFilesystem: false
   allowPrivilegeEscalation: false
   runAsNonRoot: true
   runAsUser: 568
@@ -123,16 +125,20 @@ securityContext:
   fsGroup: 568
   fsGroupChangePolicy: OnRootMismatch
   supplementalGroups: []
+  seccompProfile:
+    type: RuntimeDefault
 
 # Container security context
 containerSecurityContext:
   privileged: false
-  readOnlyRootFilesystem: false
   allowPrivilegeEscalation: false
   readOnlyRootFilesystem: false
   runAsNonRoot: true
   runAsUser: 568
   runAsGroup: 568
+  capabilities:
+    drop:
+      - ALL
 
 # Resource limits
 resources:

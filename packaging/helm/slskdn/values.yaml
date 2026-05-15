@@ -37,9 +37,12 @@ persistence:
 
 # Environment (slskdN / slskd env vars)
 env:
+  DOTNET_BUNDLE_EXTRACT_BASE_DIR: "/tmp/.net"
+  SLSKD_APP_DIR: "/app/config"
   SLSKD_SLSK_USERNAME: ""
   SLSKD_SLSK_PASSWORD: ""
   SLSKD_HTTP_PORT: "5030"
+  SLSKD_UMASK: "0007"
   SLSKD_SHARED_DIR: "/app/shared"
   SLSKD_DOWNLOADS_DIR: "/app/downloads"
   SLSKD_INCOMPLETE_DIR: "/app/incomplete"
@@ -74,13 +77,24 @@ podSecurityContext:
   runAsUser: 568
   runAsGroup: 568
   fsGroup: 568
+  fsGroupChangePolicy: OnRootMismatch
+  seccompProfile:
+    type: RuntimeDefault
 
 securityContext:
   runAsNonRoot: true
   runAsUser: 568
   runAsGroup: 568
   allowPrivilegeEscalation: false
-  readOnlyRootFilesystem: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+automountServiceAccountToken: false
+
+tmpVolumes:
+  enabled: true
 
 resources:
   limits:

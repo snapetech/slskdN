@@ -16,6 +16,7 @@ spec:
       labels:
         {{- include "slskdn.selectorLabels" . | nindent 8 }}
     spec:
+      automountServiceAccountToken: {{ .Values.automountServiceAccountToken | default false }}
       {{- with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
@@ -39,6 +40,12 @@ spec:
               value: {{ $v | quote }}
             {{- end }}
           volumeMounts:
+            {{- if .Values.tmpVolumes.enabled }}
+            - name: tmp
+              mountPath: /tmp
+            - name: run
+              mountPath: /run
+            {{- end }}
             {{- if .Values.persistence.config.enabled }}
             - name: config
               mountPath: /app/config
@@ -78,6 +85,16 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 3
       volumes:
+        {{- if .Values.tmpVolumes.enabled }}
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
+        - name: run
+          emptyDir:
+            medium: Memory
+            sizeLimit: 32Mi
+        {{- end }}
         {{- if .Values.persistence.config.enabled }}
         - name: config
           persistentVolumeClaim:
