@@ -34,6 +34,26 @@ Tesseract, C2PA, MusicBrainz, AcoustID, and Chromaprint. The intentionally
 unsupported `HashFromAudioFileEnabled` hardening flag is reported as `broken`
 and unavailable.
 
+Docker images include the cheap core prerequisites by default. For heavyweight
+experimental lanes, run the container installer as an operator:
+
+```shell
+docker exec -u root slskd install-optional-media-tools distro ai-python c2pa audfprint
+```
+
+Panako requires a deliberate jar source:
+
+```shell
+docker exec -u root \
+  -e PANAKO_JAR_URL=https://example.invalid/panako.jar \
+  slskd install-optional-media-tools panako
+```
+
+The UI does not auto-install these tools when a feature is enabled because the
+toolchains change the container supply chain and require elevated install
+permissions. The capabilities response names the missing command or file and,
+for Docker, points at the matching installer profile.
+
 ## Result Review
 
 SongID surfaces:

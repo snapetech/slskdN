@@ -24,8 +24,62 @@ The Docker image includes the core runtime tools used by the built-in media and
 SongID paths: `ffmpeg`/`ffprobe`, `yt-dlp`, Chromaprint `fpcalc`, and
 Microsoft `libmsquic` for .NET QUIC mesh transports on Linux. Larger
 experimental recognizers such as Whisper, Demucs, SongRec, Panako, Audfprint,
-C2PA tooling, and OCR engines are not bundled by default; mount or install
-them in a derived image when you intentionally enable those workflows.
+C2PA tooling, and OCR engines are not bundled by default. They can be installed
+after the container is running, or baked into a derived image when you
+intentionally enable those workflows.
+
+To populate optional heavyweight media tools in an existing container, run the
+installer as root inside the container:
+
+```shell
+docker exec -u root slskd install-optional-media-tools distro ai-python
+```
+
+The installer supports explicit profiles:
+
+| Profile | Installs |
+| --- | --- |
+| `distro` | Java, Python venv support, Tesseract OCR, build tools, Git, Rust/Cargo |
+| `ai-python` | `openai-whisper` and `demucs` in `/opt/slskdn-media-tools/python`, with `whisper` and `demucs` on `PATH` |
+| `c2pa` | `c2patool` via Cargo |
+| `audfprint` | `audfprint.py` cloned under `/opt/slskdn-media-tools/audfprint` and exposed on `PATH` |
+| `panako` | Downloads `panako.jar` to `/usr/local/share/java/panako.jar`; requires `PANAKO_JAR_URL` |
+| `all` | Runs every profile; requires `PANAKO_JAR_URL` |
+
+Examples:
+
+```shell
+docker exec -u root slskd install-optional-media-tools distro ai-python c2pa audfprint
+
+docker exec -u root \
+  -e PANAKO_JAR_URL=https://example.invalid/panako.jar \
+  slskd install-optional-media-tools panako
+```
+
+For reproducible deployments, bake the tools into a derived image instead of
+mutating a running container:
+
+```dockerfile
+FROM ghcr.io/snapetech/slskdn:latest
+
+RUN install-optional-media-tools distro ai-python c2pa audfprint
+```
+
+Use `SLSKDN_PIP_PACKAGES` to pin or replace the Python tool set in a derived
+image, for example:
+
+```dockerfile
+FROM ghcr.io/snapetech/slskdn:latest
+
+ENV SLSKDN_PIP_PACKAGES="openai-whisper==20250625 demucs==4.0.1"
+RUN install-optional-media-tools distro ai-python
+```
+
+The app does not install these tools automatically when a UI feature is enabled.
+That is intentional: installing Python, Java, Rust-built, or externally hosted
+recognizers changes the container supply chain and often requires elevated
+container permissions. The SongID capabilities API reports which specific tool
+is missing and points Docker users at the matching installer profile.
 
 For opt-in experimental media work, build an experimental media image from the
 released runtime image:
@@ -38,12 +92,12 @@ docker build -t slskdn:experimental-media \
 ```
 
 This variant adds the conservative distro-level prerequisites for OCR and local
-recognizer experiments: `tesseract-ocr`, Java, and Python. Tools without a
-stable distro package in the base image, such as Whisper, Demucs, SongRec,
-Panako, Audfprint, and C2PA tooling, should still be installed in a pinned
-derived image or mounted into the container. The SongID capabilities API reports
-which specific command or file is missing and points Docker users at this
-experimental image path.
+recognizer experiments: `tesseract-ocr`, Java, Python, build tools, Git, and
+Rust/Cargo. Tools without a stable distro package in the base image, such as
+Whisper, Demucs, SongRec, Panako, Audfprint, and C2PA tooling, should still be
+installed with `install-optional-media-tools`, installed in a pinned derived
+image, or mounted into the container. The SongID capabilities API reports which
+specific command or file is missing and points Docker users at the installer.
 
 For an internet-facing or always-on host, prefer a hardened container launch.
 This keeps the web UI on loopback for a reverse proxy or SSH tunnel, drops

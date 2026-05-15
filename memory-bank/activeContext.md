@@ -7784,3 +7784,21 @@ Continued kspls0 log cleanup after the manual release build. Classified Soulseek
 Validation: focused classifier/Program path tests passed (`41/41`), focused Lidarr sync tests passed (`4/4`), `dotnet build src/slskd/slskd.csproj --no-restore` passed after rerunning serially to avoid a transient SDK file lock, and manual build `0.0.0-manual.20260514164010.60039cee8323` is running on kspls0 with `NRestarts=0`.
 
 Next steps: keep watching PID-scoped kspls0 logs for fresh warning/error signatures. Current post-deploy sample from PID `614254` has no warnings, errors, exceptions, or fatal entries.
+
+## 2026-05-15T21:18:36Z Session update
+
+Added Docker optional heavyweight SongID tool installation support. The default
+image now carries `install-optional-media-tools`, a root-only helper with
+explicit profiles for distro prerequisites, Whisper/Demucs Python tooling, C2PA
+via Cargo, Audfprint, and Panako jar download. Docker and SongID docs now show
+post-start and derived-image workflows, and explain why UI feature toggles do
+not auto-install heavyweight toolchains.
+
+Validation: script syntax passed, focused `SongIdCapabilityReporterTests`
+passed, packaging metadata validation passed, `git diff --check` passed, local
+Docker build `slskdn:optional-tools-test` passed, container smoke confirmed the
+installer, core media tools, QUIC library visibility, and setuid/setgid
+stripping, and `./bin/lint` passed.
+
+Next steps: push this packaging/docs slice, then cut a release tag only if
+explicitly requested.

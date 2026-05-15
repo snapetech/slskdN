@@ -27,7 +27,7 @@ public sealed class SongIdCapability
 
 public sealed class SongIdCapabilityReporter : ISongIdCapabilityReporter
 {
-    private const string DockerExperimentalMediaHint = "For Docker, use the experimental media image or install the tool in a derived image and keep it on PATH.";
+    private const string DockerOptionalMediaHint = "For Docker, run install-optional-media-tools with the matching profile or install the tool in a derived image and keep it on PATH.";
 
     private readonly IOptionsMonitor<slskd.Options> options;
     private readonly Func<string, CancellationToken, Task<bool>> commandExists;
@@ -77,8 +77,8 @@ public sealed class SongIdCapabilityReporter : ISongIdCapabilityReporter
             Capability("chromaprint_fingerprint", "Chromaprint fingerprinting", "experimental", chromaprintConfigured && ffmpeg, chromaprintConfigured && ffmpeg ? "Chromaprint is enabled and ffmpeg is available." : "Requires integration.chromaprint.enabled and ffmpeg.", "integration.chromaprint.enabled", "ffmpeg", "libchromaprint"),
             Capability("acoustid_lookup", "AcoustID lookup", "experimental", acoustIdConfigured, acoustIdConfigured ? "AcoustID is enabled with a client id." : "Requires integration.acoustid.enabled and a client id.", "integration.acoustid.enabled", "integration.acoustid.client_id"),
             Capability("songrec", "SongRec recognition", "experimental", songrec, songrec ? "songrec is available." : MissingCommandReason("songrec"), "songrec"),
-            Capability("panako", "Panako local corpus matching", "experimental", !string.IsNullOrWhiteSpace(panakoJar), !string.IsNullOrWhiteSpace(panakoJar) ? $"Panako jar found at {panakoJar}." : "panako.jar was not found in known locations or PATH. For Docker, mount panako.jar at /usr/share/java/panako.jar or install it in a derived experimental media image.", "java", "panako.jar"),
-            Capability("audfprint", "Audfprint local corpus matching", "experimental", !string.IsNullOrWhiteSpace(audfprint), !string.IsNullOrWhiteSpace(audfprint) ? $"Audfprint script found at {audfprint}." : "audfprint.py was not found in known locations or PATH. For Docker, mount audfprint.py at /slskd/external/audfprint/audfprint.py or install it in a derived experimental media image.", "python", "audfprint.py"),
+            Capability("panako", "Panako local corpus matching", "experimental", !string.IsNullOrWhiteSpace(panakoJar), !string.IsNullOrWhiteSpace(panakoJar) ? $"Panako jar found at {panakoJar}." : MissingFileReason("panako.jar", "panako"), "java", "panako.jar"),
+            Capability("audfprint", "Audfprint local corpus matching", "experimental", !string.IsNullOrWhiteSpace(audfprint), !string.IsNullOrWhiteSpace(audfprint) ? $"Audfprint script found at {audfprint}." : MissingFileReason("audfprint.py", "audfprint"), "python", "audfprint.py"),
             Capability("demucs", "Demucs stem extraction", "experimental", demucs && ffmpeg, demucs && ffmpeg ? "demucs and ffmpeg are available." : MissingCommandReason("demucs", commandMissing: !demucs, ffmpegMissing: !ffmpeg), "demucs", "ffmpeg"),
             Capability("whisper_transcripts", "Whisper transcript extraction", "experimental", whisper && ffmpeg, whisper && ffmpeg ? "whisper and ffmpeg are available." : MissingCommandReason("whisper", commandMissing: !whisper, ffmpegMissing: !ffmpeg), "whisper", "ffmpeg"),
             Capability("ocr_frames", "OCR frame scanning", "experimental", tesseract && ffmpeg, tesseract && ffmpeg ? "tesseract and ffmpeg are available." : MissingCommandReason("tesseract", commandMissing: !tesseract, ffmpegMissing: !ffmpeg), "tesseract", "ffmpeg"),
@@ -98,7 +98,12 @@ public sealed class SongIdCapabilityReporter : ISongIdCapabilityReporter
             _ => "Required tools were not found on PATH.",
         };
 
-        return $"{missing} {DockerExperimentalMediaHint}";
+        return $"{missing} {DockerOptionalMediaHint}";
+    }
+
+    private static string MissingFileReason(string fileName, string profile)
+    {
+        return $"{fileName} was not found in known locations or PATH. For Docker, run install-optional-media-tools {profile} or mount the file into one of the documented lookup paths.";
     }
 
     private static SongIdCapability Capability(

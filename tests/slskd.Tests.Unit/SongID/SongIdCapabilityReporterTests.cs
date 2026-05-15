@@ -82,13 +82,13 @@ public sealed class SongIdCapabilityReporterTests
 
         var capabilities = await reporter.GetCapabilitiesAsync(CancellationToken.None);
 
-        AssertReasonContains(capabilities, "songrec", "experimental media image");
-        AssertReasonContains(capabilities, "panako", "derived experimental media image");
-        AssertReasonContains(capabilities, "audfprint", "derived experimental media image");
-        AssertReasonContains(capabilities, "demucs", "experimental media image");
-        AssertReasonContains(capabilities, "whisper_transcripts", "experimental media image");
-        AssertReasonContains(capabilities, "ocr_frames", "experimental media image");
-        AssertReasonContains(capabilities, "c2pa_provenance", "experimental media image");
+        AssertReasonContains(capabilities, "songrec", "install-optional-media-tools");
+        AssertReasonContains(capabilities, "panako", "install-optional-media-tools panako");
+        AssertReasonContains(capabilities, "audfprint", "install-optional-media-tools audfprint");
+        AssertReasonContains(capabilities, "demucs", "install-optional-media-tools");
+        AssertReasonContains(capabilities, "whisper_transcripts", "install-optional-media-tools");
+        AssertReasonContains(capabilities, "ocr_frames", "install-optional-media-tools");
+        AssertReasonContains(capabilities, "c2pa_provenance", "install-optional-media-tools");
     }
 
     private static void AssertCapability(

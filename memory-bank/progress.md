@@ -10449,3 +10449,20 @@ Code quality improvements were completed as part of Option A:
 - Validated `libmsquic` dynamic linker visibility, default media tools,
   setuid/setgid stripping, sticky `/.net`, packaging metadata validation, and
   `git diff --check`.
+
+# 2026-05-15 21:18:36Z
+
+- Added `packaging/docker/install-optional-media-tools`, an opt-in root-only
+  Docker helper with explicit profiles for distro OCR/runtime prerequisites,
+  Whisper/Demucs Python tooling, C2PA via Cargo, Audfprint, and Panako jar
+  download.
+- Documented both post-start `docker exec` usage and reproducible derived-image
+  usage, including the reason UI feature toggles do not auto-install heavyweight
+  toolchains.
+- Updated SongID capability guidance so missing optional tools point Docker
+  users at `install-optional-media-tools` profiles instead of the older generic
+  experimental image wording.
+- Validated script syntax, focused SongID capability tests, packaging metadata
+  validation, `git diff --check`, local Docker image build
+  `slskdn:optional-tools-test`, image smoke for the installer/core tools/QUIC,
+  and `./bin/lint`.

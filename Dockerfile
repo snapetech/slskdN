@@ -117,7 +117,8 @@ WORKDIR /slskd
 COPY --from=publish /slskd/dist/${TARGETPLATFORM} .
 
 COPY packaging/docker/slskdn-container-start /usr/local/bin/slskdn-container-start
-RUN chmod +x /usr/local/bin/slskdn-container-start
+COPY packaging/docker/install-optional-media-tools /usr/local/bin/install-optional-media-tools
+RUN chmod +x /usr/local/bin/slskdn-container-start /usr/local/bin/install-optional-media-tools
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/slskdn-container-start"]
 CMD ["./slskd"]

@@ -1,0 +1,161 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+show_help() {
+  cat <<'EOF'
+Install optional heavyweight SongID media tools into a running slskdN Docker
+container or derived image.
+
+Usage:
+  install-optional-media-tools [profile ...]
+
+Profiles:
+  distro      Install distro-packaged prerequisites: Java, Python venv support,
+              Tesseract OCR, build tools, Rust/Cargo, and Git.
+  ai-python   Install Python tools into /opt/slskdn-media-tools/python:
+              openai-whisper and demucs.
+  c2pa        Install c2patool with Cargo into /usr/local/bin.
+  audfprint   Clone audfprint into /opt/slskdn-media-tools/audfprint and expose
+              audfprint.py on PATH.
+  panako      Download panako.jar to /usr/local/share/java/panako.jar. Requires
+              PANAKO_JAR_URL.
+  all         Install distro, ai-python, c2pa, audfprint, and panako.
+
+Environment:
+  SLSKDN_MEDIA_TOOLS_ROOT       Default: /opt/slskdn-media-tools
+  SLSKDN_PIP_PACKAGES           Default: openai-whisper demucs
+  SLSKDN_C2PATOOL_CRATE_VERSION Default: empty, installs latest c2patool
+  AUDFPRINT_REPO                Default: https://github.com/dpwe/audfprint.git
+  AUDFPRINT_REF                 Default: master
+  PANAKO_JAR_URL                Required for panako profile
+
+Examples:
+  docker exec -u root slskd install-optional-media-tools distro ai-python
+  docker exec -u root -e PANAKO_JAR_URL=https://example.invalid/panako.jar slskd \
+    install-optional-media-tools panako
+EOF
+}
+
+if [[ ${1:-} == "--help" || ${1:-} == "-h" ]]; then
+  show_help
+  exit 0
+fi
+
+if [[ "$(id -u)" != "0" ]]; then
+  echo "install-optional-media-tools must run as root inside the container." >&2
+  exit 1
+fi
+
+if [[ $# -eq 0 ]]; then
+  set -- distro ai-python
+fi
+
+TOOLS_ROOT="${SLSKDN_MEDIA_TOOLS_ROOT:-/opt/slskdn-media-tools}"
+PYTHON_VENV="${TOOLS_ROOT}/python"
+BIN_DIR="/usr/local/bin"
+JAVA_DIR="/usr/local/share/java"
+
+apt_install_base() {
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update
+  apt-get install --no-install-recommends -y \
+    build-essential \
+    cargo \
+    git \
+    openjdk-21-jre-headless \
+    pkg-config \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-venv \
+    rustc \
+    tesseract-ocr
+  rm -rf /var/lib/apt/lists/* /var/cache/apt/*
+}
+
+install_ai_python() {
+  apt_install_base
+  mkdir -p "${TOOLS_ROOT}"
+  python3 -m venv "${PYTHON_VENV}"
+  "${PYTHON_VENV}/bin/python" -m pip install --upgrade pip setuptools wheel
+  # Intentionally unpinned by default: these stacks move quickly and operators
+  # can override the exact set with SLSKDN_PIP_PACKAGES in a derived image.
+  "${PYTHON_VENV}/bin/pip" install ${SLSKDN_PIP_PACKAGES:-openai-whisper demucs}
+  ln -sf "${PYTHON_VENV}/bin/whisper" "${BIN_DIR}/whisper"
+  ln -sf "${PYTHON_VENV}/bin/demucs" "${BIN_DIR}/demucs"
+}
+
+install_c2pa() {
+  apt_install_base
+  mkdir -p "${TOOLS_ROOT}/cargo-home" "${TOOLS_ROOT}/cargo-bin"
+  export CARGO_HOME="${TOOLS_ROOT}/cargo-home"
+  local crate_version_args=()
+  if [[ -n "${SLSKDN_C2PATOOL_CRATE_VERSION:-}" ]]; then
+    crate_version_args=(--version "${SLSKDN_C2PATOOL_CRATE_VERSION}")
+  fi
+  cargo install c2patool "${crate_version_args[@]}" --root "${TOOLS_ROOT}/cargo-bin"
+  ln -sf "${TOOLS_ROOT}/cargo-bin/bin/c2patool" "${BIN_DIR}/c2patool"
+}
+
+install_audfprint() {
+  apt_install_base
+  local repo="${AUDFPRINT_REPO:-https://github.com/dpwe/audfprint.git}"
+  local ref="${AUDFPRINT_REF:-master}"
+  local target="${TOOLS_ROOT}/audfprint"
+  rm -rf "${target}"
+  git clone --depth 1 --branch "${ref}" "${repo}" "${target}"
+  chmod +x "${target}/audfprint.py"
+  ln -sf "${target}/audfprint.py" "${BIN_DIR}/audfprint.py"
+}
+
+install_panako() {
+  if [[ -z "${PANAKO_JAR_URL:-}" ]]; then
+    echo "PANAKO_JAR_URL must be set for the panako profile." >&2
+    exit 1
+  fi
+
+  apt_install_base
+  mkdir -p "${JAVA_DIR}"
+  wget -q -O "${JAVA_DIR}/panako.jar" "${PANAKO_JAR_URL}"
+  chmod 0644 "${JAVA_DIR}/panako.jar"
+}
+
+run_profile() {
+  case "$1" in
+    distro)
+      apt_install_base
+      ;;
+    ai-python)
+      install_ai_python
+      ;;
+    c2pa)
+      install_c2pa
+      ;;
+    audfprint)
+      install_audfprint
+      ;;
+    panako)
+      install_panako
+      ;;
+    all)
+      install_ai_python
+      install_c2pa
+      install_audfprint
+      install_panako
+      ;;
+    *)
+      echo "Unknown optional media tool profile: $1" >&2
+      show_help >&2
+      exit 1
+      ;;
+  esac
+}
+
+for profile in "$@"; do
+  run_profile "${profile}"
+done
+
+find / -xdev -type f \( -perm -4000 -o -perm -2000 \) -exec chmod a-s {} +
+rm -rf /tmp/* /var/tmp/*
+
+echo "Optional media tool installation complete."
