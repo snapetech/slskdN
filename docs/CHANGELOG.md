@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Ignored invalid optional obfuscated ports in Soulseek `ConnectToPeer`
+  messages so malformed extension metadata does not drop otherwise usable
+  regular peer-connection hints.
 - Added transfer-path diagnostics for remote download failures, including
   regular/direct, obfuscated/direct, indirect, endpoint metadata, transfer
   tokens, remote rejection reasons, exception types, and whether the peer

@@ -172,7 +172,11 @@ namespace Soulseek.Messaging.Messages
 
                 if (obfuscationType == 1)
                 {
-                    ProtocolValueValidator.ValidateAdvertisedPort(obfuscatedPort, "connect-to-peer obfuscated");
+                    if (obfuscatedPort <= 0 || obfuscatedPort > IPEndPoint.MaxPort)
+                    {
+                        obfuscationType = 0;
+                        obfuscatedPort = 0;
+                    }
                 }
             }
 
