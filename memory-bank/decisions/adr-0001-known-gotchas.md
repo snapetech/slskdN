@@ -52,6 +52,37 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z436. Optional ConnectToPeer Obfuscation Metadata Must Be Tolerant
+
+**The Bug**: The Soulseek server can send `ConnectToPeer` messages with an
+invalid optional obfuscated port such as `65536`. Treating that optional field
+as a fatal parse error logs `Error handling server message: ConnectToPeer` and
+drops the whole peer-connection hint, even when regular peer connection data is
+still usable and Soulseek obfuscation is disabled.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/src/Messaging/Messages/Server/ConnectToPeerResponse.cs`
+- `vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/Server/ConnectToPeerResponseTests.cs`
+
+**Wrong**:
+```csharp
+ProtocolValueValidator.ValidateAdvertisedPort(obfuscatedPort, "connect-to-peer obfuscated");
+```
+
+**Correct**:
+```csharp
+if (obfuscatedPort <= 0 || obfuscatedPort > IPEndPoint.MaxPort)
+{
+    obfuscationType = 0;
+    obfuscatedPort = 0;
+}
+```
+
+**Why This Keeps Happening**: Optional extension metadata is easy to validate as
+if it were core protocol data. For mixed Soulseek clients and server hints, bad
+optional obfuscation fields should disable only the optional obfuscated endpoint;
+the regular address, port, token, and username still need to be parsed.
+
 ### 0z435. Compatibility Obfuscation Must Not Prefer Outbound Transfer Dials
 
 **The Bug**: Soulseek type-1 obfuscation `compatibility` mode still copied
