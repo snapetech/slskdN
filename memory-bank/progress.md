@@ -10483,3 +10483,19 @@ Code quality improvements were completed as part of Option A:
   backend unit tests passed. Full `dotnet test --no-restore` still has five
   integration harness failures caused by spawned test instances using a
   non-existent Web content path.
+
+# 2026-05-15 22:25:53Z
+
+- Built and deployed a manual all-tools Docker image from revision `c39a604ac3`
+  to the live Docker install, then confirmed the running container uses that
+  image, reports healthy Docker status, has zero effective capabilities,
+  `NoNewPrivs=1`, seccomp enabled, and includes the optional media tools.
+- Re-ran the headless route/API crawl after deployment. All 25 routes rendered
+  cleanly with zero browser console errors, page errors, bad responses, or
+  failed requests. Remaining API probe exceptions are expected/current
+  semantics: admin-only debug and external-visualizer endpoints, plus direct
+  uncapped `/api/v0/searches` probe behavior outside the UI's capped request.
+- Watched fresh logs after the crawl. No new errors, fatal entries,
+  `AmbiguousMatchException`, API 404s, permission failures, or read-only
+  filesystem failures appeared; the remaining noisy signal is mesh-health
+  warnings when mesh/DHT has no reachable healthy peers.

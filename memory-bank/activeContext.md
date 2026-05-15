@@ -7825,3 +7825,16 @@ stripping, and `./bin/lint` passed.
 
 Next steps: push this packaging/docs slice, then cut a release tag only if
 explicitly requested.
+
+## 2026-05-15T22:25:53Z Session update
+
+Completed the live Docker headless validation pass and deployed the fixed
+manual all-tools image from revision `c39a604ac3`. The post-deploy crawl covered
+25 top-level Web routes and 72 API probes with no route failures, browser
+console errors, page errors, bad responses, or failed browser requests.
+
+Current live logs are materially clean for the UI/API fixes: no fresh backend
+errors, fatal entries, route ambiguity, API 404s, permission denials, or
+read-only filesystem failures. The remaining item to burn down first is noisy
+mesh-health warning output when mesh/DHT has no reachable healthy peers; the
+other open follow-ups are documented in `memory-bank/tasks.md`.
