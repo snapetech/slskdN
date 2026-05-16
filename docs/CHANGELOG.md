@@ -88,6 +88,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Quieted intentional-shutdown `ObjectDisposedException` noise from background
   search finalization and event-record writes while preserving runtime error
   visibility.
+- Added a separately tagged amd64 Docker omnibus testers image that bakes in
+  the heavyweight optional media/SongID prerequisites without bloating the
+  default release image.
 - Added an opt-in experimental media Docker image recipe for heavier SongID
   prerequisites, and updated capability reporting with Docker guidance when
   optional recognizer tools are missing.

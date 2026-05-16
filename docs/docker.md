@@ -83,6 +83,21 @@ optional recognizer stack, including the Python AI packages and their transitive
 runtime wheels. Keep substantial free Docker storage available for the final
 image, temporary build layers, and cache mounts.
 
+Stable releases also publish an amd64 omnibus testers image for operators who
+want every optional prerequisite baked in and are willing to accept the image
+size and supply-chain surface:
+
+```shell
+docker pull ghcr.io/snapetech/slskdn:omnibus
+
+docker pull ghcr.io/snapetech/slskdn:2026051600-slskdn.259-omnibus
+```
+
+Use `ghcr.io/snapetech/slskdn:omnibus` for the latest stable testers image, or
+pin the versioned `-omnibus` tag for reproducible internal validation. The
+normal `latest` image remains smaller and includes only the default runtime
+media prerequisites.
+
 Use `SLSKDN_PIP_PACKAGES` to pin or replace the Python tool set in a derived
 image, for example:
 
