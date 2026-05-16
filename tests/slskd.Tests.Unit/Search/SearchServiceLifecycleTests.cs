@@ -137,6 +137,36 @@ public class SearchServiceLifecycleTests
     }
 
     [Fact]
+    public void IsExpectedSearchRuntimeShutdownFailure_WhenLockDisposingDuringShutdown_ReturnsTrue()
+    {
+        var result = SearchService.IsExpectedSearchRuntimeShutdownFailure(
+            new InvalidOperationException("The lock is being disposed while still being used. It either is being held by a thread and/or has active waiters waiting to acquire the lock."),
+            applicationIsShuttingDown: true);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsExpectedSearchRuntimeShutdownFailure_WhenLockDisposingDuringRuntime_ReturnsFalse()
+    {
+        var result = SearchService.IsExpectedSearchRuntimeShutdownFailure(
+            new InvalidOperationException("The lock is being disposed while still being used."),
+            applicationIsShuttingDown: false);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsExpectedSearchRuntimeShutdownFailure_WhenDifferentExceptionDuringShutdown_ReturnsFalse()
+    {
+        var result = SearchService.IsExpectedSearchRuntimeShutdownFailure(
+            new InvalidOperationException("Search backend failed."),
+            applicationIsShuttingDown: true);
+
+        Assert.False(result);
+    }
+
+    [Fact]
     public void ApplyResponseSummary_IncludesEarlyMeshResponses()
     {
         var search = new slskd.Search.Search();

@@ -94,6 +94,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Downgraded successful second-chance transfer fallback diagnostics so normal
   peer/client compatibility recovery no longer appears as warning-level log
   noise.
+- Treated search runtime lock-disposal failures during application shutdown as
+  expected cancellation noise while keeping the same failures noisy during
+  normal runtime.
 - Fixed release-tagged Docker builds being reported as local development
   builds, converged Unix pod database permissions to `0600`, and downgraded
   inbound mesh TLS handshake timeouts to expected handshake noise.

@@ -1,3 +1,23 @@
+## Update 2026-05-16 02:08:01Z
+
+- Current task: broader log reclassification pass complete locally.
+- Last activity:
+  - reviewed current live warning/error shapes and the broader warning/error
+    call-site list;
+  - left security/auth/config warnings, explicit peer unavailability, and real
+    degraded optional integration warnings at their current severity;
+  - reclassified one additional shutdown-only search path: Soulseek runtime
+    lock-disposal during application shutdown now completes the search as
+    cancelled instead of logging a failed-search error;
+  - preserved the same exception as noisy during normal runtime.
+- Validation:
+  - Passed: focused `SearchServiceLifecycleTests` (`14/14`).
+  - Passed: `./bin/lint`.
+  - Passed: `git diff --check`.
+- Next steps:
+  1. Commit and push the shutdown search diagnostic cleanup.
+  2. Deploy/cut a release only when we want the accumulated log cleanups live.
+
 ## Update 2026-05-16 02:04:26Z
 
 - Current task: follow-up omnibus Docker log snoop complete locally.

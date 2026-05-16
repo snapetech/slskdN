@@ -496,7 +496,8 @@ namespace slskd.Search
 
                             // OperationCanceledException might be thrown somewhere deeper, and we don't want that to count.
                             // User-cancelled searches trip the search token; host shutdown trips the app lifecycle flag.
-                            if (IsExpectedSearchCancellation(ex, searchCancellationToken, Application.IsShuttingDown))
+                            if (IsExpectedSearchCancellation(ex, searchCancellationToken, Application.IsShuttingDown)
+                                || IsExpectedSearchRuntimeShutdownFailure(ex, Application.IsShuttingDown))
                             {
                                 var reason = Application.IsShuttingDown ? " during shutdown" : string.Empty;
                                 Log.Information("Search for '{Query}' was cancelled{Reason}", query, reason);
@@ -688,6 +689,13 @@ namespace slskd.Search
 
         internal static bool IsExpectedSearchFinalizationFailure(Exception exception, bool applicationIsShuttingDown)
             => applicationIsShuttingDown && exception is ObjectDisposedException;
+
+        internal static bool IsExpectedSearchRuntimeShutdownFailure(Exception exception, bool applicationIsShuttingDown)
+        {
+            return applicationIsShuttingDown
+                && exception is InvalidOperationException
+                && exception.Message.Contains("lock is being disposed", StringComparison.OrdinalIgnoreCase);
+        }
 
         internal static List<Response> MergeSearchResponses(IEnumerable<SearchResponse> soulseekResponses, IReadOnlyList<Response> meshResponses)
         {
