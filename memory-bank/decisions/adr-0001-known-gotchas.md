@@ -52,6 +52,40 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z455. Signature Verification Must Verify Cryptography, Not Shape
+
+**The Bug**: Pod join/leave request handling claimed to verify signed
+membership operations, but accepted any non-empty signature longer than a small
+length threshold. `SignatureMode.Enforce` added nonce replay protection without
+actually requiring an Ed25519 signature.
+
+**Files Affected**:
+- `src/slskd/PodCore/PodJoinLeaveService.cs`
+- `tests/slskd.Tests.Unit/PodCore/PodJoinLeaveServiceTests.cs`
+
+**Wrong**:
+```csharp
+return Task.FromResult(!string.IsNullOrEmpty(request.Signature) && request.Signature.Length > 10);
+```
+
+**Correct**:
+```csharp
+if (!TryDecodeEd25519Signature(request.Signature, out var signatureBytes))
+{
+    return mode != SignatureMode.Enforce;
+}
+
+return VerifyEd25519Payload(
+    BuildJoinRequestPayload(request),
+    signatureBytes,
+    request.PublicKey);
+```
+
+**Why This Keeps Happening**: Compatibility shims and staged feature work often
+start by validating field presence. Once docs, UI, or option names say
+"signature verification", the code must verify a concrete signature scheme or
+clearly remain in a legacy/off mode.
+
 ### 0z454. Search Runtime Disposal During Shutdown Is Cancellation Noise
 
 **The Bug**: Background Soulseek search tasks can throw lock-disposal
