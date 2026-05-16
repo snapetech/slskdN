@@ -298,13 +298,16 @@
 #     enableGracefulDegradation: true
 #     recoveryCheckIntervalMinutes: 5
 #     recoveryHealthyChecksRequired: 3
-# PodCore.Security (MessageSigner). PR-12. Binds to PodCore:Security.
-# PodCore.Join (6.4). Binds to PodCore:Join. When SignatureMode Enforce: PodJoinRequest requires Nonce and replay is rejected.
+# PodCore.Security (MessageSigner). Binds to PodCore:Security.
+# PodCore.Join binds to PodCore:Join. Off accepts legacy non-Ed25519 join/leave
+# signatures for compatibility; Warn logs legacy or missing signatures; Enforce
+# requires ed25519:<base64 signature>, a valid Ed25519 public key, fresh
+# timestamp, and a join Nonce for replay protection.
 # PodCore:
 #   Security:
 #     SignatureMode: Off   # Off | Warn | Enforce
 #   Join:
-#     SignatureMode: Off   # Enforce: require Nonce on join, reject replay
+#     SignatureMode: Off   # Off | Warn | Enforce
 # feature:
 #   swagger: true              # Enable Swagger API documentation UI (default: true)
 #   CollectionsSharing: true   # Enable Collections, ShareGroups, ShareGrants APIs (default: true)

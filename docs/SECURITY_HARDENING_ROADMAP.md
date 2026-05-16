@@ -43,7 +43,10 @@ This document outlines a comprehensive security hardening strategy for slskdn, t
 
 ## Existing Security Infrastructure
 
-slskdn (experimental/multi-source-swarm branch) already implements significant security infrastructure. This section documents what exists so new features can integrate properly.
+slskdn `main` already implements significant security infrastructure. This
+section originated during the historical `experimental/multi-source-swarm`
+workstream and now documents what exists so new features can integrate
+properly.
 
 ### ✅ Mesh Overlay Security (DhtRendezvous/Security/)
 

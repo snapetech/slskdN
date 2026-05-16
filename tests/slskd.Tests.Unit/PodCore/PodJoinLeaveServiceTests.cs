@@ -4,10 +4,12 @@
 namespace slskd.Tests.Unit.PodCore;
 
 using System.Collections.Concurrent;
+using System.Text;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using slskd.Mesh.Transport;
 using slskd.PodCore;
 using Xunit;
 
@@ -124,16 +126,119 @@ public class PodJoinLeaveServiceTests
         Assert.Empty(remaining);
     }
 
+    [Fact]
+    public async Task RequestJoinAsync_WhenEnforcedSignatureValid_AcceptsRequest()
+    {
+        using var ed25519 = new Ed25519Signer();
+        var (privateKey, publicKey) = ed25519.GenerateKeyPair();
+        var publicKeyBase64 = Convert.ToBase64String(publicKey);
+        var request = new PodJoinRequest(
+            "pod-1",
+            "peer-1",
+            "member",
+            publicKeyBase64,
+            DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            string.Empty,
+            "please",
+            "nonce-1");
+        request = request with
+        {
+            Signature = Sign(ed25519, privateKey, PodJoinLeaveService.BuildJoinRequestPayload(request))
+        };
+
+        var podService = new Mock<IPodService>();
+        podService
+            .Setup(service => service.GetPodAsync("pod-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Pod { PodId = "pod-1" });
+        podService
+            .Setup(service => service.GetMembersAsync("pod-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        var service = CreateService(
+            podService: podService,
+            signatureMode: SignatureMode.Enforce,
+            ed25519: ed25519);
+
+        var result = await service.RequestJoinAsync(request, CancellationToken.None);
+
+        Assert.True(result.Success);
+    }
+
+    [Fact]
+    public async Task RequestJoinAsync_WhenEnforcedSignatureIsLegacyShape_RejectsRequest()
+    {
+        using var ed25519 = new Ed25519Signer();
+        var service = CreateService(signatureMode: SignatureMode.Enforce, ed25519: ed25519);
+
+        var result = await service.RequestJoinAsync(
+            new PodJoinRequest("pod-1", "peer-1", "member", "pub", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), "long-signature-value", Nonce: "nonce-1"),
+            CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal("Invalid join request signature", result.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task RequestJoinAsync_WhenSignatureTampered_RejectsRequest()
+    {
+        using var ed25519 = new Ed25519Signer();
+        var (privateKey, publicKey) = ed25519.GenerateKeyPair();
+        var publicKeyBase64 = Convert.ToBase64String(publicKey);
+        var request = new PodJoinRequest(
+            "pod-1",
+            "peer-1",
+            "member",
+            publicKeyBase64,
+            DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            string.Empty,
+            "please",
+            "nonce-1");
+        request = request with
+        {
+            Signature = Sign(ed25519, privateKey, PodJoinLeaveService.BuildJoinRequestPayload(request)),
+            Message = "tampered"
+        };
+
+        var service = CreateService(signatureMode: SignatureMode.Enforce, ed25519: ed25519);
+
+        var result = await service.RequestJoinAsync(request, CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal("Invalid join request signature", result.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task RequestJoinAsync_WhenSignatureModeOff_AllowsLegacyShape()
+    {
+        var service = CreateService(signatureMode: SignatureMode.Off);
+
+        var result = await service.RequestJoinAsync(
+            new PodJoinRequest("pod-1", "peer-1", "member", "pub", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), "long-signature-value"),
+            CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal("Pod not found", result.ErrorMessage);
+    }
+
     private static PodJoinLeaveService CreateService(
         Mock<IPodService>? podService = null,
         Mock<IPodMembershipService>? membershipService = null,
-        Mock<IPodMembershipVerifier>? membershipVerifier = null)
+        Mock<IPodMembershipVerifier>? membershipVerifier = null,
+        SignatureMode signatureMode = SignatureMode.Off,
+        Ed25519Signer? ed25519 = null)
     {
         return new PodJoinLeaveService(
             Mock.Of<ILogger<PodJoinLeaveService>>(),
             (podService ?? new Mock<IPodService>()).Object,
             (membershipService ?? new Mock<IPodMembershipService>()).Object,
             (membershipVerifier ?? new Mock<IPodMembershipVerifier>()).Object,
-            Mock.Of<IOptionsMonitor<PodJoinOptions>>(options => options.CurrentValue == new PodJoinOptions()));
+            Mock.Of<IOptionsMonitor<PodJoinOptions>>(options => options.CurrentValue == new PodJoinOptions { SignatureMode = signatureMode }),
+            ed25519 ?? new Ed25519Signer());
+    }
+
+    private static string Sign(Ed25519Signer ed25519, byte[] privateKey, string payload)
+    {
+        var signature = ed25519.Sign(Encoding.UTF8.GetBytes(payload), privateKey);
+        return $"ed25519:{Convert.ToBase64String(signature)}";
     }
 }

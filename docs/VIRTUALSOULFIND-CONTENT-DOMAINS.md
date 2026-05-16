@@ -1,8 +1,13 @@
 # VirtualSoulfind Content Domain Refactoring (T-VC series)
 
-**Branch**: `experimental/multi-source-swarm`  
-**Created**: December 11, 2025  
-**Status**: Planning Phase  
+**Current Branch**: `main`
+
+**Lineage**: originated from the historical
+`experimental/multi-source-swarm` workstream.
+
+**Created**: December 11, 2025
+
+**Status**: Planning Phase
 **Priority**: Should be completed BEFORE VirtualSoulfind v2 Phase 1 (V2-P1)
 
 > **Project Note**: This is a fork of [slskd](https://github.com/slskd/slskd). See [README.md](README.md#acknowledgments) for attribution.
@@ -29,7 +34,7 @@ INSERT HERE: → T-VC01 → T-VC02 → T-VC03 → T-VC04 →
 Then: V2-P1 (Foundation) → V2-P2 → ...
 ```
 
-**Rationale**: 
+**Rationale**:
 - Complete service fabric first (T-SF05-07)
 - Complete critical gates (H-08, H-02)
 - THEN refactor for multi-domain support (T-VC01-04)
@@ -39,9 +44,11 @@ Then: V2-P1 (Foundation) → V2-P2 → ...
 
 ## T-VC01 – Introduce Content Domain Abstraction in VirtualSoulfind Core
 
-**Priority**: P0 (Architectural foundation)  
-**Status**: 📋 Planned  
-**Depends on**: T-SF07 (Metrics/observability)  
+**Priority**: P0 (Architectural foundation)
+
+**Status**: 📋 Planned
+
+**Depends on**: T-SF07 (Metrics/observability)
 **Blocks**: V2-P1 (Foundation)
 
 ### Repo: `https://github.com/snapetech/slskdn`
@@ -231,9 +238,11 @@ Before finishing:
 
 ## T-VC02 – Implement Music Domain Adapter on Top of the New Core
 
-**Priority**: P0 (Architectural cleanup)  
-**Status**: 📋 Planned  
-**Depends on**: T-VC01  
+**Priority**: P0 (Architectural cleanup)
+
+**Status**: 📋 Planned
+
+**Depends on**: T-VC01
 **Blocks**: V2-P1 (Foundation)
 
 ### Repo: `https://github.com/snapetech/slskdn`
@@ -370,9 +379,11 @@ Ensure semantics unchanged.
 
 ## T-VC03 – Implement a GenericFile Domain Adapter (Pilot Non-Music Domain)
 
-**Priority**: P1 (Proof of concept)  
-**Status**: 📋 Planned  
-**Depends on**: T-VC02  
+**Priority**: P1 (Proof of concept)
+
+**Status**: 📋 Planned
+
+**Depends on**: T-VC02
 **Blocks**: None (but validates domain architecture)
 
 ### Repo: `https://github.com/snapetech/slskdn`
@@ -524,9 +535,11 @@ Add tests:
 
 ## T-VC04 – Make Planner & Backends Domain-Aware, Gate Soulseek to Music Only
 
-**Priority**: P0 (Critical security/etiquette boundary)  
-**Status**: 📋 Planned  
-**Depends on**: T-VC03, H-08 (Soulseek caps)  
+**Priority**: P0 (Critical security/etiquette boundary)
+
+**Status**: 📋 Planned
+
+**Depends on**: T-VC03, H-08 (Soulseek caps)
 **Blocks**: V2-P4 (Backend Implementations)
 
 ### Repo: `https://github.com/snapetech/slskdn`
@@ -759,4 +772,3 @@ H-02 ─────────────────────────
 - **Why**: Clean multi-domain architecture, Soulseek gating, future-proof
 - **Impact**: No behavior change for music, foundation for multi-domain future
 - **Soulseek Safety**: T-VC04 enforces Music-only at code level, not just policy
-

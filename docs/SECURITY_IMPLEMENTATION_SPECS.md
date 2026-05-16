@@ -6,7 +6,10 @@
 
 ## Quick Reference: Existing Files to Integrate With
 
-Before implementing any feature, review these existing files from `experimental/multi-source-swarm`:
+Before implementing any feature, review the current `main` branch files listed
+below. This document originated during the historical
+`experimental/multi-source-swarm` workstream; branch names in older comparison
+sections are lineage notes, not active development targets.
 
 ### Security Infrastructure (DhtRendezvous/Security/)
 
@@ -3106,4 +3109,3 @@ Features that can **reuse existing code**:
 Features that are **completely new**:
 - PathGuard, Content Safety, Temporal Consistency, Canary Traps
 - Dead Reckoning, Honeypots, Entropy Monitoring, Paranoid Mode
-

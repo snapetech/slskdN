@@ -97,6 +97,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Treated search runtime lock-disposal failures during application shutdown as
   expected cancellation noise while keeping the same failures noisy during
   normal runtime.
+- Built out Pod join/leave signature enforcement with real Ed25519 payload
+  verification, fresh timestamp checks, join nonce replay protection, and
+  legacy Off/Warn compatibility for existing local workflows.
+- Reworked the Synology SPK builder to package the real published `slskd`
+  binary instead of a placeholder script, and added packaging gates to block
+  placeholder SPK payloads from returning.
+- Built out VirtualSoulfind disaster-mode mesh peer discovery so known hashes
+  can resolve through HashDb recording IDs into shadow-index peer hints before
+  scene-discovery fallback.
 - Fixed release-tagged Docker builds being reported as local development
   builds, converged Unix pod database permissions to `0600`, and downgraded
   inbound mesh TLS handshake timeouts to expected handshake noise.

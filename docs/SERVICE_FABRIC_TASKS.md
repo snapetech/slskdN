@@ -1,8 +1,11 @@
 # Service Fabric Implementation Tasks
 
-**Branch**: `experimental/whatAmIThinking`  
-**Parent Branch**: `experimental/multi-source-swarm`  
-**Created**: December 11, 2025  
+**Current Branch**: `main`
+
+**Lineage**: originated from historical `experimental/whatAmIThinking` and
+`experimental/multi-source-swarm` workstreams.
+
+**Created**: December 11, 2025
 **Status**: In Progress - T-SF01 Complete, T-SF02 In Progress
 
 > **Project Note**: This is a fork of [slskd](https://github.com/slskd/slskd). See [README.md](README.md#acknowledgments) for attribution.
@@ -45,17 +48,20 @@ This document outlines the phased implementation of a **generic service fabric**
 
 ## Phase 1: Core Service Fabric Types & Directory (T-SF01)
 
-**Status**: ✅ COMPLETE  
-**Priority**: P0  
-**Scope**: Types, directory interface, DHT integration ONLY - no routing, no HTTP gateway  
-**Completed**: December 11, 2025  
+**Status**: ✅ COMPLETE
+
+**Priority**: P0
+
+**Scope**: Types, directory interface, DHT integration ONLY - no routing, no HTTP gateway
+
+**Completed**: December 11, 2025
 **Commit**: `5ac8248b`
 
 ### Deliverables
 
 - ✅ **T-SF01-001**: Create `MeshServiceDescriptor` and `MeshServiceEndpoint` types
   - Priority: P0
-  - Notes: 
+  - Notes:
     - ServiceId: deterministic hash (`hash("svc:" + ServiceName + ":" + OwnerPeerId)`)
     - ServiceName: opaque functional label (no PII)
     - Version: simple semver
@@ -74,7 +80,7 @@ This document outlines the phased implementation of a **generic service fabric**
         Task<IReadOnlyList<MeshServiceDescriptor>> FindByNameAsync(
             string serviceName,
             CancellationToken cancellationToken = default);
-        
+
         Task<IReadOnlyList<MeshServiceDescriptor>> FindByIdAsync(
             string serviceId,
             CancellationToken cancellationToken = default);
@@ -128,9 +134,11 @@ This document outlines the phased implementation of a **generic service fabric**
 
 ## Phase 2: Service Routing & RPC Layer (T-SF02)
 
-**Status**: 📋 Planned  
-**Priority**: P1  
-**Scope**: IMeshService interface, routing, abuse controls - no HTTP gateway yet  
+**Status**: 📋 Planned
+
+**Priority**: P1
+
+**Scope**: IMeshService interface, routing, abuse controls - no HTTP gateway yet
 **Dependencies**: T-SF01 complete
 
 ### Tasks
@@ -142,12 +150,12 @@ This document outlines the phased implementation of a **generic service fabric**
     public interface IMeshService
     {
         string ServiceName { get; }
-        
+
         Task<ServiceReply> HandleCallAsync(
             ServiceCall call,
             MeshServiceContext context,
             CancellationToken cancellationToken = default);
-        
+
         Task HandleStreamAsync(
             MeshServiceStream stream,
             MeshServiceContext context,
@@ -223,9 +231,11 @@ This document outlines the phased implementation of a **generic service fabric**
 
 ## Phase 3: Wrap Existing Features as Services (T-SF03)
 
-**Status**: 📋 Planned  
-**Priority**: P1  
-**Scope**: Migrate pods, VirtualSoulfind, stats to service layer  
+**Status**: 📋 Planned
+
+**Priority**: P1
+
+**Scope**: Migrate pods, VirtualSoulfind, stats to service layer
 **Dependencies**: T-SF02 complete
 
 ### Tasks
@@ -267,9 +277,11 @@ This document outlines the phased implementation of a **generic service fabric**
 
 ## Phase 4: Local HTTP/WebSocket Gateway (T-SF04)
 
-**Status**: 📋 Planned  
-**Priority**: P1  
-**Scope**: HTTP gateway for external apps, optional WS gateway  
+**Status**: 📋 Planned
+
+**Priority**: P1
+
+**Scope**: HTTP gateway for external apps, optional WS gateway
 **Dependencies**: T-SF03 complete
 
 ### Tasks
@@ -339,9 +351,11 @@ This document outlines the phased implementation of a **generic service fabric**
 
 ## Phase 5: Security & Abuse Integration (T-SF05)
 
-**Status**: 📋 Planned  
-**Priority**: P0  
-**Scope**: Tie service fabric into existing security subsystems  
+**Status**: 📋 Planned
+
+**Priority**: P0
+
+**Scope**: Tie service fabric into existing security subsystems
 **Dependencies**: T-SF04 complete
 
 ### Tasks
@@ -395,9 +409,11 @@ This document outlines the phased implementation of a **generic service fabric**
 
 ## Phase 6: Testing & Documentation (T-SF06)
 
-**Status**: 📋 Planned  
-**Priority**: P1  
-**Scope**: Comprehensive testing and documentation  
+**Status**: 📋 Planned
+
+**Priority**: P1
+
+**Scope**: Comprehensive testing and documentation
 **Dependencies**: T-SF05 complete
 
 ### Tasks
@@ -576,6 +592,6 @@ Run this before each commit:
 
 ---
 
-*Last Updated: December 11, 2025*  
-*Branch: experimental/whatAmIThinking*  
+*Last Updated: December 11, 2025*
+*Branch: experimental/whatAmIThinking*
 *Parent: experimental/multi-source-swarm*

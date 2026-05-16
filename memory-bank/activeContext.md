@@ -1,3 +1,25 @@
+## Update 2026-05-16 02:45:00Z
+
+- Current task: project stink build-out pass complete locally.
+- Last activity:
+  - replaced Pod join/leave signature shape checks with real Ed25519
+    canonical payload verification while preserving Off/Warn legacy behavior;
+  - built out Synology SPK packaging so it publishes or consumes a real
+    executable payload and packaging validation blocks placeholder payloads;
+  - clarified stale branch/version docs without removing historical design
+    context;
+  - built out the remaining experimental implementation placeholder in
+    `VirtualSoulfind/DisasterMode/MeshTransferService.cs` by mapping hashes
+    through HashDb recording IDs into shadow-index peer hints.
+- Validation:
+  - Passed: focused PodCore/message/federation unit tests.
+  - Passed: `dotnet build src/slskd/slskd.csproj -c Release --no-restore`.
+  - Passed: Synology packaging validation and focused MediaCore frontend tests.
+  - Passed: `./bin/lint` and `git diff --check`.
+- Next steps:
+  1. Commit and push the build-out patch.
+  2. Continue scanning for stale implementation gaps after this patch lands.
+
 ## Update 2026-05-16 02:08:01Z
 
 - Current task: broader log reclassification pass complete locally.

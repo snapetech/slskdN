@@ -17,6 +17,7 @@ create_directory "$SHARE_PATH/shared" "$PACKAGE_USER" "$PACKAGE_GROUP"
 create_directory "$SHARE_PATH/downloads" "$PACKAGE_USER" "$PACKAGE_GROUP"
 create_directory "$SHARE_PATH/incomplete" "$PACKAGE_USER" "$PACKAGE_GROUP"
 create_directory "$SHARE_PATH/config" "$PACKAGE_USER" "$PACKAGE_GROUP"
+create_directory "/var/packages/slskdn/var" "$PACKAGE_USER" "$PACKAGE_GROUP"
 
 # Set proper permissions
 chmod 755 "$SHARE_PATH"
@@ -103,7 +104,8 @@ case "$1" in
     start)
         echo "Starting slskdN..."
         cd /var/packages/slskdn/target
-        ./dotnet/dotnet slskd.dll --config /var/packages/slskdn/shares/slskdn/config/slskd.yml &
+        SLSKD_APP_DIR=/var/packages/slskdn/shares/slskdn/config \
+        ./slskd --config /var/packages/slskdn/shares/slskdn/config/slskd.yml &
         echo $! > /var/packages/slskdn/var/slskdn.pid
         ;;
     stop)

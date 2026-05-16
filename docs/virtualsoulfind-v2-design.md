@@ -1,10 +1,16 @@
 # VirtualSoulfind v2 – Design Document
 
-**Repo:** `github.com/snapetech/slskdn`  
-**Branch:** `experimental/multi-source-swarm`  
-**Status:** Draft design  
-**Author:** AI Assistant + User  
-**Created:** December 11, 2025  
+**Repo:** `github.com/snapetech/slskdn`
+
+**Current Branch:** `main`
+
+**Lineage:** historical `experimental/multi-source-swarm` design workstream
+
+**Status:** Draft design
+
+**Author:** AI Assistant + User
+
+**Created:** December 11, 2025
 **Scope:** Extend VirtualSoulfind into a full "virtual catalogue + multi-source planner" brain, integrated with the mesh/service fabric and DHT, without hammering Soulseek or making it second-class.
 
 > **Project Note**: This is a fork of [slskd](https://github.com/slskd/slskd). See [../README.md](../README.md#acknowledgments) for attribution.

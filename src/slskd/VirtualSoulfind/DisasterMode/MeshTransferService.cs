@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Reactive.Subjects;
 using slskd.Common.Security;
+using slskd.HashDb;
 using slskd.VirtualSoulfind.ShadowIndex;
 
 namespace slskd.VirtualSoulfind.DisasterMode;
@@ -107,6 +108,7 @@ public sealed class MeshTransferService : IMeshTransferService
     private readonly IOptionsMonitor<slskd.Options> optionsMonitor;
     private readonly IShadowIndexQuery shadowIndex;
     private readonly IScenePeerDiscovery scenePeers;
+    private readonly IHashDbService? hashDb;
     private readonly ConcurrentDictionary<string, MeshTransferStatus> activeTransfers = new();
     private readonly ConcurrentDictionary<string, Subject<TransferProgressUpdate>> progressSubjects = new();
     private readonly ConcurrentDictionary<string, CancellationTokenSource> transferCancellationSources = new();
@@ -116,12 +118,14 @@ public sealed class MeshTransferService : IMeshTransferService
         ILogger<MeshTransferService> logger,
         IOptionsMonitor<slskd.Options> optionsMonitor,
         IShadowIndexQuery shadowIndex,
-        IScenePeerDiscovery scenePeers)
+        IScenePeerDiscovery scenePeers,
+        IHashDbService? hashDb = null)
     {
         this.logger = logger;
         this.optionsMonitor = optionsMonitor;
         this.shadowIndex = shadowIndex;
         this.scenePeers = scenePeers;
+        this.hashDb = hashDb;
     }
 
     public Task<string> StartTransferAsync(
@@ -262,7 +266,7 @@ public sealed class MeshTransferService : IMeshTransferService
             status.State = MeshTransferState.DiscoveringPeers;
             PublishProgress(transferId, status);
 
-            var peers = await DiscoverPeersAsync(status.FileHash, ct);
+            var peers = await DiscoverPeersAsync(status.FileHash, status.FileSize, ct);
             logger.LogInformation("[VSF-MESH-TRANSFER] {TransferId}: Discovered {PeerCount} peers",
                 transferId, peers.Count);
 
@@ -319,26 +323,32 @@ public sealed class MeshTransferService : IMeshTransferService
         }
     }
 
-    private async Task<List<string>> DiscoverPeersAsync(string fileHash, CancellationToken ct)
+    private async Task<List<string>> DiscoverPeersAsync(string fileHash, long fileSize, CancellationToken ct)
     {
-        // Phase 6D: T-824 - Real peer discovery via shadow index and scenes
         logger.LogDebug("[VSF-MESH-TRANSFER] Discovering peers for file hash: {Hash}", fileHash);
 
         var discoveredPeers = new HashSet<string>();
 
-        // Strategy 1: Query shadow index by file hash (if we can map hash to MBID)
-        // Note: This is simplified - in practice, we'd need a hash→MBID mapping
-        if (shadowIndex != null)
+        // Strategy 1: map verified hash metadata to recording IDs, then query the shadow index.
+        var recordingIds = await ResolveRecordingIdsForHashAsync(fileHash, fileSize, ct).ConfigureAwait(false);
+        foreach (var recordingId in recordingIds)
         {
             try
             {
-                // For now, we can't directly query by hash, but we could query by MBID if available
-                // This is a placeholder - real implementation would need hash→MBID lookup
-                logger.LogDebug("[VSF-MESH-TRANSFER] Shadow index query not yet implemented for hash lookup");
+                var result = await shadowIndex.QueryAsync(recordingId, ct).ConfigureAwait(false);
+                if (result == null)
+                {
+                    continue;
+                }
+
+                foreach (var peerId in result.PeerIds.Where(peerId => !string.IsNullOrWhiteSpace(peerId)))
+                {
+                    discoveredPeers.Add(peerId);
+                }
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "[VSF-MESH-TRANSFER] Shadow index query failed");
+                logger.LogWarning(ex, "[VSF-MESH-TRANSFER] Shadow index query failed for recording {RecordingId}", recordingId);
             }
         }
 
@@ -365,6 +375,44 @@ public sealed class MeshTransferService : IMeshTransferService
 
         return discoveredPeers.ToList();
     }
+
+    private async Task<List<string>> ResolveRecordingIdsForHashAsync(string fileHash, long fileSize, CancellationToken ct)
+    {
+        var recordingIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (hashDb == null || string.IsNullOrWhiteSpace(fileHash) || fileSize <= 0)
+        {
+            return recordingIds.ToList();
+        }
+
+        try
+        {
+            var entries = await hashDb.LookupHashesBySizeAsync(fileSize, ct).ConfigureAwait(false);
+            foreach (var entry in entries)
+            {
+                if (string.IsNullOrWhiteSpace(entry.MusicBrainzId))
+                {
+                    continue;
+                }
+
+                if (HashMatches(entry.ByteHash, fileHash)
+                    || HashMatches(entry.FullFileHash, fileHash)
+                    || HashMatches(entry.FileSha256, fileHash))
+                {
+                    recordingIds.Add(entry.MusicBrainzId.Trim());
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[VSF-MESH-TRANSFER] HashDb recording lookup failed for file hash {Hash}", fileHash);
+        }
+
+        return recordingIds.ToList();
+    }
+
+    private static bool HashMatches(string? candidate, string expected)
+        => !string.IsNullOrWhiteSpace(candidate)
+           && string.Equals(candidate.Trim(), expected.Trim(), StringComparison.OrdinalIgnoreCase);
 
     private async Task PerformMultiSwarmTransferAsync(
         string transferId,

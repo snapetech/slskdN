@@ -813,10 +813,13 @@ See LICENSE file for details.
 
 ## Status
 
-**Current Version**: 0.24.1 (main: 0.24.1-slskdn.40; dev: timestamped builds)  
+**Current Version**: stable package metadata currently tracks `2026051600-slskdn.259`; use [CHANGELOG.md](CHANGELOG.md) and the GitHub Releases page as the release source of truth.
+
 **Branch**: main
-**Status**: Active development  
-**Production Ready**: Main channel suitable for production; dev channel is experimental.
+
+**Status**: Active development
+
+**Production Ready**: Main channel suitable for production use of documented stable features; dev channel and explicitly labeled experimental surfaces remain experimental.
 
 **Implemented**:
 - ✅ Service fabric core, HTTP gateway, service wrappers (pods, VirtualSoulfind, introspection)

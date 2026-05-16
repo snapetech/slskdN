@@ -4,7 +4,11 @@
 
 This document maps out the complete implementation path for building out the multi-source download functionality with a distributed hash table (DHT) / epidemic mesh sync protocol. The goal is to create a network of `slskdn` clients that can share FLAC hash information, enabling instant content verification without redundant header probing.
 
-**Branch:** `experimental/multi-source-swarm`
+**Current Branch:** `main`
+
+**Lineage Note:** This roadmap originated on the historical
+`experimental/multi-source-swarm` workstream. Treat status rows as current only
+when they reference code, tests, or release notes in this repository.
 
 ---
 

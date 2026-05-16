@@ -5,10 +5,12 @@ namespace slskd.PodCore;
 
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using slskd.Mesh.Transport;
 
 /// <summary>
 /// Service for handling signed pod join and leave operations.
@@ -16,12 +18,16 @@ using Microsoft.Extensions.Options;
 public class PodJoinLeaveService : IPodJoinLeaveService
 {
     private static readonly TimeSpan ReplayCacheTtl = TimeSpan.FromMinutes(5);
+    private const string SignaturePrefix = "ed25519:";
+    private const int CanonicalVersion = 1;
+    private const long TimestampSkewMs = 5 * 60 * 1000;
 
     private readonly ILogger<PodJoinLeaveService> _logger;
     private readonly IPodService _podService;
     private readonly IPodMembershipService _membershipService;
     private readonly IPodMembershipVerifier _membershipVerifier;
     private readonly IOptionsMonitor<PodJoinOptions> _joinOptions;
+    private readonly Ed25519Signer _ed25519;
 
     // In-memory storage for pending requests (in production, this would be persisted)
     private readonly ConcurrentDictionary<string, ConcurrentBag<PodJoinRequest>> _pendingJoinRequests = new();
@@ -35,13 +41,15 @@ public class PodJoinLeaveService : IPodJoinLeaveService
         IPodService podService,
         IPodMembershipService membershipService,
         IPodMembershipVerifier membershipVerifier,
-        IOptionsMonitor<PodJoinOptions> joinOptions)
+        IOptionsMonitor<PodJoinOptions> joinOptions,
+        Ed25519Signer ed25519)
     {
         _logger = logger;
         _podService = podService;
         _membershipService = membershipService;
         _membershipVerifier = membershipVerifier;
         _joinOptions = joinOptions;
+        _ed25519 = ed25519;
     }
 
     /// <inheritdoc/>
@@ -526,83 +534,131 @@ public class PodJoinLeaveService : IPodJoinLeaveService
     // Helper methods for signature verification
     private Task<bool> VerifyJoinRequestSignatureAsync(PodJoinRequest request, CancellationToken cancellationToken)
     {
-        try
-        {
-            // Create the message to verify (without signature)
-            var messageData = $"{request.PodId}:{request.PeerId}:{request.RequestedRole}:{request.TimestampUnixMs}";
-            if (!string.IsNullOrEmpty(request.Message))
-            {
-                messageData += $":{request.Message}";
-            }
-
-            // For now, assume signature verification - in production this would use proper crypto
-            return Task.FromResult(!string.IsNullOrEmpty(request.Signature) && request.Signature.Length > 10);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "[PodJoinLeave] Error verifying join request signature");
-            return Task.FromResult(false);
-        }
+        _ = cancellationToken;
+        return Task.FromResult(VerifySignedPayload(
+            request.Signature,
+            request.PublicKey,
+            request.TimestampUnixMs,
+            BuildJoinRequestPayload(request),
+            "join request"));
     }
 
     private Task<bool> VerifyAcceptanceSignatureAsync(PodJoinAcceptance acceptance, CancellationToken cancellationToken)
     {
-        try
-        {
-            // Create the message to verify
-            var messageData = $"{acceptance.PodId}:{acceptance.PeerId}:{acceptance.AcceptedRole}:{acceptance.TimestampUnixMs}";
-            if (!string.IsNullOrEmpty(acceptance.Message))
-            {
-                messageData += $":{acceptance.Message}";
-            }
-
-            // For now, assume signature verification
-            return Task.FromResult(!string.IsNullOrEmpty(acceptance.Signature) && acceptance.Signature.Length > 10);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "[PodJoinLeave] Error verifying acceptance signature");
-            return Task.FromResult(false);
-        }
+        _ = cancellationToken;
+        return Task.FromResult(VerifySignedPayload(
+            acceptance.Signature,
+            acceptance.AcceptorPublicKey,
+            acceptance.TimestampUnixMs,
+            BuildJoinAcceptancePayload(acceptance),
+            "join acceptance"));
     }
 
     private Task<bool> VerifyLeaveRequestSignatureAsync(PodLeaveRequest request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var messageData = $"{request.PodId}:{request.PeerId}:{request.TimestampUnixMs}";
-            if (!string.IsNullOrEmpty(request.Message))
-            {
-                messageData += $":{request.Message}";
-            }
-
-            // For now, assume signature verification
-            return Task.FromResult(!string.IsNullOrEmpty(request.Signature) && request.Signature.Length > 10);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "[PodJoinLeave] Error verifying leave request signature");
-            return Task.FromResult(false);
-        }
+        _ = cancellationToken;
+        return Task.FromResult(VerifySignedPayload(
+            request.Signature,
+            request.PublicKey,
+            request.TimestampUnixMs,
+            BuildLeaveRequestPayload(request),
+            "leave request"));
     }
 
     private Task<bool> VerifyLeaveAcceptanceSignatureAsync(PodLeaveAcceptance acceptance, CancellationToken cancellationToken)
     {
+        _ = cancellationToken;
+        return Task.FromResult(VerifySignedPayload(
+            acceptance.Signature,
+            acceptance.AcceptorPublicKey,
+            acceptance.TimestampUnixMs,
+            BuildLeaveAcceptancePayload(acceptance),
+            "leave acceptance"));
+    }
+
+    private bool VerifySignedPayload(string signature, string publicKey, long timestampUnixMs, string payload, string operation)
+    {
+        var mode = _joinOptions.CurrentValue.SignatureMode;
+
         try
         {
-            var messageData = $"{acceptance.PodId}:{acceptance.PeerId}:{acceptance.TimestampUnixMs}";
-            if (!string.IsNullOrEmpty(acceptance.Message))
+            if (string.IsNullOrWhiteSpace(signature))
             {
-                messageData += $":{acceptance.Message}";
+                if (mode == SignatureMode.Enforce)
+                {
+                    _logger.LogWarning("[PodJoinLeave] Missing Ed25519 signature on {Operation}", operation);
+                    return false;
+                }
+
+                if (mode == SignatureMode.Warn)
+                {
+                    _logger.LogWarning("[PodJoinLeave] Missing Ed25519 signature on {Operation}; accepting because PodCore.Join.SignatureMode is Warn", operation);
+                }
+
+                return true;
             }
 
-            // For now, assume signature verification
-            return Task.FromResult(!string.IsNullOrEmpty(acceptance.Signature) && acceptance.Signature.Length > 10);
+            if (!signature.StartsWith(SignaturePrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                if (mode == SignatureMode.Enforce)
+                {
+                    _logger.LogWarning("[PodJoinLeave] Non-Ed25519 signature on {Operation} rejected because PodCore.Join.SignatureMode is Enforce", operation);
+                    return false;
+                }
+
+                if (mode == SignatureMode.Warn)
+                {
+                    _logger.LogWarning("[PodJoinLeave] Non-Ed25519 signature on {Operation}; accepting legacy signature because PodCore.Join.SignatureMode is Warn", operation);
+                }
+
+                return true;
+            }
+
+            if (Math.Abs(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - timestampUnixMs) > TimestampSkewMs)
+            {
+                _logger.LogWarning("[PodJoinLeave] Timestamp skew too large on {Operation}", operation);
+                return false;
+            }
+
+            var signatureBytes = Convert.FromBase64String(signature[SignaturePrefix.Length..]);
+            var publicKeyBytes = Convert.FromBase64String(publicKey);
+            var payloadBytes = Encoding.UTF8.GetBytes(payload);
+
+            if (signatureBytes.Length != 64 || publicKeyBytes.Length != 32)
+            {
+                _logger.LogWarning("[PodJoinLeave] Invalid Ed25519 signature material on {Operation}", operation);
+                return false;
+            }
+
+            var isValid = _ed25519.Verify(payloadBytes, signatureBytes, publicKeyBytes);
+            if (!isValid)
+            {
+                _logger.LogWarning("[PodJoinLeave] Invalid Ed25519 signature on {Operation}", operation);
+            }
+
+            return isValid;
+        }
+        catch (FormatException ex)
+        {
+            _logger.LogWarning(ex, "[PodJoinLeave] Invalid base64 Ed25519 signature material on {Operation}", operation);
+            return false;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "[PodJoinLeave] Error verifying leave acceptance signature");
-            return Task.FromResult(false);
+            _logger.LogWarning(ex, "[PodJoinLeave] Error verifying Ed25519 signature on {Operation}", operation);
+            return false;
         }
     }
+
+    internal static string BuildJoinRequestPayload(PodJoinRequest request)
+        => $"{CanonicalVersion}|join-request|{request.PodId}|{request.PeerId}|{request.RequestedRole}|{request.TimestampUnixMs}|{request.Message ?? string.Empty}|{request.Nonce ?? string.Empty}";
+
+    internal static string BuildJoinAcceptancePayload(PodJoinAcceptance acceptance)
+        => $"{CanonicalVersion}|join-acceptance|{acceptance.PodId}|{acceptance.PeerId}|{acceptance.AcceptedRole}|{acceptance.AcceptorPeerId}|{acceptance.TimestampUnixMs}|{acceptance.Message ?? string.Empty}";
+
+    internal static string BuildLeaveRequestPayload(PodLeaveRequest request)
+        => $"{CanonicalVersion}|leave-request|{request.PodId}|{request.PeerId}|{request.TimestampUnixMs}|{request.Message ?? string.Empty}";
+
+    internal static string BuildLeaveAcceptancePayload(PodLeaveAcceptance acceptance)
+        => $"{CanonicalVersion}|leave-acceptance|{acceptance.PodId}|{acceptance.PeerId}|{acceptance.AcceptorPeerId}|{acceptance.TimestampUnixMs}|{acceptance.Message ?? string.Empty}";
 }

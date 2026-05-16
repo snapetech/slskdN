@@ -1,8 +1,11 @@
 # MusicBrainz & Discogs Integration Design
 
-> **Status**: Experimental Design  
-> **Branch**: `experimental/brainz`  
-> **Parent**: `experimental/multi-source-swarm`
+> **Status**: Experimental Design
+>
+> **Current Branch**: `main`
+>
+> **Lineage**: historical `experimental/brainz` /
+> `experimental/multi-source-swarm` design workstream.
 
 This document outlines the integration of MusicBrainz IDs, Discogs IDs, and acoustic fingerprinting into slskdn's multi-source swarm + DHT mesh architecture.
 
@@ -50,7 +53,7 @@ The baseline features any sane product manager would spec. These work entirely w
        public List<TrackTarget> Tracks { get; set; }
        public ReleaseMetadata Metadata { get; set; }
    }
-   
+
    public class TrackTarget
    {
        public string MusicBrainzRecordingId { get; set; }
@@ -112,7 +115,7 @@ The baseline features any sane product manager would spec. These work entirely w
    ```
    Target: MB Release X with 10 recordings
    Local file: fingerprint → MB Recording Y
-   
+
    If Y in Release X's tracklist:
      ✓ Count towards album completion
    Else:
@@ -136,7 +139,7 @@ public class TrackDownloadJob : MultiSourceDownloadJob
     // Existing multi-source fields
     public string Filename { get; set; }
     public List<SourcePeer> Sources { get; set; }
-    
+
     // NEW: Semantic fields
     public string MusicBrainzRecordingId { get; set; }
     public TimeSpan ExpectedDuration { get; set; }
@@ -306,13 +309,13 @@ public class FingerprintObservation
     public string MusicBrainzRecordingId { get; set; }
     public string CodecProfile { get; set; }  // "flac-16-44100"
     public string Fingerprint { get; set; }   // Chromaprint hash
-    
+
     // Audio analysis (local, no upload)
     public int DynamicRange { get; set; }     // DR meter
     public bool HasClipping { get; set; }
     public float LoudnessLUFS { get; set; }
     public string EncoderSignature { get; set; }  // "LAME 3.100", "Fraunhofer", etc.
-    
+
     // Provenance (anonymous)
     public int SeenCount { get; set; }        // How many peers observed this
     public DateTimeOffset FirstSeen { get; set; }
@@ -351,10 +354,10 @@ Search: "Kind of Blue - So What"
 Results:
 1. peer1: So What.flac (24MB)
    ✓ Canonical master (87 peers, DR11, no clipping)
-   
+
 2. peer2: so_what_HQ.flac (18MB)
    ⚠ Likely transcode (12 peers, DR6, clipping detected)
-   
+
 3. peer3: So What 320.mp3 (8MB)
    ✓ Good lossy (320kbps LAME, no transcode)
 ```
@@ -431,7 +434,7 @@ public class AlbumCompletionJob
     public JobPriority Priority { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public int HopCount { get; set; }  // TTL for propagation
-    
+
     // Optionally include mesh peer ID to coordinate responses
     public string RequestorPeerId { get; set; }
 }
@@ -491,20 +494,20 @@ Scenario: User behind CGNAT wants MB Release abc-123
 
 1. Search Soulseek for Track 1
    → Finds peer X (also behind NAT, can't connect)
-   
+
 2. slskdn checks mesh:
    → Peer Y (beacon/relay) has this track (fingerprint verified to MBID)
    → Peer Y has good connectivity (public IP, UPnP working)
-   
+
 3. User connects to Peer Y via TLS overlay
    → Downloads chunks from Peer Y
-   
+
 4. Peer Y (relay):
    → If doesn't have full file:
      → Fetches from Peer X via Soulseek (if possible)
      → Or from another mesh peer
    → Serves chunks to user
-   
+
 5. Verification:
    → User's slskdn extracts fingerprint
    → Compares to expected MBID
@@ -611,12 +614,12 @@ CREATE TABLE MeshAlbumJobs (
 public enum MeshMessageType
 {
     // ... existing types ...
-    
+
     // Phase 2
     MBID_QUERY = 20,           // "Do you have tracks for this MBID?"
     MBID_RESPONSE = 21,        // "Yes, I have tracks 1,2,4"
     FINGERPRINT_BATCH = 22,    // Sync fingerprint observations
-    
+
     // Phase 3
     ALBUM_JOB = 30,            // "I'm looking for these tracks"
     CACHE_ANNOUNCE = 31,       // "I'm caching these MBIDs"
@@ -825,7 +828,7 @@ The following features are speculative but implementable extensions to the core 
 
 **Use Cases**:
 - **Swarm Preference**: Prefer canonical variants when selecting sources for multi-swarm downloads.
-- **UI Display**: 
+- **UI Display**:
   ```
   Track 3: Blue in Green
   ✓ Canonical master (score 0.93, 87 peers)

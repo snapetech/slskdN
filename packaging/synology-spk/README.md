@@ -225,24 +225,24 @@ cp -r /var/packages/slskdn/shares/slskdn/config /volume1/backup/
 ### Build Process
 
 ```bash
-# 1. Prepare application binaries
-dotnet publish src/slskd/slskd.csproj \
-  -c Release \
-  -r linux-x64 \
-  --self-contained \
-  -o build/linux-x64
+# Build a linux-x64 SPK from source.
+SLSKDN_VERSION=2026051600-slskdn.259 \
+  packaging/synology-spk/build-spk.sh
 
-# 2. Create package structure
-mkdir -p spk-build/package
-cp -r build/linux-x64/* spk-build/package/
-cp -r packaging/synology-spk/* spk-build/
+# Reuse an existing publish directory instead of publishing again.
+SLSKDN_VERSION=2026051600-slskdn.259 \
+SLSKDN_SPK_PUBLISH_DIR=/path/to/publish-linux-x64 \
+  packaging/synology-spk/build-spk.sh
 
-# 3. Create package.tgz
-cd spk-build/package && tar czf ../package.tgz *
-
-# 4. Create SPK file
-cd spk-build && tar cf ../slskdn.spk -- *
+# Override the Synology package architecture metadata for another DSM target.
+SLSKDN_SPK_RUNTIME=linux-arm64 \
+SLSKDN_SPK_ARCH=aarch64 \
+SLSKDN_VERSION=2026051600-slskdn.259 \
+  packaging/synology-spk/build-spk.sh
 ```
+
+The builder publishes the real `slskd` application binary into `package.tgz`.
+It fails if the payload does not contain an executable `slskd`.
 
 ## Security
 
