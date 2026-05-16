@@ -48,6 +48,7 @@ public class Migrator
             { nameof(Z07262025_PrivateMessageWasReplayedMigration), new Z07262025_PrivateMessageWasReplayedMigration(connectionStrings: Databases) },
             { nameof(Z04292026_TransferRetryBatchMigration), new Z04292026_TransferRetryBatchMigration(connectionStrings: Databases) },
             { nameof(Z05132026_TransferDestinationDirectoryMigration), new Z05132026_TransferDestinationDirectoryMigration(connectionStrings: Databases) },
+            { nameof(Z05152026_SearchStartedAtIndexMigration), new Z05152026_SearchStartedAtIndexMigration(connectionStrings: Databases) },
         };
     }
 

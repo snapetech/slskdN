@@ -7918,3 +7918,19 @@ same leaf filename as the failed transfer, and ADR-0001 documents this gotcha.
 Next steps: commit and push the HashDb auto-retry fix, then build/deploy a
 manual image from current HEAD if we want this auto-retry safety patch live
 before the next tagged release.
+
+## 2026-05-16T00:05:00Z Session update
+
+The current-HEAD all-tools manual image was deployed to the live Docker host and
+reports `0.0.0-manual.20260515235056.cb9940d973`. Container health is healthy,
+restart count is zero, optional tools are present, and Soulseek returned to
+Healthy after startup reconnect.
+
+The post-deploy crawl exposed that direct `/api/v0/searches` still timed out.
+The cap was present, but the database still needed to sort a large search table
+by `StartedAt`. A live `IDX_Searches_StartedAt` index was applied manually and
+made `limit=1`, `limit=50`, and default search-list calls return in
+milliseconds. Local code now has the matching EF model index and migration.
+
+Next steps: validate, commit, push, and rebuild/deploy once more if we want the
+search-index migration baked into the manual image before release.

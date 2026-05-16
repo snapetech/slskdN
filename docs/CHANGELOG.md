@@ -83,6 +83,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Required local HashDb auto-retry alternates to match the failed transfer's
   leaf filename so same-size unrelated audio files are not queued as automatic
   replacements.
+- Added a `Searches.StartedAt` SQLite index migration so recent-first search
+  history API calls return quickly on busy nodes with large search tables.
 - Added an opt-in experimental media Docker image recipe for heavier SongID
   prerequisites, and updated capability reporting with Docker guidance when
   optional recognizer tools are missing.
