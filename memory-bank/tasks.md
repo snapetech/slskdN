@@ -2873,3 +2873,4 @@
 - [2026-05-15T22:55:55Z] Completed: downgrade expected Lidarr HTTP failure/timeout log noise while preserving concise unavailability messages.
 - [2026-05-15T23:50:00Z] Completed: block unsafe local HashDb auto-retry substitutions by requiring the alternate source leaf filename to match the failed transfer, preventing same-size unrelated audio files from being queued as replacements.
 - [2026-05-16T00:05:00Z] Completed: add a `Searches.StartedAt` index and migration so recent-first search history list calls remain fast on large live search tables.
+- [2026-05-16T00:25:00Z] Completed: quiet intentional-shutdown `ObjectDisposedException` noise from background search finalization and event-record writes while preserving runtime error visibility.

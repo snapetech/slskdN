@@ -117,6 +117,26 @@ public class SearchServiceLifecycleTests
     }
 
     [Fact]
+    public void IsExpectedSearchFinalizationFailure_WhenObjectDisposedDuringShutdown_ReturnsTrue()
+    {
+        var result = SearchService.IsExpectedSearchFinalizationFailure(
+            new ObjectDisposedException("SearchDbContext"),
+            applicationIsShuttingDown: true);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsExpectedSearchFinalizationFailure_WhenObjectDisposedDuringRuntime_ReturnsFalse()
+    {
+        var result = SearchService.IsExpectedSearchFinalizationFailure(
+            new ObjectDisposedException("SearchDbContext"),
+            applicationIsShuttingDown: false);
+
+        Assert.False(result);
+    }
+
+    [Fact]
     public void ApplyResponseSummary_IncludesEarlyMeshResponses()
     {
         var search = new slskd.Search.Search();

@@ -622,6 +622,12 @@ namespace slskd.Search
                     }
                     catch (Exception ex)
                     {
+                        if (IsExpectedSearchFinalizationFailure(ex, Application.IsShuttingDown))
+                        {
+                            Log.Debug(ex, "Search finalization for '{Query}' stopped during shutdown: {Message}", query, ex.Message);
+                            return;
+                        }
+
                         // record may be left 'hanging' and will need to be cleaned up at the next boot; we tried to update but failed
                         Log.Error(ex, "Failed to finalize search for '{Query}': {Message}", query, ex.Message);
                     }
@@ -679,6 +685,9 @@ namespace slskd.Search
                 && exception.Message.Contains("must be connected and logged in", StringComparison.OrdinalIgnoreCase)
                 && exception.Message.Contains("LoggingIn", StringComparison.OrdinalIgnoreCase);
         }
+
+        internal static bool IsExpectedSearchFinalizationFailure(Exception exception, bool applicationIsShuttingDown)
+            => applicationIsShuttingDown && exception is ObjectDisposedException;
 
         internal static List<Response> MergeSearchResponses(IEnumerable<SearchResponse> soulseekResponses, IReadOnlyList<Response> meshResponses)
         {

@@ -1,3 +1,26 @@
+## Update 2026-05-16 00:25:00Z
+
+- Current task: live Docker log follow-up and shutdown-noise cleanup complete
+  locally.
+- Last activity:
+  - sampled current Docker/service logs after the latest manual all-tools
+    deployment;
+  - confirmed the container remains healthy with zero restarts and direct
+    search-history calls remain fast;
+  - verified post-deploy headless route/API crawl still has zero route,
+    console, page, bad-response, or failed-request findings;
+  - added shutdown-only handling for `ObjectDisposedException` from background
+    search finalization and event record writes during intentional host
+    restarts.
+- Validation:
+  - Passed: focused `SearchServiceLifecycleTests` (`11/11`).
+  - Passed: `./bin/lint`.
+  - Passed: `git diff --check`.
+- Next steps:
+  1. Commit/push the shutdown-noise cleanup.
+  2. Deploy a fresh manual Docker image only if we want this log cleanup live
+     before the next tagged release.
+
 ## Update 2026-05-15 23:35:00Z
 
 - Current task: Docker optional-tools repeated-download fix is complete locally.

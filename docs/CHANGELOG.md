@@ -85,6 +85,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   replacements.
 - Added a `Searches.StartedAt` SQLite index migration so recent-first search
   history API calls return quickly on busy nodes with large search tables.
+- Quieted intentional-shutdown `ObjectDisposedException` noise from background
+  search finalization and event-record writes while preserving runtime error
+  visibility.
 - Added an opt-in experimental media Docker image recipe for heavier SongID
   prerequisites, and updated capability reporting with Docker guidance when
   optional recognizer tools are missing.

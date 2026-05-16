@@ -152,6 +152,10 @@ public class EventService
             context.Add(eventRecord);
             context.SaveChanges();
         }
+        catch (ObjectDisposedException ex) when (Application.IsShuttingDown)
+        {
+            Log.Debug(ex, "Skipped event record during shutdown: {Message}", ex.Message);
+        }
         catch (Exception ex)
         {
             Log.Error(ex, "Failed to add event record: {Message}", ex.Message);
