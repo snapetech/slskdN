@@ -2875,3 +2875,4 @@
 - [2026-05-16T00:05:00Z] Completed: add a `Searches.StartedAt` index and migration so recent-first search history list calls remain fast on large live search tables.
 - [2026-05-16T00:25:00Z] Completed: quiet intentional-shutdown `ObjectDisposedException` noise from background search finalization and event-record writes while preserving runtime error visibility.
 - [2026-05-16T01:54:45Z] Completed: inspect omnibus Docker logs after release deployment and fix actionable startup diagnostics: release-tagged builds no longer log as local development builds, Unix pod databases now converge to `0600` permissions, and inbound mesh TLS handshake timeouts are treated as expected handshake noise.
+- [2026-05-16T02:04:26Z] Completed: inspect current omnibus Docker logs again; container remains healthy with zero restarts and no new material faults, and successful second-chance transfer fallback diagnostics were downgraded out of warning-level noise.

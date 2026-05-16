@@ -1,3 +1,25 @@
+## Update 2026-05-16 02:04:26Z
+
+- Current task: follow-up omnibus Docker log snoop complete locally.
+- Last activity:
+  - sampled the current live Docker container and logs again;
+  - confirmed the container remains healthy with zero restarts, API probes
+    return 200, optional media tools are present, and no new fatal/crash,
+    permission, missing-tool, or route/API pattern appeared;
+  - found one additional low-risk log hygiene issue: successful second-chance
+    transfer fallback was logged at warning level even though it is normal
+    peer/client compatibility recovery;
+  - changed the fallback attempt diagnostic to Info and the successful fallback
+    diagnostic to Debug.
+- Validation:
+  - Passed: focused `ApplicationRuntimeInfoTests` and
+    `MeshOverlayServerTests` (`9/9`).
+  - Passed: `./bin/lint`.
+  - Passed: `git diff --check`.
+- Next steps:
+  1. Commit and push the transfer fallback diagnostic cleanup.
+  2. Deploy/cut a release only when we want the accumulated log cleanups live.
+
 ## Update 2026-05-16 01:54:45Z
 
 - Current task: omnibus Docker log follow-up complete locally.
