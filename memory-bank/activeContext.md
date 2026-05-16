@@ -1,3 +1,27 @@
+## Update 2026-05-16 01:54:45Z
+
+- Current task: omnibus Docker log follow-up complete locally.
+- Last activity:
+  - sampled the freshly released omnibus Docker service logs;
+  - confirmed the container is healthy with zero restarts, API probes return
+    200, DHT bootstrapped, Soulseek recovered to Healthy after startup
+    reconnect, and live downloads are completing;
+  - fixed release-tagged prerelease SemVer builds being misclassified as local
+    development builds;
+  - changed Unix pod database startup handling to set `pods.db` permissions to
+    `0600` instead of only logging a chmod instruction;
+  - treated inbound mesh TLS handshake timeouts as expected handshake noise
+    instead of warning with a stack.
+- Validation:
+  - Passed: focused `ApplicationRuntimeInfoTests` (`5/5`).
+  - Passed: focused `MeshOverlayServerTests`.
+  - Passed: `./bin/lint`.
+  - Passed: `git diff --check`.
+- Next steps:
+  1. Commit and push the startup diagnostics cleanup.
+  2. Cut/deploy a new release only if we want these log cleanups live before
+     the next planned release.
+
 ## Update 2026-05-16 00:25:00Z
 
 - Current task: live Docker log follow-up and shutdown-noise cleanup complete

@@ -658,6 +658,11 @@ public sealed class MeshOverlayServer : IMeshOverlayServer, IAsyncDisposable
 
     internal static bool IsExpectedHandshakeNoise(Exception exception)
     {
+        if (exception is OperationCanceledException)
+        {
+            return true;
+        }
+
         if (exception is AuthenticationException authenticationException)
         {
             return authenticationException.Message.Contains("Cannot determine the frame size", StringComparison.Ordinal) ||

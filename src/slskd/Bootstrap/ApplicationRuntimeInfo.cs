@@ -23,7 +23,7 @@ public static class ApplicationRuntimeInfo
 
     public static bool IsCanary { get; } = AssemblyVersion.Revision == 65534;
 
-    public static bool IsDevelopment { get; } = new Version(0, 0, 0, 0) == AssemblyVersion;
+    public static bool IsDevelopment { get; } = IsDevelopmentBuild(AssemblyVersion, SemanticVersion);
 
     public static string TryGetExecutablePath()
     {
@@ -47,5 +47,11 @@ public static class ApplicationRuntimeInfo
     private static string NormalizeInformationalVersion(string version)
     {
         return version == "1.0.0" ? "0.0.0" : version;
+    }
+
+    internal static bool IsDevelopmentBuild(Version assemblyVersion, string semanticVersion)
+    {
+        return assemblyVersion == new Version(0, 0, 0, 0)
+            && string.Equals(semanticVersion, "0.0.0", StringComparison.Ordinal);
     }
 }

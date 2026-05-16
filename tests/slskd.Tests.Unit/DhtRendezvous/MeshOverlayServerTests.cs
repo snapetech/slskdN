@@ -29,6 +29,14 @@ public class MeshOverlayServerTests
     }
 
     [Fact]
+    public void IsExpectedHandshakeNoise_ReturnsTrue_ForCanceledHandshake()
+    {
+        var exception = new OperationCanceledException();
+
+        Assert.True(MeshOverlayServer.IsExpectedHandshakeNoise(exception));
+    }
+
+    [Fact]
     public void IsExpectedHandshakeNoise_ReturnsFalse_ForUnexpectedFailures()
     {
         var exception = new AuthenticationException("The remote certificate is invalid.");

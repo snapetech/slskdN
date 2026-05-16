@@ -138,11 +138,12 @@ public static class MediaCorePodServiceCollectionExtensions
             {
                 try
                 {
-                    // Unix chmod 600 (owner read/write only) - requires Mono.Posix.NETStandard package
-                    // For now, just log warning if on Windows (file permissions are more complex there)
                     if (!OperatingSystem.IsWindows())
                     {
-                        Log.Information("Pod database created at {Path} - ensure file permissions are secure (chmod 600)", podDbPath);
+                        System.IO.File.SetUnixFileMode(
+                            podDbPath,
+                            UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                        Log.Information("Secured pod database permissions at {Path} (0600)", podDbPath);
                     }
                 }
                 catch (Exception ex)

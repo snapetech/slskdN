@@ -91,6 +91,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Added a separately tagged amd64 Docker omnibus testers image that bakes in
   the heavyweight optional media/SongID prerequisites without bloating the
   default release image.
+- Fixed release-tagged Docker builds being reported as local development
+  builds, converged Unix pod database permissions to `0600`, and downgraded
+  inbound mesh TLS handshake timeouts to expected handshake noise.
 - Added an opt-in experimental media Docker image recipe for heavier SongID
   prerequisites, and updated capability reporting with Docker guidance when
   optional recognizer tools are missing.
