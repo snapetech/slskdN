@@ -52,6 +52,47 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z454. Search Runtime Disposal During Shutdown Is Cancellation Noise
+
+**The Bug**: Background Soulseek search tasks can throw lock-disposal
+exceptions during host shutdown, such as `The lock is being disposed while
+still being used`. Logging these as failed searches makes intentional restarts
+look like runtime search failures.
+
+**Files Affected**:
+- `src/slskd/Search/SearchService.cs`
+- `tests/slskd.Tests.Unit/Search/SearchServiceLifecycleTests.cs`
+
+**Wrong**:
+```csharp
+if (IsExpectedSearchCancellation(ex, searchCancellationToken, Application.IsShuttingDown))
+{
+    search.State = SearchStates.Completed | SearchStates.Cancelled;
+}
+else
+{
+    Log.Error(ex, "Failed to execute search for '{Query}': {Message}", query, ex.Message);
+}
+```
+
+**Correct**:
+```csharp
+if (IsExpectedSearchCancellation(ex, searchCancellationToken, Application.IsShuttingDown)
+    || IsExpectedSearchRuntimeShutdownFailure(ex, Application.IsShuttingDown))
+{
+    search.State = SearchStates.Completed | SearchStates.Cancelled;
+}
+else
+{
+    Log.Error(ex, "Failed to execute search for '{Query}': {Message}", query, ex.Message);
+}
+```
+
+**Why This Keeps Happening**: Shutdown tears down third-party runtime
+synchronization primitives while background searches are still unwinding.
+During shutdown this is equivalent to cancellation; during normal runtime it
+must remain noisy because it can indicate a real lifecycle bug.
+
 ### 0z453. Expected Transfer Fallbacks Must Not Log As Warnings
 
 **The Bug**: Successful second-chance transfer connection fallback logged both
