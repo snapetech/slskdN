@@ -98,7 +98,7 @@ public class MeshCircuit : IDisposable
         // 3. Encrypted with the entry node key
         // 4. Sent through the entry node
 
-        // For this placeholder, we'll just send through the first established hop
+        // Current mesh circuits are single-hop streams; onion layering is not enabled here.
         var entryHop = EntryHop;
         if (entryHop?.Stream == null)
         {

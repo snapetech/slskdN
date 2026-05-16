@@ -162,12 +162,12 @@ public sealed class SharingService : ISharingService
         var contactService = _serviceProvider.GetService<IContactService>();
         if (contactService != null)
         {
-            // Try to find owner as a contact (if they're using Identity & Friends)
+            // Try to find owner as a contact (if they're using Identity & Friends).
             var allContacts = await contactService.GetAllAsync(ct).ConfigureAwait(false);
 
-            // For now, we can't directly map OwnerUserId to PeerId without additional info
-            // This would require storing PeerId in Collection or looking up by some other means
-            // For MVP, we'll leave this as a placeholder that can be enhanced later
+            // Collection ownership stores an application user id, not a peer id.
+            // Keep contact fields empty until collection ownership records carry
+            // a peer identity that can be resolved without guessing.
         }
 
         return new ShareManifestDto

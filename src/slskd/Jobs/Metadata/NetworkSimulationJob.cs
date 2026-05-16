@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace slskd.Jobs.Metadata;
 
 /// <summary>
-/// Mesh network simulation / stress test job placeholder.
+/// Mesh network simulation / stress test job shell.
 /// </summary>
 public class NetworkSimulationJob : IMetadataJob
 {
@@ -16,7 +16,7 @@ public class NetworkSimulationJob : IMetadataJob
 
     public Task ExecuteAsync(CancellationToken ct = default)
     {
-        // Placeholder for future simulation logic
+        // The job is registered as an explicit no-op until simulation work is enabled.
         return Task.CompletedTask;
     }
 }

@@ -106,6 +106,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Built out VirtualSoulfind disaster-mode mesh peer discovery so known hashes
   can resolve through HashDb recording IDs into shadow-index peer hints before
   scene-discovery fallback.
+- Cleaned stale placeholder wording from native job API docs, mesh circuit
+  comments, playback feedback, and related release-facing code comments so
+  intentionally gated paths are described as such.
 - Fixed release-tagged Docker builds being reported as local development
   builds, converged Unix pod database permissions to `0600`, and downgraded
   inbound mesh TLS handshake timeouts to expected handshake noise.

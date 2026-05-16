@@ -1,3 +1,20 @@
+## Update 2026-05-16 03:05:00Z
+
+- Current task: final pre-release cleanup pass complete locally.
+- Last activity:
+  - removed misleading placeholder wording from native job XML docs, playback
+    feedback, content verification metadata, sharing manifests, mesh circuit
+    comments, and the explicit network simulation no-op shell;
+  - left intentionally gated experimental behavior in place;
+  - re-ran build/lint and targeted stale-text scans.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj -c Release --no-restore`.
+  - Passed: `./bin/lint`.
+  - Passed: targeted placeholder scan and `git diff --check`.
+- Next steps:
+  1. Commit and push this comment/doc cleanup if the diff stays clean.
+  2. Cut the release when ready.
+
 ## Update 2026-05-16 02:45:00Z
 
 - Current task: project stink build-out pass complete locally.

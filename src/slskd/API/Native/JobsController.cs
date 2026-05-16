@@ -47,7 +47,7 @@ public class JobsController : ControllerBase
     /// <summary>
     /// Create a MusicBrainz release download job.
     /// </summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
+    /// <returns>The created job identifier and pending status.</returns>
     [HttpPost("mb-release")]
     [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [Authorize(Policy = AuthPolicy.Any)]
@@ -96,7 +96,7 @@ public class JobsController : ControllerBase
     /// <summary>
     /// Create a discography download job.
     /// </summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
+    /// <returns>The created job identifier and pending status.</returns>
     [HttpPost("discography")]
     [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [Authorize(Policy = AuthPolicy.Any)]
@@ -136,7 +136,7 @@ public class JobsController : ControllerBase
     /// <summary>
     /// Create a label crate download job.
     /// </summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
+    /// <returns>The created job identifier and pending status.</returns>
     [HttpPost("label-crate")]
     [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
     [Authorize(Policy = AuthPolicy.Any)]
@@ -171,7 +171,7 @@ public class JobsController : ControllerBase
     /// <summary>
     /// Get all jobs with optional filtering, pagination, and sorting (T-1410).
     /// </summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
+    /// <returns>The filtered, sorted, and paginated job list.</returns>
     [HttpGet]
     [Authorize(Policy = AuthPolicy.Any)]
     public Task<IActionResult> GetJobs(
@@ -304,7 +304,7 @@ public class JobsController : ControllerBase
     /// <summary>
     /// Get a single job by ID.
     /// </summary>
-    /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
+    /// <returns>The requested job details when found.</returns>
     [HttpGet("{id}")]
     [Authorize(Policy = AuthPolicy.Any)]
     public async Task<IActionResult> GetJob(

@@ -13,7 +13,7 @@ namespace slskd.Transfers.MultiSource.Playback
     }
 
     /// <summary>
-    ///     Playback feedback sink (placeholder for future scheduling integration).
+    ///     Playback feedback sink that feeds buffer observations into priority scheduling.
     /// </summary>
     public class PlaybackFeedbackService : IPlaybackFeedbackService
     {

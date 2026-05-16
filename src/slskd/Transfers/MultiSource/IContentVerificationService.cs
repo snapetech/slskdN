@@ -207,7 +207,7 @@ namespace slskd.Transfers.MultiSource
         public string? AudioFingerprint { get; set; }
 
         /// <summary>
-        ///     Gets or sets the expected codec profile or identifier (dummy placeholder for future use).
+        ///     Gets or sets the expected codec profile or identifier.
         /// </summary>
         public string? CodecProfile { get; set; }
     }
