@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
 
 PackageIdentifier: snapetech.slskdn
-PackageVersion: "2026051600.258"
+PackageVersion: "2026051600.259"
 PackageLocale: en-US
 Publisher: slskdN Team
 PublisherUrl: https://github.com/snapetech
@@ -27,9 +27,9 @@ Tags:
   - music
   - filesharing
 ReleaseNotes: |-
-  Stable Release 2026051600-slskdn.258
+  Stable Release 2026051600-slskdn.259
   
-  See https://github.com/snapetech/slskdn/releases/tag/2026051600-slskdn.258 for details.
-ReleaseNotesUrl: https://github.com/snapetech/slskdn/releases/tag/2026051600-slskdn.258
+  See https://github.com/snapetech/slskdn/releases/tag/2026051600-slskdn.259 for details.
+ReleaseNotesUrl: https://github.com/snapetech/slskdn/releases/tag/2026051600-slskdn.259
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0
