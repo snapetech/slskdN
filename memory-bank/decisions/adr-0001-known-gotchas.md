@@ -52,6 +52,39 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z449. Shutdown Disposal Races Should Not Log As Runtime Errors
+
+**The Bug**: Background callbacks can still be finalizing search records or
+writing event records while the host is intentionally shutting down. If DI or
+EF services have already begun disposal, the callbacks throw
+`ObjectDisposedException` and log alarming errors even though the service is
+restarting cleanly.
+
+**Files Affected**:
+- `src/slskd/Events/EventService.cs`
+- `src/slskd/Search/SearchService.cs`
+
+**Wrong**:
+```csharp
+catch (Exception ex)
+{
+    Log.Error(ex, "Failed to finalize search for '{Query}': {Message}", query, ex.Message);
+}
+```
+
+**Correct**:
+```csharp
+if (IsExpectedSearchFinalizationFailure(ex, Application.IsShuttingDown))
+{
+    Log.Debug(ex, "Search finalization for '{Query}' stopped during shutdown: {Message}", query, ex.Message);
+    return;
+}
+```
+
+**Why This Keeps Happening**: Restart paths race against background work. Treat
+disposal during shutdown as expected, but keep the same exception noisy during
+normal runtime so real lifetime bugs are still visible.
+
 ### 0z448. Recent-First List APIs Need Matching SQLite Indexes
 
 **The Bug**: `GET /api/v0/searches?limit=1` timed out on a live busy node even
