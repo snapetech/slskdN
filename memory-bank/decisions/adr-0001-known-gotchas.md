@@ -52,6 +52,49 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z452. Inbound Mesh TLS Timeouts Are Handshake Noise
+
+**The Bug**: Public overlay listeners can receive TCP connections that never
+complete TLS. The TLS handshake timeout throws `OperationCanceledException`,
+and logging it as `Error handling connection` with a stack makes normal
+internet background traffic look like an app fault.
+
+**Files Affected**:
+- `src/slskd/DhtRendezvous/MeshOverlayServer.cs`
+- `tests/slskd.Tests.Unit/DhtRendezvous/MeshOverlayServerTests.cs`
+
+**Wrong**:
+```csharp
+internal static bool IsExpectedHandshakeNoise(Exception exception)
+{
+    if (exception is AuthenticationException authenticationException)
+    {
+        return authenticationException.Message.Contains("corrupted frame was received", StringComparison.Ordinal);
+    }
+}
+```
+
+**Correct**:
+```csharp
+internal static bool IsExpectedHandshakeNoise(Exception exception)
+{
+    if (exception is OperationCanceledException)
+    {
+        return true;
+    }
+
+    if (exception is AuthenticationException authenticationException)
+    {
+        return authenticationException.Message.Contains("corrupted frame was received", StringComparison.Ordinal);
+    }
+}
+```
+
+**Why This Keeps Happening**: Network-facing TLS listeners see partial connects,
+scanners, and peers that disconnect mid-handshake. Timeout/cancellation during
+the handshake belongs with expected handshake noise; only completed protocol
+violations or unexpected runtime failures should warn.
+
 ### 0z451. Release Tags Must Not Be Classified As Local Development Builds
 
 **The Bug**: Stable release Docker images logged `This is a Development build;
