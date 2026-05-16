@@ -52,6 +52,32 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z453. Expected Transfer Fallbacks Must Not Log As Warnings
+
+**The Bug**: Successful second-chance transfer connection fallback logged both
+the attempt and the success as warnings. Live logs then made normal recovery
+from peer/client transfer behavior look like an active fault.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/src/SoulseekClient.cs`
+
+**Wrong**:
+```csharp
+Diagnostic.Warning($"Attempting to initiate a second-chance transfer connection to {username} for download of {GetDiagnosticLogValue(download.Filename)}");
+Diagnostic.Warning($"Successfully established a second-chance transfer connection to {username} for download of {GetDiagnosticLogValue(download.Filename)}");
+```
+
+**Correct**:
+```csharp
+Diagnostic.Info($"Attempting to initiate a second-chance transfer connection to {username} for download of {GetDiagnosticLogValue(download.Filename)}");
+Diagnostic.Debug($"Successfully established a second-chance transfer connection to {username} for download of {GetDiagnosticLogValue(download.Filename)}");
+```
+
+**Why This Keeps Happening**: Transfer fallback paths often start as diagnostic
+breadcrumbs while debugging compatibility. Once the path is expected and can
+succeed, reserve warnings for failed or degraded outcomes so operators can scan
+logs without treating normal peer recovery as an incident.
+
 ### 0z452. Inbound Mesh TLS Timeouts Are Handshake Noise
 
 **The Bug**: Public overlay listeners can receive TCP connections that never
