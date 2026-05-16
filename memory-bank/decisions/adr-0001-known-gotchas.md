@@ -52,6 +52,68 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z451. Release Tags Must Not Be Classified As Local Development Builds
+
+**The Bug**: Stable release Docker images logged `This is a Development build;
+YMMV` because release packaging used a prerelease SemVer string, leaving
+`AssemblyVersion` normalized to `0.0.0.0`. Runtime classification treated that
+assembly version alone as proof of a local development build.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/ApplicationRuntimeInfo.cs`
+- `tests/slskd.Tests.Unit/Bootstrap/ApplicationRuntimeInfoTests.cs`
+
+**Wrong**:
+```csharp
+public static bool IsDevelopment { get; } = new Version(0, 0, 0, 0) == AssemblyVersion;
+```
+
+**Correct**:
+```csharp
+public static bool IsDevelopment { get; } = IsDevelopmentBuild(AssemblyVersion, SemanticVersion);
+
+internal static bool IsDevelopmentBuild(Version assemblyVersion, string semanticVersion)
+{
+    return assemblyVersion == new Version(0, 0, 0, 0)
+        && string.Equals(semanticVersion, "0.0.0", StringComparison.Ordinal);
+}
+```
+
+**Why This Keeps Happening**: .NET prerelease package versions do not always
+produce useful assembly-version identity. Runtime channel/build classification
+must consider the public informational version, not just `AssemblyVersion`.
+
+### 0z450. Security Permission Logs Should Enforce The Permission
+
+**The Bug**: Startup logged `ensure file permissions are secure (chmod 600)`
+for `pods.db` on every Unix container boot, but did not actually set the mode.
+Operators got a recurring warning-style instruction instead of the application
+converging the file it owns.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/MediaCorePodServiceCollectionExtensions.cs`
+
+**Wrong**:
+```csharp
+if (!OperatingSystem.IsWindows())
+{
+    Log.Information("Pod database created at {Path} - ensure file permissions are secure (chmod 600)", podDbPath);
+}
+```
+
+**Correct**:
+```csharp
+if (!OperatingSystem.IsWindows())
+{
+    File.SetUnixFileMode(podDbPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+    Log.Information("Secured pod database permissions at {Path} (0600)", podDbPath);
+}
+```
+
+**Why This Keeps Happening**: Hardening diagnostics are often added before the
+convergence path exists. If the application creates or owns a security-sensitive
+file, prefer idempotently fixing permissions over logging instructions.
+
 ### 0z449. Shutdown Disposal Races Should Not Log As Runtime Errors
 
 **The Bug**: Background callbacks can still be finalizing search records or
