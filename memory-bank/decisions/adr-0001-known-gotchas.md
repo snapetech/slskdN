@@ -52,6 +52,36 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z448. Recent-First List APIs Need Matching SQLite Indexes
+
+**The Bug**: `GET /api/v0/searches?limit=1` timed out on a live busy node even
+after the endpoint defaulted to a small limit, because the `Searches` table was
+ordered by `StartedAt` without an index. SQLite still had to scan/sort the
+large table before applying the limit.
+
+**Files Affected**:
+- `src/slskd/Search/SearchDbContext.cs`
+- `src/slskd/Core/Data/Migrator.cs`
+- `src/slskd/Core/Data/Migrations/Z05152026_SearchStartedAtIndexMigration.cs`
+
+**Wrong**:
+```csharp
+var query = context.Searches
+    .OrderByDescending(s => s.StartedAt)
+    .Take(limit);
+```
+
+**Correct**:
+```csharp
+modelBuilder.Entity<Search>()
+    .HasIndex(e => e.StartedAt)
+    .HasDatabaseName("IDX_Searches_StartedAt");
+```
+
+**Why This Keeps Happening**: Adding a cap limits response size, not database
+work. Any endpoint that pages recent-first over persistent tables needs a
+matching index and an idempotent migration for existing installs.
+
 ### 0z447. HashDb Auto-Retry Candidates Need More Than Size And Extension
 
 **The Bug**: Download auto-retry used local HashDb alternates that matched only
