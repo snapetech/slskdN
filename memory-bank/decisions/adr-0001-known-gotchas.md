@@ -52,6 +52,30 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z457. Share-Gate Matchers Must Cover Verb Inflections
+
+**The Bug**: The private-message share-gate matcher covered `share more files`
+but missed the real PM wording `sharing more files`.
+
+**Files Affected**:
+- `src/slskd/Application.cs`
+- `tests/slskd.Tests.Unit/Core/ApplicationPrivateMessageAutoResponseTests.cs`
+
+**Wrong**:
+```csharp
+@"\bshare\s+(something|more|files?)\b"
+```
+
+**Correct**:
+```csharp
+@"\bshar(e|ing)\s+(something|more|files?)\b"
+```
+
+**Why This Keeps Happening**: Private-message gate prompts are short natural
+language, not command strings. Pattern tests should include exact observed
+phrases plus grammatical variants that preserve the same intent, while keeping
+near-miss regular chat examples negative.
+
 ### 0z456. Human-Check Matchers Need Question-Shape Coverage And Near-Miss Tests
 
 **The Bug**: A broadened private-message human-check matcher handled
