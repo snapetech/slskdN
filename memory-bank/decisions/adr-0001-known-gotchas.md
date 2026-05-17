@@ -52,6 +52,32 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z456. Human-Check Matchers Need Question-Shape Coverage And Near-Miss Tests
+
+**The Bug**: A broadened private-message human-check matcher handled
+`are you a bot` and `prove you are human`, but missed `are you using an
+automated client` because the direct-question pattern only covered the
+`are you a ...` shape.
+
+**Files Affected**:
+- `src/slskd/Application.cs`
+- `tests/slskd.Tests.Unit/Core/ApplicationPrivateMessageAutoResponseTests.cs`
+
+**Wrong**:
+```csharp
+@"\b(are|r)\s+(u|you)\s+(a\s+)?(human|person|real|bot|robot|automated|automation)\b"
+```
+
+**Correct**:
+```csharp
+@"\b(are|r)\s+(u|you)\s+(using|running)\s+(an?\s+)?(automated\s+)?(client|script|bot|robot)\b"
+```
+
+**Why This Keeps Happening**: Anti-bot prompts are short and varied. Broadening
+by keyword alone risks replying to regular conversations, while only adding one
+question grammar misses common challenge wording. Matchers need both positive
+challenge-shape examples and negative near-miss conversation examples.
+
 ### 0z455. Signature Verification Must Verify Cryptography, Not Shape
 
 **The Bug**: Pod join/leave request handling claimed to verify signed
