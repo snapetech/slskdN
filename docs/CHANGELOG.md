@@ -23,7 +23,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
 ## [Unreleased]
 
 - Routed self-hosted Linux CI jobs to the paired `slskdn` runner pool so either
-  `kspld0` or `kspls0` can take amd64 or arm64-cross build work.
+  local build host can take amd64 or arm64-cross build work.
 - Fixed duplicate telemetry metrics routing so `GET /api/v0/telemetry/metrics`
   no longer throws an ambiguous-route 500.
 - Allowed API-key authentication on native slskdN API controllers that
