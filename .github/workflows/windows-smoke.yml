@@ -1,0 +1,41 @@
+name: Windows Smoke
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "*.sln"
+      - ".github/workflows/windows-smoke.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  dotnet:
+    runs-on: [self-hosted, Windows, X64, packer-windows]
+    env:
+      DOTNET_VERSION: "10.0.x"
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: src/web/package-lock.json
+
+      - name: Restore
+        run: dotnet restore slskd.sln -p:Version=0.0.0
+
+      - name: Build
+        run: dotnet build slskd.sln --configuration Release --no-restore -p:Version=0.0.0
+
+      - name: Test
+        run: dotnet test slskd.sln --configuration Release --no-build
