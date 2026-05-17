@@ -22,7 +22,7 @@ docker:slskdn:
     - docker buildx use default
   script:
     - >
-      docker buildx build
+      docker buildx build --network host
       --file Dockerfile
       --build-arg TAG="${CI_COMMIT_TAG:-$CI_COMMIT_REF_SLUG}"
       --build-arg VERSION="${CI_COMMIT_TAG:-0.0.1.$CI_PIPELINE_IID-gitlab}"
