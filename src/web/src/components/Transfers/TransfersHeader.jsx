@@ -3,9 +3,17 @@ import {
   isStateRetryable,
   isStateSucceeded,
 } from '../../lib/transfers';
+import {
+  applyHumanChallengeAutoResponse,
+  canApplyHumanChallengeAutoResponse,
+  getHumanChallengeAutoResponseEnabled,
+  readStoredHumanChallengeAutoResponse,
+  writeStoredHumanChallengeAutoResponse,
+} from '../../lib/humanChallengeAutoResponse';
+import AppContext from '../AppContext';
 import { Div, Nbsp } from '../Shared';
 import ShrinkableDropdownButton from '../Shared/ShrinkableDropdownButton';
-import React, { useMemo, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import { Checkbox, Icon, Popup, Segment } from 'semantic-ui-react';
 
 const getRetryableFiles = ({ files, retryOption }) => {
@@ -83,9 +91,26 @@ const TransfersHeader = ({
   server = { isConnected: true },
   transfers,
 }) => {
+  const appContext = useContext(AppContext) || {};
+  const options = appContext.options || {};
   const [removeOption, setRemoveOption] = useState('Succeeded');
   const [cancelOption, setCancelOption] = useState('All');
   const [retryOption, setRetryOption] = useState('Errored');
+  const [humanCheckAutoResponseEnabled, setHumanCheckAutoResponseEnabled] =
+    useState(() =>
+      getHumanChallengeAutoResponseEnabled(options) ||
+      readStoredHumanChallengeAutoResponse(),
+    );
+  const [humanCheckSaving, setHumanCheckSaving] = useState(false);
+  const [humanCheckError, setHumanCheckError] = useState(false);
+  const canApplyHumanCheck = canApplyHumanChallengeAutoResponse(options);
+
+  useEffect(() => {
+    setHumanCheckAutoResponseEnabled(
+      getHumanChallengeAutoResponseEnabled(options) ||
+        readStoredHumanChallengeAutoResponse(),
+    );
+  }, [options]);
 
   const files = useMemo(() => {
     return transfers
@@ -103,6 +128,26 @@ const TransfersHeader = ({
   }, [direction, transfers]);
 
   const empty = files.length === 0;
+
+  const setHumanCheckAutoResponse = async (enabled) => {
+    setHumanCheckAutoResponseEnabled(enabled);
+    writeStoredHumanChallengeAutoResponse(enabled);
+    setHumanCheckError(false);
+
+    if (!canApplyHumanCheck) {
+      setHumanCheckError(true);
+      return;
+    }
+
+    setHumanCheckSaving(true);
+    try {
+      await applyHumanChallengeAutoResponse(enabled);
+    } catch {
+      setHumanCheckError(true);
+    } finally {
+      setHumanCheckSaving(false);
+    }
+  };
 
   return (
     <Segment
@@ -206,6 +251,26 @@ const TransfersHeader = ({
               hidden={direction === 'upload'}
               label="Auto-Replace"
               onChange={(_, data) => onAutoReplaceChange?.(data.checked)}
+              toggle
+            />
+          }
+        />
+        <Nbsp />
+        <Popup
+          content={
+            canApplyHumanCheck
+              ? 'Automatically answer private messages that look like human-check or share-gate prompts. This helps with peer gates before or during downloads.'
+              : 'Remember this preference in the browser. Enable remote configuration to apply it to the daemon so replies are sent even when you are not on this pane.'
+          }
+          position="bottom right"
+          trigger={
+            <Checkbox
+              checked={humanCheckAutoResponseEnabled}
+              className="human-check-auto-response-toggle"
+              disabled={humanCheckSaving}
+              hidden={direction === 'upload'}
+              label={humanCheckError ? 'Auto Reply (local)' : 'Auto Reply'}
+              onChange={(_, data) => setHumanCheckAutoResponse(data.checked)}
               toggle
             />
           }

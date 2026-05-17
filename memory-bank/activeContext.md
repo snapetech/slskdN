@@ -1,3 +1,25 @@
+## Update 2026-05-17 17:55:00Z
+
+- Current task: human-check private-message auto response complete locally.
+- Last activity:
+  - added default-off daemon-side matching for private messages that ask for
+    proof the user is human or not a bot;
+  - replies are sent through the existing conversation service, skipped for
+    replayed/POD messages, and rate-limited per sender;
+  - added shared Downloads and Messages toggles with local persistence and
+    runtime option apply when remote configuration is enabled;
+  - documented the persistent YAML shape in `config/slskd.example.yml`.
+- Validation:
+  - Passed: focused `ApplicationPrivateMessageAutoResponseTests` and
+    `OptionsControllerTests` filter.
+  - Passed: focused Transfers/Messaging/helper frontend tests.
+  - Passed: `cd src/web && npm run lint -- --max-warnings=0`.
+  - Passed: `./bin/lint` and `git diff --check`.
+- Next steps:
+  1. Try the toggle on a live daemon with remote configuration enabled.
+  2. Tune match phrases if live PMs use wording outside the current
+     human/bot-check pattern.
+
 ## Update 2026-05-16 03:05:00Z
 
 - Current task: final pre-release cleanup pass complete locally.

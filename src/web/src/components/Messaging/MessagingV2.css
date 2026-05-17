@@ -665,6 +665,11 @@ body.msgv2-resizing {
   border-color: var(--msgv2-border-strong);
 }
 
+.msgv2-icon-button.is-warning {
+  border-color: #b7791f;
+  color: #975a16;
+}
+
 .msgv2-density {
   display: inline-flex;
   align-items: center;

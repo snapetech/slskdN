@@ -71,6 +71,20 @@ namespace slskd
             /// </summary>
             [Range(1024, 65535)]
             public int? ListenPort { get; init; } = null;
+
+            /// <summary>
+            ///     Gets private-message auto response options.
+            /// </summary>
+            [Validate]
+            public PrivateMessageAutoResponseOptionsPatch? PrivateMessageAutoResponse { get; init; }
+
+            /// <summary>
+            ///     Private-message auto response options.
+            /// </summary>
+            public record PrivateMessageAutoResponseOptionsPatch
+            {
+                public bool? Enabled { get; init; }
+            }
         }
 
         /// <summary>

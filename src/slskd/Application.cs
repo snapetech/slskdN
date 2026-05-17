@@ -101,6 +101,21 @@ namespace slskd
         public const string BlacklistedGroup = "blacklisted";
 
         private static readonly string ApplicationShutdownTransferExceptionMessage = "Application shut down";
+        private static readonly Regex HumanChallengeDirectQuestionRegex = new(
+            @"\b(are|r)\s+(u|you)\s+(a\s+)?(human|person|real|bot|robot|automated|automation)\b|\b(are|r)\s+(u|you)\s+(using|running)\s+(an?\s+)?(automated\s+)?(client|script|bot|robot)\b|\b(u|you)\s+(human|real|bot)\s*\??\b|\b(bot|human)\s*\?\s*$",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        private static readonly Regex HumanChallengeIntentRegex = new(
+            @"\b(prove|verify|confirm|show|tell|say|reply|respond|answer|type|write|pass|solve)\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        private static readonly Regex HumanChallengeIdentityRegex = new(
+            @"\b(human|person|real|bot|robot|automated|automation|script|client|captcha)\b|not\s+(a\s+)?bot|not\s+automated",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        private static readonly Regex HumanChallengeNamedCheckRegex = new(
+            @"\b(human|bot|robot|captcha|anti[-\s]?bot|anti[-\s]?leech)\s*(check|test|verification|verify|gate|screen|challenge)\b|\b(check|test|verification|verify|gate|screen|challenge)\s*(human|bot|robot|captcha)\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        private static readonly Regex ShareGatePrivateMessageRegex = new(
+            @"\b(not|n't|no)\s+shar(e|ing)\b|\bshar(e|ing)\s+(something|more|files?)\b|\bempty\s+shares?\b|\bno\s+leechers?\b|\bleechers?\b.{0,40}\b(ban|blocked?|only)\b|\b\d+k\+\s+file\s+users?\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
 #pragma warning disable SA1306 // Field names should begin with lower-case letter
         private static int EnqueueQueueDepth = 0;
@@ -299,6 +314,7 @@ namespace slskd
         private IRelayService Relay { get; set; }
         private IMemoryCache Cache { get; set; } = new MemoryCache(new MemoryCacheOptions());
         private IReadOnlyList<Regex> CompiledSearchRequestFilters { get; set; } = [];
+        private ConcurrentDictionary<string, DateTimeOffset> HumanChallengeAutoResponseSentAt { get; } = new(StringComparer.InvariantCultureIgnoreCase);
         private IReadOnlyList<Guid> ActiveDownloadIdsAtPreviousShutdown { get; set; } = [];
         private Options.FlagsOptions Flags { get; set; }
         private IReadOnlyList<string> ExcludedSearchPhrases { get; set; } = [];
@@ -1523,11 +1539,87 @@ namespace slskd
 
             if (!args.Replayed)
             {
+                if (ShouldAutoRespondToHumanChallenge(args.Username, args.Message))
+                {
+                    _ = ObserveBackgroundTaskAsync(
+                        SendHumanChallengeAutoResponseAsync(args.Username),
+                        "Failed to send human-check auto response to {Username}",
+                        args.Username);
+                }
+
                 _ = ObserveBackgroundTaskAsync(
                     Notifications.SendPrivateMessageAsync(args.Username, args.Message),
                     "Failed to send private-message notification from {Username}",
                     args.Username);
             }
+        }
+
+        private bool ShouldAutoRespondToHumanChallenge(string username, string message)
+        {
+            var autoResponse = Options.Soulseek.PrivateMessageAutoResponse;
+
+            if (!autoResponse.Enabled ||
+                string.IsNullOrWhiteSpace(autoResponse.Message) ||
+                string.IsNullOrWhiteSpace(message) ||
+                !IsPrivateMessageAutoResponseCandidate(message))
+            {
+                return false;
+            }
+
+            var cooldown = TimeSpan.FromMinutes(autoResponse.CooldownMinutes);
+            var now = DateTimeOffset.UtcNow;
+
+            if (HumanChallengeAutoResponseSentAt.TryGetValue(username, out var previous) &&
+                now - previous < cooldown)
+            {
+                return false;
+            }
+
+            HumanChallengeAutoResponseSentAt[username] = now;
+            return true;
+        }
+
+        internal static bool IsHumanChallengePrivateMessage(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return false;
+            }
+
+            var normalized = Regex.Replace(message.Trim(), @"\s+", " ");
+
+            if (HumanChallengeDirectQuestionRegex.IsMatch(normalized) ||
+                HumanChallengeNamedCheckRegex.IsMatch(normalized))
+            {
+                return true;
+            }
+
+            return HumanChallengeIntentRegex.IsMatch(normalized) &&
+                HumanChallengeIdentityRegex.IsMatch(normalized);
+        }
+
+        internal static bool IsPrivateMessageAutoResponseCandidate(string message)
+        {
+            return IsHumanChallengePrivateMessage(message) ||
+                IsShareGatePrivateMessage(message);
+        }
+
+        internal static bool IsShareGatePrivateMessage(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return false;
+            }
+
+            var normalized = Regex.Replace(message.Trim(), @"\s+", " ");
+            return ShareGatePrivateMessageRegex.IsMatch(normalized);
+        }
+
+        private Task SendHumanChallengeAutoResponseAsync(string username)
+        {
+            var message = Options.Soulseek.PrivateMessageAutoResponse.Message.Trim();
+            Log.Information("Sending human-check auto response to {Username}", username);
+            return Messaging.Conversations.SendMessageAsync(username, message);
         }
 
         /// <summary>

@@ -393,6 +393,10 @@
 #     listen_port: 0           # 0 derives from listen_port + 1 when runtime support exists
 #     advertise_regular_port: true
 #     prefer_outbound: true    # only changes outbound priority when mode is prefer
+#   private_message_auto_response:
+#     enabled: false
+#     message: "Hi, I'm human and testing a slskdN client. Shares may be temporarily unavailable while I validate the client."
+#     cooldown_minutes: 360
 #   diagnostic_level: Info
 #   distributed_network:
 #     disabled: false

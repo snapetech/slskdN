@@ -1,6 +1,13 @@
 import './MessagingV2.css';
 import * as chat from '../../lib/chat';
 import {
+  applyHumanChallengeAutoResponse,
+  canApplyHumanChallengeAutoResponse,
+  getHumanChallengeAutoResponseEnabled,
+  readStoredHumanChallengeAutoResponse,
+  writeStoredHumanChallengeAutoResponse,
+} from '../../lib/humanChallengeAutoResponse';
+import {
   loadWorkspace,
   makeTabId,
   MEMBER_WIDTH_RANGE,
@@ -27,7 +34,9 @@ import CommandHelp from './CommandHelp';
 import MessageStream from './MessageStream';
 import QuickSwitcher from './QuickSwitcher';
 import UserPopover from './UserPopover';
+import AppContext from '../AppContext';
 import React, {
+  useContext,
   useCallback,
   useEffect,
   useMemo,
@@ -109,6 +118,8 @@ const zoomIndex = (zoom) => Math.max(0, ZOOM_LEVELS.indexOf(zoom));
 const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   const navigate = useNavigate();
   const params = useParams();
+  const appContext = useContext(AppContext) || {};
+  const options = appContext.options || {};
 
   const [workspace, setWorkspace] = useState(loadWorkspace);
   const persistTimer = useRef(null);
@@ -163,6 +174,13 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   const [podAddOpen, setPodAddOpen] = useState(false);
   const [userPopover, setUserPopover] = useState(null);
   const [composerDraft, setComposerDraft] = useState('');
+  const [humanCheckAutoResponseEnabled, setHumanCheckAutoResponseEnabled] =
+    useState(() =>
+      getHumanChallengeAutoResponseEnabled(options) ||
+      readStoredHumanChallengeAutoResponse(),
+    );
+  const [humanCheckSaving, setHumanCheckSaving] = useState(false);
+  const [humanCheckError, setHumanCheckError] = useState(false);
   const composerInputRef = useRef(null);
   const lastWheelZoomAt = useRef(0);
   const roomDirectoryRetryTimer = useRef(null);
@@ -804,6 +822,38 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
     setComposerDraft('');
   }, [activeTab?.id]);
 
+  useEffect(() => {
+    setHumanCheckAutoResponseEnabled(
+      getHumanChallengeAutoResponseEnabled(options) ||
+        readStoredHumanChallengeAutoResponse(),
+    );
+  }, [options]);
+
+  const canApplyHumanCheck = canApplyHumanChallengeAutoResponse(options);
+
+  const setHumanCheckAutoResponse = useCallback(
+    async (enabled) => {
+      setHumanCheckAutoResponseEnabled(enabled);
+      writeStoredHumanChallengeAutoResponse(enabled);
+      setHumanCheckError(false);
+
+      if (!canApplyHumanCheck) {
+        setHumanCheckError(true);
+        return;
+      }
+
+      setHumanCheckSaving(true);
+      try {
+        await applyHumanChallengeAutoResponse(enabled);
+      } catch {
+        setHumanCheckError(true);
+      } finally {
+        setHumanCheckSaving(false);
+      }
+    },
+    [canApplyHumanCheck],
+  );
+
   const handleCopyMessage = useCallback(async (message) => {
     if (!message?.body) return;
     try {
@@ -1209,6 +1259,23 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
             )}
           </div>
           <div className="msgv2-tabs-actions">
+            <button
+              aria-label="Private-message auto response"
+              aria-pressed={humanCheckAutoResponseEnabled}
+              className={`msgv2-icon-button ${humanCheckAutoResponseEnabled ? 'is-on' : ''} ${humanCheckError ? 'is-warning' : ''}`}
+              disabled={humanCheckSaving}
+              onClick={() =>
+                setHumanCheckAutoResponse(!humanCheckAutoResponseEnabled)
+              }
+              title={
+                canApplyHumanCheck
+                  ? 'Automatically answer private messages that look like human-check or share-gate prompts.'
+                  : 'Saved locally. Enable remote configuration to apply this to daemon-side replies.'
+              }
+              type="button"
+            >
+              H
+            </button>
             {activeTab && activeTab.type !== 'chat' && (
               <button
                 aria-pressed={memberRailOpen}

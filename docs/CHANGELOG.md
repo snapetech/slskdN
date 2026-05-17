@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Added a default-off private-message auto response for human-check, captcha,
+  anti-bot, no-share, empty-share, and no-leecher gate prompts, with shared
+  Downloads/Messages toggles and per-sender cooldowns.
 - Routed self-hosted Linux CI jobs to the paired `slskdn` runner pool so either
   local build host can take amd64 or arm64-cross build work.
 - Fixed duplicate telemetry metrics routing so `GET /api/v0/telemetry/metrics`

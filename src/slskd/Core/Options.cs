@@ -2509,6 +2509,12 @@ namespace slskd
             public ObfuscationOptions Obfuscation { get; init; } = new ObfuscationOptions();
 
             /// <summary>
+            ///     Gets private-message auto response options.
+            /// </summary>
+            [Validate]
+            public PrivateMessageAutoResponseOptions PrivateMessageAutoResponse { get; init; } = new PrivateMessageAutoResponseOptions();
+
+            /// <summary>
             ///     Gets the minimum diagnostic level.
             /// </summary>
             [Argument(default, "slsk-diag-level")]
@@ -2535,6 +2541,37 @@ namespace slskd
             /// </summary>
             [Validate]
             public SafetyOptions Safety { get; init; } = new SafetyOptions();
+
+            /// <summary>
+            ///     Private-message auto response options.
+            /// </summary>
+            public class PrivateMessageAutoResponseOptions
+            {
+                /// <summary>
+                ///     Gets a value indicating whether recognized gatekeeping private messages should receive an automatic response.
+                /// </summary>
+                [Argument(default, "slsk-private-message-auto-response")]
+                [EnvironmentVariable("SLSK_PRIVATE_MESSAGE_AUTO_RESPONSE")]
+                [Description("automatically reply to private messages that look like human-check or share-gate prompts")]
+                public bool Enabled { get; init; } = false;
+
+                /// <summary>
+                ///     Gets the response sent to matching human-check private messages.
+                /// </summary>
+                [Argument(default, "slsk-private-message-auto-response-message")]
+                [EnvironmentVariable("SLSK_PRIVATE_MESSAGE_AUTO_RESPONSE_MESSAGE")]
+                [Description("response sent to recognized gatekeeping private messages")]
+                public string Message { get; init; } = "Hi, I'm human and testing a slskdN client. Shares may be temporarily unavailable while I validate the client.";
+
+                /// <summary>
+                ///     Gets the minimum minutes between automatic responses to the same user.
+                /// </summary>
+                [Argument(default, "slsk-private-message-auto-response-cooldown-minutes")]
+                [EnvironmentVariable("SLSK_PRIVATE_MESSAGE_AUTO_RESPONSE_COOLDOWN_MINUTES")]
+                [Description("minimum minutes between automatic private-message responses to the same user")]
+                [Range(1, 1440)]
+                public int CooldownMinutes { get; init; } = 360;
+            }
 
             /// <summary>
             ///     Soulseek type-1 peer/distributed/transfer obfuscation options.
