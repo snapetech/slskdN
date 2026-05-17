@@ -1,0 +1,60 @@
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+    - if: '$CI_COMMIT_TAG'
+
+stages:
+  - build
+  - scan
+
+variables:
+  DOCKER_BUILDKIT: "1"
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+  IMAGE_TAG: "$CI_REGISTRY_IMAGE:${CI_COMMIT_REF_SLUG}"
+  IMAGE_SHA_TAG: "$CI_REGISTRY_IMAGE:${CI_COMMIT_SHORT_SHA}"
+
+docker:slskdn:
+  stage: build
+  image: docker:27.5.1
+  services:
+    - name: docker:27.5.1-dind
+      command: ["--mtu=1450"]
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker buildx create --use --name gitlab-builder
+  script:
+    - >
+      docker buildx build
+      --file Dockerfile
+      --build-arg TAG="${CI_COMMIT_TAG:-$CI_COMMIT_REF_SLUG}"
+      --build-arg VERSION="${CI_COMMIT_TAG:-0.0.1.$CI_PIPELINE_IID-gitlab}"
+      --build-arg REVISION="$CI_COMMIT_SHA"
+      --build-arg BUILD_DATE="$CI_PIPELINE_CREATED_AT"
+      --platform linux/amd64,linux/arm64
+      --tag "$IMAGE_TAG"
+      --tag "$IMAGE_SHA_TAG"
+      --push
+      .
+    - |
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        docker buildx imagetools create --tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG" "$IMAGE_SHA_TAG"
+        docker buildx imagetools create --tag "$CI_REGISTRY_IMAGE:latest" "$IMAGE_SHA_TAG"
+      fi
+
+.trivy_scan:
+  stage: scan
+  image:
+    name: aquasec/trivy:0.58.2
+    entrypoint: [""]
+  script:
+    - trivy image --username "$CI_REGISTRY_USER" --password "$CI_REGISTRY_PASSWORD" --exit-code 0 --severity HIGH,CRITICAL "$CS_IMAGE"
+
+container_scanning:
+  extends: .trivy_scan
+  needs: ["docker:slskdn"]
+  variables:
+    CS_IMAGE: "$IMAGE_SHA_TAG"
+  rules:
+    - if: '$CI_COMMIT_BRANCH || $CI_COMMIT_TAG'
