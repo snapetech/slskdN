@@ -19,7 +19,7 @@ docker:slskdn:
   image: docker:27.5.1
   before_script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
-    - docker buildx create --use --name gitlab-builder
+    - docker buildx use default
   script:
     - >
       docker buildx build
