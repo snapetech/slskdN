@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Required tagged release publishing for build and COPR workflows and added
+  secret-backed COPR Kerberos/Fedora login support for durable release auth.
 - Added a default-off private-message auto response for human-check, captcha,
   anti-bot, no-share, empty-share, and no-leecher gate prompts, with shared
   Downloads/Messages toggles and per-sender cooldowns.

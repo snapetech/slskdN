@@ -576,8 +576,8 @@ jobs:
       - name: Setup RPM Build
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-pip rpm
-          pip3 install copr-cli
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates krb5-user oathtool python3-pip rpm
+          pip3 install copr-cli rich
           mkdir -p ~/rpmbuild/{SOURCES,SPECS,SRPMS}
 
       - name: Prepare Sources
@@ -608,19 +608,86 @@ jobs:
         env:
           COPR_LOGIN: ${{ secrets.COPR_LOGIN }}
           COPR_TOKEN: ${{ secrets.COPR_TOKEN }}
+          COPR_KERBEROS_PRINCIPAL: ${{ secrets.COPR_KERBEROS_PRINCIPAL }}
+          COPR_KERBEROS_KEYTAB_B64: ${{ secrets.COPR_KERBEROS_KEYTAB_B64 }}
+          COPR_FEDORA_USERNAME: ${{ secrets.COPR_FEDORA_USERNAME }}
+          COPR_FEDORA_PASSWORD: ${{ secrets.COPR_FEDORA_PASSWORD }}
+          COPR_FEDORA_OTP_SECRET: ${{ secrets.COPR_FEDORA_OTP_SECRET }}
         run: |
-          if [ -z "$COPR_LOGIN" ] || [ -z "$COPR_TOKEN" ]; then
-            echo "COPR credentials not configured. Skipping."
-            exit 0
-          fi
+          set -euo pipefail
           mkdir -p ~/.config
-          cat > ~/.config/copr << EOF
+
+          if [[ -n "${COPR_KERBEROS_PRINCIPAL:-}" && -n "${COPR_KERBEROS_KEYTAB_B64:-}" ]]; then
+            sudo install -d -m 0755 /etc/ipa
+            curl -fsSL https://id.fedoraproject.org/ipa/config/ca.crt | sudo tee /etc/ipa/ca.crt >/dev/null
+            sudo install -d -m 0755 /etc/krb5.conf.d
+            sudo tee /etc/krb5.conf.d/fedoraproject_org >/dev/null <<'EOF'
+          [realms]
+           FEDORAPROJECT.ORG = {
+            kdc = https://id.fedoraproject.org/KdcProxy
+            pkinit_anchors = FILE:/etc/ipa/ca.crt
+           }
+
+          [domain_realm]
+           .fedoraproject.org = FEDORAPROJECT.ORG
+           fedoraproject.org = FEDORAPROJECT.ORG
+          EOF
+            sudo sed -i '/^\[libdefaults\]/a\  dns_lookup_realm = false\n  rdns = false\n  dns_canonicalize_hostname = false' /etc/krb5.conf
+
+            keytab="$RUNNER_TEMP/copr.keytab"
+            ccache="$RUNNER_TEMP/copr.krb5cc"
+            printf '%s' "$COPR_KERBEROS_KEYTAB_B64" | base64 -d > "$keytab"
+            chmod 0600 "$keytab"
+            KRB5CCNAME="FILE:$ccache" kinit -kt "$keytab" "$COPR_KERBEROS_PRINCIPAL"
+            rm -f "$keytab"
+            echo "KRB5CCNAME=FILE:$ccache" >> "$GITHUB_ENV"
+            cat > ~/.config/copr << EOF
+          [copr-cli]
+          username = slskdn
+          copr_url = https://copr.fedorainfracloud.org
+          gssapi = true
+          EOF
+          elif [[ -n "${COPR_FEDORA_USERNAME:-}" && -n "${COPR_FEDORA_PASSWORD:-}" && -n "${COPR_FEDORA_OTP_SECRET:-}" ]]; then
+            sudo install -d -m 0755 /etc/ipa
+            curl -fsSL https://id.fedoraproject.org/ipa/config/ca.crt | sudo tee /etc/ipa/ca.crt >/dev/null
+            sudo install -d -m 0755 /etc/krb5.conf.d
+            sudo tee /etc/krb5.conf.d/fedoraproject_org >/dev/null <<'EOF'
+          [realms]
+           FEDORAPROJECT.ORG = {
+            kdc = https://id.fedoraproject.org/KdcProxy
+            pkinit_anchors = FILE:/etc/ipa/ca.crt
+           }
+
+          [domain_realm]
+           .fedoraproject.org = FEDORAPROJECT.ORG
+           fedoraproject.org = FEDORAPROJECT.ORG
+          EOF
+            sudo sed -i '/^\[libdefaults\]/a\  dns_lookup_realm = false\n  rdns = false\n  dns_canonicalize_hostname = false' /etc/krb5.conf
+            ccache="$RUNNER_TEMP/copr.krb5cc"
+            armor="$RUNNER_TEMP/copr.krb5cc.armor"
+            otp="$(oathtool --totp --base32 "$COPR_FEDORA_OTP_SECRET")"
+            KRB5CCNAME="FILE:$armor" kinit -n @FEDORAPROJECT.ORG
+            printf '%s%s\n' "$COPR_FEDORA_PASSWORD" "$otp" \
+              | KRB5CCNAME="FILE:$ccache" kinit -T "FILE:$armor" "${COPR_FEDORA_USERNAME}@FEDORAPROJECT.ORG"
+            KRB5CCNAME="FILE:$armor" kdestroy || true
+            echo "KRB5CCNAME=FILE:$ccache" >> "$GITHUB_ENV"
+            cat > ~/.config/copr << EOF
+          [copr-cli]
+          username = slskdn
+          copr_url = https://copr.fedorainfracloud.org
+          gssapi = true
+          EOF
+          elif [[ -n "${COPR_LOGIN:-}" && -n "${COPR_TOKEN:-}" ]]; then
+            cat > ~/.config/copr << EOF
           [copr-cli]
           login = ${COPR_LOGIN}
           username = slskdn
           token = ${COPR_TOKEN}
           copr_url = https://copr.fedorainfracloud.org
           EOF
+          else
+            echo "COPR credentials not configured. Skipping."
+          fi
 
       - name: Build SRPM
         run: |
@@ -635,8 +702,15 @@ jobs:
         env:
           COPR_LOGIN: ${{ secrets.COPR_LOGIN }}
           COPR_TOKEN: ${{ secrets.COPR_TOKEN }}
+          COPR_KERBEROS_PRINCIPAL: ${{ secrets.COPR_KERBEROS_PRINCIPAL }}
+          COPR_KERBEROS_KEYTAB_B64: ${{ secrets.COPR_KERBEROS_KEYTAB_B64 }}
+          COPR_FEDORA_USERNAME: ${{ secrets.COPR_FEDORA_USERNAME }}
+          COPR_FEDORA_PASSWORD: ${{ secrets.COPR_FEDORA_PASSWORD }}
+          COPR_FEDORA_OTP_SECRET: ${{ secrets.COPR_FEDORA_OTP_SECRET }}
         run: |
-          if [ -z "$COPR_LOGIN" ] || [ -z "$COPR_TOKEN" ]; then
+          if [[ -z "${COPR_KERBEROS_PRINCIPAL:-}" || -z "${COPR_KERBEROS_KEYTAB_B64:-}" ]] \
+            && [[ -z "${COPR_FEDORA_USERNAME:-}" || -z "${COPR_FEDORA_PASSWORD:-}" || -z "${COPR_FEDORA_OTP_SECRET:-}" ]] \
+            && [[ -z "${COPR_LOGIN:-}" || -z "${COPR_TOKEN:-}" ]]; then
             echo "Skipping COPR upload - credentials not configured"
             exit 0
           fi
