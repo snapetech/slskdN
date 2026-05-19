@@ -17,6 +17,16 @@ namespace slskd.Transfers.API
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
         /// <summary>
+        ///     Gets the stable persisted transfer id, when it could be resolved.
+        /// </summary>
+        /// <remarks>
+        ///     May be null on the very first state change (before the record is
+        ///     persisted) or if the lookup failed. Clients should fall back to the
+        ///     (direction, username, filename) composite key in that case.
+        /// </remarks>
+        public Guid? Id { get; set; }
+
+        /// <summary>
         ///     Gets the transfer direction.
         /// </summary>
         public TransferDirection Direction { get; set; }
@@ -62,19 +72,48 @@ namespace slskd.Transfers.API
         public double PercentComplete { get; set; }
 
         /// <summary>
+        ///     Gets the current place in the remote queue, when known.
+        /// </summary>
+        public int? PlaceInQueue { get; set; }
+
+        /// <summary>
         ///     Creates a TransferActivity from a Soulseek Transfer and state change event.
         /// </summary>
         /// <param name="transfer">The Soulseek transfer.</param>
         /// <param name="previousState">The previous transfer state.</param>
+        /// <param name="record">The resolved persisted record, if available, used to enrich id and queue position.</param>
         /// <returns>A TransferActivity instance.</returns>
-        public static TransferActivity FromTransferStateChange(Soulseek.Transfer transfer, TransferStates previousState)
+        public static TransferActivity FromTransferStateChange(Soulseek.Transfer transfer, TransferStates previousState, global::slskd.Transfers.Transfer record = null)
+        {
+            return new TransferActivity
+            {
+                Id = record?.Id,
+                Direction = transfer.Direction,
+                Username = transfer.Username,
+                Filename = transfer.Filename,
+                PreviousState = previousState,
+                State = transfer.State,
+                Size = transfer.Size,
+                BytesTransferred = transfer.BytesTransferred,
+                AverageSpeed = transfer.AverageSpeed,
+                PercentComplete = transfer.PercentComplete,
+                PlaceInQueue = record?.PlaceInQueue,
+            };
+        }
+
+        /// <summary>
+        ///     Creates a progress-sample TransferActivity from a Soulseek Transfer.
+        /// </summary>
+        /// <param name="transfer">The Soulseek transfer.</param>
+        /// <returns>A TransferActivity instance representing the current progress.</returns>
+        public static TransferActivity FromTransferProgress(Soulseek.Transfer transfer)
         {
             return new TransferActivity
             {
                 Direction = transfer.Direction,
                 Username = transfer.Username,
                 Filename = transfer.Filename,
-                PreviousState = previousState,
+                PreviousState = transfer.State,
                 State = transfer.State,
                 Size = transfer.Size,
                 BytesTransferred = transfer.BytesTransferred,

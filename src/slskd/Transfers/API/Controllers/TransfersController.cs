@@ -34,6 +34,7 @@ namespace slskd.Transfers.API
     using Asp.Versioning;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.AspNetCore.SignalR;
     using Serilog;
     using slskd.Common.Security;
     using slskd.Core.Security;
@@ -59,13 +60,15 @@ namespace slskd.Transfers.API
         /// <param name="autoReplaceService"></param>
         /// <param name="autoReplaceBackgroundService"></param>
         /// <param name="acceleratedDownloads"></param>
+        /// <param name="transfersHub"></param>
         public TransfersController(
             ITransferService transferService,
             IOptionsSnapshot<Options> optionsSnapshot,
             IStateSnapshot<State> stateSnapshot,
             IAutoReplaceService autoReplaceService,
             AutoReplaceBackgroundService autoReplaceBackgroundService,
-            IAcceleratedDownloadService acceleratedDownloads)
+            IAcceleratedDownloadService acceleratedDownloads,
+            IHubContext<TransfersHub> transfersHub)
         {
             Transfers = transferService;
             OptionsSnapshot = optionsSnapshot;
@@ -73,6 +76,7 @@ namespace slskd.Transfers.API
             AutoReplace = autoReplaceService;
             AutoReplaceBackgroundService = autoReplaceBackgroundService;
             AcceleratedDownloads = acceleratedDownloads;
+            TransfersHub = transfersHub;
         }
 
         private static SemaphoreSlim DownloadRequestLimiter { get; } = new SemaphoreSlim(2, 2);
@@ -502,6 +506,71 @@ namespace slskd.Transfers.API
                     yield return configuredDestination.Path;
                 }
             }
+        }
+
+        /// <summary>
+        ///     Gets a flat list of transfers across both directions.
+        /// </summary>
+        /// <remarks>
+        ///     Unlike <c>downloads</c>/<c>uploads</c> this returns an ungrouped array so the
+        ///     client can maintain a stable, id-keyed store and patch rows incrementally.
+        /// </remarks>
+        /// <param name="direction">Optional direction filter: <c>download</c> or <c>upload</c>. Omit for both.</param>
+        /// <param name="includeCompleted">Whether to include successfully completed transfers.</param>
+        /// <param name="includeRemoved">Whether to include records flagged as removed.</param>
+        /// <returns></returns>
+        /// <response code="200">The request completed successfully.</response>
+        /// <response code="400">The direction filter was invalid.</response>
+        [HttpGet]
+        [Authorize(Policy = AuthPolicy.Any)]
+        [ProducesResponseType(typeof(IEnumerable<global::slskd.Transfers.Transfer>), 200)]
+        [ProducesResponseType(typeof(string), 400)]
+        public IActionResult GetTransfers([FromQuery] string? direction = null, [FromQuery] bool includeCompleted = true, [FromQuery] bool includeRemoved = false)
+        {
+            if (Program.IsRelayAgent)
+            {
+                return Forbid();
+            }
+
+            var wantDownloads = true;
+            var wantUploads = true;
+
+            if (!string.IsNullOrWhiteSpace(direction))
+            {
+                if (direction.Equals("download", StringComparison.OrdinalIgnoreCase))
+                {
+                    wantUploads = false;
+                }
+                else if (direction.Equals("upload", StringComparison.OrdinalIgnoreCase))
+                {
+                    wantDownloads = false;
+                }
+                else
+                {
+                    return BadRequest("direction must be 'download' or 'upload' when provided");
+                }
+            }
+
+            var result = new List<global::slskd.Transfers.Transfer>();
+
+            if (wantDownloads)
+            {
+                result.AddRange(Transfers.Downloads.List(
+                    expression: includeCompleted ? null : NotSuccessfulTerminalTransferExpression,
+                    includeRemoved: includeRemoved));
+            }
+
+            if (wantUploads)
+            {
+                Expression<Func<global::slskd.Transfers.Transfer, bool>> uploadFilter =
+                    includeCompleted ? t => true : NotSuccessfulTerminalTransferExpression;
+
+                result.AddRange(Transfers.Uploads.List(
+                    expression: uploadFilter,
+                    includeRemoved: includeRemoved));
+            }
+
+            return Ok(result);
         }
 
         /// <summary>

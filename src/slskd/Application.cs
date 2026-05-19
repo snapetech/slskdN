@@ -315,6 +315,16 @@ namespace slskd
         private IMemoryCache Cache { get; set; } = new MemoryCache(new MemoryCacheOptions());
         private IReadOnlyList<Regex> CompiledSearchRequestFilters { get; set; } = [];
         private ConcurrentDictionary<string, DateTimeOffset> HumanChallengeAutoResponseSentAt { get; } = new(StringComparer.InvariantCultureIgnoreCase);
+
+        /// <summary>
+        ///     Per-transfer last-emitted tick for coalescing high-frequency progress events
+        ///     down to roughly <see cref="TransferProgressEmitIntervalMs"/>. Keyed by
+        ///     direction|username|filename; pruned on terminal state change.
+        /// </summary>
+        private ConcurrentDictionary<string, long> TransferProgressLastEmitTicks { get; } = new(StringComparer.Ordinal);
+
+        private const long TransferProgressEmitIntervalMs = 1_000;
+
         private IReadOnlyList<Guid> ActiveDownloadIdsAtPreviousShutdown { get; set; } = [];
         private Options.FlagsOptions Flags { get; set; }
         private IReadOnlyList<string> ExcludedSearchPhrases { get; set; } = [];
@@ -2011,9 +2021,54 @@ namespace slskd
             ExcludedSearchPhrases = e.ToList();
         }
 
+        private static string TransferCompositeKey(Soulseek.Transfer transfer)
+            => $"{transfer.Direction}|{transfer.Username}|{transfer.Filename}";
+
+        private global::slskd.Transfers.Transfer ResolveTransferRecord(Soulseek.Transfer xfer)
+        {
+            try
+            {
+                return xfer.Direction == TransferDirection.Download
+                    ? Transfers.Downloads.Find(t => t.Username == xfer.Username && t.Filename == xfer.Filename)
+                    : Transfers.Uploads.Find(t => t.Username == xfer.Username && t.Filename == xfer.Filename);
+            }
+            catch
+            {
+                // Best-effort enrichment only. Clients fall back to the
+                // (direction, username, filename) composite key and the periodic reconcile.
+                return null;
+            }
+        }
+
         private void Client_TransferProgressUpdated(object? sender, TransferProgressUpdatedEventArgs args)
         {
-            // no-op. this is really verbose, use for troubleshooting.
+            // Progress events fire very frequently. Coalesce to ~1 Hz per transfer by
+            // sampling (dropping intermediate ticks); the terminal state-change event
+            // carries the final bytes/percent so a dropped last sample self-corrects.
+            var xfer = args.Transfer;
+
+            if (!xfer.State.HasFlag(TransferStates.InProgress))
+            {
+                return;
+            }
+
+            var key = TransferCompositeKey(xfer);
+            var now = Environment.TickCount64;
+
+            if (TransferProgressLastEmitTicks.TryGetValue(key, out var last) &&
+                now - last < TransferProgressEmitIntervalMs)
+            {
+                return;
+            }
+
+            TransferProgressLastEmitTicks[key] = now;
+
+            var progress = TransferActivity.FromTransferProgress(xfer);
+            _ = ObserveBackgroundTaskAsync(
+                TransferHubExtensions.EmitTransferProgressAsync(TransfersHub, progress),
+                "Failed to broadcast transfer progress for {Filename} from {Username}",
+                xfer.Filename,
+                xfer.Username);
         }
 
         private void Client_TransferStateChanged(object? sender, TransferStateChangedEventArgs args)
@@ -2029,8 +2084,14 @@ namespace slskd
 
             Log.Information($"[{direction}] [{user}/{file}] {oldState} => {state}{(completed ? FormatCompletedTransferProgress(xfer.BytesTransferred, xfer.Size, xfer.PercentComplete, xfer.AverageSpeed) : string.Empty)}");
 
+            if (completed)
+            {
+                // Stop tracking progress throttle state for finished transfers.
+                TransferProgressLastEmitTicks.TryRemove(TransferCompositeKey(xfer), out _);
+            }
+
             // Broadcast transfer activity to connected clients
-            var activity = TransferActivity.FromTransferStateChange(xfer, oldState);
+            var activity = TransferActivity.FromTransferStateChange(xfer, oldState, ResolveTransferRecord(xfer));
             _ = ObserveBackgroundTaskAsync(
                 TransferHubExtensions.EmitTransferActivityAsync(TransfersHub, activity),
                 "Failed to broadcast transfer activity for {Filename} from {Username}",

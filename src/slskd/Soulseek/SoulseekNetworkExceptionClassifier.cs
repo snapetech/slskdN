@@ -72,6 +72,7 @@ public static class SoulseekNetworkExceptionClassifier
             exception is TimeoutException ||
             exception is OperationCanceledException ||
             exception is IOException ||
+            exception is UnauthorizedAccessException ||
             (exception is ObjectDisposedException objectDisposedException && string.Equals(objectDisposedException.ObjectName, "Connection", StringComparison.Ordinal)) ||
             (exception is ObjectDisposedException messageConnectionDisposedException && string.Equals(messageConnectionDisposedException.ObjectName, "MessageConnection", StringComparison.Ordinal)) ||
             exception is System.Net.Sockets.SocketException ||
@@ -89,6 +90,17 @@ public static class SoulseekNetworkExceptionClassifier
         if (!isNetworkFailure)
         {
             return false;
+        }
+
+        // UnauthorizedAccessException from file creation during transfers
+        var isUnauthorizedAccessFileFailure =
+            exception is UnauthorizedAccessException &&
+            (details.Contains("Access to the path", StringComparison.Ordinal) ||
+             details.Contains("Failed to create file", StringComparison.Ordinal));
+
+        if (isUnauthorizedAccessFileFailure)
+        {
+            return true;
         }
 
         return details.Contains("Soulseek.Network.PeerConnectionManager", StringComparison.Ordinal) ||

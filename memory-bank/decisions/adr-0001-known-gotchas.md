@@ -19338,3 +19338,28 @@ if (!string.IsNullOrEmpty(item.Filter))
 ```
 
 **Why This Keeps Happening**: `SearchOptions.filterResponses` is a boolean flag, not a filter expression. The actual filter logic requires a `Func<File, bool>` delegate passed via `fileFilter` or `WithFilters()`. When building search options from a string filter, always convert the string to a filter function and apply it explicitly.
+
+### 0z361. SQLite Schema Migration `ALTER TABLE` Condition Must Be Negated
+
+**The Bug**: Wishlist migration `Z05182026_WishlistItemViewingAndDownloadLimitsMigration` used `if (columns.Contains("lastviewedat"))` instead of `if (!columns.Contains("lastviewedat"))`, so the `ALTER TABLE ADD COLUMN` statements were **skipped** on every startup. The `LastViewedAt` and `MaxDownloads` columns were never created, causing Lidarr wanted sync to crash every cycle with `SQLite Error 1: no such column: w.LastViewedAt`.
+
+**Files Affected**:
+- `src/slskd/Core/Data/Migrations/Z05182026_WishlistItemViewingAndDownloadLimitsMigration.cs`
+
+**Wrong**:
+```csharp
+if (columns.Contains("lastviewedat"))  // ← adds column only if it ALREADY exists (never)
+{
+    // ALTER TABLE …
+}
+```
+
+**Correct**:
+```csharp
+if (!columns.Contains("lastviewedat"))  // ← adds column only when MISSING
+{
+    // ALTER TABLE …
+}
+```
+
+**Why This Keeps Happening**: When writing idempotent `ALTER TABLE` migrations, it's intuitive to write "if column exists" because you're thinking about schema discovery. But the correct logic needs the negation: "if column does NOT exist, add it." Always double-check the condition — the difference between `Contains` and `!Contains` here silently breaks the migration with zero compile-time warnings.

@@ -269,6 +269,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   LastViewedAt and MaxDownloads columns are actually added to existing
   databases instead of being skipped. The bug caused Lidarr wanted sync
   to fail every cycle with `SQLite Error 1: no such column: w.LastViewedAt`.
+- Documented the inverted migration condition gotcha in
+  `memory-bank/decisions/adr-0001-known-gotchas.md` as entry 0z361.
 
 ## [2026051318-slskdn.251] — 2026-05-13
 
