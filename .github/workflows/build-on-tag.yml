@@ -558,6 +558,7 @@ jobs:
     name: Publish to COPR (Main)
     needs: [parse, release-main]
     if: needs.parse.outputs.channel == 'main'
+    continue-on-error: true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
