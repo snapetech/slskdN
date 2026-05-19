@@ -56,7 +56,7 @@ const ShareGroups = lazy(() => import('./ShareGroups/ShareGroups'));
 const SharedWithMe = lazy(() => import('./Shares/SharedWithMe'));
 const SolidSettings = lazy(() => import('./Solid/SolidSettings'));
 const System = lazy(() => import('./System/System'));
-const Transfers = lazy(() => import('./Transfers/Transfers'));
+const TransferManager = lazy(() => import('./Transfers/TransferManager'));
 const Users = lazy(() => import('./Users/Users'));
 const Wishlist = lazy(() => import('./Wishlist/Wishlist'));
 const LidarrPage = lazy(() => import('./Lidarr/Lidarr'));
@@ -1602,8 +1602,9 @@ class App extends Component {
                     element={
                       this.withTokenCheck(
                         <div className="view">
-                          <Transfers
+                          <TransferManager
                             direction="upload"
+                            server={applicationState.server}
                           />
                         </div>,
                       )
@@ -1614,7 +1615,7 @@ class App extends Component {
                     element={
                       this.withTokenCheck(
                         <div className="view">
-                          <Transfers
+                          <TransferManager
                             direction="download"
                             server={applicationState.server}
                           />

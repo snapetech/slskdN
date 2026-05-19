@@ -90,7 +90,7 @@ vi.mock('./Solid/SolidSettings', () => ({
   default: () => <div>Solid</div>,
 }));
 vi.mock('./System/System', () => ({ default: () => <div>System</div> }));
-vi.mock('./Transfers/Transfers', () => ({
+vi.mock('./Transfers/TransferManager', () => ({
   default: () => <div>Transfers</div>,
 }));
 vi.mock('./Users/Users', () => ({ default: () => <div>Users</div> }));

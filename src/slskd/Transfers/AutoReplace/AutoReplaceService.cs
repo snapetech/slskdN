@@ -9,9 +9,11 @@ namespace slskd.Transfers.AutoReplace
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.AspNetCore.SignalR;
     using Microsoft.Extensions.Options;
     using Serilog;
     using slskd.Search;
+    using slskd.Transfers.API;
     using slskd.Transfers.Ranking;
     using Soulseek;
     using SlskdTransfer = slskd.Transfers.Transfer;
@@ -265,7 +267,8 @@ namespace slskd.Transfers.AutoReplace
             ISourceRankingService rankingService,
             TimeSpan? searchCompletionTimeout = null,
             TimeSpan? searchPollInterval = null,
-            TimeSpan? minimumSearchInterval = null)
+            TimeSpan? minimumSearchInterval = null,
+            IHubContext<TransfersHub> transfersHub = null)
         {
             Transfers = transferService;
             Searches = searchService;
@@ -275,9 +278,12 @@ namespace slskd.Transfers.AutoReplace
             SearchCompletionTimeout = searchCompletionTimeout ?? DefaultSearchCompletionTimeout;
             SearchPollInterval = searchPollInterval ?? DefaultSearchPollInterval;
             MinimumSearchIntervalOverride = minimumSearchInterval;
+            TransfersHub = transfersHub;
         }
 
         private ITransferService Transfers { get; }
+
+        private IHubContext<TransfersHub> TransfersHub { get; }
 
         private ISearchService Searches { get; }
 
@@ -490,9 +496,25 @@ namespace slskd.Transfers.AutoReplace
                     return false;
                 }
 
+                // Capture the original before removal so the UI can drop the
+                // exact row the instant the replacement is enqueued, rather
+                // than waiting for the periodic reconcile.
+                var original = Transfers.Downloads.Find(t => t.Id == originalGuid);
+
                 // Cancel and remove the original download
                 Transfers.Downloads.TryCancel(originalGuid);
                 Transfers.Downloads.Remove(originalGuid);
+
+                if (original != default && TransfersHub != null)
+                {
+                    _ = TransfersHub.EmitTransferRemovedAsync(new TransferRemoved
+                    {
+                        Id = original.Id,
+                        Direction = original.Direction,
+                        Username = original.Username,
+                        Filename = original.Filename,
+                    });
+                }
 
                 Log.Information("Removed stuck download from {Username}: {Filename}",
                     request.OriginalUsername,

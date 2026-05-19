@@ -219,14 +219,15 @@ public class WishlistControllerTests : IDisposable
                 It.IsAny<SearchScope>(),
                 It.IsAny<SearchOptions?>(),
                 It.IsAny<List<string>?>(),
-                It.IsAny<string>()))
-            .Callback<Guid, SearchQuery, SearchScope, SearchOptions?, List<string>?, string>((id, query, scope, options, providers, safetySource) =>
+                It.IsAny<string>(),
+                It.IsAny<Guid?>()))
+            .Callback<Guid, SearchQuery, SearchScope, SearchOptions?, List<string>?, string, Guid?>((id, query, scope, options, providers, safetySource, wishlistItemId) =>
             {
                 capturedScope = scope;
                 capturedSafetySource = safetySource;
                 capturedOptions = options;
             })
-            .ReturnsAsync((Guid id, SearchQuery query, SearchScope scope, SearchOptions? options, List<string>? providers, string safetySource) =>
+            .ReturnsAsync((Guid id, SearchQuery query, SearchScope scope, SearchOptions? options, List<string>? providers, string safetySource, Guid? wishlistItemId) =>
                 new SlskdSearch
                 {
                     Id = id,
@@ -386,8 +387,9 @@ public class WishlistControllerTests : IDisposable
                 It.IsAny<SearchScope>(),
                 It.IsAny<SearchOptions?>(),
                 It.IsAny<List<string>?>(),
-                It.IsAny<string>()))
-            .ReturnsAsync((Guid id, SearchQuery query, SearchScope scope, SearchOptions? options, List<string>? providers, string safetySource) =>
+                It.IsAny<string>(),
+                It.IsAny<Guid?>()))
+            .ReturnsAsync((Guid id, SearchQuery query, SearchScope scope, SearchOptions? options, List<string>? providers, string safetySource, Guid? wishlistItemId) =>
                 new SlskdSearch
                 {
                     Id = id,

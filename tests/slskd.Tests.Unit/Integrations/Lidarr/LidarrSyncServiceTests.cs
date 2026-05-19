@@ -130,6 +130,13 @@ public class LidarrSyncServiceTests
         public Task<slskd.Search.Search> RunSearchAsync(Guid id, CancellationToken cancellationToken = default) =>
             throw new NotSupportedException();
 
+        public Task<List<slskd.Search.Search>> GetSearchesForItemAsync(Guid wishlistItemId, int limit = 50) =>
+            Task.FromResult(new List<slskd.Search.Search>());
+
+        public Task MarkViewedAsync(Guid id) => Task.CompletedTask;
+
+        public Task MarkAllViewedAsync() => Task.CompletedTask;
+
         public Task<WishlistCsvImportResult> ImportCsvAsync(
             string csvText,
             WishlistCsvImportOptions options,

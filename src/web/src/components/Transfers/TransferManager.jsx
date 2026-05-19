@@ -1,0 +1,679 @@
+import './Transfers.css';
+import * as autoReplaceLibrary from '../../lib/autoReplace';
+import { createTransfersHubConnection } from '../../lib/hubFactory';
+import * as transfersLibrary from '../../lib/transfers';
+import {
+  createTransferStore,
+  transferKey,
+} from '../../lib/transferStore';
+import { PlaceholderSegment } from '../Shared';
+import TransferTable from './TransferTable';
+import TransfersHeader from './TransfersHeader';
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import { Input, Menu } from 'semantic-ui-react';
+import { toast } from 'react-toastify';
+
+const STATUS_FILTERS = [
+  { key: 'all', label: 'All', match: () => true },
+  {
+    key: 'active',
+    label: 'Active',
+    match: (t) => t.state === 'InProgress' || t.state === 'Initializing',
+  },
+  {
+    key: 'queued',
+    label: 'Queued',
+    match: (t) => String(t.state ?? '').includes('Queued'),
+  },
+  {
+    key: 'completed',
+    label: 'Completed',
+    match: (t) => t.state === 'Completed, Succeeded',
+  },
+  {
+    key: 'failed',
+    label: 'Failed',
+    match: (t) =>
+      String(t.state ?? '').includes('Completed') &&
+      t.state !== 'Completed, Succeeded',
+  },
+];
+
+const RECONCILE_INTERVAL_MS = 15_000;
+
+const getErrorMessage = (error) =>
+  error?.response?.data ?? error?.message ?? `${error}`;
+
+const summarizeBulkFailures = ({ action, failures }) => {
+  if (failures.length === 0) {
+    return;
+  }
+
+  const [firstFailure] = failures;
+  toast.error(
+    failures.length === 1
+      ? `Failed to ${action} ${firstFailure.label}: ${firstFailure.message}`
+      : `Failed to ${action} ${failures.length} transfer(s). First error: ${firstFailure.label}: ${firstFailure.message}`,
+  );
+};
+
+const matchesDirection = (transfer, direction) =>
+  String(transfer.direction ?? '').toLowerCase() === direction;
+
+const isSucceeded = (state) => state === 'Completed, Succeeded';
+
+const TransferManager = ({ direction, server = { isConnected: true } }) => {
+  const testId = direction === 'download' ? 'downloads-root' : 'uploads-root';
+
+  const storeRef = useRef();
+  if (!storeRef.current) {
+    storeRef.current = createTransferStore();
+  }
+
+  const store = storeRef.current;
+  const version = useSyncExternalStore(store.subscribe, store.getVersion);
+  const allTransfers = useMemo(
+    () => store.getAll(),
+    // version is the change signal for the external store snapshot
+    [store, version],
+  );
+
+  const [activeTab, setActiveTab] = useState(direction);
+  const [connecting, setConnecting] = useState(true);
+  const [connected, setConnected] = useState(false);
+  const [hideCompleted, setHideCompleted] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchText, setSearchText] = useState('');
+  const [selectedKeys, setSelectedKeys] = useState(() => new Set());
+
+  const [autoReplaceEnabled, setAutoReplaceEnabled] = useState(false);
+  const [acceleratedEnabled, setAcceleratedEnabled] = useState(false);
+
+  const [retryingSingle, setRetryingSingle] = useState(false);
+  const [cancellingSingle, setCancellingSingle] = useState(false);
+  const [removingSingle, setRemovingSingle] = useState(false);
+  const [bulkCounts, setBulkCounts] = useState({
+    cancel: 0,
+    remove: 0,
+    retry: 0,
+  });
+
+  const bulkQueueRef = useRef([]);
+  const queuedBulkKeysRef = useRef(new Set());
+  const bulkQueueRunningRef = useRef(false);
+
+  const retrying = retryingSingle || bulkCounts.retry > 0;
+  const cancelling = cancellingSingle || bulkCounts.cancel > 0;
+  const removing = removingSingle || bulkCounts.remove > 0;
+
+  // Follow the route when it changes (e.g. nav from /downloads to /uploads).
+  useEffect(() => {
+    setActiveTab(direction);
+  }, [direction]);
+
+  // Seed from REST, stream deltas over SignalR, reconcile on a slow timer.
+  useEffect(() => {
+    let disposed = false;
+
+    const reconcile = async () => {
+      try {
+        const snapshot = await transfersLibrary.getFlat();
+        if (!disposed) {
+          store.seed(snapshot);
+        }
+      } catch (error) {
+        if (!disposed) {
+          console.error('transfer reconcile failed', error);
+        }
+      } finally {
+        if (!disposed) {
+          setConnecting(false);
+        }
+      }
+    };
+
+    reconcile();
+
+    const hub = createTransfersHubConnection();
+    hub.on('activity', (activity) => store.applyActivity(activity));
+    hub.on('progress', (progress) => store.applyProgress(progress));
+    hub.on('removed', (removed) => store.applyRemoved(removed));
+    hub.onreconnecting(() => setConnected(false));
+    hub.onreconnected(() => {
+      setConnected(true);
+      reconcile();
+    });
+    hub.onclose(() => setConnected(false));
+    hub.start().then(
+      () => setConnected(true),
+      () => setConnected(false),
+    );
+
+    const interval = window.setInterval(reconcile, RECONCILE_INTERVAL_MS);
+
+    return () => {
+      disposed = true;
+      window.clearInterval(interval);
+      hub.stop();
+    };
+  }, [store]);
+
+  useEffect(() => {
+    const fetchDownloadModeStatus = async () => {
+      try {
+        const [autoReplaceStatus, acceleratedStatus] = await Promise.all([
+          autoReplaceLibrary.getAutoReplaceStatus(),
+          transfersLibrary.getAcceleratedMode(),
+        ]);
+        setAutoReplaceEnabled(autoReplaceStatus?.enabled ?? false);
+        setAcceleratedEnabled(acceleratedStatus?.enabled ?? false);
+      } catch (error) {
+        console.error('Failed to fetch download mode status:', error);
+      }
+    };
+
+    fetchDownloadModeStatus();
+  }, []);
+
+  const changeBulkCount = (action, delta) => {
+    setBulkCounts((previous) => ({
+      ...previous,
+      [action]: Math.max(0, previous[action] + delta),
+    }));
+  };
+
+  const runBulkQueue = async () => {
+    if (bulkQueueRunningRef.current) {
+      return;
+    }
+
+    bulkQueueRunningRef.current = true;
+
+    while (bulkQueueRef.current.length > 0) {
+      const operation = bulkQueueRef.current.shift();
+
+      try {
+        await operation.run();
+      } catch (error) {
+        operation.batch.failures.push({
+          label: operation.label,
+          message: getErrorMessage(error),
+        });
+      } finally {
+        queuedBulkKeysRef.current.delete(operation.key);
+        changeBulkCount(operation.action, -1);
+        operation.batch.remaining -= 1;
+
+        if (operation.batch.remaining === 0) {
+          summarizeBulkFailures({
+            action: operation.batch.action,
+            failures: operation.batch.failures,
+          });
+        }
+      }
+    }
+
+    bulkQueueRunningRef.current = false;
+  };
+
+  const enqueueBulkOperations = ({ action, operations }) => {
+    const batch = { action, failures: [], remaining: 0 };
+    let enqueued = 0;
+
+    operations.forEach((operation) => {
+      if (queuedBulkKeysRef.current.has(operation.key)) {
+        return;
+      }
+
+      queuedBulkKeysRef.current.add(operation.key);
+      bulkQueueRef.current.push({ ...operation, action, batch });
+      batch.remaining += 1;
+      enqueued += 1;
+    });
+
+    if (enqueued === 0) {
+      return;
+    }
+
+    changeBulkCount(action, enqueued);
+    runBulkQueue();
+  };
+
+  const retry = async ({
+    file,
+    suppressErrorToast = false,
+    suppressStateChange = false,
+  }) => {
+    const { filename, size, username } = file;
+
+    try {
+      if (!suppressStateChange) {
+        setRetryingSingle(true);
+      }
+
+      await transfersLibrary.download({
+        files: [{ filename, size }],
+        username,
+      });
+    } catch (error) {
+      console.error(error);
+      if (!suppressErrorToast) {
+        toast.error(getErrorMessage(error));
+      }
+
+      throw error;
+    } finally {
+      if (!suppressStateChange) {
+        setRetryingSingle(false);
+      }
+    }
+  };
+
+  const cancel = async ({
+    file,
+    suppressErrorToast = false,
+    suppressStateChange = false,
+  }) => {
+    const { direction: fileDirection, id, username } = file;
+
+    try {
+      if (!suppressStateChange) {
+        setCancellingSingle(true);
+      }
+
+      await transfersLibrary.cancel({
+        direction: String(fileDirection ?? activeTab).toLowerCase(),
+        id,
+        username,
+      });
+    } catch (error) {
+      console.error(error);
+      if (!suppressErrorToast) {
+        toast.error(getErrorMessage(error));
+      }
+
+      throw error;
+    } finally {
+      if (!suppressStateChange) {
+        setCancellingSingle(false);
+      }
+    }
+  };
+
+  const remove = async ({
+    deleteFile = false,
+    file,
+    suppressErrorToast = false,
+    suppressStateChange = false,
+  }) => {
+    const { direction: fileDirection, id, username } = file;
+
+    try {
+      if (!suppressStateChange) {
+        setRemovingSingle(true);
+      }
+
+      await transfersLibrary.cancel({
+        deleteFile,
+        direction: String(fileDirection ?? activeTab).toLowerCase(),
+        id,
+        remove: true,
+        username,
+      });
+      // Snappy local removal; the REMOVED hub event and reconcile agree.
+      store.removeByKey(transferKey(file));
+    } catch (error) {
+      console.error(error);
+      if (!suppressErrorToast) {
+        toast.error(getErrorMessage(error));
+      }
+
+      throw error;
+    } finally {
+      if (!suppressStateChange) {
+        setRemovingSingle(false);
+      }
+    }
+  };
+
+  const retryAll = (filesToRetry) => {
+    enqueueBulkOperations({
+      action: 'retry',
+      operations: filesToRetry.map((file) => ({
+        key: `retry:${transferKey(file)}`,
+        label: `${file.username}/${file.filename}`,
+        run: () =>
+          retry({
+            file,
+            suppressErrorToast: true,
+            suppressStateChange: true,
+          }),
+      })),
+    });
+  };
+
+  const cancelAll = (filesToCancel) => {
+    enqueueBulkOperations({
+      action: 'cancel',
+      operations: filesToCancel.map((file) => ({
+        key: `cancel:${transferKey(file)}`,
+        label: `${file.username}/${file.filename}`,
+        run: () =>
+          cancel({
+            file,
+            suppressErrorToast: true,
+            suppressStateChange: true,
+          }),
+      })),
+    });
+  };
+
+  const removeAll = (filesToRemove, deleteFile = false, options = {}) => {
+    const { useBulkClear = false } = options;
+
+    if (useBulkClear && !deleteFile) {
+      enqueueBulkOperations({
+        action: 'remove',
+        operations: [
+          {
+            key: `remove:clear-completed:${activeTab}`,
+            label: `all completed ${activeTab}s`,
+            run: async () => {
+              await transfersLibrary.clearCompleted({ direction: activeTab });
+              filesToRemove.forEach((file) =>
+                store.removeByKey(transferKey(file)),
+              );
+            },
+          },
+        ],
+      });
+      return;
+    }
+
+    enqueueBulkOperations({
+      action: 'remove',
+      operations: filesToRemove.map((file) => ({
+        key: `remove:${transferKey(file)}:${deleteFile ? 'delete' : 'keep'}`,
+        label: `${file.username}/${file.filename}`,
+        run: () =>
+          remove({
+            deleteFile,
+            file,
+            suppressErrorToast: true,
+            suppressStateChange: true,
+          }),
+      })),
+    });
+  };
+
+  const handleAutoReplaceChange = async (enabled) => {
+    try {
+      if (enabled) {
+        await autoReplaceLibrary.enableAutoReplace();
+        setAutoReplaceEnabled(true);
+        toast.info(
+          'Auto-replace enabled. Backend will check for stuck downloads periodically.',
+        );
+      } else {
+        await autoReplaceLibrary.disableAutoReplace();
+        setAutoReplaceEnabled(false);
+        toast.info('Auto-replace disabled');
+      }
+    } catch (error) {
+      console.error('Failed to toggle auto-replace:', error);
+      toast.error('Failed to toggle auto-replace');
+    }
+  };
+
+  const handleAcceleratedChange = async (enabled) => {
+    try {
+      const status = await transfersLibrary.setAcceleratedMode({ enabled });
+      setAcceleratedEnabled(status?.enabled ?? enabled);
+      toast.info(
+        enabled
+          ? 'Accelerated mode enabled. Slow or stalled downloads can use verified alternate sources.'
+          : 'Accelerated mode disabled',
+      );
+    } catch (error) {
+      console.error('Failed to toggle accelerated mode:', error);
+      toast.error('Failed to toggle accelerated mode');
+    }
+  };
+
+  const counts = useMemo(() => {
+    let download = 0;
+    let upload = 0;
+
+    for (const transfer of allTransfers) {
+      if (matchesDirection(transfer, 'download')) {
+        download += 1;
+      } else if (matchesDirection(transfer, 'upload')) {
+        upload += 1;
+      }
+    }
+
+    return { download, upload };
+  }, [allTransfers]);
+
+  const tabTransfers = useMemo(
+    () => allTransfers.filter((t) => matchesDirection(t, activeTab)),
+    [allTransfers, activeTab],
+  );
+
+  const visibleTransfers = useMemo(() => {
+    if (!hideCompleted) {
+      return tabTransfers;
+    }
+
+    return tabTransfers.filter((t) => !isSucceeded(t.state));
+  }, [tabTransfers, hideCompleted]);
+
+  const filteredTransfers = useMemo(() => {
+    const statusMatch =
+      STATUS_FILTERS.find((f) => f.key === statusFilter)?.match ?? (() => true);
+    const needle = searchText.trim().toLowerCase();
+
+    return visibleTransfers.filter((t) => {
+      if (!statusMatch(t)) {
+        return false;
+      }
+
+      if (!needle) {
+        return true;
+      }
+
+      return (
+        String(t.filename ?? '')
+          .toLowerCase()
+          .includes(needle) ||
+        String(t.username ?? '')
+          .toLowerCase()
+          .includes(needle)
+      );
+    });
+  }, [visibleTransfers, statusFilter, searchText]);
+
+  const statusCounts = useMemo(() => {
+    const result = {};
+    for (const filter of STATUS_FILTERS) {
+      result[filter.key] = visibleTransfers.filter(filter.match).length;
+    }
+
+    return result;
+  }, [visibleTransfers]);
+
+  // TransfersHeader derives its bulk-action file lists from a nested
+  // (user -> directory -> files) shape; give it a single synthetic group.
+  const headerTransfers = useMemo(
+    () => [
+      {
+        username: '',
+        directories: [{ directory: '', files: tabTransfers }],
+      },
+    ],
+    [tabTransfers],
+  );
+
+  const handleSelectionChange = (file, selected) => {
+    setSelectedKeys((previous) => {
+      const next = new Set(previous);
+      const key = transferKey(file);
+
+      if (selected) {
+        next.add(key);
+      } else {
+        next.delete(key);
+      }
+
+      return next;
+    });
+  };
+
+  const handleSelectAll = (files, selected) => {
+    setSelectedKeys((previous) => {
+      const next = new Set(previous);
+
+      files.forEach((file) => {
+        const key = transferKey(file);
+        if (selected) {
+          next.add(key);
+        } else {
+          next.delete(key);
+        }
+      });
+
+      return next;
+    });
+  };
+
+  const selectedFiles = useMemo(
+    () => filteredTransfers.filter((t) => selectedKeys.has(transferKey(t))),
+    [filteredTransfers, selectedKeys],
+  );
+
+  const isEmpty = tabTransfers.length === 0;
+
+  return (
+    <div data-testid={testId}>
+      <Menu
+        pointing
+        secondary
+      >
+        <Menu.Item
+          active={activeTab === 'download'}
+          onClick={() => setActiveTab('download')}
+        >
+          {`Downloads (${counts.download})`}
+        </Menu.Item>
+        <Menu.Item
+          active={activeTab === 'upload'}
+          onClick={() => setActiveTab('upload')}
+        >
+          {`Uploads (${counts.upload})`}
+        </Menu.Item>
+        <Menu.Menu position="right">
+          <Menu.Item
+            title={
+              connected
+                ? 'Live transfer feed connected'
+                : 'Live feed disconnected — using periodic refresh'
+            }
+          >
+            <span
+              className={`transfer-feed-dot ${connected ? 'is-live' : 'is-offline'}`}
+            />
+            {connected ? 'Live' : 'Reconnecting'}
+          </Menu.Item>
+        </Menu.Menu>
+      </Menu>
+
+      <TransfersHeader
+        acceleratedEnabled={acceleratedEnabled}
+        autoReplaceEnabled={autoReplaceEnabled}
+        cancelling={cancelling}
+        direction={activeTab}
+        hideCompleted={hideCompleted}
+        onAcceleratedChange={handleAcceleratedChange}
+        onAutoReplaceChange={handleAutoReplaceChange}
+        onCancelAll={cancelAll}
+        onHideCompletedChange={setHideCompleted}
+        onRemoveAll={removeAll}
+        onRetryAll={retryAll}
+        removing={removing}
+        retrying={retrying}
+        server={server}
+        transfers={headerTransfers}
+      />
+
+      {!isEmpty && (
+        <div className="transfer-filter-bar">
+          <div className="transfer-filter-chips">
+            {STATUS_FILTERS.map((filter) => (
+              <button
+                className={`transfer-chip${
+                  statusFilter === filter.key ? ' is-active' : ''
+                }`}
+                key={filter.key}
+                onClick={() => setStatusFilter(filter.key)}
+                type="button"
+              >
+                {`${filter.label} (${statusCounts[filter.key] ?? 0})`}
+              </button>
+            ))}
+          </div>
+          <Input
+            className="transfer-filter-search"
+            icon="search"
+            onChange={(_, data) => setSearchText(data.value)}
+            placeholder="Filter by name or peer…"
+            size="small"
+            value={searchText}
+          />
+        </div>
+      )}
+
+      {isEmpty ? (
+        <PlaceholderSegment
+          caption={
+            connecting
+              ? `Loading ${activeTab}s`
+              : `No ${activeTab}s to display`
+          }
+          icon={activeTab}
+        />
+      ) : filteredTransfers.length === 0 ? (
+        <PlaceholderSegment
+          caption={
+            searchText.trim() || statusFilter !== 'all'
+              ? `No ${activeTab}s match the current filter`
+              : `All ${activeTab}s are completed`
+          }
+          icon={searchText.trim() || statusFilter !== 'all' ? 'filter' : 'check'}
+        />
+      ) : (
+        <TransferTable
+          direction={activeTab}
+          onCancel={(file) => cancel({ file })}
+          onRemove={(file) => remove({ file })}
+          onRetry={(file) => retry({ file }).catch(() => {})}
+          onSelectAll={handleSelectAll}
+          onSelectionChange={handleSelectionChange}
+          onCancelSelected={() => cancelAll(selectedFiles)}
+          onRemoveSelected={() => removeAll(selectedFiles)}
+          onRetrySelected={() => retryAll(selectedFiles)}
+          selectedKeys={selectedKeys}
+          selectedFiles={selectedFiles}
+          transfers={filteredTransfers}
+        />
+      )}
+    </div>
+  );
+};
+
+export default TransferManager;

@@ -36,8 +36,9 @@ public class AutoReplaceServiceTests
                 SearchScope.Network,
                 It.IsAny<SearchOptions>(),
                 It.IsAny<List<string>>(),
-                "auto-replace"))
-            .ReturnsAsync((Guid id, SearchQuery _, SearchScope _, SearchOptions _, List<string> _, string _) => new SearchModel
+                "auto-replace",
+                It.IsAny<Guid?>()))
+            .ReturnsAsync((Guid id, SearchQuery _, SearchScope _, SearchOptions _, List<string> _, string _, Guid? _) => new SearchModel
             {
                 Id = id,
                 State = SearchStates.Requested,
@@ -125,8 +126,9 @@ public class AutoReplaceServiceTests
                 SearchScope.Network,
                 It.IsAny<SearchOptions>(),
                 It.IsAny<List<string>>(),
-                "auto-replace"))
-            .ReturnsAsync((Guid id, SearchQuery _, SearchScope _, SearchOptions _, List<string> _, string _) => new SearchModel
+                "auto-replace",
+                It.IsAny<Guid?>()))
+            .ReturnsAsync((Guid id, SearchQuery _, SearchScope _, SearchOptions _, List<string> _, string _, Guid? _) => new SearchModel
             {
                 Id = id,
                 State = SearchStates.Completed,
@@ -259,10 +261,20 @@ public class AutoReplaceServiceTests
             return StartAsync(id, query, scope, options, requestedProviders, "user");
         }
 
-        public Task<SearchModel> StartAsync(Guid id, SearchQuery query, SearchScope scope, SearchOptions options, List<string> requestedProviders, string safetySource)
+        public Task<SearchModel> StartAsync(Guid id, SearchQuery query, SearchScope scope, SearchOptions options, List<string> requestedProviders, string safetySource, Guid? wishlistItemId = null)
         {
             StartCount++;
             throw new InvalidOperationException("Search rate limit exceeded. See Soulseek safety configuration.");
+        }
+
+        public Task<int> CleanupAsync(int maxAgeDays = 0, int maxCount = 0)
+        {
+            return Task.FromResult(0);
+        }
+
+        public Task<List<SearchModel>> GetByWishlistItemIdAsync(Guid wishlistItemId, int limit = 50)
+        {
+            return Task.FromResult(new List<SearchModel>());
         }
 
         public Task<SearchModel> FindAsync(Expression<Func<SearchModel, bool>> expression, bool includeResponses = false)

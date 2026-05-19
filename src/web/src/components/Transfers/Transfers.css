@@ -71,3 +71,266 @@
 .auto-replace-toggle label {
   font-weight: 500 !important;
 }
+
+.transfer-table-wrapper {
+  margin-top: 12px;
+  overflow-x: auto;
+}
+
+.transfer-grid {
+  min-width: 920px;
+}
+
+.transfer-row {
+  display: grid;
+  align-items: center;
+  column-gap: 8px;
+  padding: 0 8px;
+  border-bottom: 1px solid rgba(127, 127, 127, 0.14);
+  box-sizing: border-box;
+}
+
+/* Zebra striping is keyed off the data index (not :nth-child) because
+   react-window recycles DOM nodes; :nth-child would shimmer on scroll. */
+.transfer-row.is-odd {
+  background: rgba(127, 127, 127, 0.06);
+}
+
+.transfer-row.is-even {
+  background: transparent;
+}
+
+.transfer-row:not(.transfer-header-row):hover {
+  background: rgba(33, 133, 208, 0.08);
+}
+
+.transfer-row.is-selected,
+.transfer-row.is-selected:hover {
+  background: rgba(33, 133, 208, 0.16);
+  box-shadow: inset 3px 0 0 var(--slskdn-accent-primary, #2185d0);
+}
+
+.transfer-row:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--slskdn-accent-primary, #2185d0);
+}
+
+.transfer-header-row {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 40px;
+  font-weight: 700;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--slskdn-surface, #f4f4f5);
+  border-bottom: 2px solid rgba(127, 127, 127, 0.28);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+:root.dark .transfer-header-row {
+  background: var(--slskdn-surface, #1f1f23);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.transfer-header-cell.is-sortable:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--slskdn-accent-primary, #2185d0);
+}
+
+.transfer-cell-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.transfer-retry-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.78em;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 8px;
+  color: #b25000;
+  background: rgba(245, 166, 35, 0.18);
+}
+
+.transfer-retry-badge i.icon {
+  margin: 0 !important;
+  font-size: 0.85em;
+}
+
+.transfer-next-attempt {
+  font-size: 0.78em;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+
+:root.dark .transfer-retry-badge {
+  color: #f0b86b;
+}
+
+.transfer-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transfer-cell-name {
+  font-weight: 500;
+}
+
+.transfer-cell-peer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.transfer-peer-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transfer-cell-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.transfer-cell-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.transfer-header-cell.is-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.transfer-header-cell.is-sortable:hover {
+  color: var(--slskdn-accent-primary, #6435c9);
+}
+
+.transfer-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.transfer-progress-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(127, 127, 127, 0.2);
+  overflow: hidden;
+}
+
+.transfer-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: #2185d0;
+  transition: width 0.3s ease;
+}
+
+.transfer-progress-label {
+  font-size: 0.8em;
+  font-variant-numeric: tabular-nums;
+  min-width: 34px;
+  text-align: right;
+}
+
+.transfer-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.transfer-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.transfer-chip {
+  border: 1px solid rgba(127, 127, 127, 0.32);
+  background: transparent;
+  color: inherit;
+  border-radius: 14px;
+  padding: 4px 12px;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+.transfer-chip.is-active {
+  background: var(--slskdn-accent-primary, #6435c9);
+  border-color: var(--slskdn-accent-primary, #6435c9);
+  color: #fff;
+}
+
+.transfer-filter-search {
+  margin-left: auto !important;
+}
+
+.transfer-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 4px;
+}
+
+.transfer-feed-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.transfer-feed-dot.is-live {
+  background: #21ba45;
+  box-shadow: 0 0 0 3px rgba(33, 186, 69, 0.18);
+}
+
+.transfer-feed-dot.is-offline {
+  background: #db2828;
+  box-shadow: 0 0 0 3px rgba(219, 40, 40, 0.18);
+}
+
+.transfer-state-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.85em;
+  font-weight: 600;
+  background: rgba(127, 127, 127, 0.16);
+}
+
+.transfer-state-pill.transfer-state-green {
+  color: #1a7f37;
+  background: rgba(33, 186, 69, 0.16);
+}
+
+.transfer-state-pill.transfer-state-blue {
+  color: #1565c0;
+  background: rgba(33, 133, 208, 0.16);
+}
+
+.transfer-state-pill.transfer-state-teal {
+  color: #00808b;
+  background: rgba(0, 181, 173, 0.16);
+}
+
+.transfer-state-pill.transfer-state-red {
+  color: #c0392b;
+  background: rgba(219, 40, 40, 0.16);
+}
+
+:root.dark .transfer-state-pill {
+  color: var(--slskdn-accent-primary-hover, #eadfff);
+}

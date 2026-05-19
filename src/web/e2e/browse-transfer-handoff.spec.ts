@@ -60,6 +60,30 @@ test.describe('browse transfer handoff', () => {
         });
       },
     );
+    // The TransferManager seeds its store from the flat /transfers endpoint
+    // (not the legacy nested /transfers/downloads). Mock that with a flat array.
+    await page.route(
+      (url) => url.pathname === '/api/v0/transfers',
+      async (route) => {
+        transferRequestCount += 1;
+        await route.fulfill({
+          contentType: 'application/json',
+          json: [
+            {
+              attempts: 1,
+              bytesTransferred: 0,
+              direction: 'Download',
+              filename: 'stalled-track.flac',
+              id: 'download-1',
+              percentComplete: 0,
+              size: 1234,
+              state: 'Completed, Errored',
+              username: peer,
+            },
+          ],
+        });
+      },
+    );
     await page.route('**/api/v0/transfers/downloads/accelerated', async (route) => {
       await route.fulfill({ contentType: 'application/json', json: { enabled: false } });
     });

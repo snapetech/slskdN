@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Reworked the uploads/downloads pages into a single qBittorrent-style
+  TransferManager: one Downloads/Uploads tabbed pane backed by a flat
+  `/api/v0/transfers` snapshot plus SignalR ACTIVITY/PROGRESS/REMOVED deltas
+  and a slow REST reconcile, so rows patch in place (no full redraw on poll or
+  auto-retry) with a virtualized, sortable, accessible grid, status/peer
+  filters, zebra rows, and retry/attempt affordances. Auto-replace now emits
+  REMOVED so an alternate-source swap drops the stale row immediately.
 - Required tagged release publishing for build and COPR workflows and added
   secret-backed COPR Kerberos/Fedora login support for durable release auth.
 - Added a default-off private-message auto response for human-check, captcha,
