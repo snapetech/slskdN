@@ -103,6 +103,18 @@ public static class SoulseekNetworkExceptionClassifier
             return true;
         }
 
+        // IOException wrapping a file creation failure (e.g. UnauthorizedAccessException)
+        var isFileCreationIoFailure =
+            exception is IOException &&
+            !(exception is UnauthorizedAccessException) &&
+            (details.Contains("Failed to create file", StringComparison.Ordinal) ||
+             details.Contains("Access to the path", StringComparison.Ordinal));
+
+        if (isFileCreationIoFailure)
+        {
+            return true;
+        }
+
         return details.Contains("Soulseek.Network.PeerConnectionManager", StringComparison.Ordinal) ||
             details.Contains("Soulseek.Network.DistributedConnectionManager", StringComparison.Ordinal) ||
             details.Contains("Soulseek.Network.Tcp.Connection", StringComparison.Ordinal) ||

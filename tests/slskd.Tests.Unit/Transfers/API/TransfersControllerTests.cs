@@ -7,6 +7,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.IO;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using Moq;
 using slskd.Transfers;
@@ -595,12 +596,172 @@ public class TransfersControllerTests
         };
     }
 
+    [Fact]
+    public void GetTransfers_WithDownloadDirection_ReturnsOnlyDownloads()
+    {
+        var download = new SlskdTransfer
+        {
+            Id = Guid.NewGuid(),
+            Username = "alice",
+            Filename = "Album\\song.flac",
+            Direction = TransferDirection.Download,
+        };
+        var downloads = new Mock<IDownloadService>();
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), It.IsAny<bool>()))
+            .Returns(new List<SlskdTransfer> { download });
+        var uploads = new Mock<IUploadService>();
+
+        var controller = CreateController(downloads: downloads, uploads: uploads);
+
+        var result = controller.GetTransfers(direction: "download");
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var items = Assert.IsAssignableFrom<IEnumerable<SlskdTransfer>>(ok.Value);
+        Assert.Equal(new[] { download }, items);
+        uploads.Verify(
+            service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), It.IsAny<bool>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public void GetTransfers_WithUploadDirection_ReturnsOnlyUploads()
+    {
+        var upload = new SlskdTransfer
+        {
+            Id = Guid.NewGuid(),
+            Username = "bob",
+            Filename = "Shared\\track.mp3",
+            Direction = TransferDirection.Upload,
+        };
+        var downloads = new Mock<IDownloadService>();
+        var uploads = new Mock<IUploadService>();
+        uploads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), It.IsAny<bool>()))
+            .Returns(new List<SlskdTransfer> { upload });
+
+        var controller = CreateController(downloads: downloads, uploads: uploads);
+
+        var result = controller.GetTransfers(direction: "upload");
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var items = Assert.IsAssignableFrom<IEnumerable<SlskdTransfer>>(ok.Value);
+        Assert.Equal(new[] { upload }, items);
+        downloads.Verify(
+            service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), It.IsAny<bool>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public void GetTransfers_WithNoDirection_ReturnsBothDirections()
+    {
+        var download = new SlskdTransfer { Id = Guid.NewGuid(), Direction = TransferDirection.Download };
+        var upload = new SlskdTransfer { Id = Guid.NewGuid(), Direction = TransferDirection.Upload };
+        var downloads = new Mock<IDownloadService>();
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), It.IsAny<bool>()))
+            .Returns(new List<SlskdTransfer> { download });
+        var uploads = new Mock<IUploadService>();
+        uploads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), It.IsAny<bool>()))
+            .Returns(new List<SlskdTransfer> { upload });
+
+        var controller = CreateController(downloads: downloads, uploads: uploads);
+
+        var result = controller.GetTransfers();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var items = Assert.IsAssignableFrom<IEnumerable<SlskdTransfer>>(ok.Value).ToList();
+        Assert.Contains(download, items);
+        Assert.Contains(upload, items);
+    }
+
+    [Fact]
+    public void GetTransfers_WithInvalidDirection_ReturnsBadRequest()
+    {
+        var controller = CreateController();
+
+        var result = controller.GetTransfers(direction: "sideways");
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public void GetTransfers_WhenCompletedHidden_UsesTranslatablePredicateForBothServices()
+    {
+        Expression<Func<SlskdTransfer, bool>>? downloadExpression = null;
+        Expression<Func<SlskdTransfer, bool>>? uploadExpression = null;
+
+        var downloads = new Mock<IDownloadService>();
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), It.IsAny<bool>()))
+            .Callback<Expression<Func<SlskdTransfer, bool>>?, bool>((expression, _) => downloadExpression = expression)
+            .Returns(new List<SlskdTransfer>());
+        var uploads = new Mock<IUploadService>();
+        uploads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), It.IsAny<bool>()))
+            .Callback<Expression<Func<SlskdTransfer, bool>>, bool>((expression, _) => uploadExpression = expression)
+            .Returns(new List<SlskdTransfer>());
+
+        var controller = CreateController(downloads: downloads, uploads: uploads);
+
+        controller.GetTransfers(includeCompleted: false);
+
+        Assert.NotNull(downloadExpression);
+        Assert.False(ContainsMethodCall(downloadExpression!.Body));
+        Assert.NotNull(uploadExpression);
+        Assert.False(ContainsMethodCall(uploadExpression!.Body));
+    }
+
+    [Fact]
+    public void ClearCompletedDownloads_EmitsRemovedActivityForRemovedTransfers()
+    {
+        var completed = new SlskdTransfer
+        {
+            Id = Guid.NewGuid(),
+            Username = "alice",
+            Filename = "Album\\done.flac",
+            Direction = TransferDirection.Download,
+            State = TransferStates.Completed | TransferStates.Succeeded,
+        };
+        var downloads = new Mock<IDownloadService>();
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), false))
+            .Returns<Expression<Func<SlskdTransfer, bool>>?, bool>((expression, _) =>
+                new[] { completed }.Where(expression!.Compile()).ToList());
+        var hub = CreateHubMock(out var clientProxy);
+
+        var controller = CreateController(downloads: downloads, transfersHub: hub);
+
+        var result = controller.ClearCompletedDownloads();
+
+        Assert.IsType<NoContentResult>(result);
+        clientProxy.Verify(
+            proxy => proxy.SendCoreAsync(
+                TransferHubMethods.Removed,
+                It.IsAny<object[]>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    private static Mock<IHubContext<TransfersHub>> CreateHubMock(out Mock<IClientProxy> clientProxy)
+    {
+        clientProxy = new Mock<IClientProxy>();
+        var clients = new Mock<IHubClients>();
+        clients.SetupGet(c => c.All).Returns(clientProxy.Object);
+
+        var hub = new Mock<IHubContext<TransfersHub>>();
+        hub.SetupGet(h => h.Clients).Returns(clients.Object);
+        return hub;
+    }
+
     private static TransfersController CreateController(
         Mock<IDownloadService>? downloads = null,
         Mock<IUploadService>? uploads = null,
         Mock<IAcceleratedDownloadService>? acceleratedDownloads = null,
         slskd.Options? options = null,
-        slskd.State? state = null)
+        slskd.State? state = null,
+        Mock<IHubContext<TransfersHub>>? transfersHub = null)
     {
         var transferService = new Mock<ITransferService>();
         transferService.SetupGet(service => service.Downloads).Returns((downloads ?? new Mock<IDownloadService>()).Object);
@@ -624,6 +785,7 @@ public class TransfersControllerTests
             stateSnapshot.Object,
             Mock.Of<IAutoReplaceService>(),
             autoReplaceBackgroundService,
-            (acceleratedDownloads ?? new Mock<IAcceleratedDownloadService>()).Object);
+            (acceleratedDownloads ?? new Mock<IAcceleratedDownloadService>()).Object,
+            (transfersHub ?? CreateHubMock(out _)).Object);
     }
 }

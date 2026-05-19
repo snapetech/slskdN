@@ -1,4 +1,4 @@
-import { formatTransferState, getFailureReason } from '../../lib/transfers';
+import { formatTransferState, getFailureReason, getErrorAffordance } from '../../lib/transfers';
 import { formatBytes, formatBytesAsUnit, getFileName } from '../../lib/util';
 import React, { Component } from 'react';
 import {
@@ -130,7 +130,17 @@ class TransferList extends Component {
                   </Table.Row>
                 </Table.Header>
                 <Table.Body>
-                  {sortedFiles.map((f) => (
+                  {sortedFiles.map((f) => {
+                    const failureReason =
+                      f.exception && getFailureReason(f.exception);
+                    const affordance =
+                      f.direction === 'Download' &&
+                      isRetryableState(f.state) &&
+                      failureReason
+                        ? getErrorAffordance(failureReason)
+                        : null;
+
+                    return (
                     <Table.Row key={f.filename}>
                       <Table.Cell className="transferlist-selector">
                         <Checkbox
@@ -155,9 +165,7 @@ class TransferList extends Component {
                         ) : (
                           <Popup
                             content={
-                              f.exception
-                                ? getFailureReason(f.exception) || f.exception
-                                : null
+                              failureReason || f.exception || null
                             }
                             disabled={!f.exception}
                             inverted
@@ -181,11 +189,28 @@ class TransferList extends Component {
                                   )}
                                 {f.direction === 'Download' &&
                                   isRetryableState(f.state) && (
-                                    <Icon name="redo" />
+                                    <Icon name={affordance?.icon || 'redo'} />
                                   )}
                                 {formatTransferState(f.state, f.exception)}
                                 {f.placeInQueue ? ` (#${f.placeInQueue})` : ''}
                               </Button>
+                            }
+                          />
+                        )}
+                        {affordance && affordance.action === 'retry' && (
+                          <Popup
+                            content={affordance.description}
+                            inverted
+                            position="top center"
+                            trigger={
+                              <Button
+                                className="transfer-affordance-btn"
+                                compact
+                                icon={affordance.icon}
+                                size="mini"
+                                title={affordance.label}
+                                onClick={() => this.handleClick(f)}
+                              />
                             }
                           />
                         )}
@@ -202,7 +227,8 @@ class TransferList extends Component {
                         })}
                       </Table.Cell>
                     </Table.Row>
-                  ))}
+                    );
+                  })}
                 </Table.Body>
               </Table>
             </List.Item>

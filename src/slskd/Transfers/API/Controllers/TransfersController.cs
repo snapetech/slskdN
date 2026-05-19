@@ -91,7 +91,24 @@ namespace slskd.Transfers.API
         private IAutoReplaceService AutoReplace { get; }
         private AutoReplaceBackgroundService AutoReplaceBackgroundService { get; }
         private IAcceleratedDownloadService AcceleratedDownloads { get; }
+        private IHubContext<TransfersHub> TransfersHub { get; }
         private ILogger Log { get; set; } = Serilog.Log.ForContext<TransfersController>();
+
+        private void NotifyRemoved(global::slskd.Transfers.Transfer transfer)
+        {
+            if (transfer == null)
+            {
+                return;
+            }
+
+            _ = TransfersHub.EmitTransferRemovedAsync(new TransferRemoved
+            {
+                Id = transfer.Id,
+                Direction = transfer.Direction,
+                Username = transfer.Username,
+                Filename = transfer.Filename,
+            });
+        }
 
         private static bool IsSuccessfulTerminalTransfer(Soulseek.TransferStates state)
         {
@@ -177,6 +194,7 @@ namespace slskd.Transfers.API
                 if (remove)
                 {
                     Transfers.Downloads.Remove(guid, deleteFile);
+                    NotifyRemoved(download);
                 }
 
                 return NoContent();
@@ -206,9 +224,10 @@ namespace slskd.Transfers.API
                 t => t.State.HasFlag(Soulseek.TransferStates.Completed) &&
                     t.State.HasFlag(Soulseek.TransferStates.Succeeded));
 
-            foreach (var id in transfers.Select(t => t.Id))
+            foreach (var transfer in transfers)
             {
-                Transfers.Downloads.Remove(id);
+                Transfers.Downloads.Remove(transfer.Id);
+                NotifyRemoved(transfer);
             }
 
             return NoContent();
@@ -255,6 +274,7 @@ namespace slskd.Transfers.API
                 if (remove)
                 {
                     Transfers.Uploads.Remove(guid);
+                    NotifyRemoved(upload);
                 }
 
                 return NoContent();
@@ -287,9 +307,10 @@ namespace slskd.Transfers.API
                         t.State.HasFlag(Soulseek.TransferStates.Succeeded),
                     includeRemoved: false);
 
-            foreach (var id in transfers.Select(t => t.Id))
+            foreach (var transfer in transfers)
             {
-                Transfers.Uploads.Remove(id);
+                Transfers.Uploads.Remove(transfer.Id);
+                NotifyRemoved(transfer);
             }
 
             return NoContent();

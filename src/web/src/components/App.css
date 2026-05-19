@@ -926,6 +926,26 @@ body {
     }
 }
 
+/* Affordance button shown next to failed transfer states */
+.transfer-affordance-btn.ui.button.compact {
+    background: transparent !important;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+    color: var(--slskd-color-subtle, #c5b7a7);
+    margin-left: 4px;
+    padding: 6px;
+}
+
+.transfer-affordance-btn.ui.button.compact:hover {
+    background: var(--slskdn-affordance-hover-background, rgba(215, 161, 107, 0.14)) !important;
+    border-color: var(--slskdn-accent-primary-border, rgba(184, 154, 246, 0.26));
+    color: var(--slskd-color, #f1eadf);
+}
+
+.transfer-affordance-btn.ui.button.compact:active {
+    background: var(--slskdn-affordance-active-background, rgba(215, 161, 107, 0.24)) !important;
+}
+
 @media only screen and (max-width: 767px) {
     .transferlist-progress {
         width: 100%;

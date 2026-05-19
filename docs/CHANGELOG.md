@@ -264,6 +264,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
   operations, auto-disable after N downloads, Mark All as Viewed, and
   search retention cleanup config in System settings.
 - Fixed TransferList visual alignment issues in the transfers page.
+- Added error affordances to failed transfer rows: each failure reason
+  (Too many megabytes, File not shared, Size mismatch, Overwhelmed,
+  Internal error, Peer offline, Connection lost) now shows a contextual
+  action button with an appropriate icon (search, clock, pause, redo)
+  and a tooltip explaining what the action does. Clicking retries the
+  transfer or finds other sources.
 - Fixed inverted condition in the wishlist schema migration
   (Z05182026_WishlistItemViewingAndDownloadLimitsMigration) so that
   LastViewedAt and MaxDownloads columns are actually added to existing

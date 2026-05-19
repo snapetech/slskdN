@@ -1,8 +1,21 @@
 # Transfer Manager Rework — Single Pane of Glass
 
-Status: in progress (Phase 1)
+Status: Phase 1 complete (backend); Phase 2 (frontend) not started
 Owner: Keith
 Date: 2026-05-18
+
+## Progress
+
+- **Phase 1 — done.** Flat `GET /transfers?direction=&includeCompleted=&includeRemoved=`
+  endpoint; `Id`/`PlaceInQueue` added to `TransferActivity` (+ `FromTransferProgress`);
+  `PROGRESS`/`REMOVED` hub methods + extensions; throttled (~1 Hz, sampled)
+  `Client_TransferProgressUpdated`; record-resolution on state change; `REMOVED`
+  emitted from cancel-with-remove and clear-completed. Main project builds clean
+  (0 errors). New unit tests written in `TransfersControllerTests.cs` but the
+  unit-test project currently fails to compile due to **pre-existing, unrelated**
+  breakage (`LidarrSyncServiceTests`, `AutoReplaceServiceTests` fakes missing
+  interface members added by commit `60039cee8`); not introduced by this work.
+- **Phase 2 / 3 — pending.**
 
 ## Goal
 
