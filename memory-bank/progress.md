@@ -1,4 +1,34 @@
+## 2026-05-19 (late)
+
+- **Audio metadata columns for Downloads**: Bitrate, Sample Rate, Length columns added, enriched from downloaded files via TagLib.
+  - Internal `Transfer` model: added `BitRate`, `SampleRate`, `BitDepth`, `Length` (nullable ints).
+  - API DTO: matching fields added; serialized directly from internal model (no DTO mapping layer needed).
+  - `Extensions.WithSoulseekTransfer()`: preserves metadata fields across transfer updates.
+  - `DownloadService.EnrichTransferMetadata()`: reads audio properties from completed download file via TagLib after file move, updates transfer record. Non-fatal on failure (debug log).
+  - Frontend: `bitrate`, `samplerate`, `length` columns added to `transferColumns.js` (bitrate and length default visible). Cell rendering with `kbps`, `kHz`, seconds formatting in `TransferTable`.
+  - Build: 0 errors, 4272 tests pass, frontend clean.
+  - Deployed to kspls0 as `slskdn:0.0.0-manual.20260519040543.ad4c8d4ed`.
+
+- **Column management + enrichment for Downloads/Uploads**: Configurable columns with drag-reorder, resize handles, and column chooser dropdown.
+  - New `src/web/src/lib/transferColumns.js`: 14 column definitions, localStorage persistence per direction, load/save/visibility/width APIs.
+  - New `src/web/src/lib/util.js`: added `getExtension()` helper.
+  - Rewrote `TransferTable.jsx`: dynamic column order from persisted state, drag-to-reorder via HTML5 drag/drop, column resize via mousedown handlers, column chooser Popup with checkmark toggles.
+  - New columns: Type (extension), Folder (full path), Elapsed, Remaining (bytes), Added (started), Done (completed).
+  - CSS: `.resize-handle` hover, `.transfer-chooser-menu`, `.transfer-chooser-btn`, drag-over feedback.
+  - Build: frontend clean (27 KB TransferManager chunk), 4272 C# tests pass.
+  - Deployed to kspls0 as `slskdn:0.0.0-manual.20260519033842.ad4c8d4ed`.
+
 ## 2026-05-19
+
+- **Transfers UI compact layout**: Made Downloads and Uploads pages qBittorrent-like — full-width no dead space, shrunk rows and text.
+  - Added `.view-transfer` CSS class: `max-width: none`, `padding: 0`, flex column for full height fill.
+  - `ROW_HEIGHT` 40 → 28, removed `MAX_VIEWPORT_HEIGHT` (640px), replaced with dynamic `ResizeObserver` on the grid element.
+  - Grid columns narrowed (checkbox 30px, name 200px, speed 90px, ETA 72px, etc.).
+  - Header: flat segment (no `raised`), auto height, icon `large`.
+  - Font: rows `0.82em`, header `0.75em`, chips `0.78em`, action buttons `0.65rem`.
+  - Checkboxes scaled to 85%, progress bar 6px height.
+  - Routes in `App.jsx` use `className="view view-transfer"` for downloads/uploads.
+  - Build: frontend clean (22 KB chunk), 4272 C# tests all pass.
 
 - Wishlist & Search UX plan fully complete including critical gap fixes.
 - **Schema migrations**: Created `Z05182026_SearchSourceAndWishlistItemIdMigration.cs` and `Z05182026_WishlistItemViewingAndDownloadLimitsMigration.cs` using the `IMigration` + `SchemaInspector` pattern for idempotent column addition on existing SQLite databases. Added `Source` and `WishlistItemId` to Searches; `LastViewedAt` and `MaxDownloads` to WishlistItems.

@@ -152,12 +152,11 @@ const TransfersHeader = ({
   return (
     <Segment
       className="transfers-header-segment"
-      raised
     >
       <div className="transfers-segment-icon">
         <Icon
           name={direction}
-          size="big"
+          size="large"
         />
       </div>
       <Div

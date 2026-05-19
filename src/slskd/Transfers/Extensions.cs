@@ -24,7 +24,7 @@ namespace slskd.Transfers
     {
         public static Transfer WithSoulseekTransfer(this Transfer transfer, Soulseek.Transfer t)
         {
-            return new Transfer()
+return new Transfer()
             {
                 Id = transfer.Id,
                 Username = transfer.Username,
@@ -44,6 +44,10 @@ namespace slskd.Transfers
                 BytesTransferred = t.BytesTransferred,
                 AverageSpeed = t.AverageSpeed,
                 Exception = t.Exception?.Message,
+                BitRate = transfer.BitRate,
+                SampleRate = transfer.SampleRate,
+                BitDepth = transfer.BitDepth,
+                Length = transfer.Length,
             };
         }
     }

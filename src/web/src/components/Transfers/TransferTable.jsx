@@ -10,31 +10,33 @@ import {
   formatBytes,
   formatBytesAsUnit,
   formatSeconds,
+  getExtension,
   getFileName,
 } from '../../lib/util';
-import React, { useCallback, useMemo, useState } from 'react';
+import {
+  ALL_COLUMNS,
+  columnMinWidth,
+  loadColumnState,
+  saveColumnState,
+  visibleColumnKeys,
+} from '../../lib/transferColumns';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button, Checkbox, Icon, Popup } from 'semantic-ui-react';
+import { Button, Checkbox, Dropdown, Icon, Popup } from 'semantic-ui-react';
 import { FixedSizeList } from 'react-window';
 
-const ROW_HEIGHT = 40;
-const MAX_VIEWPORT_HEIGHT = 640;
+const ROW_HEIGHT = 28;
+const CHECKBOX_WIDTH = 28;
+const RESIZE_HANDLE = 6;
 
 const stateColor = (state) => {
   switch (state) {
-    case 'InProgress':
-      return 'blue';
-    case 'Completed, Succeeded':
-      return 'green';
-    case 'Requested':
-    case 'Queued':
-    case 'Queued, Locally':
-    case 'Queued, Remotely':
-      return 'neutral';
-    case 'Initializing':
-      return 'teal';
-    default:
-      return 'red';
+    case 'InProgress':                         return 'blue';
+    case 'Completed, Succeeded':                return 'green';
+    case 'Requested': case 'Queued':
+    case 'Queued, Locally': case 'Queued, Remotely': return 'neutral';
+    case 'Initializing':                       return 'teal';
+    default:                                   return 'red';
   }
 };
 
@@ -45,78 +47,69 @@ const formatSize = ({ bytesTransferred, size }) => {
 };
 
 const formatEta = (transfer) => {
-  if (transfer.state !== 'InProgress') return '—';
+  if (transfer.state !== 'InProgress') return '-';
   const ms = transfer.remainingTime;
-  if (ms === null || ms === undefined || ms <= 0) return '—';
+  if (ms === null || ms === undefined || ms <= 0) return '-';
   return formatSeconds(Math.round(ms / 1_000));
 };
 
 const formatClock = (value) => {
-  if (!value) return '';
+  if (!value) return '-';
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString();
+  return Number.isNaN(date.getTime()) ? '-' : date.toLocaleTimeString();
 };
 
-const INTERACTIVE_SELECTOR = 'button, a, input, label, .ui.checkbox';
+const formatElapsed = (ms) => {
+  if (!ms || ms <= 0) return '-';
+  return formatSeconds(Math.round(ms / 1000));
+};
 
-// react-window's inner scroll content; tag it as the grid's row group for AT.
-const RowGroup = React.forwardRef(({ style, ...rest }, ref) => (
-  <div
-    ref={ref}
-    role="rowgroup"
-    style={style}
-    {...rest}
-  />
-));
+const INTERACTIVE_SELECTOR = 'button, a, input, label, .ui.checkbox, .ui.dropdown';
 
-RowGroup.displayName = 'TransferTableRowGroup';
-
-// grid-template-columns; keep in sync between header and rows.
-const GRID_TEMPLATE =
-  '36px minmax(220px, 2.4fr) minmax(110px, 1fr) 132px 188px 104px 84px 150px 104px';
-
-const COLUMNS = [
-  { key: 'filename', label: 'Name', sortable: true },
-  { key: 'username', label: 'Peer', sortable: true },
-  { key: 'size', label: 'Size', sortable: true },
-  { key: 'progress', label: 'Progress', sortable: true },
-  { key: 'averageSpeed', label: 'Speed', sortable: true },
-  { key: 'eta', label: 'ETA', sortable: true },
-  { key: 'state', label: 'State', sortable: true },
-  { key: 'actions', label: '', sortable: false },
-];
-
-const sortValue = (transfer, key) => {
+function cellContent(transfer, key) {
   switch (key) {
-    case 'filename':
-      return getFileName(transfer.filename ?? '').toLowerCase();
-    case 'username':
-      return (transfer.username ?? '').toLowerCase();
-    case 'size':
-      return transfer.size ?? 0;
-    case 'progress':
-      return transfer.percentComplete ?? 0;
-    case 'averageSpeed':
-      return transfer.state === 'InProgress' ? transfer.averageSpeed ?? 0 : -1;
-    case 'eta':
-      return transfer.state === 'InProgress'
-        ? transfer.remainingTime ?? Number.MAX_SAFE_INTEGER
-        : Number.MAX_SAFE_INTEGER;
-    case 'state':
-      return transfer.state ?? '';
+    case 'extension':
+      return (
+        <span className="transfer-state-pill" style={{ fontSize: '0.78em', textTransform: 'uppercase' }}>
+          {getExtension(transfer.filename) || '-'}
+        </span>
+      );
+    case 'directory':
+      return (
+        <span style={{ fontSize: '0.85em', opacity: 0.8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              title={transfer.filename}>
+          {transfer.filename || '-'}
+        </span>
+      );
+    case 'elapsed':
+      return <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatElapsed(transfer.elapsedTime)}</span>;
+    case 'remaining':
+      return <span style={{ fontVariantNumeric: 'tabular-nums' }}>{transfer.bytesRemaining != null ? formatBytes(transfer.bytesRemaining) : '-'}</span>;
+    case 'started':
+      return <span style={{ fontSize: '0.85em' }}>{transfer.startTime ? new Date(transfer.startTime).toLocaleString() : '-'}</span>;
+    case 'completed':
+      return <span style={{ fontSize: '0.85em' }}>{transfer.endTime ? new Date(transfer.endTime).toLocaleString() : '-'}</span>;
+    case 'bitrate':
+      return <span style={{ fontVariantNumeric: 'tabular-nums' }}>{transfer.bitRate ? `${transfer.bitRate} kbps` : '-'}</span>;
+    case 'samplerate':
+      return <span style={{ fontVariantNumeric: 'tabular-nums' }}>{transfer.sampleRate ? `${(transfer.sampleRate / 1000).toFixed(1)} kHz` : '-'}</span>;
+    case 'length':
+      return <span style={{ fontVariantNumeric: 'tabular-nums' }}>{transfer.length ? formatSeconds(transfer.length) : '-'}</span>;
     default:
-      return 0;
+      return null;
   }
-};
+}
+
+const RowGroup = React.forwardRef(({ style, ...rest }, ref) => (
+  <div ref={ref} role="rowgroup" style={style} {...rest} />
+));
+RowGroup.displayName = 'TransferTableRowGroup';
 
 const Row = React.memo(({ data, index, style }) => {
   const {
-    onCancel,
-    onRemove,
-    onRetry,
-    onSelectionChange,
-    selectedKeys,
-    transfers,
+    onCancel, onRemove, onRetry,
+    onSelectionChange, selectedKeys, transfers,
+    cols: columnOrder, widths,
   } = data;
   const transfer = transfers[index];
   const key = transferKey(transfer);
@@ -130,209 +123,210 @@ const Row = React.memo(({ data, index, style }) => {
   const nextAttempt = formatClock(transfer.nextAttemptAt);
 
   const toggleSelection = () => onSelectionChange(transfer, !selected);
-
   const handleRowClick = (event) => {
-    if (event.target.closest(INTERACTIVE_SELECTOR)) {
-      return;
-    }
-
+    if (event.target.closest(INTERACTIVE_SELECTOR)) return;
     toggleSelection();
   };
-
   const handleRowKeyDown = (event) => {
-    if (event.target !== event.currentTarget) {
-      return;
-    }
-
+    if (event.target !== event.currentTarget) return;
     if (event.key === ' ' || event.key === 'Enter') {
       event.preventDefault();
       toggleSelection();
     }
   };
 
+  const cols = columnOrder.map((k) => `${widths[k] || 60}px`);
+  const template = `${CHECKBOX_WIDTH}px ${cols.join(' ')} 100px`;
+
   return (
     <div
       aria-selected={selected}
-      className={`transfer-row ${index % 2 === 0 ? 'is-even' : 'is-odd'}${
-        selected ? ' is-selected' : ''
-      }`}
+      className={`transfer-row ${index % 2 === 0 ? 'is-even' : 'is-odd'}${selected ? ' is-selected' : ''}`}
       onClick={handleRowClick}
       onKeyDown={handleRowKeyDown}
       role="row"
-      style={{ ...style, gridTemplateColumns: GRID_TEMPLATE }}
+      style={{ ...style, gridTemplateColumns: template }}
       tabIndex={0}
     >
-      <div
-        className="transfer-cell transfer-cell-check"
-        role="gridcell"
-      >
+      <div className="transfer-cell transfer-cell-check" role="gridcell">
         <Checkbox
           aria-label={`Select ${getFileName(transfer.filename)}`}
           checked={selected}
           fitted
           onChange={(_, d) => onSelectionChange(transfer, d.checked)}
+          style={{ transform: 'scale(0.85)' }}
         />
       </div>
-      <div
-        className="transfer-cell transfer-cell-name"
-        role="gridcell"
-        title={transfer.filename}
-      >
-        {getFileName(transfer.filename)}
-      </div>
-      <div
-        className="transfer-cell transfer-cell-peer"
-        role="gridcell"
-        title={transfer.username}
-      >
-        <span className="transfer-peer-name">{transfer.username}</span>
-        <Button
-          aria-label={`Browse ${transfer.username}'s files`}
-          as={Link}
-          compact
-          data-testid={`transfer-browse-user-${transfer.username}`}
-          icon="folder open"
-          size="mini"
-          state={{ user: transfer.username }}
-          title="Browse this user's files"
-          to={`/browse?user=${encodeURIComponent(transfer.username)}`}
-        />
-      </div>
-      <div
-        className="transfer-cell transfer-cell-num"
-        role="gridcell"
-      >
-        {formatSize(transfer)}
-      </div>
-      <div
-        className="transfer-cell"
-        role="gridcell"
-      >
-        {inProgress ? (
-          <div className="transfer-progress">
-            <div className="transfer-progress-track">
-              <div
-                className="transfer-progress-fill"
-                style={{
-                  width: `${Math.min(100, Math.round(transfer.percentComplete ?? 0))}%`,
-                }}
+      {columnOrder.map((k) => (
+        <div key={k}
+          className={`transfer-cell ${k === 'name' ? 'transfer-cell-name' : ''} ${['progress','speed','eta','elapsed','remaining','size','bitrate','samplerate','length'].includes(k) ? 'transfer-cell-num' : ''}`}
+          role="gridcell"
+          title={transfer.filename}
+        >
+          {k === 'name' && <span>{getFileName(transfer.filename)}</span>}
+          {k === 'peer' && (
+            <div className="transfer-cell-peer">
+              <span className="transfer-peer-name">{transfer.username}</span>
+              <Button
+                aria-label={`Browse ${transfer.username} files`}
+                as={Link} compact icon="folder open" size="mini"
+                state={{ user: transfer.username }}
+                style={{ fontSize: '0.65rem', padding: '2px 4px' }}
+                to={`/browse?user=${encodeURIComponent(transfer.username)}`}
               />
             </div>
-            <span className="transfer-progress-label">
-              {`${Math.round(transfer.percentComplete ?? 0)}%`}
-            </span>
-          </div>
-        ) : (
-          <Popup
-            content={
-              transfer.exception
-                ? getFailureReason(transfer.exception) || transfer.exception
-                : null
-            }
-            disabled={!transfer.exception}
-            inverted
-            position="top left"
-            trigger={
+          )}
+          {k === 'size' && <span>{formatSize(transfer)}</span>}
+          {k === 'progress' && inProgress && (
+            <div className="transfer-progress">
+              <div className="transfer-progress-track">
+                <div className="transfer-progress-fill" style={{ width: `${Math.min(100, Math.round(transfer.percentComplete ?? 0))}%` }} />
+              </div>
+              <span className="transfer-progress-label">{`${Math.round(transfer.percentComplete ?? 0)}%`}</span>
+            </div>
+          )}
+          {k === 'progress' && !inProgress && (
+            <Popup
+              content={transfer.exception ? getFailureReason(transfer.exception) || transfer.exception : null}
+              disabled={!transfer.exception}
+              inverted position="top left"
+              trigger={
+                <span className={`transfer-state-pill transfer-state-${color}`}>
+                  {formatTransferState(transfer.state, transfer.exception)}
+                  {transfer.placeInQueue ? ` (#${transfer.placeInQueue})` : ''}
+                </span>
+              }
+            />
+          )}
+          {k === 'speed' && <span>{inProgress && transfer.averageSpeed ? `${formatBytes(transfer.averageSpeed)}/s` : '-'}</span>}
+          {k === 'eta' && <span>{formatEta(transfer)}</span>}
+          {k === 'state' && (
+            <div className="transfer-cell-state">
               <span className={`transfer-state-pill transfer-state-${color}`}>
                 {formatTransferState(transfer.state, transfer.exception)}
-                {transfer.placeInQueue ? ` (#${transfer.placeInQueue})` : ''}
               </span>
-            }
-          />
-        )}
-      </div>
-      <div
-        className="transfer-cell transfer-cell-num"
-        role="gridcell"
-      >
-        {inProgress && transfer.averageSpeed
-          ? `${formatBytes(transfer.averageSpeed)}/s`
-          : '—'}
-      </div>
-      <div
-        className="transfer-cell transfer-cell-num"
-        role="gridcell"
-      >
-        {formatEta(transfer)}
-      </div>
-      <div
-        className="transfer-cell transfer-cell-state"
-        role="gridcell"
-      >
-        <span className={`transfer-state-pill transfer-state-${color}`}>
-          {formatTransferState(transfer.state, transfer.exception)}
-        </span>
-        {attempts > 1 && (
-          <span
-            className="transfer-retry-badge"
-            title={`${attempts} attempts${
-              nextAttempt ? ` · next around ${nextAttempt}` : ''
-            }`}
-          >
-            <Icon name="redo" />
-            {attempts}
-          </span>
-        )}
-        {nextAttempt && !retryable && (
-          <span
-            className="transfer-next-attempt"
-            title="Next retry around this time"
-          >
-            {`↻ ${nextAttempt}`}
-          </span>
-        )}
-      </div>
-      <div
-        className="transfer-cell transfer-cell-actions"
-        role="gridcell"
-      >
-        {retryable && (
-          <Button
-            color="green"
-            icon="redo"
-            onClick={() => onRetry(transfer)}
-            size="mini"
-            title="Retry"
-          />
-        )}
-        {cancellable && (
-          <Button
-            color="red"
-            icon="x"
-            onClick={() => onCancel(transfer)}
-            size="mini"
-            title="Cancel"
-          />
-        )}
-        {removable && (
-          <Button
-            icon="trash alternate"
-            onClick={() => onRemove(transfer)}
-            size="mini"
-            title="Remove"
-          />
-        )}
+              {attempts > 1 && (
+                <span className="transfer-retry-badge">
+                  <Icon name="redo" />{attempts}
+                </span>
+              )}
+              {nextAttempt && transfer.nextAttemptAt && !retryable && (
+                <span className="transfer-next-attempt">{`↻ ${nextAttempt}`}</span>
+              )}
+            </div>
+          )}
+          {cellContent(transfer, k)}
+        </div>
+      ))}
+      <div className="transfer-cell transfer-cell-actions" role="gridcell">
+        {retryable && <Button color="green" icon="redo" onClick={() => onRetry(transfer)} size="mini" style={{ fontSize: '0.65rem', padding: '2px 6px' }} title="Retry" />}
+        {cancellable && <Button color="red" icon="x" onClick={() => onCancel(transfer)} size="mini" style={{ fontSize: '0.65rem', padding: '2px 6px' }} title="Cancel" />}
+        {removable && <Button icon="trash alternate" onClick={() => onRemove(transfer)} size="mini" style={{ fontSize: '0.65rem', padding: '2px 6px' }} title="Remove" />}
       </div>
     </div>
   );
 });
-
 Row.displayName = 'TransferTableRow';
 
 const TransferTable = ({
-  onCancel,
-  onCancelSelected,
-  onRemove,
-  onRemoveSelected,
-  onRetry,
-  onRetrySelected,
+  direction,
+  onCancel, onCancelSelected,
+  onRemove, onRemoveSelected,
+  onRetry, onRetrySelected,
   onSelectAll,
   onSelectionChange,
-  selectedFiles,
-  selectedKeys,
+  selectedFiles, selectedKeys,
   transfers,
 }) => {
-  const [sort, setSort] = useState({ direction: 'ascending', key: 'filename' });
+  const [colState, setColState] = useState(() => loadColumnState(direction));
+
+  const persistAndSave = useCallback((updater) => {
+    setColState((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      saveColumnState(direction, next);
+      return next;
+    });
+  }, [direction]);
+
+  const toggleVisible = useCallback((key) => {
+    persistAndSave((prev) => ({
+      ...prev,
+      visible: { ...prev.visible, [key]: !prev.visible[key] },
+    }));
+  }, [persistAndSave]);
+
+  const resize = useCallback((key, delta) => {
+    persistAndSave((prev) => ({
+      ...prev,
+      widths: {
+        ...prev.widths,
+        [key]: Math.max(columnMinWidth(key), (prev.widths[key] || 60) + delta),
+      },
+    }));
+  }, [persistAndSave]);
+
+  const startDragRef = useRef(null);
+
+  const handleDragStart = useCallback((event, key) => {
+    startDragRef.current = key;
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', key);
+  }, []);
+
+  const handleDragOver = useCallback((event) => {
+    event.preventDefault();
+  }, []);
+
+  const handleDrop = useCallback((event) => {
+    event.preventDefault();
+    const from = startDragRef.current;
+    const to = event.currentTarget.dataset.colkey;
+    if (!from || !to || from === to) return;
+    persistAndSave((prev) => {
+      const order = [...prev.order];
+      const i = order.indexOf(from);
+      const j = order.indexOf(to);
+      if (i < 0 || j < 0) return prev;
+      order.splice(i, 1);
+      order.splice(j, 0, from);
+      return { ...prev, order };
+    });
+  }, [persistAndSave]);
+
+  const [sort, setSort] = useState({ direction: 'ascending', key: 'name' });
+  const toggleSort = useCallback((key) => {
+    setSort((prev) =>
+      prev.key === key
+        ? { ...prev, direction: prev.direction === 'ascending' ? 'descending' : 'ascending' }
+        : { direction: 'ascending', key },
+    );
+  }, []);
+
+  const keys = visibleColumnKeys(colState);
+  const visibleCols = ALL_COLUMNS.filter((c) => keys.includes(c.key) && !c.fixed);
+  const headerTemplate = `${CHECKBOX_WIDTH}px ${keys.map((k) => `${colState.widths[k] || 60}px`).join(' ')} 100px`;
+
+  const sortValue = useCallback((transfer, k) => {
+    switch (k) {
+      case 'name':       return (getFileName(transfer.filename) ?? '').toLowerCase();
+      case 'peer':       return (transfer.username ?? '').toLowerCase();
+      case 'extension':  return getExtension(transfer.filename)?.toLowerCase() ?? '';
+      case 'directory':  return (transfer.filename ?? '').toLowerCase();
+      case 'size':       return transfer.size ?? 0;
+      case 'progress':   return transfer.percentComplete ?? 0;
+      case 'speed':      return transfer.state === 'InProgress' ? transfer.averageSpeed ?? 0 : -1;
+      case 'eta':        return transfer.state === 'InProgress' ? transfer.remainingTime ?? Number.MAX_SAFE_INTEGER : Number.MAX_SAFE_INTEGER;
+      case 'state':      return (transfer.state ?? '').toLowerCase();
+      case 'elapsed':    return transfer.elapsedTime ?? 0;
+      case 'remaining':  return transfer.bytesRemaining ?? 0;
+      case 'started':    return transfer.startTime ? new Date(transfer.startTime).getTime() : 0;
+      case 'completed':  return transfer.endTime ? new Date(transfer.endTime).getTime() : 0;
+      case 'bitrate':    return transfer.bitRate ?? 0;
+      case 'samplerate': return transfer.sampleRate ?? 0;
+      case 'length':     return transfer.length ?? 0;
+      default:           return 0;
+    }
+  }, []);
 
   const sorted = useMemo(() => {
     const rows = [...transfers];
@@ -344,40 +338,59 @@ const TransferTable = ({
       return 0;
     });
     return rows;
-  }, [transfers, sort]);
+  }, [transfers, sort, sortValue]);
 
-  const toggleSort = useCallback((key) => {
-    setSort((previous) =>
-      previous.key === key
-        ? {
-            direction:
-              previous.direction === 'ascending' ? 'descending' : 'ascending',
-            key,
-          }
-        : { direction: 'ascending', key },
-    );
+  const allSelected = sorted.length > 0 && sorted.every((t) => selectedKeys.has(transferKey(t)));
+
+  const itemData = useMemo(() => ({
+    onCancel, onRemove, onRetry,
+    onSelectionChange, selectedKeys,
+    transfers: sorted,
+    cols: keys, widths: colState.widths,
+  }), [onCancel, onRemove, onRetry, onSelectionChange, selectedKeys, sorted, keys, colState.widths]);
+
+  const gridRef = useRef(null);
+  const [gridHeight, setGridHeight] = useState(400);
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const measure = () => {
+      const gridRect = grid.getBoundingClientRect();
+      const header = grid.querySelector('.transfer-header-row');
+      const headerHeight = header ? header.getBoundingClientRect().height : 30;
+      const available = gridRect.height - headerHeight;
+      if (available > 0) setGridHeight(available);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(grid);
+    return () => observer.disconnect();
   }, []);
 
-  const allSelected =
-    sorted.length > 0 &&
-    sorted.every((transfer) => selectedKeys.has(transferKey(transfer)));
+  const listHeight = Math.max(ROW_HEIGHT, Math.min(gridHeight, sorted.length * ROW_HEIGHT));
 
-  const itemData = useMemo(
-    () => ({
-      onCancel,
-      onRemove,
-      onRetry,
-      onSelectionChange,
-      selectedKeys,
-      transfers: sorted,
-    }),
-    [onCancel, onRemove, onRetry, onSelectionChange, selectedKeys, sorted],
-  );
+  const handleResizeMouseDown = useCallback((event, key) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const startX = event.clientX;
+    const onMove = (ev) => { resize(key, ev.clientX - startX); };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [resize]);
 
-  const listHeight = Math.min(
-    MAX_VIEWPORT_HEIGHT,
-    Math.max(ROW_HEIGHT, sorted.length * ROW_HEIGHT),
-  );
+  const chooserOptions = ALL_COLUMNS
+    .filter((c) => !c.fixed)
+    .map((c) => ({
+      key: c.key,
+      text: c.label,
+      icon: colState.visible[c.key] ? 'checkmark' : undefined,
+      onClick: () => toggleVisible(c.key),
+    }));
 
   const hasSelection = selectedFiles.length > 0;
 
@@ -387,92 +400,72 @@ const TransferTable = ({
         <div className="transfer-bulk-bar">
           <span>{`${selectedFiles.length} selected`}</span>
           <Button.Group size="small">
-            <Button
-              color="green"
-              content="Retry"
-              icon="redo"
-              onClick={onRetrySelected}
-            />
-            <Button
-              color="red"
-              content="Cancel"
-              icon="x"
-              onClick={onCancelSelected}
-            />
-            <Button
-              content="Remove"
-              icon="trash alternate"
-              onClick={onRemoveSelected}
-            />
+            <Button color="green" content="Retry" icon="redo" onClick={onRetrySelected} />
+            <Button color="red" content="Cancel" icon="x" onClick={onCancelSelected} />
+            <Button content="Remove" icon="trash alternate" onClick={onRemoveSelected} />
           </Button.Group>
         </div>
       )}
-      <div
-        aria-label="Transfers"
-        aria-rowcount={sorted.length}
-        className="transfer-grid"
-        role="grid"
-      >
-        <div
-          className="transfer-row transfer-header-row"
-          role="row"
-          style={{ gridTemplateColumns: GRID_TEMPLATE }}
-        >
-          <div
-            className="transfer-cell transfer-cell-check"
-            role="columnheader"
-          >
+      <div aria-label="Transfers" aria-rowcount={sorted.length} className="transfer-grid" ref={gridRef} role="grid">
+        <div className="transfer-header-row" role="row" style={{ gridTemplateColumns: headerTemplate, display: 'grid' }}>
+          <div className="transfer-cell transfer-cell-check" role="columnheader">
             <Checkbox
               aria-label="Select all transfers"
               checked={allSelected}
               fitted
               onChange={(_, d) => onSelectAll(sorted, d.checked)}
+              style={{ transform: 'scale(0.85)' }}
             />
           </div>
-          {COLUMNS.map((column) => {
-            const isSorted = sort.key === column.key;
+          {visibleCols.map((col) => {
+            const isSorted = sort.key === col.key;
             return (
               <div
-                aria-sort={
-                  column.sortable
-                    ? isSorted
-                      ? sort.direction
-                      : 'none'
-                    : undefined
-                }
-                className={`transfer-cell transfer-header-cell${
-                  column.sortable ? ' is-sortable' : ''
-                }`}
-                key={column.key}
-                onClick={
-                  column.sortable ? () => toggleSort(column.key) : undefined
-                }
-                onKeyDown={
-                  column.sortable
-                    ? (event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          toggleSort(column.key);
-                        }
-                      }
-                    : undefined
-                }
+                aria-sort={col.sortable ? (isSorted ? sort.direction : 'none') : undefined}
+                className={`transfer-cell transfer-header-cell${col.sortable ? ' is-sortable' : ''}`}
+                key={col.key}
+                data-colkey={col.key}
+                draggable
                 role="columnheader"
-                tabIndex={column.sortable ? 0 : undefined}
+                style={{ position: 'relative' }}
+                onClick={() => col.sortable && toggleSort(col.key)}
+                onDragStart={(e) => handleDragStart(e, col.key)}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
               >
-                {column.label}
-                {isSorted && (
-                  <Icon
-                    name={
-                      sort.direction === 'ascending'
-                        ? 'caret up'
-                        : 'caret down'
-                    }
-                  />
-                )}
+                <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  {col.label}
+                  {isSorted && <Icon name={sort.direction === 'ascending' ? 'caret up' : 'caret down'} />}
+                </span>
+                <div
+                  className="resize-handle"
+                  style={{
+                    position: 'absolute', top: 0, right: -3, bottom: 0, width: RESIZE_HANDLE,
+                    cursor: 'col-resize', zIndex: 10,
+                  }}
+                  onMouseDown={(e) => handleResizeMouseDown(e, col.key)}
+                />
               </div>
             );
           })}
+          <div className="transfer-cell" role="columnheader">
+            <Popup
+              trigger={
+                <Button icon="columns" size="mini" compact style={{ fontSize: '0.65rem', padding: '2px 4px', margin: 0 }} />
+              }
+              flowing
+              on="click"
+              pinned
+            >
+              <Popup.Content>
+                <Dropdown.Menu style={{ maxHeight: 300, overflowY: 'auto' }}>
+                  {chooserOptions.map((opt) => (
+                    <Dropdown.Item key={opt.key} text={opt.label} icon={opt.icon} onClick={opt.onClick} />
+                  ))}
+                </Dropdown.Menu>
+              </Popup.Content>
+            </Popup>
+          </div>
         </div>
         <FixedSizeList
           height={listHeight}

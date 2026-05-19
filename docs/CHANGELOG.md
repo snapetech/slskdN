@@ -22,6 +22,21 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Compact qBittorrent-style Downloads/Uploads UI: full-width layout with zero dead
+  space, `view-transfer` CSS class, dynamic table height via ResizeObserver, 28px
+  rows, scaled-down controls, and flat header.
+- Column management for Downloads/Uploads: drag-to-reorder headers, resize handles
+  on column edges, column chooser popup to show/hide columns, configuration
+  persisted per-direction in localStorage via new `transferColumns.js` module.
+- Six new transfer columns: Type (file extension), Folder (directory path),
+  Elapsed (transfer duration), Remaining (bytes remaining), Added (queued time),
+  Done (completion time).
+- Audio metadata enrichment for downloads: Bitrate, Sample Rate, and Length
+  columns populated from downloaded files via TagLib after transfer completion.
+  New `BitRate`, `SampleRate`, `BitDepth`, `Length` fields on internal Transfer
+  model and API response; `DownloadService.EnrichTransferMetadata()` reads
+  audio properties post file-move, non-fatal on failure.
+- Added `getExtension()` helper to frontend util.js.
 - Reworked the uploads/downloads pages into a single qBittorrent-style
   TransferManager: one Downloads/Uploads tabbed pane backed by a flat
   `/api/v0/transfers` snapshot plus SignalR ACTIVITY/PROGRESS/REMOVED deltas

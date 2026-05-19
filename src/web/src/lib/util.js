@@ -55,6 +55,14 @@ export const getDirectoryName = (fullPath) => {
   return path;
 };
 
+export const getExtension = (fullPath) => {
+  if (!fullPath) return '';
+  const name = getFileName(fullPath);
+  const dot = name.lastIndexOf('.');
+  if (dot < 0 || dot === name.length - 1) return '';
+  return name.slice(dot + 1).toLowerCase();
+};
+
 export const formatAttributes = ({
   bitRate,
   isVariableBitRate,

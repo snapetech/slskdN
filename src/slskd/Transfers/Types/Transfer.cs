@@ -72,6 +72,18 @@ namespace slskd.Transfers
         public int? PlaceInQueue { get; set; }
         public string? Exception { get; set; }
 
+        /// <summary>Audio bitrate in kbps, if known.</summary>
+        public int? BitRate { get; set; }
+
+        /// <summary>Audio sample rate in Hz, if known.</summary>
+        public int? SampleRate { get; set; }
+
+        /// <summary>Audio bit depth, if known.</summary>
+        public int? BitDepth { get; set; }
+
+        /// <summary>Audio duration in seconds, if known.</summary>
+        public int? Length { get; set; }
+
         [JsonIgnore]
         public bool Removed { get; set; }
 

@@ -1053,6 +1053,15 @@ body {
   margin-left: auto !important;
   margin-right: auto !important;
 }
+
+.view-transfer {
+  max-width: none !important;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 100%;
+}
   
 .view:last-child {
   margin-bottom: 16px;

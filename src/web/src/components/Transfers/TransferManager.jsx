@@ -560,25 +560,29 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
   const isEmpty = tabTransfers.length === 0;
 
   return (
-    <div data-testid={testId}>
+    <div data-testid={testId} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
       <Menu
         pointing
         secondary
+        style={{ marginBottom: 0, minHeight: '36px' }}
       >
         <Menu.Item
           active={activeTab === 'download'}
           onClick={() => setActiveTab('download')}
+          style={{ fontSize: '0.85em', padding: '0.4em 0.8em' }}
         >
           {`Downloads (${counts.download})`}
         </Menu.Item>
         <Menu.Item
           active={activeTab === 'upload'}
           onClick={() => setActiveTab('upload')}
+          style={{ fontSize: '0.85em', padding: '0.4em 0.8em' }}
         >
           {`Uploads (${counts.upload})`}
         </Menu.Item>
         <Menu.Menu position="right">
           <Menu.Item
+            style={{ fontSize: '0.78em', padding: '0.3em 0.6em' }}
             title={
               connected
                 ? 'Live transfer feed connected'

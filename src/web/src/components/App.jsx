@@ -1601,7 +1601,7 @@ class App extends Component {
                     path="/uploads"
                     element={
                       this.withTokenCheck(
-                        <div className="view">
+                        <div className="view view-transfer">
                           <TransferManager
                             direction="upload"
                             server={applicationState.server}
@@ -1614,7 +1614,7 @@ class App extends Component {
                     path="/downloads"
                     element={
                       this.withTokenCheck(
-                        <div className="view">
+                        <div className="view view-transfer">
                           <TransferManager
                             direction="download"
                             server={applicationState.server}

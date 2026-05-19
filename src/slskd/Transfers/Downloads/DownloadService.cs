@@ -23,6 +23,7 @@ using Soulseek;
 using slskd.Common.CodeQuality;
 using slskd.Common.Security;
 using slskd.Transfers.MultiSource.Metrics;
+using TagLib;
 
 namespace slskd.Transfers.Downloads
 {
@@ -1371,8 +1372,29 @@ namespace slskd.Transfers.Downloads
 
                     if (strategy == RetryIncompleteStrategy.Resume)
                     {
-                        Log.Information("Continuing partial download of {Filename} from {Username} at byte {Offset}", pendingTransfer.Filename, pendingTransfer.Username, partial.Length);
-                        return (System.IO.FileMode.Append, partial.Length);
+                        // Check if the existing file is actually writable by the current process.
+                        // If not (e.g. stale file owned by a different user with no group write),
+                        // delete it and start fresh instead of crashing with UnauthorizedAccessException.
+                        try
+                        {
+                            using var probe = partial.OpenWrite();
+                            Log.Information("Continuing partial download of {Filename} from {Username} at byte {Offset}", pendingTransfer.Filename, pendingTransfer.Username, partial.Length);
+                            return (System.IO.FileMode.Append, partial.Length);
+                        }
+                        catch (UnauthorizedAccessException)
+                        {
+                            Log.Warning("Existing incomplete file {Filename} exists but is not writable; deleting and starting fresh", localFilename);
+                            try
+                            {
+                                System.IO.File.Delete(localFilename);
+                            }
+                            catch (Exception deleteEx)
+                            {
+                                Log.Warning(deleteEx, "Failed to delete unwritable incomplete file {Filename}: {Message}", localFilename, deleteEx.Message);
+                            }
+
+                            return (System.IO.FileMode.Create, 0);
+                        }
                     }
 
                     Log.Information("Discarding {Bytes} incomplete bytes before retrying {Filename} from {Username}", partial.Length, pendingTransfer.Filename, pendingTransfer.Username);
@@ -1431,6 +1453,9 @@ namespace slskd.Transfers.Downloads
                     deleteSourceDirectoryIfEmptyAfterMove: true);
 
                 Log.Debug("Moved file {Filename} to {Destination}", transfer.Filename, finalFilename);
+
+                // Enrich transfer record with audio metadata from the downloaded file
+                EnrichTransferMetadata(transfer, finalFilename);
 
                 if (OptionsMonitor.CurrentValue.Relay.Enabled)
                 {
@@ -1915,6 +1940,35 @@ namespace slskd.Transfers.Downloads
             }
 
             return exception.InnerException is not null && IsCancellationException(exception.InnerException);
+        }
+
+        private void EnrichTransferMetadata(Transfer transfer, string localFilename)
+        {
+            if (string.IsNullOrWhiteSpace(localFilename) || !System.IO.File.Exists(localFilename))
+            {
+                return;
+            }
+
+            try
+            {
+                using var tagFile = TagLib.File.Create(localFilename);
+                var props = tagFile.Properties;
+                if (props != null)
+                {
+                    if (props.AudioBitrate > 0)
+                        transfer.BitRate = props.AudioBitrate;
+                    if (props.AudioSampleRate > 0)
+                        transfer.SampleRate = props.AudioSampleRate;
+                    if (props.BitsPerSample > 0)
+                        transfer.BitDepth = props.BitsPerSample;
+                    if (props.Duration.TotalSeconds > 0)
+                        transfer.Length = (int)Math.Round(props.Duration.TotalSeconds);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Debug(ex, "Failed to read audio metadata from {LocalFilename} for transfer enrichment", localFilename);
+            }
         }
     }
 }

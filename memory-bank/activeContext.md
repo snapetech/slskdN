@@ -1,3 +1,46 @@
+## Update 2026-05-19 04:10:00Z
+
+- Current task: Audio metadata enrichment for transfers complete.
+- Last activity:
+  - Added `BitRate`, `SampleRate`, `BitDepth`, `Length` fields to internal Transfer model and API DTO.
+  - `DownloadService.EnrichTransferMetadata()` reads audio properties from completed files via TagLib after the file move succeeds. Non-fatal on read failure.
+  - `Extensions.WithSoulseekTransfer()` preserves metadata across transfer updates.
+  - Frontend: `bitrate`, `samplerate`, `length` columns in transferColumns.js; cell rendering in TransferTable.
+  - 4272 C# tests pass; frontend lint clean; production build succeeds.
+  - Deployed to kspls0 as `slskdn:0.0.0-manual.20260519040543.ad4c8d4ed`.
+- Next steps:
+  1. Metadata appears for downloads after they complete (enrichment runs post file-move).
+  2. Uploads don't get metadata enrichment (no local file to read); could be added later.
+
+## Update 2026-05-19 03:45:00Z
+
+- Current task: Column management + enrichment for Downloads/Uploads complete.
+- Last activity:
+  - Added 6 new columns: Type (extension), Folder (path), Elapsed, Remaining, Added, Done.
+  - Implemented column management: drag-to-reorder headers, resize handles on edges, column chooser dropdown to show/hide.
+  - Created `transferColumns.js` with localStorage persistence per direction.
+  - Added `getExtension()` to util.js.
+  - All 4272 C# tests pass; frontend lint clean; production build succeeds.
+  - Deployed to kspls0 as `slskdn:0.0.0-manual.20260519033842.ad4c8d4ed`.
+- Next steps:
+  1. User can configure columns on the live instance.
+  2. Optional future: add bitrate/duration columns (needs backend to include file metadata in transfer DTO).
+
+## Update 2026-05-19 02:00:00Z
+
+- Current task: Transfers UI compact layout complete (qBittorrent-like).
+- Last activity:
+  - Made Downloads/Uploads pages fill the entire space (no dead space around).
+  - Shrunk rows, text, padding, and header.
+  - `ROW_HEIGHT`: 40 → 28px; removed `MAX_VIEWPORT_HEIGHT` (640px cap) → dynamic `ResizeObserver` on grid element.
+  - Grid columns narrowed; header flat (no `raised`); progress bars 6px.
+  - Added `.view-transfer` CSS class (full-width, no padding, flex column).
+  - Routes in `App.jsx` now use `class="view view-transfer"`.
+  - All 4272 C# tests pass; frontend lint clean; production build succeeds.
+- Next steps:
+  1. User can validate on a live instance.
+  2. Further compactness tweaks if desired.
+
 ## Update 2026-05-19 01:30:00Z
 
 - Current task: Wishlist & Search UX plan fully complete.
