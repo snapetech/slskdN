@@ -14,6 +14,10 @@ permissions:
 jobs:
   build-and-upload:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ubuntu_series: [jammy, noble]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -104,37 +108,43 @@ jobs:
 
       - name: Prepare Source Structure
         run: |
+          SRC_DIR="slskdn-${{ steps.version.outputs.version }}"
           # Create proper directory structure for debian packaging
-          mkdir -p slskdn-${{ steps.version.outputs.version }}/usr/lib/slskd
-          mkdir -p slskdn-${{ steps.version.outputs.version }}/lib/systemd/system
-          mkdir -p slskdn-${{ steps.version.outputs.version }}/etc/slskd
-          mkdir -p slskdn-${{ steps.version.outputs.version }}/usr/lib/sysusers.d
-          mkdir -p slskdn-${{ steps.version.outputs.version }}/usr/lib/tmpfiles.d
+          mkdir -p "$SRC_DIR/usr/lib/slskd"
+          mkdir -p "$SRC_DIR/lib/systemd/system"
+          mkdir -p "$SRC_DIR/etc/slskd"
+          mkdir -p "$SRC_DIR/usr/lib/sysusers.d"
+          mkdir -p "$SRC_DIR/usr/lib/tmpfiles.d"
           
           # Copy binary files from our build
-          cp -r publish-linux-x64/* slskdn-${{ steps.version.outputs.version }}/usr/lib/slskd/
+          cp -r publish-linux-x64/* "$SRC_DIR/usr/lib/slskd/"
           
           # Copy service files from packaging
-          cp packaging/aur/slskd.service slskdn-${{ steps.version.outputs.version }}/lib/systemd/system/
-          cp packaging/aur/slskd.yml slskdn-${{ steps.version.outputs.version }}/etc/slskd/
-          cp packaging/aur/slskd.sysusers slskdn-${{ steps.version.outputs.version }}/usr/lib/sysusers.d/slskd.conf
-          cp packaging/aur/slskd.tmpfiles slskdn-${{ steps.version.outputs.version }}/usr/lib/tmpfiles.d/slskd.conf
+          cp packaging/aur/slskd.service "$SRC_DIR/lib/systemd/system/"
+          cp packaging/aur/slskd.yml "$SRC_DIR/etc/slskd/"
+          cp packaging/aur/slskd.sysusers "$SRC_DIR/usr/lib/sysusers.d/slskd.conf"
+          cp packaging/aur/slskd.tmpfiles "$SRC_DIR/usr/lib/tmpfiles.d/slskd.conf"
 
       - name: Prepare Source Package
         run: |
+          SRC_DIR="slskdn-${{ steps.version.outputs.version }}"
+          SERIES="${{ matrix.ubuntu_series }}"
           # Create tarball for orig source
-          tar -czvf slskdn_${{ steps.version.outputs.version }}.orig.tar.gz slskdn-${{ steps.version.outputs.version }}
+          tar -czvf "slskdn_${{ steps.version.outputs.version }}.orig.tar.gz" "$SRC_DIR"
           
           # Copy debian directory
-          cp -r packaging/debian slskdn-${{ steps.version.outputs.version }}/
+          cp -r packaging/debian "$SRC_DIR/"
+          find "$SRC_DIR/usr/lib/slskd" -type f \
+            | sed "s#^$SRC_DIR/##" \
+            > "$SRC_DIR/debian/source/include-binaries"
           
           # Use timestamp-based PPA revision to avoid conflicts on rebuilds
           PPA_REV=$(date +%Y%m%d%H%M)
           
           # Update changelog
-          cd slskdn-${{ steps.version.outputs.version }}
+          cd "$SRC_DIR"
           cat > debian/changelog << EOF
-          slskdn (${{ steps.version.outputs.version }}-1ppa${PPA_REV}~jammy) jammy; urgency=medium
+          slskdn (${{ steps.version.outputs.version }}-1ppa${PPA_REV}~${SERIES}) ${SERIES}; urgency=medium
           
             * Release ${{ steps.version.outputs.tag }}
           
@@ -143,14 +153,14 @@ jobs:
 
       - name: Preflight Binary Package Build
         run: |
-          cd slskdn-${{ steps.version.outputs.version }}
+          cd "slskdn-${{ steps.version.outputs.version }}"
           dpkg-buildpackage -us -uc -b -d
           dh clean
           rm -f ../*.deb ../*.buildinfo ../*_*.changes
 
       - name: Build Source Package
         run: |
-          cd slskdn-${{ steps.version.outputs.version }}
+          cd "slskdn-${{ steps.version.outputs.version }}"
           debuild -S -sa -d -k07E2531E1F470F8008ACCFC996A07606FE65392F
 
       - name: Preflight Launchpad PPA Upload

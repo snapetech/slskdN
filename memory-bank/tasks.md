@@ -9,7 +9,54 @@
 
 ### High Priority
 
-*No high priority tasks currently active
+* Sprint 1: Wishlist/Search UX improvements (from .kilo/plans/1779135555175-tidy-wolf.md)
+  - [x] 1.1 Auto-Replace visibility/control panel (Transfers page)
+  - [x] 1.2 Search source attribution + filter UI
+  - [x] 1.3 Manual search cleanup button + endpoint
+  - [x] 1.4 Search retention config (already existed: `retention.search` in minutes, pruned every 5 min)
+  - [x] 1.5 Frontend source filter dropdown + source badges
+  - Status: completed (2026-05-18)
+  - Priority: P1
+  - Notes: All Sprint 1 items done. Backend: `Source` field on Search, `source` query param on `GET /api/v0/searches`, `POST /api/v0/searches/cleanup`. Frontend: source filter dropdown, source badges on SearchListRow, Clear All + Clear Old buttons. Auto-replace panel was already present. User answers: Sprint 1 very important; prefer better understanding + logging over disabling; unified wishlist-search view very important; 100% backwards compat always.
+
+* Sprint 2: Wishlist-search linking and unseen results tracking
+  - [x] 2.1 Add `WishlistItemId` to Search record and wire through `SearchService.StartAsync` / `WishlistService.ExecuteWishlistSearchAsync`
+  - [x] 2.1 Add `GET /api/v0/wishlist/{id}/searches` endpoint and `getSearches()` frontend API
+  - [x] 2.1 Frontend: collapsible search history table in WishlistItemRow with source badges
+  - [x] 2.2 Add `LastViewedAt` to WishlistItem + `mark-viewed` endpoint + `markViewed()` frontend API
+  - [x] 2.2 Frontend: unseen results badge on wishlist items + auto-mark-viewed on history expand
+  - Status: completed (2026-05-18)
+  - Priority: P1
+  - Notes: Decoupled Search/Wishlist DbContexts via nullable `Guid? WishlistItemId` property (no hard EF FK). `LastViewedAt` nullable; UI shows "N new" badge when `LastSearchedAt > LastViewedAt`. Expanding search history marks item viewed. All existing `StartAsync` calls unaffected by new optional parameters. Validated: 4544 tests pass, `./bin/lint` clean, frontend build clean.
+
+* Sprint 3: Wishlist filter fix + UX polish
+  - [x] 3.1 Fix wishlist filter application — filter string is now parsed and applied as `Func<File, bool>` during search collection via `SearchOptions.WithFilters()`. Was a bug: `filterResponses: true` was set but no filter function passed.
+  - [x] 3.2 Add filter presets (FLAC, MP3, FLAC+MP3, FLAC+ALAC, Lossless, Any) as quick-select buttons in wishlist modal with validation and tooltips.
+  - [x] 3.3 Enhanced wishlist-search detail view — inline results expansion with username, directory, file count, total size. Results limited to first 20 with count note.
+  - Status: completed (2026-05-18)
+  - Priority: P1
+  - Notes: Created `CreateFileFilter()` helper that parses extension strings like "flac OR mp3" into a `Func<Soulseek.File, bool>`. Filter presets array at module level in Wishlist.jsx. Inline results fetch via `searchesAPI.getResponses()`. Validated: 4544 tests pass, `./bin/lint` clean, frontend build clean.
+
+* Sprint 4: Advanced wishlist features (unified view, bulk ops, smart management)
+  - [x] 4.1 Unified wishlist-search view — toggle between table and card view. Cards show expandable segments with search history and inline results.
+  - [x] 4.2 Bulk operations — checkboxes on rows/cards, "Select All" header checkbox, bulk action bar (Enable/Disable/Delete/Clear) with tooltips.
+  - [x] 4.3 Auto-disable after N downloads — `MaxDownloads` property on WishlistItem. Null = disable after first download (legacy). Set value = stay enabled until `TotalDownloadCount >= MaxDownloads`. UI input in modal, card shows "Downloads: X/Y" progress.
+  - Status: completed (2026-05-19)
+  - Priority: P1
+  - Notes: All Wishlist & Search UX plan items from 1779135555175-tidy-wolf.md are now complete. Card view uses Segment-based layout with flex styling. Bulk ops use Set-based selection state. MaxDownloads is nullable int with backwards-compatible default. Validated: 4544 tests pass, `./bin/lint` clean, frontend build clean.
+
+* Wishlist & Search critical gap fixes (post-sprint)
+  - [x] Idempotent schema migrations for `Source`/`WishlistItemId` on Searches and `LastViewedAt`/`MaxDownloads` on WishlistItems.
+  - [x] Search retention config (`SearchRetentionOptions`) with `max_age_days`, `max_count`, `cleanup_interval_seconds` in `Options.cs`.
+  - [x] `CleanupAsync` in `SearchService` for age-based and count-based search pruning.
+  - [x] Background cleanup wired to `PruneSearches` job and `POST /api/v0/searches/cleanup` endpoint.
+  - [x] `POST /api/v0/wishlist/mark-all-viewed` endpoint + frontend API + "Mark All Viewed" UI button.
+  - [x] Search retention config inputs in System → Admin Policies page.
+  - [x] Filtered vs total search count display ("X / Y searches") on Searches page.
+  - [x] `docs/wishlist.md` user guide and `config/slskd.example.yml` retention config documentation.
+  - Status: completed (2026-05-19)
+  - Priority: P1
+  - Notes: Migrations use `IMigration` pattern with `SchemaInspector` for safe column addition on existing SQLite databases. `CleanupAsync` runs alongside `PruneAsync` in the `PruneSearches` background task. "Mark All Viewed" clears the unseen badge on all wishlist items. AdminPolicies page exposes all three retention parameters. Validated: 4544 tests pass, 748 Vitest tests pass, `./bin/lint` clean, frontend build clean.
 
 - [ ] Collect failed direct-download evidence from stable tester build.
  - Status: pending (2026-05-15)
@@ -2841,6 +2888,12 @@
 - [2026-05-15T00:08:45Z] Completed: extend `kspls0` live log cleanup by fixing completed-download destination preflight and search shutdown cancellation-source disposal noise; deployed manual build `0.0.0-manual.20260515000445.401ac6b42bb6` and confirmed a clean fresh soak.
 - [2026-05-15T21:18:36Z] Completed: add Docker `install-optional-media-tools` helper and docs so heavyweight SongID prerequisites can be installed after startup or baked into derived images without bloating the default image.
 - [2026-05-15T22:55:55Z] Completed: investigate live Docker log noise and harden the actionable paths: capped default search-list API responses, bounded auto-retry lifetime attempts by default, downgraded expected mesh/Lidarr/queue-position noise, clarified DHT opportunistic-connectivity wording, and kept cancellation/transfer failure logs specific without stack traces.
+- [2026-05-18T00:45:00Z] Completed: fix package-channel publication gaps from
+  package-smoke by dispatching GitHub package publishers from GitLab, promoting
+  Docker Hub tags, adding Jammy/Noble PPA publication with explicit binary
+  inclusion, and ensuring COPR Fedora 43/Rawhide chroots are configured before
+  builds.
+
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
 - 2026-05-07 02:39:03Z: Validate kspls0 Messages V2 browser behavior after flicker/resource hotfix under live traffic.
@@ -2880,3 +2933,4 @@
 - [2026-05-16T02:45:00Z] Completed: build out stale/security gaps rather than removing surfaces; Pod join/leave Enforce mode now verifies real Ed25519 canonical payload signatures, Synology SPK packaging now publishes a real executable payload, stale branch/version docs were clarified with lineage notes, and VirtualSoulfind disaster-mode mesh peer discovery now maps known hashes through HashDb recording IDs into shadow-index peer hints.
 - [2026-05-16T03:05:00Z] Completed: final pre-release cleanup pass; removed misleading placeholder wording from XML docs/comments around native jobs, playback feedback, mesh circuits, sharing manifests, and the network simulation no-op shell without changing runtime behavior.
 - [2026-05-17T17:55:00Z] Completed: add default-off human-check private-message auto response with daemon-side matching/cooldown, shared Downloads/Messages toggles, runtime overlay apply, config example, and focused backend/frontend coverage.
+- [2026-05-18T00:00:00Z] Completed: add reusable post-release package-channel validation harness, GitLab tag-only validation stage, and disabled GitHub package-smoke workflow scaffolding.

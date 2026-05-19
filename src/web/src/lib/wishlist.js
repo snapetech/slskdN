@@ -69,3 +69,18 @@ export const importCsv = async ({
     })
   ).data;
 };
+
+export const getSearches = async (id, limit = 50) => {
+  const data = (
+    await api.get(`/wishlist/${encodeURIComponent(id)}/searches?limit=${limit}`)
+  ).data;
+  return Array.isArray(data) ? data : [];
+};
+
+export const markViewed = async (id) => {
+  return api.post(`/wishlist/${encodeURIComponent(id)}/mark-viewed`);
+};
+
+export const markAllViewed = async () => {
+  return api.post('/wishlist/mark-all-viewed');
+};

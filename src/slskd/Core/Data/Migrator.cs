@@ -49,6 +49,7 @@ public class Migrator
             { nameof(Z04292026_TransferRetryBatchMigration), new Z04292026_TransferRetryBatchMigration(connectionStrings: Databases) },
             { nameof(Z05132026_TransferDestinationDirectoryMigration), new Z05132026_TransferDestinationDirectoryMigration(connectionStrings: Databases) },
             { nameof(Z05152026_SearchStartedAtIndexMigration), new Z05152026_SearchStartedAtIndexMigration(connectionStrings: Databases) },
+            { nameof(Z05182026_SearchSourceAndWishlistItemIdMigration), new Z05182026_SearchSourceAndWishlistItemIdMigration(connectionStrings: Databases) },
         };
     }
 

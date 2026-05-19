@@ -1,0 +1,414 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+usage() {
+  cat >&2 <<'USAGE'
+usage: package-smoke <project> <channel> <version> [--arch <arch>] [--registry-tag <tag>]
+
+Installs from the requested public release/package channel and writes evidence to
+artifacts/package-smoke/<project>/<channel>/<arch>/.
+USAGE
+}
+
+die() { failure="$*"; echo "ERROR: $*" >&2; exit 1; }
+have() { command -v "$1" >/dev/null 2>&1; }
+if ! have sudo; then
+  sudo() { "$@"; }
+fi
+json_escape() {
+  awk '
+    BEGIN { ORS = "" }
+    {
+      gsub(/\\/, "\\\\")
+      gsub(/"/, "\\\"")
+      gsub(/\t/, "\\t")
+      gsub(/\r/, "\\r")
+      printf "%s%s", sep, $0
+      sep = "\\n"
+    }
+  ' <<<"$1"
+}
+strip_v() { local v="$1"; printf '%s' "${v#v}"; }
+normalized_version() { strip_v "$1" | sed 's/-/./g'; }
+assert_version_reported() {
+  local out="$1"
+  [[ "${PACKAGE_SMOKE_ALLOW_VERSION_MISMATCH:-0}" == "1" ]] && return 0
+  local bare normalized
+  bare="$(strip_v "$version")"
+  normalized="$(normalized_version "$version")"
+  if [[ "$out" != *"$version"* && "$out" != *"$bare"* && "$out" != *"$normalized"* ]]; then
+    die "version output did not include requested version '$version' or normalized '$normalized'"
+  fi
+}
+
+project="${1:-}"; channel="${2:-}"; version="${3:-}"
+[[ -n "$project" && -n "$channel" && -n "$version" ]] || { usage; exit 2; }
+shift 3
+arch="$(uname -m)"
+registry_tag="$version"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --arch) arch="${2:?missing arch}"; shift 2 ;;
+    --registry-tag) registry_tag="${2:?missing tag}"; shift 2 ;;
+    *) die "unknown argument: $1" ;;
+  esac
+done
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "$script_dir/../.." && pwd)"
+# shellcheck disable=SC1091
+source "$script_dir/project.env"
+[[ "$PROJECT" == "$project" ]] || die "manifest PROJECT=$PROJECT does not match requested project=$project"
+
+evidence_root="${PACKAGE_SMOKE_ARTIFACT_DIR:-$repo_root/artifacts/package-smoke/$project/$channel/$arch}"
+mkdir -p "$evidence_root/logs"
+log_file="$evidence_root/logs/package-smoke.log"
+junit_file="$evidence_root/junit.xml"
+json_file="$evidence_root/evidence.json"
+tmp_dir="$(mktemp -d)"
+cleanup_cmds=()
+started_container=""
+started_process=""
+status="failed"
+failure=""
+resolved_version=""
+binary_path=""
+endpoint_status=""
+uninstall_status="not-run"
+start_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+exec > >(tee -a "$log_file") 2>&1
+
+record_error() {
+  local rc=$?
+  local cmd="${BASH_COMMAND:-unknown}"
+  if [[ "$status" != "passed" && -z "$failure" ]]; then
+    failure="command failed with exit $rc: $cmd"
+  fi
+  return "$rc"
+}
+
+cleanup() {
+  local rc=$?
+  set +e
+  [[ -n "$started_process" ]] && kill "$started_process" >/dev/null 2>&1
+  [[ -n "$started_container" ]] && docker rm -f "$started_container" >/dev/null 2>&1
+  for cmd in "${cleanup_cmds[@]}"; do
+    eval "$cmd" >/dev/null 2>&1
+  done
+  rm -rf "$tmp_dir"
+  local end_time; end_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  local escaped_failure; escaped_failure="$(json_escape "$failure")"
+  cat >"$json_file" <<JSON
+{
+  "project": "$project",
+  "channel": "$channel",
+  "requested_version": "$version",
+  "normalized_version": "$(normalized_version "$version")",
+  "arch": "$arch",
+  "registry_tag": "$registry_tag",
+  "status": "$status",
+  "failure": "$escaped_failure",
+  "resolved_version": "$(json_escape "$resolved_version")",
+  "binary_path": "$(json_escape "$binary_path")",
+  "endpoint_status": "$(json_escape "$endpoint_status")",
+  "uninstall_status": "$(json_escape "$uninstall_status")",
+  "started_at": "$start_time",
+  "finished_at": "$end_time",
+  "log_file": "logs/package-smoke.log"
+}
+JSON
+  local failures=0 message=""
+  if [[ "$status" != "passed" ]]; then
+    failures=1
+    message="<failure message=\"$(json_escape "$failure")\" />"
+  fi
+  cat >"$junit_file" <<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="package-smoke.$project" tests="1" failures="$failures">
+  <testcase classname="package-smoke.$project" name="$channel.$arch">$message</testcase>
+</testsuite>
+XML
+  exit "$rc"
+}
+trap record_error ERR
+trap cleanup EXIT
+
+run() {
+  echo "+ $*"
+  "$@"
+}
+
+wait_for_url() {
+  local url="$1" attempts="${2:-30}" sleep_s="${3:-20}"
+  for ((i=1; i<=attempts; i++)); do
+    if curl -fsSL "$url" -o "$tmp_dir/download" -D "$tmp_dir/headers"; then
+      echo "Resolved $url"
+      return 0
+    fi
+    echo "Waiting for $url ($i/$attempts)"
+    sleep "$sleep_s"
+  done
+  return 1
+}
+
+release_url() {
+  local asset="$1"
+  printf 'https://github.com/%s/releases/download/%s/%s' "$GITHUB_REPOSITORY" "$version" "$asset"
+}
+
+find_release_asset() {
+  local pattern="$1"
+  local api="https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/$version"
+  have jq || die "jq is required to resolve release asset patterns"
+  curl -fsSL "$api" | jq -r --arg pattern "$pattern" '.assets[].name | select(test($pattern))' | head -1
+}
+
+smoke_binary() {
+  local bin="${1:-$BINARY}"
+  binary_path="$(command -v "$bin" || true)"
+  [[ -n "$binary_path" || -x "$bin" ]] || die "binary not found or not executable: $bin"
+  if [[ -x "$bin" ]]; then
+    binary_path="$bin"
+  fi
+  set +e
+  local out
+  out="$("$binary_path" $VERSION_ARGS 2>&1)"
+  local rc=$?
+  set -e
+  echo "$out"
+  [[ $rc -eq 0 ]] || die "version command failed for $binary_path"
+  resolved_version="$out"
+  assert_version_reported "$out"
+}
+
+smoke_http_process() {
+  local bin="$1"
+  local port="${PACKAGE_SMOKE_PORT:-$DEFAULT_PORT}"
+  set +e
+  "$bin" --help >/dev/null 2>&1
+  set -e
+  if [[ "${PACKAGE_SMOKE_START_SERVICE:-0}" != "1" ]]; then
+    endpoint_status="skipped: PACKAGE_SMOKE_START_SERVICE not set"
+    return 0
+  fi
+  "$bin" --url "http://127.0.0.1:$port" >/tmp/package-smoke-process.log 2>&1 &
+  started_process="$!"
+  sleep 5
+  endpoint_status="$(curl -fsS -o "$tmp_dir/endpoint" -w "%{http_code}" "http://127.0.0.1:$port$HEALTH_PATH" || true)"
+  [[ "$endpoint_status" =~ ^2|3 ]] || die "HTTP smoke failed with status $endpoint_status"
+}
+
+install_github_archive() {
+  local asset="$LINUX_ARCHIVE_ASSET"
+  case "$(uname -s)" in
+    Darwin) asset="$MACOS_ARCHIVE_ASSET" ;;
+    MINGW*|MSYS*|CYGWIN*) asset="$WINDOWS_ARCHIVE_ASSET" ;;
+  esac
+  local url; url="$(release_url "$asset")"
+  wait_for_url "$url" 30 20 || die "release archive unavailable: $url"
+  local archive="$tmp_dir/$asset"
+  mv "$tmp_dir/download" "$archive"
+  mkdir -p "$tmp_dir/archive"
+  case "$asset" in
+    *.zip) run unzip -q "$archive" -d "$tmp_dir/archive" ;;
+    *.tar.gz|*.tgz) run tar -xzf "$archive" -C "$tmp_dir/archive" ;;
+    *) die "unsupported archive: $asset" ;;
+  esac
+  local bin
+  bin="$(find "$tmp_dir/archive" -type f \( -name "$BINARY" -o -name "$BINARY.exe" \) -perm /111 | head -1)"
+  [[ -n "$bin" ]] || die "archive did not contain executable $BINARY"
+  smoke_binary "$bin"
+  uninstall_status="removed extracted archive"
+}
+
+install_deb() {
+  have apt-get || die "apt-get is required for deb smoke"
+  local asset; asset="$(find_release_asset '.*\.deb$')"
+  [[ -n "$asset" ]] || die "no .deb asset found for $version"
+  wait_for_url "$(release_url "$asset")" 30 20 || die ".deb asset unavailable"
+  local package_file="$tmp_dir/$asset"
+  mv "$tmp_dir/download" "$package_file"
+  run sudo apt-get update
+  run sudo apt-get install -y "$package_file"
+  cleanup_cmds+=("sudo apt-get remove -y '$PROJECT'")
+  smoke_binary "$BINARY"
+  uninstall_status="scheduled apt remove"
+}
+
+install_rpm() {
+  have dnf || die "dnf is required for rpm smoke"
+  local asset; asset="$(find_release_asset '.*\.rpm$')"
+  [[ -n "$asset" ]] || die "no .rpm asset found for $version"
+  wait_for_url "$(release_url "$asset")" 30 20 || die ".rpm asset unavailable"
+  local package_file="$tmp_dir/$asset"
+  mv "$tmp_dir/download" "$package_file"
+  run sudo dnf install -y "$package_file"
+  cleanup_cmds+=("sudo dnf remove -y '$PROJECT'")
+  smoke_binary "$BINARY"
+  uninstall_status="scheduled dnf remove"
+}
+
+install_container() {
+  have docker || die "docker is required for container smoke"
+  local image="$GHCR_IMAGE"
+  [[ "$channel" == "container-dockerhub" ]] && image="$DOCKERHUB_IMAGE"
+  local platform="linux/amd64"
+  [[ "$arch" == "arm64" || "$arch" == "aarch64" ]] && platform="linux/arm64"
+  [[ "$arch" == "arm/v7" || "$arch" == "armv7" ]] && platform="linux/arm/v7"
+  run docker pull --platform "$platform" "$image:$registry_tag"
+  set +e
+  local version_out
+  version_out="$(docker run --rm --platform "$platform" "$image:$registry_tag" $VERSION_ARGS 2>&1)"
+  local version_rc=$?
+  set -e
+  echo "$version_out"
+  [[ $version_rc -eq 0 ]] && assert_version_reported "$version_out"
+  started_container="package-smoke-$project-${channel//[^a-zA-Z0-9]/-}-$$"
+  run docker run -d --name "$started_container" --platform "$platform" "$image:$registry_tag"
+  sleep 5
+  run docker logs "$started_container"
+  resolved_version="$(docker image inspect "$image:$registry_tag" --format '{{index .RepoTags 0}} {{.Id}}')"
+  endpoint_status="container started"
+  uninstall_status="container removed by cleanup"
+}
+
+install_aur() {
+  have makepkg || die "makepkg is required for AUR smoke"
+  have git || die "git is required for AUR smoke"
+  local pkg="$channel"
+  [[ "$channel" == "aur" ]] && pkg="${AUR_PACKAGES%% *}"
+  [[ "$channel" == "aur-bin" ]] && pkg="$(awk '{print $2}' <<<"$AUR_PACKAGES")"
+  run git clone "https://aur.archlinux.org/$pkg.git" "$tmp_dir/aur"
+  pushd "$tmp_dir/aur" >/dev/null
+  run makepkg --syncdeps --noconfirm --install
+  popd >/dev/null
+  cleanup_cmds+=("sudo pacman -Rns --noconfirm '$pkg'")
+  smoke_binary "$BINARY"
+  uninstall_status="scheduled pacman remove"
+}
+
+install_copr() {
+  have dnf || die "dnf is required for COPR smoke"
+  run sudo dnf install -y dnf-plugins-core
+  run sudo dnf copr enable -y "$COPR_REPO"
+  run sudo dnf install -y "$PROJECT"
+  cleanup_cmds+=("sudo dnf remove -y '$PROJECT'")
+  smoke_binary "$BINARY"
+  uninstall_status="scheduled dnf remove"
+}
+
+install_ppa() {
+  have apt-get || die "apt-get is required for PPA smoke"
+  run sudo apt-get update
+  run sudo apt-get install -y software-properties-common
+  run sudo add-apt-repository -y "$PPA"
+  run sudo apt-get update
+  run sudo apt-get install -y "$PROJECT"
+  cleanup_cmds+=("sudo apt-get remove -y '$PROJECT'")
+  smoke_binary "$BINARY"
+  uninstall_status="scheduled apt remove"
+}
+
+install_snap() {
+  have snap || die "snap is required for snap smoke"
+  run sudo snap install "$SNAP_NAME"
+  cleanup_cmds+=("sudo snap remove '$SNAP_NAME'")
+  smoke_binary "$SNAP_NAME"
+  uninstall_status="scheduled snap remove"
+}
+
+install_chocolatey() {
+  have choco || die "choco is required for Chocolatey smoke"
+  run choco install "$CHOCO_PACKAGE" --version "$(normalized_version "$version")" -y --no-progress
+  cleanup_cmds+=("choco uninstall '$CHOCO_PACKAGE' -y")
+  smoke_binary "$BINARY"
+  uninstall_status="scheduled choco uninstall"
+}
+
+install_winget() {
+  have winget || die "winget is required for Winget smoke"
+  run winget install --id "$WINGET_ID" --version "$(normalized_version "$version")" --silent --accept-package-agreements --accept-source-agreements
+  cleanup_cmds+=("winget uninstall --id '$WINGET_ID' --silent")
+  smoke_binary "$BINARY"
+  uninstall_status="scheduled winget uninstall"
+}
+
+install_homebrew() {
+  have brew || die "brew is required for Homebrew smoke"
+  run brew install "$HOMEBREW_FORMULA"
+  cleanup_cmds+=("brew uninstall '$HOMEBREW_FORMULA'")
+  smoke_binary "$BINARY"
+  uninstall_status="scheduled brew uninstall"
+}
+
+install_nix() {
+  have nix || die "nix is required for Nix smoke"
+  run nix build "$NIX_FLAKE/$version"
+  binary_path="$PWD/result/bin/$BINARY"
+  smoke_binary "$binary_path"
+  uninstall_status="nix store retained"
+}
+
+install_flatpak() {
+  have flatpak-builder || die "flatpak-builder is required for Flatpak metadata smoke"
+  run flatpak-builder --force-clean --disable-rofiles-fuse "$tmp_dir/flatpak-build" "$repo_root/$FLATPAK_MANIFEST"
+  endpoint_status="flatpak manifest builds"
+  uninstall_status="build dir removed"
+}
+
+install_helm() {
+  have helm || die "helm is required for Helm smoke"
+  have kubectl || die "kubectl is required for Helm smoke"
+  local ns="package-smoke-$project"
+  run kubectl create namespace "$ns" --dry-run=client -o yaml
+  run helm upgrade --install "$project-smoke" "$repo_root/$HELM_CHART" --namespace "$ns" --set image.tag="$registry_tag" --wait --timeout 5m
+  cleanup_cmds+=("helm uninstall '$project-smoke' --namespace '$ns'; kubectl delete namespace '$ns'")
+  endpoint_status="helm rollout succeeded"
+  uninstall_status="scheduled helm uninstall"
+}
+
+install_unraid() {
+  have xmllint || die "xmllint is required for Unraid template smoke"
+  run xmllint --noout "$repo_root/$UNRAID_TEMPLATE"
+  endpoint_status="unraid XML valid"
+  uninstall_status="metadata only"
+}
+
+install_proxmox_lxc() {
+  bash -n "$repo_root/$PROXMOX_SCRIPT"
+  endpoint_status="proxmox LXC script syntax valid"
+  uninstall_status="metadata only"
+}
+
+install_synology_spk() {
+  [[ -d "$repo_root/$SYNOLOGY_SPK_DIR" ]] || die "Synology SPK dir not found"
+  run bash "$repo_root/$SYNOLOGY_SPK_DIR/build-spk.sh" --help
+  endpoint_status="synology SPK metadata/build script present"
+  uninstall_status="metadata only"
+}
+
+echo "package-smoke project=$project channel=$channel version=$version arch=$arch registry_tag=$registry_tag"
+case "$channel" in
+  github-archive) install_github_archive ;;
+  deb) install_deb ;;
+  rpm) install_rpm ;;
+  container-ghcr|container-dockerhub) install_container ;;
+  aur|aur-bin|slskdn|slskdn-bin) install_aur ;;
+  copr) install_copr ;;
+  ppa) install_ppa ;;
+  snap) install_snap ;;
+  chocolatey) install_chocolatey ;;
+  winget) install_winget ;;
+  homebrew) install_homebrew ;;
+  nix) install_nix ;;
+  flatpak) install_flatpak ;;
+  helm) install_helm ;;
+  unraid) install_unraid ;;
+  proxmox-lxc) install_proxmox_lxc ;;
+  synology-spk) install_synology_spk ;;
+  *) die "unsupported channel: $channel" ;;
+esac
+
+status="passed"
+echo "package-smoke passed: $project $channel $version"

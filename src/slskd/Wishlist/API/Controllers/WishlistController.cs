@@ -209,6 +209,70 @@ namespace slskd.Wishlist.API
         }
 
         /// <summary>
+        ///     Gets all searches linked to a wishlist item.
+        /// </summary>
+        /// <param name="id">The wishlist item ID.</param>
+        /// <param name="limit">Maximum number of searches to return (default 50).</param>
+        /// <returns>The list of searches for the wishlist item.</returns>
+        /// <response code="200">The request completed successfully.</response>
+        /// <response code="404">The wishlist item was not found.</response>
+        [HttpGet("{id}/searches")]
+        [Authorize(Policy = AuthPolicy.Any)]
+        [ProducesResponseType(typeof(List<Search.Search>), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetSearches(
+            [FromRoute, Required] Guid id,
+            [FromQuery] int limit = 50)
+        {
+            var item = await WishlistService.GetAsync(id);
+            if (item == null)
+            {
+                return NotFound();
+            }
+
+            var searches = await WishlistService.GetSearchesForItemAsync(id, limit);
+            return Ok(searches);
+        }
+
+        /// <summary>
+        ///     Marks a wishlist item as viewed (resets unseen results badge).
+        /// </summary>
+        /// <param name="id">The wishlist item ID.</param>
+        /// <returns>No content.</returns>
+        /// <response code="204">The wishlist item was marked as viewed.</response>
+        /// <response code="404">The wishlist item was not found.</response>
+        [HttpPost("{id}/mark-viewed")]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> MarkViewed([FromRoute, Required] Guid id)
+        {
+            try
+            {
+                await WishlistService.MarkViewedAsync(id);
+                return NoContent();
+            }
+            catch (NotFoundException)
+            {
+                return NotFound();
+            }
+        }
+
+        /// <summary>
+        ///     Marks all wishlist items as viewed (resets all unseen results badges).
+        /// </summary>
+        /// <returns>No content.</returns>
+        /// <response code="204">All wishlist items were marked as viewed.</response>
+        [HttpPost("mark-all-viewed")]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
+        [ProducesResponseType(204)]
+        public async Task<IActionResult> MarkAllViewed()
+        {
+            await WishlistService.MarkAllViewedAsync();
+            return NoContent();
+        }
+
+        /// <summary>
         ///     Imports wishlist searches from a CSV playlist export.
         /// </summary>
         /// <param name="request">The CSV import request.</param>

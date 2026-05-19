@@ -19306,3 +19306,35 @@ await worker.RunAsync(searchCancellationToken);
 owner object, but the shared dictionary makes it externally disposable. Once it
 is published, background code must use a captured `CancellationToken` value and
 avoid reading properties from the source again.
+
+### 0z360. Wishlist Filter String Must Be Applied as File Filter During Search
+
+**The Bug**: Setting `filterResponses: true` in `SearchOptions` without passing an actual `fileFilter` function only enables default Soulseek.NET filtering (e.g., excluding locked files). The user's filter string like `"flac OR mp3"` is silently ignored during search collection. It only affected auto-download filtering, meaning wishlist searches returned ALL file types regardless of the configured filter.
+
+**Files Affected**:
+- `src/slskd/Wishlist/WishlistService.cs`
+
+**Wrong**:
+```csharp
+var searchOptions = new SearchOptions(
+    searchTimeout: 15000,
+    responseLimit: item.MaxResults,
+    filterResponses: !string.IsNullOrEmpty(item.Filter));
+// Filter string is never applied to search responses!
+```
+
+**Correct**:
+```csharp
+var searchOptions = new SearchOptions(
+    searchTimeout: 15000,
+    responseLimit: item.MaxResults,
+    filterResponses: !string.IsNullOrEmpty(item.Filter));
+
+if (!string.IsNullOrEmpty(item.Filter))
+{
+    var fileFilter = CreateFileFilter(item.Filter);
+    searchOptions = searchOptions.WithFilters(fileFilter: fileFilter);
+}
+```
+
+**Why This Keeps Happening**: `SearchOptions.filterResponses` is a boolean flag, not a filter expression. The actual filter logic requires a `Func<File, bool>` delegate passed via `fileFilter` or `WithFilters()`. When building search options from a string filter, always convert the string to a filter function and apply it explicitly.

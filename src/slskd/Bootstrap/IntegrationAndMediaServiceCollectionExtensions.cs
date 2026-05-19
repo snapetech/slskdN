@@ -41,6 +41,10 @@ public static class IntegrationAndMediaServiceCollectionExtensions
             wishlistContext.Database.EnsureCreated();
         }
 
+        // Apply wishlist schema migration for columns added after initial EnsureCreated
+        var wishlistMigration = new Migrations.Z05182026_WishlistItemViewingAndDownloadLimitsMigration($"Data Source={wishlistDbPath}");
+        wishlistMigration.Apply();
+
         services.AddSingleton<Wishlist.IWishlistService, Wishlist.WishlistService>();
         services.AddHostedService(provider => (Wishlist.WishlistService)provider.GetRequiredService<Wishlist.IWishlistService>());
         services.AddSingleton<SourceFeeds.ISpotifyConnectionService, SourceFeeds.SpotifyConnectionService>();

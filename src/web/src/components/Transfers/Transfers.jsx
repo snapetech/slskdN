@@ -29,6 +29,10 @@ const getTransferKey = ({ file, suffix = '' }) => {
   return `${file.username}:${file.id}${suffix ? `:${suffix}` : ''}`;
 };
 
+const getFilenameTransferKey = ({ username, filename }) => {
+  return `${username}::${filename}`;
+};
+
 const OPTIMISTIC_HIDE_MS = 15_000;
 const QUEUE_POSITION_REFRESH_MS = 30_000;
 const MAX_QUEUE_POSITION_LOOKUPS_PER_FETCH = 5;
@@ -389,6 +393,20 @@ const Transfers = ({ direction, server }) => {
           );
         },
       })),
+    });
+    // Also hide by (username, filename) pair so that any new transfer record
+    // created by the retry (which will have a different ID) is also hidden.
+    // Without this, a retry that immediately fails creates a newly visible
+    // errored record, making it look like the retry did nothing.
+    const filenameHiddenUntil = Date.now() + OPTIMISTIC_HIDE_MS;
+    transfersToRetry.forEach((file) => {
+      const filenameKey = getFilenameTransferKey(file);
+      hiddenTransfersRef.current.set(filenameKey, {
+        matches: (candidate) =>
+          transfersLibrary.isStateRetryable(candidate.state) &&
+          getFilenameTransferKey(candidate) === filenameKey,
+        until: filenameHiddenUntil,
+      });
     });
   };
 

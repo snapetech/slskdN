@@ -207,6 +207,9 @@ const buildForm = (options = {}) => {
     retentionDownloadErrored: String(getOption(retentionDownload, 'errored', 'Errored') ?? ''),
     retentionDownloadSucceeded: String(getOption(retentionDownload, 'succeeded', 'Succeeded') ?? ''),
     retentionSearch: String(getOption(retention, 'search', 'Search') ?? ''),
+    searchRetentionMaxAgeDays: String(getOption(filters, 'searchRetention', 'maxAgeDays', 'MaxAgeDays') ?? 30),
+    searchRetentionMaxCount: String(getOption(filters, 'searchRetention', 'maxCount', 'MaxCount') ?? 1000),
+    searchRetentionCleanupInterval: String(getOption(filters, 'searchRetention', 'cleanupIntervalSeconds', 'CleanupIntervalSeconds') ?? 86400),
     retentionUploadCancelled: String(getOption(retentionUpload, 'cancelled', 'Cancelled') ?? ''),
     retentionUploadErrored: String(getOption(retentionUpload, 'errored', 'Errored') ?? ''),
     retentionUploadSucceeded: String(getOption(retentionUpload, 'succeeded', 'Succeeded') ?? ''),
@@ -420,6 +423,9 @@ const AdminPolicies = ({ options = {} }) => {
       );
 
       document.setIn(['filters', 'search', 'request'], parseLines(form.searchFilterRequest));
+      document.setIn(['filters', 'searchRetention', 'maxAgeDays'], toNumber(form.searchRetentionMaxAgeDays, 30));
+      document.setIn(['filters', 'searchRetention', 'maxCount'], toNumber(form.searchRetentionMaxCount, 1000));
+      document.setIn(['filters', 'searchRetention', 'cleanupIntervalSeconds'], toNumber(form.searchRetentionCleanupInterval, 86400));
       document.setIn(['blacklist', 'enabled'], form.blacklistEnabled);
       document.setIn(['blacklist', 'file'], form.blacklistFile.trim());
       document.setIn(['dht', 'enabled'], form.dhtEnabled);
@@ -1358,7 +1364,7 @@ const AdminPolicies = ({ options = {} }) => {
               <Icon name="archive" />
               Retention and Storage
             </Card.Header>
-            <Card.Meta>Search/event/log cleanup, transfer history, file records, and share cache pressure.</Card.Meta>
+            <Card.Meta>Search/event/log cleanup, transfer history, file records, share cache pressure, and search retention (max age, max count, cleanup interval).</Card.Meta>
           </Card.Content>
           <Card.Content>
             <Form>
@@ -1385,6 +1391,32 @@ const AdminPolicies = ({ options = {} }) => {
                   onChange={(_, { value }) => update('logRetention', value)}
                   type="number"
                   value={form.logRetention}
+                />
+              </Form.Group>
+              <Form.Group widths="equal">
+                <Form.Input
+                  aria-label="Search retention max age days"
+                  disabled={!remoteConfiguration || saving}
+                  label="Search Max Age (days)"
+                  onChange={(_, { value }) => update('searchRetentionMaxAgeDays', value)}
+                  type="number"
+                  value={form.searchRetentionMaxAgeDays}
+                />
+                <Form.Input
+                  aria-label="Search retention max count"
+                  disabled={!remoteConfiguration || saving}
+                  label="Search Max Count"
+                  onChange={(_, { value }) => update('searchRetentionMaxCount', value)}
+                  type="number"
+                  value={form.searchRetentionMaxCount}
+                />
+                <Form.Input
+                  aria-label="Search retention cleanup interval seconds"
+                  disabled={!remoteConfiguration || saving}
+                  label="Cleanup Interval (sec)"
+                  onChange={(_, { value }) => update('searchRetentionCleanupInterval', value)}
+                  type="number"
+                  value={form.searchRetentionCleanupInterval}
                 />
               </Form.Group>
               <Table

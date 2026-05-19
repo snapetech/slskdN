@@ -1,4 +1,4 @@
-import { formatTransferState } from '../../lib/transfers';
+import { formatTransferState, getFailureReason } from '../../lib/transfers';
 import { formatBytes, formatBytesAsUnit, getFileName } from '../../lib/util';
 import React, { Component } from 'react';
 import {
@@ -7,6 +7,7 @@ import {
   Header,
   Icon,
   List,
+  Popup,
   Progress,
   Table,
 } from 'semantic-ui-react';
@@ -152,29 +153,41 @@ class TransferList extends Component {
                             style={{ margin: 0 }}
                           />
                         ) : (
-                          <Button
-                            fluid
-                            size="mini"
-                            style={{
-                              cursor: f.direction === 'Upload' ? 'unset' : '',
-                              margin: 0,
-                              padding: 7,
-                            }}
-                            {...getColor(f.state)}
-                            active={f.direction === 'Upload'}
-                            onClick={() => this.handleClick(f)}
-                          >
-                            {f.direction === 'Download' &&
-                              isQueuedState(f.state) && (
-                                <Icon name="refresh" />
-                              )}
-                            {f.direction === 'Download' &&
-                              isRetryableState(f.state) && (
-                                <Icon name="redo" />
-                              )}
-                            {formatTransferState(f.state, f.exception)}
-                            {f.placeInQueue ? ` (#${f.placeInQueue})` : ''}
-                          </Button>
+                          <Popup
+                            content={
+                              f.exception
+                                ? getFailureReason(f.exception) || f.exception
+                                : null
+                            }
+                            disabled={!f.exception}
+                            inverted
+                            position="top left"
+                            trigger={
+                              <Button
+                                fluid
+                                size="mini"
+                                style={{
+                                  cursor: f.direction === 'Upload' ? 'unset' : '',
+                                  margin: 0,
+                                  padding: 7,
+                                }}
+                                {...getColor(f.state)}
+                                active={f.direction === 'Upload'}
+                                onClick={() => this.handleClick(f)}
+                              >
+                                {f.direction === 'Download' &&
+                                  isQueuedState(f.state) && (
+                                    <Icon name="refresh" />
+                                  )}
+                                {f.direction === 'Download' &&
+                                  isRetryableState(f.state) && (
+                                    <Icon name="redo" />
+                                  )}
+                                {formatTransferState(f.state, f.exception)}
+                                {f.placeInQueue ? ` (#${f.placeInQueue})` : ''}
+                              </Button>
+                            }
+                          />
                         )}
                       </Table.Cell>
                       <Table.Cell className="transferlist-speed">

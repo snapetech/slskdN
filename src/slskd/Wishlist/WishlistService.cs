@@ -56,6 +56,21 @@ namespace slskd.Wishlist
         Task<SlskdSearch> RunSearchAsync(Guid id, CancellationToken cancellationToken = default);
 
         /// <summary>
+        ///     Gets searches linked to a wishlist item.
+        /// </summary>
+        Task<List<SlskdSearch>> GetSearchesForItemAsync(Guid wishlistItemId, int limit = 50);
+
+        /// <summary>
+        ///     Marks a wishlist item as viewed, updating the last-viewed timestamp.
+        /// </summary>
+        Task MarkViewedAsync(Guid id);
+
+        /// <summary>
+        ///     Marks all wishlist items as viewed.
+        /// </summary>
+        Task MarkAllViewedAsync();
+
+        /// <summary>
         ///     Imports wishlist searches from a CSV playlist export.
         /// </summary>
         Task<WishlistCsvImportResult> ImportCsvAsync(
@@ -159,6 +174,43 @@ namespace slskd.Wishlist
                 await context.SaveChangesAsync();
                 Log.Information("Deleted wishlist item {Id}", id);
             }
+        }
+
+        /// <inheritdoc/>
+        public async Task<List<SlskdSearch>> GetSearchesForItemAsync(Guid wishlistItemId, int limit = 50)
+        {
+            return await SearchService.GetByWishlistItemIdAsync(wishlistItemId, limit);
+        }
+
+        /// <inheritdoc/>
+        public async Task MarkViewedAsync(Guid id)
+        {
+            using var context = ContextFactory.CreateDbContext();
+            var item = await context.WishlistItems.FindAsync(id);
+            if (item == null)
+            {
+                throw new NotFoundException($"Wishlist item {id} not found");
+            }
+
+            item.LastViewedAt = DateTime.UtcNow;
+            await context.SaveChangesAsync();
+        }
+
+        /// <inheritdoc/>
+        public async Task MarkAllViewedAsync()
+        {
+            using var context = ContextFactory.CreateDbContext();
+            var now = DateTime.UtcNow;
+            var items = await context.WishlistItems
+                .Where(i => i.LastViewedAt == null || i.LastSearchedAt > i.LastViewedAt)
+                .ToListAsync();
+
+            foreach (var item in items)
+            {
+                item.LastViewedAt = now;
+            }
+
+            await context.SaveChangesAsync();
         }
 
         /// <inheritdoc/>
@@ -499,7 +551,16 @@ namespace slskd.Wishlist
                 responseLimit: item.MaxResults,
                 filterResponses: !string.IsNullOrEmpty(item.Filter));
 
-            var search = await SearchService.StartAsync(searchId, query, scope, searchOptions, requestedProviders: null, safetySource: "wishlist");
+            // Apply the wishlist filter string as a file filter during search collection.
+            // Without this, filterResponses: true only enables default filtering (e.g., locked files)
+            // but ignores the user's filter expression like "flac OR mp3".
+            if (!string.IsNullOrEmpty(item.Filter))
+            {
+                var fileFilter = CreateFileFilter(item.Filter);
+                searchOptions = searchOptions.WithFilters(fileFilter: fileFilter);
+            }
+
+            var search = await SearchService.StartAsync(searchId, query, scope, searchOptions, requestedProviders: null, safetySource: "wishlist", wishlistItemId: item.Id);
 
             // Poll for search completion (up to 20 seconds)
             var maxWait = TimeSpan.FromSeconds(20);
@@ -541,11 +602,35 @@ namespace slskd.Wishlist
                 if (downloadResult.EnqueuedCount > 0)
                 {
                     item.TotalDownloadCount += downloadResult.EnqueuedCount;
-                    item.Enabled = false;
+
+                    // Auto-disable when MaxDownloads limit is reached.
+                    // When MaxDownloads is null, disable after the first auto-download (legacy behavior).
+                    var shouldDisable = item.MaxDownloads == null
+                        ? true
+                        : item.TotalDownloadCount >= item.MaxDownloads.Value;
+
+                    if (shouldDisable)
+                    {
+                        item.Enabled = false;
+                        Log.Information(
+                            "Wishlist item {Id} disabled after reaching {Count} download(s) (limit: {Limit})",
+                            item.Id,
+                            item.TotalDownloadCount,
+                            item.MaxDownloads.HasValue ? item.MaxDownloads.Value.ToString() : "1 (one-shot)");
+                    }
+                    else
+                    {
+                        Log.Information(
+                            "Wishlist item {Id} downloaded {Count}/{Limit} file(s); keeping enabled",
+                            item.Id,
+                            item.TotalDownloadCount,
+                            item.MaxDownloads);
+                    }
+
                     context.WishlistItems.Update(item);
                     await context.SaveChangesAsync(cancellationToken);
                     Log.Information(
-                        "Wishlist item {Id} disabled after enqueuing {Count} download(s)",
+                        "Wishlist item {Id} enqueued {Count} download(s)",
                         item.Id,
                         downloadResult.EnqueuedCount);
                 }
@@ -642,6 +727,25 @@ namespace slskd.Wishlist
             var normalized = filename.Replace('\\', '/');
             var lastSlash = normalized.LastIndexOf('/');
             return lastSlash < 0 ? string.Empty : normalized[..lastSlash];
+        }
+
+        /// <summary>
+        ///     Creates a file filter function from a wishlist filter string.
+        ///     Supports space-separated or " OR "-separated extension terms (e.g., "flac OR mp3", "flac mp3").
+        /// </summary>
+        private static Func<Soulseek.File, bool> CreateFileFilter(string filter)
+        {
+            // Split by " OR " or whitespace, normalize to lowercase extensions
+            var extensions = filter
+                .Split([" OR ", " "], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(e => e.StartsWith('.') ? e.ToLowerInvariant() : $".{e.ToLowerInvariant()}")
+                .ToHashSet();
+
+            return (Soulseek.File file) =>
+            {
+                var ext = Path.GetExtension(file.Filename).ToLowerInvariant();
+                return extensions.Contains(ext);
+            };
         }
 
         private bool IsClientSearchReady()

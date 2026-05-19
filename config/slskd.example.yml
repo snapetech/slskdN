@@ -201,6 +201,10 @@
 #   search:
 #     request:
 #       - ^.{1,2}$
+#   search_retention:
+#     max_age_days: 30            # auto-delete searches older than this (0 = no age limit)
+#     max_count: 1000             # keep at most this many searches (0 = no count limit)
+#     cleanup_interval_seconds: 86400  # how often to run cleanup (default: daily)
 # web:
 #   port: 5030
 #   socket: ~

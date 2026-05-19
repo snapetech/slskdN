@@ -104,6 +104,44 @@ const isRemoteUnavailableTransferError = (message = '') =>
     'Transfer rejected:',
   ].some((token) => message.includes(token));
 
+/**
+ * Extracts a concise, user-facing reason from a transfer exception string.
+ * Returns the original exception if no common pattern is identified.
+ */
+export const getFailureReason = (exception = '') => {
+  if (!exception) return '';
+
+  // TransferRejectedException: Transfer rejected: File not shared.
+  const rejectedMatch = exception.match(/Transfer\s+rejected:\s*(.+?)\.?$/im);
+  if (rejectedMatch) return rejectedMatch[1].trim();
+
+  // TransferRejectedException: Transfer rejected: Enqueue failed due to internal error
+  const enqueueFailedMatch = exception.match(/Enqueue\s+failed\s+due\s+to\s+(.+?)(?:;|\.|$)/im);
+  if (enqueueFailedMatch) return enqueueFailedMatch[1].trim();
+
+  // TransferSizeMismatchException: Transfer aborted: the remote size of X does not match expected size Y
+  const sizeMismatchMatch = exception.match(/the\s+remote\s+size\s+of\s+\d+\s+does\s+not\s+match\s+expected\s+size\s+\d+/im);
+  if (sizeMismatchMatch) return 'Size mismatch';
+
+  // UserOfflineException: User X appears to be offline
+  const offlineMatch = exception.match(/appears\s+to\s+be\s+offline/i);
+  if (offlineMatch) return 'User offline';
+
+  // Timeout
+  const timeoutMatch = exception.match(/timed?\s*out/i);
+  if (timeoutMatch) return 'Timed out';
+
+  // Remote connection closed / Connection reset
+  const connectionMatch = exception.match(/(Remote\s+connection\s+closed|Connection\s+reset\s+by\s+peer)/i);
+  if (connectionMatch) return 'Connection lost';
+
+  // Truncate verbose exception type prefixes
+  return exception
+    .replace(/^(Soulseek\.)?\w+Exception:\s*/i, '')
+    .replace(/; remoteReason=.*$/, '')
+    .trim();
+};
+
 export const formatTransferState = (state, exception = '') => {
   switch (state) {
     case 'Completed, Succeeded':
@@ -116,8 +154,10 @@ export const formatTransferState = (state, exception = '') => {
       return isRemoteUnavailableTransferError(exception)
         ? 'Peer unavailable'
         : 'Error';
-    case 'Completed, Rejected':
-      return 'Rejected';
+    case 'Completed, Rejected': {
+      const reason = getFailureReason(exception);
+      return reason ? `Rejected (${reason})` : 'Rejected';
+    }
     case 'Completed, Aborted':
       return 'Aborted';
     default:

@@ -1,3 +1,4 @@
+import { THEME_PALETTES, applyPalette } from '../lib/themes';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 import * as chat from '../lib/chat';
@@ -80,6 +81,12 @@ const normalizeTheme = (theme) => {
 };
 
 const getSemanticTheme = (theme) => (theme === 'light' ? 'light' : 'dark');
+
+const getSavedPalette = () => {
+  const saved = getLocalStorageItem('slskdn-palette');
+  if (!saved) return null;
+  return THEME_PALETTES.some((p) => p.id === saved) ? saved : null;
+};
 const asArray = (value) => (Array.isArray(value) ? value : []);
 
 const normalizePortForwardProtocol = (proto) =>
@@ -386,6 +393,7 @@ const initialState = {
     rooms: false,
   },
   retriesExhausted: false,
+  palette: getSavedPalette(),
   themeMenuOpen: false,
 };
 
@@ -820,8 +828,28 @@ class App extends Component {
 
   setTheme = (theme) => {
     const nextTheme = normalizeTheme(theme);
+    const nextSemantic = getSemanticTheme(nextTheme);
     setLocalStorageItem('slskd-theme', nextTheme);
-    this.setState({ theme: nextTheme, themeMenuOpen: false });
+    this.setState({
+      theme: nextTheme,
+      themeMenuOpen: false,
+    }, () => {
+      if (nextSemantic !== 'light' && this.state.palette) {
+        applyPalette('dark', this.state.palette);
+      } else {
+        applyPalette(nextSemantic, null);
+      }
+    });
+  };
+
+  setPalette = (paletteId) => {
+    const nextPalette = paletteId || null;
+    setLocalStorageItem('slskdn-palette', nextPalette);
+    const semanticTheme = getSemanticTheme(this.state.theme);
+    if (semanticTheme !== 'light') {
+      applyPalette(semanticTheme, nextPalette);
+    }
+    this.setState({ palette: nextPalette, themeMenuOpen: false });
   };
 
   openThemeMenu = () => {
@@ -880,6 +908,7 @@ class App extends Component {
       navActivity,
       retriesExhausted,
       theme = normalizeTheme(this.getSavedTheme() || 'slskdn'),
+      palette,
       themeMenuOpen,
     } = this.state;
     const semanticTheme = getSemanticTheme(theme);
@@ -955,6 +984,15 @@ class App extends Component {
     document.documentElement.classList.add(theme);
     if (semanticTheme === 'dark') {
       document.documentElement.classList.add('dark');
+    }
+
+    // Apply palette override if one is saved and we're in a dark variant
+    // (light mode uses Semantic UI defaults and all CSS var references are
+    // scoped under :root.dark selectors; palette vars have no effect there)
+    if (palette && semanticTheme !== 'light') {
+      applyPalette('dark', palette);
+    } else {
+      applyPalette(semanticTheme, null);
     }
 
     return (
@@ -1152,6 +1190,57 @@ class App extends Component {
                       {option.text}
                     </Menu.Item>
                   ))}
+                  {semanticTheme !== 'light' && (
+                    <>
+                      <Menu.Item
+                        style={{
+                          cursor: 'default',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          letterSpacing: '0.04em',
+                          opacity: 0.55,
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        Palette
+                      </Menu.Item>
+                      <div className="theme-palette-grid">
+                        {THEME_PALETTES.map((p) => (
+                          <button
+                            className={`theme-palette-swatch ${
+                              palette === p.id ? 'active' : ''
+                            }`}
+                            key={p.id}
+                            onClick={() => this.setPalette(p.id)}
+                            title={p.name}
+                            type="button"
+                          >
+                            <span className="theme-palette-swatch-dots">
+                              {p.swatches.map((swatch) => (
+                                <span
+                                  className="theme-palette-dot"
+                                  key={`${p.id}-${swatch}`}
+                                  style={{ backgroundColor: swatch }}
+                                />
+                              ))}
+                            </span>
+                            <span className="theme-palette-swatch-name">
+                              {p.name}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                      {palette && (
+                        <Menu.Item
+                          onClick={() => this.setPalette(null)}
+                          style={{ fontSize: '0.8rem', opacity: 0.65 }}
+                        >
+                          <Icon name="undo" />
+                          Reset palette
+                        </Menu.Item>
+                      )}
+                    </>
+                  )}
                 </Menu>
               </Popup>
               {(pendingReconnect || pendingRestart || pendingShareRescan) && (

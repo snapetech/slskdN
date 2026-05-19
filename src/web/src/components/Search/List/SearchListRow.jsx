@@ -5,8 +5,44 @@ import * as searches from '../../../lib/searches';
 import SearchActionIcon from './SearchActionIcon';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Icon, Popup, Table } from 'semantic-ui-react';
+import { Icon, Label, Popup, Table } from 'semantic-ui-react';
 import { toast } from 'react-toastify';
+
+const sourceColors = {
+  'auto-replace': 'orange',
+  manual: 'grey',
+  wishlist: 'blue',
+};
+
+const sourceIcons = {
+  'auto-replace': 'sync',
+  manual: 'search',
+  wishlist: 'bookmark',
+};
+
+const SourceBadge = ({ source }) => {
+  const normalizedSource = (source || 'manual').toLowerCase();
+  const color = sourceColors[normalizedSource] || 'grey';
+  const icon = sourceIcons[normalizedSource] || 'search';
+
+  return (
+    <Popup
+      content={`This search was started by ${normalizedSource === 'auto-replace' ? 'auto-replace (automatic stuck-download replacement)' : normalizedSource}`}
+      position="top center"
+      trigger={
+        <Label
+          as="span"
+          color={color}
+          size="mini"
+          style={{ marginLeft: '0.5em' }}
+        >
+          <Icon name={icon} />
+          {normalizedSource}
+        </Label>
+      }
+    />
+  );
+};
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 
@@ -127,6 +163,7 @@ const SearchListRow = ({ onRemove, onStop, search }) => {
           <Link to={`/searches/${encodeURIComponent(search.id)}`}>
             {search.searchText}
           </Link>
+          <SourceBadge source={search.source} />
           <Popup
             content="Open a Discovery Graph for this search phrase so the query history becomes a browsable neighborhood."
             position="top center"

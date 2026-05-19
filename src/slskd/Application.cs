@@ -1971,6 +1971,24 @@ namespace slskd
                     Log.Error("Encountered one or more errors while pruning searches");
                 }
             }
+
+            // Apply search retention policy (cleanup based on max age and max count)
+            var retentionConfig = OptionsMonitor.CurrentValue.Filters.SearchRetention;
+            if (retentionConfig.MaxAgeDays > 0 || retentionConfig.MaxCount > 0)
+            {
+                try
+                {
+                    var cleaned = await Search.CleanupAsync(retentionConfig.MaxAgeDays, retentionConfig.MaxCount);
+                    if (cleaned > 0)
+                    {
+                        Log.Debug("Search retention cleanup removed {Count} searches", cleaned);
+                    }
+                }
+                catch
+                {
+                    Log.Error("Encountered one or more errors while cleaning up searches");
+                }
+            }
         }
 
         private void PruneEvents()

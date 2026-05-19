@@ -56,8 +56,14 @@ namespace slskd.Search
         }
 
         public string SearchText { get; init; } = string.Empty;
+        public string Source { get; init; } = "manual";
         public DateTime StartedAt { get; init; } = DateTime.UtcNow;
         public SearchStates State { get; set; }
         public int Token { get; init; }
+
+        /// <summary>
+        ///     Gets the wishlist item ID that originated this search, or null if started manually/automatically.
+        /// </summary>
+        public Guid? WishlistItemId { get; init; }
     }
 }

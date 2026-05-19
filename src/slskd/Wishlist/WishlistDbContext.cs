@@ -29,6 +29,11 @@ namespace slskd.Wishlist
 
             modelBuilder
                 .Entity<WishlistItem>()
+                .Property(e => e.LastViewedAt)
+                .HasConversion(v => v, v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null);
+
+            modelBuilder
+                .Entity<WishlistItem>()
                 .HasIndex(e => e.SearchText);
         }
     }

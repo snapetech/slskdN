@@ -1,3 +1,59 @@
+## 2026-05-19
+
+- Wishlist & Search UX plan fully complete including critical gap fixes.
+- **Schema migrations**: Created `Z05182026_SearchSourceAndWishlistItemIdMigration.cs` and `Z05182026_WishlistItemViewingAndDownloadLimitsMigration.cs` using the `IMigration` + `SchemaInspector` pattern for idempotent column addition on existing SQLite databases. Added `Source` and `WishlistItemId` to Searches; `LastViewedAt` and `MaxDownloads` to WishlistItems.
+- **Search retention config**: Added `SearchRetentionOptions` nested class to `Options.cs` with `MaxAgeDays` (default 30), `MaxCount` (default 1000), and `CleanupIntervalSeconds` (default 86400). Implemented `CleanupAsync` in `SearchService` that deletes by age first, then by count. Wired to `PruneSearches` background task alongside existing `PruneAsync`. Added `POST /api/v0/searches/cleanup` endpoint with optional query param overrides.
+- **Mark All Viewed**: Added `MarkAllViewedAsync` to `WishlistService`, `POST /api/v0/wishlist/mark-all-viewed` endpoint, `markAllViewed()` in `wishlist.js`, and "Mark All Viewed" button on Wishlist header with Popup tooltip.
+- **AdminPolicies retention UI**: Added three `Form.Input` fields (Max Age days, Max Count, Cleanup Interval sec) to the System → Admin Policies page under Filters → search_retention. Wires through `toDocument`/`toForm` for config save/load.
+- **Searches count display**: Added filtered-vs-total count ("X / Y searches") to the `SearchList` header with CSS styling (`.search-list-count`).
+- **Documentation**: Added `docs/wishlist.md` comprehensive user guide covering wishlist items, auto-disable behavior, unseen badge, search history, view modes, bulk ops, filter presets, search retention, sources, and API endpoints. Updated `config/slskd.example.yml` with `filters.search_retention` section.
+- Validation: `dotnet build` (0 warnings, 0 errors), `dotnet test` (4544/4544 pass: 67 smoke + 4199 unit + 278 integration), `./bin/lint` clean, `npm run build` clean, `npx vitest run` (133 files, 748 tests, all pass).
+
+## 2026-05-18 (late)
+
+- **Theme palette system**: Ported all 21 colour palettes from seerrng into slskdN's theme picker.
+  - Created `src/web/src/lib/themes.js` with all Tailwind-style colour scales, palette definitions (Aurora, Ember, Lagoon, Orchid, Forest, Sapphire, Rosewood, Citrus, Arctic, Grape, Coral, Mint, Steel, Gold, Plum, Skyline, Moss, Flame, Violet, Ocean, Sietch), and `applyPalette()` that writes CSS custom properties to override the default `:root.dark` theme at runtime.
+  - Modified `App.jsx`: added `palette` state, `getSavedPalette()`/`setPalette()` methods, palette grid UI inside the theme picker popup (shown when a dark theme is active), and `applyPalette()` call in `render()`.
+  - The palette picker shows 2-column swatch buttons with 4 colour dots + name; active palette is highlighted; "Reset palette" option clears overrides back to defaults.
+  - Created `src/web/src/lib/themes.test.js` with 11 tests verifying palette definitions, token uniqueness, and Sietch colour characteristics.
+  - Palettes only apply in dark mode; light mode uses Semantic UI defaults (all CSS variable refs are scoped under `:root.dark`).
+  - Validation: all 134 test files / 759 JS tests pass; production build succeeds.
+
+## 2026-05-18
+
+- Sprint 3 wishlist filter fix and UX polish complete.
+- Sprint 3.1: Fixed wishlist filter application bug — the filter string (e.g., "flac OR mp3") is now parsed and applied as a `Func<File, bool>` file filter during search collection via `SearchOptions.WithFilters()`. Previously `filterResponses: true` was set but no actual filter function was passed, meaning the filter text was silently ignored during search and only affected auto-download filtering. Created `CreateFileFilter()` helper that parses extension strings into a file filter.
+- Sprint 3.2: Added filter presets (FLAC, MP3, FLAC+MP3, FLAC+ALAC, Lossless, Any) as quick-select toggle buttons in the wishlist modal. Added validation that rejects invalid filter syntax (only allows alphanumeric extensions and the OR keyword). Each preset button has a Popup tooltip explaining what it filters.
+- Sprint 3.3: Enhanced wishlist-search detail view — added inline results expansion. Clicking the angle-down button on a search in the history table fetches responses via `searchesAPI.getResponses()` and displays them inline (username, directory, file count, total size). Full search page link uses "external" icon with tooltip. Results are limited to first 20 with a "showing X of Y" note.
+- Validation: `dotnet build` (0 warnings, 0 errors), `dotnet test` (4544/4544 pass), `./bin/lint` clean, `npm run build` clean.
+
+## 2026-05-18
+- Backend 2.1: Added `Guid? WishlistItemId` to `Search` record, extended `ISearchService.StartAsync` with optional `wishlistItemId`, implemented `GetByWishlistItemIdAsync` in `SearchService`, wired through `WishlistService.ExecuteWishlistSearchAsync`. Added `GET /api/v0/wishlist/{id}/searches` endpoint and `GetSearchesForItemAsync` to `IWishlistService`/`WishlistService`.
+- Backend 2.2: Added `DateTime? LastViewedAt` to `WishlistItem`, configured UTC conversion in `WishlistDbContext`. Added `MarkViewedAsync` to `IWishlistService`/`WishlistService` and `POST /api/v0/wishlist/{id}/mark-viewed` endpoint.
+- Frontend: Added `getSearches(id, limit)` and `markViewed(id)` to `wishlist.js`. Updated `WishlistItemRow` to show unseen results badge (red "N new" label with tooltip) when `LastSearchedAt > LastViewedAt`. Added collapsible search history table with source badges (wishlist=blue, auto-replace=orange, manual=grey). Expanding search history auto-marks the item as viewed.
+- Key design decision: kept `SearchDbContext` and `WishlistDbContext` decoupled using a nullable GUID property instead of a hard EF foreign key.
+- Validation: `dotnet build` (0 warnings, 0 errors), `dotnet test` (4544/4544 pass: 67 smoke + 4199 unit + 278 integration), `./bin/lint` clean, `npm run build` clean.
+
+## 2026-05-18
+
+- Sprint 1 wishlist/search UX complete per plan 1779135555175-tidy-wolf.md. User priorities: Sprint 1 very important, better understanding/logging for auto-replace, unified view very important, 100% backwards compat.
+- Backend: `Source` field on Search record, populated from safetySource. `source` query param added to `GET /api/v0/searches` and `ISearchService.ListAsync`. `POST /api/v0/searches/cleanup` endpoint for retention-based cleanup. Search retention config already existed (`retention.search` in minutes, pruned every 5 min via Clock_EveryFiveMinutes).
+- Frontend: source filter dropdown (All Sources/Manual/Wishlist/Auto-Replace) with Popup tooltips. Source badges on SearchListRow with color-coded icons (grey/search=manual, blue/bookmark=wishlist, orange/sync=auto-replace). "Clear All" and "Clear Old" buttons in SearchList header. `cleanupSearches()` and source-filtered `getAll()` added to searches.js library.
+- Auto-replace control panel was already present in TransfersHeader.jsx with toggle, tooltip, and status.
+- Tests: 146 backend search unit tests pass, 34 frontend search tests pass (11 files), `./bin/lint` passes, frontend lint passes.
+
+## 2026-05-18
+
+- Package-channel publication follow-up: fixed release publication gaps found
+  by the new package-smoke harness. GitLab now dispatches the GitHub package
+  publisher workflows after creating the release and promotes the internal
+  image to Docker Hub. PPA publishing now targets Jammy and Noble and generates
+  `debian/source/include-binaries` for the staged self-contained .NET payload
+  so Launchpad includes the bundled runtime. COPR publishing now creates or
+  modifies the project with Fedora 43 and Rawhide chroots before building for
+  those chroots. Validation passed: workflow YAML parse, shell syntax, and
+  `git diff --check`.
+
 ## 2026-05-15
 
 - Deployed `0.0.0-manual.20260515082423.13f062dd254a` to `kspls0` after
@@ -10550,3 +10606,5 @@ Code quality improvements were completed as part of Option A:
 [2026-05-16T03:05:00Z] Final pre-release cleanup: ran one more release-minded placeholder/stale-text sweep after the build-out patch. Cleaned misleading XML doc placeholders and comments in native job APIs, playback feedback, content verification metadata, sharing manifests, mesh circuits, and the disabled network simulation shell. Left intentionally gated experimental behavior intact. Validation passed: `dotnet build src/slskd/slskd.csproj -c Release --no-restore`, `./bin/lint`, targeted placeholder scan, and `git diff --check`.
 
 [2026-05-17T17:55:00Z] Human-check PM auto response: added a default-off Soulseek private-message auto response for prompts that look like proof-of-human or bot-check requests. The daemon stores inbound messages normally, skips replayed/POD messages, sends one configured response per sender per cooldown window, and persists the outgoing reply through the existing conversation service. Downloads and Messages now expose the same shared browser preference and apply the runtime daemon option when remote configuration is enabled; `config/slskd.example.yml` documents the persistent YAML shape. Validation passed: focused backend matcher/options tests, focused Transfers/Messaging/helper frontend tests, frontend lint, repo lint, and `git diff --check`.
+
+[2026-05-18T00:00:00Z] Package-channel smoke validation: added `packaging/smoke/package-smoke` with a project manifest, public channel adapters, requested-version checks, JSON/JUnit/log evidence output, container multi-arch smoke, package uninstall cleanup hooks, and metadata smoke channels for package surfaces that are not fully automated yet. GitLab now has a tag-only `post_release_validate` stage after promote for container, Ubuntu, Fedora, AUR, Snap, and metadata surfaces, and GitHub has an equivalent disabled `workflow_dispatch` scaffold. Validation passed: script syntax, YAML parsing, evidence success/failure checks, and `git diff --check`.

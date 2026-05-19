@@ -1,0 +1,32 @@
+name: Package Smoke Validation (disabled)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release tag/version to validate"
+        required: true
+      channel:
+        description: "Package channel to validate"
+        required: true
+        default: "github-archive"
+      arch:
+        description: "Target architecture label"
+        required: true
+        default: "amd64"
+
+jobs:
+  package-smoke:
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install smoke dependencies
+        run: sudo apt-get update && sudo apt-get install -y bash ca-certificates curl jq unzip tar
+      - name: Run package smoke
+        run: packaging/smoke/package-smoke slskdn "${{ inputs.channel }}" "${{ inputs.version }}" --arch "${{ inputs.arch }}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: package-smoke-${{ inputs.channel }}-${{ inputs.arch }}
+          path: artifacts/package-smoke/

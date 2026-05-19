@@ -217,10 +217,11 @@ namespace slskd.Search.API
         /// </summary>
         /// <param name="limit">Maximum number of searches to return (0 uses the default list cap).</param>
         /// <param name="offset">Number of searches to skip (for pagination).</param>
+        /// <param name="source">Optional source filter (e.g. "manual", "wishlist", "auto-replace").</param>
         /// <returns>The list of searches.</returns>
         [HttpGet("")]
         [Authorize(Policy = AuthPolicy.Any)]
-        public async Task<IActionResult> GetAll([FromQuery] int limit = 0, [FromQuery] int offset = 0)
+        public async Task<IActionResult> GetAll([FromQuery] int limit = 0, [FromQuery] int offset = 0, [FromQuery] string? source = null)
         {
             if (Program.IsRelayAgent)
             {
@@ -233,7 +234,7 @@ namespace slskd.Search.API
             }
 
             var effectiveLimit = limit == 0 ? DefaultListLimit : limit;
-            var searches = await Searches.ListAsync(limit: effectiveLimit, offset: offset);
+            var searches = await Searches.ListAsync(limit: effectiveLimit, offset: offset, source: source);
             return Ok(searches);
         }
 
@@ -298,9 +299,9 @@ namespace slskd.Search.API
         /// <summary>
         ///     Deletes all completed searches.
         /// </summary>
-        /// <response code="200">The searches were deleted successfully.</response>
         /// <returns>The number of deleted searches.</returns>
-        [HttpDelete("")]
+        /// <response code="200">The request completed successfully.</response>
+        [HttpDelete()]
         [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(typeof(int), 200)]
         public async Task<IActionResult> DeleteAll()
@@ -312,6 +313,37 @@ namespace slskd.Search.API
 
             var count = await Searches.DeleteAllAsync();
             return Ok(new { deleted = count });
+        }
+
+        /// <summary>
+        ///     Deletes searches based on retention policies.
+        ///     When no parameters are provided, uses the configured retention settings.
+        /// </summary>
+        /// <param name="maxAgeDays">Override: delete searches older than this many days (0 = no age limit).</param>
+        /// <param name="maxCount">Override: keep at most this many searches (0 = no count limit).</param>
+        /// <returns>The number of deleted searches.</returns>
+        /// <response code="200">The request completed successfully.</response>
+        [HttpPost("cleanup")]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
+        [ProducesResponseType(typeof(object), 200)]
+        public async Task<IActionResult> Cleanup([FromQuery] int? maxAgeDays = null, [FromQuery] int? maxCount = null)
+        {
+            if (Program.IsRelayAgent)
+            {
+                return Forbid();
+            }
+
+            var config = OptionsSnapshot.Value.Filters.SearchRetention;
+            var effectiveMaxAge = maxAgeDays ?? config.MaxAgeDays;
+            var effectiveMaxCount = maxCount ?? config.MaxCount;
+
+            var count = await Searches.CleanupAsync(effectiveMaxAge, effectiveMaxCount);
+            return Ok(new
+            {
+                deleted = count,
+                appliedMaxAgeDays = effectiveMaxAge,
+                appliedMaxCount = effectiveMaxCount,
+            });
         }
     }
 }

@@ -1,3 +1,119 @@
+## Update 2026-05-19 01:30:00Z
+
+- Current task: Wishlist & Search UX plan fully complete.
+- Last activity:
+  - Sprint 4 (table/card view toggle, bulk operations, auto-disable after N downloads) already completed.
+  - **Critical gap fixes**:
+    - Idempotent schema migrations: `Source` + `WishlistItemId` on Searches table; `LastViewedAt` + `MaxDownloads` on WishlistItems table.
+    - Search retention config: `SearchRetentionOptions` in `Options.cs` (`max_age_days`, `max_count`, `cleanup_interval_seconds`), `CleanupAsync` in `SearchService`, background job in `PruneSearches`, and `POST /api/v0/searches/cleanup` endpoint.
+    - "Mark All as Viewed": backend endpoint, frontend API, and UI button on Wishlist header.
+    - System → Search settings: added retention config inputs to `AdminPolicies` page.
+    - Search count display: added "X / Y searches" count to the Searches page header (filtered vs total).
+  - Documentation: added `docs/wishlist.md` guide, updated `config/slskd.example.yml` with retention config.
+- Validation:
+  - Passed: `dotnet build` (0 warnings, 0 errors).
+  - Passed: `dotnet test` (4544 total: 67 smoke + 4199 unit + 278 integration, all passing).
+  - Passed: `./bin/lint` clean.
+  - Passed: `npm run build` clean.
+  - Passed: `npx vitest run` (133 test files, 748 tests, all passing).
+- Next steps:
+  1. All Wishlist & Search UX plan items (Sprints 1–4 + gap fixes) are complete.
+  2. User can validate the full wishlist/search UX overhaul on a live instance.
+  3. 21 colour palettes ported from seerrng are now available in the theme picker.
+
+## Update 2026-05-19 00:20:00Z
+
+- Current task: Sprint 4 wishlist advanced features complete locally.
+- Last activity:
+  - Sprint 4.1: Added unified wishlist-search view mode — toggle between table view and card view. Card view shows each wishlist item as an expandable Segment with: enabled icon, search text, filter badge, unseen badge, request state label, stats row (last run, matches, runs, auto-download status, download progress), and quick action buttons (expand, view search, run, edit, delete). Expanded cards show search history and inline results (same as Sprint 3.3).
+  - Sprint 4.2: Added bulk operations — checkboxes on table rows and cards, "Select All" checkbox in table header, bulk action bar appears when items are selected with Enable/Disable/Delete/Clear actions. Each action has a Popup tooltip.
+  - Sprint 4.3: Added auto-disable after N successful downloads — `MaxDownloads` property (nullable int) on WishlistItem. When null (default), item disables after first auto-download (legacy behavior). When set (e.g., 5), item stays enabled until `TotalDownloadCount >= MaxDownloads`. Added input field in wishlist modal with tooltip. Card view shows "Downloads: X/Y" progress when auto-download is enabled with a maxDownloads limit.
+- Validation:
+  - Passed: `dotnet build` (0 warnings, 0 errors).
+  - Passed: `dotnet test` (4544 total: 67 smoke + 4199 unit + 278 integration, all passing).
+  - Passed: `./bin/lint` and `npm run build`.
+- Next steps:
+  1. User can validate Sprint 4 on a live instance.
+  2. Update memory-bank tasks/progress docs.
+  3. All Wishlist & Search UX plan items from 1779135555175-tidy-wolf.md are now complete.
+
+## Update 2026-05-18 23:50:00Z
+
+- Current task: Sprint 3 wishlist/search UX complete locally.
+- Last activity:
+  - Sprint 3.1: Fixed wishlist filter application — filter string (e.g., "flac OR mp3") is now parsed and applied as a `Func<File, bool>` file filter during search collection via `SearchOptions.WithFilters()`. Previously `filterResponses: true` was set but no actual filter function was passed, so the filter text was ignored during search and only affected auto-download.
+  - Sprint 3.2: Added filter presets (FLAC, MP3, FLAC+MP3, FLAC+ALAC, Lossless, Any) as quick-select buttons in the wishlist modal. Added validation that rejects invalid filter syntax (only allows extensions and the OR keyword). Each preset button has a tooltip explaining what it filters.
+  - Sprint 3.3: Enhanced wishlist-search detail view — added inline results expansion. Clicking the angle-down button on a search fetches and displays its responses inline (username, directory, file count, total size). Full search page link uses "external" icon. Results are limited to first 20 with a "showing X of Y" note.
+- Validation:
+  - Passed: `dotnet build` (0 warnings, 0 errors).
+  - Passed: `dotnet test` (4544 total: 67 smoke + 4199 unit + 278 integration, all passing).
+  - Passed: `./bin/lint` and `npm run build`.
+- Next steps:
+  1. User can validate Sprint 3 on a live instance.
+  2. Update memory-bank tasks/progress docs.
+  3. Sprint 4 (unified wishlist-search view, smart wishlist management) when ready.
+
+## Update 2026-05-18 23:30:00Z
+
+- Current task: Sprint 2 wishlist/search UX complete locally.
+- Last activity:
+  - Backend 2.1: Added `WishlistItemId` to `Search` record, wired through `SearchService.StartAsync` and `WishlistService.ExecuteWishlistSearchAsync`;
+  - Backend 2.1: Added `GET /api/v0/wishlist/{id}/searches` endpoint;
+  - Backend 2.2: Added `LastViewedAt` to `WishlistItem`, configured UTC conversion;
+  - Backend 2.2: Added `PUT /api/v0/wishlist/{id}/mark-viewed` endpoint and `MarkViewedAsync` service method;
+  - Frontend: Added `getSearches()` and `markViewed()` to `wishlist.js`;
+  - Frontend: Updated `WishlistItemRow` to show unseen results badge, collapsible search history table, and auto-mark-viewed on expand;
+  - Frontend: Added `handleMarkViewed` handler in main `Wishlist` component.
+- Validation:
+  - Passed: `dotnet build` (0 warnings, 0 errors).
+  - Passed: `dotnet test` (4544 total: 67 smoke + 4199 unit + 278 integration, all passing).
+  - Passed: `./bin/lint` and `npm run build`.
+- Next steps:
+  1. User can validate Sprint 2 on a live instance.
+  2. Update memory-bank tasks/progress docs.
+  3. Sprint 3 (wishlist bulk operations, search scheduling UI) when ready.
+
+## Update 2026-05-18 21:00:00Z
+
+- Current task: Sprint 1 wishlist/search UX complete.
+- Last activity:
+  - Finished all Sprint 1 items from plan 1779135555175-tidy-wolf.md;
+  - Backend: `source` query param on `GET /api/v0/searches`, `cleanupSearches` in searches.js, source filter on `ISearchService.ListAsync`;
+  - Frontend: source filter dropdown (All/Manual/Wishlist/Auto-Replace), source badges on SearchListRow, Clear All + Clear Old buttons;
+  - Auto-replace panel already existed in TransfersHeader.jsx;
+  - Search retention config already existed (`retention.search` in minutes, pruned every 5 min).
+- Validation:
+  - Passed: 146 backend search unit tests, 34 frontend search tests, `./bin/lint`, frontend lint.
+- Next steps:
+  1. User can validate Sprint 1 on a live instance.
+  2. Sprint 2 (wishlist-search linking, unseen results tracking) when ready.
+
+## Update 2026-05-18 00:45:00Z
+
+- Current task: fix package-channel publication gaps found by package-smoke.
+- Last activity:
+  - found the active GitLab release path created the GitHub release but did not
+    dispatch the GitHub package workflows that upload direct `.deb`/`.rpm` and
+    publish PPA/COPR;
+  - added GitLab dispatch for Linux archive, direct package, COPR, and PPA
+    workflows after release creation;
+  - added GitLab Docker Hub promotion to `snapetech/slskdn`;
+  - changed PPA publishing to target both Jammy and Noble;
+  - generated `debian/source/include-binaries` for the staged self-contained
+    .NET payload so Launchpad source builds include the bundled runtime;
+  - changed COPR publishing to create or modify the project with Fedora 43 and
+    Rawhide chroots before building for those chroots.
+- Validation:
+  - Passed: workflow YAML parse.
+  - Passed: package-smoke shell syntax and manifest syntax.
+  - Passed: `git diff --check`.
+- Next steps:
+  1. Push these changes.
+  2. Manually dispatch package publisher workflows for the current release tag,
+     or let the next tag exercise the full GitLab release path.
+  3. Re-run package-smoke against direct packages, PPA Jammy/Noble, COPR, and
+     Docker Hub.
+
 ## Update 2026-05-17 17:55:00Z
 
 - Current task: human-check private-message auto response complete locally.
@@ -8084,3 +8200,20 @@ milliseconds. Local code now has the matching EF model index and migration.
 
 Next steps: validate, commit, push, and rebuild/deploy once more if we want the
 search-index migration baked into the manual image before release.
+
+## 2026-05-18T00:00:00Z Session update
+
+Added the reusable post-release package-channel validation scaffold. The new
+`packaging/smoke/package-smoke` driver installs from public channels, records
+evidence JSON/JUnit/logs, checks requested-version reporting, and exposes
+adapters for release archives, direct packages, containers, package managers,
+and slskdN packaging metadata surfaces.
+
+GitLab now has a tag-only `post_release_validate` stage after promote for
+container, Ubuntu, Fedora, AUR, Snap, and metadata surfaces; GitHub has a
+disabled `workflow_dispatch` workflow that reuses the same driver when the
+project intentionally enables it.
+
+Next steps: run the GitLab validation stage against the next release tag and
+tighten delayed/manual channel `allow_failure` settings after observing real
+channel propagation.

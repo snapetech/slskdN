@@ -155,6 +155,8 @@ const Searches = ({ server } = {}) => {
   const [removingAll, setRemovingAll] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [cleaningUp, setCleaningUp] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState('all');
 
   // Scene ↔ Pod Bridging provider selection (opt-in; normal search stays Soulseek-compatible by default)
   const [scenePodBridgeEnabled, setScenePodBridgeEnabled] = useState(false);
@@ -448,6 +450,24 @@ const Searches = ({ server } = {}) => {
     }
   };
 
+  // clean up old searches (retention-based)
+  const cleanup = async () => {
+    try {
+      setCleaningUp(true);
+      const result = await library.cleanupSearches();
+      toast.success(`Cleaned up ${result?.data?.deleted ?? 'old'} searches`);
+      setCleaningUp(false);
+    } catch (cleanupError) {
+      console.error(cleanupError);
+      toast.error(
+        cleanupError?.response?.data ??
+          cleanupError?.message ??
+          cleanupError,
+      );
+      setCleaningUp(false);
+    }
+  };
+
   // stop an in-progress search
   const stop = async (search) => {
     try {
@@ -719,15 +739,44 @@ const Searches = ({ server } = {}) => {
             icon="search"
           />
         ) : (
-          <SearchList
-            connecting={connecting}
-            error={error}
-            onRemove={remove}
-            onRemoveAll={removeAll}
-            onStop={stop}
-            removingAll={removingAll}
-            searches={searches}
-          />
+          <>
+            <div style={{ marginBottom: '1em', display: 'flex', gap: '1em', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.9em', fontWeight: 'bold' }}>
+                Filter by source:
+              </span>
+              <Popup
+                content="Show only searches from a specific source. Auto-replace searches are automatic stuck-download replacements."
+                position="top center"
+                trigger={
+                  <Dropdown
+                    aria-label="Search source filter"
+                    compact
+                    onChange={(_, { value }) => setSourceFilter(value)}
+                    options={[
+                      { key: 'all', text: 'All Sources', value: 'all' },
+                      { key: 'manual', text: 'Manual', value: 'manual', icon: 'search' },
+                      { key: 'wishlist', text: 'Wishlist', value: 'wishlist', icon: 'bookmark' },
+                      { key: 'auto-replace', text: 'Auto-Replace', value: 'auto-replace', icon: 'sync' },
+                    ]}
+                    selection
+                    value={sourceFilter}
+                  />
+                }
+              />
+            </div>
+            <SearchList
+              cleaningUp={cleaningUp}
+              connecting={connecting}
+              error={error}
+              onCleanup={cleanup}
+              onRemove={remove}
+              onRemoveAll={removeAll}
+              onStop={stop}
+              removingAll={removingAll}
+              searches={searches}
+              sourceFilter={sourceFilter}
+            />
+          </>
         )}
       </CollapsibleSection>
     </>

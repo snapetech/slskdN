@@ -69,8 +69,19 @@ namespace slskd.Wishlist
         public int TotalDownloadCount { get; set; } = 0;
 
         /// <summary>
+        ///     Gets or sets the maximum number of successful downloads before auto-disabling.
+        ///     When null, the item will never be auto-disabled.
+        /// </summary>
+        public int? MaxDownloads { get; set; }
+
+        /// <summary>
         ///     Gets or sets the GUID of the most recent search.
         /// </summary>
         public Guid? LastSearchId { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the date/time the user last viewed search results for this item.
+        /// </summary>
+        public DateTime? LastViewedAt { get; set; }
     }
 }

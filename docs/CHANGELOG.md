@@ -248,6 +248,22 @@ For dev or build tags, use the same logical version string embedded in the tag.
   route/UI visibility follow-up.
 - Strengthened System navigation tests to verify every expected admin and
   experimental panel carries the correct label.
+- Ported all 21 seerrng colour palettes (Aurora through Sietch) into the
+  Web UI theme picker, each with 4 swatch colours. Selecting a palette
+  overrides accent, warm, surface, nav, and footer CSS custom properties
+  at runtime via the new `src/web/src/lib/themes.js` module using
+  Tailwind-style colour scales and seerrng's colour-mixing engine. Choice
+  persists across page loads via `localStorage`.
+- Added full theme palette picker UI with 2-column labelled swatch grid,
+  active-palette highlighting, and a Reset option.
+- Added 11 test cases for palette definitions, token uniqueness, and
+  Sietch colour characteristics.
+- Updated Wishlist/Search UX: added Search Source tracking with
+  wishlist-item linking, unseen-results badge, inline search history,
+  filter presets (FLAC/MP3 etc.), table/card view toggle, bulk
+  operations, auto-disable after N downloads, Mark All as Viewed, and
+  search retention cleanup config in System settings.
+- Fixed TransferList visual alignment issues in the transfers page.
 
 ## [2026051318-slskdn.251] — 2026-05-13
 

@@ -953,11 +953,17 @@ internal class StubSearchService : ISearchService
         return Task.FromResult(search);
     }
 
-    public Task<List<global::slskd.Search.Search>> ListAsync(System.Linq.Expressions.Expression<Func<global::slskd.Search.Search, bool>> expression = null, int limit = 0, int offset = 0)
+    public Task<List<global::slskd.Search.Search>> ListAsync(System.Linq.Expressions.Expression<Func<global::slskd.Search.Search, bool>> expression = null, int limit = 0, int offset = 0, string? source = null)
     {
         var searches = expression != null
             ? _searches.Values.Where(expression.Compile()).ToList()
             : _searches.Values.ToList();
+
+        if (!string.IsNullOrWhiteSpace(source))
+        {
+            var sourceFilter = source!.Trim().ToLowerInvariant();
+            searches = searches.Where(s => s.Source.ToLowerInvariant() == sourceFilter).ToList();
+        }
 
         if (offset > 0)
             searches = searches.Skip(offset).ToList();

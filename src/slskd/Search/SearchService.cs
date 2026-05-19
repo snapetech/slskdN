@@ -70,8 +70,9 @@ namespace slskd.Search
         /// <param name="expression">An optional expression used to match searches.</param>
         /// <param name="limit">Maximum number of searches to return (0 for unlimited, which is the default).</param>
         /// <param name="offset">Number of searches to skip (for pagination).</param>
+        /// <param name="source">Optional source filter (e.g. "manual", "wishlist", "auto-replace").</param>
         /// <returns>The list of searches matching the specified expression, or all searches if no expression is specified.</returns>
-        Task<List<Search>> ListAsync(Expression<Func<Search, bool>>? expression = null, int limit = 0, int offset = 0);
+        Task<List<Search>> ListAsync(Expression<Func<Search, bool>>? expression = null, int limit = 0, int offset = 0, string? source = null);
 
         /// <summary>
         ///     Updates the specified <paramref name="search"/>.
@@ -102,8 +103,9 @@ namespace slskd.Search
         /// <param name="options">Search options.</param>
         /// <param name="requestedProviders">Optional list of provider names for Scene ↔ Pod Bridging (e.g., ["pod"], ["scene"]).</param>
         /// <param name="safetySource">The safety-limiter source for this search producer.</param>
+        /// <param name="wishlistItemId">Optional wishlist item ID that originated this search.</param>
         /// <returns>The completed search.</returns>
-        Task<Search> StartAsync(Guid id, SearchQuery query, SearchScope scope, SearchOptions? options, List<string>? requestedProviders, string safetySource);
+        Task<Search> StartAsync(Guid id, SearchQuery query, SearchScope scope, SearchOptions? options, List<string>? requestedProviders, string safetySource, Guid? wishlistItemId = null);
 
         /// <summary>
         ///     Cancels the search matching the specified <paramref name="id"/>, if it is in progress.
@@ -124,6 +126,22 @@ namespace slskd.Search
         /// </summary>
         /// <returns>The number of deleted searches.</returns>
         Task<int> DeleteAllAsync();
+
+        /// <summary>
+        ///     Deletes old searches based on retention policies.
+        /// </summary>
+        /// <param name="maxAgeDays">Delete searches older than this many days (0 = no age limit).</param>
+        /// <param name="maxCount">Keep at most this many searches (0 = no count limit).</param>
+        /// <returns>The number of deleted searches.</returns>
+        Task<int> CleanupAsync(int maxAgeDays = 0, int maxCount = 0);
+
+        /// <summary>
+        ///     Gets searches linked to a wishlist item.
+        /// </summary>
+        /// <param name="wishlistItemId">The wishlist item ID.</param>
+        /// <param name="limit">Maximum number of searches to return.</param>
+        /// <returns>The list of searches linked to the wishlist item.</returns>
+        Task<List<Search>> GetByWishlistItemIdAsync(Guid wishlistItemId, int limit = 50);
     }
 
     /// <summary>
@@ -255,15 +273,24 @@ namespace slskd.Search
         /// <param name="expression">An optional expression used to match searches.</param>
         /// <param name="limit">Maximum number of searches to return (0 for unlimited, which is the default).</param>
         /// <param name="offset">Number of searches to skip (for pagination).</param>
+        /// <param name="source">Optional source filter (e.g. "manual", "wishlist", "auto-replace").</param>
         /// <returns>The list of searches matching the specified expression, or all searches if no expression is specified.</returns>
-        public Task<List<Search>> ListAsync(Expression<Func<Search, bool>>? expression = null, int limit = 0, int offset = 0)
+        public Task<List<Search>> ListAsync(Expression<Func<Search, bool>>? expression = null, int limit = 0, int offset = 0, string? source = null)
         {
             expression ??= s => true;
             using var context = ContextFactory.CreateDbContext();
 
             var query = context.Searches
                 .AsNoTracking()
-                .Where(expression)
+                .Where(expression);
+
+            if (!string.IsNullOrWhiteSpace(source))
+            {
+                var sourceFilter = source!.Trim().ToLowerInvariant();
+                query = query.Where(s => s.Source.ToLowerInvariant() == sourceFilter);
+            }
+
+            query = query
                 .OrderByDescending(s => s.StartedAt)
                 .WithoutResponses();
 
@@ -305,7 +332,7 @@ namespace slskd.Search
             return StartAsync(id, query, scope, options, requestedProviders, safetySource: "user");
         }
 
-        public async Task<Search> StartAsync(Guid id, SearchQuery query, SearchScope scope, SearchOptions? options, List<string>? requestedProviders, string safetySource)
+        public async Task<Search> StartAsync(Guid id, SearchQuery query, SearchScope scope, SearchOptions? options, List<string>? requestedProviders, string safetySource, Guid? wishlistItemId = null)
         {
             using var activity = SearchActivitySource.Source.StartActivity("search.start");
             activity?.SetTag("search.id", id.ToString());
@@ -361,6 +388,8 @@ namespace slskd.Search
                 Id = id,
                 State = SearchStates.Requested,
                 StartedAt = DateTime.UtcNow,
+                Source = safetySource,
+                WishlistItemId = wishlistItemId,
             };
 
             bool searchCreated = false;
@@ -818,6 +847,97 @@ namespace slskd.Search
                 Log.Error(ex, "Failed to delete all searches: {Message}", ex.Message);
                 throw;
             }
+        }
+
+        /// <summary>
+        ///     Deletes old searches based on retention policies.
+        /// </summary>
+        /// <param name="maxAgeDays">Delete searches older than this many days (0 = no age limit).</param>
+        /// <param name="maxCount">Keep at most this many searches (0 = no count limit).</param>
+        /// <returns>The number of deleted searches.</returns>
+        public async Task<int> CleanupAsync(int maxAgeDays = 0, int maxCount = 0)
+        {
+            try
+            {
+                using var context = ContextFactory.CreateDbContext();
+
+                int deletedCount = 0;
+
+                // Delete by age
+                if (maxAgeDays > 0)
+                {
+                    var cutoff = DateTime.UtcNow.AddDays(-maxAgeDays);
+                    var expiredSearches = context.Searches
+                        .Where(s => s.State.HasFlag(SearchStates.Completed) && s.StartedAt < cutoff)
+                        .WithoutResponses()
+                        .ToList();
+
+                    foreach (var search in expiredSearches)
+                    {
+                        await DeleteAsync(search);
+                    }
+
+                    deletedCount += expiredSearches.Count;
+                    if (expiredSearches.Count > 0)
+                    {
+                        Log.Information("Retention cleanup: deleted {Count} searches older than {Days} days", expiredSearches.Count, maxAgeDays);
+                    }
+                }
+
+                // Delete by count (oldest first)
+                if (maxCount > 0)
+                {
+                    var totalCount = context.Searches
+                        .Count(s => s.State.HasFlag(SearchStates.Completed));
+
+                    if (totalCount > maxCount)
+                    {
+                        var excessCount = totalCount - maxCount;
+                        var oldestSearches = context.Searches
+                            .Where(s => s.State.HasFlag(SearchStates.Completed))
+                            .OrderBy(s => s.StartedAt)
+                            .Take(excessCount)
+                            .WithoutResponses()
+                            .ToList();
+
+                        foreach (var search in oldestSearches)
+                        {
+                            await DeleteAsync(search);
+                        }
+
+                        deletedCount += oldestSearches.Count;
+                        if (oldestSearches.Count > 0)
+                        {
+                            Log.Information("Retention cleanup: deleted {Count} oldest searches (limit: {MaxCount})", oldestSearches.Count, maxCount);
+                        }
+                    }
+                }
+
+                return deletedCount;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Failed to cleanup searches: {Message}", ex.Message);
+                throw;
+            }
+        }
+
+        /// <summary>
+        ///     Gets searches linked to a wishlist item.
+        /// </summary>
+        /// <param name="wishlistItemId">The wishlist item ID.</param>
+        /// <param name="limit">Maximum number of searches to return.</param>
+        /// <returns>The list of searches linked to the wishlist item.</returns>
+        public async Task<List<Search>> GetByWishlistItemIdAsync(Guid wishlistItemId, int limit = 50)
+        {
+            using var context = ContextFactory.CreateDbContext();
+            return await context.Searches
+                .AsNoTracking()
+                .Where(s => s.WishlistItemId == wishlistItemId)
+                .OrderByDescending(s => s.StartedAt)
+                .Take(limit)
+                .WithoutResponses()
+                .ToListAsync();
         }
 
         /// <summary>

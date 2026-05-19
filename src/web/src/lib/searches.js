@@ -2,8 +2,16 @@ import api from './api';
 import { getLocalStorageItem, setLocalStorageItem } from './storage';
 import { v4 as uuidv4 } from 'uuid';
 
-export const getAll = async (limit = 500) => {
-  return (await api.get(`/searches?limit=${limit}`)).data;
+export const getAll = async (limit = 500, source = null) => {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (source && source !== 'all') {
+    params.set('source', source);
+  }
+  return (await api.get(`/searches?${params.toString()}`)).data;
+};
+
+export const cleanupSearches = () => {
+  return api.post('/searches/cleanup');
 };
 
 export const get = async ({ id }) => {

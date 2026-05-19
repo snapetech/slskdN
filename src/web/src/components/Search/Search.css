@@ -175,8 +175,15 @@
 
 .search-list-header {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 10px;
+}
+
+.search-list-count {
+  font-size: 0.85em;
+  color: #888;
+  white-space: nowrap;
 }
 
 .musicbrainz-lookup-segment {

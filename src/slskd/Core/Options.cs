@@ -1973,6 +1973,11 @@ namespace slskd
             public SearchOptions Search { get; init; } = new SearchOptions();
 
             /// <summary>
+            ///     Gets search retention options.
+            /// </summary>
+            public SearchRetentionOptions SearchRetention { get; init; } = new SearchRetentionOptions();
+
+            /// <summary>
             ///     Search filter options.
             /// </summary>
             public class SearchOptions : IValidatableObject
@@ -2004,6 +2009,39 @@ namespace slskd
 
                     return results;
                 }
+            }
+
+            /// <summary>
+            ///     Search retention options.
+            /// </summary>
+            public class SearchRetentionOptions
+            {
+                /// <summary>
+                ///     Gets the maximum age of search records, in days. Searches older than this are deleted during cleanup.
+                /// </summary>
+                [Argument(default, "search-retention-max-age-days")]
+                [EnvironmentVariable("SEARCH_RETENTION_MAX_AGE_DAYS")]
+                [Description("maximum age of search records in days (0 = no limit)")]
+                [Range(0, int.MaxValue)]
+                public int MaxAgeDays { get; init; } = 30;
+
+                /// <summary>
+                ///     Gets the maximum number of search records to retain. Oldest searches are deleted when this limit is exceeded.
+                /// </summary>
+                [Argument(default, "search-retention-max-count")]
+                [EnvironmentVariable("SEARCH_RETENTION_MAX_COUNT")]
+                [Description("maximum number of search records to retain (0 = no limit)")]
+                [Range(0, int.MaxValue)]
+                public int MaxCount { get; init; } = 1000;
+
+                /// <summary>
+                ///     Gets the interval between automatic search cleanup runs, in seconds.
+                /// </summary>
+                [Argument(default, "search-retention-cleanup-interval")]
+                [EnvironmentVariable("SEARCH_RETENTION_CLEANUP_INTERVAL")]
+                [Description("interval between automatic search cleanup runs in seconds")]
+                [Range(3600, int.MaxValue)]
+                public int CleanupIntervalSeconds { get; init; } = 86400;
             }
         }
 
