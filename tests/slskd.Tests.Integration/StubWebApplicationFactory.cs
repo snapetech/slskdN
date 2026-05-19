@@ -983,7 +983,7 @@ internal class StubSearchService : ISearchService
         return StartAsync(id, query, scope, options, requestedProviders, "user");
     }
 
-    public Task<global::slskd.Search.Search> StartAsync(Guid id, Soulseek.SearchQuery query, Soulseek.SearchScope scope, Soulseek.SearchOptions options, List<string> requestedProviders, string safetySource)
+    public Task<global::slskd.Search.Search> StartAsync(Guid id, Soulseek.SearchQuery query, Soulseek.SearchScope scope, Soulseek.SearchOptions options, List<string> requestedProviders, string safetySource, Guid? wishlistItemId = null)
     {
         var search = new global::slskd.Search.Search
         {
@@ -1010,6 +1010,8 @@ internal class StubSearchService : ISearchService
 
     public Task<int> PruneAsync(int age) => Task.FromResult(0);
     public Task<int> DeleteAllAsync() => Task.FromResult(0);
+    public Task<int> CleanupAsync(int maxAgeDays = 0, int maxCount = 0) => Task.FromResult(0);
+    public Task<List<global::slskd.Search.Search>> GetByWishlistItemIdAsync(Guid wishlistItemId, int limit = 50) => Task.FromResult(new List<global::slskd.Search.Search>());
 
     public void Dispose() { }
 }
