@@ -264,6 +264,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
   operations, auto-disable after N downloads, Mark All as Viewed, and
   search retention cleanup config in System settings.
 - Fixed TransferList visual alignment issues in the transfers page.
+- Fixed inverted condition in the wishlist schema migration
+  (Z05182026_WishlistItemViewingAndDownloadLimitsMigration) so that
+  LastViewedAt and MaxDownloads columns are actually added to existing
+  databases instead of being skipped. The bug caused Lidarr wanted sync
+  to fail every cycle with `SQLite Error 1: no such column: w.LastViewedAt`.
 
 ## [2026051318-slskdn.251] — 2026-05-13
 

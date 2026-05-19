@@ -30,9 +30,9 @@ public class Z05182026_WishlistItemViewingAndDownloadLimitsMigration
         {
             var columns = GetExistingColumns();
 
-            if (!columns.Contains("lastviewedat") && !columns.Contains("maxdownloads"))
+            if (columns.Contains("lastviewedat") && columns.Contains("maxdownloads"))
             {
-                Log.Information("> No wishlist schema changes needed; columns already exist or table does not exist yet.");
+                Log.Information("> Both columns already exist; no migration needed.");
                 return;
             }
 
@@ -43,7 +43,7 @@ public class Z05182026_WishlistItemViewingAndDownloadLimitsMigration
 
             try
             {
-                if (columns.Contains("lastviewedat"))
+                if (!columns.Contains("lastviewedat"))
                 {
                     Log.Information("> Adding LastViewedAt column to WishlistItems table...");
                     using var cmd1 = new SqliteCommand(
@@ -54,7 +54,7 @@ public class Z05182026_WishlistItemViewingAndDownloadLimitsMigration
                     Log.Information("> LastViewedAt column added");
                 }
 
-                if (columns.Contains("maxdownloads"))
+                if (!columns.Contains("maxdownloads"))
                 {
                     Log.Information("> Adding MaxDownloads column to WishlistItems table...");
                     using var cmd2 = new SqliteCommand(
