@@ -28,7 +28,7 @@ namespace slskd.Transfers.Rescue
         /// <summary>
         ///     Activate rescue mode for a transfer.
         /// </summary>
-        Task<RescueJob?> ActivateRescueModeAsync(
+        Task<RescueActivationResult> ActivateRescueModeAsync(
             string transferId,
             string username,
             string filename,
@@ -46,6 +46,23 @@ namespace slskd.Transfers.Rescue
         ///     Returns whether rescue mode is currently active (or pending) for the given transfer.
         /// </summary>
         bool IsRescueActive(string transferId);
+    }
+
+    public enum RescueActivationOutcome
+    {
+        Activated,
+        GuardrailDenied,
+        NoRecordingId,
+        NoOverlayPeers,
+        MultiSourceDenied,
+        MultiSourceUnavailable,
+        Failed,
+    }
+
+    public sealed record RescueActivationResult(RescueActivationOutcome Outcome, RescueJob? Job = null)
+    {
+        public static RescueActivationResult Activated(RescueJob job) => new(RescueActivationOutcome.Activated, job);
+        public static RescueActivationResult Skipped(RescueActivationOutcome outcome) => new(outcome);
     }
 
     /// <summary>
@@ -88,7 +105,7 @@ namespace slskd.Transfers.Rescue
         }
 
         /// <inheritdoc/>
-        public async Task<RescueJob?> ActivateRescueModeAsync(
+        public async Task<RescueActivationResult> ActivateRescueModeAsync(
             string transferId,
             string username,
             string filename,
@@ -103,8 +120,8 @@ namespace slskd.Transfers.Rescue
             var (allowed, guardReason) = await guardrails.CheckRescueAllowedAsync(transferId, filename, ct);
             if (!allowed)
             {
-                log.Warning("[RESCUE] Rescue mode not allowed: {Reason}", guardReason);
-                return default;
+                log.Debug("[RESCUE] Rescue mode not allowed: {Reason}", guardReason);
+                return RescueActivationResult.Skipped(RescueActivationOutcome.GuardrailDenied);
             }
 
             // Step 1: Resolve MusicBrainz Recording ID
@@ -113,7 +130,7 @@ namespace slskd.Transfers.Rescue
             if (recordingId == null)
             {
                 log.Debug("[RESCUE] Cannot activate rescue: unable to resolve MusicBrainz Recording ID for {File}", filename);
-                return default;
+                return RescueActivationResult.Skipped(RescueActivationOutcome.NoRecordingId);
             }
 
             log.Information("[RESCUE] Resolved recording ID: {RecordingId}", recordingId);
@@ -123,8 +140,8 @@ namespace slskd.Transfers.Rescue
 
             if (overlayPeers.Count == 0)
             {
-                log.Warning("[RESCUE] Cannot activate rescue: no overlay peers found for recording {RecordingId}", recordingId);
-                return default;
+                log.Debug("[RESCUE] Cannot activate rescue: no overlay peers found for recording {RecordingId}", recordingId);
+                return RescueActivationResult.Skipped(RescueActivationOutcome.NoOverlayPeers);
             }
 
             log.Information("[RESCUE] Found {Count} overlay peers with recording {RecordingId}", overlayPeers.Count, recordingId);
@@ -139,8 +156,8 @@ namespace slskd.Transfers.Rescue
 
             if (!jobAllowed)
             {
-                log.Warning("[RESCUE] Multi-source job not allowed: {Reason}", jobReason);
-                return default;
+                log.Information("[RESCUE] Multi-source job not allowed: {Reason}", jobReason);
+                return RescueActivationResult.Skipped(RescueActivationOutcome.MultiSourceDenied);
             }
 
             // Step 3: Determine missing byte ranges
@@ -213,14 +230,16 @@ namespace slskd.Transfers.Rescue
                 catch (Exception ex)
                 {
                     log.Error(ex, "[RESCUE] Failed to create multi-source download: {Message}", ex.Message);
+                    return RescueActivationResult.Skipped(RescueActivationOutcome.Failed);
                 }
             }
             else
             {
-                log.Warning("[RESCUE] Multi-source download service unavailable or no overlay peers; rescue job remains queued for normal Soulseek handling");
+                log.Debug("[RESCUE] Multi-source download service unavailable; rescue job remains queued for normal Soulseek handling");
+                return RescueActivationResult.Skipped(RescueActivationOutcome.MultiSourceUnavailable);
             }
 
-            return rescueJob;
+            return RescueActivationResult.Activated(rescueJob);
         }
 
         /// <inheritdoc/>

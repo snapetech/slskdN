@@ -190,6 +190,18 @@ public class AutoReplaceServiceTests
     }
 
     [Fact]
+    public void IsPlausibleFilenameMatch_RejectsUnrelatedSameSizeAudio()
+    {
+        Assert.True(AutoReplaceService.IsPlausibleFilenameMatch(
+            "Artist - Track.flac",
+            "/music/Artist/Album/01 - Artist - Track.flac"));
+
+        Assert.False(AutoReplaceService.IsPlausibleFilenameMatch(
+            "Artist - Track.flac",
+            "/music/Other Artist/Album/01 - Different Song.flac"));
+    }
+
+    [Fact]
     public async Task ProcessStuckDownloadsAsync_WhenSearchBudgetExceeded_SkipsAndStopsCycle()
     {
         var downloads = new List<SlskdTransfer>

@@ -85,6 +85,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
   filename/path terms and `-term` exclusions instead of file types only, edited
   auto-disable download limits persist, and malformed wishlist dates render as
   `Never`.
+- Improved Wishlist/Search follow-up UX by passing wishlist filters into
+  related search result pages, adding per-item badge clearing, and showing a
+  latest-search fallback when linked search history is empty.
+- Reduced rescue and alternate-source noise by making rescue retry cooldowns
+  outcome-aware, downgrading expected no-job rescue outcomes, and requiring
+  filename-token overlap before auto-replace ranks network alternatives.
 - Returned controlled 503 responses for expected peer browse connection
   failures and showed the peer-unavailable reason in the Browse UI.
 - Added a root SPA base tag so direct deep links such as `/searches/{id}` load

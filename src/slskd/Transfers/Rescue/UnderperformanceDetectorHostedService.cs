@@ -27,9 +27,15 @@ namespace slskd.Transfers.Rescue
         private readonly ILogger log = Log.ForContext<UnderperformanceDetectorHostedService>();
         private CancellationTokenSource? loopCts;
         private Task? loopTask;
+        private static readonly TimeSpan NoRecordingCooldown = TimeSpan.FromHours(2);
+        private static readonly TimeSpan NoOverlayPeersCooldown = TimeSpan.FromMinutes(30);
+        private static readonly TimeSpan GuardrailCooldown = TimeSpan.FromMinutes(10);
+        private static readonly TimeSpan MultiSourceUnavailableCooldown = TimeSpan.FromMinutes(15);
+        private static readonly TimeSpan FailedActivationCooldown = TimeSpan.FromMinutes(5);
 
         // For Stalled rule: transferId -> (lastBytesTransferred, first time we saw no progress)
         private readonly ConcurrentDictionary<Guid, (long LastBytes, DateTime? FirstNoProgressAt)> stalledState = new();
+        private readonly ConcurrentDictionary<Guid, RescueAttemptState> rescueAttempts = new();
 
         public UnderperformanceDetectorHostedService(
             IDownloadService downloadService,
@@ -91,7 +97,7 @@ namespace slskd.Transfers.Rescue
                 try
                 {
                     var rescue = options.CurrentValue?.RescueMode;
-                    if (rescue == null || !acceleratedDownloads.IsEnabled)
+                    if (rescue == null || !rescue.Enabled || !acceleratedDownloads.IsEnabled)
                     {
                         await Task.Delay(TimeSpan.FromSeconds(rescue?.CheckIntervalSeconds ?? 45), ct).ConfigureAwait(false);
                         continue;
@@ -107,11 +113,18 @@ namespace slskd.Transfers.Rescue
                             stalledState.TryRemove(id, out _);
                     }
 
+                    foreach (var id in rescueAttempts.Keys.ToArray())
+                    {
+                        if (!activeIds.Contains(id))
+                            rescueAttempts.TryRemove(id, out _);
+                    }
+
                     foreach (var t in active)
                     {
                         if (ct.IsCancellationRequested) break;
                         var idStr = t.Id.ToString();
                         if (rescueService.IsRescueActive(idStr)) continue;
+                        if (ShouldSkipRecentRescueAttempt(t.Id, DateTime.UtcNow)) continue;
 
                         // 1) QueuedTooLong
                         if (t.State.HasFlag(TransferStates.Queued))
@@ -177,10 +190,10 @@ namespace slskd.Transfers.Rescue
 
         private async Task TriggerRescueAsync(slskd.Transfers.Transfer t, UnderperformanceReason reason, CancellationToken ct)
         {
-            log.Information("[RESCUE] Triggering rescue for {File} from {User} (reason: {Reason})", t.Filename, t.Username, reason);
             try
             {
-                await rescueService.ActivateRescueModeAsync(
+                log.Information("[RESCUE] Triggering rescue for {File} from {User} (reason: {Reason})", t.Filename, t.Username, reason);
+                var result = await rescueService.ActivateRescueModeAsync(
                     t.Id.ToString(),
                     t.Username,
                     t.Filename,
@@ -188,11 +201,51 @@ namespace slskd.Transfers.Rescue
                     t.BytesTransferred,
                     reason,
                     ct).ConfigureAwait(false);
+                RecordRescueAttempt(t.Id, result.Outcome, DateTime.UtcNow);
             }
             catch (Exception ex)
             {
+                RecordRescueAttempt(t.Id, RescueActivationOutcome.Failed, DateTime.UtcNow);
                 log.Warning(ex, "[RESCUE] ActivateRescueModeAsync failed for {TransferId}: {Message}", t.Id, ex.Message);
             }
         }
+
+        internal bool ShouldSkipRecentRescueAttempt(Guid transferId, DateTime now)
+        {
+            if (!rescueAttempts.TryGetValue(transferId, out var attempt))
+            {
+                return false;
+            }
+
+            if (now - attempt.AttemptedAt < GetCooldown(attempt.Outcome))
+            {
+                return true;
+            }
+
+            rescueAttempts.TryRemove(transferId, out _);
+            return false;
+        }
+
+        internal void RecordRescueAttempt(Guid transferId, RescueActivationOutcome outcome, DateTime now)
+        {
+            rescueAttempts[transferId] = new RescueAttemptState(now, outcome);
+        }
+
+        private static TimeSpan GetCooldown(RescueActivationOutcome outcome)
+        {
+            return outcome switch
+            {
+                RescueActivationOutcome.Activated => NoOverlayPeersCooldown,
+                RescueActivationOutcome.NoRecordingId => NoRecordingCooldown,
+                RescueActivationOutcome.NoOverlayPeers => NoOverlayPeersCooldown,
+                RescueActivationOutcome.GuardrailDenied => GuardrailCooldown,
+                RescueActivationOutcome.MultiSourceDenied => GuardrailCooldown,
+                RescueActivationOutcome.MultiSourceUnavailable => MultiSourceUnavailableCooldown,
+                RescueActivationOutcome.Failed => FailedActivationCooldown,
+                _ => FailedActivationCooldown,
+            };
+        }
+
+        private sealed record RescueAttemptState(DateTime AttemptedAt, RescueActivationOutcome Outcome);
     }
 }

@@ -99,6 +99,14 @@ export const mapUserNotesByUsername = (payload) =>
     return accumulator;
   }, {});
 
+export const getInitialResultFilters = ({
+  getLocationSearch = () => window.location.search,
+  getStoredDefault = () => getLocalStorageItem('slskd-default-search-filter', ''),
+} = {}) => {
+  const urlFilter = new URLSearchParams(getLocationSearch()).get('filter');
+  return urlFilter ?? getStoredDefault();
+};
+
 // eslint-disable-next-line complexity
 const SearchDetail = ({
   creating,
@@ -131,9 +139,7 @@ const SearchDetail = ({
     getLocalStorageItem('slskd-search-fold-duplicate-results', 'true') !==
       'false',
   );
-  const [resultFilters, setResultFilters] = useState(
-    getLocalStorageItem('slskd-default-search-filter', ''),
-  );
+  const [resultFilters, setResultFilters] = useState(getInitialResultFilters);
   const [savedFilters, setSavedFilters] = useState(getSavedSearchFilters());
   const [pageSize, setPageSize] = useState(
     Number.parseInt(getLocalStorageItem('slskd-search-page-size', '25'), 10),
@@ -173,6 +179,10 @@ const SearchDetail = ({
   const [hasSavedDefault, setHasSavedDefault] = useState(
     Boolean(getLocalStorageItem('slskd-default-search-filter')),
   );
+
+  useEffect(() => {
+    setResultFilters(getInitialResultFilters());
+  }, [id]);
 
   // Sync hasSavedDefault across tabs/searches when localStorage changes
   useEffect(() => {

@@ -182,6 +182,51 @@ public class HostedServiceLifecycleTests
     }
 
     [Fact]
+    public void UnderperformanceDetectorHostedService_ThrottlesRepeatedRescueAttempts()
+    {
+        var optionsMonitor = new Mock<IOptionsMonitor<slskd.Options>>();
+        optionsMonitor.SetupGet(monitor => monitor.CurrentValue).Returns(new slskd.Options());
+
+        var service = new UnderperformanceDetectorHostedService(
+            Mock.Of<IDownloadService>(),
+            Mock.Of<IRescueService>(),
+            Mock.Of<IAcceleratedDownloadService>(),
+            optionsMonitor.Object);
+
+        var transferId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        service.RecordRescueAttempt(transferId, RescueActivationOutcome.NoOverlayPeers, now);
+
+        Assert.True(service.ShouldSkipRecentRescueAttempt(transferId, now.AddMinutes(5)));
+        Assert.False(service.ShouldSkipRecentRescueAttempt(transferId, now.AddMinutes(31)));
+        Assert.False(service.ShouldSkipRecentRescueAttempt(Guid.NewGuid(), now.AddMinutes(5)));
+    }
+
+    [Fact]
+    public void UnderperformanceDetectorHostedService_UsesOutcomeAwareRescueCooldowns()
+    {
+        var optionsMonitor = new Mock<IOptionsMonitor<slskd.Options>>();
+        optionsMonitor.SetupGet(monitor => monitor.CurrentValue).Returns(new slskd.Options());
+
+        var service = new UnderperformanceDetectorHostedService(
+            Mock.Of<IDownloadService>(),
+            Mock.Of<IRescueService>(),
+            Mock.Of<IAcceleratedDownloadService>(),
+            optionsMonitor.Object);
+
+        var transferId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+
+        service.RecordRescueAttempt(transferId, RescueActivationOutcome.NoRecordingId, now);
+        Assert.True(service.ShouldSkipRecentRescueAttempt(transferId, now.AddMinutes(31)));
+        Assert.False(service.ShouldSkipRecentRescueAttempt(transferId, now.AddHours(3)));
+
+        service.RecordRescueAttempt(transferId, RescueActivationOutcome.Failed, now);
+        Assert.True(service.ShouldSkipRecentRescueAttempt(transferId, now.AddMinutes(4)));
+        Assert.False(service.ShouldSkipRecentRescueAttempt(transferId, now.AddMinutes(6)));
+    }
+
+    [Fact]
     public async Task SoulseekHealthMonitor_StartAsync_CancelsPreviousMonitoringTokenSource()
     {
         var service = new SoulseekHealthMonitor(

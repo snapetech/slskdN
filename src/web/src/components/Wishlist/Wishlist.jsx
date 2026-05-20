@@ -42,6 +42,17 @@ const getUnseenCount = (item) => {
   return lastSearch > lastViewed && item.lastMatchCount > 0 ? item.lastMatchCount : 0;
 };
 
+const getSearchLink = (item, searchId = item.lastSearchId) => {
+  const params = new URLSearchParams();
+
+  if (item.filter) {
+    params.set('filter', item.filter);
+  }
+
+  const suffix = params.toString() ? `?${params.toString()}` : '';
+  return `${urlBase}/searches/${encodeURIComponent(searchId)}${suffix}`;
+};
+
 const WishlistItemRow = ({
   item,
   onDelete,
@@ -91,6 +102,11 @@ const WishlistItemRow = ({
         setLoadingSearches(false);
       }
     }
+  };
+
+  const handleMarkViewedClick = async () => {
+    await onMarkViewed(item.id);
+    toast.info(`Marked "${item.searchText}" as viewed`);
   };
 
   const handleToggleResults = async (searchId) => {
@@ -181,14 +197,40 @@ const WishlistItemRow = ({
         </Table.Cell>
         <Table.Cell>
           {item.lastSearchId && (
-            <Link to={`${urlBase}/searches/${encodeURIComponent(item.lastSearchId)}`}>
-              <Button
-                compact
-                icon="search"
-                size="tiny"
-                title="View last search results"
+            <Link
+              onClick={() => unseenCount > 0 && onMarkViewed(item.id)}
+              to={getSearchLink(item)}
+            >
+              <Popup
+                content={item.filter
+                  ? 'View the latest search results with this wishlist filter already applied.'
+                  : 'View the latest search results for this wishlist item.'}
+                position="top center"
+                trigger={
+                  <Button
+                    compact
+                    icon="search"
+                    size="tiny"
+                    title="View last search results"
+                  />
+                }
               />
             </Link>
+          )}
+          {unseenCount > 0 && (
+            <Popup
+              content="Clear this item's new-results badge without opening its search history."
+              position="top center"
+              trigger={
+                <Button
+                  compact
+                  icon="check"
+                  onClick={handleMarkViewedClick}
+                  size="tiny"
+                  title="Mark viewed"
+                />
+              }
+            />
           )}
           <Button
             compact
@@ -243,7 +285,20 @@ const WishlistItemRow = ({
             {loadingSearches ? (
               <Icon name="spinner" loading />
             ) : relatedSearches.length === 0 ? (
-              <span style={{ color: '#999', fontStyle: 'italic' }}>No search history for this item yet.</span>
+              <span style={{ color: '#999', fontStyle: 'italic' }}>
+                No linked search history for this item yet.
+                {item.lastSearchId && (
+                  <>
+                    {' '}
+                    <Link
+                      onClick={() => unseenCount > 0 && onMarkViewed(item.id)}
+                      to={getSearchLink(item)}
+                    >
+                      Open latest search result.
+                    </Link>
+                  </>
+                )}
+              </span>
             ) : (
               <>
                 <Table compact size="small" basic="very">
@@ -273,9 +328,14 @@ const WishlistItemRow = ({
                         <Table.Cell>{s.fileCount}</Table.Cell>
                         <Table.Cell>{formatDate(s.startedAt)}</Table.Cell>
                         <Table.Cell>
-                          <Link to={`${urlBase}/searches/${encodeURIComponent(s.id)}`}>
+                          <Link
+                            onClick={() => unseenCount > 0 && onMarkViewed(item.id)}
+                            to={getSearchLink(item, s.id)}
+                          >
                             <Popup
-                              content="View full search page"
+                              content={item.filter
+                                ? 'View full search page with this wishlist filter already applied.'
+                                : 'View full search page.'}
                               position="top center"
                               trigger={
                                 <Button
@@ -415,6 +475,11 @@ const WishlistItemCard = ({
     }
   };
 
+  const handleMarkViewedClick = async () => {
+    await onMarkViewed(item.id);
+    toast.info(`Marked "${item.searchText}" as viewed`);
+  };
+
   const handleToggleResults = async (searchId) => {
     if (expandedSearchId === searchId) {
       setExpandedSearchId(null);
@@ -511,9 +576,14 @@ const WishlistItemCard = ({
               }
             />
             {item.lastSearchId && (
-              <Link to={`${urlBase}/searches/${encodeURIComponent(item.lastSearchId)}`}>
+              <Link
+                onClick={() => unseenCount > 0 && onMarkViewed(item.id)}
+                to={getSearchLink(item)}
+              >
                 <Popup
-                  content="View last search results"
+                  content={item.filter
+                    ? 'View the latest search results with this wishlist filter already applied.'
+                    : 'View the latest search results for this wishlist item.'}
                   position="top center"
                   trigger={
                     <Button
@@ -524,6 +594,20 @@ const WishlistItemCard = ({
                   }
                 />
               </Link>
+            )}
+            {unseenCount > 0 && (
+              <Popup
+                content="Clear this item's new-results badge without opening its search history."
+                position="top center"
+                trigger={
+                  <Button
+                    compact
+                    icon="check"
+                    onClick={handleMarkViewedClick}
+                    size="mini"
+                  />
+                }
+              />
             )}
             <Popup
               content="Run search now"
@@ -572,7 +656,20 @@ const WishlistItemCard = ({
             {loadingSearches ? (
               <Icon name="spinner" loading />
             ) : relatedSearches.length === 0 ? (
-              <span style={{ color: '#999', fontStyle: 'italic' }}>No search history for this item yet.</span>
+              <span style={{ color: '#999', fontStyle: 'italic' }}>
+                No linked search history for this item yet.
+                {item.lastSearchId && (
+                  <>
+                    {' '}
+                    <Link
+                      onClick={() => unseenCount > 0 && onMarkViewed(item.id)}
+                      to={getSearchLink(item)}
+                    >
+                      Open latest search result.
+                    </Link>
+                  </>
+                )}
+              </span>
             ) : (
               <>
                 <Table compact size="small" basic="very">
@@ -600,9 +697,14 @@ const WishlistItemCard = ({
                         <Table.Cell>{s.responseCount}</Table.Cell>
                         <Table.Cell>{formatDate(s.startedAt)}</Table.Cell>
                         <Table.Cell>
-                          <Link to={`${urlBase}/searches/${encodeURIComponent(s.id)}`}>
+                          <Link
+                            onClick={() => unseenCount > 0 && onMarkViewed(item.id)}
+                            to={getSearchLink(item, s.id)}
+                          >
                             <Popup
-                              content="View full search page"
+                              content={item.filter
+                                ? 'View full search page with this wishlist filter already applied.'
+                                : 'View full search page.'}
                               position="top center"
                               trigger={
                                 <Button

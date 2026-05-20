@@ -2895,6 +2895,11 @@
   builds.
 - [2026-05-20T14:25:00Z] Completed: fix tester-reported Wishlist/Search regressions: backfill nullable search `Source` values that caused search response 500s, preserve wishlist source/item IDs in bridged searches, restore free-form wishlist filename/exclusion filters, persist edited auto-disable download limits, and suppress invalid-date display for malformed timestamps.
 - [2026-05-20T14:58:00Z] Completed: deploy the Wishlist/Search tester regression build to the live Docker install as `slskdn:0.0.0-manual.20260520144909.9659b1bec14c` and verify the running container, Web UI, health endpoint, and fresh startup logs.
+- [2026-05-20T18:52:00Z] Completed: accommodate tester Wishlist badge/history UX request by passing wishlist filters into related search result pages, adding per-item mark-viewed badge clearing, and showing a latest-search fallback when linked history is empty.
+- [2026-05-20T22:31:00Z] Completed: inspect live Docker logs and fix repeated no-op rescue activation attempts with a per-transfer cooldown while honoring `rescue_mode.enabled`.
+- [2026-05-20T22:44:00Z] Completed: deploy manual image `slskdn:0.0.0-manual.20260520223825.98f7c84fff0c` to the live Docker host and verify the repeated rescue retry log storm stays quiet after startup.
+- [2026-05-20T23:05:00Z] Completed: reduce rescue/matching noise and bad-match risk with outcome-aware rescue cooldowns, lower-noise expected rescue outcomes, and filename-token gating for auto-replace alternatives.
+- [2026-05-20T23:07:00Z] Completed: deploy manual image `slskdn:0.0.0-manual.20260520230151.febcda05dbee` to the live Docker host and verify fresh rescue/error/warning logs remain quiet after startup.
 
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 

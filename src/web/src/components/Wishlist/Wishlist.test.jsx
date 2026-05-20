@@ -8,7 +8,10 @@ import { MemoryRouter } from 'react-router-dom';
 vi.mock('../../lib/wishlist', () => ({
   create: vi.fn(),
   getAll: vi.fn(),
+  getSearches: vi.fn(),
   importCsv: vi.fn(),
+  markAllViewed: vi.fn(),
+  markViewed: vi.fn(),
   remove: vi.fn(),
   runSearch: vi.fn(),
   update: vi.fn(),
@@ -61,6 +64,9 @@ describe('Wishlist', () => {
         totalSearchCount: 2,
       },
     ]);
+    wishlistAPI.getSearches.mockResolvedValue([]);
+    wishlistAPI.markAllViewed.mockResolvedValue({});
+    wishlistAPI.markViewed.mockResolvedValue({});
   });
 
   it('shows unified request states for wishlist rows', async () => {
@@ -139,5 +145,53 @@ describe('Wishlist', () => {
       'href',
       '/searches/search%2Fwith%3Fchars%25',
     );
+  });
+
+  it('passes wishlist filters when opening latest search results', async () => {
+    wishlistAPI.getAll.mockResolvedValue([
+      {
+        autoDownload: false,
+        enabled: true,
+        filter: 'flac OR mp3',
+        id: 'wish-filtered',
+        lastMatchCount: 1,
+        lastSearchId: 'search-filtered',
+        lastSearchedAt: '2026-05-06T00:00:00Z',
+        searchText: 'filtered route',
+        totalSearchCount: 1,
+      },
+    ]);
+
+    renderWishlist();
+
+    expect(await screen.findByText('filtered route')).toBeInTheDocument();
+    expect(screen.getByTitle('View last search results').closest('a')).toHaveAttribute(
+      'href',
+      '/searches/search-filtered?filter=flac+OR+mp3',
+    );
+  });
+
+  it('marks a single wishlist item as viewed without opening history', async () => {
+    wishlistAPI.getAll.mockResolvedValue([
+      {
+        autoDownload: false,
+        enabled: true,
+        id: 'wish-new',
+        lastMatchCount: 2,
+        lastSearchId: 'search-new',
+        lastSearchedAt: '2026-05-06T00:00:00Z',
+        searchText: 'new results',
+        totalSearchCount: 1,
+      },
+    ]);
+
+    renderWishlist();
+
+    expect(await screen.findByText('new results')).toBeInTheDocument();
+    fireEvent.click(screen.getByTitle('Mark viewed'));
+
+    await waitFor(() => {
+      expect(wishlistAPI.markViewed).toHaveBeenCalledWith('wish-new');
+    });
   });
 });
