@@ -1,3 +1,38 @@
+## Update 2026-05-20 22:31:00Z
+
+- Current task: Live Docker log check and rescue retry cooldown fix complete locally.
+- Last activity:
+  - Checked the live Docker install: running image/version is `slskdn:0.0.0-manual.20260520144909.9659b1bec14c`, container health is `healthy`, restart count is zero, and app version matches the image tag.
+  - Sampled 8 hours of container logs: `ERR=0`, `WRN=0`, `FTL=0`.
+  - Found a material noise/work bug: failed/no-op rescue attempts retried the same queued transfers every detector interval, producing about 112k `[RESCUE]` info lines in 8 hours and about 9.5k in the last 30 minutes.
+  - Added per-transfer rescue attempt cooldown and prunes cooldown state once transfers leave the active set.
+  - Fixed the detector to respect `rescue_mode.enabled` instead of only checking accelerated-download state.
+  - Documented the rescue retry gotcha in ADR-0001 and committed that docs-only change as `98f7c84ff`.
+- Validation:
+  - Passed: focused `HostedServiceLifecycleTests` (`8/8`).
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore` with existing warnings only.
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Deploy/build when ready; no tags were created.
+  2. After deploy, recheck live logs to confirm `[RESCUE]` repeats drop to at most one attempt per active transfer per cooldown window.
+
+## Update 2026-05-20 18:52:00Z
+
+- Current task: Wishlist new-results badge and filter handoff tester request complete locally.
+- Last activity:
+  - Added wishlist search-result links that pass the wishlist filter as a `filter` query parameter so related search pages open with the same filter applied.
+  - Search detail now prefers the URL `filter` parameter over the saved default filter and reapplies that initialization when navigating between search IDs.
+  - Added per-item mark-viewed buttons for new-results badges in table and card views.
+  - Improved empty linked-history messaging with a direct latest-search fallback link when a last search exists.
+- Validation:
+  - Passed: focused Wishlist/SearchDetail Vitest tests (`12/12`).
+  - Passed: `cd src/web && npm run lint -- --max-warnings=0`.
+  - Passed: `cd src/web && npm run build`.
+  - Passed: `git diff --check`.
+- Next steps:
+  1. Deploy/build when ready; no tags were created.
+  2. Tester should verify wishlist result links open with filters active and badges can be cleared without expanding history.
+
 ## Update 2026-05-20 14:58:00Z
 
 - Current task: Wishlist/Search tester regression fixes deployed to the live Docker install.
@@ -8298,3 +8333,39 @@ project intentionally enables it.
 Next steps: run the GitLab validation stage against the next release tag and
 tighten delayed/manual channel `allow_failure` settings after observing real
 channel propagation.
+
+## 2026-05-20T22:44:00Z Session update
+
+The live Docker host is now running manual image
+`slskdn:0.0.0-manual.20260520223825.98f7c84fff0c`, built from the local rescue
+cooldown and Wishlist/Search UX changes without creating a release tag. The
+container reports the matching version, Docker health is healthy, restart count
+is zero, and `/health` remains in the existing degraded operational state.
+
+The rescue retry storm found in the earlier log sample is quiet after the
+startup pass. A 150-second post-restart sample contained no `[RESCUE]`, warning,
+error, or fatal log entries.
+
+## 2026-05-20T23:05:00Z Session update
+
+Implemented the next rescue/matching cleanup locally. Rescue activation now
+returns a concrete outcome, allowing the detector to use different retry
+cooldowns for missing recording IDs, no overlay peers, guardrail denials,
+multi-source unavailability, and unexpected failures. Expected no-job rescue
+outcomes no longer emit warning-level logs.
+
+Auto-replace network alternatives now require plausible filename token overlap
+before ranking, so same-extension and similar-size unrelated tracks are not
+accepted as replacement candidates. This local patch has not been deployed to
+the live Docker host yet.
+
+## 2026-05-20T23:07:00Z Session update
+
+The rescue/matching cleanup is now deployed to the live Docker host as
+`slskdn:0.0.0-manual.20260520230151.febcda05dbee`. The container reports the
+matching version, Docker health is healthy, restart count is zero, and `/health`
+continues to report the existing degraded operational state.
+
+Fresh post-restart logs are clean after the initial rescue trigger. The latest
+90-second sample showed no rescue repeats and no warning, error, or fatal log
+entries.

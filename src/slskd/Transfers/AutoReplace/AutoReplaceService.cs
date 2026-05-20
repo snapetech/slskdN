@@ -412,6 +412,11 @@ namespace slskd.Transfers.AutoReplace
                             continue;
                         }
 
+                        if (!IsPlausibleFilenameMatch(request.Filename, file.Filename))
+                        {
+                            continue;
+                        }
+
                         candidates.Add(new AlternativeCandidate
                         {
                             Username = response.Username,
@@ -732,6 +737,55 @@ namespace slskd.Transfers.AutoReplace
 
             return name;
         }
+
+        internal static bool IsPlausibleFilenameMatch(string expectedFilename, string candidateFilename)
+        {
+            var expected = GetMatchTokens(expectedFilename);
+            var candidate = GetMatchTokens(candidateFilename);
+
+            if (expected.Count == 0 || candidate.Count == 0)
+            {
+                return false;
+            }
+
+            var overlap = expected.Intersect(candidate, StringComparer.OrdinalIgnoreCase).Count();
+            if (expected.Count <= 2)
+            {
+                return overlap == expected.Count;
+            }
+
+            var overlapRatio = overlap / (double)expected.Count;
+            return overlap >= 2 && overlapRatio >= 0.5;
+        }
+
+        private static HashSet<string> GetMatchTokens(string filename)
+        {
+            var clean = CleanTrackTitle(filename).ToLowerInvariant();
+            var tokens = Regex.Matches(clean, "[a-z0-9]+")
+                .Select(match => match.Value)
+                .Where(token => token.Length > 1)
+                .Where(token => !IgnoredMatchTokens.Contains(token));
+
+            return new HashSet<string>(tokens, StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static readonly HashSet<string> IgnoredMatchTokens = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "the",
+            "and",
+            "feat",
+            "ft",
+            "with",
+            "remaster",
+            "remastered",
+            "version",
+            "explicit",
+            "clean",
+            "mono",
+            "stereo",
+            "disc",
+            "cd",
+        };
 
         private async Task WaitForSearchBudgetAsync(CancellationToken cancellationToken)
         {
