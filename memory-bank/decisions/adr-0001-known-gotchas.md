@@ -52,6 +52,46 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z460. Alternative Source Matching Needs Filename Similarity, Not Just Size
+
+**The Bug**: Auto-replace network searches accepted alternative audio files when
+extension matched and size was within tolerance, even if the filename tokens were
+unrelated. Same-size or near-size unrelated tracks could be ranked and queued as
+replacement downloads.
+
+**Files Affected**:
+- `src/slskd/Transfers/AutoReplace/AutoReplaceService.cs`
+
+**Wrong**:
+```csharp
+if (sizeDiff > request.Threshold * 2)
+{
+    continue;
+}
+
+candidates.Add(new AlternativeCandidate { Filename = file.Filename });
+```
+
+**Correct**:
+```csharp
+if (sizeDiff > request.Threshold * 2)
+{
+    continue;
+}
+
+if (!IsPlausibleFilenameMatch(request.Filename, file.Filename))
+{
+    continue;
+}
+
+candidates.Add(new AlternativeCandidate { Filename = file.Filename });
+```
+
+**Why This Keeps Happening**: File size and extension are availability filters,
+not identity checks. Soulseek search results can contain unrelated files from the
+same directory or query response, so replacement paths must require filename
+token overlap before ranking candidates.
+
 ### 0z459. Failed Rescue Attempts Need A Cooldown
 
 **The Bug**: Underperformance rescue retried the same queued transfer every
