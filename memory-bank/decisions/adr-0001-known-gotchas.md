@@ -52,6 +52,34 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z459. Failed Rescue Attempts Need A Cooldown
+
+**The Bug**: Underperformance rescue retried the same queued transfer every
+detector interval when `ActivateRescueModeAsync()` could not create an active
+rescue job, producing tens of thousands of repeated `[RESCUE]` info logs and
+re-running the same discovery work.
+
+**Files Affected**:
+- `src/slskd/Transfers/Rescue/UnderperformanceDetectorHostedService.cs`
+
+**Wrong**:
+```csharp
+if (rescueService.IsRescueActive(idStr)) continue;
+await TriggerRescueAsync(t, UnderperformanceReason.QueuedTooLong, ct);
+```
+
+**Correct**:
+```csharp
+if (rescueService.IsRescueActive(idStr)) continue;
+if (ShouldSkipRecentRescueAttempt(t.Id, DateTime.UtcNow)) continue;
+await TriggerRescueAsync(t, UnderperformanceReason.QueuedTooLong, ct);
+```
+
+**Why This Keeps Happening**: Rescue activation has valid non-job outcomes, such
+as no recording ID, no overlay peers, or guardrail denial. "No active rescue
+job" does not mean "try again immediately"; failed or no-op attempts need a
+per-transfer cooldown while the original Soulseek transfer remains queued.
+
 ### 0z458. Added Non-Nullable Columns Must Backfill Existing Rows
 
 **The Bug**: Search result pages returned 500 because the `Source` column was added
