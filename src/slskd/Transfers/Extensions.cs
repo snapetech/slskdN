@@ -24,7 +24,7 @@ namespace slskd.Transfers
     {
         public static Transfer WithSoulseekTransfer(this Transfer transfer, Soulseek.Transfer t)
         {
-return new Transfer()
+            return new Transfer()
             {
                 Id = transfer.Id,
                 Username = transfer.Username,

@@ -352,7 +352,7 @@ namespace slskd.Search
 
                 if (providersToUse.Any())
                 {
-                    return await StartBridgedSearchAsync(id, query, scope, options, providersToUse);
+                    return await StartBridgedSearchAsync(id, query, scope, options, providersToUse, safetySource, wishlistItemId);
                 }
             }
 

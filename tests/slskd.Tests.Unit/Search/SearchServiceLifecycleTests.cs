@@ -9,12 +9,14 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using slskd.Common.Security;
 using slskd.Search;
 using slskd.Search.API;
+using slskd.Search.Providers;
 using slskd.VirtualSoulfind.Capture;
 using Serilog;
 using Soulseek;
@@ -225,6 +227,61 @@ public class SearchServiceLifecycleTests
             Times.Exactly(2));
     }
 
+    [Fact]
+    public async Task StartAsync_WhenBridgedSearch_PreservesSourceAndWishlistItemId()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<SearchDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using (var context = new SearchDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+        }
+
+        var hub = CreateSearchHub();
+        var provider = new Mock<ISearchProvider>();
+        provider.Setup(p => p.Name).Returns("pod");
+        provider.Setup(p => p.StartSearchAsync(
+                It.IsAny<slskd.Search.Providers.SearchRequest>(),
+                It.IsAny<ISearchResultSink>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var wishlistItemId = Guid.NewGuid();
+        using var service = new SearchService(
+            hub.Object,
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options
+            {
+                Feature = new slskd.Options.FeatureOptions
+                {
+                    ScenePodBridge = true,
+                },
+            }),
+            Mock.Of<ISoulseekClient>(),
+            new SearchDbContextFactory(options),
+            Mock.Of<ISoulseekSafetyLimiter>(),
+            searchProviders: [provider.Object]);
+
+        var search = await service.StartAsync(
+            Guid.NewGuid(),
+            SearchQuery.FromText("artist title"),
+            SearchScope.Network,
+            new SearchOptions(),
+            requestedProviders: null,
+            safetySource: "wishlist",
+            wishlistItemId: wishlistItemId);
+
+        Assert.Equal("wishlist", search.Source);
+        Assert.Equal(wishlistItemId, search.WishlistItemId);
+
+        await using var verifyContext = new SearchDbContext(options);
+        var persisted = await verifyContext.Searches.AsNoTracking().SingleAsync();
+        Assert.Equal("wishlist", persisted.Source);
+        Assert.Equal(wishlistItemId, persisted.WishlistItemId);
+    }
+
     private static SearchService CreateService()
     {
         return new SearchService(
@@ -235,6 +292,24 @@ public class SearchServiceLifecycleTests
             Mock.Of<ISoulseekSafetyLimiter>());
     }
 
+    private static Mock<IHubContext<SearchHub>> CreateSearchHub()
+    {
+        var clientProxy = new Mock<IClientProxy>();
+        clientProxy
+            .Setup(client => client.SendCoreAsync(
+                It.IsAny<string>(),
+                It.IsAny<object?[]>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var clients = new Mock<IHubClients>();
+        clients.Setup(c => c.All).Returns(clientProxy.Object);
+
+        var hub = new Mock<IHubContext<SearchHub>>();
+        hub.Setup(h => h.Clients).Returns(clients.Object);
+        return hub;
+    }
+
     private static ConcurrentDictionary<Guid, CancellationTokenSource> GetCancellationTokens(SearchService service)
     {
         var property = typeof(SearchService).GetProperty(
@@ -242,5 +317,20 @@ public class SearchServiceLifecycleTests
             BindingFlags.Instance | BindingFlags.NonPublic);
 
         return Assert.IsType<ConcurrentDictionary<Guid, CancellationTokenSource>>(property?.GetValue(service));
+    }
+
+    private sealed class SearchDbContextFactory : IDbContextFactory<SearchDbContext>
+    {
+        private readonly DbContextOptions<SearchDbContext> _options;
+
+        public SearchDbContextFactory(DbContextOptions<SearchDbContext> options)
+        {
+            _options = options;
+        }
+
+        public SearchDbContext CreateDbContext() => new(_options);
+
+        public ValueTask<SearchDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult(CreateDbContext());
     }
 }

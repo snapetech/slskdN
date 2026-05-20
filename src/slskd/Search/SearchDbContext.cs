@@ -44,6 +44,12 @@ namespace slskd.Search
                 .Entity<Search>()
                 .Property(e => e.EndedAt)
                 .HasConversion(v => v, v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null);
+
+            modelBuilder
+                .Entity<Search>()
+                .Property(e => e.Source)
+                .IsRequired()
+                .HasDefaultValue("manual");
         }
     }
 }

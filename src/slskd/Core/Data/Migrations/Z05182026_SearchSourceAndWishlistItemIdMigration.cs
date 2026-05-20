@@ -34,7 +34,7 @@ public class Z05182026_SearchSourceAndWishlistItemIdMigration : IMigration
             }
 
             var columns = schema["Searches"].Select(c => c.Name.ToLowerInvariant()).ToHashSet();
-            return !columns.Contains("source") || !columns.Contains("wishlistitemid");
+            return !columns.Contains("source") || !columns.Contains("wishlistitemid") || HasNullSources();
         }
         catch (Exception ex)
         {
@@ -85,6 +85,13 @@ public class Z05182026_SearchSourceAndWishlistItemIdMigration : IMigration
                 Log.Information("> WishlistItemId column added");
             }
 
+            Log.Information("> Backfilling missing Search Source values...");
+            using var cmd3 = new SqliteCommand(
+                "UPDATE Searches SET Source = 'manual' WHERE Source IS NULL OR trim(Source) = ''",
+                connection,
+                transaction);
+            cmd3.ExecuteNonQuery();
+
             transaction.Commit();
             Log.Information("> Done!");
         }
@@ -93,5 +100,17 @@ public class Z05182026_SearchSourceAndWishlistItemIdMigration : IMigration
             transaction.Rollback();
             throw;
         }
+    }
+
+    private bool HasNullSources()
+    {
+        using var connection = new SqliteConnection(ConnectionString);
+        connection.Open();
+
+        using var command = new SqliteCommand(
+            "SELECT COUNT(*) FROM Searches WHERE Source IS NULL OR trim(Source) = ''",
+            connection);
+
+        return Convert.ToInt32(command.ExecuteScalar()) > 0;
     }
 }

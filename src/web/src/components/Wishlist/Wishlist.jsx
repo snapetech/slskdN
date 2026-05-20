@@ -30,6 +30,7 @@ import {
 const formatDate = (dateString) => {
   if (!dateString) return 'Never';
   const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return 'Never';
   return date.toLocaleString();
 };
 
@@ -714,10 +715,9 @@ const FILTER_PRESETS = [
 
 const validateFilter = (filter) => {
   if (!filter || !filter.trim()) return null;
-  // Check for invalid characters (only allow alphanumeric, dots, spaces, OR)
-  const invalid = filter.match(/[^a-zA-Z0-9.\s]|(?<!\b)OR(?!\b)/);
+  const invalid = filter.match(/[^\w.\-\s]/);
   if (invalid) {
-    return 'Filter may only contain extensions and the OR keyword (e.g., "flac OR mp3")';
+    return 'Filter may only contain words, extensions, exclusions prefixed with -, and OR';
   }
   return null;
 };
@@ -790,7 +790,7 @@ const WishlistModal = ({ item, onClose, onSave }) => {
           <Form.Field>
             <label>Filter (optional)</label>
             <Popup
-              content="Only accept results matching these file extensions. Use OR to allow multiple formats."
+              content="Only accept matching filenames or extensions, and exclude unwanted words with a leading dash."
               position="top center"
               trigger={
                 <Form.Input

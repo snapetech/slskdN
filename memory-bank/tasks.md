@@ -2893,6 +2893,8 @@
   Docker Hub tags, adding Jammy/Noble PPA publication with explicit binary
   inclusion, and ensuring COPR Fedora 43/Rawhide chroots are configured before
   builds.
+- [2026-05-20T14:25:00Z] Completed: fix tester-reported Wishlist/Search regressions: backfill nullable search `Source` values that caused search response 500s, preserve wishlist source/item IDs in bridged searches, restore free-form wishlist filename/exclusion filters, persist edited auto-disable download limits, and suppress invalid-date display for malformed timestamps.
+- [2026-05-20T14:58:00Z] Completed: deploy the Wishlist/Search tester regression build to the live Docker install as `slskdn:0.0.0-manual.20260520144909.9659b1bec14c` and verify the running container, Web UI, health endpoint, and fresh startup logs.
 
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 

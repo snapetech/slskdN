@@ -1,3 +1,41 @@
+## Update 2026-05-20 14:58:00Z
+
+- Current task: Wishlist/Search tester regression fixes deployed to the live Docker install.
+- Last activity:
+  - Built the Release web/backend payload with manual version `0.0.0-manual.20260520144909.9659b1bec14c`.
+  - Published a release-shaped Linux x64 self-contained artifact and staged it on the live Docker host.
+  - Built local image `slskdn:0.0.0-manual.20260520144909.9659b1bec14c` from the existing runtime base after clearing the old `/slskd` app payload.
+  - Updated `slskd.service` to the new image tag and restarted the service.
+- Validation:
+  - Passed: staged apphost reports `0.0.0-manual.20260520144909.9659b1bec14c`.
+  - Passed: running container uses `slskdn:0.0.0-manual.20260520144909.9659b1bec14c`.
+  - Passed: Docker health is `healthy`, service restart count is zero, and Web UI returns HTTP 200 on host loopback.
+  - Passed: `/health` returns the existing `Degraded` operational state.
+  - Passed: fresh startup logs show application initialization complete and no fatal entries, search NULL exceptions, or unhandled request errors.
+- Next steps:
+  1. Tester should retry opening wishlist search results and editing filters/max-download limits against the live build.
+  2. No tags were created.
+
+## Update 2026-05-20 14:25:00Z
+
+- Current task: Wishlist/Search tester regression fixes complete locally.
+- Last activity:
+  - Fixed persisted search response 500s by backfilling NULL/blank `Searches.Source` values to `manual` and adding the EF default.
+  - Preserved `Source` and `WishlistItemId` for bridged searches so wishlist searches no longer appear as manual when Scene/Pod bridge is enabled.
+  - Restored wishlist filters as filename/path include terms plus `-term` exclusions instead of extension-only matching; auto-download candidate selection now uses the same filter.
+  - Persisted edited `MaxDownloads` values and made malformed Wishlist dates render as `Never`.
+  - Documented the nullable migration gotcha in ADR-0001 and committed it as `9659b1bec`.
+- Validation:
+  - Passed: `dotnet build src/slskd/slskd.csproj --no-restore`.
+  - Passed: focused C# Search/Wishlist tests (`30/30`).
+  - Passed: `dotnet test` (`4555/4555`: 67 smoke, 4210 unit, 278 integration).
+  - Passed: `cd src/web && npm run lint -- --max-warnings=0`.
+  - Passed: focused Wishlist Vitest tests (`7/7`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Deploy/build when ready; no tags were created.
+  2. Tester should verify old search result links no longer 500 after startup migration runs.
+
 ## Update 2026-05-19 04:10:00Z
 
 - Current task: Audio metadata enrichment for transfers complete.

@@ -70,7 +70,7 @@ namespace slskd.Wishlist
 
         /// <summary>
         ///     Gets or sets the maximum number of successful downloads before auto-disabling.
-        ///     When null, the item will never be auto-disabled.
+        ///     When null, the item is auto-disabled after the first successful auto-download.
         /// </summary>
         public int? MaxDownloads { get; set; }
 

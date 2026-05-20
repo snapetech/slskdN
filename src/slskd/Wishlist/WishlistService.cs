@@ -155,6 +155,7 @@ namespace slskd.Wishlist
             existing.Enabled = item.Enabled;
             existing.AutoDownload = item.AutoDownload;
             existing.MaxResults = item.MaxResults;
+            existing.MaxDownloads = item.MaxDownloads;
 
             await context.SaveChangesAsync();
 
@@ -643,17 +644,14 @@ namespace slskd.Wishlist
         {
             try
             {
-                var wantedExt = string.IsNullOrWhiteSpace(filter)
-                    ? null
-                    : "." + filter.TrimStart('.').ToLowerInvariant();
+                var fileFilter = CreateSearchFileFilter(filter);
 
                 var candidates = new List<SourceCandidate>();
                 foreach (var response in search.Responses)
                 {
                     foreach (var file in response.Files)
                     {
-                        if (wantedExt != null &&
-                            !Path.GetExtension(file.Filename).Equals(wantedExt, StringComparison.OrdinalIgnoreCase))
+                        if (!fileFilter(file.Filename))
                         {
                             continue;
                         }
@@ -730,22 +728,67 @@ namespace slskd.Wishlist
         }
 
         /// <summary>
-        ///     Creates a file filter function from a wishlist filter string.
-        ///     Supports space-separated or " OR "-separated extension terms (e.g., "flac OR mp3", "flac mp3").
+        ///     Creates a file filter function from a wishlist filter string. Positive terms match either a file extension
+        ///     or any filename/path substring; terms prefixed with '-' exclude filename/path substrings.
         /// </summary>
         private static Func<Soulseek.File, bool> CreateFileFilter(string filter)
         {
-            // Split by " OR " or whitespace, normalize to lowercase extensions
-            var extensions = filter
-                .Split([" OR ", " "], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(e => e.StartsWith('.') ? e.ToLowerInvariant() : $".{e.ToLowerInvariant()}")
-                .ToHashSet();
+            var filenameFilter = CreateSearchFileFilter(filter);
+            return file => filenameFilter(file.Filename);
+        }
 
-            return (Soulseek.File file) =>
+        internal static Func<string, bool> CreateSearchFileFilter(string filter)
+        {
+            var terms = ParseFilterTerms(filter);
+            if (terms.Include.Count == 0 && terms.Exclude.Count == 0)
             {
-                var ext = Path.GetExtension(file.Filename).ToLowerInvariant();
-                return extensions.Contains(ext);
+                return _ => true;
+            }
+
+            return filename =>
+            {
+                var normalizedFilename = filename.Replace('\\', '/').ToLowerInvariant();
+                var extension = Path.GetExtension(normalizedFilename).TrimStart('.');
+
+                if (terms.Exclude.Any(term => normalizedFilename.Contains(term, StringComparison.Ordinal)))
+                {
+                    return false;
+                }
+
+                return terms.Include.Count == 0
+                    || terms.Include.Any(term =>
+                        extension.Equals(term.TrimStart('.'), StringComparison.Ordinal)
+                        || normalizedFilename.Contains(term, StringComparison.Ordinal));
             };
+        }
+
+        private static WishlistFilterTerms ParseFilterTerms(string filter)
+        {
+            var include = new HashSet<string>(StringComparer.Ordinal);
+            var exclude = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (var rawTerm in filter.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                if (rawTerm.Equals("OR", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var isExclude = rawTerm.StartsWith("-", StringComparison.Ordinal);
+                var term = (isExclude ? rawTerm[1..] : rawTerm)
+                    .Trim()
+                    .Trim('"')
+                    .ToLowerInvariant();
+
+                if (string.IsNullOrWhiteSpace(term))
+                {
+                    continue;
+                }
+
+                (isExclude ? exclude : include).Add(term.TrimStart('.'));
+            }
+
+            return new WishlistFilterTerms(include, exclude);
         }
 
         private bool IsClientSearchReady()
@@ -774,5 +817,7 @@ namespace slskd.Wishlist
         {
             public static WishlistDownloadResult Empty { get; } = new(0, 0);
         }
+
+        private readonly record struct WishlistFilterTerms(HashSet<string> Include, HashSet<string> Exclude);
     }
 }

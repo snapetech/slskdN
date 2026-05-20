@@ -78,6 +78,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
   transfer list instead of the generic `Error`.
 - Returned controlled 503 responses when browse is requested before Soulseek
   has finished reconnecting after daemon startup.
+- Fixed Wishlist/Search regressions from the new search history workflow:
+  existing searches with NULL or blank source values are backfilled instead of
+  throwing 500s when responses are opened, bridged wishlist searches preserve
+  their wishlist source/item metadata, wishlist filters again support
+  filename/path terms and `-term` exclusions instead of file types only, edited
+  auto-disable download limits persist, and malformed wishlist dates render as
+  `Never`.
 - Returned controlled 503 responses for expected peer browse connection
   failures and showed the peer-unavailable reason in the Browse UI.
 - Added a root SPA base tag so direct deep links such as `/searches/{id}` load
