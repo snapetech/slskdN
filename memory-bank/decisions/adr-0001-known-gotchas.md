@@ -52,6 +52,44 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z458. Added Non-Nullable Columns Must Backfill Existing Rows
+
+**The Bug**: Search result pages returned 500 because the `Source` column was added
+to existing `Searches` rows as nullable, while the EF model materialized it into a
+non-nullable `string`.
+
+**Files Affected**:
+- `src/slskd/Core/Data/Migrations/Z05182026_SearchSourceAndWishlistItemIdMigration.cs`
+- `src/slskd/Search/Types/Search.cs`
+
+**Wrong**:
+```csharp
+using var cmd1 = new SqliteCommand(
+    "ALTER TABLE Searches ADD COLUMN Source TEXT",
+    connection,
+    transaction);
+```
+
+**Correct**:
+```csharp
+using var cmd1 = new SqliteCommand(
+    "ALTER TABLE Searches ADD COLUMN Source TEXT",
+    connection,
+    transaction);
+cmd1.ExecuteNonQuery();
+
+using var cmd2 = new SqliteCommand(
+    "UPDATE Searches SET Source = 'manual' WHERE Source IS NULL OR trim(Source) = ''",
+    connection,
+    transaction);
+cmd2.ExecuteNonQuery();
+```
+
+**Why This Keeps Happening**: `EnsureCreated` and hand-written SQLite migrations
+do not enforce C# nullability. Any new column read into a non-nullable property
+must either be created with a database default for new rows and backfilled for
+old rows, or the model must explicitly allow nulls.
+
 ### 0z457. Share-Gate Matchers Must Cover Verb Inflections
 
 **The Bug**: The private-message share-gate matcher covered `share more files`
