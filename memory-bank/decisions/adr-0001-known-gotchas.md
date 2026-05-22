@@ -52,6 +52,38 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z461. Wishlist Edit Fields Must Be Wired Through Every Contract Layer
+
+**The Bug**: Wishlist `MaxDownloads` could be edited in the UI but still fail to
+persist when the frontend API helper or controller request mapping omitted the
+field.
+
+**Files Affected**:
+- `src/web/src/lib/wishlist.js`
+- `src/slskd/Wishlist/API/Controllers/WishlistController.cs`
+- `src/slskd/Wishlist/WishlistService.cs`
+
+**Wrong**:
+```javascript
+export const update = async (
+  id,
+  { searchText, filter, enabled, autoDownload, maxResults },
+) => api.put(`/wishlist/${id}`, { searchText, filter, enabled, autoDownload, maxResults });
+```
+
+**Correct**:
+```javascript
+export const update = async (
+  id,
+  { searchText, filter, enabled, autoDownload, maxResults, maxDownloads },
+) => api.put(`/wishlist/${id}`, { searchText, filter, enabled, autoDownload, maxResults, maxDownloads });
+```
+
+**Why This Keeps Happening**: Wishlist items are passed through React modal
+state, a frontend API helper, controller request DTOs, controller-to-model
+mapping, and service update mapping. Adding or fixing a field in only one layer
+creates a UI that appears to save but silently drops the value.
+
 ### 0z460. Alternative Source Matching Needs Filename Similarity, Not Just Size
 
 **The Bug**: Auto-replace network searches accepted alternative audio files when
