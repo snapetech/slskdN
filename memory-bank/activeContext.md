@@ -1,3 +1,17 @@
+## Update 2026-05-22 23:08:28Z
+
+- Current task: Post-deploy log check and cleanup complete.
+- Last activity:
+  - Checked the live logs after the large page render deploy.
+  - Found no errors or fatals; the only actionable warning noise was expected inbound search-response timeout logging and malformed overlay datagram warnings.
+  - Patched expected search-response timeouts to return no response instead of throwing through Soulseek.NET, and moved malformed overlay datagram notices to information level.
+  - Deployed manual image `slskdn:0.0.0-manual.20260522230601.ecde484ccc1d`; no release tags were created.
+- Validation:
+  - Passed: focused unit tests (`24/24`), `./bin/lint`, publish, app/image version match, Docker health is `healthy`, restart count is zero, Web UI returns HTTP 200, `/health` returns HTTP 200.
+  - Passed: post-restart soak showed `ERR=0`, `WRN=0`, `FTL=0`; remaining exception strings are info-level remote transfer outcomes.
+- Next steps:
+  1. Continue normal use and report any UI route that still hangs.
+
 ## Update 2026-05-22 22:45:00Z
 
 - Current task: Large Web page render audit deployed.
