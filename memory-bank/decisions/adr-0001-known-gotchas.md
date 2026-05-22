@@ -52,6 +52,40 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z464. Expected Network Timeouts Must Not Bubble From Inbound Search Response Resolution
+
+**The Bug**: Inbound search response resolution logged a local warning and then
+re-threw timeout exceptions, causing Soulseek.NET to log a second warning for
+the same expected slow peer lookup or stale request.
+
+**Files Affected**:
+- `src/slskd/Application.cs`
+- `src/slskd/DhtRendezvous/SharedMeshUdpListener.cs`
+
+**Wrong**:
+```csharp
+catch (Exception ex)
+{
+    Log.Warning(ex, "Failed to resolve search response: {Message}", ex.Message);
+    throw;
+}
+```
+
+**Correct**:
+```csharp
+catch (Exception ex) when (IsTimeoutException(ex))
+{
+    Log.Debug("Search response resolution timed out: {Message}", ex.Message);
+    return null;
+}
+```
+
+**Why This Keeps Happening**: The search response resolver is called by
+Soulseek.NET as a best-effort callback for remote users. Returning `null` is
+the normal "do not answer" path. Expected timeouts from peer endpoint lookup,
+cached user state refresh, or callback deadlines should not escape the resolver
+or they become duplicate warning noise unrelated to application failure.
+
 ### 0z463. Large Pages Must Not Render Entire Datasets
 
 **The Bug**: Wishlist-like pages fetched or held thousands of records and then
