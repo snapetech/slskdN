@@ -1,3 +1,14 @@
+## Update 2026-05-22 22:45:00Z
+
+- Current task: Large Web page render audit deployed.
+- Last activity:
+  - Published current HEAD as manual version `0.0.0-manual.20260522224133.ef4950530284`.
+  - Built a replacement Docker image from the previous live base and restarted the live service; no release tags were created.
+- Validation:
+  - Passed: image/app version match, Docker health is `healthy`, restart count is zero, Web UI returns HTTP 200, `/health` returned HTTP 200, and the fresh journal sample had `ERR=0`, `WRN=0`, `FTL=0`.
+- Next steps:
+  1. Retry the browser navigation paths that were locking up: Wishlist to other pages, Downloads, Lidarr, Search history, Collections, Contacts, and Shared with Me.
+
 ## Update 2026-05-22 22:41:02Z
 
 - Current task: Large Web page render audit complete locally.
