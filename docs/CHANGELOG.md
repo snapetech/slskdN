@@ -28,6 +28,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Lidarr seeded wishlist rows, search history, collections, contacts, incoming
   shares, and share manifests now page their visible rows instead of rendering
   entire client-side datasets at once.
+- Expected inbound search response timeouts now return no response instead of
+  producing duplicate warning logs, and malformed overlay datagrams no longer
+  pollute warning-level log scans.
 - Configurable completed download path template (Global.Download.CompletedPathTemplate) with tokens {uploader}, {remote_folder}, {remote_parent}, {remote_filename}, {batch_id}, {request_name}, {date}/{date:fmt}.
 - Pre-download metadata seeded from search-result attributes (bitrate, length, samplerate, bitdepth); transfer row shows secondary "Artist — Title" line.
 - Wishlist hit count exposes locked-hit subtotal alongside visible.

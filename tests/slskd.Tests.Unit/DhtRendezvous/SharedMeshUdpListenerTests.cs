@@ -113,7 +113,7 @@ public class SharedMeshUdpListenerTests
     }
 
     [Fact]
-    public async Task SharedListener_MalformedOverlayDatagram_LogsRateLimitedWarningWithoutException()
+    public async Task SharedListener_MalformedOverlayDatagram_LogsRateLimitedInformationWithoutException()
     {
         var logger = new CapturingLogger<SharedMeshUdpListener>();
         using var listener = new SharedMeshUdpListener(
@@ -128,12 +128,16 @@ public class SharedMeshUdpListenerTests
         await client.SendAsync(new byte[] { 0x96, 0xa4, 0x70 }, listener.LocalEndPoint);
 
         await WaitUntilAsync(
-            () => logger.Entries.Any(entry => entry.Level == LogLevel.Warning),
+            () => logger.Entries.Any(entry =>
+                entry.Level == LogLevel.Information &&
+                entry.Message.Contains("Dropped malformed overlay datagram", StringComparison.Ordinal)),
             TimeSpan.FromSeconds(2));
 
-        var warning = Assert.Single(logger.Entries.Where(entry => entry.Level == LogLevel.Warning));
-        Assert.Contains("Dropped malformed overlay datagram", warning.Message, StringComparison.Ordinal);
-        Assert.Null(warning.Exception);
+        var information = Assert.Single(logger.Entries.Where(entry =>
+            entry.Level == LogLevel.Information &&
+            entry.Message.Contains("Dropped malformed overlay datagram", StringComparison.Ordinal)));
+        Assert.Contains("Dropped malformed overlay datagram", information.Message, StringComparison.Ordinal);
+        Assert.Null(information.Exception);
         Assert.Contains(logger.Entries, entry => entry.Level == LogLevel.Debug && entry.Exception is not null);
     }
 

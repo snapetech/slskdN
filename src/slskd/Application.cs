@@ -2576,6 +2576,11 @@ namespace slskd
                     Log.Debug("Search response resolution for query '{Query}' requested by {Username} was cancelled: {Message}", query.SearchText, username, ex.Message);
                     throw;
                 }
+                catch (Exception ex) when (IsTimeoutException(ex))
+                {
+                    Log.Debug("Search response resolution for query '{Query}' requested by {Username} timed out: {Message}", query.SearchText, username, ex.Message);
+                    return null;
+                }
                 catch (Exception ex)
                 {
                     Log.Warning(ex, "Failed to resolve search response: {Message}", ex.Message);
@@ -2602,6 +2607,22 @@ namespace slskd
             }
 
             return exception.InnerException is not null && IsCancellationException(exception.InnerException);
+        }
+
+        private static bool IsTimeoutException(Exception exception)
+        {
+            if (exception is TimeoutException)
+            {
+                return true;
+            }
+
+            if (exception is AggregateException aggregateException)
+            {
+                var flattened = aggregateException.Flatten().InnerExceptions;
+                return flattened.Count > 0 && flattened.All(IsTimeoutException);
+            }
+
+            return exception.InnerException is not null && IsTimeoutException(exception.InnerException);
         }
 
         private void ShareState_OnChange((ShareState Previous, ShareState Current) state)

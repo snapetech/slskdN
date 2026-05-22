@@ -243,7 +243,7 @@ public sealed class SharedMeshUdpListener : IDhtListener, IDisposable
         if (now - _lastMalformedOverlayDatagramWarning >= MalformedOverlayDatagramLogInterval)
         {
             _lastMalformedOverlayDatagramWarning = now;
-            _logger.LogWarning(
+            _logger.LogInformation(
                 "[Overlay] Dropped malformed overlay datagram from {Endpoint} size={Size} count={Count}; enable debug logging for decode details",
                 OverlayLogSanitizer.Endpoint(remoteEndPoint),
                 size,
