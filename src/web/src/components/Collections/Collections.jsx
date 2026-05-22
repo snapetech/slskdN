@@ -19,6 +19,8 @@ import {
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+const COLLECTION_PAGE_SIZE = 100;
+const COLLECTION_ITEM_PAGE_SIZE = 100;
 
 const getErrorMessage = (error, fallback = 'Request failed') => {
   const data = error?.response?.data;
@@ -41,6 +43,8 @@ export default class Collections extends Component {
 
     this.state = {
       addItemModalOpen: false,
+      collectionItemPage: 1,
+      collectionPage: 1,
       collections: [],
       createModalOpen: false,
       error: null,
@@ -83,6 +87,7 @@ export default class Collections extends Component {
         throw error;
       });
       this.setState({
+        collectionPage: 1,
         collections: asArray(response.data),
         loading: false,
       });
@@ -166,7 +171,10 @@ export default class Collections extends Component {
   loadCollectionItems = async (collectionId) => {
     try {
       const response = await collectionsAPI.getCollectionItems(collectionId);
-      this.setState({ selectedCollectionItems: asArray(response.data) });
+      this.setState({
+        collectionItemPage: 1,
+        selectedCollectionItems: asArray(response.data),
+      });
     } catch (error) {
       console.error('[Collections] Error loading items:', error);
     }
@@ -215,6 +223,7 @@ export default class Collections extends Component {
       await this.loadData();
       if (this.state.selectedCollection?.id === id) {
         this.setState({
+          collectionItemPage: 1,
           selectedCollection: null,
           selectedCollectionItems: [],
         });
@@ -225,7 +234,7 @@ export default class Collections extends Component {
   };
 
   handleSelectCollection = async (collection) => {
-    this.setState({ selectedCollection: collection });
+    this.setState({ collectionItemPage: 1, selectedCollection: collection });
     await this.loadCollectionItems(collection.id);
     await this.loadShares(collection.id);
   };
@@ -335,6 +344,8 @@ export default class Collections extends Component {
   render() {
     const {
       addItemModalOpen,
+      collectionItemPage,
+      collectionPage,
       collections,
       createModalOpen,
       error,
@@ -362,6 +373,33 @@ export default class Collections extends Component {
     ];
 
     const collectionShares = shares;
+    const collectionPages = Math.max(1, Math.ceil(collections.length / COLLECTION_PAGE_SIZE));
+    const currentCollectionPage = Math.min(collectionPage, collectionPages);
+    const collectionStart = (currentCollectionPage - 1) * COLLECTION_PAGE_SIZE;
+    const visibleCollections = collections.slice(
+      collectionStart,
+      collectionStart + COLLECTION_PAGE_SIZE,
+    );
+    const collectionPageStart = collections.length === 0 ? 0 : collectionStart + 1;
+    const collectionPageEnd = Math.min(
+      collectionStart + COLLECTION_PAGE_SIZE,
+      collections.length,
+    );
+    const itemPages = Math.max(
+      1,
+      Math.ceil(selectedCollectionItems.length / COLLECTION_ITEM_PAGE_SIZE),
+    );
+    const currentItemPage = Math.min(collectionItemPage, itemPages);
+    const itemStart = (currentItemPage - 1) * COLLECTION_ITEM_PAGE_SIZE;
+    const visibleCollectionItems = selectedCollectionItems.slice(
+      itemStart,
+      itemStart + COLLECTION_ITEM_PAGE_SIZE,
+    );
+    const itemPageStart = selectedCollectionItems.length === 0 ? 0 : itemStart + 1;
+    const itemPageEnd = Math.min(
+      itemStart + COLLECTION_ITEM_PAGE_SIZE,
+      selectedCollectionItems.length,
+    );
 
     return (
       <div data-testid="collections-root">
@@ -414,7 +452,7 @@ export default class Collections extends Component {
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-                {collections.map((collection) => (
+                {visibleCollections.map((collection) => (
                   <Table.Row
                     data-testid={`collection-row-${collection.title}`}
                     key={collection.id}
@@ -440,6 +478,35 @@ export default class Collections extends Component {
                 ))}
               </Table.Body>
             </Table>
+          )}
+          {collections.length > COLLECTION_PAGE_SIZE && (
+            <div className="collections-pagination">
+              <span>
+                {collectionPageStart}–{collectionPageEnd} of {collections.length}
+              </span>
+              <Popup
+                content="Show the previous page of collections without reloading the route."
+                trigger={
+                  <Button
+                    disabled={currentCollectionPage <= 1}
+                    icon="chevron left"
+                    onClick={() => this.setState({ collectionPage: currentCollectionPage - 1 })}
+                    size="mini"
+                  />
+                }
+              />
+              <Popup
+                content="Show the next page of collections without rendering the entire list at once."
+                trigger={
+                  <Button
+                    disabled={currentCollectionPage >= collectionPages}
+                    icon="chevron right"
+                    onClick={() => this.setState({ collectionPage: currentCollectionPage + 1 })}
+                    size="mini"
+                  />
+                }
+              />
+            </div>
           )}
 
           {selectedCollection && (
@@ -483,7 +550,7 @@ export default class Collections extends Component {
                       </Table.Row>
                     </Table.Header>
                     <Table.Body>
-                      {selectedCollectionItems.map((item, index) => (
+                      {visibleCollectionItems.map((item, index) => (
                         <Table.Row
                           data-testid={`collection-item-row-${index}`}
                           key={item.id}
@@ -523,6 +590,35 @@ export default class Collections extends Component {
                       ))}
                     </Table.Body>
                   </Table>
+                )}
+                {selectedCollectionItems.length > COLLECTION_ITEM_PAGE_SIZE && (
+                  <div className="collections-pagination">
+                    <span>
+                      {itemPageStart}–{itemPageEnd} of {selectedCollectionItems.length}
+                    </span>
+                    <Popup
+                      content="Show the previous page of collection items."
+                      trigger={
+                        <Button
+                          disabled={currentItemPage <= 1}
+                          icon="chevron left"
+                          onClick={() => this.setState({ collectionItemPage: currentItemPage - 1 })}
+                          size="mini"
+                        />
+                      }
+                    />
+                    <Popup
+                      content="Show the next page of collection items without rendering the entire collection at once."
+                      trigger={
+                        <Button
+                          disabled={currentItemPage >= itemPages}
+                          icon="chevron right"
+                          onClick={() => this.setState({ collectionItemPage: currentItemPage + 1 })}
+                          size="mini"
+                        />
+                      }
+                    />
+                  </div>
                 )}
               </div>
 

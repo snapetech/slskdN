@@ -186,6 +186,16 @@
   white-space: nowrap;
 }
 
+.search-list-pagination {
+  align-items: center;
+  color: #888;
+  display: flex;
+  font-size: 0.9em;
+  gap: 0.5em;
+  justify-content: flex-end;
+  margin-top: 0.75em;
+}
+
 .musicbrainz-lookup-segment {
   margin-top: 10px;
 }

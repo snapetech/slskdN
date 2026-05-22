@@ -117,6 +117,7 @@ const StatusBar = ({ status, syncState, onSync, syncing }) => {
 // ─── Wanted / Missing list ────────────────────────────────────────────────────
 
 const PAGE_SIZE = 50;
+const WISHLIST_PAGE_SIZE = 50;
 
 const WantedSection = ({ connected }) => {
   const [wanted, setWanted] = useState([]);
@@ -219,6 +220,7 @@ const WantedSection = ({ connected }) => {
 
 const WishlistSection = () => {
   const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -227,6 +229,7 @@ const WishlistSection = () => {
       const all = await wishlistAPI.getAll();
       // Lidarr-seeded items have autoDownload=true and a non-empty filter
       setItems(all.filter((i) => i.autoDownload && i.filter));
+      setPage(1);
     } catch (err) {
       toast.error(`Failed to load wishlist: ${err.message}`);
     } finally {
@@ -235,6 +238,13 @@ const WishlistSection = () => {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const totalPages = Math.max(1, Math.ceil(items.length / WISHLIST_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const start = (currentPage - 1) * WISHLIST_PAGE_SIZE;
+  const pageItems = items.slice(start, start + WISHLIST_PAGE_SIZE);
+  const pageStart = items.length === 0 ? 0 : start + 1;
+  const pageEnd = Math.min(start + WISHLIST_PAGE_SIZE, items.length);
 
   return (
     <div className="lidarr-section">
@@ -248,7 +258,7 @@ const WishlistSection = () => {
             )}
           </Header.Content>
         </Header>
-        <Button icon="refresh" onClick={load} size="mini" />
+        <Button icon="refresh" loading={loading} onClick={load} size="mini" />
       </div>
 
       {loading ? (
@@ -258,45 +268,65 @@ const WishlistSection = () => {
           No Lidarr-seeded wishlist items yet. Run a sync to populate.
         </div>
       ) : (
-        <Table celled compact size="small" unstackable>
-          <Table.Header>
-            <Table.Row>
-              <Table.HeaderCell>Search</Table.HeaderCell>
-              <Table.HeaderCell>Filter</Table.HeaderCell>
-              <Table.HeaderCell>Auto-DL</Table.HeaderCell>
-              <Table.HeaderCell>Last Searched</Table.HeaderCell>
-              <Table.HeaderCell>Matches</Table.HeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {items.map((item) => (
-              <Table.Row key={item.id}>
-                <Table.Cell>
-                  <Icon
-                    name={item.enabled ? 'check circle' : 'circle outline'}
-                    color={item.enabled ? 'green' : 'grey'}
-                  />
-                  {item.searchText}
-                </Table.Cell>
-                <Table.Cell>
-                  {item.filter
-                    ? <Label size="tiny" color="teal">{item.filter}</Label>
-                    : '—'}
-                </Table.Cell>
-                <Table.Cell textAlign="center">
-                  <Icon
-                    name={item.autoDownload ? 'download' : 'minus'}
-                    color={item.autoDownload ? 'green' : 'grey'}
-                  />
-                </Table.Cell>
-                <Table.Cell>{formatDate(item.lastSearchedAt)}</Table.Cell>
-                <Table.Cell textAlign="center">
-                  {item.lastMatchCount ?? '—'}
-                </Table.Cell>
+        <>
+          <Table celled compact size="small" unstackable>
+            <Table.Header>
+              <Table.Row>
+                <Table.HeaderCell>Search</Table.HeaderCell>
+                <Table.HeaderCell>Filter</Table.HeaderCell>
+                <Table.HeaderCell>Auto-DL</Table.HeaderCell>
+                <Table.HeaderCell>Last Searched</Table.HeaderCell>
+                <Table.HeaderCell>Matches</Table.HeaderCell>
               </Table.Row>
-            ))}
-          </Table.Body>
-        </Table>
+            </Table.Header>
+            <Table.Body>
+              {pageItems.map((item) => (
+                <Table.Row key={item.id}>
+                  <Table.Cell>
+                    <Icon
+                      name={item.enabled ? 'check circle' : 'circle outline'}
+                      color={item.enabled ? 'green' : 'grey'}
+                    />
+                    {item.searchText}
+                  </Table.Cell>
+                  <Table.Cell>
+                    {item.filter
+                      ? <Label size="tiny" color="teal">{item.filter}</Label>
+                      : '—'}
+                  </Table.Cell>
+                  <Table.Cell textAlign="center">
+                    <Icon
+                      name={item.autoDownload ? 'download' : 'minus'}
+                      color={item.autoDownload ? 'green' : 'grey'}
+                    />
+                  </Table.Cell>
+                  <Table.Cell>{formatDate(item.lastSearchedAt)}</Table.Cell>
+                  <Table.Cell textAlign="center">
+                    {item.lastMatchCount ?? '—'}
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table>
+
+          <div className="lidarr-pagination">
+            <span className="lidarr-pagination-info">
+              {pageStart}–{pageEnd} of {items.length.toLocaleString()}
+            </span>
+            <Button
+              disabled={currentPage <= 1}
+              icon="chevron left"
+              onClick={() => setPage(currentPage - 1)}
+              size="mini"
+            />
+            <Button
+              disabled={currentPage >= totalPages}
+              icon="chevron right"
+              onClick={() => setPage(currentPage + 1)}
+              size="mini"
+            />
+          </div>
+        </>
       )}
     </div>
   );

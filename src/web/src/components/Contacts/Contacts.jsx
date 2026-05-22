@@ -22,6 +22,8 @@ const Button = TooltipButton;
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+const CONTACT_PAGE_SIZE = 100;
+const NEARBY_PAGE_SIZE = 100;
 
 const getErrorMessage = (error, fallback = 'Request failed') => {
   const data = error?.response?.data;
@@ -62,6 +64,7 @@ class Contacts extends Component {
   state = {
     activeTab: 0,
     addFriendModalOpen: false,
+    contactPage: 1,
     contacts: [],
     createInviteModalOpen: false,
     error: null,
@@ -71,6 +74,7 @@ class Contacts extends Component {
     loading: true,
     nearby: [],
     nearbyLoading: false,
+    nearbyPage: 1,
   };
 
   componentDidMount() {
@@ -83,6 +87,7 @@ class Contacts extends Component {
       this.setState({ error: null, loading: true });
       const response = await identityAPI.getContacts();
       this.setState({
+        contactPage: 1,
         contacts: asArray(response.data).map(normalizeContact).filter(Boolean),
         loading: false,
       });
@@ -104,7 +109,11 @@ class Contacts extends Component {
     try {
       this.setState({ nearbyLoading: true });
       const response = await identityAPI.getNearby();
-      this.setState({ nearby: asArray(response.data), nearbyLoading: false });
+      this.setState({
+        nearby: asArray(response.data),
+        nearbyLoading: false,
+        nearbyPage: 1,
+      });
     } catch {
       this.setState({ nearbyLoading: false });
       // Nearby may fail if mDNS not available, don't show error
@@ -246,6 +255,7 @@ class Contacts extends Component {
     const {
       activeTab,
       addFriendModalOpen,
+      contactPage,
       contacts,
       createInviteModalOpen,
       error,
@@ -255,7 +265,20 @@ class Contacts extends Component {
       loading,
       nearby,
       nearbyLoading,
+      nearbyPage,
     } = this.state;
+    const contactPages = Math.max(1, Math.ceil(contacts.length / CONTACT_PAGE_SIZE));
+    const currentContactPage = Math.min(contactPage, contactPages);
+    const contactStart = (currentContactPage - 1) * CONTACT_PAGE_SIZE;
+    const visibleContacts = contacts.slice(contactStart, contactStart + CONTACT_PAGE_SIZE);
+    const contactPageStart = contacts.length === 0 ? 0 : contactStart + 1;
+    const contactPageEnd = Math.min(contactStart + CONTACT_PAGE_SIZE, contacts.length);
+    const nearbyPages = Math.max(1, Math.ceil(nearby.length / NEARBY_PAGE_SIZE));
+    const currentNearbyPage = Math.min(nearbyPage, nearbyPages);
+    const nearbyStart = (currentNearbyPage - 1) * NEARBY_PAGE_SIZE;
+    const visibleNearby = nearby.slice(nearbyStart, nearbyStart + NEARBY_PAGE_SIZE);
+    const nearbyPageStart = nearby.length === 0 ? 0 : nearbyStart + 1;
+    const nearbyPageEnd = Math.min(nearbyStart + NEARBY_PAGE_SIZE, nearby.length);
 
     const panes = [
       {
@@ -291,7 +314,7 @@ class Contacts extends Component {
                   </Table.Row>
                 </Table.Header>
                 <Table.Body>
-                  {contacts.map((contact) => (
+                  {visibleContacts.map((contact) => (
                     <Table.Row
                       data-testid={`contact-row-${contact.nickname || contact.peerId.slice(0, 8)}`}
                       key={contact.id}
@@ -353,6 +376,27 @@ class Contacts extends Component {
                 </Table.Body>
               </Table>
             )}
+            {contacts.length > CONTACT_PAGE_SIZE && (
+              <div className="contacts-pagination">
+                <span>
+                  {contactPageStart}–{contactPageEnd} of {contacts.length}
+                </span>
+                <Button
+                  disabled={currentContactPage <= 1}
+                  icon="chevron left"
+                  onClick={() => this.setState({ contactPage: currentContactPage - 1 })}
+                  size="mini"
+                  tooltip="Show the previous page of contacts."
+                />
+                <Button
+                  disabled={currentContactPage >= contactPages}
+                  icon="chevron right"
+                  onClick={() => this.setState({ contactPage: currentContactPage + 1 })}
+                  size="mini"
+                  tooltip="Show the next page of contacts without rendering the entire contact list at once."
+                />
+              </div>
+            )}
           </Tab.Pane>
         ),
       },
@@ -376,7 +420,7 @@ class Contacts extends Component {
                 divided
                 relaxed
               >
-                {nearby.map((peer, index) => (
+                {visibleNearby.map((peer, index) => (
                   <List.Item key={index}>
                     <List.Content>
                       <List.Header>{peer.displayName}</List.Header>
@@ -404,6 +448,27 @@ class Contacts extends Component {
                   </List.Item>
                 ))}
               </List>
+            )}
+            {nearby.length > NEARBY_PAGE_SIZE && (
+              <div className="contacts-pagination">
+                <span>
+                  {nearbyPageStart}–{nearbyPageEnd} of {nearby.length}
+                </span>
+                <Button
+                  disabled={currentNearbyPage <= 1}
+                  icon="chevron left"
+                  onClick={() => this.setState({ nearbyPage: currentNearbyPage - 1 })}
+                  size="mini"
+                  tooltip="Show the previous page of nearby peers."
+                />
+                <Button
+                  disabled={currentNearbyPage >= nearbyPages}
+                  icon="chevron right"
+                  onClick={() => this.setState({ nearbyPage: currentNearbyPage + 1 })}
+                  size="mini"
+                  tooltip="Show the next page of nearby peers without rendering the entire discovery list at once."
+                />
+              </div>
             )}
           </Tab.Pane>
         ),

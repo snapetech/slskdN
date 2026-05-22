@@ -1,8 +1,10 @@
 import ErrorSegment from '../../Shared/ErrorSegment';
 import PlaceholderSegment from '../../Shared/PlaceholderSegment';
 import SearchListRow from './SearchListRow';
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Card, Icon, Loader, Popup, Table } from 'semantic-ui-react';
+
+const SEARCH_LIST_PAGE_SIZE = 100;
 
 const SearchList = ({
   connecting = false,
@@ -16,13 +18,30 @@ const SearchList = ({
   searches = {},
   sourceFilter = 'all',
 }) => {
-  const filteredSearches = sourceFilter === 'all'
-    ? searches
-    : Object.fromEntries(
-        Object.entries(searches).filter(
-          ([, search]) => (search.source || 'manual').toLowerCase() === sourceFilter.toLowerCase(),
-        ),
-      );
+  const [page, setPage] = useState(1);
+  const filteredSearchValues = useMemo(() => {
+    const values = Object.values(searches);
+    const filtered = sourceFilter === 'all'
+      ? values
+      : values.filter(
+          (search) => (search.source || 'manual').toLowerCase() === sourceFilter.toLowerCase(),
+        );
+
+    return filtered.sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt));
+  }, [searches, sourceFilter]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [sourceFilter]);
+
+  const searchCount = Object.keys(searches).length;
+  const filteredCount = filteredSearchValues.length;
+  const totalPages = Math.max(1, Math.ceil(filteredCount / SEARCH_LIST_PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const start = (currentPage - 1) * SEARCH_LIST_PAGE_SIZE;
+  const pageSearches = filteredSearchValues.slice(start, start + SEARCH_LIST_PAGE_SIZE);
+  const pageStart = filteredCount === 0 ? 0 : start + 1;
+  const pageEnd = Math.min(start + SEARCH_LIST_PAGE_SIZE, filteredCount);
 
   return (
     <Card
@@ -72,7 +91,7 @@ const SearchList = ({
             />
           </div>
           <div className="search-list-count">
-            {Object.keys(filteredSearches).length} / {Object.keys(searches).length} searches
+            {filteredCount} / {searchCount} searches
           </div>
         </div>
         {connecting && (
@@ -84,7 +103,7 @@ const SearchList = ({
         )}
         {error ? (
           <ErrorSegment caption={error} />
-        ) : Object.keys(filteredSearches).length === 0 && !connecting ? (
+        ) : filteredCount === 0 && !connecting ? (
           <PlaceholderSegment
             caption={
               sourceFilter !== 'all'
@@ -123,18 +142,35 @@ const SearchList = ({
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-                {Object.values(filteredSearches)
-                  .sort((a, b) => new Date(b.startedAt) - new Date(a.startedAt))
-                  .map((search) => (
-                    <SearchListRow
-                      key={search.id}
-                      onRemove={onRemove}
-                      onStop={onStop}
-                      search={search}
-                    />
-                  ))}
+                {pageSearches.map((search) => (
+                  <SearchListRow
+                    key={search.id}
+                    onRemove={onRemove}
+                    onStop={onStop}
+                    search={search}
+                  />
+                ))}
               </Table.Body>
             </Table>
+            {filteredCount > SEARCH_LIST_PAGE_SIZE && (
+              <div className="search-list-pagination">
+                <span>
+                  {pageStart}–{pageEnd} of {filteredCount}
+                </span>
+                <Button
+                  disabled={currentPage <= 1}
+                  icon="chevron left"
+                  onClick={() => setPage(currentPage - 1)}
+                  size="mini"
+                />
+                <Button
+                  disabled={currentPage >= totalPages}
+                  icon="chevron right"
+                  onClick={() => setPage(currentPage + 1)}
+                  size="mini"
+                />
+              </div>
+            )}
           </div>
         )}
       </Card.Content>

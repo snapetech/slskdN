@@ -11,12 +11,15 @@ import {
   Icon,
   Label,
   Modal,
+  Popup,
   Segment,
   Table,
 } from 'semantic-ui-react';
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+const SHARE_PAGE_SIZE = 100;
+const MANIFEST_ITEM_PAGE_SIZE = 100;
 
 const getErrorMessage = (error, fallback) => {
   const data = error?.response?.data;
@@ -50,8 +53,10 @@ export default class SharedWithMe extends Component {
     error: null,
     loading: true,
     manifest: null,
+    manifestItemPage: 1,
     manifestLoading: false,
     manifestModalOpen: false,
+    sharePage: 1,
     selectedShare: null,
     shares: [],
   };
@@ -81,30 +86,15 @@ export default class SharedWithMe extends Component {
         identityAPI.getContacts().catch(() => ({ data: [] })), // Gracefully handle if Identity not enabled
       ]);
 
-      // Fetch collection details for each share
-      const sharesWithCollections = await Promise.all(
-        asArray(sharesRes.data).map(async (share) => {
-          try {
-            const collectionRes = await collectionsAPI.getCollection(
-              share.collectionId,
-            );
-            return { ...share, collection: collectionRes.data };
-          } catch (error) {
-            console.warn(
-              'Failed to load collection for share',
-              share.id,
-              error,
-            );
-            return share;
-          }
-        }),
-      );
+      const shares = asArray(sharesRes.data);
 
       this.setState({
         contacts: asArray(contactsRes.data),
         loading: false,
-        shares: sharesWithCollections,
+        sharePage: 1,
+        shares,
       });
+      this.loadCollectionDetails(shares);
     } catch (error) {
       // Only show error if it's not an auth/feature issue (which we handle above)
       const isAuthOrFeatureError =
@@ -119,6 +109,37 @@ export default class SharedWithMe extends Component {
         loading: false,
       });
     }
+  };
+
+  loadCollectionDetails = async (shares) => {
+    const sharesWithCollections = await Promise.all(
+      asArray(shares).map(async (share) => {
+        try {
+          const collectionRes = await collectionsAPI.getCollection(
+            share.collectionId,
+          );
+          return { ...share, collection: collectionRes.data };
+        } catch (error) {
+          console.warn(
+            'Failed to load collection for share',
+            share.id,
+            error,
+          );
+          return share;
+        }
+      }),
+    );
+
+    this.setState(({ shares: currentShares }) => {
+      const currentIds = currentShares.map((share) => share.id).join('\n');
+      const loadedIds = shares.map((share) => share.id).join('\n');
+
+      if (currentIds !== loadedIds) {
+        return null;
+      }
+
+      return { shares: sharesWithCollections };
+    });
   };
 
   getContactNickname = (audienceId, audiencePeerId) => {
@@ -154,6 +175,7 @@ export default class SharedWithMe extends Component {
       this.setState({
         manifestLoading: true,
         manifestModalOpen: true,
+        manifestItemPage: 1,
         selectedShare: share,
       });
       const manifestRes = await collectionsAPI.getShareManifest(share.id);
@@ -210,11 +232,35 @@ export default class SharedWithMe extends Component {
       error,
       loading,
       manifest,
+      manifestItemPage,
       manifestLoading,
       manifestModalOpen,
       selectedShare,
+      sharePage,
       shares,
     } = this.state;
+    const sharePages = Math.max(1, Math.ceil(shares.length / SHARE_PAGE_SIZE));
+    const currentSharePage = Math.min(sharePage, sharePages);
+    const shareStart = (currentSharePage - 1) * SHARE_PAGE_SIZE;
+    const visibleShares = shares.slice(shareStart, shareStart + SHARE_PAGE_SIZE);
+    const sharePageStart = shares.length === 0 ? 0 : shareStart + 1;
+    const sharePageEnd = Math.min(shareStart + SHARE_PAGE_SIZE, shares.length);
+    const manifestItems = asArray(manifest?.items);
+    const manifestItemPages = Math.max(
+      1,
+      Math.ceil(manifestItems.length / MANIFEST_ITEM_PAGE_SIZE),
+    );
+    const currentManifestItemPage = Math.min(manifestItemPage, manifestItemPages);
+    const manifestItemStart = (currentManifestItemPage - 1) * MANIFEST_ITEM_PAGE_SIZE;
+    const visibleManifestItems = manifestItems.slice(
+      manifestItemStart,
+      manifestItemStart + MANIFEST_ITEM_PAGE_SIZE,
+    );
+    const manifestItemPageStart = manifestItems.length === 0 ? 0 : manifestItemStart + 1;
+    const manifestItemPageEnd = Math.min(
+      manifestItemStart + MANIFEST_ITEM_PAGE_SIZE,
+      manifestItems.length,
+    );
 
     return (
       <Container>
@@ -248,7 +294,7 @@ export default class SharedWithMe extends Component {
               </Table.Row>
             </Table.Header>
             <Table.Body>
-              {shares.map((share) => {
+              {visibleShares.map((share) => {
                 const ownerNickname = this.getOwnerNickname(share.collection);
                 const displayName =
                   ownerNickname || share.collection?.ownerUserId || 'Unknown';
@@ -309,6 +355,35 @@ export default class SharedWithMe extends Component {
             </Table.Body>
           </Table>
         )}
+        {shares.length > SHARE_PAGE_SIZE && (
+          <div className="shares-pagination">
+            <span>
+              {sharePageStart}–{sharePageEnd} of {shares.length}
+            </span>
+            <Popup
+              content="Show the previous page of incoming shares."
+              trigger={
+                <Button
+                  disabled={currentSharePage <= 1}
+                  icon="chevron left"
+                  onClick={() => this.setState({ sharePage: currentSharePage - 1 })}
+                  size="mini"
+                />
+              }
+            />
+            <Popup
+              content="Show the next page of incoming shares without rendering the whole list at once."
+              trigger={
+                <Button
+                  disabled={currentSharePage >= sharePages}
+                  icon="chevron right"
+                  onClick={() => this.setState({ sharePage: currentSharePage + 1 })}
+                  size="mini"
+                />
+              }
+            />
+          </div>
+        )}
 
         {/* Manifest Modal */}
         <Modal
@@ -346,7 +421,7 @@ export default class SharedWithMe extends Component {
                 {manifest.description && (
                   <p style={{ marginBottom: '1em' }}>{manifest.description}</p>
                 )}
-                {asArray(manifest.items).length > 0 ? (
+                {manifestItems.length > 0 ? (
                   <Table>
                     <Table.Header>
                       <Table.Row>
@@ -356,17 +431,18 @@ export default class SharedWithMe extends Component {
                       </Table.Row>
                     </Table.Header>
                     <Table.Body>
-                      {asArray(manifest.items).map((item, index) => {
+                      {visibleManifestItems.map((item, index) => {
+                        const itemIndex = manifestItemStart + index;
                         // Extract sha256 prefix from contentId (format: "sha256:...")
                         const sha256Prefix = item.contentId?.startsWith(
                           'sha256:',
                         )
                           ? item.contentId.slice(7, 15) // First 8 chars of hash
-                          : item.contentId?.slice(0, 8) || `item-${index}`;
+                          : item.contentId?.slice(0, 8) || `item-${itemIndex}`;
                         return (
                           <Table.Row
                             data-testid={`incoming-item-row-${sha256Prefix}`}
-                            key={index}
+                            key={itemIndex}
                           >
                             <Table.Cell>
                               <code style={{ fontSize: '0.85em' }}>
@@ -410,6 +486,35 @@ export default class SharedWithMe extends Component {
                       No items in this collection
                     </Header>
                   </Segment>
+                )}
+                {manifestItems.length > MANIFEST_ITEM_PAGE_SIZE && (
+                  <div className="shares-pagination">
+                    <span>
+                      {manifestItemPageStart}–{manifestItemPageEnd} of {manifestItems.length}
+                    </span>
+                    <Popup
+                      content="Show the previous page of manifest items."
+                      trigger={
+                        <Button
+                          disabled={currentManifestItemPage <= 1}
+                          icon="chevron left"
+                          onClick={() => this.setState({ manifestItemPage: currentManifestItemPage - 1 })}
+                          size="mini"
+                        />
+                      }
+                    />
+                    <Popup
+                      content="Show the next page of manifest items without rendering the whole manifest at once."
+                      trigger={
+                        <Button
+                          disabled={currentManifestItemPage >= manifestItemPages}
+                          icon="chevron right"
+                          onClick={() => this.setState({ manifestItemPage: currentManifestItemPage + 1 })}
+                          size="mini"
+                        />
+                      }
+                    />
+                  </div>
                 )}
               </div>
             ) : (

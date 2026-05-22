@@ -1080,6 +1080,36 @@ body {
     overflow-x: auto;
 }
 
+.collections-pagination {
+    align-items: center;
+    color: var(--slskd-color-subtle);
+    display: flex;
+    font-size: 0.9em;
+    gap: 0.5em;
+    justify-content: flex-end;
+    margin: 0.75em 0 1em;
+}
+
+.contacts-pagination {
+    align-items: center;
+    color: var(--slskd-color-subtle);
+    display: flex;
+    font-size: 0.9em;
+    gap: 0.5em;
+    justify-content: flex-end;
+    margin: 0.75em 0 1em;
+}
+
+.shares-pagination {
+    align-items: center;
+    color: var(--slskd-color-subtle);
+    display: flex;
+    font-size: 0.9em;
+    gap: 0.5em;
+    justify-content: flex-end;
+    margin: 0.75em 0 1em;
+}
+
 .message {
     padding: 8px 12px 8px 12px !important;
 }

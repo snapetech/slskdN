@@ -34,6 +34,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Wishlist-adjacent pages now cap large client-side renders: Lidarr seeded
+  wishlist rows, search history, collections, contacts, incoming shares, and
+  share manifests page their visible rows instead of rendering entire datasets
+  at once.
 - Release creation now has a guarded helper that verifies the GitHub target,
   branch sync, duplicate tags, and the full release gate before pushing a
   `build-main-*` or `build-dev-*` tag. Post-publish artifact verification now
