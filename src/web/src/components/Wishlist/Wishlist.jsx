@@ -856,6 +856,7 @@ const FILTER_PRESETS = [
 ];
 
 const WISHLIST_VIEW_KEY = 'slskdn-wishlist-view-state';
+const PAGE_SIZE_OPTIONS = [50, 100, 250, 500];
 
 const SORT_OPTIONS = [
   { key: 'created-desc', text: 'Newest added', value: 'created-desc' },
@@ -874,6 +875,7 @@ const loadWishlistViewState = () => {
       enabledOnly: Boolean(parsed.enabledOnly),
       hasResultsOnly: Boolean(parsed.hasResultsOnly),
       newOnly: Boolean(parsed.newOnly),
+      pageSize: PAGE_SIZE_OPTIONS.includes(parsed.pageSize) ? parsed.pageSize : 100,
       query: parsed.query || '',
       sort: parsed.sort || 'created-desc',
     };
@@ -883,6 +885,7 @@ const loadWishlistViewState = () => {
       enabledOnly: false,
       hasResultsOnly: false,
       newOnly: false,
+      pageSize: 100,
       query: '',
       sort: 'created-desc',
     };
@@ -1213,6 +1216,7 @@ const Wishlist = () => {
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'cards'
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [viewState, setViewState] = useState(loadWishlistViewState);
+  const [page, setPage] = useState(1);
   const requestSummary = useMemo(
     () =>
       buildWishlistRequestSummary({
@@ -1277,6 +1281,24 @@ const Wishlist = () => {
 
     return rows;
   }, [items, viewState]);
+
+  const pageCount = Math.max(1, Math.ceil(visibleItems.length / viewState.pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageStart = (currentPage - 1) * viewState.pageSize;
+  const pageItems = visibleItems.slice(pageStart, pageStart + viewState.pageSize);
+  const pageEnd = Math.min(pageStart + pageItems.length, visibleItems.length);
+
+  useEffect(() => {
+    setPage(1);
+  }, [
+    viewState.autoOnly,
+    viewState.enabledOnly,
+    viewState.hasResultsOnly,
+    viewState.newOnly,
+    viewState.pageSize,
+    viewState.query,
+    viewState.sort,
+  ]);
 
   const copyRequestReviewPacket = async () => {
     const packet = buildWishlistRequestReviewPacket({
@@ -1427,7 +1449,7 @@ const Wishlist = () => {
   // Bulk operations
   const handleSelectAll = (checked) => {
     if (checked) {
-      setSelectedIds(new Set(visibleItems.map((i) => i.id)));
+      setSelectedIds(new Set(pageItems.map((i) => i.id)));
     } else {
       setSelectedIds(new Set());
     }
@@ -1755,6 +1777,18 @@ const Wishlist = () => {
               size="mini"
               value={viewState.sort}
             />
+            <Dropdown
+              compact
+              onChange={(_, { value }) => updateViewState({ pageSize: value })}
+              options={PAGE_SIZE_OPTIONS.map((value) => ({
+                key: value,
+                text: `${value} per page`,
+                value,
+              }))}
+              selection
+              size="mini"
+              value={viewState.pageSize}
+            />
             <Checkbox
               checked={viewState.newOnly}
               label="New results"
@@ -1777,8 +1811,41 @@ const Wishlist = () => {
             />
             <Label basic>
               Showing
-              <Label.Detail>{visibleItems.length}/{items.length}</Label.Detail>
+              <Label.Detail>
+                {visibleItems.length === 0
+                  ? `0/${items.length}`
+                  : `${pageStart + 1}-${pageEnd}/${visibleItems.length} of ${items.length}`}
+              </Label.Detail>
             </Label>
+            {pageCount > 1 && (
+              <Button.Group size="mini">
+                <Popup
+                  content="Go to the previous page of wishlist items."
+                  position="top center"
+                  trigger={
+                    <Button
+                      disabled={currentPage <= 1}
+                      icon="angle left"
+                      onClick={() => setPage((value) => Math.max(1, value - 1))}
+                    />
+                  }
+                />
+                <Button disabled>
+                  {currentPage}/{pageCount}
+                </Button>
+                <Popup
+                  content="Go to the next page of wishlist items."
+                  position="top center"
+                  trigger={
+                    <Button
+                      disabled={currentPage >= pageCount}
+                      icon="angle right"
+                      onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+                    />
+                  }
+                />
+              </Button.Group>
+            )}
           </div>
           {viewMode === 'table' ? (
             <Table
@@ -1789,12 +1856,12 @@ const Wishlist = () => {
                 <Table.Row>
                   <Table.HeaderCell width={1}>
                     <Popup
-                      content="Select all items for bulk actions"
+                      content="Select all items on this page for bulk actions"
                       position="top center"
                       trigger={
                         <Checkbox
-                          checked={visibleItems.length > 0 && visibleItems.every((item) => selectedIds.has(item.id))}
-                          indeterminate={visibleItems.some((item) => selectedIds.has(item.id)) && !visibleItems.every((item) => selectedIds.has(item.id))}
+                          checked={pageItems.length > 0 && pageItems.every((item) => selectedIds.has(item.id))}
+                          indeterminate={pageItems.some((item) => selectedIds.has(item.id)) && !pageItems.every((item) => selectedIds.has(item.id))}
                           onChange={(_, { checked }) => handleSelectAll(checked)}
                         />
                       }
@@ -1829,7 +1896,7 @@ const Wishlist = () => {
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-                {visibleItems.map((item) => (
+                {pageItems.map((item) => (
                   <WishlistItemRow
                     item={item}
                     key={item.id}
@@ -1845,7 +1912,7 @@ const Wishlist = () => {
             </Table>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75em' }}>
-              {visibleItems.map((item) => (
+              {pageItems.map((item) => (
                 <WishlistItemCard
                   item={item}
                   key={item.id}
