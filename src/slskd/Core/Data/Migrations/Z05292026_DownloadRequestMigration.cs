@@ -114,7 +114,6 @@ public class Z05292026_DownloadRequestMigration : IMigration
         // Transfers(Filename, BatchId, Direction) makes the correlated subquery a PK lookup.
         // On a database with ~134k transfer rows and ~70k groups this finishes in a few seconds;
         // the prior per-group loop took 15-25 minutes because each UPDATE scanned the full Transfers table.
-
         using var tx = connection.BeginTransaction();
 
         using (var create = new SqliteCommand(

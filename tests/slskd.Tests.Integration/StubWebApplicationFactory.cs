@@ -592,23 +592,35 @@ internal sealed class StubDownloadService : IDownloadService
         => EnqueueAsync(username, files.Select(file => (file.Filename, file.Size, file.BatchId, DestinationDirectory: (string?)null)), cancellationToken);
 
     public Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(string username, IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)> files, CancellationToken cancellationToken = default)
+        => EnqueueAsync(
+            username,
+            files.Select(file => new DownloadEnqueueRequest
+            {
+                Filename = file.Filename,
+                Size = file.Size,
+                BatchId = file.BatchId,
+                DestinationDirectory = file.DestinationDirectory,
+            }),
+            cancellationToken);
+
+    public Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(string username, IEnumerable<DownloadEnqueueRequest> files, CancellationToken cancellationToken = default)
     {
         var enqueued = new List<Transfer>();
-        foreach (var (fn, size, batchId, destinationDirectory) in files)
+        foreach (var file in files)
         {
             var t = new Transfer
             {
                 Id = Guid.NewGuid(),
                 Username = username ?? "",
-                Filename = fn ?? "",
-                Size = size,
+                Filename = file.Filename ?? "",
+                Size = file.Size,
                 Direction = Soulseek.TransferDirection.Download,
                 State = TransferStates.Queued,
                 BytesTransferred = 0,
                 AverageSpeed = 0,
                 RequestedAt = DateTime.UtcNow,
-                BatchId = batchId,
-                DestinationDirectory = destinationDirectory,
+                BatchId = file.BatchId,
+                DestinationDirectory = file.DestinationDirectory,
             };
             _storage[t.Id] = t;
             enqueued.Add(t);

@@ -23,6 +23,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
 ## [Unreleased]
 
 - DownloadRequest entity provides stable identity across rescue/auto-replace source swaps; Transfer carries RequestId; migration Z05292026 backfills existing transfers using a temp-table + single bulk INSERT/UPDATE (seconds even on 130k+ transfer histories). New /api/v0/downloads/requests endpoints (list, get with attempts, rename, cancel). Legacy /api/v0/transfers/downloads listing endpoints marked deprecated via response header.
+- Updated integration test stubs for the structured download enqueue request path so full validation covers the new request identity API.
 - Configurable completed download path template (Global.Download.CompletedPathTemplate) with tokens {uploader}, {remote_folder}, {remote_parent}, {remote_filename}, {batch_id}, {request_name}, {date}/{date:fmt}.
 - Pre-download metadata seeded from search-result attributes (bitrate, length, samplerate, bitdepth); transfer row shows secondary "Artist — Title" line.
 - Wishlist hit count exposes locked-hit subtotal alongside visible.
