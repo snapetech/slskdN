@@ -108,15 +108,114 @@ public class Z05292026_DownloadRequestMigration : IMigration
 
     private void Backfill(SqliteConnection connection)
     {
-        // Collapse all download Transfers that share (BatchId, Filename) into one DownloadRequest.
-        // Use the earliest RequestedAt as CreatedAt and copy metadata from the most recent record
-        // that actually has it.
+        // Strategy: stage all distinct (BatchId, Filename) groups in a TEMP table with pre-generated
+        // request ids and computed display name, then do a single bulk INSERT into DownloadRequests and
+        // a single bulk UPDATE on Transfers driven off the temp table. A throwaway index on
+        // Transfers(Filename, BatchId, Direction) makes the correlated subquery a PK lookup.
+        // On a database with ~134k transfer rows and ~70k groups this finishes in a few seconds;
+        // the prior per-group loop took 15-25 minutes because each UPDATE scanned the full Transfers table.
 
         using var tx = connection.BeginTransaction();
 
-        // Identify groups by (BatchId, Filename) where Direction = 'Download'.
-        // SQLite treats NULL != NULL in GROUP BY, so coalesce to a literal for grouping.
-        using var selectGroups = new SqliteCommand(
+        using (var create = new SqliteCommand(
+            @"CREATE TEMP TABLE backfill_groups (
+                request_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                original_filename TEXT NOT NULL,
+                group_batch TEXT NOT NULL,
+                batch_id TEXT NULL,
+                destination_directory TEXT NULL,
+                size INTEGER NULL,
+                state TEXT NOT NULL,
+                first_requested_at TEXT NOT NULL,
+                bit_rate INTEGER NULL,
+                sample_rate INTEGER NULL,
+                bit_depth INTEGER NULL,
+                length INTEGER NULL,
+                artist TEXT NULL,
+                album TEXT NULL,
+                title TEXT NULL,
+                track_number INTEGER NULL,
+                year INTEGER NULL,
+                PRIMARY KEY (group_batch, original_filename)
+            )",
+            connection,
+            tx))
+        {
+            create.ExecuteNonQuery();
+        }
+
+        var staged = StageGroups(connection, tx);
+        Log.Information("> Staged {Count} backfill group(s)", staged);
+
+        if (staged == 0)
+        {
+            tx.Commit();
+            return;
+        }
+
+        // Helper index for the bulk UPDATE join; dropped at end of the migration.
+        using (var idx = new SqliteCommand(
+            "CREATE INDEX IF NOT EXISTS idx_z05292026_transfers_backfill ON Transfers(Filename, BatchId, Direction)",
+            connection,
+            tx))
+        {
+            idx.ExecuteNonQuery();
+        }
+
+        int inserted;
+        using (var insertRequests = new SqliteCommand(
+            @"INSERT INTO DownloadRequests
+                (Id, Name, OriginalFilename, Size, BatchId, DestinationDirectory,
+                 State, StateDescription, CreatedAt,
+                 BitRate, SampleRate, BitDepth, Length,
+                 Artist, Album, Title, TrackNumber, Year)
+              SELECT
+                request_id, name, original_filename, size, batch_id, destination_directory,
+                state, state, first_requested_at,
+                bit_rate, sample_rate, bit_depth, length,
+                artist, album, title, track_number, year
+              FROM backfill_groups",
+            connection,
+            tx))
+        {
+            inserted = insertRequests.ExecuteNonQuery();
+        }
+
+        int updated;
+        using (var updateTransfers = new SqliteCommand(
+            @"UPDATE Transfers
+              SET RequestId = (
+                  SELECT request_id FROM backfill_groups
+                  WHERE COALESCE(Transfers.BatchId, '') = backfill_groups.group_batch
+                    AND Transfers.Filename = backfill_groups.original_filename
+              )
+              WHERE Direction = 'Download' AND (RequestId IS NULL OR RequestId = '')",
+            connection,
+            tx))
+        {
+            updated = updateTransfers.ExecuteNonQuery();
+        }
+
+        using (var dropIdx = new SqliteCommand(
+            "DROP INDEX IF EXISTS idx_z05292026_transfers_backfill",
+            connection,
+            tx))
+        {
+            dropIdx.ExecuteNonQuery();
+        }
+
+        tx.Commit();
+
+        Log.Information(
+            "> Backfilled {RequestCount} DownloadRequest row(s) and stamped {TransferCount} Transfer row(s)",
+            inserted,
+            updated);
+    }
+
+    private int StageGroups(SqliteConnection connection, SqliteTransaction tx)
+    {
+        using var select = new SqliteCommand(
             @"SELECT
                 COALESCE(BatchId, '') AS GroupBatchId,
                 Filename,
@@ -133,120 +232,96 @@ public class Z05292026_DownloadRequestMigration : IMigration
                 MAX(Title) AS Title,
                 MAX(TrackNumber) AS TrackNumber,
                 MAX(Year) AS Year,
-                SUM(CASE WHEN State LIKE '%Completed%Succeeded%' OR State LIKE '%Succeeded%Completed%' THEN 1 ELSE 0 END) AS SucceededCount,
-                COUNT(*) AS TotalCount
+                SUM(CASE WHEN State LIKE '%Completed%Succeeded%' OR State LIKE '%Succeeded%Completed%' THEN 1 ELSE 0 END) AS SucceededCount
               FROM Transfers
               WHERE Direction = 'Download' AND (RequestId IS NULL OR RequestId = '')
               GROUP BY GroupBatchId, Filename",
             connection,
             tx);
 
-        var groups = new List<BackfillGroup>();
-        using (var reader = selectGroups.ExecuteReader())
+        using var insert = new SqliteCommand(
+            @"INSERT INTO backfill_groups
+                (request_id, name, original_filename, group_batch, batch_id, destination_directory,
+                 size, state, first_requested_at,
+                 bit_rate, sample_rate, bit_depth, length,
+                 artist, album, title, track_number, year)
+              VALUES
+                ($rid, $name, $orig, $gb, $batch, $dest,
+                 $size, $state, $created,
+                 $br, $sr, $bd, $len,
+                 $artist, $album, $title, $track, $year)",
+            connection,
+            tx);
+
+        var pRid = insert.Parameters.Add("$rid", Microsoft.Data.Sqlite.SqliteType.Text);
+        var pName = insert.Parameters.Add("$name", Microsoft.Data.Sqlite.SqliteType.Text);
+        var pOrig = insert.Parameters.Add("$orig", Microsoft.Data.Sqlite.SqliteType.Text);
+        var pGb = insert.Parameters.Add("$gb", Microsoft.Data.Sqlite.SqliteType.Text);
+        var pBatch = insert.Parameters.Add("$batch", Microsoft.Data.Sqlite.SqliteType.Text);
+        var pDest = insert.Parameters.Add("$dest", Microsoft.Data.Sqlite.SqliteType.Text);
+        var pSize = insert.Parameters.Add("$size", Microsoft.Data.Sqlite.SqliteType.Integer);
+        var pState = insert.Parameters.Add("$state", Microsoft.Data.Sqlite.SqliteType.Text);
+        var pCreated = insert.Parameters.Add("$created", Microsoft.Data.Sqlite.SqliteType.Text);
+        var pBr = insert.Parameters.Add("$br", Microsoft.Data.Sqlite.SqliteType.Integer);
+        var pSr = insert.Parameters.Add("$sr", Microsoft.Data.Sqlite.SqliteType.Integer);
+        var pBd = insert.Parameters.Add("$bd", Microsoft.Data.Sqlite.SqliteType.Integer);
+        var pLen = insert.Parameters.Add("$len", Microsoft.Data.Sqlite.SqliteType.Integer);
+        var pArtist = insert.Parameters.Add("$artist", Microsoft.Data.Sqlite.SqliteType.Text);
+        var pAlbum = insert.Parameters.Add("$album", Microsoft.Data.Sqlite.SqliteType.Text);
+        var pTitle = insert.Parameters.Add("$title", Microsoft.Data.Sqlite.SqliteType.Text);
+        var pTrack = insert.Parameters.Add("$track", Microsoft.Data.Sqlite.SqliteType.Integer);
+        var pYear = insert.Parameters.Add("$year", Microsoft.Data.Sqlite.SqliteType.Integer);
+        insert.Prepare();
+
+        var count = 0;
+        using var reader = select.ExecuteReader();
+        while (reader.Read())
         {
-            while (reader.Read())
+            var groupBatch = reader.IsDBNull(0) ? string.Empty : reader.GetString(0);
+            var filename = reader.GetString(1);
+            var firstRequestedAt = reader.IsDBNull(2) ? DateTime.UtcNow.ToString("o") : reader.GetString(2);
+            var batchId = reader.IsDBNull(3) ? null : reader.GetString(3);
+            var destDir = reader.IsDBNull(4) ? null : reader.GetString(4);
+            object size = reader.IsDBNull(5) ? DBNull.Value : reader.GetInt64(5);
+            object bitRate = reader.IsDBNull(6) ? DBNull.Value : reader.GetInt32(6);
+            object sampleRate = reader.IsDBNull(7) ? DBNull.Value : reader.GetInt32(7);
+            object bitDepth = reader.IsDBNull(8) ? DBNull.Value : reader.GetInt32(8);
+            object length = reader.IsDBNull(9) ? DBNull.Value : reader.GetInt32(9);
+            object artist = reader.IsDBNull(10) ? DBNull.Value : reader.GetString(10);
+            object album = reader.IsDBNull(11) ? DBNull.Value : reader.GetString(11);
+            object title = reader.IsDBNull(12) ? DBNull.Value : reader.GetString(12);
+            object track = reader.IsDBNull(13) ? DBNull.Value : reader.GetInt32(13);
+            object year = reader.IsDBNull(14) ? DBNull.Value : reader.GetInt32(14);
+            var succeededCount = reader.IsDBNull(15) ? 0 : reader.GetInt32(15);
+
+            var name = System.IO.Path.GetFileName(filename.Replace('\\', '/').TrimEnd('/'));
+            if (string.IsNullOrEmpty(name))
             {
-                groups.Add(new BackfillGroup
-                {
-                    GroupBatchId = reader.IsDBNull(0) ? string.Empty : reader.GetString(0),
-                    Filename = reader.GetString(1),
-                    FirstRequestedAt = reader.IsDBNull(2) ? DateTime.UtcNow.ToString("o") : reader.GetString(2),
-                    BatchId = reader.IsDBNull(3) ? null : reader.GetString(3),
-                    DestinationDirectory = reader.IsDBNull(4) ? null : reader.GetString(4),
-                    Size = reader.IsDBNull(5) ? (long?)null : reader.GetInt64(5),
-                    BitRate = reader.IsDBNull(6) ? (int?)null : reader.GetInt32(6),
-                    SampleRate = reader.IsDBNull(7) ? (int?)null : reader.GetInt32(7),
-                    BitDepth = reader.IsDBNull(8) ? (int?)null : reader.GetInt32(8),
-                    Length = reader.IsDBNull(9) ? (int?)null : reader.GetInt32(9),
-                    Artist = reader.IsDBNull(10) ? null : reader.GetString(10),
-                    Album = reader.IsDBNull(11) ? null : reader.GetString(11),
-                    Title = reader.IsDBNull(12) ? null : reader.GetString(12),
-                    TrackNumber = reader.IsDBNull(13) ? (int?)null : reader.GetInt32(13),
-                    Year = reader.IsDBNull(14) ? (int?)null : reader.GetInt32(14),
-                    SucceededCount = reader.IsDBNull(15) ? 0 : reader.GetInt32(15),
-                });
+                name = filename;
             }
+
+            pRid.Value = Guid.NewGuid().ToString();
+            pName.Value = name;
+            pOrig.Value = filename;
+            pGb.Value = groupBatch;
+            pBatch.Value = (object?)batchId ?? DBNull.Value;
+            pDest.Value = (object?)destDir ?? DBNull.Value;
+            pSize.Value = size;
+            pState.Value = succeededCount > 0 ? "Completed" : "Active";
+            pCreated.Value = firstRequestedAt;
+            pBr.Value = bitRate;
+            pSr.Value = sampleRate;
+            pBd.Value = bitDepth;
+            pLen.Value = length;
+            pArtist.Value = artist;
+            pAlbum.Value = album;
+            pTitle.Value = title;
+            pTrack.Value = track;
+            pYear.Value = year;
+            insert.ExecuteNonQuery();
+            count++;
         }
 
-        var created = 0;
-        foreach (var g in groups)
-        {
-            var requestId = Guid.NewGuid().ToString();
-            var name = System.IO.Path.GetFileName(g.Filename.Replace('\\', '/').TrimEnd('/'));
-            var state = g.SucceededCount > 0 ? "Completed" : "Active";
-
-            using (var insert = new SqliteCommand(
-                @"INSERT INTO DownloadRequests
-                  (Id, Name, OriginalFilename, Size, BatchId, DestinationDirectory, State, StateDescription, CreatedAt,
-                   BitRate, SampleRate, BitDepth, Length, Artist, Album, Title, TrackNumber, Year)
-                  VALUES
-                  ($id, $name, $orig, $size, $batch, $dest, $state, $state, $created,
-                   $bitrate, $samplerate, $bitdepth, $length, $artist, $album, $title, $track, $year)",
-                connection,
-                tx))
-            {
-                insert.Parameters.AddWithValue("$id", requestId);
-                insert.Parameters.AddWithValue("$name", string.IsNullOrEmpty(name) ? g.Filename : name);
-                insert.Parameters.AddWithValue("$orig", g.Filename);
-                insert.Parameters.AddWithValue("$size", (object?)g.Size ?? DBNull.Value);
-                insert.Parameters.AddWithValue("$batch", (object?)g.BatchId ?? DBNull.Value);
-                insert.Parameters.AddWithValue("$dest", (object?)g.DestinationDirectory ?? DBNull.Value);
-                insert.Parameters.AddWithValue("$state", state);
-                insert.Parameters.AddWithValue("$created", g.FirstRequestedAt);
-                insert.Parameters.AddWithValue("$bitrate", (object?)g.BitRate ?? DBNull.Value);
-                insert.Parameters.AddWithValue("$samplerate", (object?)g.SampleRate ?? DBNull.Value);
-                insert.Parameters.AddWithValue("$bitdepth", (object?)g.BitDepth ?? DBNull.Value);
-                insert.Parameters.AddWithValue("$length", (object?)g.Length ?? DBNull.Value);
-                insert.Parameters.AddWithValue("$artist", (object?)g.Artist ?? DBNull.Value);
-                insert.Parameters.AddWithValue("$album", (object?)g.Album ?? DBNull.Value);
-                insert.Parameters.AddWithValue("$title", (object?)g.Title ?? DBNull.Value);
-                insert.Parameters.AddWithValue("$track", (object?)g.TrackNumber ?? DBNull.Value);
-                insert.Parameters.AddWithValue("$year", (object?)g.Year ?? DBNull.Value);
-                insert.ExecuteNonQuery();
-            }
-
-            using (var update = new SqliteCommand(
-                g.BatchId == null
-                    ? "UPDATE Transfers SET RequestId = $rid WHERE Direction = 'Download' AND BatchId IS NULL AND Filename = $fn AND (RequestId IS NULL OR RequestId = '')"
-                    : "UPDATE Transfers SET RequestId = $rid WHERE Direction = 'Download' AND BatchId = $batch AND Filename = $fn AND (RequestId IS NULL OR RequestId = '')",
-                connection,
-                tx))
-            {
-                update.Parameters.AddWithValue("$rid", requestId);
-                update.Parameters.AddWithValue("$fn", g.Filename);
-                if (g.BatchId != null)
-                {
-                    update.Parameters.AddWithValue("$batch", g.BatchId);
-                }
-
-                update.ExecuteNonQuery();
-            }
-
-            created++;
-        }
-
-        tx.Commit();
-
-        Log.Information("> Backfilled {Count} DownloadRequest(s) from existing Transfers", created);
-    }
-
-    private sealed class BackfillGroup
-    {
-        public string GroupBatchId { get; set; } = string.Empty;
-        public string Filename { get; set; } = string.Empty;
-        public string FirstRequestedAt { get; set; } = string.Empty;
-        public string? BatchId { get; set; }
-        public string? DestinationDirectory { get; set; }
-        public long? Size { get; set; }
-        public int? BitRate { get; set; }
-        public int? SampleRate { get; set; }
-        public int? BitDepth { get; set; }
-        public int? Length { get; set; }
-        public string? Artist { get; set; }
-        public string? Album { get; set; }
-        public string? Title { get; set; }
-        public int? TrackNumber { get; set; }
-        public int? Year { get; set; }
-        public int SucceededCount { get; set; }
+        return count;
     }
 }
