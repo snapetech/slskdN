@@ -19,6 +19,13 @@ describe('transferKey', () => {
       transferKey({ ...baseTransfer, direction: 'download' }),
     );
   });
+
+  it('prefers requestId when present so source swaps share a key', () => {
+    const a = transferKey({ ...baseTransfer, requestId: 'req-1', username: 'alice' });
+    const b = transferKey({ ...baseTransfer, requestId: 'req-1', username: 'bob', filename: 'other/path.flac' });
+    expect(a).toBe(b);
+    expect(a).toBe('req|req-1');
+  });
 });
 
 describe('transferStore', () => {
@@ -80,6 +87,59 @@ describe('transferStore', () => {
       direction: 'Download',
       filename: baseTransfer.filename,
       username: baseTransfer.username,
+    });
+
+    expect(store.getAll()).toHaveLength(0);
+  });
+
+  it('keeps the row stable when a source swap arrives under the same requestId', () => {
+    const store = createTransferStore();
+    store.seed([{ ...baseTransfer, requestId: 'req-1' }]);
+
+    // Server-side rescue swapped to a new user/filename; same requestId.
+    store.applyActivity({
+      ...baseTransfer,
+      id: 'id-2',
+      requestId: 'req-1',
+      username: 'bob',
+      filename: 'Different/Path/song.flac',
+      state: 'Queued',
+    });
+
+    const rows = store.getAll();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe('id-2');
+    expect(rows[0].username).toBe('bob');
+    expect(rows[0].filename).toBe('Different/Path/song.flac');
+  });
+
+  it('ignores a removed event for the previous attempt after the new one has taken over', () => {
+    const store = createTransferStore();
+    store.seed([{ ...baseTransfer, requestId: 'req-1', id: 'id-2' }]);
+
+    // Late-arriving removed event for the old attempt under the same request.
+    store.applyRemoved({
+      direction: 'Download',
+      filename: baseTransfer.filename,
+      username: baseTransfer.username,
+      requestId: 'req-1',
+      id: 'id-1',
+    });
+
+    expect(store.getAll()).toHaveLength(1);
+    expect(store.getAll()[0].id).toBe('id-2');
+  });
+
+  it('removes the row when the removed event matches the current attempt id', () => {
+    const store = createTransferStore();
+    store.seed([{ ...baseTransfer, requestId: 'req-1', id: 'id-2' }]);
+
+    store.applyRemoved({
+      direction: 'Download',
+      filename: baseTransfer.filename,
+      username: baseTransfer.username,
+      requestId: 'req-1',
+      id: 'id-2',
     });
 
     expect(store.getAll()).toHaveLength(0);

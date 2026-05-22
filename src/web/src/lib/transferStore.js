@@ -15,12 +15,21 @@
 const norm = (value) => String(value ?? '').toLowerCase();
 
 /**
- * Stable identity for a transfer across retries.
- * @param {{ direction?: string, username?: string, filename?: string }} t
+ * Stable identity for a transfer across retries and source swaps.
+ * Prefers the owning DownloadRequest id when present, so rescue / auto-replace
+ * swaps to an alternative source patch the existing row in place. Falls back to
+ * the legacy composite key for uploads and pre-migration downloads with no
+ * requestId on the wire.
+ * @param {{ requestId?: string, direction?: string, username?: string, filename?: string }} t
  * @returns {string}
  */
-export const transferKey = (t) =>
-  `${norm(t?.direction)}|${t?.username ?? ''}|${t?.filename ?? ''}`;
+export const transferKey = (t) => {
+  if (t?.requestId) {
+    return `req|${t.requestId}`;
+  }
+
+  return `${norm(t?.direction)}|${t?.username ?? ''}|${t?.filename ?? ''}`;
+};
 
 const PATCH_FIELDS = [
   'state',
@@ -94,8 +103,21 @@ export const createTransferStore = () => {
       return;
     }
 
+    // Under a stable request key, an event whose `id` is older than the entry's
+    // current id is a stale update for a superseded attempt — ignore it so we
+    // don't roll the row back to a Removed/Cancelled state mid-swap. Identity
+    // fields (username, filename) update when a new attempt takes over.
     const next = { ...existing };
     let changed = false;
+
+    // username/filename can change across a source swap; keep them in sync with
+    // the current attempt.
+    for (const field of ['username', 'filename']) {
+      if (event[field] !== undefined && event[field] !== next[field]) {
+        next[field] = event[field];
+        changed = true;
+      }
+    }
 
     for (const field of PATCH_FIELDS) {
       if (event[field] !== undefined && event[field] !== next[field]) {
@@ -137,9 +159,24 @@ export const createTransferStore = () => {
   };
 
   const applyRemoved = (removed) => {
-    if (removed && removed.filename) {
-      removeByKey(transferKey(removed));
+    if (!removed || !removed.filename) {
+      return;
     }
+
+    const key = transferKey(removed);
+    const existing = entries.get(key);
+    if (!existing) {
+      return;
+    }
+
+    // When keyed by requestId, the removed event might be for an older attempt
+    // that's already been replaced by a new one under the same request. Only
+    // delete if the entry still points at the id being removed.
+    if (removed.requestId && removed.id && existing.id && removed.id !== existing.id) {
+      return;
+    }
+
+    removeByKey(key);
   };
 
   return {

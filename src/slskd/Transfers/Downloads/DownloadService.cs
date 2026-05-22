@@ -44,6 +44,17 @@ namespace slskd.Transfers.Downloads
     using slskd.SoulseekExceptions;
 
     /// <summary>
+    ///     Completed download folder layouts.
+    /// </summary>
+    public enum CompletedDownloadLayout
+    {
+        BatchId,
+        UploaderFolder,
+        RemoteFolder,
+        Flat,
+    }
+
+    /// <summary>
     ///     Manages downloads.
     /// </summary>
     public interface IDownloadService : IDisposable
@@ -95,6 +106,17 @@ namespace slskd.Transfers.Downloads
         /// <param name="cancellationToken">The token to monitor for cancellation.</param>
         /// <returns>The operation context.</returns>
         Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(string username, IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)> files, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        ///     Enqueues the requested list of <paramref name="files"/> with optional metadata.
+        ///     Metadata supplied here is seeded onto the Transfer record at request time so
+        ///     the row shows audio attributes (bitrate, length, etc.) before the file completes.
+        /// </summary>
+        /// <param name="username">The username of remote user.</param>
+        /// <param name="files">The list of files to enqueue, including optional metadata.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation.</param>
+        /// <returns>The operation context.</returns>
+        Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(string username, IEnumerable<DownloadEnqueueRequest> files, CancellationToken cancellationToken = default);
 
         /// <summary>
         ///     Finds a single download matching the specified <paramref name="expression"/>.
@@ -324,6 +346,34 @@ namespace slskd.Transfers.Downloads
             {
                 Log.Debug("Superseding transfer record for {Filename} from {Username}", transfer.Filename, transfer.Username);
                 existing.Removed = true;
+
+                // Preserve request continuity across supersede so the UI row stays stable.
+                if (!transfer.RequestId.HasValue && existing.RequestId.HasValue)
+                {
+                    transfer.RequestId = existing.RequestId;
+                }
+            }
+
+            if (!transfer.RequestId.HasValue && transfer.Direction == TransferDirection.Download)
+            {
+                var requestId = Guid.NewGuid();
+                var defaultName = System.IO.Path.GetFileName(transfer.Filename.Replace('\\', '/').TrimEnd('/'));
+                context.Add(new DownloadRequest
+                {
+                    Id = requestId,
+                    Name = string.IsNullOrEmpty(defaultName) ? transfer.Filename : defaultName,
+                    OriginalFilename = transfer.Filename,
+                    Size = transfer.Size,
+                    BatchId = transfer.BatchId,
+                    DestinationDirectory = transfer.DestinationDirectory,
+                    State = DownloadRequestState.Active,
+                    CreatedAt = DateTime.UtcNow,
+                    BitRate = transfer.BitRate,
+                    SampleRate = transfer.SampleRate,
+                    BitDepth = transfer.BitDepth,
+                    Length = transfer.Length,
+                });
+                transfer.RequestId = requestId;
             }
 
             context.Add(transfer);
@@ -341,10 +391,13 @@ namespace slskd.Transfers.Downloads
         /// <exception cref="ArgumentException">Thrown when no files are requested.</exception>
         /// <exception cref="AggregateException">Thrown when at least one of the requested files throws.</exception>
         public Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(string username, IEnumerable<(string Filename, long Size)> files, CancellationToken cancellationToken = default)
-            => EnqueueAsync(username, files.Select(f => (f.Filename, f.Size, BatchId: (Guid?)null, DestinationDirectory: (string?)null)), cancellationToken);
+            => EnqueueAsync(username, files.Select(f => new DownloadEnqueueRequest { Filename = f.Filename, Size = f.Size }), cancellationToken);
 
         public Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(string username, IEnumerable<(string Filename, long Size, Guid? BatchId)> files, CancellationToken cancellationToken = default)
-            => EnqueueAsync(username, files.Select(f => (f.Filename, f.Size, f.BatchId, DestinationDirectory: (string?)null)), cancellationToken);
+            => EnqueueAsync(username, files.Select(f => new DownloadEnqueueRequest { Filename = f.Filename, Size = f.Size, BatchId = f.BatchId }), cancellationToken);
+
+        public Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(string username, IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)> files, CancellationToken cancellationToken = default)
+            => EnqueueAsync(username, files.Select(f => new DownloadEnqueueRequest { Filename = f.Filename, Size = f.Size, BatchId = f.BatchId, DestinationDirectory = f.DestinationDirectory }), cancellationToken);
 
         /// <summary>
         ///     Enqueues the requested list of <paramref name="files"/>.
@@ -356,7 +409,7 @@ namespace slskd.Transfers.Downloads
         /// <exception cref="ArgumentException">Thrown when the username is null or an empty string.</exception>
         /// <exception cref="ArgumentException">Thrown when no files are requested.</exception>
         /// <exception cref="AggregateException">Thrown when at least one of the requested files throws.</exception>
-        public async Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(string username, IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)> files, CancellationToken cancellationToken = default)
+        public async Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(string username, IEnumerable<DownloadEnqueueRequest> files, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(username))
             {
@@ -489,6 +542,55 @@ namespace slskd.Transfers.Downloads
                             }
 
                             /*
+                                resolve the owning DownloadRequest:
+                                1. caller-supplied explicit RequestId wins (used by rescue/auto-replace to swap sources)
+                                2. otherwise, inherit from any same-filename record we're about to supersede
+                                3. otherwise, create a fresh DownloadRequest so the UI has a stable row identity
+                            */
+                            Guid resolvedRequestId;
+                            DownloadRequest? newRequestEntity = null;
+
+                            if (file.RequestId.HasValue)
+                            {
+                                resolvedRequestId = file.RequestId.Value;
+                            }
+                            else
+                            {
+                                var inheritFrom = existingRecords
+                                    .Where(t => t.Filename == file.Filename && t.RequestId.HasValue)
+                                    .OrderByDescending(t => t.RequestedAt)
+                                    .Select(t => t.RequestId)
+                                    .FirstOrDefault();
+
+                                if (inheritFrom.HasValue)
+                                {
+                                    resolvedRequestId = inheritFrom.Value;
+                                }
+                                else
+                                {
+                                    resolvedRequestId = Guid.NewGuid();
+                                    var defaultName = System.IO.Path.GetFileName(file.Filename.Replace('\\', '/').TrimEnd('/'));
+                                    newRequestEntity = new DownloadRequest
+                                    {
+                                        Id = resolvedRequestId,
+                                        Name = string.IsNullOrEmpty(file.RequestName) ? (string.IsNullOrEmpty(defaultName) ? file.Filename : defaultName) : file.RequestName,
+                                        OriginalFilename = file.Filename,
+                                        Size = file.Size,
+                                        BatchId = file.BatchId,
+                                        DestinationDirectory = file.DestinationDirectory,
+                                        State = DownloadRequestState.Active,
+                                        CreatedAt = DateTime.UtcNow,
+                                        WishlistItemId = file.WishlistItemId,
+                                        BitRate = file.BitRate,
+                                        SampleRate = file.SampleRate,
+                                        BitDepth = file.BitDepth,
+                                        Length = file.Length,
+                                    };
+                                    context.Add(newRequestEntity);
+                                }
+                            }
+
+                            /*
                                 add the transfer record to the database in the Queued | Locally state, and set the 'Removed'
                                 property of any existing transfer to 'true', allowing the new record to supersede any old record(s)
                                 on the UI
@@ -499,6 +601,7 @@ namespace slskd.Transfers.Downloads
                             var transfer = new Transfer()
                             {
                                 Id = transferId,
+                                RequestId = resolvedRequestId,
                                 Username = username,
                                 Direction = TransferDirection.Download,
                                 Filename = file.Filename, // important! use the remote filename
@@ -508,6 +611,10 @@ namespace slskd.Transfers.Downloads
                                 StartOffset = 0, // todo: maybe implement resumeable downloads?
                                 RequestedAt = DateTime.UtcNow,
                                 State = TransferStates.Queued | TransferStates.Locally,
+                                BitRate = file.BitRate,
+                                SampleRate = file.SampleRate,
+                                BitDepth = file.BitDepth,
+                                Length = file.Length,
                             };
 
                             context.Add(transfer);
@@ -1430,14 +1537,14 @@ namespace slskd.Transfers.Downloads
                 Log.Debug("Successfully updated Transfer for {Filename} from {Username} (state: {State}, progress: {Progress})", transfer.Filename, transfer.Username, transfer.State, transfer.PercentComplete);
 
                 // move the file from incomplete to complete
-                var completedRoot = !string.IsNullOrWhiteSpace(transfer.DestinationDirectory)
-                    ? transfer.DestinationDirectory
-                    : OptionsMonitor.CurrentValue.Directories.Downloads;
+                DownloadRequest? request = null;
+                if (transfer.RequestId.HasValue)
+                {
+                    using var requestLookupCtx = ContextFactory.CreateDbContext();
+                    request = requestLookupCtx.DownloadRequests.AsNoTracking().FirstOrDefault(r => r.Id == transfer.RequestId.Value);
+                }
 
-                var destinationDirectory = transfer.BatchId.HasValue
-                    ? System.IO.Path.Combine(completedRoot, transfer.BatchId.Value.ToString())
-                    : System.IO.Path.GetDirectoryName(transfer.Filename.ToLocalFilename(baseDirectory: completedRoot))
-                        ?? completedRoot;
+                var destinationDirectory = ResolveCompletedDestinationDirectory(transfer, request);
 
                 EnsureDirectoryReady(
                     destinationDirectory,
@@ -1453,9 +1560,11 @@ namespace slskd.Transfers.Downloads
                     deleteSourceDirectoryIfEmptyAfterMove: true);
 
                 Log.Debug("Moved file {Filename} to {Destination}", transfer.Filename, finalFilename);
+                transfer.LocalFilename = finalFilename;
 
                 // Enrich transfer record with audio metadata from the downloaded file
                 EnrichTransferMetadata(transfer, finalFilename);
+                SynchronizedUpdate(transfer, semaphore: updateSyncRoot, cancellationToken: CancellationToken.None);
 
                 if (OptionsMonitor.CurrentValue.Relay.Enabled)
                 {
@@ -1515,6 +1624,23 @@ namespace slskd.Transfers.Downloads
                 }
 
                 Log.Information("Download of {Filename} from user {Username} completed successfully", transfer.Filename, transfer.Username);
+
+                if (transfer.RequestId.HasValue)
+                {
+                    try
+                    {
+                        using var requestCtx = ContextFactory.CreateDbContext();
+                        requestCtx.DownloadRequests
+                            .Where(r => r.Id == transfer.RequestId.Value)
+                            .ExecuteUpdate(setter => setter
+                                .SetProperty(r => r.State, DownloadRequestState.Completed)
+                                .SetProperty(r => r.CompletedAt, DateTime.UtcNow));
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Debug(ex, "Failed to mark DownloadRequest {RequestId} as Completed", transfer.RequestId);
+                    }
+                }
 
                 return transfer;
             }
@@ -1964,11 +2090,124 @@ namespace slskd.Transfers.Downloads
                     if (props.Duration.TotalSeconds > 0)
                         transfer.Length = (int)Math.Round(props.Duration.TotalSeconds);
                 }
+
+                var tag = tagFile.Tag;
+                if (tag != null)
+                {
+                    transfer.Artist = FirstNonEmpty(tag.FirstPerformer, tag.FirstAlbumArtist);
+                    transfer.Album = EmptyToNull(tag.Album);
+                    transfer.Title = EmptyToNull(tag.Title);
+                    transfer.TrackNumber = tag.Track > 0 ? (int)tag.Track : null;
+                    transfer.Year = tag.Year > 0 ? (int)tag.Year : null;
+                }
             }
             catch (Exception ex)
             {
                 Log.Debug(ex, "Failed to read audio metadata from {LocalFilename} for transfer enrichment", localFilename);
             }
+        }
+
+        private string ResolveCompletedDestinationDirectory(Transfer transfer, DownloadRequest? request = null)
+        {
+            var completedRoot = !string.IsNullOrWhiteSpace(transfer.DestinationDirectory)
+                ? transfer.DestinationDirectory
+                : OptionsMonitor.CurrentValue.Directories.Downloads;
+
+            // An explicit destination directory always wins.
+            if (!string.IsNullOrWhiteSpace(transfer.DestinationDirectory))
+            {
+                return System.IO.Path.GetDirectoryName(transfer.Filename.ToLocalFilename(baseDirectory: completedRoot)) ?? completedRoot;
+            }
+
+            var template = OptionsMonitor.CurrentValue.Global.Download.CompletedPathTemplate;
+            if (!string.IsNullOrWhiteSpace(template))
+            {
+                return RenderCompletedPathTemplate(transfer, completedRoot, template, request);
+            }
+
+            var layout = ParseCompletedDownloadLayout(OptionsMonitor.CurrentValue.Global.Download.CompletedLayout);
+
+            return layout switch
+            {
+                CompletedDownloadLayout.Flat => completedRoot,
+                CompletedDownloadLayout.UploaderFolder => System.IO.Path.Combine(
+                    completedRoot,
+                    transfer.Username.ReplaceInvalidFileNameCharacters(),
+                    GetRemoteParentFolderName(transfer.Filename)),
+                CompletedDownloadLayout.RemoteFolder => System.IO.Path.GetDirectoryName(transfer.Filename.ToLocalFilename(baseDirectory: completedRoot)) ?? completedRoot,
+                _ => transfer.BatchId.HasValue
+                    ? System.IO.Path.Combine(completedRoot, transfer.BatchId.Value.ToString())
+                    : System.IO.Path.GetDirectoryName(transfer.Filename.ToLocalFilename(baseDirectory: completedRoot)) ?? completedRoot,
+            };
+        }
+
+        private static string RenderCompletedPathTemplate(Transfer transfer, string completedRoot, string template, DownloadRequest? request = null)
+        {
+            var rendered = System.Text.RegularExpressions.Regex.Replace(
+                template,
+                @"\{(?<name>[a-zA-Z_]+)(?::(?<format>[^{}]+))?\}",
+                match =>
+                {
+                    var name = match.Groups["name"].Value.ToLowerInvariant();
+                    var format = match.Groups["format"].Success ? match.Groups["format"].Value : null;
+                    return RenderTemplateToken(transfer, name, format, request);
+                });
+
+            // Split on / and \ so users can write either; sanitize each segment.
+            var segments = rendered
+                .Split(new[] { '/', '\\' }, StringSplitOptions.None)
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrEmpty(s) && s != "." && s != "..")
+                .Select(s => s.ReplaceInvalidFileNameCharacters())
+                .ToArray();
+
+            return segments.Length == 0
+                ? completedRoot
+                : System.IO.Path.Combine(new[] { completedRoot }.Concat(segments).ToArray());
+        }
+
+        private static string RenderTemplateToken(Transfer transfer, string name, string? format, DownloadRequest? request = null)
+        {
+            return name switch
+            {
+                "uploader" => Safe(transfer.Username),
+                "remote_folder" => Safe(GetRemoteParentFolderName(transfer.Filename), fallback: "_singles"),
+                "remote_parent" => Safe(System.IO.Path.GetFileName(GetRemoteParentFolderName(transfer.Filename).TrimEnd('/', '\\')), fallback: "_singles"),
+                "remote_filename" => Safe(System.IO.Path.GetFileNameWithoutExtension(transfer.Filename.ToLocalRelativeFilename())),
+                "batch_id" => transfer.BatchId?.ToString() ?? "_no-batch",
+                "request_name" => Safe(request?.Name ?? string.Empty),
+                "search_text" => string.Empty, // reserved
+                "date" => transfer.RequestedAt.ToString(string.IsNullOrEmpty(format) ? "yyyy-MM-dd" : format, System.Globalization.CultureInfo.InvariantCulture),
+                _ => string.Empty,
+            };
+
+            static string Safe(string value, string fallback = "_")
+                => string.IsNullOrWhiteSpace(value) ? fallback : value;
+        }
+
+        private static string GetRemoteParentFolderName(string remoteFilename)
+        {
+            var local = remoteFilename.ToLocalRelativeFilename();
+            var directory = System.IO.Path.GetDirectoryName(local);
+            return string.IsNullOrWhiteSpace(directory) ? "_" : directory;
+        }
+
+        private static string? FirstNonEmpty(params string?[] values)
+            => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))?.Trim();
+
+        private static string? EmptyToNull(string? value)
+            => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+        private static CompletedDownloadLayout ParseCompletedDownloadLayout(string? value)
+        {
+            var normalized = (value ?? string.Empty).Trim().Replace("-", "_", StringComparison.Ordinal).ToLowerInvariant();
+            return normalized switch
+            {
+                "uploader_folder" or "uploaderfolder" => CompletedDownloadLayout.UploaderFolder,
+                "remote_folder" or "remotefolder" => CompletedDownloadLayout.RemoteFolder,
+                "flat" => CompletedDownloadLayout.Flat,
+                _ => CompletedDownloadLayout.BatchId,
+            };
         }
     }
 }

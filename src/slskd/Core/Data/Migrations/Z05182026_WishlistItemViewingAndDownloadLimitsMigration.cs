@@ -30,9 +30,14 @@ public class Z05182026_WishlistItemViewingAndDownloadLimitsMigration
         {
             var columns = GetExistingColumns();
 
-            if (columns.Contains("lastviewedat") && columns.Contains("maxdownloads"))
+            if (columns.Contains("lastviewedat") &&
+                columns.Contains("maxdownloads") &&
+                columns.Contains("lastvisiblehitcount") &&
+                columns.Contains("lasthiddenlockedhitcount") &&
+                columns.Contains("lastfilteredouthitcount") &&
+                columns.Contains("lastresponsecount"))
             {
-                Log.Information("> Both columns already exist; no migration needed.");
+                Log.Information("> Wishlist viewing, download limit, and hit statistic columns already exist; no migration needed.");
                 return;
             }
 
@@ -65,6 +70,11 @@ public class Z05182026_WishlistItemViewingAndDownloadLimitsMigration
                     Log.Information("> MaxDownloads column added");
                 }
 
+                AddIntegerColumnIfMissing(connection, transaction, columns, "lastvisiblehitcount", "LastVisibleHitCount", "LastMatchCount");
+                AddIntegerColumnIfMissing(connection, transaction, columns, "lasthiddenlockedhitcount", "LastHiddenLockedHitCount", "0");
+                AddIntegerColumnIfMissing(connection, transaction, columns, "lastfilteredouthitcount", "LastFilteredOutHitCount", "0");
+                AddIntegerColumnIfMissing(connection, transaction, columns, "lastresponsecount", "LastResponseCount", "LastMatchCount");
+
                 transaction.Commit();
                 Log.Information("> Wishlist schema migration complete!");
             }
@@ -78,6 +88,34 @@ public class Z05182026_WishlistItemViewingAndDownloadLimitsMigration
         {
             Log.Warning(ex, "Wishlist schema migration failed (may be a fresh database): {Message}", ex.Message);
         }
+    }
+
+    private void AddIntegerColumnIfMissing(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        HashSet<string> columns,
+        string normalizedName,
+        string columnName,
+        string defaultExpression)
+    {
+        if (columns.Contains(normalizedName))
+        {
+            return;
+        }
+
+        Log.Information("> Adding {Column} column to WishlistItems table...", columnName);
+        using var add = new SqliteCommand(
+            $"ALTER TABLE WishlistItems ADD COLUMN {columnName} INTEGER NOT NULL DEFAULT 0",
+            connection,
+            transaction);
+        add.ExecuteNonQuery();
+
+        using var backfill = new SqliteCommand(
+            $"UPDATE WishlistItems SET {columnName} = COALESCE({defaultExpression}, 0)",
+            connection,
+            transaction);
+        backfill.ExecuteNonQuery();
+        Log.Information("> {Column} column added", columnName);
     }
 
     private HashSet<string> GetExistingColumns()

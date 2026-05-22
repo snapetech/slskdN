@@ -40,5 +40,17 @@ namespace slskd.Transfers.API
         ///     Gets or sets an optional id used to keep files from one queue request together.
         /// </summary>
         public Guid? BatchId { get; set; }
+
+        /// <summary>Optional audio bitrate in kbps from the originating search result.</summary>
+        public int? BitRate { get; set; }
+
+        /// <summary>Optional audio sample rate in Hz from the originating search result.</summary>
+        public int? SampleRate { get; set; }
+
+        /// <summary>Optional audio bit depth from the originating search result.</summary>
+        public int? BitDepth { get; set; }
+
+        /// <summary>Optional audio length in seconds from the originating search result.</summary>
+        public int? Length { get; set; }
     }
 }

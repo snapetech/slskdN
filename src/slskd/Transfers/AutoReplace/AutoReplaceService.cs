@@ -525,10 +525,20 @@ namespace slskd.Transfers.AutoReplace
                     request.OriginalUsername,
                     CleanTrackTitle(request.NewFilename));
 
-                // Enqueue the new download
+                // Enqueue the new download under the original request so the UI row stays stable.
                 var (enqueued, failed) = await Transfers.Downloads.EnqueueAsync(
                     request.NewUsername,
-                    new[] { (request.NewFilename, request.NewSize) },
+                    new[]
+                    {
+                        new global::slskd.Transfers.Downloads.DownloadEnqueueRequest
+                        {
+                            Filename = request.NewFilename,
+                            Size = request.NewSize,
+                            RequestId = original?.RequestId,
+                            BatchId = original?.BatchId,
+                            DestinationDirectory = original?.DestinationDirectory,
+                        },
+                    },
                     cancellationToken);
 
                 if (enqueued.Count > 0)

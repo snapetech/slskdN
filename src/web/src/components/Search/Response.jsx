@@ -263,9 +263,13 @@ class Response extends Component {
           await Promise.all(downloadPromises);
         } else {
           // Use existing download method for non-bridged searches
-          const requests = asArray(files).map(({ filename, size }) => ({
+          const requests = asArray(files).map(({ filename, size, bitRate, sampleRate, bitDepth, length }) => ({
             filename,
             size,
+            bitRate,
+            sampleRate,
+            bitDepth,
+            length,
           }));
           await transfers.download({ files: requests, username });
         }

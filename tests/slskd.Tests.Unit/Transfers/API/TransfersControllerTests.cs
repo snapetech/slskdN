@@ -35,7 +35,7 @@ public class TransfersControllerTests
         downloads.Verify(
             service => service.EnqueueAsync(
                 It.IsAny<string>(),
-                It.IsAny<IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)>>(),
+                It.IsAny<IEnumerable<DownloadEnqueueRequest>>(),
                 It.IsAny<CancellationToken>()),
             Times.Never);
     }
@@ -47,7 +47,7 @@ public class TransfersControllerTests
         downloads
             .Setup(service => service.EnqueueAsync(
                 It.IsAny<string>(),
-                It.IsAny<IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)>>(),
+                It.IsAny<IEnumerable<DownloadEnqueueRequest>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((new List<SlskdTransfer>(), new List<string>()));
 
@@ -62,7 +62,7 @@ public class TransfersControllerTests
         downloads.Verify(
             service => service.EnqueueAsync(
                 "alice",
-                It.Is<IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)>>(files =>
+                It.Is<IEnumerable<DownloadEnqueueRequest>>(files =>
                     files.Single().Filename == "Music/song.flac" && files.Single().BatchId == null),
                 It.IsAny<CancellationToken>()),
             Times.Once);
@@ -72,13 +72,13 @@ public class TransfersControllerTests
     public async Task EnqueueAsync_WithMultipleFiles_AssignsSharedBatchId()
     {
         var downloads = new Mock<IDownloadService>();
-        List<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)> queued = new();
+        List<DownloadEnqueueRequest> queued = new();
         downloads
             .Setup(service => service.EnqueueAsync(
                 It.IsAny<string>(),
-                It.IsAny<IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)>>(),
+                It.IsAny<IEnumerable<DownloadEnqueueRequest>>(),
                 It.IsAny<CancellationToken>()))
-            .Callback<string, IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)>, CancellationToken>((_, files, _) => queued = files.ToList())
+            .Callback<string, IEnumerable<DownloadEnqueueRequest>, CancellationToken>((_, files, _) => queued = files.ToList())
             .ReturnsAsync((new List<SlskdTransfer>(), new List<string>()));
 
         var controller = CreateController(downloads);
@@ -105,13 +105,13 @@ public class TransfersControllerTests
         try
         {
             var downloads = new Mock<IDownloadService>();
-            List<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)> queued = new();
+            List<DownloadEnqueueRequest> queued = new();
             downloads
                 .Setup(service => service.EnqueueAsync(
                     It.IsAny<string>(),
-                    It.IsAny<IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)>>(),
+                    It.IsAny<IEnumerable<DownloadEnqueueRequest>>(),
                     It.IsAny<CancellationToken>()))
-                .Callback<string, IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)>, CancellationToken>((_, files, _) => queued = files.ToList())
+                .Callback<string, IEnumerable<DownloadEnqueueRequest>, CancellationToken>((_, files, _) => queued = files.ToList())
                 .ReturnsAsync((new List<SlskdTransfer>(), new List<string>()));
 
             var options = new slskd.Options
@@ -158,7 +158,7 @@ public class TransfersControllerTests
             downloads.Verify(
                 service => service.EnqueueAsync(
                     It.IsAny<string>(),
-                    It.IsAny<IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)>>(),
+                    It.IsAny<IEnumerable<DownloadEnqueueRequest>>(),
                     It.IsAny<CancellationToken>()),
                 Times.Never);
         }
@@ -209,7 +209,7 @@ public class TransfersControllerTests
         downloads
             .Setup(service => service.EnqueueAsync(
                 It.IsAny<string>(),
-                It.IsAny<IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)>>(),
+                It.IsAny<IEnumerable<DownloadEnqueueRequest>>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("sensitive detail"));
 

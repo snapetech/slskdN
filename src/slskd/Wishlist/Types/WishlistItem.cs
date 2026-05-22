@@ -59,6 +59,26 @@ namespace slskd.Wishlist
         public int LastMatchCount { get; set; } = 0;
 
         /// <summary>
+        ///     Gets or sets the number of visible file hits found in the last search.
+        /// </summary>
+        public int LastVisibleHitCount { get; set; } = 0;
+
+        /// <summary>
+        ///     Gets or sets the number of locked file hits hidden from the last search.
+        /// </summary>
+        public int LastHiddenLockedHitCount { get; set; } = 0;
+
+        /// <summary>
+        ///     Gets or sets the number of file hits removed by the wishlist filter from the last search.
+        /// </summary>
+        public int LastFilteredOutHitCount { get; set; } = 0;
+
+        /// <summary>
+        ///     Gets or sets the raw response count for the last search.
+        /// </summary>
+        public int LastResponseCount { get; set; } = 0;
+
+        /// <summary>
         ///     Gets or sets the total number of searches performed.
         /// </summary>
         public int TotalSearchCount { get; set; } = 0;

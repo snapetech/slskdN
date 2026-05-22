@@ -585,16 +585,28 @@ namespace slskd.Wishlist
             // If we timed out, get the final state anyway
             searchWithResponses ??= await SearchService.FindAsync(s => s.Id == searchId, includeResponses: true);
 
+            var hitStats = CountWishlistHits(searchWithResponses, item.Filter);
+
             // Update wishlist item stats
             item.LastSearchedAt = DateTime.UtcNow;
             item.LastSearchId = searchId;
             item.TotalSearchCount++;
-            item.LastMatchCount = searchWithResponses?.ResponseCount ?? 0;
+            item.LastResponseCount = searchWithResponses?.ResponseCount ?? 0;
+            item.LastVisibleHitCount = hitStats.Visible;
+            item.LastHiddenLockedHitCount = hitStats.HiddenLocked;
+            item.LastFilteredOutHitCount = hitStats.FilteredOut;
+            item.LastMatchCount = hitStats.Visible;
 
             context.WishlistItems.Update(item);
             await context.SaveChangesAsync(cancellationToken);
 
-            Log.Information("Wishlist search {Id} completed with {Count} responses", searchId, item.LastMatchCount);
+            Log.Information(
+                "Wishlist search {Id} completed with {Visible} visible hits ({Responses} responses, {HiddenLocked} locked hidden, {FilteredOut} filtered out)",
+                searchId,
+                item.LastVisibleHitCount,
+                item.LastResponseCount,
+                item.LastHiddenLockedHitCount,
+                item.LastFilteredOutHitCount);
 
             // If auto-download is enabled and we have results, download the best ones
             if (item.AutoDownload && searchWithResponses?.Responses?.Any() == true)
@@ -664,6 +676,10 @@ namespace slskd.Wishlist
                             HasFreeUploadSlot = response.HasFreeUploadSlot,
                             QueueLength = (int)response.QueueLength,
                             UploadSpeed = response.UploadSpeed,
+                            BitRate = file.BitRate,
+                            SampleRate = file.SampleRate,
+                            BitDepth = file.BitDepth,
+                            Length = file.Length,
                         });
                     }
                 }
@@ -691,7 +707,15 @@ namespace slskd.Wishlist
                 var bestDir = GetParentDirectory(bestRep.Filename);
                 var filesToDownload = groups
                     .First(g => g.Key.Username == bestRep.Username && g.Key.Dir == bestDir)
-                    .Select(c => (c.Filename, c.Size))
+                    .Select(c => new slskd.Transfers.Downloads.DownloadEnqueueRequest
+                    {
+                        Filename = c.Filename,
+                        Size = c.Size,
+                        BitRate = c.BitRate,
+                        SampleRate = c.SampleRate,
+                        BitDepth = c.BitDepth,
+                        Length = c.Length,
+                    })
                     .ToList();
 
                 Log.Information(
@@ -725,6 +749,48 @@ namespace slskd.Wishlist
             var normalized = filename.Replace('\\', '/');
             var lastSlash = normalized.LastIndexOf('/');
             return lastSlash < 0 ? string.Empty : normalized[..lastSlash];
+        }
+
+        private static WishlistHitStats CountWishlistHits(SlskdSearch? search, string filter)
+        {
+            if (search?.Responses == null)
+            {
+                return new WishlistHitStats(0, 0, 0);
+            }
+
+            var fileFilter = CreateSearchFileFilter(filter);
+            var visible = 0;
+            var hiddenLocked = 0;
+            var filteredOut = 0;
+
+            foreach (var response in search.Responses)
+            {
+                foreach (var file in response.Files)
+                {
+                    if (fileFilter(file.Filename))
+                    {
+                        visible++;
+                    }
+                    else
+                    {
+                        filteredOut++;
+                    }
+                }
+
+                foreach (var file in response.LockedFiles)
+                {
+                    if (fileFilter(file.Filename))
+                    {
+                        hiddenLocked++;
+                    }
+                    else
+                    {
+                        filteredOut++;
+                    }
+                }
+            }
+
+            return new WishlistHitStats(visible, hiddenLocked, filteredOut);
         }
 
         /// <summary>
@@ -817,6 +883,8 @@ namespace slskd.Wishlist
         {
             public static WishlistDownloadResult Empty { get; } = new(0, 0);
         }
+
+        private readonly record struct WishlistHitStats(int Visible, int HiddenLocked, int FilteredOut);
 
         private readonly record struct WishlistFilterTerms(HashSet<string> Include, HashSet<string> Exclude);
     }

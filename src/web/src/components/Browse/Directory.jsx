@@ -41,9 +41,13 @@ class Directory extends Component {
   download = (username, files) => {
     this.setState({ downloadRequest: 'inProgress' }, async () => {
       try {
-        const requests = asArray(files).map(({ filename, size }) => ({
+        const requests = asArray(files).map(({ filename, size, bitRate, sampleRate, bitDepth, length }) => ({
           filename,
           size,
+          bitRate,
+          sampleRate,
+          bitDepth,
+          length,
         }));
         await transfers.download({ files: requests, username });
 

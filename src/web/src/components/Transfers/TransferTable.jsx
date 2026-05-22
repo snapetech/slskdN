@@ -11,6 +11,7 @@ import {
   formatBytesAsUnit,
   formatSeconds,
   getExtension,
+  getDirectoryName,
   getFileName,
 } from '../../lib/util';
 import {
@@ -64,6 +65,8 @@ const formatElapsed = (ms) => {
   return formatSeconds(Math.round(ms / 1000));
 };
 
+const getRemoteDirectory = (filename) => getDirectoryName(filename || '') || '-';
+
 const INTERACTIVE_SELECTOR = 'button, a, input, label, .ui.checkbox, .ui.dropdown';
 
 function cellContent(transfer, key) {
@@ -78,9 +81,26 @@ function cellContent(transfer, key) {
       return (
         <span style={{ fontSize: '0.85em', opacity: 0.8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
               title={transfer.filename}>
-          {transfer.filename || '-'}
+          {getRemoteDirectory(transfer.filename)}
         </span>
       );
+    case 'local':
+      return (
+        <span style={{ fontSize: '0.85em', opacity: 0.8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              title={transfer.localFilename || transfer.destinationDirectory || ''}>
+          {transfer.localFilename || transfer.destinationDirectory || '-'}
+        </span>
+      );
+    case 'artist':
+      return <span title={transfer.artist || ''}>{transfer.artist || '-'}</span>;
+    case 'album':
+      return <span title={transfer.album || ''}>{transfer.album || '-'}</span>;
+    case 'title':
+      return <span title={transfer.title || ''}>{transfer.title || '-'}</span>;
+    case 'track':
+      return <span style={{ fontVariantNumeric: 'tabular-nums' }}>{transfer.trackNumber || '-'}</span>;
+    case 'year':
+      return <span style={{ fontVariantNumeric: 'tabular-nums' }}>{transfer.year || '-'}</span>;
     case 'elapsed':
       return <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatElapsed(transfer.elapsedTime)}</span>;
     case 'remaining':
@@ -107,7 +127,7 @@ RowGroup.displayName = 'TransferTableRowGroup';
 
 const Row = React.memo(({ data, index, style }) => {
   const {
-    onCancel, onRemove, onRetry,
+    onCancel, onRemove, onRetry, onOpenRequest,
     onSelectionChange, selectedKeys, transfers,
     cols: columnOrder, widths,
   } = data;
@@ -159,11 +179,20 @@ const Row = React.memo(({ data, index, style }) => {
       </div>
       {columnOrder.map((k) => (
         <div key={k}
-          className={`transfer-cell ${k === 'name' ? 'transfer-cell-name' : ''} ${['progress','speed','eta','elapsed','remaining','size','bitrate','samplerate','length'].includes(k) ? 'transfer-cell-num' : ''}`}
+          className={`transfer-cell ${k === 'name' ? 'transfer-cell-name' : ''} ${['progress','speed','eta','elapsed','remaining','size','bitrate','samplerate','length','track','year'].includes(k) ? 'transfer-cell-num' : ''}`}
           role="gridcell"
           title={transfer.filename}
         >
-          {k === 'name' && <span>{getFileName(transfer.filename)}</span>}
+          {k === 'name' && (
+            <div className="transfer-cell-name-stack">
+              <span className="transfer-cell-name-primary">{getFileName(transfer.filename)}</span>
+              {(transfer.artist || transfer.title) && (
+                <span className="transfer-cell-name-secondary" title={[transfer.artist, transfer.album, transfer.title].filter(Boolean).join(' — ')}>
+                  {[transfer.artist, transfer.title].filter(Boolean).join(' — ')}
+                </span>
+              )}
+            </div>
+          )}
           {k === 'peer' && (
             <div className="transfer-cell-peer">
               <span className="transfer-peer-name">{transfer.username}</span>
@@ -219,6 +248,9 @@ const Row = React.memo(({ data, index, style }) => {
         </div>
       ))}
       <div className="transfer-cell transfer-cell-actions" role="gridcell">
+        {transfer.requestId && onOpenRequest && (
+          <Button icon="info" onClick={() => onOpenRequest(transfer.requestId)} size="mini" style={{ fontSize: '0.65rem', padding: '2px 6px' }} title="Open request (rename, history)" />
+        )}
         {retryable && <Button color="green" icon="redo" onClick={() => onRetry(transfer)} size="mini" style={{ fontSize: '0.65rem', padding: '2px 6px' }} title="Retry" />}
         {cancellable && <Button color="red" icon="x" onClick={() => onCancel(transfer)} size="mini" style={{ fontSize: '0.65rem', padding: '2px 6px' }} title="Cancel" />}
         {removable && <Button icon="trash alternate" onClick={() => onRemove(transfer)} size="mini" style={{ fontSize: '0.65rem', padding: '2px 6px' }} title="Remove" />}
@@ -233,6 +265,7 @@ const TransferTable = ({
   onCancel, onCancelSelected,
   onRemove, onRemoveSelected,
   onRetry, onRetrySelected,
+  onOpenRequest,
   onSelectAll,
   onSelectionChange,
   selectedFiles, selectedKeys,
@@ -312,6 +345,12 @@ const TransferTable = ({
       case 'peer':       return (transfer.username ?? '').toLowerCase();
       case 'extension':  return getExtension(transfer.filename)?.toLowerCase() ?? '';
       case 'directory':  return (transfer.filename ?? '').toLowerCase();
+      case 'local':      return (transfer.localFilename ?? transfer.destinationDirectory ?? '').toLowerCase();
+      case 'artist':     return (transfer.artist ?? '').toLowerCase();
+      case 'album':      return (transfer.album ?? '').toLowerCase();
+      case 'title':      return (transfer.title ?? '').toLowerCase();
+      case 'track':      return transfer.trackNumber ?? 0;
+      case 'year':       return transfer.year ?? 0;
       case 'size':       return transfer.size ?? 0;
       case 'progress':   return transfer.percentComplete ?? 0;
       case 'speed':      return transfer.state === 'InProgress' ? transfer.averageSpeed ?? 0 : -1;
@@ -343,11 +382,11 @@ const TransferTable = ({
   const allSelected = sorted.length > 0 && sorted.every((t) => selectedKeys.has(transferKey(t)));
 
   const itemData = useMemo(() => ({
-    onCancel, onRemove, onRetry,
+    onCancel, onRemove, onRetry, onOpenRequest,
     onSelectionChange, selectedKeys,
     transfers: sorted,
     cols: keys, widths: colState.widths,
-  }), [onCancel, onRemove, onRetry, onSelectionChange, selectedKeys, sorted, keys, colState.widths]);
+  }), [onCancel, onRemove, onRetry, onOpenRequest, onSelectionChange, selectedKeys, sorted, keys, colState.widths]);
 
   const gridRef = useRef(null);
   const [gridHeight, setGridHeight] = useState(400);
@@ -460,7 +499,7 @@ const TransferTable = ({
               <Popup.Content>
                 <Dropdown.Menu style={{ maxHeight: 300, overflowY: 'auto' }}>
                   {chooserOptions.map((opt) => (
-                    <Dropdown.Item key={opt.key} text={opt.label} icon={opt.icon} onClick={opt.onClick} />
+                    <Dropdown.Item key={opt.key} text={opt.text} icon={opt.icon} onClick={opt.onClick} />
                   ))}
                 </Dropdown.Menu>
               </Popup.Content>

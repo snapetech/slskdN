@@ -469,6 +469,10 @@ class BrowseSession extends Component {
       let collected = asArray(folder.files).map((f) => ({
         filename: `${folder.name}${separator}${f.filename}`,
         size: f.size,
+        bitRate: f.bitRate,
+        sampleRate: f.sampleRate,
+        bitDepth: f.bitDepth,
+        length: f.length,
       }));
 
       if (Array.isArray(folder.children)) {

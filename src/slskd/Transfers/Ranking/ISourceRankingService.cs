@@ -96,6 +96,18 @@ namespace slskd.Transfers.Ranking
         ///     Gets or sets the size difference percentage from expected (for replacement scenarios).
         /// </summary>
         public double? SizeDiffPercent { get; set; }
+
+        /// <summary>Optional audio bitrate in kbps from the originating search result.</summary>
+        public int? BitRate { get; set; }
+
+        /// <summary>Optional audio sample rate in Hz from the originating search result.</summary>
+        public int? SampleRate { get; set; }
+
+        /// <summary>Optional audio bit depth from the originating search result.</summary>
+        public int? BitDepth { get; set; }
+
+        /// <summary>Optional audio length in seconds from the originating search result.</summary>
+        public int? Length { get; set; }
     }
 
     /// <summary>

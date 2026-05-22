@@ -106,6 +106,7 @@ namespace slskd.Wishlist.API
                 Enabled = request.Enabled ?? true,
                 AutoDownload = request.AutoDownload ?? false,
                 MaxResults = request.MaxResults ?? 100,
+                MaxDownloads = request.MaxDownloads,
             };
 
             var created = await WishlistService.CreateAsync(item);
@@ -155,6 +156,7 @@ namespace slskd.Wishlist.API
                     Enabled = request.Enabled ?? true,
                     AutoDownload = request.AutoDownload ?? false,
                     MaxResults = request.MaxResults ?? 100,
+                    MaxDownloads = request.MaxDownloads,
                 };
 
                 var updated = await WishlistService.UpdateAsync(item);
@@ -350,6 +352,11 @@ namespace slskd.Wishlist.API
         ///     Maximum results to keep.
         /// </summary>
         public int? MaxResults { get; set; }
+
+        /// <summary>
+        ///     Maximum successful downloads before auto-disable.
+        /// </summary>
+        public int? MaxDownloads { get; set; }
     }
 
     /// <summary>
@@ -381,6 +388,11 @@ namespace slskd.Wishlist.API
         ///     Maximum results to keep.
         /// </summary>
         public int? MaxResults { get; set; }
+
+        /// <summary>
+        ///     Maximum successful downloads before auto-disable.
+        /// </summary>
+        public int? MaxDownloads { get; set; }
     }
 
     /// <summary>

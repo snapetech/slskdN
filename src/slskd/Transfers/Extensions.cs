@@ -27,6 +27,7 @@ namespace slskd.Transfers
             return new Transfer()
             {
                 Id = transfer.Id,
+                RequestId = transfer.RequestId,
                 Username = transfer.Username,
                 Direction = transfer.Direction,
                 Filename = transfer.Filename,
@@ -34,6 +35,7 @@ namespace slskd.Transfers
                 StartOffset = t.StartOffset,
                 BatchId = transfer.BatchId,
                 DestinationDirectory = transfer.DestinationDirectory,
+                LocalFilename = transfer.LocalFilename,
                 Attempts = transfer.Attempts,
                 NextAttemptAt = transfer.NextAttemptAt,
                 State = t.State,
@@ -48,6 +50,11 @@ namespace slskd.Transfers
                 SampleRate = transfer.SampleRate,
                 BitDepth = transfer.BitDepth,
                 Length = transfer.Length,
+                Artist = transfer.Artist,
+                Album = transfer.Album,
+                Title = transfer.Title,
+                TrackNumber = transfer.TrackNumber,
+                Year = transfer.Year,
             };
         }
     }

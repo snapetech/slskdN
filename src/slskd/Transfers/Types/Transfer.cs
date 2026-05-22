@@ -30,6 +30,14 @@ namespace slskd.Transfers
     {
         [Key]
         public Guid Id { get; init; }
+
+        /// <summary>
+        ///     The owning <see cref="DownloadRequest"/> for downloads. Multiple Transfer attempts can share
+        ///     a RequestId when the rescue/auto-replace path swaps to an alternative source.
+        ///     Nullable during the transition period — uploads and pre-migration downloads have no request.
+        /// </summary>
+        public Guid? RequestId { get; set; }
+
         public string Username { get; init; } = string.Empty;
         public TransferDirection Direction { get; init; }
 
@@ -41,6 +49,7 @@ namespace slskd.Transfers
         public long StartOffset { get; init; }
         public Guid? BatchId { get; init; }
         public string? DestinationDirectory { get; init; }
+        public string? LocalFilename { get; set; }
         public int Attempts { get; set; } = 1;
         public DateTime? NextAttemptAt { get; set; }
 
@@ -83,6 +92,12 @@ namespace slskd.Transfers
 
         /// <summary>Audio duration in seconds, if known.</summary>
         public int? Length { get; set; }
+
+        public string? Artist { get; set; }
+        public string? Album { get; set; }
+        public string? Title { get; set; }
+        public int? TrackNumber { get; set; }
+        public int? Year { get; set; }
 
         [JsonIgnore]
         public bool Removed { get; set; }

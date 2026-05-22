@@ -50,9 +50,20 @@ namespace slskd.Transfers.API
         public Guid? BatchId { get; set; }
 
         /// <summary>
+        ///     Gets the owning DownloadRequest id for downloads. Stable across source swaps via
+        ///     the rescue/auto-replace path; use this rather than <see cref="Id"/> as the row identity in clients.
+        /// </summary>
+        public Guid? RequestId { get; set; }
+
+        /// <summary>
         ///     Gets the requested destination directory for the completed file, if one was supplied.
         /// </summary>
         public string? DestinationDirectory { get; set; }
+
+        /// <summary>
+        ///     Gets the completed local filename, if the transfer finished successfully.
+        /// </summary>
+        public string? LocalFilename { get; set; }
 
         /// <summary>
         ///     Gets the number of direct Soulseek attempts made for this transfer.
@@ -161,6 +172,12 @@ namespace slskd.Transfers.API
         /// <summary>Audio duration in seconds, if known.</summary>
         public int? Length { get; set; }
 
+        public string? Artist { get; set; }
+        public string? Album { get; set; }
+        public string? Title { get; set; }
+        public int? TrackNumber { get; set; }
+        public int? Year { get; set; }
+
         public static Transfer FromSoulseekTransfer(Soulseek.Transfer transfer)
         {
             return new Transfer()
@@ -173,6 +190,7 @@ namespace slskd.Transfers.API
                 ElapsedTime = transfer.ElapsedTime?.TotalMilliseconds,
                 EndTime = transfer.EndTime,
                 Filename = transfer.Filename,
+                LocalFilename = null,
                 IPEndPoint = transfer.IPEndPoint,
                 PercentComplete = transfer.PercentComplete,
                 RemainingTime = transfer.RemainingTime?.TotalMilliseconds,

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Implement wishlist visible-hit sorting/filtering and configurable download layout.
+ - Status: completed (2026-05-22)
+ - Priority: P1
+ - Notes: Wishlist now persists visible hit, hidden locked hit, filtered-out hit, and raw response counts; the UI shows visible hits with breakdown tooltips, supports persistent local sorting/filtering including new-results-only and alphabetical sorts, and keeps new-results badges based on visible hits. Direct downloads now support `transfers.download.completed_layout` (`batch_id`, `uploader_folder`, `remote_folder`, `flat`) and completed transfer records store local filename plus embedded artist/album/title/track/year tags for Downloads table columns. Validation passed: focused backend Wishlist/Download tests, focused Wishlist Vitest, frontend lint, and backend build with existing warnings only.
+
 * Sprint 1: Wishlist/Search UX improvements (from .kilo/plans/1779135555175-tidy-wolf.md)
   - [x] 1.1 Auto-Replace visibility/control panel (Transfers page)
   - [x] 1.2 Search source attribution + filter UI

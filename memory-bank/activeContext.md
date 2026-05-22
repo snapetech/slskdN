@@ -1,3 +1,23 @@
+## Update 2026-05-22 20:09:27Z
+
+- Current task: Wishlist hit-count/sort filters and download layout/details feature request complete locally.
+- Last activity:
+  - Added visible-hit Wishlist stats: visible hits, hidden locked hits, filtered-out hits, and raw responses.
+  - Wishlist page now has persistent browser-side search, sort, new-results-only, enabled-only, auto-only, and has-results filters.
+  - Main Wishlist hit/new-results counts now prefer visible hits instead of raw response counts.
+  - Added `transfers.download.completed_layout` with `batch_id`, `uploader_folder`, `remote_folder`, and `flat` modes.
+  - Completed transfer records now persist local filename and embedded audio tags for artist, album, title, track, and year; transfer table columns expose that context.
+- Validation:
+  - Passed: focused Wishlist/Download backend tests (`123/123`).
+  - Passed: focused Wishlist/Download regression slice after adding hit-count/layout tests (`46/46`).
+  - Passed: focused Wishlist Vitest (`8/8`).
+  - Passed: full `dotnet test` (`4560/4560`: 67 smoke, 4215 unit, 278 integration).
+  - Passed: `./bin/lint`.
+  - Passed: frontend lint and production build.
+  - Passed: `git diff --check`.
+- Next steps:
+  1. Deploy/build when ready; no tags were created.
+
 ## Update 2026-05-20 22:31:00Z
 
 - Current task: Live Docker log check and rescue retry cooldown fix complete locally.

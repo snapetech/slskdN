@@ -381,6 +381,90 @@ public class WishlistControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task RunSearch_StoresVisibleLockedAndFilteredHitCounts()
+    {
+        var itemId = Guid.NewGuid();
+        await using (var context = _contextFactory.CreateDbContext())
+        {
+            context.WishlistItems.Add(new WishlistItem
+            {
+                Id = itemId,
+                SearchText = "artist title",
+                Filter = "flac -demo",
+                MaxResults = 25,
+            });
+            await context.SaveChangesAsync();
+        }
+
+        var searchService = new Mock<ISearchService>();
+        searchService
+            .Setup(service => service.StartAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<SearchQuery>(),
+                It.IsAny<SearchScope>(),
+                It.IsAny<SearchOptions?>(),
+                It.IsAny<List<string>?>(),
+                It.IsAny<string>(),
+                It.IsAny<Guid?>()))
+            .ReturnsAsync((Guid id, SearchQuery query, SearchScope scope, SearchOptions? options, List<string>? providers, string safetySource, Guid? wishlistItemId) =>
+                new SlskdSearch
+                {
+                    Id = id,
+                    SearchText = query.SearchText,
+                    State = SearchStates.Requested,
+                });
+        searchService
+            .Setup(service => service.FindAsync(It.IsAny<Expression<Func<SlskdSearch, bool>>>(), true))
+            .ReturnsAsync((Expression<Func<SlskdSearch, bool>> expression, bool includeResponses) =>
+                new SlskdSearch
+                {
+                    Id = itemId,
+                    SearchText = "artist title",
+                    State = SearchStates.Completed,
+                    ResponseCount = 1,
+                    Responses =
+                    [
+                        new Response
+                        {
+                            Username = "alice",
+                            FileCount = 3,
+                            LockedFileCount = 2,
+                            Files =
+                            [
+                                new slskd.Search.File { Filename = @"Music\Album\01 Song.flac", Size = 100 },
+                                new slskd.Search.File { Filename = @"Music\Album\02 demo.flac", Size = 100 },
+                                new slskd.Search.File { Filename = @"Music\Album\cover.jpg", Size = 100 },
+                            ],
+                            LockedFiles =
+                            [
+                                new slskd.Search.File { Filename = @"Music\Album\03 Locked.flac", Size = 100 },
+                                new slskd.Search.File { Filename = @"Music\Album\04 Locked Demo.flac", Size = 100 },
+                            ],
+                        },
+                    ],
+                });
+
+        var service = new WishlistService(
+            _contextFactory,
+            searchService.Object,
+            Mock.Of<ISoulseekClient>(),
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            Mock.Of<ISourceRankingService>(),
+            Mock.Of<IDownloadService>());
+
+        await service.RunSearchAsync(itemId);
+
+        await using var verifyContext = _contextFactory.CreateDbContext();
+        var item = await verifyContext.WishlistItems.FindAsync(itemId);
+        Assert.NotNull(item);
+        Assert.Equal(1, item.LastVisibleHitCount);
+        Assert.Equal(1, item.LastHiddenLockedHitCount);
+        Assert.Equal(3, item.LastFilteredOutHitCount);
+        Assert.Equal(1, item.LastResponseCount);
+        Assert.Equal(item.LastVisibleHitCount, item.LastMatchCount);
+    }
+
+    [Fact]
     public async Task RunSearch_WhenAutoDownloadEnqueueFails_DoesNotDisableWishlistItem()
     {
         var itemId = Guid.NewGuid();
@@ -469,7 +553,7 @@ public class WishlistControllerTests : IDisposable
         downloadService
             .Setup(service => service.EnqueueAsync(
                 It.IsAny<string>(),
-                It.IsAny<IEnumerable<(string Filename, long Size)>>(),
+                It.IsAny<IEnumerable<slskd.Transfers.Downloads.DownloadEnqueueRequest>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync((
                 new List<slskd.Transfers.Transfer>

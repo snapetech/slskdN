@@ -51,6 +51,8 @@ public class Migrator
             { nameof(Z05152026_SearchStartedAtIndexMigration), new Z05152026_SearchStartedAtIndexMigration(connectionStrings: Databases) },
             { nameof(Z05182026_SearchSourceAndWishlistItemIdMigration), new Z05182026_SearchSourceAndWishlistItemIdMigration(connectionStrings: Databases) },
             { nameof(Z05192026_TransferAudioMetadataMigration), new Z05192026_TransferAudioMetadataMigration(connectionStrings: Databases) },
+            { nameof(Z05222026_TransferFileDetailsMigration), new Z05222026_TransferFileDetailsMigration(connectionStrings: Databases) },
+            { nameof(Z05292026_DownloadRequestMigration), new Z05292026_DownloadRequestMigration(connectionStrings: Databases) },
         };
     }
 

@@ -23,6 +23,7 @@ namespace slskd.Transfers
     using System;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+    using slskd.Transfers.Downloads;
 
     public class TransfersDbContext : DbContext
     {
@@ -32,11 +33,20 @@ namespace slskd.Transfers
         }
 
         public DbSet<Transfer> Transfers { get; set; }
+        public DbSet<DownloadRequest> DownloadRequests { get; set; }
 
         public override int SaveChanges(bool acceptAllChangesOnSuccess)
         {
             // this is absolutely NOT IDEAL and will accellerate the move away from EF
             foreach (var entry in ChangeTracker.Entries<Transfer>())
+            {
+                if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
+                {
+                    entry.Entity.StateDescription = entry.Entity.State.ToString();
+                }
+            }
+
+            foreach (var entry in ChangeTracker.Entries<DownloadRequest>())
             {
                 if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
                 {
@@ -78,6 +88,36 @@ namespace slskd.Transfers
                 .Entity<Transfer>()
                 .HasIndex(t => t.State)
                 .HasDatabaseName("IDX_Transfers_State");
+
+            modelBuilder
+                .Entity<Transfer>()
+                .HasIndex(t => t.RequestId)
+                .HasDatabaseName("IDX_Transfers_RequestId");
+
+            modelBuilder
+                .Entity<DownloadRequest>()
+                .Property(e => e.CreatedAt)
+                .HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+            modelBuilder
+                .Entity<DownloadRequest>()
+                .Property(e => e.CompletedAt)
+                .HasConversion(v => v, v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : null);
+
+            modelBuilder
+                .Entity<DownloadRequest>()
+                .Property(d => d.State)
+                .HasConversion(new EnumToStringConverter<DownloadRequestState>());
+
+            modelBuilder
+                .Entity<DownloadRequest>()
+                .HasIndex(r => r.State)
+                .HasDatabaseName("IDX_DownloadRequests_State");
+
+            modelBuilder
+                .Entity<DownloadRequest>()
+                .HasIndex(r => r.WishlistItemId)
+                .HasDatabaseName("IDX_DownloadRequests_WishlistItemId");
         }
     }
 }

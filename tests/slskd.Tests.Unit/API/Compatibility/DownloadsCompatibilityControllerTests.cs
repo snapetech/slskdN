@@ -13,6 +13,7 @@ using slskd.API.Compatibility;
 using slskd.Transfers;
 using slskd.Transfers.Downloads;
 using Xunit;
+using DownloadRequest = slskd.API.Compatibility.DownloadRequest;
 
 public class DownloadsCompatibilityControllerTests
 {

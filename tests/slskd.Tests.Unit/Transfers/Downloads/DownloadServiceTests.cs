@@ -1188,6 +1188,57 @@ public class DownloadServiceTests
         Assert.Equal(clockEveryMinuteListenersBefore, GetStaticEventInvocationCount(typeof(Clock), "EveryMinute"));
     }
 
+    [Fact]
+    public void ResolveCompletedDestinationDirectory_UploaderFolder_UsesUploaderAndRemoteParentFolder()
+    {
+        var options = new slskd.Options
+        {
+            Directories = new slskd.Options.DirectoriesOptions
+            {
+                Downloads = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"slskdn-download-layout-{Guid.NewGuid():N}"),
+            },
+            Global = new slskd.Options.GlobalOptions
+            {
+                Download = new slskd.Options.GlobalOptions.GlobalDownloadOptions
+                {
+                    CompletedLayout = "uploader_folder",
+                },
+            },
+        };
+        var optionsMonitor = new TestOptionsMonitor<slskd.Options>(options);
+        var service = new DownloadService(
+            optionsMonitor,
+            Mock.Of<ISoulseekClient>(),
+            Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<TransfersDbContext>>(),
+            new FileService(optionsMonitor),
+            Mock.Of<IRelayService>(),
+            Mock.Of<IFTPService>(),
+            new EventBus(new EventService(Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<EventsDbContext>>())));
+        var transfer = new slskd.Transfers.Transfer
+        {
+            Id = Guid.NewGuid(),
+            Username = "alice",
+            Direction = TransferDirection.Download,
+            Filename = @"Root\Artist - Album\01 Song.flac",
+            RequestedAt = DateTime.UtcNow,
+        };
+
+        try
+        {
+            var method = typeof(DownloadService).GetMethod("ResolveCompletedDestinationDirectory", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("ResolveCompletedDestinationDirectory was not found.");
+            var destination = Assert.IsType<string>(method.Invoke(service, [transfer, null]));
+
+            Assert.Equal(
+                System.IO.Path.Combine(options.Directories.Downloads, "alice", "Artist - Album"),
+                destination);
+        }
+        finally
+        {
+            service.Dispose();
+        }
+    }
+
     private static async Task<slskd.Transfers.Transfer> WaitForTransferAsync(Func<slskd.Transfers.Transfer?> finder, TimeSpan timeout)
     {
         var startedAt = DateTime.UtcNow;

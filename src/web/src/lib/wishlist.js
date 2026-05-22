@@ -15,12 +15,14 @@ export const create = async ({
   enabled,
   autoDownload,
   maxResults,
+  maxDownloads,
 }) => {
   return (
     await api.post('/wishlist', {
       autoDownload,
       enabled,
       filter,
+      maxDownloads,
       maxResults,
       searchText,
     })
@@ -29,13 +31,14 @@ export const create = async ({
 
 export const update = async (
   id,
-  { searchText, filter, enabled, autoDownload, maxResults },
+  { searchText, filter, enabled, autoDownload, maxResults, maxDownloads },
 ) => {
   return (
     await api.put(`/wishlist/${encodeURIComponent(id)}`, {
       autoDownload,
       enabled,
       filter,
+      maxDownloads,
       maxResults,
       searchText,
     })

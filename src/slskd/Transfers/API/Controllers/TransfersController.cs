@@ -38,6 +38,7 @@ namespace slskd.Transfers.API
     using Serilog;
     using slskd.Common.Security;
     using slskd.Core.Security;
+    using slskd.Core.Web;
     using slskd.Transfers.AutoReplace;
     using slskd.Transfers.Downloads;
 
@@ -462,6 +463,10 @@ namespace slskd.Transfers.API
                     Filename = r!.Filename?.Trim() ?? string.Empty,
                     Size = r.Size,
                     BatchId = r.BatchId,
+                    BitRate = r.BitRate,
+                    SampleRate = r.SampleRate,
+                    BitDepth = r.BitDepth,
+                    Length = r.Length,
                 })
                 .ToList();
 
@@ -489,7 +494,17 @@ namespace slskd.Transfers.API
 
                 var (enqueued, failed) = await Transfers.Downloads.EnqueueAsync(
                     username,
-                    normalizedRequests.Select(r => (r.Filename, r.Size, r.BatchId ?? batchId, DestinationDirectory: destinationDirectory)));
+                    normalizedRequests.Select(r => new global::slskd.Transfers.Downloads.DownloadEnqueueRequest
+                    {
+                        Filename = r.Filename,
+                        Size = r.Size,
+                        BatchId = r.BatchId ?? batchId,
+                        DestinationDirectory = destinationDirectory,
+                        BitRate = r.BitRate,
+                        SampleRate = r.SampleRate,
+                        BitDepth = r.BitDepth,
+                        Length = r.Length,
+                    }));
 
                 return StatusCode(201, new { Enqueued = enqueued, Failed = failed });
             }
@@ -599,8 +614,13 @@ namespace slskd.Transfers.API
         /// </summary>
         /// <returns></returns>
         /// <response code="200">The request completed successfully.</response>
+        /// <remarks>
+        ///     Deprecated. Prefer <c>GET /api/v0/downloads/requests</c>, which returns one
+        ///     row per user-facing request and is stable across source swaps.
+        /// </remarks>
         [HttpGet("downloads")]
         [Authorize(Policy = AuthPolicy.Any)]
+        [DeprecatedEndpoint(successor: "/api/v0/downloads/requests")]
         [ProducesResponseType(200)]
         public IActionResult GetDownloadsAsync([FromQuery] bool includeRemoved = false, [FromQuery] bool includeCompleted = true)
         {
@@ -722,8 +742,18 @@ namespace slskd.Transfers.API
             });
         }
 
+        /// <summary>
+        ///     Gets a single download by username and id.
+        /// </summary>
+        /// <remarks>
+        ///     Deprecated. Prefer <c>GET /api/v0/downloads/requests/{requestId}</c> which
+        ///     returns the request plus the full attempt history.
+        /// </remarks>
+        /// <param name="username">The owning user.</param>
+        /// <param name="id">The transfer id (Guid).</param>
         [HttpGet("downloads/{username}/{id}")]
         [Authorize(Policy = AuthPolicy.Any)]
+        [DeprecatedEndpoint(successor: "/api/v0/downloads/requests/{id}")]
         [ProducesResponseType(typeof(API.Transfer), 200)]
         [ProducesResponseType(404)]
         public IActionResult GetDownload([FromRoute, Required] string username, [FromRoute, Required] string id)

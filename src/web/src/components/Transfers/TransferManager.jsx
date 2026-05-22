@@ -9,6 +9,7 @@ import {
 import { PlaceholderSegment } from '../Shared';
 import TransferTable from './TransferTable';
 import TransfersHeader from './TransfersHeader';
+import RequestDetailModal from './RequestDetailModal';
 import React, {
   useEffect,
   useMemo,
@@ -98,6 +99,7 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
   const [retryingSingle, setRetryingSingle] = useState(false);
   const [cancellingSingle, setCancellingSingle] = useState(false);
   const [removingSingle, setRemovingSingle] = useState(false);
+  const [openRequestId, setOpenRequestId] = useState(null);
   const [bulkCounts, setBulkCounts] = useState({
     cancel: 0,
     remove: 0,
@@ -666,6 +668,7 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
           onCancel={(file) => cancel({ file })}
           onRemove={(file) => remove({ file })}
           onRetry={(file) => retry({ file }).catch(() => {})}
+          onOpenRequest={(requestId) => setOpenRequestId(requestId)}
           onSelectAll={handleSelectAll}
           onSelectionChange={handleSelectionChange}
           onCancelSelected={() => cancelAll(selectedFiles)}
@@ -676,6 +679,11 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
           transfers={filteredTransfers}
         />
       )}
+      <RequestDetailModal
+        onClose={() => setOpenRequestId(null)}
+        open={Boolean(openRequestId)}
+        requestId={openRequestId}
+      />
     </div>
   );
 };

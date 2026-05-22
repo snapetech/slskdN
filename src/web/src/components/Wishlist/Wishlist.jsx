@@ -17,9 +17,11 @@ import {
   Button,
   Checkbox,
   Confirm,
+  Dropdown,
   Form,
   Header,
   Icon,
+  Input,
   Label,
   Modal,
   Popup,
@@ -34,12 +36,21 @@ const formatDate = (dateString) => {
   return date.toLocaleString();
 };
 
+const getVisibleHitCount = (item) => item.lastVisibleHitCount ?? item.lastMatchCount ?? 0;
+
+const getHitBreakdown = (item) => ({
+  filteredOut: item.lastFilteredOutHitCount ?? 0,
+  hiddenLocked: item.lastHiddenLockedHitCount ?? 0,
+  responses: item.lastResponseCount ?? item.lastMatchCount ?? 0,
+  visible: getVisibleHitCount(item),
+});
+
 const getUnseenCount = (item) => {
   if (!item.lastSearchId || !item.lastSearchedAt) return 0;
-  if (!item.lastViewedAt) return item.totalSearchCount || 0;
+  if (!item.lastViewedAt) return getVisibleHitCount(item);
   const lastViewed = new Date(item.lastViewedAt).getTime();
   const lastSearch = new Date(item.lastSearchedAt).getTime();
-  return lastSearch > lastViewed && item.lastMatchCount > 0 ? item.lastMatchCount : 0;
+  return lastSearch > lastViewed && getVisibleHitCount(item) > 0 ? getVisibleHitCount(item) : 0;
 };
 
 const getSearchLink = (item, searchId = item.lastSearchId) => {
@@ -167,7 +178,23 @@ const WishlistItemRow = ({
         </Table.Cell>
         <Table.Cell>{formatDate(item.lastSearchedAt)}</Table.Cell>
         <Table.Cell textAlign="center">
-          {item.lastMatchCount}
+          <Popup
+            content={() => {
+              const hits = getHitBreakdown(item);
+              return `${hits.visible} visible hits, ${hits.hiddenLocked} locked (unreachable), ${hits.filteredOut} hidden by filter, ${hits.responses} responses`;
+            }}
+            position="top center"
+            trigger={
+              <span>
+                {getVisibleHitCount(item)}
+                {(item.lastHiddenLockedHitCount ?? 0) > 0 && (
+                  <span className="wishlist-locked-count" style={{ color: '#999', marginLeft: '0.25em' }}>
+                    {`(+${item.lastHiddenLockedHitCount} locked)`}
+                  </span>
+                )}
+              </span>
+            }
+          />
           {unseenCount > 0 && (
             <Popup
               content={`${unseenCount} new result(s) since you last viewed this item`}
@@ -548,7 +575,20 @@ const WishlistItemCard = ({
             </div>
             <div style={{ display: 'flex', gap: '1em', fontSize: '0.85em', color: '#888', flexWrap: 'wrap' }}>
               <span>Last run: {formatDate(item.lastSearchedAt)}</span>
-              <span>Matches: {item.lastMatchCount}</span>
+              <span>
+                Hits: {getVisibleHitCount(item)}
+                {(item.lastHiddenLockedHitCount ?? 0) > 0 && (
+                  <Popup
+                    content="Files matched but the uploader has them locked (not downloadable without sharing access)."
+                    position="top center"
+                    trigger={
+                      <span style={{ color: '#999', marginLeft: '0.25em' }}>
+                        {`(+${item.lastHiddenLockedHitCount} locked)`}
+                      </span>
+                    }
+                  />
+                )}
+              </span>
               <span>Runs: {item.totalSearchCount}</span>
               <span>
                 Auto-download:{' '}
@@ -814,6 +854,44 @@ const FILTER_PRESETS = [
   { label: 'Lossless', value: 'flac OR alac OR wav OR ape' },
   { label: 'Any', value: '' },
 ];
+
+const WISHLIST_VIEW_KEY = 'slskdn-wishlist-view-state';
+
+const SORT_OPTIONS = [
+  { key: 'created-desc', text: 'Newest added', value: 'created-desc' },
+  { key: 'az', text: 'A-Z', value: 'az' },
+  { key: 'za', text: 'Z-A', value: 'za' },
+  { key: 'last-searched', text: 'Last searched', value: 'last-searched' },
+  { key: 'new-first', text: 'New results first', value: 'new-first' },
+  { key: 'hits-desc', text: 'Most hits', value: 'hits-desc' },
+];
+
+const loadWishlistViewState = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(WISHLIST_VIEW_KEY) || '{}');
+    return {
+      autoOnly: Boolean(parsed.autoOnly),
+      enabledOnly: Boolean(parsed.enabledOnly),
+      hasResultsOnly: Boolean(parsed.hasResultsOnly),
+      newOnly: Boolean(parsed.newOnly),
+      query: parsed.query || '',
+      sort: parsed.sort || 'created-desc',
+    };
+  } catch {
+    return {
+      autoOnly: false,
+      enabledOnly: false,
+      hasResultsOnly: false,
+      newOnly: false,
+      query: '',
+      sort: 'created-desc',
+    };
+  }
+};
+
+const saveWishlistViewState = (state) => {
+  localStorage.setItem(WISHLIST_VIEW_KEY, JSON.stringify(state));
+};
 
 const validateFilter = (filter) => {
   if (!filter || !filter.trim()) return null;
@@ -1134,6 +1212,7 @@ const Wishlist = () => {
   const [bulkRunning, setBulkRunning] = useState(false);
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'cards'
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [viewState, setViewState] = useState(loadWishlistViewState);
   const requestSummary = useMemo(
     () =>
       buildWishlistRequestSummary({
@@ -1145,6 +1224,59 @@ const Wishlist = () => {
     () => getRunnableWishlistRequests(items, { limit: 3 }),
     [items],
   );
+  const updateViewState = useCallback((patch) => {
+    setViewState((current) => {
+      const next = { ...current, ...patch };
+      saveWishlistViewState(next);
+      return next;
+    });
+  }, []);
+
+  const visibleItems = useMemo(() => {
+    const query = viewState.query.trim().toLowerCase();
+    const rows = items.filter((item) => {
+      if (query && !`${item.searchText || ''} ${item.filter || ''}`.toLowerCase().includes(query)) {
+        return false;
+      }
+
+      if (viewState.newOnly && getUnseenCount(item) === 0) {
+        return false;
+      }
+
+      if (viewState.enabledOnly && !item.enabled) {
+        return false;
+      }
+
+      if (viewState.autoOnly && !item.autoDownload) {
+        return false;
+      }
+
+      if (viewState.hasResultsOnly && getVisibleHitCount(item) === 0) {
+        return false;
+      }
+
+      return true;
+    });
+
+    rows.sort((a, b) => {
+      switch (viewState.sort) {
+        case 'az':
+          return (a.searchText || '').localeCompare(b.searchText || '', undefined, { sensitivity: 'base' });
+        case 'za':
+          return (b.searchText || '').localeCompare(a.searchText || '', undefined, { sensitivity: 'base' });
+        case 'last-searched':
+          return new Date(b.lastSearchedAt || 0).getTime() - new Date(a.lastSearchedAt || 0).getTime();
+        case 'new-first':
+          return getUnseenCount(b) - getUnseenCount(a) || (a.searchText || '').localeCompare(b.searchText || '', undefined, { sensitivity: 'base' });
+        case 'hits-desc':
+          return getVisibleHitCount(b) - getVisibleHitCount(a) || (a.searchText || '').localeCompare(b.searchText || '', undefined, { sensitivity: 'base' });
+        default:
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      }
+    });
+
+    return rows;
+  }, [items, viewState]);
 
   const copyRequestReviewPacket = async () => {
     const packet = buildWishlistRequestReviewPacket({
@@ -1295,7 +1427,7 @@ const Wishlist = () => {
   // Bulk operations
   const handleSelectAll = (checked) => {
     if (checked) {
-      setSelectedIds(new Set(items.map((i) => i.id)));
+      setSelectedIds(new Set(visibleItems.map((i) => i.id)));
     } else {
       setSelectedIds(new Set());
     }
@@ -1585,7 +1717,7 @@ const Wishlist = () => {
               </Button>
             </Segment>
           )}
-          <div style={{ marginBottom: '0.75em', display: 'flex', gap: '0.5em', alignItems: 'center' }}>
+          <div style={{ marginBottom: '0.75em', display: 'flex', gap: '0.5em', alignItems: 'center', flexWrap: 'wrap' }}>
             <Button.Group size="mini">
               <Popup
                 content="Show wishlist as a table with columns"
@@ -1608,6 +1740,45 @@ const Wishlist = () => {
                 }
               />
             </Button.Group>
+            <Input
+              icon="search"
+              onChange={(event) => updateViewState({ query: event.target.value })}
+              placeholder="Filter wishlist..."
+              size="mini"
+              value={viewState.query}
+            />
+            <Dropdown
+              compact
+              onChange={(_, { value }) => updateViewState({ sort: value })}
+              options={SORT_OPTIONS}
+              selection
+              size="mini"
+              value={viewState.sort}
+            />
+            <Checkbox
+              checked={viewState.newOnly}
+              label="New results"
+              onChange={(_, { checked }) => updateViewState({ newOnly: checked })}
+            />
+            <Checkbox
+              checked={viewState.enabledOnly}
+              label="Enabled"
+              onChange={(_, { checked }) => updateViewState({ enabledOnly: checked })}
+            />
+            <Checkbox
+              checked={viewState.autoOnly}
+              label="Auto"
+              onChange={(_, { checked }) => updateViewState({ autoOnly: checked })}
+            />
+            <Checkbox
+              checked={viewState.hasResultsOnly}
+              label="Has results"
+              onChange={(_, { checked }) => updateViewState({ hasResultsOnly: checked })}
+            />
+            <Label basic>
+              Showing
+              <Label.Detail>{visibleItems.length}/{items.length}</Label.Detail>
+            </Label>
           </div>
           {viewMode === 'table' ? (
             <Table
@@ -1622,8 +1793,8 @@ const Wishlist = () => {
                       position="top center"
                       trigger={
                         <Checkbox
-                          checked={selectedIds.size === items.length && items.length > 0}
-                          indeterminate={selectedIds.size > 0 && selectedIds.size < items.length}
+                          checked={visibleItems.length > 0 && visibleItems.every((item) => selectedIds.has(item.id))}
+                          indeterminate={visibleItems.some((item) => selectedIds.has(item.id)) && !visibleItems.every((item) => selectedIds.has(item.id))}
                           onChange={(_, { checked }) => handleSelectAll(checked)}
                         />
                       }
@@ -1641,7 +1812,11 @@ const Wishlist = () => {
                     textAlign="center"
                     width={1}
                   >
-                    Matches
+                    <Popup
+                      content="Hits matched by the search. Locked hits are shown separately because the uploader has restricted access — they aren't directly downloadable."
+                      position="top center"
+                      trigger={<span>Hits</span>}
+                    />
                   </Table.HeaderCell>
                   <Table.HeaderCell
                     textAlign="center"
@@ -1654,7 +1829,7 @@ const Wishlist = () => {
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-                {items.map((item) => (
+                {visibleItems.map((item) => (
                   <WishlistItemRow
                     item={item}
                     key={item.id}
@@ -1670,7 +1845,7 @@ const Wishlist = () => {
             </Table>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75em' }}>
-              {items.map((item) => (
+              {visibleItems.map((item) => (
                 <WishlistItemCard
                   item={item}
                   key={item.id}

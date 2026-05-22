@@ -1284,6 +1284,24 @@ namespace slskd
                 public DownloadRetryOptions Retry { get; init; } = new DownloadRetryOptions();
 
                 /// <summary>
+                ///     Gets the completed download folder layout.
+                /// </summary>
+                [Argument(default, "download-completed-layout")]
+                [EnvironmentVariable("DOWNLOAD_COMPLETED_LAYOUT")]
+                [Description("completed download folder layout: batch_id, uploader_folder, remote_folder, or flat")]
+                public string CompletedLayout { get; init; } = "batch_id";
+
+                /// <summary>
+                ///     Gets the completed download path template. When set, takes precedence over CompletedLayout.
+                ///     Supported tokens: {uploader}, {remote_folder}, {remote_parent}, {remote_filename}, {batch_id},
+                ///     {request_name}, {date}, {date:format}. Path separator is /.
+                /// </summary>
+                [Argument(default, "download-completed-path-template")]
+                [EnvironmentVariable("DOWNLOAD_COMPLETED_PATH_TEMPLATE")]
+                [Description("completed download path template, e.g. {uploader}/{remote_folder}")]
+                public string CompletedPathTemplate { get; init; } = string.Empty;
+
+                /// <summary>
                 ///     Gets a value indicating whether auto-replace for stuck downloads is enabled.
                 /// </summary>
                 [Argument(default, "auto-replace-stuck")]

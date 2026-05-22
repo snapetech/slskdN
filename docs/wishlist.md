@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Wishlist feature lets you save searches that run automatically on a schedule. Each wishlist item tracks its search history, matches, and downloads. This guide covers how to use wishlist features effectively.
+The Wishlist feature lets you save searches that run automatically on a schedule. Each wishlist item tracks its search history, visible hits, hidden locked hits, filtered hits, and downloads. This guide covers how to use wishlist features effectively.
 
 ## Wishlist Items
 
@@ -24,7 +24,7 @@ When auto-download is enabled:
 
 ## Unseen Results Badge
 
-Wishlist items show a red **"N new"** badge when there are results from the most recent search that you haven't viewed yet. The badge clears when you:
+Wishlist items show a red **"N new"** badge when there are visible hits from the most recent search that you haven't viewed yet. Locked results hidden by normal search filtering are counted separately in the hit tooltip, but they do not inflate the visible new-results badge. The badge clears when you:
 
 - Expand the search history for that item
 - Click "Mark All Viewed" in the header
@@ -47,6 +47,8 @@ The Wishlist page supports two view modes:
 - **Card view**: Expandable cards showing search text, filter badge, stats, and quick actions inline
 
 Toggle between them using the table/grid buttons in the header.
+
+The toolbar can filter the page to matching text, new results only, enabled items, auto-download items, or items with visible hits. Sort options include newest added, alphabetical order, last searched, new results first, and most visible hits. These view choices are saved in the browser.
 
 ## Bulk Operations
 
