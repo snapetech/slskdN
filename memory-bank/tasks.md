@@ -2915,6 +2915,7 @@
 - [2026-05-20T22:44:00Z] Completed: deploy manual image `slskdn:0.0.0-manual.20260520223825.98f7c84fff0c` to the live Docker host and verify the repeated rescue retry log storm stays quiet after startup.
 - [2026-05-20T23:05:00Z] Completed: reduce rescue/matching noise and bad-match risk with outcome-aware rescue cooldowns, lower-noise expected rescue outcomes, and filename-token gating for auto-replace alternatives.
 - [2026-05-20T23:07:00Z] Completed: deploy manual image `slskdn:0.0.0-manual.20260520230151.febcda05dbee` to the live Docker host and verify fresh rescue/error/warning logs remain quiet after startup.
+- [2026-05-22T22:41:02Z] Completed: continue large Web page render audit after live Wishlist lockup; bounded Lidarr seeded wishlist, search history, collections, contacts, incoming shares, and share manifest renders.
 
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 

@@ -1,3 +1,16 @@
+## Update 2026-05-22 22:41:02Z
+
+- Current task: Large Web page render audit complete locally.
+- Last activity:
+  - Extended the live Wishlist paging fix pattern to Lidarr seeded wishlist rows, search history, collections, contacts, incoming shares, and share manifest items.
+  - Changed Shared-with-me so the base share list paints before per-share collection details finish loading.
+  - Documented the large-render gotcha in ADR-0001 and committed the docs-only entry as `39eca8305`.
+- Validation:
+  - Passed: frontend lint, focused Vitest slice (`63/63`), production Web build, `./bin/lint`, and `git diff --check`.
+- Next steps:
+  1. Deploy the new manual image to the live Docker host.
+  2. Recheck live Web navigation and logs after restart.
+
 ## Update 2026-05-22 22:29:00Z
 
 - Current task: Live Wishlist browser lockup fix deployed.
