@@ -52,6 +52,43 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z462. Extending Core Service Interfaces Requires Integration Stubs
+
+**The Bug**: Adding the structured `DownloadEnqueueRequest` overload to
+`IDownloadService` left the integration-test stub implementing only the older
+tuple overloads, so the integration test project failed to compile.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+- `tests/slskd.Tests.Integration/StubWebApplicationFactory.cs`
+
+**Wrong**:
+```csharp
+public Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(
+    string username,
+    IEnumerable<(string Filename, long Size, Guid? BatchId, string? DestinationDirectory)> files,
+    CancellationToken cancellationToken = default)
+{
+    // stub implementation only covers tuple callers
+}
+```
+
+**Correct**:
+```csharp
+public Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(
+    string username,
+    IEnumerable<DownloadEnqueueRequest> files,
+    CancellationToken cancellationToken = default)
+{
+    // stub implementation covers the interface overload directly
+}
+```
+
+**Why This Keeps Happening**: Controller tests often mock interfaces directly,
+while integration tests compile against lightweight service stubs. When a core
+interface gains a new overload or member, every concrete fake/stub in all test
+projects must be updated before validation can even run.
+
 ### 0z461. Wishlist Edit Fields Must Be Wired Through Every Contract Layer
 
 **The Bug**: Wishlist `MaxDownloads` could be edited in the UI but still fail to
