@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Fix live Wishlist browser lockup on large saved-search lists.
+ - Status: completed (2026-05-22)
+ - Priority: P1
+ - Notes: Live `kspls0` had 8,301 wishlist rows, and the Web UI rendered every filtered table row/card at once. Added Wishlist paging with 50/100/250/500 page-size options so the default mount is 100 items while filters/sorts still cover the full list. Deployed `slskdn:0.0.0-manual.20260522222650.d9f5d150680a`. Validation passed: frontend lint, focused Wishlist/acquisition Vitest, production Web build, Docker health, version match, restart count zero, and Web UI HTTP 200. No release tags were created.
+
 - [x] Verify and deploy the latest slskdN build to `kspls0`.
  - Status: completed (2026-05-22)
  - Priority: P1

@@ -1,5 +1,6 @@
 ## 2026-05-22
 
+- Fixed and deployed the live Wishlist browser lockup: the live database has 8,301 wishlist rows, and the Web UI was mounting every filtered row/card at once. Wishlist now pages rendered rows/cards with 50/100/250/500 page-size options while keeping full-list filtering/sorting. Deployed manual image `slskdn:0.0.0-manual.20260522222650.d9f5d150680a`; validation passed frontend lint, focused Wishlist/acquisition Vitest (`16/16`), production Web build, version/image match, Docker health, restart count zero, and Web UI HTTP 200.
 - Verified `kspls0` was not on the newest local code, then deployed manual image `slskdn:0.0.0-manual.20260522221917.1282619e3c84` without creating any release tags.
 - Tested the download-request conversion path on a reconstructed old-shape copy of the live transfers database: 134,777 transfers, 69,584 request groups, conversion completed in 1.56s, and every download transfer received a `RequestId`.
 - Tested the full `Migrator` backup wrapper against the reconstructed database and confirmed a `transfers.pre-migration-backup.*.db` file is created before conversion.

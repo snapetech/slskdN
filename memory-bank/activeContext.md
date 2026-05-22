@@ -1,3 +1,17 @@
+## Update 2026-05-22 22:29:00Z
+
+- Current task: Live Wishlist browser lockup fix deployed.
+- Last activity:
+  - Checked live logs after the newest deploy: daemon was healthy with no ERR/WRN/FTL counts, but `kspls0` had 8,301 wishlist rows.
+  - Identified the browser lockup cause: Wishlist rendered every filtered row/card at once with Semantic UI controls and popups.
+  - Added client-side Wishlist paging with 50/100/250/500 page-size options; filtering/sorting still operate over the full list, but only one page mounts.
+  - Deployed manual image `slskdn:0.0.0-manual.20260522222650.d9f5d150680a`; no release tags were created.
+- Validation:
+  - Passed: frontend lint, focused Wishlist/acquisition Vitest (`16/16`), production Web build.
+  - Passed: published apphost version, Docker image/version match, container health is `healthy`, restart count is zero, and Web UI returns HTTP 200.
+- Next steps:
+  1. User should hard-refresh the browser tab and retry Wishlist navigation; the page should mount/unmount with at most 100 rows by default.
+
 ## Update 2026-05-22 22:24:00Z
 
 - Current task: Verify and deploy latest slskdN build to `kspls0` complete.
