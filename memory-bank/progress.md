@@ -1,3 +1,11 @@
+## 2026-05-22
+
+- Verified `kspls0` was not on the newest local code, then deployed manual image `slskdn:0.0.0-manual.20260522221917.1282619e3c84` without creating any release tags.
+- Tested the download-request conversion path on a reconstructed old-shape copy of the live transfers database: 134,777 transfers, 69,584 request groups, conversion completed in 1.56s, and every download transfer received a `RequestId`.
+- Tested the full `Migrator` backup wrapper against the reconstructed database and confirmed a `transfers.pre-migration-backup.*.db` file is created before conversion.
+- Fixed the integration-test `IDownloadService` stub for the new structured enqueue overload, documented the gotcha in ADR-0001, and validated smoke/unit/integration tests plus repo lint.
+- Live validation passed: deployed apphost reports the matching manual version, Docker health is healthy, restart count is zero, Web UI returns HTTP 200, and the transfer DB has zero unstamped download transfers.
+
 ## 2026-05-19 (late)
 
 - **Audio metadata columns for Downloads**: Bitrate, Sample Rate, Length columns added, enriched from downloaded files via TagLib.

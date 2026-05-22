@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Verify and deploy the latest slskdN build to `kspls0`.
+ - Status: completed (2026-05-22)
+ - Priority: P1
+ - Notes: Confirmed `kspls0` was one local commit behind, tested the download-request conversion/import path on a reconstructed old-shape copy of the live transfer DB, confirmed the migrator backup wrapper creates `transfers.pre-migration-backup.*.db`, fixed the integration-test download service stub, and deployed `slskdn:0.0.0-manual.20260522221917.1282619e3c84`. Validation passed: smoke/unit/integration tests, `./bin/lint`, frontend lint, `git diff --check`, Docker health, version match, Web UI HTTP 200, and zero unstamped live download transfers. No release tags were created.
+
 - [x] Implement wishlist visible-hit sorting/filtering and configurable download layout.
  - Status: completed (2026-05-22)
  - Priority: P1

@@ -1,3 +1,21 @@
+## Update 2026-05-22 22:24:00Z
+
+- Current task: Verify and deploy latest slskdN build to `kspls0` complete.
+- Last activity:
+  - Confirmed live `kspls0` was running `slskdn:0.0.0-manual.20260522211756.968ce0816474`, not the newest local code.
+  - Reconstructed an old-shape transfer database from a live copy and tested `Z05292026_DownloadRequestMigration`: 69,584 request groups converted in 1.56s with zero unstamped download transfers.
+  - Tested the `Migrator` wrapper path against the reconstructed database and confirmed it created a `transfers.pre-migration-backup.*.db` before conversion.
+  - Fixed the integration-test `IDownloadService` stub for the new structured enqueue overload, documented the gotcha in ADR-0001, and committed the docs entry plus code fix.
+  - Published and deployed manual image `slskdn:0.0.0-manual.20260522221917.1282619e3c84` to `kspls0`; no release tags were created.
+- Validation:
+  - Passed: migration copy test against 134,777 transfer rows and 69,584 request groups.
+  - Passed: migrator backup wrapper test (`BackupCount=1`).
+  - Passed: smoke tests (`67/67`), unit tests (`4215/4215`), integration tests (`278/278`).
+  - Passed: `./bin/lint`, frontend lint, and `git diff --check`.
+  - Passed: deployed apphost version, Docker image/version match, container health is `healthy`, restart count is zero, and Web UI returns HTTP 200.
+- Next steps:
+  1. Monitor live logs during normal use; `/health` remains the existing degraded operational state.
+
 ## Update 2026-05-22 20:09:27Z
 
 - Current task: Wishlist hit-count/sort filters and download layout/details feature request complete locally.
