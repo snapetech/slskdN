@@ -52,6 +52,44 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z463. Large Pages Must Not Render Entire Datasets
+
+**The Bug**: Wishlist-like pages fetched or held thousands of records and then
+rendered every row/card at once, making navigation feel frozen when switching
+away from the route or loading related pages.
+
+**Files Affected**:
+- `src/web/src/components/Wishlist/Wishlist.jsx`
+- `src/web/src/components/Lidarr/Lidarr.jsx`
+- `src/web/src/components/Search/List/SearchList.jsx`
+- `src/web/src/components/Shares/SharedWithMe.jsx`
+
+**Wrong**:
+```jsx
+<Table.Body>
+  {items.map((item) => (
+    <Table.Row key={item.id}>{/* expensive row */}</Table.Row>
+  ))}
+</Table.Body>
+```
+
+**Correct**:
+```jsx
+const pageItems = items.slice(start, start + PAGE_SIZE);
+
+<Table.Body>
+  {pageItems.map((item) => (
+    <Table.Row key={item.id}>{/* bounded row */}</Table.Row>
+  ))}
+</Table.Body>
+```
+
+**Why This Keeps Happening**: Semantic UI rows, cards, labels, popups, and
+buttons are relatively expensive DOM trees. A page can fetch quickly and still
+lock the browser if React reconciles thousands of component-heavy rows during
+initial render or route transition. Large local arrays need paging,
+virtualization, or backend paging before they are mapped into JSX.
+
 ### 0z462. Extending Core Service Interfaces Requires Integration Stubs
 
 **The Bug**: Adding the structured `DownloadEnqueueRequest` overload to
