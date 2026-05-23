@@ -1,3 +1,22 @@
+## Update 2026-05-23 20:38:00Z
+
+- Current task: Live log follow-up and AudioSketch sidecar warning fix deployed.
+- Last activity:
+  - Rechecked `kspls0` logs after the UI deployment.
+  - Found no error/fatal entries, but identified one actionable AudioSketch warning from ffmpeg being run against `cover.jpg`.
+  - Patched AudioSketch to skip non-audio sidecar extensions before launching ffmpeg.
+  - Documented ADR-0001 gotcha `0z468` and committed it as `503e39c71`.
+  - Committed and pushed the code fix as `1bcef0404`.
+  - Published and deployed manual image `slskdn:0.0.0-manual.20260523203442.1bcef0404d14` to `kspls0`; no release tags were created.
+- Validation:
+  - Passed: focused `AudioSketchServiceTests` (`7/7`).
+  - Passed: manual frontend/backend build and Linux x64 publish; only existing C# warnings appeared.
+  - Passed: live image/app version match, Docker health `healthy`, restart count zero, and `/health=Healthy`.
+  - Passed: post-restart log scan had no error/fatal entries and no AudioSketch warnings.
+  - Remaining warnings are expected startup/config notices for public DHT bootstrap exposure and MeshDHT missing configured/public-routable endpoints.
+- Next steps:
+  1. Continue monitoring live logs during normal download/library scan activity.
+
 ## Update 2026-05-23 19:14:55Z
 
 - Current task: Web UI full-space route layout pass complete locally.
