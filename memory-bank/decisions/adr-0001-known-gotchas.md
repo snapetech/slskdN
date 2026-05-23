@@ -52,6 +52,33 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z466. Optional Mesh Peer Absence Must Not Degrade App Health
+
+**The Bug**: The top-level `/health` endpoint reported `Degraded` because
+`MeshHealthCheck` required active mesh peers, even when the daemon, Docker
+container, DHT bootstrap, VPN, and Soulseek login were otherwise healthy.
+
+**Files Affected**:
+- `src/slskd/Mesh/MeshHealthCheck.cs`
+
+**Wrong**:
+```csharp
+var peerConnectivityHealthy = stats.TotalPeers > 0;
+var isHealthy = routingTableHealthy && peerConnectivityHealthy;
+```
+
+**Correct**:
+```csharp
+var peerConnectivityPresent = stats.TotalPeers > 0;
+var isHealthy = dhtPerformanceHealthy;
+```
+
+**Why This Keeps Happening**: Mesh participation is opportunistic and depends
+on public peer availability, NAT, remote listener state, and whether compatible
+peers are online. A lack of active mesh peers is useful telemetry for
+`/health/mesh`, but it is not an application readiness failure and must not
+poison the top-level container/app health check.
+
 ### 0z465. Search Stat Saves Must Not Whole-Entity Update Wishlist Items
 
 **The Bug**: Wishlist search completion saved stats by marking the whole
