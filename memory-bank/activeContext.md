@@ -18,6 +18,23 @@
 - Next steps:
   1. Deploy/build when ready; no release tags were created.
 
+## Update 2026-05-23 19:18:12Z
+
+- Current task: Commit dirty frontend layout/metrics changes and deploy them complete.
+- Last activity:
+  - Committed all then-dirty and untracked frontend changes as `9e277c701`.
+  - Pushed `9e277c701` to `snapetech/slskdN`.
+  - Rebuilt the frontend bundle into backend `wwwroot`, built the Release backend with tests skipped after focused validation, and published Linux x64 payload `0.0.0-manual.20260523191441.9e277c7014ef`.
+  - Built a replacement Docker image from the previous live base and deployed it to `kspls0`; no release tags were created.
+- Validation:
+  - Passed: focused Metrics Vitest (`2/2`).
+  - Passed: frontend lint with `--max-warnings=0`.
+  - Passed: production frontend build.
+  - Passed: Release backend build and publish completed with existing C# warnings only.
+  - Passed: live image/app version match, Docker health `healthy`, restart count zero, Web root HTTP 200, `/health=Healthy`, and strict post-start log scan had no warning/error/fatal log-level entries.
+- Next steps:
+  1. Browser-test the full-width page layouts and System Metrics on the live instance.
+
 ## Update 2026-05-23 19:10:21Z
 
 - Current task: Fix bad live `/health` state complete.
