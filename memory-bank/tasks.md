@@ -2923,6 +2923,7 @@
 - [2026-05-22T22:41:02Z] Completed: continue large Web page render audit after live Wishlist lockup; bounded Lidarr seeded wishlist, search history, collections, contacts, incoming shares, and share manifest renders.
 - [2026-05-22T22:45:00Z] Completed: deploy the large page render audit build to the live Docker host as manual image `slskdn:0.0.0-manual.20260522224133.ef4950530284`.
 - [2026-05-22T23:08:28Z] Completed: inspect post-deploy logs, quiet expected inbound search-response timeout and malformed overlay datagram warning noise, and deploy manual image `slskdn:0.0.0-manual.20260522230601.ecde484ccc1d`.
+- [2026-05-23T19:01:47Z] Completed: deploy the tester-reported Wishlist filter persistence fix to the live Docker host as manual image `slskdn:0.0.0-manual.20260523185819.8a244699a7d9`; verified Docker health, restart count zero, Web root, app version, and clean post-start logs after startup settled.
 
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 

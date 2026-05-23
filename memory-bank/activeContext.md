@@ -1,3 +1,19 @@
+## Update 2026-05-23 19:01:47Z
+
+- Current task: Tester-reported Wishlist filter persistence fix deployed.
+- Last activity:
+  - Rebased the local Wishlist persistence commits on top of remote stable metadata `87561fe87`.
+  - Pushed the fix to `snapetech/slskdN` as `81a2e3f44` and `8a244699a`.
+  - Published Linux x64 payload `0.0.0-manual.20260523185819.8a244699a7d9`.
+  - Built a replacement live Docker image from the previous live base to preserve installed tools and container hardening.
+  - Deployed `slskdn:0.0.0-manual.20260523185819.8a244699a7d9` to `kspls0`; no release tags were created.
+- Validation:
+  - Passed: publish completed with existing C# warnings only.
+  - Passed: live container image/app version match, Docker health is `healthy`, restart count is zero, Web root returns HTTP 200, and `/health` returns the existing `Degraded` state.
+  - Passed: post-start journal sample after 13:01 CST showed `ERR=0`, `WRN=0`, `FTL=0`, and no exception matches.
+- Next steps:
+  1. Tester should retry editing a Wishlist filter, running a search, and revisiting the item without refreshing.
+
 ## Update 2026-05-23 16:21:02Z
 
 - Current task: Tester-reported Wishlist filter persistence fix complete locally.

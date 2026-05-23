@@ -3,6 +3,7 @@
 - Fixed tester-reported Wishlist filter edits reverting after a search execution. Search completion now saves only tracked stat/state changes instead of calling whole-entity `Update(item)`, so stale in-flight search workers cannot overwrite newer user-edited filters. Background wishlist cycles reload each queued item before execution and skip items that were disabled after the queue was built.
 - Added `WishlistServiceTests.RunSearchAsync_preserves_filter_edits_saved_while_search_is_running`, covering a filter edit saved while a wishlist search is still running. Documented ADR-0001 gotcha `0z465` and committed the docs-only entry as `80bca6633`.
 - Validation passed: focused Wishlist service regression, full `dotnet test` (`4561/4561`: 68 smoke, 4215 unit, 278 integration), and `./bin/lint`.
+- Deployed the Wishlist persistence fix to the live Docker install as `slskdn:0.0.0-manual.20260523185819.8a244699a7d9` after rebasing on the remote stable metadata update and pushing to `snapetech/slskdN`. The replacement image was built from the previous live base, preserving installed tools and hardening. Live validation passed: image/app version match, Docker health `healthy`, restart count zero, Web root HTTP 200, `/health` at the existing `Degraded` state, and a post-start journal sample with `ERR=0`, `WRN=0`, `FTL=0`, and no exception matches after startup settled.
 
 ## 2026-05-22
 
