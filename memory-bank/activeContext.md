@@ -1,3 +1,19 @@
+## Update 2026-05-23 22:29:47Z
+
+- Current task: Live log follow-up after completed layout deployment.
+- Last activity:
+  - Checked live `kspls0` health, restart state, and logs since the manual image deployment.
+  - Found no warning/error/fatal log-level entries and no exception matches.
+  - Confirmed AudioSketch stayed quiet (`AudioSketch=0`).
+  - Identified one cleanup issue: download auto-retry re-queued failed album sidecar artwork (`cover.jpg`), creating avoidable network/log churn.
+  - Documented ADR-0001 gotcha `0z470` and committed it as `b6aee23da`.
+  - Patched auto-retry planning to skip non-audio sidecar files while preserving explicit user/download behavior.
+- Validation:
+  - Passed: focused `DownloadServiceTests` (`33/33`).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Commit/push the sidecar auto-retry fix and deploy a replacement live image.
+
 ## Update 2026-05-23 21:01:36Z
 
 - Current task: Completed download folder/file default build deployed to live Docker host.

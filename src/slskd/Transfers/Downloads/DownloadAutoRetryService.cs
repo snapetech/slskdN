@@ -376,6 +376,7 @@ namespace slskd.Transfers.Downloads
             var globalLimit = Math.Max(1, opts.MaxFilesPerCycle);
 
             return failed
+                .Where(t => IsAudioFile(t.Filename))
                 .Where(t => !alreadyRetried.Contains(t.Id))
                 .Where(t => IsWithinAttemptBudget(retryCounts.GetOrAdd(RetryKey(t), 0), opts))
                 .Where(t => !peerRetryCooldowns.TryGetValue(t.Username, out var retryAfter) || retryAfter <= now)

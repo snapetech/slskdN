@@ -569,6 +569,25 @@ public class DownloadServiceTests
     }
 
     [Fact]
+    public void CreateRetryPlan_SkipsNonAudioSidecars()
+    {
+        var now = DateTime.UtcNow;
+        var cover = CreateFailedDownload("alice", @"Album\cover.jpg", now.AddMinutes(-40), size: 1234);
+        var log = CreateFailedDownload("bob", @"Album\album.log", now.AddMinutes(-39), size: 2345);
+        var track = CreateFailedDownload("carol", @"Album\01 Track.flac", now.AddMinutes(-38), size: 3456);
+
+        var plan = DownloadAutoRetryService.CreateRetryPlan(
+            new[] { cover, log, track },
+            new HashSet<Guid>(),
+            new System.Collections.Concurrent.ConcurrentDictionary<string, int>(),
+            new System.Collections.Concurrent.ConcurrentDictionary<string, DateTime>(),
+            new slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions(),
+            now);
+
+        Assert.Equal(new[] { track.Id }, plan.Select(t => t.Id));
+    }
+
+    [Fact]
     public async Task ResolveRetryTargetAsync_PrefersCooledDownHashDbAlternate()
     {
         var now = DateTime.UtcNow;
