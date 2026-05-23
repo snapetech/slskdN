@@ -52,6 +52,31 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z469. Completed Download Defaults Must Preserve Source Folder/File Names
+
+**The Bug**: Completed downloads landed under UUID-looking directories because
+the default completed layout was `batch_id`, so album downloads did not match
+the source user's folder names like mainline slskd behavior.
+
+**Files Affected**:
+- `src/slskd/Core/Options.cs`
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+
+**Wrong**:
+```csharp
+public string CompletedLayout { get; init; } = "batch_id";
+```
+
+**Correct**:
+```csharp
+public string CompletedLayout { get; init; } = "remote_folder";
+```
+
+**Why This Keeps Happening**: Internal request or batch identifiers are useful
+for tracking transfer attempts, but they are bad user-facing filesystem
+anchors. Fresh installs should default to the remote folder/file path, and
+`batch_id` should only be used when explicitly configured.
+
 ### 0z468. Audio-Only Analyzers Must Reject Sidecar Artwork Before Launching Tools
 
 **The Bug**: AudioSketch tried to run ffmpeg against album sidecar files such
