@@ -2926,6 +2926,7 @@
 - [2026-05-23T19:01:47Z] Completed: deploy the tester-reported Wishlist filter persistence fix to the live Docker host as manual image `slskdn:0.0.0-manual.20260523185819.8a244699a7d9`; verified Docker health, restart count zero, Web root, app version, and clean post-start logs after startup settled.
 - [2026-05-23T19:10:21Z] Completed: fix live `/health` degradation caused by optional mesh peer absence, deploy manual image `slskdn:0.0.0-manual.20260523190723.de82ad218550`, and verify `/health=Healthy`, `/health/mesh=Healthy`, Docker health, restart count zero, and clean strict log-level scan.
 - [2026-05-23T19:18:12Z] Completed: commit and push dirty frontend layout/metrics changes as `9e277c701`, deploy manual image `slskdn:0.0.0-manual.20260523191441.9e277c7014ef`, and verify Web root, `/health=Healthy`, Docker health, restart count zero, and clean strict log-level scan.
+- [2026-05-23T20:51:36Z] Completed: fix completed download defaults so fresh/default installs preserve source folder/file naming instead of UUID-looking batch folders; explicit `batch_id` remains available.
 
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 

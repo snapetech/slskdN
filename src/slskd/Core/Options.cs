@@ -1288,8 +1288,8 @@ namespace slskd
                 /// </summary>
                 [Argument(default, "download-completed-layout")]
                 [EnvironmentVariable("DOWNLOAD_COMPLETED_LAYOUT")]
-                [Description("completed download folder layout: batch_id, uploader_folder, remote_folder, or flat")]
-                public string CompletedLayout { get; init; } = "batch_id";
+                [Description("completed download folder layout: remote_folder, uploader_folder, batch_id, or flat")]
+                public string CompletedLayout { get; init; } = "remote_folder";
 
                 /// <summary>
                 ///     Gets the completed download path template. When set, takes precedence over CompletedLayout.

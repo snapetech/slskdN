@@ -1,3 +1,19 @@
+## Update 2026-05-23 20:51:36Z
+
+- Current task: Completed download folder/file default fix complete locally.
+- Last activity:
+  - Confirmed tester-reported UUID completed folders were the `batch_id` layout default, not a random filesystem failure.
+  - Documented ADR-0001 gotcha `0z469` and committed it as `89936341b`.
+  - Changed fresh/default completed downloads to use `remote_folder`, preserving the source folder/file naming while keeping explicit `batch_id` available.
+  - Updated config examples, configuration docs, the download UX plan, and changelog.
+- Validation:
+  - Passed: focused `DownloadServiceTests` (`32/32`).
+  - Passed: `./bin/lint`.
+  - Passed: `git diff --check`.
+  - Full `dotnet test` passed smoke (`68/68`) and integration (`278/278`) suites, but the full unit run had one unrelated LibraryHealth timeout; rerunning that exact test passed (`1/1`).
+- Next steps:
+  1. Commit and push the completed-download layout default change.
+
 ## Update 2026-05-23 20:38:00Z
 
 - Current task: Live log follow-up and AudioSketch sidecar warning fix deployed.

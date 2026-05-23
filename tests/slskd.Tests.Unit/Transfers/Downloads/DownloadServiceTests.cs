@@ -1189,31 +1189,54 @@ public class DownloadServiceTests
     }
 
     [Fact]
+    public void ResolveCompletedDestinationDirectory_Default_UsesRemoteFolder()
+    {
+        var options = CreateDownloadLayoutOptions();
+        var transfer = new slskd.Transfers.Transfer
+        {
+            Id = Guid.NewGuid(),
+            Username = "alice",
+            Direction = TransferDirection.Download,
+            Filename = @"Root\Artist - Album\01 Song.flac",
+            BatchId = Guid.NewGuid(),
+            RequestedAt = DateTime.UtcNow,
+        };
+
+        using var service = CreateDownloadServiceForLayoutTest(options);
+        var destination = ResolveCompletedDestinationDirectory(service, transfer);
+
+        Assert.Equal(
+            System.IO.Path.Combine(options.Directories.Downloads, "Artist - Album"),
+            destination);
+    }
+
+    [Fact]
+    public void ResolveCompletedDestinationDirectory_BatchId_UsesBatchIdWhenExplicitlyConfigured()
+    {
+        var options = CreateDownloadLayoutOptions("batch_id");
+        var batchId = Guid.NewGuid();
+        var transfer = new slskd.Transfers.Transfer
+        {
+            Id = Guid.NewGuid(),
+            Username = "alice",
+            Direction = TransferDirection.Download,
+            Filename = @"Root\Artist - Album\01 Song.flac",
+            BatchId = batchId,
+            RequestedAt = DateTime.UtcNow,
+        };
+
+        using var service = CreateDownloadServiceForLayoutTest(options);
+        var destination = ResolveCompletedDestinationDirectory(service, transfer);
+
+        Assert.Equal(
+            System.IO.Path.Combine(options.Directories.Downloads, batchId.ToString()),
+            destination);
+    }
+
+    [Fact]
     public void ResolveCompletedDestinationDirectory_UploaderFolder_UsesUploaderAndRemoteParentFolder()
     {
-        var options = new slskd.Options
-        {
-            Directories = new slskd.Options.DirectoriesOptions
-            {
-                Downloads = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"slskdn-download-layout-{Guid.NewGuid():N}"),
-            },
-            Global = new slskd.Options.GlobalOptions
-            {
-                Download = new slskd.Options.GlobalOptions.GlobalDownloadOptions
-                {
-                    CompletedLayout = "uploader_folder",
-                },
-            },
-        };
-        var optionsMonitor = new TestOptionsMonitor<slskd.Options>(options);
-        var service = new DownloadService(
-            optionsMonitor,
-            Mock.Of<ISoulseekClient>(),
-            Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<TransfersDbContext>>(),
-            new FileService(optionsMonitor),
-            Mock.Of<IRelayService>(),
-            Mock.Of<IFTPService>(),
-            new EventBus(new EventService(Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<EventsDbContext>>())));
+        var options = CreateDownloadLayoutOptions("uploader_folder");
         var transfer = new slskd.Transfers.Transfer
         {
             Id = Guid.NewGuid(),
@@ -1223,20 +1246,53 @@ public class DownloadServiceTests
             RequestedAt = DateTime.UtcNow,
         };
 
-        try
-        {
-            var method = typeof(DownloadService).GetMethod("ResolveCompletedDestinationDirectory", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("ResolveCompletedDestinationDirectory was not found.");
-            var destination = Assert.IsType<string>(method.Invoke(service, [transfer, null]));
+        using var service = CreateDownloadServiceForLayoutTest(options);
+        var destination = ResolveCompletedDestinationDirectory(service, transfer);
 
-            Assert.Equal(
-                System.IO.Path.Combine(options.Directories.Downloads, "alice", "Artist - Album"),
-                destination);
-        }
-        finally
+        Assert.Equal(
+            System.IO.Path.Combine(options.Directories.Downloads, "alice", "Artist - Album"),
+            destination);
+    }
+
+    private static slskd.Options CreateDownloadLayoutOptions(string? completedLayout = null)
+    {
+        return new slskd.Options
         {
-            service.Dispose();
-        }
+            Directories = new slskd.Options.DirectoriesOptions
+            {
+                Downloads = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"slskdn-download-layout-{Guid.NewGuid():N}"),
+            },
+            Global = new slskd.Options.GlobalOptions
+            {
+                Download = completedLayout is null
+                    ? new slskd.Options.GlobalOptions.GlobalDownloadOptions()
+                    : new slskd.Options.GlobalOptions.GlobalDownloadOptions
+                    {
+                        CompletedLayout = completedLayout,
+                    },
+            },
+        };
+    }
+
+    private static DownloadService CreateDownloadServiceForLayoutTest(slskd.Options options)
+    {
+        var optionsMonitor = new TestOptionsMonitor<slskd.Options>(options);
+        return new DownloadService(
+            optionsMonitor,
+            Mock.Of<ISoulseekClient>(),
+            Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<TransfersDbContext>>(),
+            new FileService(optionsMonitor),
+            Mock.Of<IRelayService>(),
+            Mock.Of<IFTPService>(),
+            new EventBus(new EventService(Mock.Of<Microsoft.EntityFrameworkCore.IDbContextFactory<EventsDbContext>>())));
+    }
+
+    private static string ResolveCompletedDestinationDirectory(DownloadService service, slskd.Transfers.Transfer transfer)
+    {
+        var method = typeof(DownloadService).GetMethod("ResolveCompletedDestinationDirectory", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new InvalidOperationException("ResolveCompletedDestinationDirectory was not found.");
+
+        return Assert.IsType<string>(method.Invoke(service, [transfer, null]));
     }
 
     private static async Task<slskd.Transfers.Transfer> WaitForTransferAsync(Func<slskd.Transfers.Transfer?> finder, TimeSpan timeout)

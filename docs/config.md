@@ -328,7 +328,7 @@ A change to slot limits requires an application restart to take effect, while sp
 | `--upload-speed-limit`   | `SLSKD_UPLOAD_SPEED_LIMIT`   | The total upload speed limit, in kibibytes       |
 | `--download-slots`       | `SLSKD_DOWNLOAD_SLOTS`       | The limit for the total number of download slots |
 | `--download-speed-limit` | `SLSKD_DOWNLOAD_SPEED_LIMIT` | The total download speed limit, in kibibytes     |
-| `--download-completed-layout` | `SLSKD_DOWNLOAD_COMPLETED_LAYOUT` | Completed download folder layout: `batch_id`, `uploader_folder`, `remote_folder`, or `flat` |
+| `--download-completed-layout` | `SLSKD_DOWNLOAD_COMPLETED_LAYOUT` | Completed download folder layout. Default: `remote_folder` to preserve source folder/file names. Other values: `uploader_folder`, `batch_id`, or `flat` |
 | `--download-completed-path-template` | `SLSKD_DOWNLOAD_COMPLETED_PATH_TEMPLATE` | Optional path template that overrides `--download-completed-layout`. Tokens: `{uploader}`, `{remote_folder}`, `{remote_parent}`, `{remote_filename}`, `{batch_id}`, `{request_name}`, `{date}` / `{date:yyyy-MM}`. Example: `{uploader}/{remote_folder}` |
 
 #### **YAML**
@@ -340,7 +340,7 @@ transfers:
   download:
     slots: 500
     speed_limit: 1000
-    completed_layout: batch_id
+    completed_layout: remote_folder
     # When set, completed_path_template overrides completed_layout.
     # completed_path_template: '{uploader}/{remote_folder}'
     auto_retry:

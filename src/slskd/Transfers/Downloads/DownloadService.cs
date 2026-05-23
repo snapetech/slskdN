@@ -2203,10 +2203,11 @@ namespace slskd.Transfers.Downloads
             var normalized = (value ?? string.Empty).Trim().Replace("-", "_", StringComparison.Ordinal).ToLowerInvariant();
             return normalized switch
             {
-                "uploader_folder" or "uploaderfolder" => CompletedDownloadLayout.UploaderFolder,
                 "remote_folder" or "remotefolder" => CompletedDownloadLayout.RemoteFolder,
+                "uploader_folder" or "uploaderfolder" => CompletedDownloadLayout.UploaderFolder,
+                "batch_id" or "batchid" => CompletedDownloadLayout.BatchId,
                 "flat" => CompletedDownloadLayout.Flat,
-                _ => CompletedDownloadLayout.BatchId,
+                _ => CompletedDownloadLayout.RemoteFolder,
             };
         }
     }

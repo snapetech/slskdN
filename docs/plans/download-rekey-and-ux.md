@@ -39,14 +39,14 @@ Five workstreams. Phases ordered so each ships value standalone and the architec
 
 **Goal:** stop the "sometimes folder, sometimes hash" inconsistency. Let users pick `<uploader>/<folder>/<files>` like N+, or define their own template.
 
-**Today:** `Options.GlobalDownloadOptions.CompletedLayout` (`Options.cs:1292`) is an enum-string with four values (`flat`, `uploader_folder`, `remote_folder`, `batch_id`). Defaults to `batch_id`. The "hash" Bas sees is `batch_id`. `ResolveCompletedDestinationDirectory` (`DownloadService.cs:1990-2013`) switches on this.
+**Status:** `Options.GlobalDownloadOptions.CompletedLayout` (`Options.cs`) is an enum-string with four values (`flat`, `uploader_folder`, `remote_folder`, `batch_id`). It now defaults to `remote_folder`, preserving the source folder/file path instead of putting completed downloads under the transfer `batch_id`. `ResolveCompletedDestinationDirectory` (`DownloadService.cs`) switches on this.
 
 **Changes:**
 
-1. **Add a real template option alongside the enum** (keep enum for back-compat, deprecate `batch_id` default in favor of `uploader_folder`):
+1. **Add a real template option alongside the enum** (keep enum for back-compat, deprecate `batch_id` default in favor of source folder/file names):
    - New option: `Global.Download.CompletedPathTemplate` (string). Tokens: `{uploader}`, `{remote_folder}`, `{remote_parent}`, `{remote_filename}` (no extension), `{batch_id}`, `{request_name}` (added in Phase 5; renders empty pre-Phase-5), `{search_text}` (for wishlist-originated downloads), `{date:yyyy-MM-dd}` (RequestedAt). All segments sanitized via `ReplaceInvalidFileNameCharacters`. Path-separator literal `/` is honored.
    - If `CompletedPathTemplate` is set and non-empty, it wins over `CompletedLayout`. Otherwise existing behavior.
-   - Default the new option to `{uploader}/{remote_folder}` for fresh installs (yaml example update, not code default — existing installs keep their current layout).
+   - Fresh installs now default to `remote_folder`; operators can set `completed_path_template: '{uploader}/{remote_folder}'` when they want uploader-anchored paths.
 
 2. **Fix the "single-file share" hash fallback.** When `remote_folder` is empty (uploader shared the file from their root), template should fall through to a stable string — `_singles` or similar — not BatchId. Same for `UploaderFolder` enum case (already does this via `GetRemoteParentFolderName` returning `_`, but the BatchId default doesn't).
 
