@@ -25,6 +25,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Completed downloads now default to the source remote folder/file layout
   instead of UUID-looking batch folders; explicit `batch_id` configuration still
   preserves the old grouping behavior.
+- Release builds no longer emit the recent nullable, XML documentation, or
+  StyleCop warnings in transfer activity, auto-replace, transfer models, and
+  search deletion APIs.
 - Audio sketch hashing now skips non-audio sidecar files such as album artwork
   before launching ffmpeg, avoiding warning noise during library scans.
 - System Metrics now tolerates an empty or still-loading metric payload without

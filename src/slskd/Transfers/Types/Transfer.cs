@@ -32,7 +32,7 @@ namespace slskd.Transfers
         public Guid Id { get; init; }
 
         /// <summary>
-        ///     The owning <see cref="DownloadRequest"/> for downloads. Multiple Transfer attempts can share
+        ///     The owning <see cref="slskd.Transfers.Downloads.DownloadRequest"/> for downloads. Multiple Transfer attempts can share
         ///     a RequestId when the rescue/auto-replace path swaps to an alternative source.
         ///     Nullable during the transition period — uploads and pre-migration downloads have no request.
         /// </summary>

@@ -83,7 +83,7 @@ namespace slskd.Transfers.API
         /// <param name="previousState">The previous transfer state.</param>
         /// <param name="record">The resolved persisted record, if available, used to enrich id and queue position.</param>
         /// <returns>A TransferActivity instance.</returns>
-        public static TransferActivity FromTransferStateChange(Soulseek.Transfer transfer, TransferStates previousState, global::slskd.Transfers.Transfer record = null)
+        public static TransferActivity FromTransferStateChange(Soulseek.Transfer transfer, TransferStates previousState, global::slskd.Transfers.Transfer? record = null)
         {
             return new TransferActivity
             {

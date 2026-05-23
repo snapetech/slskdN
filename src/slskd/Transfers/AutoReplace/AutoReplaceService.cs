@@ -259,6 +259,7 @@ namespace slskd.Transfers.AutoReplace
         /// <param name="searchCompletionTimeout">How long to wait for the search finalizer to persist responses.</param>
         /// <param name="searchPollInterval">How often to poll for finalized search responses.</param>
         /// <param name="minimumSearchInterval">Optional override for the minimum interval between alternative searches.</param>
+        /// <param name="transfersHub">Optional transfers hub used to emit immediate replacement UI removals.</param>
         public AutoReplaceService(
             ITransferService transferService,
             ISearchService searchService,
@@ -268,7 +269,7 @@ namespace slskd.Transfers.AutoReplace
             TimeSpan? searchCompletionTimeout = null,
             TimeSpan? searchPollInterval = null,
             TimeSpan? minimumSearchInterval = null,
-            IHubContext<TransfersHub> transfersHub = null)
+            IHubContext<TransfersHub>? transfersHub = null)
         {
             Transfers = transferService;
             Searches = searchService;
@@ -283,7 +284,7 @@ namespace slskd.Transfers.AutoReplace
 
         private ITransferService Transfers { get; }
 
-        private IHubContext<TransfersHub> TransfersHub { get; }
+        private IHubContext<TransfersHub>? TransfersHub { get; }
 
         private ISearchService Searches { get; }
 

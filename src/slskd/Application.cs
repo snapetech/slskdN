@@ -2024,7 +2024,7 @@ namespace slskd
         private static string TransferCompositeKey(Soulseek.Transfer transfer)
             => $"{transfer.Direction}|{transfer.Username}|{transfer.Filename}";
 
-        private global::slskd.Transfers.Transfer ResolveTransferRecord(Soulseek.Transfer xfer)
+        private global::slskd.Transfers.Transfer? ResolveTransferRecord(Soulseek.Transfer xfer)
         {
             try
             {

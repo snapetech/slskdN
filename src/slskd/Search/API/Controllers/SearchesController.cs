@@ -301,7 +301,7 @@ namespace slskd.Search.API
         /// </summary>
         /// <returns>The number of deleted searches.</returns>
         /// <response code="200">The request completed successfully.</response>
-        [HttpDelete()]
+        [HttpDelete]
         [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
         [ProducesResponseType(typeof(int), 200)]
         public async Task<IActionResult> DeleteAll()
