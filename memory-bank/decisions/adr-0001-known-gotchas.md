@@ -52,6 +52,36 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z470. Automatic Retry Loops Must Skip Non-Audio Sidecars
+
+**The Bug**: Auto-retry re-queued failed album sidecar files such as
+`cover.jpg`, creating low-value Soulseek retries and log churn for artwork
+instead of focusing the automatic recovery budget on audio tracks.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadAutoRetryService.cs`
+
+**Wrong**:
+```csharp
+return failed
+    .Where(t => !alreadyRetried.Contains(t.Id))
+    .Where(t => IsWithinAttemptBudget(retryCounts.GetOrAdd(RetryKey(t), 0), opts));
+```
+
+**Correct**:
+```csharp
+return failed
+    .Where(t => IsAudioFile(t.Filename))
+    .Where(t => !alreadyRetried.Contains(t.Id))
+    .Where(t => IsWithinAttemptBudget(retryCounts.GetOrAdd(RetryKey(t), 0), opts));
+```
+
+**Why This Keeps Happening**: Album downloads often include artwork, cue
+sheets, logs, and other sidecars. Automatic recovery features are designed for
+audio acquisition and alternate-source matching; retrying sidecars spends
+network budget on files that cannot use audio/hash matching and usually do not
+justify repeated background retries.
+
 ### 0z469. Completed Download Defaults Must Preserve Source Folder/File Names
 
 **The Bug**: Completed downloads landed under UUID-looking directories because
