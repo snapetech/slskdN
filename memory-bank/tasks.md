@@ -2927,6 +2927,7 @@
 - [2026-05-23T19:10:21Z] Completed: fix live `/health` degradation caused by optional mesh peer absence, deploy manual image `slskdn:0.0.0-manual.20260523190723.de82ad218550`, and verify `/health=Healthy`, `/health/mesh=Healthy`, Docker health, restart count zero, and clean strict log-level scan.
 - [2026-05-23T19:18:12Z] Completed: commit and push dirty frontend layout/metrics changes as `9e277c701`, deploy manual image `slskdn:0.0.0-manual.20260523191441.9e277c7014ef`, and verify Web root, `/health=Healthy`, Docker health, restart count zero, and clean strict log-level scan.
 - [2026-05-23T20:51:36Z] Completed: fix completed download defaults so fresh/default installs preserve source folder/file naming instead of UUID-looking batch folders; explicit `batch_id` remains available.
+- [2026-05-23T21:01:36Z] Completed: deploy warning-free manual image `slskdn:0.0.0-manual.20260523205920.59f1a7fe5841` to the live Docker host and verify the new `remote_folder` default is active.
 
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 

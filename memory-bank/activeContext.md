@@ -1,3 +1,21 @@
+## Update 2026-05-23 21:01:36Z
+
+- Current task: Completed download folder/file default build deployed to live Docker host.
+- Last activity:
+  - Cleaned the C# release-build warnings found during publish and committed/pushed `59f1a7fe5`.
+  - Published warning-free Linux x64 payload `0.0.0-manual.20260523205920.59f1a7fe5841`.
+  - Built replacement Docker image `slskdn:0.0.0-manual.20260523205920.59f1a7fe5841` from the previous live base to preserve installed tools and hardening.
+  - Updated the live `slskd.service` image tag and restarted the service; no release tags were created.
+- Validation:
+  - Passed: Release `dotnet build` warning cleanup produced `0 Warning(s), 0 Error(s)`.
+  - Passed: `./bin/lint`.
+  - Passed: publish output had no C# warnings.
+  - Passed: live image/app version match, Docker health `healthy`, restart count zero, Web root HTTP 200, and `/health=Healthy`.
+  - Passed: post-restart log scan had `err=0`, `wrn=0`, `ftl=0`, and `exception_matches=0`.
+  - Live config has no explicit completed-layout override, so the new `remote_folder` default applies.
+- Next steps:
+  1. Test a new completed album download and confirm it lands under the source folder name rather than a batch UUID.
+
 ## Update 2026-05-23 20:51:36Z
 
 - Current task: Completed download folder/file default fix complete locally.
