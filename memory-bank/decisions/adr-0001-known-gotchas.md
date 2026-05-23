@@ -52,6 +52,43 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z467. Async Metrics Panels Must Not Dereference Initial Null State
+
+**The Bug**: System metrics rendered KPI groups and the full metrics table while
+the first API request was still loading, so `metrics` was `null` and the tab
+could crash before data arrived.
+
+**Files Affected**:
+- `src/web/src/components/System/Metrics/index.jsx`
+
+**Wrong**:
+```jsx
+<MetricGroup
+  group={group}
+  metrics={metrics}
+/>
+
+<SlskdMetricsTable metrics={metrics} />
+```
+
+**Correct**:
+```jsx
+const visibleMetrics = metrics || {};
+
+<MetricGroup
+  group={group}
+  metrics={visibleMetrics}
+/>
+
+<SlskdMetricsTable metrics={visibleMetrics} />
+```
+
+**Why This Keeps Happening**: Async dashboard panels often have both a loading
+message and always-mounted summary/table sections. The loading message does not
+prevent later siblings from rendering. Components that call `Object.entries` or
+index into API data must receive the initialized empty shape until the request
+completes.
+
 ### 0z466. Optional Mesh Peer Absence Must Not Degrade App Health
 
 **The Bug**: The top-level `/health` endpoint reported `Degraded` because
