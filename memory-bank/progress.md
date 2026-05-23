@@ -1,3 +1,9 @@
+## 2026-05-23
+
+- Fixed tester-reported Wishlist filter edits reverting after a search execution. Search completion now saves only tracked stat/state changes instead of calling whole-entity `Update(item)`, so stale in-flight search workers cannot overwrite newer user-edited filters. Background wishlist cycles reload each queued item before execution and skip items that were disabled after the queue was built.
+- Added `WishlistServiceTests.RunSearchAsync_preserves_filter_edits_saved_while_search_is_running`, covering a filter edit saved while a wishlist search is still running. Documented ADR-0001 gotcha `0z465` and committed the docs-only entry as `80bca6633`.
+- Validation passed: focused Wishlist service regression, full `dotnet test` (`4561/4561`: 68 smoke, 4215 unit, 278 integration), and `./bin/lint`.
+
 ## 2026-05-22
 
 - Fixed and deployed the live Wishlist browser lockup: the live database has 8,301 wishlist rows, and the Web UI was mounting every filtered row/card at once. Wishlist now pages rendered rows/cards with 50/100/250/500 page-size options while keeping full-list filtering/sorting. Deployed manual image `slskdn:0.0.0-manual.20260522222650.d9f5d150680a`; validation passed frontend lint, focused Wishlist/acquisition Vitest (`16/16`), production Web build, version/image match, Docker health, restart count zero, and Web UI HTTP 200.

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Fix Wishlist filter edits reverting after searches.
+ - Status: completed (2026-05-23)
+ - Priority: P1
+ - Notes: Search completion was saving whole wishlist entities after network searches, allowing stale in-flight/background item copies to overwrite newer user-edited filters. Removed whole-entity stat saves, reloads queued background items before execution, and added regression coverage for an in-flight filter edit. Validation passed: focused `WishlistServiceTests`, full `dotnet test` (`4561/4561`: 68 smoke, 4215 unit, 278 integration), and `./bin/lint`. Documented ADR-0001 gotcha `0z465` and committed the docs-only entry as `80bca6633`.
+
 - [x] Fix live Wishlist browser lockup on large saved-search lists.
  - Status: completed (2026-05-22)
  - Priority: P1

@@ -1,3 +1,19 @@
+## Update 2026-05-23 16:21:02Z
+
+- Current task: Tester-reported Wishlist filter persistence fix complete locally.
+- Last activity:
+  - Traced the filter field through the Wishlist UI/API/controller/service path.
+  - Identified the reverting cause: wishlist search completion called whole-entity `Update(item)` after a network search, so stale in-flight/background item copies could overwrite newer user-edited filters.
+  - Removed whole-entity stat saves and reloads queued background wishlist items before execution, skipping items disabled after the queue was built.
+  - Added a regression test for editing a filter while a wishlist search is in flight.
+  - Documented ADR-0001 gotcha `0z465` and committed the docs-only entry as `80bca6633`.
+- Validation:
+  - Passed: focused `WishlistServiceTests` (`1/1`).
+  - Passed: full `dotnet test` (`4561/4561`: 68 smoke, 4215 unit, 278 integration).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Deploy/build when ready; no release tags were created.
+
 ## Update 2026-05-22 23:08:28Z
 
 - Current task: Post-deploy log check and cleanup complete.

@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Wishlist search completion now preserves filter edits saved while a wishlist
+  search is running instead of letting stale in-flight search stats overwrite
+  user-edited item settings.
 - DownloadRequest entity provides stable identity across rescue/auto-replace source swaps; Transfer carries RequestId; migration Z05292026 backfills existing transfers using a temp-table + single bulk INSERT/UPDATE (seconds even on 130k+ transfer histories). New /api/v0/downloads/requests endpoints (list, get with attempts, rename, cancel). Legacy /api/v0/transfers/downloads listing endpoints marked deprecated via response header.
 - Updated integration test stubs for the structured download enqueue request path so full validation covers the new request identity API.
 - Wishlist now renders large libraries in pages instead of mounting every row/card at once, preventing browser stalls on installs with thousands of saved searches.

@@ -509,6 +509,12 @@ namespace slskd.Wishlist
 
                 try
                 {
+                    await context.Entry(item).ReloadAsync(cancellationToken);
+                    if (context.Entry(item).State == EntityState.Detached || !item.Enabled)
+                    {
+                        continue;
+                    }
+
                     await ExecuteWishlistSearchAsync(item, context, cancellationToken);
 
                     // Small delay between searches to avoid hammering the network
@@ -597,7 +603,6 @@ namespace slskd.Wishlist
             item.LastFilteredOutHitCount = hitStats.FilteredOut;
             item.LastMatchCount = hitStats.Visible;
 
-            context.WishlistItems.Update(item);
             await context.SaveChangesAsync(cancellationToken);
 
             Log.Information(
@@ -640,7 +645,6 @@ namespace slskd.Wishlist
                             item.MaxDownloads);
                     }
 
-                    context.WishlistItems.Update(item);
                     await context.SaveChangesAsync(cancellationToken);
                     Log.Information(
                         "Wishlist item {Id} enqueued {Count} download(s)",
