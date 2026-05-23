@@ -52,6 +52,37 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z465. Search Stat Saves Must Not Whole-Entity Update Wishlist Items
+
+**The Bug**: Wishlist search completion saved stats by marking the whole
+wishlist item modified, so a stale worker or in-flight manual search could
+overwrite a user's newer filter edit with the old filter value.
+
+**Files Affected**:
+- `src/slskd/Wishlist/WishlistService.cs`
+
+**Wrong**:
+```csharp
+item.LastSearchedAt = DateTime.UtcNow;
+item.LastMatchCount = hitStats.Visible;
+context.WishlistItems.Update(item);
+await context.SaveChangesAsync(cancellationToken);
+```
+
+**Correct**:
+```csharp
+item.LastSearchedAt = DateTime.UtcNow;
+item.LastMatchCount = hitStats.Visible;
+await context.SaveChangesAsync(cancellationToken);
+```
+
+**Why This Keeps Happening**: Wishlist search execution holds an entity while
+the network search runs. Calling `Update(item)` after that marks every property
+modified, including user-editable configuration fields that may have changed in
+another request. Tracked entities should save only the stats and intentional
+state changes touched by the search path, and queued background items should be
+reloaded before execution.
+
 ### 0z464. Expected Network Timeouts Must Not Bubble From Inbound Search Response Resolution
 
 **The Bug**: Inbound search response resolution logged a local warning and then
