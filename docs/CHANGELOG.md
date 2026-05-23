@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Audio sketch hashing now skips non-audio sidecar files such as album artwork
+  before launching ffmpeg, avoiding warning noise during library scans.
 - System Metrics now tolerates an empty or still-loading metric payload without
   crashing, and high-traffic pages use full-width layouts instead of narrow
   fixed-width containers.

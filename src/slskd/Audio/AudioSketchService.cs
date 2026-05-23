@@ -36,6 +36,11 @@ namespace slskd.Audio
         /// <returns>Hex-encoded hash or null on failure.</returns>
         public string? ComputeSketchHash(string filePath)
         {
+            if (!IsSupportedAudioFile(filePath))
+            {
+                return null;
+            }
+
             var ffmpegPath = optionsMonitor.CurrentValue.Integration.Chromaprint.FfmpegPath;
             var resolvedFfmpegPath = ResolveExecutablePath(ffmpegPath);
             if (resolvedFfmpegPath is null)
@@ -117,6 +122,23 @@ namespace slskd.Audio
                 log.Warning(ex, "[AudioSketch] Failed to compute sketch hash for {File}", filePath);
                 return null;
             }
+        }
+
+        internal static bool IsSupportedAudioFile(string filePath)
+        {
+            return Path.GetExtension(filePath)?.ToLowerInvariant() switch
+            {
+                ".aac" => true,
+                ".aiff" => true,
+                ".alac" => true,
+                ".flac" => true,
+                ".m4a" => true,
+                ".mp3" => true,
+                ".ogg" => true,
+                ".opus" => true,
+                ".wav" => true,
+                _ => false,
+            };
         }
 
         internal static string? ResolveExecutablePath(string? executablePath)

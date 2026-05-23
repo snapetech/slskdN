@@ -44,5 +44,18 @@ namespace slskd.Tests.Unit.Audio
 
             Assert.Null(resolved);
         }
+
+        [Theory]
+        [InlineData("cover.jpg", false)]
+        [InlineData("booklet.png", false)]
+        [InlineData("track.flac", true)]
+        [InlineData("track.MP3", true)]
+        [InlineData("track.opus", true)]
+        public void IsSupportedAudioFile_ReturnsTrueOnlyForAudioExtensions(string filePath, bool expected)
+        {
+            var result = AudioSketchService.IsSupportedAudioFile(filePath);
+
+            Assert.Equal(expected, result);
+        }
     }
 }
