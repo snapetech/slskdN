@@ -396,6 +396,37 @@ public class Phase8MeshTests
     }
 
     [Fact]
+    public async Task MeshHealthCheck_DoesNotDegradeForNoActivePeers()
+    {
+        var logger = Mock.Of<Microsoft.Extensions.Logging.ILogger<MeshHealthCheck>>();
+        var statsCollector = new Mock<IMeshStatsCollector>();
+        var directory = Mock.Of<IMeshDirectory>();
+        var dhtClient = Mock.Of<slskd.Mesh.Dht.IMeshDhtClient>();
+
+        statsCollector.Setup(s => s.GetStatsAsync())
+            .ReturnsAsync(new MeshTransportStats(
+                ActiveDhtSessions: 1,
+                ActiveOverlaySessions: 0,
+                ActiveMirroredSessions: 0,
+                DetectedNatType: NatType.Symmetric,
+                TotalPeers: 0,
+                MessagesSent: 0,
+                MessagesReceived: 0,
+                DhtOperationsPerSecond: 0,
+                RoutingTableSize: 0,
+                BootstrapPeers: 0,
+                PeerChurnEvents: 0));
+
+        var healthCheck = new MeshHealthCheck(logger, statsCollector.Object, directory, dhtClient);
+
+        var result = await healthCheck.CheckHealthAsync(new HealthCheckContext());
+
+        Assert.Equal(HealthStatus.Healthy, result.Status);
+        Assert.False((bool)result.Data["peer_connectivity_present"]);
+        Assert.False((bool)result.Data["routing_table_populated"]);
+    }
+
+    [Fact]
     public async Task MeshDirectory_FindPeersByContent()
     {
         var logger = Mock.Of<Microsoft.Extensions.Logging.ILogger<MeshDirectory>>();

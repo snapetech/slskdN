@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Top-level `/health` no longer reports `Degraded` solely because optional mesh
+  peer connectivity is absent; mesh peer/routing counts remain diagnostic data
+  while app/container health reflects subsystem responsiveness.
 - Wishlist search completion now preserves filter edits saved while a wishlist
   search is running instead of letting stale in-flight search stats overwrite
   user-edited item settings.

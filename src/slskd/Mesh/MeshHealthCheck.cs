@@ -59,13 +59,14 @@ public class MeshHealthCheck : IHealthCheck
                 ["nat_type"] = stats.DetectedNatType.ToString(),
             };
 
-            // Check routing table health
-            var routingTableHealthy = stats.RoutingTableSize > 0;
-            healthData["routing_table_healthy"] = routingTableHealthy;
+            // Mesh peer population is opportunistic; keep it as diagnostic data
+            // without making app/container health depend on remote peer availability.
+            var routingTablePopulated = stats.RoutingTableSize > 0;
+            healthData["routing_table_populated"] = routingTablePopulated;
 
             // Check peer connectivity
-            var peerConnectivityHealthy = stats.TotalPeers > 0;
-            healthData["peer_connectivity_healthy"] = peerConnectivityHealthy;
+            var peerConnectivityPresent = stats.TotalPeers > 0;
+            healthData["peer_connectivity_present"] = peerConnectivityPresent;
 
             // Check message flow
             var messageFlowHealthy = stats.MessagesSent > 0 && stats.MessagesReceived > 0;
@@ -76,18 +77,18 @@ public class MeshHealthCheck : IHealthCheck
             healthData["dht_performance_healthy"] = dhtPerformanceHealthy;
 
             // Overall health assessment
-            var isHealthy = routingTableHealthy && peerConnectivityHealthy;
+            var isHealthy = dhtPerformanceHealthy;
 
             var status = isHealthy ? HealthStatus.Healthy : HealthStatus.Degraded;
 
-            if (!routingTableHealthy)
+            if (!routingTablePopulated)
             {
-                _logger.LogDebug("[MeshHealth] Routing table is empty or unhealthy");
+                _logger.LogDebug("[MeshHealth] Routing table is empty");
             }
 
-            if (!peerConnectivityHealthy)
+            if (!peerConnectivityPresent)
             {
-                _logger.LogDebug("[MeshHealth] No peer connectivity detected");
+                _logger.LogDebug("[MeshHealth] No active mesh peer connectivity detected");
             }
 
             _logger.LogDebug(
