@@ -52,6 +52,36 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z468. Audio-Only Analyzers Must Reject Sidecar Artwork Before Launching Tools
+
+**The Bug**: AudioSketch tried to run ffmpeg against album sidecar files such
+as `cover.jpg`, producing warning noise because image files do not contain an
+audio stream.
+
+**Files Affected**:
+- `src/slskd/Audio/AudioSketchService.cs`
+
+**Wrong**:
+```csharp
+var ffmpegPath = optionsMonitor.CurrentValue.Integration.Chromaprint.FfmpegPath;
+var resolvedFfmpegPath = ResolveExecutablePath(ffmpegPath);
+```
+
+**Correct**:
+```csharp
+if (!IsSupportedAudioFile(filePath))
+{
+    return null;
+}
+
+var ffmpegPath = optionsMonitor.CurrentValue.Integration.Chromaprint.FfmpegPath;
+```
+
+**Why This Keeps Happening**: Library and download directories contain audio
+tracks plus sidecar files such as covers, booklets, cue sheets, and logs.
+Audio-only analysis paths must gate by supported audio extension before
+starting external tools or logging decode failures.
+
 ### 0z467. Async Metrics Panels Must Not Dereference Initial Null State
 
 **The Bug**: System metrics rendered KPI groups and the full metrics table while
