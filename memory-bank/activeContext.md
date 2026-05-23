@@ -1,3 +1,22 @@
+## Update 2026-05-23 19:10:21Z
+
+- Current task: Fix bad live `/health` state complete.
+- Last activity:
+  - Investigated the live `Degraded` health response and traced it to `MeshHealthCheck`.
+  - Found the bug: optional mesh peer/routing absence was treated as app health degradation even when the daemon, Docker container, VPN, DHT bootstrap, and Soulseek login were otherwise operational.
+  - Documented ADR-0001 gotcha `0z466` and committed it as `e20e774eb`.
+  - Changed mesh health so peer/routing presence remains diagnostic data while subsystem responsiveness determines health; timeouts/exceptions still degrade.
+  - Added `MeshHealthCheck_DoesNotDegradeForNoActivePeers`.
+  - Deployed manual image `slskdn:0.0.0-manual.20260523190723.de82ad218550` to `kspls0`; no release tags were created.
+- Validation:
+  - Passed: focused `Phase8MeshTests` (`20/20`).
+  - Passed: `./bin/lint`.
+  - Passed: publish completed with existing C# warnings only.
+  - Passed: live `/health=Healthy`, `/health/mesh=Healthy`, Docker health `healthy`, restart count zero, and app version matched the image.
+  - Passed: strict post-start log scan had no warning/error/fatal log-level entries and no unhandled exception matches. INFO-level remote transfer rejections remained from remote peers.
+- Next steps:
+  1. Continue normal live monitoring; treat future non-Healthy `/health` as actionable.
+
 ## Update 2026-05-23 19:01:47Z
 
 - Current task: Tester-reported Wishlist filter persistence fix deployed.

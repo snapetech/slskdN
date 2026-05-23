@@ -4,6 +4,7 @@
 - Added `WishlistServiceTests.RunSearchAsync_preserves_filter_edits_saved_while_search_is_running`, covering a filter edit saved while a wishlist search is still running. Documented ADR-0001 gotcha `0z465` and committed the docs-only entry as `80bca6633`.
 - Validation passed: focused Wishlist service regression, full `dotnet test` (`4561/4561`: 68 smoke, 4215 unit, 278 integration), and `./bin/lint`.
 - Deployed the Wishlist persistence fix to the live Docker install as `slskdn:0.0.0-manual.20260523185819.8a244699a7d9` after rebasing on the remote stable metadata update and pushing to `snapetech/slskdN`. The replacement image was built from the previous live base, preserving installed tools and hardening. Live validation passed: image/app version match, Docker health `healthy`, restart count zero, Web root HTTP 200, `/health` at the existing `Degraded` state, and a post-start journal sample with `ERR=0`, `WRN=0`, `FTL=0`, and no exception matches after startup settled.
+- Fixed the bad live `/health` degradation by changing `MeshHealthCheck` so optional zero mesh peers/routing entries are diagnostics, not application health failures. Documented ADR-0001 gotcha `0z466`, added regression coverage, pushed commits `e20e774eb` and `de82ad218`, and deployed manual image `slskdn:0.0.0-manual.20260523190723.de82ad218550`. Validation passed: focused mesh tests (`20/20`), repo lint, live `/health=Healthy`, `/health/mesh=Healthy`, Docker health `healthy`, restart count zero, and a strict post-start log-level scan with no warnings/errors/fatals.
 
 ## 2026-05-22
 
