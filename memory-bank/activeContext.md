@@ -8,11 +8,15 @@
   - Identified one cleanup issue: download auto-retry re-queued failed album sidecar artwork (`cover.jpg`), creating avoidable network/log churn.
   - Documented ADR-0001 gotcha `0z470` and committed it as `b6aee23da`.
   - Patched auto-retry planning to skip non-audio sidecar files while preserving explicit user/download behavior.
+  - Committed/pushed the fix as `649fd40c7` and deployed manual image `slskdn:0.0.0-manual.20260523223105.649fd40c72fb` to `kspls0`; no release tags were created.
 - Validation:
   - Passed: focused `DownloadServiceTests` (`33/33`).
   - Passed: `./bin/lint`.
+  - Passed: Release build and publish had `0 Warning(s), 0 Error(s)` and no publish warnings.
+  - Passed: live image/app version match, Docker health `healthy`, restart count zero, Web root HTTP 200, and `/health=Healthy`.
+  - Passed: fresh post-deploy log scan had `err=0`, `wrn=0`, `ftl=0`, `exception_matches=0`, `AudioSketch=0`, `cover_jpg=0`, and `auto_retry_requeued=0`.
 - Next steps:
-  1. Commit/push the sidecar auto-retry fix and deploy a replacement live image.
+  1. Continue normal live testing of completed download folder naming and background retry behavior.
 
 ## Update 2026-05-23 21:01:36Z
 
