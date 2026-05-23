@@ -5,6 +5,8 @@ namespace slskd.Tests.Unit.DhtRendezvous;
 
 using System.Net;
 using System.Net.Sockets;
+using System.Collections.Concurrent;
+using System.Threading;
 using MessagePack;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -125,23 +127,41 @@ public class SharedMeshUdpListenerTests
 
         listener.Start();
 
-        await client.SendAsync(new byte[] { 0x96, 0xa4, 0x70 }, listener.LocalEndPoint);
+        var payload = new byte[] { 0x96, 0xa4, 0x70 };
+        var targetEndpoint = listener.LocalEndPoint;
 
+        // Retry sending the malformed datagram until the listener has logged it.
+        // The listener's receive loop may not have reached ReceiveAsync yet when
+        // Start() returns, so the first UDP datagram may be lost.
         await WaitUntilAsync(
-            () => logger.Entries.Any(entry =>
-                entry.Level == LogLevel.Information &&
-                entry.Message.Contains("Dropped malformed overlay datagram", StringComparison.Ordinal)),
-            TimeSpan.FromSeconds(2));
+            () =>
+            {
+                try
+                {
+                    client.Send(payload, payload.Length, targetEndpoint);
+                }
+                catch
+                {
+                    // socket may be disposed; ignore
+                }
 
-        var information = Assert.Single(logger.Entries.Where(entry =>
+                return logger.Entries.ToArray().Any(entry =>
+                    entry.Level == LogLevel.Information &&
+                    entry.Message.Contains("Dropped malformed overlay datagram", StringComparison.Ordinal));
+            },
+            TimeSpan.FromSeconds(3),
+            pollIntervalMs: 50);
+
+        var logEntries = logger.Entries.ToArray();
+        var information = Assert.Single(logEntries.Where(entry =>
             entry.Level == LogLevel.Information &&
             entry.Message.Contains("Dropped malformed overlay datagram", StringComparison.Ordinal)));
         Assert.Contains("Dropped malformed overlay datagram", information.Message, StringComparison.Ordinal);
         Assert.Null(information.Exception);
-        Assert.Contains(logger.Entries, entry => entry.Level == LogLevel.Debug && entry.Exception is not null);
+        Assert.Contains(logEntries, entry => entry.Level == LogLevel.Debug && entry.Exception is not null);
     }
 
-    private static async Task WaitUntilAsync(Func<bool> predicate, TimeSpan timeout)
+    private static async Task WaitUntilAsync(Func<bool> predicate, TimeSpan timeout, int pollIntervalMs = 25)
     {
         var startedAt = DateTimeOffset.UtcNow;
         while (DateTimeOffset.UtcNow - startedAt < timeout)
@@ -151,7 +171,7 @@ public class SharedMeshUdpListenerTests
                 return;
             }
 
-            await Task.Delay(25);
+            await Task.Delay(pollIntervalMs);
         }
 
         throw new TimeoutException("Timed out waiting for predicate.");
@@ -175,7 +195,7 @@ public class SharedMeshUdpListenerTests
 
     private sealed class CapturingLogger<T> : ILogger<T>
     {
-        public List<LogEntry> Entries { get; } = new();
+        public ConcurrentQueue<LogEntry> Entries { get; } = new();
 
         public IDisposable? BeginScope<TState>(TState state)
             where TState : notnull
@@ -190,7 +210,7 @@ public class SharedMeshUdpListenerTests
             Exception? exception,
             Func<TState, Exception?, string> formatter)
         {
-            Entries.Add(new LogEntry(logLevel, formatter(state, exception), exception));
+            Entries.Enqueue(new LogEntry(logLevel, formatter(state, exception), exception));
         }
     }
 
