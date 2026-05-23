@@ -1,3 +1,23 @@
+## Update 2026-05-23 19:14:55Z
+
+- Current task: Web UI full-space route layout pass complete locally.
+- Last activity:
+  - Ran a headless Playwright sweep against the Vite dev server with mocked APIs.
+  - Inspected Downloads and Uploads first; both already filled the app content width.
+  - Confirmed most other top-level routes and System subtabs were capped at 1200px or by Semantic UI containers.
+  - Reworked shared and route-specific layout containers so pages fill the available app content space like Transfers.
+  - Fixed a System Metrics initial-load crash found during the sweep.
+  - Documented ADR-0001 gotcha `0z467` and committed the docs-only entry as `c6b98d36e`.
+- Validation:
+  - Passed: Playwright layout sweep across Downloads, Uploads, top-level routes, and every System subtab; all measured at 100% app-content width.
+  - Passed: focused Metrics Vitest (`2/2`).
+  - Passed: frontend lint.
+  - Passed: production Web build.
+  - Passed: `./bin/lint`.
+  - Passed: full `dotnet test` (`4562/4562`: 68 smoke, 4216 unit, 278 integration).
+- Next steps:
+  1. Deploy/build when ready; no release tags were created.
+
 ## Update 2026-05-23 19:10:21Z
 
 - Current task: Fix bad live `/health` state complete.
