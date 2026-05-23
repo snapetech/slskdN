@@ -208,7 +208,7 @@ const Browse = () => {
   }));
 
   return (
-    <div className="search-container">
+    <div className="browse-page">
       <Tab
         activeIndex={activeIndex}
         menu={{

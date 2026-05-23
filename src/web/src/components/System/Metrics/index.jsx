@@ -184,6 +184,8 @@ const Metrics = () => {
     );
   }
 
+  const visibleMetrics = metrics || {};
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1em' }}>
@@ -215,7 +217,7 @@ const Metrics = () => {
           <Grid.Column key={group.key} width={8}>
             <MetricGroup
               group={group}
-              metrics={metrics}
+              metrics={visibleMetrics}
             />
           </Grid.Column>
         ))}
@@ -223,7 +225,7 @@ const Metrics = () => {
 
       <Divider />
 
-      <SlskdMetricsTable metrics={metrics} />
+      <SlskdMetricsTable metrics={visibleMetrics} />
     </div>
   );
 };

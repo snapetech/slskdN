@@ -1,3 +1,14 @@
+.browse-page {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  min-width: 0;
+  padding-left: 15px;
+  padding-right: 15px;
+  width: 100%;
+}
+
 .browse-segment {
   margin-top: 15px !important;
   height: 78px !important;

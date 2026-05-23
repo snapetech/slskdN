@@ -982,7 +982,8 @@ body {
 
 .showmore-button {
     padding: 20px !important;
-    max-width: 1200px !important;
+    max-width: none !important;
+    width: 100%;
     margin-bottom: 16px !important;
 }
 
@@ -1047,11 +1048,30 @@ body {
 }
 
 .view {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  max-width: none !important;
+  min-height: 100%;
+  min-width: 0;
   padding-left: 15px;
   padding-right: 15px;
-  max-width: 1200px !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
+  width: 100%;
+}
+
+.view > * {
+  min-width: 0;
+  width: 100%;
+}
+
+.view .ui.container,
+[data-testid="contacts-root"] > .ui.container {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  max-width: none !important;
+  width: 100% !important;
 }
 
 .view-transfer {
@@ -1061,6 +1081,13 @@ body {
   flex-direction: column;
   overflow: hidden;
   min-height: 100%;
+}
+
+[data-testid="contacts-root"] {
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: 15px;
+  width: 100%;
 }
   
 .view:last-child {

@@ -1,7 +1,10 @@
 .wishlist-container {
+  box-sizing: border-box;
+  margin: 0;
+  max-width: none;
+  min-width: 0;
   padding: 1em;
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .wishlist-header {

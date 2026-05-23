@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- System Metrics now tolerates an empty or still-loading metric payload without
+  crashing, and high-traffic pages use full-width layouts instead of narrow
+  fixed-width containers.
 - Top-level `/health` no longer reports `Degraded` solely because optional mesh
   peer connectivity is absent; mesh peer/routing counts remain diagnostic data
   while app/container health reflects subsystem responsiveness.

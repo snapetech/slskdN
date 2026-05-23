@@ -1,7 +1,15 @@
 .messaging-workspace {
   --messaging-sidebar-width: 280px;
-  margin: 14px auto 18px;
-  max-width: min(1560px, calc(100vw - 28px));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  margin: 14px 0 18px;
+  max-width: none;
+  min-height: calc(100% - 32px);
+  min-width: 0;
+  padding-left: 15px;
+  padding-right: 15px;
+  width: 100%;
 }
 
 .messaging-shell {

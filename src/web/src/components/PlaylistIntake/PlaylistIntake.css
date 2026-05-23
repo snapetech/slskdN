@@ -1,8 +1,11 @@
 .playlist-intake {
-  margin: 15px auto 16px;
-  max-width: 1200px !important;
+  box-sizing: border-box;
+  margin: 15px 0 16px;
+  max-width: none !important;
+  min-width: 0;
   padding-left: 15px;
   padding-right: 15px;
+  width: 100%;
 }
 
 .playlist-intake-header {
