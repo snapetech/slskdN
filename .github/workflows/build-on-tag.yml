@@ -635,6 +635,8 @@ jobs:
           [domain_realm]
            .fedoraproject.org = FEDORAPROJECT.ORG
            fedoraproject.org = FEDORAPROJECT.ORG
+           .fedorainfracloud.org = FEDORAPROJECT.ORG
+           fedorainfracloud.org = FEDORAPROJECT.ORG
           EOF
             sudo sed -i '/^\[libdefaults\]/a\  dns_lookup_realm = false\n  rdns = false\n  dns_canonicalize_hostname = false' /etc/krb5.conf
           }

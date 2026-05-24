@@ -31,10 +31,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
   and PKINIT packages, Kerberos development headers, and explicitly sources the
   Fedora realm drop-in before using Fedora Kerberos. It also installs
   `requests-gssapi` so `copr-cli` can authenticate to the COPR API with the
-  Kerberos ticket during tag and recovery uploads. Standalone COPR recovery now
-  uses the same existing-project upload shape as tag releases instead of trying
-  to recreate, modify, or override project settings during recovery, and emits
-  COPR's server response when recovery uploads fail with non-JSON API output.
+  Kerberos ticket during tag and recovery uploads. The Kerberos realm mapping
+  now covers COPR's `fedorainfracloud.org` API domain as well as Fedora identity
+  hosts. Standalone COPR recovery now uses the same existing-project upload
+  shape as tag releases instead of trying to recreate, modify, or override
+  project settings during recovery, and emits COPR's server response when
+  recovery uploads fail with non-JSON API output.
 - Download auto-retry now skips non-audio sidecar files such as `cover.jpg`,
   keeping automatic retry budgets focused on audio tracks.
 - Completed downloads now default to the source remote folder/file layout
