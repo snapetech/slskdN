@@ -82,7 +82,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   and PKINIT packages, Kerberos development headers, and explicitly sources the
   Fedora realm drop-in before using Fedora Kerberos. It also installs
   `requests-gssapi` so `copr-cli` can authenticate to the COPR API with the
-  Kerberos ticket during tag and recovery uploads.
+  Kerberos ticket during tag and recovery uploads. Standalone COPR recovery now
+  uploads to the existing `slskdn/slskdn` project instead of trying to recreate
+  or modify project settings during recovery.
 - Soulseek.NET listener socket disposal from `Soulseek.Network.Tcp.Listener.ListenContinuouslyAsync` is now classified as expected network teardown instead of fake fatal unobserved-task telemetry.
 - Verbose startup `[DI]` tracepoints, SPA fallback route serving, and per-request MediaCore CSRF processing logs now emit at debug level; controlled offline user-info responses and shutdown-cancelled background searches no longer log exception/error noise.
 - User info lookups now return a controlled `503` for expected Soulseek peer connection failures and timeouts instead of bubbling live peer unavailability as HTTP 500s.

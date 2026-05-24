@@ -228,18 +228,9 @@ jobs:
             copr_args+=(--chroot "$chroot")
           done
 
-          if copr-cli get slskdn >/dev/null 2>&1; then
-            copr-cli modify slskdn \
-              "${copr_args[@]}" \
-              --description "slskdN RPM builds" \
-              --instructions "dnf copr enable slskdn/slskdn && dnf install slskdn"
-          else
-            copr-cli create slskdn \
-              "${copr_args[@]}" \
-              --description "slskdN RPM builds" \
-              --instructions "dnf copr enable slskdn/slskdn && dnf install slskdn"
-          fi
+          copr_project="slskdn/slskdn"
+          copr-cli get "$copr_project" >/dev/null
           
           SRPM=$(find ~/rpmbuild/SRPMS -name "*.src.rpm" | head -1)
           echo "Uploading SRPM to COPR: $SRPM"
-          copr-cli build "${copr_args[@]}" --nowait slskdn "$SRPM"
+          copr-cli build "${copr_args[@]}" --nowait "$copr_project" "$SRPM"
