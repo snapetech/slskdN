@@ -27,6 +27,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   Kerberos path.
 - Standalone COPR recovery publishing now creates the Web asset destination
   before copying frontend files during rebuilds.
+- COPR release publishing now installs Ubuntu's MIT Kerberos HTTPS KDC proxy
+  and PKINIT packages before using Fedora Kerberos, so `kinit` can reach
+  Fedora's `KdcProxy` endpoint during tag and recovery uploads.
 - Download auto-retry now skips non-audio sidecar files such as `cover.jpg`,
   keeping automatic retry budgets focused on audio tracks.
 - Completed downloads now default to the source remote folder/file layout

@@ -104,6 +104,8 @@ expect_literal_before .github/workflows/build-on-tag.yml 'if [[ -n "${COPR_KERBE
 expect_literal_before .github/workflows/build-on-tag.yml 'elif [[ -n "${COPR_FEDORA_USERNAME:-}" && -n "${COPR_FEDORA_PASSWORD:-}" && -n "${COPR_FEDORA_OTP_SECRET:-}" ]]; then' 'elif [[ -n "${COPR_LOGIN:-}" && -n "${COPR_TOKEN:-}" ]]; then'
 expect_literal_before .github/workflows/release-copr.yml 'if [[ -n "${COPR_KERBEROS_PRINCIPAL:-}" && -n "${COPR_KERBEROS_KEYTAB_B64:-}" ]]; then' 'elif [[ -n "${COPR_LOGIN:-}" && -n "${COPR_TOKEN:-}" ]]; then'
 expect_literal_before .github/workflows/release-copr.yml 'elif [[ -n "${COPR_FEDORA_USERNAME:-}" && -n "${COPR_FEDORA_PASSWORD:-}" && -n "${COPR_FEDORA_OTP_SECRET:-}" ]]; then' 'elif [[ -n "${COPR_LOGIN:-}" && -n "${COPR_TOKEN:-}" ]]; then'
+expect_literal .github/workflows/build-on-tag.yml 'krb5-user krb5-k5tls krb5-pkinit oathtool'
+expect_literal .github/workflows/release-copr.yml 'krb5-user krb5-k5tls krb5-pkinit oathtool'
 expect_literal docs/dev/release-checklist.md 'scripts/create-release-tag.sh'
 expect_literal docs/build.md 'scripts/create-release-tag.sh'
 expect_literal memory-bank/decisions/adr-0005-tagging-system.md 'scripts/create-release-tag.sh'
