@@ -29,8 +29,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   before copying frontend files during rebuilds.
 - COPR release publishing now installs Ubuntu's MIT Kerberos HTTPS KDC proxy
   and PKINIT packages and explicitly sources the Fedora realm drop-in before
-  using Fedora Kerberos, so `kinit` can reach Fedora's `KdcProxy` endpoint
-  during tag and recovery uploads.
+  using Fedora Kerberos. It also installs `requests-gssapi` so `copr-cli` can
+  authenticate to the COPR API with the Kerberos ticket during tag and recovery
+  uploads.
 - Download auto-retry now skips non-audio sidecar files such as `cover.jpg`,
   keeping automatic retry budgets focused on audio tracks.
 - Completed downloads now default to the source remote folder/file layout
