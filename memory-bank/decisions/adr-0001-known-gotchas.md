@@ -52,6 +52,43 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z472. COPR Release Workflows Must Prefer Kerberos Over Expiring API Tokens
+
+**The Bug**: The main tag workflow configured COPR with `COPR_LOGIN` and
+`COPR_TOKEN` before checking Kerberos credentials. Because old token secrets
+were still present but expired, the release job ignored the configured Fedora
+Kerberos username/password/OTP path and failed during `copr-cli build`.
+
+**Files Affected**:
+- `.github/workflows/build-on-tag.yml`
+- `.github/workflows/release-copr.yml`
+- `packaging/scripts/validate-packaging-metadata.sh`
+
+**Wrong**:
+```bash
+if [[ -n "${COPR_LOGIN:-}" && -n "${COPR_TOKEN:-}" ]]; then
+  # token auth
+elif [[ -n "${COPR_FEDORA_USERNAME:-}" ]]; then
+  # kerberos auth
+fi
+```
+
+**Correct**:
+```bash
+if [[ -n "${COPR_KERBEROS_PRINCIPAL:-}" && -n "${COPR_KERBEROS_KEYTAB_B64:-}" ]]; then
+  # keytab kerberos auth
+elif [[ -n "${COPR_FEDORA_USERNAME:-}" && -n "${COPR_FEDORA_PASSWORD:-}" && -n "${COPR_FEDORA_OTP_SECRET:-}" ]]; then
+  # password+OTP kerberos auth
+elif [[ -n "${COPR_LOGIN:-}" && -n "${COPR_TOKEN:-}" ]]; then
+  # legacy token fallback
+fi
+```
+
+**Why This Keeps Happening**: Secret rotation often leaves deprecated secrets
+configured for a while. Release workflows must prefer the current durable auth
+method before legacy fallback credentials, or stale-but-present secrets will
+shadow the working path.
+
 ### 0z471. UDP Listener Tests Need Release-Gate Timing Headroom
 
 **The Bug**: A malformed-overlay UDP listener regression test used a short
