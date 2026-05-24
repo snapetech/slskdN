@@ -32,8 +32,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   Fedora realm drop-in before using Fedora Kerberos. It also installs
   `requests-gssapi` so `copr-cli` can authenticate to the COPR API with the
   Kerberos ticket during tag and recovery uploads. Standalone COPR recovery now
-  uploads to the existing `slskdn/slskdn` project instead of trying to recreate
-  or modify project settings during recovery.
+  uses the same existing-project upload shape as tag releases instead of trying
+  to recreate, modify, or override project settings during recovery.
 - Download auto-retry now skips non-audio sidecar files such as `cover.jpg`,
   keeping automatic retry budgets focused on audio tracks.
 - Completed downloads now default to the source remote folder/file layout

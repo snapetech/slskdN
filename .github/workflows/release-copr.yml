@@ -219,18 +219,9 @@ jobs:
             echo "Skipping COPR upload - credentials not configured"
             exit 0
           fi
-          chroots=(
-            fedora-43-x86_64
-            fedora-rawhide-x86_64
-          )
-          copr_args=()
-          for chroot in "${chroots[@]}"; do
-            copr_args+=(--chroot "$chroot")
-          done
-
           copr_project="slskdn/slskdn"
           copr-cli get "$copr_project" >/dev/null
           
           SRPM=$(find ~/rpmbuild/SRPMS -name "*.src.rpm" | head -1)
           echo "Uploading SRPM to COPR: $SRPM"
-          copr-cli build "${copr_args[@]}" --nowait "$copr_project" "$SRPM"
+          copr-cli build --nowait "$copr_project" "$SRPM"
