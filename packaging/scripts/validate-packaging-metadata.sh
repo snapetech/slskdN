@@ -30,6 +30,19 @@ expect_literal() {
     grep -Fq -- "$pattern" "$file" || fail "$file is missing literal: $pattern"
 }
 
+expect_literal_before() {
+    local file="$1"
+    local first="$2"
+    local second="$3"
+    local first_line
+    local second_line
+    first_line="$(grep -Fn -- "$first" "$file" | head -1 | cut -d: -f1 || true)"
+    second_line="$(grep -Fn -- "$second" "$file" | head -1 | cut -d: -f1 || true)"
+    [[ -n "$first_line" ]] || fail "$file is missing literal: $first"
+    [[ -n "$second_line" ]] || fail "$file is missing literal: $second"
+    (( first_line < second_line )) || fail "$file must place '$first' before '$second'"
+}
+
 reject_line() {
     local file="$1"
     local pattern="$2"
@@ -87,6 +100,10 @@ expect_literal scripts/create-release-tag.sh '^build-(main|dev)-'
 expect_literal scripts/verify-release-artifacts.sh 'SHA256SUMS.txt'
 expect_literal scripts/verify-release-artifacts.sh 'vpn-agent/slskdN-vpn-agent'
 expect_literal scripts/verify-release-artifacts.sh 'slskdn-footer-session-total'
+expect_literal_before .github/workflows/build-on-tag.yml 'if [[ -n "${COPR_KERBEROS_PRINCIPAL:-}" && -n "${COPR_KERBEROS_KEYTAB_B64:-}" ]]; then' 'elif [[ -n "${COPR_LOGIN:-}" && -n "${COPR_TOKEN:-}" ]]; then'
+expect_literal_before .github/workflows/build-on-tag.yml 'elif [[ -n "${COPR_FEDORA_USERNAME:-}" && -n "${COPR_FEDORA_PASSWORD:-}" && -n "${COPR_FEDORA_OTP_SECRET:-}" ]]; then' 'elif [[ -n "${COPR_LOGIN:-}" && -n "${COPR_TOKEN:-}" ]]; then'
+expect_literal_before .github/workflows/release-copr.yml 'if [[ -n "${COPR_KERBEROS_PRINCIPAL:-}" && -n "${COPR_KERBEROS_KEYTAB_B64:-}" ]]; then' 'elif [[ -n "${COPR_LOGIN:-}" && -n "${COPR_TOKEN:-}" ]]; then'
+expect_literal_before .github/workflows/release-copr.yml 'elif [[ -n "${COPR_FEDORA_USERNAME:-}" && -n "${COPR_FEDORA_PASSWORD:-}" && -n "${COPR_FEDORA_OTP_SECRET:-}" ]]; then' 'elif [[ -n "${COPR_LOGIN:-}" && -n "${COPR_TOKEN:-}" ]]; then'
 expect_literal docs/dev/release-checklist.md 'scripts/create-release-tag.sh'
 expect_literal docs/build.md 'scripts/create-release-tag.sh'
 expect_literal memory-bank/decisions/adr-0005-tagging-system.md 'scripts/create-release-tag.sh'
