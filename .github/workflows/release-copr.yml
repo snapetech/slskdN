@@ -94,7 +94,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates krb5-user krb5-k5tls krb5-pkinit oathtool python3-pip rpm
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates krb5-user krb5-k5tls krb5-pkinit libkrb5-dev oathtool python3-pip rpm
           pip3 install copr-cli rich requests-gssapi
 
       - name: Configure COPR
