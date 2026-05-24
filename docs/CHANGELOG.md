@@ -25,6 +25,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Main release COPR publishing now prefers Kerberos credentials before legacy
   API token secrets, so stale tokens cannot shadow the configured Fedora
   Kerberos path.
+- Standalone COPR recovery publishing now creates the Web asset destination
+  before copying frontend files during rebuilds.
 - Download auto-retry now skips non-audio sidecar files such as `cover.jpg`,
   keeping automatic retry budgets focused on audio tracks.
 - Completed downloads now default to the source remote folder/file layout
