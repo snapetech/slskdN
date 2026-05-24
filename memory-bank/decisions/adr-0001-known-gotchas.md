@@ -52,6 +52,34 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z476. COPR GSSAPI Auth Requires Python `requests-gssapi`
+
+**The Bug**: COPR release jobs successfully created a Fedora Kerberos ticket
+but `copr-cli` failed during upload with `Operation requires API authentication`
+and `The 'requests_gssapi' package is not installed`. Installing `copr-cli`
+from pip did not pull the optional GSSAPI HTTP auth dependency.
+
+**Files Affected**:
+- `.github/workflows/build-on-tag.yml`
+- `.github/workflows/release-copr.yml`
+- `packaging/scripts/validate-packaging-metadata.sh`
+
+**Wrong**:
+```bash
+pip3 install copr-cli rich
+```
+
+**Correct**:
+```bash
+pip3 install copr-cli rich requests-gssapi
+```
+
+**Why This Keeps Happening**: Token authentication uses only COPR's basic API
+config, but Kerberos authentication needs a Python GSSAPI transport plugin.
+`copr-cli` reports this only after a valid Kerberos cache exists and it reaches
+the COPR API, so dependency validation must check for `requests-gssapi`
+alongside the Kerberos workflow path.
+
 ### 0z475. GitHub Ubuntu Kerberos Must Explicitly Include Drop-In Config
 
 **The Bug**: COPR release jobs wrote Fedora Kerberos realm settings to
