@@ -52,6 +52,35 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z477. Python GSSAPI Builds Need `libkrb5-dev` On Ubuntu
+
+**The Bug**: After adding `requests-gssapi`, COPR release jobs failed during
+dependency installation because Python's `gssapi` package could not run
+`krb5-config --libs gssapi`. Ubuntu provides `krb5-config` from `libkrb5-dev`,
+not from the runtime Kerberos packages.
+
+**Files Affected**:
+- `.github/workflows/build-on-tag.yml`
+- `.github/workflows/release-copr.yml`
+- `packaging/scripts/validate-packaging-metadata.sh`
+
+**Wrong**:
+```bash
+sudo apt-get install -y krb5-user krb5-k5tls krb5-pkinit oathtool python3-pip
+pip3 install copr-cli rich requests-gssapi
+```
+
+**Correct**:
+```bash
+sudo apt-get install -y krb5-user krb5-k5tls krb5-pkinit libkrb5-dev oathtool python3-pip
+pip3 install copr-cli rich requests-gssapi
+```
+
+**Why This Keeps Happening**: Runtime Kerberos tools are enough for `kinit`,
+but pip's GSSAPI transport dependency may compile native bindings. Workflows
+that install `requests-gssapi` from pip on Ubuntu need the Kerberos development
+package as well as the runtime packages.
+
 ### 0z476. COPR GSSAPI Auth Requires Python `requests-gssapi`
 
 **The Bug**: COPR release jobs successfully created a Fedora Kerberos ticket
