@@ -52,6 +52,50 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z475. GitHub Ubuntu Kerberos Must Explicitly Include Drop-In Config
+
+**The Bug**: COPR release jobs wrote Fedora Kerberos realm settings to
+`/etc/krb5.conf.d/fedoraproject_org`, but GitHub's Ubuntu runner did not
+reliably source that directory from `/etc/krb5.conf`. After HTTPS KDC proxy
+support was installed, `kinit -n @FEDORAPROJECT.ORG` reached Fedora but failed
+with `No pkinit_anchors supplied` because the realm drop-in carrying
+`pkinit_anchors` was not active.
+
+**Files Affected**:
+- `.github/workflows/build-on-tag.yml`
+- `.github/workflows/release-copr.yml`
+- `packaging/scripts/validate-packaging-metadata.sh`
+
+**Wrong**:
+```bash
+sudo tee /etc/krb5.conf.d/fedoraproject_org >/dev/null <<'EOF'
+[realms]
+ FEDORAPROJECT.ORG = {
+  kdc = https://id.fedoraproject.org/KdcProxy
+  pkinit_anchors = FILE:/etc/ipa/ca.crt
+ }
+EOF
+```
+
+**Correct**:
+```bash
+if ! grep -Eq '^[[:space:]]*includedir[[:space:]]+/etc/krb5.conf.d/?[[:space:]]*$' /etc/krb5.conf; then
+  sudo sed -i '1iincludedir /etc/krb5.conf.d/' /etc/krb5.conf
+fi
+sudo tee /etc/krb5.conf.d/fedoraproject_org >/dev/null <<'EOF'
+[realms]
+ FEDORAPROJECT.ORG = {
+  kdc = https://id.fedoraproject.org/KdcProxy
+  pkinit_anchors = FILE:/etc/pki/ipa/fedoraproject_ipa_ca.crt
+ }
+EOF
+```
+
+**Why This Keeps Happening**: Fedora docs call out the `includedir` line as a
+required part of the Kerberos base config. GitHub Actions runners are not
+Fedora clients, so release workflows must assert that base config instead of
+assuming distro defaults will source drop-in realm files.
+
 ### 0z474. Ubuntu COPR Kerberos Needs HTTPS KDC Proxy Packages
 
 **The Bug**: COPR release jobs configured Fedora Kerberos with
