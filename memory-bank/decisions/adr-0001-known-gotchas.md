@@ -52,6 +52,37 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z480. COPR GSSAPI Must Use The Kerberized API Host
+
+**The Bug**: COPR release jobs used Kerberos/GSSAPI against
+`https://copr.fedorainfracloud.org`, but `requests-gssapi` failed because the
+KDC did not have `HTTP/copr.fedorainfracloud.org@FEDORAPROJECT.ORG`. The same
+COPR API is reachable through `https://copr.fedoraproject.org`, which matches
+Fedora infrastructure Kerberos service naming.
+
+**Files Affected**:
+- `.github/workflows/build-on-tag.yml`
+- `.github/workflows/release-copr.yml`
+
+**Wrong**:
+```ini
+[copr-cli]
+copr_url = https://copr.fedorainfracloud.org
+gssapi = true
+```
+
+**Correct**:
+```ini
+[copr-cli]
+copr_url = https://copr.fedoraproject.org
+gssapi = true
+```
+
+**Why This Keeps Happening**: COPR's public preferred URL and its Kerberos
+service principal host are not necessarily the same. Public unauthenticated API
+calls work on both hosts, but GSSAPI must target a host with a matching
+`HTTP/<host>@FEDORAPROJECT.ORG` service principal.
+
 ### 0z479. COPR GSSAPI Needs `fedorainfracloud.org` Realm Mapping
 
 **The Bug**: COPR release jobs acquired a Fedora Kerberos ticket, but
