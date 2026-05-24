@@ -84,7 +84,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   `requests-gssapi` so `copr-cli` can authenticate to the COPR API with the
   Kerberos ticket during tag and recovery uploads. The Kerberos realm mapping
   now covers COPR's `fedorainfracloud.org` API domain as well as Fedora identity
-  hosts. Standalone COPR recovery now uses the same existing-project upload
+  hosts, and GSSAPI auth now targets the kerberized `copr.fedoraproject.org`
+  API alias. Standalone COPR recovery now uses the same existing-project upload
   shape as tag releases instead of trying to recreate, modify, or override
   project settings during recovery, and emits COPR's server response when
   recovery uploads fail with non-JSON API output.
