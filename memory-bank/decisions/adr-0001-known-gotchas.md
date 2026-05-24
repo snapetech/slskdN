@@ -52,6 +52,35 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z474. Ubuntu COPR Kerberos Needs HTTPS KDC Proxy Packages
+
+**The Bug**: COPR release jobs configured Fedora Kerberos with
+`kdc = https://id.fedoraproject.org/KdcProxy` but installed only `krb5-user`.
+On Ubuntu runners, MIT Kerberos HTTPS KDC proxy support lives in a separate
+package, so `kinit` failed with `Cannot contact any KDC for realm
+'FEDORAPROJECT.ORG'` before credentials could be validated.
+
+**Files Affected**:
+- `.github/workflows/build-on-tag.yml`
+- `.github/workflows/release-copr.yml`
+- `packaging/scripts/validate-packaging-metadata.sh`
+
+**Wrong**:
+```bash
+sudo apt-get install -y ca-certificates krb5-user oathtool python3-pip rpm
+```
+
+**Correct**:
+```bash
+sudo apt-get install -y ca-certificates krb5-user krb5-k5tls krb5-pkinit oathtool python3-pip rpm
+```
+
+**Why This Keeps Happening**: Fedora Kerberos setup examples assume Fedora's
+package layout. Debian/Ubuntu splits optional MIT Kerberos HTTPS KDC proxy and
+PKINIT support into separate packages, so GitHub Actions runners need those
+packages installed explicitly before using Fedora's HTTPS KDC proxy and 2FA
+armor-ticket flow.
+
 ### 0z473. Standalone Release Rebuilds Must Create `wwwroot` Before Copying Web Assets
 
 **The Bug**: The standalone COPR workflow rebuilt the app and then copied
