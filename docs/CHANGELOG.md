@@ -33,7 +33,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   `requests-gssapi` so `copr-cli` can authenticate to the COPR API with the
   Kerberos ticket during tag and recovery uploads. Standalone COPR recovery now
   uses the same existing-project upload shape as tag releases instead of trying
-  to recreate, modify, or override project settings during recovery.
+  to recreate, modify, or override project settings during recovery, and emits
+  COPR's server response when recovery uploads fail with non-JSON API output.
 - Download auto-retry now skips non-audio sidecar files such as `cover.jpg`,
   keeping automatic retry budgets focused on audio tracks.
 - Completed downloads now default to the source remote folder/file layout

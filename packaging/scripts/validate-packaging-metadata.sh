@@ -113,7 +113,7 @@ expect_literal .github/workflows/release-copr.yml 'pkinit_anchors = FILE:/etc/pk
 expect_literal .github/workflows/build-on-tag.yml 'copr-cli rich requests-gssapi'
 expect_literal .github/workflows/release-copr.yml 'copr-cli rich requests-gssapi'
 expect_literal .github/workflows/release-copr.yml 'copr_project="slskdn/slskdn"'
-expect_literal .github/workflows/release-copr.yml 'copr-cli build --nowait "$copr_project" "$SRPM"'
+expect_literal .github/workflows/release-copr.yml 'copr-cli --debug build --nowait "$copr_project" "$SRPM"'
 reject_literal .github/workflows/release-copr.yml 'copr-cli create slskdn'
 reject_literal .github/workflows/release-copr.yml 'copr-cli modify slskdn'
 reject_literal .github/workflows/release-copr.yml 'copr_args'

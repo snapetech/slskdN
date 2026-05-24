@@ -224,4 +224,4 @@ jobs:
           
           SRPM=$(find ~/rpmbuild/SRPMS -name "*.src.rpm" | head -1)
           echo "Uploading SRPM to COPR: $SRPM"
-          copr-cli build --nowait "$copr_project" "$SRPM"
+          copr-cli --debug build --nowait "$copr_project" "$SRPM"
