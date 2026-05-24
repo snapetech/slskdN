@@ -52,6 +52,40 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z479. COPR GSSAPI Needs `fedorainfracloud.org` Realm Mapping
+
+**The Bug**: COPR release jobs acquired a Fedora Kerberos ticket, but
+`copr-cli` GSSAPI upload failed with `Server krbtgt/FEDORAINFRACLOUD.ORG@
+FEDORAPROJECT.ORG not found in Kerberos database`. The Kerberos config mapped
+`*.fedoraproject.org` to `FEDORAPROJECT.ORG` but did not map COPR's
+`copr.fedorainfracloud.org` host, so GSSAPI inferred the wrong service realm.
+
+**Files Affected**:
+- `.github/workflows/build-on-tag.yml`
+- `.github/workflows/release-copr.yml`
+- `packaging/scripts/validate-packaging-metadata.sh`
+
+**Wrong**:
+```ini
+[domain_realm]
+ .fedoraproject.org = FEDORAPROJECT.ORG
+ fedoraproject.org = FEDORAPROJECT.ORG
+```
+
+**Correct**:
+```ini
+[domain_realm]
+ .fedoraproject.org = FEDORAPROJECT.ORG
+ fedoraproject.org = FEDORAPROJECT.ORG
+ .fedorainfracloud.org = FEDORAPROJECT.ORG
+ fedorainfracloud.org = FEDORAPROJECT.ORG
+```
+
+**Why This Keeps Happening**: Fedora identity services and COPR API services
+live on different domains. The KDC and PKINIT setup can work while API GSSAPI
+still fails unless every service domain used by the release workflow is mapped
+to the Fedora Kerberos realm.
+
 ### 0z478. Standalone COPR Recovery Should Not Recreate Existing Projects
 
 **The Bug**: The standalone COPR recovery workflow tried to `get`, `modify`,
