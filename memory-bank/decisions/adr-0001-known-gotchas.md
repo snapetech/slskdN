@@ -52,6 +52,34 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z471. UDP Listener Tests Need Release-Gate Timing Headroom
+
+**The Bug**: A malformed-overlay UDP listener regression test used a short
+polling window and synchronous send loop, which passed in isolation but timed
+out during the full Release unit suite under release-gate load before the
+listener logged the expected malformed datagram.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/DhtRendezvous/SharedMeshUdpListenerTests.cs`
+
+**Wrong**:
+```csharp
+client.Send(payload, payload.Length, targetEndpoint);
+await WaitUntilAsync(predicate, TimeSpan.FromSeconds(3));
+```
+
+**Correct**:
+```csharp
+await client.SendAsync(payload, targetEndpoint);
+await WaitUntilAsync(predicate, TimeSpan.FromSeconds(10));
+```
+
+**Why This Keeps Happening**: UDP receive-loop tests can be sensitive to
+scheduler pressure when the full test suite runs in Release mode. A test that
+proves asynchronous listener behavior must give the listener enough wall-clock
+headroom and use async socket sends so the release gate is testing behavior
+instead of incidental scheduling timing.
+
 ### 0z470. Automatic Retry Loops Must Skip Non-Audio Sidecars
 
 **The Bug**: Auto-retry re-queued failed album sidecar files such as
