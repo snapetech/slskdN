@@ -134,22 +134,15 @@ public class SharedMeshUdpListenerTests
         // The listener's receive loop may not have reached ReceiveAsync yet when
         // Start() returns, so the first UDP datagram may be lost.
         await WaitUntilAsync(
-            () =>
+            async () =>
             {
-                try
-                {
-                    client.Send(payload, payload.Length, targetEndpoint);
-                }
-                catch
-                {
-                    // socket may be disposed; ignore
-                }
+                await client.SendAsync(payload, targetEndpoint);
 
                 return logger.Entries.ToArray().Any(entry =>
                     entry.Level == LogLevel.Information &&
                     entry.Message.Contains("Dropped malformed overlay datagram", StringComparison.Ordinal));
             },
-            TimeSpan.FromSeconds(3),
+            TimeSpan.FromSeconds(10),
             pollIntervalMs: 50);
 
         var logEntries = logger.Entries.ToArray();
@@ -161,17 +154,17 @@ public class SharedMeshUdpListenerTests
         Assert.Contains(logEntries, entry => entry.Level == LogLevel.Debug && entry.Exception is not null);
     }
 
-    private static async Task WaitUntilAsync(Func<bool> predicate, TimeSpan timeout, int pollIntervalMs = 25)
+    private static async Task WaitUntilAsync(Func<Task<bool>> predicate, TimeSpan timeout, int pollIntervalMs = 25)
     {
         var startedAt = DateTimeOffset.UtcNow;
         while (DateTimeOffset.UtcNow - startedAt < timeout)
         {
-            if (predicate())
+            if (await predicate().ConfigureAwait(false))
             {
                 return;
             }
 
-            await Task.Delay(pollIntervalMs);
+            await Task.Delay(pollIntervalMs).ConfigureAwait(false);
         }
 
         throw new TimeoutException("Timed out waiting for predicate.");
