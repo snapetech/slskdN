@@ -52,6 +52,32 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z473. Standalone Release Rebuilds Must Create `wwwroot` Before Copying Web Assets
+
+**The Bug**: The standalone COPR workflow rebuilt the app and then copied
+`src/web/build/*` into `publish-linux-x64/wwwroot/` without creating that
+directory first. Current `dotnet publish` output may not include `wwwroot`, so
+the manual COPR recovery workflow failed before reaching the auth/upload step.
+
+**Files Affected**:
+- `.github/workflows/release-copr.yml`
+
+**Wrong**:
+```bash
+cp -r src/web/build/* publish-linux-x64/wwwroot/
+```
+
+**Correct**:
+```bash
+mkdir -p publish-linux-x64/wwwroot
+cp -r src/web/build/* publish-linux-x64/wwwroot/
+```
+
+**Why This Keeps Happening**: Tag workflows often consume an already-packaged
+artifact, while standalone recovery workflows rebuild pieces from source. Any
+standalone package rebuild must prepare the same directory structure explicitly
+instead of assuming publish output contains web asset folders.
+
 ### 0z472. COPR Release Workflows Must Prefer Kerberos Over Expiring API Tokens
 
 **The Bug**: The main tag workflow configured COPR with `COPR_LOGIN` and
