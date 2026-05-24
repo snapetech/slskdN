@@ -618,16 +618,18 @@ jobs:
           set -euo pipefail
           mkdir -p ~/.config
 
-          if [[ -n "${COPR_KERBEROS_PRINCIPAL:-}" && -n "${COPR_KERBEROS_KEYTAB_B64:-}" ]]; then
-            echo "Configuring COPR with Kerberos keytab credentials."
-            sudo install -d -m 0755 /etc/ipa
-            curl -fsSL https://id.fedoraproject.org/ipa/config/ca.crt | sudo tee /etc/ipa/ca.crt >/dev/null
+          configure_fedora_kerberos() {
+            sudo install -d -m 0755 /etc/pki/ipa
+            curl -fsSL https://id.fedoraproject.org/ipa/config/ca.crt | sudo tee /etc/pki/ipa/fedoraproject_ipa_ca.crt >/dev/null
             sudo install -d -m 0755 /etc/krb5.conf.d
+            if ! grep -Eq '^[[:space:]]*includedir[[:space:]]+/etc/krb5.conf.d/?[[:space:]]*$' /etc/krb5.conf; then
+              sudo sed -i '1iincludedir /etc/krb5.conf.d/' /etc/krb5.conf
+            fi
             sudo tee /etc/krb5.conf.d/fedoraproject_org >/dev/null <<'EOF'
           [realms]
            FEDORAPROJECT.ORG = {
             kdc = https://id.fedoraproject.org/KdcProxy
-            pkinit_anchors = FILE:/etc/ipa/ca.crt
+            pkinit_anchors = FILE:/etc/pki/ipa/fedoraproject_ipa_ca.crt
            }
 
           [domain_realm]
@@ -635,6 +637,11 @@ jobs:
            fedoraproject.org = FEDORAPROJECT.ORG
           EOF
             sudo sed -i '/^\[libdefaults\]/a\  dns_lookup_realm = false\n  rdns = false\n  dns_canonicalize_hostname = false' /etc/krb5.conf
+          }
+
+          if [[ -n "${COPR_KERBEROS_PRINCIPAL:-}" && -n "${COPR_KERBEROS_KEYTAB_B64:-}" ]]; then
+            echo "Configuring COPR with Kerberos keytab credentials."
+            configure_fedora_kerberos
 
             keytab="$RUNNER_TEMP/copr.keytab"
             ccache="$RUNNER_TEMP/copr.krb5cc"
@@ -651,21 +658,7 @@ jobs:
           EOF
           elif [[ -n "${COPR_FEDORA_USERNAME:-}" && -n "${COPR_FEDORA_PASSWORD:-}" && -n "${COPR_FEDORA_OTP_SECRET:-}" ]]; then
             echo "Configuring COPR with Fedora Kerberos password+OTP credentials."
-            sudo install -d -m 0755 /etc/ipa
-            curl -fsSL https://id.fedoraproject.org/ipa/config/ca.crt | sudo tee /etc/ipa/ca.crt >/dev/null
-            sudo install -d -m 0755 /etc/krb5.conf.d
-            sudo tee /etc/krb5.conf.d/fedoraproject_org >/dev/null <<'EOF'
-          [realms]
-           FEDORAPROJECT.ORG = {
-            kdc = https://id.fedoraproject.org/KdcProxy
-            pkinit_anchors = FILE:/etc/ipa/ca.crt
-           }
-
-          [domain_realm]
-           .fedoraproject.org = FEDORAPROJECT.ORG
-           fedoraproject.org = FEDORAPROJECT.ORG
-          EOF
-            sudo sed -i '/^\[libdefaults\]/a\  dns_lookup_realm = false\n  rdns = false\n  dns_canonicalize_hostname = false' /etc/krb5.conf
+            configure_fedora_kerberos
             ccache="$RUNNER_TEMP/copr.krb5cc"
             armor="$RUNNER_TEMP/copr.krb5cc.armor"
             otp="$(oathtool --totp --base32 "$COPR_FEDORA_OTP_SECRET")"
