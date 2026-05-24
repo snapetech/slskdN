@@ -52,6 +52,39 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z478. Standalone COPR Recovery Should Not Recreate Existing Projects
+
+**The Bug**: The standalone COPR recovery workflow tried to `get`, `modify`,
+or `create` the COPR project before uploading the SRPM. Under Kerberos/GSSAPI,
+the project-management fallback turned a recoverable `get` miss or API response
+problem into a hard failure before the build upload was attempted, while the
+main tag workflow simply uploaded to the existing `slskdn/slskdn` project.
+
+**Files Affected**:
+- `.github/workflows/release-copr.yml`
+- `packaging/scripts/validate-packaging-metadata.sh`
+
+**Wrong**:
+```bash
+if copr-cli get slskdn >/dev/null 2>&1; then
+  copr-cli modify slskdn ...
+else
+  copr-cli create slskdn ...
+fi
+copr-cli build ... slskdn "$SRPM"
+```
+
+**Correct**:
+```bash
+copr-cli get slskdn/slskdn >/dev/null
+copr-cli build ... slskdn/slskdn "$SRPM"
+```
+
+**Why This Keeps Happening**: Recovery workflows should repair or repeat the
+failed upload, not mutate long-lived service configuration. Keep project setup
+out of recovery uploads unless the task is explicitly to bootstrap a new COPR
+project.
+
 ### 0z477. Python GSSAPI Builds Need `libkrb5-dev` On Ubuntu
 
 **The Bug**: After adding `requests-gssapi`, COPR release jobs failed during
