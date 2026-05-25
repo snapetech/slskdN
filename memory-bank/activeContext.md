@@ -1,21 +1,26 @@
-## Update 2026-05-25 02:35:11Z
+## Update 2026-05-25 02:57:06Z
 
-- Current task: Tester-feedback build deployed to the live Docker host.
+- Current task: Live log rescan and cleanup fixes deployed.
 - Last activity:
-  - Published manual Linux x64 payload `0.0.0-manual.20260525023030.9a06ffa8cea0`.
-  - Built replacement Docker image `slskdn:0.0.0-manual.20260525023030.9a06ffa8cea0` from the previous live base and restarted the live service with that image.
-  - Verified the staged apphost, image metadata, and running container all report the same manual version.
-  - Confirmed no release tags were created.
+  - Resampled live logs after the tester-feedback deployment.
+  - Fixed rescue mode spending work on non-audio sidecars by filtering rescue eligibility to safe audio extensions.
+  - Downgraded startup DHT re-announce-before-ready from warning to deferred/info because the normal DHT loop announces once ready.
+  - Changed Lidarr wanted-sync `HttpClient.Timeout` handling to log concise unavailable messages instead of warning stack traces.
+  - Documented ADR-0001 gotchas `0z483` and `0z484`; updated the existing Lidarr external-timeout gotcha `0z426`.
+  - Deployed manual image `slskdn:0.0.0-manual.20260525025408.ee802eb0347e`; no release tags were created.
 - Validation:
-  - Passed: Docker container is `healthy`.
-  - Passed: service is `active/running` with restart count zero after the manual restart.
-  - Passed: Web root returns HTTP 200.
-  - Passed: `/health` returns HTTP 200 with body `Healthy`.
-  - Passed: fresh logs since restart show no error/fatal entries and no recurrence of `tracked by the Soulseek client but not slskd` or the specific TauAs blocked paths.
-  - Observed: warning-level logs are limited to the existing public-DHT hardening notice and one Lidarr wanted-sync timeout; info-level remote transfer failures remain peer availability outcomes.
+  - Passed: focused Lidarr/DHT/rescue lifecycle tests (`51/51`).
+  - Passed: `./bin/lint`.
+  - Passed: `git diff --check`.
+  - Passed: release build and publish with `0 Warning(s), 0 Error(s)`.
+  - Passed: staged apphost and running container version match.
+  - Passed: Docker container is `healthy`, service is `active/running`, restart count zero.
+  - Passed: Web root returns HTTP 200 and `/health` returns `Healthy`.
+  - Passed: fresh post-restart logs show `err=0`, `ftl=0`, `dht_not_ready_warning=0`, `lidarr_timeout_stack=0`, `rescue_sidecar=0`, `tracked_not_slskd=0`, `tau_matches=0`.
+  - Observed: only remaining warning is the intentional public-DHT hardening notice.
 - Next steps:
-  1. Continue live browser/download testing for Wishlist new-results filtering and timed-out download retry.
-  2. Recheck logs after a manual retry attempt creates fresh auto-retry/download activity.
+  1. Exercise the original tester flows in the live UI: Wishlist new-results filter/edit loop and manual retry of a timed-out download.
+  2. Recheck logs after those manual actions create fresh download/retry activity.
 
 ## Update 2026-05-23 22:29:47Z
 
