@@ -43,9 +43,9 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
-    "@types/node": "^25.9.0",
+    "@types/node": "^25.9.1",
     "@vitejs/plugin-react": "^6.0.2",
-    "@vitest/coverage-v8": "^4.1.6",
+    "@vitest/coverage-v8": "^4.1.7",
     "esbuild": "^0.28.0",
     "eslint": "^9.39.4",
     "eslint-config-canonical": "^47.4.2",
@@ -56,8 +56,8 @@
     "jsdom": "^29.1.1",
     "less": "^4.6.4",
     "typescript": "^6.0.3",
-    "vite": "^8.0.13",
-    "vitest": "^4.1.6"
+    "vite": "^8.0.14",
+    "vitest": "^4.1.7"
   },
   "name": "web",
   "overrides": {
