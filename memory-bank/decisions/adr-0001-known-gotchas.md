@@ -52,6 +52,46 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z485. Transfer Activity Must Preserve Request Identity
+
+**The Bug**: Live transfer state/progress events omitted `RequestId`, while the
+Downloads UI keyed request-backed rows by `requestId`. A REST-seeded request row
+could receive a SignalR activity/progress event under the legacy
+direction/user/filename key, creating a temporary duplicate or row jump until
+the periodic reconcile cleared it.
+
+**Files Affected**:
+- `src/slskd/Transfers/API/DTO/TransferActivity.cs`
+- `src/slskd/Application.cs`
+- `src/web/src/lib/transferStore.js`
+
+**Wrong**:
+```csharp
+var progress = TransferActivity.FromTransferProgress(xfer);
+```
+
+```js
+const key = transferKey(event);
+const existing = entries.get(key);
+```
+
+**Correct**:
+```csharp
+var progress = TransferActivity.FromTransferProgress(xfer, ResolveTransferRecord(xfer));
+```
+
+```js
+const key = findExistingKey(event);
+const desiredKey = event.requestId ? transferKey(event) : key;
+const existing = entries.get(key);
+```
+
+**Why This Keeps Happening**: The backend and frontend both support the legacy
+composite transfer identity, but download requests introduced a newer stable
+identity. Every realtime transfer event must carry the request id when it can be
+resolved, and the client must tolerate older/missing events without moving a row
+back to the legacy key.
+
 ### 0z484. Startup DHT Re-Announce Before Ready Is Not A Warning
 
 **The Bug**: VPN forwarded-port change events can request a DHT re-announce
