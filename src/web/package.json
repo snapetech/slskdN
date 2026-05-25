@@ -28,7 +28,7 @@
     "react-responsive": "^10.0.1",
     "react-router-dom": "^7.15.1",
     "react-toastify": "^11.1.0",
-    "react-window": "^1.8.11",
+    "react-window": "^2.2.7",
     "semantic-ui-less": "^2.5.0",
     "semantic-ui-react": "^2.1.5",
     "signalr": "^2.4.1",
