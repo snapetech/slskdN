@@ -32,6 +32,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   keeping mesh/multi-source recovery work focused on audio transfers.
 - Startup DHT re-announces requested before the DHT engine reaches `Ready` now
   log as deferred instead of warning-level failures.
+- Lidarr wanted-sync `HttpClient.Timeout` failures now log concise
+  unavailability messages instead of warning-level stack traces.
 - Main release COPR publishing now prefers Kerberos credentials before legacy
   API token secrets, so stale tokens cannot shadow the configured Fedora
   Kerberos path.

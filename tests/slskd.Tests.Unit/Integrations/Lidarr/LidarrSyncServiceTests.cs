@@ -79,6 +79,14 @@ public class LidarrSyncServiceTests
     }
 
     [Fact]
+    public void IsHttpClientTimeout_ReturnsTrue_ForHttpClientTimeout()
+    {
+        var ex = new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout of 60 seconds elapsing.");
+
+        Assert.True(LidarrSyncService.IsHttpClientTimeout(ex));
+    }
+
+    [Fact]
     public void IsExpectedExternalHttpFailure_ReturnsFalse_ForUnexpectedException()
     {
         var ex = new InvalidOperationException("local bug");

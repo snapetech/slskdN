@@ -157,6 +157,11 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
             {
                 break;
             }
+            catch (OperationCanceledException ex) when (IsHttpClientTimeout(ex))
+            {
+                Log.Information("Lidarr wanted sync unavailable: {Message}", ex.Message);
+                SyncState.LastError = ex.Message;
+            }
             catch (Exception ex) when (IsExpectedExternalHttpFailure(ex))
             {
                 Log.Information("Lidarr wanted sync unavailable: {Message}", ex.Message);
@@ -179,6 +184,9 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
 
     internal static bool IsExpectedExternalHttpFailure(Exception ex)
         => ex is HttpRequestException || ex.InnerException is HttpRequestException;
+
+    internal static bool IsHttpClientTimeout(OperationCanceledException exception)
+        => exception.Message.Contains("HttpClient.Timeout", StringComparison.Ordinal);
 }
 
 public sealed record LidarrSyncResult
