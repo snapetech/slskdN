@@ -2931,6 +2931,7 @@
 - [2026-05-23T22:29:47Z] Completed: inspect live logs after the completed-layout deploy and patch auto-retry so non-audio sidecars such as `cover.jpg` are skipped by background retry planning.
 - [2026-05-23T22:34:06Z] Completed: deploy sidecar auto-retry cleanup as manual image `slskdn:0.0.0-manual.20260523223105.649fd40c72fb` and verify fresh logs have no warnings, errors, sidecar retry churn, or AudioSketch sidecar probes.
 - [2026-05-25T02:21:52Z] Completed: fix tester-reported Wishlist new-results workflow and timed-out download retry ghost state; opening result links no longer auto-marks entries viewed, enqueue timeouts cancel underlying Soulseek download tokens, and completed Soulseek client transfers no longer block retry.
+- [2026-05-25T02:35:11Z] Completed: deploy the tester-feedback build to the live Docker host as manual image `slskdn:0.0.0-manual.20260525023030.9a06ffa8cea0`; verify app/image version match, Docker health, Web root, `/health`, restart count zero, and fresh post-restart logs.
 
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 

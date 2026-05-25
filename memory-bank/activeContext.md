@@ -1,19 +1,21 @@
-## Update 2026-05-25 02:21:52Z
+## Update 2026-05-25 02:35:11Z
 
-- Current task: Tester-reported Wishlist new-results workflow and timed-out download retry ghost-state fix complete locally.
+- Current task: Tester-feedback build deployed to the live Docker host.
 - Last activity:
-  - Changed Wishlist result/history links so opening search results no longer marks an item viewed automatically; the new-results badge is cleared only by explicit per-item or bulk mark-viewed actions.
-  - Fixed remote enqueue timeout cleanup so slskd cancels the underlying Soulseek download token when a local enqueue wait times out.
-  - Tightened duplicate checks so terminal completed Soulseek client transfers do not block retry when slskd has no active record.
-  - Documented ADR-0001 gotchas `0z481` and `0z482` and committed the docs-only entry as `ff1f320f9`.
+  - Published manual Linux x64 payload `0.0.0-manual.20260525023030.9a06ffa8cea0`.
+  - Built replacement Docker image `slskdn:0.0.0-manual.20260525023030.9a06ffa8cea0` from the previous live base and restarted the live service with that image.
+  - Verified the staged apphost, image metadata, and running container all report the same manual version.
+  - Confirmed no release tags were created.
 - Validation:
-  - Passed: focused `DownloadServiceTests` (`34/34`).
-  - Passed: focused Wishlist Vitest (`9/9`).
-  - Passed: full `dotnet test` (`4571/4571`: 68 smoke, 4225 unit, 278 integration).
-  - Passed: `./bin/lint`.
+  - Passed: Docker container is `healthy`.
+  - Passed: service is `active/running` with restart count zero after the manual restart.
+  - Passed: Web root returns HTTP 200.
+  - Passed: `/health` returns HTTP 200 with body `Healthy`.
+  - Passed: fresh logs since restart show no error/fatal entries and no recurrence of `tracked by the Soulseek client but not slskd` or the specific TauAs blocked paths.
+  - Observed: warning-level logs are limited to the existing public-DHT hardening notice and one Lidarr wanted-sync timeout; info-level remote transfer failures remain peer availability outcomes.
 - Next steps:
-  1. Commit the code and memory-bank updates.
-  2. Build/deploy when requested; no release tags were created.
+  1. Continue live browser/download testing for Wishlist new-results filtering and timed-out download retry.
+  2. Recheck logs after a manual retry attempt creates fresh auto-retry/download activity.
 
 ## Update 2026-05-23 22:29:47Z
 
