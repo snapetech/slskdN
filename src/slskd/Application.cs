@@ -2063,7 +2063,7 @@ namespace slskd
 
             TransferProgressLastEmitTicks[key] = now;
 
-            var progress = TransferActivity.FromTransferProgress(xfer);
+            var progress = TransferActivity.FromTransferProgress(xfer, ResolveTransferRecord(xfer));
             _ = ObserveBackgroundTaskAsync(
                 TransferHubExtensions.EmitTransferProgressAsync(TransfersHub, progress),
                 "Failed to broadcast transfer progress for {Filename} from {Username}",

@@ -113,6 +113,39 @@ describe('transferStore', () => {
     expect(rows[0].filename).toBe('Different/Path/song.flac');
   });
 
+  it('patches a request-keyed row from a legacy activity event with only the transfer id', () => {
+    const store = createTransferStore();
+    store.seed([{ ...baseTransfer, requestId: 'req-1', id: 'id-1' }]);
+
+    store.applyActivity({
+      ...baseTransfer,
+      id: 'id-1',
+      state: 'InProgress',
+    });
+
+    const rows = store.getAll();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].requestId).toBe('req-1');
+    expect(rows[0].state).toBe('InProgress');
+  });
+
+  it('patches a request-keyed row from a progress event without request metadata', () => {
+    const store = createTransferStore();
+    store.seed([{ ...baseTransfer, requestId: 'req-1', id: 'id-1' }]);
+
+    store.applyProgress({
+      ...baseTransfer,
+      bytesTransferred: 25,
+      percentComplete: 25,
+      state: 'InProgress',
+    });
+
+    const rows = store.getAll();
+    expect(rows).toHaveLength(1);
+    expect(rows[0].requestId).toBe('req-1');
+    expect(rows[0].percentComplete).toBe(25);
+  });
+
   it('ignores a removed event for the previous attempt after the new one has taken over', () => {
     const store = createTransferStore();
     store.seed([{ ...baseTransfer, requestId: 'req-1', id: 'id-2' }]);

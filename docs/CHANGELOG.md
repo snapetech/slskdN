@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Downloads realtime updates now preserve `RequestId` on transfer activity and
+  progress events, preventing request-backed rows from duplicating or jumping
+  between live SignalR updates and periodic REST reconcile.
 - Wishlist result links and inline search-history expansion no longer
   automatically clear new-results badges, so users can inspect results, return
   to a "New results" filtered Wishlist, and edit the saved filter explicitly.

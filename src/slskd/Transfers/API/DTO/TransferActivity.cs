@@ -27,6 +27,12 @@ namespace slskd.Transfers.API
         public Guid? Id { get; set; }
 
         /// <summary>
+        ///     Gets the owning DownloadRequest id, when this activity belongs to a
+        ///     request-backed download.
+        /// </summary>
+        public Guid? RequestId { get; set; }
+
+        /// <summary>
         ///     Gets the transfer direction.
         /// </summary>
         public TransferDirection Direction { get; set; }
@@ -88,6 +94,7 @@ namespace slskd.Transfers.API
             return new TransferActivity
             {
                 Id = record?.Id,
+                RequestId = record?.RequestId,
                 Direction = transfer.Direction,
                 Username = transfer.Username,
                 Filename = transfer.Filename,
@@ -105,11 +112,14 @@ namespace slskd.Transfers.API
         ///     Creates a progress-sample TransferActivity from a Soulseek Transfer.
         /// </summary>
         /// <param name="transfer">The Soulseek transfer.</param>
+        /// <param name="record">The resolved persisted record, if available, used to enrich id and request identity.</param>
         /// <returns>A TransferActivity instance representing the current progress.</returns>
-        public static TransferActivity FromTransferProgress(Soulseek.Transfer transfer)
+        public static TransferActivity FromTransferProgress(Soulseek.Transfer transfer, global::slskd.Transfers.Transfer? record = null)
         {
             return new TransferActivity
             {
+                Id = record?.Id,
+                RequestId = record?.RequestId,
                 Direction = transfer.Direction,
                 Username = transfer.Username,
                 Filename = transfer.Filename,

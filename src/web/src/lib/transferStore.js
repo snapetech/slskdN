@@ -28,6 +28,10 @@ export const transferKey = (t) => {
     return `req|${t.requestId}`;
   }
 
+  return transferCompositeKey(t);
+};
+
+const transferCompositeKey = (t) => {
   return `${norm(t?.direction)}|${t?.username ?? ''}|${t?.filename ?? ''}`;
 };
 
@@ -37,6 +41,7 @@ const PATCH_FIELDS = [
   'bytesTransferred',
   'averageSpeed',
   'percentComplete',
+  'requestId',
 ];
 
 export const createTransferStore = () => {
@@ -85,20 +90,50 @@ export const createTransferStore = () => {
     bump();
   };
 
+  const findExistingKey = (event) => {
+    const key = transferKey(event);
+    if (entries.has(key)) {
+      return key;
+    }
+
+    const compositeKey = transferCompositeKey(event);
+    if (entries.has(compositeKey)) {
+      return compositeKey;
+    }
+
+    for (const [entryKey, entry] of entries) {
+      if (event.id && entry.id && event.id === entry.id) {
+        return entryKey;
+      }
+
+      if (
+        entry.direction !== undefined &&
+        norm(entry.direction) === norm(event.direction) &&
+        entry.username === event.username &&
+        entry.filename === event.filename
+      ) {
+        return entryKey;
+      }
+    }
+
+    return key;
+  };
+
   const patch = (event, { allowCreate }) => {
     if (!event || !event.filename) {
       return;
     }
 
-    const key = transferKey(event);
+    const key = findExistingKey(event);
     const existing = entries.get(key);
+    const desiredKey = event.requestId ? transferKey(event) : key;
 
     if (!existing) {
       if (!allowCreate) {
         return;
       }
 
-      entries.set(key, { ...event });
+      entries.set(desiredKey, { ...event });
       bump();
       return;
     }
@@ -142,7 +177,11 @@ export const createTransferStore = () => {
     }
 
     if (changed) {
-      entries.set(key, next);
+      if (key !== desiredKey) {
+        entries.delete(key);
+      }
+
+      entries.set(desiredKey, next);
       bump();
     }
   };

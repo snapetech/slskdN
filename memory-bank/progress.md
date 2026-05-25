@@ -1,3 +1,11 @@
+## 2026-05-25
+
+- Fixed a concrete Downloads-page row churn bug from Bas's tester feedback. REST snapshots keyed download rows by stable `RequestId`, but live transfer activity/progress events omitted that id, so request-backed rows could duplicate or jump under the legacy direction/user/filename key until the 15-second reconcile corrected them.
+- Added `RequestId` to transfer activity events, resolved persisted transfer records for throttled progress events, and hardened the Web transfer store to patch existing request rows when older events arrive without request metadata.
+- Documented ADR-0001 gotcha `0z485` and committed the docs-only entry as `abfe4166f`.
+- Validation passed: focused transfer-store Vitest (`13/13`), frontend lint, focused backend transfer tests (`67/67`), full `dotnet test` (`4577/4577`: 68 smoke, 4231 unit, 278 integration), `./bin/lint`, and `git diff --check`.
+- Direct-download failures from specific peers remain evidence-needed: one failed username, remote filename, UI transfer state, and nearby daemon log lines are still required to separate local regressions from peer-side closes or share-gate behavior.
+
 ## 2026-05-23
 
 - Fixed tester-reported Wishlist filter edits reverting after a search execution. Search completion now saves only tracked stat/state changes instead of calling whole-entity `Update(item)`, so stale in-flight search workers cannot overwrite newer user-edited filters. Background wishlist cycles reload each queued item before execution and skip items that were disabled after the queue was built.

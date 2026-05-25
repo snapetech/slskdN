@@ -1,3 +1,23 @@
+## Update 2026-05-25 19:50:39Z
+
+- Current task: Bas tester feedback triage; Downloads row-churn fix complete locally.
+- Last activity:
+  - Triaged Bas's feedback about continued peer download failures and Downloads page instability.
+  - Found and fixed a concrete Downloads row identity bug: SignalR transfer state/progress events did not carry `RequestId`, while REST snapshots and the Web store keyed request-backed rows by `RequestId`.
+  - Added `RequestId` to `TransferActivity`, enriched progress events with the persisted transfer record when available, and made the Web transfer store patch existing request rows when legacy/missing-identity events arrive.
+  - Added transfer-store regressions for request-keyed rows receiving legacy activity/progress events.
+  - Documented ADR-0001 gotcha `0z485` and committed it as `abfe4166f`.
+- Validation:
+  - Passed: focused transfer-store Vitest (`13/13`).
+  - Passed: frontend lint with `--max-warnings=0`.
+  - Passed: focused backend transfer tests (`67/67`).
+  - Passed: full `dotnet test` (`4577/4577`: 68 smoke, 4231 unit, 278 integration).
+  - Passed: `./bin/lint`.
+  - Passed: `git diff --check`.
+- Next steps:
+  1. Deploy/re-test Downloads under live transfer activity to confirm rows no longer duplicate or jump between reconcile ticks.
+  2. Collect one failed direct-download sample from a tester: username, exact remote filename, UI state, and nearby daemon log lines.
+
 ## Update 2026-05-25 02:57:06Z
 
 - Current task: Live log rescan and cleanup fixes deployed.
