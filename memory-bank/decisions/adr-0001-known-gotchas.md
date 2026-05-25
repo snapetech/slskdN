@@ -52,6 +52,39 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z484. Startup DHT Re-Announce Before Ready Is Not A Warning
+
+**The Bug**: VPN forwarded-port change events can request a DHT re-announce
+while the DHT engine is still `Initialising`, producing warning-level startup
+noise even though the normal DHT loop announces once the engine reaches
+`Ready`.
+
+**Files Affected**:
+- `src/slskd/DhtRendezvous/DhtRendezvousService.cs`
+
+**Wrong**:
+```csharp
+if (_dhtEngine is null || _dhtEngine.State != DhtState.Ready)
+{
+    _logger.LogWarning("Cannot announce - DHT not ready (state: {State})", _dhtEngine?.State);
+    return Task.CompletedTask;
+}
+```
+
+**Correct**:
+```csharp
+if (_dhtEngine is null || _dhtEngine.State != DhtState.Ready)
+{
+    _logger.LogInformation("DHT announce deferred until ready (state: {State})", _dhtEngine?.State);
+    return Task.CompletedTask;
+}
+```
+
+**Why This Keeps Happening**: Startup event ordering is not the same as a
+runtime failure. Anything that is retried by a normal readiness loop should log
+as deferred/diagnostic unless readiness fails after the configured bootstrap
+grace period.
+
 ### 0z483. Rescue Mode Must Ignore Non-Audio Sidecars
 
 **The Bug**: The underperformance detector triggered rescue mode for queued
