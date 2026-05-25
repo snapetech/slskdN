@@ -1,3 +1,24 @@
+## Update 2026-05-25 20:04:29Z
+
+- Current task: Downloads request-identity fix deployed and verified on the live Docker host.
+- Last activity:
+  - Built release-shaped Web/backend payload `0.0.0-manual.20260525195707.9654eac5f35d` from `9654eac5f35d`.
+  - Published Linux x64 self-contained output and built replacement Docker image `slskdn:0.0.0-manual.20260525195707.9654eac5f35d` from the previous live image to preserve optional tools and hardening.
+  - Updated the live `slskd.service` image tag and restarted the service; no release tags were created.
+  - Verified the running app and image report the matching manual version.
+  - Verified `/`, `/downloads`, `/uploads`, `/wishlist`, `/searches`, the main JS/CSS, and the rebuilt Transfers JS/CSS return HTTP 200.
+  - Confirmed the deployed Transfers chunk contains the new request-id handling.
+  - Confirmed optional media tools checked in the previous image remain available.
+- Validation:
+  - Passed: local release build with `0 Warning(s), 0 Error(s)`.
+  - Passed: Docker health `healthy`, restart count zero, service `active/running`.
+  - Passed: `/health=Healthy`.
+  - Passed: current-process log scan after startup under live transfer activity had `err=0`, `wrn=0`, `ftl=0`, `tracked_not_slskd=0`.
+  - Observed: one info-level remote peer unavailable download and one info-level Lidarr timeout; no warning/error/fatal entries from the new process.
+- Next steps:
+  1. Collect one failed direct-download sample from a tester: username, exact remote filename, UI state, and nearby daemon log lines.
+  2. Have a user watch Downloads during active album queues to confirm rows no longer duplicate or jump between reconcile ticks.
+
 ## Update 2026-05-25 19:50:39Z
 
 - Current task: Bas tester feedback triage; Downloads row-churn fix complete locally.

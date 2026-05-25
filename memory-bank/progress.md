@@ -4,6 +4,7 @@
 - Added `RequestId` to transfer activity events, resolved persisted transfer records for throttled progress events, and hardened the Web transfer store to patch existing request rows when older events arrive without request metadata.
 - Documented ADR-0001 gotcha `0z485` and committed the docs-only entry as `abfe4166f`.
 - Validation passed: focused transfer-store Vitest (`13/13`), frontend lint, focused backend transfer tests (`67/67`), full `dotnet test` (`4577/4577`: 68 smoke, 4231 unit, 278 integration), `./bin/lint`, and `git diff --check`.
+- Deployed manual image `slskdn:0.0.0-manual.20260525195707.9654eac5f35d` to the live Docker host without creating release tags. Validation passed: image/app version match, Docker health `healthy`, restart count zero, `/health=Healthy`, route checks for `/`, `/downloads`, `/uploads`, `/wishlist`, and `/searches`, direct HTTP 200 checks for the rebuilt main and Transfers assets, preserved optional media tools, and a two-minute current-process log soak with no warning/error/fatal entries and no `tracked by the Soulseek client but not slskd` recurrence.
 - Direct-download failures from specific peers remain evidence-needed: one failed username, remote filename, UI transfer state, and nearby daemon log lines are still required to separate local regressions from peer-side closes or share-gate behavior.
 
 ## 2026-05-23
