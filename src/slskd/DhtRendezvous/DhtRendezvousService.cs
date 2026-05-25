@@ -875,7 +875,7 @@ public sealed class DhtRendezvousService : BackgroundService, IDhtRendezvousServ
 
         if (_dhtEngine is null || _dhtEngine.State != DhtState.Ready)
         {
-            _logger.LogWarning("Cannot announce - DHT not ready (state: {State})", _dhtEngine?.State);
+            _logger.LogInformation("DHT announce deferred until ready (state: {State})", _dhtEngine?.State);
             return Task.CompletedTask;
         }
 
