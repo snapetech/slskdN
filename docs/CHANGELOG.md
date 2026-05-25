@@ -28,6 +28,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Timed-out download enqueue attempts now cancel the underlying Soulseek
   download operation, and terminal Soulseek client transfer snapshots no longer
   block retry when slskd has no active transfer record.
+- Rescue mode now skips non-audio sidecar files such as `large_cover.jpg`,
+  keeping mesh/multi-source recovery work focused on audio transfers.
 - Main release COPR publishing now prefers Kerberos credentials before legacy
   API token secrets, so stale tokens cannot shadow the configured Fedora
   Kerberos path.

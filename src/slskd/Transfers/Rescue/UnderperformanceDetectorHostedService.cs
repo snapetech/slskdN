@@ -11,6 +11,7 @@ namespace slskd.Transfers.Rescue
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Options;
     using Serilog;
+    using slskd.Common.Security;
     using slskd.Transfers.Downloads;
     using Soulseek;
 
@@ -122,6 +123,8 @@ namespace slskd.Transfers.Rescue
                     foreach (var t in active)
                     {
                         if (ct.IsCancellationRequested) break;
+                        if (!IsRescueEligibleFile(t.Filename)) continue;
+
                         var idStr = t.Id.ToString();
                         if (rescueService.IsRescueActive(idStr)) continue;
                         if (ShouldSkipRecentRescueAttempt(t.Id, DateTime.UtcNow)) continue;
@@ -187,6 +190,9 @@ namespace slskd.Transfers.Rescue
                 }
             }
         }
+
+        internal static bool IsRescueEligibleFile(string filename)
+            => PathGuard.HasSafeAudioExtension(filename);
 
         private async Task TriggerRescueAsync(slskd.Transfers.Transfer t, UnderperformanceReason reason, CancellationToken ct)
         {

@@ -226,6 +226,17 @@ public class HostedServiceLifecycleTests
         Assert.False(service.ShouldSkipRecentRescueAttempt(transferId, now.AddMinutes(6)));
     }
 
+    [Theory]
+    [InlineData(@"Album\cover.jpg", false)]
+    [InlineData(@"Album\large_cover.jpg", false)]
+    [InlineData(@"Album\booklet.pdf", false)]
+    [InlineData(@"Album\01 Track.flac", true)]
+    [InlineData(@"Album\02 Track.mp3", true)]
+    public void UnderperformanceDetectorHostedService_RescueEligibilitySkipsNonAudioSidecars(string filename, bool expected)
+    {
+        Assert.Equal(expected, UnderperformanceDetectorHostedService.IsRescueEligibleFile(filename));
+    }
+
     [Fact]
     public async Task SoulseekHealthMonitor_StartAsync_CancelsPreviousMonitoringTokenSource()
     {
