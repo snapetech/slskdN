@@ -52,6 +52,62 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z482. Wishlist Result Links Must Not Auto-Clear New Badges
+
+**The Bug**: Opening Wishlist search results or expanding linked search history
+automatically called `mark-viewed`, so entries disappeared from the "New
+results" filtered Wishlist view before users could edit filters based on what
+they just inspected.
+
+**Files Affected**:
+- `src/web/src/components/Wishlist/Wishlist.jsx`
+
+**Wrong**:
+```jsx
+<Link onClick={() => unseenCount > 0 && onMarkViewed(item.id)} to={getSearchLink(item)}>
+  ...
+</Link>
+```
+
+**Correct**:
+```jsx
+<Link to={getSearchLink(item)}>
+  ...
+</Link>
+```
+
+**Why This Keeps Happening**: "Viewed" sounds like it should follow opening a
+result page, but Wishlist's "New results" filter is an operator work queue.
+Clearing it must remain an explicit action (`Mark viewed` or `Mark all viewed`)
+so users can inspect results, return, and refine the saved filter.
+
+### 0z481. Timed-Out Enqueue Must Cancel The Underlying Soulseek Download
+
+**The Bug**: The download enqueue acknowledgement timeout marked the slskd
+transfer record as terminal, but it did not cancel the still-running
+Soulseek.NET download task. Removing the timed-out row and retrying could then
+hit `tracked by the Soulseek client but not slskd` because Soulseek.NET still
+held the file in its active download snapshot.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+
+**Wrong**:
+```csharp
+enqueuedTcs.TrySetException(new TimeoutException("Download failed to enqueue remotely"));
+```
+
+**Correct**:
+```csharp
+enqueuedTcs.TrySetException(new TimeoutException("Download failed to enqueue remotely"));
+CancelTrackedDownload(transfer.Id, transfer.Filename, username, "remote enqueue acknowledgement timed out");
+```
+
+**Why This Keeps Happening**: slskd tracks local transfer records separately
+from Soulseek.NET's internal transfer dictionary. Any path that makes a local
+transfer terminal while a Soulseek operation is still pending must also cancel
+the token driving that Soulseek operation, or retry logic sees a ghost transfer.
+
 ### 0z480. COPR GSSAPI Must Use The Kerberized API Host
 
 **The Bug**: COPR release jobs used Kerberos/GSSAPI against
