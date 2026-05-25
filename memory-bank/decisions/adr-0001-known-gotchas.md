@@ -1978,15 +1978,18 @@ miss DNS rebinding and ordinary hostnames resolving to non-public ranges. Use
 the shared outbound guard for every operator-configured external HTTP endpoint,
 and prefer guarded no-redirect HTTP clients at DI boundaries.
 
-### 0z426. Lidarr Auto-Import HTTP Failures Should Not Log Stack Traces
+### 0z426. Lidarr External HTTP Failures Should Not Log Stack Traces
 
-**The Bug**: Lidarr auto-import treated ordinary external HTTP failures
-(`Connection refused`, `500 Internal Server Error`) as unexpected exceptions
-and logged full stack traces for every completed-directory import attempt.
+**The Bug**: Lidarr auto-import and wanted-sync treated ordinary external HTTP
+failures (`Connection refused`, `500 Internal Server Error`,
+`HttpClient.Timeout`) as unexpected exceptions and logged full stack traces for
+routine integration unavailability.
 
 **Files Affected**:
 - `src/slskd/Integrations/Lidarr/LidarrImportService.cs`
+- `src/slskd/Integrations/Lidarr/LidarrSyncService.cs`
 - `tests/slskd.Tests.Unit/Integrations/Lidarr/LidarrImportServiceTests.cs`
+- `tests/slskd.Tests.Unit/Integrations/Lidarr/LidarrSyncServiceTests.cs`
 
 **Wrong**:
 ```csharp
@@ -2009,9 +2012,9 @@ catch (Exception ex)
 ```
 
 **Why This Keeps Happening**: External service downtime and HTTP 5xx responses
-are operational conditions, not slskdN faults. Keep stack traces for unexpected
-local failures, but classify `HttpRequestException` the same way background
-Lidarr wanted sync does so live logs remain actionable.
+or timeouts are operational conditions, not slskdN faults. Keep stack traces for
+unexpected local failures, but classify `HttpRequestException` and
+`HttpClient.Timeout` cancellation separately so live logs remain actionable.
 
 ### 0z425. HashDb Peer Creation Must Be Atomic Under Concurrent Events
 
