@@ -1,6 +1,6 @@
-slskdn (2026052401.slskdn.268-1) stable; urgency=medium
+slskdn (2026052503.slskdn.269-1) stable; urgency=medium
 
-  * Bump packaging metadata to stable release 2026052401-slskdn.268
+  * Bump packaging metadata to stable release 2026052503-slskdn.269
     (slskdn-main-linux-glibc-x64.zip)
 
  -- snapetech <slskdn@proton.me>  Mon, 23 Mar 2026 00:00:00 +0000
