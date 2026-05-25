@@ -52,6 +52,38 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z483. Rescue Mode Must Ignore Non-Audio Sidecars
+
+**The Bug**: The underperformance detector triggered rescue mode for queued
+album sidecars such as `large_cover.jpg`, spending rescue/mesh work on files
+that cannot benefit from audio recording ID, HashDb, or multi-source recovery.
+
+**Files Affected**:
+- `src/slskd/Transfers/Rescue/UnderperformanceDetectorHostedService.cs`
+
+**Wrong**:
+```csharp
+foreach (var t in active)
+{
+    await TriggerRescueAsync(t, UnderperformanceReason.QueuedTooLong, ct);
+}
+```
+
+**Correct**:
+```csharp
+foreach (var t in active)
+{
+    if (!PathGuard.HasSafeAudioExtension(t.Filename)) continue;
+    await TriggerRescueAsync(t, UnderperformanceReason.QueuedTooLong, ct);
+}
+```
+
+**Why This Keeps Happening**: Completed-download albums include artwork,
+booklets, logs, and checksums alongside audio. Retry/rescue systems are
+audio-recovery systems unless explicitly handling user-initiated downloads, so
+their background planners must filter sidecars before contacting peers or mesh
+services.
+
 ### 0z482. Wishlist Result Links Must Not Auto-Clear New Badges
 
 **The Bug**: Opening Wishlist search results or expanding linked search history
