@@ -1,3 +1,20 @@
+## Update 2026-05-25 02:21:52Z
+
+- Current task: Tester-reported Wishlist new-results workflow and timed-out download retry ghost-state fix complete locally.
+- Last activity:
+  - Changed Wishlist result/history links so opening search results no longer marks an item viewed automatically; the new-results badge is cleared only by explicit per-item or bulk mark-viewed actions.
+  - Fixed remote enqueue timeout cleanup so slskd cancels the underlying Soulseek download token when a local enqueue wait times out.
+  - Tightened duplicate checks so terminal completed Soulseek client transfers do not block retry when slskd has no active record.
+  - Documented ADR-0001 gotchas `0z481` and `0z482` and committed the docs-only entry as `ff1f320f9`.
+- Validation:
+  - Passed: focused `DownloadServiceTests` (`34/34`).
+  - Passed: focused Wishlist Vitest (`9/9`).
+  - Passed: full `dotnet test` (`4571/4571`: 68 smoke, 4225 unit, 278 integration).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Commit the code and memory-bank updates.
+  2. Build/deploy when requested; no release tags were created.
+
 ## Update 2026-05-23 22:29:47Z
 
 - Current task: Live log follow-up after completed layout deployment.

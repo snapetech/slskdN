@@ -534,7 +534,7 @@ namespace slskd.Transfers.Downloads
                                 it shouldn't, if the slskd database doesn't. but things could get desynced, which is likely a bug
                                 and we'd like to know about it
                             */
-                            if (Client.Downloads?.Any(u => u.Username == username && u.Filename == file.Filename) ?? false)
+                            if (IsActiveClientDownload(username, file.Filename))
                             {
                                 Log.Warning("Ignoring concurrent download enqueue attempt; transfer for {Filename} from {Username} is tracked by the Soulseek client but not slskd", file.Filename, username);
                                 failed.Add(file.Filename);
@@ -682,6 +682,7 @@ namespace slskd.Transfers.Downloads
                                     {
                                         Log.Information("Download of {Filename} from {Username} did not enqueue remotely within {Duration} seconds. State transition history: {History}", transfer.Filename, username, maxTimeToWaitForEnqueueRequestAck.TotalSeconds, string.Join(", ", transitions));
                                         enqueuedTcs.TrySetException(new TimeoutException($"Download failed to enqueue remotely after hard time limit of {maxTimeToWaitForEnqueueRequestAck.TotalSeconds} secs"));
+                                        CancelTrackedDownload(transfer.Id, transfer.Filename, username, "remote enqueue acknowledgement timed out");
                                     });
 
                                     // satisfies conditions #1 and #2
@@ -744,6 +745,7 @@ namespace slskd.Transfers.Downloads
                                 catch (Exception ex) when (IsCancellationException(ex) || IsDownloadTimeout(ex))
                                 {
                                     Log.Information("Download of {File} from {Username} timed out or was cancelled while waiting for remote enqueue: {Message}", transfer.Filename, transfer.Username, ex.Message);
+                                    CancelTrackedDownload(transfer.Id, transfer.Filename, transfer.Username, "remote enqueue wait ended");
                                     if (!TryFail(transferId, exception: ex))
                                     {
                                         Log.Debug("Transfer {Id} was already cleaned up after timed out or cancelled enqueue", transfer.Id);
@@ -1156,6 +1158,30 @@ namespace slskd.Transfers.Downloads
             }
         }
 
+        private bool IsActiveClientDownload(string username, string filename)
+            => Client.Downloads?.Any(download =>
+                download.Username == username &&
+                download.Filename == filename &&
+                !download.State.HasFlag(TransferStates.Completed)) ?? false;
+
+        private void CancelTrackedDownload(Guid transferId, string filename, string username, string reason)
+        {
+            if (!CancellationTokens.TryGetValue(transferId, out var cts))
+            {
+                return;
+            }
+
+            try
+            {
+                cts.Cancel();
+                Log.Debug("Cancelled tracked download token for {Filename} from {Username} because {Reason}", filename, username, reason);
+            }
+            catch (ObjectDisposedException)
+            {
+                Log.Debug("Tracked download token for {Filename} from {Username} was already disposed before cancellation after {Reason}", filename, username, reason);
+            }
+        }
+
         /// <summary>
         ///     Synchronously updates the specified <paramref name="transfer"/>.
         /// </summary>
@@ -1195,7 +1221,7 @@ namespace slskd.Transfers.Downloads
                 throw new InvalidOperationException($"Invalid starting state for download; expected {TransferStates.Queued | TransferStates.Locally}, encountered {transfer.State}");
             }
 
-            if (Client.Downloads.Any(u => u.Username == transfer.Username && u.Filename == transfer.Filename))
+            if (IsActiveClientDownload(transfer.Username, transfer.Filename))
             {
                 throw new DuplicateTransferException("A duplicate download of the same file to the same user is already registered");
             }

@@ -194,4 +194,27 @@ describe('Wishlist', () => {
       expect(wishlistAPI.markViewed).toHaveBeenCalledWith('wish-new');
     });
   });
+
+  it('does not mark new results viewed when opening the latest search', async () => {
+    wishlistAPI.getAll.mockResolvedValue([
+      {
+        autoDownload: false,
+        enabled: true,
+        id: 'wish-new',
+        lastMatchCount: 2,
+        lastSearchId: 'search-new',
+        lastSearchedAt: '2026-05-06T00:00:00Z',
+        lastViewedAt: '2026-05-05T00:00:00Z',
+        searchText: 'new results',
+        totalSearchCount: 1,
+      },
+    ]);
+
+    renderWishlist();
+
+    expect(await screen.findByText('new results')).toBeInTheDocument();
+    fireEvent.click(screen.getByTitle('View last search results'));
+
+    expect(wishlistAPI.markViewed).not.toHaveBeenCalled();
+  });
 });

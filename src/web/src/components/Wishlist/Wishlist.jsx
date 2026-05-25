@@ -104,9 +104,6 @@ const WishlistItemRow = ({
       try {
         const searches = await wishlistAPI.getSearches(item.id);
         setRelatedSearches(searches);
-        if (unseenCount > 0) {
-          await onMarkViewed(item.id);
-        }
       } catch (error) {
         toast.error(`Failed to load searches: ${error.message}`);
       } finally {
@@ -225,7 +222,6 @@ const WishlistItemRow = ({
         <Table.Cell>
           {item.lastSearchId && (
             <Link
-              onClick={() => unseenCount > 0 && onMarkViewed(item.id)}
               to={getSearchLink(item)}
             >
               <Popup
@@ -318,7 +314,6 @@ const WishlistItemRow = ({
                   <>
                     {' '}
                     <Link
-                      onClick={() => unseenCount > 0 && onMarkViewed(item.id)}
                       to={getSearchLink(item)}
                     >
                       Open latest search result.
@@ -356,7 +351,6 @@ const WishlistItemRow = ({
                         <Table.Cell>{formatDate(s.startedAt)}</Table.Cell>
                         <Table.Cell>
                           <Link
-                            onClick={() => unseenCount > 0 && onMarkViewed(item.id)}
                             to={getSearchLink(item, s.id)}
                           >
                             <Popup
@@ -491,9 +485,6 @@ const WishlistItemCard = ({
       try {
         const searches = await wishlistAPI.getSearches(item.id);
         setRelatedSearches(searches);
-        if (unseenCount > 0) {
-          await onMarkViewed(item.id);
-        }
       } catch (error) {
         toast.error(`Failed to load searches: ${error.message}`);
       } finally {
@@ -617,7 +608,6 @@ const WishlistItemCard = ({
             />
             {item.lastSearchId && (
               <Link
-                onClick={() => unseenCount > 0 && onMarkViewed(item.id)}
                 to={getSearchLink(item)}
               >
                 <Popup
@@ -702,7 +692,6 @@ const WishlistItemCard = ({
                   <>
                     {' '}
                     <Link
-                      onClick={() => unseenCount > 0 && onMarkViewed(item.id)}
                       to={getSearchLink(item)}
                     >
                       Open latest search result.
@@ -738,7 +727,6 @@ const WishlistItemCard = ({
                         <Table.Cell>{formatDate(s.startedAt)}</Table.Cell>
                         <Table.Cell>
                           <Link
-                            onClick={() => unseenCount > 0 && onMarkViewed(item.id)}
                             to={getSearchLink(item, s.id)}
                           >
                             <Popup

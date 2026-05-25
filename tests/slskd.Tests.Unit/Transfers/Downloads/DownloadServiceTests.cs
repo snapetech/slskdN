@@ -87,6 +87,89 @@ public class DownloadServiceTests
     }
 
     [Fact]
+    public async Task EnqueueAsync_CompletedSoulseekClientTransfer_DoesNotBlockRetry()
+    {
+        var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var options = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+
+        await using (var context = new TransfersDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+        }
+
+        var staleClientTransfer = new Soulseek.Transfer(
+            TransferDirection.Download,
+            "alice",
+            @"Music\track.flac",
+            token: 1,
+            state: TransferStates.Completed | TransferStates.TimedOut,
+            size: 1234,
+            startOffset: 0,
+            bytesTransferred: 0);
+        var downloadStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient
+            .SetupGet(client => client.Downloads)
+            .Returns(new[] { staleClientTransfer });
+        soulseekClient
+            .Setup(client => client.DownloadAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Func<Task<Stream>>>(),
+                It.IsAny<long?>(),
+                It.IsAny<long>(),
+                It.IsAny<int?>(),
+                It.IsAny<TransferOptions>(),
+                It.IsAny<CancellationToken?>()))
+            .Returns(async (
+                string username,
+                string remoteFilename,
+                Func<Task<Stream>> outputStreamFactory,
+                long? size,
+                long startOffset,
+                int? token,
+                TransferOptions transferOptions,
+                CancellationToken? cancellationToken) =>
+            {
+                downloadStarted.TrySetResult();
+                await Task.Delay(Timeout.Infinite, cancellationToken ?? CancellationToken.None);
+                return null!;
+            });
+
+        var service = CreateDownloadService(options, soulseekClient);
+
+        try
+        {
+            var (enqueued, failed) = await service.EnqueueAsync(
+                "alice",
+                new[] { (Filename: @"Music\track.flac", Size: 1234L) },
+                CancellationToken.None);
+
+            Assert.Single(enqueued);
+            Assert.Empty(failed);
+
+            await downloadStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            soulseekClient.Verify(client => client.DownloadAsync(
+                "alice",
+                @"Music\track.flac",
+                It.IsAny<Func<Task<Stream>>>(),
+                1234,
+                0,
+                It.IsAny<int?>(),
+                It.IsAny<TransferOptions>(),
+                It.IsAny<CancellationToken?>()), Times.Once);
+            Assert.True(service.TryCancel(enqueued.Single().Id));
+        }
+        finally
+        {
+            service.Dispose();
+            DeleteDatabase(databasePath);
+        }
+    }
+
+    [Fact]
     public async Task EnqueueAsync_CompletedExistingTransfer_IsSupersededByNewRecord()
     {
         var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");

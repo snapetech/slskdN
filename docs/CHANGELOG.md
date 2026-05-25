@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Wishlist result links and inline search-history expansion no longer
+  automatically clear new-results badges, so users can inspect results, return
+  to a "New results" filtered Wishlist, and edit the saved filter explicitly.
+- Timed-out download enqueue attempts now cancel the underlying Soulseek
+  download operation, and terminal Soulseek client transfer snapshots no longer
+  block retry when slskd has no active transfer record.
 - Main release COPR publishing now prefers Kerberos credentials before legacy
   API token secrets, so stale tokens cannot shadow the configured Fedora
   Kerberos path.
