@@ -1,6 +1,6 @@
 name: slskdn
 base: core22
-version: '2026052520-slskdn.270'
+version: '2026061620-slskdn.271'
 summary: slskdN, an unofficial batteries-included fork of slskd
 description: |
   slskdN is an unofficial fork of slskd with batteries-included Soulseek features:
@@ -22,8 +22,8 @@ apps:
 parts:
   slskdn:
     plugin: dump
-    source: https://github.com/snapetech/slskdn/releases/download/2026052520-slskdn.270/slskdn-main-linux-glibc-x64.zip
-    source-checksum: sha256/c24a435decc5862dcb1bdadf3dfd06b073568eb19624219a878dd8448304010a
+    source: https://github.com/snapetech/slskdn/releases/download/2026061620-slskdn.271/slskdn-main-linux-glibc-x64.zip
+    source-checksum: sha256/9080723dc4443c50db077ed227264fa1894b65f36bac5cae82bb282171a842e2
     stage-packages:
       - libicu70
       - libssl3
