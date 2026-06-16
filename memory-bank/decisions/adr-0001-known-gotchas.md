@@ -52,6 +52,40 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z492. Optional Rust Media Tools Need Libclang For Bindgen
+
+**The Bug**: The omnibus testers Docker image installed Rust/Cargo and media
+headers but not libclang, so `cargo install songrec` failed in release CI when
+`bindgen` could not find `libclang.so`.
+
+**Files Affected**:
+- `packaging/docker/install-optional-media-tools`
+- `packaging/docker/Dockerfile.all-tools`
+
+**Wrong**:
+```bash
+apt-get install --no-install-recommends -y \
+  build-essential \
+  cargo \
+  libpipewire-0.3-dev \
+  rustc
+```
+
+**Correct**:
+```bash
+apt-get install --no-install-recommends -y \
+  build-essential \
+  cargo \
+  libclang-dev \
+  libpipewire-0.3-dev \
+  rustc
+```
+
+**Why This Keeps Happening**: Optional media tools are intentionally built from
+current upstream package managers, so their native build dependencies can change
+without a slskdN code change. Any Rust crate that generates C bindings through
+`bindgen` needs libclang available in derived Docker images and release CI.
+
 ### 0z491. Disconnect And Search Teardown Must Not Leak Fatal Unobserved Tasks
 
 **The Bug**: A transient VPN-client status timeout disconnected Soulseek as
