@@ -1,3 +1,22 @@
+## Update 2026-06-16 18:28:26Z
+
+- Current task: Live manual-build log cleanup complete and deployed.
+- Last activity:
+  - Committed and pushed the HashDb sidecar fix through `1bd0bfb8f`.
+  - Built and deployed manual Docker image `0.0.0-manual.20260616181744.1bd0bfb8fe31`.
+  - Verified app/image version match, Docker health `healthy`, container restart count `0`, and `/health=Healthy`.
+  - Waited through the next five-minute maintenance tick and resampled logs.
+- Validation:
+  - Passed: focused event tests (`13/13`).
+  - Passed: focused HashDb tests (`66/66`).
+  - Passed: full `dotnet test --no-restore` (`4579/4579`: 68 smoke, 4233 unit, 278 integration).
+  - Passed: `./bin/lint`.
+  - Passed: release-shaped Web/backend build and Linux x64 publish.
+  - Passed: post-maintenance live log scan with `ERR=0`, `FTL=0`, `OOM=0`, `prune_failed=0`, `variant_metadata_failed=0`.
+- Next steps:
+  1. Have Bas retest TauAs browsing, the hrust82 Cyrillic path, and the budznbeerz download against the final manual build.
+  2. If retest passes, proceed with the official release process only when a build tag is explicitly requested.
+
 ## Update 2026-06-16 18:10:34Z
 
 - Current task: Live manual-build log cleanup follow-up in progress.
