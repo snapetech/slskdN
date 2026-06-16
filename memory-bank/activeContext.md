@@ -1,3 +1,33 @@
+## Update 2026-06-16 17:12:00Z
+
+- Current task: slskdN open Dependabot PR/security-alert sweep complete locally.
+- Last activity:
+  - Applied the remaining open Dependabot NuGet/npm updates directly to `main`.
+  - Cleared npm audit findings by upgrading `esbuild` to `0.28.1` and accepting
+    the audit transitive fixes.
+  - Migrated the Transfers virtual list to the `react-window` v2 `List` API.
+  - Fixed the `Serilog.Sinks.Grafana.Loki` 9.x startup break by skipping Loki
+    sink construction when no URI is configured.
+  - Fixed the player listening-history import test fixture that aged out of the
+    default 30-day visible stats range.
+  - Documented ADR-0001 gotchas `0z487` and `0z488`.
+- Validation:
+  - Passed: focused Loki startup regression test.
+  - Passed: full Web Vitest suite (`767/767`).
+  - Passed: `npm audit --audit-level=low` with zero vulnerabilities.
+  - Passed: `npm run build` with existing non-fatal Rolldown annotation warnings
+    from `@microsoft/signalr`.
+  - Passed: `dotnet list slskd.sln package --vulnerable --include-transitive`
+    with no vulnerable packages.
+  - Passed: unit tests (`4231/4231`) and integration tests (`278/278`); the
+    serial full solution `dotnet test slskd.sln --no-restore -m:1` exited 0.
+  - Passed: `./bin/lint`.
+  - Passed: `git diff --check`.
+- Next steps:
+  1. Commit and push the dependency sweep.
+  2. Verify GitHub alerts and close superseded Dependabot PRs if GitHub does
+     not auto-close them after main updates.
+
 ## Update 2026-06-16 16:49:39Z
 
 - Current task: slskNet.Runtime standalone and vendored runtime sync complete locally.

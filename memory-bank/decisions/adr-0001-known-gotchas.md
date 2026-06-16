@@ -52,6 +52,62 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z488. Date Fixtures Must Stay Inside Time-Windowed Assertions
+
+**The Bug**: Player listening-stats import tests used a fixed historical
+`playedAt` value that aged out of the default 30-day range, so the import
+success message still appeared while the visible stats summary correctly stayed
+at zero.
+
+**Files Affected**:
+- `src/web/src/components/Player/PlayerBar.test.jsx`
+
+**Wrong**:
+```jsx
+'2026-04-30T20:00:00Z,Imported Artist,Imported Album,Imported Track,Imported Genre'
+```
+
+**Correct**:
+```jsx
+const importedAt = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString();
+`${importedAt},Imported Artist,Imported Album,Imported Track,Imported Genre`
+```
+
+**Why This Keeps Happening**: Time-windowed UI assertions silently depend on
+the current date unless the test freezes time or keeps fixtures inside the
+asserted range. Import assertions must distinguish total imported history from
+history visible in the active range.
+
+### 0z487. Optional Loki Sink Must Not Be Configured With Empty URI
+
+**The Bug**: `Serilog.Sinks.Grafana.Loki` 9.x validates sink options during
+configuration, so wrapping `GrafanaLoki()` in `WriteTo.Conditional()` still
+throws on startup when the Loki URI is empty.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/StartupLogging.cs`
+
+**Wrong**:
+```csharp
+.WriteTo.Conditional(
+    e => !string.IsNullOrEmpty(optionsAtStartup.Logger.Loki),
+    config => config.GrafanaLoki(optionsAtStartup.Logger.Loki ?? string.Empty))
+```
+
+**Correct**:
+```csharp
+var lokiUri = optionsAtStartup.Logger.Loki;
+if (!string.IsNullOrEmpty(lokiUri))
+{
+    loggerConfiguration = loggerConfiguration.WriteTo.GrafanaLoki(lokiUri);
+}
+```
+
+**Why This Keeps Happening**: Serilog conditional sinks decide whether to emit
+events later; they do not prevent sink construction. Optional external sinks
+with required connection options must be skipped at logger-configuration time
+when their endpoint is absent.
+
 ### 0z486. Legacy Peer Paths Must Round-Trip Their Encoding
 
 **The Bug**: Slow or legacy Soulseek peers could fail browse/download flows

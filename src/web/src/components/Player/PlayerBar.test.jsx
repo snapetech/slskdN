@@ -744,6 +744,8 @@ describe('PlayerBar', () => {
   it('imports pasted media-server listening history into browser stats', async () => {
     renderPlayer();
 
+    const importedAt = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString();
+
     fireEvent.click(screen.getByText('Play fixture'));
     fireEvent.click(screen.getByTestId('player-open-listening-stats'));
 
@@ -753,16 +755,18 @@ describe('PlayerBar', () => {
       target: {
         value: [
           'playedAt,artist,album,title,genre',
-          '2026-04-30T20:00:00Z,Imported Artist,Imported Album,Imported Track,Imported Genre',
+          `${importedAt},Imported Artist,Imported Album,Imported Track,Imported Genre`,
         ].join('\n'),
       },
     });
     fireEvent.click(screen.getByTestId('player-listening-history-import'));
 
     expect(screen.getByText('1 imported, 0 skipped as duplicates or incomplete rows.')).toBeInTheDocument();
-    expect(screen.getByTestId('player-stats-summary')).toHaveTextContent(
-      '1local plays recorded',
-    );
+    await waitFor(() => {
+      expect(screen.getByTestId('player-stats-summary')).toHaveTextContent(
+        '1local plays recorded',
+      );
+    });
     expect(screen.getAllByText('Imported Artist').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Imported Genre').length).toBeGreaterThanOrEqual(1);
   });

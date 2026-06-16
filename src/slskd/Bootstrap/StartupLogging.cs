@@ -22,7 +22,7 @@ public static class StartupLogging
         int processId,
         Action<LogRecord> emitLogRecord)
     {
-        Log.Logger = (optionsAtStartup.Debug ? new LoggerConfiguration().MinimumLevel.Debug() : new LoggerConfiguration().MinimumLevel.Information())
+        var loggerConfiguration = (optionsAtStartup.Debug ? new LoggerConfiguration().MinimumLevel.Debug() : new LoggerConfiguration().MinimumLevel.Information())
             .MinimumLevel.Override("Microsoft", LogEventLevel.Error)
             .MinimumLevel.Override("System.Net.Http.HttpClient", optionsAtStartup.Debug ? LogEventLevel.Warning : LogEventLevel.Fatal)
             .MinimumLevel.Override("slskd.Authentication.PassthroughAuthenticationHandler", LogEventLevel.Warning)
@@ -42,12 +42,17 @@ public static class StartupLogging
                         Path.Combine(logDirectory, $"{appName}-.log"),
                         outputTemplate: (optionsAtStartup.Debug ? "[{SourceContext}] " : string.Empty) + "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
                         rollingInterval: RollingInterval.Day,
-                        retainedFileTimeLimit: TimeSpan.FromDays(optionsAtStartup.Retention.Logs))))
-            .WriteTo.Conditional(
-                e => !string.IsNullOrEmpty(optionsAtStartup.Logger.Loki),
-                config => config.GrafanaLoki(
-                    optionsAtStartup.Logger.Loki ?? string.Empty,
-                    textFormatter: new MessageTemplateTextFormatter("[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}", null)))
+                        retainedFileTimeLimit: TimeSpan.FromDays(optionsAtStartup.Retention.Logs))));
+
+        var lokiUri = optionsAtStartup.Logger.Loki;
+        if (!string.IsNullOrEmpty(lokiUri))
+        {
+            loggerConfiguration = loggerConfiguration.WriteTo.GrafanaLoki(
+                lokiUri,
+                textFormatter: new MessageTemplateTextFormatter("[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}", null));
+        }
+
+        Log.Logger = loggerConfiguration
             .WriteTo.Sink(new DelegatingSink(logEvent =>
             {
                 string message = string.Empty;

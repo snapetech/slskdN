@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Open Dependabot NuGet/npm updates are applied directly to `main`, including
+  `esbuild` `0.28.1`, `Serilog.Sinks.Grafana.Loki` `9.0.0`, `YamlDotNet`
+  `18.0.0`, `react-window` `2.2.7`, Microsoft package alignment on
+  `10.0.9`, and npm transitive audit cleanup. The Web transfers virtual list
+  now uses the `react-window` v2 API, optional Loki logging skips sink
+  construction when no URI is configured, and the player import test fixture no
+  longer ages out of the default 30-day stats range.
 - Vendored slskNet.Runtime is synced with the standalone runtime security and
   dependency updates, including the Vite/npm Web example, CodeQL remediation,
   and legacy peer path-encoding support for Windows-1251/Cyrillic browse and

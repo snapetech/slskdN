@@ -24,7 +24,7 @@ import {
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Checkbox, Dropdown, Icon, Popup } from 'semantic-ui-react';
-import { FixedSizeList } from 'react-window';
+import { List } from 'react-window';
 
 const ROW_HEIGHT = 28;
 const CHECKBOX_WIDTH = 28;
@@ -120,12 +120,7 @@ function cellContent(transfer, key) {
   }
 }
 
-const RowGroup = React.forwardRef(({ style, ...rest }, ref) => (
-  <div ref={ref} role="rowgroup" style={style} {...rest} />
-));
-RowGroup.displayName = 'TransferTableRowGroup';
-
-const Row = React.memo(({ data, index, style }) => {
+const Row = React.memo(({ index, style, ...data }) => {
   const {
     onCancel, onRemove, onRetry, onOpenRequest,
     onSelectionChange, selectedKeys, transfers,
@@ -506,17 +501,14 @@ const TransferTable = ({
             </Popup>
           </div>
         </div>
-        <FixedSizeList
-          height={listHeight}
-          innerElementType={RowGroup}
-          itemCount={sorted.length}
-          itemData={itemData}
-          itemKey={(index) => transferKey(sorted[index])}
-          itemSize={ROW_HEIGHT}
-          width="100%"
-        >
-          {Row}
-        </FixedSizeList>
+        <List
+          overscanCount={8}
+          rowComponent={Row}
+          rowCount={sorted.length}
+          rowHeight={ROW_HEIGHT}
+          rowProps={itemData}
+          style={{ height: listHeight, width: '100%' }}
+        />
       </div>
     </div>
   );
