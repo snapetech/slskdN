@@ -52,6 +52,34 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z489. Event Pruning Must Not Materialize Expired Payloads
+
+**The Bug**: Event retention cleanup loaded every expired `EventRecord`,
+including serialized JSON payloads, before deleting them. On a live Docker
+validation host with a large events table, SQLite materialization threw
+`OutOfMemoryException` under the container memory cap and the prune job failed.
+
+**Files Affected**:
+- `src/slskd/Events/EventService.cs`
+
+**Wrong**:
+```csharp
+var expired = context.Events.Where(e => e.Timestamp < cutoff).ToList();
+context.Events.RemoveRange(expired);
+context.SaveChanges();
+```
+
+**Correct**:
+```csharp
+var expired = context.Events.Where(e => e.Timestamp < cutoff);
+var count = expired.ExecuteDelete();
+```
+
+**Why This Keeps Happening**: Retention jobs look harmless because they run in
+the background, but old rows can have large payload columns and high cardinality.
+For cleanup paths, use set-based deletes/counts that the database can execute
+without hydrating entities into application memory.
+
 ### 0z488. Date Fixtures Must Stay Inside Time-Windowed Assertions
 
 **The Bug**: Player listening-stats import tests used a fixed historical
