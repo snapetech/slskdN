@@ -52,6 +52,46 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z491. Disconnect And Search Teardown Must Not Leak Fatal Unobserved Tasks
+
+**The Bug**: A transient VPN-client status timeout disconnected Soulseek as
+intended, but background Soulseek teardown and in-flight search cleanup later
+surfaced as `FTL` unobserved task exceptions and runtime search lock-disposal
+errors in live logs.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/StartupExceptionClassifier.cs`
+- `src/slskd/Soulseek/SoulseekNetworkExceptionClassifier.cs`
+- `vendor/slskNet.Runtime/src/SearchInternal.cs`
+
+**Wrong**:
+```csharp
+TaskScheduler.UnobservedTaskException += (_, e) =>
+    Log.Fatal(e.Exception, "[FATAL] Unobserved task exception");
+
+SearchTimeoutTimer.Dispose();
+ReaderWriterLock.Dispose();
+```
+
+**Correct**:
+```csharp
+if (StartupExceptionClassifier.IsBenignUnobservedTaskException(e.Exception) ||
+    SoulseekNetworkExceptionClassifier.IsExpected(e.Exception))
+{
+    e.SetObserved();
+    return;
+}
+
+Disposed = true;
+SearchTimeoutTimer.Dispose();
+```
+
+**Why This Keeps Happening**: VPN and Soulseek disconnects intentionally tear
+down read loops, waits, searches, and transfers while peer callbacks may still
+arrive. Expected teardown must be classified before global unobserved-task
+telemetry treats it as fatal, and disposable search state must stop accepting
+late responses before disposing timer/lock resources.
+
 ### 0z490. HashDb Download Ingestion Must Skip Non-Audio Sidecars
 
 **The Bug**: HashDb listened to every completed download, hashed any file above
