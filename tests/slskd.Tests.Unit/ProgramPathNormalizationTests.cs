@@ -266,6 +266,14 @@ public class ProgramPathNormalizationTests
     }
 
     [Fact]
+    public void IsBenignUnobservedTaskException_ReturnsTrue_ForVpnDisconnect()
+    {
+        var exception = new AggregateException(new slskd.VPNClientException("VPN client disconnected"));
+
+        Assert.True(StartupExceptionClassifier.IsBenignUnobservedTaskException(exception));
+    }
+
+    [Fact]
     public void IsExpectedSoulseekNetworkException_ReturnsTrue_ForDisposedConnectionFailures()
     {
         var exception = new AggregateException(new ObjectDisposedException("Connection"));
@@ -441,6 +449,19 @@ public class ProgramPathNormalizationTests
             "   at Soulseek.Network.Tcp.Connection.ReadInternalAsync(Int64 length, Stream outputStream, Func`3 governor, Action`3 reporter, CancellationToken cancellationToken)\n" +
             "   at Soulseek.Network.MessageConnection.ReadContinuouslyAsync()");
         var exception = new AggregateException(inner);
+
+        Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
+    }
+
+    [Fact]
+    public void IsExpectedSoulseekNetworkException_ReturnsTrue_ForSoulseekDisconnectingReadLoopRace()
+    {
+        var inner = new InvalidOperationException("Invalid attempt to send to a disconnected or transitioning connection (current state: Disconnecting)");
+        ExceptionDispatchInfo.SetRemoteStackTrace(
+            inner,
+            "   at Soulseek.Network.Tcp.Connection.ReadAsync(Int64 length, Nullable`1 cancellationToken)\n" +
+            "   at Soulseek.Network.MessageConnection.ReadContinuouslyAsync()");
+        var exception = new AggregateException(new ConnectionException("One or more errors occurred.", new AggregateException(inner)));
 
         Assert.True(SoulseekNetworkExceptionClassifier.IsExpected(exception));
     }

@@ -1,3 +1,20 @@
+## Update 2026-06-16 19:49:01Z
+
+- Current task: Pre-release live-log rescan fixes in progress.
+- Last activity:
+  - Resampled the running manual image logs.
+  - Confirmed previous event-prune OOM and HashDb sidecar issues stayed quiet.
+  - Found a transient VPN-client status timeout caused warning/error/fatal teardown noise.
+  - Documented ADR-0001 gotcha `0z491` in docs-only commit `c18e996f7`.
+  - Patched intentional VPN disconnect unobserved-task classification, Soulseek read-loop teardown classification, and vendored search disposal.
+- Validation:
+  - Passed: vendored `SearchInternalTests` (`40/40`).
+  - Passed: slskd classifier tests (`47/47`).
+- Next steps:
+  1. Run full backend validation and lint.
+  2. Commit and push all changes.
+  3. Build/deploy a fresh manual image, resample live logs, and only then cut the requested release tag if the new sample is release-clean.
+
 ## Update 2026-06-16 18:28:26Z
 
 - Current task: Live manual-build log cleanup complete and deployed.

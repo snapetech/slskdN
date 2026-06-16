@@ -75,6 +75,34 @@ namespace Soulseek.Tests.Unit
             Assert.Null(ex);
         }
 
+        [Trait("Category", "Dispose")]
+        [Fact(DisplayName = "Dispose does not throw when response callback is in flight")]
+        public async Task Dispose_Does_Not_Throw_When_Response_Callback_Is_In_Flight()
+        {
+            var s = new SearchInternal(new SearchQuery("foo"), SearchScope.Network, 42);
+            var responseStarted = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var releaseResponse = new ManualResetEventSlim(false);
+
+            s.SetState(SearchStates.InProgress);
+            s.ResponseReceived = (r) =>
+            {
+                responseStarted.TrySetResult(0);
+                releaseResponse.Wait(TimeSpan.FromSeconds(5));
+            };
+
+            var files = new List<File> { new File(1, "song.flac", 1234, "flac") };
+            var addTask = Task.Run(() => s.TryAddResponse(new SearchResponse("bar", 42, true, 1, 1, files)));
+            var completed = await Task.WhenAny(responseStarted.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+
+            Assert.Same(responseStarted.Task, completed);
+
+            var ex = Record.Exception(() => s.Dispose());
+            releaseResponse.Set();
+            await addTask;
+
+            Assert.Null(ex);
+        }
+
         [Trait("Category", "Complete")]
         [Fact(DisplayName = "Complete is idempotent")]
         public void Complete_Is_Idempotent()

@@ -120,10 +120,20 @@ namespace Soulseek
         /// </summary>
         public void Cancel()
         {
+            if (Disposed)
+            {
+                return;
+            }
+
             ReaderWriterLock.EnterWriteLock();
 
             try
             {
+                if (Disposed)
+                {
+                    return;
+                }
+
                 SearchTimeoutTimer.Stop();
                 State = SearchStates.Completed | SearchStates.Cancelled;
                 TaskCompletionSource.TrySetException(new OperationCanceledException());
@@ -140,10 +150,20 @@ namespace Soulseek
         /// <param name="state">The terminal state of the search.</param>
         public void Complete(SearchStates state)
         {
+            if (Disposed)
+            {
+                return;
+            }
+
             ReaderWriterLock.EnterWriteLock();
 
             try
             {
+                if (Disposed)
+                {
+                    return;
+                }
+
                 SearchTimeoutTimer.Stop();
                 State = SearchStates.Completed | state;
                 TaskCompletionSource.TrySetResult(0);
@@ -171,13 +191,15 @@ namespace Soulseek
         {
             if (!Disposed)
             {
+                Disposed = true;
+
                 if (disposing)
                 {
                     SearchTimeoutTimer.Dispose();
-                    ReaderWriterLock.Dispose();
-                }
 
-                Disposed = true;
+                    // Late peer search responses can still be inside the read lock during teardown.
+                    // Disposing ReaderWriterLockSlim here races those callbacks and throws at runtime.
+                }
             }
         }
 
@@ -187,10 +209,20 @@ namespace Soulseek
         /// <param name="state">The state to which the Search is to be set.</param>
         public void SetState(SearchStates state)
         {
+            if (Disposed)
+            {
+                return;
+            }
+
             ReaderWriterLock.EnterWriteLock();
 
             try
             {
+                if (Disposed)
+                {
+                    return;
+                }
+
                 var previousState = State;
                 State = state;
 

@@ -63,6 +63,10 @@ public static class SoulseekNetworkExceptionClassifier
             exception is InvalidOperationException &&
             details.Contains("An attempt was made to transition a task to a final state", StringComparison.Ordinal) &&
             details.Contains("Soulseek.Network.Tcp.Connection.Disconnect", StringComparison.Ordinal);
+        var isSoulseekDisconnectingReadLoopRace =
+            exception is InvalidOperationException &&
+            details.Contains("Invalid attempt to send to a disconnected or transitioning connection", StringComparison.Ordinal) &&
+            details.Contains("Soulseek.Network.MessageConnection.ReadContinuouslyAsync", StringComparison.Ordinal);
         var isSoulseekListenerSocketDisposed =
             exception is ObjectDisposedException listenerDisposedException &&
             string.Equals(listenerDisposedException.ObjectName, "System.Net.Sockets.Socket", StringComparison.Ordinal) &&
@@ -80,6 +84,7 @@ public static class SoulseekNetworkExceptionClassifier
             isSoulseekTimerResetReadRace ||
             isSoulseekTimerResetWriteRace ||
             isSoulseekTcpDoubleDisconnectRace ||
+            isSoulseekDisconnectingReadLoopRace ||
             isSoulseekListenerSocketDisposed ||
             typeName.Contains("Soulseek.ConnectionReadException", StringComparison.Ordinal) ||
             typeName.Contains("Soulseek.ConnectionException", StringComparison.Ordinal) ||

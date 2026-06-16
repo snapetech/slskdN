@@ -18,6 +18,6 @@ public static class StartupExceptionClassifier
 
     private static bool IsBenignUnobservedTaskInnerException(Exception exception)
     {
-        return false;
+        return exception is slskd.VPNClientException;
     }
 }

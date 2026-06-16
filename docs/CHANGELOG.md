@@ -30,6 +30,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - HashDb completed-download ingestion now skips non-audio sidecars such as PDF
   booklets before hashing, fingerprinting, or deriving audio variant metadata,
   keeping album extras out of audio-only warning paths.
+- VPN-required Soulseek disconnect teardown now treats intentional VPN
+  disconnect exceptions and expected Soulseek read-loop shutdown races as
+  observed/expected instead of fatal unobserved task exceptions. Vendored
+  search cleanup no longer disposes the active response lock while late peer
+  search responses can still be unwinding.
 - Open Dependabot NuGet/npm updates are applied directly to `main`, including
   `esbuild` `0.28.1`, `Serilog.Sinks.Grafana.Loki` `9.0.0`, `YamlDotNet`
   `18.0.0`, `react-window` `2.2.7`, `react-router-dom` `7.18.0`,
