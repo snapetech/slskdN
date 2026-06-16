@@ -4,7 +4,7 @@ set -e
 # build web
 cd web
 pwd
-npm install
+npm ci
 npm run build
 
 # remove old build, but keep .gitkeep

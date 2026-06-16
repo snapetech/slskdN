@@ -261,14 +261,13 @@ namespace Soulseek.Messaging
 
             try
             {
-                retVal = Encoding.GetEncoding(encoding, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback).GetString(bytes);
+                retVal = ProtocolTextEncoding.Decode(bytes, encoding);
             }
             catch (Exception ex)
             {
                 var requestedEncoding = encoding;
-                encoding = CharacterEncoding.ISO88591;
-                retVal = Encoding.GetEncoding(encoding).GetString(bytes);
-                GlobalDiagnostic.Trace($"Failed to decode {bytes.Length} bytes as {requestedEncoding}; resorted to fallback encoding {CharacterEncoding.ISO88591}", ex);
+                (retVal, encoding) = ProtocolTextEncoding.DecodeWithFallback(bytes, requestedEncoding);
+                GlobalDiagnostic.Trace($"Failed to decode {bytes.Length} bytes as {requestedEncoding}; resorted to fallback encoding {encoding}", ex);
             }
 
             Position += length;

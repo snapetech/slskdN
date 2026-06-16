@@ -45,9 +45,9 @@ namespace Soulseek.Messaging
 
             builder
                 .WriteByte((byte)file.Code)
-                .WriteString(file.Filename)
+                .WriteString(file.Filename, file.FilenameEncoding)
                 .WriteLong(file.Size)
-                .WriteString(file.Extension)
+                .WriteString(file.Extension, file.ExtensionEncoding)
                 .WriteInteger(file.AttributeCount);
 
             foreach (var attribute in file.Attributes)
@@ -71,7 +71,7 @@ namespace Soulseek.Messaging
             directory = directory ?? throw new ArgumentNullException(nameof(directory));
 
             builder
-                .WriteString(directory.Name)
+                .WriteString(directory.Name, directory.NameEncoding)
                 .WriteInteger(directory.FileCount);
 
             foreach (var file in directory.Files)

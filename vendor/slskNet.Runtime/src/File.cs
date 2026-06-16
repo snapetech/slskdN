@@ -43,11 +43,25 @@ namespace Soulseek
         /// <param name="extension">The file extension.</param>
         /// <param name="attributeList">The optional list of <see cref="FileAttribute"/> s.</param>
         public File(int code, string filename, long size, string extension, IEnumerable<FileAttribute> attributeList = null)
+            : this(code, filename, size, extension, attributeList, filenameEncoding: null, extensionEncoding: null)
+        {
+        }
+
+        internal File(
+            int code,
+            string filename,
+            long size,
+            string extension,
+            IEnumerable<FileAttribute> attributeList,
+            CharacterEncoding filenameEncoding,
+            CharacterEncoding extensionEncoding)
         {
             Code = code;
             Filename = filename;
+            FilenameEncoding = filenameEncoding;
             Size = size;
             Extension = extension;
+            ExtensionEncoding = extensionEncoding;
 
             var attributes = attributeList?.ToList() ?? new List<FileAttribute>();
 
@@ -139,5 +153,9 @@ namespace Soulseek
         ///     Gets the file size in bytes.
         /// </summary>
         public long Size { get; }
+
+        internal CharacterEncoding ExtensionEncoding { get; }
+
+        internal CharacterEncoding FilenameEncoding { get; }
     }
 }

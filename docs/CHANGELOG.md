@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Vendored slskNet.Runtime is synced with the standalone runtime security and
+  dependency updates, including the Vite/npm Web example, CodeQL remediation,
+  and legacy peer path-encoding support for Windows-1251/Cyrillic browse and
+  download paths.
+- MessagePack is updated to `3.1.7`, clearing the current high-severity
+  advisory reported for `3.1.4`.
 - Downloads realtime updates now preserve `RequestId` on transfer activity and
   progress events, preventing request-backed rows from duplicating or jumping
   between live SignalR updates and periodic REST reconcile.

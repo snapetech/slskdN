@@ -639,6 +639,7 @@ namespace Soulseek
         private IIOAdapter IOAdapter { get; set; } = new IOAdapter();
         private ConcurrentDictionary<string, IPEndPoint> ObfuscatedPeerEndPointDictionary { get; } = new ConcurrentDictionary<string, IPEndPoint>();
         private SemaphoreSlim RecommendationsSemaphore { get; } = new SemaphoreSlim(1, 1);
+        private ConcurrentDictionary<string, CharacterEncoding> RemotePathEncodingDictionary { get; } = new ConcurrentDictionary<string, CharacterEncoding>();
         private SemaphoreSlim StateSyncRoot { get; } = new SemaphoreSlim(1, 1);
         private SemaphoreSlim SimilarUsersSemaphore { get; } = new SemaphoreSlim(1, 1);
         private ITokenFactory TokenFactory { get; }
@@ -650,18 +651,6 @@ namespace Soulseek
         private System.Timers.Timer UserEndPointSemaphoreCleanupTimer { get; }
         private ConcurrentDictionary<string, SemaphoreSlim> UserEndPointSemaphores { get; } = new ConcurrentDictionary<string, SemaphoreSlim>();
         private SemaphoreSlim UserEndPointSemaphoreSyncRoot { get; } = new SemaphoreSlim(1, 1);
-
-        internal virtual bool TryGetObfuscatedPeerEndPoint(string username, IPAddress regularAddress, out IPEndPoint obfuscatedEndPoint)
-        {
-            if (ObfuscatedPeerEndPointDictionary.TryGetValue(username, out obfuscatedEndPoint) &&
-                obfuscatedEndPoint.Address.Equals(regularAddress))
-            {
-                return true;
-            }
-
-            obfuscatedEndPoint = null;
-            return false;
-        }
 
         /// <summary>
         ///     Asynchronously sends a private message acknowledgement for the specified <paramref name="privateMessageId"/>.
@@ -3205,6 +3194,52 @@ namespace Soulseek
             return WatchUserInternalAsync(username, cancellationToken ?? CancellationToken.None);
         }
 
+        internal virtual bool TryGetObfuscatedPeerEndPoint(string username, IPAddress regularAddress, out IPEndPoint obfuscatedEndPoint)
+        {
+            if (ObfuscatedPeerEndPointDictionary.TryGetValue(username, out obfuscatedEndPoint) &&
+                obfuscatedEndPoint.Address.Equals(regularAddress))
+            {
+                return true;
+            }
+
+            obfuscatedEndPoint = null;
+            return false;
+        }
+
+        internal virtual CharacterEncoding GetRemotePathEncoding(string username, string path)
+        {
+            RemotePathEncodingDictionary.TryGetValue(GetRemotePathEncodingKey(username, path), out var encoding);
+            return encoding;
+        }
+
+        internal virtual void RememberRemotePathEncodings(string username, SearchResponse searchResponse)
+        {
+            foreach (var file in searchResponse.Files.Concat(searchResponse.LockedFiles))
+            {
+                RememberRemotePathEncoding(username, file.Filename, file.FilenameEncoding);
+            }
+        }
+
+        internal virtual void RememberRemotePathEncodings(string username, BrowseResponse browseResponse)
+        {
+            RememberRemotePathEncodings(username, browseResponse.Directories);
+            RememberRemotePathEncodings(username, browseResponse.LockedDirectories);
+        }
+
+        internal virtual void RememberRemotePathEncodings(string username, IEnumerable<Directory> directories)
+        {
+            foreach (var directory in directories)
+            {
+                RememberRemotePathEncoding(username, directory.Name, directory.NameEncoding);
+
+                foreach (var file in directory.Files)
+                {
+                    RememberRemotePathEncoding(username, file.Filename, file.FilenameEncoding);
+                    RememberRemotePathEncoding(username, GetDirectoryFilePath(directory.Name, file.Filename), file.FilenameEncoding);
+                }
+            }
+        }
+
         /// <summary>
         ///     Disposes this instance.
         /// </summary>
@@ -3735,13 +3770,13 @@ namespace Soulseek
                 var transferStartRequested = Waiter.WaitIndefinitely<TransferRequest>(transferStartRequestedWaitKey, cancellationToken);
 
                 // request the file
-                await peerConnection.WriteAsync(new TransferRequest(TransferDirection.Download, token, remoteFilename), cancellationToken).ConfigureAwait(false);
+                await peerConnection.WriteAsync(new TransferRequest(TransferDirection.Download, token, remoteFilename, filenameEncoding: GetRemotePathEncoding(username, remoteFilename)), cancellationToken).ConfigureAwait(false);
                 Diagnostic.Debug($"Wrote transfer request for download of {GetDiagnosticLogValue(download.Filename)} from {username} (id: {peerConnection.Id}, state: {peerConnection.State})");
 
                 UpdateState(TransferStates.Requested);
 
                 var transferRequestAcknowledgement = await transferRequestAcknowledged.ConfigureAwait(false);
-                Diagnostic.Debug($"Received transfer request ACK for download of {GetDiagnosticLogValue(download.Filename)} from {username}: allowed={transferRequestAcknowledgement.IsAllowed}, message={transferRequestAcknowledgement.Message}, localToken={token}, remoteToken={transferRequestAcknowledgement.Token}, fileSize={transferRequestAcknowledgement.FileSize}");
+                Diagnostic.Debug($"Received transfer request ACK for download of {GetDiagnosticLogValue(download.Filename)} from {username}: allowed: {transferRequestAcknowledgement.IsAllowed}, message: {transferRequestAcknowledgement.Message} (token: {token})");
 
                 if (transferRequestAcknowledgement.IsAllowed)
                 {
@@ -3769,7 +3804,6 @@ namespace Soulseek
                 }
                 else if (!string.Equals(transferRequestAcknowledgement.Message.TrimEnd('.'), "Queued", StringComparison.OrdinalIgnoreCase))
                 {
-                    Diagnostic.Debug($"Remote client rejected download of {GetDiagnosticLogValue(download.Filename)} from {username}: reason={transferRequestAcknowledgement.Message}, localToken={token}, remoteToken={transferRequestAcknowledgement.Token}");
                     throw new TransferRejectedException($"Transfer rejected: {transferRequestAcknowledgement.Message}");
                 }
                 else
@@ -3779,7 +3813,6 @@ namespace Soulseek
 
                     // wait for the peer to respond that they are ready to start the transfer
                     var transferStartRequest = await transferStartRequested.ConfigureAwait(false);
-                    Diagnostic.Debug($"Remote client requested transfer start for download of {GetDiagnosticLogValue(download.Filename)} from {username}: localToken={token}, remoteToken={transferStartRequest.Token}, fileSize={transferStartRequest.FileSize}");
 
                     // the size of the remote file may have changed since it was sent in a search or browse response
                     if (download.Size.HasValue && download.Size.Value != transferStartRequest.FileSize)
@@ -3817,13 +3850,13 @@ namespace Soulseek
                     {
                         // if the remote user doesn't initiate a transfer connection, try to initiate one from this end. the
                         // remote client in this scenario is most likely Nicotine+.
-                        Diagnostic.Info($"Attempting to initiate a second-chance transfer connection to {username} for download of {GetDiagnosticLogValue(download.Filename)}");
+                        Diagnostic.Warning($"Attempting to initiate a second-chance transfer connection to {username} for download of {GetDiagnosticLogValue(download.Filename)}");
 
                         download.Connection = await PeerConnectionManager
                             .GetTransferConnectionAsync(username, endpoint, download.RemoteToken.Value, cancellationToken)
                             .ConfigureAwait(false);
 
-                        Diagnostic.Debug($"Successfully established a second-chance transfer connection to {username} for download of {GetDiagnosticLogValue(download.Filename)}");
+                        Diagnostic.Warning($"Successfully established a second-chance transfer connection to {username} for download of {GetDiagnosticLogValue(download.Filename)}");
                     }
                 }
 
@@ -3851,8 +3884,6 @@ namespace Soulseek
                 download.Connection.DataRead += (sender, e) => UpdateProgress(download.StartOffset + e.CurrentLength);
                 download.Connection.Disconnected += (sender, e) =>
                 {
-                    Diagnostic.Debug($"Download transfer connection for {GetDiagnosticLogValue(download.Filename)} from {username} closed after transfer setup: {e.Exception?.GetType().Name ?? "none"}: {e.Exception?.Message ?? e.Message} (type: {download.Connection.Type}, obfuscated: {download.Connection.Obfuscated}, id: {download.Connection.Id})");
-
                     if (e.Exception is OperationCanceledException || e.Exception is TimeoutException)
                     {
                         disconnectedTaskCancellationSource.TrySetException(e.Exception);
@@ -4135,7 +4166,7 @@ namespace Soulseek
                 var endpoint = await GetUserEndPointAsync(username, cancellationToken).ConfigureAwait(false);
 
                 var connection = await PeerConnectionManager.GetOrAddMessageConnectionAsync(username, endpoint, cancellationToken).ConfigureAwait(false);
-                await connection.WriteAsync(new FolderContentsRequest(token, directoryName), cancellationToken).ConfigureAwait(false);
+                await connection.WriteAsync(new FolderContentsRequest(token, directoryName, GetRemotePathEncoding(username, directoryName)), cancellationToken).ConfigureAwait(false);
 
                 var response = await contentsWait.ConfigureAwait(false);
 
@@ -4265,8 +4296,6 @@ namespace Soulseek
                         ObfuscatedPeerEndPointDictionary.TryRemove(username, out _);
                     }
 
-                    Diagnostic.Debug($"Resolved endpoint for {username}: regular={response.IPEndPoint}, obfuscationType={response.ObfuscationType}, obfuscatedPort={response.ObfuscatedPort}, hasObfuscatedEndpoint={response.HasObfuscatedEndpoint}");
-
                     return new IPEndPoint(response.IPAddress, response.Port);
                 }
                 catch (Exception ex) when (!(ex is UserOfflineException) && !(ex is OperationCanceledException) && !(ex is TimeoutException))
@@ -4296,6 +4325,16 @@ namespace Soulseek
             {
                 throw new SoulseekClientException($"Failed to retrieve information for user {username}: {ex.Message}", ex);
             }
+        }
+
+        private void RememberRemotePathEncoding(string username, string path, CharacterEncoding encoding)
+        {
+            if (encoding == null || encoding == CharacterEncoding.UTF8)
+            {
+                return;
+            }
+
+            RemotePathEncodingDictionary[GetRemotePathEncodingKey(username, path)] = encoding;
         }
 
         private async Task<bool> GetUserPrivilegedInternalAsync(string username, CancellationToken cancellationToken)
@@ -4994,6 +5033,22 @@ namespace Soulseek
             Diagnostic.Warning($"Unhandled exception in {eventName} event handler: {ex.Message}", ex);
         }
 
+        private static string GetDirectoryFilePath(string directoryName, string filename)
+        {
+            if (string.IsNullOrEmpty(directoryName) || string.IsNullOrEmpty(filename) || filename.StartsWith(directoryName, StringComparison.Ordinal))
+            {
+                return filename;
+            }
+
+            if (directoryName.EndsWith("\\", StringComparison.Ordinal) || directoryName.EndsWith("/", StringComparison.Ordinal))
+            {
+                return directoryName + filename;
+            }
+
+            var separator = directoryName.IndexOf("/", StringComparison.Ordinal) >= 0 && directoryName.IndexOf("\\", StringComparison.Ordinal) < 0 ? "/" : "\\";
+            return directoryName + separator + filename;
+        }
+
         private static string GetDiagnosticLogValue(string value)
         {
             if (string.IsNullOrEmpty(value))
@@ -5011,6 +5066,11 @@ namespace Soulseek
         private static string GetDiagnosticSearchDescription(SearchQuery query, int token)
         {
             return $"token {token}, query \"{GetDiagnosticLogValue(query?.SearchText)}\"";
+        }
+
+        private static string GetRemotePathEncodingKey(string username, string path)
+        {
+            return $"{username.Length}:{username}{path}";
         }
 
         private static void ValidatePeerMessageCode(int messageCode)

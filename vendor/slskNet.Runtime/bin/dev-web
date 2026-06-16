@@ -1,4 +1,4 @@
 #!/bin/bash
 
-yarn --cwd examples/Web/web install
-yarn --cwd examples/Web/web start
+npm --prefix examples/Web/web install
+npm --prefix examples/Web/web start

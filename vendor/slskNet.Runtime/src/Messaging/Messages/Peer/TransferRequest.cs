@@ -39,13 +39,15 @@ namespace Soulseek.Messaging.Messages
         /// <param name="token">The unique token for the transfer.</param>
         /// <param name="filename">The name of the file being transferred.</param>
         /// <param name="fileSize">The size of the file being transferred.</param>
-        public TransferRequest(TransferDirection direction, int token, string filename, long fileSize = 0)
+        /// <param name="filenameEncoding">The encoding to use when writing the filename.</param>
+        public TransferRequest(TransferDirection direction, int token, string filename, long fileSize = 0, CharacterEncoding filenameEncoding = null)
         {
             ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "transfer token");
 
             Direction = direction;
             Token = token;
             Filename = ProtocolArgumentValidator.RequireNotNull(filename, nameof(filename), "filename");
+            FilenameEncoding = filenameEncoding;
             FileSize = fileSize;
         }
 
@@ -69,6 +71,8 @@ namespace Soulseek.Messaging.Messages
         /// </summary>
         public int Token { get; }
 
+        internal CharacterEncoding FilenameEncoding { get; }
+
         /// <summary>
         ///     Creates a new instance of <see cref="TransferRequest"/> from the specified <paramref name="bytes"/>.
         /// </summary>
@@ -87,7 +91,7 @@ namespace Soulseek.Messaging.Messages
             var direction = ProtocolValueValidator.ToDefinedEnum<TransferDirection>(reader.ReadInteger(), "transfer direction");
 
             var token = reader.ReadInteger();
-            var filename = reader.ReadString();
+            var (filename, filenameEncoding) = reader.ReadStringAndEncoding();
 
             long fileSize = 0;
 
@@ -96,7 +100,7 @@ namespace Soulseek.Messaging.Messages
                 fileSize = reader.ReadLong();
             }
 
-            return new TransferRequest(direction, token, filename, fileSize);
+            return new TransferRequest(direction, token, filename, fileSize, filenameEncoding);
         }
 
         /// <summary>
@@ -109,7 +113,7 @@ namespace Soulseek.Messaging.Messages
                 .WriteCode(MessageCode.Peer.TransferRequest)
                 .WriteInteger((int)Direction)
                 .WriteInteger(Token)
-                .WriteString(Filename)
+                .WriteString(Filename, FilenameEncoding)
                 .WriteLong(FileSize)
                 .Build();
         }

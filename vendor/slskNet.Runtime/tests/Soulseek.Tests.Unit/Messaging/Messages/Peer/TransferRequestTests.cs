@@ -19,6 +19,7 @@
 namespace Soulseek.Tests.Unit.Messaging.Messages
 {
     using System;
+    using System.Linq;
     using AutoFixture.Xunit2;
     using Soulseek.Messaging;
     using Soulseek.Messaging.Messages;
@@ -196,6 +197,27 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
             Assert.Equal(token, reader.ReadInteger());
             Assert.Equal(file, reader.ReadString());
             Assert.Equal(size, reader.ReadLong());
+        }
+
+        [Trait("Category", "ToByteArray")]
+        [Fact(DisplayName = "ToByteArray can preserve windows-1251 filename bytes")]
+        public void ToByteArray_Can_Preserve_Windows_1251_Filename_Bytes()
+        {
+            const string filename = "e:\\music\\russian\\\u041D\u043E\u0432\u0430\u044F \u043F\u0430\u043F\u043A\u0430\\track.mp3";
+            var request = new TransferRequest(TransferDirection.Download, 1, filename, filenameEncoding: CharacterEncoding.Windows1251);
+
+            var msg = request.ToByteArray();
+            var reader = new MessageReader<MessageCode.Peer>(msg);
+
+            Assert.Equal(MessageCode.Peer.TransferRequest, reader.ReadCode());
+            Assert.Equal((int)TransferDirection.Download, reader.ReadInteger());
+            Assert.Equal(1, reader.ReadInteger());
+
+            var length = reader.ReadInteger();
+            var filenameBytes = reader.ReadBytes(length);
+            var cyrillicOffset = "e:\\music\\russian\\".Length;
+
+            Assert.Equal(new byte[] { 0xCD, 0xEE, 0xE2, 0xE0, 0xFF, 0x20, 0xEF, 0xE0, 0xEF, 0xEA, 0xE0 }, filenameBytes.Skip(cyrillicOffset).Take(11));
         }
     }
 }

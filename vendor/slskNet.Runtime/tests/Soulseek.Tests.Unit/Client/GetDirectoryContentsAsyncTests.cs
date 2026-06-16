@@ -301,7 +301,7 @@ namespace Soulseek.Tests.Unit.Client
             conn.Verify(
                 m =>
                 m.WriteAsync(
-                    It.Is<IOutgoingMessage>(msg => msg.ToByteArray().Matches(new FolderContentsRequest(token, directory).ToByteArray())),
+                    It.Is<IOutgoingMessage>(msg => msg.ToByteArray().Matches(new FolderContentsRequest(token, directory, null).ToByteArray())),
                     It.IsAny<CancellationToken>()),
                 Times.Once);
         }

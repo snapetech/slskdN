@@ -53,3 +53,14 @@ Sweep closure rules:
 - Confirmed runtime bugs get focused regression tests and remediation-baseline patterns.
 - False positives stay in the ledger only when they document a recurring scan hit that would otherwise be re-reviewed.
 - Integration-only risks are recorded explicitly when credentials or live Soulseek network access are unavailable.
+| Red-team abuse lens | Re-check accepted fixes from an attacker viewpoint: spoofed identity, secret disclosure, confused deputy, replay, SSRF/path/process escape, and operational downgrade. |
+
+## Expert roles
+
+Keep these roles in every imported council, adapting names to the stack when useful:
+
+| Expert | Required output |
+| --- | --- |
+| Runtime maintainer | Prove normal product behavior remains intact after each fix. |
+| Red-team reviewer | Turn suspicious shapes into concrete exploit hypotheses, then either reject them with rationale or require a behavior test and remediation anchor. |
+| Regression keeper | Ensure every accepted bug class has a focused test, a sibling sweep, and a deploy gate. |

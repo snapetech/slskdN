@@ -1,6 +1,7 @@
 ﻿namespace WebAPI.Controllers
 {
     using Microsoft.AspNetCore.Authorization;
+    using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.IdentityModel.Tokens;
     using System;
@@ -88,7 +89,7 @@
                 return Ok(new TokenResponse(GetJwtSecurityToken()));
             }
 
-            return Unauthorized();
+            return StatusCode(StatusCodes.Status401Unauthorized);
         }
 
         private static JwtSecurityToken GetJwtSecurityToken()

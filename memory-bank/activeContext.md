@@ -1,3 +1,43 @@
+## Update 2026-06-16 16:49:39Z
+
+- Current task: slskNet.Runtime standalone and vendored runtime sync complete locally.
+- Last activity:
+  - Committed and pushed the standalone runtime instruction file, legacy peer path-encoding fix, and council backlog whitespace cleanup through standalone commit `74243f52`.
+  - Re-exported the tracked standalone runtime tree into `vendor/slskNet.Runtime` and verified the vendored copy matches the standalone archive.
+  - Preserved the local tester-feedback slskdN changes: 60 second peer/transfer inactivity defaults, config docs, tests, and ADR/task/progress notes.
+  - Replaced the vendored Web example's vulnerable CRA/yarn tree with the standalone Vite/npm tree.
+  - Fixed the slskdN `MessagePack` high-severity advisory by upgrading `MessagePack` from `3.1.4` to `3.1.7`.
+- Validation:
+  - Passed: `git diff --check`.
+  - Passed: `dotnet list slskd.sln package --vulnerable --include-transitive` with no vulnerable packages.
+  - Passed: full `dotnet test` (`4577/4577`: 68 smoke, 4231 unit, 278 integration).
+  - Passed: vendored Web `npm ci`, `npm audit --audit-level=low`, and `npm run build`.
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Push the sync commit; no release tags were created.
+  2. Build/deploy only when requested, then have Bas retest TauAs, hrust82, and budznbeerz.
+
+## Update 2026-06-16 16:21:13Z
+
+- Current task: Tester peer browse/download compatibility fix complete locally.
+- Last activity:
+  - Triaged Bas's reports for TauAs browse failures, hrust82 Cyrillic path compatibility, and budznbeerz remote enqueue timeouts.
+  - Increased default Soulseek peer inactivity and transfer inactivity timeouts to 60 seconds.
+  - Added Windows-1251 fallback protocol decoding for likely Cyrillic path bytes.
+  - Preserved file/directory/folder/transfer string encoding metadata through Soulseek.NET message parsing and writing.
+  - Added a per-user remote path encoding cache so later folder-content and download requests serialize legacy paths with the same bytes the remote peer sent.
+  - Updated `config/slskd.example.yml`, `docs/config.md`, `memory-bank/tasks.md`, and `memory-bank/progress.md`.
+  - Documented ADR-0001 gotcha `0z486` and committed the docs-only entry as `7da8d676d`.
+- Validation:
+  - Passed: focused vendor regressions (`33/33`).
+  - Passed: broader Soulseek.NET related tests (`265/265`).
+  - Passed: focused slskd startup/download tests (`41/41`).
+  - Passed: full `dotnet test` (`4577/4577`: 68 smoke, 4231 unit, 278 integration).
+  - Passed: `./bin/lint`.
+- Next steps:
+  1. Build/deploy when requested; no release tags were created.
+  2. Have Bas retest TauAs browsing, the hrust82 Cyrillic path, and the budznbeerz download; capture exact logs if any failure persists.
+
 ## Update 2026-05-25 20:04:29Z
 
 - Current task: Downloads request-identity fix deployed and verified on the live Docker host.

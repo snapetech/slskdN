@@ -208,6 +208,70 @@ namespace Soulseek.Tests.Unit
             Assert.Equal(((DateTimeOffset)token.ValidFrom).ToUnixTimeSeconds(), response.NotBefore);
         }
 
+        [Fact(DisplayName = "Session login rejects null request")]
+        public void Session_Login_Rejects_Null_Request()
+        {
+            var controller = new SessionController();
+
+            var response = controller.Login(null);
+
+            Assert.IsType<BadRequestResult>(response);
+        }
+
+        [Theory(DisplayName = "Session login rejects missing credentials")]
+        [InlineData(null, "password")]
+        [InlineData("user", null)]
+        [InlineData("", "password")]
+        [InlineData("user", " ")]
+        public void Session_Login_Rejects_Missing_Credentials(string username, string password)
+        {
+            var controller = new SessionController();
+
+            var response = controller.Login(new LoginRequest { Username = username, Password = password });
+
+            Assert.IsType<BadRequestObjectResult>(response);
+        }
+
+        [Fact(DisplayName = "Session login returns unauthorized for invalid credentials")]
+        public void Session_Login_Returns_Unauthorized_For_Invalid_Credentials()
+        {
+            var temp = ConfigureStartup();
+
+            try
+            {
+                var controller = new SessionController();
+
+                var response = controller.Login(new LoginRequest { Username = "user", Password = "wrong" });
+
+                var result = Assert.IsType<StatusCodeResult>(response);
+                Assert.Equal(401, result.StatusCode);
+            }
+            finally
+            {
+                Directory.Delete(temp, recursive: true);
+            }
+        }
+
+        [Fact(DisplayName = "Session login returns token for valid credentials")]
+        public void Session_Login_Returns_Token_For_Valid_Credentials()
+        {
+            var temp = ConfigureStartup();
+
+            try
+            {
+                var controller = new SessionController();
+
+                var response = controller.Login(new LoginRequest { Username = "user", Password = "password" });
+
+                var result = Assert.IsType<OkObjectResult>(response);
+                Assert.IsType<TokenResponse>(result.Value);
+            }
+            finally
+            {
+                Directory.Delete(temp, recursive: true);
+            }
+        }
+
         [Fact(DisplayName = "User info resolver tolerates missing sample picture")]
         public async Task User_Info_Resolver_Tolerates_Missing_Sample_Picture()
         {
@@ -298,6 +362,14 @@ namespace Soulseek.Tests.Unit
                     new KeyValuePair<string, string>("OUTPUT_DIR", directory),
                 })
                 .Build();
+        }
+
+        private static string ConfigureStartup()
+        {
+            var temp = Path.Combine(Path.GetTempPath(), "slsknet-runtime-tests", Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(temp);
+            _ = new Startup(BuildConfiguration(temp));
+            return temp;
         }
     }
 }

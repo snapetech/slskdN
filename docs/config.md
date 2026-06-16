@@ -834,7 +834,7 @@ Timeout options control how long the application waits for connections to connec
 
 Higher connect timeout values will help ensure that operations (browse, download requests, etc.) are successful the first time but decrease the responsiveness of commands that will ultimately fail.
 
-Inactivity timeouts help the application determine when a distributed parent connection has stopped sending data and when connections that have delivered search results (and are unlikely to be used further) from remaining open longer than needed. Reducing this timeout can help low spec systems if port exhaustion is a concern but may result in the application "hunting" for a distributed parent connection needlessly.
+Inactivity timeouts help the application determine when a distributed parent connection has stopped sending data and when connections that have delivered search results (and are unlikely to be used further) from remaining open longer than needed. Reducing this timeout can help low spec systems if port exhaustion is a concern but may result in the application "hunting" for a distributed parent connection needlessly. Values below one minute can also break slow peer browse responses and transfer acknowledgements.
 
 Transfer connections use their own timeout value; other Soulseek clients regulate transfer speed by controlling how often data is sent (e.g. send full speed for 5 seconds, send nothing for 25 seconds),
 and as such transfers can easily time out due to inactivity if using a lower value.  This setting must be at least 30 seconds.
@@ -851,8 +851,8 @@ soulseek:
   connection:
     timeout:
       connect: 10000
-      inactivity: 15000
-      transfer: 30000
+      inactivity: 60000
+      transfer: 60000
 ```
 
 ### Buffers

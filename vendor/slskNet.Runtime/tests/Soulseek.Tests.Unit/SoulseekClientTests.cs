@@ -95,6 +95,36 @@ namespace Soulseek.Tests.Unit
             }
         }
 
+        [Trait("Category", "RemotePathEncoding")]
+        [Fact(DisplayName = "Remembers non-UTF8 remote path encodings")]
+        public void Remembers_Non_UTF8_Remote_Path_Encodings()
+        {
+            const string Username = "legacy-user";
+            const string DirectoryName = @"e:\music\russian\Новая папка";
+            const string Filename = "song.mp3";
+            const string RemoteFilename = @"e:\music\russian\Новая папка\song.mp3";
+
+            var file = new File(
+                code: 1,
+                filename: Filename,
+                size: 123,
+                extension: "mp3",
+                attributeList: null,
+                filenameEncoding: CharacterEncoding.Windows1251,
+                extensionEncoding: null);
+            var directory = new Directory(DirectoryName, new[] { file }, CharacterEncoding.Windows1251);
+
+            using (var s = new SoulseekClient(minorVersion: 9999))
+            {
+                s.RememberRemotePathEncodings(Username, new[] { directory });
+
+                Assert.Equal(CharacterEncoding.Windows1251, s.GetRemotePathEncoding(Username, DirectoryName));
+                Assert.Equal(CharacterEncoding.Windows1251, s.GetRemotePathEncoding(Username, Filename));
+                Assert.Equal(CharacterEncoding.Windows1251, s.GetRemotePathEncoding(Username, RemoteFilename));
+                Assert.Null(s.GetRemotePathEncoding(Username, RemoteFilename + ".other"));
+            }
+        }
+
         [Trait("Category", "Instantiation")]
         [Fact(DisplayName = "Username is null initially")]
         public void Username_Is_Null_Initially()

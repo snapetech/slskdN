@@ -201,6 +201,35 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         }
 
         [Trait("Category", "Parse")]
+        [Fact(DisplayName = "Parse decodes windows-1251 filenames")]
+        public void Parse_Decodes_Windows_1251_Filenames()
+        {
+            const string filename = "e:\\music\\russian\\\u041D\u043E\u0432\u0430\u044F \u043F\u0430\u043F\u043A\u0430\\track.mp3";
+
+            var msg = new MessageBuilder()
+                .WriteCode(MessageCode.Peer.SearchResponse)
+                .WriteString("hrust82")
+                .WriteInteger(1)
+                .WriteInteger(1)
+                .WriteByte(0x2)
+                .WriteString(filename, CharacterEncoding.Windows1251)
+                .WriteLong(3)
+                .WriteString("mp3")
+                .WriteInteger(0)
+                .WriteByte(1)
+                .WriteInteger(1000)
+                .WriteInteger(0)
+                .Compress()
+                .Build();
+
+            var response = SearchResponseFactory.FromByteArray(msg);
+            var file = response.Files.Single();
+
+            Assert.Equal(filename, file.Filename);
+            Assert.Equal(CharacterEncoding.Windows1251, file.FilenameEncoding);
+        }
+
+        [Trait("Category", "Parse")]
         [Theory(DisplayName = "Parse handles empty responses"), AutoData]
         public void Parse_Handles_Empty_Responses(string username, int token, bool hasFreeUploadSlot, int uploadSpeed, long queueLength)
         {

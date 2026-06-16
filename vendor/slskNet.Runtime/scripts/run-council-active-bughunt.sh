@@ -105,5 +105,10 @@ write_section \
   'public [^;\n=]*\[\][^{;\n]*(\{|=>|;)|public .*I(ReadOnly)?(Collection|List|Enumerable)<|params ' \
   src examples/Web/api
 
+write_section \
+  "Red-team abuse lens" \
+  '(token|secret|password|authorization|cookie|api[-_]?key|session|redirect|proxy|forwarded|path|filename|exec|spawn|shell|http://|https://)' \
+  src tests examples scripts docs
+
 printf 'Active council bughunt candidates saved to %s.\n' "$report"
 printf 'Verdict boundary: this report is a discovery queue, not proof of no bugs.\n'

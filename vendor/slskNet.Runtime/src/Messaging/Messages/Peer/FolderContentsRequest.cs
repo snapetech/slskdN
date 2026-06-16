@@ -35,11 +35,13 @@ namespace Soulseek.Messaging.Messages
         /// </summary>
         /// <param name="token">The unique token for the request.</param>
         /// <param name="directoryName">The directory to fetch.</param>
-        public FolderContentsRequest(int token, string directoryName)
+        /// <param name="directoryNameEncoding">The encoding to use when writing the directory name.</param>
+        public FolderContentsRequest(int token, string directoryName, CharacterEncoding directoryNameEncoding = null)
         {
             ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "folder contents token");
 
             DirectoryName = ProtocolArgumentValidator.RequireNotNull(directoryName, nameof(directoryName), "directory name");
+            DirectoryNameEncoding = directoryNameEncoding;
             Token = token;
         }
 
@@ -52,6 +54,8 @@ namespace Soulseek.Messaging.Messages
         ///     Gets the unique token for the request.
         /// </summary>
         public int Token { get; }
+
+        internal CharacterEncoding DirectoryNameEncoding { get; }
 
         /// <summary>
         ///     Creates a new instance of <see cref="FolderContentsRequest"/> from the specified <paramref name="bytes"/>.
@@ -69,9 +73,9 @@ namespace Soulseek.Messaging.Messages
             }
 
             var token = reader.ReadInteger();
-            var directoryName = reader.ReadString();
+            var (directoryName, directoryNameEncoding) = reader.ReadStringAndEncoding();
 
-            return new FolderContentsRequest(token, directoryName);
+            return new FolderContentsRequest(token, directoryName, directoryNameEncoding);
         }
 
         /// <summary>
@@ -83,7 +87,7 @@ namespace Soulseek.Messaging.Messages
             return new MessageBuilder()
                 .WriteCode(MessageCode.Peer.FolderContentsRequest)
                 .WriteInteger(Token)
-                .WriteString(DirectoryName)
+                .WriteString(DirectoryName, DirectoryNameEncoding)
                 .Build();
         }
     }

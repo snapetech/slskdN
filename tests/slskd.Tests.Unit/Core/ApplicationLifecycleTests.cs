@@ -51,6 +51,8 @@ public class ApplicationLifecycleTests
         Assert.Equal(patch.PeerConnectionOptions.ReadBufferSize, patch.IncomingConnectionOptions.ReadBufferSize);
         Assert.Equal(patch.PeerConnectionOptions.WriteBufferSize, patch.IncomingConnectionOptions.WriteBufferSize);
         Assert.Equal(patch.PeerConnectionOptions.InactivityTimeout, patch.IncomingConnectionOptions.InactivityTimeout);
+        Assert.Equal(60_000, patch.PeerConnectionOptions.InactivityTimeout);
+        Assert.Equal(60_000, patch.TransferConnectionOptions.InactivityTimeout);
     }
 
     [Fact]

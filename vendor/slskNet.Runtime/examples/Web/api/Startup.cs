@@ -23,7 +23,7 @@ namespace WebAPI
     using Microsoft.Extensions.FileProviders;
     using Microsoft.Extensions.Hosting;
     using Microsoft.IdentityModel.Tokens;
-    using Microsoft.OpenApi.Models;
+    using Microsoft.OpenApi;
     using Soulseek;
     using Soulseek.Diagnostics;
     using WebAPI.Entities;

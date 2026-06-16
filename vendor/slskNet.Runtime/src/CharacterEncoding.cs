@@ -31,7 +31,7 @@ namespace Soulseek
         /// <summary>
         ///     Initializes a new instance of the <see cref="CharacterEncoding"/> class.
         /// </summary>
-        /// <param name="name">The encoding; UTF-8 or ISO-8859-1.</param>
+        /// <param name="name">The encoding; UTF-8, ISO-8859-1, or Windows-1251.</param>
         internal CharacterEncoding(string name)
         {
             if (string.IsNullOrEmpty(name))
@@ -39,9 +39,9 @@ namespace Soulseek
                 throw new System.ArgumentNullException(nameof(name));
             }
 
-            if (name != "UTF-8" && name != "ISO-8859-1")
+            if (name != "UTF-8" && name != "ISO-8859-1" && name != "windows-1251")
             {
-                throw new System.ArgumentException("Invalid character encoding; must be one of UTF-8, ISO-8859-1", nameof(name));
+                throw new System.ArgumentException("Invalid character encoding; must be one of UTF-8, ISO-8859-1, windows-1251", nameof(name));
             }
 
             Name = name;
@@ -51,6 +51,11 @@ namespace Soulseek
         ///     Gets "ISO-8859-1" encoding.
         /// </summary>
         public static CharacterEncoding ISO88591 { get; } = new CharacterEncoding("ISO-8859-1");
+
+        /// <summary>
+        ///     Gets "windows-1251" encoding.
+        /// </summary>
+        public static CharacterEncoding Windows1251 { get; } = new CharacterEncoding("windows-1251");
 
         /// <summary>
         ///     Gets "UTF-8" encoding.

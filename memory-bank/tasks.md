@@ -9,6 +9,21 @@
 
 ### High Priority
 
+- [x] Sync vendored slskNet.Runtime and clear current package advisory.
+ - Status: completed (2026-06-16)
+ - Priority: P1
+ - Notes: Pushed standalone slskNet.Runtime through commit `74243f52`, re-exported the tracked tree into `vendor/slskNet.Runtime`, and verified the vendored copy matches the archive. The sync includes dependency/security updates, the Vite/npm Web example, CodeQL fixes, and the legacy peer path-encoding fix. Upgraded slskdN `MessagePack` from `3.1.4` to `3.1.7` to clear GHSA-hv8m-jj95-wg3x. Validation passed: `git diff --check`, vulnerable package scan with no vulnerable packages, full `dotnet test` (`4577/4577`: 68 smoke, 4231 unit, 278 integration), vendored Web npm audit/build, and `./bin/lint`. No release tags were created.
+
+- [x] Fix legacy Soulseek peer browse/download compatibility from tester feedback.
+ - Status: completed (2026-06-16)
+ - Priority: P1
+ - Notes: Addressed Bas's reports for peers that browse/download in Nicotine+/N+ but failed in slskdN. Increased default peer inactivity and transfer inactivity timeouts to 60 seconds, added Windows-1251 protocol-string fallback for Cyrillic paths, preserved decoded path encodings through browse/search/folder/transfer models, and reused remembered per-user path encodings when sending folder-content and download requests. Updated config examples/docs. Documented ADR-0001 gotcha `0z486` and committed the docs-only entry as `7da8d676d`. Validation passed: focused vendor regressions (`33/33`), broader Soulseek.NET related tests (`265/265`), focused slskd startup/download tests (`41/41`), full `dotnet test` (`4577/4577`: 68 smoke, 4231 unit, 278 integration), and `./bin/lint`.
+
+- [ ] Have tester retest TauAs, hrust82, and budznbeerz after next build/deploy.
+ - Status: pending (2026-06-16)
+ - Priority: P1
+ - Notes: Ask Bas to retry browsing TauAs, browsing/downloading the hrust82 Cyrillic path, and downloading from budznbeerz. Capture any remaining daemon log lines and exact remote filenames if failures persist.
+
 - [x] Fix Downloads row churn from request-backed transfer activity.
  - Status: completed (2026-05-25)
  - Priority: P1
@@ -83,10 +98,10 @@
   - Priority: P1
   - Notes: Migrations use `IMigration` pattern with `SchemaInspector` for safe column addition on existing SQLite databases. `CleanupAsync` runs alongside `PruneAsync` in the `PruneSearches` background task. "Mark All Viewed" clears the unseen badge on all wishlist items. AdminPolicies page exposes all three retention parameters. Validated: 4544 tests pass, 748 Vitest tests pass, `./bin/lint` clean, frontend build clean.
 
-- [ ] Collect failed direct-download evidence from stable tester build.
- - Status: pending (2026-05-15)
+- [x] Collect failed direct-download evidence from stable tester build.
+ - Status: completed (2026-06-16)
  - Priority: P1
- - Notes: Tester reports selected downloads still fail with only `Remote connection closed`, and Bas now reports continued failures from users that work well in Nicotine+. The stable release artifact is current and contains the recent route/download fixes. Still need one failed transfer's username, remote filename, UI transfer state, and nearby daemon log lines to distinguish expected remote peer closes / share-gate prompts / remote client behavior from a local transfer regression.
+ - Notes: Bas supplied named peers, one exact Cyrillic path sample, and a budznbeerz daemon log showing a remote enqueue wait timeout after 15000 ms. That evidence identified two local compatibility risks: too-short peer inactivity timeouts and legacy CP1251 path bytes being decoded without preserving outbound request encoding. Any failures after the next build should be tracked under the retest follow-up task above.
 
 - [x] Add opt-in Docker support and guidance for heavier SongID media tools.
  - Status: completed (2026-05-15)

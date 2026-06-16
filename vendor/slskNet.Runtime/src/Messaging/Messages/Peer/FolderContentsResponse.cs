@@ -40,7 +40,8 @@ namespace Soulseek.Messaging.Messages
         /// <param name="token">The unique token for the request.</param>
         /// <param name="directoryName">The name of the requested (root) directory.</param>
         /// <param name="directories">The directory contents.</param>
-        public FolderContentsResponse(int token, string directoryName, IEnumerable<Directory> directories)
+        /// <param name="directoryNameEncoding">The encoding to use when writing the directory name.</param>
+        public FolderContentsResponse(int token, string directoryName, IEnumerable<Directory> directories, CharacterEncoding directoryNameEncoding = null)
         {
             ProtocolArgumentValidator.RequireNonNegative(token, nameof(token), "folder contents token");
 
@@ -59,6 +60,7 @@ namespace Soulseek.Messaging.Messages
             Token = token;
 
             DirectoryName = ProtocolArgumentValidator.RequireNotNull(directoryName, nameof(directoryName), "directory name");
+            DirectoryNameEncoding = directoryNameEncoding;
 
             Directories = directoryList.AsReadOnly();
             DirectoryCount = Directories.Count;
@@ -84,6 +86,8 @@ namespace Soulseek.Messaging.Messages
         /// </summary>
         public int Token { get; }
 
+        internal CharacterEncoding DirectoryNameEncoding { get; }
+
         /// <summary>
         ///     Creates a new instance of <see cref="FolderContentsResponse"/> from the specified <paramref name="bytes"/>.
         /// </summary>
@@ -102,7 +106,7 @@ namespace Soulseek.Messaging.Messages
             reader.Decompress();
 
             var token = reader.ReadInteger();
-            var rootDirectory = reader.ReadString(); // directory name, should always match that of the first directory
+            var (rootDirectory, rootDirectoryEncoding) = reader.ReadStringAndEncoding(); // directory name, should always match that of the first directory
             var directoryCount = ProtocolCountReader.ReadCount(reader, "directory", minimumBytesPerItem: 4); // directory count, should always be 1
             var directoryList = new List<Directory>();
 
@@ -111,7 +115,7 @@ namespace Soulseek.Messaging.Messages
                 directoryList.Add(reader.ReadDirectory());
             }
 
-            return new FolderContentsResponse(token, rootDirectory, directoryList);
+            return new FolderContentsResponse(token, rootDirectory, directoryList, rootDirectoryEncoding);
         }
 
         /// <summary>
@@ -123,7 +127,7 @@ namespace Soulseek.Messaging.Messages
             var builder = new MessageBuilder()
                 .WriteCode(MessageCode.Peer.FolderContentsResponse)
                 .WriteInteger(Token)
-                .WriteString(DirectoryName)
+                .WriteString(DirectoryName, DirectoryNameEncoding)
                 .WriteInteger(DirectoryCount);
 
             foreach (var directory in Directories)

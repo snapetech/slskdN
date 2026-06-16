@@ -119,6 +119,7 @@ namespace Soulseek.Messaging.Handlers
                 {
                     case MessageCode.Peer.SearchResponse:
                         var searchResponse = SearchResponseFactory.FromByteArray(message);
+                        SoulseekClient.RememberRemotePathEncodings(searchResponse.Username, searchResponse);
 
                         if (SoulseekClient.Searches.TryGetValue(searchResponse.Token, out var search))
                         {
@@ -132,7 +133,9 @@ namespace Soulseek.Messaging.Handlers
 
                         try
                         {
-                            SoulseekClient.Waiter.Complete(browseWaitKey, BrowseResponseFactory.FromByteArray(message));
+                            var incomingBrowseResponse = BrowseResponseFactory.FromByteArray(message);
+                            SoulseekClient.RememberRemotePathEncodings(connection.Username, incomingBrowseResponse);
+                            SoulseekClient.Waiter.Complete(browseWaitKey, incomingBrowseResponse);
                         }
                         catch (Exception ex)
                         {
@@ -255,7 +258,7 @@ namespace Soulseek.Messaging.Handlers
                         {
                             try
                             {
-                                var folderContentsResponseMessage = new FolderContentsResponse(folderContentsRequest.Token, folderContentsRequest.DirectoryName, outgoingFolderContents);
+                                var folderContentsResponseMessage = new FolderContentsResponse(folderContentsRequest.Token, folderContentsRequest.DirectoryName, outgoingFolderContents, folderContentsRequest.DirectoryNameEncoding);
 
                                 await connection.WriteAsync(folderContentsResponseMessage).ConfigureAwait(false);
                                 Diagnostic.Info($"Folder contents for {folderContentsRequest.DirectoryName} sent to {connection.Username}");
@@ -270,6 +273,7 @@ namespace Soulseek.Messaging.Handlers
 
                     case MessageCode.Peer.FolderContentsResponse:
                         var folderContentsResponse = FolderContentsResponse.FromByteArray(message);
+                        SoulseekClient.RememberRemotePathEncodings(connection.Username, folderContentsResponse.Directories);
                         SoulseekClient.Waiter.Complete(new WaitKey(MessageCode.Peer.FolderContentsResponse, connection.Username, folderContentsResponse.Token), folderContentsResponse.Directories);
                         break;
 

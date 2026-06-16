@@ -40,8 +40,14 @@ namespace Soulseek
         /// <param name="name">The directory name.</param>
         /// <param name="fileList">The optional list of <see cref="File"/> s.</param>
         public Directory(string name, IEnumerable<File> fileList = null)
+            : this(name, fileList, nameEncoding: null)
+        {
+        }
+
+        internal Directory(string name, IEnumerable<File> fileList, CharacterEncoding nameEncoding)
         {
             Name = name;
+            NameEncoding = nameEncoding;
 
             var files = fileList?.ToList() ?? new List<File>();
 
@@ -68,5 +74,7 @@ namespace Soulseek
         ///     Gets the collection of files contained within the directory.
         /// </summary>
         public IReadOnlyCollection<File> Files { get; }
+
+        internal CharacterEncoding NameEncoding { get; }
     }
 }

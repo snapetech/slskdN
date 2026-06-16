@@ -37,8 +37,15 @@ namespace Soulseek.Tests.Unit
         }
 
         [Trait("Category", "CharacterEncoding")]
-        [Fact(DisplayName = "Throws given anything other than UTF-8 or ISO-8859-1")]
-        public void Throws_Given_Anything_Other_Than_UTF_8_Or_ISO_8859_1()
+        [Fact(DisplayName = "Returns windows-1251 from Windows1251 prop")]
+        public void Returns_Windows_1251_From_Windows1251_Prop()
+        {
+            Assert.Equal("windows-1251", CharacterEncoding.Windows1251);
+        }
+
+        [Trait("Category", "CharacterEncoding")]
+        [Fact(DisplayName = "Throws given unsupported encoding")]
+        public void Throws_Given_Unsupported_Encoding()
         {
             var ex = Record.Exception(() => new CharacterEncoding("foo"));
 

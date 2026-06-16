@@ -228,7 +228,7 @@ namespace Soulseek.Messaging
 
             try
             {
-                bytes = Encoding.GetEncoding(encoding, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback).GetBytes(value);
+                bytes = ProtocolTextEncoding.Encode(value, encoding);
             }
             catch (Exception ex)
             {

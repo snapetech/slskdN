@@ -46,9 +46,9 @@ namespace Soulseek.Messaging
         internal static File ReadFile(this MessageReader<MessageCode.Peer> reader)
         {
             var code = reader.ReadByte();
-            var filename = reader.ReadString();
+            var (filename, filenameEncoding) = reader.ReadStringAndEncoding();
             var size = reader.ReadLong();
-            var extension = reader.ReadString();
+            var (extension, extensionEncoding) = reader.ReadStringAndEncoding();
 
             // check for an overflow, most likely sent from Soulseek NS due to a file size
             // exceeding 2gb.
@@ -84,7 +84,9 @@ namespace Soulseek.Messaging
                 filename,
                 size,
                 extension,
-                attributeList);
+                attributeList,
+                filenameEncoding,
+                extensionEncoding);
         }
 
         /// <summary>
@@ -112,7 +114,7 @@ namespace Soulseek.Messaging
         /// <returns>The directory.</returns>
         internal static Directory ReadDirectory(this MessageReader<MessageCode.Peer> reader)
         {
-            var directoryName = reader.ReadString();
+            var (directoryName, directoryNameEncoding) = reader.ReadStringAndEncoding();
             var fileCount = ProtocolCountReader.ReadCount(reader, "directory file", minimumBytesPerItem: 4);
 
             var fileList = new List<File>();
@@ -124,7 +126,8 @@ namespace Soulseek.Messaging
 
             return new Directory(
                 name: directoryName,
-                fileList: fileList);
+                fileList: fileList,
+                nameEncoding: directoryNameEncoding);
         }
     }
 }
