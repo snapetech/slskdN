@@ -52,6 +52,37 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z490. HashDb Download Ingestion Must Skip Non-Audio Sidecars
+
+**The Bug**: HashDb listened to every completed download, hashed any file above
+the verification chunk size, and then attempted TagLib/audio variant metadata
+derivation even for album sidecars such as PDF booklets. Live logs reported
+warning-level audio metadata failures for files that were never audio variants.
+
+**Files Affected**:
+- `src/slskd/HashDb/HashDbService.cs`
+
+**Wrong**:
+```csharp
+var hash = await ComputeFileHashAsync(localFilename);
+await StoreHashFromVerificationAsync(evt.RemoteFilename, fileSize, hash);
+var variant = BuildVariantFromFile(localFilename, flacKey, fileSize);
+```
+
+**Correct**:
+```csharp
+if (!IsAudioHashCandidate(localFilename, evt.RemoteFilename))
+{
+    return;
+}
+```
+
+**Why This Keeps Happening**: Completed album downloads include booklets,
+artwork, cue sheets, logs, and checksums alongside tracks. HashDb, audio
+fingerprinting, and variant scoring are audio-content systems; completed
+download event handlers must reject non-audio sidecars before hashing,
+fingerprinting, or launching TagLib/audio analysis.
+
 ### 0z489. Event Pruning Must Not Materialize Expired Payloads
 
 **The Bug**: Event retention cleanup loaded every expired `EventRecord`,
