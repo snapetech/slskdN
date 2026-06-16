@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- The optional Docker media-tools installer now includes `libclang-dev`, and
+  packaging validation guards it, so the omnibus testers image can compile
+  current SongRec/bindgen dependencies during release publishing.
 - Event retention pruning now deletes expired rows with a set-based database
   command instead of materializing serialized event payloads into application
   memory, avoiding startup prune `OutOfMemoryException` failures on large event

@@ -8873,3 +8873,23 @@ continues to report the existing degraded operational state.
 Fresh post-restart logs are clean after the initial rescue trigger. The latest
 90-second sample showed no rescue repeats and no warning, error, or fatal log
 entries.
+
+## 2026-06-16T20:57:24Z Session update
+
+The first main release tag for the current live-validated build published the
+GitHub release assets and most primary channels, but the overall tag workflow
+failed because the omnibus testers Docker image could not compile SongRec:
+`bindgen` could not find `libclang.so`. COPR also failed at upload with a
+non-JSON API response, and Chocolatey failed after repeated 504 Gateway Timeout
+responses; public checks did not show those downstream packages accepted the
+271 version.
+
+The actionable release-blocking Docker issue is fixed locally: the optional
+media-tools installer now installs `libclang-dev`, packaging metadata validation
+guards that dependency, and a full local all-tools Docker build against the
+published 271 base image completed successfully. Smoke checks inside the image
+found `songrec`, `c2patool`, `audfprint.py`, and `panako.jar`.
+
+Next steps: finish repo validation, commit/push the omnibus fix, then create a
+replacement main release tag. Treat COPR and Chocolatey as external publisher
+failures unless a retry or service recovery succeeds.

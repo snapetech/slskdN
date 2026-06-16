@@ -86,6 +86,7 @@ apt_install_base() {
     intltool \
     libasound2-dev \
     libadwaita-1-dev \
+    libclang-dev \
     libdbus-1-dev \
     libglib2.0-dev \
     libgtk-4-dev \
