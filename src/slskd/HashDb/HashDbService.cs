@@ -22,6 +22,7 @@ namespace slskd.HashDb
     using slskd.Audio;
     using slskd.Audio.Analyzers;
     using slskd.Capabilities;
+    using slskd.Common.Security;
     using slskd.Events;
     using slskd.HashDb.Models;
     using slskd.Integrations.AcoustId;
@@ -220,6 +221,12 @@ namespace slskd.HashDb
                 var localFilename = evt.LocalFilename;
                 var fileSize = evt.Transfer.Size;
 
+                if (!IsAudioHashCandidate(localFilename, evt.RemoteFilename))
+                {
+                    log.Debug("[HashDb] Skipping hash for non-audio completed download {Filename}", localFilename);
+                    return;
+                }
+
                 // Only hash files that are large enough
                 if (fileSize < HashChunkSize)
                 {
@@ -296,6 +303,9 @@ namespace slskd.HashDb
                 log.Error(ex, "[HashDb] Error hashing downloaded file {Filename}", evt.LocalFilename);
             }
         }
+
+        private static bool IsAudioHashCandidate(params string?[] filenames)
+            => filenames.Any(PathGuard.HasSafeAudioExtension);
 
         /// <summary>
         ///     Computes SHA256 hash of the first 32KB of a file.

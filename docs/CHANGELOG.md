@@ -27,6 +27,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   memory, avoiding startup prune `OutOfMemoryException` failures on large event
   histories. Successful second-chance transfer fallback diagnostics are again
   Info/Debug instead of warning-level noise.
+- HashDb completed-download ingestion now skips non-audio sidecars such as PDF
+  booklets before hashing, fingerprinting, or deriving audio variant metadata,
+  keeping album extras out of audio-only warning paths.
 - Open Dependabot NuGet/npm updates are applied directly to `main`, including
   `esbuild` `0.28.1`, `Serilog.Sinks.Grafana.Loki` `9.0.0`, `YamlDotNet`
   `18.0.0`, `react-window` `2.2.7`, `react-router-dom` `7.18.0`,

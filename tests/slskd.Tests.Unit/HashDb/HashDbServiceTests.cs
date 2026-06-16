@@ -7,8 +7,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using slskd.Events;
 using slskd.Audio;
 using slskd.HashDb;
 using slskd.HashDb.Models;
@@ -810,6 +812,26 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task DownloadCompleteAsync_SkipsNonAudioSidecar()
+    {
+        var sidecar = Path.Combine(testDir, "booklet.pdf");
+        await File.WriteAllBytesAsync(sidecar, new byte[32769]);
+
+        await InvokeDownloadCompleteAsync(new DownloadFileCompleteEvent
+        {
+            LocalFilename = sidecar,
+            RemoteFilename = @"Album\booklet.pdf",
+            Transfer = new slskd.Transfers.Transfer
+            {
+                Size = 32769,
+            },
+        });
+
+        var stats = service.GetStats();
+        Assert.Equal(0, stats.TotalHashEntries);
+    }
+
+    [Fact]
     public async Task IncrementHashUseCountAsync_IncrementsCount()
     {
         // Arrange
@@ -828,6 +850,16 @@ public class HashDbServiceTests : IDisposable
         // Assert
         var found = await service.LookupHashAsync("testkey");
         Assert.Equal(3, found.UseCount); // Initial 1 + 2 increments
+    }
+
+    private async Task InvokeDownloadCompleteAsync(DownloadFileCompleteEvent evt)
+    {
+        var method = typeof(HashDbService).GetMethod(
+            "OnDownloadCompleteAsync",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+
+        var task = Assert.IsAssignableFrom<Task>(method?.Invoke(service, new object[] { evt }));
+        await task;
     }
 
     [Fact]

@@ -1,3 +1,20 @@
+## Update 2026-06-16 18:10:34Z
+
+- Current task: Live manual-build log cleanup follow-up in progress.
+- Last activity:
+  - Built and deployed manual Docker image `0.0.0-manual.20260616175803.0ed04b45635d` from commit `0ed04b45635d`.
+  - Verified app/image version match, Docker health `healthy`, container restart count `0`, Web health `Healthy`, and no event-prune OOM after the next five-minute maintenance tick.
+  - Confirmed second-chance transfer fallback now logs at Info instead of Warning.
+  - Found one remaining actionable warning: HashDb tried to derive audio metadata for a downloaded PDF sidecar.
+  - Documented ADR-0001 gotcha `0z490` and committed the docs-only entry as `43661c14d`.
+  - Patched HashDb completed-download ingestion to skip non-audio sidecars before hashing, fingerprinting, or audio variant metadata derivation.
+- Validation:
+  - Passed: focused HashDb tests (`66/66`).
+- Next steps:
+  1. Run full backend validation and lint for the HashDb sidecar fix.
+  2. Commit/push the HashDb fix.
+  3. Rebuild/redeploy a fresh manual image and resample live logs for HashDb sidecar warnings.
+
 ## Update 2026-06-16 17:55:21Z
 
 - Current task: Live manual-build log follow-up fixes complete locally; redeploy pending.

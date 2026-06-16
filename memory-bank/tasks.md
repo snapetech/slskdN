@@ -2961,6 +2961,7 @@
 - [2026-05-25T20:04:29Z] Completed: deploy the Downloads realtime request-identity fix as manual image `slskdn:0.0.0-manual.20260525195707.9654eac5f35d`; verify image/app version match, Docker health, restart count zero, Web route/assets, preserved optional tools, `/health=Healthy`, and clean current-process logs under live transfer activity.
 - [2026-06-16T17:12:00Z] Completed: apply remaining slskdN Dependabot/security updates directly to `main`, including follow-up `AWSSDK.S3` `4.0.24.5` and `react-router-dom` `7.18.0`, clear npm/NuGet vulnerability scans, migrate Web code for upgraded packages, fix Loki 9.x startup compatibility, and validate backend/frontend suites.
 - [2026-06-16T17:55:21Z] Completed: inspect live manual-build logs, fix event retention pruning so expired event payloads are deleted with a set-based database command instead of EF materialization, and reapply the second-chance transfer diagnostic downgrade after the runtime sync.
+- [2026-06-16T18:10:34Z] Completed: fix the remaining live HashDb sidecar warning by skipping non-audio completed downloads before HashDb hashing, fingerprinting, or audio variant metadata derivation.
 
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
