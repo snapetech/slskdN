@@ -5,6 +5,7 @@
   - Applied the remaining open Dependabot NuGet/npm updates directly to `main`.
   - Cleared npm audit findings by upgrading `esbuild` to `0.28.1` and accepting
     the audit transitive fixes.
+  - Applied the follow-up Dependabot `AWSSDK.S3` `4.0.24.5` patch from PR #253.
   - Migrated the Transfers virtual list to the `react-window` v2 `List` API.
   - Fixed the `Serilog.Sinks.Grafana.Loki` 9.x startup break by skipping Loki
     sink construction when no URI is configured.
@@ -19,8 +20,8 @@
     from `@microsoft/signalr`.
   - Passed: `dotnet list slskd.sln package --vulnerable --include-transitive`
     with no vulnerable packages.
-  - Passed: unit tests (`4231/4231`) and integration tests (`278/278`); the
-    serial full solution `dotnet test slskd.sln --no-restore -m:1` exited 0.
+  - Passed: unit tests (`4231/4231`), integration tests (`278/278`), and smoke
+    tests (`68/68`) through the serial full solution test.
   - Passed: `./bin/lint`.
   - Passed: `git diff --check`.
 - Next steps:
