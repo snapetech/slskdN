@@ -1,3 +1,24 @@
+## Update 2026-06-16 20:06:27Z
+
+- Current task: Release tag pending after final manual validation.
+- Last activity:
+  - Committed and pushed disconnect teardown fix `2be213804`.
+  - Built/published manual version `0.0.0-manual.20260616195705.2be213804056`.
+  - Deployed the manual image to the live validation host.
+  - Verified image/app version match, Docker health `healthy`, restart count `0`, and `/health=Healthy`.
+  - Waited through the next maintenance tick and rescanned logs.
+- Validation:
+  - Passed: vendored `SearchInternalTests` (`40/40`).
+  - Passed: slskd classifier tests (`47/47`).
+  - Passed: full `dotnet test --no-restore` (`4581/4581`: 68 smoke, 4235 unit, 278 integration).
+  - Passed: `./bin/lint`.
+  - Passed: `git diff --check`.
+  - Passed: release-shaped build/publish and live post-maintenance log scan with `ERR=0`, `FTL=0`, `OOM=0`, `prune=0`, `variant=0`, `unobserved=0`, `lock=0`.
+- Next steps:
+  1. Commit/push this final validation note.
+  2. Run `scripts/create-release-tag.sh build-main-2026061620-slskdn.271`.
+  3. Watch the tag-triggered build and verify release artifacts after publication.
+
 ## Update 2026-06-16 19:49:01Z
 
 - Current task: Pre-release live-log rescan fixes in progress.
