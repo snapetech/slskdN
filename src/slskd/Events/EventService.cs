@@ -113,16 +113,15 @@ public class EventService
         {
             using var context = ContextFactory.CreateDbContext();
             var cutoff = DateTime.UtcNow.AddDays(-age);
-            var expired = context.Events.Where(e => e.Timestamp < cutoff).ToList();
+            var expired = context.Events.Where(e => e.Timestamp < cutoff);
+            var count = expired.ExecuteDelete();
 
-            if (expired.Count > 0)
+            if (count > 0)
             {
-                context.Events.RemoveRange(expired);
-                context.SaveChanges();
-                Log.Debug("Pruned {Count} event records older than {Age} days", expired.Count, age);
+                Log.Debug("Pruned {Count} event records older than {Age} days", count, age);
             }
 
-            return expired.Count;
+            return count;
         }
         catch (Exception ex)
         {

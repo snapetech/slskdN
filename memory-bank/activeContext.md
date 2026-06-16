@@ -1,3 +1,22 @@
+## Update 2026-06-16 17:55:21Z
+
+- Current task: Live manual-build log follow-up fixes complete locally; redeploy pending.
+- Last activity:
+  - Inspected logs from the manual Docker build on the live validation host.
+  - Found the service active/running and Docker-healthy with zero container restarts.
+  - Found two event pruning errors where `EventService.PruneAsync` materialized expired `EventRecord` payloads and hit `System.OutOfMemoryException` under the managed heap cap.
+  - Found successful second-chance transfer fallback diagnostics back at warning level after the vendored runtime sync.
+  - Documented ADR-0001 gotcha `0z489` and committed the docs-only entry as `a6f3c4219`.
+  - Patched event pruning to use `ExecuteDelete()` and restored second-chance fallback diagnostics to Info/Debug.
+- Validation:
+  - Passed: focused event tests (`13/13`).
+  - Passed: full `dotnet test --no-restore` (`4578/4578`: 68 smoke, 4232 unit, 278 integration).
+  - Passed: `./bin/lint`.
+  - Passed: `git diff --check`.
+- Next steps:
+  1. Commit and push the code/docs update.
+  2. Build and deploy a fresh manual image if requested, then resample live logs to confirm the event-prune OOM and second-chance warnings are gone.
+
 ## Update 2026-06-16 17:39:56Z
 
 - Current task: Manual Docker test build deployed to the live validation host.

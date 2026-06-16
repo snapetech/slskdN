@@ -3850,13 +3850,13 @@ namespace Soulseek
                     {
                         // if the remote user doesn't initiate a transfer connection, try to initiate one from this end. the
                         // remote client in this scenario is most likely Nicotine+.
-                        Diagnostic.Warning($"Attempting to initiate a second-chance transfer connection to {username} for download of {GetDiagnosticLogValue(download.Filename)}");
+                        Diagnostic.Info($"Attempting to initiate a second-chance transfer connection to {username} for download of {GetDiagnosticLogValue(download.Filename)}");
 
                         download.Connection = await PeerConnectionManager
                             .GetTransferConnectionAsync(username, endpoint, download.RemoteToken.Value, cancellationToken)
                             .ConfigureAwait(false);
 
-                        Diagnostic.Warning($"Successfully established a second-chance transfer connection to {username} for download of {GetDiagnosticLogValue(download.Filename)}");
+                        Diagnostic.Debug($"Successfully established a second-chance transfer connection to {username} for download of {GetDiagnosticLogValue(download.Filename)}");
                     }
                 }
 

@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Event retention pruning now deletes expired rows with a set-based database
+  command instead of materializing serialized event payloads into application
+  memory, avoiding startup prune `OutOfMemoryException` failures on large event
+  histories. Successful second-chance transfer fallback diagnostics are again
+  Info/Debug instead of warning-level noise.
 - Open Dependabot NuGet/npm updates are applied directly to `main`, including
   `esbuild` `0.28.1`, `Serilog.Sinks.Grafana.Loki` `9.0.0`, `YamlDotNet`
   `18.0.0`, `react-window` `2.2.7`, `react-router-dom` `7.18.0`,
