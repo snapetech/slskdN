@@ -6,6 +6,8 @@
   - Cleared npm audit findings by upgrading `esbuild` to `0.28.1` and accepting
     the audit transitive fixes.
   - Applied the follow-up Dependabot `AWSSDK.S3` `4.0.24.5` patch from PR #253.
+  - Applied the follow-up Dependabot `react-router-dom` `7.18.0` patch from PR
+    #254.
   - Migrated the Transfers virtual list to the `react-window` v2 `List` API.
   - Fixed the `Serilog.Sinks.Grafana.Loki` 9.x startup break by skipping Loki
     sink construction when no URI is configured.
@@ -18,6 +20,8 @@
   - Passed: `npm audit --audit-level=low` with zero vulnerabilities.
   - Passed: `npm run build` with existing non-fatal Rolldown annotation warnings
     from `@microsoft/signalr`.
+  - Passed after PR #254: full Web Vitest suite, `npm audit --audit-level=low`,
+    and `npm run build`.
   - Passed: `dotnet list slskd.sln package --vulnerable --include-transitive`
     with no vulnerable packages.
   - Passed: unit tests (`4231/4231`), integration tests (`278/278`), and smoke
