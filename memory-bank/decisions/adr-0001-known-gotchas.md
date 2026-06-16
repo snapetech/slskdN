@@ -52,6 +52,45 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z486. Legacy Peer Paths Must Round-Trip Their Encoding
+
+**The Bug**: Slow or legacy Soulseek peers could fail browse/download flows
+because peer message inactivity closed after 15 seconds, and CP1251 path bytes
+were decoded as ISO-8859-1 display text without remembering that outbound
+folder/download requests had to be written back in CP1251.
+
+**Files Affected**:
+- `src/slskd/Core/Options.cs`
+- `vendor/slskNet.Runtime/src/Messaging/MessageReader.cs`
+- `vendor/slskNet.Runtime/src/Messaging/MessageBuilder.cs`
+- `vendor/slskNet.Runtime/src/Messaging/ProtocolTextEncoding.cs`
+- `vendor/slskNet.Runtime/src/SoulseekClient.cs`
+- `vendor/slskNet.Runtime/src/Messaging/Messages/Peer/FolderContentsRequest.cs`
+- `vendor/slskNet.Runtime/src/Messaging/Messages/Peer/TransferRequest.cs`
+
+**Wrong**:
+```csharp
+Inactivity = 15000;
+var text = Encoding.GetEncoding("ISO-8859-1").GetString(bytes);
+await peerConnection.WriteAsync(new TransferRequest(TransferDirection.Download, token, remoteFilename), cancellationToken);
+```
+
+**Correct**:
+```csharp
+Inactivity = 60000;
+var (text, encoding) = ProtocolTextEncoding.DecodeWithFallback(bytes, requestedEncoding);
+await peerConnection.WriteAsync(
+    new TransferRequest(TransferDirection.Download, token, remoteFilename, filenameEncoding: GetRemotePathEncoding(username, remoteFilename)),
+    cancellationToken);
+```
+
+**Why This Keeps Happening**: Soulseek protocol strings are not guaranteed to
+be UTF-8, and path strings are protocol identifiers, not just UI labels. Any
+legacy decode path must preserve enough encoding metadata to serialize the same
+remote path bytes back to that peer, and peer inactivity timeouts must allow
+slow clients enough time to compose browse and transfer acknowledgement
+responses.
+
 ### 0z485. Transfer Activity Must Preserve Request Identity
 
 **The Bug**: Live transfer state/progress events omitted `RequestId`, while the
