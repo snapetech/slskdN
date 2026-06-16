@@ -8893,3 +8893,21 @@ found `songrec`, `c2patool`, `audfprint.py`, and `panako.jar`.
 Next steps: finish repo validation, commit/push the omnibus fix, then create a
 replacement main release tag. Treat COPR and Chocolatey as external publisher
 failures unless a retry or service recovery succeeds.
+
+## 2026-06-16T21:54:13Z Session update
+
+Replacement release `build-main-2026061621-slskdn.272` is cut and the GitHub
+tag workflow completed with overall `success`. Release artifacts, main Docker,
+omnibus testers Docker, PPA, AUR, Nix metadata, Homebrew, and Discord
+announcement succeeded. Artifact verification passed for
+`build-main-2026061621-slskdn.272`, including SHA256 checks and the Linux x64
+binary version check.
+
+COPR and Chocolatey are the remaining downstream publication gaps. COPR failed
+during upload with a non-JSON API response from `copr-cli`; Chocolatey failed
+after five 504 Gateway Timeout responses, and the public feed did not list the
+272 package at verification time.
+
+Next steps: retry or repair COPR and Chocolatey publishing separately when
+those services/credentials are ready. No code release blocker remains from the
+live-log or omnibus Docker validation work.

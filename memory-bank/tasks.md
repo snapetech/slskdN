@@ -2964,6 +2964,7 @@
 - [2026-06-16T18:10:34Z] Completed: fix the remaining live HashDb sidecar warning by skipping non-audio completed downloads before HashDb hashing, fingerprinting, or audio variant metadata derivation.
 - [2026-06-16T19:49:01Z] Completed: inspect the final manual-build logs again and fix VPN/Soulseek disconnect teardown so intentional VPN disconnects and expected Soulseek read-loop races no longer surface as fatal unobserved task exceptions, while vendored search cleanup tolerates late peer responses.
 - [2026-06-16T20:57:24Z] Completed: fix release omnibus Docker publication after the first release tag failed to compile SongRec; optional media tool installs now include `libclang-dev`, packaging metadata validation guards the dependency, and a local all-tools Docker build against the published base image completed with SongRec, C2PA, Audfprint, and Panako present.
+- [2026-06-16T21:54:13Z] Completed: cut replacement main release `build-main-2026061621-slskdn.272`; GitHub release assets, main Docker, omnibus testers Docker, PPA, AUR, Nix metadata, Homebrew, and release artifact verification passed, while COPR and Chocolatey remain external downstream publication failures.
 
 - [2026-05-12T23:49:22Z] Follow-up: continue feature-coherence PR series with Program.cs feature-module decomposition, FeatureGate coverage for experimental API/UI surfaces, dependency ownership inventory, DownloadService regression tests, SongID capability reporting, and distributed-feature hard gates.
 
