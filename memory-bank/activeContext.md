@@ -1,3 +1,23 @@
+## Update 2026-06-16 17:39:56Z
+
+- Current task: Manual Docker test build deployed to the live validation host.
+- Last activity:
+  - Verified the GitHub target and found the checkout clean with `main` already matching `origin/main`.
+  - Explicitly pushed `main` to `snapetech/slskdN`; GitHub reported everything up to date.
+  - Published manual Linux x64 payload `0.0.0-manual.20260616172930.a2621a7c6e30` from commit `a2621a7c6e3016c2a557f1e293c5e4d4396984fa`.
+  - Stopped the live host service restart loop caused by the previous manual Docker image tag no longer being present locally.
+  - Transferred the publish payload, built local image `slskdn:0.0.0-manual.20260616172930.a2621a7c6e30` from the released base with the new `/slskd` payload, updated the systemd image tag, and started the service.
+- Validation:
+  - Passed: Web Vitest (`767/767`).
+  - Passed: Web production build.
+  - Passed: Release backend build with `0 Warning(s), 0 Error(s)`.
+  - Passed: Release unit tests (`4231/4231`), smoke tests (`68/68`), and integration tests (`278/278`).
+  - Passed: service active/running, Docker health `healthy`, restart count `0`, apphost version match, Web root HTTP 200, and `/health=Healthy`.
+  - Observed: authenticated application API returns 401 without credentials as expected.
+- Next steps:
+  1. Have Bas retest TauAs browsing, the hrust82 Cyrillic path, and the budznbeerz download against the manual build.
+  2. If retest passes, proceed with the official release process by creating the requested build tag.
+
 ## Update 2026-06-16 17:12:00Z
 
 - Current task: slskdN open Dependabot PR/security-alert sweep complete locally.

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Deploy current main as a manual Docker test build.
+ - Status: completed (2026-06-16)
+ - Priority: P1
+ - Notes: Confirmed the checkout was clean and `main` matched `origin/main`, explicitly pushed to `snapetech/slskdN` with no changes pending, and built release-shaped manual version `0.0.0-manual.20260616172930.a2621a7c6e30` from commit `a2621a7c6e3016c2a557f1e293c5e4d4396984fa`. Validation passed during publish: Web Vitest (`767/767`), Web production build, Release backend build with `0 Warning(s), 0 Error(s)`, Release unit tests (`4231/4231`), smoke tests (`68/68`), and integration tests (`278/278`). The live Docker host was restart-looping because the prior manual image tag was no longer local; stopped the loop, staged the new publish payload, built local image `slskdn:0.0.0-manual.20260616172930.a2621a7c6e30` from the released base with the new `/slskd` payload, updated the host systemd image tag, and started the service. Validation passed: service active/running, Docker health `healthy`, container restart count `0`, apphost reports the manual version, Web root HTTP 200, and `/health=Healthy`. No release tags were created.
+
 - [x] Sync vendored slskNet.Runtime and clear current package advisory.
  - Status: completed (2026-06-16)
  - Priority: P1
