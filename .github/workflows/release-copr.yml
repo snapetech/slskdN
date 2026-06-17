@@ -234,4 +234,4 @@ jobs:
           srpm="${SLSKDN_SRPM:?Build SRPM step did not publish an SRPM path}"
           test -f "$srpm"
           echo "Uploading SRPM to COPR: $srpm"
-          copr-cli build --nowait "$copr_project" "$srpm"
+          copr-cli --debug build --nowait "$copr_project" "$SRPM"
