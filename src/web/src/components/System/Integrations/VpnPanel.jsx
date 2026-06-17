@@ -14,6 +14,7 @@ import {
   Message,
   Popup,
   Segment,
+  Table,
 } from 'semantic-ui-react';
 
 const getOption = (source, ...keys) => {
@@ -24,6 +25,9 @@ const getOption = (source, ...keys) => {
   }
   return undefined;
 };
+
+const valueOrDash = (value) =>
+  value === undefined || value === null || value === '' ? '-' : value;
 
 const getIntegrationsOptions = (options = {}) =>
   getOption(options, 'integration', 'Integration', 'integrations', 'Integrations') || {};

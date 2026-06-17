@@ -1,7 +1,6 @@
 // <copyright file="MediaServerPanel.jsx" company="slskdN Team">
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
-
 import React, { useState } from 'react';
 import {
   buildMediaServerExecutionContract,
@@ -23,35 +22,20 @@ import {
 } from 'semantic-ui-react';
 
 const MediaServerPanel = () => {
+  const [activeAdapterId, setActiveAdapterId] = useState(
+    mediaServerAdapters && mediaServerAdapters.length > 0
+      ? mediaServerAdapters[0].id
+      : null,
+  );
   const [executing, setExecuting] = useState(false);
-  const [contractReport, setContractReport] = useState(null);
   const [syncReport, setSyncReport] = useState(null);
   const [pathDiagnostic, setPathDiagnostic] = useState(null);
+  const [contractReport, setContractReport] = useState(null);
   const [error, setError] = useState(null);
 
   const hasAdapters = Object.keys(mediaServerAdapters || {}).length > 0;
   const hasContracts =
     Object.keys(mediaServerAutomationContracts || {}).length > 0;
-
-  const handleExecuteContract = async () => {
-    setExecuting(true);
-    setError(null);
-    setContractReport(null);
-
-    try {
-      const report = await buildMediaServerExecutionContract();
-      setContractReport(report);
-    } catch (err) {
-      setError(
-        err?.response?.data ||
-          err?.response?.statusText ||
-          err?.message ||
-          'Failed to execute media server contract.',
-      );
-    } finally {
-      setExecuting(false);
-    }
-  };
 
   const handlePreviewSync = async () => {
     setExecuting(true);
@@ -59,7 +43,9 @@ const MediaServerPanel = () => {
     setSyncReport(null);
 
     try {
-      const report = await buildMediaServerSyncPreview();
+      const report = await buildMediaServerSyncPreview({
+        adapterId: activeAdapterId,
+      });
       setSyncReport(report);
     } catch (err) {
       setError(
@@ -79,7 +65,9 @@ const MediaServerPanel = () => {
     setPathDiagnostic(null);
 
     try {
-      const diagnostic = await buildMediaServerPathDiagnostic();
+      const diagnostic = await buildMediaServerPathDiagnostic({
+        adapterId: activeAdapterId,
+      });
       setPathDiagnostic(diagnostic);
     } catch (err) {
       setError(
@@ -87,6 +75,28 @@ const MediaServerPanel = () => {
           err?.response?.statusText ||
           err?.message ||
           'Failed to run path diagnostic.',
+      );
+    } finally {
+      setExecuting(false);
+    }
+  };
+
+  const handleExecuteContract = async () => {
+    setExecuting(true);
+    setError(null);
+    setContractReport(null);
+
+    try {
+      const report = await buildMediaServerExecutionContract({
+        adapterId: activeAdapterId,
+      });
+      setContractReport(report);
+    } catch (err) {
+      setError(
+        err?.response?.data ||
+          err?.response?.statusText ||
+          err?.message ||
+          'Failed to execute media server contract.',
       );
     } finally {
       setExecuting(false);
@@ -101,7 +111,8 @@ const MediaServerPanel = () => {
           Media Servers
         </Card.Header>
         <Card.Meta>
-          Integration with external media library servers.
+          Optional Plex, Jellyfin/Emby, and Navidrome integration planning and
+          path diagnostics.
         </Card.Meta>
       </Card.Content>
       <Card.Content>
@@ -134,18 +145,32 @@ const MediaServerPanel = () => {
           </Message>
         )}
 
-        <div className="integration-actions">
-          <Button
-            disabled={!hasAdapters || executing}
-            icon
-            labelPosition="left"
-            loading={executing}
-            onClick={handleExecuteContract}
-            primary
-          >
-            <Icon name="play" />
-            Execute Contract
-          </Button>
+        {hasAdapters && (
+          <div className="integration-actions">
+            {mediaServerAdapters.map((adapter) => (
+              <Button
+                key={adapter.id}
+                basic={activeAdapterId !== adapter.id}
+                color={
+                  activeAdapterId === adapter.id ? 'purple' : undefined
+                }
+                content={adapter.name}
+                disabled={executing}
+                icon
+                labelPosition="left"
+                onClick={() => setActiveAdapterId(adapter.id)}
+              >
+                <Icon name={adapter.icon || 'server'} />
+                {adapter.name}
+              </Button>
+            ))}
+          </div>
+        )}
+
+        <div
+          className="integration-actions"
+          style={{ marginTop: hasAdapters ? '1em' : undefined }}
+        >
           <Button
             disabled={!hasAdapters || executing}
             icon
@@ -165,6 +190,17 @@ const MediaServerPanel = () => {
           >
             <Icon name="folder open" />
             Path Diagnostic
+          </Button>
+          <Button
+            disabled={!hasAdapters || executing}
+            icon
+            labelPosition="left"
+            loading={executing}
+            onClick={handleExecuteContract}
+            primary
+          >
+            <Icon name="play" />
+            Execute Contract
           </Button>
         </div>
 

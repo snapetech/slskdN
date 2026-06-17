@@ -19,7 +19,26 @@ import {
   Message,
   Segment,
   Table,
+  Label,
 } from 'semantic-ui-react';
+
+const getOption = (source, ...keys) => {
+  for (const key of keys) {
+    if (source && Object.prototype.hasOwnProperty.call(source, key)) {
+      return source[key];
+    }
+  }
+  return undefined;
+};
+
+const boolLabel = (value, trueText = 'Enabled', falseText = 'Disabled') => (
+  <Label>
+    <Label.Detail>
+      <Icon color={value ? 'green' : 'grey'} name={value ? 'check' : 'close'} />
+    </Label.Detail>
+    {value ? trueText : falseText}
+  </Label>
+);
 
 
 const getIntegrationsOptions = (options = {}) =>

@@ -12,7 +12,22 @@ import {
   Message,
   Segment,
   Table,
+  Label,
 } from 'semantic-ui-react';
+
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
+const valueOrDash = (value) =>
+  value === undefined || value === null || value === '' ? '-' : value;
+
+const boolLabel = (value, trueText = 'Enabled', falseText = 'Disabled') => (
+  <Label>
+    <Label.Detail>
+      <Icon color={value ? 'green' : 'grey'} name={value ? 'check' : 'close'} />
+    </Label.Detail>
+    {value ? trueText : falseText}
+  </Label>
+);
 
 const FederationDiagnosticsPanel = () => {
   const [diagnostics, setDiagnostics] = useState(null);
