@@ -9,7 +9,6 @@ namespace slskd.Common.Security;
 public class BucketPadder : IMessagePadder
 {
     private readonly MessagePaddingOptions _options;
-    private readonly Random _random;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BucketPadder"/> class.
@@ -18,7 +17,6 @@ public class BucketPadder : IMessagePadder
     public BucketPadder(MessagePaddingOptions options)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
-        _random = new Random();
     }
 
     /// <summary>
@@ -73,7 +71,7 @@ public class BucketPadder : IMessagePadder
             // Use random fill to prevent compression analysis
             for (int i = message.Length; i < targetSize; i++)
             {
-                paddedMessage[i] = (byte)_random.Next(0, 256);
+                paddedMessage[i] = (byte)Random.Shared.Next(0, 256);
             }
         }
         else

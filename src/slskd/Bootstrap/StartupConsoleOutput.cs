@@ -148,7 +148,7 @@ public static class StartupConsoleOutput
               █▄▄▄▄▄█▄▄█▄▄▄▄▄█▄▄█▄▄█▄▄▄▄▄█",
             };
 
-            var logo = logos[new Random().Next(0, logos.Length)];
+            var logo = logos[Random.Shared.Next(0, logos.Length)];
 
             var banner = @$"
 {logo}

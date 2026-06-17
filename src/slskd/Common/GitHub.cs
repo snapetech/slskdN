@@ -55,14 +55,19 @@ namespace slskd
             return version;
         }
 
-        public static async Task<ReleaseInfo> GetLatestReleaseInfo(string organization, string repository, string userAgent)
+        public static Task<ReleaseInfo> GetLatestReleaseInfo(string organization, string repository, string userAgent)
+        {
+            using var handler = new HttpClientHandler { AllowAutoRedirect = false };
+            using var http = new HttpClient(handler, disposeHandler: true);
+            return GetLatestReleaseInfo(organization, repository, userAgent, http);
+        }
+
+        public static async Task<ReleaseInfo> GetLatestReleaseInfo(string organization, string repository, string userAgent, HttpClient http)
         {
             var url = $"https://api.github.com/repos/{organization}/{repository}/releases/latest";
 
             try
             {
-                using var handler = new HttpClientHandler { AllowAutoRedirect = false };
-                using var http = new HttpClient(handler, disposeHandler: true);
                 http.DefaultRequestHeaders.UserAgent.TryParseAdd(userAgent);
 
                 var response = await http.GetFromJsonAsync<JsonDocument>(url)

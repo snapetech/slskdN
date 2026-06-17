@@ -148,6 +148,15 @@ jobs:
           copr_url = https://copr.fedorainfracloud.org
           gssapi = true
           EOF
+          elif [[ -n "${COPR_LOGIN:-}" && -n "${COPR_TOKEN:-}" ]]; then
+            echo "Configuring COPR with legacy API token credentials."
+            cat > ~/.config/copr << EOF
+          [copr-cli]
+          login = ${COPR_LOGIN}
+          username = slskdn
+          token = ${COPR_TOKEN}
+          copr_url = https://copr.fedorainfracloud.org
+          EOF
           elif [[ -n "${COPR_FEDORA_USERNAME:-}" && -n "${COPR_FEDORA_PASSWORD:-}" && -n "${COPR_FEDORA_OTP_SECRET:-}" ]]; then
             echo "Configuring COPR with Fedora Kerberos password+OTP credentials."
             configure_fedora_kerberos
@@ -164,15 +173,6 @@ jobs:
           username = slskdn
           copr_url = https://copr.fedorainfracloud.org
           gssapi = true
-          EOF
-          elif [[ -n "${COPR_LOGIN:-}" && -n "${COPR_TOKEN:-}" ]]; then
-            echo "Configuring COPR with legacy API token credentials."
-            cat > ~/.config/copr << EOF
-          [copr-cli]
-          login = ${COPR_LOGIN}
-          username = slskdn
-          token = ${COPR_TOKEN}
-          copr_url = https://copr.fedorainfracloud.org
           EOF
           else
             echo "COPR credentials not configured. Skipping."

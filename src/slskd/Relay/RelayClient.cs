@@ -421,12 +421,7 @@ namespace slskd.Relay
             }
             else
             {
-                var handler = new HttpClientHandler
-                {
-                    AllowAutoRedirect = false,
-                };
-                client = new HttpClient(handler, disposeHandler: true);
-                handler = null!;
+                client = HttpClientFactory.CreateClient(Common.Security.OutboundUriGuard.NoRedirectHttpClientName);
             }
 
             client.Timeout = TimeSpan.FromMilliseconds(int.MaxValue);

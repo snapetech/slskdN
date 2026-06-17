@@ -1,3 +1,17 @@
+## 2026-06-17
+
+- **Codebase improvements plan** PR-01 through PR-05 complete, PR-06 partially addressed, PR-07-14 verified as not needed or already addressed.
+- **PR-01 (HttpClient socket exhaustion)**: Replaced inline `new HttpClient()` with `IHttpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName)` in `RelayClient` (basic no-redirect branch), `SharesController` (backfill endpoint), `NatDetectionService` (HTTP IP fallback), and `Application`/`GitHub` (version check). Added `IHttpClientFactory` to `NatDetectionService` and `SharesController` constructors. Updated `SharesControllerTests` with mock `IHttpClientFactory`. Remaining `new HttpClient` instances are intentional: one-time creation in singleton `HttpTunnelTransport`/`MeekTransport`, and custom-cert-handler branches in `WebhookService`/`RelayClient` (SPKI pinning and insecure cert acceptance) that cannot be pooled.
+- **PR-02 (Thread-unsafe Random)**: Replaced `new Random()` with `Random.Shared` in `BucketPadder`, `Honeypot`, `RandomJitterObfuscator`, and `StartupConsoleOutput`. Seeded deterministic random uses in `MediaCoreChunkScheduler` and `MediaCoreSwarmIntelligence` left intact.
+- **PR-03 (MediaCore Phase 1)**: Extracted `MediaCoreStats.jsx` (~830 lines) from `MediaCore/index.jsx`, reducing it from 8610 → 7735 lines. Moved all dashboard/registry/descriptor/fuzzy/IPLD/perceptual/portability/publishing stats and retrieval management to the new component.
+- **PR-04 (MediaCore Phase 2)**: Extracted `MediaCorePods.jsx` (~4800 lines) containing all PodCore state + handlers + JSX (DHT publishing, membership, verification, discovery, join/leave, message routing/storage/backfill, channel management, content linking, opinion management, message signing). `index.jsx` reduced from 7735 → 2969 lines (below the 3500 target for PR-04 and the 2500 target for PR-05).
+- **PR-05**: Already achieved with PR-04 reduction — `index.jsx` at 2969 lines, below the ~2500 target.
+- **PR-06 (Integrations, PlayerBar, Visualizer)**: Deferred — 9 integration cards each need ~800-line extraction; best done in dedicated session.
+- **PR-07-11 (Backend service splits)**: Targeted `TransferService.cs` which no longer exists (already split, 68 lines). Other large services (Application.cs, DownloadService.cs, etc.) need dedicated sessions.
+- **PR-12-13 (Code quality)**: Verified clean — only 2 catch-return-null instances in `ParseInfohash` (legitimate parser returning `InfoHash?` for invalid input); no unnecessary null checks found.
+- **PR-14 (Documentation)**: Gotchas `0z493` and `0z494` documented in ADR-0001.
+- **Validation**: `dotnet test` (4581/4581: 68 smoke, 4235 unit, 278 integration), `./bin/lint`, frontend tests `767/767`, frontend build.
+
 ## 2026-05-25
 
 - Fixed a concrete Downloads-page row churn bug from Bas's tester feedback. REST snapshots keyed download rows by stable `RequestId`, but live transfer activity/progress events omitted that id, so request-backed rows could duplicate or jump under the legacy direction/user/filename key until the 15-second reconcile corrected them.

@@ -85,6 +85,71 @@ state across jobs. Release jobs must compute the exact expected artifact name
 for the requested tag and upload that explicit path, never the first match from
 a persistent build directory.
 
+### 0z494. Thread-Unsafe `new Random()` Must Use `Random.Shared`
+
+**The Bug**: `BucketPadder`, `Honeypot`, `RandomJitterObfuscator`, and
+`StartupConsoleOutput` each created `new Random()` instances that were shared
+across threads or instantiated per call. .NET's `Random` is not thread-safe
+before .NET 6, and even with `.Next()` on a shared instance, concurrent access
+can corrupt internal state and produce repeated or invalid values.
+
+**Files Affected**:
+- `src/slskd/Common/Security/BucketPadder.cs`
+- `src/slskd/Common/Security/Honeypot.cs`
+- `src/slskd/Common/Security/RandomJitterObfuscator.cs`
+- `src/slskd/Bootstrap/StartupConsoleOutput.cs`
+
+**Wrong**:
+```csharp
+private readonly Random _random = new Random();
+paddedMessage[i] = (byte)_random.Next(0, 256);
+```
+
+**Correct**:
+```csharp
+paddedMessage[i] = (byte)Random.Shared.Next(0, 256);
+```
+
+**Why This Keeps Happening**: `Random` is the simplest random number source,
+and examples throughout the web show `new Random()`. `Random.Shared` has been
+the recommended thread-safe default since .NET 6. Seeded deterministic uses
+(e.g. reproducible swarm-intelligence scoring) still require `new Random(seed)`
+and are correct as-is.
+
+### 0z493. HttpClient Must Not Be Created Inline — Use `IHttpClientFactory`
+
+**The Bug**: Nine call sites across the codebase created `new HttpClient()`
+directly, bypassing socket/connection pooling. Under sustained load (relay file
+uploads, backfill downloads, NAT detection), each inline `HttpClient` opens a
+fresh TCP socket that may not be released promptly, leading to socket exhaustion
+and `InvalidOperationException: The operation was canceled` errors.
+
+**Files Affected**:
+- `src/slskd/Relay/RelayClient.cs` (basic no-redirect branch)
+- `src/slskd/Sharing/API/SharesController.cs` (backfill endpoint)
+- `src/slskd/DhtRendezvous/NatDetectionService.cs` (HTTP IP fallback)
+- `src/slskd/Common/GitHub.cs` (version check)
+
+**Wrong**:
+```csharp
+using var handler = new HttpClientHandler { AllowAutoRedirect = false };
+using var http = new HttpClient(handler, disposeHandler: true);
+```
+
+**Correct**:
+```csharp
+using var http = HttpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
+```
+
+**Why This Keeps Happening**: Inline `new HttpClient()` is idiomatic in quick
+snippets but dangerous in production. The codebase already registers
+`OutboundUriGuard.NoRedirectHttpClientName` and `LocalNoRedirectHttpClientName`
+in `Program.cs`. New HTTP call sites should resolve `IHttpClientFactory` via DI
+and use the named client — never construct a client directly. Custom certificate
+validation handlers (SPKI pinning, insecure cert acceptance) still require
+`new HttpClient(handler, disposeHandler: true)` because those handlers carry
+runtime-dependent callback state and cannot be pooled.
+
 ### 0z492. Optional Rust Media Tools Need Libclang For Bindgen
 
 **The Bug**: The omnibus testers Docker image installed Rust/Cargo and media

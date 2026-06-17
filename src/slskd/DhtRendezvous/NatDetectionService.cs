@@ -24,6 +24,7 @@ public sealed class NatDetectionService : IAsyncDisposable
 {
     private readonly ILogger<NatDetectionService> _logger;
     private readonly DhtRendezvousOptions _options;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ConcurrentBag<INatDevice> _discoveredDevices = new();
     private readonly SemaphoreSlim _discoveryLock = new(1, 1);
 
@@ -33,7 +34,6 @@ public sealed class NatDetectionService : IAsyncDisposable
     private DateTimeOffset? _lastDiscoveryTime;
     private NatType _detectedNatType = NatType.Unknown;
 
-    // STUN servers for public IP detection
     private static readonly string[] StunServers = new[]
     {
         "stun.l.google.com:19302",
@@ -44,10 +44,12 @@ public sealed class NatDetectionService : IAsyncDisposable
 
     public NatDetectionService(
         ILogger<NatDetectionService> logger,
-        DhtRendezvousOptions options)
+        DhtRendezvousOptions options,
+        IHttpClientFactory httpClientFactory)
     {
         _logger = logger;
         _options = options;
+        _httpClientFactory = httpClientFactory;
     }
 
     /// <summary>
@@ -465,8 +467,8 @@ public sealed class NatDetectionService : IAsyncDisposable
             "https://checkip.amazonaws.com",
         };
 
-        using var handler = new HttpClientHandler { AllowAutoRedirect = false };
-        using var http = new HttpClient(handler, disposeHandler: true) { Timeout = TimeSpan.FromSeconds(5) };
+        using var http = _httpClientFactory.CreateClient(Common.Security.OutboundUriGuard.NoRedirectHttpClientName);
+        http.Timeout = TimeSpan.FromSeconds(5);
 
         foreach (var service in services)
         {

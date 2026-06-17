@@ -9,7 +9,6 @@ namespace slskd.Common.Security;
 public class RandomJitterObfuscator : ITimingObfuscator
 {
     private readonly TimingObfuscationOptions _options;
-    private readonly Random _random;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RandomJitterObfuscator"/> class.
@@ -18,7 +17,6 @@ public class RandomJitterObfuscator : ITimingObfuscator
     public RandomJitterObfuscator(TimingObfuscationOptions options)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
-        _random = new Random();
     }
 
     /// <summary>
@@ -30,7 +28,7 @@ public class RandomJitterObfuscator : ITimingObfuscator
     {
         // Clamp JitterMs to avoid Next(0, n) when n <= 0; invalid config is handled gracefully
         int jitter = _options.JitterMs < 0 ? 0 : _options.JitterMs;
-        int delay = _random.Next(0, jitter + 1);
+        int delay = Random.Shared.Next(0, jitter + 1);
         return Task.FromResult(delay);
     }
 

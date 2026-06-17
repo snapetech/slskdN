@@ -1,4 +1,22 @@
-## Update 2026-06-16 20:06:27Z
+## Update 2026-06-17 13:10:00Z
+
+- Current task: Codebase improvements plan PR-01 through PR-05 complete, PR-06+ deferred to future sessions.
+- Last activity:
+  - **PR-01** (HttpClient): replaced `new HttpClient()` with `IHttpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName)` in `RelayClient`, `SharesController`, `NatDetectionService`, `Application`/`GitHub`.
+  - **PR-02** (Random): replaced `new Random()` with `Random.Shared` in `BucketPadder`, `Honeypot`, `RandomJitterObfuscator`, `StartupConsoleOutput`.
+  - **PR-03** (MediaCore Stats): extracted `MediaCoreStats.jsx` (~830 lines).
+  - **PR-04** (MediaCore Pods): extracted `MediaCorePods.jsx` (~4800 lines of PodCore state + handlers + JSX).
+  - **PR-05**: already achieved with PR-04 — `index.jsx` at 2969 lines.
+  - **PR-06** (Integrations cards): deferred — 9 cards each ~400 lines, needs dedicated session.
+  - **PR-07-11** (backend splits): `TransferService.cs` already split (68 lines). Other large services deferred.
+  - **PR-12-13** (code quality): verified clean — only 2 legitimate parser catch-return-null instances.
+  - Documented gotchas `0z493` and `0z494` in ADR-0001.
+- Validation:
+  - Passed: `dotnet test` (4581/4581), `./bin/lint`, frontend lint (0 errors), frontend tests (767/767), frontend build.
+- Next steps:
+  1. Commit and push changes.
+  2. PR-06 (Integration card extraction) and PR-07-11 (backend service splits) in future sessions.
+  3. Deploy for manual validation when ready.
 
 - Current task: Release tag pending after final manual validation.
 - Last activity:

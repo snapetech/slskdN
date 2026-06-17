@@ -67,9 +67,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
   log as deferred instead of warning-level failures.
 - Lidarr wanted-sync `HttpClient.Timeout` failures now log concise
   unavailability messages instead of warning-level stack traces.
-- Main release COPR publishing now prefers Kerberos credentials before legacy
-  API token secrets, so stale tokens cannot shadow the configured Fedora
-  Kerberos path.
+- Main release COPR publishing now prefers the configured API token before the
+  legacy Fedora password+OTP fallback, preventing stale Kerberos secrets from
+  shadowing the working token path.
 - COPR publishing now builds SRPMs in isolated temporary RPM topdirs and uploads
   the exact expected `slskdn-<version>-1.src.rpm`, preventing stale runner
   `~/rpmbuild` state from publishing an older release.
@@ -2049,6 +2049,12 @@ Relevant non-documentation commits preserved in this rollback line:
 - Added and live-validated an optional live-account mesh smoke that starts two full slskdN instances with configured Soulseek test credentials, hosts a probe file on one node, mesh-searches it from the other, downloads it through the pod path, and byte-verifies the transfer.
 - Added info-level mesh-search fanout diagnostics when active overlay peers are queried, including peer count, empty peer responses, failed peers, and returned file count so `meshResponses=0` no longer hides whether the mesh path was actually exercised.
 - Fixed mesh self-descriptor endpoint publication so automatic detection only advertises public-routable interfaces and no longer supplements explicitly configured self endpoints with private/container/VPN addresses.
+- Refactored frontend components: extracted `MediaCoreStats` and `MediaCorePods` from the monolithic `MediaCore` component (reduced from 8610 to 2969 lines), and decomposed the 3557-line `Integrations` page into 9 standalone panel components (coordinator reduced to 245 lines).
+- Fixed thread-unsafe `Random` usage across 4 files by replacing `new Random()` with `Random.Shared`; seeded deterministic random providers left intact.
+- Fixed `HttpClient` socket exhaustion risk by injecting `IHttpClientFactory` into `RelayClient`, `SharesController`, `NatDetectionService`, and `Application`/`GitHub` version-check path, replacing inline `new HttpClient()` with pooled named clients.
+- Refactored frontend components: extracted `MediaCoreStats` and `MediaCorePods` from the monolithic `MediaCore` component (reduced from 8610 to 2969 lines), and decomposed the 3557-line `Integrations` page into 9 standalone panel components (coordinator reduced to 245 lines).
+- Fixed thread-unsafe `Random` usage across 4 files by replacing `new Random()` with `Random.Shared`; seeded deterministic random providers left intact.
+- Fixed `HttpClient` socket exhaustion risk by injecting `IHttpClientFactory` into `RelayClient`, `SharesController`, `NatDetectionService`, and `Application`/`GitHub` version-check path, replacing inline `new HttpClient()` with pooled named clients.
 - Fixed documented seconds-to-milliseconds timeout mapping for `/api/v0/searches` and multi-source discovery searches so callers requesting a 10-second or multi-minute search no longer get an accidental 10 ms / 270 ms search window.
 - Split background auto-replace searches into an `auto-replace` Soulseek safety-limiter source instead of sharing the user/API `user` bucket, and added source-aware search completion diagnostics for manual issue `#209` retesting without reintroducing routine background log noise.
 - Stopped circuit maintenance from automatically running placeholder multi-hop circuit probes against live mesh peers, removing recurring `Circuit building test failed` warnings and avoiding unsolicited peer traffic during normal maintenance.

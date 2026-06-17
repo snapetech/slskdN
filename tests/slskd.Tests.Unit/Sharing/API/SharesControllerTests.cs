@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,6 +30,7 @@ public class SharesControllerTests
     private readonly Mock<ISharingService> _sharingMock = new();
     private readonly Mock<IShareTokenService> _tokensMock = new();
     private readonly Mock<IServiceProvider> _serviceProviderMock = new();
+    private readonly Mock<IHttpClientFactory> _httpClientFactoryMock = new();
     private IOptionsMonitor<slskd.Options> _options = new TestOptionsMonitor(new slskd.Options
     {
         Feature = new slskd.Options.FeatureOptions { CollectionsSharing = true, Streaming = true },
@@ -39,12 +41,16 @@ public class SharesControllerTests
     {
         // Setup service provider to return null for GetService calls (handled gracefully in controllers)
         _serviceProviderMock.Setup(x => x.GetService(It.IsAny<Type>())).Returns((object?)null);
+
+        _httpClientFactoryMock
+            .Setup(x => x.CreateClient(It.IsAny<string>()))
+            .Returns(new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }));
     }
 
     private SharesController CreateController()
     {
         var loggerMock = new Mock<ILogger<SharesController>>();
-        var c = new SharesController(_sharingMock.Object, _tokensMock.Object, loggerMock.Object, _options, _serviceProviderMock.Object, soulseekClient: null, shareService: null, downloadService: null);
+        var c = new SharesController(_sharingMock.Object, _tokensMock.Object, loggerMock.Object, _options, _serviceProviderMock.Object, _httpClientFactoryMock.Object, soulseekClient: null, shareService: null, downloadService: null);
         c.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
         c.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "u") }, "Test"));
         return c;
@@ -346,6 +352,7 @@ public class SharesControllerTests
             loggerMock.Object,
             _options,
             _serviceProviderMock.Object,
+            _httpClientFactoryMock.Object,
             soulseekClient: null,
             shareService: shareService.Object,
             downloadService: downloadService.Object);
@@ -406,6 +413,7 @@ public class SharesControllerTests
             loggerMock.Object,
             _options,
             _serviceProviderMock.Object,
+            _httpClientFactoryMock.Object,
             soulseekClient: null,
             shareService: shareService.Object,
             downloadService: Mock.Of<IDownloadService>());
