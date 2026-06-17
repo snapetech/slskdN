@@ -44,18 +44,20 @@ public class SharesController : ControllerBase
     private readonly ILogger<SharesController> _log;
     private readonly IOptionsMonitor<slskd.Options> _options;
     private readonly IServiceProvider _serviceProvider;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ISoulseekClient? _soulseekClient;
     private readonly slskd.Shares.IShareService? _shareService;
     private readonly slskd.Transfers.Downloads.IDownloadService? _downloadService;
     private readonly ShareGrantAnnouncementService? _announcementService;
 
-    public SharesController(ISharingService sharing, IShareTokenService tokens, ILogger<SharesController> log, IOptionsMonitor<slskd.Options> options, IServiceProvider serviceProvider, ISoulseekClient? soulseekClient = null, slskd.Shares.IShareService? shareService = null, slskd.Transfers.Downloads.IDownloadService? downloadService = null, ShareGrantAnnouncementService? announcementService = null)
+    public SharesController(ISharingService sharing, IShareTokenService tokens, ILogger<SharesController> log, IOptionsMonitor<slskd.Options> options, IServiceProvider serviceProvider, IHttpClientFactory httpClientFactory, ISoulseekClient? soulseekClient = null, slskd.Shares.IShareService? shareService = null, slskd.Transfers.Downloads.IDownloadService? downloadService = null, ShareGrantAnnouncementService? announcementService = null)
     {
         _sharing = sharing;
         _tokens = tokens;
         _log = log;
         _options = options;
         _serviceProvider = serviceProvider;
+        _httpClientFactory = httpClientFactory;
         _soulseekClient = soulseekClient;
         _shareService = shareService;
         _downloadService = downloadService;
@@ -475,8 +477,8 @@ public class SharesController : ControllerBase
                 return StatusCode(500, "Downloads directory not configured or does not exist");
             }
 
-            using var httpHandler = OutboundUriGuard.CreateNoRedirectHandler();
-            using var httpClient = new HttpClient(httpHandler) { Timeout = TimeSpan.FromMinutes(30) };
+            using var httpClient = _httpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName);
+            httpClient.Timeout = TimeSpan.FromMinutes(30);
 
             foreach (var item in manifest.Items)
             {

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Codebase improvements plan PR-01 through PR-05 (critical bugs + MediaCore decomposition).
+  - Status: completed (2026-06-17)
+  - Priority: P0 (Critical)
+  - Notes: PR-01 (HttpClient socket exhaustion): replaced `new HttpClient()` with `IHttpClientFactory.CreateClient(OutboundUriGuard.NoRedirectHttpClientName)` in `RelayClient`, `SharesController`, `NatDetectionService`, `Application`/`GitHub`. PR-02 (thread-unsafe Random): replaced `new Random()` with `Random.Shared` in `BucketPadder`, `Honeypot`, `RandomJitterObfuscator`, `StartupConsoleOutput`. PR-03 (MediaCore Stats): extracted `MediaCoreStats.jsx`. PR-04 (MediaCore Pods): extracted `MediaCorePods.jsx`. MediaCore/index.jsx reduced from 8610 → 2969 lines. PR-06 (Integrations), PR-07-11 (backend splits) deferred to future sessions. PR-12-13 (code quality) verified clean. Validation: `dotnet test` 4581/4581, `./bin/lint` clean, frontend tests 767/767, frontend build pass.
+
 - [x] Deploy current main as a manual Docker test build.
  - Status: completed (2026-06-16)
  - Priority: P1

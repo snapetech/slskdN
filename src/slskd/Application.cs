@@ -368,10 +368,14 @@ namespace slskd
 
             try
             {
+                var httpClientFactory = ServiceProvider.GetRequiredService<IHttpClientFactory>();
+                using var http = httpClientFactory.CreateClient(Common.Security.OutboundUriGuard.NoRedirectHttpClientName);
+
                 var latestRelease = await GitHub.GetLatestReleaseInfo(
                     organization: "snapetech",
                     repository: "slskdn",
-                    userAgent: $"slskdN v{Program.FullVersion}");
+                    userAgent: $"slskdN v{Program.FullVersion}",
+                    http: http);
                 var result = GitHub.CreateVersionCheckResult(latestRelease, DateTimeOffset.UtcNow);
 
                 // Skip comparison if the returned version string contains dev/canary markers.

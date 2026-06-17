@@ -217,8 +217,7 @@ public sealed class Honeypot : IDisposable
     /// <returns>Unique path that looks legitimate.</returns>
     public static string GenerateHoneypotPath(DecoyType decoyType)
     {
-        var random = new Random();
-        var datePart = DateTime.Now.AddDays(-random.Next(1, 365)).ToString("yyyy-MM-dd");
+        var datePart = DateTime.Now.AddDays(-Random.Shared.Next(1, 365)).ToString("yyyy-MM-dd");
 
         return decoyType switch
         {
