@@ -5,6 +5,7 @@ import * as YAML from 'yaml';
 import MetadataSettingsPanel from './MetadataSettingsPanel';
 import FtpIntegrationPanel from './FtpIntegrationPanel';
 import SourceFeedIntegrationsPanel from './SourceFeedIntegrationsPanel';
+import VpnPanel from './VpnPanel';
 import MediaServerPanel from './MediaServerPanel';
 import NotificationIntegrationsPanel from './NotificationIntegrationsPanel';
 import LidarrPanel from './LidarrPanel';
