@@ -199,6 +199,7 @@ jobs:
           cp packaging/aur/slskd.yml "$rpm_top/SOURCES/"
           cp packaging/aur/slskd.sysusers "$rpm_top/SOURCES/slskd.conf"
           cp packaging/aur/slskd.tmpfiles "$rpm_top/SOURCES/"
+          # CI uses rpm_top; local fallback: cp packaging/aur/slskd.tmpfiles ~/rpmbuild/SOURCES/
           cp packaging/rpm/slskdn.spec "$rpm_top/SPECS/"
           
           # Build SRPM
