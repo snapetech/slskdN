@@ -16,6 +16,14 @@ import {
   Segment,
 } from 'semantic-ui-react';
 
+const getOption = (source, ...keys) => {
+  for (const key of keys) {
+    if (source && Object.prototype.hasOwnProperty.call(source, key)) {
+      return source[key];
+    }
+  }
+  return undefined;
+};
 
 const getIntegrationsOptions = (options = {}) =>
   getOption(options, 'integration', 'Integration', 'integrations', 'Integrations') || {};
