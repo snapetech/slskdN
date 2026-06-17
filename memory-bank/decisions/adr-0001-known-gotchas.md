@@ -52,6 +52,39 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z495. COPR Workflows Must Not Reuse Persistent `~/rpmbuild`
+
+**The Bug**: COPR release workflows built a fresh SRPM but then selected
+`find ~/rpmbuild/SRPMS -name '*.src.rpm' | head -1` from a persistent runner
+directory. A rerun could upload an older release SRPM while the GitHub job still
+reported success because COPR accepted the file.
+
+**Files Affected**:
+- `.github/workflows/release-copr.yml`
+- `.github/workflows/build-on-tag.yml`
+
+**Wrong**:
+```bash
+rpmbuild -bs ~/rpmbuild/SPECS/slskdn.spec --define "_topdir $HOME/rpmbuild"
+SRPM=$(find ~/rpmbuild/SRPMS -name "*.src.rpm" | head -1)
+copr-cli build slskdn/slskdn "$SRPM" --nowait
+```
+
+**Correct**:
+```bash
+rpm_top="$(mktemp -d "/tmp/slskdn-rpmbuild-${version}.XXXXXX")"
+rpmbuild -bs "$rpm_top/SPECS/slskdn.spec" --define "_topdir $rpm_top"
+srpm="$rpm_top/SRPMS/slskdn-${version}-1.src.rpm"
+test -f "$srpm"
+cp "$srpm" "dist/slskdn-${version}-1.src.rpm"
+copr-cli build slskdn/slskdn "dist/slskdn-${version}-1.src.rpm" --nowait
+```
+
+**Why This Keeps Happening**: Self-hosted runners retain workspace and home
+state across jobs. Release jobs must compute the exact expected artifact name
+for the requested tag and upload that explicit path, never the first match from
+a persistent build directory.
+
 ### 0z492. Optional Rust Media Tools Need Libclang For Bindgen
 
 **The Bug**: The omnibus testers Docker image installed Rust/Cargo and media
