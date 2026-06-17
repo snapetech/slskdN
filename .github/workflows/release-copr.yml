@@ -88,8 +88,6 @@ jobs:
           cd publish-linux-x64
           zip -r ../slskdn-${{ steps.version.outputs.tag }}-linux-x64.zip .
           cd ..
-          mkdir -p ~/rpmbuild/SOURCES
-          cp slskdn-${{ steps.version.outputs.tag }}-linux-x64.zip ~/rpmbuild/SOURCES/
 
       - name: Install Dependencies
         run: |
@@ -147,7 +145,7 @@ jobs:
             cat > ~/.config/copr << EOF
           [copr-cli]
           username = slskdn
-          copr_url = https://copr.fedoraproject.org
+          copr_url = https://copr.fedorainfracloud.org
           gssapi = true
           EOF
           elif [[ -n "${COPR_FEDORA_USERNAME:-}" && -n "${COPR_FEDORA_PASSWORD:-}" && -n "${COPR_FEDORA_OTP_SECRET:-}" ]]; then
@@ -164,7 +162,7 @@ jobs:
             cat > ~/.config/copr << EOF
           [copr-cli]
           username = slskdn
-          copr_url = https://copr.fedoraproject.org
+          copr_url = https://copr.fedorainfracloud.org
           gssapi = true
           EOF
           elif [[ -n "${COPR_LOGIN:-}" && -n "${COPR_TOKEN:-}" ]]; then
@@ -189,21 +187,30 @@ jobs:
 
       - name: Build SRPM
         run: |
-          mkdir -p ~/rpmbuild/{SPECS,SRPMS}
+          set -euo pipefail
+          version="${{ steps.version.outputs.version }}"
+          tag="${{ steps.version.outputs.tag }}"
+          rpm_top="$(mktemp -d "/tmp/slskdn-rpmbuild-${version}.XXXXXX")"
+          mkdir -p "$rpm_top"/{SOURCES,SPECS,SRPMS}
           
           # Copy supporting files
-          cp packaging/aur/slskd.service ~/rpmbuild/SOURCES/
-          cp packaging/aur/slskd.yml ~/rpmbuild/SOURCES/
-          cp packaging/aur/slskd.sysusers ~/rpmbuild/SOURCES/slskd.conf
-          cp packaging/aur/slskd.tmpfiles ~/rpmbuild/SOURCES/
-          cp packaging/rpm/slskdn.spec ~/rpmbuild/SPECS/
+          cp "slskdn-${tag}-linux-x64.zip" "$rpm_top/SOURCES/"
+          cp packaging/aur/slskd.service "$rpm_top/SOURCES/"
+          cp packaging/aur/slskd.yml "$rpm_top/SOURCES/"
+          cp packaging/aur/slskd.sysusers "$rpm_top/SOURCES/slskd.conf"
+          cp packaging/aur/slskd.tmpfiles "$rpm_top/SOURCES/"
+          cp packaging/rpm/slskdn.spec "$rpm_top/SPECS/"
           
           # Build SRPM
-          rpmbuild -bs ~/rpmbuild/SPECS/slskdn.spec --define "_topdir $HOME/rpmbuild"
+          rpmbuild -bs "$rpm_top/SPECS/slskdn.spec" --define "_topdir $rpm_top"
           
-          SRPM=$(find ~/rpmbuild/SRPMS -name "*.src.rpm" | head -1)
-          echo "Built SRPM: $SRPM"
-          rpm -qpl "$SRPM" | head -20
+          srpm="$rpm_top/SRPMS/slskdn-${version}-1.src.rpm"
+          test -f "$srpm"
+          mkdir -p dist
+          cp "$srpm" "dist/slskdn-${version}-1.src.rpm"
+          echo "Built SRPM: dist/slskdn-${version}-1.src.rpm"
+          rpm -qpl "dist/slskdn-${version}-1.src.rpm" | head -20
+          echo "SLSKDN_SRPM=dist/slskdn-${version}-1.src.rpm" >> "$GITHUB_ENV"
 
       - name: Upload to COPR
         env:
@@ -224,6 +231,7 @@ jobs:
           copr_project="slskdn/slskdn"
           copr-cli get "$copr_project" >/dev/null
           
-          SRPM=$(find ~/rpmbuild/SRPMS -name "*.src.rpm" | head -1)
-          echo "Uploading SRPM to COPR: $SRPM"
-          copr-cli --debug build --nowait "$copr_project" "$SRPM"
+          srpm="${SLSKDN_SRPM:?Build SRPM step did not publish an SRPM path}"
+          test -f "$srpm"
+          echo "Uploading SRPM to COPR: $srpm"
+          copr-cli build --nowait "$copr_project" "$srpm"

@@ -579,31 +579,34 @@ jobs:
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates krb5-user krb5-k5tls krb5-pkinit libkrb5-dev oathtool python3-pip rpm
           pip3 install copr-cli rich requests-gssapi
-          mkdir -p ~/rpmbuild/{SOURCES,SPECS,SRPMS}
+          rpm_top="$(mktemp -d "/tmp/slskdn-rpmbuild-${{ needs.parse.outputs.version }}.XXXXXX")"
+          mkdir -p "$rpm_top"/{SOURCES,SPECS,SRPMS}
+          echo "SLSKDN_RPM_TOP=$rpm_top" >> "$GITHUB_ENV"
 
       - name: Prepare Sources
         run: |
           # Copy the built zip to SOURCES
-          cp slskdn-main-linux-glibc-x64.zip ~/rpmbuild/SOURCES/
+          cp slskdn-main-linux-glibc-x64.zip "$SLSKDN_RPM_TOP/SOURCES/"
           
           # Copy supporting files
-          cp packaging/aur/slskd.service ~/rpmbuild/SOURCES/
-          cp packaging/aur/slskd.yml ~/rpmbuild/SOURCES/
-          cp packaging/aur/slskd.sysusers ~/rpmbuild/SOURCES/slskd.conf
-          cp packaging/aur/slskd.tmpfiles ~/rpmbuild/SOURCES/
+          cp packaging/aur/slskd.service "$SLSKDN_RPM_TOP/SOURCES/"
+          cp packaging/aur/slskd.yml "$SLSKDN_RPM_TOP/SOURCES/"
+          cp packaging/aur/slskd.sysusers "$SLSKDN_RPM_TOP/SOURCES/slskd.conf"
+          cp packaging/aur/slskd.tmpfiles "$SLSKDN_RPM_TOP/SOURCES/"
 
       - name: Update Spec File
         run: |
           # Use the main spec template
-          cp packaging/rpm/slskdn.spec ~/rpmbuild/SPECS/
+          cp packaging/rpm/slskdn.spec "$SLSKDN_RPM_TOP/SPECS/"
           
           # Convert version for RPM (replace ALL hyphens with dots)
           RPM_VERSION=$(echo "${{ needs.parse.outputs.version }}" | sed 's/-/./g')
           
           # Update version
-          sed -i "s/^Version:.*/Version:        ${RPM_VERSION}/" ~/rpmbuild/SPECS/slskdn.spec
+          sed -i "s/^Version:.*/Version:        ${RPM_VERSION}/" "$SLSKDN_RPM_TOP/SPECS/slskdn.spec"
+          sed -i "s|^Source0:.*|Source0:        slskdn-main-linux-glibc-x64.zip|" "$SLSKDN_RPM_TOP/SPECS/slskdn.spec"
           
-          cat ~/rpmbuild/SPECS/slskdn.spec | head -30
+          cat "$SLSKDN_RPM_TOP/SPECS/slskdn.spec" | head -30
 
       - name: Configure COPR
         env:
@@ -655,7 +658,7 @@ jobs:
             cat > ~/.config/copr << EOF
           [copr-cli]
           username = slskdn
-          copr_url = https://copr.fedoraproject.org
+          copr_url = https://copr.fedorainfracloud.org
           gssapi = true
           EOF
           elif [[ -n "${COPR_FEDORA_USERNAME:-}" && -n "${COPR_FEDORA_PASSWORD:-}" && -n "${COPR_FEDORA_OTP_SECRET:-}" ]]; then
@@ -672,7 +675,7 @@ jobs:
             cat > ~/.config/copr << EOF
           [copr-cli]
           username = slskdn
-          copr_url = https://copr.fedoraproject.org
+          copr_url = https://copr.fedorainfracloud.org
           gssapi = true
           EOF
           elif [[ -n "${COPR_LOGIN:-}" && -n "${COPR_TOKEN:-}" ]]; then
@@ -690,12 +693,17 @@ jobs:
 
       - name: Build SRPM
         run: |
-          rpmbuild -bs ~/rpmbuild/SPECS/slskdn.spec --define "_topdir $HOME/rpmbuild"
+          set -euo pipefail
+          rpm_version="$(echo "${{ needs.parse.outputs.version }}" | sed 's/-/./g')"
+          rpmbuild -bs "$SLSKDN_RPM_TOP/SPECS/slskdn.spec" --define "_topdir $SLSKDN_RPM_TOP"
           
-          SRPM=$(find ~/rpmbuild/SRPMS -name "*.src.rpm" | head -1)
-          echo "Built SRPM: $SRPM"
-          rpm -qpl "$SRPM" | head -20
-          echo "SRPM_PATH=$SRPM" >> $GITHUB_ENV
+          srpm="$SLSKDN_RPM_TOP/SRPMS/slskdn-${rpm_version}-1.src.rpm"
+          test -f "$srpm"
+          mkdir -p dist
+          cp "$srpm" "dist/slskdn-${rpm_version}-1.src.rpm"
+          echo "Built SRPM: dist/slskdn-${rpm_version}-1.src.rpm"
+          rpm -qpl "dist/slskdn-${rpm_version}-1.src.rpm" | head -20
+          echo "SRPM_PATH=dist/slskdn-${rpm_version}-1.src.rpm" >> "$GITHUB_ENV"
 
       - name: Upload to COPR
         env:

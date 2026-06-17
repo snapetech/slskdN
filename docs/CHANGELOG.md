@@ -70,6 +70,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Main release COPR publishing now prefers Kerberos credentials before legacy
   API token secrets, so stale tokens cannot shadow the configured Fedora
   Kerberos path.
+- COPR publishing now builds SRPMs in isolated temporary RPM topdirs and uploads
+  the exact expected `slskdn-<version>-1.src.rpm`, preventing stale runner
+  `~/rpmbuild` state from publishing an older release.
 - Standalone COPR recovery publishing now creates the Web asset destination
   before copying frontend files during rebuilds.
 - COPR release publishing now installs Ubuntu's MIT Kerberos HTTPS KDC proxy
