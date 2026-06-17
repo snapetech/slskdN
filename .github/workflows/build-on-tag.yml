@@ -675,7 +675,7 @@ jobs:
             cat > ~/.config/copr << EOF
           [copr-cli]
           username = slskdn
-          copr_url = https://copr.fedorainfracloud.org
+          copr_url = https://copr.fedoraproject.org
           gssapi = true
           EOF
           elif [[ -n "${COPR_LOGIN:-}" && -n "${COPR_TOKEN:-}" ]]; then
