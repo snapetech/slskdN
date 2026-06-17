@@ -593,6 +593,7 @@ jobs:
           cp packaging/aur/slskd.yml "$SLSKDN_RPM_TOP/SOURCES/"
           cp packaging/aur/slskd.sysusers "$SLSKDN_RPM_TOP/SOURCES/slskd.conf"
           cp packaging/aur/slskd.tmpfiles "$SLSKDN_RPM_TOP/SOURCES/"
+          # CI uses SLSKDN_RPM_TOP; local fallback: cp packaging/aur/slskd.tmpfiles ~/rpmbuild/SOURCES/
 
       - name: Update Spec File
         run: |
