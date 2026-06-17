@@ -51,7 +51,7 @@ done < <(find "$repo_root/src/slskd" -type f -name '*.cs' | sort)
 expect_literal src/slskd/Bootstrap/ApplicationHostServiceCollectionExtensions.cs 'AddHttpClient<SocialFederation.IHttpSignatureKeyFetcher, SocialFederation.HttpSignatureKeyFetcher>'
 expect_literal src/slskd/Bootstrap/ApplicationHostServiceCollectionExtensions.cs '.ConfigurePrimaryHttpMessageHandler(Common.Security.OutboundUriGuard.CreateNoRedirectHandler)'
 expect_literal src/slskd/SocialFederation/ServiceCollectionExtensions.cs '.ConfigurePrimaryHttpMessageHandler(OutboundUriGuard.CreateNoRedirectHandler)'
-expect_literal src/slskd/Sharing/API/SharesController.cs 'using var httpHandler = OutboundUriGuard.CreateNoRedirectHandler();'
+expect_literal src/slskd/Sharing/API/SharesController.cs 'OutboundUriGuard.NoRedirectHttpClientName'
 
 if grep -Fq 'new SocketsHttpHandler { AllowAutoRedirect = false }' "$repo_root/src/slskd/SocialFederation/ServiceCollectionExtensions.cs" ||
   grep -Fq 'new SocketsHttpHandler { AllowAutoRedirect = false }' "$repo_root/src/slskd/Bootstrap/ApplicationHostServiceCollectionExtensions.cs"; then
