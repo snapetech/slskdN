@@ -44,6 +44,32 @@ public class ConversationsControllerTests
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
+    [Fact]
+    public async Task Acknowledge_When_Soulseek_Is_Disconnected_Returns_ServiceUnavailable()
+    {
+        var conversations = new Mock<IConversationService>();
+        var controller = CreateController(conversations.Object);
+
+        var result = await controller.Acknowledge("user-1", 1);
+
+        var status = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(503, status.StatusCode);
+        conversations.Verify(x => x.AcknowledgeMessageAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AcknowledgeAll_When_Soulseek_Is_Disconnected_Returns_ServiceUnavailable()
+    {
+        var conversations = new Mock<IConversationService>();
+        var controller = CreateController(conversations.Object);
+
+        var result = await controller.AcknowledgeAll("user-1");
+
+        var status = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(503, status.StatusCode);
+        conversations.Verify(x => x.AcknowledgeAsync(It.IsAny<string>()), Times.Never);
+    }
+
     private static ConversationsController CreateController(IConversationService? conversations = null)
     {
         var stateMonitor = new Mock<IStateMonitor<State>>();

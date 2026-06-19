@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Restore Soulseek connectivity on the live VPN-required Docker install.
+  - Status: completed (2026-06-19)
+  - Priority: P0
+  - Notes: Found the app/container healthy but Soulseek disconnected because the Gluetun-compatible VPN status API on `127.0.0.1:8010` was stopped while `integrations.vpn.enabled` was true. Restarted the helper, verified VPN status and forwarded port recovery, and confirmed Soulseek login plus completed transfers. Hardened the packaged helper unit so it is wanted by both app service names, and added conversation acknowledgement API guards so disconnected/reconnecting Soulseek returns 503 instead of surfacing runtime exceptions. Documented ADR-0001 gotcha `0z496`. Validation passed: focused `ConversationsControllerTests` (`5/5`), `./bin/lint`, `git diff --check`, and live health/VPN/Soulseek resampling.
+
 - [x] Codebase improvements plan PR-01 through PR-05 (critical bugs + MediaCore decomposition).
   - Status: completed (2026-06-17)
   - Priority: P0 (Critical)

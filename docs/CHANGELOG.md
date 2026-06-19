@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- VPN-required installs now package the Gluetun-compatible VPN status helper as
+  a dependency of both supported app service names, preventing a healthy app
+  container from staying Soulseek-offline after the helper is stopped. Message
+  acknowledgement endpoints now return 503 while Soulseek is disconnected or
+  logging in instead of surfacing runtime exceptions.
 - The optional Docker media-tools installer now includes `libclang-dev`, and
   packaging validation guards it, so the omnibus testers image can compile
   current SongRec/bindgen dependencies during release publishing.

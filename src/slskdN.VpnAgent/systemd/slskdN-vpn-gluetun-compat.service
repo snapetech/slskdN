@@ -2,6 +2,7 @@
 Description=Gluetun-compatible VPN status for slskdN
 After=network-online.target slskdN-vpn-ingress.service
 Wants=network-online.target
+Before=slskd.service slskdN.service
 
 [Service]
 Type=simple
@@ -17,3 +18,5 @@ ReadWritePaths=/var/lib/slskdN-vpn
 
 [Install]
 WantedBy=multi-user.target
+WantedBy=slskd.service
+WantedBy=slskdN.service

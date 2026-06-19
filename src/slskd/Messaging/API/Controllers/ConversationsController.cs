@@ -93,6 +93,11 @@ namespace slskd.Messaging.API
                 return BadRequest("id must be positive");
             }
 
+            if (!IsSoulseekReady())
+            {
+                return StatusCode(503, "Soulseek server connection is not ready");
+            }
+
             var message = await Messages.Conversations.FindMessageAsync(username, id);
 
             if (message == default)
@@ -127,6 +132,11 @@ namespace slskd.Messaging.API
             if (string.IsNullOrWhiteSpace(username))
             {
                 return BadRequest("username is required");
+            }
+
+            if (!IsSoulseekReady())
+            {
+                return StatusCode(503, "Soulseek server connection is not ready");
             }
 
             var conversation = await Messages.Conversations.FindAsync(username);
@@ -355,6 +365,12 @@ namespace slskd.Messaging.API
         private static string NormalizeRequiredValue(string? value)
         {
             return value?.Trim() ?? string.Empty;
+        }
+
+        private bool IsSoulseekReady()
+        {
+            var server = ApplicationStateMonitor.CurrentValue.Server;
+            return server.IsConnected && server.IsLoggedIn;
         }
     }
 

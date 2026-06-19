@@ -1,3 +1,12 @@
+## 2026-06-19
+
+- Restored Soulseek connectivity on the live VPN-required Docker install. The app was Docker-healthy, but the local Gluetun-compatible VPN status helper was stopped, so slskdN correctly fail-closed and waited for VPN status instead of connecting to Soulseek.
+- Restarted and re-enabled the helper under the app service dependency, preserving the packaged binary path on the host. Verified the VPN status API returned `running`, the forwarded port endpoint returned a port, `/health` stayed `Healthy`, and Soulseek logged back in with transfers/searches active.
+- Hardened the packaged `slskdN-vpn-gluetun-compat.service` unit so it is ordered before and wanted by both supported app service names.
+- Added conversation acknowledgement API guards so disconnected or logging-in Soulseek returns 503 instead of calling the runtime acknowledgement method and throwing 500s.
+- Documented ADR-0001 gotcha `0z496` in docs-only commit `ad7ca1e8a`.
+- Validation passed: focused `ConversationsControllerTests` (`5/5`), `./bin/lint`, `git diff --check`, and live health/VPN/Soulseek resampling. No release tags were created.
+
 ## 2026-06-17
 
 - **Codebase improvements plan** PR-01 through PR-05 complete, PR-06 partially addressed, PR-07-14 verified as not needed or already addressed.
