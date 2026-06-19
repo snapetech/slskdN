@@ -52,6 +52,41 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z496. VPN Status Helper Must Be Wanted By The App Service
+
+**The Bug**: `slskdN-vpn-gluetun-compat.service` was enabled under
+`multi-user.target` but not wanted by the live `slskd.service`. A clean stop or
+manual deployment left the Gluetun-compatible status API offline on
+`127.0.0.1:8010`; slskdN stayed Docker-healthy but fail-closed Soulseek with
+`Waiting for VPN client`.
+
+**Files Affected**:
+- `src/slskdN.VpnAgent/systemd/slskdN-vpn-gluetun-compat.service`
+- `src/slskd/Messaging/API/Controllers/ConversationsController.cs`
+
+**Wrong**:
+```ini
+[Install]
+WantedBy=multi-user.target
+```
+
+**Correct**:
+```ini
+[Unit]
+Before=slskd.service slskdN.service
+
+[Install]
+WantedBy=multi-user.target
+WantedBy=slskd.service
+WantedBy=slskdN.service
+```
+
+**Why This Keeps Happening**: Host deployments may keep the upstream service
+name `slskd.service` so existing VPN helper units continue working, while
+packaged fork units often assume `slskdN.service`. VPN-required installs must
+wire the helper into both app service names and API endpoints must return 503
+instead of calling Soulseek runtime acknowledgement methods while disconnected.
+
 ### 0z495. COPR Workflows Must Not Reuse Persistent `~/rpmbuild`
 
 **The Bug**: COPR release workflows built a fresh SRPM but then selected
