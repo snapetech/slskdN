@@ -130,14 +130,14 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.2" />
     <PackageReference Include="TagLibSharp" Version="2.3.0" />
     <PackageReference Include="Utility.CommandLine.Arguments" Version="6.0.0" />
     <PackageReference Include="Utility.EnvironmentVariables" Version="1.0.5" />
     <PackageReference Include="YamlDotNet" Version="18.0.0" />
     <PackageReference Include="NSec.Cryptography" Version="26.4.0" />
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
-    <PackageReference Include="AWSSDK.S3" Version="4.0.24.5" />
+    <PackageReference Include="AWSSDK.S3" Version="4.0.25.2" />
     <PackageReference Include="Zeroconf" Version="3.7.16" />
     <PackageReference Include="OpenTelemetry" Version="1.16.0" />
     <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.16.0" />
