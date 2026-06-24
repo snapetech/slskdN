@@ -1,3 +1,16 @@
+## Update 2026-06-24 00:00:00Z
+
+- Current task: README long-form restoration complete.
+- Last activity:
+  - Identified `31dec86be` (`docs: demote README feature claims`) as the commit that replaced the 927-line README with the short maturity-warning version.
+  - Restored `README.md` from `31dec86be^`, the last long-form README before that demotion.
+  - Removed one restored trailing-whitespace violation.
+- Validation:
+  - Passed: `git diff --check`.
+- Next steps:
+  1. Review and commit the README restoration.
+  2. No release tags were created.
+
 ## Update 2026-06-19 15:16:00Z
 
 - Current task: Live VPN-required Soulseek connectivity incident fixed.
