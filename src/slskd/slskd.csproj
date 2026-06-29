@@ -123,28 +123,28 @@
     <PackageReference Include="Serilog.Sinks.Async" Version="2.1.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
-    <PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="9.0.0" />
+    <PackageReference Include="Serilog.Sinks.Grafana.Loki" Version="9.0.1" />
     <PackageReference Include="Serilog.Sinks.Http" Version="9.2.1" />
     <ProjectReference Include="..\..\vendor\slskNet.Runtime\src\Soulseek.csproj" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
     <PackageReference Include="TagLibSharp" Version="2.3.0" />
     <PackageReference Include="Utility.CommandLine.Arguments" Version="6.0.0" />
     <PackageReference Include="Utility.EnvironmentVariables" Version="1.0.5" />
-    <PackageReference Include="YamlDotNet" Version="18.0.0" />
+    <PackageReference Include="YamlDotNet" Version="18.1.0" />
     <PackageReference Include="NSec.Cryptography" Version="26.4.0" />
     <PackageReference Include="MathNet.Numerics" Version="5.0.0" />
-    <PackageReference Include="AWSSDK.S3" Version="4.0.24.5" />
+    <PackageReference Include="AWSSDK.S3" Version="4.0.25.3" />
     <PackageReference Include="Zeroconf" Version="3.7.16" />
     <PackageReference Include="OpenTelemetry" Version="1.16.0" />
     <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.16.0" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.16.0" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.16.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
-    <PackageReference Include="dotNetRDF" Version="3.5.1" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.16.0" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.16.0" />
+    <PackageReference Include="dotNetRDF" Version="3.5.2" />
   </ItemGroup>
 </Project>
