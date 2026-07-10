@@ -3,6 +3,8 @@
 // </copyright>
 namespace slskd.Tests.Unit.Events;
 
+using System.Reflection;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Moq;
@@ -12,6 +14,16 @@ using Xunit;
 
 public class EventsControllerTests
 {
+    [Fact]
+    public void RaiseEvent_RequiresAdministratorRole()
+    {
+        var action = typeof(EventsController).GetMethod(nameof(EventsController.RaiseEvent))!;
+        var authorize = Assert.Single(action.GetCustomAttributes<AuthorizeAttribute>(inherit: true));
+
+        Assert.Equal(AuthPolicy.Any, authorize.Policy);
+        Assert.Equal(AuthRole.AdministratorOnly, authorize.Roles);
+    }
+
     [Fact]
     public void GetEvents_WhenEventServiceThrows_ReturnsSanitized500()
     {
@@ -62,5 +74,29 @@ public class EventsControllerTests
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result);
         Assert.Equal("Event type cannot be raised", badRequest.Value);
+    }
+
+    [Fact]
+    public void RaiseEvent_WithUnsupportedRealEventType_ReturnsSanitizedBadRequest()
+    {
+        var eventService = new Mock<EventService>(Mock.Of<IDbContextFactory<EventsDbContext>>());
+        var controller = new EventsController(eventService.Object, new EventBus(eventService.Object));
+
+        var result = controller.RaiseEvent(nameof(EventType.SoulseekClientConnected), "x");
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Event type cannot be raised", badRequest.Value);
+    }
+
+    [Fact]
+    public void RaiseEvent_WithOversizedDisambiguator_ReturnsBadRequest()
+    {
+        var eventService = new Mock<EventService>(Mock.Of<IDbContextFactory<EventsDbContext>>());
+        var controller = new EventsController(eventService.Object, new EventBus(eventService.Object));
+
+        var result = controller.RaiseEvent(nameof(EventType.Noop), new string('x', 129));
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Disambiguator cannot exceed 128 characters", badRequest.Value);
     }
 }

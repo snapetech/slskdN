@@ -44,6 +44,17 @@ using slskd.Transfers;
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
 public class EventsController : ControllerBase
 {
+    private const int MaxDisambiguatorLength = 128;
+    private static readonly HashSet<EventType> AllowedSyntheticEventTypes = new()
+    {
+        EventType.DownloadFileComplete,
+        EventType.DownloadDirectoryComplete,
+        EventType.UploadFileComplete,
+        EventType.PrivateMessageReceived,
+        EventType.RoomMessageReceived,
+        EventType.Noop,
+    };
+
     public EventsController(
         EventService eventService,
         EventBus eventBus)
@@ -114,7 +125,7 @@ public class EventsController : ControllerBase
     /// <response code="500">An unexpected error is encountered.</response>
     /// <response code="201">The request completed successfully.</response>
     [HttpPost("{type}", Name = nameof(RaiseEvent))]
-    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     [ProducesResponseType(typeof(string), 400)]
     [ProducesResponseType(401)]
     [ProducesResponseType(403)]
@@ -130,9 +141,14 @@ public class EventsController : ControllerBase
             return BadRequest("Unknown event type");
         }
 
-        if (eventType is EventType.None || eventType is EventType.Any)
+        if (!AllowedSyntheticEventTypes.Contains(eventType))
         {
             return BadRequest("Event type cannot be raised");
+        }
+
+        if (disambiguator.Length > MaxDisambiguatorLength)
+        {
+            return BadRequest($"Disambiguator cannot exceed {MaxDisambiguatorLength} characters");
         }
 
         try

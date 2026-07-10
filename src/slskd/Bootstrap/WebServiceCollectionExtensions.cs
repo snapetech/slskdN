@@ -452,6 +452,19 @@ public static class WebServiceCollectionExtensions
                         return RateLimitPartition.GetFixedWindowLimiter("fed:" + ip, _ => new FixedWindowRateLimiterOptions { PermitLimit = fedPermit, Window = fedWindow });
                     }
 
+                    if (path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase)
+                        && path.Contains("/events/", StringComparison.OrdinalIgnoreCase)
+                        && string.Equals(context.Request.Method, "POST", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return RateLimitPartition.GetFixedWindowLimiter(
+                            "event-injection:" + ip,
+                            _ => new FixedWindowRateLimiterOptions
+                            {
+                                PermitLimit = Math.Min(apiPermit, 10),
+                                Window = TimeSpan.FromMinutes(1),
+                            });
+                    }
+
                     if (context.User?.Identity?.IsAuthenticated == true)
                     {
                         return RateLimitPartition.GetNoLimiter("authenticated");

@@ -52,6 +52,32 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z501. Synthetic Internal Events Are An Administrator Control Plane
+
+**The Bug**: Read-write users could raise internal events that fan out to
+operator-configured scripts and webhooks, including attacker-selected sample
+field prefixes and repeated dispatches.
+
+**Files Affected**:
+- `src/slskd/Events/API/EventsController.cs`
+- `src/slskd/Bootstrap/WebServiceCollectionExtensions.cs`
+
+**Wrong**:
+```csharp
+[Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
+```
+
+**Correct**:
+```csharp
+[Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
+```
+
+**Why This Keeps Happening**: A diagnostic endpoint can look like harmless
+sample-data generation while its output is delivered through the real event
+bus. Synthetic event actions need administrator authorization, an explicit safe
+event allowlist, bounded input, and a rate-limit partition applied before the
+authenticated-user limiter exemption.
+
 ### 0z500. Sensitive Realtime Surfaces Need The Same Role As REST
 
 **The Bug**: Full application logs were available to every authenticated role
