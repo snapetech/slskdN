@@ -22,6 +22,7 @@ public class InMemoryDhtClient : IDhtClient
     private readonly ConcurrentDictionary<string, List<DhtValue>> store = new();
     private readonly byte[] selfId;
     private readonly int maxReplicas;
+    private const int MaxStoredKeys = 8192;
     private readonly MeshStatsCollector? statsCollector;
 
     public InMemoryDhtClient(ILogger<InMemoryDhtClient> logger, IOptions<MeshOptions> options, MeshStatsCollector? statsCollector = null)
@@ -66,6 +67,12 @@ public class InMemoryDhtClient : IDhtClient
         var keyCopy = key?.ToArray() ?? throw new ArgumentNullException(nameof(key));
         var valueCopy = value?.ToArray() ?? throw new ArgumentNullException(nameof(value));
         var keyHex = ToHex(keyCopy);
+        RemoveExpiredKeys(now);
+        if (!store.ContainsKey(keyHex) && store.Count >= MaxStoredKeys)
+        {
+            throw new InvalidOperationException("DHT key capacity has been reached.");
+        }
+
         var list = store.GetOrAdd(keyHex, _ => new List<DhtValue>());
 
         lock (list)
@@ -200,6 +207,21 @@ public class InMemoryDhtClient : IDhtClient
     }
 
     private static string ToHex(byte[] data) => Convert.ToHexString(data).ToLowerInvariant();
+
+    private void RemoveExpiredKeys(DateTimeOffset now)
+    {
+        foreach (var entry in store)
+        {
+            lock (entry.Value)
+            {
+                entry.Value.RemoveAll(value => value.ExpiresAt <= now);
+                if (entry.Value.Count == 0)
+                {
+                    store.TryRemove(entry.Key, out _);
+                }
+            }
+        }
+    }
 
     private static bool ContainsContentPeerHints(List<DhtValue> values)
     {

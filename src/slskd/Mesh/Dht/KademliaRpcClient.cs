@@ -6,6 +6,7 @@ using slskd.Mesh;
 using slskd.Mesh.Messages;
 using slskd.Mesh.ServiceFabric;
 using slskd.Mesh.ServiceFabric.Services;
+using slskd.Mesh.Transport;
 using slskd.VirtualSoulfind.ShadowIndex;
 using NSec.Cryptography;
 using System;
@@ -13,6 +14,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -377,6 +379,11 @@ public class DhtStoreMessage
     /// </summary>
     public bool VerifySignature()
     {
+        return VerifySignature(expectedPeerId: null);
+    }
+
+    public bool VerifySignature(string? expectedPeerId)
+    {
         if (string.IsNullOrEmpty(PublicKeyBase64) || string.IsNullOrEmpty(SignatureBase64))
             return false;
 
@@ -394,6 +401,12 @@ public class DhtStoreMessage
 
             var publicKeyBytes = Convert.FromBase64String(PublicKeyBase64);
             if (publicKeyBytes.Length != 32) return false;
+            if (expectedPeerId is not null
+                && (!string.Equals(Ed25519Signer.DerivePeerId(publicKeyBytes), expectedPeerId, StringComparison.Ordinal)
+                    || !RequesterId.SequenceEqual(SHA256.HashData(publicKeyBytes).AsSpan(0, 20).ToArray())))
+            {
+                return false;
+            }
 
             // Import public key
             var publicKey = PublicKey.Import(SignatureAlgorithm.Ed25519, publicKeyBytes, KeyBlobFormat.RawPublicKey);

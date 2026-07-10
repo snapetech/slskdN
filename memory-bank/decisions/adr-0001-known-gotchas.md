@@ -52,6 +52,36 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z534. Self-Signed DHT Writes Do Not Authenticate A Publisher
+
+**The Bug**: Remote DHT STORE requests could generate a fresh Ed25519 key,
+sign arbitrary key/value/TTL fields, and pass verification without proving that
+the key belonged to the authenticated mesh peer. Each request could also create
+a new durable dictionary key without per-publisher or global bounds.
+
+**Files Affected**:
+- `src/slskd/Mesh/Dht/KademliaRpcClient.cs`
+- `src/slskd/Mesh/ServiceFabric/Services/DhtMeshService.cs`
+- `src/slskd/Mesh/Dht/InMemoryDhtClient.cs`
+
+**Prevention**: Bind the signing public key to the authenticated self-certifying
+peer ID and requester node ID, keep key/value/TTL/timestamp in the signature,
+enforce expiring global, per-peer, and per-key-namespace quotas, and remove
+expired empty keys from the backing store before admitting new keys.
+
+### 0z533. Cross-Namespace Cryptographic Checks Need Explicit Imports
+
+**The Bug**: DHT publisher authentication added calls to the mesh Ed25519
+identity helper and SHA-256 without importing their namespaces, causing the
+focused build to fail.
+
+**Files Affected**:
+- `src/slskd/Mesh/Dht/KademliaRpcClient.cs`
+
+**Prevention**: When extending an existing protocol file with identity or
+cryptography primitives, add the relevant feature and BCL namespace imports in
+the same patch, then compile the focused project immediately.
+
 ### 0z532. Signature Length Is Not Signature Validation
 
 **The Bug**: Mesh service descriptor validation treated every 64-byte value as

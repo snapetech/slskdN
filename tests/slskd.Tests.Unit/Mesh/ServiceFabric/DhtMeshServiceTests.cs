@@ -11,14 +11,49 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using slskd.Mesh;
 using slskd.Mesh.Dht;
+using slskd.Mesh.Messages;
+using slskd.Mesh.Overlay;
 using slskd.Mesh.ServiceFabric;
 using slskd.Mesh.ServiceFabric.Services;
 using slskd.Mesh.Transport;
 using slskd.VirtualSoulfind.ShadowIndex;
 using Xunit;
+using System.Security.Cryptography;
+using Microsoft.Extensions.Logging.Abstractions;
 
 public class DhtMeshServiceTests
 {
+    [Fact]
+    public async Task HandleCallAsync_Store_EnforcesAuthenticatedPublisherAndNamespaceQuota()
+    {
+        var keyPair = Ed25519KeyPair.Generate();
+        var keyStore = new Mock<IKeyStore>();
+        keyStore.Setup(store => store.Current).Returns(keyPair);
+        var signer = new MeshMessageSigner(keyStore.Object, NullLogger<MeshMessageSigner>.Instance);
+        var requesterId = SHA256.HashData(keyPair.PublicKey).AsSpan(0, 20).ToArray();
+        var peerId = Ed25519Signer.DerivePeerId(keyPair.PublicKey);
+        var dhtClient = new Mock<IDhtClient>();
+        var service = new DhtMeshService(
+            Mock.Of<ILogger<DhtMeshService>>(),
+            new KademliaRoutingTable(CreateNodeId(0x01)),
+            dhtClient.Object,
+            signer);
+
+        var forged = await StoreAsync(service, signer, requesterId, 0, remotePeerId: "forged-peer");
+        Assert.Equal(ServiceStatusCodes.Unauthorized, forged.StatusCode);
+
+        for (var index = 0; index < 64; index++)
+        {
+            var accepted = await StoreAsync(service, signer, requesterId, index, peerId);
+            Assert.Equal(ServiceStatusCodes.OK, accepted.StatusCode);
+        }
+
+        var limited = await StoreAsync(service, signer, requesterId, 64, peerId);
+        Assert.Equal(ServiceStatusCodes.RateLimited, limited.StatusCode);
+        dhtClient.Verify(client => client.PutAsync(
+            It.IsAny<byte[]>(), It.IsAny<byte[]>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Exactly(64));
+    }
+
     [Fact]
     public async Task HandleCallAsync_UnknownMethod_ReturnsSanitizedMethodNotFound()
     {
@@ -185,5 +220,38 @@ public class DhtMeshServiceTests
         var nodeId = new byte[20];
         Array.Fill(nodeId, value);
         return nodeId;
+    }
+
+    private static async Task<ServiceReply> StoreAsync(
+        DhtMeshService service,
+        IMeshMessageSigner signer,
+        byte[] requesterId,
+        int keySuffix,
+        string remotePeerId)
+    {
+        var key = new byte[20];
+        key[1] = (byte)keySuffix;
+        var message = DhtStoreMessage.CreateSigned(key, new byte[] { 1 }, requesterId, 60, signer);
+        var call = new ServiceCall
+        {
+            ServiceName = "dht",
+            Method = "Store",
+            CorrelationId = Guid.NewGuid().ToString(),
+            Payload = JsonSerializer.SerializeToUtf8Bytes(new StoreRequest
+            {
+                Key = message.Key,
+                Value = message.Value,
+                RequesterId = message.RequesterId,
+                TtlSeconds = message.TtlSeconds,
+                PublicKeyBase64 = message.PublicKeyBase64!,
+                SignatureBase64 = message.SignatureBase64!,
+                TimestampUnixMs = message.TimestampUnixMs,
+            }),
+        };
+
+        return await service.HandleCallAsync(
+            call,
+            new MeshServiceContext { RemotePeerId = remotePeerId },
+            CancellationToken.None);
     }
 }

@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Remote DHT writes now bind signatures to authenticated self-certifying peers,
+  enforce expiring global/per-peer/namespace quotas, and reclaim expired keys.
 - Mesh service descriptors now require cryptographic verification of canonical
   descriptor bytes against keys authenticated by self-certifying peer records.
 - JWT logout revocations now persist atomically across service restarts and

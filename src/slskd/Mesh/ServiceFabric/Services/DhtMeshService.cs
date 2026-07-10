@@ -28,6 +28,11 @@ public class DhtMeshService : IMeshService
     private readonly IDhtClient _dhtClient;
     private readonly IMeshMessageSigner _messageSigner;
     private readonly int _maxPayload;
+    private readonly object _remoteStoreLock = new();
+    private readonly Dictionary<(string PeerId, string Key), DateTimeOffset> _remoteStores = new();
+    private const int MaxRemoteStores = 8192;
+    private const int MaxRemoteStoresPerPeer = 256;
+    private const int MaxRemoteStoresPerPeerNamespace = 64;
 
     public DhtMeshService(
         ILogger<DhtMeshService> logger,
@@ -280,7 +285,7 @@ public class DhtMeshService : IMeshService
             }
 
             // Verify signature before storing
-            if (!VerifyStoreSignature(request))
+            if (!VerifyStoreSignature(request, context.RemotePeerId))
             {
                 _logger.LogWarning(
                     "[DHT] Store request signature verification failed for key {KeyHex} from peer {PeerId}",
@@ -306,6 +311,17 @@ public class DhtMeshService : IMeshService
 
             // Store the key-value pair with TTL
             var ttlSeconds = Math.Clamp(request.TtlSeconds ?? 3600, 60, 3600 * 24); // 1m to 24h
+            if (!TryAdmitRemoteStore(context.RemotePeerId, request.Key, ttlSeconds))
+            {
+                return new ServiceReply
+                {
+                    CorrelationId = call.CorrelationId,
+                    StatusCode = ServiceStatusCodes.RateLimited,
+                    ErrorMessage = "Remote DHT storage quota exceeded",
+                    Payload = Array.Empty<byte>()
+                };
+            }
+
             await _dhtClient.PutAsync(request.Key, request.Value, ttlSeconds, cancellationToken);
 
             // Update routing table with the storing peer
@@ -349,7 +365,7 @@ public class DhtMeshService : IMeshService
     /// <summary>
     /// Verify the signature on a STORE request.
     /// </summary>
-    private bool VerifyStoreSignature(StoreRequest request)
+    private bool VerifyStoreSignature(StoreRequest request, string remotePeerId)
     {
         try
         {
@@ -365,12 +381,47 @@ public class DhtMeshService : IMeshService
                 TimestampUnixMs = request.TimestampUnixMs
             };
 
-            return storeMessage.VerifySignature();
+            return storeMessage.VerifySignature(remotePeerId);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "[DHT] Error verifying store signature");
             return false;
+        }
+    }
+
+    private bool TryAdmitRemoteStore(string peerId, byte[] key, int ttlSeconds)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var keyHex = Convert.ToHexString(key);
+        var namespacePrefix = keyHex[..2];
+        lock (_remoteStoreLock)
+        {
+            foreach (var expired in _remoteStores.Where(entry => entry.Value <= now).Select(entry => entry.Key).ToList())
+            {
+                _remoteStores.Remove(expired);
+            }
+
+            var recordKey = (peerId, keyHex);
+            if (_remoteStores.ContainsKey(recordKey))
+            {
+                _remoteStores[recordKey] = now.AddSeconds(ttlSeconds);
+                return true;
+            }
+
+            var peerStores = _remoteStores.Keys.Count(entry => string.Equals(entry.PeerId, peerId, StringComparison.Ordinal));
+            var namespaceStores = _remoteStores.Keys.Count(entry =>
+                string.Equals(entry.PeerId, peerId, StringComparison.Ordinal)
+                && entry.Key.StartsWith(namespacePrefix, StringComparison.Ordinal));
+            if (_remoteStores.Count >= MaxRemoteStores
+                || peerStores >= MaxRemoteStoresPerPeer
+                || namespaceStores >= MaxRemoteStoresPerPeerNamespace)
+            {
+                return false;
+            }
+
+            _remoteStores[recordKey] = now.AddSeconds(ttlSeconds);
+            return true;
         }
     }
 

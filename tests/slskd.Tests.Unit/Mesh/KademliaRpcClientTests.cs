@@ -7,6 +7,8 @@ using slskd.Mesh;
 using slskd.Mesh.Dht;
 using slskd.Mesh.Messages;
 using slskd.Mesh.Overlay;
+using slskd.Mesh.Transport;
+using System.Security.Cryptography;
 using Xunit;
 
 namespace slskd.Tests.Unit.Mesh;
@@ -62,5 +64,27 @@ public class KademliaRpcClientTests
             signer);
 
         Assert.True(message.VerifySignature());
+    }
+
+    [Fact]
+    public void VerifySignature_WithExpectedPeer_BindsPublicKeyAndRequesterId()
+    {
+        var keyPair = Ed25519KeyPair.Generate();
+        var keyStore = new Mock<IKeyStore>();
+        keyStore.Setup(k => k.Current).Returns(keyPair);
+        var signer = new MeshMessageSigner(keyStore.Object, NullLogger<MeshMessageSigner>.Instance);
+        var requesterId = SHA256.HashData(keyPair.PublicKey).AsSpan(0, 20).ToArray();
+        var message = DhtStoreMessage.CreateSigned(
+            new byte[20],
+            new byte[] { 1 },
+            requesterId,
+            60,
+            signer);
+
+        Assert.True(message.VerifySignature(Ed25519Signer.DerivePeerId(keyPair.PublicKey)));
+        Assert.False(message.VerifySignature("forged-peer"));
+
+        message.RequesterId[0] ^= 0xff;
+        Assert.False(message.VerifySignature(Ed25519Signer.DerivePeerId(keyPair.PublicKey)));
     }
 }
