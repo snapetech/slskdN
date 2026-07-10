@@ -52,6 +52,36 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z526. Self-Signed Is A Certificate Property, Not A Peer Identity
+
+**The Bug**: Direct QUIC clients accepted any first self-signed certificate into process-local TOFU maps, rotated those maps on mismatch, treated empty pin lists as success, and ignored descriptor pins in the primary dialer path.
+
+**Files Affected**:
+- `src/slskd/Mesh/Transport/SecurityUtils.cs`
+- `src/slskd/Mesh/Transport/CertificatePinManager.cs`
+- `src/slskd/Mesh/Transport/DirectQuicDialer.cs`
+- `src/slskd/Mesh/Overlay/QuicOverlayClient.cs`
+- `src/slskd/Mesh/Overlay/QuicDataClient.cs`
+
+**Wrong**:
+```csharp
+if (!expectedPins.Any())
+    return true;
+if (certificate.Subject == certificate.Issuer)
+    endpointPins[endpoint] = presentedPin;
+```
+
+**Correct**:
+```csharp
+if (!expectedPins.Any())
+    return false;
+return SecurityUtils.ValidateCertificatePin(certificate, expectedPins);
+```
+
+Self-signed certificates may be accepted only when their SPKI matches a pin from a trusted peer descriptor, an explicitly managed persistent peer pin, or endpoint-specific configuration. Mismatches never mutate trust during a handshake.
+
+**Why This Keeps Happening**: Self-signing proves that a certificate possesses its own private key; it does not connect that key to the intended peer. Identity comes from an independently trusted pin or key binding.
+
 ### 0z525. Filesystem Path Comparison Must Match Platform Case Semantics
 
 **The Bug**: Containment checks used case-insensitive comparison on Linux, allowing a path under a different sibling whose name differed from an approved root only by case.

@@ -47,7 +47,11 @@ public class CertificatePinManager
             return false;
         }
 
-        var certInfo = _peerCertificates.GetOrAdd(peerId, _ => new PeerCertificateInfo(peerId));
+        if (!_peerCertificates.TryGetValue(peerId, out var certInfo))
+        {
+            _logger.LogWarning("No trusted certificate pins are configured for peer {PeerId}", LoggingUtils.SafePeerId(peerId));
+            return false;
+        }
 
         lock (certInfo)
         {
@@ -59,13 +63,10 @@ public class CertificatePinManager
                 return false;
             }
 
-            // Check if this is a new peer (no pins stored yet)
             if (!certInfo.HasAnyPins())
             {
-                // For new peers, accept the certificate and pin it
-                AddPin(peerId, currentPin, CertificatePinType.Current);
-                _logger.LogDebugSafe("Pinned new certificate for peer {PeerId}: {Pin}", LoggingUtils.SafePeerId(peerId), "[redacted]");
-                return true;
+                _logger.LogWarning("Peer {PeerId} has no trusted certificate pins", LoggingUtils.SafePeerId(peerId));
+                return false;
             }
 
             // Check current pins

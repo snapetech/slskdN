@@ -40,7 +40,7 @@ public class CertificatePinManagerTests : IDisposable
     }
 
     [Fact]
-    public void ValidateCertificatePin_NewPeer_AcceptsAndPinsCertificate()
+    public void ValidateCertificatePin_NewPeerWithoutTrustedPin_RejectsCertificate()
     {
         // Arrange
         var peerId = "peer:test:new";
@@ -50,10 +50,9 @@ public class CertificatePinManagerTests : IDisposable
         var result = _pinManager.ValidateCertificatePin(peerId, cert);
 
         // Assert
-        Assert.True(result);
+        Assert.False(result);
         var certInfo = _pinManager.GetPeerCertificateInfo(peerId);
-        Assert.NotNull(certInfo);
-        Assert.Single(certInfo!.CurrentPins);
+        Assert.Null(certInfo);
     }
 
     [Fact]
@@ -65,6 +64,7 @@ public class CertificatePinManagerTests : IDisposable
         var pinPath = Path.Combine(_tempDir, "mesh", "certificate-pins.json");
 
         // Act
+        Trust(peerId, cert);
         var result = _pinManager.ValidateCertificatePin(peerId, cert);
         var reloaded = new CertificatePinManager(_loggerMock.Object, _optionsMock.Object);
 
@@ -82,8 +82,7 @@ public class CertificatePinManagerTests : IDisposable
         var peerId = "peer:test:existing";
         var cert = CreateTestCertificate();
 
-        // First validation pins the certificate
-        _pinManager.ValidateCertificatePin(peerId, cert);
+        Trust(peerId, cert);
 
         // Act - Second validation with same cert
         var result = _pinManager.ValidateCertificatePin(peerId, cert);
@@ -101,7 +100,7 @@ public class CertificatePinManagerTests : IDisposable
         var cert2 = CreateTestCertificate(); // Different certificate
 
         // Pin first certificate
-        _pinManager.ValidateCertificatePin(peerId, cert1);
+        Trust(peerId, cert1);
 
         // Act - Try to validate with different certificate
         var result = _pinManager.ValidateCertificatePin(peerId, cert2);
@@ -119,7 +118,7 @@ public class CertificatePinManagerTests : IDisposable
         var newCert = CreateTestCertificate();
 
         // Pin old certificate
-        _pinManager.ValidateCertificatePin(peerId, oldCert);
+        Trust(peerId, oldCert);
 
         // Rotate to new certificate
         _pinManager.RotatePin(peerId, SecurityUtils.ExtractSpkiPin(newCert)!);
@@ -140,7 +139,7 @@ public class CertificatePinManagerTests : IDisposable
         var newCert = CreateTestCertificate();
 
         // Pin old certificate
-        _pinManager.ValidateCertificatePin(peerId, oldCert);
+        Trust(peerId, oldCert);
 
         // Rotate and simulate expiration
         _pinManager.RotatePin(peerId, SecurityUtils.ExtractSpkiPin(newCert)!);
@@ -168,7 +167,7 @@ public class CertificatePinManagerTests : IDisposable
         var peerId = "peer:test:remove";
         var cert = CreateTestCertificate();
 
-        _pinManager.ValidateCertificatePin(peerId, cert);
+        Trust(peerId, cert);
 
         // Act
         _pinManager.RemovePeerPins(peerId);
@@ -185,7 +184,7 @@ public class CertificatePinManagerTests : IDisposable
         var peerId = "peer:test:cleanup";
         var cert = CreateTestCertificate();
 
-        _pinManager.ValidateCertificatePin(peerId, cert);
+        Trust(peerId, cert);
         _pinManager.RotatePin(peerId, SecurityUtils.ExtractSpkiPin(CreateTestCertificate())!);
 
         // Manually set old rotation date
@@ -213,8 +212,8 @@ public class CertificatePinManagerTests : IDisposable
         var cert1 = CreateTestCertificate();
         var cert2 = CreateTestCertificate();
 
-        _pinManager.ValidateCertificatePin("peer1", cert1);
-        _pinManager.ValidateCertificatePin("peer2", cert2);
+        Trust("peer1", cert1);
+        Trust("peer2", cert2);
 
         // Act
         var stats = _pinManager.GetStatistics();
@@ -240,5 +239,10 @@ public class CertificatePinManagerTests : IDisposable
             DateTimeOffset.UtcNow.AddDays(365));
 
         return cert;
+    }
+
+    private void Trust(string peerId, X509Certificate2 certificate)
+    {
+        _pinManager.AddPin(peerId, SecurityUtils.ExtractSpkiPin(certificate)!);
     }
 }

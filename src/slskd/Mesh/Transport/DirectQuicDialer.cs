@@ -68,7 +68,7 @@ public class DirectQuicDialer : ITransportDialer
     /// <returns>A connected QUIC stream to the peer.</returns>
     public async Task<Stream> DialWithPinsAsync(TransportEndpoint endpoint, IEnumerable<string> certificatePins, string? isolationKey = null, CancellationToken cancellationToken = default)
     {
-        return await DialWithPeerValidationAsync(endpoint, "unknown-peer", isolationKey, cancellationToken);
+        return await DialValidatedAsync(endpoint, "descriptor-pinned-peer", certificatePins, cancellationToken);
     }
 
     /// <summary>
@@ -80,6 +80,15 @@ public class DirectQuicDialer : ITransportDialer
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A connected QUIC stream to the peer.</returns>
     public async Task<Stream> DialWithPeerValidationAsync(TransportEndpoint endpoint, string peerId, string? isolationKey = null, CancellationToken cancellationToken = default)
+    {
+        return await DialValidatedAsync(endpoint, peerId, certificatePins: null, cancellationToken);
+    }
+
+    private async Task<Stream> DialValidatedAsync(
+        TransportEndpoint endpoint,
+        string peerId,
+        IEnumerable<string>? certificatePins,
+        CancellationToken cancellationToken)
     {
         if (!CanHandle(endpoint))
         {
@@ -108,7 +117,9 @@ public class DirectQuicDialer : ITransportDialer
             _logger.LogDebugSafe("Establishing direct QUIC connection to {Endpoint} for peer {PeerId}",
                 LoggingUtils.SafeEndpoint(ipEndpoint.ToString()), LoggingUtils.SafePeerId(peerId));
 
-            var connection = await CreateQuicConnectionWithPeerValidationAsync(ipEndpoint, peerId, cancellationToken);
+            var connection = certificatePins is null
+                ? await CreateQuicConnectionWithPeerValidationAsync(ipEndpoint, peerId, cancellationToken)
+                : await CreateQuicConnectionAsync(ipEndpoint, certificatePins, cancellationToken);
             var stream = await connection.OpenOutboundStreamAsync(QuicStreamType.Bidirectional, cancellationToken);
 
             var connectionTime = (DateTimeOffset.UtcNow - startTime).TotalMilliseconds;

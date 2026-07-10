@@ -39,8 +39,7 @@ public static class SecurityUtils
 
         if (expectedPins == null || !expectedPins.Any())
         {
-            // No pins specified, allow any certificate (but log warning)
-            return true;
+            return false;
         }
 
         try
@@ -84,14 +83,16 @@ public static class SecurityUtils
     {
         return (certificate, chain, sslPolicyErrors) =>
         {
-            // First check standard SSL validation
-            if (sslPolicyErrors != SslPolicyErrors.None)
+            if (certificate is null ||
+                sslPolicyErrors.HasFlag(SslPolicyErrors.RemoteCertificateNotAvailable) ||
+                !ValidateCertificatePin(certificate, expectedPins))
             {
                 return false;
             }
 
-            // Then check certificate pinning
-            if (certificate != null && !ValidateCertificatePin(certificate, expectedPins))
+            using var certificate2 = certificate as X509Certificate2 ?? new X509Certificate2(certificate);
+            var now = DateTimeOffset.UtcNow;
+            if (now < certificate2.NotBefore.ToUniversalTime() || now > certificate2.NotAfter.ToUniversalTime())
             {
                 return false;
             }

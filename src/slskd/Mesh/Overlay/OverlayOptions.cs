@@ -22,6 +22,9 @@ public class OverlayOptions
     public int SendBufferBytes { get; set; } = 128 * 1024;
     public int MaxDatagramBytes { get; set; } = 8 * 1024; // control envelopes only
 
+    /// <summary>Trusted SPKI SHA-256 pins keyed by remote endpoint (IP:port).</summary>
+    public Dictionary<string, List<string>> TrustedCertificatePins { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>Path to persist the overlay Ed25519 key (base64-encoded).</summary>
     public string KeyPath { get; set; } = "mesh-overlay.key";
 

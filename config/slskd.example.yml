@@ -442,6 +442,7 @@
 #   quic_listen_port: 50305          # public QUIC overlay port; shares the DHT UDP forward when share_quic_with_dht_port is true
 #   share_quic_with_dht_port: true   # DHT binds 50305/udp and demuxes DHT, UDP overlay, and QUIC traffic
 #   quic_backend_listen_port: 55305  # loopback-only MsQuic listener behind the shared public UDP port; do not forward this
+#   trusted_certificate_pins: {} # { "203.0.113.10:50305": ["base64-spki-sha256"] }; direct QUIC clients fail closed without a matching endpoint pin.
 # overlay_data:
 #   enable: false        # QUIC data plane; requires a stable MsQuic/runtime stack
 #   listen_port: 50401
@@ -450,6 +451,7 @@
 #   max_concurrent_relays: 4
 #   max_relay_bytes_per_direction: 67108864
 #   max_relay_duration_seconds: 300
+#   trusted_certificate_pins: {} # { "203.0.113.10:50401": ["base64-spki-sha256"] }; required for outbound data-plane QUIC.
 # integrations:
 #   lidarr:
 #     enabled: false

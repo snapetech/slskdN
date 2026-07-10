@@ -11,7 +11,6 @@ using System.Net;
 using System.Net.Quic;
 using System.Net.Security;
 using System.Net.Sockets;
-using System.Security.Cryptography.X509Certificates;
 using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
@@ -35,7 +34,6 @@ public class QuicOverlayServer : BackgroundService, IOverlayConnectionMetrics
     private readonly ConnectionThrottler connectionThrottler;
     private readonly int maxRemotePayload;
     private readonly ConcurrentDictionary<IPEndPoint, QuicConnection> activeConnections = new();
-    private readonly ConcurrentDictionary<IPEndPoint, string> _pinnedRemoteCertificates = new();
     private readonly ConcurrentDictionary<int, Task> activeConnectionTasks = new();
     private readonly ConcurrentDictionary<int, Task> activeStreamTasks = new();
     private int nextConnectionTaskId;
@@ -105,7 +103,6 @@ public class QuicOverlayServer : BackgroundService, IOverlayConnectionMetrics
                 ApplicationProtocols = new List<SslApplicationProtocol> { new SslApplicationProtocol("slskdn-overlay") },
                 ConnectionOptionsCallback = (connection, hello, token) =>
                 {
-                    var endpoint = connection.RemoteEndPoint as IPEndPoint;
                     return new ValueTask<QuicServerConnectionOptions>(
                         new QuicServerConnectionOptions
                         {
@@ -116,8 +113,6 @@ public class QuicOverlayServer : BackgroundService, IOverlayConnectionMetrics
                                 ApplicationProtocols = new List<SslApplicationProtocol> { new SslApplicationProtocol("slskdn-overlay") },
                                 ServerCertificate = certificate,
                                 ClientCertificateRequired = false,
-                                RemoteCertificateValidationCallback = (_, certificate, chain, errors) =>
-                                    ValidatePinnedCertificate(endpoint, certificate, chain, errors)
                             }
                         });
                 }
@@ -330,109 +325,6 @@ public class QuicOverlayServer : BackgroundService, IOverlayConnectionMetrics
         {
             logger.LogWarning(ex, "[Overlay-QUIC] Stream error from {Endpoint}", remoteEndPoint);
         }
-    }
-
-    private bool ValidatePinnedCertificate(
-        IPEndPoint? endpoint,
-        X509Certificate? certificate,
-        X509Chain? chain,
-        SslPolicyErrors sslPolicyErrors)
-    {
-        if (endpoint is null)
-        {
-            logger.LogDebug("[Overlay-QUIC] Rejecting TLS handshake: remote endpoint unavailable");
-            return false;
-        }
-
-        if (certificate == null)
-        {
-            logger.LogDebug(
-                "[Overlay-QUIC] Rejecting TLS handshake from {Endpoint}: no certificate provided",
-                endpoint);
-            return false;
-        }
-
-        if (!IsAllowedInsecurePinnedCertificate(certificate, chain, sslPolicyErrors))
-        {
-            logger.LogDebug(
-                "[Overlay-QUIC] Rejecting TLS handshake from {Endpoint}: TLS policy errors {Errors} are disallowed",
-                endpoint,
-                sslPolicyErrors);
-            return false;
-        }
-
-        using var cert2 = certificate as X509Certificate2 ?? new X509Certificate2(certificate);
-        var presentedPin = Mesh.Transport.SecurityUtils.ExtractSpkiPin(cert2);
-        if (string.IsNullOrWhiteSpace(presentedPin))
-        {
-            logger.LogWarning(
-                "[Overlay-QUIC] Rejecting TLS handshake from {Endpoint}: failed to extract SPKI pin",
-                endpoint);
-            return false;
-        }
-
-        if (_pinnedRemoteCertificates.TryGetValue(endpoint, out var expectedPin) && expectedPin == presentedPin)
-        {
-            logger.LogDebug(
-                "[Overlay-QUIC] Accepted pinned certificate for {Endpoint}",
-                endpoint);
-
-            return true;
-        }
-
-        if (_pinnedRemoteCertificates.TryGetValue(endpoint, out var priorPin))
-        {
-            logger.LogWarning(
-                "[Overlay-QUIC] Rotating pinned certificate for {Endpoint} due mismatch (old={OldPin}, new={NewPin})",
-                endpoint,
-                priorPin,
-                presentedPin);
-        }
-        else
-        {
-            logger.LogInformation(
-                "[Overlay-QUIC] First contact with {Endpoint}; pinning certificate {Pin}",
-                endpoint,
-                presentedPin);
-        }
-
-        _pinnedRemoteCertificates[endpoint] = presentedPin;
-        return true;
-    }
-
-    private static bool IsAllowedInsecurePinnedCertificate(X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors)
-    {
-        if (certificate == null || sslPolicyErrors == SslPolicyErrors.None)
-        {
-            return sslPolicyErrors == SslPolicyErrors.None;
-        }
-
-        if (sslPolicyErrors != SslPolicyErrors.RemoteCertificateChainErrors)
-        {
-            return false;
-        }
-
-        var certificate2 = certificate as X509Certificate2;
-        if (certificate2 == null || !string.Equals(certificate2.Subject, certificate2.Issuer, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        if (chain == null || chain.ChainStatus.Length == 0)
-        {
-            return false;
-        }
-
-        foreach (var status in chain.ChainStatus)
-        {
-            if (status.Status != X509ChainStatusFlags.UntrustedRoot &&
-                status.Status != X509ChainStatusFlags.PartialChain)
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private void TrackConnectionTask(Task task)

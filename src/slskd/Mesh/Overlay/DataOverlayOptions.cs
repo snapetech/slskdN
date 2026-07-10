@@ -32,4 +32,7 @@ public class DataOverlayOptions
     public int MaxConcurrentRelays { get; set; } = 4;
     public long MaxRelayBytesPerDirection { get; set; } = 64 * 1024 * 1024;
     public int MaxRelayDurationSeconds { get; set; } = 300;
+
+    /// <summary>Trusted SPKI SHA-256 pins keyed by remote endpoint (IP:port).</summary>
+    public Dictionary<string, List<string>> TrustedCertificatePins { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }

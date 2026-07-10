@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Direct QUIC clients now reject empty or unknown certificate pin sets, use
+  descriptor and endpoint-configured SPKI pins, and never establish or rotate
+  trust merely because a certificate is self-signed.
 - Path containment now resolves existing symbolic-link components, and relay,
   mesh, and multi-source output files use no-follow, directory-handle-relative
   opens on Linux so symlinks cannot escape approved roots or win path-swap races.

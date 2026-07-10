@@ -37,7 +37,7 @@ public class SecurityUtilsTests
     }
 
     [Fact]
-    public void ValidateCertificatePin_WithNoPinsSpecified_ReturnsTrue()
+    public void ValidateCertificatePin_WithNoPinsSpecified_ReturnsFalse()
     {
         // Arrange
         var certificate = CreateTestCertificate();
@@ -46,7 +46,45 @@ public class SecurityUtilsTests
         var result = SecurityUtils.ValidateCertificatePin(certificate, Array.Empty<string>());
 
         // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void PinningCallback_WithMatchingPin_AcceptsSelfSignedChainError()
+    {
+        using var certificate = CreateTestCertificate();
+        var callback = SecurityUtils.CreatePinningValidationCallback(new[] { ExtractTestPin(certificate) });
+
+        var result = callback(certificate, null, SslPolicyErrors.RemoteCertificateChainErrors);
+
         Assert.True(result);
+    }
+
+    [Fact]
+    public void EndpointPinValidator_RejectsUnconfiguredEndpointAndAcceptsConfiguredPin()
+    {
+        using var certificate = CreateTestCertificate();
+        var endpoint = new System.Net.IPEndPoint(System.Net.IPAddress.Parse("203.0.113.10"), 50305);
+        var trustedPins = new Dictionary<string, List<string>>
+        {
+            [endpoint.ToString()] = new() { ExtractTestPin(certificate) },
+        };
+
+        var configured = EndpointCertificatePinValidator.Validate(
+            endpoint,
+            certificate,
+            null,
+            SslPolicyErrors.RemoteCertificateChainErrors,
+            trustedPins);
+        var unconfigured = EndpointCertificatePinValidator.Validate(
+            new System.Net.IPEndPoint(System.Net.IPAddress.Parse("203.0.113.11"), 50305),
+            certificate,
+            null,
+            SslPolicyErrors.RemoteCertificateChainErrors,
+            trustedPins);
+
+        Assert.True(configured);
+        Assert.False(unconfigured);
     }
 
     [Fact]
