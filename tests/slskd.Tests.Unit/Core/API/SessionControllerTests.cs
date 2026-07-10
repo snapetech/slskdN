@@ -85,11 +85,15 @@ public class SessionControllerTests
     }
 
     [Fact]
-    public void Login_LocksOutUsernameAcrossDifferentIps()
+    public void Login_FailuresAcrossDifferentIps_DoNotLockAdministratorUsername()
     {
         ResetLoginState();
         var security = new Mock<ISecurityService>();
         security.Setup(service => service.AuthenticateAdminCredentials("admin", "wrong")).Returns(false);
+        security.Setup(service => service.AuthenticateAdminCredentials("admin", "secret")).Returns(true);
+        security
+            .Setup(service => service.GenerateJwt(It.IsAny<string>(), It.IsAny<Role>(), It.IsAny<int?>()))
+            .Returns(new JwtSecurityToken());
         var controller = CreateController(security: security);
         const int maxFailures = 5;
 
@@ -106,15 +110,40 @@ public class SessionControllerTests
         }
 
         controller.ControllerContext.HttpContext.Connection.RemoteIpAddress = IPAddress.Parse("203.0.113.250");
-        var lockout = controller.Login(new LoginRequest
+        var login = controller.Login(new LoginRequest
+        {
+            Username = "admin",
+            Password = "secret",
+        });
+
+        Assert.IsType<OkObjectResult>(login);
+    }
+
+    [Fact]
+    public void Login_RepeatedFailuresFromSameSource_AreLockedOut()
+    {
+        ResetLoginState();
+        var security = new Mock<ISecurityService>();
+        security.Setup(service => service.AuthenticateAdminCredentials("admin", "wrong")).Returns(false);
+        var controller = CreateController(security: security);
+
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            Assert.IsType<UnauthorizedResult>(controller.Login(new LoginRequest
+            {
+                Username = "admin",
+                Password = "wrong",
+            }));
+        }
+
+        var lockout = Assert.IsType<ObjectResult>(controller.Login(new LoginRequest
         {
             Username = "admin",
             Password = "wrong",
-        });
+        }));
 
-        var objectResult = Assert.IsType<ObjectResult>(lockout);
-        Assert.Equal(429, objectResult.StatusCode);
-        Assert.Equal("Too many failed login attempts. Try again later.", objectResult.Value);
+        Assert.Equal(429, lockout.StatusCode);
+        Assert.Equal("Too many failed login attempts. Try again later.", lockout.Value);
     }
 
     private static SessionController CreateController(
@@ -157,7 +186,7 @@ public class SessionControllerTests
     private static void ResetLoginState()
     {
         ClearConcurrentDictionary("_loginAttempts");
-        ClearConcurrentDictionary("_userLoginAttempts");
+        ClearConcurrentDictionary("_credentialLoginAttempts");
     }
 
     private static void ClearConcurrentDictionary(string fieldName)

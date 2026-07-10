@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Failed logins no longer create a global administrator-username lockout from
+  rotating IPs; credential throttles are scoped to username plus source and
+  lockouts are reduced from one hour to five minutes.
 - MeshContent now rejects explicit and open-ended ranges above 32 MiB before
   allocating response buffers; callers continue large transfers through the
   existing bounded chunk loop.

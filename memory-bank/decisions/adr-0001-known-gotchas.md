@@ -52,6 +52,31 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z506. Anonymous Login Failures Must Not Reserve A Username Globally
+
+**The Bug**: Five failed administrator logins from rotating source IPs created
+a username-only lockout that denied the legitimate administrator for one hour.
+
+**Files Affected**:
+- `src/slskd/Core/API/Controllers/SessionController.cs`
+
+**Wrong**:
+```csharp
+_userLoginAttempts.AddOrUpdate(normalizedUsername, ...);
+```
+
+**Correct**:
+```csharp
+var credentialAttemptKey = $"{normalizedUsername}\n{remoteIp}";
+_credentialLoginAttempts.AddOrUpdate(credentialAttemptKey, ...);
+```
+
+**Why This Keeps Happening**: Username-only throttles let unauthenticated
+attackers mutate shared account availability. Keep an independent source-IP
+limit, scope credential buckets to normalized username plus source, and use a
+short bounded lockout so failed authentication never becomes a global account
+reservation primitive.
+
 ### 0z505. Full-Response Caps Must Also Apply To Ranges
 
 **The Bug**: MeshContent rejected full responses above 32 MiB but accepted an

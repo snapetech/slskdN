@@ -41,11 +41,11 @@ namespace slskd.Core.API
     public class SessionController : ControllerBase
     {
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (int Failures, DateTimeOffset LastFailure, DateTimeOffset? LockoutUntil)> _loginAttempts = new();
-        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (int Failures, DateTimeOffset LastFailure, DateTimeOffset? LockoutUntil)> _userLoginAttempts = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (int Failures, DateTimeOffset LastFailure, DateTimeOffset? LockoutUntil)> _credentialLoginAttempts = new(StringComparer.OrdinalIgnoreCase);
         private const int MaxFailures = 5;
         private const int MaxTrackedLoginAttempts = 10000;
-        private static readonly TimeSpan LockoutDuration = TimeSpan.FromHours(1);
-        private static readonly TimeSpan WindowDuration = TimeSpan.FromMinutes(15);
+        private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(5);
+        private static readonly TimeSpan WindowDuration = TimeSpan.FromMinutes(10);
 
         public SessionController(
             ISecurityService securityService,
@@ -152,6 +152,7 @@ namespace slskd.Core.API
             var normalizedUsername = login.Username;
             var normalizedPassword = login.Password;
             var remoteIp = HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "unknown";
+            var credentialAttemptKey = $"{normalizedUsername}\n{remoteIp}";
             PruneLoginAttempts();
 
             // Check for active lockout by IP (defends single-source spam)
@@ -161,19 +162,19 @@ namespace slskd.Core.API
                 return StatusCode(429, "Too many failed login attempts. Try again later.");
             }
 
-            // Check for active lockout by username (defends distributed password spray
-            // where an attacker rotates IPs but targets a single account).
-            if (_userLoginAttempts.TryGetValue(normalizedUsername, out var userExisting) && userExisting.LockoutUntil.HasValue && userExisting.LockoutUntil.Value > DateTimeOffset.UtcNow)
+            // Never create a global username reservation from unauthenticated traffic.
+            // Credential throttling is scoped to the normalized username and request source.
+            if (_credentialLoginAttempts.TryGetValue(credentialAttemptKey, out var credentialExisting) && credentialExisting.LockoutUntil.HasValue && credentialExisting.LockoutUntil.Value > DateTimeOffset.UtcNow)
             {
-                Log.Warning("Login for {User} rejected; username is locked out until {LockoutUntil}", normalizedUsername, userExisting.LockoutUntil.Value);
+                Log.Warning("Login for {User} from {RemoteIp} rejected until {LockoutUntil}", normalizedUsername, remoteIp, credentialExisting.LockoutUntil.Value);
                 return StatusCode(429, "Too many failed login attempts. Try again later.");
             }
 
             if (Security.AuthenticateAdminCredentials(normalizedUsername, normalizedPassword))
             {
-                // Successful login: clear both IP and username counters
+                // Successful login: clear both source-IP and source-scoped credential counters.
                 _loginAttempts.TryRemove(remoteIp, out _);
-                _userLoginAttempts.TryRemove(normalizedUsername, out _);
+                _credentialLoginAttempts.TryRemove(credentialAttemptKey, out _);
                 return Ok(new TokenResponse(Security.GenerateJwt(normalizedUsername, Role.Administrator)));
             }
 
@@ -189,9 +190,9 @@ namespace slskd.Core.API
                     return (failures, DateTimeOffset.UtcNow, lockout);
                 });
 
-            // Failed login: also increment per-username counter independently
-            _userLoginAttempts.AddOrUpdate(
-                normalizedUsername,
+            // Failed login: increment only the source-scoped credential bucket.
+            _credentialLoginAttempts.AddOrUpdate(
+                credentialAttemptKey,
                 _ => (1, DateTimeOffset.UtcNow, null),
                 (_, prev) =>
                 {
@@ -206,7 +207,7 @@ namespace slskd.Core.API
         private static void PruneLoginAttempts()
         {
             Prune(_loginAttempts);
-            Prune(_userLoginAttempts);
+            Prune(_credentialLoginAttempts);
         }
 
         private static void Prune(System.Collections.Concurrent.ConcurrentDictionary<string, (int Failures, DateTimeOffset LastFailure, DateTimeOffset? LockoutUntil)> attempts)
