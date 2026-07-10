@@ -30,6 +30,7 @@ public class DhtMeshServiceDirectory : IMeshServiceDirectory
 
     // Discovery metrics: peerId -> (queryCount, serviceNamesQueried, windowStart)
     private readonly ConcurrentDictionary<string, DiscoveryStats> _discoveryMetrics = new();
+    private const int MaxDiscoveryIdentities = 2048;
 
     public DhtMeshServiceDirectory(
         ILogger<DhtMeshServiceDirectory> logger,
@@ -308,6 +309,19 @@ public class DhtMeshServiceDirectory : IMeshServiceDirectory
     {
         var now = DateTimeOffset.UtcNow;
         var windowDuration = TimeSpan.FromMinutes(1);
+
+        foreach (var expired in _discoveryMetrics
+            .Where(entry => now - entry.Value.WindowStart > windowDuration)
+            .Select(entry => entry.Key)
+            .ToList())
+        {
+            _discoveryMetrics.TryRemove(expired, out _);
+        }
+
+        if (_discoveryMetrics.Count >= MaxDiscoveryIdentities && !_discoveryMetrics.ContainsKey(peerId))
+        {
+            return;
+        }
 
         var stats = _discoveryMetrics.AddOrUpdate(
             peerId,

@@ -34,6 +34,7 @@ public class MeshServiceRouter
 
     // Circuit breaker per service: serviceName -> health tracker
     private readonly ConcurrentDictionary<string, ServiceHealthTracker> _serviceHealth = new();
+    private const int MaxRateLimitIdentities = 4096;
 
     public MeshServiceRouter(
         ILogger<MeshServiceRouter> logger,
@@ -110,6 +111,10 @@ public class MeshServiceRouter
     {
         try
         {
+            var rateLimitIdentity = string.IsNullOrWhiteSpace(remotePublicKey)
+                ? "unauthenticated"
+                : remotePeerId;
+
             // 1. Basic validation
             if (call == null)
             {
@@ -139,7 +144,7 @@ public class MeshServiceRouter
             }
 
             // 3. Check global per-peer rate limit (across all services)
-            if (!CheckGlobalRateLimit(remotePeerId))
+            if (!CheckGlobalRateLimit(rateLimitIdentity))
             {
                 _logger.LogWarning(
                     "[ServiceRouter] Global rate limit exceeded for peer: {PeerId}",
@@ -154,7 +159,7 @@ public class MeshServiceRouter
             }
 
             // 4. Check per-service rate limit
-            if (!CheckServiceRateLimit(remotePeerId, call.ServiceName))
+            if (!CheckServiceRateLimit(rateLimitIdentity, call.ServiceName))
             {
                 var key = $"{remotePeerId}:{call.ServiceName}";
                 var (count, _) = _perPeerCallCounts.GetValueOrDefault(key);
@@ -215,7 +220,7 @@ public class MeshServiceRouter
             }
 
             // 6. Create context with work budget
-            var workBudget = _workBudgetTracker.CreateBudgetForPeer(remotePeerId);
+            var workBudget = _workBudgetTracker.CreateBudgetForPeer(rateLimitIdentity);
 
             var context = new MeshServiceContext
             {
@@ -334,6 +339,22 @@ public class MeshServiceRouter
         {
             var now = DateTimeOffset.UtcNow;
             var windowDuration = TimeSpan.FromMinutes(1);
+
+            if (counters.Count >= MaxRateLimitIdentities)
+            {
+                foreach (var expired in counters
+                    .Where(entry => now - entry.Value.WindowStart > windowDuration)
+                    .Select(entry => entry.Key)
+                    .ToList())
+                {
+                    counters.TryRemove(expired, out _);
+                }
+
+                if (counters.Count >= MaxRateLimitIdentities && !counters.ContainsKey(key))
+                {
+                    return false;
+                }
+            }
 
             if (counters.TryGetValue(key, out var state))
             {

@@ -196,6 +196,7 @@ public class PeerWorkBudgetTracker
 {
     private readonly WorkBudgetOptions _options;
     private readonly ConcurrentDictionary<string, PeerWorkWindow> _peerWindows = new();
+    private const int MaxTrackedPeers = 4096;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PeerWorkBudgetTracker"/> class.
@@ -219,6 +220,12 @@ public class PeerWorkBudgetTracker
         }
 
         var now = DateTimeOffset.UtcNow;
+        RemoveExpiredWindows(now);
+        if (_peerWindows.Count >= MaxTrackedPeers && !_peerWindows.ContainsKey(peerId))
+        {
+            return new WorkBudget(0);
+        }
+
         var window = _peerWindows.AddOrUpdate(
             peerId,
             _ => new PeerWorkWindow
@@ -275,6 +282,17 @@ public class PeerWorkBudgetTracker
                 ConsumedUnits = existing.ConsumedUnits + consumedUnits,
                 WindowStart = existing.WindowStart,
             });
+    }
+
+    private void RemoveExpiredWindows(DateTimeOffset now)
+    {
+        foreach (var expired in _peerWindows
+            .Where(entry => now - entry.Value.WindowStart > TimeSpan.FromMinutes(1))
+            .Select(entry => entry.Key)
+            .ToList())
+        {
+            _peerWindows.TryRemove(expired, out _);
+        }
     }
 
     /// <summary>

@@ -52,6 +52,37 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z536. Resetting Windows Without Removing Keys Still Leaks Identities
+
+**The Bug**: Mesh service rate-limit, work-budget, and discovery dictionaries
+reset counters when a window expired but retained every attacker-controlled
+identity string forever. Rotating claimed identities caused unbounded memory
+growth and bypassed per-identity admission limits.
+
+**Files Affected**:
+- `src/slskd/Mesh/ServiceFabric/MeshServiceRouter.cs`
+- `src/slskd/Common/Security/WorkBudget.cs`
+- `src/slskd/Mesh/ServiceFabric/DhtMeshServiceDirectory.cs`
+
+**Prevention**: Remove expired entries, impose hard cache cardinality limits,
+fail admission when a full cache cannot be reclaimed, and aggregate callers
+without authenticated key context into one unauthenticated bucket instead of
+trusting their claimed peer IDs.
+
+### 0z535. Peer-Isolation Tests Must Supply Authentication Context
+
+**The Bug**: A mesh router test expected two caller-supplied peer ID strings to
+receive independent quotas but did not provide authenticated key context. Once
+unauthenticated identities were deliberately aggregated, the second string
+shared the first string's exhausted bucket and the test failed.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Mesh/ServiceFabric/MeshServiceRouterSecurityTests.cs`
+
+**Prevention**: Tests asserting per-peer isolation must pass the same
+authentication evidence the production route supplies. Tests without it should
+expect aggregation into the unauthenticated admission bucket.
+
 ### 0z534. Self-Signed DHT Writes Do Not Authenticate A Publisher
 
 **The Bug**: Remote DHT STORE requests could generate a fresh Ed25519 key,

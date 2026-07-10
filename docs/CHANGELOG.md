@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Mesh rate-limit, work-budget, and discovery identity caches now expire and
+  cap entries, while unauthenticated claimed peer IDs share one admission bucket.
 - Remote DHT writes now bind signatures to authenticated self-certifying peers,
   enforce expiring global/per-peer/namespace quotas, and reclaim expired keys.
 - Mesh service descriptors now require cryptographic verification of canonical
