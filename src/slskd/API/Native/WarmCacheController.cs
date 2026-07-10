@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Text.Json.Serialization;
+using System.Threading.Channels;
 using slskd;
 using slskd.Transfers.MultiSource.Caching;
 using OptionsModel = slskd.Options;
@@ -25,6 +26,10 @@ using OptionsModel = slskd.Options;
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
 public class WarmCacheController : ControllerBase
 {
+    private const int MaxHintsPerRequest = 100;
+    private const int MaxIdentifierLength = 128;
+    private const int MaxWorkers = 4;
+
     private readonly IWarmCachePopularityService popularityService;
     private readonly IOptionsMonitor<OptionsModel> optionsMonitor;
     private readonly ILogger<WarmCacheController> logger;
@@ -60,6 +65,14 @@ public class WarmCacheController : ControllerBase
             return BadRequest(new { error = "Request is required" });
         }
 
+        var rawHintCount = (request.MbReleaseIds?.Count ?? 0)
+            + (request.MbArtistIds?.Count ?? 0)
+            + (request.MbLabelIds?.Count ?? 0);
+        if (rawHintCount > MaxHintsPerRequest)
+        {
+            return StatusCode(StatusCodes.Status413PayloadTooLarge, new { error = $"At most {MaxHintsPerRequest} hints are accepted per request" });
+        }
+
         var releaseIds = (request.MbReleaseIds ?? new List<string>())
             .Select(id => id?.Trim() ?? string.Empty)
             .Where(id => !string.IsNullOrWhiteSpace(id))
@@ -83,41 +96,55 @@ public class WarmCacheController : ControllerBase
             return BadRequest(new { error = "At least one MusicBrainz identifier is required" });
         }
 
+        if (releaseIds.Concat(artistIds).Concat(labelIds).Any(id => id.Length > MaxIdentifierLength))
+        {
+            return BadRequest(new { error = $"MusicBrainz identifiers cannot exceed {MaxIdentifierLength} characters" });
+        }
+
         logger.LogInformation("Received warm cache hints: {ReleaseCount} releases, {ArtistCount} artists, {LabelCount} labels",
             releaseIds.Count,
             artistIds.Count,
             labelIds.Count);
 
-        // Record popularity for each hinted item
-        var tasks = new List<Task>();
-
-        if (releaseIds.Count != 0)
-        {
-            foreach (var releaseId in releaseIds)
-            {
-                tasks.Add(popularityService.RecordAccessAsync($"mb:release:{releaseId}", cancellationToken));
-            }
-        }
-
-        if (artistIds.Count != 0)
-        {
-            foreach (var artistId in artistIds)
-            {
-                tasks.Add(popularityService.RecordAccessAsync($"mb:artist:{artistId}", cancellationToken));
-            }
-        }
-
-        if (labelIds.Count != 0)
-        {
-            foreach (var labelId in labelIds)
-            {
-                tasks.Add(popularityService.RecordAccessAsync($"mb:label:{labelId}", cancellationToken));
-            }
-        }
-
-        await Task.WhenAll(tasks);
+        var hints = releaseIds.Select(id => $"mb:release:{id}")
+            .Concat(artistIds.Select(id => $"mb:artist:{id}"))
+            .Concat(labelIds.Select(id => $"mb:label:{id}"))
+            .ToArray();
+        await RecordHintsWithBoundedWorkersAsync(hints, cancellationToken);
 
         return Ok(new { accepted = true });
+    }
+
+    private async Task RecordHintsWithBoundedWorkersAsync(IReadOnlyCollection<string> hints, CancellationToken cancellationToken)
+    {
+        var channel = Channel.CreateBounded<string>(new BoundedChannelOptions(Math.Min(64, hints.Count))
+        {
+            FullMode = BoundedChannelFullMode.Wait,
+            SingleWriter = true,
+        });
+        var workers = Enumerable.Range(0, Math.Min(MaxWorkers, hints.Count))
+            .Select(_ => Task.Run(async () =>
+            {
+                await foreach (var hint in channel.Reader.ReadAllAsync(cancellationToken))
+                {
+                    await popularityService.RecordAccessAsync(hint, cancellationToken);
+                }
+            }, CancellationToken.None))
+            .ToArray();
+
+        try
+        {
+            foreach (var hint in hints)
+            {
+                await channel.Writer.WriteAsync(hint, cancellationToken);
+            }
+        }
+        finally
+        {
+            channel.Writer.TryComplete();
+        }
+
+        await Task.WhenAll(workers);
     }
 }
 

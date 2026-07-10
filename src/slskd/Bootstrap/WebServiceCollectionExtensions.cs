@@ -466,6 +466,20 @@ public static class WebServiceCollectionExtensions
                             });
                     }
 
+                    if (path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase)
+                        && path.Contains("/warm-cache/hints", StringComparison.OrdinalIgnoreCase)
+                        && string.Equals(context.Request.Method, "POST", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var caller = context.User?.Identity?.Name ?? ip;
+                        return RateLimitPartition.GetFixedWindowLimiter(
+                            "warm-cache:" + caller + ":" + ip,
+                            _ => new FixedWindowRateLimiterOptions
+                            {
+                                PermitLimit = Math.Min(apiPermit, 10),
+                                Window = TimeSpan.FromMinutes(1),
+                            });
+                    }
+
                     if (context.User?.Identity?.IsAuthenticated == true)
                     {
                         return RateLimitPartition.GetNoLimiter("authenticated");

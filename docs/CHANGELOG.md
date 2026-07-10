@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Warm-cache hint submissions are capped at 100 bounded identifiers, processed
+  through four workers and a bounded channel, and protected by a caller-aware
+  request rate partition.
 - The optional legacy bridge now binds to loopback and requires authentication
   by default, rejects insecure non-loopback configuration, redacts its password,
   compares credentials in constant time, and enforces per-client request and

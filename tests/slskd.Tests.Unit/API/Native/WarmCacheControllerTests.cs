@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.Tests.Unit.API.Native;
 
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using slskd.API.Native;
@@ -36,5 +37,57 @@ public class WarmCacheControllerTests
         popularity.Verify(service => service.RecordAccessAsync("mb:release:mbid-1", It.IsAny<CancellationToken>()), Times.Once);
         popularity.Verify(service => service.RecordAccessAsync("mb:artist:artist-1", It.IsAny<CancellationToken>()), Times.Once);
         popularity.Verify(service => service.RecordAccessAsync("mb:label:label-1", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SubmitHints_MoreThanOneHundredItems_ReturnsPayloadTooLargeWithoutWork()
+    {
+        var popularity = new Mock<IWarmCachePopularityService>();
+        var controller = CreateController(popularity);
+        var request = new WarmCacheHintsRequest(
+            MbReleaseIds: Enumerable.Range(0, 101).Select(index => $"release-{index}").ToList());
+
+        var result = await controller.SubmitHints(request, CancellationToken.None);
+
+        var rejected = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status413PayloadTooLarge, rejected.StatusCode);
+        popularity.Verify(service => service.RecordAccessAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SubmitHints_UsesAtMostFourConcurrentWorkers()
+    {
+        var active = 0;
+        var maximum = 0;
+        var popularity = new Mock<IWarmCachePopularityService>();
+        popularity
+            .Setup(service => service.RecordAccessAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(async () =>
+            {
+                var current = Interlocked.Increment(ref active);
+                maximum = Math.Max(maximum, current);
+                await Task.Delay(10);
+                Interlocked.Decrement(ref active);
+            });
+        var controller = CreateController(popularity);
+
+        var result = await controller.SubmitHints(
+            new WarmCacheHintsRequest(
+                MbReleaseIds: Enumerable.Range(0, 20).Select(index => $"release-{index}").ToList()),
+            CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.InRange(maximum, 1, 4);
+    }
+
+    private static WarmCacheController CreateController(Mock<IWarmCachePopularityService> popularity)
+    {
+        return new WarmCacheController(
+            popularity.Object,
+            new TestOptionsMonitor(new slskd.Options
+            {
+                WarmCache = new WarmCacheOptions { Enabled = true }
+            }),
+            Mock.Of<Microsoft.Extensions.Logging.ILogger<WarmCacheController>>());
     }
 }

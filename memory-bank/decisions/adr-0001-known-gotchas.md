@@ -52,6 +52,57 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z510. Controller Tests Using `StatusCodes` Need The HTTP Namespace
+
+**The Bug**: A warm-cache controller regression test referenced
+`StatusCodes.Status413PayloadTooLarge` without importing
+`Microsoft.AspNetCore.Http`, causing the focused test project to fail
+compilation.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/API/Native/WarmCacheControllerTests.cs`
+
+**Wrong**:
+```csharp
+using Microsoft.AspNetCore.Mvc;
+```
+
+**Correct**:
+```csharp
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+```
+
+**Why This Keeps Happening**: MVC result types and HTTP status-code constants
+live in different ASP.NET Core namespaces. Tests that assert `StatusCodes`
+values must import `Microsoft.AspNetCore.Http` explicitly.
+
+### 0z509. Bulk Hint Endpoints Need Admission And Work Bounds
+
+**The Bug**: Warm-cache hints accepted unbounded identifier lists and created
+one asynchronous SQLite operation per unique item before awaiting them all.
+
+**Files Affected**:
+- `src/slskd/API/Native/WarmCacheController.cs`
+- `src/slskd/Bootstrap/WebServiceCollectionExtensions.cs`
+
+**Wrong**:
+```csharp
+tasks.Add(popularityService.RecordAccessAsync(key, cancellationToken));
+await Task.WhenAll(tasks);
+```
+
+**Correct**:
+```csharp
+// Admit at most 100 hints, then feed a bounded channel with four workers.
+await RecordHintsWithBoundedWorkersAsync(hints, cancellationToken);
+```
+
+**Why This Keeps Happening**: Deduplication does not bound attacker-controlled
+cardinality. Bulk endpoints need request/item limits before task creation,
+bounded worker queues for storage operations, and a caller-aware rate partition
+that runs before authenticated traffic exemptions.
+
 ### 0z508. Optional Protocol Bridges Must Default To Loopback And Auth
 
 **The Bug**: Enabling the legacy bridge bound its unauthenticated protocol
