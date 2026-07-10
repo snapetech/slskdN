@@ -12,7 +12,10 @@ using System.IO;
 using System.Net;
 using System.Net.Quic;
 using System.Net.Security;
+using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
@@ -34,6 +37,7 @@ public class QuicDataServer : BackgroundService
     private readonly ConcurrentDictionary<IPEndPoint, string> _pinnedRemoteCertificates = new();
     private readonly ConcurrentDictionary<int, Task> activeConnectionTasks = new();
     private readonly ConcurrentDictionary<int, Task> activeStreamTasks = new();
+    private readonly SemaphoreSlim relayGate;
     private int nextConnectionTaskId;
     private int nextStreamTaskId;
 
@@ -51,6 +55,7 @@ public class QuicDataServer : BackgroundService
         if (meshOptions?.Value?.Security != null)
             cap = Math.Min(cap, meshOptions.Value.Security.GetEffectiveMaxPayloadSize());
         maxPayloadBytes = Math.Max(1, cap);
+        relayGate = new SemaphoreSlim(Math.Max(1, this.options.MaxConcurrentRelays));
         logger.LogDebug("[QuicDataServer] Constructor completed");
     }
 
@@ -221,70 +226,87 @@ public class QuicDataServer : BackgroundService
         {
             await using (stream)
             {
-                // Read first line (up to 256 bytes) to detect RELAY_TCP
-                var lineBuf = new byte[256];
-                var n = 0;
-                while (n < lineBuf.Length)
-                {
-                    var r = await stream.ReadAsync(lineBuf.AsMemory(n, 1), ct);
-                    if (r == 0)
-                    {
-                        break;
-                    }
-
-                    if (lineBuf[n] == (byte)'\n')
-                    {
-                        n++;
-                        break;
-                    }
-
-                    n += r;
-                }
-
-                var line = n > 0 ? System.Text.Encoding.ASCII.GetString(lineBuf.AsSpan(0, n)).TrimEnd() : string.Empty;
+                var (line, lineBytes) = await ReadCommandLineAsync(stream, ct);
 
                 if (line.StartsWith("RELAY_TCP ", StringComparison.Ordinal))
                 {
+                    connectionThrottler.ReportFailedAuth(remoteEndPoint?.Address.ToString() ?? "unknown", "missing relay authentication");
+                    await WriteRelayErrorAsync(stream, "authentication required", remoteEndPoint, ct);
+                    return;
+                }
+
+                if (line.StartsWith("AUTH ", StringComparison.Ordinal))
+                {
+                    if (!IsRelayAuthenticated(line, options.RelayAuthenticationToken))
+                    {
+                        connectionThrottler.ReportFailedAuth(remoteEndPoint?.Address.ToString() ?? "unknown", "invalid relay authentication");
+                        await WriteRelayErrorAsync(stream, "authentication failed", remoteEndPoint, ct);
+                        return;
+                    }
+
+                    connectionThrottler.ReportSuccessfulAuth(remoteEndPoint?.Address.ToString() ?? "unknown");
+
+                    (line, _) = await ReadCommandLineAsync(stream, ct);
                     var parts = line.Split(' ');
-                    if (parts.Length >= 3 && int.TryParse(parts[2], out var port) && port is > 0 and <= ushort.MaxValue)
+                    if (parts.Length == 3 &&
+                        parts[0] == "RELAY_TCP" &&
+                        int.TryParse(parts[2], out var port) &&
+                        port is > 0 and <= ushort.MaxValue)
                     {
                         var host = parts[1];
+                        var destination = await ResolveAllowedRelayDestinationAsync(
+                            host,
+                            port,
+                            options.AllowedRelayDestinations,
+                            ct);
+                        if (destination is null)
+                        {
+                            await WriteRelayErrorAsync(stream, "destination denied", remoteEndPoint, ct);
+                            return;
+                        }
+
+                        if (!await relayGate.WaitAsync(0, ct))
+                        {
+                            await WriteRelayErrorAsync(stream, "relay capacity reached", remoteEndPoint, ct);
+                            return;
+                        }
+
                         try
                         {
-                            using var tcp = new System.Net.Sockets.TcpClient();
-                            await tcp.ConnectAsync(host, port, ct);
+                            using var relayCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                            relayCts.CancelAfter(TimeSpan.FromSeconds(Math.Max(1, options.MaxRelayDurationSeconds)));
+                            using var tcp = new TcpClient(destination.AddressFamily);
+                            await tcp.ConnectAsync(destination, relayCts.Token);
                             var tcpStream = tcp.GetStream();
-                            await stream.WriteAsync(System.Text.Encoding.ASCII.GetBytes("OK\n"), ct);
+                            await stream.WriteAsync("OK\n"u8.ToArray(), relayCts.Token);
 
-                            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                            var toTcp = CopyToAsync(stream, tcpStream, cts.Token);
-                            var toStream = CopyToAsync(tcpStream, stream, cts.Token);
+                            var byteLimit = Math.Max(1, options.MaxRelayBytesPerDirection);
+                            var toTcp = CopyToAsync(stream, tcpStream, byteLimit, relayCts.Token);
+                            var toStream = CopyToAsync(tcpStream, stream, byteLimit, relayCts.Token);
                             await Task.WhenAny(toTcp, toStream);
-                            cts.Cancel();
+                            await relayCts.CancelAsync();
+                            try
+                            {
+                                await Task.WhenAll(toTcp, toStream);
+                            }
+                            catch (OperationCanceledException) when (relayCts.IsCancellationRequested)
+                            {
+                                // Expected after either relay direction completes or the duration quota expires.
+                            }
                         }
                         catch (Exception ex)
                         {
-                            logger.LogWarning(ex, "[Overlay-QUIC-DATA] RELAY_TCP to {Host}:{Port} failed", host, port);
-                            try
-                            {
-                                await stream.WriteAsync(System.Text.Encoding.ASCII.GetBytes("ERR " + ex.Message + "\n"), ct);
-                            }
-                            catch (Exception responseEx)
-                            {
-                                logger.LogDebug(responseEx, "[Overlay-QUIC-DATA] Failed to send relay error response to {Endpoint}", remoteEndPoint);
-                            }
+                            logger.LogWarning(ex, "[Overlay-QUIC-DATA] Approved RELAY_TCP connection failed");
+                            await WriteRelayErrorAsync(stream, "relay failed", remoteEndPoint, ct);
+                        }
+                        finally
+                        {
+                            relayGate.Release();
                         }
                     }
                     else
                     {
-                        try
-                        {
-                            await stream.WriteAsync(System.Text.Encoding.ASCII.GetBytes("ERR bad RELAY_TCP format\n"), ct);
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogDebug(ex, "[Overlay-QUIC-DATA] Failed to send bad-format response to {Endpoint}", remoteEndPoint);
-                        }
+                        await WriteRelayErrorAsync(stream, "bad command", remoteEndPoint, ct);
                     }
 
                     return;
@@ -292,9 +314,9 @@ public class QuicDataServer : BackgroundService
 
                 // Non-relay: read payload (existing behavior)
                 var buffer = new byte[maxPayloadBytes];
-                var totalRead = n;
-                if (n > 0)
-                    Array.Copy(lineBuf, 0, buffer, 0, n);
+                var totalRead = Math.Min(lineBytes.Length, buffer.Length);
+                if (totalRead > 0)
+                    Array.Copy(lineBytes, 0, buffer, 0, totalRead);
                 while (totalRead < buffer.Length)
                 {
                     var read = await stream.ReadAsync(buffer.AsMemory(totalRead), ct);
@@ -420,12 +442,132 @@ public class QuicDataServer : BackgroundService
         return true;
     }
 
-    private static async Task CopyToAsync(Stream source, Stream target, CancellationToken ct)
+    internal static bool IsRelayAuthenticated(string authenticationLine, string configuredToken)
+    {
+        if (string.IsNullOrWhiteSpace(configuredToken) ||
+            !authenticationLine.StartsWith("AUTH ", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        try
+        {
+            var presentedToken = Convert.FromBase64String(authenticationLine[5..]);
+            var expectedToken = Encoding.UTF8.GetBytes(configuredToken);
+            return CryptographicOperations.FixedTimeEquals(presentedToken, expectedToken);
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+    }
+
+    internal static async Task<IPEndPoint?> ResolveAllowedRelayDestinationAsync(
+        string host,
+        int port,
+        IReadOnlyCollection<string> allowedDestinations,
+        CancellationToken cancellationToken)
+    {
+        var requested = host.Contains(':', StringComparison.Ordinal)
+            ? $"[{host}]:{port}"
+            : $"{host}:{port}";
+        if (!allowedDestinations.Contains(requested, StringComparer.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        IPAddress[] addresses;
+        if (IPAddress.TryParse(host, out var address))
+        {
+            addresses = new[] { address };
+        }
+        else
+        {
+            addresses = await Dns.GetHostAddressesAsync(host, cancellationToken);
+        }
+
+        var publicAddress = addresses.FirstOrDefault(IsPublicRelayAddress);
+        return publicAddress is null ? null : new IPEndPoint(publicAddress, port);
+    }
+
+    internal static bool IsPublicRelayAddress(IPAddress address)
+    {
+        if (IPAddress.IsLoopback(address) || address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any))
+        {
+            return false;
+        }
+
+        if (address.IsIPv4MappedToIPv6)
+        {
+            address = address.MapToIPv4();
+        }
+
+        var bytes = address.GetAddressBytes();
+        if (address.AddressFamily == AddressFamily.InterNetwork)
+        {
+            return bytes[0] != 0 &&
+                   bytes[0] != 10 &&
+                   bytes[0] != 127 &&
+                   !(bytes[0] == 100 && bytes[1] is >= 64 and <= 127) &&
+                   !(bytes[0] == 169 && bytes[1] == 254) &&
+                   !(bytes[0] == 172 && bytes[1] is >= 16 and <= 31) &&
+                   !(bytes[0] == 192 && bytes[1] == 168) &&
+                   !(bytes[0] >= 224);
+        }
+
+        return address.AddressFamily == AddressFamily.InterNetworkV6 &&
+               !address.IsIPv6LinkLocal &&
+               !address.IsIPv6SiteLocal &&
+               !address.IsIPv6Multicast &&
+               (bytes[0] & 0xfe) != 0xfc;
+    }
+
+    private static async Task<(string Line, byte[] Bytes)> ReadCommandLineAsync(Stream stream, CancellationToken ct)
+    {
+        var buffer = new byte[256];
+        var count = 0;
+        while (count < buffer.Length)
+        {
+            var read = await stream.ReadAsync(buffer.AsMemory(count, 1), ct);
+            if (read == 0)
+            {
+                break;
+            }
+
+            count += read;
+            if (buffer[count - 1] == (byte)'\n')
+            {
+                break;
+            }
+        }
+
+        var bytes = buffer[..count];
+        return (Encoding.ASCII.GetString(bytes).TrimEnd(), bytes);
+    }
+
+    private async Task WriteRelayErrorAsync(Stream stream, string reason, IPEndPoint? remoteEndPoint, CancellationToken ct)
+    {
+        try
+        {
+            await stream.WriteAsync(Encoding.ASCII.GetBytes($"ERR {reason}\n"), ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "[Overlay-QUIC-DATA] Failed to send relay rejection to {Endpoint}", remoteEndPoint);
+        }
+    }
+
+    private static async Task CopyToAsync(Stream source, Stream target, long maxBytes, CancellationToken ct)
     {
         var buf = new byte[8192];
+        long total = 0;
         int r;
-        while ((r = await source.ReadAsync(buf, ct)) > 0)
+        while (total < maxBytes &&
+               (r = await source.ReadAsync(buf.AsMemory(0, (int)Math.Min(buf.Length, maxBytes - total)), ct)) > 0)
+        {
             await target.WriteAsync(buf.AsMemory(0, r), ct);
+            total += r;
+        }
     }
 
     private void TrackConnectionTask(Task task)

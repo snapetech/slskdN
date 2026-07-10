@@ -36,6 +36,11 @@ public class RelayOnlyTransport : IAnonymityTransport
         _overlay = overlay ?? throw new ArgumentNullException(nameof(overlay));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
+        if (string.IsNullOrWhiteSpace(_options.RelayAuthenticationToken))
+        {
+            _logger.LogWarning("RelayOnlyTransport: RelayAuthenticationToken is not configured. Relay-only will not function.");
+        }
+
         if ((_options.RelayPeerDataEndpoints == null || _options.RelayPeerDataEndpoints.Count == 0) &&
             (_options.TrustedRelayPeers == null || _options.TrustedRelayPeers.Count == 0))
         {
@@ -54,12 +59,12 @@ public class RelayOnlyTransport : IAnonymityTransport
     public Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
     {
         var list = GetRelayEndpointList();
-        var isAvailable = list.Count > 0;
+        var isAvailable = list.Count > 0 && !string.IsNullOrWhiteSpace(_options.RelayAuthenticationToken);
 
         lock (_statusLock)
         {
             _status.IsAvailable = isAvailable;
-            _status.LastError = isAvailable ? null : "No RelayPeerDataEndpoints or TrustedRelayPeers (host:port) configured";
+            _status.LastError = isAvailable ? null : "Relay endpoint and authentication token are required";
         }
 
         return Task.FromResult(isAvailable);
@@ -106,6 +111,8 @@ public class RelayOnlyTransport : IAnonymityTransport
             var list = GetRelayEndpointList();
             if (list.Count == 0)
                 throw new InvalidOperationException("No RelayPeerDataEndpoints or TrustedRelayPeers (host:port) configured for relay-only transport.");
+            if (string.IsNullOrWhiteSpace(_options.RelayAuthenticationToken))
+                throw new InvalidOperationException("RelayAuthenticationToken is required for relay-only transport.");
 
             var relayEndpoint = SelectRelayPeer(list);
             var endpoint = await ParseEndpointAsync(relayEndpoint, cancellationToken);
@@ -116,7 +123,8 @@ public class RelayOnlyTransport : IAnonymityTransport
             if (stream == null)
                 throw new InvalidOperationException("Failed to open overlay stream to relay " + relayEndpoint + ". Is the data overlay enabled?");
 
-            var cmd = Encoding.ASCII.GetBytes("RELAY_TCP " + host + " " + port + "\n");
+            var encodedToken = Convert.ToBase64String(Encoding.UTF8.GetBytes(_options.RelayAuthenticationToken));
+            var cmd = Encoding.ASCII.GetBytes("AUTH " + encodedToken + "\nRELAY_TCP " + host + " " + port + "\n");
             await stream.WriteAsync(cmd, cancellationToken);
 
             var lineBuf = new byte[128];

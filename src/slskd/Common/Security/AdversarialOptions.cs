@@ -361,6 +361,12 @@ public sealed class I2POptions
 public sealed class RelayOnlyOptions
 {
     /// <summary>
+    /// Gets or sets the shared secret sent to trusted relay nodes before relay commands.
+    /// </summary>
+    [Secret]
+    public string RelayAuthenticationToken { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets trusted relay node peer IDs.
     /// Only these peers can be used as relays.
     /// </summary>

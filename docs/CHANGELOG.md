@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- QUIC TCP relay commands now require a shared authentication token, exact
+  public-destination allowlisting, and concurrency, duration, and byte quotas;
+  unauthenticated, internal, loopback, and unapproved destinations are denied.
 - QUIC overlay certificate pin mismatches now reject inbound and outbound
   connections instead of replacing trust automatically; pin rotation is an
   explicit administrator-only API operation.

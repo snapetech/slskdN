@@ -59,6 +59,7 @@ public class TransportAddressParsingTests
             new RelayOnlyOptions
             {
                 TrustedRelayPeers = new List<string> { "[::1]:4040" },
+                RelayAuthenticationToken = "test-relay-token",
             },
             Mock.Of<IOverlayDataPlane>(),
             Mock.Of<ILogger<RelayOnlyTransport>>());

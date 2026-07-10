@@ -390,6 +390,7 @@
 #     anonymity:   # I2P, RelayOnly, Tor. AnonymityLayerOptions.
 #       relay_only:
 #         relay_peer_data_endpoints: []  # ["host:port"] per relay's QUIC data overlay; used when TrustedRelayPeers not resolved. Required for RelayOnly until peer-id resolution.
+#         relay_authentication_token: "" # Must match the trusted relay's overlay_data token.
 #         # trusted_relay_peers: []
 #         # max_chain_length: 3
 # soulseek:
@@ -444,6 +445,11 @@
 # overlay_data:
 #   enable: false        # QUIC data plane; requires a stable MsQuic/runtime stack
 #   listen_port: 50401
+#   relay_authentication_token: "" # Required to enable RELAY_TCP; use a high-entropy shared secret.
+#   allowed_relay_destinations: [] # Exact public host:port destinations; private and loopback addresses are always denied.
+#   max_concurrent_relays: 4
+#   max_relay_bytes_per_direction: 67108864
+#   max_relay_duration_seconds: 300
 # integrations:
 #   lidarr:
 #     enabled: false

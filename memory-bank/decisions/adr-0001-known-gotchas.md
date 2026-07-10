@@ -52,6 +52,38 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z518. Relay Commands Need Authentication, Destination Policy, And Resource Bounds
+
+**The Bug**: The QUIC data plane processed `RELAY_TCP host port` from any client, connected to arbitrary destinations including internal services, and copied traffic without relay-specific duration or byte limits.
+
+**Files Affected**:
+- `src/slskd/Mesh/Overlay/QuicDataServer.cs`
+- `src/slskd/Common/Security/RelayOnlyTransport.cs`
+- `src/slskd/Mesh/Overlay/DataOverlayOptions.cs`
+
+**Wrong**:
+```csharp
+if (line.StartsWith("RELAY_TCP "))
+{
+    await tcp.ConnectAsync(host, port, cancellationToken);
+    await CopyBothDirectionsAsync();
+}
+```
+
+**Correct**:
+```csharp
+if (!IsRelayAuthenticated(authenticationLine, configuredToken))
+    return;
+if (await ResolveAllowedRelayDestinationAsync(host, port, allowlist, cancellationToken) is not { } endpoint)
+    return;
+if (!await relayGate.WaitAsync(0, cancellationToken))
+    return;
+```
+
+Exact destination allowlisting must be followed by DNS resolution and public-address validation, and relays must have concurrency, duration, and per-direction byte limits.
+
+**Why This Keeps Happening**: Transport encryption authenticates the server to a client; it does not authorize an inbound client to request outbound network access. Proxy commands create a separate security boundary and must default closed.
+
 ### 0z517. Release-Worthy Changes Belong In The Documentation Changelog
 
 **The Bug**: A release-worthy fix was recorded in the root `CHANGELOG.md`, so the commit gate rejected the commit because `docs/CHANGELOG.md` had no corresponding Unreleased entry.
