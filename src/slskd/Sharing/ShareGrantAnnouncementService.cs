@@ -102,21 +102,21 @@ public sealed class ShareGrantAnnouncementService : IDisposable
             return;
         }
 
-        var currentUserId = _options.CurrentValue.Soulseek.Username ?? string.Empty;
+        var localNetworkUserId = _options.CurrentValue.Soulseek.Username ?? string.Empty;
 
-        // E2E: when Soulseek.Username is not set, use recipient from message so announce still ingests (API uses web auth user via GetCurrentUserIdAsync fallback)
-        if (string.IsNullOrWhiteSpace(currentUserId) && Environment.GetEnvironmentVariable("SLSKDN_E2E_SHARE_ANNOUNCE") == "1" && !string.IsNullOrWhiteSpace(msg.RecipientUserId))
+        // E2E-only network routing fallback; this value never establishes local web-resource ownership.
+        if (string.IsNullOrWhiteSpace(localNetworkUserId) && Environment.GetEnvironmentVariable("SLSKDN_E2E_SHARE_ANNOUNCE") == "1" && !string.IsNullOrWhiteSpace(msg.RecipientUserId))
         {
-            currentUserId = msg.RecipientUserId;
+            localNetworkUserId = msg.RecipientUserId;
         }
 
-        if (string.IsNullOrWhiteSpace(currentUserId))
+        if (string.IsNullOrWhiteSpace(localNetworkUserId))
         {
             return;
         }
 
         // Only ingest if this message is intended for the current user.
-        if (!string.Equals(msg.RecipientUserId, currentUserId, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(msg.RecipientUserId, localNetworkUserId, StringComparison.OrdinalIgnoreCase))
         {
             return;
         }
@@ -177,7 +177,9 @@ public sealed class ShareGrantAnnouncementService : IDisposable
             });
         }
 
-        // Upsert share grant as a direct "User" grant to current user
+        // Imported network grants retain their Soulseek recipient separately and are never
+        // assigned to an authenticated web account implicitly.
+        var networkAudienceId = $"network:{localNetworkUserId}";
         var g = await db.ShareGrants.FirstOrDefaultAsync(x => x.Id == msg.ShareGrantId, ct).ConfigureAwait(false);
         if (g == null)
         {
@@ -186,7 +188,8 @@ public sealed class ShareGrantAnnouncementService : IDisposable
                 Id = msg.ShareGrantId,
                 CollectionId = msg.CollectionId,
                 AudienceType = AudienceTypes.User,
-                AudienceId = currentUserId,
+                AudienceId = networkAudienceId,
+                AudiencePeerId = localNetworkUserId,
                 AllowStream = msg.AllowStream,
                 AllowDownload = msg.AllowDownload,
                 AllowReshare = msg.AllowReshare,
@@ -204,7 +207,8 @@ public sealed class ShareGrantAnnouncementService : IDisposable
         {
             g.CollectionId = msg.CollectionId;
             g.AudienceType = AudienceTypes.User;
-            g.AudienceId = currentUserId;
+            g.AudienceId = networkAudienceId;
+            g.AudiencePeerId = localNetworkUserId;
             g.AllowStream = msg.AllowStream;
             g.AllowDownload = msg.AllowDownload;
             g.AllowReshare = msg.AllowReshare;

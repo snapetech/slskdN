@@ -7,7 +7,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 
 /// <summary>
-/// A curated list of content (ShareList or Playlist). OwnerUserId = Soulseek username in v1.
+/// A curated list of content owned by a stable authenticated web-account ID.
 /// </summary>
 public class Collection
 {

@@ -52,6 +52,54 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z528. Web Resource Ownership Must Never Fall Back To Daemon Identity
+
+**The Bug**: Collections, share groups, and grants resolved every authenticated web request to the daemon's Soulseek username or local mesh profile, collapsing distinct web accounts into one owner.
+
+**Files Affected**:
+- `src/slskd/Core/Security/AuthenticatedWebUserId.cs`
+- `src/slskd/Sharing/API/CollectionsController.cs`
+- `src/slskd/Sharing/API/ShareGroupsController.cs`
+- `src/slskd/Sharing/API/SharesController.cs`
+- `src/slskd/Sharing/ShareGrantAnnouncementService.cs`
+
+**Wrong**:
+```csharp
+var ownerId = options.Soulseek.Username ?? localProfile.PeerId;
+```
+
+**Correct**:
+```csharp
+var ownerId = AuthenticatedWebUserId.Resolve(User);
+if (ownerId is null)
+    return Forbid();
+```
+
+Federation/Soulseek recipients are stored as separately namespaced network audiences and never implicitly assigned to a web account.
+
+**Why This Keeps Happening**: A single-user daemon historically made local network identity look equivalent to application ownership. Once multiple authenticated accounts exist, network peer IDs route protocol traffic while web claims establish local authorization; the namespaces must remain separate.
+
+### 0z527. Identity Renames Must Cover Persisted Audience Fields
+
+**The Bug**: Renaming a federation-ingestion local identity from `currentUserId` to `localNetworkUserId` initially missed two grant audience assignments and broke compilation.
+
+**Files Affected**:
+- `src/slskd/Sharing/ShareGrantAnnouncementService.cs`
+
+**Wrong**:
+```csharp
+var localNetworkUserId = options.Soulseek.Username;
+grant.AudienceId = currentUserId;
+```
+
+**Correct**:
+```csharp
+grant.AudienceId = $"network:{localNetworkUserId}";
+grant.AudiencePeerId = localNetworkUserId;
+```
+
+**Why This Keeps Happening**: Identity variables often flow into persistence well below the authorization check. Renaming the resolver is incomplete until every stored owner, audience, and peer field is classified as either web-account or network identity.
+
 ### 0z526. Self-Signed Is A Certificate Property, Not A Peer Identity
 
 **The Bug**: Direct QUIC clients accepted any first self-signed certificate into process-local TOFU maps, rotated those maps on mismatch, treated empty pin lists as success, and ignored descriptor pins in the primary dialer path.

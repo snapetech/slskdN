@@ -12,10 +12,8 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using slskd.Core.Security;
-using slskd.Identity;
 using slskd.Sharing;
 
 /// <summary>Share group CRUD and members. Requires Feature.CollectionsSharing.</summary>
@@ -30,40 +28,14 @@ public class ShareGroupsController : ControllerBase
 {
     private readonly ISharingService _sharing;
     private readonly IOptionsMonitor<slskd.Options> _options;
-    private readonly IServiceProvider _serviceProvider;
 
-    public ShareGroupsController(ISharingService sharing, IOptionsMonitor<slskd.Options> options, IServiceProvider serviceProvider)
+    public ShareGroupsController(ISharingService sharing, IOptionsMonitor<slskd.Options> options)
     {
         _sharing = sharing;
         _options = options;
-        _serviceProvider = serviceProvider;
     }
 
-    private async Task<string> GetCurrentUserIdAsync(CancellationToken ct = default)
-    {
-        // Prefer Soulseek username if available
-        var soulseekUsername = _options.CurrentValue.Soulseek.Username;
-        if (!string.IsNullOrWhiteSpace(soulseekUsername))
-            return soulseekUsername;
-
-        // Fall back to Identity & Friends PeerId
-        var profileService = _serviceProvider.GetService<IProfileService>();
-        if (profileService != null)
-        {
-            try
-            {
-                var profile = await profileService.GetMyProfileAsync(ct);
-                if (!string.IsNullOrWhiteSpace(profile.PeerId))
-                    return profile.PeerId;
-            }
-            catch
-            {
-                // If profile service fails, continue with empty string
-            }
-        }
-
-        return string.Empty;
-    }
+    private string? GetCurrentUserId() => AuthenticatedWebUserId.Resolve(User);
 
     private bool Enabled => _options.CurrentValue.Feature.CollectionsSharing;
 
@@ -73,11 +45,9 @@ public class ShareGroupsController : ControllerBase
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
         if (!Enabled) return NotFound();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
 
-        // If we can't determine user identity, return empty list instead of error
-        if (string.IsNullOrWhiteSpace(currentUserId))
-            return Ok(new List<ShareGroup>());
         var list = await _sharing.GetShareGroupsByOwnerAsync(currentUserId, ct);
         return Ok(list);
     }
@@ -88,7 +58,8 @@ public class ShareGroupsController : ControllerBase
     public async Task<IActionResult> Get([FromRoute] Guid id, CancellationToken ct)
     {
         if (!Enabled) return NotFound();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var g = await _sharing.GetShareGroupAsync(id, ct);
         if (g == null) return NotFound();
         if (g.OwnerUserId != currentUserId) return NotFound();
@@ -118,15 +89,8 @@ public class ShareGroupsController : ControllerBase
                 statusCode: StatusCodes.Status400BadRequest);
         }
 
-        var currentUserId = await GetCurrentUserIdAsync(ct);
-        if (string.IsNullOrWhiteSpace(currentUserId))
-        {
-            return Problem(
-                title: "User identity not available",
-                detail: "Cannot create share group: user identity not available. Please configure Soulseek username or enable Identity & Friends.",
-                statusCode: StatusCodes.Status400BadRequest);
-        }
-
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var g = new ShareGroup { Name = req.Name.Trim(), OwnerUserId = currentUserId };
         var created = await _sharing.CreateShareGroupAsync(g, ct);
         return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
@@ -140,7 +104,8 @@ public class ShareGroupsController : ControllerBase
     {
         if (!Enabled) return NotFound();
         if (req == null) return BadRequest();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var g = await _sharing.GetShareGroupAsync(id, ct);
         if (g == null || g.OwnerUserId != currentUserId) return NotFound();
         if (req.Name != null)
@@ -168,7 +133,8 @@ public class ShareGroupsController : ControllerBase
     public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken ct)
     {
         if (!Enabled) return NotFound();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var g = await _sharing.GetShareGroupAsync(id, ct);
         if (g == null || g.OwnerUserId != currentUserId) return NotFound();
         await _sharing.DeleteShareGroupAsync(id, ct);
@@ -182,7 +148,8 @@ public class ShareGroupsController : ControllerBase
     public async Task<IActionResult> GetMembers([FromRoute] Guid id, [FromQuery] bool detailed = false, CancellationToken ct = default)
     {
         if (!Enabled) return NotFound();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var g = await _sharing.GetShareGroupAsync(id, ct);
         if (g == null || g.OwnerUserId != currentUserId) return NotFound();
 
@@ -208,9 +175,8 @@ public class ShareGroupsController : ControllerBase
         if (!Enabled) return NotFound();
         if (req == null)
             return BadRequest(new Microsoft.AspNetCore.Mvc.ProblemDetails { Status = 400, Title = "Request is required.", Detail = "Request is required." });
-        var currentUserId = await GetCurrentUserIdAsync(ct);
-        if (string.IsNullOrWhiteSpace(currentUserId))
-            return BadRequest(new Microsoft.AspNetCore.Mvc.ProblemDetails { Status = 400, Title = "User identity not available", Detail = "Cannot add member: user identity not available. Please configure Soulseek username or enable Identity & Friends." });
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var g = await _sharing.GetShareGroupAsync(id, ct);
         if (g == null || g.OwnerUserId != currentUserId) return NotFound();
 
@@ -243,7 +209,8 @@ public class ShareGroupsController : ControllerBase
         if (!Enabled) return NotFound();
         userId = userId?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(userId)) return BadRequest();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var g = await _sharing.GetShareGroupAsync(id, ct);
         if (g == null || g.OwnerUserId != currentUserId) return NotFound();
         await _sharing.RemoveShareGroupMemberAsync(id, userId, ct);
@@ -264,7 +231,7 @@ public class UpdateShareGroupRequest
 
 public class AddMemberRequest
 {
-    /// <summary>Soulseek username (legacy).</summary>
+    /// <summary>Authenticated web-account ID.</summary>
     public string? UserId { get; set; }
     /// <summary>Contact PeerId (Identity &amp; Friends). Takes precedence over UserId when set.</summary>
     public string? PeerId { get; set; }

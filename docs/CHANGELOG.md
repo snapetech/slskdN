@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Collections, share groups, and share grants now use the authenticated web
+  account as owner/access identity; daemon Soulseek and mesh identities remain
+  separate network principals and cannot collapse multiple web users together.
 - Direct QUIC clients now reject empty or unknown certificate pin sets, use
   descriptor and endpoint-configured SPKI pins, and never establish or rotate
   trust merely because a certificate is self-signed.

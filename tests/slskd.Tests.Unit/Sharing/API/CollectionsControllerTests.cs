@@ -10,7 +10,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
 using slskd;
@@ -22,25 +21,30 @@ using TestOptionsMonitor = slskd.Tests.Unit.TestOptionsMonitor<slskd.Options>;
 public class CollectionsControllerTests
 {
     private readonly Mock<ISharingService> _sharingMock = new();
-    private readonly Mock<IServiceProvider> _serviceProviderMock = new();
     private IOptionsMonitor<slskd.Options> _options = new TestOptionsMonitor(new slskd.Options
     {
         Feature = new slskd.Options.FeatureOptions { CollectionsSharing = true },
-        Soulseek = new slskd.Options.SoulseekOptions { Username = "alice" }
+        Soulseek = new slskd.Options.SoulseekOptions { Username = "daemon-account" }
     });
 
-    public CollectionsControllerTests()
+    private CollectionsController CreateController(string? identity = "alice")
     {
-        // Setup service provider to return null for GetService calls (handled gracefully in controllers)
-        _serviceProviderMock.Setup(x => x.GetService(It.IsAny<Type>())).Returns((object?)null);
+        var c = new CollectionsController(_sharingMock.Object, _options);
+        c.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
+        c.HttpContext.User = identity is null
+            ? new ClaimsPrincipal()
+            : new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, identity) }, "Test"));
+        return c;
     }
 
-    private CollectionsController CreateController()
+    [Fact]
+    public async Task GetAll_WithoutAuthenticatedWebIdentity_ReturnsForbidden()
     {
-        var c = new CollectionsController(_sharingMock.Object, _options, _serviceProviderMock.Object);
-        c.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
-        c.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "u") }, "Test"));
-        return c;
+        var result = await CreateController(identity: null).GetAll(CancellationToken.None);
+
+        Assert.IsType<ForbidResult>(result);
+        _sharingMock.Verify(service => service.GetCollectionsByOwnerAsync(
+            It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -49,7 +53,7 @@ public class CollectionsControllerTests
         _options = new TestOptionsMonitor(new slskd.Options
         {
             Feature = new slskd.Options.FeatureOptions { CollectionsSharing = false },
-            Soulseek = new slskd.Options.SoulseekOptions { Username = "alice" }
+            Soulseek = new slskd.Options.SoulseekOptions { Username = "daemon-account" }
         });
         var c = CreateController();
 

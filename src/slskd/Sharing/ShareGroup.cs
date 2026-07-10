@@ -7,7 +7,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 
 /// <summary>
-/// A group of users that can be granted access to a collection. For v1, OwnerUserId = Soulseek username.
+/// A group of authenticated web users that can be granted access to a collection.
 /// </summary>
 public class ShareGroup
 {
@@ -18,7 +18,7 @@ public class ShareGroup
     [MaxLength(256)]
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Owner; for v1 = Soulseek username.</summary>
+    /// <summary>Stable authenticated web-account ID of the owner.</summary>
     [Required]
     [MaxLength(256)]
     public string OwnerUserId { get; set; } = string.Empty;

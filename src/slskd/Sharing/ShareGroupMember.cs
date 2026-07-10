@@ -9,7 +9,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 /// <summary>
 /// Membership of a user in a share group.
-/// - UserId: Soulseek username (legacy, v1)
+/// - UserId: authenticated web-account ID
 /// - PeerId: Contact PeerId (Identity &amp; Friends, v2) - optional, takes precedence when set
 /// </summary>
 [Table("ShareGroupMembers")]
@@ -18,7 +18,7 @@ public class ShareGroupMember
     public Guid ShareGroupId { get; set; }
     public ShareGroup ShareGroup { get; set; } = null!;
 
-    /// <summary>Soulseek username (legacy). Required for backward compatibility.</summary>
+    /// <summary>Stable authenticated web-account ID.</summary>
     [Required]
     [MaxLength(256)]
     public string UserId { get; set; } = string.Empty;

@@ -17,12 +17,10 @@ using System.Threading.Tasks;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using slskd.Common.Security;
 using slskd.Core.Security;
-using slskd.Identity;
 using slskd.Sharing;
 using slskd.Transfers.Downloads;
 using Soulseek;
@@ -43,20 +41,18 @@ public class SharesController : ControllerBase
     private readonly IShareTokenService _tokens;
     private readonly ILogger<SharesController> _log;
     private readonly IOptionsMonitor<slskd.Options> _options;
-    private readonly IServiceProvider _serviceProvider;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ISoulseekClient? _soulseekClient;
     private readonly slskd.Shares.IShareService? _shareService;
     private readonly slskd.Transfers.Downloads.IDownloadService? _downloadService;
     private readonly ShareGrantAnnouncementService? _announcementService;
 
-    public SharesController(ISharingService sharing, IShareTokenService tokens, ILogger<SharesController> log, IOptionsMonitor<slskd.Options> options, IServiceProvider serviceProvider, IHttpClientFactory httpClientFactory, ISoulseekClient? soulseekClient = null, slskd.Shares.IShareService? shareService = null, slskd.Transfers.Downloads.IDownloadService? downloadService = null, ShareGrantAnnouncementService? announcementService = null)
+    public SharesController(ISharingService sharing, IShareTokenService tokens, ILogger<SharesController> log, IOptionsMonitor<slskd.Options> options, IHttpClientFactory httpClientFactory, ISoulseekClient? soulseekClient = null, slskd.Shares.IShareService? shareService = null, slskd.Transfers.Downloads.IDownloadService? downloadService = null, ShareGrantAnnouncementService? announcementService = null)
     {
         _sharing = sharing;
         _tokens = tokens;
         _log = log;
         _options = options;
-        _serviceProvider = serviceProvider;
         _httpClientFactory = httpClientFactory;
         _soulseekClient = soulseekClient;
         _shareService = shareService;
@@ -64,39 +60,7 @@ public class SharesController : ControllerBase
         _announcementService = announcementService;
     }
 
-    private async Task<string> GetCurrentUserIdAsync(CancellationToken ct = default)
-    {
-        // Prefer Soulseek username if available
-        var soulseekUsername = _options.CurrentValue.Soulseek.Username;
-        if (!string.IsNullOrWhiteSpace(soulseekUsername))
-            return soulseekUsername;
-
-        // Fall back to Identity & Friends PeerId
-        var profileService = _serviceProvider.GetService<IProfileService>();
-        if (profileService != null)
-        {
-            try
-            {
-                var profile = await profileService.GetMyProfileAsync(ct);
-                if (!string.IsNullOrWhiteSpace(profile.PeerId))
-                    return profile.PeerId;
-            }
-            catch
-            {
-                // If profile service fails, continue with empty string
-            }
-        }
-
-        // E2E: when announce endpoint is enabled, use authenticated web user so share-grants list matches ingested recipient
-        if (Environment.GetEnvironmentVariable("SLSKDN_E2E_SHARE_ANNOUNCE") == "1")
-        {
-            var name = User?.Identity?.Name;
-            if (!string.IsNullOrWhiteSpace(name))
-                return name;
-        }
-
-        return string.Empty;
-    }
+    private string? GetCurrentUserId() => AuthenticatedWebUserId.Resolve(User);
 
     private bool CollectionsEnabled => _options.CurrentValue.Feature.CollectionsSharing;
 
@@ -107,11 +71,9 @@ public class SharesController : ControllerBase
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
         if (!CollectionsEnabled) return NotFound();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
 
-        // If we can't determine user identity, return empty list instead of error
-        if (string.IsNullOrWhiteSpace(currentUserId))
-            return Ok(new List<ShareGrant>());
         var list = await _sharing.GetShareGrantsAccessibleByUserAsync(currentUserId, ct);
         return Ok(list);
     }
@@ -126,8 +88,8 @@ public class SharesController : ControllerBase
     public async Task<IActionResult> GetByCollection([FromRoute] Guid collectionId, CancellationToken ct)
     {
         if (!CollectionsEnabled) return NotFound();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
-        if (string.IsNullOrWhiteSpace(currentUserId)) return NotFound();
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var c = await _sharing.GetCollectionAsync(collectionId, ct);
         if (c == null || c.OwnerUserId != currentUserId) return NotFound();
         var list = await _sharing.GetShareGrantsByCollectionAsync(collectionId, ct);
@@ -141,7 +103,8 @@ public class SharesController : ControllerBase
     public async Task<IActionResult> Get([FromRoute] Guid id, CancellationToken ct)
     {
         if (!CollectionsEnabled) return NotFound();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var g = await _sharing.GetShareGrantAsync(id, ct);
         if (g == null) return NotFound();
         var accessible = await _sharing.GetShareGrantsAccessibleByUserAsync(currentUserId, ct);
@@ -163,9 +126,8 @@ public class SharesController : ControllerBase
             return BadRequest(new Microsoft.AspNetCore.Mvc.ProblemDetails { Status = 400, Title = "CollectionId is required.", Detail = "CollectionId is required." });
         if (string.IsNullOrWhiteSpace(req.AudienceType) || string.IsNullOrWhiteSpace(req.AudienceId))
             return BadRequest(new Microsoft.AspNetCore.Mvc.ProblemDetails { Status = 400, Title = "AudienceType and AudienceId are required.", Detail = "AudienceType and AudienceId are required." });
-        var currentUserId = await GetCurrentUserIdAsync(ct);
-        if (string.IsNullOrWhiteSpace(currentUserId))
-            return BadRequest(new Microsoft.AspNetCore.Mvc.ProblemDetails { Status = 400, Title = "User identity not available", Detail = "Cannot create share: user identity not available. Please configure Soulseek username or enable Identity & Friends." });
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var c = await _sharing.GetCollectionAsync(req.CollectionId, ct);
         if (c == null || c.OwnerUserId != currentUserId) return NotFound();
         var g = new ShareGrant
@@ -295,7 +257,8 @@ public class SharesController : ControllerBase
     {
         if (!CollectionsEnabled) return NotFound();
         if (req == null) return BadRequest();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var g = await _sharing.GetShareGrantAsync(id, ct);
         if (g == null) return NotFound();
         var c = await _sharing.GetCollectionAsync(g.CollectionId, ct);
@@ -317,7 +280,8 @@ public class SharesController : ControllerBase
     public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken ct)
     {
         if (!CollectionsEnabled) return NotFound();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var g = await _sharing.GetShareGrantAsync(id, ct);
         if (g == null) return NotFound();
         var c = await _sharing.GetCollectionAsync(g.CollectionId, ct);
@@ -365,7 +329,8 @@ public class SharesController : ControllerBase
     {
         if (!CollectionsEnabled) return NotFound();
         req ??= new CreateTokenRequest();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var g = await _sharing.GetShareGrantAsync(id, ct);
         if (g == null) return NotFound();
         var c = await _sharing.GetCollectionAsync(g.CollectionId, ct);
@@ -417,7 +382,8 @@ public class SharesController : ControllerBase
         // Authenticated users should use their normal JWT to access manifests for shares they can see.
         if (User?.Identity?.IsAuthenticated != true)
             return Unauthorized();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var m2 = await _sharing.GetManifestAsync(id, null, currentUserId, ct);
         if (m2 == null) return NotFound();
         return Ok(m2);
@@ -436,9 +402,8 @@ public class SharesController : ControllerBase
     {
         if (!CollectionsEnabled) return NotFound();
 
-        var currentUserId = await GetCurrentUserIdAsync(ct);
-        if (string.IsNullOrWhiteSpace(currentUserId))
-            return Unauthorized();
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
 
         // Get the share grant
         var accessible = await _sharing.GetShareGrantsAccessibleByUserAsync(currentUserId, ct).ConfigureAwait(false);

@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-/// <summary>Orchestrates ShareGroups, Collections, ShareGrants; token creation; and manifest. For v1, CurrentUserId = Soulseek username.</summary>
+/// <summary>Orchestrates ShareGroups, Collections, ShareGrants, token creation, and manifests using authenticated web-account IDs.</summary>
 public interface ISharingService
 {
     // ShareGroups — delegate to IShareGroupRepository

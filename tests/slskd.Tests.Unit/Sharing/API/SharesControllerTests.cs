@@ -13,7 +13,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -29,31 +28,39 @@ public class SharesControllerTests
 {
     private readonly Mock<ISharingService> _sharingMock = new();
     private readonly Mock<IShareTokenService> _tokensMock = new();
-    private readonly Mock<IServiceProvider> _serviceProviderMock = new();
     private readonly Mock<IHttpClientFactory> _httpClientFactoryMock = new();
     private IOptionsMonitor<slskd.Options> _options = new TestOptionsMonitor(new slskd.Options
     {
         Feature = new slskd.Options.FeatureOptions { CollectionsSharing = true, Streaming = true },
-        Soulseek = new slskd.Options.SoulseekOptions { Username = "alice" }
+        Soulseek = new slskd.Options.SoulseekOptions { Username = "daemon-account" }
     });
 
     public SharesControllerTests()
     {
-        // Setup service provider to return null for GetService calls (handled gracefully in controllers)
-        _serviceProviderMock.Setup(x => x.GetService(It.IsAny<Type>())).Returns((object?)null);
-
         _httpClientFactoryMock
             .Setup(x => x.CreateClient(It.IsAny<string>()))
             .Returns(new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }));
     }
 
-    private SharesController CreateController()
+    private SharesController CreateController(string? identity = "alice")
     {
         var loggerMock = new Mock<ILogger<SharesController>>();
-        var c = new SharesController(_sharingMock.Object, _tokensMock.Object, loggerMock.Object, _options, _serviceProviderMock.Object, _httpClientFactoryMock.Object, soulseekClient: null, shareService: null, downloadService: null);
+        var c = new SharesController(_sharingMock.Object, _tokensMock.Object, loggerMock.Object, _options, _httpClientFactoryMock.Object, soulseekClient: null, shareService: null, downloadService: null);
         c.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
-        c.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "u") }, "Test"));
+        c.HttpContext.User = identity is null
+            ? new ClaimsPrincipal()
+            : new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, identity) }, "Test"));
         return c;
+    }
+
+    [Fact]
+    public async Task GetAll_WithoutAuthenticatedWebIdentity_ReturnsForbidden()
+    {
+        var result = await CreateController(identity: null).GetAll(CancellationToken.None);
+
+        Assert.IsType<ForbidResult>(result);
+        _sharingMock.Verify(service => service.GetShareGrantsAccessibleByUserAsync(
+            It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -62,7 +69,7 @@ public class SharesControllerTests
         _options = new TestOptionsMonitor(new slskd.Options
         {
             Feature = new slskd.Options.FeatureOptions { CollectionsSharing = false },
-            Soulseek = new slskd.Options.SoulseekOptions { Username = "alice" }
+            Soulseek = new slskd.Options.SoulseekOptions { Username = "daemon-account" }
         });
         var c = CreateController();
 
@@ -351,13 +358,12 @@ public class SharesControllerTests
             _tokensMock.Object,
             loggerMock.Object,
             _options,
-            _serviceProviderMock.Object,
             _httpClientFactoryMock.Object,
             soulseekClient: null,
             shareService: shareService.Object,
             downloadService: downloadService.Object);
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
-        controller.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "u") }, "Test"));
+        controller.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "alice") }, "Test"));
 
         var result = await controller.Backfill(grantId, CancellationToken.None);
 
@@ -412,13 +418,12 @@ public class SharesControllerTests
             _tokensMock.Object,
             loggerMock.Object,
             _options,
-            _serviceProviderMock.Object,
             _httpClientFactoryMock.Object,
             soulseekClient: null,
             shareService: shareService.Object,
             downloadService: Mock.Of<IDownloadService>());
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
-        controller.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "u") }, "Test"));
+        controller.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "alice") }, "Test"));
 
         var result = await controller.Backfill(grantId, CancellationToken.None);
 
@@ -442,7 +447,7 @@ public class SharesControllerTests
             _options = new TestOptionsMonitor(new slskd.Options
             {
                 Feature = new slskd.Options.FeatureOptions { CollectionsSharing = true, Streaming = true },
-                Soulseek = new slskd.Options.SoulseekOptions { Username = "alice" },
+                Soulseek = new slskd.Options.SoulseekOptions { Username = "daemon-account" },
                 Directories = new slskd.Options.DirectoriesOptions { Downloads = temp }
             });
 

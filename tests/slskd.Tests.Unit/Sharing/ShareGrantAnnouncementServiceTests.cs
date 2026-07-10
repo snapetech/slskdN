@@ -43,6 +43,8 @@ public class ShareGrantAnnouncementServiceTests
         var grant = Assert.Single(await db.ShareGrants.ToListAsync());
 
         Assert.Equal("alice", collection.OwnerUserId);
+        Assert.Equal("network:recipient", grant.AudienceId);
+        Assert.Equal("recipient", grant.AudiencePeerId);
         Assert.Equal("https://owner.example.test", grant.OwnerEndpoint);
         Assert.Equal("share-token", grant.ShareToken);
     }

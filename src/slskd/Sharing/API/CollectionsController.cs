@@ -12,10 +12,8 @@ using System.Threading.Tasks;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using slskd.Core.Security;
-using slskd.Identity;
 using slskd.Sharing;
 
 /// <summary>Collection CRUD and items. Requires Feature.CollectionsSharing.</summary>
@@ -30,40 +28,14 @@ public class CollectionsController : ControllerBase
 {
     private readonly ISharingService _sharing;
     private readonly IOptionsMonitor<slskd.Options> _options;
-    private readonly IServiceProvider _serviceProvider;
 
-    public CollectionsController(ISharingService sharing, IOptionsMonitor<slskd.Options> options, IServiceProvider serviceProvider)
+    public CollectionsController(ISharingService sharing, IOptionsMonitor<slskd.Options> options)
     {
         _sharing = sharing;
         _options = options;
-        _serviceProvider = serviceProvider;
     }
 
-    private async Task<string> GetCurrentUserIdAsync(CancellationToken ct = default)
-    {
-        // Prefer Soulseek username if available
-        var soulseekUsername = _options.CurrentValue.Soulseek.Username;
-        if (!string.IsNullOrWhiteSpace(soulseekUsername))
-            return soulseekUsername;
-
-        // Fall back to Identity & Friends PeerId
-        var profileService = _serviceProvider.GetService<IProfileService>();
-        if (profileService != null)
-        {
-            try
-            {
-                var profile = await profileService.GetMyProfileAsync(ct);
-                if (!string.IsNullOrWhiteSpace(profile.PeerId))
-                    return profile.PeerId;
-            }
-            catch
-            {
-                // If profile service fails, continue with empty string
-            }
-        }
-
-        return string.Empty;
-    }
+    private string? GetCurrentUserId() => AuthenticatedWebUserId.Resolve(User);
 
     private bool Enabled => _options.CurrentValue.Feature.CollectionsSharing;
 
@@ -73,11 +45,9 @@ public class CollectionsController : ControllerBase
     public async Task<IActionResult> GetAll(CancellationToken ct)
     {
         if (!Enabled) return NotFound();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
 
-        // If we can't determine user identity, return empty list instead of error
-        if (string.IsNullOrWhiteSpace(currentUserId))
-            return Ok(new List<Collection>());
         var list = await _sharing.GetCollectionsByOwnerAsync(currentUserId, ct);
         return Ok(list);
     }
@@ -88,7 +58,8 @@ public class CollectionsController : ControllerBase
     public async Task<IActionResult> Get([FromRoute] Guid id, CancellationToken ct)
     {
         if (!Enabled) return NotFound();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var c = await _sharing.GetCollectionAsync(id, ct);
         if (c == null) return NotFound();
 
@@ -96,13 +67,10 @@ public class CollectionsController : ControllerBase
         if (c.OwnerUserId == currentUserId) return Ok(c);
 
         // Recipient access (Shared with Me): allow access when a share-grant for this collection is accessible to the user
-        if (!string.IsNullOrWhiteSpace(currentUserId))
+        var accessible = await _sharing.GetShareGrantsAccessibleByUserAsync(currentUserId, ct);
+        if (accessible.Any(g => g.CollectionId == id))
         {
-            var accessible = await _sharing.GetShareGrantsAccessibleByUserAsync(currentUserId, ct);
-            if (accessible.Any(g => g.CollectionId == id))
-            {
-                return Ok(c);
-            }
+            return Ok(c);
         }
 
         return NotFound();
@@ -118,9 +86,8 @@ public class CollectionsController : ControllerBase
         if (req == null) return BadRequest(new Microsoft.AspNetCore.Mvc.ProblemDetails { Status = 400, Title = "Request is required.", Detail = "Request is required." });
         if (string.IsNullOrWhiteSpace(req.Title))
             return BadRequest(new Microsoft.AspNetCore.Mvc.ProblemDetails { Status = 400, Title = "Title is required.", Detail = "Title is required." });
-        var currentUserId = await GetCurrentUserIdAsync(ct);
-        if (string.IsNullOrWhiteSpace(currentUserId))
-            return BadRequest(new Microsoft.AspNetCore.Mvc.ProblemDetails { Status = 400, Title = "User identity not available", Detail = "Cannot create collection: user identity not available. Please configure Soulseek username or enable Identity & Friends." });
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var t = req.Type?.Trim() == CollectionType.Playlist ? CollectionType.Playlist : CollectionType.ShareList;
         var c = new Collection
         {
@@ -141,7 +108,8 @@ public class CollectionsController : ControllerBase
     {
         if (!Enabled) return NotFound();
         if (req == null) return BadRequest();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var c = await _sharing.GetCollectionAsync(id, ct);
         if (c == null || c.OwnerUserId != currentUserId) return NotFound();
         if (req.Title != null)
@@ -164,7 +132,8 @@ public class CollectionsController : ControllerBase
     public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken ct)
     {
         if (!Enabled) return NotFound();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var c = await _sharing.GetCollectionAsync(id, ct);
         if (c == null || c.OwnerUserId != currentUserId) return NotFound();
         await _sharing.DeleteCollectionAsync(id, ct);
@@ -177,7 +146,8 @@ public class CollectionsController : ControllerBase
     public async Task<IActionResult> GetItems([FromRoute] Guid id, CancellationToken ct)
     {
         if (!Enabled) return NotFound();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var c = await _sharing.GetCollectionAsync(id, ct);
         if (c == null || c.OwnerUserId != currentUserId) return NotFound();
         var items = await _sharing.GetCollectionItemsAsync(id, ct);
@@ -194,7 +164,8 @@ public class CollectionsController : ControllerBase
         if (!Enabled) return NotFound();
         if (req == null) return BadRequest("Request is required.");
         if (string.IsNullOrWhiteSpace(req.ContentId)) return BadRequest("ContentId is required.");
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var c = await _sharing.GetCollectionAsync(id, ct);
         if (c == null || c.OwnerUserId != currentUserId) return NotFound();
         var item = new CollectionItem
@@ -220,7 +191,8 @@ public class CollectionsController : ControllerBase
     {
         if (!Enabled) return NotFound();
         if (req == null) return BadRequest();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var c = await _sharing.GetCollectionAsync(id, ct);
         if (c == null || c.OwnerUserId != currentUserId) return NotFound();
         var items = await _sharing.GetCollectionItemsAsync(id, ct);
@@ -279,7 +251,8 @@ public class CollectionsController : ControllerBase
     public async Task<IActionResult> RemoveItem([FromRoute] Guid id, [FromRoute] Guid itemId, CancellationToken ct)
     {
         if (!Enabled) return NotFound();
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var c = await _sharing.GetCollectionAsync(id, ct);
         if (c == null || c.OwnerUserId != currentUserId) return NotFound();
         var ok = await _sharing.RemoveCollectionItemAsync(itemId, ct);
@@ -302,7 +275,8 @@ public class CollectionsController : ControllerBase
             return BadRequest("ItemIds must be non-empty and unique.");
         }
 
-        var currentUserId = await GetCurrentUserIdAsync(ct);
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         var c = await _sharing.GetCollectionAsync(id, ct);
         if (c == null || c.OwnerUserId != currentUserId) return NotFound();
         await _sharing.ReorderCollectionItemsAsync(id, req.ItemIds, ct);
