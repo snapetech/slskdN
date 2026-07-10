@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Friends-only ActivityPub actor discovery no longer trusts `Origin` or
+  `Referer`; non-loopback access requires a verified HTTP-signature key resolved
+  to an actor on an approved peer.
 - Library Health now admits one scan globally with duplicate `409` rejection,
   caps file processing at eight bounded workers without task-per-file fan-out,
   and restricts scan controls and path-bearing results to administrators.

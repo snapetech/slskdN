@@ -52,6 +52,31 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z514. Federation Friendship Cannot Be Inferred From Browser Headers
+
+**The Bug**: Friends-only actor discovery trusted an approved hostname copied
+from the unauthenticated `Origin` or `Referer` request header.
+
+**Files Affected**:
+- `src/slskd/SocialFederation/API/ActivityPubController.cs`
+
+**Wrong**:
+```csharp
+var host = Request.Headers["Origin"];
+return approvedPeers.Contains(host);
+```
+
+**Correct**:
+```csharp
+var (verified, keyId) = await VerifyHttpSignatureAsync(Array.Empty<byte>(), cancellationToken);
+return IsFriendsOnlyIdentityAuthorized(verified, ResolveActorIdentity(keyId), approvedPeers);
+```
+
+**Why This Keeps Happening**: `Origin` and `Referer` describe browser context
+and are freely chosen by non-browser clients. Friends-only federation decisions
+must use a cryptographically verified key identity resolved to an actor on an
+approved peer; loopback remains the only unsigned exception.
+
 ### 0z513. Replacing Authorization Must Remove Redundant Bare Attributes
 
 **The Bug**: The Library Health scan action gained an administrator-role

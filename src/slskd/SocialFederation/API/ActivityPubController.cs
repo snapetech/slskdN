@@ -116,7 +116,7 @@ namespace slskd.SocialFederation.API
             }
 
             // For friends-only mode, check authorization
-            if (opts.IsFriendsOnly && !IsAuthorizedRequest())
+            if (opts.IsFriendsOnly && !await IsAuthorizedRequestAsync(cancellationToken).ConfigureAwait(false))
             {
                 _logger.LogDebug("[ActivityPub] Unauthorized request for friends-only mode");
                 return NotFound();
@@ -456,33 +456,26 @@ namespace slskd.SocialFederation.API
             return Ok(published);
         }
 
-        private bool IsAuthorizedRequest()
+        private async Task<bool> IsAuthorizedRequestAsync(CancellationToken cancellationToken)
         {
             var opts = _federationOptions.CurrentValue;
             if (!opts.IsFriendsOnly)
                 return true;
             if (IsLoopback(HttpContext.Connection.RemoteIpAddress))
                 return true;
-            var candidateHosts = new[]
-            {
-                Request.Headers["Origin"].FirstOrDefault(),
-                Request.Headers["Referer"].FirstOrDefault()
-            }
-                .Where(value => !string.IsNullOrWhiteSpace(value))
-                .Select(value =>
-                {
-                    if (Uri.TryCreate(value, UriKind.Absolute, out var uri))
-                    {
-                        return uri.Host;
-                    }
 
-                    return value;
-                });
-            if (opts.ApprovedPeers != null && opts.ApprovedPeers.Length > 0
-                && candidateHosts.Any(host => !string.IsNullOrWhiteSpace(host)
-                    && opts.ApprovedPeers.Contains(host, StringComparer.OrdinalIgnoreCase)))
-                return true;
-            return false;
+            var (verified, keyId) = await VerifyHttpSignatureAsync(Array.Empty<byte>(), cancellationToken).ConfigureAwait(false);
+            var actorId = ResolveActorIdentity(keyId);
+            var authorized = IsFriendsOnlyIdentityAuthorized(
+                signatureVerified: verified,
+                actorId,
+                opts.ApprovedPeers ?? Array.Empty<string>());
+            if (authorized)
+            {
+                HttpContext.Items["ActivityPubVerifiedActor"] = actorId!;
+            }
+
+            return authorized;
         }
 
         private static bool IsLoopback(IPAddress? a) => a != null && IPAddress.IsLoopback(a);
@@ -506,9 +499,12 @@ namespace slskd.SocialFederation.API
                 return (false, string.Empty);
 
             var digest = Request.Headers["Digest"].FirstOrDefault();
-            var expectedDigest = "SHA-256=" + Convert.ToBase64String(SHA256.HashData(bodyBytes));
-            if (string.IsNullOrEmpty(digest) || !string.Equals(digest, expectedDigest, StringComparison.Ordinal))
-                return (false, string.Empty);
+            if (bodyBytes.Length > 0 || !string.IsNullOrEmpty(digest))
+            {
+                var expectedDigest = "SHA-256=" + Convert.ToBase64String(SHA256.HashData(bodyBytes));
+                if (string.IsNullOrEmpty(digest) || !string.Equals(digest, expectedDigest, StringComparison.Ordinal))
+                    return (false, string.Empty);
+            }
 
             var signingString = BuildSigningString(headersList);
             if (signingString == null)
@@ -559,6 +555,34 @@ namespace slskd.SocialFederation.API
                 verifiedKeyId.StartsWith(actor + "/", StringComparison.OrdinalIgnoreCase);
         }
 
+        internal static bool IsFriendsOnlyIdentityAuthorized(
+            bool signatureVerified,
+            string? actorId,
+            IReadOnlyCollection<string> approvedPeers)
+        {
+            if (!signatureVerified || string.IsNullOrWhiteSpace(actorId) || !Uri.TryCreate(actorId, UriKind.Absolute, out var actorUri))
+            {
+                return false;
+            }
+
+            return approvedPeers.Contains(actorUri.Host, StringComparer.OrdinalIgnoreCase);
+        }
+
+        internal static string? ResolveActorIdentity(string keyId)
+        {
+            if (string.IsNullOrWhiteSpace(keyId) || !Uri.TryCreate(keyId, UriKind.Absolute, out var keyUri))
+            {
+                return null;
+            }
+
+            if (string.IsNullOrEmpty(keyUri.Fragment))
+            {
+                return keyUri.GetLeftPart(UriPartial.Path);
+            }
+
+            return keyUri.GetLeftPart(UriPartial.Path);
+        }
+
         private bool IsApprovedKeyHost(string keyId)
         {
             if (string.IsNullOrWhiteSpace(keyId) ||
@@ -602,7 +626,7 @@ namespace slskd.SocialFederation.API
                 var n = names[i].ToLowerInvariant();
                 var v = n switch
                 {
-                    "(request-target)" => $"(request-target): post {Request.Path}",
+                    "(request-target)" => $"(request-target): {Request.Method.ToLowerInvariant()} {Request.Path}{Request.QueryString}",
                     "host" => "host: " + Request.Host.Value,
                     "date" => "date: " + Request.Headers["Date"].FirstOrDefault(),
                     "digest" => "digest: " + Request.Headers["Digest"].FirstOrDefault(),
