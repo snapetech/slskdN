@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- ActivityPub inbox writes now reject oversized JSON and transactionally enforce
+  30-day, 1,000-entry, and 64 MiB per-actor retention limits.
 - Warm-cache hint submissions are capped at 100 bounded identifiers, processed
   through four workers and a bounded channel, and protected by a caller-aware
   request rate partition.

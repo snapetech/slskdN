@@ -52,6 +52,31 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z511. Federation Inbox Retention Belongs In The Write Transaction
+
+**The Bug**: Signed ActivityPub deliveries were persisted indefinitely with no
+age, count, or byte cap, allowing durable SQLite growth until disk exhaustion.
+
+**Files Affected**:
+- `src/slskd/SocialFederation/ActivityPubInboxStore.cs`
+
+**Wrong**:
+```csharp
+await insert.ExecuteNonQueryAsync(cancellationToken);
+```
+
+**Correct**:
+```csharp
+await insert.ExecuteNonQueryAsync(cancellationToken);
+await PruneActorAsync(connection, transaction, actorName, cancellationToken);
+transaction.Commit();
+```
+
+**Why This Keeps Happening**: Request-size limits bound one activity but not
+durable cardinality. Inbox writes must reject oversized payloads and enforce
+per-actor age, record-count, and encoded-byte retention in the same transaction
+so cleanup cannot be skipped after a successful insert.
+
 ### 0z510. Controller Tests Using `StatusCodes` Need The HTTP Namespace
 
 **The Bug**: A warm-cache controller regression test referenced

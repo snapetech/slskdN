@@ -3,8 +3,10 @@
 // </copyright>
 namespace slskd.SocialFederation;
 
+using System.Text;
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
+using slskd.Mesh.Transport;
 
 public interface IActivityPubInboxStore
 {
@@ -27,26 +29,58 @@ public sealed class ActivityPubInboxEntry
 
 public sealed class ActivityPubInboxStore : IActivityPubInboxStore
 {
+    private const int DefaultMaxEntriesPerActor = 1000;
+    private const long DefaultMaxBytesPerActor = 64L * 1024 * 1024;
+    private static readonly TimeSpan DefaultRetention = TimeSpan.FromDays(30);
+
     private readonly string _dbPath;
     private readonly ILogger<ActivityPubInboxStore> _logger;
+    private readonly int _maxEntriesPerActor;
+    private readonly long _maxBytesPerActor;
+    private readonly TimeSpan _retention;
 
     public ActivityPubInboxStore(ILogger<ActivityPubInboxStore> logger)
+        : this(
+            logger,
+            Path.Combine(Program.AppDirectory, "social-federation-inbox.db"),
+            DefaultMaxEntriesPerActor,
+            DefaultMaxBytesPerActor,
+            DefaultRetention)
+    {
+    }
+
+    internal ActivityPubInboxStore(
+        ILogger<ActivityPubInboxStore> logger,
+        string dbPath,
+        int maxEntriesPerActor,
+        long maxBytesPerActor,
+        TimeSpan retention)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _dbPath = Path.Combine(Program.AppDirectory, "social-federation-inbox.db");
+        _dbPath = dbPath;
+        _maxEntriesPerActor = Math.Max(1, maxEntriesPerActor);
+        _maxBytesPerActor = Math.Max(1, maxBytesPerActor);
+        _retention = retention > TimeSpan.Zero ? retention : DefaultRetention;
         InitializeDatabase();
     }
 
     public async Task StoreAsync(string actorName, ActivityPubActivity activity, string rawJson, CancellationToken cancellationToken = default)
     {
+        if (Encoding.UTF8.GetByteCount(rawJson) > SecurityUtils.MaxRemotePayloadSize)
+        {
+            throw new ArgumentException("ActivityPub inbox activity exceeds the maximum payload size", nameof(rawJson));
+        }
+
         var activityId = string.IsNullOrWhiteSpace(activity.Id) ? Ulid.NewUlid().ToString() : activity.Id;
         var remoteActor = activity.Actor?.ToString() ?? string.Empty;
         var publishedAt = activity.Published?.ToUnixTimeSeconds();
 
         using var connection = new SqliteConnection($"Data Source={_dbPath}");
         await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        using var transaction = connection.BeginTransaction();
 
         using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = @"
             INSERT INTO InboundActivities (
                 ActorName,
@@ -83,6 +117,50 @@ public sealed class ActivityPubInboxStore : IActivityPubInboxStore
         command.Parameters.AddWithValue("@receivedAt", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
         command.Parameters.AddWithValue("@rawJson", rawJson);
 
+        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        await PruneActorAsync(connection, transaction, actorName, cancellationToken).ConfigureAwait(false);
+        transaction.Commit();
+    }
+
+    private async Task PruneActorAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        string actorName,
+        CancellationToken cancellationToken)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = @"
+            DELETE FROM InboundActivities
+            WHERE ActorName = @actorName
+              AND ReceivedAt < @retentionCutoff;
+
+            DELETE FROM InboundActivities
+            WHERE rowid IN (
+                SELECT rowid
+                FROM InboundActivities
+                WHERE ActorName = @actorName
+                ORDER BY ReceivedAt DESC, rowid DESC
+                LIMIT -1 OFFSET @maxEntries
+            );
+
+            WITH Ranked AS (
+                SELECT
+                    rowid,
+                    SUM(LENGTH(CAST(RawJson AS BLOB))) OVER (
+                        ORDER BY ReceivedAt DESC, rowid DESC
+                    ) AS CumulativeBytes
+                FROM InboundActivities
+                WHERE ActorName = @actorName
+            )
+            DELETE FROM InboundActivities
+            WHERE rowid IN (
+                SELECT rowid FROM Ranked WHERE CumulativeBytes > @maxBytes
+            );";
+        command.Parameters.AddWithValue("@actorName", actorName);
+        command.Parameters.AddWithValue("@retentionCutoff", DateTimeOffset.UtcNow.Subtract(_retention).ToUnixTimeSeconds());
+        command.Parameters.AddWithValue("@maxEntries", _maxEntriesPerActor);
+        command.Parameters.AddWithValue("@maxBytes", _maxBytesPerActor);
         await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
