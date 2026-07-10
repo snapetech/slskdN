@@ -297,6 +297,15 @@
 #     working_directory: ""       # Optional working directory for the launcher
 #     arguments: []               # Optional argument list passed as separate process arguments
 # virtualSoulfind:
+#   bridge:
+#     enabled: false              # Opt in to the legacy Soulfind protocol bridge.
+#     bindAddress: 127.0.0.1      # Loopback by default. Non-loopback requires auth and a password.
+#     port: 2242
+#     maxClients: 10
+#     requireAuth: true           # Secure default. Set a strong password before enabling.
+#     password: ""
+#     maxRequestsPerMinute: 60    # Per connected client.
+#     maxTransfersPerSession: 10 # Total downloads initiated by one connection.
 #   disasterMode:
 #     auto: false                 # Legacy auto-fallback. Opt-in only. Default behavior is Soulseek + mesh together.
 #     force: false                # Force legacy fallback for testing only.

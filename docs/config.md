@@ -1492,3 +1492,11 @@ The application can be run in "command mode", causing it to execute a command an
 | `-e\|--envars`                   | Display available environment variables             |
 | `-g\|--generate-cert`            | Generate an X509 certificate and password for HTTPS |
 | `-k\|--generate-secret <length>` | Generate a random secret of the specified length    |
+
+### Legacy Virtual Soulfind bridge
+
+The optional `virtualSoulfind.bridge` listener binds to `127.0.0.1` and requires
+authentication by default. Set `bindAddress` to a non-loopback IP only when
+`requireAuth` is `true` and `password` contains a strong secret; insecure
+non-loopback configurations are rejected at startup. `maxRequestsPerMinute`
+and `maxTransfersPerSession` bound work initiated by each legacy connection.

@@ -100,6 +100,29 @@ public class OptionsControllerTests
     }
 
     [Fact]
+    public void Current_RedactsLegacyBridgePassword()
+    {
+        const string password = "EXAMPLE_BRIDGE_PASSWORD";
+        var options = new slskd.Options
+        {
+            VirtualSoulfind = new slskd.Core.VirtualSoulfindOptions
+            {
+                Bridge = new slskd.VirtualSoulfind.Bridge.BridgeOptions
+                {
+                    Password = password,
+                },
+            },
+        };
+        var controller = CreateController(options);
+
+        var result = Assert.IsType<OkObjectResult>(controller.Current());
+        var redacted = Assert.IsType<slskd.Options>(result.Value);
+
+        Assert.Equal("*****", redacted.VirtualSoulfind?.Bridge?.Password);
+        Assert.Equal(password, options.VirtualSoulfind.Bridge?.Password);
+    }
+
+    [Fact]
     public void ApplyOverlay_WithNullBody_ReturnsBadRequest()
     {
         var controller = CreateController();

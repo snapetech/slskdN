@@ -75,13 +75,15 @@ public class BridgeProxyServer : BackgroundService
         var maxClients = options.VirtualSoulfind.Bridge.MaxClients > 0
             ? options.VirtualSoulfind.Bridge.MaxClients
             : 10;
+        var bindAddress = ResolveListenerAddress(options.VirtualSoulfind.Bridge);
+        ValidateSecurityConfiguration(options.VirtualSoulfind.Bridge, bindAddress);
 
-        logger.LogInformation("[VSF-BRIDGE-PROXY] Starting bridge proxy server on port {Port} (max {MaxClients} clients)",
-            port, maxClients);
+        logger.LogInformation("[VSF-BRIDGE-PROXY] Starting bridge proxy server on {BindAddress}:{Port} (max {MaxClients} clients)",
+            bindAddress, port, maxClients);
 
         try
         {
-            listener = new TcpListener(IPAddress.Any, port);
+            listener = new TcpListener(bindAddress, port);
             listener.Start();
 
             logger.LogInformation("[VSF-BRIDGE-PROXY] Bridge proxy server listening on port {Port}", port);
@@ -192,6 +194,13 @@ public class BridgeProxyServer : BackgroundService
                     }
 
                     // Route to appropriate handler
+                    if (!TryConsumeRequestQuota(session, optionsMonitor.CurrentValue.VirtualSoulfind?.Bridge))
+                    {
+                        logger.LogWarning("[VSF-BRIDGE-PROXY] Request quota exceeded for {ClientId}", session.ClientId);
+                        await SendErrorResponseAsync(stream, "Request quota exceeded", ct);
+                        break;
+                    }
+
                     session.RequestCount++;
                     switch (message.Type)
                     {
@@ -318,7 +327,7 @@ public class BridgeProxyServer : BackgroundService
                     return false;
                 }
 
-                if (loginRequest.Password != configuredPassword)
+                if (!FixedTimeEquals(loginRequest.Password, configuredPassword))
                 {
                     logger.LogWarning("[VSF-BRIDGE-PROXY] Authentication failed for {Username} from {ClientId}",
                         loginRequest.Username, session.ClientId);
@@ -438,6 +447,20 @@ public class BridgeProxyServer : BackgroundService
 
         try
         {
+            var bridgeOptions = optionsMonitor.CurrentValue.VirtualSoulfind?.Bridge;
+            var maxTransfers = Math.Max(1, bridgeOptions?.MaxTransfersPerSession ?? 10);
+            if (session.ActiveTransferId != null)
+            {
+                await SendDownloadFailureAsync(stream, downloadRequest.Token, "A download is already active", ct);
+                return;
+            }
+
+            if (session.TransferCount >= maxTransfers)
+            {
+                await SendDownloadFailureAsync(stream, downloadRequest.Token, "Transfer quota exceeded", ct);
+                return;
+            }
+
             // Call bridge API to start download
             var transferId = await bridgeApi.DownloadAsync(
                 downloadRequest.Username,
@@ -450,6 +473,7 @@ public class BridgeProxyServer : BackgroundService
             clientIdToProxyId[session.ClientId] = proxyId;
             session.ActiveTransferId = transferId;
             session.ActiveProxyId = proxyId;
+            session.TransferCount++;
 
             // Send download response (accept)
             // Format: [success: bool] [transfer_id: string] [token: int32]
@@ -657,6 +681,88 @@ public class BridgeProxyServer : BackgroundService
         {
             logger.LogError(ex, "[VSF-BRIDGE-PROXY] Error in progress update loop for {ClientId}", session.ClientId);
         }
+        finally
+        {
+            var proxyId = session.ActiveProxyId;
+            session.ActiveProxyId = null;
+            session.ActiveTransferId = null;
+            if (proxyId != null)
+            {
+                clientIdToProxyId.TryRemove(session.ClientId, out _);
+                await progressProxy.StopProxyAsync(proxyId, CancellationToken.None);
+            }
+        }
+    }
+
+    internal static IPAddress ResolveListenerAddress(BridgeOptions options)
+    {
+        if (!IPAddress.TryParse(options.BindAddress?.Trim(), out var address))
+        {
+            throw new InvalidOperationException("VirtualSoulfind bridge bindAddress must be an IP address");
+        }
+
+        return address;
+    }
+
+    internal static void ValidateSecurityConfiguration(BridgeOptions options, IPAddress bindAddress)
+    {
+        if (options.RequireAuth && string.IsNullOrWhiteSpace(options.Password))
+        {
+            throw new InvalidOperationException("VirtualSoulfind bridge authentication requires a password");
+        }
+
+        if (!IPAddress.IsLoopback(bindAddress) && (!options.RequireAuth || string.IsNullOrWhiteSpace(options.Password)))
+        {
+            throw new InvalidOperationException("VirtualSoulfind bridge non-loopback binding requires authentication and a password");
+        }
+    }
+
+    internal static bool TryConsumeRequestQuota(ClientSession session, BridgeOptions? options)
+    {
+        var now = DateTimeOffset.UtcNow;
+        if (now - session.RequestWindowStartedAt >= TimeSpan.FromMinutes(1))
+        {
+            session.RequestWindowStartedAt = now;
+            session.RequestsInWindow = 0;
+        }
+
+        var limit = Math.Max(1, options?.MaxRequestsPerMinute ?? 60);
+        if (session.RequestsInWindow >= limit)
+        {
+            return false;
+        }
+
+        session.RequestsInWindow++;
+        return true;
+    }
+
+    private async Task SendDownloadFailureAsync(NetworkStream stream, int token, string message, CancellationToken ct)
+    {
+        using var errorStream = new MemoryStream();
+        using var writer = new BinaryWriter(errorStream);
+        writer.Write(false);
+        var errorBytes = Encoding.UTF8.GetBytes(message);
+        writer.Write(errorBytes.Length);
+        writer.Write(errorBytes);
+        writer.Write(token);
+        await protocolParser.WriteMessageAsync(
+            stream,
+            SoulseekProtocolParser.MessageType.DownloadResponse,
+            errorStream.ToArray(),
+            ct);
+    }
+
+    private static bool FixedTimeEquals(string provided, string configured)
+    {
+        var providedBytes = Encoding.UTF8.GetBytes(provided ?? string.Empty);
+        var configuredBytes = Encoding.UTF8.GetBytes(configured ?? string.Empty);
+        var length = Math.Max(providedBytes.Length, configuredBytes.Length);
+        var providedPadded = new byte[length];
+        var configuredPadded = new byte[length];
+        providedBytes.CopyTo(providedPadded, 0);
+        configuredBytes.CopyTo(configuredPadded, 0);
+        return providedBytes.Length == configuredBytes.Length
+            && CryptographicOperations.FixedTimeEquals(providedPadded, configuredPadded);
     }
 
     /// <summary>
@@ -693,7 +799,7 @@ public class BridgeProxyServer : BackgroundService
         return $"protocol-token:{Convert.ToHexString(digest.AsSpan(0, 6)).ToLowerInvariant()}";
     }
 
-    private class ClientSession
+    internal class ClientSession
     {
         public string ClientId { get; set; } = string.Empty;
         public TcpClient TcpClient { get; set; } = null!;
@@ -701,6 +807,9 @@ public class BridgeProxyServer : BackgroundService
         public bool IsAuthenticated { get; set; }
         public DateTimeOffset ConnectedAt { get; set; }
         public int RequestCount { get; set; }
+        public int RequestsInWindow { get; set; }
+        public DateTimeOffset RequestWindowStartedAt { get; set; } = DateTimeOffset.UtcNow;
+        public int TransferCount { get; set; }
         public string? ActiveTransferId { get; set; }
         public string? ActiveProxyId { get; set; }
     }

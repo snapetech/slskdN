@@ -52,6 +52,34 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z508. Optional Protocol Bridges Must Default To Loopback And Auth
+
+**The Bug**: Enabling the legacy bridge bound its unauthenticated protocol
+listener to every interface, exposing mesh search and download initiation to
+any reachable client.
+
+**Files Affected**:
+- `src/slskd/VirtualSoulfind/Bridge/Proxy/BridgeProxyServer.cs`
+- `src/slskd/VirtualSoulfind/Bridge/SoulfindBridgeService.cs`
+
+**Wrong**:
+```csharp
+listener = new TcpListener(IPAddress.Any, port);
+public bool RequireAuth { get; set; } = false;
+```
+
+**Correct**:
+```csharp
+listener = new TcpListener(IPAddress.Parse(options.BindAddress), port);
+public string BindAddress { get; set; } = "127.0.0.1";
+public bool RequireAuth { get; set; } = true;
+```
+
+**Why This Keeps Happening**: Feature opt-in is not a network trust boundary.
+Protocol listeners need a loopback default, fail-closed validation before any
+non-loopback bind, secret redaction, constant-time credential comparison, and
+per-client request and transfer budgets.
+
 ### 0z507. Scoped API Keys Must Deny Unmapped Endpoints
 
 **The Bug**: Scope checks ran only on actions carrying `[RequireScope]`, so a

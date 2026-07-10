@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- The optional legacy bridge now binds to loopback and requires authentication
+  by default, rejects insecure non-loopback configuration, redacts its password,
+  compares credentials in constant time, and enforces per-client request and
+  transfer quotas.
 - Non-wildcard scoped API keys now fail closed on endpoints without an explicit
   `[RequireScope]` mapping; wildcard keys and administrator JWTs remain
   universal.

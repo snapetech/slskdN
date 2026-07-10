@@ -228,6 +228,11 @@ public class BridgeOptions
     public int Port { get; set; } = 2242;
 
     /// <summary>
+    /// IP address on which the bridge listens. Loopback is the secure default.
+    /// </summary>
+    public string BindAddress { get; set; } = "127.0.0.1";
+
+    /// <summary>
     /// Maximum concurrent legacy clients.
     /// </summary>
     public int MaxClients { get; set; } = 10;
@@ -235,10 +240,21 @@ public class BridgeOptions
     /// <summary>
     /// Require authentication for bridge connections.
     /// </summary>
-    public bool RequireAuth { get; set; } = false;
+    public bool RequireAuth { get; set; } = true;
 
     /// <summary>
     /// Bridge authentication password (required if RequireAuth is true).
     /// </summary>
+    [Secret]
     public string? Password { get; set; }
+
+    /// <summary>
+    /// Maximum protocol requests accepted from one client per minute.
+    /// </summary>
+    public int MaxRequestsPerMinute { get; set; } = 60;
+
+    /// <summary>
+    /// Maximum downloads initiated during one client session.
+    /// </summary>
+    public int MaxTransfersPerSession { get; set; } = 10;
 }
