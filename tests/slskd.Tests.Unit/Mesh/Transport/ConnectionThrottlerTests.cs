@@ -6,12 +6,27 @@ using Moq;
 using slskd.Mesh;
 using slskd.Mesh.Transport;
 using Xunit;
+using System.Net;
 using MeshRateLimiter = slskd.Mesh.Transport.RateLimiter;
 
 namespace slskd.Tests.Unit.Mesh.Transport;
 
 public class ConnectionThrottlerTests
 {
+    [Fact]
+    public void ShouldAllowInboundDatagram_AggregatesSpoofablePortsAndAddressesByPrefix()
+    {
+        for (var index = 0; index < 120; index++)
+        {
+            var endpoint = new IPEndPoint(IPAddress.Parse($"198.51.100.{(index % 254) + 1}"), 10000 + index);
+            Assert.True(_throttler.ShouldAllowInboundDatagram(endpoint));
+        }
+
+        Assert.False(_throttler.ShouldAllowInboundDatagram(
+            new IPEndPoint(IPAddress.Parse("198.51.100.250"), 65535)));
+        Assert.Equal(1, _rateLimiter.GetStatistics().ActiveBuckets);
+    }
+
     private readonly Mock<ILogger<ConnectionThrottler>> _loggerMock;
     private readonly MeshRateLimiter _rateLimiter;
     private readonly ConnectionThrottler _throttler;

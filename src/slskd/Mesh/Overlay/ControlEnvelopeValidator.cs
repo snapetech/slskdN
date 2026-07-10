@@ -62,14 +62,6 @@ public class ControlEnvelopeValidator : IControlEnvelopeValidator
             return EnvelopeValidationResult.Failure("Envelope is null");
         }
 
-        // Check envelope processing throttling
-        if (!_connectionThrottler.ShouldAllowEnvelopeProcessing(peerId, envelope.Type))
-        {
-            _logger.LogWarning("[ControlEnvelopeValidator] Envelope processing blocked by rate limiting for peer {PeerId}, type {Type}",
-                peerId, envelope.Type);
-            return EnvelopeValidationResult.Failure($"Rate limit exceeded for envelope type {envelope.Type}");
-        }
-
         if (peerDescriptor == null)
         {
             return EnvelopeValidationResult.Failure("Peer descriptor is null");
@@ -92,6 +84,14 @@ public class ControlEnvelopeValidator : IControlEnvelopeValidator
         if (!signatureValid)
         {
             return EnvelopeValidationResult.Failure("Envelope signature verification failed");
+        }
+
+        // The signature authenticates peerId; only now is it safe to allocate/use a peer-specific bucket.
+        if (!_connectionThrottler.ShouldAllowEnvelopeProcessing(peerId, envelope.Type))
+        {
+            _logger.LogWarning("[ControlEnvelopeValidator] Envelope processing blocked by rate limiting for peer {PeerId}, type {Type}",
+                peerId, envelope.Type);
+            return EnvelopeValidationResult.Failure($"Rate limit exceeded for envelope type {envelope.Type}");
         }
 
         // 4. Atomically check and record in replay cache to prevent TOCTOU races

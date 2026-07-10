@@ -3,6 +3,8 @@
 // </copyright>
 namespace slskd.Mesh.Transport;
 
+using System.Net;
+
 /// <summary>
 /// Throttles connection attempts to prevent DoS attacks and resource exhaustion.
 /// </summary>
@@ -101,6 +103,29 @@ public class ConnectionThrottler
         }
 
         return true;
+    }
+
+    public bool ShouldAllowInboundDatagram(IPEndPoint remoteEndpoint)
+    {
+        const int capacity = 120;
+        const double refillRate = 2.0;
+        var prefix = GetNetworkPrefix(remoteEndpoint.Address);
+        var key = $"inbound-dgram-prefix-{prefix}";
+        if (!_rateLimiter.TryConsume(key, 1, capacity, refillRate))
+        {
+            _logger.LogWarning("[ConnectionThrottler] Inbound datagram rate limit exceeded for network prefix {Prefix}", prefix);
+            return false;
+        }
+
+        return true;
+    }
+
+    private static string GetNetworkPrefix(IPAddress address)
+    {
+        var normalized = address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address;
+        var bytes = normalized.GetAddressBytes();
+        var prefixLength = bytes.Length == 4 ? 3 : 8;
+        return Convert.ToHexString(bytes.AsSpan(0, prefixLength));
     }
 
     /// <summary>

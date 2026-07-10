@@ -130,4 +130,16 @@ public class RateLimiterTests : IDisposable
         Assert.Equal(2, stats.TotalTokensConsumed);
         Assert.Equal(0, stats.TotalRequestsBlocked);
     }
+
+    [Fact]
+    public void TryConsume_WhenBucketCapacityIsReached_RejectsNewIdentity()
+    {
+        for (var index = 0; index < 4096; index++)
+        {
+            Assert.True(_rateLimiter.TryConsume($"attacker-{index}"));
+        }
+
+        Assert.False(_rateLimiter.TryConsume("attacker-overflow"));
+        Assert.Equal(4096, _rateLimiter.GetStatistics().ActiveBuckets);
+    }
 }

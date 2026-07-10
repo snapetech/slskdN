@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Pre-validation UDP limits now aggregate spoofable endpoints by IPv4 /24 or
+  IPv6 /64, cap and expire buckets, and switch to peer IDs only after signature validation.
 - Mesh rate-limit, work-budget, and discovery identity caches now expire and
   cap entries, while unauthenticated claimed peer IDs share one admission bucket.
 - Remote DHT writes now bind signatures to authenticated self-certifying peers,

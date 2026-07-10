@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z537. Pre-Validation UDP Limits Must Not Key By IP And Port
+
+**The Bug**: Each UDP datagram allocated a permanent token bucket keyed by its
+spoofable `IP:port`. Attackers could rotate source ports or addresses to bypass
+limits and grow the bucket dictionary without bound; claimed peer IDs were also
+bucketed before envelope signature verification.
+
+**Files Affected**:
+- `src/slskd/Mesh/Overlay/UdpOverlayServer.cs`
+- `src/slskd/Mesh/Transport/ConnectionThrottler.cs`
+- `src/slskd/Mesh/Transport/RateLimiter.cs`
+- `src/slskd/Mesh/Overlay/ControlEnvelopeValidator.cs`
+
+**Prevention**: Before address/identity validation, aggregate IPv4 traffic by
+/24 and IPv6 traffic by /64 without source ports, expire inactive buckets, and
+hard-cap total bucket cardinality. Create peer-specific buckets only after the
+envelope signature validates against that peer's trusted descriptor key.
+
 ### 0z536. Resetting Windows Without Removing Keys Still Leaks Identities
 
 **The Bug**: Mesh service rate-limit, work-budget, and discovery dictionaries

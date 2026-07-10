@@ -96,7 +96,7 @@ public class UdpOverlayServer : BackgroundService
                 try
                 {
                     var result = await udp.ReceiveAsync(stoppingToken);
-                    if (!connectionThrottler.ShouldAllowInboundDatagram(result.RemoteEndPoint?.ToString() ?? "unknown"))
+                    if (!connectionThrottler.ShouldAllowInboundDatagram(result.RemoteEndPoint))
                         continue;
                     if (result.Buffer.Length > maxRemotePayload)
                     {

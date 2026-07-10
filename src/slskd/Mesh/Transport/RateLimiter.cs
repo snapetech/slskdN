@@ -12,6 +12,7 @@ public class RateLimiter
 {
     private readonly ConcurrentDictionary<string, TokenBucket> _buckets = new();
     private readonly ILogger<RateLimiter> _logger;
+    private const int MaxBuckets = 4096;
 
     public RateLimiter(ILogger<RateLimiter> logger)
     {
@@ -28,6 +29,16 @@ public class RateLimiter
     /// <returns>True if tokens were successfully consumed.</returns>
     public bool TryConsume(string bucketKey, int tokens = 1, int capacity = 100, double refillRate = 10.0)
     {
+        if (_buckets.Count >= MaxBuckets && !_buckets.ContainsKey(bucketKey))
+        {
+            CleanupExpiredBuckets(TimeSpan.FromMinutes(10));
+            if (_buckets.Count >= MaxBuckets)
+            {
+                _logger.LogWarning("Rate limiter bucket capacity reached");
+                return false;
+            }
+        }
+
         var bucket = _buckets.GetOrAdd(bucketKey, _ => new TokenBucket(capacity, refillRate));
         var success = bucket.TryConsume(tokens);
 
