@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Stored ActivityPub inbox contents are now restricted to administrators while
+  signed remote inbox delivery remains publicly reachable as required by the
+  federation protocol.
 - Generated TLS certificate bundles are now written through mode-restricted,
   flushed sibling files and atomically renamed, so private key material is
   never created with a transient umask-derived permission window.

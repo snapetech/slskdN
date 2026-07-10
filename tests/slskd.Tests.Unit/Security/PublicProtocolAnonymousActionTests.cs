@@ -57,9 +57,10 @@ public class PublicProtocolAnonymousActionTests
             nameof(ActivityPubController.GetActor),
             nameof(ActivityPubController.GetFollowers),
             nameof(ActivityPubController.GetFollowing),
-            nameof(ActivityPubController.GetInbox),
             nameof(ActivityPubController.PostToInbox),
             nameof(ActivityPubController.GetOutbox));
+
+        AssertAdministratorAction(typeof(ActivityPubController), nameof(ActivityPubController.GetInbox));
 
         AssertControllerRequiresAuthenticationByDefault(typeof(WebFingerController));
         AssertAnonymousActions(
@@ -101,5 +102,19 @@ public class PublicProtocolAnonymousActionTests
             .ToArray();
 
         Assert.Equal(expected, actualAnonymousActionNames);
+    }
+
+    private static void AssertAdministratorAction(Type controllerType, string actionName)
+    {
+        var action = controllerType.GetMethod(actionName, BindingFlags.Instance | BindingFlags.Public)
+            ?? throw new InvalidOperationException($"{controllerType.Name}.{actionName} was not found.");
+        var authorize = action
+            .GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
+            .Cast<AuthorizeAttribute>()
+            .Single();
+
+        Assert.Equal(AuthPolicy.Any, authorize.Policy);
+        Assert.Equal(AuthRole.AdministratorOnly, authorize.Roles);
+        Assert.Empty(action.GetCustomAttributes(typeof(AllowAnonymousAttribute), inherit: true));
     }
 }

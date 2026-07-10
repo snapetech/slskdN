@@ -52,6 +52,33 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z499. ActivityPub Delivery Does Not Make Inbox Contents Public
+
+**The Bug**: The ActivityPub inbox GET action carried `[AllowAnonymous]` like
+the protocol-required inbox POST action and returned the raw JSON of received
+activities to unauthenticated callers.
+
+**Files Affected**:
+- `src/slskd/SocialFederation/API/ActivityPubController.cs`
+- `tests/slskd.Tests.Unit/Security/PublicProtocolAnonymousActionTests.cs`
+
+**Wrong**:
+```csharp
+[HttpGet("{actorName}/inbox")]
+[AllowAnonymous]
+```
+
+**Correct**:
+```csharp
+[HttpGet("{actorName}/inbox")]
+[Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
+```
+
+**Why This Keeps Happening**: ActivityPub requires remote servers to deliver
+signed activities to a public POST endpoint, but it does not require received
+inbox contents to be anonymously readable. Tests must distinguish discovery
+and delivery actions from local diagnostic or stored-content reads.
+
 ### 0z498. Secret Files Need Restrictive Mode At Creation
 
 **The Bug**: Generated TLS PKCS#12 files and their atomic-writer temporary

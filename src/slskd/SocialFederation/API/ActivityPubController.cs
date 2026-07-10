@@ -150,7 +150,7 @@ namespace slskd.SocialFederation.API
         ///     Returns ActivityPub OrderedCollection of received activities.
         /// </remarks>
         [HttpGet("{actorName}/inbox")]
-        [AllowAnonymous]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
         [Produces("application/activity+json")]
         public async Task<IActionResult> GetInbox(
             string actorName,
