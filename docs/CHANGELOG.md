@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Path containment now resolves existing symbolic-link components, and relay,
+  mesh, and multi-source output files use no-follow, directory-handle-relative
+  opens on Linux so symlinks cannot escape approved roots or win path-swap races.
 - Pod APIs now derive peer identity from authenticated web claims, require
   active pod membership for private reads, require owner/moderator membership
   for mutations, bind signed/sent records to that identity, and reserve

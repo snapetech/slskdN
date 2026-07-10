@@ -2974,14 +2974,11 @@ public sealed class SongIdService : ISongIdService
 
         var metadataDirectory = Path.GetDirectoryName(metadataPath) ?? string.Empty;
         var metadataRoot = Path.GetFullPath(metadataDirectory);
-        var relativeToMetadata = Path.GetFullPath(Path.Combine(metadataRoot, fingerprintPath));
-        if (!relativeToMetadata.StartsWith(metadataRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(relativeToMetadata, metadataRoot, StringComparison.OrdinalIgnoreCase))
-        {
-            return null;
-        }
+        var relativeToMetadata = PathGuard.NormalizeAbsolutePathWithinRoots(
+            Path.GetFullPath(Path.Combine(metadataRoot, fingerprintPath)),
+            new[] { metadataRoot });
 
-        return File.Exists(relativeToMetadata) ? relativeToMetadata : null;
+        return relativeToMetadata is not null && File.Exists(relativeToMetadata) ? relativeToMetadata : null;
     }
 
     private async Task RegisterCorpusEntryAsync(SongIdRun run, CancellationToken cancellationToken)
@@ -3955,7 +3952,6 @@ public sealed class SongIdService : ISongIdService
 
     private bool IsAllowedLocalAnalysisFile(string source)
     {
-        var fullPath = Path.GetFullPath(source);
         var options = _optionsMonitor.CurrentValue;
         var allowedRoots = new List<string>
         {
@@ -3964,24 +3960,13 @@ public sealed class SongIdService : ISongIdService
         };
 
         allowedRoots.AddRange(options.Shares.Directories.Select(GetSharePath));
-        return allowedRoots
-            .Where(root => !string.IsNullOrWhiteSpace(root))
-            .Select(Path.GetFullPath)
-            .Any(root => IsPathUnderRoot(fullPath, root));
+        return PathGuard.NormalizeAbsolutePathWithinRoots(source, allowedRoots) is not null;
     }
 
     private static string GetSharePath(string share)
     {
         var match = Regex.Match(share, @"^(!|-){0,1}\[(.*)\](.*)$");
         return match.Success ? match.Groups[3].Value : share;
-    }
-
-    private static bool IsPathUnderRoot(string path, string root)
-    {
-        var normalizedRoot = Path.TrimEndingDirectorySeparator(root);
-        return path.Equals(normalizedRoot, StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith(normalizedRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith(normalizedRoot + Path.AltDirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string BuildBestQuery(params string?[] parts)

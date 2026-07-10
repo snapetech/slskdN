@@ -690,10 +690,7 @@ namespace slskd.Relay
 
                                 using var remoteStream = await response.Content.ReadAsStreamAsync();
 
-                                var destinationDirectory = Path.GetDirectoryName(destinationFile)
-                                    ?? throw new IOException($"Failed to determine destination directory for download {destinationFile}");
-                                Directory.CreateDirectory(destinationDirectory);
-                                using var localStream = new FileStream(destinationFile, FileMode.Create);
+                                using var localStream = SecureFileWriter.Open(destinationFile, downloadsDirectory);
                                 await CopyWithLimitAsync(remoteStream, localStream, MaxRelayDownloadBytes);
                             },
                             isRetryable: (_, _) => true,

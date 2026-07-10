@@ -232,4 +232,85 @@ public class PathGuardTests
 
         Assert.Null(result);
     }
+
+    [Fact]
+    public void NormalizeAbsolutePathWithinRoots_RejectsDirectorySymlinkEscape()
+    {
+        using var temp = new TemporaryDirectory();
+        var root = Path.Combine(temp.Path, "root");
+        var outside = Path.Combine(temp.Path, "outside");
+        Directory.CreateDirectory(root);
+        Directory.CreateDirectory(outside);
+        Directory.CreateSymbolicLink(Path.Combine(root, "escape"), outside);
+
+        var result = PathGuard.NormalizeAbsolutePathWithinRoots(
+            Path.Combine(root, "escape", "payload.bin"),
+            new[] { root });
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void SecureFileWriter_CreatesNestedFileWithoutFollowingLinks()
+    {
+        using var temp = new TemporaryDirectory();
+        var root = Path.Combine(temp.Path, "root");
+        Directory.CreateDirectory(root);
+        var output = Path.Combine(root, "nested", "payload.bin");
+
+        using (var stream = SecureFileWriter.Open(output, root))
+        {
+            stream.WriteByte(42);
+        }
+
+        Assert.Equal(new byte[] { 42 }, File.ReadAllBytes(output));
+    }
+
+    [Fact]
+    public void SecureFileWriter_RejectsFinalSymlink()
+    {
+        using var temp = new TemporaryDirectory();
+        var root = Path.Combine(temp.Path, "root");
+        var outside = Path.Combine(temp.Path, "outside.bin");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(outside, "unchanged");
+        var output = Path.Combine(root, "payload.bin");
+        File.CreateSymbolicLink(output, outside);
+
+        Assert.Throws<UnauthorizedAccessException>(() => SecureFileWriter.Open(output, root));
+        Assert.Equal("unchanged", File.ReadAllText(outside));
+    }
+
+    [Fact]
+    public void NormalizeAbsolutePathWithinRoots_UsesPlatformCaseSemantics()
+    {
+        using var temp = new TemporaryDirectory();
+        var root = Path.Combine(temp.Path, "Approved");
+        var differentCaseSibling = Path.Combine(temp.Path, "approved", "payload.bin");
+        Directory.CreateDirectory(root);
+
+        var result = PathGuard.NormalizeAbsolutePathWithinRoots(differentCaseSibling, new[] { root });
+
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.NotNull(result);
+        }
+        else
+        {
+            Assert.Null(result);
+        }
+    }
+
+    private sealed class TemporaryDirectory : IDisposable
+    {
+        public TemporaryDirectory()
+        {
+            Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"slskdn-path-guard-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(Path);
+        }
+
+        public string Path { get; }
+
+        public void Dispose() => Directory.Delete(Path, recursive: true);
+    }
 }

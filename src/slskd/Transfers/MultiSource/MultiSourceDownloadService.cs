@@ -1531,7 +1531,9 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             // Soulseek requires size when startOffset > 0
             // We use a limited stream that cancels after receiving our chunk
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            using var fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write);
+            var outputRoot = GetAllowedOutputRoot(outputPath)
+                ?? throw new InvalidOperationException("Chunk output path is outside allowed roots");
+            using var fileStream = SecureFileWriter.Open(outputPath, outputRoot);
             var limitedStream = new LimitedWriteStream(fileStream, chunkSize, cts);
 
             // Timing metrics
@@ -1746,13 +1748,9 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             throw new InvalidOperationException("Output path is outside allowed download or temporary directories");
         }
 
-        var outputDir = IOPath.GetDirectoryName(outputPath);
-        if (!string.IsNullOrEmpty(outputDir))
-        {
-            IODirectory.CreateDirectory(outputDir);
-        }
-
-        using var outputStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write);
+        var outputRoot = GetAllowedOutputRoot(outputPath)
+            ?? throw new InvalidOperationException("Output path is outside allowed roots");
+        using var outputStream = SecureFileWriter.Open(outputPath, outputRoot);
 
         for (int i = 0; i < chunkCount; i++)
         {
@@ -1783,7 +1781,8 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
 
         try
         {
-            return PathGuard.NormalizeAbsolutePathWithinRoots(IOPath.GetFullPath(outputPath), roots) != null;
+            return roots.Any(root =>
+                PathGuard.NormalizeAbsolutePathWithinRoots(IOPath.GetFullPath(outputPath), new[] { root }) != null);
         }
         catch (ArgumentException)
         {
@@ -1793,6 +1792,24 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         {
             return false;
         }
+    }
+
+    private string? GetAllowedOutputRoot(string outputPath)
+    {
+        var roots = new List<string> { IOPath.GetTempPath() };
+        var options = optionsMonitor?.CurrentValue;
+        if (!string.IsNullOrWhiteSpace(options?.Directories.Downloads))
+        {
+            roots.Add(options.Directories.Downloads);
+        }
+
+        if (!string.IsNullOrWhiteSpace(options?.Directories.Incomplete))
+        {
+            roots.Add(options.Directories.Incomplete);
+        }
+
+        return roots.FirstOrDefault(root =>
+            PathGuard.NormalizeAbsolutePathWithinRoots(IOPath.GetFullPath(outputPath), new[] { root }) != null);
     }
 
     private async Task<string> ComputeFileHashAsync(string filePath, CancellationToken cancellationToken)

@@ -12,6 +12,7 @@ using System.Threading;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using slskd.Shares;
+using slskd.Common.Security;
 
 /// <summary>
 /// Resolves contentId via the local IShareRepository (FindContentItem → FindFileInfo). Path comes from originalFilename (local path).
@@ -189,10 +190,7 @@ public sealed class ContentLocator : IContentLocator
             return false;
         }
 
-        var fullPath = Path.GetFullPath(path);
-        return GetAllowedLocalRoots().Any(root =>
-            fullPath.StartsWith(root.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(fullPath, root, StringComparison.OrdinalIgnoreCase));
+        return PathGuard.NormalizeAbsolutePathWithinRoots(path, GetAllowedLocalRoots()) is not null;
     }
 
     private static string GetContentType(string path)

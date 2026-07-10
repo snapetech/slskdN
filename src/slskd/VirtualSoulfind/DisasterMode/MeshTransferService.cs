@@ -249,11 +249,14 @@ public sealed class MeshTransferService : IMeshTransferService
 
     private string? ResolveTargetPath(string targetPath)
     {
-        var options = optionsMonitor.CurrentValue;
-        var allowedRoots = new[] { options.Directories.Downloads }
-            .Concat(options.Destinations?.Folders?.Select(destination => destination.Path) ?? Enumerable.Empty<string>());
+        return PathGuard.NormalizeAbsolutePathWithinRoots(targetPath, GetAllowedTargetRoots());
+    }
 
-        return PathGuard.NormalizeAbsolutePathWithinRoots(targetPath, allowedRoots);
+    private IEnumerable<string> GetAllowedTargetRoots()
+    {
+        var options = optionsMonitor.CurrentValue;
+        return new[] { options.Directories.Downloads }
+            .Concat(options.Destinations?.Folders?.Select(destination => destination.Path) ?? Enumerable.Empty<string>());
     }
 
     private async Task ExecuteTransferAsync(string transferId, CancellationToken ct)
@@ -461,14 +464,10 @@ public sealed class MeshTransferService : IMeshTransferService
 
         // Materialize the simulated transfer so integrity verification can succeed.
         await Task.Delay(200, ct);
-        Directory.CreateDirectory(Path.GetDirectoryName(status.TargetPath) ?? ".");
-        await using var output = new FileStream(
-            status.TargetPath,
-            FileMode.Create,
-            FileAccess.Write,
-            FileShare.None,
-            bufferSize: 81920,
-            useAsync: true);
+        var targetRoot = GetAllowedTargetRoots().FirstOrDefault(root =>
+            PathGuard.NormalizeAbsolutePathWithinRoots(status.TargetPath, new[] { root }) != null)
+            ?? throw new UnauthorizedAccessException("Transfer target is outside allowed roots.");
+        await using var output = SecureFileWriter.Open(status.TargetPath, targetRoot);
         output.SetLength(status.FileSize);
         await output.FlushAsync(ct);
     }

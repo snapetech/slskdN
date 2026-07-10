@@ -16,6 +16,14 @@ using System.Text.RegularExpressions;
 /// </summary>
 public static partial class PathGuard
 {
+    private static StringComparison PathComparison => OperatingSystem.IsWindows()
+        ? StringComparison.OrdinalIgnoreCase
+        : StringComparison.Ordinal;
+
+    private static StringComparer PathComparer => OperatingSystem.IsWindows()
+        ? StringComparer.OrdinalIgnoreCase
+        : StringComparer.Ordinal;
+
     /// <summary>
     /// Maximum allowed path length.
     /// </summary>
@@ -147,8 +155,8 @@ public static partial class PathGuard
         try
         {
             var combined = Path.Combine(root, normalizedPath);
-            var fullPath = Path.GetFullPath(combined);
-            var fullRoot = Path.GetFullPath(root);
+            var fullPath = ResolveExistingPathComponents(Path.GetFullPath(combined));
+            var fullRoot = ResolveExistingPathComponents(Path.GetFullPath(root));
 
             // 13. Ensure root ends with separator for proper prefix matching
             if (!fullRoot.EndsWith(Path.DirectorySeparatorChar))
@@ -157,8 +165,8 @@ public static partial class PathGuard
             }
 
             // 14. Ensure result is still under root (handles symlinks, etc.)
-            if (!fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase) &&
-                !fullPath.Equals(fullRoot.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase))
+            if (!fullPath.StartsWith(fullRoot, PathComparison) &&
+                !fullPath.Equals(fullRoot.TrimEnd(Path.DirectorySeparatorChar), PathComparison))
             {
                 return null;
             }
@@ -212,7 +220,7 @@ public static partial class PathGuard
 
         try
         {
-            var normalizedPath = Path.GetFullPath(path);
+            var normalizedPath = ResolveExistingPathComponents(Path.GetFullPath(path));
             if (normalizedPath.Length > MaxPathLength)
             {
                 return null;
@@ -223,7 +231,8 @@ public static partial class PathGuard
                 .Select(root => root.Trim())
                 .Select(NormalizeUnicode)
                 .Select(Path.GetFullPath)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(ResolveExistingPathComponents)
+                .Distinct(PathComparer)
                 .ToList();
 
             if (!normalizedRoots.Any())
@@ -341,21 +350,57 @@ public static partial class PathGuard
     {
         try
         {
-            var fullPath = Path.GetFullPath(path);
-            var fullRoot = Path.GetFullPath(root);
+            var fullPath = ResolveExistingPathComponents(Path.GetFullPath(path));
+            var fullRoot = ResolveExistingPathComponents(Path.GetFullPath(root));
 
             if (!fullRoot.EndsWith(Path.DirectorySeparatorChar))
             {
                 fullRoot += Path.DirectorySeparatorChar;
             }
 
-            return fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase) ||
-                   fullPath.Equals(fullRoot.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase);
+            return fullPath.StartsWith(fullRoot, PathComparison) ||
+                   fullPath.Equals(fullRoot.TrimEnd(Path.DirectorySeparatorChar), PathComparison);
         }
         catch
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// Resolves every existing symbolic-link or reparse-point component while preserving a nonexistent suffix.
+    /// </summary>
+    public static string ResolveExistingPathComponents(string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+        var pathRoot = Path.GetPathRoot(fullPath)
+            ?? throw new ArgumentException("Path root is required", nameof(path));
+        var current = pathRoot;
+        var relative = fullPath[pathRoot.Length..];
+        var components = relative.Split(
+            new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
+            StringSplitOptions.RemoveEmptyEntries);
+
+        for (var index = 0; index < components.Length; index++)
+        {
+            var candidate = Path.Combine(current, components[index]);
+            FileSystemInfo? info = Directory.Exists(candidate)
+                ? new DirectoryInfo(candidate)
+                : File.Exists(candidate)
+                    ? new FileInfo(candidate)
+                    : null;
+            if (info is null)
+            {
+                return Path.GetFullPath(Path.Combine(
+                    current,
+                    Path.Combine(components[index..])));
+            }
+
+            var target = info.ResolveLinkTarget(returnFinalTarget: true);
+            current = target?.FullName ?? candidate;
+        }
+
+        return Path.GetFullPath(current);
     }
 
     /// <summary>

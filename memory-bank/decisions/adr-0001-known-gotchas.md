@@ -52,6 +52,90 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z525. Filesystem Path Comparison Must Match Platform Case Semantics
+
+**The Bug**: Containment checks used case-insensitive comparison on Linux, allowing a path under a different sibling whose name differed from an approved root only by case.
+
+**Files Affected**:
+- `src/slskd/Common/Security/PathGuard.cs`
+
+**Wrong**:
+```csharp
+fullPath.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase)
+```
+
+**Correct**:
+```csharp
+fullPath.StartsWith(fullRoot, OperatingSystem.IsWindows()
+    ? StringComparison.OrdinalIgnoreCase
+    : StringComparison.Ordinal)
+```
+
+**Why This Keeps Happening**: Windows path habits are often applied globally. Linux filesystems normally distinguish case, so a case-insensitive security comparison can merge distinct filesystem objects.
+
+### 0z524. Lexical Path Containment Does Not Contain Symbolic Links
+
+**The Bug**: Shared path validation compared `Path.GetFullPath` strings, so a lexically contained path could traverse a symlink outside the trusted root; relay and mesh download writers then followed those links during directory creation and final file open.
+
+**Files Affected**:
+- `src/slskd/Common/Security/PathGuard.cs`
+- `src/slskd/Common/Security/SecureFileWriter.cs`
+- `src/slskd/Relay/RelayClient.cs`
+- `src/slskd/Transfers/MultiSource/MultiSourceDownloadService.cs`
+- `src/slskd/VirtualSoulfind/DisasterMode/MeshTransferService.cs`
+
+**Wrong**:
+```csharp
+if (Path.GetFullPath(path).StartsWith(Path.GetFullPath(root)))
+    return new FileStream(path, FileMode.Create);
+```
+
+**Correct**:
+```csharp
+var physicalPath = PathGuard.ResolveExistingPathComponents(path);
+if (!PathGuard.IsContainedIn(physicalPath, physicalRoot))
+    throw new UnauthorizedAccessException();
+return SecureFileWriter.Open(physicalPath, physicalRoot);
+```
+
+On Linux, secure writes must walk directory descriptors with `openat`, `O_DIRECTORY`, and `O_NOFOLLOW`, then open the final file relative to the verified parent descriptor with `O_NOFOLLOW`. This closes both symlink traversal and path-swap races.
+
+**Why This Keeps Happening**: `Path.GetFullPath` resolves `.` and `..`; it does not resolve filesystem links. Prefix checks operate on names, while the kernel opens filesystem objects. Security decisions must use physical targets and race-resistant handles.
+
+### 0z523. Native File Descriptors Need Analyzer-Visible Ownership Transfer
+
+**The Bug**: The first no-follow file writer placed P/Invokes on the public helper and passed a newly allocated `SafeFileHandle` directly into `FileStream`, leaving native-boundary organization and exception-time descriptor ownership unclear to analyzers.
+
+**Files Affected**:
+- `src/slskd/Common/Security/SecureFileWriter.cs`
+
+**Wrong**:
+```csharp
+[DllImport("libc")]
+private static extern int openat(...);
+return new FileStream(new SafeFileHandle((IntPtr)fd, true), FileAccess.Write);
+```
+
+**Correct**:
+```csharp
+SafeFileHandle? handle = null;
+try
+{
+    handle = new SafeFileHandle((IntPtr)fd, true);
+    var stream = new FileStream(handle, FileAccess.Write);
+    handle = null;
+    return stream;
+}
+finally
+{
+    handle?.Dispose();
+}
+```
+
+Keep P/Invokes in a dedicated native-methods class.
+
+**Why This Keeps Happening**: Runtime ownership transfer may be correct on the success path while still leaking if a managed wrapper constructor throws. Native handles require an explicit nullable local and `finally` fallback.
+
 ### 0z522. Web Roles Do Not Replace Pod-Level Authorization
 
 **The Bug**: Authenticated low-privilege users could search private pod messages, while any read-write user could submit arbitrary peer IDs to mutate channels/membership and request daemon-backed signatures.
