@@ -87,6 +87,56 @@ public class RequireScopeAttributeTests
         Assert.Null(ctx.Result);
     }
 
+    [Fact]
+    public void ScopedPrincipal_OnUnmappedEndpoint_IsDeniedByDefault()
+    {
+        var filter = new ScopedApiKeyDenyByDefaultFilter();
+        var ctx = BuildContext(BuildPrincipal("nowplaying"), filter);
+
+        filter.OnAuthorization(ctx);
+
+        var result = Assert.IsType<ObjectResult>(ctx.Result);
+        Assert.Equal(StatusCodes.Status403Forbidden, result.StatusCode);
+        Assert.Contains("scope_mapping_required", result.Value?.ToJson());
+    }
+
+    [Fact]
+    public void ScopedPrincipal_OnMatchingMappedEndpoint_IsAllowed()
+    {
+        var filter = new ScopedApiKeyDenyByDefaultFilter();
+        var requirement = new RequireScopeAttribute("nowplaying");
+        var ctx = BuildContext(BuildPrincipal("nowplaying"), filter, requirement);
+
+        filter.OnAuthorization(ctx);
+
+        Assert.Null(ctx.Result);
+    }
+
+    [Fact]
+    public void ScopedPrincipal_OnUnrelatedMappedEndpoint_IsDenied()
+    {
+        var filter = new ScopedApiKeyDenyByDefaultFilter();
+        var requirement = new RequireScopeAttribute("federation");
+        var ctx = BuildContext(BuildPrincipal("nowplaying"), filter, requirement);
+
+        filter.OnAuthorization(ctx);
+
+        var result = Assert.IsType<ObjectResult>(ctx.Result);
+        Assert.Equal(StatusCodes.Status403Forbidden, result.StatusCode);
+        Assert.Contains("insufficient_scope", result.Value?.ToJson());
+    }
+
+    [Fact]
+    public void WildcardPrincipal_OnUnmappedEndpoint_IsAllowed()
+    {
+        var filter = new ScopedApiKeyDenyByDefaultFilter();
+        var ctx = BuildContext(BuildPrincipal(SlskdClaims.ScopeAll), filter);
+
+        filter.OnAuthorization(ctx);
+
+        Assert.Null(ctx.Result);
+    }
+
     private static ClaimsPrincipal BuildPrincipal(params string[] scopes)
     {
         var claims = new List<Claim>
@@ -102,7 +152,7 @@ public class RequireScopeAttributeTests
         return new ClaimsPrincipal(new ClaimsIdentity(claims, authenticationType: "ApiKey"));
     }
 
-    private static AuthorizationFilterContext BuildContext(ClaimsPrincipal user)
+    private static AuthorizationFilterContext BuildContext(ClaimsPrincipal user, params IFilterMetadata[] filters)
     {
         var httpContext = new DefaultHttpContext
         {
@@ -110,6 +160,6 @@ public class RequireScopeAttributeTests
         };
 
         var actionContext = new ActionContext(httpContext, new RouteData(), new ActionDescriptor());
-        return new AuthorizationFilterContext(actionContext, Array.Empty<IFilterMetadata>());
+        return new AuthorizationFilterContext(actionContext, filters);
     }
 }

@@ -344,6 +344,7 @@ public static class WebServiceCollectionExtensions
         services.AddControllers(options =>
             {
                 options.Filters.Add(new AuthorizeFilter(AuthPolicy.Any));
+                options.Filters.Add<ScopedApiKeyDenyByDefaultFilter>();
             })
             .ConfigureApplicationPartManager(manager =>
             {

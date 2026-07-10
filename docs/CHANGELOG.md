@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Non-wildcard scoped API keys now fail closed on endpoints without an explicit
+  `[RequireScope]` mapping; wildcard keys and administrator JWTs remain
+  universal.
 - Failed logins no longer create a global administrator-username lockout from
   rotating IPs; credential throttles are scoped to username plus source and
   lockouts are reduced from one hour to five minutes.

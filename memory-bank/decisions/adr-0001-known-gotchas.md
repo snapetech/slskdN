@@ -52,6 +52,30 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z507. Scoped API Keys Must Deny Unmapped Endpoints
+
+**The Bug**: Scope checks ran only on actions carrying `[RequireScope]`, so a
+non-wildcard scoped API key could access every other authenticated endpoint.
+
+**Files Affected**:
+- `src/slskd/Common/Authentication/ScopedApiKeyDenyByDefaultFilter.cs`
+- `src/slskd/Bootstrap/WebServiceCollectionExtensions.cs`
+
+**Wrong**:
+```csharp
+// No RequireScope attribute means no scope check runs.
+```
+
+**Correct**:
+```csharp
+options.Filters.Add<ScopedApiKeyDenyByDefaultFilter>();
+```
+
+**Why This Keeps Happening**: Opt-in authorization attributes fail open when a
+new endpoint omits its mapping. A global filter must detect non-wildcard scoped
+principals and reject unmapped actions; wildcard keys and normal administrator
+tokens remain explicitly universal.
+
 ### 0z506. Anonymous Login Failures Must Not Reserve A Username Globally
 
 **The Bug**: Five failed administrator logins from rotating source IPs created
