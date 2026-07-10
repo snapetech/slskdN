@@ -52,6 +52,31 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z503. Managed SQLite Updates May Leave A Vulnerable Native Bundle
+
+**The Bug**: Current Microsoft SQLite packages still resolved
+`SQLitePCLRaw.lib.e_sqlite3` 2.1.11, leaving the production native library
+affected by `GHSA-2m69-gcr7-jv3q` despite the managed packages being current.
+
+**Files Affected**:
+- `src/slskd/slskd.csproj`
+- `vendor/slskNet.Runtime/examples/Web/api/WebAPI.csproj`
+
+**Wrong**:
+```xml
+<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.9" />
+```
+
+**Correct**:
+```xml
+<PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
+```
+
+**Why This Keeps Happening**: A current managed database provider can retain a
+lower transitive floor for its native runtime bundle. SQLite remediation must
+be proven with `dotnet list ... package --vulnerable --include-transitive` and
+the resolved native asset version, not inferred from the EF Core version.
+
 ### 0z502. Configured HTTP Header Values Are Secrets By Default
 
 **The Bug**: Webhook header values, including authorization credentials and API

@@ -110,6 +110,7 @@
     <PackageReference Include="Microsoft.Diagnostics.NETCore.Client" Version="0.2.661903" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.9" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite.Core" Version="10.0.9" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
     <PackageReference Include="Mono.Nat" Version="3.0.4" />
     <PackageReference Include="MonoTorrent" Version="3.0.3-alpha.unstable.rev0049" />
     <PackageReference Include="OneOf" Version="3.0.271" />

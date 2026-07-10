@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- SQLitePCLRaw's native SQLite bundle is pinned to `3.0.3`, replacing the
+  vulnerable `2.1.11` native library in production and vendored example graphs.
 - All configured webhook header values are now redacted from options responses,
   including authorization, API-key, and operator-defined headers.
 - Synthetic internal event dispatch is now administrator-only, restricted to
