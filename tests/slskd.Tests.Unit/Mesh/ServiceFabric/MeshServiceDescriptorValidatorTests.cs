@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using slskd.Common.Moderation;
 using slskd.Mesh.ServiceFabric;
+using slskd.Mesh.Transport;
 using Xunit;
 using Moq;
 
@@ -22,6 +23,9 @@ public class MeshServiceDescriptorValidatorTests
     private readonly Mock<IPeerReputationStore> _peerReputationStoreMock;
     private readonly MeshServiceFabricOptions _options;
     private readonly MeshServiceDescriptorValidator _validator;
+    private readonly Mock<IMeshPeerPublicKeyResolver> _publicKeyResolver = new();
+    private readonly byte[] _privateKey;
+    private readonly byte[] _publicKey;
 
     public MeshServiceDescriptorValidatorTests()
     {
@@ -36,7 +40,12 @@ public class MeshServiceDescriptorValidatorTests
             new Mock<ILogger<PeerReputationService>>().Object,
             _peerReputationStoreMock.Object);
 
-        _validator = new MeshServiceDescriptorValidator(_loggerMock.Object, optionsMock.Object, peerReputationService);
+        using var signer = new Ed25519Signer();
+        (_privateKey, _publicKey) = signer.GenerateKeyPair();
+        _publicKeyResolver
+            .Setup(resolver => resolver.ResolveTrustedKeysAsync(It.IsAny<string>()))
+            .ReturnsAsync(new[] { _publicKey });
+        _validator = new MeshServiceDescriptorValidator(_loggerMock.Object, optionsMock.Object, peerReputationService, _publicKeyResolver.Object);
     }
 
     [Fact]
@@ -167,13 +176,13 @@ public class MeshServiceDescriptorValidatorTests
     public async Task Validate_WhenSerializationThrows_ReturnsSanitizedReason()
     {
         // Arrange
-        var descriptor = CreateValidDescriptor() with
+        var descriptor = Sign(CreateValidDescriptor() with
         {
             Metadata = new Dictionary<string, string>
             {
                 { "type", "\ud800" }
             }
-        };
+        });
 
         // Act
         var (isValid, reason) = await _validator.ValidateAsync(descriptor);
@@ -245,7 +254,7 @@ public class MeshServiceDescriptorValidatorTests
     }
 
     [Fact]
-    public async Task Validate_WithCorrectSignatureLength_ReturnsTrue()
+    public async Task Validate_WithCorrectLengthButInvalidSignature_ReturnsFalse()
     {
         // Arrange
         var descriptor = CreateValidDescriptor() with
@@ -257,8 +266,8 @@ public class MeshServiceDescriptorValidatorTests
         var (isValid, reason) = await _validator.ValidateAsync(descriptor);
 
         // Assert
-        Assert.True(isValid);
-        Assert.Empty(reason);
+        Assert.False(isValid);
+        Assert.Contains("not valid", reason);
     }
 
     [Fact]
@@ -293,7 +302,8 @@ public class MeshServiceDescriptorValidatorTests
         var validator = new MeshServiceDescriptorValidator(
             _loggerMock.Object,
             Mock.Of<IOptions<MeshServiceFabricOptions>>(x => x.Value == _options),
-            peerReputationService);
+            peerReputationService,
+            _publicKeyResolver.Object);
 
         // Act
         var (isValid, reason) = await validator.ValidateAsync(CreateValidDescriptor());
@@ -327,7 +337,7 @@ public class MeshServiceDescriptorValidatorTests
         var ownerPeerId = "peer123";
         var now = DateTimeOffset.UtcNow;
 
-        return new MeshServiceDescriptor
+        var descriptor = new MeshServiceDescriptor
         {
             ServiceId = MeshServiceDescriptor.DeriveServiceId(serviceName, ownerPeerId),
             ServiceName = serviceName,
@@ -345,7 +355,16 @@ public class MeshServiceDescriptorValidatorTests
             },
             CreatedAt = now,
             ExpiresAt = now.AddHours(1),
-            Signature = new byte[64]
+            Signature = Array.Empty<byte>()
         };
+
+        return Sign(descriptor);
+    }
+
+    private MeshServiceDescriptor Sign(MeshServiceDescriptor descriptor)
+    {
+        descriptor = descriptor with { Signature = Array.Empty<byte>() };
+        using var signer = new Ed25519Signer();
+        return descriptor with { Signature = signer.Sign(descriptor.GetBytesForSigning(), _privateKey) };
     }
 }

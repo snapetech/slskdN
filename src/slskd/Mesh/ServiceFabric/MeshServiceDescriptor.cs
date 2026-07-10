@@ -102,38 +102,36 @@ public sealed record MeshServiceDescriptor
     /// </summary>
     public byte[] GetBytesForSigning()
     {
-        // Serialize all fields except Signature for canonical representation
-        var sb = new StringBuilder();
-        sb.Append(ServiceId);
-        sb.Append('|');
-        sb.Append(ServiceName);
-        sb.Append('|');
-        sb.Append(Version);
-        sb.Append('|');
-        sb.Append(OwnerPeerId);
-        sb.Append('|');
-        sb.Append(Endpoint.ToString());
-        sb.Append('|');
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
+        WriteString(writer, ServiceId);
+        WriteString(writer, ServiceName);
+        WriteString(writer, Version);
+        WriteString(writer, OwnerPeerId);
+        WriteString(writer, Endpoint.Protocol);
+        WriteString(writer, Endpoint.Host);
+        writer.Write(Endpoint.Port);
+        WriteString(writer, Endpoint.Path);
 
-        // Metadata in sorted order for deterministic output
-        if (Metadata != null && Metadata.Count > 0)
+        var metadata = Metadata.OrderBy(entry => entry.Key, StringComparer.Ordinal).ToList();
+        writer.Write(metadata.Count);
+        foreach (var entry in metadata)
         {
-            var sorted = Metadata.OrderBy(kvp => kvp.Key);
-            foreach (var kvp in sorted)
-            {
-                sb.Append(kvp.Key);
-                sb.Append('=');
-                sb.Append(kvp.Value);
-                sb.Append(';');
-            }
+            WriteString(writer, entry.Key);
+            WriteString(writer, entry.Value);
         }
 
-        sb.Append('|');
-        sb.Append(CreatedAt.ToUnixTimeSeconds());
-        sb.Append('|');
-        sb.Append(ExpiresAt.ToUnixTimeSeconds());
+        writer.Write(CreatedAt.ToUnixTimeMilliseconds());
+        writer.Write(ExpiresAt.ToUnixTimeMilliseconds());
+        writer.Flush();
+        return stream.ToArray();
+    }
 
-        return Encoding.UTF8.GetBytes(sb.ToString());
+    private static void WriteString(BinaryWriter writer, string value)
+    {
+        var bytes = Encoding.UTF8.GetBytes(value);
+        writer.Write(bytes.Length);
+        writer.Write(bytes);
     }
 }
 

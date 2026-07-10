@@ -216,6 +216,7 @@ public static class ExperimentalMeshServiceCollectionExtensions
         services.AddSingleton<Mesh.Health.IMeshHealthService, Mesh.Health.MeshHealthService>();
 
         // Service Fabric (client + directory + validation)
+        services.AddSingleton<Mesh.ServiceFabric.IMeshPeerPublicKeyResolver, Mesh.ServiceFabric.MeshPeerPublicKeyResolver>();
         services.AddSingleton<Mesh.ServiceFabric.IMeshServiceDescriptorValidator, Mesh.ServiceFabric.MeshServiceDescriptorValidator>();
         services.AddSingleton<Mesh.ServiceFabric.IMeshServiceDirectory, Mesh.ServiceFabric.DhtMeshServiceDirectory>();
         services.AddSingleton<Mesh.ServiceFabric.IMeshServiceClient, Mesh.ServiceFabric.MeshServiceClient>();

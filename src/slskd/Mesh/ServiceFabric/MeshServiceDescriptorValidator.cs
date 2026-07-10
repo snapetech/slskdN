@@ -31,17 +31,20 @@ public class MeshServiceDescriptorValidator : IMeshServiceDescriptorValidator
 {
     private readonly ILogger<MeshServiceDescriptorValidator> _logger;
     private readonly MeshServiceFabricOptions _options;
+    private readonly IMeshPeerPublicKeyResolver _publicKeyResolver;
 
     private readonly Common.Moderation.PeerReputationService _peerReputationService;
 
     public MeshServiceDescriptorValidator(
         ILogger<MeshServiceDescriptorValidator> logger,
         Microsoft.Extensions.Options.IOptions<MeshServiceFabricOptions> options,
-        Common.Moderation.PeerReputationService peerReputationService)
+        Common.Moderation.PeerReputationService peerReputationService,
+        IMeshPeerPublicKeyResolver publicKeyResolver)
     {
         _logger = logger;
         _options = options.Value;
         _peerReputationService = peerReputationService;
+        _publicKeyResolver = publicKeyResolver;
     }
 
     public async Task<(bool IsValid, string Reason)> ValidateAsync(MeshServiceDescriptor descriptor)
@@ -122,16 +125,20 @@ public class MeshServiceDescriptorValidator : IMeshServiceDescriptorValidator
             return (false, "Failed to serialize descriptor");
         }
 
-        // 6. Validate signature (if present) - CRITICAL SECURITY REQUIREMENT
+        // 6. Validate the signature against a key authenticated by the owner's self-certifying peer descriptor.
         if (descriptor.Signature != null && descriptor.Signature.Length > 0)
         {
-            // Ed25519 signature is 64 bytes.
             if (descriptor.Signature.Length != 64)
             {
                 return (false, $"Invalid signature length ({descriptor.Signature.Length}, expected 64)");
             }
 
-            _logger.LogDebug("Signature presence validated (full verification requires key infrastructure)");
+            var trustedKeys = await _publicKeyResolver.ResolveTrustedKeysAsync(descriptor.OwnerPeerId);
+            using var signer = new Transport.Ed25519Signer();
+            if (!trustedKeys.Any(key => signer.Verify(descriptor.GetBytesForSigning(), descriptor.Signature, key)))
+            {
+                return (false, "Descriptor signature is not valid for the owner peer");
+            }
         }
         else if (_options.ValidateDhtSignatures)
         {

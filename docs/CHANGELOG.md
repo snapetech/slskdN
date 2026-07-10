@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Mesh service descriptors now require cryptographic verification of canonical
+  descriptor bytes against keys authenticated by self-certifying peer records.
 - JWT logout revocations now persist atomically across service restarts and
   expire only after the original token lifetime plus validation clock skew.
 - Collections, share groups, and share grants now use the authenticated web

@@ -122,7 +122,9 @@ public class PeerDescriptorPublisher : IPeerDescriptorPublisher
 
             // Identity certificate pins and control signing keys are published when available.
             CertificatePins = new List<string>(),
-            ControlSigningKeys = new List<string>()
+            ControlSigningKeys = keyStore is null
+                ? new List<string>()
+                : new List<string> { keyStore.Current.PublicKeyBase64 }
         };
 
         // Sign the descriptor - REQUIRE real keys for security

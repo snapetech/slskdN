@@ -52,6 +52,38 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z532. Signature Length Is Not Signature Validation
+
+**The Bug**: Mesh service descriptor validation treated every 64-byte value as
+a valid Ed25519 signature. Attackers could publish arbitrary descriptors for
+another owner because no canonical bytes were verified against an authenticated
+owner key.
+
+**Files Affected**:
+- `src/slskd/Mesh/ServiceFabric/MeshServiceDescriptorValidator.cs`
+- `src/slskd/Mesh/ServiceFabric/MeshPeerPublicKeyResolver.cs`
+- `src/slskd/Mesh/ServiceFabric/MeshServiceDescriptor.cs`
+
+**Prevention**: Resolve the key through a signed, self-certifying peer
+descriptor; require the key-derived peer ID to equal the claimed owner; verify
+the peer descriptor; then verify an unambiguous, length-prefixed canonical
+encoding of every signed service field. Never use signature presence or length
+as evidence of authenticity.
+
+### 0z531. Mutated Signed Test Fixtures Must Be Re-Signed
+
+**The Bug**: A service-descriptor test created a valid signed fixture and then
+changed signed metadata with a record `with` expression. Once real signature
+verification was enabled, the test failed at signature validation instead of
+exercising its intended serialization behavior.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Mesh/ServiceFabric/MeshServiceDescriptorValidatorTests.cs`
+
+**Prevention**: Treat every canonical signed field as immutable test input. If
+a test changes any such field, clear the old signature and sign the resulting
+descriptor again before validation.
+
 ### 0z530. JWT Logout Revocations Must Survive Process Restart
 
 **The Bug**: Logged-out JWT identifiers existed only in a static in-memory
