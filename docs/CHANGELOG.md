@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- JWT logout revocations now persist atomically across service restarts and
+  expire only after the original token lifetime plus validation clock skew.
 - Collections, share groups, and share grants now use the authenticated web
   account as owner/access identity; daemon Soulseek and mesh identities remain
   separate network principals and cannot collapse multiple web users together.

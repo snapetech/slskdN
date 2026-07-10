@@ -37,7 +37,7 @@ namespace slskd
         JwtSecurityToken GenerateJwt(string username, Role role, int? ttl = null, string[]? scopes = null);
         bool AuthenticateAdminCredentials(string username, string password);
         (string Name, Role Role, string[] Scopes) AuthenticateWithApiKey(string key, IPAddress callerIpAddress);
-        void RevokeToken(string jti);
+        void RevokeToken(string jti, DateTimeOffset expiresAt);
         bool IsTokenRevoked(string jti);
     }
 
@@ -60,18 +60,18 @@ namespace slskd
 
     public class SecurityService : ISecurityService
     {
-        // In-memory deny-list: jti → expiry. Cleared on restart (acceptable since all JWTs are also invalidated on restart
-        // when using an ephemeral signing key). Periodically swept to avoid unbounded growth.
-        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTimeOffset> _revokedJtis = new();
-        private static DateTimeOffset _lastSweep = DateTimeOffset.UtcNow;
+        public static readonly TimeSpan JwtClockSkew = TimeSpan.FromMinutes(5);
+        private readonly Core.Security.JwtRevocationStore _revocationStore;
         public SecurityService(
             SymmetricSecurityKey jwtSigningKey,
             OptionsAtStartup optionsAtStartup,
-            IOptionsMonitor<Options> optionsMonitor)
+            IOptionsMonitor<Options> optionsMonitor,
+            Core.Security.JwtRevocationStore revocationStore)
         {
             JwtSigningKey = jwtSigningKey;
             OptionsAtStartup = optionsAtStartup;
             OptionsMonitor = optionsMonitor;
+            _revocationStore = revocationStore;
         }
 
         private SymmetricSecurityKey JwtSigningKey { get; }
@@ -149,31 +149,14 @@ namespace slskd
             return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(expectedPad, providedPad);
         }
 
-        public void RevokeToken(string jti)
+        public void RevokeToken(string jti, DateTimeOffset expiresAt)
         {
-            if (string.IsNullOrWhiteSpace(jti)) return;
-
-            // We don't know the original expiry here, so store with a far-future sentinel; the deny-list
-            // sweep uses DateTimeOffset.MaxValue entries as "revoke until restart".
-            _revokedJtis[jti] = DateTimeOffset.MaxValue;
+            _revocationStore.Revoke(jti, expiresAt);
         }
 
         public bool IsTokenRevoked(string jti)
         {
-            if (string.IsNullOrWhiteSpace(jti)) return false;
-
-            // Periodic sweep: remove entries whose JWT would have expired anyway (no longer need to deny)
-            if (DateTimeOffset.UtcNow - _lastSweep > TimeSpan.FromMinutes(10))
-            {
-                _lastSweep = DateTimeOffset.UtcNow;
-                foreach (var key in _revokedJtis.Keys.ToList())
-                {
-                    if (_revokedJtis.TryGetValue(key, out var exp) && exp != DateTimeOffset.MaxValue && exp < DateTimeOffset.UtcNow)
-                        _revokedJtis.TryRemove(key, out _);
-                }
-            }
-
-            return _revokedJtis.ContainsKey(jti);
+            return _revocationStore.IsRevoked(jti);
         }
 
         public JwtSecurityToken GenerateJwt(string username, Role role, int? ttl = null, string[]? scopes = null)

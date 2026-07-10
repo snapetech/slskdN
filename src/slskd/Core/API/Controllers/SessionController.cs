@@ -105,9 +105,13 @@ namespace slskd.Core.API
         public IActionResult Logout()
         {
             var jti = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value;
-            if (!string.IsNullOrEmpty(jti))
+            var exp = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Exp)?.Value;
+            if (!string.IsNullOrEmpty(jti)
+                && long.TryParse(exp, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var expiresAtUnixSeconds))
             {
-                Security.RevokeToken(jti);
+                Security.RevokeToken(
+                    jti,
+                    DateTimeOffset.FromUnixTimeSeconds(expiresAtUnixSeconds).Add(SecurityService.JwtClockSkew));
             }
 
             return NoContent();

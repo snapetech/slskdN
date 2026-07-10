@@ -52,6 +52,36 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z530. JWT Logout Revocations Must Survive Process Restart
+
+**The Bug**: Logged-out JWT identifiers existed only in a static in-memory
+dictionary and were stored with a restart-bounded sentinel. Restarting the
+service discarded the deny-list while configured signing keys could keep the
+same JWTs valid, allowing a logged-out token to authenticate again.
+
+**Files Affected**:
+- `src/slskd/Core/Security/JwtRevocationStore.cs`
+- `src/slskd/Core/Security/SecurityService.cs`
+- `src/slskd/Core/API/Controllers/SessionController.cs`
+
+**Prevention**: Persist revoked JWT identifiers atomically with restrictive
+permissions, reload them at startup, and retain each entry through the token's
+`exp` plus the validator clock skew. Remove expired entries rather than using a
+process-lifetime or far-future sentinel.
+
+### 0z529. Service Registrations Must Import Feature Namespaces
+
+**The Bug**: A new JWT revocation store was registered from the web bootstrap
+extension using its unqualified type name, but the bootstrap file did not import
+the store's namespace. The implementation therefore failed to compile.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/WebServiceCollectionExtensions.cs`
+
+**Prevention**: After adding a concrete service registration outside the
+bootstrap namespace, either add the feature namespace import or use the fully
+qualified type name. Run the focused compile immediately after wiring DI.
+
 ### 0z528. Web Resource Ownership Must Never Fall Back To Daemon Identity
 
 **The Bug**: Collections, share groups, and grants resolved every authenticated web request to the daemon's Soulseek username or local mesh profile, collapsing distinct web accounts into one owner.

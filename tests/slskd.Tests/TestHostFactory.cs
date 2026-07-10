@@ -135,7 +135,7 @@ internal class StubSecurityService : ISecurityService
     public (string Name, Role Role, string[] Scopes) AuthenticateWithApiKey(string key, IPAddress callerIpAddress) =>
         ("test", Role.Administrator, new[] { SlskdClaims.ScopeAll });
 
-    public void RevokeToken(string jti)
+    public void RevokeToken(string jti, DateTimeOffset expiresAt)
     {
     }
 

@@ -30,6 +30,7 @@ using Serilog;
 using slskd.Authentication;
 using slskd.Common.Security;
 using slskd.Core.API;
+using slskd.Core.Security;
 using slskd.Mesh;
 using slskd.Cryptography;
 using slskd.Shares;
@@ -128,6 +129,7 @@ public static class WebServiceCollectionExtensions
         }
 
         services.AddSingleton(jwtSigningKey);
+        services.AddSingleton(new JwtRevocationStore(Path.Combine(dataDirectory, "security", "jwt-revocations.json")));
         services.AddSingleton<ISecurityService, SecurityService>();
         services.AddSingleton<Common.Security.ISoulseekSafetyLimiter, Common.Security.SoulseekSafetyLimiter>();
 
@@ -195,7 +197,7 @@ public static class WebServiceCollectionExtensions
                 {
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
-                        ClockSkew = TimeSpan.FromMinutes(5),
+                        ClockSkew = SecurityService.JwtClockSkew,
                         RequireSignedTokens = true,
                         RequireExpirationTime = true,
                         ValidateLifetime = true,

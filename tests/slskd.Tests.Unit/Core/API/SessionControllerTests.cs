@@ -9,6 +9,7 @@ using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Reflection;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -20,6 +21,26 @@ using Xunit;
 
 public class SessionControllerTests
 {
+    [Fact]
+    public void Logout_RevokesJwtUntilExpirationPlusValidationSkew()
+    {
+        var security = new Mock<ISecurityService>();
+        var controller = CreateController(security: security);
+        var expiresAt = DateTimeOffset.UtcNow.AddHours(1);
+        controller.ControllerContext.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Jti, "token-id"),
+            new Claim(JwtRegisteredClaimNames.Exp, expiresAt.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture)),
+        }));
+
+        var result = controller.Logout();
+
+        Assert.IsType<NoContentResult>(result);
+        security.Verify(service => service.RevokeToken(
+            "token-id",
+            DateTimeOffset.FromUnixTimeSeconds(expiresAt.ToUnixTimeSeconds()).Add(SecurityService.JwtClockSkew)), Times.Once);
+    }
+
     [Fact]
     public void Login_WhenRequestIsNullInHeadlessMode_ReturnsBadRequest()
     {
