@@ -1,3 +1,17 @@
+## Update 2026-07-10 00:00:00Z
+
+- Current task: none; the 30-item security and reliability bug report is complete.
+- Last activity:
+  - Implemented, documented, committed, and pushed one fix per reported bug to `snapetech/slskdN`.
+  - Completed the final privacy-batching correlation fix at commit `081302e43`.
+  - Focused validation and repository lint passed for every fix.
+- Validation:
+  - Passed: full `dotnet test --no-restore` (`4668/4668`: 68 smoke, 4322 unit, 278 integration).
+  - Passed: `./bin/lint` and `git diff --check` for the final implementation.
+- Next steps:
+  1. No implementation follow-up remains from the supplied report.
+  2. No release tags were created.
+
 ## Update 2026-06-24 00:00:00Z
 
 - Current task: README long-form restoration complete.

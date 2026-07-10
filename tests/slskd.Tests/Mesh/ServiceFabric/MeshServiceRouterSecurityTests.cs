@@ -298,7 +298,7 @@ public class MeshServiceRouterSecurityTests
                 CorrelationId = Guid.NewGuid().ToString(),
                 Payload = Array.Empty<byte>()
             };
-            await router.RouteAsync(call, "peer-a-exhausted");
+            await router.RouteAsync(call, "peer-a-exhausted", "peer-a-key");
         }
 
         // Peer B should still work
@@ -309,7 +309,7 @@ public class MeshServiceRouterSecurityTests
             CorrelationId = Guid.NewGuid().ToString(),
             Payload = Array.Empty<byte>()
         };
-        var peerBReply = await router.RouteAsync(peerBCall, "peer-b-fresh");
+        var peerBReply = await router.RouteAsync(peerBCall, "peer-b-fresh", "peer-b-key");
 
         // Assert: Peer B is not affected by Peer A's rate limit
         Assert.Equal(ServiceStatusCodes.OK, peerBReply.StatusCode);

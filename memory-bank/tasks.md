@@ -3017,3 +3017,4 @@
 - [2026-05-17T17:55:00Z] Completed: add default-off human-check private-message auto response with daemon-side matching/cooldown, shared Downloads/Messages toggles, runtime overlay apply, config example, and focused backend/frontend coverage.
 - [2026-05-18T00:00:00Z] Completed: add reusable post-release package-channel validation harness, GitLab tag-only validation stage, and disabled GitHub package-smoke workflow scaffolding.
 - [2026-05-23T19:14:55Z] Completed: make all Web UI route shells and System subtabs fill the available app space like Downloads/Uploads, fix the System Metrics initial-load crash found during the headless sweep, and validate the layout with a mocked Playwright crawl.
+- [2026-07-10T00:00:00Z] Completed: remediate all 30 items in the supplied security and reliability bug report with individual documented commits and pushes. Full validation passed (`4668/4668` tests plus lint).

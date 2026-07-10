@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z539. Mirrored Test Fixtures Must Be Updated Together
+
+**The Bug**: Mesh router security coverage was duplicated in the unit and smoke
+test projects. The authenticated peer-isolation fixture was updated in only the
+unit copy, so focused tests passed while the full solution failed in the stale
+smoke copy.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Mesh/ServiceFabric/MeshServiceRouterSecurityTests.cs`
+- `tests/slskd.Tests/Mesh/ServiceFabric/MeshServiceRouterSecurityTests.cs`
+
+**Prevention**: Before editing a test fixture, search the entire `tests/` tree
+for the class and test method name. Apply semantic fixture changes to every
+compiled copy, then run the full solution test gate.
+
 ### 0z538. Payload-Only Batches Lose Destination And Caller Correlation
 
 **The Bug**: The mesh privacy layer queued only transformed byte arrays, returned
