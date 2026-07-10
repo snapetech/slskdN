@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z538. Payload-Only Batches Lose Destination And Caller Correlation
+
+**The Bug**: The mesh privacy layer queued only transformed byte arrays, returned
+an empty sentinel to callers, discarded all but the first payload when a batch
+became ready, and let the next caller send queued bytes to its own endpoint.
+Single-message batches had no timer-driven sender, while `Flush()` made the
+queued batch impossible to retrieve.
+
+**Files Affected**:
+- `src/slskd/Mesh/Privacy/TimedBatcher.cs`
+- `src/slskd/Mesh/Privacy/PrivacyLayer.cs`
+- mesh overlay and pod callers of `ProcessOutboundMessageAsync`
+
+**Prevention**: Preserve a task/result pair for every input. Release each caller
+with its own transformed payload on timeout, max size, explicit flush, or
+shutdown; propagate caller cancellation and remove canceled entries. Never use
+an empty payload as an implicit queued-success result or detach payloads from
+their destination-owning call.
+
 ### 0z537. Pre-Validation UDP Limits Must Not Key By IP And Port
 
 **The Bug**: Each UDP datagram allocated a permanent token bucket keyed by its

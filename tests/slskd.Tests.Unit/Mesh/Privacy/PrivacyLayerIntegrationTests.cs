@@ -95,7 +95,7 @@ public class PrivacyLayerIntegrationTests : IDisposable
     }
 
     [Fact]
-    public async Task ProcessOutboundMessageAsync_WhenBatchingEnabled_ReturnsEmptyForQueuedMessages()
+    public async Task ProcessOutboundMessageAsync_WhenBatchingEnabled_PreservesCallerCorrelation()
     {
         // Arrange
         var options = new PrivacyLayerOptions
@@ -108,16 +108,18 @@ public class PrivacyLayerIntegrationTests : IDisposable
         };
 
         var privacyLayer = new PrivacyLayer(_loggerMock.Object, _loggerFactoryMock.Object, options);
-        var message = new byte[] { 1, 2, 3 };
+        var firstMessage = new byte[] { 1, 2, 3 };
+        var secondMessage = new byte[] { 4, 5, 6 };
         using var cts = new CancellationTokenSource();
 
-        // Act - Send multiple messages quickly
-        var result1 = await privacyLayer.ProcessOutboundMessageAsync(message, cts.Token);
-        var result2 = await privacyLayer.ProcessOutboundMessageAsync(message, cts.Token);
+        // Act
+        var firstTask = privacyLayer.ProcessOutboundMessageAsync(firstMessage, cts.Token);
+        var secondTask = privacyLayer.ProcessOutboundMessageAsync(secondMessage, cts.Token);
+        var results = await Task.WhenAll(firstTask, secondTask);
 
-        // Assert - Messages should be queued (empty results) until batch is ready
-        // (This test is probabilistic - batching window might expire)
-        Assert.True(result1.Length == 0 || result2.Length == 0, "At least one message should be queued for batching");
+        // Assert
+        Assert.Equal(firstMessage, results[0]);
+        Assert.Equal(secondMessage, results[1]);
     }
 
     [Fact]

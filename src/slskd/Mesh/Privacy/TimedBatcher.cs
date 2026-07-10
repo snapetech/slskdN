@@ -19,6 +19,10 @@ public sealed class TimedBatcher : IMessageBatcher, IDisposable
     private readonly SemaphoreSlim _batchLock;
     private DateTimeOffset _batchStartTime;
     private bool _isBatchActive;
+    private bool _forceReady;
+    private readonly object _pendingLock = new();
+    private readonly List<PendingMessage> _pendingMessages = new();
+    private CancellationTokenSource? _pendingTimer;
     private bool _disposed;
 
     /// <summary>
@@ -120,6 +124,7 @@ public sealed class TimedBatcher : IMessageBatcher, IDisposable
             }
 
             _isBatchActive = false;
+            _forceReady = false;
 
             _logger.LogDebug("Retrieved batch with {Count} messages", messages.Count);
             return messages;
@@ -143,13 +148,38 @@ public sealed class TimedBatcher : IMessageBatcher, IDisposable
             if (_isBatchActive)
             {
                 _logger.LogDebug("Flushing batch with {Count} messages", _messageQueue.Count);
-                _isBatchActive = false;
+                _forceReady = true;
             }
         }
         finally
         {
             _batchLock.Release();
         }
+
+        ReleasePendingMessages();
+    }
+
+    public Task<byte[]> WaitForBatchReleaseAsync(byte[] message, CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+        var completion = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var pending = new PendingMessage(message, completion);
+        lock (_pendingLock)
+        {
+            _pendingMessages.Add(pending);
+            if (_pendingMessages.Count == 1)
+            {
+                _pendingTimer = new CancellationTokenSource();
+                _ = ReleaseAfterWindowAsync(_pendingTimer.Token);
+            }
+
+            if (_pendingMessages.Count >= _maxBatchSize)
+            {
+                ReleasePendingMessagesLocked();
+            }
+        }
+
+        return AwaitPendingMessageAsync(pending, cancellationToken);
     }
 
     /// <summary>
@@ -213,6 +243,11 @@ public sealed class TimedBatcher : IMessageBatcher, IDisposable
             return false;
         }
 
+        if (_forceReady)
+        {
+            return true;
+        }
+
         // Check time window
         var elapsed = DateTimeOffset.UtcNow - _batchStartTime;
         if (elapsed >= _batchWindow)
@@ -271,9 +306,71 @@ public sealed class TimedBatcher : IMessageBatcher, IDisposable
             return;
         }
 
+        ReleasePendingMessages();
         _disposed = true;
         _batchLock.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    private async Task ReleaseAfterWindowAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(_batchWindow, cancellationToken).ConfigureAwait(false);
+            ReleasePendingMessages();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+    }
+
+    private void ReleasePendingMessages()
+    {
+        lock (_pendingLock)
+        {
+            ReleasePendingMessagesLocked();
+        }
+    }
+
+    private void ReleasePendingMessagesLocked()
+    {
+        var timer = _pendingTimer;
+        _pendingTimer = null;
+        timer?.Cancel();
+        timer?.Dispose();
+
+        foreach (var pending in _pendingMessages)
+        {
+            pending.Completion.TrySetResult(pending.Message);
+        }
+
+        _pendingMessages.Clear();
+    }
+
+    private sealed record PendingMessage(byte[] Message, TaskCompletionSource<byte[]> Completion);
+
+    private async Task<byte[]> AwaitPendingMessageAsync(PendingMessage pending, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await pending.Completion.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            lock (_pendingLock)
+            {
+                _pendingMessages.Remove(pending);
+                if (_pendingMessages.Count == 0)
+                {
+                    var timer = _pendingTimer;
+                    _pendingTimer = null;
+                    timer?.Cancel();
+                    timer?.Dispose();
+                }
+            }
+
+            throw;
+        }
     }
 
     private void ThrowIfDisposed()

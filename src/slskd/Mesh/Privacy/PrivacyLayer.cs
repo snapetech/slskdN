@@ -72,14 +72,12 @@ public sealed class PrivacyLayer : IPrivacyLayer
     /// <param name="message">The original message bytes.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>The transformed message bytes.</returns>
-    public Task<byte[]> ProcessOutboundMessageAsync(byte[] message, CancellationToken cancellationToken = default)
+    public async Task<byte[]> ProcessOutboundMessageAsync(byte[] message, CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
-        _ = cancellationToken;
-
         if (!IsEnabled || message == null)
         {
-            return Task.FromResult(message ?? Array.Empty<byte>());
+            return message ?? Array.Empty<byte>();
         }
 
         var processedMessage = message;
@@ -95,26 +93,12 @@ public sealed class PrivacyLayer : IPrivacyLayer
         // Add to batcher if enabled (this doesn't return the message immediately)
         if (_messageBatcher != null)
         {
-            var isReady = _messageBatcher.AddMessage(processedMessage);
-            if (!isReady)
-            {
-                // Message is queued for batching, return empty array to indicate no immediate send
-                _logger.LogTrace("Message queued for batching, not sending immediately");
-                return Task.FromResult(Array.Empty<byte>());
-            }
-
-            // Batch is ready, get the batched messages
-            var batch = _messageBatcher.GetBatch();
-            if (batch != null && batch.Count > 0)
-            {
-                // For simplicity, return the first message in the batch
-                // In a real implementation, you might want to handle multiple messages
-                processedMessage = batch[0];
-                _logger.LogTrace("Retrieved batched message ({Count} in batch)", batch.Count);
-            }
+            processedMessage = await ((TimedBatcher)_messageBatcher)
+                .WaitForBatchReleaseAsync(processedMessage, cancellationToken)
+                .ConfigureAwait(false);
         }
 
-        return Task.FromResult(processedMessage);
+        return processedMessage;
     }
 
     /// <summary>

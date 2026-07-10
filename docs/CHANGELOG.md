@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Privacy batching now releases every mesh and pod caller with its matching
+  payload on timeout, size, flush, or shutdown and propagates cancellation.
 - Pre-validation UDP limits now aggregate spoofable endpoints by IPv4 /24 or
   IPv6 /64, cap and expire buckets, and switch to peer IDs only after signature validation.
 - Mesh rate-limit, work-budget, and discovery identity caches now expire and

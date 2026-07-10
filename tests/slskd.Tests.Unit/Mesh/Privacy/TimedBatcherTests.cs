@@ -165,17 +165,57 @@ public class TimedBatcherTests : IDisposable
     }
 
     [Fact]
-    public void Flush_WhenBatchActive_DeactivatesBatch()
+    public void Flush_WhenBatchActive_MakesPartialBatchRetrievable()
     {
         // Arrange
         _batcher.AddMessage(new byte[] { 1, 2, 3 });
 
-        // Act - Flush sets _isBatchActive=false; messages remain in queue until GetBatch when ready
+        // Act
         _batcher.Flush();
+        var batch = _batcher.GetBatch();
 
-        // Assert - HasBatch is false (batch no longer active); queue unchanged
+        // Assert
+        Assert.Single(batch!);
         Assert.False(_batcher.HasBatch);
-        Assert.Equal(1, _batcher.CurrentBatchSize);
+        Assert.Equal(0, _batcher.CurrentBatchSize);
+    }
+
+    [Fact]
+    public async Task WaitForBatchReleaseAsync_ReleasesEachCallerWithItsOwnMessage()
+    {
+        using var batcher = new TimedBatcher(_loggerMock.Object, 10.0, 2);
+        var first = new byte[] { 1 };
+        var second = new byte[] { 2 };
+
+        var firstTask = batcher.WaitForBatchReleaseAsync(first);
+        var secondTask = batcher.WaitForBatchReleaseAsync(second);
+
+        Assert.Equal(first, await firstTask);
+        Assert.Equal(second, await secondTask);
+    }
+
+    [Fact]
+    public async Task WaitForBatchReleaseAsync_PropagatesCancellation()
+    {
+        using var batcher = new TimedBatcher(_loggerMock.Object, 10.0, 10);
+        using var cancellation = new CancellationTokenSource();
+        var pending = batcher.WaitForBatchReleaseAsync(new byte[] { 1 }, cancellation.Token);
+
+        await cancellation.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
+    }
+
+    [Fact]
+    public async Task Dispose_ReleasesPartialPendingBatch()
+    {
+        var batcher = new TimedBatcher(_loggerMock.Object, 10.0, 10);
+        var message = new byte[] { 1, 2, 3 };
+        var pending = batcher.WaitForBatchReleaseAsync(message);
+
+        batcher.Dispose();
+
+        Assert.Equal(message, await pending);
     }
 
     [Fact]
