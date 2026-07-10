@@ -52,6 +52,33 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z515. HTTP Signatures Must Require Security-Critical Signed Headers
+
+**The Bug**: ActivityPub signature verification accepted the sender-declared
+header list without requiring the request target, host, timestamp, or body
+digest to be covered by the signature.
+
+**Files Affected**:
+- `src/slskd/SocialFederation/API/ActivityPubController.cs`
+
+**Wrong**:
+```csharp
+var signingString = BuildSigningString(senderChosenHeaders);
+```
+
+**Correct**:
+```csharp
+if (!HasRequiredSignedHeaders(headersList, bodyBearing))
+{
+    return VerificationFailed;
+}
+```
+
+**Why This Keeps Happening**: A cryptographically valid signature protects only
+the fields included in its canonical input. Verifiers must reject duplicate
+header names and require `(request-target)`, `host`, `date` or `(created)`, and
+`digest` whenever a body is present before verifying the signature bytes.
+
 ### 0z514. Federation Friendship Cannot Be Inferred From Browser Headers
 
 **The Bug**: Friends-only actor discovery trusted an approved hostname copied

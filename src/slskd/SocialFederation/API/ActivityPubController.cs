@@ -487,26 +487,37 @@ namespace slskd.SocialFederation.API
             if (string.IsNullOrEmpty(sig))
                 return (false, string.Empty);
 
-            if (!TryParseSignature(sig, out var keyId, out var algorithm, out var headersList, out var signatureB64))
+            if (!TryParseSignature(sig, out var keyId, out var algorithm, out var headersList, out var signatureB64, out var created))
                 return (false, string.Empty);
             if (_federationOptions.CurrentValue.IsFriendsOnly && !IsApprovedKeyHost(keyId))
                 return (false, string.Empty);
             if (!string.Equals(algorithm, "ed25519", StringComparison.OrdinalIgnoreCase) && !string.Equals(algorithm, "hs2019", StringComparison.OrdinalIgnoreCase))
                 return (false, string.Empty);
 
-            var date = Request.Headers["Date"].FirstOrDefault();
-            if (string.IsNullOrEmpty(date) || !DateTimeOffset.TryParse(date, out var dt) || Math.Abs((DateTimeOffset.UtcNow - dt).TotalMinutes) > 5)
+            if (!HasRequiredSignedHeaders(headersList, bodyBytes.Length > 0))
                 return (false, string.Empty);
 
+            var signedHeaders = headersList.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (signedHeaders.Contains("date", StringComparer.OrdinalIgnoreCase))
+            {
+                var date = Request.Headers["Date"].FirstOrDefault();
+                if (string.IsNullOrEmpty(date) || !DateTimeOffset.TryParse(date, out var dt) || Math.Abs((DateTimeOffset.UtcNow - dt).TotalMinutes) > 5)
+                    return (false, string.Empty);
+            }
+            else if (!IsFreshCreatedTimestamp(created))
+            {
+                return (false, string.Empty);
+            }
+
             var digest = Request.Headers["Digest"].FirstOrDefault();
-            if (bodyBytes.Length > 0 || !string.IsNullOrEmpty(digest))
+            if (bodyBytes.Length > 0 || signedHeaders.Contains("digest", StringComparer.OrdinalIgnoreCase))
             {
                 var expectedDigest = "SHA-256=" + Convert.ToBase64String(SHA256.HashData(bodyBytes));
                 if (string.IsNullOrEmpty(digest) || !string.Equals(digest, expectedDigest, StringComparison.Ordinal))
                     return (false, string.Empty);
             }
 
-            var signingString = BuildSigningString(headersList);
+            var signingString = BuildSigningString(headersList, created);
             if (signingString == null)
                 return (false, string.Empty);
 
@@ -583,6 +594,41 @@ namespace slskd.SocialFederation.API
             return keyUri.GetLeftPart(UriPartial.Path);
         }
 
+        internal static bool HasRequiredSignedHeaders(string headersList, bool bodyBearing)
+        {
+            var headers = headersList.Split(
+                ' ',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var uniqueHeaders = headers.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            if (headers.Length != uniqueHeaders.Length)
+            {
+                return false;
+            }
+
+            return uniqueHeaders.Contains("(request-target)", StringComparer.OrdinalIgnoreCase)
+                && uniqueHeaders.Contains("host", StringComparer.OrdinalIgnoreCase)
+                && (uniqueHeaders.Contains("date", StringComparer.OrdinalIgnoreCase)
+                    || uniqueHeaders.Contains("(created)", StringComparer.OrdinalIgnoreCase))
+                && (!bodyBearing || uniqueHeaders.Contains("digest", StringComparer.OrdinalIgnoreCase));
+        }
+
+        internal static bool IsFreshCreatedTimestamp(long? created)
+        {
+            if (!created.HasValue)
+            {
+                return false;
+            }
+
+            try
+            {
+                return Math.Abs((DateTimeOffset.UtcNow - DateTimeOffset.FromUnixTimeSeconds(created.Value)).TotalMinutes) <= 5;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return false;
+            }
+        }
+
         private bool IsApprovedKeyHost(string keyId)
         {
             if (string.IsNullOrWhiteSpace(keyId) ||
@@ -597,9 +643,16 @@ namespace slskd.SocialFederation.API
                 approvedPeers.Contains(keyUri.Host, StringComparer.OrdinalIgnoreCase);
         }
 
-        private static bool TryParseSignature(string sig, out string keyId, out string algorithm, out string headersList, out string signatureB64)
+        private static bool TryParseSignature(
+            string sig,
+            out string keyId,
+            out string algorithm,
+            out string headersList,
+            out string signatureB64,
+            out long? created)
         {
             keyId = algorithm = headersList = signatureB64 = string.Empty;
+            created = null;
             foreach (var part in sig.Split(','))
             {
                 var eq = part.IndexOf('=', StringComparison.Ordinal);
@@ -612,12 +665,13 @@ namespace slskd.SocialFederation.API
                 else if (k == "algorithm") algorithm = v;
                 else if (k == "headers") headersList = v;
                 else if (k == "signature") signatureB64 = v;
+                else if (k == "created" && long.TryParse(v, out var parsedCreated)) created = parsedCreated;
             }
 
             return keyId.Length > 0 && algorithm.Length > 0 && headersList.Length > 0 && signatureB64.Length > 0;
         }
 
-        private string? BuildSigningString(string headersList)
+        private string? BuildSigningString(string headersList, long? created)
         {
             var sb = new StringBuilder();
             var names = headersList.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -630,6 +684,7 @@ namespace slskd.SocialFederation.API
                     "host" => "host: " + Request.Host.Value,
                     "date" => "date: " + Request.Headers["Date"].FirstOrDefault(),
                     "digest" => "digest: " + Request.Headers["Digest"].FirstOrDefault(),
+                    "(created)" => created.HasValue ? $"(created): {created.Value}" : null,
                     _ => Request.Headers[n].FirstOrDefault() is { } h ? $"{n}: {h}" : null
                 };
                 if (v == null) return null;

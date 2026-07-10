@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- ActivityPub HTTP signatures now require unique signed `(request-target)`,
+  `host`, and `date` or `(created)` fields, plus `digest` for request bodies;
+  signed creation timestamps receive the same five-minute freshness check.
 - Friends-only ActivityPub actor discovery no longer trusts `Origin` or
   `Referer`; non-loopback access requires a verified HTTP-signature key resolved
   to an actor on an approved peer.

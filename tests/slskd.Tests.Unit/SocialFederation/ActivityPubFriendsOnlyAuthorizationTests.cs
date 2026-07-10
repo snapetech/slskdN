@@ -37,4 +37,30 @@ public sealed class ActivityPubFriendsOnlyAuthorizationTests
 
         Assert.Equal("https://friend.example/actors/music", actor);
     }
+
+    [Theory]
+    [InlineData("(request-target) host date", false, true)]
+    [InlineData("(request-target) host (created)", false, true)]
+    [InlineData("(request-target) host date digest", true, true)]
+    [InlineData("host date digest", true, false)]
+    [InlineData("(request-target) date digest", true, false)]
+    [InlineData("(request-target) host digest", true, false)]
+    [InlineData("(request-target) host date", true, false)]
+    [InlineData("(request-target) host date date digest", true, false)]
+    public void HasRequiredSignedHeaders_EnforcesSecurityCriticalSet(
+        string headers,
+        bool bodyBearing,
+        bool expected)
+    {
+        Assert.Equal(expected, ActivityPubController.HasRequiredSignedHeaders(headers, bodyBearing));
+    }
+
+    [Fact]
+    public void IsFreshCreatedTimestamp_RejectsMissingStaleAndOutOfRangeValues()
+    {
+        Assert.False(ActivityPubController.IsFreshCreatedTimestamp(null));
+        Assert.False(ActivityPubController.IsFreshCreatedTimestamp(DateTimeOffset.UtcNow.AddMinutes(-6).ToUnixTimeSeconds()));
+        Assert.False(ActivityPubController.IsFreshCreatedTimestamp(long.MaxValue));
+        Assert.True(ActivityPubController.IsFreshCreatedTimestamp(DateTimeOffset.UtcNow.ToUnixTimeSeconds()));
+    }
 }
