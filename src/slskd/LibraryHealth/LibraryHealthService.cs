@@ -35,6 +35,8 @@ namespace slskd.LibraryHealth
         private readonly ILogger<LibraryHealthService> log;
         private readonly IOptionsMonitor<slskd.Options> optionsMonitor;
         private readonly ConcurrentDictionary<string, LibraryHealthScan> activeScans = new();
+        private readonly object scanAdmissionLock = new();
+        private string? runningScanId;
         private readonly QualityScorer qualityScorer = new();
         private readonly TranscodeDetector transcodeDetector = new();
 
@@ -80,11 +82,19 @@ namespace slskd.LibraryHealth
                 throw new UnauthorizedException("Library Health scans must target a configured share directory");
             }
 
-            var maxConcurrentFiles = request.MaxConcurrentFiles > 0
-                ? request.MaxConcurrentFiles
-                : 4;
+            var maxConcurrentFiles = Math.Clamp(request.MaxConcurrentFiles > 0 ? request.MaxConcurrentFiles : 4, 1, 8);
 
             var scanId = Guid.NewGuid().ToString();
+            lock (scanAdmissionLock)
+            {
+                if (runningScanId != null)
+                {
+                    throw new LibraryHealthScanAlreadyRunningException(runningScanId);
+                }
+
+                runningScanId = scanId;
+            }
+
             var scan = new LibraryHealthScan
             {
                 ScanId = scanId,
@@ -95,8 +105,17 @@ namespace slskd.LibraryHealth
                 IssuesDetected = 0,
             };
 
-            activeScans[scanId] = scan;
-            await hashDb.UpsertLibraryHealthScanAsync(scan, ct).ConfigureAwait(false);
+            try
+            {
+                activeScans[scanId] = scan;
+                await hashDb.UpsertLibraryHealthScanAsync(scan, ct).ConfigureAwait(false);
+            }
+            catch
+            {
+                activeScans.TryRemove(scanId, out _);
+                ReleaseScanAdmission(scanId);
+                throw;
+            }
 
             var normalizedRequest = new LibraryHealthScanRequest
             {
@@ -171,41 +190,37 @@ namespace slskd.LibraryHealth
                         request.LibraryPath,
                         "*.*",
                         CreateLibraryEnumerationOptions(request.IncludeSubdirectories))
-                    .Where(f => request.FileExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
-                    .ToList();
+                    .Where(f => request.FileExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()));
 
-                log.LogInformation("[LH] Found {Count} audio files to scan", files.Count);
-
-                // Process files in parallel with concurrency limit
-                using var semaphore = new SemaphoreSlim(request.MaxConcurrentFiles);
                 var scanLock = new object();
                 var scannedCount = 0;
 
-                var tasks = files.Select(async file =>
-                {
-                    await semaphore.WaitAsync(ct);
-                    try
+                await Parallel.ForEachAsync(
+                    files,
+                    new ParallelOptions
                     {
-                        await ScanFileAsync(file, scan, scanLock, ct);
+                        CancellationToken = ct,
+                        MaxDegreeOfParallelism = request.MaxConcurrentFiles,
+                    },
+                    async (file, fileCancellationToken) =>
+                    {
+                        try
+                        {
+                            await ScanFileAsync(file, scan, scanLock, fileCancellationToken);
+                        }
+                        catch (Exception ex)
+                        {
+                            log.LogWarning(ex, "[LH] Failed to scan file: {Path}", file);
+                        }
+
                         Interlocked.Increment(ref scannedCount);
                         lock (scanLock)
                         {
                             scan.FilesScanned = scannedCount;
                         }
 
-                        await hashDb.UpsertLibraryHealthScanAsync(scan, ct).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        log.LogWarning(ex, "[LH] Failed to scan file: {Path}", file);
-                    }
-                    finally
-                    {
-                        semaphore.Release();
-                    }
-                });
-
-                await Task.WhenAll(tasks);
+                        await hashDb.UpsertLibraryHealthScanAsync(scan, fileCancellationToken).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
 
                 scan.Status = ScanStatus.Completed;
                 scan.CompletedAt = DateTimeOffset.UtcNow;
@@ -222,6 +237,21 @@ namespace slskd.LibraryHealth
                 await hashDb.UpsertLibraryHealthScanAsync(scan, ct).ConfigureAwait(false);
                 activeScans.TryRemove(scanId, out _);
                 log.LogWarning(ex, "[LH] Scan failed for {Path}", request.LibraryPath);
+            }
+            finally
+            {
+                ReleaseScanAdmission(scanId);
+            }
+        }
+
+        private void ReleaseScanAdmission(string scanId)
+        {
+            lock (scanAdmissionLock)
+            {
+                if (string.Equals(runningScanId, scanId, StringComparison.Ordinal))
+                {
+                    runningScanId = null;
+                }
             }
         }
 

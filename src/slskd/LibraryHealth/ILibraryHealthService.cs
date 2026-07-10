@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.LibraryHealth
 {
+    using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
@@ -20,5 +21,16 @@ namespace slskd.LibraryHealth
         Task<string> CreateRemediationJobAsync(List<string> issueIds, CancellationToken ct = default);
 
         Task<LibraryHealthSummary> GetSummaryAsync(string libraryPath, CancellationToken ct = default);
+    }
+
+    public sealed class LibraryHealthScanAlreadyRunningException : InvalidOperationException
+    {
+        public LibraryHealthScanAlreadyRunningException(string scanId)
+            : base("A library health scan is already running")
+        {
+            ScanId = scanId;
+        }
+
+        public string ScanId { get; }
     }
 }

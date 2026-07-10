@@ -4,6 +4,8 @@
 namespace slskd.Tests.Unit.LibraryHealth;
 
 using System;
+using System.Reflection;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -13,6 +15,36 @@ using Xunit;
 
 public class ApiLibraryHealthControllerTests
 {
+    [Theory]
+    [InlineData(nameof(ApiLibraryHealthController.StartScan))]
+    [InlineData(nameof(ApiLibraryHealthController.GetScanStatus))]
+    [InlineData(nameof(ApiLibraryHealthController.GetSummary))]
+    [InlineData(nameof(ApiLibraryHealthController.GetIssues))]
+    public void PathBearingScanActions_RequireAdministrator(string actionName)
+    {
+        var action = typeof(ApiLibraryHealthController).GetMethod(actionName)!;
+        var authorize = Assert.Single(action.GetCustomAttributes<AuthorizeAttribute>(inherit: true));
+
+        Assert.Equal(AuthPolicy.Any, authorize.Policy);
+        Assert.Equal(AuthRole.AdministratorOnly, authorize.Roles);
+    }
+
+    [Fact]
+    public async Task StartScan_WhenAnotherScanRuns_ReturnsConflict()
+    {
+        var healthService = new Mock<ILibraryHealthService>();
+        healthService.Setup(service => service.StartScanAsync(It.IsAny<LibraryHealthScanRequest>(), default))
+            .ThrowsAsync(new LibraryHealthScanAlreadyRunningException("scan-running"));
+        var controller = new ApiLibraryHealthController(
+            healthService.Object,
+            NullLogger<ApiLibraryHealthController>.Instance);
+
+        var result = await controller.StartScan(new LibraryHealthScanRequest(), default);
+
+        var conflict = Assert.IsType<ConflictObjectResult>(result.Result);
+        Assert.Contains("already running", conflict.Value?.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public async Task GetScanStatus_WhenScanMissing_ReturnsSanitizedNotFound()
     {

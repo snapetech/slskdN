@@ -3,6 +3,8 @@
 // </copyright>
 namespace slskd.Tests.Unit.API.Native;
 
+using System.Reflection;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -13,6 +15,16 @@ using Xunit;
 
 public class LibraryHealthControllerTests
 {
+    [Fact]
+    public void GetHealth_RequiresAdministratorRole()
+    {
+        var action = typeof(LibraryHealthController).GetMethod(nameof(LibraryHealthController.GetHealth))!;
+        var authorize = Assert.Single(action.GetCustomAttributes<AuthorizeAttribute>(inherit: true));
+
+        Assert.Equal(AuthPolicy.Any, authorize.Policy);
+        Assert.Equal(AuthRole.AdministratorOnly, authorize.Roles);
+    }
+
     [Fact]
     public async Task CreateRemediationJob_WithOnlyWhitespaceIssueIds_ReturnsBadRequest()
     {

@@ -52,6 +52,64 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z513. Replacing Authorization Must Remove Redundant Bare Attributes
+
+**The Bug**: The Library Health scan action gained an administrator-role
+`[Authorize]` attribute but retained its existing bare `[Authorize]`, causing
+authorization metadata tests to find duplicate filters.
+
+**Files Affected**:
+- `src/slskd/LibraryHealth/API/LibraryHealthController.cs`
+
+**Wrong**:
+```csharp
+[Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
+[Authorize]
+```
+
+**Correct**:
+```csharp
+[Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
+```
+
+**Why This Keeps Happening**: Tightening an existing action by inserting a new
+attribute can leave the old attribute on the next line. Authorization edits
+must inspect the complete metadata set and tests should assert a single
+authoritative role requirement.
+
+### 0z512. Semaphore-Limited Fan-Out Still Creates One Task Per File
+
+**The Bug**: Library Health materialized every file and created an async task for
+each one before a semaphore limited execution; callers could also launch
+unlimited overlapping detached scans and choose excessive parallelism.
+
+**Files Affected**:
+- `src/slskd/LibraryHealth/LibraryHealthService.cs`
+- `src/slskd/LibraryHealth/API/LibraryHealthController.cs`
+
+**Wrong**:
+```csharp
+var tasks = files.Select(async file =>
+{
+    await semaphore.WaitAsync(cancellationToken);
+    // scan
+});
+await Task.WhenAll(tasks);
+```
+
+**Correct**:
+```csharp
+await Parallel.ForEachAsync(
+    files,
+    new ParallelOptions { MaxDegreeOfParallelism = Math.Clamp(requested, 1, 8) },
+    ScanFileAsync);
+```
+
+**Why This Keeps Happening**: A semaphore bounds active bodies but not task
+allocation. Long-running scan admission needs one shared zero-depth coordinator,
+bounded parallel enumeration, duplicate rejection, and administrator-only access
+to scan controls and path-bearing results.
+
 ### 0z511. Federation Inbox Retention Belongs In The Write Transaction
 
 **The Bug**: Signed ActivityPub deliveries were persisted indefinitely with no

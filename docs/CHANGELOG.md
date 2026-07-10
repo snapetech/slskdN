@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Library Health now admits one scan globally with duplicate `409` rejection,
+  caps file processing at eight bounded workers without task-per-file fan-out,
+  and restricts scan controls and path-bearing results to administrators.
 - ActivityPub inbox writes now reject oversized JSON and transactionally enforce
   30-day, 1,000-entry, and 64 MiB per-actor retention limits.
 - Warm-cache hint submissions are capped at 100 bounded identifiers, processed

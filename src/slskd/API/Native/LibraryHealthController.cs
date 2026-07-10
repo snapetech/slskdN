@@ -41,7 +41,7 @@ public class LibraryHealthController : ControllerBase
     /// Get library health summary and issues.
     /// </summary>
     [HttpGet("health")]
-    [Authorize(Policy = AuthPolicy.Any)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     public async Task<IActionResult> GetHealth(
         [FromQuery] string? path,
         [FromQuery] int limit = 100,

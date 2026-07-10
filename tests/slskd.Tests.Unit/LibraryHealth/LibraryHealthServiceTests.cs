@@ -129,6 +129,59 @@ namespace slskd.Tests.Unit.LibraryHealth
             Assert.True(options.AttributesToSkip.HasFlag(FileAttributes.System));
         }
 
+        [Fact]
+        public async Task StartScanAsync_WhileScanRunning_RejectsOverlap()
+        {
+            var shareRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(shareRoot);
+            var file = Path.Combine(shareRoot, "track.flac");
+            await File.WriteAllBytesAsync(file, new byte[] { 1 });
+            var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            try
+            {
+                var hashDb = new Mock<IHashDbService>();
+                hashDb.Setup(service => service.UpsertLibraryHealthScanAsync(It.IsAny<LibraryHealthScan>(), It.IsAny<CancellationToken>()))
+                    .Returns(Task.CompletedTask);
+                var metadata = new Mock<IMetadataFacade>();
+                metadata.Setup(service => service.GetByFileAsync(file, It.IsAny<CancellationToken>()))
+                    .Returns(async () =>
+                    {
+                        entered.TrySetResult();
+                        await release.Task;
+                        return null;
+                    });
+                var options = new slskd.Options
+                {
+                    Shares = new slskd.Options.SharesOptions { Directories = new[] { shareRoot } },
+                };
+                var service = new LibraryHealthService(
+                    hashDb.Object,
+                    Mock.Of<ILibraryHealthRemediationService>(),
+                    metadata.Object,
+                    Mock.Of<ICanonicalStatsService>(),
+                    Mock.Of<IMusicBrainzClient>(),
+                    new TestOptionsMonitor<slskd.Options>(options),
+                    NullLogger<LibraryHealthService>.Instance);
+
+                var firstScanId = await service.StartScanAsync(
+                    new LibraryHealthScanRequest { LibraryPath = shareRoot, MaxConcurrentFiles = 100 },
+                    CancellationToken.None);
+                await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+                var exception = await Assert.ThrowsAsync<LibraryHealthScanAlreadyRunningException>(() =>
+                    service.StartScanAsync(new LibraryHealthScanRequest { LibraryPath = shareRoot }, CancellationToken.None));
+
+                Assert.Equal(firstScanId, exception.ScanId);
+            }
+            finally
+            {
+                release.TrySetResult();
+                Directory.Delete(shareRoot, recursive: true);
+            }
+        }
+
         private static LibraryHealthScan Clone(LibraryHealthScan scan)
         {
             return new LibraryHealthScan

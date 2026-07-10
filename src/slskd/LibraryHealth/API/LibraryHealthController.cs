@@ -42,8 +42,7 @@ namespace slskd.LibraryHealth.API
         /// <param name="ct">Cancellation token.</param>
         /// <returns>Scan ID.</returns>
         [HttpPost("scans")]
-        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
-        [Authorize]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
         public async Task<ActionResult<StartScanResponse>> StartScan(
             [FromBody] LibraryHealthScanRequest request,
             CancellationToken ct)
@@ -55,7 +54,15 @@ namespace slskd.LibraryHealth.API
 
             log.LogInformation("Starting library health scan for path: {Path}", request.LibraryPath);
 
-            var scanId = await libraryHealth.StartScanAsync(request, ct);
+            string scanId;
+            try
+            {
+                scanId = await libraryHealth.StartScanAsync(request, ct);
+            }
+            catch (LibraryHealthScanAlreadyRunningException ex)
+            {
+                return Conflict(new { message = "A library health scan is already running", scan_id = ex.ScanId });
+            }
 
             return Ok(new StartScanResponse
             {
@@ -71,7 +78,7 @@ namespace slskd.LibraryHealth.API
         /// <param name="ct">Cancellation token.</param>
         /// <returns>Scan status.</returns>
         [HttpGet("scans/{scanId}")]
-        [Authorize]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
         public async Task<ActionResult<LibraryHealthScan>> GetScanStatus(
             string scanId,
             CancellationToken ct)
@@ -93,7 +100,7 @@ namespace slskd.LibraryHealth.API
         /// <param name="ct">Cancellation token.</param>
         /// <returns>Health summary.</returns>
         [HttpGet("summary")]
-        [Authorize]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
         public async Task<ActionResult<LibraryHealthSummary>> GetSummary(
             [FromQuery] string libraryPath,
             CancellationToken ct)
@@ -117,7 +124,7 @@ namespace slskd.LibraryHealth.API
         /// <param name="ct">Cancellation token.</param>
         /// <returns>List of issues.</returns>
         [HttpGet("issues")]
-        [Authorize]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
         public async Task<ActionResult<IssuesResponse>> GetIssues(
             [FromQuery] LibraryHealthIssueFilter filter,
             CancellationToken ct)
