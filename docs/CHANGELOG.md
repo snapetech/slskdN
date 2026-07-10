@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Historical and live application logs now require the administrator role on
+  both the REST controller and SignalR hub.
 - Stored ActivityPub inbox contents are now restricted to administrators while
   signed remote inbox delivery remains publicly reachable as required by the
   federation protocol.

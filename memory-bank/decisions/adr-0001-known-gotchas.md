@@ -52,6 +52,29 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z500. Sensitive Realtime Surfaces Need The Same Role As REST
+
+**The Bug**: Full application logs were available to every authenticated role
+through both the logs controller and the logs SignalR hub.
+
+**Files Affected**:
+- `src/slskd/Core/API/Controllers/LogsController.cs`
+- `src/slskd/Core/API/Hubs/LogsHub.cs`
+
+**Wrong**:
+```csharp
+[Authorize(Policy = AuthPolicy.Any)]
+```
+
+**Correct**:
+```csharp
+[Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
+```
+
+**Why This Keeps Happening**: REST controllers and SignalR hubs expose the same
+operational data through different transports. Authorization changes must cover
+both surfaces and tests must assert the role metadata on each one.
+
 ### 0z499. ActivityPub Delivery Does Not Make Inbox Contents Public
 
 **The Bug**: The ActivityPub inbox GET action carried `[AllowAnonymous]` like
