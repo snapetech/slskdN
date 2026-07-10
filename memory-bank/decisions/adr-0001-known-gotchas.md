@@ -52,6 +52,53 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z517. Release-Worthy Changes Belong In The Documentation Changelog
+
+**The Bug**: A release-worthy fix was recorded in the root `CHANGELOG.md`, so the commit gate rejected the commit because `docs/CHANGELOG.md` had no corresponding Unreleased entry.
+
+**Files Affected**:
+- `docs/CHANGELOG.md`
+- `CHANGELOG.md`
+
+**Wrong**:
+```text
+Update CHANGELOG.md only.
+```
+
+**Correct**:
+```text
+Add the release note under docs/CHANGELOG.md -> ## [Unreleased].
+```
+
+**Why This Keeps Happening**: The repository contains two changelog files, but its release tooling and commit gate use the documentation changelog as the source of truth.
+
+### 0z516. Certificate Pin Mismatches Must Never Rotate Trust Automatically
+
+**The Bug**: Inbound and outbound QUIC authentication accepted a mismatched peer certificate by replacing the stored TOFU pin with the certificate presented by the untrusted connection.
+
+**Files Affected**:
+- `src/slskd/DhtRendezvous/MeshOverlayServer.cs`
+- `src/slskd/DhtRendezvous/MeshOverlayConnector.cs`
+- `src/slskd/DhtRendezvous/API/DhtRendezvousController.cs`
+
+**Wrong**:
+```csharp
+case PinCheckResult.Mismatch:
+    pinStore.RotatePin(username, presentedThumbprint);
+    break;
+```
+
+**Correct**:
+```csharp
+case PinCheckResult.Mismatch:
+    await connection.DisconnectAsync("Certificate pin mismatch", cancellationToken);
+    return;
+```
+
+Pin replacement is a separate administrator-only operation that accepts a validated SHA-256 thumbprint.
+
+**Why This Keeps Happening**: Treating certificate renewal as an availability problem collapses the trust decision into the unauthenticated handshake. A mismatch is evidence that the peer is not currently trusted, so the connection must fail closed until an administrator independently approves the new pin.
+
 ### 0z515. HTTP Signatures Must Require Security-Critical Signed Headers
 
 **The Bug**: ActivityPub signature verification accepted the sender-declared

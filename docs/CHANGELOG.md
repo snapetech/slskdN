@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- QUIC overlay certificate pin mismatches now reject inbound and outbound
+  connections instead of replacing trust automatically; pin rotation is an
+  explicit administrator-only API operation.
 - ActivityPub HTTP signatures now require unique signed `(request-target)`,
   `host`, and `date` or `(created)` fields, plus `digest` for request bodies;
   signed creation timestamps receive the same five-minute freshness check.

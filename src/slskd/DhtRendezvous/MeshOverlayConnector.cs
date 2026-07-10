@@ -221,10 +221,11 @@ public sealed class MeshOverlayConnector : IMeshOverlayConnector
 
                         case PinCheckResult.Mismatch:
                             _logger.LogWarning(
-                                "Certificate pin mismatch for {Username}; rotating stored pin to newly presented certificate.",
+                                "Rejecting connection to {Username} because the certificate does not match the stored pin.",
                                 OverlayLogSanitizer.Username(ack.Username));
-                            _pinStore.RotatePin(ack.Username, connection.CertificateThumbprint ?? string.Empty);
-                            break;
+                            await connection.DisconnectAsync("Certificate pin mismatch", cancellationToken);
+                            RecordFailure(OverlayConnectionFailureReason.ProtocolHandshake, endpoint, ack.Username);
+                            return null;
                     }
                 }
 

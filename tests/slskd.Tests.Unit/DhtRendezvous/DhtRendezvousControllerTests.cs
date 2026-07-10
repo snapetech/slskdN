@@ -31,6 +31,51 @@ public class DhtRendezvousControllerTests
     }
 
     [Fact]
+    public void RotateCertificatePin_RequiresAdministratorRole()
+    {
+        var authorize = typeof(DhtRendezvousController)
+            .GetMethod(nameof(DhtRendezvousController.RotateCertificatePin))!
+            .GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
+            .Cast<AuthorizeAttribute>()
+            .Single();
+
+        Assert.Equal(AuthRole.AdministratorOnly, authorize.Roles);
+    }
+
+    [Fact]
+    public void RotateCertificatePin_WithValidSha256Pin_ReplacesPinExplicitly()
+    {
+        using var blocklist = new OverlayBlocklist(NullLogger<OverlayBlocklist>.Instance);
+        var pinStore = CreatePinStore();
+        pinStore.SetPin("alice", new string('A', 64));
+        var controller = CreateController(blocklist, pinStore: pinStore);
+
+        var result = controller.RotateCertificatePin(
+            " alice ",
+            new RotateCertificatePinRequest { Thumbprint = new string('b', 64) });
+
+        Assert.IsType<NoContentResult>(result);
+        Assert.Equal(PinCheckResult.Valid, pinStore.CheckPin("alice", new string('B', 64)));
+    }
+
+    [Fact]
+    public void RotateCertificatePin_WithInvalidPin_DoesNotReplacePin()
+    {
+        using var blocklist = new OverlayBlocklist(NullLogger<OverlayBlocklist>.Instance);
+        var pinStore = CreatePinStore();
+        var originalPin = new string('A', 64);
+        pinStore.SetPin("alice", originalPin);
+        var controller = CreateController(blocklist, pinStore: pinStore);
+
+        var result = controller.RotateCertificatePin(
+            "alice",
+            new RotateCertificatePinRequest { Thumbprint = "not-a-sha256-pin" });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal(PinCheckResult.Valid, pinStore.CheckPin("alice", originalPin));
+    }
+
+    [Fact]
     public async Task ConnectOverlayPeer_WithInvalidPort_ReturnsBadRequest()
     {
         using var blocklist = new OverlayBlocklist(NullLogger<OverlayBlocklist>.Instance);
@@ -274,7 +319,8 @@ public class DhtRendezvousControllerTests
     private static DhtRendezvousController CreateController(
         OverlayBlocklist blocklist,
         IDhtRendezvousService? dhtService = null,
-        IMeshOverlayConnector? overlayConnector = null)
+        IMeshOverlayConnector? overlayConnector = null,
+        CertificatePinStore? pinStore = null)
     {
         var overlayServer = new Mock<IMeshOverlayServer>();
         overlayServer.Setup(x => x.GetStats()).Returns(new MeshOverlayServerStats());
@@ -285,6 +331,11 @@ public class DhtRendezvousControllerTests
             overlayConnector ?? Mock.Of<IMeshOverlayConnector>(),
             new MeshNeighborRegistry(NullLogger<MeshNeighborRegistry>.Instance),
             new OverlayRateLimiter(),
-            blocklist);
+            blocklist,
+            pinStore ?? CreatePinStore());
     }
+
+    private static CertificatePinStore CreatePinStore() => new(
+        NullLogger<CertificatePinStore>.Instance,
+        System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"slskdn-controller-pin-tests-{Guid.NewGuid():N}"));
 }

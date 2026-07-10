@@ -33,6 +33,7 @@ public class DhtRendezvousController : ControllerBase
     private readonly MeshNeighborRegistry _neighborRegistry;
     private readonly OverlayRateLimiter _rateLimiter;
     private readonly OverlayBlocklist _blocklist;
+    private readonly CertificatePinStore _pinStore;
 
     public DhtRendezvousController(
         IDhtRendezvousService dhtService,
@@ -40,7 +41,8 @@ public class DhtRendezvousController : ControllerBase
         IMeshOverlayConnector overlayConnector,
         MeshNeighborRegistry neighborRegistry,
         OverlayRateLimiter rateLimiter,
-        OverlayBlocklist blocklist)
+        OverlayBlocklist blocklist,
+        CertificatePinStore pinStore)
     {
         _dhtService = dhtService;
         _overlayServer = overlayServer;
@@ -48,6 +50,7 @@ public class DhtRendezvousController : ControllerBase
         _neighborRegistry = neighborRegistry;
         _rateLimiter = rateLimiter;
         _blocklist = blocklist;
+        _pinStore = pinStore;
     }
 
     /// <summary>
@@ -401,6 +404,30 @@ public class DhtRendezvousController : ControllerBase
 
         return Ok(new { message = "Blocklist entry removed" });
     }
+
+    /// <summary>
+    /// Explicitly replace the trusted certificate pin for an overlay peer.
+    /// </summary>
+    [HttpPut("overlay/pins/{username}")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
+    public ActionResult RotateCertificatePin(string username, [FromBody] RotateCertificatePinRequest request)
+    {
+        username = username?.Trim() ?? string.Empty;
+        var thumbprint = request.Thumbprint?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            return BadRequest(new { error = "Username required" });
+        }
+
+        if (thumbprint.Length != 64 || !thumbprint.All(Uri.IsHexDigit))
+        {
+            return BadRequest(new { error = "Thumbprint must be a 64-character SHA-256 hexadecimal value" });
+        }
+
+        _pinStore.RotatePin(username, thumbprint.ToUpperInvariant());
+        return NoContent();
+    }
 }
 
 // Response DTOs
@@ -575,4 +602,9 @@ public sealed class BlockUsernameRequest
     public string? Reason { get; init; }
     public int? DurationMinutes { get; init; }
     public bool Permanent { get; init; }
+}
+
+public sealed class RotateCertificatePinRequest
+{
+    public required string Thumbprint { get; init; }
 }
