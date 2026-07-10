@@ -52,6 +52,62 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z520. QUIC-Looking UDP Packets Must Not Create Unbounded Proxy State
+
+**The Bug**: Any datagram with QUIC-like header bits created a per-source UDP socket, receive task, cancellation source, and two-minute session before return-path ownership was proven.
+
+**Files Affected**:
+- `src/slskd/DhtRendezvous/SharedMeshUdpListener.cs`
+
+**Wrong**:
+```csharp
+if (LooksLikeQuic(datagram))
+    sessions.GetOrAdd(remoteEndpoint, endpoint => new QuicProxySession(endpoint));
+```
+
+**Correct**:
+```csharp
+if (IsSupportedQuicInitialWithMinimumSize(datagram) &&
+    admissionGate.TryAcquire(remoteEndpoint, now) is { } lease)
+{
+    // Keep the session pending for only 10 seconds. Promote it only after a
+    // backend response is followed by another client datagram.
+}
+```
+
+Apply both global and network-prefix attempt/session limits. Short-header packets may use an existing session but must never create one.
+
+**Why This Keeps Happening**: UDP source addresses are spoofable. Header-shape checks classify traffic but do not prove address ownership, so all state created before return-path validation must be cheap, aggressively expiring, and strictly bounded.
+
+### 0z519. Disposable Admission Leases Need Exception-Safe Ownership Transfer
+
+**The Bug**: A QUIC proxy admission lease was passed into a session constructor without a `finally` fallback, so a constructor failure could permanently consume global and prefix admission capacity.
+
+**Files Affected**:
+- `src/slskd/DhtRendezvous/SharedMeshUdpListener.cs`
+
+**Wrong**:
+```csharp
+var lease = admissionGate.TryAcquire(endpoint, now);
+var session = new ProxySession(lease);
+```
+
+**Correct**:
+```csharp
+IDisposable? lease = admissionGate.TryAcquire(endpoint, now);
+try
+{
+    var session = new ProxySession(lease);
+    lease = null; // ownership transferred
+}
+finally
+{
+    lease?.Dispose();
+}
+```
+
+**Why This Keeps Happening**: Passing a disposable into a constructor suggests ownership transfer, but ownership does not transfer if construction fails. Capacity leases require the same exception-safe handoff as file handles and locks.
+
 ### 0z518. Relay Commands Need Authentication, Destination Policy, And Resource Bounds
 
 **The Bug**: The QUIC data plane processed `RELAY_TCP host port` from any client, connected to arbitrary destinations including internal services, and copied traffic without relay-specific duration or byte limits.

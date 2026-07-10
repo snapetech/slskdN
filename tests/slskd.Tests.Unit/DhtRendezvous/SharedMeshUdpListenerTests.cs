@@ -16,15 +16,14 @@ using Xunit;
 
 public class SharedMeshUdpListenerTests
 {
-    [Theory]
-    [InlineData(new byte[] { 0xc3, 0x00, 0x00 }, true)]
-    [InlineData(new byte[] { 0xd0, 0x00, 0x00 }, true)]
-    [InlineData(new byte[] { 0x64, 0x31, 0x3a }, false)]
-    [InlineData(new byte[] { 0x6c, 0x31, 0x3a }, false)]
-    [InlineData(new byte[] { }, false)]
-    public void IsQuicInitialPacket_OnlyMatchesQuicLongHeaderInitial(byte[] datagram, bool expected)
+    [Fact]
+    public void IsQuicInitialPacket_RequiresSupportedVersionInitialTypeAndMinimumSize()
     {
-        Assert.Equal(expected, SharedMeshUdpListener.IsQuicInitialPacket(datagram));
+        Assert.True(SharedMeshUdpListener.IsQuicInitialPacket(CreateQuicInitialPacket()));
+        Assert.True(SharedMeshUdpListener.IsQuicInitialPacket(CreateQuicInitialPacket(version: 0x6b3343cf, firstByte: 0xd0)));
+        Assert.False(SharedMeshUdpListener.IsQuicInitialPacket(CreateQuicInitialPacket(firstByte: 0xd0)));
+        Assert.False(SharedMeshUdpListener.IsQuicInitialPacket(CreateQuicInitialPacket(version: 0)));
+        Assert.False(SharedMeshUdpListener.IsQuicInitialPacket(new byte[] { 0xc0, 0x00, 0x00, 0x00, 0x01 }));
     }
 
     [Theory]
@@ -68,7 +67,7 @@ public class SharedMeshUdpListenerTests
 
         Assert.Equal(dhtPacket, await dhtReceived.Task.WaitAsync(TimeSpan.FromSeconds(2)));
 
-        var quicPacket = new byte[] { 0xc3, 0x00, 0x00, 0x01 };
+        var quicPacket = CreateQuicInitialPacket();
         await client.SendAsync(quicPacket, publicEndpoint);
         var backendResult = await backend.ReceiveAsync().WaitAsync(TimeSpan.FromSeconds(2));
 
@@ -86,6 +85,38 @@ public class SharedMeshUdpListenerTests
         var shortHeaderBackendResult = await backend.ReceiveAsync().WaitAsync(TimeSpan.FromSeconds(2));
 
         Assert.Equal(quicShortHeaderPacket, shortHeaderBackendResult.Buffer);
+    }
+
+    [Fact]
+    public void QuicProxyAdmissionGate_BoundsAttemptsByNetworkPrefix()
+    {
+        var gate = new QuicProxyAdmissionGate();
+        var now = DateTimeOffset.UtcNow;
+        var leases = Enumerable.Range(1, QuicProxyAdmissionGate.PrefixAttemptLimit)
+            .Select(index => gate.TryAcquire(new IPEndPoint(IPAddress.Parse($"203.0.113.{index}"), 5000 + index), now))
+            .ToList();
+
+        var rejected = gate.TryAcquire(new IPEndPoint(IPAddress.Parse("203.0.113.99"), 5099), now);
+
+        Assert.All(leases, Assert.NotNull);
+        Assert.Null(rejected);
+        leases.ForEach(lease => lease!.Dispose());
+    }
+
+    [Fact]
+    public void QuicProxyAdmissionGate_ExpiresAttemptWindowWithoutLeakingActiveCounts()
+    {
+        var gate = new QuicProxyAdmissionGate();
+        var endpoint = new IPEndPoint(IPAddress.Parse("198.51.100.1"), 5000);
+        var leases = Enumerable.Range(0, QuicProxyAdmissionGate.PrefixAttemptLimit)
+            .Select(_ => gate.TryAcquire(endpoint, DateTimeOffset.UnixEpoch))
+            .ToList();
+        leases.ForEach(lease => lease!.Dispose());
+
+        var admitted = gate.TryAcquire(endpoint, DateTimeOffset.UnixEpoch + QuicProxyAdmissionGate.AttemptWindow + TimeSpan.FromTicks(1));
+
+        Assert.NotNull(admitted);
+        admitted!.Dispose();
     }
 
     [Fact]
@@ -168,6 +199,14 @@ public class SharedMeshUdpListenerTests
         }
 
         throw new TimeoutException("Timed out waiting for predicate.");
+    }
+
+    private static byte[] CreateQuicInitialPacket(uint version = 1, byte firstByte = 0xc0)
+    {
+        var datagram = new byte[1200];
+        datagram[0] = firstByte;
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(datagram.AsSpan(1, 4), version);
+        return datagram;
     }
 
     private sealed class CapturingDispatcher : IControlDispatcher

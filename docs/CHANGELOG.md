@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Shared-port QUIC proxying now admits only minimum-size supported-version
+  Initial packets, bounds pending sessions globally and by network prefix,
+  expires unvalidated state after ten seconds, and requires return-path proof
+  before granting the normal idle lifetime.
 - QUIC TCP relay commands now require a shared authentication token, exact
   public-destination allowlisting, and concurrency, duration, and byte quotas;
   unauthenticated, internal, loopback, and unapproved destinations are denied.
