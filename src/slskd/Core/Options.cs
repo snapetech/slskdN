@@ -3677,6 +3677,7 @@ namespace slskd
                 /// <summary>
                 ///     Gets the header's value.
                 /// </summary>
+                [Secret]
                 public string Value { get; init; } = string.Empty;
             }
 

@@ -63,6 +63,43 @@ public class OptionsControllerTests
     }
 
     [Fact]
+    public void Current_RedactsEveryWebhookHeaderValue()
+    {
+        const string authorization = "EXAMPLE_AUTHORIZATION_VALUE";
+        const string customValue = "EXAMPLE_CUSTOM_HEADER_VALUE";
+        var options = new slskd.Options
+        {
+            Integration = new slskd.Options.IntegrationOptions
+            {
+                Webhooks = new Dictionary<string, slskd.Options.IntegrationOptions.WebhookOptions>
+                {
+                    ["example"] = new()
+                    {
+                        Call = new()
+                        {
+                            Url = "https://example.invalid/webhook",
+                            Headers =
+                            [
+                                new() { Name = "Authorization", Value = authorization },
+                                new() { Name = "X-Custom-Metadata", Value = customValue },
+                            ],
+                        },
+                    },
+                },
+            },
+        };
+        var controller = CreateController(options);
+
+        var result = Assert.IsType<OkObjectResult>(controller.Current());
+        var redacted = Assert.IsType<slskd.Options>(result.Value);
+        var headers = redacted.Integration.Webhooks["example"].Call.Headers;
+
+        Assert.All(headers, header => Assert.Equal("*****", header.Value));
+        Assert.Equal(authorization, options.Integration.Webhooks["example"].Call.Headers[0].Value);
+        Assert.Equal(customValue, options.Integration.Webhooks["example"].Call.Headers[1].Value);
+    }
+
+    [Fact]
     public void ApplyOverlay_WithNullBody_ReturnsBadRequest()
     {
         var controller = CreateController();

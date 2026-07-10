@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- All configured webhook header values are now redacted from options responses,
+  including authorization, API-key, and operator-defined headers.
 - Synthetic internal event dispatch is now administrator-only, restricted to
   explicitly supported sample event types and bounded disambiguators, and has
   a dedicated rate-limit partition before authenticated API exemptions.

@@ -52,6 +52,31 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z502. Configured HTTP Header Values Are Secrets By Default
+
+**The Bug**: Webhook header values, including authorization credentials and API
+keys, were returned unchanged by the read-access options endpoint.
+
+**Files Affected**:
+- `src/slskd/Core/Options.cs`
+- `tests/slskd.Tests.Unit/Core/API/OptionsControllerTests.cs`
+
+**Wrong**:
+```csharp
+public string Value { get; init; } = string.Empty;
+```
+
+**Correct**:
+```csharp
+[Secret]
+public string Value { get; init; } = string.Empty;
+```
+
+**Why This Keeps Happening**: Arbitrary configured HTTP headers can carry
+credentials under standard or operator-defined names. Redaction cannot safely
+infer sensitivity from the header name, so all configured webhook header values
+must be secret by default.
+
 ### 0z501. Synthetic Internal Events Are An Administrator Control Plane
 
 **The Bug**: Read-write users could raise internal events that fan out to
