@@ -1897,6 +1897,7 @@ namespace slskd
             [Argument(default, "sharing-token-key")]
             [EnvironmentVariable("SHARING_TOKEN_KEY")]
             [Description("base64-encoded HMAC key for share tokens (min 32 bytes decoded)")]
+            [Secret]
             public string TokenSigningKey { get; init; } = string.Empty;
         }
 

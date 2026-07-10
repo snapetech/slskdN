@@ -52,6 +52,32 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z497. Every Credential Option Must Carry `[Secret]`
+
+**The Bug**: `SharingOptions.TokenSigningKey` was returned by the read-access
+options endpoint because the property was not marked with `[Secret]`, allowing
+callers to forge share and stream tokens.
+
+**Files Affected**:
+- `src/slskd/Core/Options.cs`
+- `tests/slskd.Tests.Unit/Core/API/OptionsControllerTests.cs`
+
+**Wrong**:
+```csharp
+public string TokenSigningKey { get; init; } = string.Empty;
+```
+
+**Correct**:
+```csharp
+[Secret]
+public string TokenSigningKey { get; init; } = string.Empty;
+```
+
+**Why This Keeps Happening**: The options API relies on attribute-driven,
+recursive redaction. A credential property without `[Secret]` is serialized as
+ordinary configuration, so credential-named option properties need a reflection
+test that fails closed when an attribute is omitted.
+
 ### 0z496. VPN Status Helper Must Be Wanted By The App Service
 
 **The Bug**: `slskdN-vpn-gluetun-compat.service` was enabled under

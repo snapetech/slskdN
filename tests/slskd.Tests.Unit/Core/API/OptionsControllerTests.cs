@@ -3,6 +3,10 @@
 // </copyright>
 namespace slskd.Tests.Unit.Core.API;
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -12,6 +16,52 @@ using Xunit;
 
 public class OptionsControllerTests
 {
+    private static readonly HashSet<string> CredentialPropertyNames = new(StringComparer.Ordinal)
+    {
+        "AccessToken",
+        "ApiKey",
+        "ClientSecret",
+        "Password",
+        "Secret",
+        "Token",
+        "TokenSigningKey",
+    };
+
+    [Fact]
+    public void Options_AllCredentialPropertiesAreMarkedSecret()
+    {
+        var unprotectedCredentials = GetTypeTree(typeof(slskd.Options))
+            .SelectMany(type => type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            .Where(property => property.PropertyType == typeof(string))
+            .Where(property => CredentialPropertyNames.Contains(property.Name))
+            .Where(property => property.GetCustomAttribute<SecretAttribute>() == null)
+            .Select(property => $"{property.DeclaringType?.FullName}.{property.Name}")
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.Empty(unprotectedCredentials);
+    }
+
+    [Fact]
+    public void Current_RedactsSharingTokenSigningKey()
+    {
+        const string signingKey = "do-not-return-this-signing-key";
+        var options = new slskd.Options
+        {
+            Sharing = new slskd.Options.SharingOptions
+            {
+                TokenSigningKey = signingKey,
+            },
+        };
+        var controller = CreateController(options);
+
+        var result = Assert.IsType<OkObjectResult>(controller.Current());
+        var redacted = Assert.IsType<slskd.Options>(result.Value);
+
+        Assert.Equal("*****", redacted.Sharing.TokenSigningKey);
+        Assert.Equal(signingKey, options.Sharing.TokenSigningKey);
+    }
+
     [Fact]
     public void ApplyOverlay_WithNullBody_ReturnsBadRequest()
     {
@@ -77,10 +127,14 @@ public class OptionsControllerTests
 
     private static OptionsController CreateController(bool remoteConfiguration = true)
     {
-        var options = new slskd.Options
+        return CreateController(new slskd.Options
         {
             RemoteConfiguration = remoteConfiguration,
-        };
+        });
+    }
+
+    private static OptionsController CreateController(slskd.Options options)
+    {
 
         var optionsSnapshot = new Mock<IOptionsSnapshot<slskd.Options>>();
         optionsSnapshot.SetupGet(snapshot => snapshot.Value).Returns(options);
@@ -92,4 +146,9 @@ public class OptionsControllerTests
             optionsSnapshot.Object,
             stateMutator.Object);
     }
+
+    private static IEnumerable<Type> GetTypeTree(Type root) =>
+        root.GetNestedTypes(BindingFlags.Public)
+            .SelectMany(GetTypeTree)
+            .Prepend(root);
 }

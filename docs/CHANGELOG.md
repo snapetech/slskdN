@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Sharing token signing keys are now treated as secret options and are redacted
+  from read-access configuration responses; a recursive option-schema test now
+  rejects credential properties that omit the secret marker.
 - VPN-required installs now package the Gluetun-compatible VPN status helper as
   a dependency of both supported app service names, preventing a healthy app
   container from staying Soulseek-offline after the helper is stopped. Message
