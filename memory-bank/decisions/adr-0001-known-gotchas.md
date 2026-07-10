@@ -52,6 +52,30 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z504. Test DOM Dependencies Can Carry Network-Stack Advisories
+
+**The Bug**: The Web lockfile retained `undici` 7.25.0 through `jsdom`, leaving
+the test toolchain affected by multiple high-severity request-routing, header,
+TLS, and denial-of-service advisories.
+
+**Files Affected**:
+- `src/web/package-lock.json`
+
+**Wrong**:
+```text
+jsdom -> undici 7.25.0
+```
+
+**Correct**:
+```text
+jsdom -> undici 7.28.0
+```
+
+**Why This Keeps Happening**: A compatible transitive range does not update
+until the lockfile is refreshed. Frontend dependency remediation must run
+`npm audit` against the installed lockfile and verify the resolved transitive
+version, even when the vulnerable package is used only by the DOM test runtime.
+
 ### 0z503. Managed SQLite Updates May Leave A Vulnerable Native Bundle
 
 **The Bug**: Current Microsoft SQLite packages still resolved
