@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Pod APIs now derive peer identity from authenticated web claims, require
+  active pod membership for private reads, require owner/moderator membership
+  for mutations, bind signed/sent records to that identity, and reserve
+  internal PodCore maintenance surfaces for administrators.
 - Shared-port QUIC proxying now admits only minimum-size supported-version
   Initial packets, bounds pending sessions globally and by network prefix,
   expires unvalidated state after ten seconds, and requires return-path proof

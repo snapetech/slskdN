@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using slskd.PodCore.API;
 
 /// <summary>
 ///     Pod channel management.
@@ -87,6 +88,12 @@ public class PodChannelController : ControllerBase
 
         try
         {
+            var access = await PodApiAuthorizer.GetAccessAsync(User, _podService, podId, cancellationToken);
+            if (!access.CanModerate)
+            {
+                return Forbid();
+            }
+
             // Verify pod exists
             var pod = await _podService.GetPodAsync(podId, cancellationToken);
             if (pod == null)
@@ -139,6 +146,12 @@ public class PodChannelController : ControllerBase
 
         try
         {
+            var access = await PodApiAuthorizer.GetAccessAsync(User, _podService, podId, cancellationToken);
+            if (!access.IsMember)
+            {
+                return Forbid();
+            }
+
             // Verify pod exists
             var pod = await _podService.GetPodAsync(podId, cancellationToken);
             if (pod == null)
@@ -189,6 +202,12 @@ public class PodChannelController : ControllerBase
 
         try
         {
+            var access = await PodApiAuthorizer.GetAccessAsync(User, _podService, podId, cancellationToken);
+            if (!access.IsMember)
+            {
+                return Forbid();
+            }
+
             // Verify pod exists
             var pod = await _podService.GetPodAsync(podId, cancellationToken);
             if (pod == null)
@@ -269,6 +288,12 @@ public class PodChannelController : ControllerBase
 
         try
         {
+            var access = await PodApiAuthorizer.GetAccessAsync(User, _podService, podId, cancellationToken);
+            if (!access.CanModerate)
+            {
+                return Forbid();
+            }
+
             // Verify pod exists
             var pod = await _podService.GetPodAsync(podId, cancellationToken);
             if (pod == null)
@@ -344,6 +369,12 @@ public class PodChannelController : ControllerBase
 
         try
         {
+            var access = await PodApiAuthorizer.GetAccessAsync(User, _podService, podId, cancellationToken);
+            if (!access.CanModerate)
+            {
+                return Forbid();
+            }
+
             // Verify pod exists
             var pod = await _podService.GetPodAsync(podId, cancellationToken);
             if (pod == null)

@@ -3,6 +3,8 @@
 // </copyright>
 namespace slskd.Tests.Unit.PodCore;
 
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -13,6 +15,42 @@ using Xunit;
 public class PodMessageSigningControllerTests
 {
     [Fact]
+    public async Task SignMessage_WhenSenderDoesNotMatchAuthenticatedMember_ReturnsForbiddenWithoutSigning()
+    {
+        var signer = new Mock<IMessageSigner>();
+        var podService = new Mock<IPodService>();
+        podService.Setup(service => service.GetMembersAsync("pod-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { new PodMember { PeerId = "alice", Role = "member" } });
+        var controller = new PodMessageSigningController(
+            NullLogger<PodMessageSigningController>.Instance,
+            signer.Object,
+            podService.Object)
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(
+                        new[] { new Claim(ClaimTypes.Name, "alice") },
+                        "test")),
+                },
+            },
+        };
+
+        var result = await controller.SignMessage(
+            new MessageSigningRequest(
+                new PodMessage { MessageId = "message-1", PodId = "pod-1", SenderPeerId = "mallory" },
+                "private-key"),
+            CancellationToken.None);
+
+        Assert.IsType<ForbidResult>(result);
+        signer.Verify(service => service.SignMessageAsync(
+            It.IsAny<PodMessage>(),
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task SignMessage_TrimsPrivateKeyAndMessageFieldsBeforeDispatch()
     {
         var signer = new Mock<IMessageSigner>();
@@ -20,9 +58,10 @@ public class PodMessageSigningControllerTests
             .Setup(service => service.SignMessageAsync(It.IsAny<PodMessage>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PodMessage { MessageId = "msg-1" });
 
-        var controller = new PodMessageSigningController(
+        var controller = PodControllerTestContext.AsAdministrator(new PodMessageSigningController(
             NullLogger<PodMessageSigningController>.Instance,
-            signer.Object);
+            signer.Object,
+            Mock.Of<IPodService>()), "peer-1");
 
         var result = await controller.SignMessage(
             new MessageSigningRequest(
@@ -57,9 +96,10 @@ public class PodMessageSigningControllerTests
     public async Task VerifyMessage_WithWhitespaceOnlyMessageId_ReturnsBadRequest()
     {
         var signer = new Mock<IMessageSigner>();
-        var controller = new PodMessageSigningController(
+        var controller = PodControllerTestContext.AsAdministrator(new PodMessageSigningController(
             NullLogger<PodMessageSigningController>.Instance,
-            signer.Object);
+            signer.Object,
+            Mock.Of<IPodService>()));
 
         var result = await controller.VerifyMessage(
             new PodMessage { MessageId = "   " },
@@ -77,9 +117,10 @@ public class PodMessageSigningControllerTests
             .Setup(service => service.VerifyMessageAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var controller = new PodMessageSigningController(
+        var controller = PodControllerTestContext.AsAdministrator(new PodMessageSigningController(
             NullLogger<PodMessageSigningController>.Instance,
-            signer.Object);
+            signer.Object,
+            Mock.Of<IPodService>()));
 
         var result = await controller.VerifyMessage(
             new PodMessage { MessageId = "msg-1", PodId = "pod-1" },

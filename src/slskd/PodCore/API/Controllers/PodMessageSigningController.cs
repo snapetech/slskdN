@@ -12,6 +12,7 @@ namespace slskd.PodCore.API.Controllers;
 
 using Asp.Versioning;
 using slskd.Core.Security;
+using slskd.PodCore.API;
 
 /// <summary>
 /// Pod message signing API controller.
@@ -26,13 +27,16 @@ public class PodMessageSigningController : ControllerBase
 {
     private readonly ILogger<PodMessageSigningController> _logger;
     private readonly IMessageSigner _messageSigner;
+    private readonly IPodService _podService;
 
     public PodMessageSigningController(
         ILogger<PodMessageSigningController> logger,
-        IMessageSigner messageSigner)
+        IMessageSigner messageSigner,
+        IPodService podService)
     {
         _logger = logger;
         _messageSigner = messageSigner;
+        _podService = podService;
     }
 
     /// <summary>
@@ -63,6 +67,18 @@ public class PodMessageSigningController : ControllerBase
 
         try
         {
+            var access = await PodApiAuthorizer.GetAccessAsync(
+                User,
+                _podService,
+                normalizedRequest.Message.PodId,
+                cancellationToken);
+            if (!access.IsMember ||
+                access.PeerId is null ||
+                !string.Equals(normalizedRequest.Message.SenderPeerId, access.PeerId, StringComparison.Ordinal))
+            {
+                return Forbid();
+            }
+
             var signedMessage = await _messageSigner.SignMessageAsync(normalizedRequest.Message, normalizedRequest.PrivateKey, cancellationToken);
 
             return Ok(signedMessage);
@@ -92,6 +108,12 @@ public class PodMessageSigningController : ControllerBase
 
         try
         {
+            var access = await PodApiAuthorizer.GetAccessAsync(User, _podService, normalizedMessage.PodId, cancellationToken);
+            if (!access.IsMember)
+            {
+                return Forbid();
+            }
+
             var isValid = await _messageSigner.VerifyMessageAsync(normalizedMessage, cancellationToken);
 
             return Ok(new { isValid });
@@ -109,7 +131,7 @@ public class PodMessageSigningController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The generated key pair.</returns>
     [HttpPost("generate-keypair")]
-    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     public async Task<IActionResult> GenerateKeyPair(CancellationToken cancellationToken = default)
     {
         try
@@ -131,6 +153,7 @@ public class PodMessageSigningController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Signing statistics.</returns>
     [HttpGet("stats")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     public async Task<IActionResult> GetSigningStats(CancellationToken cancellationToken = default)
     {
         try

@@ -23,7 +23,7 @@ using Microsoft.Extensions.Logging;
 [ApiController]
 [Produces("application/json")]
 [Consumes("application/json")]
-[Authorize(Policy = AuthPolicy.Any)]
+[Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
 [FeatureGate(FeatureId.Pods)]
 public class PodMessageBackfillController : ControllerBase

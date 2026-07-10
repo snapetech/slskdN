@@ -8,6 +8,8 @@ using Moq;
 using slskd.ListeningParty;
 using slskd.ListeningParty.API;
 using slskd.Streaming;
+using slskd.PodCore;
+using slskd.Tests.Unit.PodCore;
 
 public sealed class ListeningPartyControllerTests
 {
@@ -19,12 +21,13 @@ public sealed class ListeningPartyControllerTests
             .Setup(instance => instance.PublishAsync(It.IsAny<ListeningPartyEvent>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new ArgumentException("ContentId /private/file.flac is invalid"));
 
-        var controller = new ListeningPartyController(
+        var controller = PodControllerTestContext.AsAdministrator(new ListeningPartyController(
             Mock.Of<IContentLocator>(),
             service.Object,
             Mock.Of<IStreamSessionLimiter>(),
             Mock.Of<IStreamTicketService>(),
-            new TestOptionsMonitor<slskd.Options>(new slskd.Options()));
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            Mock.Of<IPodService>()));
 
         var result = await controller.Publish(
             "pod-a",

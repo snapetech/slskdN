@@ -12,6 +12,7 @@ using Microsoft.Extensions.Options;
 using slskd.Mesh;
 using slskd.Messaging;
 using slskd.PodCore;
+using slskd.PodCore.API;
 
 /// <summary>
 /// Provides Pod management API endpoints.
@@ -61,7 +62,16 @@ public class PodsController : ControllerBase
         try
         {
             var pods = await podService.ListAsync(ct);
-            return Ok(pods);
+            var visiblePods = new List<Pod>();
+            foreach (var pod in pods)
+            {
+                if (pod.IsPublic || (await PodApiAuthorizer.GetAccessAsync(User, podService, pod.PodId, ct)).IsMember)
+                {
+                    visiblePods.Add(pod);
+                }
+            }
+
+            return Ok(visiblePods);
         }
         catch (Exception ex)
         {
@@ -91,6 +101,11 @@ public class PodsController : ControllerBase
                 return NotFound(new { error = "Pod not found" });
             }
 
+            if (!pod.IsPublic && !(await PodApiAuthorizer.GetAccessAsync(User, podService, podId, ct)).IsMember)
+            {
+                return Forbid();
+            }
+
             return Ok(pod);
         }
         catch (Exception ex)
@@ -113,6 +128,10 @@ public class PodsController : ControllerBase
         {
             if (string.IsNullOrWhiteSpace(podId))
                 return BadRequest(new { error = "PodId is required" });
+
+            var access = await PodApiAuthorizer.GetAccessAsync(User, podService, podId, ct);
+            if (!access.CanModerate)
+                return Forbid();
 
             var deleted = await podService.DeletePodAsync(podId, ct);
             if (!deleted)
@@ -147,10 +166,14 @@ public class PodsController : ControllerBase
                 Pod = NormalizePod(request.Pod)
             };
 
-            if (string.IsNullOrWhiteSpace(request.RequestingPeerId))
+            var authenticatedPeerId = PodApiAuthorizer.GetAuthenticatedPeerId(User);
+            if (authenticatedPeerId is null)
             {
-                return BadRequest(new { error = "RequestingPeerId is required" });
+                return Forbid();
             }
+
+            request = request with { RequestingPeerId = authenticatedPeerId };
+            request.Pod.Members = null;
 
             // Validate that the requesting peer will be the first member (and owner)
             if (request.Pod.Capabilities?.Contains(PodCapability.PrivateServiceGateway) == true)
@@ -215,10 +238,14 @@ public class PodsController : ControllerBase
                 return BadRequest(new { error = "PodId in URL must match PodId in body" });
             }
 
-            if (string.IsNullOrWhiteSpace(request.RequestingPeerId))
+            var access = await PodApiAuthorizer.GetAccessAsync(User, podService, podId, ct);
+            if (!access.CanModerate || access.PeerId is null)
             {
-                return BadRequest(new { error = "RequestingPeerId is required" });
+                return Forbid();
             }
+
+            request = request with { RequestingPeerId = access.PeerId };
+            request.Pod.Members = null;
 
             // Get existing pod to check authorization
             var existingPod = await podService.GetPodAsync(podId, ct);
@@ -290,6 +317,18 @@ public class PodsController : ControllerBase
                 return BadRequest(new { error = "PodId is required" });
             }
 
+            var access = await PodApiAuthorizer.GetAccessAsync(User, podService, podId, ct);
+            var pod = await podService.GetPodAsync(podId, ct);
+            if (pod is null)
+            {
+                return NotFound(new { error = "Pod not found" });
+            }
+
+            if (!pod.IsPublic && !access.IsMember)
+            {
+                return Forbid();
+            }
+
             var members = await podService.GetMembersAsync(podId, ct);
             return Ok(members);
         }
@@ -314,7 +353,7 @@ public class PodsController : ControllerBase
 
         try
         {
-            var peerId = request?.PeerId?.Trim() ?? string.Empty;
+            var peerId = PodApiAuthorizer.GetAuthenticatedPeerId(User);
 
             if (string.IsNullOrWhiteSpace(podId))
             {
@@ -323,7 +362,19 @@ public class PodsController : ControllerBase
 
             if (string.IsNullOrWhiteSpace(peerId))
             {
-                return BadRequest(new { error = "PeerId is required" });
+                return Forbid();
+            }
+
+            var pod = await podService.GetPodAsync(podId, ct);
+            if (pod is null)
+            {
+                return NotFound(new { error = "Pod not found" });
+            }
+
+            var access = await PodApiAuthorizer.GetAccessAsync(User, podService, podId, ct);
+            if (!access.IsMember && (!pod.IsPublic || pod.RequireApproval))
+            {
+                return Forbid();
             }
 
             var member = new PodMember
@@ -362,7 +413,7 @@ public class PodsController : ControllerBase
 
         try
         {
-            var peerId = request?.PeerId?.Trim() ?? string.Empty;
+            var peerId = PodApiAuthorizer.GetAuthenticatedPeerId(User);
 
             if (string.IsNullOrWhiteSpace(podId))
             {
@@ -371,7 +422,7 @@ public class PodsController : ControllerBase
 
             if (string.IsNullOrWhiteSpace(peerId))
             {
-                return BadRequest(new { error = "PeerId is required" });
+                return Forbid();
             }
 
             var left = await podService.LeaveAsync(podId, peerId, ct);
@@ -421,6 +472,12 @@ public class PodsController : ControllerBase
                 return BadRequest(new { error = "PeerId is required" });
             }
 
+            var access = await PodApiAuthorizer.GetAccessAsync(User, podService, podId, ct);
+            if (!access.CanModerate)
+            {
+                return Forbid();
+            }
+
             var banned = await podService.BanAsync(podId, peerId, ct);
             if (!banned)
             {
@@ -454,6 +511,11 @@ public class PodsController : ControllerBase
             if (string.IsNullOrWhiteSpace(podId) || string.IsNullOrWhiteSpace(channelId))
             {
                 return BadRequest(new { error = "PodId and ChannelId are required" });
+            }
+
+            if (!(await PodApiAuthorizer.GetAccessAsync(User, podService, podId, ct)).IsMember)
+            {
+                return Forbid();
             }
 
             var soulseekUsername = await TryGetSoulseekDmUsernameAsync(podId, channelId, ct);
@@ -522,6 +584,14 @@ public class PodsController : ControllerBase
             if (string.IsNullOrWhiteSpace(senderPeerId))
             {
                 return BadRequest(new { error = "SenderPeerId is required" });
+            }
+
+            var access = await PodApiAuthorizer.GetAccessAsync(User, podService, podId, ct);
+            if (!access.IsMember ||
+                access.PeerId is null ||
+                !string.Equals(senderPeerId, access.PeerId, StringComparison.Ordinal))
+            {
+                return Forbid();
             }
 
             var soulseekUsername = await TryGetSoulseekDmUsernameAsync(podId, channelId, ct);
@@ -601,6 +671,11 @@ public class PodsController : ControllerBase
                 return BadRequest(new { error = "Mode must be 'readonly' or 'mirror'" });
             }
 
+            if (!(await PodApiAuthorizer.GetAccessAsync(User, podService, podId, ct)).CanModerate)
+            {
+                return Forbid();
+            }
+
             var bound = await chatBridge.BindRoomAsync(podId, channelId, roomName, mode, ct);
             if (!bound)
             {
@@ -634,6 +709,11 @@ public class PodsController : ControllerBase
             if (string.IsNullOrWhiteSpace(podId) || string.IsNullOrWhiteSpace(channelId))
             {
                 return BadRequest(new { error = "PodId and ChannelId are required" });
+            }
+
+            if (!(await PodApiAuthorizer.GetAccessAsync(User, podService, podId, ct)).CanModerate)
+            {
+                return Forbid();
             }
 
             var unbound = await chatBridge.UnbindRoomAsync(podId, channelId, ct);

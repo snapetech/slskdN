@@ -21,7 +21,7 @@ using slskd.Core.Security;
 [Route("api/v{version:apiVersion}/podcore/dht")]
 [ApiVersion("0")]
 [ApiController]
-[Authorize(Policy = AuthPolicy.Any)]
+[Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
 [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
 [FeatureGate(FeatureId.Pods)]
 public class PodDhtController : ControllerBase

@@ -11,6 +11,7 @@ namespace slskd.PodCore.API.Controllers;
 
 using Asp.Versioning;
 using slskd.Core.Security;
+using slskd.PodCore.API;
 
 /// <summary>
 /// Pod membership management API controller.
@@ -25,13 +26,16 @@ public class PodMembershipController : ControllerBase
 {
     private readonly ILogger<PodMembershipController> _logger;
     private readonly IPodMembershipService _membershipService;
+    private readonly IPodService _podService;
 
     public PodMembershipController(
         ILogger<PodMembershipController> logger,
-        IPodMembershipService membershipService)
+        IPodMembershipService membershipService,
+        IPodService podService)
     {
         _logger = logger;
         _membershipService = membershipService;
+        _podService = podService;
     }
 
     /// <summary>
@@ -60,6 +64,31 @@ public class PodMembershipController : ControllerBase
 
         try
         {
+            var authenticatedPeerId = PodApiAuthorizer.GetAuthenticatedPeerId(User);
+            if (authenticatedPeerId is null || !string.Equals(authenticatedPeerId, member.PeerId, StringComparison.Ordinal))
+            {
+                return Forbid();
+            }
+
+            var pod = await _podService.GetPodAsync(podId, cancellationToken);
+            if (pod is null)
+            {
+                return NotFound(new { error = "Pod not found" });
+            }
+
+            var existingMembers = await _podService.GetMembersAsync(podId, cancellationToken);
+            var existingMember = existingMembers.FirstOrDefault(candidate =>
+                string.Equals(candidate.PeerId, authenticatedPeerId, StringComparison.Ordinal));
+            if (existingMember is null &&
+                !User.IsInRole(AuthRole.AdministratorOnly) &&
+                (!pod.IsPublic || pod.RequireApproval))
+            {
+                return Forbid();
+            }
+
+            member.PeerId = authenticatedPeerId;
+            member.Role = existingMember?.Role ?? "member";
+            member.IsBanned = existingMember?.IsBanned ?? false;
             var result = await _membershipService.PublishMembershipAsync(podId, member, cancellationToken);
 
             if (result.Success)
@@ -107,6 +136,22 @@ public class PodMembershipController : ControllerBase
 
         try
         {
+            var access = await PodApiAuthorizer.GetAccessAsync(User, _podService, podId, cancellationToken);
+            if (!access.CanModerate &&
+                (!access.IsMember || !string.Equals(access.PeerId, peerId, StringComparison.Ordinal)))
+            {
+                return Forbid();
+            }
+
+            var existingMembers = await _podService.GetMembersAsync(podId, cancellationToken);
+            var existingMember = existingMembers.FirstOrDefault(candidate =>
+                string.Equals(candidate.PeerId, peerId, StringComparison.Ordinal));
+            if (!access.CanModerate)
+            {
+                member.Role = existingMember?.Role ?? "member";
+                member.IsBanned = existingMember?.IsBanned ?? false;
+            }
+
             var result = await _membershipService.UpdateMembershipAsync(podId, member, cancellationToken);
 
             if (result.Success)
@@ -148,6 +193,13 @@ public class PodMembershipController : ControllerBase
 
         try
         {
+            var access = await PodApiAuthorizer.GetAccessAsync(User, _podService, podId, cancellationToken);
+            if (!access.CanModerate &&
+                (!access.IsMember || !string.Equals(access.PeerId, peerId, StringComparison.Ordinal)))
+            {
+                return Forbid();
+            }
+
             var result = await _membershipService.RemoveMembershipAsync(podId, peerId, cancellationToken);
 
             if (result.Success)
@@ -188,6 +240,12 @@ public class PodMembershipController : ControllerBase
 
         try
         {
+            var access = await PodApiAuthorizer.GetAccessAsync(User, _podService, podId, cancellationToken);
+            if (!access.IsMember)
+            {
+                return Forbid();
+            }
+
             var result = await _membershipService.GetMembershipAsync(podId, peerId, cancellationToken);
 
             if (result.Found)
@@ -226,6 +284,12 @@ public class PodMembershipController : ControllerBase
 
         try
         {
+            var access = await PodApiAuthorizer.GetAccessAsync(User, _podService, podId, cancellationToken);
+            if (!access.IsMember)
+            {
+                return Forbid();
+            }
+
             var result = await _membershipService.VerifyMembershipAsync(podId, peerId, cancellationToken);
             return Ok(result);
         }
@@ -258,6 +322,12 @@ public class PodMembershipController : ControllerBase
 
         try
         {
+            var access = await PodApiAuthorizer.GetAccessAsync(User, _podService, podId, cancellationToken);
+            if (!access.CanModerate)
+            {
+                return Forbid();
+            }
+
             var reason = string.IsNullOrWhiteSpace(request?.Reason) ? null : request.Reason.Trim();
             var result = await _membershipService.BanMemberAsync(podId, peerId, reason, cancellationToken);
 
@@ -300,6 +370,12 @@ public class PodMembershipController : ControllerBase
 
         try
         {
+            var access = await PodApiAuthorizer.GetAccessAsync(User, _podService, podId, cancellationToken);
+            if (!access.CanModerate)
+            {
+                return Forbid();
+            }
+
             var result = await _membershipService.UnbanMemberAsync(podId, peerId, cancellationToken);
 
             if (result.Success)
@@ -343,6 +419,12 @@ public class PodMembershipController : ControllerBase
 
         try
         {
+            var access = await PodApiAuthorizer.GetAccessAsync(User, _podService, podId, cancellationToken);
+            if (!access.CanModerate)
+            {
+                return Forbid();
+            }
+
             var result = await _membershipService.ChangeRoleAsync(podId, peerId, newRole, cancellationToken);
 
             if (result.Success)
@@ -369,6 +451,7 @@ public class PodMembershipController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Membership statistics.</returns>
     [HttpGet("stats")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     public async Task<IActionResult> GetMembershipStats(CancellationToken cancellationToken = default)
     {
         try
@@ -389,7 +472,7 @@ public class PodMembershipController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The cleanup result.</returns>
     [HttpPost("cleanup")]
-    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     public async Task<IActionResult> CleanupExpiredMemberships(CancellationToken cancellationToken = default)
     {
         try

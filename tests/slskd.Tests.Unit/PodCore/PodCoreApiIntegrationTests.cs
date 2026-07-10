@@ -167,7 +167,8 @@ public class PodCoreApiIntegrationTests : IDisposable
     {
         using var scope = _serviceProvider.CreateScope();
         var coordinator = scope.ServiceProvider.GetRequiredService<ConversationPodCoordinator>();
-        var controller = CreatePodsController(scope.ServiceProvider, PeerTest);
+        var selfPeerId = "peer-mesh-self";
+        var controller = CreatePodsController(scope.ServiceProvider, selfPeerId);
 
         var (podId, channelId) = await coordinator.EnsureDirectMessagePodAsync("dmuser");
 
@@ -177,7 +178,6 @@ public class PodCoreApiIntegrationTests : IDisposable
         Assert.Equal("dmuser", pod.Name);
         Assert.Equal(PodVisibility.Private, pod.Visibility);
 
-        var selfPeerId = "peer-mesh-self"; // Must match PeerId pattern ^[a-zA-Z0-9\-_.@]{1,255}$ (no colons)
         var sendResult = await controller.SendMessage(podId, channelId, new SendMessageRequest("DM via API!", selfPeerId));
         Assert.IsType<OkObjectResult>(sendResult);
 
@@ -229,7 +229,7 @@ public class PodCoreApiIntegrationTests : IDisposable
         Assert.IsType<BadRequestObjectResult>(sendResult);
 
         var joinResult = await controller.JoinPod("pod:00000000000000000000000000000099", new JoinPodRequest(PeerTest));
-        Assert.IsType<BadRequestObjectResult>(joinResult); // pod not in DB -> !joined
+        Assert.IsType<NotFoundObjectResult>(joinResult);
 
         var leaveResult = await controller.LeavePod("pod:00000000000000000000000000000099", new LeavePodRequest(PeerTest));
         Assert.IsType<NotFoundObjectResult>(leaveResult); // member not found -> !left
@@ -239,9 +239,9 @@ public class PodCoreApiIntegrationTests : IDisposable
     public async Task MultiUserPodScenario()
     {
         using var scope = _serviceProvider.CreateScope();
-        var controller1 = CreatePodsController(scope.ServiceProvider, "user1");
-        var controller2 = CreatePodsController(scope.ServiceProvider, "user2");
-        var controller3 = CreatePodsController(scope.ServiceProvider, "user3");
+        var controller1 = CreatePodsController(scope.ServiceProvider, PeerUser1);
+        var controller2 = CreatePodsController(scope.ServiceProvider, PeerUser2);
+        var controller3 = CreatePodsController(scope.ServiceProvider, PeerUser3);
 
         var publicPod = new Pod
         {
@@ -249,6 +249,7 @@ public class PodCoreApiIntegrationTests : IDisposable
             Name = "Multi-User Test Pod",
             Description = "Testing multiple users",
             Visibility = PodVisibility.Listed,
+            IsPublic = true,
             Channels = new List<PodChannel>
             {
                 new PodChannel { ChannelId = "general", Name = "General", Kind = PodChannelKind.General },
@@ -294,7 +295,7 @@ public class PodCoreApiIntegrationTests : IDisposable
             services.GetRequiredService<IOptionsMonitor<MeshOptions>>());
         controller.ControllerContext = new ControllerContext
         {
-            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, username) })) }
+            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, username) }, "test")) }
         };
         return controller;
     }

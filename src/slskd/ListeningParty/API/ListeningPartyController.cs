@@ -13,6 +13,8 @@ using slskd.Authentication;
 using slskd.Core.Security;
 using slskd.Sharing;
 using slskd.Streaming;
+using slskd.PodCore;
+using slskd.PodCore.API;
 
 /// <summary>
 ///     Pod listen-along controls.
@@ -34,19 +36,22 @@ public sealed class ListeningPartyController : ControllerBase
     private readonly IStreamSessionLimiter _limiter;
     private readonly IStreamTicketService _tickets;
     private readonly IOptionsMonitor<global::slskd.Options> _options;
+    private readonly IPodService _podService;
 
     public ListeningPartyController(
         IContentLocator locator,
         IListeningPartyService listeningParty,
         IStreamSessionLimiter limiter,
         IStreamTicketService tickets,
-        IOptionsMonitor<global::slskd.Options> options)
+        IOptionsMonitor<global::slskd.Options> options,
+        IPodService podService)
     {
         _locator = locator;
         _listeningParty = listeningParty;
         _limiter = limiter;
         _tickets = tickets;
         _options = options;
+        _podService = podService;
     }
 
     [HttpGet]
@@ -62,6 +67,11 @@ public sealed class ListeningPartyController : ControllerBase
     [ProducesResponseType(204)]
     public async Task<IActionResult> Get([FromRoute] string podId, [FromRoute] string channelId, CancellationToken cancellationToken)
     {
+        if (!(await PodApiAuthorizer.GetAccessAsync(User, _podService, podId, cancellationToken)).IsMember)
+        {
+            return Forbid();
+        }
+
         var state = await _listeningParty.GetStateAsync(podId, channelId, cancellationToken);
         return state == null ? NoContent() : Ok(state);
     }
@@ -83,11 +93,18 @@ public sealed class ListeningPartyController : ControllerBase
 
         try
         {
+            var access = await PodApiAuthorizer.GetAccessAsync(User, _podService, podId, cancellationToken);
+            if (!access.IsMember || access.PeerId is null)
+            {
+                return Forbid();
+            }
+
             var published = await _listeningParty.PublishAsync(
                 request with
                 {
                     PodId = podId,
                     ChannelId = channelId,
+                    HostPeerId = access.PeerId,
                 },
                 cancellationToken);
 

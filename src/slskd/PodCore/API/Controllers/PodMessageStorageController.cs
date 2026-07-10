@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using slskd.PodCore.API;
 
 /// <summary>
 ///     Pod message storage management.
@@ -29,12 +30,15 @@ public class PodMessageStorageController : ControllerBase
 {
     private readonly IPodMessageStorage messageStorage;
     private readonly ILogger<PodMessageStorageController> logger;
+    private readonly IPodService podService;
 
     public PodMessageStorageController(
         IPodMessageStorage messageStorage,
+        IPodService podService,
         ILogger<PodMessageStorageController> logger)
     {
         this.messageStorage = messageStorage;
+        this.podService = podService;
         this.logger = logger;
     }
 
@@ -81,6 +85,12 @@ public class PodMessageStorageController : ControllerBase
 
         try
         {
+            var access = await PodApiAuthorizer.GetAccessAsync(User, podService, podId, cancellationToken);
+            if (!access.IsMember)
+            {
+                return Forbid();
+            }
+
             var results = await messageStorage.SearchMessagesAsync(podId, query, channelId, limit, cancellationToken);
             return Ok(results);
         }
@@ -99,6 +109,7 @@ public class PodMessageStorageController : ControllerBase
     /// <response code="200">The storage statistics.</response>
     /// <response code="500">An unexpected error occurred.</response>
     [HttpGet("stats")]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     [ProducesResponseType(typeof(PodMessageStorageStats), 200)]
     [ProducesResponseType(500)]
     public async Task<IActionResult> GetStorageStats(CancellationToken cancellationToken = default)
@@ -125,7 +136,7 @@ public class PodMessageStorageController : ControllerBase
     /// <response code="400">The request is malformed.</response>
     /// <response code="500">An unexpected error occurred.</response>
     [HttpDelete("cleanup")]
-    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     [ProducesResponseType(typeof(long), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(500)]
@@ -191,6 +202,12 @@ public class PodMessageStorageController : ControllerBase
 
         try
         {
+            var access = await PodApiAuthorizer.GetAccessAsync(User, podService, podId, cancellationToken);
+            if (!access.CanModerate)
+            {
+                return Forbid();
+            }
+
             var deletedCount = await messageStorage.DeleteMessagesInChannelOlderThanAsync(podId, channelId, olderThan, cancellationToken);
             return Ok(deletedCount);
         }
@@ -235,6 +252,12 @@ public class PodMessageStorageController : ControllerBase
 
         try
         {
+            var access = await PodApiAuthorizer.GetAccessAsync(User, podService, podId, cancellationToken);
+            if (!access.IsMember)
+            {
+                return Forbid();
+            }
+
             var count = await messageStorage.GetMessageCountAsync(podId, channelId, cancellationToken);
             return Ok(count);
         }
@@ -253,7 +276,7 @@ public class PodMessageStorageController : ControllerBase
     /// <response code="200">The rebuild result.</response>
     /// <response code="500">An unexpected error occurred.</response>
     [HttpPost("rebuild-index")]
-    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
+    [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
     [ProducesResponseType(typeof(bool), 200)]
     [ProducesResponseType(500)]
     public async Task<IActionResult> RebuildSearchIndex(CancellationToken cancellationToken = default)

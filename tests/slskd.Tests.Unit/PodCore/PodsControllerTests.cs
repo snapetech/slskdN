@@ -49,8 +49,9 @@ public class PodsControllerTests
             {
                 User = new ClaimsPrincipal(new ClaimsIdentity(new[]
                 {
-                    new Claim(ClaimTypes.Name, "testuser")
-                }))
+                    new Claim(ClaimTypes.Name, "testuser"),
+                    new Claim(ClaimTypes.Role, "Administrator"),
+                }, "test"))
             }
         };
     }
@@ -165,7 +166,7 @@ public class PodsControllerTests
             ExternalBindings = new List<ExternalBinding> { new() { Kind = " soulseek-room ", Mode = " readonly ", Identifier = " ambient-room " } },
             PrivateServicePolicy = new PodPrivateServicePolicy
             {
-                GatewayPeerId = " peer:creator ",
+                GatewayPeerId = " testuser ",
                 RegisteredServices = new List<RegisteredService> { new() { Name = " web ui ", Description = " local ", Host = " example.local ", Protocol = " tcp " } },
                 AllowedDestinations = new List<AllowedDestination> { new() { HostPattern = " 192.168.1.2 ", Protocol = " tcp " } }
             },
@@ -191,16 +192,13 @@ public class PodsControllerTests
                     created.Name == "Test Pod" &&
                     created.Description == "ambient room" &&
                     created.Tags.SequenceEqual(new[] { "electronic", "ambient" }) &&
-                    created.Members != null &&
-                    created.Members[0].PeerId == "peer:creator" &&
-                    created.Members[0].Role == "owner" &&
-                    created.Members[0].PublicKey == "key" &&
+                    created.Members == null &&
                     created.ExternalBindings.Count == 1 &&
                     created.ExternalBindings[0].Kind == "soulseek-room" &&
                     created.ExternalBindings[0].Mode == "readonly" &&
                     created.ExternalBindings[0].Identifier == "ambient-room" &&
                     created.PrivateServicePolicy != null &&
-                    created.PrivateServicePolicy.GatewayPeerId == "peer:creator" &&
+                    created.PrivateServicePolicy.GatewayPeerId == "testuser" &&
                     created.PrivateServicePolicy.RegisteredServices[0].Name == "web ui" &&
                     created.PrivateServicePolicy.RegisteredServices[0].Description == "local" &&
                     created.PrivateServicePolicy.RegisteredServices[0].Host == "example.local" &&
@@ -374,7 +372,7 @@ public class PodsControllerTests
         // Arrange
         var podId = "pod:00000000000000000000000000000001";
         var channelId = "general";
-        var request = new SendMessageRequest("Test message", "peer:mesh:self");
+        var request = new SendMessageRequest("Test message", "testuser");
 
         _podMessagingMock.Setup(x => x.SendAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
@@ -400,7 +398,7 @@ public class PodsControllerTests
         _podServiceMock.Setup(x => x.GetPodAsync(podId, It.IsAny<CancellationToken>())).ReturnsAsync(pod);
         _conversationServiceMock.Setup(x => x.SendMessageAsync("remoteuser", "Hello via DM")).Returns(Task.CompletedTask);
 
-        var result = await _controller.SendMessage(podId, channelId, new SendMessageRequest("Hello via DM", "peer-mesh-self"));
+        var result = await _controller.SendMessage(podId, channelId, new SendMessageRequest("Hello via DM", "testuser"));
 
         Assert.IsType<OkObjectResult>(result);
         _conversationServiceMock.Verify(x => x.SendMessageAsync("remoteuser", "Hello via DM"), Times.Once);
@@ -422,6 +420,8 @@ public class PodsControllerTests
         // Arrange
         var podId = "pod:00000000000000000000000000000001";
         var request = new JoinPodRequest("peer:joiner");
+        _podServiceMock.Setup(x => x.GetPodAsync(podId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Pod { PodId = podId, IsPublic = true });
         _podServiceMock.Setup(x => x.JoinAsync(podId, It.IsAny<PodMember>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
 
         // Act
@@ -446,7 +446,7 @@ public class PodsControllerTests
         var result = await _controller.JoinPod(podId, request);
 
         // Assert
-        Assert.IsType<BadRequestObjectResult>(result);
+        Assert.IsType<NotFoundObjectResult>(result);
     }
 
     [Fact]
@@ -538,18 +538,19 @@ public class PodsControllerTests
     }
 
     [Fact]
-    public async Task UpdatePod_MissingRequestingPeerId_ReturnsBadRequest()
+    public async Task UpdatePod_MissingRequestingPeerId_UsesAuthenticatedIdentity()
     {
         // Arrange
         var pod = new Pod { PodId = "pod:test", Name = "Test Pod" };
         var request = new UpdatePodRequest(pod, "");
+        _podServiceMock.Setup(x => x.GetPodAsync("pod:test", It.IsAny<CancellationToken>())).ReturnsAsync(pod);
+        _podServiceMock.Setup(x => x.UpdateAsync(pod, It.IsAny<CancellationToken>())).ReturnsAsync(pod);
 
         // Act
         var result = await _controller.UpdatePod("pod:test", request);
 
         // Assert
-        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Contains("RequestingPeerId", badRequest.Value?.ToString() ?? "");
+        Assert.IsType<OkObjectResult>(result);
     }
 
     [Fact]
@@ -606,7 +607,7 @@ public class PodsControllerTests
         _podServiceMock.Setup(x => x.GetPodAsync(podId, It.IsAny<CancellationToken>())).ReturnsAsync(existingPod);
         _podServiceMock.Setup(x => x.GetMembersAsync(podId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<PodMember>
         {
-            new PodMember { PeerId = "peer:non-gateway", Role = "member" }
+            new PodMember { PeerId = "testuser", Role = "owner" }
         });
 
         // Act
@@ -632,7 +633,7 @@ public class PodsControllerTests
             PrivateServicePolicy = new PodPrivateServicePolicy
             {
                 Enabled = true,
-                GatewayPeerId = "peer:gateway",
+                GatewayPeerId = "testuser",
                 AllowedDestinations = new List<AllowedDestination>
                 {
                     new AllowedDestination { HostPattern = "printer.local", Port = 9100 }
@@ -644,7 +645,7 @@ public class PodsControllerTests
         _podServiceMock.Setup(x => x.GetPodAsync(podId, It.IsAny<CancellationToken>())).ReturnsAsync(existingPod);
         _podServiceMock.Setup(x => x.GetMembersAsync(podId, It.IsAny<CancellationToken>())).ReturnsAsync(new List<PodMember>
         {
-            new PodMember { PeerId = "peer:gateway", Role = "owner" }
+            new PodMember { PeerId = "testuser", Role = "owner" }
         });
         _podServiceMock.Setup(x => x.UpdateAsync(updatedPod, It.IsAny<CancellationToken>())).ReturnsAsync(updatedPod);
 

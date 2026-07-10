@@ -23,9 +23,9 @@ public class PodChannelControllerTests
             .Setup(service => service.CreateChannelAsync(It.IsAny<string>(), It.IsAny<PodChannel>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new PodChannel { ChannelId = "channel-1", Name = "General" });
 
-        var controller = new PodChannelController(
+        var controller = PodControllerTestContext.AsAdministrator(new PodChannelController(
             podService.Object,
-            NullLogger<PodChannelController>.Instance);
+            NullLogger<PodChannelController>.Instance));
 
         var result = await controller.CreateChannel(
             " pod-1 ",
@@ -55,9 +55,9 @@ public class PodChannelControllerTests
     public async Task UpdateChannel_WithWhitespaceOnlyRouteChannelId_ReturnsBadRequest()
     {
         var podService = new Mock<IPodService>();
-        var controller = new PodChannelController(
+        var controller = PodControllerTestContext.AsAdministrator(new PodChannelController(
             podService.Object,
-            NullLogger<PodChannelController>.Instance);
+            NullLogger<PodChannelController>.Instance));
 
         var result = await controller.UpdateChannel(
             " pod-1 ",
@@ -75,9 +75,9 @@ public class PodChannelControllerTests
     public async Task CreateChannel_WithWhitespaceOnlyName_ReturnsBadRequest()
     {
         var podService = new Mock<IPodService>();
-        var controller = new PodChannelController(
+        var controller = PodControllerTestContext.AsAdministrator(new PodChannelController(
             podService.Object,
-            NullLogger<PodChannelController>.Instance);
+            NullLogger<PodChannelController>.Instance));
 
         var result = await controller.CreateChannel(
             "pod-1",
@@ -105,9 +105,9 @@ public class PodChannelControllerTests
             .Setup(service => service.CreateChannelAsync(It.IsAny<string>(), It.IsAny<PodChannel>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new ArgumentException("sensitive detail"));
 
-        var controller = new PodChannelController(
+        var controller = PodControllerTestContext.AsAdministrator(new PodChannelController(
             podService.Object,
-            NullLogger<PodChannelController>.Instance);
+            NullLogger<PodChannelController>.Instance));
 
         var result = await controller.CreateChannel(
             "pod-1",
@@ -126,9 +126,9 @@ public class PodChannelControllerTests
             .Setup(service => service.GetPodAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Pod?)null);
 
-        var controller = new PodChannelController(
+        var controller = PodControllerTestContext.AsAdministrator(new PodChannelController(
             podService.Object,
-            NullLogger<PodChannelController>.Instance);
+            NullLogger<PodChannelController>.Instance));
 
         var result = await controller.GetChannels(" pod-secret ", CancellationToken.None);
 
@@ -147,9 +147,9 @@ public class PodChannelControllerTests
             .Setup(service => service.GetChannelAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((PodChannel?)null);
 
-        var controller = new PodChannelController(
+        var controller = PodControllerTestContext.AsAdministrator(new PodChannelController(
             podService.Object,
-            NullLogger<PodChannelController>.Instance);
+            NullLogger<PodChannelController>.Instance));
 
         var result = await controller.GetChannel("pod-1", " channel-secret ", CancellationToken.None);
 

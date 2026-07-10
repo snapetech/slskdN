@@ -52,6 +52,59 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z522. Web Roles Do Not Replace Pod-Level Authorization
+
+**The Bug**: Authenticated low-privilege users could search private pod messages, while any read-write user could submit arbitrary peer IDs to mutate channels/membership and request daemon-backed signatures.
+
+**Files Affected**:
+- `src/slskd/API/Native/PodsController.cs`
+- `src/slskd/PodCore/API/Controllers/PodMessageStorageController.cs`
+- `src/slskd/PodCore/API/Controllers/PodChannelController.cs`
+- `src/slskd/PodCore/API/Controllers/PodMembershipController.cs`
+- `src/slskd/PodCore/API/Controllers/PodMessageSigningController.cs`
+- `src/slskd/ListeningParty/API/ListeningPartyController.cs`
+
+**Wrong**:
+```csharp
+[Authorize(Roles = AuthRole.ReadWriteOrAdministrator)]
+public Task SignOrMutate(string podId, string peerId) => service.ExecuteAsync(podId, peerId);
+```
+
+**Correct**:
+```csharp
+var access = await PodApiAuthorizer.GetAccessAsync(User, podService, podId, cancellationToken);
+if (!access.CanModerate)
+    return Forbid();
+request.PeerId = access.PeerId;
+```
+
+Private reads require active, unbanned membership. Mutations require owner/moderator membership, self-service membership operations must preserve stored roles, and sender/host/signer identities must match the authenticated web identity. Administrative PodCore maintenance endpoints are administrator-only.
+
+**Why This Keeps Happening**: A global web role answers what an account may do generally; it does not answer whether that account belongs to a specific pod or may act as a supplied peer identity. Resource authorization and identity binding must occur after authentication and before any read, mutation, or signature.
+
+### 0z521. Controller Authorization Dependencies Must Be Propagated To Test Fixtures
+
+**The Bug**: Adding `IPodService` to pod-controller constructors initially left twelve unit-test construction sites uncompilable.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/PodCore/PodMessageStorageControllerTests.cs`
+- `tests/slskd.Tests.Unit/PodCore/PodMembershipControllerTests.cs`
+- `tests/slskd.Tests.Unit/PodCore/PodMessageSigningControllerTests.cs`
+- `tests/slskd.Tests.Unit/ListeningParty/ListeningPartyControllerTests.cs`
+
+**Wrong**:
+```csharp
+var controller = new PodController(service, logger);
+```
+
+**Correct**:
+```csharp
+var controller = new PodController(service, authorizedPodService, logger);
+controller.ControllerContext = AuthenticatedControllerContext("member-id");
+```
+
+**Why This Keeps Happening**: Authorization is request-context dependent. Constructor propagation alone is insufficient; tests exercising successful paths must also model authenticated identity and matching resource membership.
+
 ### 0z520. QUIC-Looking UDP Packets Must Not Create Unbounded Proxy State
 
 **The Bug**: Any datagram with QUIC-like header bits created a per-source UDP socket, receive task, cancellation source, and two-minute session before return-path ownership was proven.

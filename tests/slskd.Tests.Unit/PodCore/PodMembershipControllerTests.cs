@@ -16,6 +16,36 @@ using Xunit;
 public class PodMembershipControllerTests
 {
     [Fact]
+    public async Task PublishMembership_ForPrivatePodOutsider_ReturnsForbiddenWithoutPublishing()
+    {
+        var membershipService = new Mock<IPodMembershipService>();
+        var podService = new Mock<IPodService>();
+        podService.Setup(service => service.GetPodAsync("pod-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Pod { PodId = "pod-1", IsPublic = false });
+        podService.Setup(service => service.GetMembersAsync("pod-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<PodMember>());
+        var controller = PodControllerTestContext.AsAdministrator(new PodMembershipController(
+            NullLogger<PodMembershipController>.Instance,
+            membershipService.Object,
+            podService.Object), "mallory");
+        controller.HttpContext.User = new System.Security.Claims.ClaimsPrincipal(
+            new System.Security.Claims.ClaimsIdentity(
+                new[] { new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, "mallory") },
+                "test"));
+
+        var result = await controller.PublishMembership(
+            "pod-1",
+            new PodMember { PeerId = "mallory", Role = "owner" },
+            CancellationToken.None);
+
+        Assert.IsType<ForbidResult>(result);
+        membershipService.Verify(service => service.PublishMembershipAsync(
+            It.IsAny<string>(),
+            It.IsAny<PodMember>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public void Controller_RequiresAuthenticatedAccess()
     {
         var authorize = typeof(PodMembershipController)
@@ -34,9 +64,10 @@ public class PodMembershipControllerTests
             .Setup(service => service.ChangeRoleAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new MembershipPublishResult(true, "pod-1", "peer-1", "dht:key", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
 
-        var controller = new PodMembershipController(
+        var controller = PodControllerTestContext.AsAdministrator(new PodMembershipController(
             NullLogger<PodMembershipController>.Instance,
-            membershipService.Object);
+            membershipService.Object,
+            CreatePodService()));
 
         var result = await controller.ChangeRole(" pod-1 ", " peer-1 ", new ChangeRoleRequest(" moderator "), CancellationToken.None);
 
@@ -54,9 +85,10 @@ public class PodMembershipControllerTests
             .Setup(service => service.PublishMembershipAsync(It.IsAny<string>(), It.IsAny<PodMember>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new MembershipPublishResult(true, "pod-1", "peer-1", "dht:key", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
 
-        var controller = new PodMembershipController(
+        var controller = PodControllerTestContext.AsAdministrator(new PodMembershipController(
             NullLogger<PodMembershipController>.Instance,
-            membershipService.Object);
+            membershipService.Object,
+            CreatePodService()), "peer-1");
 
         var result = await controller.PublishMembership(
             " pod-1 ",
@@ -67,7 +99,7 @@ public class PodMembershipControllerTests
         membershipService.Verify(
             service => service.PublishMembershipAsync(
                 "pod-1",
-                It.Is<PodMember>(member => member.PeerId == "peer-1" && member.Role == "member"),
+                It.Is<PodMember>(member => member.PeerId == "peer-1" && member.Role == "owner"),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }
@@ -80,9 +112,10 @@ public class PodMembershipControllerTests
             .Setup(service => service.UpdateMembershipAsync(It.IsAny<string>(), It.IsAny<PodMember>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new MembershipPublishResult(true, "pod-1", "peer-1", "dht:key", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
 
-        var controller = new PodMembershipController(
+        var controller = PodControllerTestContext.AsAdministrator(new PodMembershipController(
             NullLogger<PodMembershipController>.Instance,
-            membershipService.Object);
+            membershipService.Object,
+            CreatePodService()));
 
         var result = await controller.UpdateMembership(
             " pod-1 ",
@@ -110,9 +143,10 @@ public class PodMembershipControllerTests
             .Setup(service => service.PublishMembershipAsync(It.IsAny<string>(), It.IsAny<PodMember>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new MembershipPublishResult(false, "pod-1", "peer-1", string.Empty, DateTimeOffset.MinValue, DateTimeOffset.MinValue, "sensitive detail"));
 
-        var controller = new PodMembershipController(
+        var controller = PodControllerTestContext.AsAdministrator(new PodMembershipController(
             NullLogger<PodMembershipController>.Instance,
-            membershipService.Object);
+            membershipService.Object,
+            CreatePodService()), "peer-1");
 
         var result = await controller.PublishMembership(
             "pod-1",
@@ -133,9 +167,10 @@ public class PodMembershipControllerTests
             .Setup(service => service.GetMembershipAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new MembershipRetrievalResult(false, "pod-1", "peer-1", null, DateTimeOffset.MinValue, DateTimeOffset.MinValue, false, "sensitive detail"));
 
-        var controller = new PodMembershipController(
+        var controller = PodControllerTestContext.AsAdministrator(new PodMembershipController(
             NullLogger<PodMembershipController>.Instance,
-            membershipService.Object);
+            membershipService.Object,
+            CreatePodService()));
 
         var result = await controller.GetMembership("pod-1", "peer-1", CancellationToken.None);
 
@@ -144,5 +179,15 @@ public class PodMembershipControllerTests
         Assert.Contains("Membership not found", notFound.Value?.ToString() ?? string.Empty);
         Assert.DoesNotContain("pod-1", notFound.Value?.ToString() ?? string.Empty, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("peer-1", notFound.Value?.ToString() ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static IPodService CreatePodService()
+    {
+        var service = new Mock<IPodService>();
+        service.Setup(instance => instance.GetPodAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Pod { PodId = "pod-1", IsPublic = true });
+        service.Setup(instance => instance.GetMembersAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { new PodMember { PeerId = "peer-1", Role = "owner" } });
+        return service.Object;
     }
 }
