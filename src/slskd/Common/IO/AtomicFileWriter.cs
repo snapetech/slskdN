@@ -32,7 +32,7 @@ public static class AtomicFileWriter
         {
             EnsureDirectory(path);
 
-            using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            using (var stream = CreateTempFile(tempPath, unixFileMode, useAsync: false))
             {
                 stream.Write(contents, 0, contents.Length);
                 stream.Flush(flushToDisk: true);
@@ -72,7 +72,7 @@ public static class AtomicFileWriter
         {
             EnsureDirectory(path);
 
-            await using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            await using (var stream = CreateTempFile(tempPath, unixFileMode, useAsync: true))
             {
                 await stream.WriteAsync(contents, cancellationToken).ConfigureAwait(false);
                 await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
@@ -92,6 +92,24 @@ public static class AtomicFileWriter
     private static string CreateTempPath(string path)
     {
         return $"{path}.{Guid.NewGuid():N}.tmp";
+    }
+
+    private static FileStream CreateTempFile(string tempPath, UnixFileMode? unixFileMode, bool useAsync)
+    {
+        var options = new FileStreamOptions
+        {
+            Access = FileAccess.Write,
+            Mode = FileMode.CreateNew,
+            Options = useAsync ? FileOptions.Asynchronous : FileOptions.None,
+            Share = FileShare.None,
+        };
+
+        if (unixFileMode.HasValue && !OperatingSystem.IsWindows())
+        {
+            options.UnixCreateMode = unixFileMode.Value;
+        }
+
+        return new FileStream(tempPath, options);
     }
 
     private static void EnsureDirectory(string path)

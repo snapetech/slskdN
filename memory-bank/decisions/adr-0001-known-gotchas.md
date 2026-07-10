@@ -52,6 +52,35 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z498. Secret Files Need Restrictive Mode At Creation
+
+**The Bug**: Generated TLS PKCS#12 files and their atomic-writer temporary
+files were created with the process default mode and restricted only after the
+secret bytes had been written.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/StartupFileSystem.cs`
+- `src/slskd/Common/IO/AtomicFileWriter.cs`
+
+**Wrong**:
+```csharp
+File.WriteAllBytes(filename, certificateBytes);
+File.SetUnixFileMode(filename, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+```
+
+**Correct**:
+```csharp
+AtomicFileWriter.WriteAllBytes(
+    filename,
+    certificateBytes,
+    UnixFileMode.UserRead | UnixFileMode.UserWrite);
+```
+
+**Why This Keeps Happening**: Applying permissions after a write leaves a
+window where private key material exists with the process umask-derived mode.
+Atomic secret writers must set `FileStreamOptions.UnixCreateMode` on the sibling
+temporary file, flush it, and only then rename it into place.
+
 ### 0z497. Every Credential Option Must Carry `[Secret]`
 
 **The Bug**: `SharingOptions.TokenSigningKey` was returned by the read-access

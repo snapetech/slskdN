@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Generated TLS certificate bundles are now written through mode-restricted,
+  flushed sibling files and atomically renamed, so private key material is
+  never created with a transient umask-derived permission window.
 - Sharing token signing keys are now treated as secret options and are redacted
   from read-access configuration responses; a recursive option-schema test now
   rejects credential properties that omit the secret marker.

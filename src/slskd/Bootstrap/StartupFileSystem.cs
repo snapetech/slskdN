@@ -10,6 +10,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.FileProviders.Physical;
 using System.Security.Cryptography.X509Certificates;
 using Serilog;
+using slskd.Common.IO;
 using slskd.Cryptography;
 
 public static class StartupFileSystem
@@ -84,18 +85,10 @@ public static class StartupFileSystem
         filename = Path.Combine(baseDirectory, filename);
 
         using var cert = X509.Generate(subject: appName, password, X509KeyStorageFlags.Exportable);
-        File.WriteAllBytes(filename, cert.Export(X509ContentType.Pkcs12, password));
-        if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
-        {
-            try
-            {
-                File.SetUnixFileMode(filename, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-            }
-            catch (Exception ex)
-            {
-                log.Warning(ex, "Could not set restrictive permissions on generated certificate {Filename}", filename);
-            }
-        }
+        AtomicFileWriter.WriteAllBytes(
+            filename,
+            cert.Export(X509ContentType.Pkcs12, password),
+            UnixFileMode.UserRead | UnixFileMode.UserWrite);
 
         return (filename, password);
     }

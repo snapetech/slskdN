@@ -49,4 +49,21 @@ public sealed class AtomicFileWriterTests : IDisposable
         Assert.Equal(new byte[] { 4, 5 }, await File.ReadAllBytesAsync(path));
         Assert.Empty(Directory.EnumerateFiles(directory, "state.bin.*.tmp"));
     }
+
+    [Fact]
+    public void WriteAllBytes_AppliesRestrictiveModeWithoutTempResidue()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var path = Path.Combine(_tempDir, "secret.bin");
+        var mode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+
+        AtomicFileWriter.WriteAllBytes(path, new byte[] { 1, 2, 3 }, mode);
+
+        Assert.Equal(mode, File.GetUnixFileMode(path));
+        Assert.Empty(Directory.EnumerateFiles(_tempDir, "secret.bin.*.tmp"));
+    }
 }
