@@ -177,9 +177,22 @@ public sealed class MeshContentMeshService : IMeshService
                 };
             }
 
-            length = req.Range.Length > 0
-                ? (int)Math.Min(req.Range.Length, finfo.Size - offset)
-                : (int)Math.Max(0, finfo.Size - offset);
+            var requestedLength = req.Range.Length > 0
+                ? Math.Min((long)req.Range.Length, finfo.Size - offset)
+                : Math.Max(0, finfo.Size - offset);
+
+            if (requestedLength > MaxFullResponseBytes)
+            {
+                return new ServiceReply
+                {
+                    CorrelationId = call.CorrelationId,
+                    StatusCode = ServiceStatusCodes.PayloadTooLarge,
+                    ErrorMessage = "Range too large; request a smaller range",
+                    Payload = Array.Empty<byte>(),
+                };
+            }
+
+            length = (int)requestedLength;
         }
         else if (finfo.Size > MaxFullResponseBytes)
         {

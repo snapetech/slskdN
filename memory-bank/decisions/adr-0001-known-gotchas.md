@@ -52,6 +52,35 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z505. Full-Response Caps Must Also Apply To Ranges
+
+**The Bug**: MeshContent rejected full responses above 32 MiB but accepted an
+explicit or open-ended range covering almost 2 GiB and allocated one array for
+the requested bytes.
+
+**Files Affected**:
+- `src/slskd/Mesh/ServiceFabric/Services/MeshContentMeshService.cs`
+
+**Wrong**:
+```csharp
+length = request.Range.Length > 0
+    ? (int)Math.Min(request.Range.Length, fileSize - offset)
+    : (int)(fileSize - offset);
+```
+
+**Correct**:
+```csharp
+if (length > MaxFullResponseBytes)
+{
+    return PayloadTooLarge("Range too large; request a smaller range");
+}
+```
+
+**Why This Keeps Happening**: Range support is often added as the workaround
+for a full-response limit, which makes it easy to omit the same cap on each
+segment. Both explicit lengths and open-ended ranges must be bounded before
+allocating; callers can stream content using the existing small chunk loop.
+
 ### 0z504. Test DOM Dependencies Can Carry Network-Stack Advisories
 
 **The Bug**: The Web lockfile retained `undici` 7.25.0 through `jsdom`, leaving

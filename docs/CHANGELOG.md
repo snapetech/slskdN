@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- MeshContent now rejects explicit and open-ended ranges above 32 MiB before
+  allocating response buffers; callers continue large transfers through the
+  existing bounded chunk loop.
 - The Web lockfile now resolves `undici` `7.28.0` through jsdom, clearing the
   high-severity advisories affecting the previous `7.25.0` test dependency.
 - SQLitePCLRaw's native SQLite bundle is pinned to `3.0.3`, replacing the

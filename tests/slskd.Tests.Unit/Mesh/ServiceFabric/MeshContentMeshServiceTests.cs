@@ -212,6 +212,51 @@ public class MeshContentMeshServiceTests
         Assert.Equal("Invalid range request", reply.ErrorMessage);
     }
 
+    [Theory]
+    [InlineData(0, 33 * 1024 * 1024)]
+    [InlineData(1, 0)]
+    public async Task HandleCallAsync_GetByContentId_WithOversizedRange_ReturnsPayloadTooLarge(long offset, int length)
+    {
+        var tempFile = Path.GetTempFileName();
+        try
+        {
+            var repo = new Mock<IShareRepository>();
+            repo.Setup(repository => repository.FindContentItem("content:audio:track:mb-12345"))
+                .Returns((Domain: "audio", WorkId: "work-1", MaskedFilename: "masked-file.flac", IsAdvertisable: true, ModerationReason: string.Empty, CheckedAt: DateTimeOffset.UtcNow.ToUnixTimeSeconds()));
+            repo.Setup(repository => repository.FindFileInfo("masked-file.flac"))
+                .Returns((Filename: tempFile, Size: 64L * 1024 * 1024));
+
+            var shareService = new Mock<IShareService>();
+            shareService.Setup(service => service.GetLocalRepository()).Returns(repo.Object);
+            var service = new MeshContentMeshService(
+                Mock.Of<ILogger<MeshContentMeshService>>(),
+                shareService.Object);
+
+            var reply = await service.HandleCallAsync(
+                new ServiceCall
+                {
+                    ServiceName = "MeshContent",
+                    Method = "GetByContentId",
+                    CorrelationId = Guid.NewGuid().ToString(),
+                    Payload = JsonSerializer.SerializeToUtf8Bytes(new
+                    {
+                        contentId = "content:audio:track:mb-12345",
+                        range = new { offset, length }
+                    })
+                },
+                new MeshServiceContext { RemotePeerId = "peer-1" },
+                CancellationToken.None);
+
+            Assert.Equal(ServiceStatusCodes.PayloadTooLarge, reply.StatusCode);
+            Assert.Equal("Range too large; request a smaller range", reply.ErrorMessage);
+            Assert.Empty(reply.Payload);
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
     private sealed class TestMeshServiceStream : MeshServiceStream
     {
         private readonly byte[] _requestPayload;
