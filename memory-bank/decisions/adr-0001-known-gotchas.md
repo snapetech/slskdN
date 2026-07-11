@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z540. Client-Aborted Requests Are Not Server Errors
+
+**The Bug**: Rapid authenticated navigation canceled in-flight API requests,
+but request cancellation propagated through the security middleware and was
+logged twice as an application error with a full `TaskCanceledException` stack.
+The endpoints and subsequent requests remained healthy, while operational
+monitoring falsely reported server failures.
+
+**Files Affected**:
+- `src/slskd/Common/Security/SecurityMiddleware.cs`
+- the global HTTP exception pipeline
+
+**Prevention**: Treat `OperationCanceledException` as expected only when
+`HttpContext.RequestAborted` is canceled. Stop processing without recording a
+security violation or error; continue surfacing cancellation that is not tied
+to the client disconnecting.
+
 ### 0z539. Mirrored Test Fixtures Must Be Updated Together
 
 **The Bug**: Mesh router security coverage was duplicated in the unit and smoke
