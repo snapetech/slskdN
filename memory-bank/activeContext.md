@@ -8976,3 +8976,18 @@ after five 504 Gateway Timeout responses, and the public feed did not list the
 Next steps: retry or repair COPR and Chocolatey publishing separately when
 those services/credentials are ready. No code release blocker remains from the
 live-log or omnibus Docker validation work.
+
+## 2026-07-11T18:34:00Z Session update
+
+Manual validation deploy completed. The live validation host now runs
+`0.0.0-manual.20260711182800.34113e245`; service, container, VPN, and Soulseek
+connectivity are healthy with zero restarts. Authenticated headless validation
+passed the 7-test core suite and a 19-route application sweep with no page
+errors or HTTP 5xx responses. Rapid navigation exposed client-aborted requests
+being reported as server failures; the cancellation handling fix and regression
+tests were committed and deployed, and the final post-test log scan was clean.
+No release tag was created.
+
+Next steps: continue operator testing on the manual build and monitor normal
+workload logs; the prior service definition and image remain available for
+rollback.

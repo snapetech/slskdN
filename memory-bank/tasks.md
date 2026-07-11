@@ -3018,3 +3018,4 @@
 - [2026-05-18T00:00:00Z] Completed: add reusable post-release package-channel validation harness, GitLab tag-only validation stage, and disabled GitHub package-smoke workflow scaffolding.
 - [2026-05-23T19:14:55Z] Completed: make all Web UI route shells and System subtabs fill the available app space like Downloads/Uploads, fix the System Metrics initial-load crash found during the headless sweep, and validate the layout with a mocked Playwright crawl.
 - [2026-07-10T00:00:00Z] Completed: remediate all 30 items in the supplied security and reliability bug report with individual documented commits and pushes. Full validation passed (`4668/4668` tests plus lint).
+- [2026-07-11T18:34:00Z] Completed: build and deploy manual image `0.0.0-manual.20260711182800.34113e245` to the live validation host, restore the hardened slskdN service layout with rollback backups, and pass authenticated headless core and broad route validation with clean final health and logs.
