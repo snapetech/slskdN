@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Client-aborted HTTP requests no longer produce duplicate security-middleware
+  error logs or false security events during normal browser navigation.
 - Privacy batching now releases every mesh and pod caller with its matching
   payload on timeout, size, flush, or shutdown and propagates cancellation.
 - Pre-validation UDP limits now aggregate spoofable endpoints by IPv4 /24 or

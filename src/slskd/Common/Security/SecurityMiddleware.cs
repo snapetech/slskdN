@@ -255,6 +255,10 @@ public sealed class SecurityMiddleware
             // Continue to next middleware
             await _next(context);
         }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            _logger.LogDebug("Request processing canceled after client disconnected from {Ip}", remoteIp);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing request from {Ip}", remoteIp);
@@ -508,6 +512,10 @@ public static class SecurityMiddlewareExtensions
                     eventSink);
 
                 await middleware.InvokeAsync(context);
+            }
+            catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+            {
+                logger.LogDebug("Security middleware canceled after client disconnected");
             }
             catch (Exception ex)
             {
