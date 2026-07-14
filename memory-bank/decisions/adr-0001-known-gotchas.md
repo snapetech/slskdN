@@ -3078,7 +3078,9 @@ still usable and Soulseek obfuscation is disabled.
 
 **Files Affected**:
 - `vendor/slskNet.Runtime/src/Messaging/Messages/Server/ConnectToPeerResponse.cs`
+- `vendor/slskNet.Runtime/src/Messaging/Messages/Server/UserAddressResponse.cs`
 - `vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/Server/ConnectToPeerResponseTests.cs`
+- `vendor/slskNet.Runtime/tests/Soulseek.Tests.Unit/Messaging/Messages/Server/UserAddressResponseTests.cs`
 
 **Wrong**:
 ```csharp
