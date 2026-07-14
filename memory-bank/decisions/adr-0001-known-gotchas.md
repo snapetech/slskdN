@@ -52,6 +52,15 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z544. Internal Helper Tests Must Use An Internals-Visible Test Assembly
+
+**The Bug**: Wishlist helper tests were added to a test project that cannot access `internal` production methods, so the project failed to compile even though the production code built successfully.
+
+**Files Affected**:
+- `tests/slskd.Tests/Wishlist/WishlistServiceTests.cs`
+
+**Prevention**: Before directly testing an internal helper, confirm that the target test assembly is listed in `InternalsVisibleTo`. Otherwise test through public behavior or place the focused test in the repository's internals-visible unit-test project.
+
 ### 0z543. Context-Based JSX Patches Can Duplicate An Opening Element
 
 **The Bug**: Inserting props into a mapped JSX component with imprecise patch context duplicated the component's opening `<Response>` element and made the file syntactically invalid.
