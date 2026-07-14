@@ -52,6 +52,16 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z546. Release-Worthy Changes Must Update The Release Changelog
+
+**The Bug**: A release commit updated the root `CHANGELOG.md` but omitted `docs/CHANGELOG.md`, so the pre-commit release-note gate rejected the commit.
+
+**Files Affected**:
+- `CHANGELOG.md`
+- `docs/CHANGELOG.md`
+
+**Prevention**: For release-worthy feature or fix commits, add the user-facing bullet under `docs/CHANGELOG.md` → `## [Unreleased]`; update the root changelog as supporting history only when relevant.
+
 ### 0z545. Dispose SQLite Schema Readers Before Altering The Same Connection
 
 **The Bug**: A wishlist migration kept a `PRAGMA table_info` reader alive while preparing to run `ALTER TABLE` on the same SQLite connection, risking an active-reader or locked-schema failure.
