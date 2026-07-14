@@ -52,6 +52,20 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z542. Interface Changes Must Update Handwritten Test Fakes
+
+**The Bug**: `IWishlistService` gained ignored-result methods, but the
+handwritten Lidarr test fake was not updated. Focused production builds passed
+while the full unit-test project no longer compiled.
+
+**Files Affected**:
+- `src/slskd/Wishlist/WishlistService.cs`
+- `tests/slskd.Tests.Unit/Integrations/Lidarr/LidarrSyncServiceTests.cs`
+
+**Prevention**: When adding an interface member, search the full repository for
+every implementation, including nested test fakes, and compile the complete
+solution rather than only the changed production project.
+
 ### 0z541. Task Races Must Observe Faulting Losers
 
 **The Bug**: Soulseek transfer code raced data I/O against connection-disconnect
