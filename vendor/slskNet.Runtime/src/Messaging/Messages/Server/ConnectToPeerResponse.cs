@@ -170,9 +170,11 @@ namespace Soulseek.Messaging.Messages
                 obfuscationType = reader.ReadInteger();
                 obfuscatedPort = reader.ReadInteger();
 
-                if (obfuscationType == 1)
+                if (obfuscationType == 1 &&
+                    (obfuscatedPort <= IPEndPoint.MinPort || obfuscatedPort > IPEndPoint.MaxPort))
                 {
-                    ProtocolValueValidator.ValidateAdvertisedPort(obfuscatedPort, "connect-to-peer obfuscated");
+                    obfuscationType = 0;
+                    obfuscatedPort = 0;
                 }
             }
 

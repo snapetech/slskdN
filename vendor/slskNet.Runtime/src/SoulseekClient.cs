@@ -3941,6 +3941,12 @@ namespace Soulseek
                     },
                     cancellationToken: linkedCancellationToken);
 
+                // Any participant can fault after another task wins the race. Keep every
+                // participant observed while preserving exceptions for the explicit awaits below.
+                readTask.Forget();
+                disconnectedTaskCancellationSource.Task.Forget();
+                download.RemoteTaskCompletionSource.Task.Forget();
+
                 var firstTask = await Task.WhenAny(
                     readTask, // we successfully read all of the data
                     disconnectedTaskCancellationSource.Task, // the connection is disconnected
@@ -5435,6 +5441,11 @@ namespace Soulseek
                 {
                     writeTask = Task.CompletedTask;
                 }
+
+                // The disconnect path can win while the canceled socket write faults later.
+                // Observe both participants without changing which exception is propagated.
+                writeTask.Forget();
+                disconnectedTaskCancellationSource.Task.Forget();
 
                 var firstTask = await Task.WhenAny(
                     writeTask,

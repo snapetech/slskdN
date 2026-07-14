@@ -186,11 +186,11 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
         }
 
         [Trait("Category", "Parse")]
-        [Theory(DisplayName = "Parse throws MessageException on invalid obfuscated port")]
+        [Theory(DisplayName = "Parse ignores invalid optional obfuscated port")]
         [InlineData(-1)]
         [InlineData(0)]
         [InlineData(65536)]
-        public void Parse_Throws_MessageException_On_Invalid_Obfuscated_Port(int obfuscatedPort)
+        public void Parse_Ignores_Invalid_Optional_Obfuscated_Port(int obfuscatedPort)
         {
             var msg = new MessageBuilder()
                 .WriteCode(MessageCode.Server.ConnectToPeer)
@@ -204,10 +204,13 @@ namespace Soulseek.Tests.Unit.Messaging.Messages
                 .WriteInteger(obfuscatedPort)
                 .Build();
 
-            var ex = Record.Exception(() => ConnectToPeerResponse.FromByteArray(msg));
+            var response = ConnectToPeerResponse.FromByteArray(msg);
 
-            Assert.NotNull(ex);
-            Assert.IsType<MessageException>(ex);
+            Assert.Equal(1, response.Port);
+            Assert.Equal(0, response.ObfuscationType);
+            Assert.Equal(0, response.ObfuscatedPort);
+            Assert.False(response.HasObfuscatedEndpoint);
+            Assert.Null(response.ObfuscatedIPEndPoint);
         }
     }
 }
