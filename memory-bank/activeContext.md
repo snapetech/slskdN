@@ -1,3 +1,19 @@
+## Update 2026-07-14 16:00:00Z
+
+- Current task: release and live deployment complete.
+- Last activity:
+  - Committed and pushed the complete working tree through `be76e0f09`.
+  - Published release `2026071415-slskdn.274` from tag `build-main-2026071415-slskdn.274` and verified its downloadable artifacts and checksums.
+  - Replaced the live validation service with immutable GHCR image `2026071415-slskdn.274`, retaining the prior unit and image for rollback.
+- Validation:
+  - Passed the guarded release build, full tests, lint, archive checksums, and Linux x64 version verification.
+  - Live service reports the matching version, Docker health `healthy`, restart count `0`, and `/health=Healthy`.
+  - VPN forwarding is ready; Soulseek connected and logged in after restart.
+  - COPR and Chocolatey external publishing failed; other completed package/release jobs passed, and Docker was completing post-push actions after the image became pullable.
+- Next steps:
+  1. No implementation or deployment work remains.
+  2. Investigate COPR and Chocolatey publisher failures separately if those channels are required.
+
 ## Update 2026-07-14 00:00:00Z
 
 - Current task: durable Wishlist false-positive suppression complete.
