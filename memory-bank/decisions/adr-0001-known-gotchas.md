@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z541. Task Races Must Observe Faulting Losers
+
+**The Bug**: Soulseek transfer code raced data I/O against connection-disconnect
+and remote-status tasks, canceled the losing work, and awaited only the winning
+task. A losing write, read, disconnect, or remote rejection could fault after
+the method returned and later surface from the finalizer as a fatal unobserved
+task exception, even though the transfer service had already handled the
+transfer failure.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/src/SoulseekClient.cs`
+
+**Prevention**: Every task passed to `Task.WhenAny` must remain observed even
+when another task wins. Attach the runtime's fault-observing continuation to
+each race participant before awaiting the winner; this does not suppress the
+exception when the selected task is explicitly awaited.
+
 ### 0z540. Client-Aborted Requests Are Not Server Errors
 
 **The Bug**: Rapid authenticated navigation canceled in-flight API requests,
