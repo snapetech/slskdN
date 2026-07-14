@@ -52,6 +52,15 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z543. Context-Based JSX Patches Can Duplicate An Opening Element
+
+**The Bug**: Inserting props into a mapped JSX component with imprecise patch context duplicated the component's opening `<Response>` element and made the file syntactically invalid.
+
+**Files Affected**:
+- `src/web/src/components/Search/Detail/SearchDetail.jsx`
+
+**Prevention**: After patching JSX around a repeated or mapped component, inspect the complete opening element and its surrounding conditional before running tests. Use a prop line as the patch anchor instead of replacing the opening tag when the tag itself does not need to change.
+
 ### 0z542. Interface Changes Must Update Handwritten Test Fakes
 
 **The Bug**: `IWishlistService` gained ignored-result methods, but the
