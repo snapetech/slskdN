@@ -3094,6 +3094,11 @@ if (obfuscatedPort <= 0 || obfuscatedPort > IPEndPoint.MaxPort)
 }
 ```
 
+**Recurrence (2026-07-14)**: A later vendored runtime sync restored strict
+validation and generated thousands of warnings while discarding otherwise
+usable peer hints. Keep the tolerant parser regression in the vendored test
+suite and verify it whenever the standalone runtime is re-exported.
+
 **Why This Keeps Happening**: Optional extension metadata is easy to validate as
 if it were core protocol data. For mixed Soulseek clients and server hints, bad
 optional obfuscation fields should disable only the optional obfuscated endpoint;
