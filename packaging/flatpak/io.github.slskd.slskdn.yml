@@ -108,10 +108,10 @@ modules:
         install -Dm644 slskdn.metainfo.xml /app/share/metainfo/io.github.slskd.slskdn.metainfo.xml
         install -Dm644 slskdn.svg /app/share/icons/hicolor/scalable/apps/io.github.slskd.slskdn.svg
     sources:
-      # slskdN 2026061721-slskdn.273 Linux glibc x64 (snapetech; asset slskdn-main-linux-glibc-x64.zip)
+      # slskdN 2026071415-slskdn.274 Linux glibc x64 (snapetech; asset slskdn-main-linux-glibc-x64.zip)
       - type: archive
-        url: https://github.com/snapetech/slskdn/releases/download/2026061721-slskdn.273/slskdn-main-linux-glibc-x64.zip
-        sha256: e655f0a2d35123f649801ce8ea6aab2c1f2624cfb21dfed951fa2e88de126198
+        url: https://github.com/snapetech/slskdn/releases/download/2026071415-slskdn.274/slskdn-main-linux-glibc-x64.zip
+        sha256: e3460ef8d9826002c453073db345637b2d10c0467cdab192cc09b159544ef938
 
       - type: file
         path: slskdn.desktop
