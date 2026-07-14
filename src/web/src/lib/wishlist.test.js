@@ -48,4 +48,23 @@ describe('wishlist', () => {
     expect(api.delete).toHaveBeenCalledWith('/wishlist/wish%2F1');
     expect(api.post).toHaveBeenCalledWith('/wishlist/wish%2F1/search');
   });
+
+  it('manages ignored result routes with encoded identifiers', async () => {
+    api.delete.mockResolvedValue({});
+    api.get.mockResolvedValue({ data: [] });
+    api.post.mockResolvedValue({ data: { id: 'rule/1' } });
+
+    await wishlist.getIgnoredResults('wish/1');
+    await wishlist.ignoreResult('wish/1', { directory: 'Artist/Album', username: 'peer' });
+    await wishlist.removeIgnoredResult('wish/1', 'rule/1');
+
+    expect(api.get).toHaveBeenCalledWith('/wishlist/wish%2F1/ignored-results');
+    expect(api.post).toHaveBeenCalledWith('/wishlist/wish%2F1/ignored-results', {
+      directory: 'Artist/Album',
+      username: 'peer',
+    });
+    expect(api.delete).toHaveBeenCalledWith(
+      '/wishlist/wish%2F1/ignored-results/rule%2F1',
+    );
+  });
 });

@@ -273,9 +273,12 @@ export const parseFiltersFromString = (string) => {
       .filter((e) => e.length > 0);
   }
 
-  const terms = string
-    .toLowerCase()
-    .split(' ')
+  const terms = (string.toLowerCase().match(/-?"[^"]+"|\S+/gu) || [])
+    .map((term) => {
+      const excluded = term.startsWith('-');
+      const value = (excluded ? term.slice(1) : term).replace(/^"|"$/gu, '');
+      return excluded ? `-${value}` : value;
+    })
     .filter(
       (term) =>
         !term.includes(':') &&

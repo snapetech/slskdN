@@ -8,6 +8,7 @@ namespace slskd.Wishlist
     using System.IO;
     using System.Linq;
     using System.Text;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
@@ -69,6 +70,12 @@ namespace slskd.Wishlist
         ///     Marks all wishlist items as viewed.
         /// </summary>
         Task MarkAllViewedAsync();
+
+        Task<List<WishlistIgnoredResult>> ListIgnoredResultsAsync(Guid wishlistItemId);
+
+        Task<WishlistIgnoredResult> IgnoreResultAsync(Guid wishlistItemId, string username, string directory);
+
+        Task DeleteIgnoredResultAsync(Guid wishlistItemId, Guid ignoredResultId);
 
         /// <summary>
         ///     Imports wishlist searches from a CSV playlist export.
@@ -211,6 +218,65 @@ namespace slskd.Wishlist
                 item.LastViewedAt = now;
             }
 
+            await context.SaveChangesAsync();
+        }
+
+        public async Task<List<WishlistIgnoredResult>> ListIgnoredResultsAsync(Guid wishlistItemId)
+        {
+            using var context = ContextFactory.CreateDbContext();
+            if (!await context.WishlistItems.AnyAsync(item => item.Id == wishlistItemId))
+            {
+                throw new NotFoundException($"Wishlist item {wishlistItemId} not found");
+            }
+
+            return await context.WishlistIgnoredResults
+                .Where(rule => rule.WishlistItemId == wishlistItemId)
+                .OrderByDescending(rule => rule.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<WishlistIgnoredResult> IgnoreResultAsync(Guid wishlistItemId, string username, string directory)
+        {
+            using var context = ContextFactory.CreateDbContext();
+            if (!await context.WishlistItems.AnyAsync(item => item.Id == wishlistItemId))
+            {
+                throw new NotFoundException($"Wishlist item {wishlistItemId} not found");
+            }
+
+            var normalizedDirectory = NormalizeDirectory(directory);
+            var existing = (await context.WishlistIgnoredResults
+                    .Where(rule => rule.WishlistItemId == wishlistItemId)
+                    .ToListAsync())
+                .FirstOrDefault(rule =>
+                    rule.Username.Equals(username, StringComparison.OrdinalIgnoreCase) &&
+                    rule.Directory.Equals(normalizedDirectory, StringComparison.OrdinalIgnoreCase));
+            if (existing != null)
+            {
+                return existing;
+            }
+
+            var rule = new WishlistIgnoredResult
+            {
+                WishlistItemId = wishlistItemId,
+                Username = username,
+                Directory = normalizedDirectory,
+            };
+            context.WishlistIgnoredResults.Add(rule);
+            await context.SaveChangesAsync();
+            return rule;
+        }
+
+        public async Task DeleteIgnoredResultAsync(Guid wishlistItemId, Guid ignoredResultId)
+        {
+            using var context = ContextFactory.CreateDbContext();
+            var rule = await context.WishlistIgnoredResults.FirstOrDefaultAsync(candidate =>
+                candidate.Id == ignoredResultId && candidate.WishlistItemId == wishlistItemId);
+            if (rule == null)
+            {
+                throw new NotFoundException($"Ignored wishlist result {ignoredResultId} not found");
+            }
+
+            context.WishlistIgnoredResults.Remove(rule);
             await context.SaveChangesAsync();
         }
 
@@ -591,7 +657,11 @@ namespace slskd.Wishlist
             // If we timed out, get the final state anyway
             searchWithResponses ??= await SearchService.FindAsync(s => s.Id == searchId, includeResponses: true);
 
-            var hitStats = CountWishlistHits(searchWithResponses, item.Filter);
+            var ignoredResults = await context.WishlistIgnoredResults
+                .Where(rule => rule.WishlistItemId == item.Id)
+                .ToListAsync(cancellationToken);
+
+            var hitStats = CountWishlistHits(searchWithResponses, item.Filter, ignoredResults);
 
             // Update wishlist item stats
             item.LastSearchedAt = DateTime.UtcNow;
@@ -601,6 +671,7 @@ namespace slskd.Wishlist
             item.LastVisibleHitCount = hitStats.Visible;
             item.LastHiddenLockedHitCount = hitStats.HiddenLocked;
             item.LastFilteredOutHitCount = hitStats.FilteredOut;
+            item.LastIgnoredResultHitCount = hitStats.Ignored;
             item.LastMatchCount = hitStats.Visible;
 
             await context.SaveChangesAsync(cancellationToken);
@@ -616,7 +687,7 @@ namespace slskd.Wishlist
             // If auto-download is enabled and we have results, download the best ones
             if (item.AutoDownload && searchWithResponses?.Responses?.Any() == true)
             {
-                var downloadResult = await AutoDownloadBestResultsAsync(searchWithResponses, item.Filter, cancellationToken);
+                var downloadResult = await AutoDownloadBestResultsAsync(searchWithResponses, item.Filter, ignoredResults, cancellationToken);
                 if (downloadResult.EnqueuedCount > 0)
                 {
                     item.TotalDownloadCount += downloadResult.EnqueuedCount;
@@ -656,7 +727,11 @@ namespace slskd.Wishlist
             return searchWithResponses ?? search;
         }
 
-        private async Task<WishlistDownloadResult> AutoDownloadBestResultsAsync(SlskdSearch search, string filter, CancellationToken cancellationToken)
+        private async Task<WishlistDownloadResult> AutoDownloadBestResultsAsync(
+            SlskdSearch search,
+            string filter,
+            IReadOnlyCollection<WishlistIgnoredResult> ignoredResults,
+            CancellationToken cancellationToken)
         {
             try
             {
@@ -667,7 +742,7 @@ namespace slskd.Wishlist
                 {
                     foreach (var file in response.Files)
                     {
-                        if (!fileFilter(file.Filename))
+                        if (!fileFilter(file.Filename) || IsIgnored(ignoredResults, response.Username, file.Filename))
                         {
                             continue;
                         }
@@ -755,47 +830,73 @@ namespace slskd.Wishlist
             return lastSlash < 0 ? string.Empty : normalized[..lastSlash];
         }
 
-        private static WishlistHitStats CountWishlistHits(SlskdSearch? search, string filter)
+        private static WishlistHitStats CountWishlistHits(
+            SlskdSearch? search,
+            string filter,
+            IReadOnlyCollection<WishlistIgnoredResult> ignoredResults)
         {
             if (search?.Responses == null)
             {
-                return new WishlistHitStats(0, 0, 0);
+                return new WishlistHitStats(0, 0, 0, 0);
             }
 
             var fileFilter = CreateSearchFileFilter(filter);
             var visible = 0;
             var hiddenLocked = 0;
             var filteredOut = 0;
+            var ignored = 0;
 
             foreach (var response in search.Responses)
             {
                 foreach (var file in response.Files)
                 {
-                    if (fileFilter(file.Filename))
+                    if (!fileFilter(file.Filename))
                     {
-                        visible++;
+                        filteredOut++;
+                    }
+                    else if (IsIgnored(ignoredResults, response.Username, file.Filename))
+                    {
+                        ignored++;
                     }
                     else
                     {
-                        filteredOut++;
+                        visible++;
                     }
                 }
 
                 foreach (var file in response.LockedFiles)
                 {
-                    if (fileFilter(file.Filename))
+                    if (!fileFilter(file.Filename))
                     {
-                        hiddenLocked++;
+                        filteredOut++;
+                    }
+                    else if (IsIgnored(ignoredResults, response.Username, file.Filename))
+                    {
+                        ignored++;
                     }
                     else
                     {
-                        filteredOut++;
+                        hiddenLocked++;
                     }
                 }
             }
 
-            return new WishlistHitStats(visible, hiddenLocked, filteredOut);
+            return new WishlistHitStats(visible, hiddenLocked, filteredOut, ignored);
         }
+
+        internal static bool IsIgnored(
+            IReadOnlyCollection<WishlistIgnoredResult> ignoredResults,
+            string username,
+            string filename)
+        {
+            var directory = GetParentDirectory(filename);
+            return ignoredResults.Any(rule =>
+                rule.Username.Equals(username, StringComparison.OrdinalIgnoreCase) &&
+                rule.Directory.Equals(directory, StringComparison.OrdinalIgnoreCase));
+        }
+
+        internal static string NormalizeDirectory(string directory) =>
+            directory.Replace('\\', '/').Trim().TrimEnd('/');
 
         /// <summary>
         ///     Creates a file filter function from a wishlist filter string. Positive terms match either a file extension
@@ -837,8 +938,9 @@ namespace slskd.Wishlist
             var include = new HashSet<string>(StringComparer.Ordinal);
             var exclude = new HashSet<string>(StringComparer.Ordinal);
 
-            foreach (var rawTerm in filter.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            foreach (Match match in Regex.Matches(filter, "-?\"[^\"]+\"|\\S+"))
             {
+                var rawTerm = match.Value;
                 if (rawTerm.Equals("OR", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
@@ -888,7 +990,7 @@ namespace slskd.Wishlist
             public static WishlistDownloadResult Empty { get; } = new(0, 0);
         }
 
-        private readonly record struct WishlistHitStats(int Visible, int HiddenLocked, int FilteredOut);
+        private readonly record struct WishlistHitStats(int Visible, int HiddenLocked, int FilteredOut, int Ignored);
 
         private readonly record struct WishlistFilterTerms(HashSet<string> Include, HashSet<string> Exclude);
     }

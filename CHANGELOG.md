@@ -34,6 +34,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Wishlist results can now persistently ignore one peer folder for one saved
+  search without blocking the peer. Ignored folders are excluded from result
+  display, hit counts, album candidates, and auto-download selection, can be
+  restored from the wishlist editor, and filters support quoted phrase
+  exclusions for recurring title collisions.
 - Wishlist-adjacent pages now cap large client-side renders: Lidarr seeded
   wishlist rows, search history, collections, contacts, incoming shares, and
   share manifests page their visible rows instead of rendering entire datasets

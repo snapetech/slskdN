@@ -14,6 +14,7 @@ namespace slskd.Wishlist
         }
 
         public DbSet<WishlistItem> WishlistItems { get; set; }
+        public DbSet<WishlistIgnoredResult> WishlistIgnoredResults { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -35,6 +36,19 @@ namespace slskd.Wishlist
             modelBuilder
                 .Entity<WishlistItem>()
                 .HasIndex(e => e.SearchText);
+
+            modelBuilder.Entity<WishlistIgnoredResult>(entity =>
+            {
+                entity.HasIndex(e => new { e.WishlistItemId, e.Username, e.Directory }).IsUnique();
+                entity.Property(e => e.Username).UseCollation("NOCASE");
+                entity.Property(e => e.Directory).UseCollation("NOCASE");
+                entity.HasOne(e => e.WishlistItem)
+                    .WithMany()
+                    .HasForeignKey(e => e.WishlistItemId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.Property(e => e.CreatedAt)
+                    .HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+            });
         }
     }
 }

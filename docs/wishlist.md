@@ -9,7 +9,7 @@ The Wishlist feature lets you save searches that run automatically on a schedule
 Each wishlist item has the following properties:
 
 - **Search Text**: The search query (same format as the Search page)
-- **Filter**: Optional file extension filter (e.g., `flac`, `flac OR mp3`) — only results matching these extensions are kept
+- **Filter**: Optional filename/path or extension filter (for example `flac`, `flac OR mp3`, or `flac -"Inner Space Vol. 2"`)
 - **Enabled**: When enabled, the item is searched automatically on each scheduler cycle
 - **Auto-download**: When enabled, best-matching files are downloaded automatically
 - **Max Results**: Maximum number of responses to accept per search
@@ -71,6 +71,14 @@ The wishlist modal provides quick-select filter buttons:
 | Lossless | `flac OR alac OR wav OR ape` | All common lossless formats |
 | Any | *(empty)* | Accept any file format |
 
+Positive terms are alternatives. Prefix a word with `-` to reject paths containing it, or quote a phrase to keep its words together. For example, `flac -"Inner Space Vol. 2"` accepts FLAC paths except that specific release title.
+
+## Ignoring One Persistent False Positive
+
+Wishlist search results provide **Ignore for Wishlist** beside each peer folder. It permanently hides only that peer's copy of that folder from the current wishlist item. The peer's other folders and results remain visible, and the same folder can still appear in unrelated searches.
+
+Ignored folders are excluded from visible-hit counts, album candidates, and automatic-download selection. Edit the wishlist item to review its ignored folders and restore any folder. The ordinary red close action remains temporary and only hides the peer response until the current search view resets.
+
 ## Search Retention
 
 Searches accumulate over time. To prevent the database from growing indefinitely:
@@ -107,6 +115,9 @@ Use the source filter on the Searches page to view only searches from a specific
 | DELETE | `/api/v0/wishlist/{id}` | Delete a wishlist item |
 | POST | `/api/v0/wishlist/{id}/run` | Run a wishlist search now |
 | GET | `/api/v0/wishlist/{id}/searches` | Get search history for an item |
+| GET | `/api/v0/wishlist/{id}/ignored-results` | List persistently ignored peer folders |
+| POST | `/api/v0/wishlist/{id}/ignored-results` | Ignore one peer folder for this item |
+| DELETE | `/api/v0/wishlist/{id}/ignored-results/{ignoredResultId}` | Restore an ignored peer folder |
 | POST | `/api/v0/wishlist/{id}/mark-viewed` | Mark one item as viewed |
 | POST | `/api/v0/wishlist/mark-all-viewed` | Mark all items as viewed |
 | POST | `/api/v0/wishlist/import/csv` | Import wishlist items from CSV |

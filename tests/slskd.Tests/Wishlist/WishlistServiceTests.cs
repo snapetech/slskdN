@@ -22,6 +22,35 @@ using SearchStates = Soulseek.SearchStates;
 public class WishlistServiceTests
 {
     [Fact]
+    public async Task Ignored_results_are_scoped_to_the_wishlist_peer_and_directory()
+    {
+        var connectionString = $"Data Source=file:wishlist-ignore-{Guid.NewGuid():N}?mode=memory&cache=shared";
+        await using var keeper = new SqliteConnection(connectionString);
+        await keeper.OpenAsync();
+        var options = new DbContextOptionsBuilder<WishlistDbContext>().UseSqlite(connectionString).Options;
+        var factory = new TestWishlistDbContextFactory(options);
+        var wishlistItemId = Guid.NewGuid();
+
+        await using (var context = factory.CreateDbContext())
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.WishlistItems.Add(new WishlistItem { Id = wishlistItemId, SearchText = "album" });
+            await context.SaveChangesAsync();
+        }
+
+        var service = new WishlistService(factory, new CompletingSearchService(), null!, null!, null!, null!);
+        var first = await service.IgnoreResultAsync(wishlistItemId, "peer", @"Music\Artist\Album\");
+        var duplicate = await service.IgnoreResultAsync(wishlistItemId, "peer", "Music/Artist/Album");
+        var rules = await service.ListIgnoredResultsAsync(wishlistItemId);
+
+        Assert.Equal(first.Id, duplicate.Id);
+        Assert.Single(rules);
+        Assert.Equal("Music/Artist/Album", rules[0].Directory);
+        await service.DeleteIgnoredResultAsync(wishlistItemId, first.Id);
+        Assert.Empty(await service.ListIgnoredResultsAsync(wishlistItemId));
+    }
+
+    [Fact]
     public async Task RunSearchAsync_preserves_filter_edits_saved_while_search_is_running()
     {
         var connectionString = $"Data Source=file:wishlist-{Guid.NewGuid():N}?mode=memory&cache=shared";

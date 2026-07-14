@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Wishlist results can now persistently ignore one peer folder for one saved
+  search without blocking the peer. Ignored folders are excluded from display,
+  hit counts, album candidates, and auto-download selection, remain reversible,
+  and filters support quoted phrase exclusions for recurring title collisions.
 - Client-aborted HTTP requests no longer produce duplicate security-middleware
   error logs or false security events during normal browser navigation.
 - Privacy batching now releases every mesh and pod caller with its matching

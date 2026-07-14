@@ -1,3 +1,17 @@
+## Update 2026-07-14 00:00:00Z
+
+- Current task: durable Wishlist false-positive suppression complete.
+- Last activity:
+  - Added reversible per-wishlist, per-peer, per-directory ignored-result rules.
+  - Applied rules to result display, hit statistics, album candidates, and auto-download selection.
+  - Added quoted phrase exclusions and ignored-folder management in the Wishlist editor.
+- Validation:
+  - Passed full `dotnet test --no-restore` (69 smoke, 4327 unit, 278 integration).
+  - Passed full Web Vitest (765 passed, 4 skipped), production build, changed-file ESLint, `./bin/lint`, and `git diff --check`.
+- Next steps:
+  1. Review and commit the implementation when ready.
+  2. No release tags were created.
+
 ## Update 2026-07-10 00:00:00Z
 
 - Current task: none; the 30-item security and reliability bug report is complete.

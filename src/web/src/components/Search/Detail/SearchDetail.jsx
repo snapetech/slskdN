@@ -27,7 +27,8 @@ import {
   setLocalStorageItem,
 } from '../../../lib/storage';
 import { getAllNotes } from '../../../lib/userNotes';
-import { sleep } from '../../../lib/util';
+import { getDirectoryName, sleep } from '../../../lib/util';
+import * as wishlistAPI from '../../../lib/wishlist';
 import ErrorSegment from '../../Shared/ErrorSegment';
 import LoaderSegment from '../../Shared/LoaderSegment';
 import Switch from '../../Shared/Switch';
@@ -40,6 +41,7 @@ import { toast } from 'react-toastify';
 import {
   Button,
   Checkbox,
+  Confirm,
   Dropdown,
   Header,
   Icon,
@@ -129,6 +131,8 @@ const SearchDetail = ({
 
   // filters and sorting options
   const [hiddenResults, setHiddenResults] = useState([]);
+  const [ignoredResults, setIgnoredResults] = useState([]);
+  const [ignoreRequest, setIgnoreRequest] = useState(null);
   const [blockedUsers, setBlockedUsers] = useState(getBlockedUsers());
   const [hideBlockedUsers, setHideBlockedUsers] = useState(true);
   const [resultSort, setResultSort] = useState('smart');
@@ -183,6 +187,60 @@ const SearchDetail = ({
   useEffect(() => {
     setResultFilters(getInitialResultFilters());
   }, [id]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadIgnoredResults = async () => {
+      if (!search.wishlistItemId) {
+        setIgnoredResults([]);
+        return;
+      }
+
+      try {
+        const rules = await wishlistAPI.getIgnoredResults(search.wishlistItemId);
+        if (!cancelled) setIgnoredResults(rules);
+      } catch (error_) {
+        if (!cancelled) {
+          console.error(error_);
+          toast.error('Failed to load ignored wishlist results');
+        }
+      }
+    };
+
+    loadIgnoredResults();
+    return () => {
+      cancelled = true;
+    };
+  }, [search.wishlistItemId]);
+
+  const isIgnoredWishlistFile = useCallback(
+    (username, filename) => {
+      const directory = getDirectoryName(filename).replaceAll('\\', '/').replace(/\/$/u, '');
+      return ignoredResults.some(
+        (rule) =>
+          rule.username.toLowerCase() === username.toLowerCase() &&
+          rule.directory.toLowerCase() === directory.toLowerCase(),
+      );
+    },
+    [ignoredResults],
+  );
+
+  const handleIgnoreWishlistDirectory = async () => {
+    const request = ignoreRequest;
+    setIgnoreRequest(null);
+    try {
+      const rule = await wishlistAPI.ignoreResult(search.wishlistItemId, request);
+      setIgnoredResults((current) => [
+        rule,
+        ...current.filter((candidate) => candidate.id !== rule.id),
+      ]);
+      toast.info(`Ignored ${request.directory} from ${request.username} for this wishlist item`);
+    } catch (error_) {
+      console.error(error_);
+      toast.error(error_?.response?.data ?? error_?.message ?? error_);
+    }
+  };
 
   // Sync hasSavedDefault across tabs/searches when localStorage changes
   useEffect(() => {
@@ -289,6 +347,22 @@ const SearchDetail = ({
     return results
       .filter((r) => !hiddenResults.includes(r.username))
       .filter((r) => !(hideBlockedUsers && blockedUsers.includes(r.username)))
+      .map((response) => {
+        if (!search.wishlistItemId || ignoredResults.length === 0) return response;
+        const files = asArray(response.files).filter(
+          (file) => !isIgnoredWishlistFile(response.username, file.filename),
+        );
+        const lockedFiles = asArray(response.lockedFiles).filter(
+          (file) => !isIgnoredWishlistFile(response.username, file.filename),
+        );
+        return {
+          ...response,
+          fileCount: files.length,
+          files,
+          lockedFileCount: lockedFiles.length,
+          lockedFiles,
+        };
+      })
       .map((r) => {
         if (hideLocked) {
           return { ...r, lockedFileCount: 0, lockedFiles: [] };
@@ -322,6 +396,7 @@ const SearchDetail = ({
     acquisitionProfile,
     blockedUsers,
     hiddenResults,
+    ignoredResults,
     hideBlockedUsers,
     hideLocked,
     hideNoFreeSlots,
@@ -331,6 +406,8 @@ const SearchDetail = ({
     search.searchText,
     userStats,
     qualitySignalVersion,
+    isIgnoredWishlistFile,
+    search.wishlistItemId,
   ]);
 
   const deduplicatedResults = useMemo(
@@ -917,6 +994,9 @@ const SearchDetail = ({
               key={r.username}
               onBlock={() => handleBlockUser(r.username)}
               onHide={() => setHiddenResults([...hiddenResults, r.username])}
+              onIgnoreDirectory={search.wishlistItemId
+                ? (directory) => setIgnoreRequest({ directory, username: r.username })
+                : undefined}
               onNoteUpdate={fetchUserNotes}
               onQualitySignalUpdate={() =>
                 setQualitySignalVersion((version) => version + 1)
@@ -929,6 +1009,18 @@ const SearchDetail = ({
               userNote={userNotes[r.username]}
             />
           ))}
+        <Confirm
+          cancelButton="Keep Result"
+          confirmButton="Ignore Folder"
+          content={ignoreRequest
+            ? `Hide “${ignoreRequest.directory}” from ${ignoreRequest.username} in every future run of this wishlist item? Other results from this user will remain visible.`
+            : ''}
+          header="Ignore Wishlist Folder"
+          onCancel={() => setIgnoreRequest(null)}
+          onConfirm={handleIgnoreWishlistDirectory}
+          open={Boolean(ignoreRequest)}
+          size="small"
+        />
         {loaded &&
           (remainingCount > 0 ? (
             <Button

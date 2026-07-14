@@ -44,6 +44,7 @@ public static class IntegrationAndMediaServiceCollectionExtensions
         // Apply wishlist schema migration for columns added after initial EnsureCreated
         var wishlistMigration = new Migrations.Z05182026_WishlistItemViewingAndDownloadLimitsMigration($"Data Source={wishlistDbPath}");
         wishlistMigration.Apply();
+        new Migrations.Z07142026_WishlistIgnoredResultsMigration($"Data Source={wishlistDbPath}").Apply();
 
         services.AddSingleton<Wishlist.IWishlistService, Wishlist.WishlistService>();
         services.AddHostedService(provider => (Wishlist.WishlistService)provider.GetRequiredService<Wishlist.IWishlistService>());

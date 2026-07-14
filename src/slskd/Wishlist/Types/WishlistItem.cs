@@ -74,6 +74,11 @@ namespace slskd.Wishlist
         public int LastFilteredOutHitCount { get; set; } = 0;
 
         /// <summary>
+        ///     Gets or sets the number of file hits hidden by persistent ignored-result rules.
+        /// </summary>
+        public int LastIgnoredResultHitCount { get; set; } = 0;
+
+        /// <summary>
         ///     Gets or sets the raw response count for the last search.
         /// </summary>
         public int LastResponseCount { get; set; } = 0;

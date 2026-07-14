@@ -236,6 +236,72 @@ namespace slskd.Wishlist.API
             return Ok(searches);
         }
 
+        [HttpGet("{id}/ignored-results")]
+        [Authorize(Policy = AuthPolicy.Any)]
+        [ProducesResponseType(typeof(List<WishlistIgnoredResult>), 200)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetIgnoredResults([FromRoute, Required] Guid id)
+        {
+            try
+            {
+                return Ok(await WishlistService.ListIgnoredResultsAsync(id));
+            }
+            catch (NotFoundException)
+            {
+                return NotFound();
+            }
+        }
+
+        [HttpPost("{id}/ignored-results")]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
+        [ProducesResponseType(typeof(WishlistIgnoredResult), 201)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> IgnoreResult(
+            [FromRoute, Required] Guid id,
+            [FromBody, Required] IgnoreWishlistResultRequest request)
+        {
+            if (request == null ||
+                string.IsNullOrWhiteSpace(request.Username) ||
+                string.IsNullOrWhiteSpace(request.Directory) ||
+                string.IsNullOrWhiteSpace(request.Directory.Trim().Trim('/', '\\')))
+            {
+                return BadRequest("Username and Directory are required");
+            }
+
+            try
+            {
+                var rule = await WishlistService.IgnoreResultAsync(
+                    id,
+                    request.Username.Trim(),
+                    request.Directory.Trim());
+                return CreatedAtAction(nameof(GetIgnoredResults), new { id }, rule);
+            }
+            catch (NotFoundException)
+            {
+                return NotFound();
+            }
+        }
+
+        [HttpDelete("{id}/ignored-results/{ignoredResultId}")]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)]
+        [ProducesResponseType(204)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> DeleteIgnoredResult(
+            [FromRoute, Required] Guid id,
+            [FromRoute, Required] Guid ignoredResultId)
+        {
+            try
+            {
+                await WishlistService.DeleteIgnoredResultAsync(id, ignoredResultId);
+                return NoContent();
+            }
+            catch (NotFoundException)
+            {
+                return NotFound();
+            }
+        }
+
         /// <summary>
         ///     Marks a wishlist item as viewed (resets unseen results badge).
         /// </summary>
@@ -430,5 +496,14 @@ namespace slskd.Wishlist.API
         ///     Whether album names should be included in generated search text.
         /// </summary>
         public bool? IncludeAlbum { get; set; }
+    }
+
+    public class IgnoreWishlistResultRequest
+    {
+        [Required]
+        public string Username { get; set; } = string.Empty;
+
+        [Required]
+        public string Directory { get; set; } = string.Empty;
     }
 }

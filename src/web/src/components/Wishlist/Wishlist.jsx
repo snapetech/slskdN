@@ -41,6 +41,7 @@ const getVisibleHitCount = (item) => item.lastVisibleHitCount ?? item.lastMatchC
 const getHitBreakdown = (item) => ({
   filteredOut: item.lastFilteredOutHitCount ?? 0,
   hiddenLocked: item.lastHiddenLockedHitCount ?? 0,
+  ignored: item.lastIgnoredResultHitCount ?? 0,
   responses: item.lastResponseCount ?? item.lastMatchCount ?? 0,
   visible: getVisibleHitCount(item),
 });
@@ -178,7 +179,7 @@ const WishlistItemRow = ({
           <Popup
             content={() => {
               const hits = getHitBreakdown(item);
-              return `${hits.visible} visible hits, ${hits.hiddenLocked} locked (unreachable), ${hits.filteredOut} hidden by filter, ${hits.responses} responses`;
+              return `${hits.visible} visible hits, ${hits.hiddenLocked} locked (unreachable), ${hits.filteredOut} hidden by filter, ${hits.ignored} persistently ignored, ${hits.responses} responses`;
             }}
             position="top center"
             trigger={
@@ -886,10 +887,11 @@ const saveWishlistViewState = (state) => {
 
 const validateFilter = (filter) => {
   if (!filter || !filter.trim()) return null;
-  const invalid = filter.match(/[^\w.\-\s]/);
+  const invalid = filter.match(/[^\w.\-\s"]/);
   if (invalid) {
-    return 'Filter may only contain words, extensions, exclusions prefixed with -, and OR';
+    return 'Filter may only contain words, quoted phrases, extensions, exclusions prefixed with -, and OR';
   }
+  if ((filter.match(/"/g) || []).length % 2 !== 0) return 'Quoted filter phrases must have a closing quote';
   return null;
 };
 
@@ -902,8 +904,42 @@ const WishlistModal = ({ item, onClose, onSave }) => {
   const [maxDownloads, setMaxDownloads] = useState(item?.maxDownloads || '');
   const [saving, setSaving] = useState(false);
   const [filterError, setFilterError] = useState(null);
+  const [ignoredResults, setIgnoredResults] = useState([]);
+  const [loadingIgnoredResults, setLoadingIgnoredResults] = useState(false);
 
   const isEdit = Boolean(item?.id);
+
+  useEffect(() => {
+    if (!isEdit) return;
+
+    let cancelled = false;
+    setLoadingIgnoredResults(true);
+    wishlistAPI.getIgnoredResults(item.id)
+      .then((rules) => {
+        if (!cancelled) setIgnoredResults(rules);
+      })
+      .catch((error) => {
+        console.error(error);
+        if (!cancelled) toast.error('Failed to load ignored wishlist folders');
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingIgnoredResults(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isEdit, item?.id]);
+
+  const restoreIgnoredResult = async (rule) => {
+    try {
+      await wishlistAPI.removeIgnoredResult(item.id, rule.id);
+      setIgnoredResults((current) => current.filter((candidate) => candidate.id !== rule.id));
+      toast.info(`Restored ${rule.directory} from ${rule.username}`);
+    } catch (error) {
+      console.error(error);
+      toast.error(error?.response?.data ?? error?.message ?? error);
+    }
+  };
 
   const handleFilterChange = (value) => {
     setFilter(value);
@@ -961,7 +997,7 @@ const WishlistModal = ({ item, onClose, onSave }) => {
           <Form.Field>
             <label>Filter (optional)</label>
             <Popup
-              content="Only accept matching filenames or extensions, and exclude unwanted words with a leading dash."
+              content={'Only accept matching filenames or extensions. Use -word to exclude a word or -"exact phrase" to exclude a specific album or folder name.'}
               position="top center"
               trigger={
                 <Form.Input
@@ -1002,6 +1038,50 @@ const WishlistModal = ({ item, onClose, onSave }) => {
               ))}
             </div>
           </Form.Field>
+          {isEdit && (
+            <Segment>
+              <Header as="h4">
+                <Icon name="eye slash" />
+                <Header.Content>
+                  Ignored Result Folders
+                  <Header.Subheader>
+                    These peer folders stay hidden only for this wishlist item. Restore one to allow it in future searches and auto-download decisions.
+                  </Header.Subheader>
+                </Header.Content>
+              </Header>
+              {loadingIgnoredResults ? (
+                <Icon loading name="spinner" />
+              ) : ignoredResults.length === 0 ? (
+                <span>No folders are ignored.</span>
+              ) : (
+                <Table basic="very" compact>
+                  <Table.Body>
+                    {ignoredResults.map((rule) => (
+                      <Table.Row key={rule.id}>
+                        <Table.Cell>
+                          <strong>{rule.username}</strong>
+                          <div className="truncate-cell" title={rule.directory}>{rule.directory}</div>
+                        </Table.Cell>
+                        <Table.Cell collapsing>
+                          <Popup
+                            content="Allow this peer folder to appear again in future runs of this wishlist item."
+                            trigger={
+                              <Button
+                                compact
+                                icon="undo"
+                                onClick={() => restoreIgnoredResult(rule)}
+                                size="tiny"
+                              />
+                            }
+                          />
+                        </Table.Cell>
+                      </Table.Row>
+                    ))}
+                  </Table.Body>
+                </Table>
+              )}
+            </Segment>
+          )}
           <Form.Input
             label="Max Results"
             max={1_000}

@@ -120,6 +120,8 @@ public class LidarrSyncServiceTests
 
         public List<WishlistItem> Created { get; } = [];
 
+        public List<WishlistIgnoredResult> IgnoredResults { get; } = [];
+
         public Task<List<WishlistItem>> ListAsync() => Task.FromResult(Items);
 
         public Task<WishlistItem?> GetAsync(Guid id) => Task.FromResult<WishlistItem?>(null);
@@ -144,6 +146,27 @@ public class LidarrSyncServiceTests
         public Task MarkViewedAsync(Guid id) => Task.CompletedTask;
 
         public Task MarkAllViewedAsync() => Task.CompletedTask;
+
+        public Task<List<WishlistIgnoredResult>> ListIgnoredResultsAsync(Guid wishlistItemId) =>
+            Task.FromResult(IgnoredResults.Where(result => result.WishlistItemId == wishlistItemId).ToList());
+
+        public Task<WishlistIgnoredResult> IgnoreResultAsync(Guid wishlistItemId, string username, string directory)
+        {
+            var ignoredResult = new WishlistIgnoredResult
+            {
+                WishlistItemId = wishlistItemId,
+                Username = username,
+                Directory = directory,
+            };
+            IgnoredResults.Add(ignoredResult);
+            return Task.FromResult(ignoredResult);
+        }
+
+        public Task DeleteIgnoredResultAsync(Guid wishlistItemId, Guid ignoredResultId)
+        {
+            IgnoredResults.RemoveAll(result => result.WishlistItemId == wishlistItemId && result.Id == ignoredResultId);
+            return Task.CompletedTask;
+        }
 
         public Task<WishlistCsvImportResult> ImportCsvAsync(
             string csvText,

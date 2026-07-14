@@ -87,3 +87,25 @@ export const markViewed = async (id) => {
 export const markAllViewed = async () => {
   return api.post('/wishlist/mark-all-viewed');
 };
+
+export const getIgnoredResults = async (id) => {
+  const data = (
+    await api.get(`/wishlist/${encodeURIComponent(id)}/ignored-results`)
+  ).data;
+  return Array.isArray(data) ? data : [];
+};
+
+export const ignoreResult = async (id, { username, directory }) => {
+  return (
+    await api.post(`/wishlist/${encodeURIComponent(id)}/ignored-results`, {
+      directory,
+      username,
+    })
+  ).data;
+};
+
+export const removeIgnoredResult = async (id, ignoredResultId) => {
+  await api.delete(
+    `/wishlist/${encodeURIComponent(id)}/ignored-results/${encodeURIComponent(ignoredResultId)}`,
+  );
+};

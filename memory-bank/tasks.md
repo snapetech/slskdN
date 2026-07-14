@@ -44,6 +44,9 @@
  - Priority: P1
  - Notes: Bas reported the Downloads page was hard to follow while transfers were active. Found a concrete request-identity bug: REST snapshots keyed download rows by `RequestId`, but SignalR transfer state/progress events omitted `RequestId`, so live events could create a legacy composite-key duplicate until reconcile. Added `RequestId` to transfer activity, resolved persisted records for progress events, hardened the Web transfer store against legacy events, and added transfer-store regressions. Documented ADR-0001 gotcha `0z485` and committed the docs-only entry as `abfe4166f`. Validation passed: focused transfer-store Vitest (`13/13`), frontend lint, focused backend transfer tests (`67/67`), full `dotnet test` (`4577/4577`: 68 smoke, 4231 unit, 278 integration), `./bin/lint`, and `git diff --check`. Deployed manual image `slskdn:0.0.0-manual.20260525195707.9654eac5f35d` to the live Docker host; validation passed image/app version match, Docker health `healthy`, restart count zero, Web route and asset HTTP 200 checks, `/health=Healthy`, preserved optional media tools, and a two-minute current-process log soak with `err=0`, `wrn=0`, `ftl=0`, `tracked_not_slskd=0`.
 
+- [x] Add durable per-folder Wishlist false-positive suppression and quoted phrase exclusions. (2026-07-14)
+  - Notes: Added server-persisted, reversible rules scoped to wishlist item + peer + normalized directory; enforced them in visible-hit statistics, search display, album candidates, and auto-download selection without blocking peers. Added `-"quoted phrase"` filtering for precise recurring title collisions.
+
 - [x] Fix Wishlist filter edits reverting after searches.
  - Status: completed (2026-05-23)
  - Priority: P1

@@ -227,6 +227,14 @@ describe('filterResponse', () => {
 });
 
 describe('parseFiltersFromString', () => {
+  it('keeps quoted include and exclusion phrases together', () => {
+    expect(search.parseFiltersFromString('flac -"inner space vol. 2" "wrong address"'))
+      .toMatchObject({
+        exclude: ['inner space vol. 2'],
+        include: ['flac', 'wrong address'],
+      });
+  });
+
   it('returns correct minBitrate', () => {
     expect(search.parseFiltersFromString('foo minbr:42 bar')).toMatchObject({
       minBitRate: 42,
