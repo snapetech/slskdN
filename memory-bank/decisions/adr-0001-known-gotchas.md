@@ -52,6 +52,15 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z545. Dispose SQLite Schema Readers Before Altering The Same Connection
+
+**The Bug**: A wishlist migration kept a `PRAGMA table_info` reader alive while preparing to run `ALTER TABLE` on the same SQLite connection, risking an active-reader or locked-schema failure.
+
+**Files Affected**:
+- `src/slskd/Core/Data/Migrations/Z07142026_WishlistIgnoredResultsMigration.cs`
+
+**Prevention**: Put schema inspection commands and readers in an explicit inner scope, materialize the required flags, and dispose both before issuing any DDL on the connection.
+
 ### 0z544. Internal Helper Tests Must Use An Internals-Visible Test Assembly
 
 **The Bug**: Wishlist helper tests were added to a test project that cannot access `internal` production methods, so the project failed to compile even though the production code built successfully.
