@@ -52,6 +52,16 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z547. Authorization And Route Changes Must Regenerate The Route Inventory
+
+**The Bug**: Security hardening changed controller authorization attributes and Wishlist endpoints without regenerating `docs/system-surfaces-current.md`, so the remediation baseline blocked the next release tag.
+
+**Files Affected**:
+- API controller files
+- `docs/system-surfaces-current.md`
+
+**Prevention**: After changing controller routes, action counts, anonymous access, or authorization attributes, run `scripts/generate-route-inventory.sh docs/system-surfaces-current.md` and include the regenerated inventory in the same implementation commit.
+
 ### 0z546. Release-Worthy Changes Must Update The Release Changelog
 
 **The Bug**: A release commit updated the root `CHANGELOG.md` but omitted `docs/CHANGELOG.md`, so the pre-commit release-note gate rejected the commit.
