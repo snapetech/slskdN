@@ -22032,3 +22032,20 @@ complete unit-test gate failed even though focused share-ticket tests passed.
 **Prevention**: Whenever an action gains or loses `AllowAnonymous`, update the
 explicit `PublicProtocolAnonymousActionTests` inventory in the same change and
 run the complete unit-test project, not only the controller's focused tests.
+
+### 0z566. Navigation Badges Must Not Fetch Every Room Message List
+
+**The Bug**: Global navigation activity polling fetched the joined-room list
+and then requested and parsed every tracked message for every joined room every
+ten seconds. Request count grew as `N + 1` with joined rooms, hidden browser
+tabs kept polling, and a slow cycle could overlap the next one.
+
+**Files Affected**:
+- `src/slskd/Messaging/API/Controllers/RoomsController.cs`
+- `src/web/src/components/App.jsx`
+- `src/web/src/lib/rooms.js`
+
+**Prevention**: Expose one bounded summary endpoint for global badges instead
+of composing full-detail endpoints in the browser. Return only the latest
+incoming timestamp per room, pause polling while the document is hidden, and
+reject a poll while the previous request remains in flight.
