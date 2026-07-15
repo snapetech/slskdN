@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z611. Async Launch Failures Need The Same Cleanup As Background Completion
+
+**The Bug**: Search startup registered a per-search cancellation token before
+calling `Client.SearchAsync`, but an immediate client exception rethrew from the
+launch method without removing or disposing that token. Only the later
+background-task `finally` released it, and that task never existed on the
+immediate-failure path.
+
+**Files Affected**:
+- `src/slskd/Search/SearchService.cs`
+
+**Prevention**: When ownership transfers from a launch method to a background
+task, define cleanup on both sides of the transfer. The launch catch must clean
+up every resource registered before the task was created; the background
+`finally` owns those resources only after launch succeeds. Cover immediate
+dependency failure and normal background completion separately.
+
 ### 0z610. Background Callbacks Must Outlive Their Rate Limiter Owner
 
 **The Bug**: `SearchService.StartAsync` declared its response-progress
