@@ -21972,3 +21972,19 @@ push and release tag then produced a failed pipeline before any job could run.
 their shell text contains `: ` or other YAML-significant syntax. Validate the
 full file with the target GitLab instance's CI lint API; a generic YAML parser
 cannot detect GitLab's required string shape.
+
+### 0z562. Combined SQLite Count Queries Can Defeat Faster Index Paths
+
+**The Bug**: A performance pass replaced five independent HashDb statistics
+counts with one command containing conditional aggregates. Although it reduced
+command creation and scanned each table once, it forced full row evaluation and
+was about 2.5 times slower on a representative large synthetic database than
+SQLite's separate optimized `COUNT(*)` and selective indexed count queries.
+
+**Files Affected**:
+- `src/slskd/HashDb/HashDbService.cs`
+
+**Prevention**: Do not assume fewer SQLite commands or scans are faster. Inspect
+`EXPLAIN QUERY PLAN` and measure both SQL shapes with representative cardinality
+and selectivity. Preserve separate counts when SQLite can use a covering index
+or selective index search that a conditional aggregate would defeat.
