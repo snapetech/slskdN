@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z608. Polling Start Paths Must Check Current Visibility
+
+**The Bug**: Browse Session stopped its progress timer when a later
+`visibilitychange` event hid the document, but its initial browse callback
+started the timer unconditionally. Opening a browse while the document was
+already hidden therefore issued status requests until another visibility event
+occurred.
+
+**Files Affected**:
+- `src/web/src/components/Browse/BrowseSession.jsx`
+
+**Prevention**: Put the visibility guard in the polling start function and in
+the request function itself; a visibility-change handler alone does not cover
+components or work that begin while already hidden. Cover initial-hidden,
+hide, and resume paths with exact request-count tests.
+
 ### 0z607. Aggregate Failures Must Not Masquerade As Successful Empty State
 
 **The Bug**: The first combined Swarm Analytics service caught a peer-snapshot
