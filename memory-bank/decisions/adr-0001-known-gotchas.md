@@ -22081,3 +22081,38 @@ instead of `System.IO.File`.
 **Prevention**: In files that import `Soulseek`, fully qualify filesystem calls
 as `System.IO.File` or define an explicit alias. Do not rely on the unqualified
 `File` type name when both domains are in scope.
+
+### 0z569. Frontend Combined Helpers Can Still Be HTTP Fan-Out
+
+**The Bug**: The Web helper named `getSlskdnStats` combined six API results in
+the browser rather than exposing one server summary. The System Network pane
+called that helper plus two peer-list endpoints every five seconds, while the
+shared footer independently called the same six endpoints plus mesh transport
+statistics every ten seconds. Keeping the Network pane open could therefore
+issue up to 153 aggregate-status requests per minute before transfer-speed
+polling, and slow pane cycles could overlap or continue in a hidden tab.
+
+**Files Affected**:
+- `src/web/src/lib/slskdn.js`
+- `src/web/src/components/System/Network/index.jsx`
+- `src/web/src/components/Shared/Footer.jsx`
+
+**Prevention**: A combined dashboard helper must map to a bounded server-side
+summary endpoint, not merely wrap client-side `Promise.all`. Count the actual
+HTTP requests across shared chrome and the active pane, use one summary at an
+appropriate cadence, pause hidden-pane polling, and reject overlapping cycles.
+
+### 0z570. Dashboard List Endpoints May Return Envelopes Instead Of Arrays
+
+**The Bug**: The Network dashboard treated mesh peers, discovered capability
+peers, and active swarm jobs as arrays, but their APIs returned `{ count,
+peers }` or `{ count, jobs }` envelopes. Array guards converted every valid
+response to an empty list, silently hiding live peers and swarm activity.
+
+**Files Affected**:
+- `src/web/src/lib/slskdn.js`
+- `src/web/src/components/System/Network/index.jsx`
+
+**Prevention**: Normalize API envelopes in the shared API library before data
+reaches components. Cover the real response shape in API-boundary tests, and
+do not rely on component-level `Array.isArray` fallbacks as contract tests.
