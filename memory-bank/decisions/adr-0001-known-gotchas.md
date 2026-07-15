@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z577. Verify List Payloads Before Adding Per-Item Detail Fetches
+
+**The Bug**: Messaging V2 fetched the saved-pod list, then issued one detail
+request per pod to obtain channels even though `IPodService.ListAsync` already
+returns each complete `Pod`, including deserialized channel metadata. This made
+every ten-second hydration an avoidable N+1 request cycle.
+
+**Files Affected**:
+- `src/web/src/components/Messaging/MessagingV2.jsx`
+- `src/slskd/API/Native/PodsController.cs`
+- `src/slskd/PodCore/SqlitePodService.cs`
+
+**Prevention**: Inspect the service implementation and serialized list model
+before adding detail fan-out. If the list already contains every rendered
+field, consume it directly and add a regression that rejects per-item detail
+calls. Poll mutable messaging lists separately from slow-changing metadata,
+pause both cadences while hidden, and deduplicate in-flight refreshes.
+
 ### 0z576. Async Pollers Need Async Fake-Timer Advancement
 
 **The Bug**: A cadence test advanced multiple interval periods with synchronous
