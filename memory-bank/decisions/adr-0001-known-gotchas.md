@@ -22129,3 +22129,18 @@ define that type, so the test project failed to compile with CS0104.
 **Prevention**: When DHT rendezvous and mesh types share one file, qualify
 `slskd.Mesh.NatType` explicitly or introduce a clear namespace alias. Do not
 use the bare `NatType` identifier with both namespaces imported.
+
+### 0z572. Mesh NatType Does Not Use FullCone Vocabulary
+
+**The Bug**: After qualifying the network-summary fixture with
+`slskd.Mesh.NatType`, the test still used `FullCone`, a value assumed from an
+older Web fixture. The mesh enum only defines `Unknown`, `Direct`,
+`Restricted`, and `Symmetric`, so the corrected namespace still failed to
+compile.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Core/API/NetworkControllerTests.cs`
+
+**Prevention**: Inspect the concrete enum before writing cross-layer fixtures.
+Use mesh-native NAT values for `MeshTransportStats`, and let JSON/API mapping
+carry their string representation instead of inventing UI-only enum members.
