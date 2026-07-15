@@ -153,11 +153,15 @@ cadence look too slow.
 
 **Files Affected**:
 - `src/web/src/components/Messaging/MessagingV2.test.jsx`
+- `src/web/src/components/Pods/Pods.test.jsx`
 
 **Prevention**: Use `await vi.advanceTimersByTimeAsync(...)` inside `act` when
 testing async interval callbacks across multiple periods. This allows promise
 microtasks and in-flight cleanup to run between timer callbacks, matching real
-browser scheduling.
+browser scheduling. If interval installation follows async initialization and
+a React state callback, complete that initialization in one `act`, assert the
+initial request, and advance the fake clock in a separate `act`; batching both
+can move interval installation after the entire simulated duration.
 
 ### 0z575. Vitest Mock Implementations Do Not Clear Invocation History
 
