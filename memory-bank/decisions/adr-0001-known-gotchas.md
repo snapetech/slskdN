@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z615. Delayed Continuations Cannot Prove A Timer Has Not Fired
+
+**The Bug**: A rate-limiter regression test awaited a 400-millisecond delay
+and asserted that a one-second timer had not published its staged update. Under
+full-suite load, thread scheduling resumed the test continuation after the
+timer elapsed, so the negative assertion failed even though the limiter's
+configured cadence was correct.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Search/SearchServiceLifecycleTests.cs`
+
+**Prevention**: Do not use a delayed continuation as proof that a longer timer
+has not fired; wall-clock delay is a minimum, not a deadline. Verify immediate
+coalescing synchronously, expose configuration for exact interval assertions,
+or wait only for positive terminal conditions with a bounded timeout.
+
 ### 0z614. Conditional Hydration Must Clear Reused Route State
 
 **The Bug**: Search response hydration was skipped for an active search with no
