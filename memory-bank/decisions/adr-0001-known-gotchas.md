@@ -52,6 +52,20 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z601. Async UI Tests Must Wait For Loaded Data, Not Static Shells
+
+**The Bug**: An Integrations test used `findByText` on a panel heading that was
+present in the initial render, then immediately asserted diagnostics populated
+by an asynchronous request. Under the full suite, the heading resolved before
+the request state was applied and the test observed the placeholder values.
+
+**Files Affected**:
+- `src/web/src/components/System/Integrations/index.test.jsx`
+
+**Prevention**: Use an asynchronously loaded field or status as the readiness
+assertion. Do not wait on static shell content before making synchronous
+assertions about data populated by an effect.
+
 ### 0z600. Preview Tabs Must Not Eagerly Transfer The Full Domain
 
 **The Bug**: Opening the nested Port Forwarding surface immediately requested
