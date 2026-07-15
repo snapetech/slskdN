@@ -22067,3 +22067,17 @@ per conversation even though the navigation badge needed only one boolean.
 and bounded response. Back frequently polled existence predicates with an
 appropriate database index, and do not derive one-bit status by materializing
 full entities or per-entity aggregates.
+
+### 0z568. Soulseek.File Shadows System.IO.File In Messaging Tests
+
+**The Bug**: A messaging test imported the `Soulseek` namespace for client and
+message types, then called `File.Delete` for temporary-database cleanup. The
+compiler resolved `File` to `Soulseek.File`, which has no `Delete` method,
+instead of `System.IO.File`.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Messaging/ConversationServiceTests.cs`
+
+**Prevention**: In files that import `Soulseek`, fully qualify filesystem calls
+as `System.IO.File` or define an explicit alias. Do not rely on the unqualified
+`File` type name when both domains are in scope.
