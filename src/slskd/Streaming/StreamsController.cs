@@ -78,6 +78,77 @@ public class StreamsController : ControllerBase
         return Ok(new { ticket, expiresInSeconds = 120 });
     }
 
+    /// <summary>
+    ///     Exchanges a share token (passed via <c>Authorization: Bearer share:&lt;token&gt;</c>) for a
+    ///     short-lived, content-bound stream ticket. This lets a share recipient stream with a
+    ///     <c>?ticket=</c> URL instead of putting the long-lived share token in the URL, so the token
+    ///     never lands in browser history, reverse-proxy access logs, or our own request logs.
+    /// </summary>
+    [HttpPost("{contentId}/share-ticket")]
+    [AllowAnonymous]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(401)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> CreateShareTicket([FromRoute] string contentId, CancellationToken ct)
+    {
+        if (!StreamingEnabled) return NotFound();
+
+        contentId = contentId?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(contentId))
+        {
+            return BadRequest("ContentId is required.");
+        }
+
+        var shareToken = TryGetShareToken();
+        if (string.IsNullOrEmpty(shareToken)) return Unauthorized();
+
+        // Same access checks as the streaming GET share-token path: the token must be valid, permit
+        // streaming, and grant access to a collection that actually contains this content id.
+        var claims = await _tokens.ValidateAsync(shareToken, ct);
+        if (claims == null || !claims.AllowStream) return Unauthorized();
+        if (!Guid.TryParse(claims.CollectionId, out var collectionId)) return NotFound();
+
+        var items = await _sharing.GetCollectionItemsAsync(collectionId, ct);
+        if (items.All(x => !string.Equals(x.ContentId, contentId, StringComparison.Ordinal))) return NotFound();
+
+        if (_locator.Resolve(contentId, ct) == null) return NotFound();
+
+        var ticket = _tickets.Create(contentId, "share:" + claims.ShareId, TimeSpan.FromMinutes(2));
+        return Ok(new { ticket, expiresInSeconds = 120 });
+    }
+
+    /// <summary>
+    ///     Extracts a share token from the request headers without exposing it in the URL. Prefers the
+    ///     dedicated <c>X-Share-Token</c> header (used by the web UI, whose axios client overwrites
+    ///     <c>Authorization</c> with the session JWT), and falls back to
+    ///     <c>Authorization: Bearer share:&lt;token&gt;</c> for non-UI clients. The <c>share:</c> prefix
+    ///     disambiguates a share token from a JWT so a JWT is never mistaken for one.
+    /// </summary>
+    private string? TryGetShareToken()
+    {
+        var headerToken = Request.Headers["X-Share-Token"].FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(headerToken))
+        {
+            return headerToken.Trim();
+        }
+
+        var auth = Request.Headers.Authorization.FirstOrDefault();
+        if (auth == null || !auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var value = auth.Substring("Bearer ".Length).Trim();
+        if (!value.StartsWith("share:", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var token = value.Substring("share:".Length).Trim();
+        return string.IsNullOrEmpty(token) ? null : token;
+    }
+
     /// <summary>Stream content by ID. Auth: ?ticket=, ?token=, Authorization: Bearer (share:token), or normal [Authorize]. Single byte-range only; multi-range returns 400.</summary>
     [HttpGet("{contentId}")]
     [AllowAnonymous]

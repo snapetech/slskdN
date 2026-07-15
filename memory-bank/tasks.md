@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove reusable share tokens from manifest and stream URLs.
+  - Status: completed (2026-07-15)
+  - Priority: P0
+  - Notes: Share manifests now use `X-Share-Token`; shared playback exchanges the header token for a two-minute content-bound ticket before opening the media URL. Explicit `Bearer share:` parsing prevents JWT confusion. Documented ADR-0001 gotcha `0z560`.
+
 - [x] Publish `.277` with all post-`.276` functional fixes.
   - Status: completed (2026-07-15)
   - Priority: P0

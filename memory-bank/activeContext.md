@@ -1,3 +1,14 @@
+## Update 2026-07-15 03:35:00Z
+
+- Current task: share-token URL exposure remediation complete locally.
+- Last activity:
+  - Moved share-manifest authentication from query strings to `X-Share-Token`.
+  - Added share-token exchange for short-lived, content-bound playback tickets.
+  - Added frontend and backend regression coverage and documented gotcha `0z560`.
+- Next steps:
+  1. Validate, commit, and push the complete working tree.
+  2. No release tag was requested or created for this post-`.277` work.
+
 ## Update 2026-07-15 03:25:00Z
 
 - Current task: `.277` release and GitLab notification remediation complete.

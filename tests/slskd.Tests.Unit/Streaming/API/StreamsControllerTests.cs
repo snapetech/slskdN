@@ -318,4 +318,60 @@ public class StreamsControllerTests
             try { File.Delete(path); } catch { }
         }
     }
+
+    [Fact]
+    public async Task CreateShareTicket_NoShareToken_ReturnsUnauthorized()
+    {
+        var controller = CreateController();
+        SetContext(controller);
+
+        var r = await controller.CreateShareTicket("c1", CancellationToken.None);
+
+        Assert.IsType<UnauthorizedResult>(r);
+        _ticketsServiceMock.Verify(x => x.Create(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateShareTicket_ValidShareTokenViaHeader_MintsContentBoundTicket()
+    {
+        var collectionId = Guid.NewGuid();
+        var controller = CreateController();
+        SetContext(controller);
+        controller.HttpContext.Request.Headers["X-Share-Token"] = "share-tok";
+        _tokensMock.Setup(x => x.ValidateAsync("share-tok", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ShareTokenClaims("s1", collectionId.ToString(), null, true, true, 1, DateTimeOffset.UtcNow.AddHours(1)));
+        _sharingMock.Setup(x => x.GetCollectionItemsAsync(collectionId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CollectionItem> { new() { ContentId = "c1" } });
+        _locatorMock.Setup(x => x.Resolve("c1", It.IsAny<CancellationToken>()))
+            .Returns(new ResolvedContent("/tmp/x", 100, "audio/mpeg"));
+        _ticketsServiceMock.Setup(x => x.Create("c1", "share:s1", TimeSpan.FromMinutes(2)))
+            .Returns("ticket-xyz");
+
+        var r = await controller.CreateShareTicket(" c1 ", CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(r);
+        Assert.Equal("ticket-xyz", ok.Value?.GetType().GetProperty("ticket")?.GetValue(ok.Value));
+        Assert.Equal(120, ok.Value?.GetType().GetProperty("expiresInSeconds")?.GetValue(ok.Value));
+        _tokensMock.Verify(x => x.ValidateAsync("share-tok", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateShareTicket_BearerSharePrefix_ContentNotInCollection_ReturnsNotFound()
+    {
+        var collectionId = Guid.NewGuid();
+        var controller = CreateController();
+        SetContext(controller);
+
+        // Non-UI clients may pass the share token as Authorization: Bearer share:<token>.
+        controller.HttpContext.Request.Headers.Authorization = "Bearer share:share-tok";
+        _tokensMock.Setup(x => x.ValidateAsync("share-tok", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ShareTokenClaims("s1", collectionId.ToString(), null, true, true, 1, DateTimeOffset.UtcNow.AddHours(1)));
+        _sharingMock.Setup(x => x.GetCollectionItemsAsync(collectionId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<CollectionItem> { new() { ContentId = "other" } });
+
+        var r = await controller.CreateShareTicket("c1", CancellationToken.None);
+
+        Assert.IsType<NotFoundResult>(r);
+        _ticketsServiceMock.Verify(x => x.Create(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<TimeSpan>()), Times.Never);
+    }
 }

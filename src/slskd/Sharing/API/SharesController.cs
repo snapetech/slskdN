@@ -369,8 +369,35 @@ public class SharesController : ControllerBase
 
         string? tokenForStream = string.IsNullOrWhiteSpace(token) ? null : token.Trim();
 
+        // Prefer a share token passed in a header so the secret stays out of the URL (and therefore out of
+        // browser history, proxy logs, and our access logs). The web UI uses the dedicated X-Share-Token
+        // header (its axios client overwrites Authorization with the session JWT); non-UI clients may use
+        // Authorization: Bearer share:<token>. The mandatory share: prefix disambiguates a share token from
+        // a JWT so a JWT is never treated as a share token.
+        if (tokenForStream is null)
+        {
+            var xShareToken = Request.Headers["X-Share-Token"].FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(xShareToken))
+            {
+                tokenForStream = xShareToken.Trim();
+            }
+            else
+            {
+                var authHeader = Request.Headers.Authorization.FirstOrDefault();
+                if (authHeader != null && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var value = authHeader.Substring("Bearer ".Length).Trim();
+                    if (value.StartsWith("share:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var headerToken = value.Substring("share:".Length).Trim();
+                        tokenForStream = string.IsNullOrEmpty(headerToken) ? null : headerToken;
+                    }
+                }
+            }
+        }
+
         // IMPORTANT: The web UI uses a JWT in the Authorization header. Share tokens may also be passed via query (?token=)
-        // or (for non-UI clients) via Authorization: Bearer <share-token>. We must not treat a JWT as a share token.
+        // or (for non-UI clients) via Authorization: Bearer share:<share-token>. We must not treat a JWT as a share token.
         if (!string.IsNullOrEmpty(tokenForStream))
         {
             var claims = await _tokens.ValidateAsync(tokenForStream, ct);

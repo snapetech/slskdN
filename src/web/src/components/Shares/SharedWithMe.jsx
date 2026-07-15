@@ -1,5 +1,6 @@
 import * as collectionsAPI from '../../lib/collections';
 import * as identityAPI from '../../lib/identity';
+import * as streaming from '../../lib/streaming';
 import ErrorSegment from '../Shared/ErrorSegment';
 import LoaderSegment from '../Shared/LoaderSegment';
 import React, { Component } from 'react';
@@ -188,12 +189,23 @@ export default class SharedWithMe extends Component {
     }
   };
 
-  handleStreamItem = (contentId, token) => {
-    const encodedContentId = encodeURIComponent(contentId);
-    const url = token
-      ? `/api/v0/streams/${encodedContentId}?token=${encodeURIComponent(token)}`
-      : `/api/v0/streams/${encodedContentId}`;
-    window.open(url, '_blank');
+  handleStreamItem = async (contentId, token) => {
+    try {
+      // Never put the long-lived share token in the URL. Exchange it (via header) for a short-lived,
+      // content-bound stream ticket, then stream with that opaque ticket so no secret leaks into
+      // browser history, proxy logs, or the server's access logs.
+      if (token) {
+        const ticket = await streaming.createShareStreamTicket(contentId, token);
+        if (ticket) {
+          window.open(streaming.buildTicketedStreamUrl(contentId, ticket), '_blank');
+          return;
+        }
+      }
+
+      window.open(streaming.buildDirectStreamUrl(contentId), '_blank');
+    } catch (error) {
+      this.setState({ error: getErrorMessage(error, 'Failed to start stream') });
+    }
   };
 
   handleBackfill = async () => {

@@ -45,10 +45,12 @@ export const deleteShare = (id) => api.delete(`/share-grants/${encodeURIComponen
 export const createShareToken = (id, expiresInSeconds) =>
   api.post(`/share-grants/${encodeURIComponent(id)}/token`, { expiresInSeconds });
 export const getShareManifest = (id, token) => {
-  const url = token
-    ? `/share-grants/${encodeURIComponent(id)}/manifest?token=${encodeURIComponent(token)}`
-    : `/share-grants/${encodeURIComponent(id)}/manifest`;
-  return api.get(url);
+  const url = `/share-grants/${encodeURIComponent(id)}/manifest`;
+  // Send the share token in a header instead of the query string so it does not leak into browser
+  // history, reverse-proxy access logs, or the server's request logs.
+  return token
+    ? api.get(url, { headers: { 'X-Share-Token': token } })
+    : api.get(url);
 };
 
 export const backfillShare = (id) => api.post(`/share-grants/${encodeURIComponent(id)}/backfill`);

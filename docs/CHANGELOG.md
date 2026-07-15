@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Share manifests now send reusable share tokens in a request header, and
+  shared-content playback exchanges them for short-lived, content-bound stream
+  tickets instead of exposing long-lived secrets in URLs.
 - Request-log query enrichment now redacts authentication and other sensitive
   parameter values before they reach Serilog sinks.
 - Removed obsolete upstream synchronization/release workflows under the fork's

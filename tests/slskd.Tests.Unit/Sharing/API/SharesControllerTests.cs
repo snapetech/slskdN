@@ -219,6 +219,43 @@ public class SharesControllerTests
     }
 
     [Fact]
+    public async Task GetManifest_ShareTokenViaHeader_Success()
+    {
+        // The web UI passes the share token in the X-Share-Token header (not the query) so it never
+        // lands in the URL/logs. No ?token= query value is supplied here.
+        var c = CreateController(identity: null);
+        var grantId = Guid.NewGuid();
+        c.HttpContext.Request.Headers["X-Share-Token"] = "token123";
+        var claims = new ShareTokenClaims(grantId.ToString(), Guid.NewGuid().ToString(), null, true, true, 1, DateTimeOffset.UtcNow.AddHours(1));
+        _tokensMock.Setup(x => x.ValidateAsync("token123", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(claims);
+        var manifest = new ShareManifestDto { CollectionId = claims.CollectionId, Title = "Test" };
+        _sharingMock.Setup(x => x.GetManifestAsync(grantId, "token123", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(manifest);
+
+        var r = await c.GetManifest(grantId, null, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(r);
+        Assert.Equal(manifest, ok.Value);
+        _tokensMock.Verify(x => x.ValidateAsync("token123", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetManifest_JwtBearerHeader_NotTreatedAsShareToken_ReturnsUnauthorized()
+    {
+        // A plain Authorization: Bearer <jwt> (no share: prefix) and no X-Share-Token must NOT be
+        // interpreted as a share token; an unauthenticated caller stays unauthorized.
+        var c = CreateController(identity: null);
+        c.HttpContext.User = new ClaimsPrincipal();
+        c.HttpContext.Request.Headers.Authorization = "Bearer some.jwt.value";
+
+        var r = await c.GetManifest(Guid.NewGuid(), null, CancellationToken.None);
+
+        Assert.IsType<UnauthorizedResult>(r);
+        _tokensMock.Verify(x => x.ValidateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GetManifest_NormalAuth_NotAuthenticated_ReturnsUnauthorized()
     {
         var c = CreateController();

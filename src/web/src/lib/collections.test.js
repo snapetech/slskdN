@@ -41,7 +41,9 @@ describe('collections', () => {
     expect(api.get).toHaveBeenCalledWith('/collections/collection%2F1');
     expect(api.put).toHaveBeenCalledWith('/collections/items/item%2F1', { title: 'track' });
     expect(api.get).toHaveBeenCalledWith('/share-grants/share%2F1');
-    expect(api.get).toHaveBeenCalledWith('/share-grants/share%2F1/manifest?token=token%2F1');
+    expect(api.get).toHaveBeenCalledWith('/share-grants/share%2F1/manifest', {
+      headers: { 'X-Share-Token': 'token/1' },
+    });
     expect(api.post).toHaveBeenCalledWith('/share-grants/share%2F1/backfill');
   });
 });

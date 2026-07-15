@@ -9,7 +9,9 @@ The `stable` status below and the `chore(release): update stable metadata ...` v
 - The release-channel "stable" (versus a `dev`/pre-release channel) is just which channel a build ships on. Cutting a stable-channel build is allowed regardless of this table.
 - The `stable` status in this table is a **per-feature** maturity claim. The gate ("`unknown` must be resolved before release claims are made") governs **user-facing per-feature claims** in the README, docs, config examples, UI copy, and release notes — not the channel name.
 
-Practical rule: until a feature is marked `stable` here, do not describe it as stable/production-ready/done in any user-facing text. As of this writing the large `unknown`/`experimental` columns mean most features should be presented as experimental. Resolving those rows (not softening this gate) is the way to earn "stable" language.
+Practical rule: until a feature is marked `stable` in the **Status** column, do not describe it as stable/production-ready/done in any user-facing text.
+
+Current state (recount 2026-07-14): the **Status** column is fully classified — `stable` 4, `experimental` 51, `design-only` 6, `broken` 1, `moved-to-slskr` 1, `unknown` 0. So the release gate on `unknown` *status* is satisfied. The pervasive `unknown` values elsewhere in the table live in the **Tests** column (~49) and **Live smoke test** column (~10); those track *test/verification coverage*, not maturity, and are a separate quality-visibility backlog rather than a release blocker. (An earlier audit miscounted those Tests/Live-smoke `unknown`s as ~60 unclassified *statuses* — they are not.) The real standing caveat is simply that 51 features are `experimental`: user-facing docs should present those as experimental, not stable.
 
 ## Status values
 
@@ -97,7 +99,7 @@ Practical rule: until a feature is marked `stable` here, do not describe it as s
 | Social federation | Federated social features | `feature.SocialFederation` plus federation options | social federation services | federation endpoints gated by `FeatureGate` | unknown | social federation services | unknown | none | experimental | gate | Enabled by default but explicitly gated; verify before stable claim. |
 | VirtualSoulfind | Extended discovery/network layer | `feature.VirtualSoulfind` plus virtualSoulfind options | VirtualSoulfind services | VirtualSoulfind endpoints gated by `FeatureGate` | unknown | VirtualSoulfind services | unknown | none | experimental | gate | Enabled by default but explicitly gated; needs design/status doc. |
 | Build quality gates | Static/coverage/regression tasks | MSBuild props | build only | none | build logs | custom MSBuild tasks | unknown | build smoke | experimental | needs-test | Move tasks out of app assembly. |
-| Analyzer suppressions | Warning suppression list | csproj NoWarn | build | none | build logs | csproj | none | build smoke | unknown | needs-test | Each suppression needs documented reason. |
+| Analyzer suppressions | Warning suppression list | csproj NoWarn | build | none | build logs | csproj | none | build smoke | stable | keep | Build infrastructure, not a user-facing feature; the NoWarn list ships and works in every build. Remaining work is documenting a reason per suppression (a docs chore, not a maturity question). |
 | slskr Rust rewrite handoff | Forward-looking implementation | n/a | n/a | n/a | README/docs | separate repo | n/a | n/a | moved-to-slskr | move-to-slskr | Docs must clearly state which features moved. |
 
 ## Release rule

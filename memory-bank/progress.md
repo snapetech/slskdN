@@ -1,5 +1,6 @@
 ## 2026-07-15
 
+- Removed reusable share tokens from browser-visible manifest and stream URLs. Manifest requests now use a dedicated header, while shared playback exchanges the reusable token for a short-lived content-bound ticket. Added backend and frontend regressions and documented ADR-0001 gotcha `0z560`.
 - Stopped the first `.277` pre-tag gate before tag creation after it exposed a stale XML parameter reference and the operator reported GitLab `main` pipeline-failure emails.
 - Restricted GitLab pipeline creation to tags only with an explicit terminal deny rule, matching the documented build policy, and corrected the renamed search-filter helper's XML `paramref`.
 - Documented ADR-0001 gotchas `0z558` and `0z559` before implementation.
