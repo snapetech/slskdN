@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z593. Split Polling Cadences Must Preserve Per-Request Failure Isolation
+
+**The Bug**: Swarm status and optional trace requests originally ran through
+`Promise.allSettled`. Splitting them into independent polling cadences moved the
+trace request into its own async function but omitted its rejection handler, so
+a rejected optional trace request surfaced as an unhandled promise rejection.
+
+**Files Affected**:
+- `src/web/src/components/System/SwarmVisualization/index.jsx`
+- `src/web/src/components/System/SwarmVisualization/index.test.jsx`
+
+**Prevention**: When decomposing a composite poll, inventory the error contract
+of every request as well as its cadence. Each independently scheduled async
+poll must catch its own expected failures and release its in-flight guard in
+`finally`; optional telemetry failures must not reject the timer callback or
+erase the primary status view. Keep a rejecting-request regression after the
+split.
+
 ### 0z592. Bounded Incremental Caches Must Cap The Initial Snapshot
 
 **The Bug**: The unified room adapter capped its merge path at 100 messages but
