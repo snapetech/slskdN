@@ -12,6 +12,8 @@ import { Icon } from 'semantic-ui-react';
 
 const GITHUB_BASE = 'https://github.com/snapetech/slskdn';
 const SLSKD_GITHUB = 'https://github.com/slskd/slskd';
+const SPEED_POLL_INTERVAL_MS = 2_000;
+const STATS_POLL_INTERVAL_MS = 10_000;
 
 const formatSpeed = (bytesPerSec) => {
   if (!bytesPerSec || bytesPerSec === 0) return { unit: 'B', value: '0' };
@@ -70,18 +72,23 @@ class Footer extends Component {
     super(props);
     this.state = {
       buildInfo: null,
-      interval: null,
       slskdnStats: null,
       speeds: null,
       stats: null,
     };
     this.footerRef = React.createRef();
     this.footerResizeObserver = null;
+    this._fetchSpeedsInFlight = false;
+    this._fetchStatsInFlight = false;
+    this._isMounted = false;
     this._displaySpeeds = null;
     this._lastNonZeroAt = 0;
+    this._speedsInterval = null;
+    this._statsInterval = null;
   }
 
   componentDidMount() {
+    this._isMounted = true;
     this.updateFooterHeight();
     if (
       typeof window !== 'undefined' &&
@@ -99,18 +106,21 @@ class Footer extends Component {
     if (session.isLoggedIn()) {
       this.fetchStats();
       this.fetchSpeeds();
-      const interval = setInterval(() => {
-        this.fetchStats();
-        this.fetchSpeeds();
-      }, 2_000); // Every 2s for real-time feel
-      this.setState({ interval });
+      this._speedsInterval = setInterval(
+        this.fetchSpeeds,
+        SPEED_POLL_INTERVAL_MS,
+      );
+      this._statsInterval = setInterval(
+        this.fetchStats,
+        STATS_POLL_INTERVAL_MS,
+      );
     }
   }
 
   componentWillUnmount() {
-    if (this.state.interval) {
-      clearInterval(this.state.interval);
-    }
+    this._isMounted = false;
+    clearInterval(this._speedsInterval);
+    clearInterval(this._statsInterval);
     if (this.footerResizeObserver) {
       this.footerResizeObserver.disconnect();
       this.footerResizeObserver = null;
@@ -126,33 +136,41 @@ class Footer extends Component {
   };
 
   fetchStats = async () => {
-    if (!session.isLoggedIn()) {
+    if (!session.isLoggedIn() || this._fetchStatsInFlight) {
       return;
     }
 
+    this._fetchStatsInFlight = true;
     try {
       const [transportStats, slskdnStats] = await Promise.allSettled([
         mesh.getStats(),
         slskdnAPI.getSlskdnStats(),
       ]);
 
-      this.setState({
-        slskdnStats:
-          slskdnStats.status === 'fulfilled' ? slskdnStats.value : null,
-        stats:
-          transportStats.status === 'fulfilled' ? transportStats.value : null,
-      });
+      if (this._isMounted) {
+        this.setState({
+          slskdnStats:
+            slskdnStats.status === 'fulfilled' ? slskdnStats.value : null,
+          stats:
+            transportStats.status === 'fulfilled'
+              ? transportStats.value
+              : null,
+        });
+      }
     } catch (error) {
       // Silently fail - stats are non-critical
       console.debug('Failed to fetch mesh stats:', error);
+    } finally {
+      this._fetchStatsInFlight = false;
     }
   };
 
   fetchSpeeds = async () => {
-    if (!session.isLoggedIn()) {
+    if (!session.isLoggedIn() || this._fetchSpeedsInFlight) {
       return;
     }
 
+    this._fetchSpeedsInFlight = true;
     try {
       const raw = await transfers.getSpeeds();
       const now = Date.now();
@@ -187,9 +205,13 @@ class Footer extends Component {
       }
 
       this._displaySpeeds = displayed;
-      this.setState({ speeds: displayed });
+      if (this._isMounted) {
+        this.setState({ speeds: displayed });
+      }
     } catch (error) {
       console.debug('Failed to fetch transfer speeds:', error);
+    } finally {
+      this._fetchSpeedsInFlight = false;
     }
   };
 

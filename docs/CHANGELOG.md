@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Footer polling now keeps two-second transfer-speed updates while refreshing
+  aggregate network statistics every ten seconds without overlapping requests,
+  and HashDb peer-capability counts use a covering index instead of a full scan.
 - GitLab CI configuration now keeps the Arch package-smoke sudoers command as
   a string scalar, and performance-test dependencies align with the runtime
   graph so GitLab pipeline creation and GitHub dependency submission succeed.

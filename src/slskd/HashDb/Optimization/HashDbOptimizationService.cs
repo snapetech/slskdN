@@ -119,6 +119,7 @@ public class HashDbOptimizationService : IHashDbOptimizationService
 
                 // Peers table indexes
                 ("idx_peers_peer_id", "Peers", "peer_id", "CREATE UNIQUE INDEX IF NOT EXISTS idx_peers_peer_id ON Peers(peer_id)"),
+                ("idx_peers_caps", "Peers", "caps", "CREATE INDEX IF NOT EXISTS idx_peers_caps ON Peers(caps)"),
             };
 
             int created = 0;
@@ -293,6 +294,7 @@ public class HashDbOptimizationService : IHashDbOptimizationService
                 "idx_hashdb_size",
                 "idx_inventory_file_id",
                 "idx_inventory_size",
+                "idx_peers_caps",
             };
 
             foreach (var indexName in criticalIndexes)

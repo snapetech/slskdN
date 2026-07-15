@@ -52,6 +52,21 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Constructor_IndexesPeerCapabilityStatsQuery()
+    {
+        await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "EXPLAIN QUERY PLAN SELECT COUNT(*) FROM Peers WHERE caps > 0";
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        Assert.True(await reader.ReadAsync());
+        var plan = reader.GetString(3);
+
+        Assert.Contains("idx_peers_caps", plan, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GetStats_ReturnsZeroCountsForEmptyDb()
     {
         // Act

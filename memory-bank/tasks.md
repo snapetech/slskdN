@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Reduce shared footer polling load and index HashDb capability counts.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Split real-time transfer-speed polling (2s) from aggregate/network stats polling (10s), added per-poll in-flight guards and mounted lifecycle checks, and moved timer handles out of React state. Added HashDb schema migration 18 for a covering `Peers(caps)` index and aligned manual index optimization/recommendations. Synthetic measurement on 200,000 peers reduced 500 capable-peer counts from 1.615s to 0.089s. Footer aggregate requests fall from seven every 2s to seven every 10s while speed polling remains unchanged. Added query-plan, cadence, and overlap regressions; documented gotchas `0z562` through `0z565`.
+
 - [x] Fix repeated GitHub dependency-submission and GitLab pipeline failures.
   - Status: completed (2026-07-15)
   - Priority: P0

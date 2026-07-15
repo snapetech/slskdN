@@ -45,7 +45,10 @@ public class PublicProtocolAnonymousActionTests
     public void StreamingController_RemainsAnonymousForTokenBackedTransport()
     {
         AssertControllerRequiresAuthenticationByDefault(typeof(StreamsController));
-        AssertAnonymousActions(typeof(StreamsController), nameof(StreamsController.Get));
+        AssertAnonymousActions(
+            typeof(StreamsController),
+            nameof(StreamsController.CreateShareTicket),
+            nameof(StreamsController.Get));
     }
 
     [Fact]

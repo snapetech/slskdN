@@ -1,3 +1,19 @@
+## Update 2026-07-15 17:47:33Z
+
+- Current task: performance and efficiency improvements in progress; footer polling and HashDb capability-count pass complete locally.
+- Last activity:
+  - Split footer transfer-speed and aggregate-stat polling into 2-second and 10-second cadences, respectively.
+  - Added in-flight and mounted lifecycle guards so slow polling cannot overlap or update an unmounted footer.
+  - Added HashDb migration 18 and optimization-service coverage for the `Peers(caps)` covering index.
+  - Measured 500 capable-peer counts at 1.615s without the index and 0.089s with it on 200,000 synthetic peers.
+  - Reverted a conditional-aggregate attempt after measurement proved it about 2.5 times slower, and documented gotchas `0z562` through `0z565` in required standalone commits.
+- Validation:
+  - Passed complete `dotnet test` (`4700/4700`: `69` smoke, `4353` unit, `278` integration) and focused HashDb/optimization tests (`57/57`).
+  - Passed complete Web Vitest (`769` passed, `4` skipped), production build, focused ESLint, polling lifecycle guard, repository lint, and `git diff --check`.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 04:10:00Z
 
 - Current task: GitHub and GitLab CI failure remediation complete.

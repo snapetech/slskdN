@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import Footer from './Footer';
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 
 const { getBuild, getSlskdnStats, getStats, getSpeeds, isLoggedIn } = vi.hoisted(() => ({
@@ -64,6 +64,7 @@ describe('Footer', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.clearAllMocks();
     localStorage.clear();
   });
@@ -81,6 +82,55 @@ describe('Footer', () => {
     expect(screen.getByText('1 swarm')).toBeInTheDocument();
     expect(screen.getByText('backfill')).toBeInTheDocument();
     expect(screen.getByText('+2')).toBeInTheDocument();
+  });
+
+  it('polls speeds more frequently than aggregate stats', async () => {
+    vi.useFakeTimers();
+    render(<Footer />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(6_000);
+    });
+
+    expect(getSpeeds).toHaveBeenCalledTimes(4);
+    expect(getStats).toHaveBeenCalledTimes(1);
+    expect(getSlskdnStats).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4_000);
+    });
+
+    expect(getSpeeds).toHaveBeenCalledTimes(6);
+    expect(getStats).toHaveBeenCalledTimes(2);
+    expect(getSlskdnStats).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not overlap slow aggregate stats polls', async () => {
+    vi.useFakeTimers();
+    let resolveStats;
+    getSlskdnStats.mockReturnValue(
+      new Promise((resolve) => {
+        resolveStats = resolve;
+      }),
+    );
+
+    render(<Footer />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+
+    expect(getStats).toHaveBeenCalledTimes(1);
+    expect(getSlskdnStats).toHaveBeenCalledTimes(1);
+
+    resolveStats({});
+    await act(async () => {
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+
+    expect(getStats).toHaveBeenCalledTimes(2);
+    expect(getSlskdnStats).toHaveBeenCalledTimes(2);
   });
 
   it('renders build info and checks for updates when logged out', async () => {
