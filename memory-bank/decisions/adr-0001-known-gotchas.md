@@ -21840,3 +21840,15 @@ render the cached empty list.
 **Prevention**: Mark volatile authenticated recipient-list endpoints as
 `no-store`. In browser tests, wait for the exact list route rather than matching
 all paths that merely contain the route prefix.
+### 0z553. Integration Actions Must Import Their API Module
+
+**The Bug**: The Servarr readiness panel called `lidarr.syncWanted()` without
+declaring or importing `lidarr`, causing the repository lint gate to fail and
+the action to throw at runtime.
+
+**Files Affected**:
+- `src/web/src/components/System/Integrations/ServarrReadinessPanel.jsx`
+
+**Prevention**: Import the established API module explicitly and use the same
+alias as existing feature components. Run frontend lint after adding integration
+actions, even when the component build itself succeeds.
