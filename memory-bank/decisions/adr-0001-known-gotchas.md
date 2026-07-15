@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z613. Live Availability Flags Must Survive API Rehydration
+
+**The Bug**: Search response hydration was gated by a non-persisted live
+`ResponsesAvailable` flag. Hub updates could expose early mesh results, but a
+browser refresh rebuilt the active search from the database with the flag's
+default value and hid already-persisted responses until completion.
+
+**Files Affected**:
+- `src/slskd/Search/Extensions.cs`
+- `src/slskd/Search/Types/Search.cs`
+- `src/web/src/components/Search/Detail/SearchDetail.jsx`
+
+**Prevention**: Any transient API flag that gates access to durable data must
+be reproducible during REST/list projection. Derive it from authoritative
+stored state when possible, and test rehydrated response-less projections as
+well as live hub objects.
+
 ### 0z612. Final Snapshots Must Drain Partial-Update Timers First
 
 **The Bug**: Repairing search progress-limiter ownership made its timer live
