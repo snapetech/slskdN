@@ -21893,3 +21893,18 @@ response.
 **Prevention**: Validate metadata prefixes and minimum lengths before slicing
 Prometheus text. Skip malformed collector metadata without discarding otherwise
 valid metrics output.
+### 0z557. Pipe Producers Must Have One Completion Owner
+
+**The Bug**: Mesh preview production wrapped a `PipeWriter` in a stream that
+completed the writer on disposal, then exception paths attempted to complete
+the same writer again. Under CI timing, a hash mismatch could leave the reader
+pending until cancellation instead of completing with zero unverified bytes.
+
+**Files Affected**:
+- `src/slskd/Streaming/MeshStreamService.cs`
+- `tests/slskd.Tests.Unit/Streaming/MeshStreamServiceTests.cs`
+
+**Prevention**: Create writer streams with `leaveOpen: true` and give the
+producer method one `finally` block sole ownership of `PipeWriter.CompleteAsync`.
+Expected pre-response failures should complete cleanly after logging so readers
+observe EOF without receiving unverified content.
