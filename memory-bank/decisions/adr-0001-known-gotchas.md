@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z584. Async Database APIs Must Perform Async Materialization
+
+**The Bug**: `ConversationService.ListMessagesAsync` executed EF Core's
+synchronous `ToList()` and returned the already-materialized rows through
+`Task.FromResult`. Every private-chat poll therefore blocked a request thread
+during SQLite I/O despite exposing an asynchronous service contract.
+
+**Files Affected**:
+- `src/slskd/Messaging/ConversationService.cs`
+
+**Prevention**: An async database method must use the provider's async terminal
+operation such as `ToListAsync`, `CountAsync`, or `ExecuteScalarAsync`. Never
+hide synchronous database or filesystem I/O behind `Task.FromResult`. Add a
+focused service regression for query behavior and run the full analyzer/lint
+gate so asynchronous contracts remain genuinely nonblocking.
+
 ### 0z583. A Bounded Window Still Needs An Incremental Polling Cursor
 
 **The Bug**: Private-conversation reads were capped at the latest 100 messages,
