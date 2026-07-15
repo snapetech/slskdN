@@ -21939,11 +21939,11 @@ npm run check:council
 
 ### 0z350. Preserve Messaging Poll Identity To Avoid Flicker
 
-**What went wrong:** Messaging V2 polls can return fresh arrays with unchanged member/message content. Writing those arrays directly to state forces React to repaint panes every poll, which looks like flicker even when no message changed.
+**What went wrong:** Messaging V2 polls can return fresh arrays with unchanged member/message content. Writing those arrays directly to state forces React to repaint panes every poll, which looks like flicker even when no message changed. A later Jobs poll added an equality check for this reason but compared assumed card fields instead of all fields returned by the active-jobs API, so real state and chunk-progress changes could be suppressed as unchanged.
 
 **Why:** React state identity changed on every poll, and fallback row keys based on visible indexes caused unnecessary row reuse/remount work as capped windows shifted.
 
-**How to prevent:** Compare compact render signatures before state writes, preserve previous state for unchanged poll results, memoize high-churn panes, and use stable message render keys instead of visible-slice indexes.
+**How to prevent:** Compare compact render signatures before state writes, but derive every compared field from the concrete API contract and all downstream calculations rather than an assumed view model. Preserve previous state only when every relevant field is unchanged, memoize high-churn panes, and use stable message render keys instead of visible-slice indexes. Cover a real-contract field change in polling regressions.
 
 ### 0z351. Dynamic Semantic UI Browse Tabs Must Render Active Pane
 
