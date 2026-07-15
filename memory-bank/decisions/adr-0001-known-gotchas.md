@@ -89,20 +89,21 @@ callback cost and bound its cadence and persistence shape.
 
 ### 0z609. Record Reconstruction Must Preserve Persisted Provenance
 
-**The Bug**: The search state-transition helper created a new `Search` record
-from Soulseek progress but copied only counters, state, identity, and query
-fields. It omitted the persisted `Source` and `WishlistItemId`, so the next
-database update could relabel a background search as manual and sever its
-wishlist association.
+**The Bug**: The search state-transition helper and response-less database
+projection each created a new `Search` record but copied only counters, state,
+identity, and query fields. They omitted the persisted `Source` and
+`WishlistItemId`, so a state update could relabel a background search as manual
+and sever its wishlist association, while list and hub snapshots could report
+the same incorrect defaults even when the row remained correct.
 
 **Files Affected**:
 - `src/slskd/Search/Extensions.cs`
 - `src/slskd/Search/SearchService.cs`
 
 **Prevention**: Prefer a record `with` expression when applying partial runtime
-state to a persisted record. If explicit reconstruction is unavoidable, test
-every persisted provenance and correlation field, not only the changing state
-and counters.
+state to a persisted record. If explicit projection or reconstruction is
+unavoidable, test every persisted provenance and correlation field in both
+returned values and generated SQL, not only the changing state and counters.
 
 ### 0z608. Polling Start Paths Must Check Current Visibility
 
