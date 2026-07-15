@@ -1,3 +1,18 @@
+## Update 2026-07-15 18:52:41Z
+
+- Current task: performance and efficiency improvements in progress; conversation unread-count query pass complete locally.
+- Last activity:
+  - Replaced unread-message entity materialization and per-conversation rescans with one correlated SQLite count projection.
+  - Upgraded the acknowledgement index to covering `(IsAcknowledged, Username)` and made the existing migration replace its earlier single-column shape safely.
+  - Measured 200 conversations and 200,000 unread messages at 59,088,895 intermediate bytes and 172 ms mean before versus 3,200 bytes and 4 ms after.
+  - Added service, migration-upgrade, idempotence, and covering query-plan regressions; documented gotcha `0z574` in standalone commit `148298f27`.
+- Validation:
+  - Passed focused conversation-service tests (`4/4`) and the broader messaging unit slice (`40/40`).
+  - Passed complete backend suites (`4708/4708`: `69` smoke, `4361` unit, `278` integration), repository lint, route-inventory, identity-leak, and whitespace checks.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 18:42:23Z
 
 - Current task: performance and efficiency improvements in progress; Network dashboard and shared aggregate-status fan-out pass complete locally.

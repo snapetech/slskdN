@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Keep conversation unread-count aggregation inside SQLite.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Replaced `ConversationService.ListAsync` materialization of every unacknowledged private-message entity plus per-conversation rescans with one correlated SQL count projection. Upgraded `IDX_PrivateMessages_IsAcknowledged` from `(IsAcknowledged)` to covering `(IsAcknowledged, Username)` in the EF model and the idempotent existing-database migration; the migration detects and replaces the earlier one-column shape. On a synthetic 200-conversation/200,000-unread-message database, intermediate query output fell from 59,088,895 bytes to 3,200 bytes and ten-run mean execution fell from 172 ms to 4 ms. Added count, payload-boundary, migration-upgrade, idempotence, and covering query-plan regressions; documented gotcha `0z574` in standalone commit `148298f27`.
+
 - [x] Collapse System Network and footer aggregate-status request fan-out.
   - Status: completed (2026-07-15)
   - Priority: P1

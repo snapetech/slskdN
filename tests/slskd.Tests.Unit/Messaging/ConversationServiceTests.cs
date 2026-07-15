@@ -17,7 +17,7 @@ using Xunit;
 public class ConversationServiceTests
 {
     [Fact]
-    public void AcknowledgementIndexMigration_Is_Idempotent()
+    public void AcknowledgementIndexMigration_Upgrades_Single_Column_Index_And_Is_Idempotent()
     {
         var databasePath = Path.Combine(Path.GetTempPath(), $"slskdn-messaging-{Guid.NewGuid():N}.db");
         var connectionString = $"Data Source={databasePath}";
@@ -36,6 +36,8 @@ public class ConversationServiceTests
                         IsAcknowledged INTEGER NOT NULL,
                         PRIMARY KEY (Username, Id, Timestamp)
                     );
+                    CREATE INDEX IDX_PrivateMessages_IsAcknowledged
+                        ON PrivateMessages (IsAcknowledged);
                     """;
                 command.ExecuteNonQuery();
             }
@@ -50,6 +52,21 @@ public class ConversationServiceTests
             migration.Apply();
             Assert.False(migration.NeedsToBeApplied());
 
+            using (var connection = new SqliteConnection(connectionString))
+            {
+                connection.Open();
+                using var command = connection.CreateCommand();
+                command.CommandText = "PRAGMA index_info('IDX_PrivateMessages_IsAcknowledged')";
+                using var reader = command.ExecuteReader();
+                var columns = new List<string>();
+                while (reader.Read())
+                {
+                    columns.Add(reader.GetString(reader.GetOrdinal("name")));
+                }
+
+                Assert.Equal(["IsAcknowledged", "Username"], columns);
+            }
+
             migration.Apply();
             Assert.False(migration.NeedsToBeApplied());
         }
@@ -57,6 +74,52 @@ public class ConversationServiceTests
         {
             System.IO.File.Delete(databasePath);
         }
+    }
+
+    [Fact]
+    public async Task ListAsync_Projects_Unacknowledged_Counts_Without_Message_Payloads()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<MessagingDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        var factory = new TestDbContextFactory(options);
+
+        await using (var context = factory.CreateDbContext())
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Conversations.AddRange(
+                new Conversation { Username = "active-unread", IsActive = true },
+                new Conversation { Username = "active-read", IsActive = true },
+                new Conversation { Username = "inactive-unread", IsActive = false });
+            context.PrivateMessages.AddRange(
+                new PrivateMessage { Id = 1, Username = "active-unread", IsAcknowledged = false, Message = new string('x', 4_096) },
+                new PrivateMessage { Id = 2, Username = "active-unread", IsAcknowledged = false, Message = new string('y', 4_096) },
+                new PrivateMessage { Id = 3, Username = "active-read", IsAcknowledged = true, Message = new string('z', 4_096) },
+                new PrivateMessage { Id = 4, Username = "inactive-unread", IsAcknowledged = false, Message = new string('q', 4_096) });
+            await context.SaveChangesAsync();
+        }
+
+        var service = CreateService(factory);
+
+        var conversations = (await service.ListAsync(conversation => conversation.IsActive)).ToList();
+
+        Assert.Collection(
+            conversations,
+            conversation =>
+            {
+                Assert.Equal("active-read", conversation.Username);
+                Assert.Equal(0, conversation.UnAcknowledgedMessageCount);
+                Assert.Empty(conversation.Messages);
+            },
+            conversation =>
+            {
+                Assert.Equal("active-unread", conversation.Username);
+                Assert.Equal(2, conversation.UnAcknowledgedMessageCount);
+                Assert.Empty(conversation.Messages);
+            });
     }
 
     [Fact]
@@ -102,7 +165,7 @@ public class ConversationServiceTests
     }
 
     [Fact]
-    public async Task MessagingSchema_Uses_Acknowledgement_Index_For_Existence_Query()
+    public async Task MessagingSchema_Uses_Covering_Acknowledgement_Index_For_Conversation_Counts()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -114,7 +177,16 @@ public class ConversationServiceTests
         await context.Database.EnsureCreatedAsync();
 
         await using var command = connection.CreateCommand();
-        command.CommandText = "EXPLAIN QUERY PLAN SELECT EXISTS (SELECT 1 FROM PrivateMessages WHERE IsAcknowledged = 0)";
+        command.CommandText = """
+            EXPLAIN QUERY PLAN
+            SELECT c.Username,
+                (SELECT COUNT(*)
+                 FROM PrivateMessages AS p
+                 WHERE p.IsAcknowledged = 0 AND p.Username = c.Username)
+            FROM Conversations AS c
+            WHERE c.IsActive = 1
+            ORDER BY c.Username
+            """;
         await using var reader = await command.ExecuteReaderAsync();
 
         var details = new List<string>();
@@ -123,7 +195,8 @@ public class ConversationServiceTests
             details.Add(reader.GetString(3));
         }
 
-        Assert.Contains(details, detail => detail.Contains("IDX_PrivateMessages_IsAcknowledged", StringComparison.Ordinal));
+        Assert.Contains(details, detail =>
+            detail.Contains("COVERING INDEX IDX_PrivateMessages_IsAcknowledged", StringComparison.Ordinal));
     }
 
     private static ConversationService CreateService(IDbContextFactory<MessagingDbContext> contextFactory)

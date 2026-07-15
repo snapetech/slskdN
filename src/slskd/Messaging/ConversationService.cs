@@ -452,31 +452,32 @@ namespace slskd.Messaging
         /// </summary>
         /// <param name="expression">An optional expression used to locate conversations.</param>
         /// <returns>The operation context, including the list of found conversations.</returns>
-        public Task<IEnumerable<Conversation>> ListAsync(Expression<Func<Conversation, bool>>? expression = null)
+        public async Task<IEnumerable<Conversation>> ListAsync(Expression<Func<Conversation, bool>>? expression = null)
         {
             expression ??= c => true;
             using var context = ContextFactory.CreateDbContext();
 
-            // todo: replace this garbage with Dapper and a real SQL query
-            var unAckedMessages = context.PrivateMessages
-                .AsNoTracking()
-                .Where(m => !m.IsAcknowledged)
-                .ToList();
-
-            var conversations = context.Conversations
+            var conversations = await context.Conversations
                 .AsNoTracking()
                 .Where(expression)
                 .OrderBy(c => c.Username)
-                .ToList();
+                .Select(c => new
+                {
+                    c.IsActive,
+                    c.Username,
+                    UnAcknowledgedMessageCount = context.PrivateMessages.Count(m =>
+                        m.Username == c.Username && !m.IsAcknowledged),
+                })
+                .ToListAsync();
 
             var response = conversations.Select(c => new Conversation
             {
                 Username = c.Username,
                 IsActive = c.IsActive,
-                UnAcknowledgedMessageCount = unAckedMessages.Count(m => m.Username == c.Username),
+                UnAcknowledgedMessageCount = c.UnAcknowledgedMessageCount,
             });
 
-            return Task.FromResult(response);
+            return response;
         }
 
         /// <summary>

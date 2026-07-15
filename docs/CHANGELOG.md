@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Conversation-list unread counts now use one indexed SQLite projection instead
+  of loading every unread private-message row and rescanning it per
+  conversation.
 - Footer and System Network aggregate status now uses one bounded server
   snapshot per consumer instead of browser-side request fan-out. Network polling
   runs every ten seconds, pauses while hidden, rejects overlap, and correctly

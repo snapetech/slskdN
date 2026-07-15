@@ -5,12 +5,12 @@
 namespace slskd.Migrations;
 
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using Microsoft.Data.Sqlite;
 using Serilog;
 
 /// <summary>
-///     Adds an index for private-message acknowledgement existence queries.
+///     Adds a covering index for private-message acknowledgement queries.
 /// </summary>
 public class Z07152026_PrivateMessageAcknowledgementIndexMigration : IMigration
 {
@@ -28,13 +28,31 @@ public class Z07152026_PrivateMessageAcknowledgementIndexMigration : IMigration
     {
         try
         {
-            var indexes = SchemaInspector.GetDatabaseIndexes(ConnectionString);
-            if (!indexes.TryGetValue("PrivateMessages", out var privateMessageIndexes))
+            using var connection = new SqliteConnection(ConnectionString);
+            connection.Open();
+
+            using (var tableCommand = connection.CreateCommand())
             {
-                return false;
+                tableCommand.CommandText = "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'PrivateMessages')";
+                if (!Convert.ToBoolean(tableCommand.ExecuteScalar()))
+                {
+                    return false;
+                }
             }
 
-            return !privateMessageIndexes.Any(index => index.Name.Equals(IndexName, StringComparison.OrdinalIgnoreCase));
+            using var indexCommand = connection.CreateCommand();
+            indexCommand.CommandText = $"PRAGMA index_info('{IndexName}')";
+            using var reader = indexCommand.ExecuteReader();
+
+            var columns = new List<string>();
+            while (reader.Read())
+            {
+                columns.Add(reader.GetString(reader.GetOrdinal("name")));
+            }
+
+            return columns.Count != 2 ||
+                !columns[0].Equals("IsAcknowledged", StringComparison.OrdinalIgnoreCase) ||
+                !columns[1].Equals("Username", StringComparison.OrdinalIgnoreCase);
         }
         catch (Exception ex)
         {
@@ -57,13 +75,20 @@ public class Z07152026_PrivateMessageAcknowledgementIndexMigration : IMigration
         using var transaction = connection.BeginTransaction();
         try
         {
-            Log.Information("> Adding the private-message acknowledgement index...");
+            Log.Information("> Adding the private-message acknowledgement covering index...");
 
-            using var command = new SqliteCommand(
-                $"CREATE INDEX IF NOT EXISTS {IndexName} ON PrivateMessages (IsAcknowledged)",
+            using (var dropCommand = new SqliteCommand($"DROP INDEX IF EXISTS {IndexName}", connection, transaction))
+            {
+                dropCommand.ExecuteNonQuery();
+            }
+
+            using (var createCommand = new SqliteCommand(
+                $"CREATE INDEX {IndexName} ON PrivateMessages (IsAcknowledged, Username)",
                 connection,
-                transaction);
-            command.ExecuteNonQuery();
+                transaction))
+            {
+                createCommand.ExecuteNonQuery();
+            }
 
             transaction.Commit();
             Log.Information("> Done!");

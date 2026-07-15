@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Conversation-list unread counts are now projected by SQLite through a
+  covering acknowledgement/username index instead of materializing unread
+  message bodies and rescanning them once per conversation.
 - Footer and System Network aggregate status now comes from one bounded server
   snapshot per consumer instead of browser-side request fan-out; Network polling
   also pauses while hidden and cannot overlap a slow prior cycle.
