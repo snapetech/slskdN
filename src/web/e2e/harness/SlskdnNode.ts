@@ -176,6 +176,8 @@ export class SlskdnNode {
 
   private appDir: string = '';
 
+  private webContentDir: string = '';
+
   private config: NodeConfig;
 
   constructor(config: NodeConfig) {
@@ -251,7 +253,10 @@ export class SlskdnNode {
     return configuredPath;
   }
 
-  private async syncWebUi(repoRoot: string): Promise<void> {
+  private async syncWebUi(
+    repoRoot: string,
+    destinationDir: string,
+  ): Promise<void> {
     const webBuildPath = path.join(repoRoot, 'src', 'web', 'build');
 
     try {
@@ -268,10 +273,7 @@ export class SlskdnNode {
       );
     }
 
-    await replaceDirectoryContents(
-      webBuildPath,
-      path.join(this.appDir, 'wwwroot'),
-    );
+    await replaceDirectoryContents(webBuildPath, destinationDir);
   }
 
   private async ensureWebBuild(repoRoot: string): Promise<void> {
@@ -373,7 +375,13 @@ export class SlskdnNode {
     await fs.mkdir(path.join(this.appDir, 'downloads'), { recursive: true });
     await fs.mkdir(path.join(this.appDir, 'incomplete'), { recursive: true });
     await fs.mkdir(path.join(this.appDir, 'config'), { recursive: true });
-    await this.syncWebUi(repoRoot);
+
+    const builtAppBaseDir = await this.getBuiltAppBaseDir(repoRoot);
+    const webContentPath = `e2e-wwwroot-${this.apiPort}-${crypto
+      .randomBytes(6)
+      .toString('hex')}`;
+    this.webContentDir = path.join(builtAppBaseDir, webContentPath);
+    await this.syncWebUi(repoRoot, this.webContentDir);
 
     // Write minimal config (YAML format)
     // Convert shareDir(s) to absolute paths (slskdn requires absolute paths)
@@ -395,8 +403,6 @@ export class SlskdnNode {
     };
 
     const configPath = path.join(this.appDir, 'config', 'slskd.yml');
-
-    const webContentPath = 'wwwroot';
 
     // Note: YAML provider automatically prefixes with "slskd:" namespace, so DON'T wrap under slskd: here
     // If we wrap it, we'd get slskd:slskd:web:port instead of slskd:web:port
@@ -468,7 +474,6 @@ flags:
 
     // Launch slskdn process
     const projectPath = path.join(repoRoot, 'src', 'slskd', 'slskd.csproj');
-    const builtAppBaseDir = await this.getBuiltAppBaseDir(repoRoot);
     const builtDllPath = path.join(builtAppBaseDir, 'slskd.dll');
 
     // Verify project exists
@@ -938,6 +943,11 @@ flags:
         }
       });
       this.process = null;
+    }
+
+    if (this.webContentDir) {
+      await fs.rm(this.webContentDir, { force: true, recursive: true });
+      this.webContentDir = '';
     }
 
     // Cleanup app directory unless KEEP_ARTIFACTS is set

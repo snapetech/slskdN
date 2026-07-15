@@ -3055,3 +3055,4 @@
 - [2026-07-15T01:00:00Z] Completed: resolve scheduled E2E browse/policy failures, isolate concurrent node Web roots, preserve explicit web/network share identity boundaries, prevent stale incoming-share listings, and fix the Servarr readiness API import.
 - [2026-07-15T01:15:00Z] Completed: integrate and validate Dependabot PRs #257, #263, and #264, including direct test-package alignment for grouped NuGet updates.
 - [2026-07-15T01:30:00Z] Completed: harden Prometheus metadata parsing against malformed custom collector lines.
+- [2026-07-15T22:55:00Z] Completed: refresh the API route inventory and fix E2E Web content resolution with isolated executable-relative directories.
