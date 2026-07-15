@@ -4,6 +4,9 @@
 - Removed competing pipe-completion owners from `MeshStreamService`: the stream now leaves the writer open and the producer completes it once in `finally` for success, cancellation, expected peer failures, and unexpected failures.
 - Documented ADR-0001 gotcha `0z557` in the required standalone docs commit `a683cf7e5`.
 - Focused Release validation passed (`MeshStreamServiceTests`, `3/3`).
+- Published replacement release `2026071501-slskdn.276` after both the local and hosted release gates passed. Independently verified all six platform archives, published checksums, required support assets, and the Linux x64 embedded version.
+- Reconciled the workflow-generated stable packaging metadata with the additional local commits and synchronized the merged history to GitHub and GitLab without rewriting either side.
+- The primary and omnibus Docker images, AUR, Nix metadata, Homebrew, PPA, and announcements succeeded. Chocolatey and COPR failed at their external upload steps; the GitHub release and verified artifacts are unaffected.
 
 ## 2026-06-19
 

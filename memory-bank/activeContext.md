@@ -1,16 +1,17 @@
-## Update 2026-07-15 01:40:09Z
+## Update 2026-07-15 02:27:55Z
 
-- Current task: replacement stable release in progress.
+- Current task: repository synchronization and replacement stable release complete.
 - Last activity:
   - The `.275` tag completed its local gate but failed the hosted release gate before publishing artifacts because a mesh hash-mismatch test timed out.
   - Documented pipe completion ownership gotcha `0z557` in standalone commit `a683cf7e5`.
-  - Updated the mesh preview producer to retain and complete its writer exactly once.
+  - Fixed the pipe race in `8928aef73`, synchronized all committed work with GitHub and GitLab, and merged the workflow-generated stable metadata without rewriting either history.
+  - Published and verified release `2026071501-slskdn.276`; the primary and omnibus Docker images also completed successfully.
 - Validation:
-  - Passed focused Release `MeshStreamServiceTests` (`3/3`).
+  - Passed focused Release `MeshStreamServiceTests` (`3/3`), repository lint, the complete local and hosted release gates, all six archive checksum checks, required release-asset checks, and Linux x64 version verification.
+  - AUR, Nix metadata, Homebrew, PPA, announcements, and both Docker publishers succeeded. Chocolatey and COPR failed at their external upload steps.
 - Next steps:
-  1. Run repository lint and the replacement release gate.
-  2. Push both remotes and cut `.276`.
-  3. Verify the hosted workflow and published artifacts.
+  1. No code, synchronization, or release-artifact work remains.
+  2. Investigate the Chocolatey and COPR external publisher failures separately if those channels are required.
 
 ## Update 2026-07-14 16:00:00Z
 

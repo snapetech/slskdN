@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Synchronize all repository work and publish replacement stable release `.276`.
+  - Status: completed (2026-07-15)
+  - Priority: P0
+  - Notes: Pushed all committed work to GitHub and GitLab, merged the workflow-generated stable metadata without rewriting history, and published `2026071501-slskdn.276`. Both local and hosted release gates passed; all six archives, checksums, required assets, version, primary Docker image, and omnibus image verified or published successfully. Chocolatey and COPR external uploads failed and remain independent publisher follow-up.
+
 - [x] Fix nondeterministic mesh preview pipe completion during release CI.
   - Status: completed (2026-07-15)
   - Priority: P0
