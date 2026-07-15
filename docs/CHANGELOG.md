@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- The legacy Pods route now reuses complete list metadata, incrementally merges
+  channel messages, polls slow metadata every sixty seconds, suspends hidden
+  work, and correctly hydrates direct Pod channel URLs.
 - The Rooms route now refreshes messages and membership on separate cadences,
   prevents overlapping or unchanged polling work, and suspends active-room and
   joined-room hydration while hidden.

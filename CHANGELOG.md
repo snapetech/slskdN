@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- The legacy Pods route now reuses list metadata, polls Pod metadata every
+  sixty seconds, merges channel messages incrementally into a bounded cache,
+  and stops all polling while hidden.
 - The legacy Rooms route now polls messages and membership on separate bounded
   cadences, suppresses overlapping or unchanged work, and stops all hydration
   while the browser document is hidden.
@@ -53,6 +56,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Direct legacy Pod channel URLs now hydrate Pod detail, membership, and
+  messages instead of treating route parameters as already-loaded state.
 - System Network now normalizes peer and swarm-job response shapes, so live
   mesh peers, discovered clients, and active swarm progress are no longer
   silently discarded as malformed arrays.

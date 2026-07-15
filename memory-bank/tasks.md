@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make the legacy Pods route incremental and lifecycle-aware.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Reused complete Pod-list metadata instead of refetching selected detail, changed list polling from five to sixty seconds, retained a bounded 100-message cache with the existing overlapping `since` cursor, rejected overlapping list/message work, skipped unchanged state, and stopped all timers while hidden. Direct channel URLs now hydrate detail, membership, and messages instead of short-circuiting on prefilled route IDs. For a representative ten-Pod/100-message/25-member first visible minute, work falls from 46 requests and 1,828,123 response bytes to 34 requests and 68,868 bytes (26.09% fewer requests and 96.23% fewer bytes); hidden steady-state load falls from 42 requests per minute to zero. Added direct-route, cadence, cursor/merge, overlap, and visibility regressions; documented gotchas `0z581` and `0z582` in standalone commits `071804522` and `0d50e30a6`, and extended `0z576` in `91d3de369`.
+
 - [x] Bound legacy Rooms route polling and hidden work.
   - Status: completed (2026-07-15)
   - Priority: P1

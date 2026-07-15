@@ -30,10 +30,6 @@ const initialState = {
   activeChannelId: null,
   activeDetailTab: 0,
   activePodId: null,
-  intervals: {
-    messages: undefined,
-    pods: undefined,
-  },
   loading: false,
   members: [],
   messageInput: '',
@@ -51,8 +47,30 @@ const initialState = {
 };
 
 const GOLD_STAR_CLUB_POD_ID = 'pod:901d57a2c1bb4e5d90d57a2c1bb4e5d0';
+const MAX_CACHED_MESSAGES = 100;
+const MESSAGE_POLL_INTERVAL_MS = 2_000;
+const POD_POLL_INTERVAL_MS = 60_000;
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+const messageIdentity = (message) =>
+  message.messageId ||
+  [
+    message.podId,
+    message.channelId,
+    message.timestampUnixMs,
+    message.senderPeerId,
+    message.body,
+    message.signature,
+  ].join('|');
+const messageListsMatch = (previous, next) =>
+  previous.length === next.length &&
+  previous.every(
+    (message, index) =>
+      messageIdentity(message) === messageIdentity(next[index]) &&
+      message.body === next[index]?.body &&
+      message.signature === next[index]?.signature,
+  );
+const podListSignature = (podList) => JSON.stringify(podList);
 
 const withRouter = (WrappedComponent) => {
   const RoutedComponent = (props) => {
@@ -75,38 +93,27 @@ const withRouter = (WrappedComponent) => {
   return RoutedComponent;
 };
 
-class Pods extends Component {
+export class Pods extends Component {
   constructor(props) {
     super(props);
 
     this.state = initialState;
+    this.latestMessageTimestamp = new Map();
+    this.messageInterval = null;
+    this.messageRequests = new Map();
+    this.mounted = false;
+    this.podInterval = null;
+    this.podsRequest = null;
+    this.selectionVersion = 0;
   }
 
   componentDidMount() {
-    const podId = this.props.params?.podId;
-    const channelId = this.props.params?.channelId;
-
-    this.setState(
-      {
-        activeChannelId: channelId || null,
-        activePodId: podId || null,
-        intervals: {
-          messages: window.setInterval(this.fetchMessages, 2_000),
-          pods: window.setInterval(this.fetchPods, 5_000),
-        },
-      },
-      async () => {
-        await this.fetchPods();
-        if (podId) {
-          await this.selectPod(podId, channelId);
-        } else if (this.state.pods.length > 0) {
-          const preferredPod =
-            this.state.pods.find((pod) => pod.podId === GOLD_STAR_CLUB_POD_ID) ||
-            this.state.pods[0];
-          await this.selectPod(preferredPod.podId, null);
-        }
-      },
-    );
+    this.mounted = true;
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
+    if (!document.hidden) {
+      this.hydrateWorkspace();
+      this.startPolling();
+    }
   }
 
   componentDidUpdate(previousProps) {
@@ -116,29 +123,120 @@ class Pods extends Component {
     const previousPodId = previousProps.params?.podId;
     const previousChannelId = previousProps.params?.channelId;
 
-    if ((podId !== previousPodId || channelId !== previousChannelId) && podId) {
+    if (
+      (podId !== previousPodId || channelId !== previousChannelId) &&
+      podId &&
+      !document.hidden
+    ) {
       this.selectPod(podId, channelId);
     }
   }
 
   componentWillUnmount() {
-    const { messages: messagesInterval, pods: podsInterval } =
-      this.state.intervals;
-
-    clearInterval(podsInterval);
-    clearInterval(messagesInterval);
-
-    this.setState({ intervals: initialState.intervals });
+    this.mounted = false;
+    this.selectionVersion += 1;
+    this.stopPolling();
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
   }
 
-  fetchPods = async () => {
-    try {
-      const podsList = await pods.list();
-      this.setState({ pods: asArray(podsList).filter(isObject) });
-    } catch (error) {
-      console.error('Failed to fetch pods:', error);
-      this.setState({ pods: [] });
+  startPolling = () => {
+    if (document.hidden) return;
+
+    if (!this.messageInterval) {
+      this.messageInterval = window.setInterval(
+        this.fetchMessages,
+        MESSAGE_POLL_INTERVAL_MS,
+      );
     }
+    if (!this.podInterval) {
+      this.podInterval = window.setInterval(this.fetchPods, POD_POLL_INTERVAL_MS);
+    }
+  };
+
+  stopPolling = () => {
+    if (this.messageInterval) {
+      window.clearInterval(this.messageInterval);
+      this.messageInterval = null;
+    }
+    if (this.podInterval) {
+      window.clearInterval(this.podInterval);
+      this.podInterval = null;
+    }
+  };
+
+  handleVisibilityChange = () => {
+    if (document.hidden) {
+      this.stopPolling();
+      return;
+    }
+
+    this.hydrateWorkspace();
+    this.startPolling();
+  };
+
+  hydrateWorkspace = async () => {
+    const podList = await this.fetchPods();
+    if (!this.mounted || document.hidden || podList.length === 0) return;
+
+    const routedPodId = this.props.params?.podId;
+    const routedChannelId = this.props.params?.channelId;
+    const preferredPod =
+      podList.find((pod) => pod.podId === routedPodId) ||
+      podList.find((pod) => pod.podId === this.state.activePodId) ||
+      podList.find((pod) => pod.podId === GOLD_STAR_CLUB_POD_ID) ||
+      podList[0];
+    const channelId =
+      preferredPod.podId === routedPodId
+        ? routedChannelId || null
+        : this.state.activeChannelId;
+
+    if (
+      this.state.podDetail?.podId === preferredPod.podId &&
+      this.state.activePodId === preferredPod.podId &&
+      (!channelId || this.state.activeChannelId === channelId)
+    ) {
+      await this.fetchMessages();
+      return;
+    }
+
+    await this.selectPod(preferredPod.podId, channelId, preferredPod);
+  };
+
+  fetchPods = () => {
+    if (document.hidden) return Promise.resolve(this.state.pods);
+    if (this.podsRequest) return this.podsRequest;
+
+    const request = (async () => {
+      try {
+        const podList = asArray(await pods.list()).filter(isObject);
+        if (this.mounted && !document.hidden) {
+          this.setState((previous) => {
+            if (podListSignature(previous.pods) === podListSignature(podList)) {
+              return null;
+            }
+
+            const selected = podList.find(
+              (pod) => pod.podId === previous.activePodId,
+            );
+            return {
+              podDetail: selected || previous.podDetail,
+              pods: podList,
+            };
+          });
+        }
+        return podList;
+      } catch (error) {
+        console.error('Failed to fetch pods:', error);
+        return this.state.pods;
+      }
+    })();
+    const trackedRequest = request.finally(() => {
+      if (this.podsRequest === trackedRequest) {
+        this.podsRequest = null;
+      }
+    });
+    this.podsRequest = trackedRequest;
+    return trackedRequest;
   };
 
   getLocalPeerId = () => {
@@ -147,35 +245,92 @@ class Pods extends Component {
 
   fetchPodDetail = async (podId) => {
     try {
-      const detail = await pods.get(podId);
-      const members = await pods.getMembers(podId);
-      this.setState({ members: asArray(members).filter(isObject), podDetail: detail });
+      const [detail, members] = await Promise.all([
+        pods.get(podId),
+        pods.getMembers(podId),
+      ]);
+      if (
+        this.mounted &&
+        !document.hidden &&
+        this.state.activePodId === podId
+      ) {
+        this.setState({
+          members: asArray(members).filter(isObject),
+          podDetail: detail,
+        });
+      }
+      return { detail, members: asArray(members).filter(isObject) };
     } catch (error) {
       console.error('Failed to fetch pod detail:', error);
+      return null;
     }
   };
 
-  fetchMessages = async () => {
-    const { activeChannelId, activePodId, messages } = this.state;
+  fetchMessages = (podId = this.state.activePodId, channelId = this.state.activeChannelId) => {
+    if (!podId || !channelId || document.hidden) return Promise.resolve();
 
-    if (!activePodId || !activeChannelId) {
-      return;
+    const key = `${podId}:${channelId}`;
+    if (this.messageRequests.has(key)) {
+      return this.messageRequests.get(key);
     }
 
-    try {
-      const channelMessages = await pods.getMessages(
-        activePodId,
-        activeChannelId,
-      );
-      this.setState({
-        messages: {
-          ...messages,
-          [`${activePodId}:${activeChannelId}`]: asArray(channelMessages).filter(isObject),
-        },
-      });
-    } catch (error) {
-      console.error('Failed to fetch messages:', error);
-    }
+    const latestTimestamp = this.latestMessageTimestamp.get(key);
+    const since = latestTimestamp == null ? null : Math.max(0, latestTimestamp - 1);
+    const request = (async () => {
+      try {
+        const received = asArray(
+          await pods.getMessages(podId, channelId, since),
+        ).filter(isObject);
+        if (
+          !this.mounted ||
+          document.hidden ||
+          this.state.activePodId !== podId ||
+          this.state.activeChannelId !== channelId
+        ) {
+          return;
+        }
+
+        received.forEach((message) => {
+          const timestamp = Number(message.timestampUnixMs) || 0;
+          const current = this.latestMessageTimestamp.get(key);
+          if (current == null || timestamp > current) {
+            this.latestMessageTimestamp.set(key, timestamp);
+          }
+        });
+
+        this.setState((previous) => {
+          const byId = new Map(
+            asArray(previous.messages[key]).map((message) => [
+              messageIdentity(message),
+              message,
+            ]),
+          );
+          received.forEach((message) => byId.set(messageIdentity(message), message));
+          const merged = Array.from(byId.values())
+            .sort(
+              (left, right) =>
+                (Number(left.timestampUnixMs) || 0) -
+                  (Number(right.timestampUnixMs) || 0) ||
+                messageIdentity(left).localeCompare(messageIdentity(right)),
+            )
+            .slice(-MAX_CACHED_MESSAGES);
+          if (messageListsMatch(asArray(previous.messages[key]), merged)) {
+            return null;
+          }
+
+          return { messages: { ...previous.messages, [key]: merged } };
+        });
+      } catch (error) {
+        console.error('Failed to fetch messages:', error);
+      }
+    })();
+    const trackedRequest = request.finally(() => {
+      if (this.messageRequests.get(key) === trackedRequest) {
+        this.messageRequests.delete(key);
+      }
+    });
+    this.messageRequests.set(key, trackedRequest);
+    return trackedRequest;
   };
 
   getChannelIndex = (podDetail, channelId) =>
@@ -185,45 +340,72 @@ class Pods extends Component {
         0,
     );
 
-  selectPod = async (podId, channelId = null) => {
-    // Avoid redundant updates
+  selectPod = async (podId, channelId = null, listedPod = null) => {
     if (
+      this.state.podDetail?.podId === podId &&
       this.state.activePodId === podId &&
-      this.state.activeChannelId === channelId
+      (!channelId || this.state.activeChannelId === channelId)
     ) {
       return;
     }
 
+    const selectionVersion = ++this.selectionVersion;
     this.setState({ activePodId: podId, loading: true });
 
-    await this.fetchPodDetail(podId);
-
-    // Select first channel if none specified
-    const podDetail = this.state.podDetail || (await pods.get(podId));
-    if (!channelId && podDetail?.channels?.length > 0) {
-      channelId = podDetail.channels[0].channelId;
-    }
-
-    this.setState({
-      activeChannelId: channelId,
-      activeDetailTab: this.getChannelIndex(podDetail, channelId),
-      loading: false,
-    });
-
-    // Update URL only if different from current route
-    const currentPodId = this.props.params?.podId;
-    const currentChannelId = this.props.params?.channelId;
-    if (podId !== currentPodId || channelId !== currentChannelId) {
-      if (channelId) {
-        this.props.navigate(`${urlBase}/pods/${encodeURIComponent(podId)}/channels/${encodeURIComponent(channelId)}`);
-      } else {
-        this.props.navigate(`${urlBase}/pods/${encodeURIComponent(podId)}`);
+    try {
+      const listedDetail =
+        listedPod ||
+        this.state.pods.find((pod) => pod.podId === podId);
+      const [detail, memberResponse] = await Promise.all([
+        listedDetail || pods.get(podId),
+        pods.getMembers(podId),
+      ]);
+      const members = asArray(memberResponse).filter(isObject);
+      if (
+        !this.mounted ||
+        document.hidden ||
+        this.selectionVersion !== selectionVersion
+      ) {
+        return;
       }
-    }
 
-    // Fetch messages for selected channel
-    if (channelId) {
-      await this.fetchMessages();
+      const selectedChannelId =
+        channelId || asArray(detail?.channels)[0]?.channelId || null;
+      await new Promise((resolve) => {
+        this.setState(
+          {
+            activeChannelId: selectedChannelId,
+            activeDetailTab: this.getChannelIndex(detail, selectedChannelId),
+            activePodId: podId,
+            loading: false,
+            members,
+            podDetail: detail,
+          },
+          resolve,
+        );
+      });
+
+      const currentPodId = this.props.params?.podId;
+      const currentChannelId = this.props.params?.channelId;
+      if (podId !== currentPodId || selectedChannelId !== currentChannelId) {
+        const path = selectedChannelId
+          ? `${urlBase}/pods/${encodeURIComponent(podId)}/channels/${encodeURIComponent(selectedChannelId)}`
+          : `${urlBase}/pods/${encodeURIComponent(podId)}`;
+        this.props.navigate(path);
+      }
+
+      if (selectedChannelId) {
+        await this.fetchMessages(podId, selectedChannelId);
+      }
+    } catch (error) {
+      console.error('Failed to select pod:', error);
+      if (
+        this.mounted &&
+        !document.hidden &&
+        this.selectionVersion === selectionVersion
+      ) {
+        this.setState({ loading: false });
+      }
     }
   };
 
@@ -320,8 +502,12 @@ class Pods extends Component {
       }, this.getLocalPeerId());
 
       this.setState({ createModalOpen: false });
-      await this.fetchPods();
-      await this.selectPod(newPod.podId);
+      const podList = await this.fetchPods();
+      await this.selectPod(
+        newPod.podId,
+        null,
+        podList.find((pod) => pod.podId === newPod.podId) || newPod,
+      );
     } catch (error) {
       console.error('Failed to create pod:', error);
       toast.error(`Failed to create pod: ${error.message}`);
@@ -372,8 +558,12 @@ class Pods extends Component {
       }, this.getLocalPeerId());
 
       toast.success(`Saved pod ${name}`);
-      await this.fetchPods();
-      await this.selectPod(savedPod.podId);
+      const podList = await this.fetchPods();
+      await this.selectPod(
+        savedPod.podId,
+        null,
+        podList.find((item) => item.podId === savedPod.podId) || savedPod,
+      );
     } catch (error) {
       console.error('Failed to save discovered pod:', error);
       toast.error(`Failed to save pod: ${error.message}`);

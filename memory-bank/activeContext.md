@@ -1,3 +1,19 @@
+## Update 2026-07-15 19:53:55Z
+
+- Current task: performance and efficiency improvements in progress; legacy Pods route polling pass complete locally.
+- Last activity:
+  - Reused complete list metadata for selection, moved Pod-list polling from five to sixty seconds, and removed redundant selected-detail requests.
+  - Added bounded incremental channel-message merging with the existing overlapping `since` cursor, in-flight guards, stable state comparisons, and hidden-document suspension.
+  - Fixed direct Pod channel URLs so route IDs no longer short-circuit initial detail, membership, and message hydration.
+  - Reduced a representative ten-Pod/100-message/25-member first visible minute from 46 requests and 1,828,123 response bytes to 34 requests and 68,868 bytes (26.09% fewer requests and 96.23% fewer bytes); hidden steady-state polling falls from 42 requests per minute to zero.
+  - Added direct-route, cadence, cursor/merge, overlap, and visibility regressions; documented gotchas `0z581` and `0z582` in standalone commits `071804522` and `0d50e30a6`, and extended `0z576` in `91d3de369`.
+- Validation:
+  - Passed focused legacy Pods tests (`4/4`), complete Web tests (`793` passed, `4` skipped), production Web build, and frontend lint with zero errors.
+  - Passed complete backend suites (`4709/4709`: `69` smoke, `4362` unit, `278` integration) and repository lint.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 19:37:31Z
 
 - Current task: performance and efficiency improvements in progress; legacy Rooms route polling pass complete locally.
