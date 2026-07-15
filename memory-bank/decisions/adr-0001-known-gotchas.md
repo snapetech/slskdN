@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z594. Polling API Fallbacks Must Not Conflate Failure With Empty State
+
+**The Bug**: The Jobs page was changed to preserve its current swarm cards on
+transient poll failures, but `jobs.getActiveSwarmJobs()` caught transport errors
+and returned `[]`. The component therefore received an apparently successful
+empty snapshot and erased valid cached jobs despite its failure-preservation
+logic.
+
+**Files Affected**:
+- `src/web/src/lib/jobs.js`
+- `src/web/src/lib/jobs.test.js`
+- `src/web/src/components/System/Jobs/index.jsx`
+
+**Prevention**: A polling API must preserve the distinction between a valid
+empty collection and a failed request whenever the consumer retains last-known
+state. Normalize malformed successful payloads to `[]`, but let transport
+errors reject so the component can keep cached data. Test both contracts at the
+API boundary and test that a successful empty response still clears state.
+
 ### 0z593. Split Polling Cadences Must Preserve Per-Request Failure Isolation
 
 **The Bug**: Swarm status and optional trace requests originally ran through
