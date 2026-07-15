@@ -1,3 +1,19 @@
+## Update 2026-07-15 22:32:13Z
+
+- Current task: performance and efficiency improvements in progress; Port Forwarding preview, polling, and statistics pass complete locally.
+- Last activity:
+  - Changed available-port hydration from an eager 64,512-port response to a lazy 100-port preview with authoritative counts, preserving the endpoint's default response compatibility.
+  - Replaced overlapping five-second status and fabricated ten-second statistics timers with one ten-second visible-only, non-overlapping cadence with immediate catch-up, unchanged-state suppression, and failure-cache retention; VPN member counts now load only on their tab.
+  - Materialized one forwarding snapshot per stream-statistics request, exposed real stream/performance fields, and removed the unused duplicate Port Forwarding component.
+  - Reduced the modeled availability response from 378,116 bytes to 565 bytes (99.851%) and the default first visible minute from 15 requests to 8 (46.67%); hidden status requests and fabricated updates fall to zero.
+  - Added backend/API-client and component regressions; fixed an existing Integrations test's async-readiness race; documented gotchas `0z598` through `0z601` in standalone commits `2a3a5c3e6`, `cb10bb0aa`, `362478e1d`, `0ad2585d1`, and `6431bf466`.
+- Validation:
+  - Passed focused Port Forwarding tests (`18/18`: `12` backend, `6` Web).
+  - Passed complete backend suites (`4742/4742`: `69` smoke, `4395` unit, `278` integration), complete Web tests (`832` passed, `4` skipped), production Web build, frontend lint with zero errors, repository lint, route-inventory, polling-lifecycle, CSRF, identity-leak, and whitespace checks.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 22:12:24Z
 
 - Current task: performance and efficiency improvements in progress; Messaging V2 member-rail and Pod membership-history pass complete locally.

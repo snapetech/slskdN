@@ -113,8 +113,8 @@ describe('Integrations', () => {
   it('shows read-only federation and pod diagnostics', async () => {
     render(<Integrations />);
 
-    expect(await screen.findByText('Federation and Pod Diagnostics')).toBeInTheDocument();
-    expect(screen.getByText('Exposure: Public')).toBeInTheDocument();
+    expect(screen.getByText('Federation and Pod Diagnostics')).toBeInTheDocument();
+    expect(await screen.findByText('Exposure: Public')).toBeInTheDocument();
     expect(screen.getByText('HTTP Signatures Off')).toBeInTheDocument();
     expect(screen.getByText('Pod join signatures')).toBeInTheDocument();
     expect(screen.getByText('Off')).toBeInTheDocument();

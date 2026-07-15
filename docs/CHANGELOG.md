@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Port Forwarding now defers secondary-tab hydration, returns a bounded
+  available-port preview with full counts, pauses non-overlapping status polling
+  while hidden, and renders authoritative stream/performance statistics instead
+  of fabricated values.
 - Messaging V2's active room/Pod member rail now uses a non-overlapping,
   visible-only ten-second cadence and preserves cached members on transient
   failures. Pod member responses reuse authorization snapshots and aggregate

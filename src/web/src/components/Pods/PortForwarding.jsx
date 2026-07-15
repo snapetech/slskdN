@@ -24,7 +24,9 @@ import {
 
 const initialState = {
   activeTab: 0,
+  availablePortCount: 0,
   availablePorts: [],
+  availablePortsLoaded: false,
   createForm: {
     destinationHost: '',
     destinationPort: '',
@@ -34,10 +36,6 @@ const initialState = {
   creatingForwarding: false,
   error: null,
   forwardingStatus: [],
-  intervals: {
-    stats: undefined,
-    status: undefined,
-  },
   loading: false,
   pods: [],
   selectedPodDetail: null,
@@ -45,178 +43,217 @@ const initialState = {
   showCreateModal: false,
   stoppingForwarding: false,
   success: null,
-  tunnelStats: {},
-  vpnPodStatus: {},
+  vpnPodMembers: {},
+  vpnPodMembersLoaded: false,
 };
 
+const AVAILABLE_PORT_PREVIEW_LIMIT = 100;
+const STATUS_POLL_INTERVAL_MS = 10_000;
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+const forwardingStatusSignature = (statuses) =>
+  statuses
+    .map((status) =>
+      [
+        status.activeConnections,
+        status.bytesForwarded,
+        status.destinationHost,
+        status.destinationPort,
+        status.isActive,
+        status.localPort,
+        status.performance?.averageBytesPerConnection,
+        status.performance?.isHighThroughput,
+        status.podId,
+        status.serviceName,
+        status.streamMappingEnabled,
+      ].join('\u0001'))
+    .sort()
+    .join('\u0002');
 
 class PortForwarding extends Component {
+  availablePortsRequest = null;
+  initialized = false;
+  mounted = false;
+  statusInterval = null;
+  statusRequest = null;
+  vpnPodMembersRequest = null;
+
   constructor(props) {
     super(props);
     this.state = initialState;
   }
 
   componentDidMount() {
-    this.setState({
-      intervals: {
-        stats: window.setInterval(this.fetchTunnelStats, 10_000),
-        status: window.setInterval(this.fetchForwardingStatus, 5_000), // More frequent stats updates
-      },
-    });
-
-    this.initializeComponent();
+    this.mounted = true;
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
+    if (!document.hidden) {
+      this.initializeComponent();
+      this.startStatusPolling();
+    }
   }
 
   componentWillUnmount() {
-    const { stats, status } = this.state.intervals;
-    clearInterval(status);
-    clearInterval(stats);
-    this.setState({ intervals: initialState.intervals });
+    this.mounted = false;
+    this.stopStatusPolling();
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
   }
 
+  startStatusPolling = () => {
+    if (document.hidden || this.statusInterval) return;
+    this.statusInterval = window.setInterval(
+      this.fetchForwardingStatus,
+      STATUS_POLL_INTERVAL_MS,
+    );
+  };
+
+  stopStatusPolling = () => {
+    if (!this.statusInterval) return;
+    window.clearInterval(this.statusInterval);
+    this.statusInterval = null;
+  };
+
+  handleVisibilityChange = () => {
+    if (document.hidden) {
+      this.stopStatusPolling();
+      return;
+    }
+
+    if (!this.initialized) {
+      this.initializeComponent();
+    } else {
+      this.fetchForwardingStatus();
+    }
+    this.startStatusPolling();
+  };
+
   initializeComponent = async () => {
+    this.initialized = true;
     this.setState({ error: null, loading: true });
 
     try {
       await Promise.all([
         this.fetchPods(),
-        this.fetchAvailablePorts(),
         this.fetchForwardingStatus(),
-        this.fetchVpnPodStatus(),
       ]);
     } catch (error) {
       console.error('Failed to initialize port forwarding:', error);
-      this.setState({ error: error.message });
+      if (this.mounted) this.setState({ error: error.message });
     } finally {
-      this.setState({ loading: false });
+      if (this.mounted) this.setState({ loading: false });
     }
   };
 
   fetchPods = async () => {
     try {
       const podsList = await pods.list();
-      this.setState({ pods: asArray(podsList).filter(isObject) });
+      if (this.mounted) {
+        this.setState({ pods: asArray(podsList).filter(isObject) });
+      }
     } catch (error) {
       console.error('Failed to fetch pods:', error);
-      this.setState({ pods: [] });
+      if (this.mounted) this.setState({ pods: [] });
     }
   };
 
   fetchAvailablePorts = async () => {
-    try {
-      const result = await portForwarding.getAvailablePorts();
-      this.setState({ availablePorts: asArray(result?.availablePorts) });
-    } catch (error) {
-      console.error('Failed to fetch available ports:', error);
-      this.setState({ availablePorts: [] });
-    }
+    if (this.availablePortsRequest) return this.availablePortsRequest;
+    this.availablePortsRequest = (async () => {
+      try {
+        const result = await portForwarding.getAvailablePorts(
+          1_024,
+          65_535,
+          AVAILABLE_PORT_PREVIEW_LIMIT,
+        );
+        if (!this.mounted) return;
+        const availablePorts = asArray(result?.availablePorts);
+        this.setState({
+          availablePortCount: Number.isFinite(result?.availablePortCount)
+            ? result.availablePortCount
+            : availablePorts.length,
+          availablePorts,
+          availablePortsLoaded: true,
+        });
+      } catch (error) {
+        console.error('Failed to fetch available ports:', error);
+      }
+    })().finally(() => {
+      this.availablePortsRequest = null;
+    });
+    return this.availablePortsRequest;
   };
 
   fetchForwardingStatus = async () => {
-    try {
-      const status = await portForwarding.getForwardingStatus();
-      this.setState({ forwardingStatus: asArray(status).filter(isObject) });
-    } catch (error) {
-      console.error('Failed to fetch forwarding status:', error);
-      this.setState({ forwardingStatus: [] });
-    }
+    if (this.statusRequest) return this.statusRequest;
+    this.statusRequest = (async () => {
+      try {
+        const status = asArray(await portForwarding.getForwardingStatus())
+          .filter(isObject);
+        if (!this.mounted) return;
+        this.setState((previous) =>
+          forwardingStatusSignature(previous.forwardingStatus) ===
+          forwardingStatusSignature(status)
+            ? null
+            : { forwardingStatus: status });
+      } catch (error) {
+        console.error('Failed to fetch forwarding status:', error);
+      }
+    })().finally(() => {
+      this.statusRequest = null;
+    });
+    return this.statusRequest;
   };
 
-  fetchTunnelStats = async () => {
-    const { forwardingStatus } = this.state;
-
-    if (forwardingStatus.length === 0) {
-      return;
-    }
-
-    try {
-      const statsPromises = forwardingStatus.map(async (forwarding) => {
-        try {
-          // Note: This would need a new API endpoint for detailed tunnel stats
-          // For now, we'll simulate with basic stats
-          return {
-            bytesIn: Math.floor(Math.random() * 1_000_000),
-            bytesOut: Math.floor(Math.random() * 1_000_000),
-            connections: forwarding.activeConnections || 0,
-            lastActivity: Date.now() - 30_000,
-            localPort: forwarding.localPort,
-            uptime: Date.now() - (forwarding.startTime || Date.now()), // Mock 30 seconds ago
-          };
-        } catch (error) {
-          console.error(
-            `Failed to fetch stats for port ${forwarding.localPort}:`,
-            error,
-          );
-          return null;
-        }
-      });
-
-      const statsResults = await Promise.all(statsPromises);
-      const stats = statsResults.reduce((accumulator, stat) => {
-        if (stat) {
-          accumulator[stat.localPort] = stat;
-        }
-
-        return accumulator;
-      }, {});
-
-      this.setState({ tunnelStats: stats });
-    } catch (error) {
-      console.error('Failed to fetch tunnel stats:', error);
-    }
-  };
-
-  fetchVpnPodStatus = async () => {
-    const { pods } = this.state;
-    const vpnCapablePods = pods.filter(
+  fetchVpnPodMembers = async () => {
+    if (this.vpnPodMembersRequest) return this.vpnPodMembersRequest;
+    const podList = this.state.pods;
+    const vpnCapablePods = podList.filter(
       (pod) =>
         pod.capabilities?.includes('PrivateServiceGateway') ||
         pod.privateServicePolicy?.enabled === true,
     );
 
-    const statusPromises = vpnCapablePods.map(async (pod) => {
-      try {
-        const detail = await pods.get(pod.podId);
-        const memberCount = detail.members?.length || 0;
-        const activeTunnels = detail.activeTunnels || 0; // This would come from a new API
-        const totalBandwidth = detail.totalBandwidth || 0; // This would come from a new API
+    this.vpnPodMembersRequest = Promise.all(
+      vpnCapablePods.map(async (pod) => {
+        try {
+          return [pod.podId, asArray(await pods.getMembers(pod.podId)).length];
+        } catch (error) {
+          console.error(`Failed to fetch members for pod ${pod.podId}:`, error);
+          return [pod.podId, null];
+        }
+      }),
+    )
+      .then((entries) => {
+        if (!this.mounted) return;
+        this.setState({
+          vpnPodMembers: Object.fromEntries(entries),
+          vpnPodMembersLoaded: true,
+        });
+      })
+      .finally(() => {
+        this.vpnPodMembersRequest = null;
+      });
+    return this.vpnPodMembersRequest;
+  };
 
-        return {
-          activeTunnels,
-          lastActivity: detail.lastActivity || Date.now(),
-          members: memberCount,
-          name: pod.name || pod.podId,
-          podId: pod.podId,
-          status: detail.privateServicePolicy?.enabled ? 'Active' : 'Inactive',
-          totalBandwidth,
-        };
-      } catch (error) {
-        console.error(`Failed to fetch status for pod ${pod.podId}:`, error);
-        return {
-          activeTunnels: 0,
-          lastActivity: Date.now(),
-          members: 0,
-          name: pod.name || pod.podId,
-          podId: pod.podId,
-          status: 'Error',
-          totalBandwidth: 0,
-        };
+  refreshForwardingStatusAfterMutation = async () => {
+    if (this.statusRequest) await this.statusRequest;
+    return this.fetchForwardingStatus();
+  };
+
+  refreshAvailablePortsAfterMutation = async () => {
+    if (!this.state.availablePortsLoaded) return;
+    if (this.availablePortsRequest) await this.availablePortsRequest;
+    return this.fetchAvailablePorts();
+  };
+
+  handleTabChange = (_event, { activeIndex }) => {
+    this.setState({ activeTab: activeIndex }, () => {
+      if (activeIndex === 1 && !this.state.availablePortsLoaded) {
+        this.fetchAvailablePorts();
+      } else if (activeIndex === 3 && !this.state.vpnPodMembersLoaded) {
+        this.fetchVpnPodMembers();
       }
     });
-
-    try {
-      const statusResults = await Promise.all(statusPromises);
-      const status = statusResults.reduce((accumulator, stat) => {
-        accumulator[stat.podId] = stat;
-        return accumulator;
-      }, {});
-
-      this.setState({ vpnPodStatus: status });
-    } catch (error) {
-      console.error('Failed to fetch VPN pod status:', error);
-    }
   };
 
   handlePodSelection = async (podId) => {
@@ -290,8 +327,8 @@ class PortForwarding extends Component {
       });
 
       await Promise.all([
-        this.fetchAvailablePorts(),
-        this.fetchForwardingStatus(),
+        this.refreshAvailablePortsAfterMutation(),
+        this.refreshForwardingStatusAfterMutation(),
       ]);
     } catch (error) {
       console.error('Failed to create port forwarding:', error);
@@ -307,8 +344,8 @@ class PortForwarding extends Component {
     try {
       await portForwarding.stopForwarding(localPort);
       await Promise.all([
-        this.fetchAvailablePorts(),
-        this.fetchForwardingStatus(),
+        this.refreshAvailablePortsAfterMutation(),
+        this.refreshForwardingStatusAfterMutation(),
       ]);
       this.setState({
         success: `Successfully stopped forwarding on port ${localPort}`,
@@ -332,6 +369,7 @@ class PortForwarding extends Component {
 
   render() {
     const {
+      availablePortCount,
       availablePorts,
       createForm,
       creatingForwarding,
@@ -344,17 +382,33 @@ class PortForwarding extends Component {
       showCreateModal,
       stoppingForwarding,
       success,
-      tunnelStats,
-      vpnPodStatus,
+      vpnPodMembers,
     } = this.state;
-
-    const selectedPod = pods.find((p) => p.podId === selectedPodId);
 
     // Filter pods that have VPN gateway capability
     const vpnCapablePods = pods.filter(
       (pod) =>
         pod.capabilities?.includes('PrivateServiceGateway') ||
         pod.privateServicePolicy?.enabled === true,
+    );
+    const vpnPodStatus = Object.fromEntries(
+      vpnCapablePods.map((pod) => {
+        const rules = forwardingStatus.filter((rule) => rule.podId === pod.podId);
+        return [
+          pod.podId,
+          {
+            activeTunnels: rules.filter((rule) => rule.isActive).length,
+            members: vpnPodMembers[pod.podId],
+            name: pod.name || pod.podId,
+            podId: pod.podId,
+            status: pod.privateServicePolicy?.enabled ? 'Active' : 'Inactive',
+            totalBandwidth: rules.reduce(
+              (total, rule) => total + (rule.bytesForwarded || 0),
+              0,
+            ),
+          },
+        ];
+      }),
     );
 
     const panes = [
@@ -468,7 +522,7 @@ class PortForwarding extends Component {
             <div style={{ marginBottom: '20px' }}>
               <Statistic.Group size="small">
                 <Statistic>
-                  <Statistic.Value>{availablePorts.length}</Statistic.Value>
+                  <Statistic.Value>{availablePortCount}</Statistic.Value>
                   <Statistic.Label>Available Ports</Statistic.Label>
                 </Statistic>
                 <Statistic>
@@ -492,9 +546,9 @@ class PortForwarding extends Component {
                 }}
               >
                 {availablePorts.length > 0 ? (
-                  availablePorts.slice(0, 100).join(', ') +
-                  (availablePorts.length > 100
-                    ? ` ... (+${availablePorts.length - 100} more)`
+                  availablePorts.join(', ') +
+                  (availablePortCount > availablePorts.length
+                    ? ` ... (+${availablePortCount - availablePorts.length} more)`
                     : '')
                 ) : (
                   <em>No ports available or still loading...</em>
@@ -511,13 +565,15 @@ class PortForwarding extends Component {
             <div style={{ marginBottom: '20px' }}>
               <Statistic.Group widths="four">
                 <Statistic>
-                  <Statistic.Value>{forwardingStatus.length}</Statistic.Value>
+                  <Statistic.Value>
+                    {forwardingStatus.filter((status) => status.isActive).length}
+                  </Statistic.Value>
                   <Statistic.Label>Active Tunnels</Statistic.Label>
                 </Statistic>
                 <Statistic>
                   <Statistic.Value>
-                    {Object.values(tunnelStats).reduce(
-                      (sum, stats) => sum + (stats?.connections || 0),
+                    {forwardingStatus.reduce(
+                      (sum, status) => sum + (status.activeConnections || 0),
                       0,
                     )}
                   </Statistic.Value>
@@ -526,9 +582,8 @@ class PortForwarding extends Component {
                 <Statistic>
                   <Statistic.Value>
                     {(
-                      Object.values(tunnelStats).reduce(
-                        (sum, stats) =>
-                          sum + (stats?.bytesIn || 0) + (stats?.bytesOut || 0),
+                      forwardingStatus.reduce(
+                        (sum, status) => sum + (status.bytesForwarded || 0),
                         0,
                       ) /
                       1_024 /
@@ -540,22 +595,11 @@ class PortForwarding extends Component {
                 </Statistic>
                 <Statistic>
                   <Statistic.Value>
-                    {Object.values(tunnelStats).some(
-                      (stats) => stats?.uptime > 0,
-                    )
-                      ? (
-                          Object.values(tunnelStats).reduce(
-                            (sum, stats) => sum + (stats?.uptime || 0),
-                            0,
-                          ) /
-                          Object.values(tunnelStats).length /
-                          1_000 /
-                          60
-                        ).toFixed(1)
-                      : '0.0'}{' '}
-                    min
+                    {forwardingStatus.filter(
+                      (status) => status.performance?.isHighThroughput,
+                    ).length}
                   </Statistic.Value>
-                  <Statistic.Label>Avg Uptime</Statistic.Label>
+                  <Statistic.Label>High Throughput</Statistic.Label>
                 </Statistic>
               </Statistic.Group>
             </div>
@@ -564,45 +608,36 @@ class PortForwarding extends Component {
               <Table.Header>
                 <Table.Row>
                   <Table.HeaderCell>Local Port</Table.HeaderCell>
-                  <Table.HeaderCell>Data In</Table.HeaderCell>
-                  <Table.HeaderCell>Data Out</Table.HeaderCell>
+                  <Table.HeaderCell>Data Transferred</Table.HeaderCell>
                   <Table.HeaderCell>Connections</Table.HeaderCell>
-                  <Table.HeaderCell>Uptime</Table.HeaderCell>
-                  <Table.HeaderCell>Last Activity</Table.HeaderCell>
+                  <Table.HeaderCell>Average / Connection</Table.HeaderCell>
+                  <Table.HeaderCell>Stream Mapping</Table.HeaderCell>
+                  <Table.HeaderCell>Throughput</Table.HeaderCell>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-                {forwardingStatus.map((forwarding) => {
-                  const stats = tunnelStats[forwarding.localPort];
-                  return (
-                    <Table.Row key={forwarding.localPort}>
-                      <Table.Cell>
-                        <code>localhost:{forwarding.localPort}</code>
-                      </Table.Cell>
-                      <Table.Cell>
-                        {stats
-                          ? `${(stats.bytesIn / 1_024).toFixed(1)} KB`
-                          : 'N/A'}
-                      </Table.Cell>
-                      <Table.Cell>
-                        {stats
-                          ? `${(stats.bytesOut / 1_024).toFixed(1)} KB`
-                          : 'N/A'}
-                      </Table.Cell>
-                      <Table.Cell>{stats?.connections || 0}</Table.Cell>
-                      <Table.Cell>
-                        {stats
-                          ? `${Math.floor(stats.uptime / 1_000 / 60)}m ${Math.floor((stats.uptime / 1_000) % 60)}s`
-                          : 'N/A'}
-                      </Table.Cell>
-                      <Table.Cell>
-                        {stats
-                          ? `${Math.floor((Date.now() - stats.lastActivity) / 1_000)}s ago`
-                          : 'N/A'}
-                      </Table.Cell>
-                    </Table.Row>
-                  );
-                })}
+                {forwardingStatus.map((forwarding) => (
+                  <Table.Row key={forwarding.localPort}>
+                    <Table.Cell>
+                      <code>localhost:{forwarding.localPort}</code>
+                    </Table.Cell>
+                    <Table.Cell>
+                      {`${((forwarding.bytesForwarded || 0) / 1_024).toFixed(1)} KB`}
+                    </Table.Cell>
+                    <Table.Cell>{forwarding.activeConnections || 0}</Table.Cell>
+                    <Table.Cell>
+                      {`${((forwarding.performance?.averageBytesPerConnection || 0) / 1_024).toFixed(1)} KB`}
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Label color={forwarding.streamMappingEnabled ? 'green' : 'grey'}>
+                        {forwarding.streamMappingEnabled ? 'Enabled' : 'Disabled'}
+                      </Label>
+                    </Table.Cell>
+                    <Table.Cell>
+                      {forwarding.performance?.isHighThroughput ? 'High' : 'Normal'}
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
                 {forwardingStatus.length === 0 && (
                   <Table.Row>
                     <Table.Cell
@@ -633,7 +668,7 @@ class PortForwarding extends Component {
                 <Statistic>
                   <Statistic.Value>
                     {Object.values(vpnPodStatus).reduce(
-                      (sum, pod) => sum + pod.members,
+                      (sum, pod) => sum + (pod.members || 0),
                       0,
                     )}
                   </Statistic.Value>
@@ -659,7 +694,6 @@ class PortForwarding extends Component {
                   <Table.HeaderCell>Active Tunnels</Table.HeaderCell>
                   <Table.HeaderCell>Data Transferred</Table.HeaderCell>
                   <Table.HeaderCell>Status</Table.HeaderCell>
-                  <Table.HeaderCell>Last Activity</Table.HeaderCell>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
@@ -671,7 +705,7 @@ class PortForwarding extends Component {
                         ID: {pod.podId}
                       </div>
                     </Table.Cell>
-                    <Table.Cell>{pod.members}</Table.Cell>
+                    <Table.Cell>{pod.members ?? 'Unavailable'}</Table.Cell>
                     <Table.Cell>{pod.activeTunnels}</Table.Cell>
                     <Table.Cell>
                       {pod.totalBandwidth > 0
@@ -683,15 +717,12 @@ class PortForwarding extends Component {
                         {pod.status}
                       </Label>
                     </Table.Cell>
-                    <Table.Cell>
-                      {Math.floor((Date.now() - pod.lastActivity) / 1_000)}s ago
-                    </Table.Cell>
                   </Table.Row>
                 ))}
                 {Object.keys(vpnPodStatus).length === 0 && (
                   <Table.Row>
                     <Table.Cell
-                      colSpan={6}
+                      colSpan={5}
                       textAlign="center"
                     >
                       No VPN-capable pods found
@@ -761,11 +792,8 @@ class PortForwarding extends Component {
         <Tab
           activeIndex={this.state.activeTab}
           menu={{ pointing: true }}
-          onTabChange={(_event, { activeIndex }) =>
-            this.setState({ activeTab: activeIndex })
-          }
+          onTabChange={this.handleTabChange}
           panes={panes}
-          renderActiveOnly={false}
         />
 
         {/* Create Forwarding Modal */}

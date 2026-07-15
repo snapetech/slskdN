@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound Port Forwarding preview hydration and status polling.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Changed the used Pods component to fetch the 100-port preview only when its tab opens while retaining the full available count, made ten-second forwarding-status polling visible-only and non-overlapping with immediate visibility catch-up, suppressed unchanged updates, retained cached status on transient failures, and loaded VPN member counts only when requested. Removed the unused duplicate Port Forwarding component and all fabricated tunnel statistics. The stream-statistics endpoint now materializes one authoritative forwarder snapshot and exposes its real stream/performance fields. The default first visible minute falls from 15 requests to 8 (46.67% fewer), hidden work falls from 12 status requests and 6 synthetic state updates per minute to zero, and the modeled available-port response falls from 378,116 bytes to 565 bytes (99.851% smaller). Added backend, API-client, lazy-tab, real-statistics, cadence, overlap, visibility, and failure-cache regressions; documented gotchas `0z598` through `0z601` in standalone commits `2a3a5c3e6`, `cb10bb0aa`, `362478e1d`, `0ad2585d1`, and `6431bf466`.
+
 - [x] Bound Messaging V2 member polling and Pod membership-history hydration.
   - Status: completed (2026-07-15)
   - Priority: P1

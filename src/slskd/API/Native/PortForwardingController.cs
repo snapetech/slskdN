@@ -152,11 +152,13 @@ public class PortForwardingController : ControllerBase
     /// </summary>
     /// <param name="startPort">The starting port number (default: 1024).</param>
     /// <param name="endPort">The ending port number (default: 65535).</param>
+    /// <param name="limit">Optional maximum number of available ports to return.</param>
     /// <returns>A list of available port numbers.</returns>
     [HttpGet("available-ports")]
     public IActionResult GetAvailablePorts(
     [FromQuery] int startPort = 1024,
-    [FromQuery] int endPort = 65535)
+    [FromQuery] int endPort = 65535,
+    [FromQuery] int? limit = null)
     {
         try
         {
@@ -166,12 +168,20 @@ public class PortForwardingController : ControllerBase
                 return BadRequest(new { Error = "Invalid port range" });
             }
 
+            if (limit is <= 0 or > 1000)
+            {
+                return BadRequest(new { Error = "Limit must be between 1 and 1000" });
+            }
+
             var usedPorts = _portForwarder.GetForwardingStatus()
                 .Select(s => s.LocalPort)
+                .Where(port => port >= startPort && port <= endPort)
                 .ToHashSet();
 
-            var availablePorts = new List<int>();
-            for (int port = startPort; port <= endPort; port++)
+            var availablePortCount = endPort - startPort + 1 - usedPorts.Count;
+            var returnedPortCount = Math.Min(limit ?? availablePortCount, availablePortCount);
+            var availablePorts = new List<int>(returnedPortCount);
+            for (int port = startPort; port <= endPort && availablePorts.Count < returnedPortCount; port++)
             {
                 if (!usedPorts.Contains(port))
                 {
@@ -179,7 +189,12 @@ public class PortForwardingController : ControllerBase
                 }
             }
 
-            return Ok(new { AvailablePorts = availablePorts });
+            return Ok(new
+            {
+                AvailablePortCount = availablePortCount,
+                AvailablePorts = availablePorts,
+                UsedPortCount = usedPorts.Count,
+            });
         }
         catch (Exception)
         {
@@ -196,9 +211,7 @@ public class PortForwardingController : ControllerBase
     {
         try
         {
-            // This would require extending LocalPortForwarder to expose stream stats
-            // For now, return basic forwarding status with additional metadata
-            var status = _portForwarder.GetForwardingStatus();
+            var status = _portForwarder.GetForwardingStatus().ToList();
 
             var stats = new
             {
@@ -216,17 +229,10 @@ public class PortForwardingController : ControllerBase
                     s.IsActive,
                     s.ActiveConnections,
                     s.BytesForwarded,
-
-                    // Would include stream mapping stats here when available
-                    StreamMappingEnabled = true, // Placeholder for future enhancement
-                    PerformanceMetrics = new
-                    {
-                        AverageBytesPerConnection = s.ActiveConnections > 0
-                            ? s.BytesForwarded / s.ActiveConnections
-                            : 0,
-                        IsHighThroughput = s.BytesForwarded > 1024 * 1024, // > 1MB
-                    }
-                })
+                    s.StreamMappingEnabled,
+                    s.StreamStats,
+                    s.Performance,
+                }).ToList()
             };
 
             return Ok(stats);

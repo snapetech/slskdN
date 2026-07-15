@@ -1,3 +1,13 @@
+## Update 2026-07-15 22:32:13Z
+
+- Completed the Port Forwarding preview, status-polling, and statistics performance pass.
+- Deferred the 64,512-port availability scan until its tab opens, bounded the response to a 100-port preview plus authoritative counts, and preserved the unbounded endpoint default for API compatibility.
+- Replaced overlapping five-second status and synthetic ten-second statistics timers with one non-overlapping ten-second visible-only status cadence, immediate visibility catch-up, unchanged-state suppression, cached-state retention on failure, and lazy VPN member hydration.
+- Materialized forwarding status once per stream-statistics request and returned the forwarder's real stream-mapping and performance fields; removed the unused duplicate Port Forwarding component.
+- The modeled available-port response falls from 378,116 bytes to 565 bytes (99.851% smaller). The default first visible minute falls from 15 requests to 8 (46.67% fewer), while hidden work falls from 12 status requests and 6 fabricated state updates per minute to zero.
+- Added backend/API-client and component regressions for limits, counts, real statistics, lazy tabs, active-pane rendering, overlap, visibility, and failure caching. Fixed a full-suite async-readiness flaw in an existing Integrations test; documented gotchas `0z598` through `0z601` in standalone commits `2a3a5c3e6`, `cb10bb0aa`, `362478e1d`, `0ad2585d1`, and `6431bf466`.
+- Validation passed: focused Port Forwarding tests (`18/18`: `12` backend, `6` Web), complete backend suites (`4742/4742`: `69` smoke, `4395` unit, `278` integration), complete Web tests (`832` passed, `4` skipped), production Web build, frontend lint with zero errors, repository lint, route-inventory, polling-lifecycle, CSRF, identity-leak, and whitespace checks.
+
 ## Update 2026-07-15 22:12:24Z
 
 - Completed the Messaging V2 member-rail and Pod membership-history performance pass.

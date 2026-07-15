@@ -68,6 +68,74 @@ public class PortForwardingControllerTests
     }
 
     [Fact]
+    public void GetAvailablePorts_WithLimit_ReturnsBoundedPreviewAndFullCount()
+    {
+        var controller = CreateController();
+
+        var result = controller.GetAvailablePorts(1024, 65535, limit: 100);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(ok.Value);
+        var response = ok.Value;
+        var responseType = response.GetType();
+        var availablePorts = Assert.IsAssignableFrom<IEnumerable<int>>(
+            responseType.GetProperty("AvailablePorts")?.GetValue(response));
+        Assert.Equal(100, availablePorts.Count());
+        Assert.Equal(64512, responseType.GetProperty("AvailablePortCount")?.GetValue(response));
+        Assert.Equal(0, responseType.GetProperty("UsedPortCount")?.GetValue(response));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1001)]
+    public void GetAvailablePorts_WithInvalidLimit_ReturnsBadRequest(int limit)
+    {
+        var controller = CreateController();
+
+        var result = controller.GetAvailablePorts(limit: limit);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task GetStreamStatistics_ReturnsAuthoritativeForwarderPerformance()
+    {
+        var localPort = GetFreeLocalPort();
+        var forwarder = new LocalPortForwarder(
+            NullLogger<LocalPortForwarder>.Instance,
+            Mock.Of<IMeshServiceClient>());
+        var controller = new PortForwardingController(forwarder);
+
+        try
+        {
+            var started = await controller.StartForwarding(new StartPortForwardingRequest
+            {
+                DestinationHost = "example.com",
+                DestinationPort = 443,
+                LocalPort = localPort,
+                PodId = "pod-1",
+            });
+            Assert.IsType<OkObjectResult>(started);
+
+            var result = controller.GetStreamStatistics();
+
+            var ok = Assert.IsType<OkObjectResult>(result);
+            Assert.NotNull(ok.Value);
+            var rules = Assert.IsAssignableFrom<IEnumerable<object>>(
+                ok.Value.GetType().GetProperty("Rules")?.GetValue(ok.Value));
+            var rule = Assert.Single(rules);
+            Assert.True((bool?)rule.GetType().GetProperty("StreamMappingEnabled")?.GetValue(rule));
+            Assert.IsType<PortForwardingPerformance>(
+                rule.GetType().GetProperty("Performance")?.GetValue(rule));
+        }
+        finally
+        {
+            await forwarder.StopForwardingAsync(localPort);
+            forwarder.Dispose();
+        }
+    }
+
+    [Fact]
     public void GetForwardingStatus_WhenPortIsNotForwarded_ReturnsSanitizedNotFound()
     {
         var controller = CreateController();

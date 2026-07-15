@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Port Forwarding now loads a bounded available-port preview and VPN member
+  counts only when their tabs open, polls authoritative status on a
+  non-overlapping visible-only cadence, and renders real forwarder performance
+  data instead of synthetic statistics.
 - Messaging V2's active room/Pod member rail now uses a non-overlapping,
   visible-only ten-second cadence and preserves cached members on transient
   failures. Pod member responses reuse authorization snapshots and aggregate

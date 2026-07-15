@@ -82,9 +82,12 @@ export const getForwardingStatusByPort = async (localPort) => {
 export const getAvailablePorts = async (
   startPort = 1_024,
   endPort = 65_535,
+  limit = null,
 ) => {
+  const query = new URLSearchParams({ endPort, startPort });
+  if (limit != null) query.set('limit', limit);
   const response = await fetch(
-    `${baseUrl}/available-ports?startPort=${startPort}&endPort=${endPort}`,
+    `${baseUrl}/available-ports?${query}`,
     {
       headers: session.authHeaders(),
     },
