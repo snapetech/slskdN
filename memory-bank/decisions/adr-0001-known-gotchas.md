@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z587. Initial Snapshots Must Not Erase Concurrent Realtime Events
+
+**The Bug**: Transfer SignalR handlers were connected while the initial REST
+snapshot was in flight. A new activity event could create or update a store row,
+then the later snapshot seed cleared the store and replaced it with data bounded
+by an earlier server watermark. The row stayed stale or absent until the next
+fifteen-second delta reconciliation.
+
+**Files Affected**:
+- `src/web/src/components/Transfers/TransferManager.jsx`
+
+**Prevention**: Treat initial snapshot seeding and realtime subscription as one
+ordered handoff. Buffer visible realtime events until the initial snapshot has
+seeded the store, then replay them in arrival order. Clear the buffer if the
+document becomes hidden and let the persisted cursor delta catch up on
+visibility. Add a regression where an activity arrives before the delayed
+initial response and remains present after seeding.
+
 ### 0z586. Realtime Removal Events Must Carry The Store's Stable Identity
 
 **The Bug**: Transfer rows backed by a `DownloadRequest` are keyed in the Web
