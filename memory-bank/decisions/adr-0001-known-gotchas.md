@@ -52,6 +52,29 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z583. A Bounded Window Still Needs An Incremental Polling Cursor
+
+**The Bug**: Private-conversation reads were capped at the latest 100 messages,
+but both active chat surfaces refetched and serialized that complete window on
+every poll. The cap bounded a single response without bounding repeated idle
+work. Timestamp-filtered reads also had only a username index, forcing SQLite
+to sort matching rows through a temporary B-tree.
+
+**Files Affected**:
+- `src/slskd/Messaging/ConversationService.cs`
+- `src/slskd/Messaging/API/Controllers/ConversationsController.cs`
+- `src/slskd/Messaging/MessagingDbContext.cs`
+- `src/web/src/lib/chat.js`
+- `src/web/src/components/Messaging/messagingAdapters.js`
+- `src/web/src/components/Chat/ChatSession.jsx`
+
+**Prevention**: Treat a server-side row limit and an incremental cursor as
+separate requirements. Active polling clients must retain a bounded cache, send
+an overlapping timestamp cursor, merge on stable persisted identity, and keep
+cached data on empty or failed deltas. Back the server predicate and ordering
+with `(Username, Timestamp)`, require that index in query-plan coverage, and
+test every parallel chat surface for cursor use, hidden suspension, and overlap.
+
 ### 0z582. Slow-Cadence Refreshes Must Not Re-Run Fast-Cadence Domains
 
 **The Bug**: The legacy Pods metadata timer was briefly wired to full workspace
@@ -215,7 +238,9 @@ temporary grouping work.
 the counted entities. For correlated counts filtered by acknowledgement and
 matched by username, keep a covering `(IsAcknowledged, Username)` index and make
 the migration verify the ordered index columns, not merely the index name. Add
-query-plan coverage that requires the covering index.
+query-plan coverage that requires the covering index. Apply the same rule to
+single-conversation detail reads: calculate unread counts with `COUNT` in SQL
+instead of loading up to 100 unread message bodies merely to count them.
 
 ### 0z550. Fixed Application Chrome Must Stay Below Modal Dimmers
 
