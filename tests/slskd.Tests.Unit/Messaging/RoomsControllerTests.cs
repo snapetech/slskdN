@@ -109,6 +109,42 @@ public class RoomsControllerTests
     }
 
     [Fact]
+    public void GetActivity_ReturnsLatestIncomingTimestampPerRoom()
+    {
+        var tracker = CreateTracker();
+        var firstIncoming = new DateTime(2026, 7, 15, 10, 0, 0, DateTimeKind.Utc);
+        var latestIncoming = firstIncoming.AddMinutes(2);
+        tracker.Object.Rooms["ambient"] = new Room
+        {
+            Messages = new List<RoomMessage>
+            {
+                new() { Username = "friend", Timestamp = firstIncoming },
+                new() { Username = "self", Timestamp = firstIncoming.AddMinutes(1) },
+                new() { Username = "friend", Timestamp = latestIncoming },
+                new() { Username = "self", Timestamp = latestIncoming.AddMinutes(1) },
+            },
+        };
+        tracker.Object.Rooms["solo"] = new Room
+        {
+            Messages = new List<RoomMessage>
+            {
+                new() { Username = "self", Timestamp = latestIncoming },
+            },
+        };
+        var controller = CreateController(tracker: tracker.Object, username: "self");
+
+        var result = controller.GetActivity();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var activity = Assert.IsType<Dictionary<string, long>>(ok.Value);
+        var entry = Assert.Single(activity);
+        Assert.Equal("ambient", entry.Key);
+        Assert.Equal(
+            new DateTimeOffset(latestIncoming).ToUnixTimeMilliseconds(),
+            entry.Value);
+    }
+
+    [Fact]
     public async Task GetRooms_When_Disconnected_Returns_Empty_List()
     {
         var client = new Mock<ISoulseekClient>();
@@ -171,10 +207,14 @@ public class RoomsControllerTests
     private static RoomsController CreateController(
         ISoulseekClient? client = null,
         IRoomService? roomService = null,
-        IRoomTracker? tracker = null)
+        IRoomTracker? tracker = null,
+        string username = "")
     {
         var stateMonitor = new Mock<IStateMonitor<State>>();
-        stateMonitor.Setup(x => x.CurrentValue).Returns(new State());
+        stateMonitor.Setup(x => x.CurrentValue).Returns(new State
+        {
+            User = new UserState { Username = username },
+        });
 
         var optionsSnapshot = new Mock<IOptionsSnapshot<slskd.Options>>();
         optionsSnapshot.Setup(x => x.Value).Returns(new slskd.Options());

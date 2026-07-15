@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Eliminate global room-activity polling fan-out.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Added authenticated `GET /api/v0/rooms/activity`, which scans each bounded in-memory room buffer from newest to oldest and returns only the latest incoming timestamp per room. Replaced the app-wide joined-room plus per-room message polling fan-out with this single summary request, paused navigation polling in hidden tabs, and blocked overlapping cycles. A representative 20-room/25-message payload model drops from 21 requests and 58,141 message-payload bytes to one request and 471 bytes (99.19% smaller). Added backend, API-boundary, badge, and overlap regressions; regenerated the route inventory and documented gotcha `0z566`.
+
 - [x] Reduce shared footer polling load and index HashDb capability counts.
   - Status: completed (2026-07-15)
   - Priority: P1

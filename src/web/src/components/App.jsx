@@ -238,14 +238,26 @@ const storeDismissedVpnPortNotice = (signature, portForwards) => {
   );
 };
 
+const normalizeRoomActivity = (value) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .map(([roomName, timestamp]) => [roomName, Number(timestamp)])
+      .filter(
+        ([roomName, timestamp]) =>
+          roomName.length > 0 && Number.isFinite(timestamp) && timestamp > 0,
+      ),
+  );
+};
+
 const getStoredRoomActivity = () => {
   try {
-    const parsed = JSON.parse(
-      getLocalStorageItem(ROOM_ACTIVITY_SEEN_STORAGE_KEY, '{}'),
+    return normalizeRoomActivity(
+      JSON.parse(getLocalStorageItem(ROOM_ACTIVITY_SEEN_STORAGE_KEY, '{}')),
     );
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-      ? parsed
-      : {};
   } catch {
     return {};
   }
@@ -254,14 +266,6 @@ const getStoredRoomActivity = () => {
 const storeRoomActivity = (activity) => {
   setLocalStorageItem(ROOM_ACTIVITY_SEEN_STORAGE_KEY, JSON.stringify(activity));
 };
-
-const getMessageTimestamp = (message) => {
-  const timestamp = Date.parse(message?.timestamp);
-  return Number.isFinite(timestamp) ? timestamp : 0;
-};
-
-const isIncomingRoomMessage = (message) =>
-  message?.self !== true && message?.direction !== 'Out';
 
 const setNavigationHeightVariable = (element) => {
   if (!element || typeof document === 'undefined') return;
@@ -544,15 +548,19 @@ class App extends Component {
 
     this.state = initialState;
     this.applicationHub = undefined;
+    this.mounted = false;
+    this.navigationActivityInFlight = false;
     this.navigationActivityInterval = undefined;
     this.navigationResizeObserver = undefined;
     this.roomActivityBaselined = false;
   }
 
   componentDidMount() {
+    this.mounted = true;
     this.init();
     this.startNavigationActivityPolling();
     this.startChromeMeasurement();
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
   }
 
   componentDidUpdate(previousProps) {
@@ -563,14 +571,17 @@ class App extends Component {
   }
 
   componentWillUnmount() {
+    this.mounted = false;
     if (this.applicationHub) {
       this.applicationHub.stop().catch(() => {});
       this.applicationHub = undefined;
     }
 
-    if (this.navigationActivityInterval) {
-      window.clearInterval(this.navigationActivityInterval);
-    }
+    this.stopNavigationActivityPolling();
+    document.removeEventListener(
+      'visibilitychange',
+      this.handleVisibilityChange,
+    );
 
     if (this.navigationResizeObserver) {
       this.navigationResizeObserver.disconnect();
@@ -601,10 +612,27 @@ class App extends Component {
 
   startNavigationActivityPolling = () => {
     this.refreshNavigationActivity();
-    this.navigationActivityInterval = window.setInterval(
-      this.refreshNavigationActivity,
-      NAV_ACTIVITY_POLL_INTERVAL_MS,
-    );
+    if (!this.navigationActivityInterval) {
+      this.navigationActivityInterval = window.setInterval(
+        this.refreshNavigationActivity,
+        NAV_ACTIVITY_POLL_INTERVAL_MS,
+      );
+    }
+  };
+
+  stopNavigationActivityPolling = () => {
+    if (this.navigationActivityInterval) {
+      window.clearInterval(this.navigationActivityInterval);
+      this.navigationActivityInterval = undefined;
+    }
+  };
+
+  handleVisibilityChange = () => {
+    if (document.hidden) {
+      this.stopNavigationActivityPolling();
+    } else {
+      this.startNavigationActivityPolling();
+    }
   };
 
   getCurrentPath = () =>
@@ -625,26 +653,7 @@ class App extends Component {
   };
 
   getRoomsActivity = async () => {
-    const joinedRooms = asArray(await rooms.getJoined());
-    const roomMessages = await Promise.all(
-      joinedRooms.filter(Boolean).map(async (roomName) => ({
-        messages: asArray(await rooms.getMessages({ roomName })),
-        roomName,
-      })),
-    );
-    const latestByRoom = roomMessages.reduce((activity, room) => {
-      const latest = room.messages
-        .filter(isIncomingRoomMessage)
-        .reduce(
-          (latestTimestamp, message) =>
-            Math.max(latestTimestamp, getMessageTimestamp(message)),
-          0,
-        );
-
-      return latest > 0
-        ? { ...activity, [room.roomName]: latest }
-        : activity;
-    }, {});
+    const latestByRoom = normalizeRoomActivity(await rooms.getActivity());
 
     if (
       this.getCurrentPath().startsWith('/rooms') ||
@@ -669,30 +678,41 @@ class App extends Component {
   };
 
   refreshNavigationActivity = async () => {
-    if (!this.isAuthenticated()) {
-      this.setState({
-        navActivity: {
-          chat: false,
-          rooms: false,
-        },
-      });
+    if (document.hidden || this.navigationActivityInFlight) {
       return;
     }
 
+    if (!this.isAuthenticated()) {
+      if (this.mounted) {
+        this.setState({
+          navActivity: {
+            chat: false,
+            rooms: false,
+          },
+        });
+      }
+      return;
+    }
+
+    this.navigationActivityInFlight = true;
     try {
       const [chatActivity, roomsActivity] = await Promise.all([
         this.getChatActivity(),
         this.getRoomsActivity(),
       ]);
 
-      this.setState({
-        navActivity: {
-          chat: chatActivity,
-          rooms: roomsActivity,
-        },
-      });
+      if (this.mounted) {
+        this.setState({
+          navActivity: {
+            chat: chatActivity,
+            rooms: roomsActivity,
+          },
+        });
+      }
     } catch (error) {
       console.error('Failed to refresh navigation activity:', error);
+    } finally {
+      this.navigationActivityInFlight = false;
     }
   };
 

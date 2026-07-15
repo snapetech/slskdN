@@ -1,5 +1,9 @@
 ## 2026-07-15
 
+- Replaced app-wide navigation room activity fan-out with one authenticated `/api/v0/rooms/activity` summary that returns only the latest incoming timestamp per joined room. The endpoint scans each bounded room buffer backward and stops at the newest incoming message.
+- Paused global navigation activity polling while the browser document is hidden, prevented overlapping slow cycles, and gated post-await state updates on the mounted lifecycle.
+- In a representative 20-room fixture with 25 retained messages per room, the room-activity portion falls from 21 requests and 58,141 serialized message bytes to one request and 471 bytes, a 99.19% payload reduction. Regenerated `docs/system-surfaces-current.md` and documented gotcha `0z566`.
+- Validation passed: complete `dotnet test` (`4701/4701`: `69` smoke, `4354` unit, `278` integration), focused controller tests (`10/10`), complete Web tests (`771` passed, `4` skipped), Web production build, focused ESLint, Web polling lifecycle guard, repository lint, identity-leak check, and whitespace checks.
 - Reduced logged-in footer API load by separating two-second transfer-speed polling from ten-second aggregate/network stats polling, preventing overlapping requests, and preventing post-unmount state updates. This reduces footer request rate from about 4.0 to 1.2 requests per second per client without lowering speed-update cadence.
 - Added HashDb schema migration 18 and optimization-service coverage for `idx_peers_caps`. On a synthetic 200,000-peer database, SQLite changed the capable-peer count from a full table scan to a covering-index range search; 500 repeated counts fell from 1.615s to 0.089s.
 - Rejected and reverted an initially plausible conditional-aggregate rewrite after measurement showed it was about 2.5 times slower than separate SQLite counts; documented the query-planning lessons in gotchas `0z562` and `0z563`.

@@ -86,6 +86,49 @@ namespace slskd.Messaging.API
         }
 
         /// <summary>
+        ///     Gets the latest incoming message timestamp for each joined room.
+        /// </summary>
+        /// <returns>A map of room names to Unix timestamps in milliseconds.</returns>
+        [HttpGet("activity")]
+        [Authorize(Policy = AuthPolicy.Any)]
+        [ProducesResponseType(typeof(Dictionary<string, long>), 200)]
+        public IActionResult GetActivity()
+        {
+            if (Program.IsRelayAgent)
+            {
+                return Forbid();
+            }
+
+            var username = ApplicationStateMonitor.CurrentValue.User.Username;
+            var activity = new Dictionary<string, long>(StringComparer.Ordinal);
+
+            foreach (var (roomName, room) in Tracker.Rooms)
+            {
+                lock (room)
+                {
+                    for (var index = room.Messages.Count - 1; index >= 0; index--)
+                    {
+                        var message = room.Messages[index];
+                        if (string.Equals(message.Username, username, StringComparison.Ordinal))
+                        {
+                            continue;
+                        }
+
+                        var timestamp = new DateTimeOffset(message.Timestamp).ToUnixTimeMilliseconds();
+                        if (timestamp > 0)
+                        {
+                            activity[roomName] = timestamp;
+                        }
+
+                        break;
+                    }
+                }
+            }
+
+            return Ok(activity);
+        }
+
+        /// <summary>
         ///     Gets the specified room.
         /// </summary>
         /// <param name="roomName"></param>

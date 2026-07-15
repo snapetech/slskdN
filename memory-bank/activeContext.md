@@ -1,3 +1,20 @@
+## Update 2026-07-15 18:02:25Z
+
+- Current task: performance and efficiency improvements in progress; global room-activity polling fan-out pass complete locally.
+- Last activity:
+  - Added one authenticated room-activity summary endpoint that returns the latest incoming timestamp per joined room.
+  - Replaced app-wide joined-room plus per-room message polling with the bounded summary request.
+  - Paused navigation polling in hidden tabs, rejected overlapping cycles, and prevented post-unmount poll updates.
+  - Measured a representative 20-room/25-message poll at 21 requests and 58,141 message bytes before versus one request and 471 bytes after (99.19% smaller payload).
+  - Regenerated the current API route inventory and documented gotcha `0z566` in standalone commit `3d3dfeccd`.
+- Validation:
+  - Passed focused controller tests (`10/10`), focused App/rooms Web tests (`41/41`), focused ESLint, and the Web polling lifecycle guard.
+  - Passed complete Web Vitest (`771` passed, `4` skipped) and the production Web build.
+  - Passed complete `dotnet test` (`4701/4701`: `69` smoke, `4354` unit, `278` integration).
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 17:47:33Z
 
 - Current task: performance and efficiency improvements in progress; footer polling and HashDb capability-count pass complete locally.

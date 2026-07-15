@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Global room-activity badges now use one bounded timestamp-summary request
+  instead of fetching every joined room's retained message list, and navigation
+  polling pauses in hidden tabs and cannot overlap a slow prior request.
 - Footer polling now keeps two-second transfer-speed updates while refreshing
   aggregate network statistics every ten seconds without overlapping requests,
   and HashDb peer-capability counts use a covering index instead of a full scan.

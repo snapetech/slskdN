@@ -22,6 +22,24 @@ export const getJoined = async () => {
   return response;
 };
 
+export const getActivity = async () => {
+  const response = (await api.get('/rooms/activity')).data;
+
+  if (!response || typeof response !== 'object' || Array.isArray(response)) {
+    console.warn('got non-object response from room activity API', response);
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(response)
+      .map(([roomName, timestamp]) => [roomName, Number(timestamp)])
+      .filter(
+        ([roomName, timestamp]) =>
+          roomName.length > 0 && Number.isFinite(timestamp) && timestamp > 0,
+      ),
+  );
+};
+
 export const getMessages = async ({ roomName }) => {
   const response = (
     await api.get(`/rooms/joined/${encodeURIComponent(roomName)}/messages`)

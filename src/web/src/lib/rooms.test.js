@@ -68,4 +68,22 @@ describe('rooms api', () => {
     await expect(rooms.getMessages({ roomName: 'ambient' })).resolves.toEqual([]);
     await expect(rooms.getUsers({ roomName: 'ambient' })).resolves.toEqual([]);
   });
+
+  it('normalizes room activity timestamps and rejects malformed payloads', async () => {
+    api.get.mockResolvedValueOnce({
+      data: {
+        ambient: 1_752_576_120_000,
+        broken: 'not-a-timestamp',
+        empty: 0,
+      },
+    });
+
+    await expect(rooms.getActivity()).resolves.toEqual({
+      ambient: 1_752_576_120_000,
+    });
+    expect(api.get).toHaveBeenCalledWith('/rooms/activity');
+
+    api.get.mockResolvedValueOnce({ data: [] });
+    await expect(rooms.getActivity()).resolves.toEqual({});
+  });
 });

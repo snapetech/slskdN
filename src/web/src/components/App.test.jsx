@@ -2,7 +2,7 @@ import '@testing-library/jest-dom';
 import App from './App';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 
 const {
@@ -10,16 +10,14 @@ const {
   createApplicationHubConnection,
   getSecurityEnabled,
   getConversations,
-  getJoinedRooms,
-  getRoomMessages,
+  getRoomActivity,
   isLoggedIn,
 } = vi.hoisted(() => ({
   check: vi.fn(),
   createApplicationHubConnection: vi.fn(),
   getConversations: vi.fn(),
   getSecurityEnabled: vi.fn(),
-  getJoinedRooms: vi.fn(),
-  getRoomMessages: vi.fn(),
+  getRoomActivity: vi.fn(),
   isLoggedIn: vi.fn(),
 }));
 
@@ -32,8 +30,7 @@ vi.mock('../lib/hubFactory', () => ({
 }));
 
 vi.mock('../lib/rooms', () => ({
-  getJoined: getJoinedRooms,
-  getMessages: getRoomMessages,
+  getActivity: getRoomActivity,
 }));
 
 vi.mock('../lib/session', () => ({
@@ -116,8 +113,7 @@ describe('App', () => {
     getSecurityEnabled.mockResolvedValue(true);
     check.mockResolvedValue(true);
     getConversations.mockResolvedValue([]);
-    getJoinedRooms.mockResolvedValue([]);
-    getRoomMessages.mockResolvedValue([]);
+    getRoomActivity.mockResolvedValue({});
     isLoggedIn.mockReturnValue(true);
 
     window.matchMedia = vi.fn().mockReturnValue({
@@ -130,6 +126,7 @@ describe('App', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.clearAllMocks();
     document.documentElement.className = '';
   });
@@ -255,15 +252,9 @@ describe('App', () => {
       'slskdn.rooms.lastSeenActivity',
       JSON.stringify({ chill: Date.parse('2026-04-30T00:00:00Z') }),
     );
-    getJoinedRooms.mockResolvedValue(['chill']);
-    getRoomMessages.mockResolvedValue([
-      {
-        message: 'new one',
-        self: false,
-        timestamp: '2026-04-30T00:01:00Z',
-        username: 'friend',
-      },
-    ]);
+    getRoomActivity.mockResolvedValue({
+      chill: Date.parse('2026-04-30T00:01:00Z'),
+    });
 
     render(
       <MemoryRouter initialEntries={['/searches']}>
@@ -274,20 +265,44 @@ describe('App', () => {
     expect(await screen.findByTestId('nav-rooms-alert')).toBeInTheDocument();
   });
 
+  it('does not overlap slow navigation activity polls', async () => {
+    vi.useFakeTimers();
+    let resolveActivity;
+    getRoomActivity.mockReturnValue(
+      new Promise((resolve) => {
+        resolveActivity = resolve;
+      }),
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/searches']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+
+    expect(getRoomActivity).toHaveBeenCalledTimes(1);
+
+    resolveActivity({});
+    await act(async () => {
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+
+    expect(getRoomActivity).toHaveBeenCalledTimes(2);
+  });
+
   it('ignores malformed stored room activity shapes before comparing timestamps', async () => {
     localStorage.setItem(
       'slskdn.rooms.lastSeenActivity',
       JSON.stringify(['bad']),
     );
-    getJoinedRooms.mockResolvedValue(['chill']);
-    getRoomMessages.mockResolvedValue([
-      {
-        message: 'first baseline',
-        self: false,
-        timestamp: '2026-04-30T00:01:00Z',
-        username: 'friend',
-      },
-    ]);
+    getRoomActivity.mockResolvedValue({
+      chill: Date.parse('2026-04-30T00:01:00Z'),
+    });
 
     render(
       <MemoryRouter initialEntries={['/searches']}>
@@ -305,8 +320,7 @@ describe('App', () => {
 
   it('ignores malformed navigation activity list payloads', async () => {
     getConversations.mockResolvedValue({ conversations: [] });
-    getJoinedRooms.mockResolvedValue({ rooms: ['chill'] });
-    getRoomMessages.mockResolvedValue({ messages: [] });
+    getRoomActivity.mockResolvedValue([]);
 
     render(
       <MemoryRouter initialEntries={['/searches']}>
