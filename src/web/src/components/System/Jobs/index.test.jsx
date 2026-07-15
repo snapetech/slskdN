@@ -5,6 +5,7 @@
 import * as jobsLibrary from '../../../lib/jobs';
 import Jobs from '.';
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -77,6 +78,10 @@ describe('Jobs', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
     jobsLibrary.getJobs.mockResolvedValue({
       has_more: false,
       jobs: mockJobs,
@@ -85,6 +90,10 @@ describe('Jobs', () => {
       total: 2,
     });
     jobsLibrary.getActiveSwarmJobs.mockResolvedValue(mockSwarmJobs);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('renders the component', () => {
@@ -201,21 +210,124 @@ describe('Jobs', () => {
   });
 
   it('refreshes swarm jobs periodically', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     render(<Jobs />);
 
-    await waitFor(() => {
-      expect(jobsLibrary.getActiveSwarmJobs).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(jobsLibrary.getActiveSwarmJobs).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    expect(jobsLibrary.getActiveSwarmJobs).toHaveBeenCalledTimes(2);
+  });
+
+  it('applies progress changes from the active-jobs API contract', async () => {
+    vi.useFakeTimers();
+    const initial = {
+      chunksPerSecond: 10.5,
+      completedChunks: 20,
+      jobId: 'swarm-1',
+      percentComplete: 20,
+      state: 'Running',
+      totalChunks: 100,
+    };
+    jobsLibrary.getActiveSwarmJobs
+      .mockResolvedValueOnce([initial])
+      .mockResolvedValueOnce([
+        {
+          ...initial,
+          completedChunks: 40,
+          percentComplete: 40,
+        },
+      ]);
+
+    render(<Jobs />);
+
+    expect(await screen.findByText('20%')).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    expect(screen.getByText('40%')).toBeInTheDocument();
+  });
+
+  it('does not overlap slow swarm job polls', async () => {
+    vi.useFakeTimers();
+    let resolveJobs;
+    jobsLibrary.getActiveSwarmJobs.mockReturnValue(
+      new Promise((resolve) => {
+        resolveJobs = resolve;
+      }),
+    );
+
+    render(<Jobs />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20_000);
+    });
+    expect(jobsLibrary.getActiveSwarmJobs).toHaveBeenCalledTimes(1);
+
+    resolveJobs(mockSwarmJobs);
+    await act(async () => {
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    expect(jobsLibrary.getActiveSwarmJobs).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps cached swarm jobs on failure and clears them on an empty snapshot', async () => {
+    vi.useFakeTimers();
+    jobsLibrary.getActiveSwarmJobs
+      .mockResolvedValueOnce(mockSwarmJobs)
+      .mockRejectedValueOnce(new Error('temporary failure'))
+      .mockResolvedValueOnce([]);
+
+    render(<Jobs />);
+
+    expect(await screen.findByText(/file\.mp3/)).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    expect(screen.getByText(/file\.mp3/)).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    expect(screen.queryByText(/file\.mp3/)).not.toBeInTheDocument();
+  });
+
+  it('pauses swarm job polling while hidden and catches up on visibility', async () => {
+    vi.useFakeTimers();
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: true,
     });
 
-    // Fast-forward 5 seconds (refresh interval)
-    jest.advanceTimersByTime(5_000);
+    render(<Jobs />);
 
-    await waitFor(() => {
-      expect(jobsLibrary.getActiveSwarmJobs).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20_000);
     });
+    expect(jobsLibrary.getActiveSwarmJobs).not.toHaveBeenCalled();
 
-    jest.useRealTimers();
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      await Promise.resolve();
+    });
+    expect(jobsLibrary.getActiveSwarmJobs).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    expect(jobsLibrary.getActiveSwarmJobs).toHaveBeenCalledTimes(2);
   });
 
   it('displays pagination controls when there are more jobs', async () => {

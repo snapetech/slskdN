@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- The Jobs page and swarm visualization now separate two-second live status
+  from ten-second trace aggregation, retain unchanged/cached state, reject
+  overlapping requests, and suspend all polling while the browser document is
+  hidden.
 - Transfer reconciliation now seeds only actionable records through a
   server-watermarked, indexed change feed instead of loading the complete
   download/upload history. Successful history loads in stable 250-record pages

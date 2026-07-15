@@ -1,3 +1,19 @@
+## Update 2026-07-15 21:28:27Z
+
+- Current task: performance and efficiency improvements in progress; Jobs and swarm visualization polling pass complete locally.
+- Last activity:
+  - Split two-second swarm status from ten-second trace-summary hydration so live progress remains responsive without rereading up to 50,000 trace events on every status tick.
+  - Added per-domain in-flight and stale-resource rejection, concrete-contract field comparisons, cached-state retention on transient failures, and hidden-document stop/restart behavior to the Jobs page and visualization modal.
+  - Reduced a representative visible first minute with the modal open from 72 requests to 48 (33.33%); trace scans and their worst-case five-MiB/50,000-event work fall 80%. Hidden polling falls from 72 requests per minute to zero.
+  - Added cadence, overlap, API-progress, resource-switch, hidden, visibility-catch-up, optional-failure, and failure-cache regressions; documented gotchas `0z593` through `0z595` in standalone commits `9e94a09e4`, `d80dde3c9`, and `bd872ad71`, and extended `0z350` in `189714e0b`.
+- Validation:
+  - Passed focused Jobs/Swarm Visualization and API-boundary tests (`54/54`).
+  - Passed complete Web tests (`820` passed, `4` skipped), production Web build, frontend lint with zero new errors, polling-lifecycle guard, and whitespace checks.
+  - Passed complete backend suites (`4735/4735`: `69` smoke, `4388` unit, `278` integration) and repository lint.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 21:14:43Z
 
 - Current task: performance and efficiency improvements in progress; incremental room-message hydration pass complete locally.

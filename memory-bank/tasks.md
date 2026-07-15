@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound Jobs and swarm visualization polling.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Kept live swarm status at two seconds while moving the trace-summary scan to a separate ten-second cadence, added per-domain in-flight guards, resource-generation rejection, concrete-contract field comparisons, cached-state retention on transient failures, and visibility-controlled stop/restart behavior to both the Jobs page and detail modal. A representative first visible minute with the modal open falls from 72 requests to 48 (33.33%); trace scans fall from 30 to 6 (80%), reducing the event store's five-MiB worst-case read volume from 150 MiB to 30 MiB and its 50,000-event worst-case deserialization work from 1.5 million to 300,000 events per minute. Hidden polling falls from 72 requests per minute to zero. Added cadence, overlap, API-progress, resource-switch, hidden, visibility-catch-up, optional-failure, and failure-cache regressions; documented gotchas `0z593` through `0z595` in standalone commits `9e94a09e4`, `d80dde3c9`, and `bd872ad71`, and extended `0z350` in `189714e0b`.
+
 - [x] Make room-message polling incremental.
   - Status: completed (2026-07-15)
   - Priority: P1

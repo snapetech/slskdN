@@ -182,26 +182,10 @@ describe('jobs', () => {
       expect(result).toEqual([]);
     });
 
-    it('handles API errors gracefully', async () => {
+    it('preserves transport failures for stateful polling consumers', async () => {
       api.get.mockRejectedValue(new Error('Network error'));
 
-      const result = await jobs.getActiveSwarmJobs();
-
-      expect(result).toEqual([]);
-    });
-
-    it('logs errors to console', async () => {
-      const consoleSpy = jest.spyOn(console, 'debug').mockImplementation();
-      api.get.mockRejectedValue(new Error('Network error'));
-
-      await jobs.getActiveSwarmJobs();
-
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to fetch swarm jobs:',
-        expect.any(Error),
-      );
-
-      consoleSpy.mockRestore();
+      await expect(jobs.getActiveSwarmJobs()).rejects.toThrow('Network error');
     });
   });
 

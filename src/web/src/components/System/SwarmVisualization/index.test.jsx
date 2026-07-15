@@ -4,7 +4,7 @@
 
 import * as jobsLibrary from '../../../lib/jobs';
 import SwarmVisualization from '.';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
 // Mock dependencies
@@ -43,8 +43,16 @@ describe('SwarmVisualization', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
     jobsLibrary.getSwarmJobStatus.mockResolvedValue(mockJobStatus);
     jobsLibrary.getSwarmTraceSummary.mockResolvedValue(mockTraceSummary);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('displays loading state when jobId is provided but data is loading', () => {
@@ -135,22 +143,147 @@ describe('SwarmVisualization', () => {
     expect(screen.getByText(/50 \/ 100/)).toBeInTheDocument();
   });
 
-  it('refreshes data periodically', async () => {
-    jest.useFakeTimers();
+  it('polls status every two seconds and trace summaries every ten seconds', async () => {
+    vi.useFakeTimers();
     render(<SwarmVisualization jobId="swarm-1" />);
 
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(jobsLibrary.getSwarmJobStatus).toHaveBeenCalledTimes(1);
+    expect(jobsLibrary.getSwarmTraceSummary).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000);
+    });
+    expect(jobsLibrary.getSwarmJobStatus).toHaveBeenCalledTimes(2);
+    expect(jobsLibrary.getSwarmTraceSummary).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(8_000);
+    });
+    expect(jobsLibrary.getSwarmJobStatus).toHaveBeenCalledTimes(6);
+    expect(jobsLibrary.getSwarmTraceSummary).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not overlap slow status or trace polls', async () => {
+    vi.useFakeTimers();
+    let resolveStatus;
+    let resolveTrace;
+    jobsLibrary.getSwarmJobStatus.mockReturnValue(
+      new Promise((resolve) => {
+        resolveStatus = resolve;
+      }),
+    );
+    jobsLibrary.getSwarmTraceSummary.mockReturnValue(
+      new Promise((resolve) => {
+        resolveTrace = resolve;
+      }),
+    );
+
+    render(<SwarmVisualization jobId="swarm-1" />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20_000);
+    });
+    expect(jobsLibrary.getSwarmJobStatus).toHaveBeenCalledTimes(1);
+    expect(jobsLibrary.getSwarmTraceSummary).toHaveBeenCalledTimes(1);
+
+    resolveStatus(mockJobStatus);
+    resolveTrace(mockTraceSummary);
+    await act(async () => {
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(2_000);
+    });
+    expect(jobsLibrary.getSwarmJobStatus).toHaveBeenCalledTimes(2);
+    expect(jobsLibrary.getSwarmTraceSummary).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts the new job immediately and ignores stale job completions', async () => {
+    let resolveOldStatus;
+    let resolveOldTrace;
+    const oldStatus = new Promise((resolve) => {
+      resolveOldStatus = resolve;
+    });
+    const oldTrace = new Promise((resolve) => {
+      resolveOldTrace = resolve;
+    });
+    const newStatus = {
+      ...mockJobStatus,
+      activeWorkers: 7,
+      completedChunks: 75,
+      jobId: 'swarm-2',
+    };
+    const newTrace = {
+      peers: [
+        {
+          bytesServed: 2_048,
+          chunksCompleted: 4,
+          chunksFailed: 0,
+          chunksTimedOut: 0,
+          peerId: 'new-peer',
+        },
+      ],
+    };
+    jobsLibrary.getSwarmJobStatus
+      .mockReturnValueOnce(oldStatus)
+      .mockResolvedValue(newStatus);
+    jobsLibrary.getSwarmTraceSummary
+      .mockReturnValueOnce(oldTrace)
+      .mockResolvedValue(newTrace);
+
+    const { rerender } = render(<SwarmVisualization jobId="swarm-1" />);
+    rerender(<SwarmVisualization jobId="swarm-2" />);
+
     await waitFor(() => {
-      expect(jobsLibrary.getSwarmJobStatus).toHaveBeenCalledTimes(1);
+      expect(jobsLibrary.getSwarmJobStatus).toHaveBeenCalledWith('swarm-2');
+      expect(jobsLibrary.getSwarmTraceSummary).toHaveBeenCalledWith('swarm-2');
+      expect(screen.getByText(/75 \/ 100/)).toBeInTheDocument();
+      expect(screen.getByText('new-peer')).toBeInTheDocument();
     });
 
-    // Fast-forward 2 seconds (refresh interval)
-    jest.advanceTimersByTime(2_000);
-
-    await waitFor(() => {
-      expect(jobsLibrary.getSwarmJobStatus).toHaveBeenCalledTimes(2);
+    resolveOldStatus(mockJobStatus);
+    resolveOldTrace(mockTraceSummary);
+    await act(async () => {
+      await Promise.resolve();
     });
 
-    jest.useRealTimers();
+    expect(screen.getByText(/75 \/ 100/)).toBeInTheDocument();
+    expect(screen.getByText('new-peer')).toBeInTheDocument();
+    expect(screen.queryByText('peer-1')).not.toBeInTheDocument();
+  });
+
+  it('pauses both polling cadences while hidden and catches up on visibility', async () => {
+    vi.useFakeTimers();
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: true,
+    });
+
+    render(<SwarmVisualization jobId="swarm-1" />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20_000);
+    });
+    expect(jobsLibrary.getSwarmJobStatus).not.toHaveBeenCalled();
+    expect(jobsLibrary.getSwarmTraceSummary).not.toHaveBeenCalled();
+
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      await Promise.resolve();
+    });
+    expect(jobsLibrary.getSwarmJobStatus).toHaveBeenCalledTimes(1);
+    expect(jobsLibrary.getSwarmTraceSummary).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000);
+    });
+    expect(jobsLibrary.getSwarmJobStatus).toHaveBeenCalledTimes(2);
+    expect(jobsLibrary.getSwarmTraceSummary).toHaveBeenCalledTimes(1);
   });
 
   it('handles missing trace summary gracefully', async () => {

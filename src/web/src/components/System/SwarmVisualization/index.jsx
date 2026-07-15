@@ -20,9 +20,57 @@ import {
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const asObject = (value) =>
   value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+const STATUS_POLL_INTERVAL_MS = 2_000;
+const TRACE_POLL_INTERVAL_MS = 10_000;
+
+const sameJobStatus = (previous, next) =>
+  previous?.activeWorkers === next?.activeWorkers &&
+  previous?.bytesDownloaded === next?.bytesDownloaded &&
+  previous?.chunksPerSecond === next?.chunksPerSecond &&
+  previous?.completedChunks === next?.completedChunks &&
+  previous?.estimatedSecondsRemaining === next?.estimatedSecondsRemaining &&
+  previous?.jobId === next?.jobId &&
+  previous?.state === next?.state &&
+  previous?.totalChunks === next?.totalChunks;
+
+const sameRecord = (previous, next) => {
+  const previousEntries = Object.entries(asObject(previous));
+  const nextObject = asObject(next);
+  return (
+    previousEntries.length === Object.keys(nextObject).length &&
+    previousEntries.every(([key, value]) => value === nextObject[key])
+  );
+};
+
+const sameTraceSummary = (previous, next) => {
+  const previousPeers = asArray(previous?.peers);
+  const nextPeers = asArray(next?.peers);
+  return (
+    previous?.totalEvents === next?.totalEvents &&
+    previous?.duration === next?.duration &&
+    previous?.rescueInvoked === next?.rescueInvoked &&
+    sameRecord(previous?.bytesBySource, next?.bytesBySource) &&
+    previousPeers.length === nextPeers.length &&
+    previousPeers.every(
+      (peer, index) =>
+        peer.peerId === nextPeers[index]?.peerId &&
+        peer.bytesServed === nextPeers[index]?.bytesServed &&
+        peer.chunksCompleted === nextPeers[index]?.chunksCompleted &&
+        peer.chunksFailed === nextPeers[index]?.chunksFailed &&
+        peer.chunksTimedOut === nextPeers[index]?.chunksTimedOut,
+    )
+  );
+};
 
 const SwarmVisualization = ({ jobId }) => {
+  const activeJobIdRef = useRef(jobId);
   const mountedRef = useRef(true);
+  const statusInFlightRef = useRef(false);
+  const statusIntervalRef = useRef(null);
+  const statusRequestGenerationRef = useRef(0);
+  const traceInFlightRef = useRef(false);
+  const traceIntervalRef = useRef(null);
+  const traceRequestGenerationRef = useRef(0);
   const [jobStatus, setJobStatus] = useState(null);
   const [traceSummary, setTraceSummary] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,51 +80,160 @@ const SwarmVisualization = ({ jobId }) => {
     mountedRef.current = false;
   }, []);
 
-  const fetchData = useCallback(async () => {
-    if (!mountedRef.current) return;
-
-    if (!jobId) {
-      setLoading(false);
+  const fetchStatus = useCallback(async () => {
+    if (
+      !mountedRef.current ||
+      document.hidden ||
+      !jobId ||
+      statusInFlightRef.current
+    ) {
       return;
     }
 
+    statusInFlightRef.current = true;
+    const requestGeneration = statusRequestGenerationRef.current;
+    const requestJobId = jobId;
     try {
-      setLoading(true);
-      setError(null);
-
-      const [status, summary] = await Promise.allSettled([
-        jobsLibrary.getSwarmJobStatus(jobId),
-        jobsLibrary.getSwarmTraceSummary(jobId),
-      ]);
+      const status = await jobsLibrary.getSwarmJobStatus(requestJobId);
 
       if (!mountedRef.current) return;
-
-      if (status.status === 'fulfilled') {
-        setJobStatus(status.value);
-      } else {
-        setError(status.reason?.message || 'Failed to fetch job status');
+      if (document.hidden) return;
+      if (
+        activeJobIdRef.current !== requestJobId ||
+        statusRequestGenerationRef.current !== requestGeneration
+      ) {
+        return;
       }
 
-      if (summary.status === 'fulfilled' && summary.value) {
-        setTraceSummary(summary.value);
-      }
-      // Trace summary is optional - don't error if not available
+      setJobStatus((previous) =>
+        sameJobStatus(previous, status) ? previous : status,
+      );
+      setError(null);
     } catch (error_) {
       if (!mountedRef.current) return;
+      if (document.hidden) return;
+      if (
+        activeJobIdRef.current !== requestJobId ||
+        statusRequestGenerationRef.current !== requestGeneration
+      ) {
+        return;
+      }
       setError(error_?.message || 'Failed to fetch swarm data');
       console.error('Failed to fetch swarm visualization data:', error_);
     } finally {
-      if (mountedRef.current) {
+      if (statusRequestGenerationRef.current === requestGeneration) {
+        statusInFlightRef.current = false;
+      }
+      if (
+        mountedRef.current &&
+        statusRequestGenerationRef.current === requestGeneration
+      ) {
         setLoading(false);
       }
     }
   }, [jobId]);
 
+  const fetchTrace = useCallback(async () => {
+    if (
+      !mountedRef.current ||
+      document.hidden ||
+      !jobId ||
+      traceInFlightRef.current
+    ) {
+      return;
+    }
+
+    traceInFlightRef.current = true;
+    const requestGeneration = traceRequestGenerationRef.current;
+    const requestJobId = jobId;
+    try {
+      const summary = await jobsLibrary.getSwarmTraceSummary(requestJobId);
+
+      if (!mountedRef.current) return;
+      if (document.hidden || !summary) return;
+      if (
+        activeJobIdRef.current !== requestJobId ||
+        traceRequestGenerationRef.current !== requestGeneration
+      ) {
+        return;
+      }
+
+      setTraceSummary((previous) =>
+        sameTraceSummary(previous, summary) ? previous : summary,
+      );
+    } catch (error_) {
+      if (!mountedRef.current) return;
+      if (document.hidden) return;
+      if (
+        activeJobIdRef.current !== requestJobId ||
+        traceRequestGenerationRef.current !== requestGeneration
+      ) {
+        return;
+      }
+      console.debug('Failed to fetch swarm trace summary:', error_);
+    } finally {
+      if (traceRequestGenerationRef.current === requestGeneration) {
+        traceInFlightRef.current = false;
+      }
+    }
+  }, [jobId]);
+
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 2_000); // Refresh every 2 seconds
-    return () => clearInterval(interval);
-  }, [fetchData]);
+    activeJobIdRef.current = jobId;
+    statusRequestGenerationRef.current += 1;
+    traceRequestGenerationRef.current += 1;
+    statusInFlightRef.current = false;
+    traceInFlightRef.current = false;
+    setError(null);
+    setJobStatus(null);
+    setLoading(Boolean(jobId));
+    setTraceSummary(null);
+
+    if (!jobId) {
+      return undefined;
+    }
+
+    const stopPolling = () => {
+      if (statusIntervalRef.current) {
+        window.clearInterval(statusIntervalRef.current);
+        statusIntervalRef.current = null;
+      }
+
+      if (traceIntervalRef.current) {
+        window.clearInterval(traceIntervalRef.current);
+        traceIntervalRef.current = null;
+      }
+    };
+    const startPolling = () => {
+      if (document.hidden || statusIntervalRef.current) return;
+
+      fetchStatus();
+      fetchTrace();
+      statusIntervalRef.current = window.setInterval(
+        fetchStatus,
+        STATUS_POLL_INTERVAL_MS,
+      );
+      traceIntervalRef.current = window.setInterval(
+        fetchTrace,
+        TRACE_POLL_INTERVAL_MS,
+      );
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      stopPolling();
+    };
+  }, [fetchStatus, fetchTrace, jobId]);
 
   const peerContributions = useMemo(() => {
     const peers = asArray(traceSummary?.peers);

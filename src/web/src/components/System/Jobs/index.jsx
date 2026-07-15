@@ -26,9 +26,31 @@ import {
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+const SWARM_POLL_INTERVAL_MS = 5_000;
+
+const sameSwarmJobs = (previous, next) =>
+  previous.length === next.length &&
+  previous.every(
+    (job, index) =>
+      job.jobId === next[index]?.jobId &&
+      job.filename === next[index]?.filename &&
+      job.activeSources === next[index]?.activeSources &&
+      job.downloadedBytes === next[index]?.downloadedBytes &&
+      job.totalBytes === next[index]?.totalBytes &&
+      job.progressPercent === next[index]?.progressPercent &&
+      job.percentComplete === next[index]?.percentComplete &&
+      job.completedChunks === next[index]?.completedChunks &&
+      job.totalChunks === next[index]?.totalChunks &&
+      job.state === next[index]?.state &&
+      job.chunksPerSecond === next[index]?.chunksPerSecond &&
+      job.estimatedSecondsRemaining ===
+        next[index]?.estimatedSecondsRemaining,
+  );
 
 const Jobs = () => {
   const mountedRef = useRef(true);
+  const swarmFetchInFlightRef = useRef(false);
+  const swarmPollIntervalRef = useRef(null);
   const [jobs, setJobs] = useState([]);
   const [swarmJobs, setSwarmJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -86,16 +108,28 @@ const Jobs = () => {
   }, [filters, pagination.limit, pagination.offset]);
 
   const fetchSwarmJobs = useCallback(async () => {
+    if (
+      document.hidden ||
+      !mountedRef.current ||
+      swarmFetchInFlightRef.current
+    ) {
+      return;
+    }
+
+    swarmFetchInFlightRef.current = true;
     try {
-      setSwarmLoading(true);
       const jobs = await jobsLibrary.getActiveSwarmJobs();
-      if (!mountedRef.current) return;
-      setSwarmJobs(asArray(jobs).filter(isObject));
+      if (!mountedRef.current || document.hidden) return;
+
+      const next = asArray(jobs).filter(isObject);
+      setSwarmJobs((previous) =>
+        sameSwarmJobs(previous, next) ? previous : next,
+      );
     } catch (error) {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || document.hidden) return;
       console.debug('Failed to fetch swarm jobs:', error);
-      setSwarmJobs([]);
     } finally {
+      swarmFetchInFlightRef.current = false;
       if (mountedRef.current) {
         setSwarmLoading(false);
       }
@@ -107,9 +141,36 @@ const Jobs = () => {
   }, [fetchJobs]);
 
   useEffect(() => {
-    fetchSwarmJobs();
-    const interval = setInterval(fetchSwarmJobs, 5_000); // Refresh every 5 seconds
-    return () => clearInterval(interval);
+    const stopPolling = () => {
+      if (swarmPollIntervalRef.current) {
+        window.clearInterval(swarmPollIntervalRef.current);
+        swarmPollIntervalRef.current = null;
+      }
+    };
+    const startPolling = () => {
+      if (document.hidden || swarmPollIntervalRef.current) return;
+
+      fetchSwarmJobs();
+      swarmPollIntervalRef.current = window.setInterval(
+        fetchSwarmJobs,
+        SWARM_POLL_INTERVAL_MS,
+      );
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      stopPolling();
+    };
   }, [fetchSwarmJobs]);
 
   const analytics = useMemo(() => {
@@ -284,7 +345,7 @@ const Jobs = () => {
                     <Progress
                       active
                       color="blue"
-                      percent={job.progressPercent ?? 0}
+                      percent={job.progressPercent ?? job.percentComplete ?? 0}
                       progress
                       size="small"
                     />

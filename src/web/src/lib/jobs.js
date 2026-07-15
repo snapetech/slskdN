@@ -80,13 +80,8 @@ export const createMbReleaseJob = async ({
  * @returns {Promise<Array>} List of active swarm jobs
  */
 export const getActiveSwarmJobs = async () => {
-  try {
-    const response = await api.get('/multisource/jobs');
-    return Array.isArray(response.data?.jobs) ? response.data.jobs : [];
-  } catch (error) {
-    console.debug('Failed to fetch swarm jobs:', error);
-    return [];
-  }
+  const response = await api.get('/multisource/jobs');
+  return Array.isArray(response.data?.jobs) ? response.data.jobs : [];
 };
 
 /**

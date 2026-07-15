@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Jobs and swarm visualization polling now keeps two-second live status while
+  reading and aggregating full trace histories every ten seconds. Unchanged,
+  overlapping, hidden, and transiently failed work no longer replaces or
+  rerenders the current view.
 - The Downloads/Uploads page now seeds only actionable transfers, then follows
   indexed `UpdatedAt` deltas and loads successful history in stable 250-record
   pages only when users reveal or request it. Server-provided totals keep tab
