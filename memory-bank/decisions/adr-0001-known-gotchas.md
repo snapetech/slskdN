@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z576. Async Pollers Need Async Fake-Timer Advancement
+
+**The Bug**: A cadence test advanced multiple interval periods with synchronous
+`vi.advanceTimersByTime`. Vitest fired every callback in one task without
+flushing the resolved hydration promises between ticks, so the application's
+intentional in-flight guard collapsed later fake ticks and made the measured
+cadence look too slow.
+
+**Files Affected**:
+- `src/web/src/components/Messaging/MessagingV2.test.jsx`
+
+**Prevention**: Use `await vi.advanceTimersByTimeAsync(...)` inside `act` when
+testing async interval callbacks across multiple periods. This allows promise
+microtasks and in-flight cleanup to run between timer callbacks, matching real
+browser scheduling.
+
 ### 0z575. Vitest Mock Implementations Do Not Clear Invocation History
 
 **The Bug**: A multi-case polling test reset each mock's resolved value in
