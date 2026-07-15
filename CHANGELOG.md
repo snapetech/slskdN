@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Swarm Analytics now builds all rendered dashboard sections from one peer
+  snapshot and one HTTP request, omits unused trend hydration, suppresses
+  overlapping or unchanged refreshes, and stops polling while hidden.
 - Port Forwarding now loads a bounded available-port preview and VPN member
   counts only when their tabs open, polls authoritative status on a
   non-overlapping visible-only cadence, and renders real forwarder performance

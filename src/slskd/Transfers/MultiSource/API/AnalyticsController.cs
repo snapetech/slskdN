@@ -37,6 +37,36 @@ public class AnalyticsController : ControllerBase
     }
 
     /// <summary>
+    ///     Gets the complete swarm analytics dashboard from one service snapshot.
+    /// </summary>
+    /// <param name="timeWindowHours">Time window in hours (default: 24).</param>
+    /// <param name="rankingLimit">Maximum number of peer rankings (default: 20).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The complete analytics dashboard.</returns>
+    [HttpGet("dashboard")]
+    public async Task<IActionResult> GetDashboard(
+        [FromQuery] int timeWindowHours = 24,
+        [FromQuery] int rankingLimit = 20,
+        CancellationToken cancellationToken = default)
+    {
+        if (timeWindowHours < 1 || timeWindowHours > 168)
+        {
+            return BadRequest("Time window must be between 1 and 168 hours (7 days)");
+        }
+
+        if (rankingLimit < 1 || rankingLimit > 100)
+        {
+            return BadRequest("Ranking limit must be between 1 and 100");
+        }
+
+        var dashboard = await _analyticsService.GetDashboardAsync(
+            TimeSpan.FromHours(timeWindowHours),
+            rankingLimit,
+            cancellationToken).ConfigureAwait(false);
+        return Ok(dashboard);
+    }
+
+    /// <summary>
     ///     Gets overall swarm performance metrics.
     /// </summary>
     /// <param name="timeWindowHours">Time window in hours (default: 24).</param>

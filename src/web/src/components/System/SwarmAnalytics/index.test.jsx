@@ -5,6 +5,7 @@
 import * as swarmAnalyticsLibrary from '../../../lib/swarmAnalytics';
 import SwarmAnalytics from '.';
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -67,11 +68,6 @@ describe('SwarmAnalytics', () => {
     redundancyFactor: 1.5,
   };
 
-  const mockTrends = {
-    successRates: [0.95, 0.96],
-    timePoints: ['2026-01-27T00:00:00Z', '2026-01-27T01:00:00Z'],
-  };
-
   const mockRecommendations = [
     {
       action: 'Review peer rankings and adjust selection algorithm',
@@ -93,17 +89,24 @@ describe('SwarmAnalytics', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    swarmAnalyticsLibrary.getPerformanceMetrics.mockResolvedValue(
-      mockPerformanceMetrics,
-    );
-    swarmAnalyticsLibrary.getPeerRankings.mockResolvedValue(mockPeerRankings);
-    swarmAnalyticsLibrary.getEfficiencyMetrics.mockResolvedValue(
-      mockEfficiencyMetrics,
-    );
-    swarmAnalyticsLibrary.getTrends.mockResolvedValue(mockTrends);
-    swarmAnalyticsLibrary.getRecommendations.mockResolvedValue(
-      mockRecommendations,
-    );
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
+    swarmAnalyticsLibrary.getDashboard.mockResolvedValue({
+      efficiencyMetrics: mockEfficiencyMetrics,
+      peerRankings: mockPeerRankings,
+      performanceMetrics: mockPerformanceMetrics,
+      recommendations: mockRecommendations,
+    });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
   });
 
   it('renders the component header', () => {
@@ -199,11 +202,12 @@ describe('SwarmAnalytics', () => {
   });
 
   it('displays no data message when no analytics available', async () => {
-    swarmAnalyticsLibrary.getPerformanceMetrics.mockResolvedValue(null);
-    swarmAnalyticsLibrary.getPeerRankings.mockResolvedValue([]);
-    swarmAnalyticsLibrary.getEfficiencyMetrics.mockResolvedValue(null);
-    swarmAnalyticsLibrary.getTrends.mockResolvedValue(null);
-    swarmAnalyticsLibrary.getRecommendations.mockResolvedValue([]);
+    swarmAnalyticsLibrary.getDashboard.mockResolvedValue({
+      efficiencyMetrics: null,
+      peerRankings: [],
+      performanceMetrics: null,
+      recommendations: [],
+    });
 
     render(<SwarmAnalytics />);
 
@@ -213,8 +217,12 @@ describe('SwarmAnalytics', () => {
   });
 
   it('ignores malformed list payloads from rankings and recommendations', async () => {
-    swarmAnalyticsLibrary.getPeerRankings.mockResolvedValue({ peers: mockPeerRankings });
-    swarmAnalyticsLibrary.getRecommendations.mockResolvedValue('bad');
+    swarmAnalyticsLibrary.getDashboard.mockResolvedValue({
+      efficiencyMetrics: mockEfficiencyMetrics,
+      peerRankings: { peers: mockPeerRankings },
+      performanceMetrics: mockPerformanceMetrics,
+      recommendations: 'bad',
+    });
 
     render(<SwarmAnalytics />);
 
@@ -227,7 +235,7 @@ describe('SwarmAnalytics', () => {
 
   it('handles API errors gracefully', async () => {
     const error = new Error('Network error');
-    swarmAnalyticsLibrary.getPerformanceMetrics.mockRejectedValue(error);
+    swarmAnalyticsLibrary.getDashboard.mockRejectedValue(error);
 
     render(<SwarmAnalytics />);
 
@@ -236,26 +244,170 @@ describe('SwarmAnalytics', () => {
     });
   });
 
+  it('retains the last successful dashboard when a refresh fails', async () => {
+    jest.useFakeTimers();
+    swarmAnalyticsLibrary.getDashboard
+      .mockResolvedValueOnce({
+        efficiencyMetrics: mockEfficiencyMetrics,
+        peerRankings: mockPeerRankings,
+        performanceMetrics: mockPerformanceMetrics,
+        recommendations: mockRecommendations,
+      })
+      .mockRejectedValueOnce(new Error('temporary failure'));
+
+    render(<SwarmAnalytics />);
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(screen.getByText('150')).toBeInTheDocument();
+
+    await act(async () => {
+      jest.advanceTimersByTime(30_000);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(screen.getByText('150')).toBeInTheDocument();
+    expect(toast.error).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a stale response after the time-window filter changes', async () => {
+    let resolveCurrent;
+    let resolvePrevious;
+    swarmAnalyticsLibrary.getDashboard.mockImplementation(
+      (timeWindow) =>
+        new Promise((resolve) => {
+          if (timeWindow === 6) {
+            resolveCurrent = resolve;
+          } else {
+            resolvePrevious = resolve;
+          }
+        }),
+    );
+
+    render(<SwarmAnalytics />);
+    await waitFor(() => {
+      expect(swarmAnalyticsLibrary.getDashboard).toHaveBeenCalledWith(24, 20);
+    });
+
+    const timeWindowDropdown = screen.getAllByRole('listbox')[0];
+    fireEvent.click(timeWindowDropdown);
+    fireEvent.click(
+      within(timeWindowDropdown).getByRole('option', { name: '6 hours' }),
+    );
+    await waitFor(() => {
+      expect(swarmAnalyticsLibrary.getDashboard).toHaveBeenCalledWith(6, 20);
+    });
+
+    await act(async () => {
+      resolveCurrent({
+        performanceMetrics: {
+          ...mockPerformanceMetrics,
+          totalDownloads: 6,
+        },
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(screen.getByText('6')).toBeInTheDocument();
+
+    await act(async () => {
+      resolvePrevious({
+        performanceMetrics: {
+          ...mockPerformanceMetrics,
+          totalDownloads: 999,
+        },
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(screen.queryByText('999')).not.toBeInTheDocument();
+    expect(screen.getByText('6')).toBeInTheDocument();
+  });
+
   it('refreshes data periodically', async () => {
     jest.useFakeTimers();
     render(<SwarmAnalytics />);
 
-    await waitFor(() => {
-      expect(swarmAnalyticsLibrary.getPerformanceMetrics).toHaveBeenCalledTimes(
-        1,
-      );
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(swarmAnalyticsLibrary.getDashboard).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      jest.advanceTimersByTime(30_000);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(swarmAnalyticsLibrary.getDashboard).toHaveBeenCalledTimes(2);
+    expect(swarmAnalyticsLibrary.getPerformanceMetrics).not.toHaveBeenCalled();
+    expect(swarmAnalyticsLibrary.getPeerRankings).not.toHaveBeenCalled();
+    expect(swarmAnalyticsLibrary.getEfficiencyMetrics).not.toHaveBeenCalled();
+    expect(swarmAnalyticsLibrary.getTrends).not.toHaveBeenCalled();
+    expect(swarmAnalyticsLibrary.getRecommendations).not.toHaveBeenCalled();
+  });
+
+  it('rejects overlapping refreshes', async () => {
+    jest.useFakeTimers();
+    let resolveDashboard;
+    swarmAnalyticsLibrary.getDashboard.mockReturnValue(
+      new Promise((resolve) => {
+        resolveDashboard = resolve;
+      }),
+    );
+
+    render(<SwarmAnalytics />);
+    await act(async () => {
+      jest.advanceTimersByTime(90_000);
+      await Promise.resolve();
+    });
+    expect(swarmAnalyticsLibrary.getDashboard).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveDashboard({});
+      await Promise.resolve();
+      await Promise.resolve();
+      jest.advanceTimersByTime(30_000);
+      await Promise.resolve();
+    });
+    expect(swarmAnalyticsLibrary.getDashboard).toHaveBeenCalledTimes(2);
+  });
+
+  it('suspends hidden polling and catches up on visibility', async () => {
+    jest.useFakeTimers();
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: true,
     });
 
-    // Fast-forward 30 seconds (refresh interval)
-    jest.advanceTimersByTime(30_000);
-
-    await waitFor(() => {
-      expect(swarmAnalyticsLibrary.getPerformanceMetrics).toHaveBeenCalledTimes(
-        2,
-      );
+    render(<SwarmAnalytics />);
+    await act(async () => {
+      jest.advanceTimersByTime(60_000);
+      await Promise.resolve();
     });
+    expect(swarmAnalyticsLibrary.getDashboard).not.toHaveBeenCalled();
 
-    jest.useRealTimers();
+    await act(async () => {
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        value: false,
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(swarmAnalyticsLibrary.getDashboard).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        value: true,
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+      jest.advanceTimersByTime(60_000);
+    });
+    expect(swarmAnalyticsLibrary.getDashboard).toHaveBeenCalledTimes(1);
   });
 
   it('displays correct time window label', async () => {

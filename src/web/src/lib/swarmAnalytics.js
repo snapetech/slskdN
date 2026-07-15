@@ -7,6 +7,22 @@ import api from './api';
 const asArray = (value) => (Array.isArray(value) ? value : []);
 
 /**
+ * Get the complete swarm analytics dashboard from one server snapshot.
+ * @param {number} timeWindowHours - Time window in hours.
+ * @param {number} rankingLimit - Maximum peer rankings to return.
+ * @returns {Promise<object>} Complete analytics dashboard
+ */
+export const getDashboard = async (
+  timeWindowHours = 24,
+  rankingLimit = 20,
+) => {
+  const response = await api.get('/swarm/analytics/dashboard', {
+    params: { rankingLimit, timeWindowHours },
+  });
+  return response.data;
+};
+
+/**
  * Get swarm performance metrics.
  * @param {number} timeWindowHours - Time window in hours (default: 24)
  * @returns {Promise<object>} Performance metrics

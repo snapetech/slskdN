@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Collapse Swarm Analytics refresh fan-out into one source snapshot.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Added one bounded dashboard endpoint that builds every rendered analytics section from a single top-100 peer-ranking snapshot while retaining all legacy leaf endpoints. The page now makes one request instead of five per refresh, omits unused trend data, rejects same-filter overlap, ignores stale filter completions, retains cached data on failures, suppresses unchanged updates, and stops polling while hidden with immediate visibility catch-up. Recommendations independently fall from two complete peer-metrics reads/ranks to one, and efficiency reads now preserve request cancellation. For a 100,000-row SQLite proxy across 20 refreshes, four full snapshots took 7.997 seconds versus 1.964 seconds for one (75.44% lower); the first visible minute falls from 10 requests and 800,000 row materializations to 2 requests and 200,000 rows, while hidden requests fall from 10 per minute to zero. Added service, controller, integration, API-client, rendering, cache, stale-filter, cadence, overlap, and visibility regressions; regenerated the route inventory; documented gotchas `0z602` through `0z607` in standalone commits `2220f3ac7`, `bc5cfba43`, `9baa35325`, `6f4032ee0`, `54807c7c5`, and `e30160a04`.
+
 - [x] Bound Port Forwarding preview hydration and status polling.
   - Status: completed (2026-07-15)
   - Priority: P1

@@ -14,6 +14,14 @@ using System.Threading.Tasks;
 public interface ISwarmAnalyticsService
 {
     /// <summary>
+    ///     Gets the complete analytics dashboard from one peer-ranking snapshot.
+    /// </summary>
+    Task<SwarmAnalyticsDashboard> GetDashboardAsync(
+        TimeSpan timeWindow,
+        int rankingLimit = 20,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     ///     Gets overall swarm performance metrics.
     /// </summary>
     Task<SwarmPerformanceMetrics> GetPerformanceMetricsAsync(TimeSpan? timeWindow = null, CancellationToken cancellationToken = default);

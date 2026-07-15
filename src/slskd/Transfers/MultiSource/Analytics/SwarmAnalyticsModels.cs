@@ -7,6 +7,15 @@ using System;
 using System.Collections.Generic;
 
 /// <summary>
+///     Complete swarm analytics dashboard built from one peer-ranking snapshot.
+/// </summary>
+public record SwarmAnalyticsDashboard(
+    SwarmPerformanceMetrics PerformanceMetrics,
+    IReadOnlyList<PeerPerformanceRanking> PeerRankings,
+    SwarmEfficiencyMetrics EfficiencyMetrics,
+    IReadOnlyList<SwarmRecommendation> Recommendations);
+
+/// <summary>
 ///     Overall swarm performance metrics.
 /// </summary>
 public class SwarmPerformanceMetrics

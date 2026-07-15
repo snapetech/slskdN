@@ -28,6 +28,13 @@ public class AnalyticsControllerIntegrationTests : IClassFixture<slskd.Tests.Int
     }
 
     [Fact]
+    public async Task DashboardEndpoint_ReturnsOk()
+    {
+        var response = await _client.GetAsync("/api/v0/swarm/analytics/dashboard?timeWindowHours=24&rankingLimit=20");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
     public async Task PeerRankingsEndpoint_ReturnsOk()
     {
         var response = await _client.GetAsync("/api/v0/swarm/analytics/peers/rankings?limit=10");

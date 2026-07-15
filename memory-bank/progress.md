@@ -1,3 +1,13 @@
+## Update 2026-07-15 22:49:43Z
+
+- Completed the Swarm Analytics request-fan-out and peer-snapshot performance pass.
+- Added authenticated `GET /api/v0/swarm/analytics/dashboard`, which builds performance, peer rankings, efficiency, and recommendations from one top-100 peer snapshot; retained the five legacy leaf endpoints and removed the page's unused trends request.
+- Reduced each visible refresh from five HTTP requests and four complete `PeerMetrics` reads/ranks to one request and one read/rank. Recommendations now also reuse one snapshot, and efficiency propagates request cancellation.
+- Added non-overlapping, visible-only polling with immediate visibility catch-up, stale-filter rejection, cached-state retention on failure, normalized response boundaries, and unchanged-dashboard suppression.
+- On a synthetic 100,000-row SQLite table across 20 refreshes, four snapshots took 7.997 seconds versus 1.964 seconds for one (75.44% lower). The first visible minute falls from 10 requests and 800,000 materialized peer rows to 2 requests and 200,000 rows (80% and 75% lower); hidden requests fall from 10 per minute to zero.
+- Added service/controller/integration, API-client, rendering, cache, stale-filter, cadence, overlap, and visibility regressions; regenerated the route inventory; documented gotchas `0z602` through `0z607` in standalone commits `2220f3ac7`, `bc5cfba43`, `9baa35325`, `6f4032ee0`, `54807c7c5`, and `e30160a04`.
+- Validation passed: focused backend/API tests (`48/48`: `39` unit, `9` integration), focused Web tests (`31/31`), complete backend suites (`4751/4751`: `69` smoke, `4403` unit, `279` integration), complete Web tests (`837` passed, `4` skipped), production Web build, frontend lint with zero errors, repository lint, route-inventory, polling-lifecycle, CSRF, identity-leak, and whitespace checks.
+
 ## Update 2026-07-15 22:32:13Z
 
 - Completed the Port Forwarding preview, status-polling, and statistics performance pass.

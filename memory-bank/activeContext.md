@@ -1,3 +1,19 @@
+## Update 2026-07-15 22:49:43Z
+
+- Current task: performance and efficiency improvements in progress; Swarm Analytics snapshot and polling pass complete locally.
+- Last activity:
+  - Added one bounded dashboard endpoint that builds all rendered analytics sections from a single top-100 peer-ranking snapshot while preserving the legacy leaf APIs and omitting unused trend data.
+  - Changed the page from five requests and four complete peer-table reads/ranks per refresh to one request and one read/rank; recommendations now reuse one ranking snapshot and efficiency propagates request cancellation.
+  - Added overlap rejection, visible-only polling, immediate visibility catch-up, stale-filter rejection, failure-cache retention, response normalization, and unchanged-dashboard suppression.
+  - Reduced a 100,000-row SQLite proxy from 7.997 seconds for four snapshots to 1.964 seconds for one across 20 refreshes (75.44%). First-minute visible requests fall from 10 to 2 and hidden requests fall from 10 per minute to zero.
+  - Added service/controller/integration, API-client, rendering, cache, stale-filter, cadence, overlap, and visibility regressions; regenerated the route inventory; documented gotchas `0z602` through `0z607` in standalone commits `2220f3ac7`, `bc5cfba43`, `9baa35325`, `6f4032ee0`, `54807c7c5`, and `e30160a04`.
+- Validation:
+  - Passed focused backend/API tests (`48/48`: `39` unit, `9` integration) and focused Web tests (`31/31`).
+  - Passed complete backend suites (`4751/4751`: `69` smoke, `4403` unit, `279` integration), complete Web tests (`837` passed, `4` skipped), production Web build, frontend lint with zero errors, repository lint, route-inventory, polling-lifecycle, CSRF, identity-leak, and whitespace checks.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 22:32:13Z
 
 - Current task: performance and efficiency improvements in progress; Port Forwarding preview, polling, and statistics pass complete locally.

@@ -37,52 +37,34 @@ public class SwarmAnalyticsService : ISwarmAnalyticsService
     }
 
     /// <inheritdoc/>
+    public async Task<SwarmAnalyticsDashboard> GetDashboardAsync(
+        TimeSpan timeWindow,
+        int rankingLimit = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var rankedPeers = await _peerMetricsService
+            .GetRankedPeersAsync(100, cancellationToken)
+            .ConfigureAwait(false);
+        var performanceMetrics = CreatePerformanceMetrics(timeWindow);
+        var efficiencyMetrics = CreateEfficiencyMetrics(rankedPeers);
+        var peerRankings = CreatePeerRankings(rankedPeers, rankingLimit);
+        var recommendationPeers = CreatePeerRankings(rankedPeers, 10);
+
+        return new SwarmAnalyticsDashboard(
+            performanceMetrics,
+            peerRankings,
+            efficiencyMetrics,
+            CreateRecommendations(performanceMetrics, efficiencyMetrics, recommendationPeers));
+    }
+
+    /// <inheritdoc/>
     public Task<SwarmPerformanceMetrics> GetPerformanceMetricsAsync(TimeSpan? timeWindow = null, CancellationToken cancellationToken = default)
     {
         timeWindow ??= TimeSpan.FromHours(24);
 
         try
         {
-            // Get metrics from Prometheus (simplified - in production, query Prometheus API)
-            // For now, we'll use the metric values directly if available
-            var metrics = new SwarmPerformanceMetrics
-            {
-                TimeWindow = timeWindow.Value,
-            };
-
-            // Get active downloads count
-            metrics.TotalDownloads = (long)SwarmDownloadsActive.Value;
-
-            // Calculate success rate from counters (simplified)
-            var started = SwarmDownloadsTotal.WithLabels("started").Value;
-            var success = SwarmDownloadsTotal.WithLabels("success").Value;
-            var failed = SwarmDownloadsTotal.WithLabels("failed").Value;
-
-            metrics.SuccessfulDownloads = (long)success;
-            metrics.FailedDownloads = (long)failed;
-            metrics.TotalDownloads = (long)(started + success + failed);
-
-            if (metrics.TotalDownloads > 0)
-            {
-                metrics.SuccessRate = (double)success / metrics.TotalDownloads;
-            }
-
-            // Get total bytes downloaded
-            metrics.TotalBytesDownloaded = (long)SwarmBytesDownloadedTotal.Value;
-
-            // Get chunk metrics
-            var chunksSuccess = SwarmChunksCompletedTotal.WithLabels("success").Value;
-            var chunksFailed = SwarmChunksCompletedTotal.WithLabels("failed").Value;
-            var chunksTimeout = SwarmChunksCompletedTotal.WithLabels("timeout").Value;
-            var chunksCorrupted = SwarmChunksCompletedTotal.WithLabels("corrupted").Value;
-
-            metrics.TotalChunksCompleted = (long)(chunksSuccess + chunksFailed + chunksTimeout + chunksCorrupted);
-            if (metrics.TotalChunksCompleted > 0)
-            {
-                metrics.ChunkSuccessRate = (double)chunksSuccess / metrics.TotalChunksCompleted;
-            }
-
-            return Task.FromResult(metrics);
+            return Task.FromResult(CreatePerformanceMetrics(timeWindow.Value));
         }
         catch (Exception ex)
         {
@@ -98,34 +80,7 @@ public class SwarmAnalyticsService : ISwarmAnalyticsService
         {
             var rankedPeers = await _peerMetricsService.GetRankedPeersAsync(limit, cancellationToken).ConfigureAwait(false);
 
-            var rankings = new List<PeerPerformanceRanking>();
-            int rank = 1;
-
-            foreach (var peer in rankedPeers)
-            {
-                var ranking = new PeerPerformanceRanking
-                {
-                    PeerId = peer.PeerId,
-                    Source = peer.Source.ToString().ToLowerInvariant(),
-                    ReputationScore = peer.ReputationScore,
-                    AverageRttMs = peer.RttAvgMs,
-                    AverageThroughputBytesPerSecond = peer.ThroughputAvgBytesPerSec,
-                    ChunksCompleted = peer.ChunksCompleted,
-                    ChunksFailed = peer.ChunksFailed,
-                    TotalBytesTransferred = peer.TotalBytesTransferred,
-                    Rank = rank++,
-                };
-
-                var totalChunks = peer.ChunksCompleted + peer.ChunksFailed + peer.ChunksTimedOut + peer.ChunksCorrupted;
-                if (totalChunks > 0)
-                {
-                    ranking.ChunkSuccessRate = (double)peer.ChunksCompleted / totalChunks;
-                }
-
-                rankings.Add(ranking);
-            }
-
-            return rankings;
+            return CreatePeerRankings(rankedPeers, limit);
         }
         catch (Exception ex)
         {
@@ -141,48 +96,8 @@ public class SwarmAnalyticsService : ISwarmAnalyticsService
 
         try
         {
-            var metrics = new SwarmEfficiencyMetrics();
-
-            var activeDownloadsById = _downloadService.ActiveDownloads;
-            var activeDownloads = activeDownloadsById.Values.ToList();
-            var totalDownloads = (long)SwarmDownloadsTotal.WithLabels("started").Value;
-            if (totalDownloads > 0)
-            {
-                metrics.ChunkUtilization = Math.Min(1.0, (double)activeDownloads.Count / totalDownloads);
-            }
-
-            var rankedPeers = await _peerMetricsService.GetRankedPeersAsync(100, CancellationToken.None).ConfigureAwait(false);
-            var activePeers = rankedPeers.Count(p => p.ChunksCompleted > 0 || p.ChunksFailed > 0);
-            if (rankedPeers.Count > 0)
-            {
-                metrics.PeerUtilization = (double)activePeers / rankedPeers.Count;
-            }
-
-            var downloadsWithChunks = activeDownloads.Count(d => d.TotalChunks > 0);
-            if (downloadsWithChunks > 0)
-            {
-                metrics.RedundancyFactor = activeDownloads
-                    .Where(d => d.TotalChunks > 0)
-                    .Average(d => d.ActiveWorkers > 0 ? d.ActiveWorkers : 1);
-
-                metrics.AverageReassignmentRate = activeDownloads
-                    .Where(d => d.TotalChunks > 0)
-                    .Average(d => d.PeerTimeouts.Count / (double)d.TotalChunks);
-            }
-
-            var peersWithRecentThroughput = rankedPeers
-                .SelectMany(p => p.RecentThroughputSamples)
-                .Where(s => s.Duration > TimeSpan.Zero)
-                .ToList();
-
-            if (peersWithRecentThroughput.Count > 0)
-            {
-                metrics.AverageTimeToFirstByteMs = peersWithRecentThroughput.Average(s => s.Duration.TotalMilliseconds);
-            }
-
-            metrics.AverageRescueRate = 0;
-
-            return metrics;
+            var rankedPeers = await _peerMetricsService.GetRankedPeersAsync(100, cancellationToken).ConfigureAwait(false);
+            return CreateEfficiencyMetrics(rankedPeers);
         }
         catch (Exception ex)
         {
@@ -213,91 +128,182 @@ public class SwarmAnalyticsService : ISwarmAnalyticsService
     {
         try
         {
-            var recommendations = new List<SwarmRecommendation>();
-
-            // Get current metrics
-            var performanceMetrics = await GetPerformanceMetricsAsync(TimeSpan.FromHours(24), cancellationToken).ConfigureAwait(false);
-            var efficiencyMetrics = await GetEfficiencyMetricsAsync(TimeSpan.FromHours(24), cancellationToken).ConfigureAwait(false);
-            var peerRankings = await GetPeerRankingsAsync(10, cancellationToken).ConfigureAwait(false);
-
-            // Check success rate
-            if (performanceMetrics.SuccessRate < 0.8)
-            {
-                recommendations.Add(new SwarmRecommendation
-                {
-                    Type = RecommendationType.PeerSelection,
-                    Priority = RecommendationPriority.High,
-                    Title = "Low Success Rate",
-                    Description = $"Current success rate is {performanceMetrics.SuccessRate:P1}. Consider improving peer selection criteria.",
-                    Action = "Review peer reputation thresholds and increase minimum reputation score for peer selection.",
-                    EstimatedImpact = 0.3,
-                });
-            }
-
-            // Check chunk success rate
-            if (performanceMetrics.ChunkSuccessRate < 0.9)
-            {
-                recommendations.Add(new SwarmRecommendation
-                {
-                    Type = RecommendationType.ChunkSize,
-                    Priority = RecommendationPriority.Medium,
-                    Title = "High Chunk Failure Rate",
-                    Description = $"Chunk success rate is {performanceMetrics.ChunkSuccessRate:P1}. Consider adjusting chunk size.",
-                    Action = "Try reducing chunk size to improve reliability, or increase timeout values.",
-                    EstimatedImpact = 0.2,
-                });
-            }
-
-            // Check peer utilization
-            if (efficiencyMetrics.PeerUtilization < 0.5)
-            {
-                recommendations.Add(new SwarmRecommendation
-                {
-                    Type = RecommendationType.SourceCount,
-                    Priority = RecommendationPriority.Low,
-                    Title = "Low Peer Utilization",
-                    Description = $"Only {efficiencyMetrics.PeerUtilization:P1} of available peers are being utilized.",
-                    Action = "Consider increasing the number of sources per download to improve redundancy.",
-                    EstimatedImpact = 0.15,
-                });
-            }
-
-            // Check for low-reputation peers
-            var lowReputationPeers = peerRankings.Count(p => p.ReputationScore < 0.5);
-            if (lowReputationPeers > 0)
-            {
-                recommendations.Add(new SwarmRecommendation
-                {
-                    Type = RecommendationType.PeerSelection,
-                    Priority = RecommendationPriority.Medium,
-                    Title = "Low-Reputation Peers Detected",
-                    Description = $"{lowReputationPeers} peers have reputation scores below 0.5.",
-                    Action = "Consider blacklisting or deprioritizing low-reputation peers to improve overall performance.",
-                    EstimatedImpact = 0.25,
-                });
-            }
-
-            // Check average speed
-            var speedMbps = performanceMetrics.AverageSpeedBytesPerSecond / (1024.0 * 1024.0);
-            if (speedMbps < 0.5)
-            {
-                recommendations.Add(new SwarmRecommendation
-                {
-                    Type = RecommendationType.NetworkConfig,
-                    Priority = RecommendationPriority.High,
-                    Title = "Low Download Speed",
-                    Description = $"Average download speed is {speedMbps:F2} MB/s. This may indicate network or peer issues.",
-                    Action = "Check network connectivity, firewall settings, and consider using more sources per download.",
-                    EstimatedImpact = 0.4,
-                });
-            }
-
-            return recommendations.OrderByDescending(r => r.Priority).ThenByDescending(r => r.EstimatedImpact).ToList();
+            var performanceMetrics = CreatePerformanceMetrics(TimeSpan.FromHours(24));
+            var rankedPeers = await _peerMetricsService.GetRankedPeersAsync(100, cancellationToken).ConfigureAwait(false);
+            return CreateRecommendations(
+                performanceMetrics,
+                CreateEfficiencyMetrics(rankedPeers),
+                CreatePeerRankings(rankedPeers, 10));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting recommendations");
             return new List<SwarmRecommendation>();
         }
+    }
+
+    private static SwarmPerformanceMetrics CreatePerformanceMetrics(TimeSpan timeWindow)
+    {
+        var started = SwarmDownloadsTotal.WithLabels("started").Value;
+        var success = SwarmDownloadsTotal.WithLabels("success").Value;
+        var failed = SwarmDownloadsTotal.WithLabels("failed").Value;
+        var chunksSuccess = SwarmChunksCompletedTotal.WithLabels("success").Value;
+        var chunksFailed = SwarmChunksCompletedTotal.WithLabels("failed").Value;
+        var chunksTimeout = SwarmChunksCompletedTotal.WithLabels("timeout").Value;
+        var chunksCorrupted = SwarmChunksCompletedTotal.WithLabels("corrupted").Value;
+        var totalDownloads = (long)(started + success + failed);
+        var totalChunks = (long)(chunksSuccess + chunksFailed + chunksTimeout + chunksCorrupted);
+
+        return new SwarmPerformanceMetrics
+        {
+            TimeWindow = timeWindow,
+            SuccessfulDownloads = (long)success,
+            FailedDownloads = (long)failed,
+            TotalDownloads = totalDownloads,
+            SuccessRate = totalDownloads > 0 ? success / totalDownloads : 0,
+            TotalBytesDownloaded = (long)SwarmBytesDownloadedTotal.Value,
+            TotalChunksCompleted = totalChunks,
+            ChunkSuccessRate = totalChunks > 0 ? chunksSuccess / totalChunks : 0,
+        };
+    }
+
+    private static List<PeerPerformanceRanking> CreatePeerRankings(
+        IReadOnlyList<PeerPerformanceMetrics> rankedPeers,
+        int limit)
+    {
+        return rankedPeers
+            .Take(limit)
+            .Select((peer, index) =>
+            {
+                var totalChunks = peer.ChunksCompleted + peer.ChunksFailed + peer.ChunksTimedOut + peer.ChunksCorrupted;
+                return new PeerPerformanceRanking
+                {
+                    PeerId = peer.PeerId,
+                    Source = peer.Source.ToString().ToLowerInvariant(),
+                    ReputationScore = peer.ReputationScore,
+                    AverageRttMs = peer.RttAvgMs,
+                    AverageThroughputBytesPerSecond = peer.ThroughputAvgBytesPerSec,
+                    ChunksCompleted = peer.ChunksCompleted,
+                    ChunksFailed = peer.ChunksFailed,
+                    ChunkSuccessRate = totalChunks > 0 ? (double)peer.ChunksCompleted / totalChunks : 0,
+                    TotalBytesTransferred = peer.TotalBytesTransferred,
+                    Rank = index + 1,
+                };
+            })
+            .ToList();
+    }
+
+    private SwarmEfficiencyMetrics CreateEfficiencyMetrics(IReadOnlyList<PeerPerformanceMetrics> rankedPeers)
+    {
+        var metrics = new SwarmEfficiencyMetrics();
+        var activeDownloads = _downloadService.ActiveDownloads.Values.ToList();
+        var totalDownloads = (long)SwarmDownloadsTotal.WithLabels("started").Value;
+        if (totalDownloads > 0)
+        {
+            metrics.ChunkUtilization = Math.Min(1.0, (double)activeDownloads.Count / totalDownloads);
+        }
+
+        var activePeers = rankedPeers.Count(p => p.ChunksCompleted > 0 || p.ChunksFailed > 0);
+        if (rankedPeers.Count > 0)
+        {
+            metrics.PeerUtilization = (double)activePeers / rankedPeers.Count;
+        }
+
+        var downloadsWithChunks = activeDownloads.Where(d => d.TotalChunks > 0).ToList();
+        if (downloadsWithChunks.Count > 0)
+        {
+            metrics.RedundancyFactor = downloadsWithChunks.Average(d => d.ActiveWorkers > 0 ? d.ActiveWorkers : 1);
+            metrics.AverageReassignmentRate = downloadsWithChunks.Average(d => d.PeerTimeouts.Count / (double)d.TotalChunks);
+        }
+
+        var peersWithRecentThroughput = rankedPeers
+            .SelectMany(p => p.RecentThroughputSamples)
+            .Where(s => s.Duration > TimeSpan.Zero)
+            .ToList();
+        if (peersWithRecentThroughput.Count > 0)
+        {
+            metrics.AverageTimeToFirstByteMs = peersWithRecentThroughput.Average(s => s.Duration.TotalMilliseconds);
+        }
+
+        return metrics;
+    }
+
+    private static List<SwarmRecommendation> CreateRecommendations(
+        SwarmPerformanceMetrics performanceMetrics,
+        SwarmEfficiencyMetrics efficiencyMetrics,
+        IReadOnlyList<PeerPerformanceRanking> peerRankings)
+    {
+        var recommendations = new List<SwarmRecommendation>();
+        if (performanceMetrics.SuccessRate < 0.8)
+        {
+            recommendations.Add(new SwarmRecommendation
+            {
+                Type = RecommendationType.PeerSelection,
+                Priority = RecommendationPriority.High,
+                Title = "Low Success Rate",
+                Description = $"Current success rate is {performanceMetrics.SuccessRate:P1}. Consider improving peer selection criteria.",
+                Action = "Review peer reputation thresholds and increase minimum reputation score for peer selection.",
+                EstimatedImpact = 0.3,
+            });
+        }
+
+        if (performanceMetrics.ChunkSuccessRate < 0.9)
+        {
+            recommendations.Add(new SwarmRecommendation
+            {
+                Type = RecommendationType.ChunkSize,
+                Priority = RecommendationPriority.Medium,
+                Title = "High Chunk Failure Rate",
+                Description = $"Chunk success rate is {performanceMetrics.ChunkSuccessRate:P1}. Consider adjusting chunk size.",
+                Action = "Try reducing chunk size to improve reliability, or increase timeout values.",
+                EstimatedImpact = 0.2,
+            });
+        }
+
+        if (efficiencyMetrics.PeerUtilization < 0.5)
+        {
+            recommendations.Add(new SwarmRecommendation
+            {
+                Type = RecommendationType.SourceCount,
+                Priority = RecommendationPriority.Low,
+                Title = "Low Peer Utilization",
+                Description = $"Only {efficiencyMetrics.PeerUtilization:P1} of available peers are being utilized.",
+                Action = "Consider increasing the number of sources per download to improve redundancy.",
+                EstimatedImpact = 0.15,
+            });
+        }
+
+        var lowReputationPeers = peerRankings.Count(p => p.ReputationScore < 0.5);
+        if (lowReputationPeers > 0)
+        {
+            recommendations.Add(new SwarmRecommendation
+            {
+                Type = RecommendationType.PeerSelection,
+                Priority = RecommendationPriority.Medium,
+                Title = "Low-Reputation Peers Detected",
+                Description = $"{lowReputationPeers} peers have reputation scores below 0.5.",
+                Action = "Consider blacklisting or deprioritizing low-reputation peers to improve overall performance.",
+                EstimatedImpact = 0.25,
+            });
+        }
+
+        var speedMbps = performanceMetrics.AverageSpeedBytesPerSecond / (1024.0 * 1024.0);
+        if (speedMbps < 0.5)
+        {
+            recommendations.Add(new SwarmRecommendation
+            {
+                Type = RecommendationType.NetworkConfig,
+                Priority = RecommendationPriority.High,
+                Title = "Low Download Speed",
+                Description = $"Average download speed is {speedMbps:F2} MB/s. This may indicate network or peer issues.",
+                Action = "Check network connectivity, firewall settings, and consider using more sources per download.",
+                EstimatedImpact = 0.4,
+            });
+        }
+
+        return recommendations
+            .OrderByDescending(r => r.Priority)
+            .ThenByDescending(r => r.EstimatedImpact)
+            .ToList();
     }
 }

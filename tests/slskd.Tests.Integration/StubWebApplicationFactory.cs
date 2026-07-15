@@ -316,6 +316,18 @@ internal class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptio
 
 internal class StubSwarmAnalyticsService : slskd.Transfers.MultiSource.Analytics.ISwarmAnalyticsService
 {
+    public Task<slskd.Transfers.MultiSource.Analytics.SwarmAnalyticsDashboard> GetDashboardAsync(
+        TimeSpan timeWindow,
+        int rankingLimit = 20,
+        CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(new slskd.Transfers.MultiSource.Analytics.SwarmAnalyticsDashboard(
+            new slskd.Transfers.MultiSource.Analytics.SwarmPerformanceMetrics { TimeWindow = timeWindow },
+            new List<slskd.Transfers.MultiSource.Analytics.PeerPerformanceRanking>(),
+            new slskd.Transfers.MultiSource.Analytics.SwarmEfficiencyMetrics(),
+            new List<slskd.Transfers.MultiSource.Analytics.SwarmRecommendation>()));
+    }
+
     public Task<slskd.Transfers.MultiSource.Analytics.SwarmPerformanceMetrics> GetPerformanceMetricsAsync(
         TimeSpan? timeWindow = null,
         CancellationToken cancellationToken = default)

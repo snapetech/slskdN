@@ -22,17 +22,35 @@ import {
 } from 'semantic-ui-react';
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
+const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+const POLL_INTERVAL_MS = 30_000;
+const normalizeDashboard = (value) => {
+  const dashboard = isObject(value) ? value : {};
+  return {
+    efficiencyMetrics: isObject(dashboard.efficiencyMetrics)
+      ? dashboard.efficiencyMetrics
+      : null,
+    peerRankings: asArray(dashboard.peerRankings).filter(isObject),
+    performanceMetrics: isObject(dashboard.performanceMetrics)
+      ? dashboard.performanceMetrics
+      : null,
+    recommendations: asArray(dashboard.recommendations).filter(isObject),
+  };
+};
 
 const SwarmAnalytics = () => {
+  const analyticsSignatureRef = useRef(null);
+  const fetchRequestRef = useRef(null);
   const mountedRef = useRef(true);
-  const [performanceMetrics, setPerformanceMetrics] = useState(null);
-  const [peerRankings, setPeerRankings] = useState([]);
-  const [efficiencyMetrics, setEfficiencyMetrics] = useState(null);
-  const [trends, setTrends] = useState(null);
-  const [recommendations, setRecommendations] = useState([]);
+  const pollIntervalRef = useRef(null);
+  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [timeWindow, setTimeWindow] = useState(24);
   const [rankingLimit, setRankingLimit] = useState(20);
+  const performanceMetrics = analytics?.performanceMetrics ?? null;
+  const peerRankings = analytics?.peerRankings ?? [];
+  const efficiencyMetrics = analytics?.efficiencyMetrics ?? null;
+  const recommendations = analytics?.recommendations ?? [];
 
   const timeWindowOptions = [
     { key: '1', text: '1 hour', value: 1 },
@@ -42,46 +60,86 @@ const SwarmAnalytics = () => {
     { key: '168', text: '7 days', value: 168 },
   ];
 
-  useEffect(() => () => {
-    mountedRef.current = false;
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const fetchAnalytics = useCallback(async () => {
+    const requestKey = `${timeWindow}:${rankingLimit}`;
+    if (
+      document.hidden ||
+      fetchRequestRef.current?.requestKey === requestKey
+    ) {
+      return;
+    }
+
+    const request = { requestKey };
+    fetchRequestRef.current = request;
     try {
-      setLoading(true);
-      const [performance, peers, efficiency, trendsData, recs] =
-        await Promise.all([
-          swarmAnalyticsLibrary.getPerformanceMetrics(timeWindow),
-          swarmAnalyticsLibrary.getPeerRankings(rankingLimit),
-          swarmAnalyticsLibrary.getEfficiencyMetrics(timeWindow),
-          swarmAnalyticsLibrary.getTrends(timeWindow, 24),
-          swarmAnalyticsLibrary.getRecommendations(),
-        ]);
+      if (analyticsSignatureRef.current === null) setLoading(true);
+      const dashboard = normalizeDashboard(
+        await swarmAnalyticsLibrary.getDashboard(timeWindow, rankingLimit),
+      );
 
       if (!mountedRef.current) return;
+      if (document.hidden || fetchRequestRef.current !== request) return;
 
-      setPerformanceMetrics(performance);
-      setPeerRankings(asArray(peers));
-      setEfficiencyMetrics(efficiency);
-      setTrends(trendsData);
-      setRecommendations(asArray(recs));
+      const signature = JSON.stringify(dashboard);
+      if (analyticsSignatureRef.current !== signature) {
+        analyticsSignatureRef.current = signature;
+        setAnalytics(dashboard);
+      }
     } catch (error) {
-      if (!mountedRef.current) return;
+      if (
+        !mountedRef.current ||
+        document.hidden ||
+        fetchRequestRef.current !== request
+      ) return;
       toast.error(
         error?.response?.data ?? error?.message ?? 'Failed to load analytics',
       );
       console.error('Failed to fetch analytics:', error);
     } finally {
-      if (mountedRef.current) {
+      if (fetchRequestRef.current === request) {
+        fetchRequestRef.current = null;
+      }
+      if (mountedRef.current && fetchRequestRef.current === null) {
         setLoading(false);
       }
     }
   }, [rankingLimit, timeWindow]);
 
   useEffect(() => {
-    fetchAnalytics();
-    const interval = setInterval(fetchAnalytics, 30_000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
+    const stopPolling = () => {
+      if (!pollIntervalRef.current) return;
+      window.clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    };
+    const startPolling = () => {
+      if (document.hidden || pollIntervalRef.current) return;
+      fetchAnalytics();
+      pollIntervalRef.current = window.setInterval(
+        fetchAnalytics,
+        POLL_INTERVAL_MS,
+      );
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      stopPolling();
+    };
   }, [fetchAnalytics]);
 
   const getPriorityColor = (priority) => {

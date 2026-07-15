@@ -44,6 +44,63 @@ public class SwarmAnalyticsServiceTests
     }
 
     [Fact]
+    public async Task GetDashboardAsync_UsesOneRankedPeerSnapshotForAllSections()
+    {
+        var peers = Enumerable.Range(1, 25)
+            .Select(index => new PeerPerformanceMetrics
+            {
+                PeerId = $"peer{index}",
+                ReputationScore = index / 100.0,
+                ChunksCompleted = index,
+            })
+            .ToList();
+        _peerMetricsMock
+            .Setup(x => x.GetRankedPeersAsync(100, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(peers);
+
+        var result = await _service.GetDashboardAsync(
+            TimeSpan.FromHours(24),
+            rankingLimit: 20,
+            CancellationToken.None);
+
+        Assert.Equal(20, result.PeerRankings.Count);
+        Assert.NotNull(result.PerformanceMetrics);
+        Assert.NotNull(result.EfficiencyMetrics);
+        Assert.NotNull(result.Recommendations);
+        _peerMetricsMock.Verify(
+            x => x.GetRankedPeersAsync(100, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetDashboardAsync_PropagatesSnapshotFailure()
+    {
+        _peerMetricsMock
+            .Setup(x => x.GetRankedPeersAsync(100, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("snapshot unavailable"));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _service.GetDashboardAsync(
+                TimeSpan.FromHours(24),
+                rankingLimit: 20,
+                CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task GetRecommendationsAsync_UsesOneRankedPeerSnapshot()
+    {
+        _peerMetricsMock
+            .Setup(x => x.GetRankedPeersAsync(100, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<PeerPerformanceMetrics>());
+
+        await _service.GetRecommendationsAsync(CancellationToken.None);
+
+        _peerMetricsMock.Verify(
+            x => x.GetRankedPeersAsync(100, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task GetPerformanceMetricsAsync_Should_Return_Metrics_With_Default_TimeWindow()
     {
         // Arrange
@@ -236,6 +293,7 @@ public class SwarmAnalyticsServiceTests
     public async Task GetEfficiencyMetricsAsync_Should_Derive_Values_From_Active_Downloads_And_Peers()
     {
         // Arrange
+        using var cancellationTokenSource = new CancellationTokenSource();
         var downloads = new ConcurrentDictionary<Guid, MultiSourceDownloadStatus>();
         var downloadId = Guid.NewGuid();
         var status = new MultiSourceDownloadStatus
@@ -275,7 +333,7 @@ public class SwarmAnalyticsServiceTests
             });
 
         // Act
-        var result = await _service.GetEfficiencyMetricsAsync(null, CancellationToken.None);
+        var result = await _service.GetEfficiencyMetricsAsync(null, cancellationTokenSource.Token);
 
         // Assert
         Assert.Equal(0.5, result.PeerUtilization, 3);
@@ -283,6 +341,9 @@ public class SwarmAnalyticsServiceTests
         Assert.Equal(250, result.AverageTimeToFirstByteMs, 3);
         Assert.Equal(0.1, result.AverageReassignmentRate, 3);
         Assert.Equal(0, result.AverageRescueRate);
+        _peerMetricsMock.Verify(
+            x => x.GetRankedPeersAsync(100, cancellationTokenSource.Token),
+            Times.Once);
     }
 
     [Fact]

@@ -18,6 +18,21 @@ describe('swarmAnalytics', () => {
     jest.clearAllMocks();
   });
 
+  it('requests one bounded dashboard snapshot', async () => {
+    const dashboard = { peerRankings: [] };
+    api.get.mockResolvedValue({ data: dashboard });
+
+    const result = await swarmAnalytics.getDashboard(24, 20);
+
+    expect(api.get).toHaveBeenCalledWith('/swarm/analytics/dashboard', {
+      params: {
+        rankingLimit: 20,
+        timeWindowHours: 24,
+      },
+    });
+    expect(result).toBe(dashboard);
+  });
+
   describe('getPerformanceMetrics', () => {
     it('calls API with default time window', async () => {
       const mockMetrics = {

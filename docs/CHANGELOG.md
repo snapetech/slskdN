@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Swarm Analytics now replaces five polling requests and four complete
+  peer-ranking passes with one dashboard snapshot, preserves cached results
+  across transient failures, rejects stale or overlapping work, and suspends
+  polling in hidden documents.
 - Port Forwarding now defers secondary-tab hydration, returns a bounded
   available-port preview with full counts, pauses non-overlapping status polling
   while hidden, and renders authoritative stream/performance statistics instead

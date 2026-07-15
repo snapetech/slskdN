@@ -45,6 +45,56 @@ public class AnalyticsControllerTests
     }
 
     [Fact]
+    public async Task GetDashboard_ReturnsOneCombinedServiceSnapshot()
+    {
+        var dashboard = new SwarmAnalyticsDashboard(
+            new SwarmPerformanceMetrics { TimeWindow = TimeSpan.FromHours(24) },
+            new List<PeerPerformanceRanking>(),
+            new SwarmEfficiencyMetrics(),
+            new List<SwarmRecommendation>());
+        _analyticsServiceMock
+            .Setup(x => x.GetDashboardAsync(
+                TimeSpan.FromHours(24),
+                20,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(dashboard);
+
+        var result = await _controller.GetDashboard(24, 20, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.Same(dashboard, okResult.Value);
+        _analyticsServiceMock.Verify(
+            x => x.GetDashboardAsync(
+                TimeSpan.FromHours(24),
+                20,
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Theory]
+    [InlineData(0, 20)]
+    [InlineData(169, 20)]
+    [InlineData(24, 0)]
+    [InlineData(24, 101)]
+    public async Task GetDashboard_RejectsInvalidBounds(
+        int timeWindowHours,
+        int rankingLimit)
+    {
+        var result = await _controller.GetDashboard(
+            timeWindowHours,
+            rankingLimit,
+            CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        _analyticsServiceMock.Verify(
+            x => x.GetDashboardAsync(
+                It.IsAny<TimeSpan>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task GetPerformanceMetrics_Should_Return_Ok_With_Metrics()
     {
         // Arrange
