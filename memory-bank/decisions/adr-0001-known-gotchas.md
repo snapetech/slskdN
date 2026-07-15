@@ -22049,3 +22049,21 @@ tabs kept polling, and a slow cycle could overlap the next one.
 of composing full-detail endpoints in the browser. Return only the latest
 incoming timestamp per room, pause polling while the document is hidden, and
 reject a poll while the previous request remains in flight.
+
+### 0z567. Boolean Badges Must Not Materialize Conversation Aggregates
+
+**The Bug**: Global direct-message activity polling requested the full active
+conversation list every ten seconds. The service loaded every unacknowledged
+private-message row and every active conversation, then counted matching rows
+per conversation even though the navigation badge needed only one boolean.
+
+**Files Affected**:
+- `src/slskd/Messaging/ConversationService.cs`
+- `src/slskd/Messaging/API/Controllers/ConversationsController.cs`
+- `src/web/src/components/App.jsx`
+- `src/web/src/lib/chat.js`
+
+**Prevention**: Give boolean navigation decisions a dedicated existence query
+and bounded response. Back frequently polled existence predicates with an
+appropriate database index, and do not derive one-bit status by materializing
+full entities or per-entity aggregates.
