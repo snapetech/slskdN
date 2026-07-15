@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z610. Background Callbacks Must Outlive Their Rate Limiter Owner
+
+**The Bug**: `SearchService.StartAsync` declared its response-progress
+`RateLimiter` with method-scoped `using`, then returned while the search and its
+callbacks continued in an observed background task. Method exit disposed the
+timer; later responses could stage callbacks that would never run, leaving
+progress stale. Simply extending ownership without changing the callback would
+also activate the intended 250-millisecond full-row database update loop.
+
+**Files Affected**:
+- `src/slskd/Search/SearchService.cs`
+- `src/slskd/Common/RateLimiter.cs`
+
+**Prevention**: Callback infrastructure captured by a background operation must
+be owned and disposed by that operation's terminal `finally`, not by the method
+that launches it. Before repairing ownership, trace the newly activated
+callback cost and bound its cadence and persistence shape.
+
 ### 0z609. Record Reconstruction Must Preserve Persisted Provenance
 
 **The Bug**: The search state-transition helper created a new `Search` record
