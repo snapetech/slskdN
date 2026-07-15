@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z616. Secondary Index Comparers Must Preserve Primary-Key Multiplicity
+
+**The Bug**: A ContentID secondary index used a case-insensitive `HashSet` to
+match the query's existing case-insensitive result deduplication. Two distinct
+stored ContentID keys that differed only by case therefore collapsed to one
+index entry; removing the last mapping for either exact key would remove the
+shared entry even while the other key remained registered.
+
+**Files Affected**:
+- `src/slskd/MediaCore/ContentIdRegistry.cs`
+
+**Prevention**: Secondary indexes must retain the primary store's exact-key
+multiplicity. Apply a broader equivalence comparer only at the query-result
+boundary, or maintain an explicit reference count for each equivalence class;
+do not collapse keys in mutable index storage and then remove them as if they
+were one-to-one.
+
 ### 0z615. Delayed Continuations Cannot Prove A Timer Has Not Fired
 
 **The Bug**: A rate-limiter regression test awaited a 400-millisecond delay
