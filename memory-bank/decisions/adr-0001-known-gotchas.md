@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z604. Confirm A Test File Is New Before Using An Add-File Patch
+
+**The Bug**: A dashboard API test was applied as a new file without first
+confirming the target path was absent. The patch replaced an existing
+`swarmAnalytics.test.js` suite and temporarily removed coverage for all legacy
+leaf endpoints.
+
+**Files Affected**:
+- `src/web/src/lib/swarmAnalytics.test.js`
+
+**Prevention**: Run `rg --files` for the exact target path before creating a
+test file. When a suite already exists, append the new case and inspect the
+file's full diff immediately; an unexpectedly large deletion in a test diff is
+a blocking review signal.
+
 ### 0z603. Dashboard Fan-Out Can Repeat The Same Full-Table Analytics Read
 
 **The Bug**: Swarm Analytics refreshed five leaf endpoints every thirty
