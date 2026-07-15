@@ -1,5 +1,8 @@
 ## 2026-07-15
 
+- Stopped the first `.277` pre-tag gate before tag creation after it exposed a stale XML parameter reference and the operator reported GitLab `main` pipeline-failure emails.
+- Restricted GitLab pipeline creation to tags only with an explicit terminal deny rule, matching the documented build policy, and corrected the renamed search-filter helper's XML `paramref`.
+- Documented ADR-0001 gotchas `0z558` and `0z559` before implementation.
 - The `build-main-2026071501-slskdn.275` release gate failed before publishing any artifacts when the mesh hash-mismatch regression intermittently left its pipe reader pending in CI.
 - Removed competing pipe-completion owners from `MeshStreamService`: the stream now leaves the writer open and the producer completes it once in `finally` for success, cancellation, expected peer failures, and unexpected failures.
 - Documented ADR-0001 gotcha `0z557` in the required standalone docs commit `a683cf7e5`.

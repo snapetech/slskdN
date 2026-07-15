@@ -1,3 +1,17 @@
+## Update 2026-07-15 02:35:00Z
+
+- Current task: `.277` release and GitLab notification remediation in progress.
+- Last activity:
+  - Stopped the initial `.277` pre-tag gate before tag creation when it exposed a stale XML documentation parameter reference.
+  - Confirmed GitLab admitted every branch pipeline despite the tag-only policy, causing the reported `main` pipeline-failure emails.
+  - Documented gotchas `0z558` and `0z559`, restricted GitLab workflows to tags, and corrected the XML documentation.
+- Validation:
+  - Initial pre-tag gate passed frontend tests/build and backend unit tests (`4347/4347`) before it was intentionally stopped.
+- Next steps:
+  1. Validate and commit the trigger/documentation fixes.
+  2. Synchronize both remotes and restart `.277` from the corrected head.
+  3. Verify the hosted release and artifacts.
+
 ## Update 2026-07-15 02:27:55Z
 
 - Current task: repository synchronization and replacement stable release complete.

@@ -2425,12 +2425,10 @@ namespace slskd
         }
 
         /// <summary>
-        ///     Creates and returns a <see cref="Response"/> in response to the given <paramref name="query"/>.
+        ///     Determines whether <paramref name="searchText"/> matches any configured search-request filter.
         /// </summary>
-        /// <param name="username">The username of the requesting user.</param>
-        /// <param name="token">The search token.</param>
-        /// <param name="query">The search query.</param>
-        /// <returns>A Task resolving a SearchResponse, or null.</returns>
+        /// <param name="searchText">The incoming search text.</param>
+        /// <returns><see langword="true"/> when a configured filter matches; otherwise, <see langword="false"/>.</returns>
         private bool MatchesAnySearchRequestFilter(string searchText)
         {
             foreach (var filter in CompiledSearchRequestFilters)

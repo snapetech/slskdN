@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- GitLab now creates pipelines only for tags, matching the repository's
+  tag-only build policy and preventing failing `main` push pipelines and their
+  notification emails.
+- Search-request filter documentation now follows its renamed parameter, so
+  Release builds no longer emit CS1734 for the helper.
 - Incoming search-request filtering now applies a per-match regex timeout, so a
   pathological configured search filter combined with a crafted peer query string
   can no longer stall the search-response resolver via catastrophic backtracking.

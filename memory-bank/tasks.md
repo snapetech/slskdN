@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Stop unintended GitLab `main` pipelines and release warning noise.
+  - Status: completed (2026-07-15)
+  - Priority: P0
+  - Notes: Restricted top-level GitLab workflow creation to tags with an explicit terminal deny rule, preventing ordinary synchronized `main` pushes from starting failing pipelines and notification emails. Corrected the stale XML `paramref` exposed by the `.277` pre-tag gate. Documented ADR-0001 gotchas `0z558` and `0z559`.
+
 - [x] Synchronize all repository work and publish replacement stable release `.276`.
   - Status: completed (2026-07-15)
   - Priority: P0
