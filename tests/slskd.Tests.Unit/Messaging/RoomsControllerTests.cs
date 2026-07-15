@@ -109,6 +109,32 @@ public class RoomsControllerTests
     }
 
     [Fact]
+    public void GetByRoomName_ReturnsMaterializedCollectionsWithStableMessageIds()
+    {
+        var tracker = CreateTracker();
+        var message = new RoomMessage
+        {
+            Id = Guid.NewGuid(),
+            Message = "hello",
+            RoomName = "ambient",
+            Timestamp = DateTime.UtcNow,
+            Username = "friend",
+        };
+        tracker.Object.Rooms["ambient"] = new Room
+        {
+            Messages = new List<RoomMessage> { message },
+        };
+        var controller = CreateController(tracker: tracker.Object);
+
+        var result = controller.GetByRoomName("ambient");
+
+        var response = Assert.IsType<RoomResponse>(Assert.IsType<OkObjectResult>(result).Value);
+        Assert.IsType<List<UserDataResponse>>(response.Users);
+        var messages = Assert.IsType<List<RoomMessageResponse>>(response.Messages);
+        Assert.Equal(message.Id, Assert.Single(messages).Id);
+    }
+
+    [Fact]
     public void GetActivity_ReturnsLatestIncomingTimestampPerRoom()
     {
         var tracker = CreateTracker();
@@ -142,6 +168,57 @@ public class RoomsControllerTests
         Assert.Equal(
             new DateTimeOffset(latestIncoming).ToUnixTimeMilliseconds(),
             entry.Value);
+    }
+
+    [Fact]
+    public void GetMessagesByRoomName_WithCursorReturnsOnlyNewerMaterializedMessages()
+    {
+        var tracker = CreateTracker();
+        var firstTimestamp = new DateTime(2026, 7, 15, 10, 0, 0, 100, DateTimeKind.Utc);
+        var secondTimestamp = firstTimestamp.AddMilliseconds(100);
+        var first = new RoomMessage
+        {
+            Id = Guid.NewGuid(),
+            Message = "first",
+            RoomName = "ambient",
+            Timestamp = firstTimestamp,
+            Username = "friend",
+        };
+        var second = new RoomMessage
+        {
+            Id = Guid.NewGuid(),
+            Message = "second",
+            RoomName = "ambient",
+            Timestamp = secondTimestamp,
+            Username = "self",
+        };
+        tracker.Object.Rooms["ambient"] = new Room
+        {
+            Messages = new List<RoomMessage> { first, second },
+        };
+        var controller = CreateController(tracker: tracker.Object, username: "self");
+        var cursor = new DateTimeOffset(firstTimestamp).ToUnixTimeMilliseconds();
+
+        var result = controller.GetMessagesByRoomName("ambient", cursor);
+
+        var response = Assert.IsType<List<RoomMessageResponse>>(
+            Assert.IsType<OkObjectResult>(result).Value);
+        var message = Assert.Single(response);
+        Assert.Equal(second.Id, message.Id);
+        Assert.Equal("second", message.Message);
+        Assert.True(message.Self);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(long.MaxValue)]
+    public void GetMessagesByRoomName_WithInvalidCursorReturnsBadRequest(long cursor)
+    {
+        var controller = CreateController();
+
+        var result = controller.GetMessagesByRoomName("ambient", cursor);
+
+        Assert.IsType<BadRequestObjectResult>(result);
     }
 
     [Fact]

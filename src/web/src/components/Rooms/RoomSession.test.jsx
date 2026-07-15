@@ -123,4 +123,56 @@ describe('RoomSession', () => {
     });
     expect(rooms.getMessages).toHaveBeenCalledTimes(2);
   });
+
+  it('merges overlapping message deltas and advances the cursor', async () => {
+    const first = {
+      id: 'room-message-1',
+      message: 'first',
+      timestamp: '2026-07-15T12:00:00.100Z',
+      username: 'friend',
+    };
+    const second = {
+      id: 'room-message-2',
+      message: 'second',
+      timestamp: '2026-07-15T12:00:00.200Z',
+      username: 'friend',
+    };
+    const third = {
+      id: 'room-message-3',
+      message: 'third',
+      timestamp: '2026-07-15T12:00:00.300Z',
+      username: 'friend',
+    };
+    rooms.getMessages
+      .mockResolvedValueOnce([first, second])
+      .mockResolvedValueOnce([second, third]);
+
+    render(
+      <RoomSession
+        active
+        roomName="slskdn"
+      />,
+    );
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(rooms.getMessages).toHaveBeenNthCalledWith(1, {
+      roomName: 'slskdn',
+      since: null,
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000);
+    });
+
+    expect(rooms.getMessages).toHaveBeenNthCalledWith(2, {
+      roomName: 'slskdn',
+      since: Date.parse(second.timestamp) - 1,
+    });
+    expect(screen.getByText('first')).toBeInTheDocument();
+    expect(screen.getByText('second')).toBeInTheDocument();
+    expect(screen.getByText('third')).toBeInTheDocument();
+  });
 });

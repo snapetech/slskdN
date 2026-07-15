@@ -1,9 +1,11 @@
 import * as chat from '../../lib/chat';
 import * as pods from '../../lib/pods';
+import * as rooms from '../../lib/rooms';
 import {
   __test__,
   createChatAdapter,
   createPodAdapter,
+  createRoomAdapter,
 } from './messagingAdapters';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -16,6 +18,12 @@ vi.mock('../../lib/chat', () => ({
 vi.mock('../../lib/pods', () => ({
   getMembers: vi.fn(),
   getMessages: vi.fn(),
+  sendMessage: vi.fn(),
+}));
+
+vi.mock('../../lib/rooms', () => ({
+  getMessages: vi.fn(),
+  getUsers: vi.fn(),
   sendMessage: vi.fn(),
 }));
 
@@ -162,5 +170,92 @@ describe('createPodAdapter', () => {
     expect(pods.getMessages).toHaveBeenNthCalledWith(1, first.podId, 'general', null);
     expect(pods.getMessages).toHaveBeenNthCalledWith(2, first.podId, 'general', 1_999);
     expect(pods.getMessages).toHaveBeenNthCalledWith(3, first.podId, 'general', 2_999);
+  });
+});
+
+describe('createRoomAdapter', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('uses an overlapping cursor and merges stable room-message IDs', async () => {
+    const first = {
+      id: 'room-message-1',
+      message: 'first',
+      timestamp: '2026-07-15T12:00:00.100Z',
+      username: 'friend',
+    };
+    const second = {
+      id: 'room-message-2',
+      message: 'second',
+      timestamp: '2026-07-15T12:00:00.200Z',
+      username: 'me',
+    };
+    const third = {
+      id: 'room-message-3',
+      message: 'third',
+      timestamp: '2026-07-15T12:00:00.300Z',
+      username: 'friend',
+    };
+    rooms.getMessages
+      .mockResolvedValueOnce([first, second])
+      .mockResolvedValueOnce([second, third])
+      .mockRejectedValueOnce(new Error('temporary failure'));
+    const adapter = createRoomAdapter({
+      currentUser: 'me',
+      roomName: 'ambient',
+    });
+
+    await expect(adapter.list()).resolves.toEqual({
+      messages: [
+        expect.objectContaining({ body: 'first', id: first.id }),
+        expect.objectContaining({ body: 'second', id: second.id, isSelf: true }),
+      ],
+    });
+    await expect(adapter.list()).resolves.toEqual({
+      messages: [
+        expect.objectContaining({ id: first.id }),
+        expect.objectContaining({ id: second.id }),
+        expect.objectContaining({ body: 'third', id: third.id }),
+      ],
+    });
+    await expect(adapter.list()).resolves.toEqual({
+      messages: [
+        expect.objectContaining({ id: first.id }),
+        expect.objectContaining({ id: second.id }),
+        expect.objectContaining({ id: third.id }),
+      ],
+    });
+
+    expect(rooms.getMessages).toHaveBeenNthCalledWith(1, {
+      roomName: 'ambient',
+      since: null,
+    });
+    expect(rooms.getMessages).toHaveBeenNthCalledWith(2, {
+      roomName: 'ambient',
+      since: Date.parse(second.timestamp) - 1,
+    });
+    expect(rooms.getMessages).toHaveBeenNthCalledWith(3, {
+      roomName: 'ambient',
+      since: Date.parse(third.timestamp) - 1,
+    });
+  });
+
+  it('bounds the initial room-message snapshot', async () => {
+    rooms.getMessages.mockResolvedValue(
+      Array.from({ length: 101 }, (_, index) => ({
+        id: `room-message-${index}`,
+        message: `message ${index}`,
+        timestamp: index,
+        username: 'friend',
+      })),
+    );
+    const adapter = createRoomAdapter({ roomName: 'ambient' });
+
+    const result = await adapter.list();
+
+    expect(result.messages).toHaveLength(100);
+    expect(result.messages[0].id).toBe('room-message-1');
+    expect(result.messages[99].id).toBe('room-message-100');
   });
 });

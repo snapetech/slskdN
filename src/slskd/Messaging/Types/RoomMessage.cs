@@ -29,6 +29,11 @@ namespace slskd.Messaging
     public class RoomMessage
     {
         /// <summary>
+        ///     Gets or sets the stable in-memory identity of the message.
+        /// </summary>
+        public Guid Id { get; set; } = Guid.NewGuid();
+
+        /// <summary>
         ///     The timestamp of the message.
         /// </summary>
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;

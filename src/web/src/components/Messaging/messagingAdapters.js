@@ -128,53 +128,86 @@ export const createChatAdapter = ({ username, currentUser }) => {
   };
 };
 
-export const createRoomAdapter = ({ roomName, currentUser }) => ({
-  capabilities: { contextMenu: true },
-  pollIntervalMs: POLL_INTERVAL_MS,
-  topic: `#${roomName}`,
-  type: 'room',
+export const createRoomAdapter = ({ roomName, currentUser }) => {
+  let cachedMessages = [];
+  let latestTimestamp = null;
 
-  async list() {
-    if (!roomName) return { messages: [] };
-    let raw;
-    try {
-      raw = await rooms.getMessages({ roomName });
-    } catch {
-      return { messages: [] };
-    }
-    const messages = asArray(raw)
-      .filter((item) => item && typeof item === 'object' && !Array.isArray(item))
-      .map((m, index) => {
-        const sender = m.username || 'unknown';
-        const isSelf = currentUser && sender === currentUser;
-        const classified = classifyBody(m.message);
-        return {
-          body: classified.body,
-          id: messageId([m.timestamp, sender, index]),
-          isSelf: Boolean(isSelf),
-          kind: classified.kind,
-          meta: classified.meta,
-          sender,
-          ts: normalizeTimestamp(m.timestamp),
-        };
+  return {
+    capabilities: { contextMenu: true },
+    pollIntervalMs: POLL_INTERVAL_MS,
+    topic: `#${roomName}`,
+    type: 'room',
+
+    async list() {
+      if (!roomName) return { messages: [] };
+      let raw;
+      try {
+        const since =
+          latestTimestamp === null ? null : Math.max(0, latestTimestamp - 1);
+        raw = await rooms.getMessages({ roomName, since });
+      } catch {
+        return { messages: cachedMessages };
+      }
+      const mapped = asArray(raw)
+        .filter(
+          (item) => item && typeof item === 'object' && !Array.isArray(item),
+        )
+        .map((message) => {
+          const sender = message.username || 'unknown';
+          const isSelf = currentUser && sender === currentUser;
+          const classified = classifyBody(message.message);
+          const timestamp = normalizeTimestamp(message.timestamp);
+          return {
+            body: classified.body,
+            id:
+              message.id ||
+              messageId([
+                message.timestamp,
+                sender,
+                message.message,
+              ]),
+            isSelf: Boolean(isSelf),
+            kind: classified.kind,
+            meta: classified.meta,
+            sender,
+            ts: timestamp,
+          };
+        });
+
+      if (latestTimestamp === null) {
+        cachedMessages = mapped.slice(-100);
+      } else if (mapped.length > 0) {
+        const byId = new Map(
+          cachedMessages.map((message) => [message.id, message]),
+        );
+        mapped.forEach((message) => byId.set(message.id, message));
+        cachedMessages = Array.from(byId.values()).slice(-100);
+      }
+
+      mapped.forEach((message) => {
+        if (latestTimestamp === null || message.ts > latestTimestamp) {
+          latestTimestamp = message.ts;
+        }
       });
-    return { messages };
-  },
 
-  send(body) {
-    if (!roomName) return Promise.resolve();
-    return rooms.sendMessage({ message: body, roomName });
-  },
+      return { messages: cachedMessages };
+    },
 
-  async members() {
-    try {
-      const users = await rooms.getUsers({ roomName });
-      return asArray(users).filter(Boolean);
-    } catch {
-      return [];
-    }
-  },
-});
+    send(body) {
+      if (!roomName) return Promise.resolve();
+      return rooms.sendMessage({ message: body, roomName });
+    },
+
+    async members() {
+      try {
+        const users = await rooms.getUsers({ roomName });
+        return asArray(users).filter(Boolean);
+      } catch {
+        return [];
+      }
+    },
+  };
+};
 
 export const createPodAdapter = ({ channel, currentUser }) => {
   let cachedMessages = [];

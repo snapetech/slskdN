@@ -26,6 +26,11 @@ namespace slskd.Messaging.API
     public class RoomMessageResponse
     {
         /// <summary>
+        ///     Gets or sets the stable in-memory identity of the message.
+        /// </summary>
+        public Guid Id { get; set; }
+
+        /// <summary>
         ///     The timestamp of the message.
         /// </summary>
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
@@ -54,6 +59,7 @@ namespace slskd.Messaging.API
         {
             return new RoomMessageResponse()
             {
+                Id = roomMessage.Id,
                 Timestamp = roomMessage.Timestamp,
                 Username = roomMessage.Username,
                 Message = roomMessage.Message,

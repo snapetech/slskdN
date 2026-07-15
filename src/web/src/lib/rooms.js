@@ -40,9 +40,13 @@ export const getActivity = async () => {
   );
 };
 
-export const getMessages = async ({ roomName }) => {
+export const getMessages = async ({ roomName, since = null }) => {
+  const query =
+    since == null ? '' : `?since=${encodeURIComponent(String(since))}`;
   const response = (
-    await api.get(`/rooms/joined/${encodeURIComponent(roomName)}/messages`)
+    await api.get(
+      `/rooms/joined/${encodeURIComponent(roomName)}/messages${query}`,
+    )
   ).data;
 
   if (!Array.isArray(response)) {

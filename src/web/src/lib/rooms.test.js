@@ -69,6 +69,16 @@ describe('rooms api', () => {
     await expect(rooms.getUsers({ roomName: 'ambient' })).resolves.toEqual([]);
   });
 
+  it('requests room-message deltas with an encoded cursor', async () => {
+    api.get.mockResolvedValue({ data: [] });
+
+    await rooms.getMessages({ roomName: 'ambient/lounge', since: 1_234 });
+
+    expect(api.get).toHaveBeenCalledWith(
+      '/rooms/joined/ambient%2Flounge/messages?since=1234',
+    );
+  });
+
   it('normalizes room activity timestamps and rejects malformed payloads', async () => {
     api.get.mockResolvedValueOnce({
       data: {

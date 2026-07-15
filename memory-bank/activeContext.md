@@ -1,3 +1,20 @@
+## Update 2026-07-15 21:14:43Z
+
+- Current task: performance and efficiency improvements in progress; incremental room-message hydration pass complete locally.
+- Last activity:
+  - Added stable in-memory room-message IDs and an optional Unix-millisecond `since` cursor to the joined-room messages endpoint.
+  - Changed unified Messaging and legacy Rooms to use one-millisecond cursor overlap, stable identity merging, bounded 100-message caches, and failure-safe cached results.
+  - Materialized room users, messages, and joined-room responses while holding the tracker room lock so serialization cannot race list mutation.
+  - Reduced a representative 25-message/256-byte room from 268,080 response bytes per idle minute to 10,094 bytes (96.235% fewer); one-new-message-per-poll traffic falls to 33,207 bytes (87.613% fewer).
+  - Added controller, API-client, cursor/merge, initial-bound, failure-cache, and legacy-room regressions; documented gotchas `0z591` and `0z592` in standalone commits `a60fbdd98` and `2a95ba26a`.
+- Validation:
+  - Passed focused backend tests (`14/14`) and focused Web tests (`17/17`).
+  - Passed complete Web tests (`814` passed, `4` skipped), production Web build, and frontend lint with zero new errors.
+  - Passed complete backend suites (`4735/4735`: `69` smoke, `4388` unit, `278` integration), repository lint, route-inventory, identity-leak, and whitespace checks.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 21:00:23Z
 
 - Current task: performance and efficiency improvements in progress; bounded initial transfer hydration and paged successful-history pass complete locally.

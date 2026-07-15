@@ -24,8 +24,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - The legacy Pods route now reuses list metadata, polls Pod metadata every
   sixty seconds, merges channel messages incrementally into a bounded cache,
   and stops all polling while hidden.
-- The legacy Rooms route now polls messages and membership on separate bounded
-  cadences, suppresses overlapping or unchanged work, and stops all hydration
+- Unified Messaging and the legacy Rooms route now request only room messages
+  newer than an overlapping timestamp cursor, merge stable message identities
+  into bounded client caches, and avoid repeatedly transferring the retained
+  room history. Legacy Rooms also polls membership on a separate bounded
+  cadence, suppresses overlapping or unchanged work, and stops all hydration
   while the browser document is hidden.
 - Active Pod streams now use incremental cursor polling with a bounded local
   message cache, while shared message polling pauses in hidden tabs and rejects

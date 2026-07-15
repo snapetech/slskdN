@@ -309,8 +309,13 @@ namespace slskd.Messaging.API
 
             if (Tracker.TryGet(roomName, out var room) && room is not null)
             {
-                var response = room.Users
-                    .Select(user => UserDataResponse.FromUserData(user, self: user.Username == ApplicationStateMonitor.CurrentValue.User.Username));
+                List<UserDataResponse> response;
+                lock (room)
+                {
+                    response = room.Users
+                        .Select(user => UserDataResponse.FromUserData(user, self: user.Username == ApplicationStateMonitor.CurrentValue.User.Username))
+                        .ToList();
+                }
 
                 return Ok(response);
             }
@@ -322,14 +327,15 @@ namespace slskd.Messaging.API
         ///     Gets the current list of messages for the specified room.
         /// </summary>
         /// <param name="roomName"></param>
+        /// <param name="since">Optional Unix timestamp in milliseconds; only newer messages are returned.</param>
         /// <returns></returns>
         /// <response code="200">The request completed successfully.</response>
         /// <response code="404">The specified roomName could not be found.</response>
         [HttpGet("joined/{roomName}/messages")]
         [Authorize(Policy = AuthPolicy.Any)]
-        [ProducesResponseType(typeof(IList<RoomMessage>), 200)]
+        [ProducesResponseType(typeof(IList<RoomMessageResponse>), 200)]
         [ProducesResponseType(404)]
-        public IActionResult GetMessagesByRoomName([FromRoute] string roomName)
+        public IActionResult GetMessagesByRoomName([FromRoute] string roomName, [FromQuery] long? since = null)
         {
             if (Program.IsRelayAgent)
             {
@@ -342,10 +348,34 @@ namespace slskd.Messaging.API
                 return BadRequest("roomName is required");
             }
 
+            DateTime? messagesSince = null;
+            if (since.HasValue)
+            {
+                if (since.Value < 0)
+                {
+                    return BadRequest("since must be a non-negative Unix timestamp in milliseconds");
+                }
+
+                try
+                {
+                    messagesSince = DateTimeOffset.FromUnixTimeMilliseconds(since.Value).UtcDateTime;
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    return BadRequest("since is outside the supported Unix timestamp range");
+                }
+            }
+
             if (Tracker.TryGet(roomName, out var room) && room is not null)
             {
-                var response = room.Messages
-                    .Select(message => RoomMessageResponse.FromRoomMessage(message, self: message.Username == ApplicationStateMonitor.CurrentValue.User.Username));
+                List<RoomMessageResponse> response;
+                lock (room)
+                {
+                    response = room.Messages
+                        .Where(message => !messagesSince.HasValue || message.Timestamp > messagesSince.Value)
+                        .Select(message => RoomMessageResponse.FromRoomMessage(message, self: message.Username == ApplicationStateMonitor.CurrentValue.User.Username))
+                        .ToList();
+                }
 
                 return Ok(response);
             }
@@ -499,13 +529,18 @@ namespace slskd.Messaging.API
                 return username == ApplicationStateMonitor.CurrentValue.User.Username;
             }
 
-            var response = RoomResponse.FromRoom(room);
-            response.Users = room.Users
-                .Select(user => UserDataResponse.FromUserData(user, self: IsSelf(user.Username)));
-            response.Messages = room.Messages
-                .Select(message => RoomMessageResponse.FromRoomMessage(message, self: IsSelf(message.Username)));
+            lock (room)
+            {
+                var response = RoomResponse.FromRoom(room);
+                response.Users = room.Users
+                    .Select(user => UserDataResponse.FromUserData(user, self: IsSelf(user.Username)))
+                    .ToList();
+                response.Messages = room.Messages
+                    .Select(message => RoomMessageResponse.FromRoomMessage(message, self: IsSelf(message.Username)))
+                    .ToList();
 
-            return response;
+                return response;
+            }
         }
 
         private static string NormalizeRequiredValue(string? value)

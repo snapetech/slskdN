@@ -32,11 +32,39 @@ const initialState = {
 
 const MESSAGE_POLL_INTERVAL_MS = 2_000;
 const USER_POLL_INTERVAL_MS = 10_000;
+const MESSAGE_CACHE_LIMIT = 100;
+
+const normalizeTimestamp = (value) => {
+  const numeric = Number(value);
+  if (value !== '' && Number.isFinite(numeric)) return numeric;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const messageKey = (message) =>
+  message.id ||
+  [
+    message.timestamp,
+    message.username,
+    message.message,
+    message.roomName,
+  ].join('|');
+
+const mergeMessages = (previous, incoming) => {
+  const byId = new Map(
+    previous.map((message) => [messageKey(message), message]),
+  );
+  incoming.forEach((message) => {
+    byId.set(messageKey(message), message);
+  });
+  return Array.from(byId.values()).slice(-MESSAGE_CACHE_LIMIT);
+};
 
 const sameMessages = (previous, next) =>
   previous.length === next.length &&
   previous.every(
     (message, index) =>
+      message.id === next[index]?.id &&
       message.timestamp === next[index]?.timestamp &&
       message.username === next[index]?.username &&
       message.message === next[index]?.message &&
@@ -57,6 +85,7 @@ class RoomSession extends Component {
 
     this.state = initialState;
     this.listRef = createRef();
+    this.latestMessageTimestamp = null;
     this.messageRef = undefined;
     this.messageInterval = undefined;
     this.messageRequest = null;
@@ -85,6 +114,7 @@ class RoomSession extends Component {
   componentDidUpdate(previousProps) {
     if (previousProps.roomName !== this.props.roomName) {
       this.stopPolling();
+      this.latestMessageTimestamp = null;
       this.setState(initialState, () => {
         if (this.props.active !== false && !document.hidden) {
           this.startPolling();
@@ -158,7 +188,11 @@ class RoomSession extends Component {
 
     const request = (async () => {
       try {
-        const messages = await rooms.getMessages({ roomName });
+        const since =
+          this.latestMessageTimestamp === null
+            ? null
+            : Math.max(0, this.latestMessageTimestamp - 1);
+        const messages = await rooms.getMessages({ roomName, since });
         if (
           !this.mounted ||
           document.hidden ||
@@ -168,12 +202,25 @@ class RoomSession extends Component {
           return;
         }
 
-        const next = Array.isArray(messages) ? messages : [];
-        this.setState((previous) =>
-          sameMessages(previous.room.messages, next)
+        const received = Array.isArray(messages) ? messages : [];
+        received.forEach((message) => {
+          const timestamp = normalizeTimestamp(message.timestamp);
+          if (
+            this.latestMessageTimestamp === null ||
+            timestamp > this.latestMessageTimestamp
+          ) {
+            this.latestMessageTimestamp = timestamp;
+          }
+        });
+        this.setState((previous) => {
+          const next =
+            since === null
+              ? received.slice(-MESSAGE_CACHE_LIMIT)
+              : mergeMessages(previous.room.messages, received);
+          return sameMessages(previous.room.messages, next)
             ? null
-            : { room: { ...previous.room, messages: next } },
-        );
+            : { room: { ...previous.room, messages: next } };
+        });
       } catch (error) {
         console.error('Failed to fetch room messages:', error);
       }
@@ -448,7 +495,10 @@ class RoomSession extends Component {
                         <List>
                           {room.messages.map((message) => (
                             <div
-                              key={`${message.timestamp}+${message.message}`}
+                              key={
+                                message.id ||
+                                `${message.timestamp}+${message.username}+${message.message}`
+                              }
                               onContextMenu={(clickEvent) =>
                                 this.handleContextMenu(clickEvent, message)
                               }

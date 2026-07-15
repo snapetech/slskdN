@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make room-message polling incremental.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Added stable in-memory room-message IDs and an optional Unix-millisecond `since` cursor, then changed unified Messaging and legacy Rooms to overlap the cursor by one millisecond, merge by identity, and retain at most 100 messages. Room users, messages, and joined-room DTOs are now materialized while holding the tracker room lock instead of exposing deferred enumeration over concurrently mutated lists. For a representative room with 25 retained 256-byte messages, idle first-minute response traffic falls from 268,080 bytes to 10,094 bytes (96.235%); with one new message per poll, it falls to 33,207 bytes (87.613%). Added controller, API-client, cursor/merge, initial-bound, failure-cache, and legacy-room regressions; documented gotchas `0z591` and `0z592` in standalone commits `a60fbdd98` and `2a95ba26a`.
+
 - [x] Bound the initial transfer snapshot and page successful history.
   - Status: completed (2026-07-15)
   - Priority: P1
