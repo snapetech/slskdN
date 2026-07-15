@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z598. Runtime-Type xUnit Assertions Do Not Return The Value
+
+**The Bug**: A controller test tried to assign the result of
+`Assert.IsType(runtimeType, value)` so it could inspect an anonymous response.
+Unlike the generic `Assert.IsType<T>(value)` overload, the runtime-type overload
+returns `void`, causing the test project to fail compilation.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/API/Native/PortForwardingControllerTests.cs`
+
+**Prevention**: Use the generic xUnit overload when the response type is known.
+For anonymous controller responses, assert the value is non-null, keep the
+original object, and use `value.GetType()` only for reflection. Never assume the
+runtime-type assertion returns the asserted object.
+
 ### 0z597. Membership Rails Must Not Multiply Full Membership Reconstruction
 
 **The Bug**: Messaging V2 refreshed the active room or pod's complete member
