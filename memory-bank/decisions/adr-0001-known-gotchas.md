@@ -52,6 +52,26 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z580. Performance Fixes Must Cover Parallel UI Surfaces
+
+**The Bug**: Active room polling was made bounded in the unified messaging
+surface, but the separate Rooms route retained its independent one-second loop
+that fetched complete message and user lists as two requests per cycle. The
+parallel route therefore continued the original high-frequency work and also
+kept polling while the browser document was hidden.
+
+**Files Affected**:
+- `src/web/src/components/Messaging/MessageStream.jsx`
+- `src/web/src/components/Rooms/RoomSession.jsx`
+- `src/web/src/components/Rooms/Rooms.jsx`
+
+**Prevention**: When optimizing a shared domain, search every routed and legacy
+surface that calls the same API rather than stopping at the first consumer.
+Give fast-changing and slow-changing data separate cadences, reject overlapping
+requests, stop all timers while hidden or inactive, and add per-surface request
+count tests. Measure the combined request and payload reduction across every
+active implementation.
+
 ### 0z579. Existing Cursor APIs Are Useless Unless Polling Clients Retain State
 
 **The Bug**: Pod message APIs supported a `since` timestamp, but the active
