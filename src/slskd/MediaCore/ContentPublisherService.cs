@@ -84,15 +84,25 @@ public class ContentPublisherService : BackgroundService
 
     private async Task PublishOnce(CancellationToken ct)
     {
-        int count = 0;
-        await foreach (var descriptor in source.GetDescriptorsAsync(ct))
+        // Called both before and inside the ExecuteAsync loop, whose only catch handles
+        // OperationCanceledException. A non-cancellation failure escaping here would reach
+        // ExecuteAsync and, under the default StopHost behavior, take down the host.
+        try
         {
-            if (await publisher.PublishAsync(descriptor, ct))
+            int count = 0;
+            await foreach (var descriptor in source.GetDescriptorsAsync(ct))
             {
-                count++;
+                if (await publisher.PublishAsync(descriptor, ct))
+                {
+                    count++;
+                }
             }
-        }
 
-        logger.LogInformation("[MediaCore] Published descriptors batch count={Count}", count);
+            logger.LogInformation("[MediaCore] Published descriptors batch count={Count}", count);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "[MediaCore] Failed to publish descriptors batch");
+        }
     }
 }

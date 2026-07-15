@@ -288,34 +288,49 @@ public sealed class GoldStarClubService : BackgroundService, IGoldStarClubServic
         // Critical: never block host startup (BackgroundService.StartAsync runs until first await)
         await Task.Yield();
 
-        if (!IsAutoJoinEnabled())
+        // Best-effort auto-join must never take down the host. With the default
+        // BackgroundServiceExceptionBehavior.StopHost, any exception escaping ExecuteAsync
+        // (e.g. a transient pod-store/DB error while ensuring the pod) would stop the whole
+        // application, so contain everything except genuine shutdown cancellation.
+        try
         {
-            logger.LogInformation(
-                "[GoldStarClub] Auto-join disabled by {EnvVar}=false. Pod will still be ensured.",
-                AutoJoinEnvVar);
-            await EnsurePodExistsAsync(stoppingToken);
-            return;
-        }
-
-        if (IsRevokedLocally())
-        {
-            logger.LogInformation("[GoldStarClub] Auto-join disabled by local revocation marker. Pod will still be ensured.");
-            await EnsurePodExistsAsync(stoppingToken);
-            return;
-        }
-
-        await EnsurePodExistsAsync(stoppingToken);
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            var username = await WaitForConnectionAsync(stoppingToken);
-            if (string.IsNullOrWhiteSpace(username))
+            if (!IsAutoJoinEnabled())
             {
+                logger.LogInformation(
+                    "[GoldStarClub] Auto-join disabled by {EnvVar}=false. Pod will still be ensured.",
+                    AutoJoinEnvVar);
+                await EnsurePodExistsAsync(stoppingToken);
                 return;
             }
 
-            await TryAutoJoinAsync(username, stoppingToken);
-            return;
+            if (IsRevokedLocally())
+            {
+                logger.LogInformation("[GoldStarClub] Auto-join disabled by local revocation marker. Pod will still be ensured.");
+                await EnsurePodExistsAsync(stoppingToken);
+                return;
+            }
+
+            await EnsurePodExistsAsync(stoppingToken);
+
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                var username = await WaitForConnectionAsync(stoppingToken);
+                if (string.IsNullOrWhiteSpace(username))
+                {
+                    return;
+                }
+
+                await TryAutoJoinAsync(username, stoppingToken);
+                return;
+            }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // Normal shutdown.
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[GoldStarClub] Auto-join background service failed; the host will continue running.");
         }
     }
 

@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- The Gold Star Club auto-join, mesh bootstrap, and MediaCore content-publisher
+  background services now contain non-cancellation errors instead of letting them
+  escape ExecuteAsync, which under the default host behavior would stop the entire
+  application on a transient pod-store, DHT, or publish failure.
 - Prometheus metrics responses now skip malformed HELP/TYPE metadata lines
   instead of failing the entire response.
 - The metrics object endpoint no longer throws on malformed Prometheus exposition

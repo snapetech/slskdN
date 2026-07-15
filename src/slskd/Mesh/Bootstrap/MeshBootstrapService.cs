@@ -65,8 +65,18 @@ public class MeshBootstrapService : BackgroundService
 
     private async Task PublishOnce(CancellationToken ct)
     {
-        logger.LogInformation("[MeshBootstrap] Publishing self descriptor to DHT");
-        await publisher.PublishSelfAsync(ct);
-        logger.LogDebug("[MeshBootstrap] Self descriptor published; bootstrap nodes={Count}", options.BootstrapNodes.Count);
+        // Called both before and inside the ExecuteAsync loop, whose only catch handles
+        // OperationCanceledException. A non-cancellation publish failure escaping here would
+        // reach ExecuteAsync and, under the default StopHost behavior, take down the host.
+        try
+        {
+            logger.LogInformation("[MeshBootstrap] Publishing self descriptor to DHT");
+            await publisher.PublishSelfAsync(ct);
+            logger.LogDebug("[MeshBootstrap] Self descriptor published; bootstrap nodes={Count}", options.BootstrapNodes.Count);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "[MeshBootstrap] Failed to publish self descriptor to DHT");
+        }
     }
 }
