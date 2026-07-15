@@ -22116,3 +22116,16 @@ response to an empty list, silently hiding live peers and swarm activity.
 **Prevention**: Normalize API envelopes in the shared API library before data
 reaches components. Cover the real response shape in API-boundary tests, and
 do not rely on component-level `Array.isArray` fallbacks as contract tests.
+
+### 0z571. DHT Rendezvous And Mesh Both Define NatType
+
+**The Bug**: A network-summary test imported both `slskd.DhtRendezvous` and
+`slskd.Mesh`, then referenced `NatType` without qualification. Both namespaces
+define that type, so the test project failed to compile with CS0104.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Core/API/NetworkControllerTests.cs`
+
+**Prevention**: When DHT rendezvous and mesh types share one file, qualify
+`slskd.Mesh.NatType` explicitly or introduce a clear namespace alias. Do not
+use the bare `NatType` identifier with both namespaces imported.
