@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z614. Conditional Hydration Must Clear Reused Route State
+
+**The Bug**: Search response hydration was skipped for an active search with no
+durable responses, but `SearchDetail` is reused when the route changes search
+IDs. Without clearing route-scoped state first, results from the previous
+completed search remained visible indefinitely under the new active search.
+
+**Files Affected**:
+- `src/web/src/components/Search/Detail/SearchDetail.jsx`
+
+**Prevention**: When a reused component conditionally skips loading for a new
+entity ID, clear entity-scoped data and error state at the start of the ID
+effect. Cover transitions from a hydrated entity to an entity whose load is
+intentionally skipped; cancellation alone only prevents late writes and does
+not remove already-rendered state.
+
 ### 0z613. Live Availability Flags Must Survive API Rehydration
 
 **The Bug**: Search response hydration was gated by a non-persisted live
