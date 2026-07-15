@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z579. Existing Cursor APIs Are Useless Unless Polling Clients Retain State
+
+**The Bug**: Pod message APIs supported a `since` timestamp, but the active
+message adapter omitted it and replaced its complete message list on every
+two-second poll. Idle channels therefore retransmitted and remapped the same
+bounded 100-message window indefinitely, including while the browser document
+was hidden.
+
+**Files Affected**:
+- `src/web/src/components/Messaging/messagingAdapters.js`
+- `src/web/src/components/Messaging/MessageStream.jsx`
+- `src/web/src/lib/pods.js`
+
+**Prevention**: Stateful polling adapters must retain a bounded cache and pass
+the latest cursor on subsequent requests. Overlap timestamp cursors slightly
+and deduplicate stable IDs so equal-millisecond arrivals are not missed. Return
+the cached list on transient failures, prevent overlapping refreshes, stop
+timers while hidden, and reject results belonging to an obsolete adapter.
+
 ### 0z578. Read Models Must Not Generate New Entity IDs Per Fetch
 
 **The Bug**: `SqlitePodMessaging.GetMessagesAsync` generated a new GUID for
