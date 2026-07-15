@@ -5403,6 +5403,9 @@ Transfers.Downloads.List(
 memory, but production transfer stores may translate those predicates through
 EF Core. API query predicates must use expression-tree operations that the
 backing store can translate; helper methods belong only after materialization.
+Do not substitute `Enum.HasFlag` inside service-side completed-history queries;
+use the same explicit bitwise comparisons and require a real SQLite execution
+test or query-plan assertion, not only an in-memory compiled-expression test.
 
 ### 0z381. Page Shells Must Not Wait For Live Feeds
 
