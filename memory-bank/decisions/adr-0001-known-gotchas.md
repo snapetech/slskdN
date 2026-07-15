@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z617. Reverse Indexes Must Remove Empty Buckets On Remap
+
+**The Bug**: ContentID remapping removed an external ID from its old reverse
+lookup bucket but left the empty bucket in `_contentToExternal`. Repeated
+remaps accumulated unreachable dictionaries, and
+`IsContentIdRegisteredAsync` reported the old ContentID as registered even
+though it had no external mappings.
+
+**Files Affected**:
+- `src/slskd/MediaCore/ContentIdRegistry.cs`
+
+**Prevention**: When the last member leaves a reverse-index bucket, remove the
+bucket under the same mutation boundary that updates the primary and secondary
+indexes. Test both shared-bucket remaps and last-member remaps; removing a
+member is not sufficient when bucket existence itself answers API queries.
+
 ### 0z616. Secondary Index Comparers Must Preserve Primary-Key Multiplicity
 
 **The Bug**: A ContentID secondary index used a case-insensitive `HashSet` to
