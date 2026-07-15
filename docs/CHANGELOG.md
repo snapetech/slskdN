@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Adaptive chunk scheduling no longer throws when a peer's only recent chunk
+  completions all failed; the recent-performance score now treats an empty set
+  of successful transfers as the worst duration score instead of crashing the
+  assignment path.
 - Mesh preview producers now retain ownership of their pipe writer until a
   single final completion, so hash mismatches and peer failures return clean
   end-of-stream responses instead of intermittently leaving readers pending.

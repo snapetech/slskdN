@@ -276,8 +276,17 @@ public class AdaptiveScheduler : IAdaptiveScheduler
         }
 
         var successRate = (double)recent.Count(f => f.Success) / recent.Count;
-        var avgDuration = recent.Where(f => f.Success).Average(f => (double)f.DurationMs);
-        var normalizedDuration = Math.Max(0.0, 1.0 - (avgDuration / 10000.0)); // 10s = 0, 0s = 1
+
+        // Only successful completions have a meaningful duration. When every recent attempt
+        // failed this set is empty, so Average() would throw InvalidOperationException; treat
+        // that as the worst duration score (the peer is already penalized via successRate=0).
+        var successfulDurations = recent.Where(f => f.Success).Select(f => (double)f.DurationMs).ToList();
+        var normalizedDuration = 0.0;
+        if (successfulDurations.Count > 0)
+        {
+            var avgDuration = successfulDurations.Average();
+            normalizedDuration = Math.Max(0.0, 1.0 - (avgDuration / 10000.0)); // 10s = 0, 0s = 1
+        }
 
         return (successRate * 0.7) + (normalizedDuration * 0.3);
     }

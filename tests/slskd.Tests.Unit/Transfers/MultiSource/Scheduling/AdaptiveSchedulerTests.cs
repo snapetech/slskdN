@@ -65,6 +65,32 @@ public class AdaptiveSchedulerTests
     }
 
     [Fact]
+    public async Task AssignChunkAsync_Should_Not_Throw_When_Peer_Has_Only_Failed_Completions()
+    {
+        // Arrange: a peer whose only recent completions all failed. The recent-performance
+        // score previously averaged an empty successful-completions set, throwing
+        // InvalidOperationException out of the chunk-assignment hot path.
+        var peerId = "failpeer";
+        for (int i = 0; i < 3; i++)
+        {
+            await _service.RecordChunkCompletionAsync(i, peerId, success: false, durationMs: 500, bytesTransferred: 0, CancellationToken.None);
+        }
+
+        var request = new ChunkRequest { ChunkIndex = 10, Size = 1024 };
+        var availablePeers = new List<string> { peerId };
+        _baseSchedulerMock
+            .Setup(x => x.AssignChunkAsync(request, availablePeers, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChunkAssignment { ChunkIndex = 10, AssignedPeer = peerId, Success = true });
+
+        // Act
+        var result = await _service.AssignChunkAsync(request, availablePeers, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(peerId, result.AssignedPeer);
+    }
+
+    [Fact]
     public async Task RecordChunkCompletionAsync_Should_Record_Feedback()
     {
         // Arrange
