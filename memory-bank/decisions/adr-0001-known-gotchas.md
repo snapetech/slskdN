@@ -52,6 +52,26 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z582. Slow-Cadence Refreshes Must Not Re-Run Fast-Cadence Domains
+
+**The Bug**: The legacy Pods metadata timer was briefly wired to full workspace
+hydration so it could recover initial selection. At every shared 60-second
+boundary, the two-second message timer and metadata timer could then issue two
+message requests if the first resolved before metadata hydration reached the
+message step. An in-flight guard reduced the race but did not make the request
+count deterministic.
+
+**Files Affected**:
+- `src/web/src/components/Pods/Pods.jsx`
+- `src/web/src/components/Pods/Pods.test.jsx`
+
+**Prevention**: Each polling cadence must refresh only the data domain it owns.
+Do not make a slow metadata timer invoke a composite refresh that also includes
+fast data. Keep initial/visibility hydration separate, use domain-specific
+interval callbacks, and advance tests through a shared timer boundary so an
+unexpected duplicate request is observable even with immediately resolved
+mocks.
+
 ### 0z581. Route Parameters Are Not Proof That Detail State Is Hydrated
 
 **The Bug**: The legacy Pods route copied `podId` and `channelId` route
