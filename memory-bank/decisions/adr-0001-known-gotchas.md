@@ -52,6 +52,27 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z603. Dashboard Fan-Out Can Repeat The Same Full-Table Analytics Read
+
+**The Bug**: Swarm Analytics refreshed five leaf endpoints every thirty
+seconds. The recommendations endpoint recomputed performance, efficiency, and
+peer rankings internally, so one browser refresh loaded and ranked the complete
+`PeerMetrics` table four times. The page also requested trends that it never
+rendered, allowed overlapping refreshes, rerendered unchanged data, and kept
+polling while the document was hidden.
+
+**Files Affected**:
+- `src/slskd/Transfers/MultiSource/Analytics/SwarmAnalyticsService.cs`
+- `src/slskd/Transfers/MultiSource/API/AnalyticsController.cs`
+- `src/web/src/lib/swarmAnalytics.js`
+- `src/web/src/components/System/SwarmAnalytics/index.jsx`
+
+**Prevention**: A dashboard endpoint must build all rendered sections from one
+expensive source snapshot and omit data the consumer does not render. Count
+service/database calls inside nested summary methods, not only top-level HTTP
+requests. Recurring analytics must reject overlap, stop while hidden, catch up
+on visibility, ignore stale filter completions, and suppress unchanged state.
+
 ### 0z602. Analytics Reads Must Preserve Request Cancellation
 
 **The Bug**: Swarm efficiency analytics accepted the controller's cancellation
