@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z586. Realtime Removal Events Must Carry The Store's Stable Identity
+
+**The Bug**: Transfer rows backed by a `DownloadRequest` are keyed in the Web
+store by `RequestId`, but `TransferRemoved` events carried only the current
+attempt id plus the legacy direction/username/filename identity. The event
+therefore could not find and remove a request-keyed row, leaving it visible
+until a full REST reconciliation replaced the store.
+
+**Files Affected**:
+- `src/slskd/Transfers/API/Hubs/TransfersHub.cs`
+- `src/slskd/Transfers/API/Controllers/TransfersController.cs`
+- `src/web/src/lib/transferStore.js`
+
+**Prevention**: Every create, update, and removal event must carry the same
+stable identity used by the client store. For request-backed downloads this is
+`RequestId`; the persisted transfer id distinguishes an obsolete attempt from
+the current attempt. Test the serialized removal event and verify that it
+removes the current request-keyed row while preserving a newer replacement.
+
 ### 0z585. Timestamp Cursors Must Normalize Serialized Date Strings
 
 **The Bug**: The unified private-chat adapter converted backend `DateTime`
