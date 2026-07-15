@@ -9,11 +9,13 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using Moq;
 using slskd.Search;
 using slskd.Transfers;
 using slskd.Transfers.AutoReplace;
+using slskd.Transfers.API;
 using slskd.Transfers.Downloads;
 using slskd.Transfers.Ranking;
 using Soulseek;
@@ -199,6 +201,65 @@ public class AutoReplaceServiceTests
         Assert.False(AutoReplaceService.IsPlausibleFilenameMatch(
             "Artist - Track.flac",
             "/music/Other Artist/Album/01 - Different Song.flac"));
+    }
+
+    [Fact]
+    public async Task ReplaceDownloadAsync_Emits_RequestIdentity_For_Removed_Attempt()
+    {
+        var original = new SlskdTransfer
+        {
+            BatchId = Guid.NewGuid(),
+            Direction = TransferDirection.Download,
+            Filename = "Artist - Track.flac",
+            Id = Guid.NewGuid(),
+            RequestId = Guid.NewGuid(),
+            Username = "original",
+        };
+        var downloads = new Mock<IDownloadService>();
+        downloads
+            .Setup(service => service.Find(It.IsAny<Expression<Func<SlskdTransfer, bool>>>()))
+            .Returns(original);
+        downloads
+            .Setup(service => service.EnqueueAsync(
+                "replacement",
+                It.IsAny<IEnumerable<DownloadEnqueueRequest>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((new List<SlskdTransfer> { new() }, new List<string>()));
+        var transfers = new Mock<ITransferService>();
+        transfers.SetupGet(service => service.Downloads).Returns(downloads.Object);
+
+        var clientProxy = new Mock<IClientProxy>();
+        var clients = new Mock<IHubClients>();
+        clients.SetupGet(value => value.All).Returns(clientProxy.Object);
+        var hub = new Mock<IHubContext<TransfersHub>>();
+        hub.SetupGet(value => value.Clients).Returns(clients.Object);
+
+        using var service = new AutoReplaceService(
+            transfers.Object,
+            Mock.Of<ISearchService>(),
+            Mock.Of<ISoulseekClient>(),
+            Mock.Of<IOptionsMonitor<SlskdOptions>>(),
+            Mock.Of<ISourceRankingService>(),
+            transfersHub: hub.Object);
+
+        var replaced = await service.ReplaceDownloadAsync(new ReplaceDownloadRequest
+        {
+            NewFilename = "Artist - Track.flac",
+            NewSize = 1,
+            NewUsername = "replacement",
+            OriginalId = original.Id.ToString(),
+            OriginalUsername = original.Username,
+        });
+
+        Assert.True(replaced);
+        clientProxy.Verify(
+            proxy => proxy.SendCoreAsync(
+                TransferHubMethods.Removed,
+                It.Is<object[]>(arguments =>
+                    arguments.Length == 1 &&
+                    ((TransferRemoved)arguments[0]).RequestId == original.RequestId),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]

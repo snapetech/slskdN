@@ -105,6 +105,7 @@ namespace slskd.Transfers.API
             _ = TransfersHub.EmitTransferRemovedAsync(new TransferRemoved
             {
                 Id = transfer.Id,
+                RequestId = transfer.RequestId,
                 Direction = transfer.Direction,
                 Username = transfer.Username,
                 Filename = transfer.Filename,
@@ -542,6 +543,58 @@ namespace slskd.Transfers.API
                     yield return configuredDestination.Path;
                 }
             }
+        }
+
+        /// <summary>
+        ///     Gets an initial transfer snapshot or only records changed after a cursor.
+        /// </summary>
+        /// <param name="since">Optional Unix timestamp in milliseconds returned by the prior response.</param>
+        /// <returns>A server-watermarked transfer change set.</returns>
+        /// <response code="200">The request completed successfully.</response>
+        /// <response code="400">The cursor was invalid.</response>
+        [HttpGet("changes")]
+        [Authorize(Policy = AuthPolicy.Any)]
+        [ProducesResponseType(typeof(TransferChangesResponse), 200)]
+        [ProducesResponseType(typeof(string), 400)]
+        public IActionResult GetTransferChanges([FromQuery] long? since = null)
+        {
+            if (Program.IsRelayAgent)
+            {
+                return Forbid();
+            }
+
+            DateTime? changedSince = null;
+            if (since.HasValue)
+            {
+                if (since.Value < 0)
+                {
+                    return BadRequest("since must be a non-negative Unix timestamp in milliseconds");
+                }
+
+                try
+                {
+                    changedSince = DateTimeOffset.FromUnixTimeMilliseconds(since.Value).UtcDateTime;
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    return BadRequest("since is outside the supported Unix timestamp range");
+                }
+            }
+
+            var snapshotAt = DateTime.UtcNow;
+            Expression<Func<global::slskd.Transfers.Transfer, bool>> filter = changedSince.HasValue
+                ? transfer => transfer.UpdatedAt > changedSince.Value && transfer.UpdatedAt <= snapshotAt
+                : transfer => transfer.UpdatedAt <= snapshotAt;
+            var includeRemoved = changedSince.HasValue;
+            var transfers = new List<global::slskd.Transfers.Transfer>();
+            transfers.AddRange(Transfers.Downloads.List(filter, includeRemoved));
+            transfers.AddRange(Transfers.Uploads.List(filter, includeRemoved));
+
+            return Ok(new TransferChangesResponse
+            {
+                Cursor = new DateTimeOffset(snapshotAt).ToUnixTimeMilliseconds(),
+                Transfers = transfers,
+            });
         }
 
         /// <summary>

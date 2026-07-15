@@ -35,6 +35,8 @@ namespace slskd.Transfers.API
     {
         public Guid Id { get; set; }
 
+        public Guid? RequestId { get; set; }
+
         public TransferDirection Direction { get; set; }
 
         public string Username { get; set; } = string.Empty;

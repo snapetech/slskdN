@@ -714,11 +714,87 @@ public class TransfersControllerTests
     }
 
     [Fact]
+    public void GetTransferChanges_WithCursor_ReturnsOnlyChangedRowsAndIncludesRemoved()
+    {
+        var cutoff = new DateTime(2026, 7, 15, 12, 0, 0, DateTimeKind.Utc);
+        var old = new SlskdTransfer { Id = Guid.NewGuid(), UpdatedAt = cutoff.AddSeconds(-1) };
+        var changed = new SlskdTransfer { Id = Guid.NewGuid(), UpdatedAt = cutoff.AddSeconds(1) };
+        var removed = new SlskdTransfer
+        {
+            Id = Guid.NewGuid(),
+            Direction = TransferDirection.Upload,
+            Removed = true,
+            UpdatedAt = cutoff.AddSeconds(1),
+        };
+        var downloads = new Mock<IDownloadService>();
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), true))
+            .Returns<Expression<Func<SlskdTransfer, bool>>?, bool>((expression, _) =>
+                new[] { old, changed }.Where(expression!.Compile()).ToList());
+        var uploads = new Mock<IUploadService>();
+        uploads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), true))
+            .Returns<Expression<Func<SlskdTransfer, bool>>, bool>((expression, _) =>
+                new[] { removed }.Where(expression.Compile()).ToList());
+        var controller = CreateController(downloads: downloads, uploads: uploads);
+
+        var result = controller.GetTransferChanges(new DateTimeOffset(cutoff).ToUnixTimeMilliseconds());
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<TransferChangesResponse>(ok.Value);
+        Assert.Equal(new[] { changed, removed }, response.Transfers.ToList());
+        Assert.True(response.Cursor >= new DateTimeOffset(cutoff).ToUnixTimeMilliseconds());
+    }
+
+    [Fact]
+    public void GetTransferChanges_InitialSnapshotExcludesRemovedRows()
+    {
+        var downloads = new Mock<IDownloadService>();
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), false))
+            .Returns(new List<SlskdTransfer>());
+        var uploads = new Mock<IUploadService>();
+        uploads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), false))
+            .Returns(new List<SlskdTransfer>());
+        var controller = CreateController(downloads: downloads, uploads: uploads);
+
+        var result = controller.GetTransferChanges();
+
+        Assert.IsType<TransferChangesResponse>(Assert.IsType<OkObjectResult>(result).Value);
+        downloads.Verify(
+            service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), false),
+            Times.Once);
+        uploads.Verify(
+            service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), false),
+            Times.Once);
+    }
+
+    [Fact]
+    public void GetTransferChanges_WithNegativeCursorReturnsBadRequestWithoutQueries()
+    {
+        var downloads = new Mock<IDownloadService>();
+        var uploads = new Mock<IUploadService>();
+        var controller = CreateController(downloads: downloads, uploads: uploads);
+
+        var result = controller.GetTransferChanges(-1);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        downloads.Verify(
+            service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), It.IsAny<bool>()),
+            Times.Never);
+        uploads.Verify(
+            service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), It.IsAny<bool>()),
+            Times.Never);
+    }
+
+    [Fact]
     public void ClearCompletedDownloads_EmitsRemovedActivityForRemovedTransfers()
     {
         var completed = new SlskdTransfer
         {
             Id = Guid.NewGuid(),
+            RequestId = Guid.NewGuid(),
             Username = "alice",
             Filename = "Album\\done.flac",
             Direction = TransferDirection.Download,
@@ -739,7 +815,9 @@ public class TransfersControllerTests
         clientProxy.Verify(
             proxy => proxy.SendCoreAsync(
                 TransferHubMethods.Removed,
-                It.IsAny<object[]>(),
+                It.Is<object[]>(arguments =>
+                    arguments.Length == 1 &&
+                    ((TransferRemoved)arguments[0]).RequestId == completed.RequestId),
                 It.IsAny<CancellationToken>()),
             Times.Once);
     }

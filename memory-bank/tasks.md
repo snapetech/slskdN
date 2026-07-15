@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make transfer reconciliation incremental and lifecycle-aware.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Added authenticated `GET /api/v0/transfers/changes`, a server-issued Unix-millisecond cursor, mutation-stamped `Transfer.UpdatedAt`, and an idempotent composite `(Direction, UpdatedAt)` migration. The transfer store now seeds once, buffers concurrent live events, merges changed and removed records, suppresses overlapping or unchanged cycles, ignores hidden live events, stops hidden polling, and catches up immediately on visibility. Removal events carry `RequestId` so request-keyed rows are removed without a full snapshot. For a representative 134,777-row history, first-minute response traffic falls from 374,680,065 bytes to 79,653,401 bytes (78.74% fewer), visible idle steady-state traffic falls from 299,744,052 bytes to 156 bytes per minute (99.9999% fewer), and hidden polling falls to zero. On a synthetic 200,000-row database, 200 idle change queries fell from 1,159.779 ms to 0.239 ms (99.979% faster). Added migration, stamping, query-plan, controller, serialization, event-identity, API-boundary, store-merge, snapshot-race, overlap, cursor, and visibility regressions; documented gotchas `0z586` and `0z587` and extended `0z568` in standalone commits `41357ef0d`, `8cb418c2c`, and `9454dfd25`.
+
 - [x] Make active private-chat polling incremental and index timeline reads.
   - Status: completed (2026-07-15)
   - Priority: P1

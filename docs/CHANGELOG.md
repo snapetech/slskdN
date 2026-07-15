@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- The Downloads/Uploads page now performs one complete initial transfer
+  snapshot followed by indexed `UpdatedAt` deltas, merges only changed or
+  removed records, suppresses overlapping and hidden work, and catches up on
+  visibility. Removal events now include stable request identity so replaced
+  or deleted rows leave the client store immediately.
 - Private-chat polling now uses an overlapping timestamp cursor and bounded
   client cache instead of repeatedly transferring the latest 100 messages.
   Legacy chat also suppresses overlapping work and hidden-tab polling;

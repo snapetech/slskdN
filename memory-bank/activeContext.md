@@ -1,3 +1,20 @@
+## Update 2026-07-15 20:31:02Z
+
+- Current task: performance and efficiency improvements in progress; incremental transfer reconciliation and indexed mutation timeline pass complete locally.
+- Last activity:
+  - Added authenticated `/api/v0/transfers/changes` with a server watermark, mutation-stamped `UpdatedAt`, soft-deletion deltas, and an idempotent `(Direction, UpdatedAt)` index migration.
+  - Changed the transfer page from repeated full-history replacement to one initial seed plus overlapping cursor deltas, buffered pre-seed live-event replay, unchanged-state suppression, in-flight rejection, hidden polling/live-event suspension, and immediate visibility catch-up.
+  - Added stable `RequestId` to transfer removal events so request-backed rows disappear without waiting for reconciliation.
+  - Reduced representative 134,777-row first-minute response traffic by 78.74%, visible idle steady-state traffic from 299,744,052 bytes to 156 bytes per minute (99.9999%), and hidden polling to zero. Synthetic 200,000-row idle delta queries improved from 1,159.779 ms to 0.239 ms across 200 runs.
+  - Added migration, stamping, query-plan, controller, serialization, event-identity, API-boundary, delta-merge, snapshot-race, overlap, cursor, and visibility regressions; documented gotchas `0z586` and `0z587` and extended `0z568` in standalone commits `41357ef0d`, `8cb418c2c`, and `9454dfd25`.
+- Validation:
+  - Passed focused backend tests (`39/39`) and focused Web tests (`21/21`).
+  - Passed complete Web tests (`807` passed, `4` skipped), production Web build, and frontend lint with zero errors.
+  - Passed complete backend suites (`4722/4722`: `69` smoke, `4375` unit, `278` integration) and repository lint.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 20:11:26Z
 
 - Current task: performance and efficiency improvements in progress; incremental private-chat polling and indexed timeline pass complete locally.

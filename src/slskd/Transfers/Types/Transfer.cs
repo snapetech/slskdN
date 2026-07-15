@@ -65,6 +65,7 @@ namespace slskd.Transfers
         /// </remarks>
         public string? StateDescription { get; set; }
         public DateTime RequestedAt { get; set; }
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? EnqueuedAt { get; set; }
         public DateTime? StartedAt { get; set; }
 
@@ -99,7 +100,7 @@ namespace slskd.Transfers
         public int? TrackNumber { get; set; }
         public int? Year { get; set; }
 
-        [JsonIgnore]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public bool Removed { get; set; }
 
         [NotMapped]

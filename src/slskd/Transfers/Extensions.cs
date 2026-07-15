@@ -40,6 +40,7 @@ namespace slskd.Transfers
                 NextAttemptAt = transfer.NextAttemptAt,
                 State = t.State,
                 RequestedAt = transfer.RequestedAt,
+                UpdatedAt = transfer.UpdatedAt,
                 EnqueuedAt = transfer.EnqueuedAt,
                 StartedAt = t.StartTime,
                 EndedAt = t.EndTime,

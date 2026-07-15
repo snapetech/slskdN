@@ -42,6 +42,23 @@ export const getFlat = async ({
   return response;
 };
 
+/**
+ * Server-watermarked transfer snapshot/delta used by TransferManager.
+ * The first call omits `since`; later calls pass the prior cursor.
+ * @param {{ since?: number|null }} [opts]
+ * @returns {Promise<{cursor: number|null, transfers: Array}>}
+ */
+export const getChanges = async ({ since = null } = {}) => {
+  const query = since == null ? '' : `?since=${encodeURIComponent(since)}`;
+  const response = (await api.get(`/transfers/changes${query}`)).data;
+  const cursor = Number(response?.cursor);
+
+  return {
+    cursor: Number.isFinite(cursor) ? cursor : null,
+    transfers: Array.isArray(response?.transfers) ? response.transfers : [],
+  };
+};
+
 export const getSpeeds = async () => {
   const response = await api.get('/transfers/speeds');
   return response.data;

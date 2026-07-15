@@ -7,9 +7,9 @@
  * in place instead of churning the list — this is the core fix for the
  * "redraws every time we auto-retry" problem.
  *
- * Seeded from the flat REST snapshot, patched by SignalR ACTIVITY / PROGRESS /
- * REMOVED events, and reconciled against REST every ~15s as a safety net for
- * missed events or a dropped socket.
+ * Seeded from a REST snapshot, patched by SignalR ACTIVITY / PROGRESS / REMOVED
+ * events, and reconciled with indexed REST deltas every ~15s as a safety net
+ * for missed events or a dropped socket.
  */
 
 const norm = (value) => String(value ?? '').toLowerCase();
@@ -43,6 +43,12 @@ const PATCH_FIELDS = [
   'percentComplete',
   'requestId',
 ];
+
+const recordsMatch = (left, right) => {
+  if (!left || !right) return left === right;
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+  return Array.from(keys).every((key) => Object.is(left[key], right[key]));
+};
 
 export const createTransferStore = () => {
   /** @type {Map<string, object>} */
@@ -197,25 +203,62 @@ export const createTransferStore = () => {
     }
   };
 
-  const applyRemoved = (removed) => {
+  const removeRecord = (removed) => {
     if (!removed || !removed.filename) {
-      return;
+      return false;
     }
 
     const key = transferKey(removed);
     const existing = entries.get(key);
     if (!existing) {
-      return;
+      return false;
     }
 
     // When keyed by requestId, the removed event might be for an older attempt
     // that's already been replaced by a new one under the same request. Only
     // delete if the entry still points at the id being removed.
     if (removed.requestId && removed.id && existing.id && removed.id !== existing.id) {
-      return;
+      return false;
     }
 
-    removeByKey(key);
+    return entries.delete(key);
+  };
+
+  const applyRemoved = (removed) => {
+    if (removeRecord(removed)) {
+      bump();
+    }
+  };
+
+  const applySnapshot = (records) => {
+    let changed = false;
+
+    for (const record of Array.isArray(records) ? records : []) {
+      if (!record || !record.filename) continue;
+
+      if (record.removed) {
+        changed = removeRecord(record) || changed;
+        continue;
+      }
+
+      const existingKey = findExistingKey(record);
+      const existing = entries.get(existingKey);
+      const desiredKey = transferKey(record);
+      if (existing && existingKey === desiredKey && recordsMatch(existing, record)) {
+        continue;
+      }
+
+      if (existing && existingKey !== desiredKey) {
+        entries.delete(existingKey);
+      }
+
+      entries.set(desiredKey, record);
+      changed = true;
+    }
+
+    if (changed) {
+      bump();
+    }
   };
 
   return {
@@ -226,6 +269,7 @@ export const createTransferStore = () => {
     applyActivity,
     applyProgress,
     applyRemoved,
+    applySnapshot,
     removeByKey,
   };
 };

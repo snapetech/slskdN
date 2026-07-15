@@ -516,6 +516,7 @@ namespace slskd.Transfers.AutoReplace
                     _ = TransfersHub.EmitTransferRemovedAsync(new TransferRemoved
                     {
                         Id = original.Id,
+                        RequestId = original.RequestId,
                         Direction = original.Direction,
                         Username = original.Username,
                         Filename = original.Filename,

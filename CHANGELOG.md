@@ -10,6 +10,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Transfer reconciliation now uses a server-watermarked, indexed change feed
+  instead of replacing the complete download/upload history every fifteen
+  seconds. The transfer page merges deltas without rerendering unchanged data,
+  rejects overlapping requests, and stops polling and applying live events
+  while hidden.
 - Active private-chat polling now requests only messages newer than an
   overlapping timestamp cursor, merges them into a bounded client cache, avoids
   overlapping or unchanged refreshes, and stops legacy-chat polling while the
@@ -61,6 +66,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Transfer removal events now carry the stable download-request identity, so
+  request-backed rows disappear immediately instead of surviving until a REST
+  reconciliation.
 - Private-chat unread totals now count the complete conversation rather than
   the bounded message window, and ISO-formatted chat and room timestamps retain
   their real ordering instead of being treated as zero.

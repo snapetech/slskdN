@@ -178,6 +178,49 @@ describe('transferStore', () => {
     expect(store.getAll()).toHaveLength(0);
   });
 
+  it('merges snapshot deltas and applies request-keyed removals', () => {
+    const store = createTransferStore();
+    store.seed([
+      { ...baseTransfer, requestId: 'req-1', id: 'id-1' },
+      { ...baseTransfer, filename: 'Music\\other.flac', id: 'id-2' },
+    ]);
+
+    store.applySnapshot([
+      {
+        ...baseTransfer,
+        bytesTransferred: 50,
+        id: 'id-1',
+        requestId: 'req-1',
+        state: 'InProgress',
+      },
+      {
+        ...baseTransfer,
+        id: 'id-2',
+        filename: 'Music\\other.flac',
+        removed: true,
+      },
+    ]);
+
+    expect(store.getAll()).toHaveLength(1);
+    const row = store.getAll()[0];
+    expect(row.requestId).toBe('req-1');
+    expect(row.bytesTransferred).toBe(50);
+    expect(row.state).toBe('InProgress');
+  });
+
+  it('does not notify subscribers for an overlapping unchanged snapshot', () => {
+    const store = createTransferStore();
+    store.seed([baseTransfer]);
+    let notifications = 0;
+    store.subscribe(() => {
+      notifications += 1;
+    });
+
+    store.applySnapshot([{ ...baseTransfer }]);
+
+    expect(notifications).toBe(0);
+  });
+
   it('only notifies subscribers when data actually changes', () => {
     const store = createTransferStore();
     store.seed([baseTransfer]);

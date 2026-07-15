@@ -21,6 +21,8 @@
 namespace slskd.Transfers
 {
     using System;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
     using slskd.Transfers.Downloads;
@@ -37,12 +39,29 @@ namespace slskd.Transfers
 
         public override int SaveChanges(bool acceptAllChangesOnSuccess)
         {
+            PrepareTrackedEntities();
+
+            return base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+
+        public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+        {
+            PrepareTrackedEntities();
+
+            return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+
+        private void PrepareTrackedEntities()
+        {
+            var updatedAt = DateTime.UtcNow;
+
             // this is absolutely NOT IDEAL and will accellerate the move away from EF
             foreach (var entry in ChangeTracker.Entries<Transfer>())
             {
                 if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
                 {
                     entry.Entity.StateDescription = entry.Entity.State.ToString();
+                    entry.Entity.UpdatedAt = updatedAt;
                 }
             }
 
@@ -54,7 +73,6 @@ namespace slskd.Transfers
                 }
             }
 
-            return base.SaveChanges(acceptAllChangesOnSuccess);
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -76,6 +94,12 @@ namespace slskd.Transfers
 
             modelBuilder
                 .Entity<Transfer>()
+                .Property(e => e.UpdatedAt)
+                .HasConversion(v => v, v => DateTime.SpecifyKind(v, DateTimeKind.Utc))
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            modelBuilder
+                .Entity<Transfer>()
                 .Property(d => d.Direction)
                 .HasConversion(new EnumToStringConverter<Soulseek.TransferDirection>());
 
@@ -83,6 +107,11 @@ namespace slskd.Transfers
                 .Entity<Transfer>()
                 .HasIndex(t => t.Direction)
                 .HasDatabaseName("IDX_Transfers_Direction");
+
+            modelBuilder
+                .Entity<Transfer>()
+                .HasIndex(t => new { t.Direction, t.UpdatedAt })
+                .HasDatabaseName("IDX_Transfers_Direction_UpdatedAt");
 
             modelBuilder
                 .Entity<Transfer>()

@@ -119,49 +119,135 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
     setActiveTab(direction);
   }, [direction]);
 
-  // Seed from REST, stream deltas over SignalR, reconcile on a slow timer.
+  // Seed from REST, stream deltas over SignalR, reconcile indexed deltas on a slow timer.
   useEffect(() => {
     let disposed = false;
+    let cursor = null;
+    let interval = null;
+    let pendingEvents = [];
+    let reconcileRequest = null;
+    let seeded = false;
 
-    const reconcile = async () => {
-      try {
-        const snapshot = await transfersLibrary.getFlat();
-        if (!disposed) {
-          store.seed(snapshot);
+    const reconcile = () => {
+      if (disposed || document.hidden) {
+        return Promise.resolve();
+      }
+      if (reconcileRequest) {
+        return reconcileRequest;
+      }
+
+      const since = cursor === null ? null : Math.max(0, cursor - 1);
+      reconcileRequest = (async () => {
+        try {
+          const snapshot = await transfersLibrary.getChanges({ since });
+          if (disposed || document.hidden) {
+            return;
+          }
+
+          if (!seeded) {
+            store.seed(snapshot.transfers.filter((transfer) => !transfer.removed));
+            seeded = true;
+            pendingEvents.forEach(({ callback, event }) => callback(event));
+            pendingEvents = [];
+          } else {
+            store.applySnapshot(snapshot.transfers);
+          }
+
+          if (snapshot.cursor !== null) {
+            cursor = Math.max(cursor ?? 0, snapshot.cursor);
+          }
+        } catch (error) {
+          if (!disposed) {
+            console.error('transfer reconcile failed', error);
+          }
+        } finally {
+          if (!disposed) {
+            setConnecting(false);
+          }
         }
-      } catch (error) {
-        if (!disposed) {
-          console.error('transfer reconcile failed', error);
-        }
-      } finally {
-        if (!disposed) {
-          setConnecting(false);
+      })().finally(() => {
+        reconcileRequest = null;
+      });
+
+      return reconcileRequest;
+    };
+
+    const stopPolling = () => {
+      if (interval) {
+        window.clearInterval(interval);
+        interval = null;
+      }
+    };
+
+    const startPolling = () => {
+      if (disposed || document.hidden || interval) {
+        return;
+      }
+
+      reconcile();
+      interval = window.setInterval(reconcile, RECONCILE_INTERVAL_MS);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        pendingEvents = [];
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    const applyWhenVisible = (callback) => (event) => {
+      if (!disposed && !document.hidden) {
+        if (seeded) {
+          callback(event);
+        } else {
+          pendingEvents.push({ callback, event });
         }
       }
     };
 
-    reconcile();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     const hub = createTransfersHubConnection();
-    hub.on('activity', (activity) => store.applyActivity(activity));
-    hub.on('progress', (progress) => store.applyProgress(progress));
-    hub.on('removed', (removed) => store.applyRemoved(removed));
-    hub.onreconnecting(() => setConnected(false));
-    hub.onreconnected(() => {
-      setConnected(true);
-      reconcile();
+    hub.on('activity', applyWhenVisible(store.applyActivity));
+    hub.on('progress', applyWhenVisible(store.applyProgress));
+    hub.on('removed', applyWhenVisible(store.applyRemoved));
+    hub.onreconnecting(() => {
+      if (!disposed) {
+        setConnected(false);
+      }
     });
-    hub.onclose(() => setConnected(false));
+    hub.onreconnected(() => {
+      if (!disposed) {
+        setConnected(true);
+        reconcile();
+      }
+    });
+    hub.onclose(() => {
+      if (!disposed) {
+        setConnected(false);
+      }
+    });
     hub.start().then(
-      () => setConnected(true),
-      () => setConnected(false),
+      () => {
+        if (!disposed) {
+          setConnected(true);
+        }
+      },
+      () => {
+        if (!disposed) {
+          setConnected(false);
+        }
+      },
     );
 
-    const interval = window.setInterval(reconcile, RECONCILE_INTERVAL_MS);
+    startPolling();
 
     return () => {
       disposed = true;
-      window.clearInterval(interval);
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       hub.stop();
     };
   }, [store]);
