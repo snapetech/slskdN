@@ -21867,3 +21867,16 @@ errors before any tests could run.
 update and keep direct test/tool references at the same version as the runtime
 dependency. Validate with a clean `dotnet restore`, not only `--no-restore`
 tests against an existing assets file.
+### 0z555. Analyzer Roslyn Packages Cannot Outrun The SDK Compiler
+
+**The Bug**: A grouped dependency update raised the custom analyzer project's
+`Microsoft.CodeAnalysis.CSharp` reference to 5.6 while the repository SDK
+compiler exposed Roslyn 5.3. Builds succeeded with CS9057 but skipped loading
+the analyzer assembly, silently removing its enforcement.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/analyzers/Soulseek.CouncilAnalyzers/Soulseek.CouncilAnalyzers.csproj`
+
+**Prevention**: Keep analyzer compiler API references at or below the Roslyn
+version shipped by the pinned SDK. Treat CS9057 as a failed dependency update,
+even when MSBuild exits successfully.
