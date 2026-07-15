@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z592. Bounded Incremental Caches Must Cap The Initial Snapshot
+
+**The Bug**: The unified room adapter capped its merge path at 100 messages but
+assigned the initial API response directly to the cache. The current server
+retains only 25 room messages, which hid the defect, but an oversized response
+or later server-retention change could bypass the advertised client bound.
+
+**Files Affected**:
+- `src/web/src/components/Messaging/messagingAdapters.js`
+- `src/web/src/components/Messaging/messagingAdapters.test.js`
+
+**Prevention**: Apply the cache limit on every assignment path, including the
+initial snapshot, empty refreshes, and incremental merges. Regression tests for
+a bounded cache must start with more records than the limit; testing only the
+delta path does not prove the cache itself is bounded.
+
 ### 0z591. Room Collections Must Be Materialized Under Their Mutation Lock
 
 **The Bug**: `RoomTracker` correctly mutated each room's `List<T>` message and
