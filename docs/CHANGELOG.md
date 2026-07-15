@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Swarm performance analysis now treats an empty peer set as a neutral result
+  instead of averaging an empty sequence, which was swallowed as a spurious
+  "analysis failed" error on every analysis of a new or idle swarm.
 - Adaptive chunk scheduling no longer throws when a peer's only recent chunk
   completions all failed; the recent-performance score now treats an empty set
   of successful transfers as the worst duration score instead of crashing the

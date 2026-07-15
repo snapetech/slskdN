@@ -343,6 +343,14 @@ public class MediaCoreSwarmIntelligence : IMediaCoreSwarmIntelligence
     private static SwarmPerformanceRating AnalyzePeerDistribution(
         SwarmMetrics metrics, ICollection<string> issues, ICollection<string> recommendations)
     {
+        // An empty swarm (e.g. analysis run before any peer performance is recorded) is a
+        // normal state, not an error. Averaging an empty set would throw and be swallowed by
+        // the caller's catch as a spurious "analysis failed" error.
+        if (metrics.PeerPerformance.Count == 0)
+        {
+            return SwarmPerformanceRating.Acceptable;
+        }
+
         var averagePerformance = metrics.PeerPerformance.Values.Average();
         var performanceVariance = metrics.PeerPerformance.Values
             .Select(p => Math.Pow(p - averagePerformance, 2))
