@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Updated the supported Web build/test toolchain, Node type definitions, and
+  nonbreaking runtime dependencies; clean npm and NuGet scans report no known
+  vulnerabilities.
 - Scheduled browser policy checks now isolate each node's Web root, avoid
   cross-worker asset-copy races, bind test-only share announcements to the
   authenticated recipient, and reliably exercise modal controls above the player.
