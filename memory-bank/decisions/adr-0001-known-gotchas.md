@@ -21852,3 +21852,18 @@ the action to throw at runtime.
 **Prevention**: Import the established API module explicitly and use the same
 alias as existing feature components. Run frontend lint after adding integration
 actions, even when the component build itself succeeds.
+### 0z554. Grouped NuGet Updates Must Align Direct Test References
+
+**The Bug**: A grouped runtime dependency update raised YamlDotNet and
+Swashbuckle versions in the application project but left direct references in
+the unit-test project on older versions. Restore failed with NU1605 downgrade
+errors before any tests could run.
+
+**Files Affected**:
+- `src/slskd/slskd.csproj`
+- `tests/slskd.Tests.Unit/slskd.Tests.Unit.csproj`
+
+**Prevention**: Search the entire solution for every package in a grouped
+update and keep direct test/tool references at the same version as the runtime
+dependency. Validate with a clean `dotnet restore`, not only `--no-restore`
+tests against an existing assets file.
