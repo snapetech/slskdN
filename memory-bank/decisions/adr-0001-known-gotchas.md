@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z590. Gotcha Identifiers Cannot Be Chosen From File Position
+
+**The Bug**: A new gotcha was assigned `0z574` after inspecting the end of this
+living document, but an existing `0z574` entry appeared much earlier under a
+different severity section. The document is not globally sorted by identifier,
+so the new entry created an ambiguous duplicate.
+
+**Files Affected**:
+- `memory-bank/decisions/adr-0001-known-gotchas.md`
+
+**Prevention**: Before assigning a gotcha identifier, search the entire file
+for that exact heading and inspect the current highest recent identifier; do
+not infer availability from the entry's physical position. New entries must
+not add to the document's historical identifier collisions.
+
 ### 0z588. EF Index Identity Is Not The Database Index Name
 
 **The Bug**: The transfer model declared a general index and a partial index
@@ -22454,7 +22469,7 @@ would have increased payload size and broadened authenticated API disclosure.
 shape. Return only identifiers and counters rendered by the UI; do not reuse a
 rich internal entity merely to avoid a small response type.
 
-### 0z574. New SQLite Indexes Can Steal Existing Ordered Queries
+### 0z589. New SQLite Indexes Can Steal Existing Ordered Queries
 
 **The Bug**: Adding transfer count and history indexes changed SQLite's choice
 for an existing `Direction + UpdatedAt` timeline query on a fresh or otherwise
