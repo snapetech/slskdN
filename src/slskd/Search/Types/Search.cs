@@ -45,6 +45,12 @@ namespace slskd.Search
         [NotMapped]
         public IEnumerable<Response> Responses { get; set; } = new List<Response>();
 
+        /// <summary>
+        ///     Gets or sets a value indicating whether response payloads are available before search completion.
+        /// </summary>
+        [NotMapped]
+        public bool ResponsesAvailable { get; set; }
+
         [JsonIgnore]
         public string ResponsesJson
         {

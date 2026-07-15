@@ -1,3 +1,13 @@
+## Update 2026-07-15 23:39:36Z
+
+- Completed the search progress-persistence and response-hydration performance pass.
+- Repaired background ownership of the search progress limiter, changed its intended 250-millisecond cadence to one second, and made progress hub-only while retaining durable state transitions and the canonical final response save.
+- A continuously active 15-second search now has at most 16 progress summaries instead of the unbroken design's 61 (73.77% fewer); across 142 searches that model falls from 8,662 to 2,272. Actual response-driven partial database writes fall from one typically observed write per search to zero.
+- Ordinary active Soulseek detail views now request response payloads once at completion instead of probing once while active and again at completion (50% fewer). Explicit durable availability still exposes early mesh results, including after REST rehydration, and route-ID changes clear prior response state.
+- Preserved search source and wishlist provenance across Soulseek state copies and response-less projections, and added immediate launch-failure cleanup for cancellation and limiter resources.
+- Added lifecycle, persistence, projection, provenance, hydration-boundary, and reused-route regressions. Documented gotchas `0z609` through `0z615` in standalone commits `becb0f6f4`, `439432f0a`, `d91a71754`, `494cf01b4`, `445f6c727`, `2765881dd`, `9ac280d45`, `2824a7678`, and `479a0e9cd`.
+- Validation passed: focused search lifecycle tests (`19/19`), focused Search Detail/Searches tests (`15/15`), broader search Web tests (`72/72`), complete Web tests (`842` passed, `4` skipped), production Web build, frontend lint with zero errors, complete backend suites (`4755/4755`: `69` smoke, `4407` unit, `279` integration), repository lint, polling-lifecycle, identity-leak, and whitespace checks.
+
 ## Update 2026-07-15 23:06:25Z
 
 - Completed the Browse Session progress-polling performance pass.

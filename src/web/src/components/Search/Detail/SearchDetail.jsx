@@ -109,6 +109,11 @@ export const getInitialResultFilters = ({
   return urlFilter ?? getStoredDefault();
 };
 
+export const shouldFetchSearchResponses = ({
+  isComplete,
+  responsesAvailable,
+}) => isComplete || responsesAvailable;
+
 // eslint-disable-next-line complexity
 const SearchDetail = ({
   creating,
@@ -120,8 +125,15 @@ const SearchDetail = ({
   search,
   stopping,
 }) => {
-  const { fileCount, id, isComplete, lockedFileCount, responseCount, state } =
-    search;
+  const {
+    fileCount,
+    id,
+    isComplete,
+    lockedFileCount,
+    responseCount,
+    responsesAvailable,
+    state,
+  } = search;
   const acquisitionProfile = search.acquisitionProfile || 'lossless-exact';
 
   const [loading, setLoading] = useState(false);
@@ -289,12 +301,17 @@ const SearchDetail = ({
     toast.info(`Unblocked ${username}`);
   }, []);
 
-  // Fetch results once counts appear. Mesh responses can now arrive before
-  // the Soulseek search reaches its timeout.
+  // Fetch durable results at completion or when early mesh responses are
+  // explicitly available. Soulseek progress counts do not imply that the
+  // response payload has been persisted yet.
   useEffect(() => {
-    const hasResults = responseCount > 0 || fileCount > 0 || lockedFileCount > 0;
+    setLoading(false);
+    setError(undefined);
+    setResults([]);
+  }, [id]);
 
-    if (!isComplete && !hasResults) {
+  useEffect(() => {
+    if (!shouldFetchSearchResponses({ isComplete, responsesAvailable })) {
       return undefined;
     }
 
@@ -328,7 +345,7 @@ const SearchDetail = ({
       cancelled = true;
       clearTimeout(timeout);
     };
-  }, [fileCount, id, isComplete, lockedFileCount, responseCount]);
+  }, [id, isComplete, responsesAvailable]);
 
   // apply sorting and filters.  this can take a while for larger result
   // sets, so memoize it.

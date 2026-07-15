@@ -1,3 +1,19 @@
+## Update 2026-07-15 23:39:36Z
+
+- Current task: performance and efficiency improvements in progress; search progress-persistence and response-hydration pass complete locally.
+- Last activity:
+  - Repaired background ownership of live search progress, bounded the repaired cadence at one second, and eliminated response-driven partial database writes while preserving durable state/final saves.
+  - Reduced the unbroken 15-second progress model from 61 to 16 summaries (73.77% fewer), or 8,662 to 2,272 across 142 searches; actual typically observed response-driven partial writes fall from one per search to zero.
+  - Deferred ordinary Soulseek response hydration until completion, reducing detail response requests from two to one (50%), while preserving durable early mesh hydration through an explicit availability flag derived during REST projections.
+  - Preserved source/wishlist provenance through search copies and projections, added immediate launch-failure cleanup, and cleared stale results when the reused detail component changes search IDs.
+  - Added lifecycle, persistence, projection, provenance, hydration, and reused-route regressions; documented gotchas `0z609` through `0z615` in standalone commits `becb0f6f4`, `439432f0a`, `d91a71754`, `494cf01b4`, `445f6c727`, `2765881dd`, `9ac280d45`, `2824a7678`, and `479a0e9cd`.
+- Validation:
+  - Passed focused search lifecycle tests (`19/19`), focused Search Detail/Searches tests (`15/15`), and broader search Web tests (`72/72`).
+  - Passed complete backend suites (`4755/4755`: `69` smoke, `4407` unit, `279` integration), complete Web tests (`842` passed, `4` skipped), production Web build, frontend lint with zero errors, repository lint, polling-lifecycle, identity-leak, and whitespace checks.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 23:06:25Z
 
 - Current task: performance and efficiency improvements in progress; Browse Session progress-polling pass complete locally.

@@ -149,6 +149,8 @@ namespace slskd.Search
     /// </summary>
     public sealed partial class SearchService : ISearchService
     {
+        private const int SearchProgressIntervalMs = 1_000;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="SearchService"/> class.
         /// </summary>
@@ -377,7 +379,10 @@ namespace slskd.Search
             var searchCancellationToken = cancellationTokenSource.Token;
             CancellationTokens.TryAdd(id, cancellationTokenSource);
 
-            using var rateLimiter = new RateLimiter(250);
+#pragma warning disable CA2000 // Ownership transfers to the search background task, with launch-failure cleanup in the surrounding catch.
+            var progressRateLimiter = new RateLimiter(SearchProgressIntervalMs);
+#pragma warning restore CA2000
+            var backgroundOwnsResources = false;
 
             // initialize the search record, save it to the database, and broadcast the creation
             // we do this so the UI has some feedback to show to the user that we've gotten their request
@@ -431,11 +436,8 @@ namespace slskd.Search
 
                         Log.Debug("Search for '{Query}' state changed: {State} (id: {Id})", query, search.State, id);
                     },
-                    responseReceived: (args) => rateLimiter.Invoke(() =>
+                    responseReceived: (args) => progressRateLimiter.Invoke(() =>
                     {
-                        // note: this is rate limited, but has the potential to update the database every 250ms (or whatever the
-                        // interval is set to) for the duration of the search. any issues with disk i/o or performance while searches
-                        // are running should investigate this as a cause
                         int responseCount;
                         int fileCount;
                         int lockedFileCount;
@@ -468,10 +470,8 @@ namespace slskd.Search
                             search.LockedFileCount = lockedFileCount;
                         }
 
-                        Update(search);
-
-                        // note that we're not actually doing anything with the response here, that's happening in the
-                        // response handler. we're only updating counts here.
+                        // Progress is transient because responses remain in memory until
+                        // completion. Avoid writing an incomplete row for every update.
                         SearchHub.BroadcastUpdateAsync(search);
                     }));
 
@@ -497,8 +497,7 @@ namespace slskd.Search
                 // search looks ok so far; let the rest of the logic run asynchronously
                 // on a background thread. this logic needs to clean up after itself and
                 // update the search record to accurately reflect the final state
-                _ = TaskObservation.Observe(
-                    Task.Run(async () =>
+                var finalizationTask = Task.Run(async () =>
                 {
                     try
                     {
@@ -544,6 +543,10 @@ namespace slskd.Search
                             }
                         }
 
+                        // No more Soulseek responses can arrive after the search task
+                        // completes. Drain progress before the canonical save.
+                        progressRateLimiter.Dispose();
+
                         // Await mesh overlay results (runs in parallel with Soulseek; bounded by per-peer timeout)
                         var meshResponses = await meshPublicationTask;
 
@@ -566,6 +569,7 @@ namespace slskd.Search
 
                         var merged = MergeSearchResponses(soulseekSnapshot, meshResponses);
                         search.Responses = merged;
+                        search.ResponsesAvailable = true;
                         ApplyResponseSummary(search, merged);
 
                         Update(search);
@@ -635,6 +639,7 @@ namespace slskd.Search
 
                             var merged = MergeSearchResponses(soulseekSnapshot, meshResponses);
                             search.Responses = merged;
+                            search.ResponsesAvailable = true;
                             ApplyResponseSummary(search, merged);
                             Update(search);
                             await SearchHub.BroadcastUpdateAsync(search with { Responses = [] });
@@ -663,10 +668,13 @@ namespace slskd.Search
                     }
                     finally
                     {
-                        rateLimiter.Dispose();
+                        progressRateLimiter.Dispose();
                         ReleaseCancellationToken(id);
                     }
-                }, cancellationToken: CancellationToken.None),
+                }, cancellationToken: CancellationToken.None);
+                backgroundOwnsResources = true;
+                _ = TaskObservation.Observe(
+                    finalizationTask,
                     ex => Log.Warning(ex, "Search background task for '{Query}' failed (id: {Id})", query.SearchText, id));
 
                 // broadcast and return the _newly created_ search; it will continue to be updated in the background
@@ -675,6 +683,12 @@ namespace slskd.Search
             }
             catch (Exception ex)
             {
+                if (!backgroundOwnsResources)
+                {
+                    progressRateLimiter.Dispose();
+                    ReleaseCancellationToken(id);
+                }
+
                 // we'll end up here if the initial call throws for an ArgumentException, InvalidOperationException if
                 // the app isn't connected, and a few other straightforward issues that arise before even requesting the search
                 if (IsSearchUnavailableDuringLogin(ex))
@@ -1002,6 +1016,7 @@ namespace slskd.Search
                     search.State = SearchStates.Completed;
                     search.EndedAt = DateTime.UtcNow;
                     search.Responses = overlayResponses;
+                    search.ResponsesAvailable = true;
                     search.ResponseCount = overlayResponses.Count;
                     search.FileCount = overlayResponses.Sum(r => r.FileCount);
                     search.LockedFileCount = 0;
@@ -1051,6 +1066,7 @@ namespace slskd.Search
 
                 // Add responses to search
                 search.Responses = responses;
+                search.ResponsesAvailable = true;
 
                 Update(search);
                 await SearchHub.BroadcastUpdateAsync(search);

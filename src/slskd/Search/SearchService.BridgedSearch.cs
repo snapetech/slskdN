@@ -85,6 +85,7 @@ public sealed partial class SearchService
             search.State = SearchStates.Completed;
             search.EndedAt = DateTime.UtcNow;
             search.Responses = responses;
+            search.ResponsesAvailable = true;
             search.ResponseCount = responses.Count;
             search.FileCount = responses.Sum(r => r.FileCount);
             search.LockedFileCount = responses.Sum(r => r.LockedFileCount);

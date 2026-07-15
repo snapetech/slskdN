@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Live search progress now uses a background-owned one-second hub cadence
+  without rewriting incomplete response rows, while response payload hydration
+  waits for completion or explicitly persisted early mesh results. Search state
+  projections also preserve source and wishlist provenance.
 - Browse progress now polls once per second without overlapping requests,
   suppresses unchanged state updates, stops before starting in hidden tabs, and
   catches up immediately when the document becomes visible.

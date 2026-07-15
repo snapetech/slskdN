@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Search progress now remains live on a bounded one-second hub cadence without
+  persisting incomplete response rows. The detail route hydrates response
+  payloads only at completion or when early mesh data is durable, clears reused
+  route state, and preserves search source/wishlist provenance.
 - Browse progress now polls once per second without overlapping requests,
   suppresses unchanged state updates, stops before starting in hidden tabs, and
   catches up immediately when the document becomes visible.

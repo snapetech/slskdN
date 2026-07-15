@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound search progress persistence and response hydration.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Repaired search progress-limiter ownership so background searches continue publishing live summaries, changed the repaired cadence from the intended 250 milliseconds to one second, and removed response-driven full-row database updates while retaining durable state transitions and the canonical final response save. A continuously active 15-second search now has at most 16 progress summaries instead of the unbroken 250-millisecond design's 61 (73.77% fewer); across a 142-search wishlist cycle that model falls from 8,662 to 2,272 summaries. Actual response-driven database writes fall from one typically observed partial write per search to zero, and an ordinary active Soulseek detail view falls from two response-payload requests to one (50% fewer). Added an explicit early-response availability boundary derived from durable JSON projections, cleared reused detail-route state, preserved source/wishlist provenance across record updates and projections, and released launch resources on immediate client failure. Added lifecycle, persistence, projection, provenance, hydration, and reused-route regressions; documented gotchas `0z609` through `0z615` in standalone commits `becb0f6f4`, `439432f0a`, `d91a71754`, `494cf01b4`, `445f6c727`, `2765881dd`, `9ac280d45`, `2824a7678`, and `479a0e9cd`.
+
 - [x] Bound Browse Session progress polling and render churn.
   - Status: completed (2026-07-15)
   - Priority: P1

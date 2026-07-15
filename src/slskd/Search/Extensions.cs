@@ -143,25 +143,23 @@ namespace slskd.Search
                 FileCount = s.FileCount,
                 LockedFileCount = s.LockedFileCount,
                 ResponseCount = s.ResponseCount,
+                ResponsesAvailable = s.ResponsesJson != "[]",
                 SearchText = s.SearchText,
+                Source = s.Source,
                 State = s.State,
                 Token = s.Token,
+                WishlistItemId = s.WishlistItemId,
             });
         }
 
         public static Search WithSoulseekSearch(this Search search, Soulseek.Search s)
         {
-            return new Search()
+            return search with
             {
-                Id = search.Id,
-                StartedAt = search.StartedAt,
-                EndedAt = search.EndedAt,
                 FileCount = s.FileCount,
                 LockedFileCount = s.LockedFileCount,
                 ResponseCount = s.ResponseCount,
-                SearchText = search.SearchText,
                 State = s.State,
-                Token = search.Token,
             };
         }
     }
