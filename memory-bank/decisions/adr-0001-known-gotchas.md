@@ -52,6 +52,29 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z600. Preview Tabs Must Not Eagerly Transfer The Full Domain
+
+**The Bug**: Opening the nested Port Forwarding surface immediately requested
+all 64,512 candidate local ports even though its preview rendered only the first
+100. Semantic UI was also told to render every inactive tab, status polling ran
+every five seconds while hidden or already in flight, and a second timer
+replaced real tunnel counters with random fabricated statistics. An unreferenced
+790-line duplicate retained another copy of the same eager behavior.
+
+**Files Affected**:
+- `src/slskd/API/Native/PortForwardingController.cs`
+- `src/web/src/lib/portForwarding.js`
+- `src/web/src/components/Pods/PortForwarding.jsx`
+- `src/web/src/components/PortForwarding/PortForwarding.jsx`
+
+**Prevention**: A preview endpoint must accept a server-enforced result limit
+and return the full count separately; never transfer a complete numeric or
+record domain merely to slice it in the browser. Lazy-load data for inactive
+tabs, render only the active pane, derive statistics from authoritative status,
+and give recurring requests visibility and overlap guards. Search for parallel
+surfaces before fixing lifecycle work and remove unreachable duplicates instead
+of leaving a stale implementation behind.
+
 ### 0z599. Testing Library Text Queries Must Be Scoped To Semantic Context
 
 **The Bug**: A Port Forwarding component test used `getByText('3')` after both
