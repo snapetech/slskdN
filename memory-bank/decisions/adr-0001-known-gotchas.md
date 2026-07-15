@@ -52,6 +52,26 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z588. EF Index Identity Is Not The Database Index Name
+
+**The Bug**: The transfer model declared a general index and a partial index
+with separate `HasIndex` calls over the identical `(Direction, UpdatedAt)`
+property list, then assigned different database names. EF treated both calls as
+configuration for one model index, so the partial declaration silently
+replaced the general ordered index. Fresh databases then scanned and sorted
+incremental transfer queries instead of using
+`IDX_Transfers_Direction_UpdatedAt`.
+
+**Files Affected**:
+- `src/slskd/Transfers/TransfersDbContext.cs`
+- `tests/slskd.Tests.Unit/Transfers/TransfersDbContextTests.cs`
+
+**Prevention**: When multiple EF indexes intentionally use the same ordered
+properties, give each `HasIndex` declaration a distinct model index name via
+the named overload; `HasDatabaseName` alone does not make their model identity
+distinct. Verify both names through `PRAGMA index_list` or concrete query-plan
+tests after `EnsureCreated`, not only through migration SQL tests.
+
 ### 0z587. Initial Snapshots Must Not Erase Concurrent Realtime Events
 
 **The Bug**: Transfer SignalR handlers were connected while the initial REST
