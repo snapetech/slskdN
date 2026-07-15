@@ -21957,3 +21957,18 @@ short-lived ticket bound to one content identifier and place only that ticket
 in the stream URL. Require an explicit `share:` prefix when accepting share
 tokens through the generic Authorization header so session JWTs cannot be
 misclassified.
+
+### 0z561. GitLab Script Entries Containing Colons Must Be Quoted
+
+**The Bug**: An Arch package-smoke `before_script` command contained an
+unquoted colon in the sudoers rule. YAML parsed the list item as a mapping
+instead of a string, making the entire GitLab CI configuration invalid. Every
+push and release tag then produced a failed pipeline before any job could run.
+
+**Files Affected**:
+- `.gitlab-ci.yml`
+
+**Prevention**: Quote complete GitLab `script` and `before_script` entries when
+their shell text contains `: ` or other YAML-significant syntax. Validate the
+full file with the target GitLab instance's CI lint API; a generic YAML parser
+cannot detect GitLab's required string shape.
