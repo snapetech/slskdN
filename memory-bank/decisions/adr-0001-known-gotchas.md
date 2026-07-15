@@ -59,7 +59,10 @@ all 64,512 candidate local ports even though its preview rendered only the first
 100. Semantic UI was also told to render every inactive tab, status polling ran
 every five seconds while hidden or already in flight, and a second timer
 replaced real tunnel counters with random fabricated statistics. An unreferenced
-790-line duplicate retained another copy of the same eager behavior.
+790-line duplicate retained another copy of the same eager behavior. The
+parallel stream-statistics endpoint also re-enumerated live forwarders for each
+aggregate and returned placeholder metrics instead of the performance objects
+already present in its status snapshot.
 
 **Files Affected**:
 - `src/slskd/API/Native/PortForwardingController.cs`
@@ -73,7 +76,8 @@ record domain merely to slice it in the browser. Lazy-load data for inactive
 tabs, render only the active pane, derive statistics from authoritative status,
 and give recurring requests visibility and overlap guards. Search for parallel
 surfaces before fixing lifecycle work and remove unreachable duplicates instead
-of leaving a stale implementation behind.
+of leaving a stale implementation behind. Materialize volatile status once per
+request and reuse the snapshot for aggregates and details.
 
 ### 0z599. Testing Library Text Queries Must Be Scoped To Semantic Context
 
