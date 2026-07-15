@@ -21988,3 +21988,16 @@ SQLite's separate optimized `COUNT(*)` and selective indexed count queries.
 `EXPLAIN QUERY PLAN` and measure both SQL shapes with representative cardinality
 and selectivity. Preserve separate counts when SQLite can use a covering index
 or selective index search that a conditional aggregate would defeat.
+
+### 0z563. SQLite Query Plan Detail Is Not The Scalar Result
+
+**The Bug**: A query-plan regression test used `ExecuteScalar()` for
+`EXPLAIN QUERY PLAN` and therefore read the numeric node ID instead of the
+human-readable plan detail that names the selected index.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/HashDb/HashDbServiceTests.cs`
+
+**Prevention**: Read `EXPLAIN QUERY PLAN` through a data reader and inspect the
+fourth `detail` column. Do not use `ExecuteScalar()` when asserting which SQLite
+index or scan strategy the planner selected.
