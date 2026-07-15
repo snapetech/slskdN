@@ -21908,3 +21908,32 @@ pending until cancellation instead of completing with zero unverified bytes.
 producer method one `finally` block sole ownership of `PipeWriter.CompleteAsync`.
 Expected pre-response failures should complete cleanly after logging so readers
 observe EOF without receiving unverified content.
+
+### 0z558. Tag-Only Build Policy Must Start At GitLab Workflow Rules
+
+**The Bug**: GitHub workflows correctly limited release builds to tags, but
+GitLab's top-level workflow admitted every branch and several expensive jobs
+also admitted the default branch. Each synchronized `main` push therefore
+created a failing GitLab pipeline and notification email despite the repository's
+tag-only build policy.
+
+**Files Affected**:
+- `.gitlab-ci.yml`
+
+**Prevention**: Enforce tag-only builds at the top-level GitLab `workflow.rules`
+boundary with an explicit terminal `when: never`. Keep merge-request validation
+only when intentionally supported; job-level rules cannot prevent an unwanted
+pipeline from being created.
+
+### 0z559. XML Parameter References Must Follow Renames
+
+**The Bug**: A search-filter helper parameter was renamed to `searchText`, but
+its XML documentation still referenced `query`. Release builds emitted CS1734,
+making otherwise clean builds noisy and leaving generated documentation invalid.
+
+**Files Affected**:
+- `src/slskd/Application.cs`
+
+**Prevention**: When renaming method parameters, update matching `paramref`
+tags in the same change and treat documentation compiler warnings as build
+defects even when the build does not fail.
