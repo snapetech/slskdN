@@ -1,3 +1,18 @@
+## Update 2026-07-15 23:06:25Z
+
+- Current task: performance and efficiency improvements in progress; Browse Session progress-polling pass complete locally.
+- Last activity:
+  - Changed pending-browse status polling from 500 milliseconds to one second while retaining independent browse completion.
+  - Added overlap rejection, mounted and stale-generation guards, initial-hidden suppression, immediate visibility catch-up, and unchanged-progress state suppression.
+  - Reduced maximum visible status traffic from 120 to 60 requests per pending minute (50%); a browse opened while hidden now issues zero status requests instead of 120 per minute.
+  - Added cadence, overlap, initial-hidden, visibility, unchanged-state, and stale-generation regressions; documented gotcha `0z608` in standalone commit `3552e53b7`.
+- Validation:
+  - Passed focused Browse tests (`8/8`).
+  - Passed complete backend suites (`4751/4751`: `69` smoke, `4403` unit, `279` integration), complete Web tests (`840` passed, `4` skipped), production Web build, frontend lint with zero errors, repository lint, polling-lifecycle, identity-leak, and whitespace checks.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 22:49:43Z
 
 - Current task: performance and efficiency improvements in progress; Swarm Analytics snapshot and polling pass complete locally.

@@ -56,6 +56,18 @@ const normalizeDirectory = (directory) => ({
 const MAX_BROWSE_CACHE_ENTRIES = 50;
 const BROWSE_CACHE_PREFIX = 'slskd-browse-state-';
 const BROWSE_CACHE_VERSION = 2;
+const BROWSE_STATUS_POLL_INTERVAL_MS = 1_000;
+
+const sameBrowseStatus = (left, right) =>
+  left === right
+  || (
+    left
+    && right
+    && left.bytesRemaining === right.bytesRemaining
+    && left.bytesTransferred === right.bytesTransferred
+    && left.percentComplete === right.percentComplete
+    && left.size === right.size
+  );
 
 const getBrowseErrorMessage = (error) => {
   const data = error?.response?.data;
@@ -99,14 +111,19 @@ const cleanupBrowseCache = () => {
 };
 
 class BrowseSession extends Component {
+  browseGeneration = 0;
+  mounted = false;
+  pollInterval = null;
+  statusRequest = null;
+
   constructor(props) {
     super(props);
 
     this.state = initialState;
-    this.pollInterval = null;
   }
 
   componentDidMount() {
+    this.mounted = true;
     // Check for username from props (tab only - navigation handled by parent)
     const userToBrowse = this.props.username;
 
@@ -135,6 +152,8 @@ class BrowseSession extends Component {
   }
 
   componentWillUnmount() {
+    this.mounted = false;
+    this.browseGeneration += 1;
     this.stopPolling();
     document.removeEventListener('keyup', this.keyUp, false);
     document.removeEventListener(
@@ -154,9 +173,12 @@ class BrowseSession extends Component {
 
   // Start polling only when needed (during active browse)
   startPolling = () => {
-    if (!this.pollInterval) {
-      this.pollInterval = window.setInterval(this.fetchStatus, 500);
-    }
+    if (!this.mounted || document.hidden || this.pollInterval) return;
+
+    this.pollInterval = window.setInterval(
+      this.fetchStatus,
+      BROWSE_STATUS_POLL_INTERVAL_MS,
+    );
   };
 
   // Stop polling when not needed
@@ -172,6 +194,7 @@ class BrowseSession extends Component {
     if (document.hidden) {
       this.stopPolling();
     } else if (this.state.browseState === 'pending') {
+      this.fetchStatus();
       this.startPolling();
     }
   };
@@ -183,13 +206,20 @@ class BrowseSession extends Component {
       return;
     }
 
+    this.browseGeneration += 1;
+
     // Notify parent to update tab label
     if (this.props.onUsernameChange) {
       this.props.onUsernameChange(username);
     }
 
     this.setState(
-      { browseError: undefined, browseState: 'pending', username },
+      {
+        browseError: undefined,
+        browseState: 'pending',
+        browseStatus: 0,
+        username,
+      },
       () => {
         this.fetchUserNote(username);
         // Start polling only while browse is in progress
@@ -265,6 +295,7 @@ class BrowseSession extends Component {
   };
 
   clear = () => {
+    this.browseGeneration += 1;
     this.stopPolling();
     this.setState(initialState, () => {
       this.saveState();
@@ -354,19 +385,46 @@ class BrowseSession extends Component {
 
   fetchStatus = () => {
     const { browseState, username } = this.state;
-    // Only poll status when actively browsing AND we have a username
-    if (browseState === 'pending' && username) {
-      users
-        .getBrowseStatus({ username })
-        .then((response) =>
-          this.setState({
-            browseStatus: response.data,
-          }),
-        )
-        .catch(() => {
-          // Ignore 404s during status polling
-        });
-    }
+    if (
+      !this.mounted
+      || document.hidden
+      || browseState !== 'pending'
+      || !username
+    ) return Promise.resolve();
+
+    const generation = this.browseGeneration;
+    if (
+      this.statusRequest?.generation === generation
+      && this.statusRequest.username === username
+    ) return this.statusRequest.promise;
+
+    const promise = users
+      .getBrowseStatus({ username })
+      .then((response) => {
+        if (!this.mounted) return;
+        if (document.hidden) return;
+        if (
+          this.browseGeneration !== generation
+          || this.state.browseState !== 'pending'
+          || this.state.username !== username
+        ) return;
+
+        this.setState((previous) =>
+          sameBrowseStatus(previous.browseStatus, response.data)
+            ? null
+            : { browseStatus: response.data });
+      })
+      .catch(() => {
+        // Ignore 404s and transient failures during status polling.
+      })
+      .finally(() => {
+        if (this.statusRequest?.promise === promise) {
+          this.statusRequest = null;
+        }
+      });
+
+    this.statusRequest = { generation, promise, username };
+    return promise;
   };
 
   getDirectoryTree = ({ directories, separator }) => {

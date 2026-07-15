@@ -1,3 +1,12 @@
+## Update 2026-07-15 23:06:25Z
+
+- Completed the Browse Session progress-polling performance pass.
+- Changed the pending-browse status cadence from 500 milliseconds to one second while leaving browse completion on the independent long-running browse request.
+- Added one-request-at-a-time ownership, mounted and stale-generation completion guards, immediate visibility catch-up, initial-hidden suppression, and field-level unchanged-progress suppression.
+- Maximum visible status traffic falls from 120 to 60 requests per pending minute (50%); a browse opened while hidden falls from 120 status requests per minute to zero, and identical progress samples no longer trigger repeated renders.
+- Added cadence, overlap, initial-hidden, visibility, unchanged-state, and stale-generation regressions; documented gotcha `0z608` in standalone commit `3552e53b7`.
+- Validation passed: focused Browse tests (`8/8`), complete Web tests (`840` passed, `4` skipped), production Web build, frontend lint with zero errors, complete backend suites (`4751/4751`: `69` smoke, `4403` unit, `279` integration), repository lint, polling-lifecycle, identity-leak, and whitespace checks.
+
 ## Update 2026-07-15 22:49:43Z
 
 - Completed the Swarm Analytics request-fan-out and peer-snapshot performance pass.

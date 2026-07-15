@@ -1,6 +1,6 @@
 import * as users from '../../lib/users';
 import BrowseSession from './BrowseSession';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
 vi.mock('../../lib/users', () => ({
@@ -24,11 +24,25 @@ vi.mock('../Users/UserNoteModal', () => ({
   default: () => null,
 }));
 
+const setDocumentHidden = (hidden) => {
+  Object.defineProperty(document, 'hidden', {
+    configurable: true,
+    value: hidden,
+  });
+};
+
 describe('BrowseSession', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
+    setDocumentHidden(false);
     users.getBrowseStatus.mockRejectedValue({ response: { status: 404 } });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    setDocumentHidden(false);
   });
 
   it('shows the server browse failure reason', async () => {
@@ -48,5 +62,112 @@ describe('BrowseSession', () => {
     ).toBeInTheDocument();
 
     await waitFor(() => expect(users.browse).toHaveBeenCalledWith({ username: 'alice' }));
+  });
+
+  it('polls once per second, rejects overlap, and catches up after visibility resumes', async () => {
+    vi.useFakeTimers();
+    setDocumentHidden(true);
+    users.browse.mockReturnValue(new Promise(() => {}));
+
+    let resolveStatus;
+    users.getBrowseStatus
+      .mockReturnValueOnce(new Promise((resolve) => {
+        resolveStatus = resolve;
+      }))
+      .mockResolvedValue({
+        data: {
+          bytesRemaining: 50,
+          bytesTransferred: 50,
+          percentComplete: 50,
+          size: 100,
+        },
+      });
+
+    render(<BrowseSession username="alice" />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_050);
+    });
+    expect(users.browse).toHaveBeenCalledTimes(1);
+    expect(users.getBrowseStatus).not.toHaveBeenCalled();
+
+    await act(async () => {
+      setDocumentHidden(false);
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
+    expect(users.getBrowseStatus).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveStatus({
+        data: {
+          bytesRemaining: 50,
+          bytesTransferred: 50,
+          percentComplete: 50,
+          size: 100,
+        },
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(2_000);
+    });
+    expect(users.getBrowseStatus).toHaveBeenCalledTimes(3);
+  });
+
+  it('suppresses state updates when browse progress is unchanged', async () => {
+    const status = {
+      bytesRemaining: 50,
+      bytesTransferred: 50,
+      percentComplete: 50,
+      size: 100,
+    };
+    users.getBrowseStatus.mockResolvedValue({ data: { ...status } });
+
+    const session = new BrowseSession({});
+    session.browseGeneration = 1;
+    session.mounted = true;
+    session.state = {
+      browseState: 'pending',
+      browseStatus: status,
+      username: 'alice',
+    };
+    session.setState = vi.fn();
+
+    await session.fetchStatus();
+
+    expect(users.getBrowseStatus).toHaveBeenCalledTimes(1);
+    const update = session.setState.mock.calls[0][0](session.state);
+    expect(update).toBeNull();
+  });
+
+  it('rejects status responses from an obsolete browse generation', async () => {
+    let resolveStatus;
+    users.getBrowseStatus.mockReturnValue(new Promise((resolve) => {
+      resolveStatus = resolve;
+    }));
+
+    const session = new BrowseSession({});
+    session.browseGeneration = 1;
+    session.mounted = true;
+    session.state = {
+      browseState: 'pending',
+      browseStatus: 0,
+      username: 'alice',
+    };
+    session.setState = vi.fn();
+
+    const request = session.fetchStatus();
+    session.browseGeneration = 2;
+    session.state = { ...session.state, username: 'bob' };
+    resolveStatus({
+      data: {
+        bytesRemaining: 0,
+        bytesTransferred: 100,
+        percentComplete: 100,
+        size: 100,
+      },
+    });
+    await request;
+
+    expect(session.setState).not.toHaveBeenCalled();
   });
 });

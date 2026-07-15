@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Browse progress now polls once per second without overlapping requests,
+  suppresses unchanged state updates, stops before starting in hidden tabs, and
+  catches up immediately when the document becomes visible.
 - Swarm Analytics now replaces five polling requests and four complete
   peer-ranking passes with one dashboard snapshot, preserves cached results
   across transient failures, rejects stale or overlapping work, and suspends

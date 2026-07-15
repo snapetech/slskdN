@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound Browse Session progress polling and render churn.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Changed pending-browse status polling from 500 milliseconds to one second, reducing the maximum visible request rate from 120 to 60 per minute (50%) while the separate browse request continues to own completion. Added in-flight deduplication, stale-generation and mounted guards, immediate visibility catch-up, identical-progress suppression, and an initial-hidden guard that reduces background status requests from 120 per minute to zero. Added cadence, overlap, initial-hidden, visibility, unchanged-state, and stale-generation regressions; documented gotcha `0z608` in standalone commit `3552e53b7`.
+
 - [x] Collapse Swarm Analytics refresh fan-out into one source snapshot.
   - Status: completed (2026-07-15)
   - Priority: P1

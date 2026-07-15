@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Browse progress now polls once per second without overlapping requests,
+  suppresses unchanged state updates, stops before starting in hidden tabs, and
+  catches up immediately when the document becomes visible.
 - Swarm Analytics now builds all rendered dashboard sections from one peer
   snapshot and one HTTP request, omits unused trend hydration, suppresses
   overlapping or unchanged refreshes, and stops polling while hidden.
