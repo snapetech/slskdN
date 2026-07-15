@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z605. Build-Enabled Dotnet Tests Must Not Share Output Concurrently
+
+**The Bug**: Unit and integration `dotnet test` commands were started in
+parallel against the same solution outputs. Both builds tried to replace the
+shared analyzer and application binaries, producing `MSB3026` file-in-use
+retries. The commands happened to recover, but the race can make validation
+intermittent.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/analyzers/Soulseek.CouncilAnalyzers/bin/`
+- `src/slskd/bin/`
+
+**Prevention**: Run build-enabled .NET test commands sequentially. Parallelize
+them only after a single build and with `--no-build`, or give each command
+isolated output paths; `--no-restore` alone does not prevent shared build writes.
+
 ### 0z604. Confirm A Test File Is New Before Using An Add-File Patch
 
 **The Bug**: A dashboard API test was applied as a new file without first
