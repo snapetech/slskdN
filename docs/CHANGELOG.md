@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Active Pod streams now request only messages newer than their latest retained
+  cursor, merge a bounded local cache by stable message identity, pause polling
+  while hidden, and prevent overlapping slow refreshes.
 - Messaging V2 no longer refetches details for every saved pod during
   hydration; slow-changing pod metadata uses a separate sixty-second cadence,
   overlapping and hidden-tab polling is suppressed, and unchanged lists avoid

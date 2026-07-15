@@ -183,7 +183,7 @@ namespace slskd.PodCore
 
                 return entities.Select(e => new PodMessage
                 {
-                    MessageId = Guid.NewGuid().ToString("N"), // Generate ID for compatibility
+                    MessageId = $"{e.PodId}:{e.ChannelId}:{e.TimestampUnixMs}:{e.SenderPeerId}",
                     PodId = e.PodId,
                     ChannelId = e.ChannelId,
                     TimestampUnixMs = e.TimestampUnixMs,

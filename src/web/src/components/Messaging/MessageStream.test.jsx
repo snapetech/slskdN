@@ -2,10 +2,22 @@ import '@testing-library/jest-dom';
 import MessageStream, { autolink } from './MessageStream';
 import { __test__ } from './messagingAdapters';
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const { classifyBody } = __test__;
+
+const setDocumentHidden = (hidden) => {
+  Object.defineProperty(document, 'hidden', {
+    configurable: true,
+    value: hidden,
+  });
+};
+
+afterEach(() => {
+  vi.useRealTimers();
+  setDocumentHidden(false);
+});
 
 describe('classifyBody', () => {
   it('treats plain text as text', () => {
@@ -94,6 +106,62 @@ describe('MessageStream', () => {
     await waitFor(() => {
       expect(screen.getByText('nothing here yet')).toBeInTheDocument();
     });
+  });
+
+  it('does not poll until visible and suspends polling while hidden', async () => {
+    vi.useFakeTimers();
+    setDocumentHidden(true);
+    const list = vi.fn().mockResolvedValue({ messages: [] });
+    const adapter = { list, pollIntervalMs: 1_000 };
+
+    render(<MessageStream adapter={adapter} />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(list).not.toHaveBeenCalled();
+
+    await act(async () => {
+      setDocumentHidden(false);
+      document.dispatchEvent(new Event('visibilitychange'));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(list).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      setDocumentHidden(true);
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    expect(list).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not overlap slow message refreshes', async () => {
+    vi.useFakeTimers();
+    setDocumentHidden(false);
+    let resolveList;
+    const list = vi.fn(() => new Promise((resolve) => {
+      resolveList = resolve;
+    }));
+    const adapter = { list, pollIntervalMs: 1_000 };
+
+    render(<MessageStream adapter={adapter} />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_000);
+    });
+    expect(list).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveList({ messages: [] });
+      await Promise.resolve();
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    expect(list).toHaveBeenCalledTimes(2);
   });
 
   it('autolinks URLs in message bodies', async () => {

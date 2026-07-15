@@ -188,6 +188,19 @@ public class SqlitePodMessagingTests : IDisposable
     }
 
     [Fact]
+    public async Task GetMessagesAsync_Returns_Stable_Message_Id_Across_Reads()
+    {
+        var ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        await _messaging.SendAsync(NewMessage(PodId1, ChannelGeneral, SenderPeer, "Stable", ts));
+
+        var first = Assert.Single(await _messaging.GetMessagesAsync(PodId1, ChannelGeneral));
+        var second = Assert.Single(await _messaging.GetMessagesAsync(PodId1, ChannelGeneral));
+
+        Assert.Equal($"{PodId1}:{ChannelGeneral}:{ts}:{SenderPeer}", first.MessageId);
+        Assert.Equal(first.MessageId, second.MessageId);
+    }
+
+    [Fact]
     public async Task SendAsync_InvalidPodId_ReturnsFalse()
     {
         var msg = NewMessage("pod:invalid", ChannelGeneral, SenderPeer, "x", 1);

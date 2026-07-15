@@ -1,3 +1,20 @@
+## Update 2026-07-15 19:20:12Z
+
+- Current task: performance and efficiency improvements in progress; active Pod message polling pass complete locally.
+- Last activity:
+  - Reused the existing Pod `since` cursor with a bounded client cache and one-millisecond overlap instead of refetching the full retained message window every two seconds.
+  - Derived stable message IDs from the Pod storage key so overlapping incremental reads merge deterministically.
+  - Paused shared `MessageStream` polling while hidden, refreshed immediately on visibility, rejected overlapping slow calls, and ignored stale adapter results.
+  - Reduced a representative idle first minute with 100 retained 256-byte messages from 1,363,783 response bytes to 44,053 bytes (96.77% fewer); hidden steady-state polling is zero.
+  - Added cursor/cache/identity, overlap, and visibility regressions; documented gotchas `0z578` and `0z579` in standalone commits `c5145e3a8` and `3eb47dcd1`.
+- Validation:
+  - Passed focused Pod backend tests (`11/11`) and focused messaging Web tests (`19/19`).
+  - Passed complete Web tests (`784` passed, `4` skipped), production Web build, frontend lint with zero errors, and the polling-lifecycle guard.
+  - Passed complete backend suites (`4709/4709`: `69` smoke, `4362` unit, `278` integration) and repository lint.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 19:07:05Z
 
 - Current task: performance and efficiency improvements in progress; Messaging V2 hydration fan-out pass complete locally.

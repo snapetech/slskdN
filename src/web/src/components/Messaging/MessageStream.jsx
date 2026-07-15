@@ -349,42 +349,99 @@ const MessageStream = ({ adapter, emptyHint, onCopy, onQuote, onSenderClick }) =
   const [stuck, setStuck] = useState(true);
   const scrollRef = useRef(null);
   const stuckRef = useRef(true);
+  const activeAdapterRef = useRef(adapter);
+  const mountedRef = useRef(false);
+  const pollIntervalRef = useRef(null);
+  const refreshInFlightRef = useRef(null);
+
+  activeAdapterRef.current = adapter;
 
   const setStuckBoth = useCallback((value) => {
     stuckRef.current = value;
     setStuck(value);
   }, []);
 
-  const refresh = useCallback(async () => {
-    if (!adapter) return;
-    try {
-      const result = await adapter.list();
-      const next = Array.isArray(result?.messages) ? result.messages : [];
-      setMessages((previous) =>
-        messageListSignature(previous) === messageListSignature(next) ? previous : next,
-      );
-      setError(null);
-    } catch (caught) {
-      console.error('MessageStream refresh failed:', caught);
-      setError(caught);
-    } finally {
-      setIsInitialLoad(false);
-    }
+  const refresh = useCallback(() => {
+    if (!adapter) return Promise.resolve();
+    if (refreshInFlightRef.current) return refreshInFlightRef.current;
+
+    const requestedAdapter = adapter;
+    const request = (async () => {
+      try {
+        const result = await requestedAdapter.list();
+        if (!mountedRef.current || activeAdapterRef.current !== requestedAdapter) return;
+
+        const next = Array.isArray(result?.messages) ? result.messages : [];
+        setMessages((previous) =>
+          messageListSignature(previous) === messageListSignature(next) ? previous : next,
+        );
+        setError(null);
+      } catch (caught) {
+        console.error('MessageStream refresh failed:', caught);
+        if (mountedRef.current && activeAdapterRef.current === requestedAdapter) {
+          setError(caught);
+        }
+      } finally {
+        if (mountedRef.current && activeAdapterRef.current === requestedAdapter) {
+          setIsInitialLoad(false);
+        }
+      }
+    })();
+    const trackedRequest = request.finally(() => {
+      if (refreshInFlightRef.current === trackedRequest) {
+        refreshInFlightRef.current = null;
+      }
+    });
+    refreshInFlightRef.current = trackedRequest;
+    return trackedRequest;
   }, [adapter]);
 
   useEffect(() => {
+    mountedRef.current = true;
+    activeAdapterRef.current = adapter;
+    refreshInFlightRef.current = null;
     setMessages([]);
     setIsInitialLoad(true);
     setSearchCursor(0);
     setSearchDraft('');
     setStuckBoth(true);
     setLastSeenCount(0);
-    if (!adapter) return undefined;
-    refresh();
-    const interval = window.setInterval(() => {
+    const stopPolling = () => {
+      if (pollIntervalRef.current) {
+        window.clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+    const startPolling = () => {
+      if (!adapter || document.hidden || pollIntervalRef.current) return;
+      pollIntervalRef.current = window.setInterval(
+        refresh,
+        adapter.pollIntervalMs || 2_000,
+      );
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+        return;
+      }
+
       refresh();
-    }, adapter.pollIntervalMs || 2_000);
-    return () => window.clearInterval(interval);
+      startPolling();
+    };
+
+    if (adapter && !document.hidden) {
+      refresh();
+      startPolling();
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      mountedRef.current = false;
+      activeAdapterRef.current = null;
+      refreshInFlightRef.current = null;
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [adapter, refresh, setStuckBoth]);
 
   useLayoutEffect(() => {

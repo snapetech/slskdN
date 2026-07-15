@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Active Pod streams now use incremental cursor polling with a bounded local
+  message cache, while shared message polling pauses in hidden tabs and rejects
+  overlapping slow refreshes.
 - Messaging V2 now consumes channel metadata directly from the saved-pod list,
   refreshes pod/discovery metadata every sixty seconds separately from
   conversation/room lists, deduplicates unchanged or overlapping work, and

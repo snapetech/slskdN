@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make active Pod message polling incremental and lifecycle-aware.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Reused the existing Pod message `since` cursor, retained a bounded 100-message client cache, overlapped the cursor by one millisecond, and deduplicated by stable storage-derived message IDs. Shared `MessageStream` polling now pauses while the document is hidden, refreshes immediately when visible, rejects overlapping slow calls, and ignores stale adapter results. A representative idle first minute with 100 retained 256-byte messages falls from 1,363,783 response bytes to 44,053 bytes (96.77% fewer); hidden steady-state polling falls to zero. Added backend identity and Web cursor/cache/lifecycle regressions; documented gotchas `0z578` and `0z579` in standalone commits `c5145e3a8` and `3eb47dcd1`.
+
 - [x] Remove Messaging V2 hydration N+1 requests and hidden polling.
   - Status: completed (2026-07-15)
   - Priority: P1

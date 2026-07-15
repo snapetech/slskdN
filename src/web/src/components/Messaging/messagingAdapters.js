@@ -140,65 +140,91 @@ export const createRoomAdapter = ({ roomName, currentUser }) => ({
   },
 });
 
-export const createPodAdapter = ({ channel, currentUser }) => ({
-  capabilities: { listenAlong: true },
-  pollIntervalMs: POLL_INTERVAL_MS,
-  topic: channel?.podName
-    ? `${channel.podName} / ${channel.channelName || channel.channelId}`
-    : 'Pod channel',
-  type: 'pod',
+export const createPodAdapter = ({ channel, currentUser }) => {
+  let cachedMessages = [];
+  let latestTimestamp = null;
 
-  async list() {
-    if (!channel?.podId || !channel?.channelId) return { messages: [] };
-    let raw;
-    try {
-      raw = await pods.getMessages(channel.podId, channel.channelId);
-    } catch {
-      return { messages: [] };
-    }
-    const messages = asArray(raw)
-      .filter((item) => item && typeof item === 'object' && !Array.isArray(item))
-      .map((m, index) => {
+  return {
+    capabilities: { listenAlong: true },
+    pollIntervalMs: POLL_INTERVAL_MS,
+    topic: channel?.podName
+      ? `${channel.podName} / ${channel.channelName || channel.channelId}`
+      : 'Pod channel',
+    type: 'pod',
+
+    async list() {
+      if (!channel?.podId || !channel?.channelId) return { messages: [] };
+      let raw;
+      try {
+        const since = latestTimestamp === null ? null : Math.max(0, latestTimestamp - 1);
+        raw = await pods.getMessages(channel.podId, channel.channelId, since);
+      } catch {
+        return { messages: cachedMessages };
+      }
+
+      const received = asArray(raw)
+        .filter((item) => item && typeof item === 'object' && !Array.isArray(item));
+      const mapped = received.map((m) => {
         const sender = m.senderPeerId || 'unknown';
         const isSelf = currentUser && sender === currentUser;
         const classified = classifyBody(m.body);
+        const timestamp =
+          typeof m.timestampUnixMs === 'number'
+            ? m.timestampUnixMs
+            : Number(m.timestampUnixMs) || 0;
         return {
           body: classified.body,
-          id: messageId([m.timestampUnixMs, sender, index]),
+          id: m.messageId || messageId([timestamp, sender, m.body, m.signature]),
           isSelf: Boolean(isSelf),
           kind: classified.kind,
           meta: classified.meta,
           sender,
-          ts:
-            typeof m.timestampUnixMs === 'number'
-              ? m.timestampUnixMs
-              : Number(m.timestampUnixMs) || 0,
+          ts: timestamp,
         };
       });
-    return { messages };
-  },
 
-  send(body) {
-    if (!channel?.podId || !channel?.channelId) return Promise.resolve();
-    return pods.sendMessage(
-      channel.podId,
-      channel.channelId,
-      body,
-      currentUser || 'local-peer',
-    );
-  },
+      if (latestTimestamp === null) {
+        cachedMessages = mapped;
+      } else if (mapped.length > 0) {
+        const byId = new Map(cachedMessages.map((message) => [message.id, message]));
+        mapped.forEach((message) => byId.set(message.id, message));
+        cachedMessages = Array.from(byId.values())
+          .sort((a, b) => a.ts - b.ts || a.id.localeCompare(b.id))
+          .slice(-100);
+      }
 
-  async members() {
-    if (!channel?.podId) return [];
-    try {
-      const raw = await pods.getMembers(channel.podId);
-      return asArray(raw).filter(
-        (item) => item && typeof item === 'object' && !Array.isArray(item),
+      received.forEach((message) => {
+        const timestamp = Number(message.timestampUnixMs) || 0;
+        if (latestTimestamp === null || timestamp > latestTimestamp) {
+          latestTimestamp = timestamp;
+        }
+      });
+
+      return { messages: cachedMessages };
+    },
+
+    send(body) {
+      if (!channel?.podId || !channel?.channelId) return Promise.resolve();
+      return pods.sendMessage(
+        channel.podId,
+        channel.channelId,
+        body,
+        currentUser || 'local-peer',
       );
-    } catch {
-      return [];
-    }
-  },
-});
+    },
+
+    async members() {
+      if (!channel?.podId) return [];
+      try {
+        const raw = await pods.getMembers(channel.podId);
+        return asArray(raw).filter(
+          (item) => item && typeof item === 'object' && !Array.isArray(item),
+        );
+      } catch {
+        return [];
+      }
+    },
+  };
+};
 
 export const __test__ = { classifyBody, detectListenAlong };
