@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z548. E2E Selectors And Parallel Fixtures Must Remain Stable And Isolated
+
+**The Bug**: The compact transfer-table rewrite removed a browse-link test ID
+without updating its E2E consumer, while parallel policy tests reused one
+share-group name and raced to create the same persistent fixture. The scheduled
+E2E workflow then failed on a missing selector and repeated two-minute group
+creation timeouts.
+
+**Files Affected**:
+- `src/web/src/components/Transfers/TransferTable.jsx`
+- `src/web/e2e/browse-transfer-handoff.spec.ts`
+- `src/web/e2e/policy.spec.ts`
+
+**Prevention**: When reshaping interactive markup, search the complete E2E tree
+for every removed selector and update consumers to a stable accessible locator
+or preserve the explicit test ID. Tests that create persistent records while
+running in parallel must use per-test unique names or idempotent API setup;
+never share a create-if-missing fixture name across parallel tests.
+
 ### 0z547. Authorization And Route Changes Must Regenerate The Route Inventory
 
 **The Bug**: Security hardening changed controller authorization attributes and Wishlist endpoints without regenerating `docs/system-surfaces-current.md`, so the remediation baseline blocked the next release tag.
