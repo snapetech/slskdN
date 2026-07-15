@@ -21880,3 +21880,16 @@ the analyzer assembly, silently removing its enforcement.
 **Prevention**: Keep analyzer compiler API references at or below the Roslyn
 version shipped by the pinned SDK. Treat CS9057 as a failed dependency update,
 even when MSBuild exits successfully.
+### 0z556. Prometheus Metadata Parsing Must Validate Line Shape
+
+**The Bug**: Metrics metadata parsing assumed every HELP line was long enough
+for `Substring(7)` and immediately followed by a well-formed TYPE line. A
+malformed custom collector line could throw and fail the entire metrics
+response.
+
+**Files Affected**:
+- `src/slskd/Telemetry/PrometheusService.cs`
+
+**Prevention**: Validate metadata prefixes and minimum lengths before slicing
+Prometheus text. Skip malformed collector metadata without discarding otherwise
+valid metrics output.
