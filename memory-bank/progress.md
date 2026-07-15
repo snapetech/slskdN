@@ -1,6 +1,7 @@
 ## 2026-07-15
 
 - Diagnosed repeated CI notifications on both platforms. GitHub automatic dependency submission failed on a `System.Configuration.ConfigurationManager` downgrade in the performance project; GitLab rejected the entire CI configuration because an unquoted colon made an Arch `before_script` entry a YAML mapping. Aligned the package to `10.0.8`, quoted the GitLab scalar, and documented gotcha `0z561`.
+- Verified the remediation after push: GitHub Automatic Dependency Submission successfully submitted its snapshot, Local Identity Leak Check and CodeQL passed, GitLab CI lint returned valid with no warnings, and the corrected `main` push created no GitLab pipeline under the tag-only policy.
 - Removed reusable share tokens from browser-visible manifest and stream URLs. Manifest requests now use a dedicated header, while shared playback exchanges the reusable token for a short-lived content-bound ticket. Added backend and frontend regressions and documented ADR-0001 gotcha `0z560`.
 - Stopped the first `.277` pre-tag gate before tag creation after it exposed a stale XML parameter reference and the operator reported GitLab `main` pipeline-failure emails.
 - Restricted GitLab pipeline creation to tags only with an explicit terminal deny rule, matching the documented build policy, and corrected the renamed search-filter helper's XML `paramref`.

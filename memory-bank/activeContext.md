@@ -1,13 +1,16 @@
-## Update 2026-07-15 04:05:00Z
+## Update 2026-07-15 04:10:00Z
 
-- Current task: GitHub and GitLab CI failure remediation in progress.
+- Current task: GitHub and GitLab CI failure remediation complete.
 - Last activity:
   - Identified GitHub dependency submission failures as a direct/transitive package downgrade in the performance tests.
   - Identified GitLab's jobless failed pipelines as invalid CI configuration caused by an unquoted colon in a `before_script` entry.
   - Documented gotcha `0z561`, aligned the NuGet reference, and quoted the GitLab script scalar.
+- Validation:
+  - GitLab's CI lint API reports the full configuration valid with zero errors or warnings, and the corrected `main` push created no GitLab pipeline under the tag-only workflow rule.
+  - GitHub Automatic Dependency Submission passed and submitted its snapshot; Local Identity Leak Check and CodeQL also passed.
 - Next steps:
-  1. Validate NuGet restore and GitLab CI lint against the target instance.
-  2. Commit/push both remotes and verify the resulting GitHub and GitLab states.
+  1. No CI remediation work remains.
+  2. Historical failed pipeline/run records remain visible but no longer reproduce on the corrected head.
 
 ## Update 2026-07-15 03:35:00Z
 
