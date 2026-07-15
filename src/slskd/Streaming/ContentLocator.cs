@@ -21,6 +21,7 @@ using slskd.Common.Security;
 public sealed class ContentLocator : IContentLocator
 {
     private const int MaxFallbackFilesToScan = 5000;
+    private const int MaxFallbackMissCacheEntries = 4096;
     private static readonly ConcurrentDictionary<string, DateTimeOffset> FallbackMissCache = new(StringComparer.Ordinal);
     private static DateTimeOffset _nextFallbackScanUtc = DateTimeOffset.MinValue;
 
@@ -129,8 +130,34 @@ public sealed class ContentLocator : IContentLocator
             return new ResolvedContent(path, info.Length, GetContentType(path));
         }
 
-        FallbackMissCache[contentId] = DateTimeOffset.UtcNow.AddMinutes(5);
+        PruneAndRecordFallbackMiss(contentId);
         return null;
+    }
+
+    private static void PruneAndRecordFallbackMiss(string contentId)
+    {
+        // Expired entries are only ever checked on read, so without periodic eviction the
+        // static cache grows without bound. Prune when it approaches the cap.
+        if (FallbackMissCache.Count >= MaxFallbackMissCacheEntries)
+        {
+            var now = DateTimeOffset.UtcNow;
+            foreach (var entry in FallbackMissCache)
+            {
+                if (entry.Value <= now)
+                {
+                    FallbackMissCache.TryRemove(entry.Key, out _);
+                }
+            }
+
+            // Still over the cap after removing expired entries: skip caching this miss
+            // rather than letting the dictionary grow unbounded.
+            if (FallbackMissCache.Count >= MaxFallbackMissCacheEntries)
+            {
+                return;
+            }
+        }
+
+        FallbackMissCache[contentId] = DateTimeOffset.UtcNow.AddMinutes(5);
     }
 
     private IReadOnlyList<string> GetAllowedLocalRoots()

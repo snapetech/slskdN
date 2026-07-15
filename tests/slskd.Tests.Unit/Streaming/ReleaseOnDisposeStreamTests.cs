@@ -74,6 +74,58 @@ public class ReleaseOnDisposeStreamTests
     }
 
     [Fact]
+    public async Task ReadAsync_Memory_DelegatesToInner()
+    {
+        using var inner = new MemoryStream(new byte[] { 10, 20, 30 });
+        using var wrapped = new ReleaseOnDisposeStream(inner, () => { });
+        var outBuf = new byte[3];
+        var n = await wrapped.ReadAsync(outBuf.AsMemory());
+        Assert.Equal(3, n);
+        Assert.Equal(new byte[] { 10, 20, 30 }, outBuf);
+    }
+
+    [Fact]
+    public async Task ReadAsync_ByteArray_DelegatesToInner()
+    {
+        using var inner = new MemoryStream(new byte[] { 1, 2 });
+        using var wrapped = new ReleaseOnDisposeStream(inner, () => { });
+        var outBuf = new byte[2];
+        var n = await wrapped.ReadAsync(outBuf, 0, 2);
+        Assert.Equal(2, n);
+        Assert.Equal(new byte[] { 1, 2 }, outBuf);
+    }
+
+    [Fact]
+    public async Task CopyToAsync_CopiesFullContentFromInner()
+    {
+        var payload = new byte[] { 5, 6, 7, 8, 9 };
+        using var inner = new MemoryStream(payload);
+        using var wrapped = new ReleaseOnDisposeStream(inner, () => { });
+        using var dest = new MemoryStream();
+        await wrapped.CopyToAsync(dest);
+        Assert.Equal(payload, dest.ToArray());
+    }
+
+    [Fact]
+    public async Task ReadAsync_PipeBacked_CompletesWithoutBlockingOnProducer()
+    {
+        // A pipe reader stream only yields data once the async producer writes it.
+        // Forwarding ReadAsync to the inner stream must observe the produced bytes
+        // rather than blocking a pooled thread on a synchronous Read.
+        var pipe = new System.IO.Pipelines.Pipe();
+        using var wrapped = new ReleaseOnDisposeStream(pipe.Reader.AsStream(), () => { });
+
+        var readTask = wrapped.ReadAsync(new byte[4].AsMemory()).AsTask();
+        Assert.False(readTask.IsCompleted);
+
+        await pipe.Writer.WriteAsync(new byte[] { 42 });
+        await pipe.Writer.CompleteAsync();
+
+        var n = await readTask;
+        Assert.Equal(1, n);
+    }
+
+    [Fact]
     public async Task DisposeAsync_InvokesOnDisposeOnce()
     {
         var count = 0;
