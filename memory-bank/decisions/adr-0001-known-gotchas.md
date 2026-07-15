@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z581. Route Parameters Are Not Proof That Detail State Is Hydrated
+
+**The Bug**: The legacy Pods route copied `podId` and `channelId` route
+parameters into active state before calling `selectPod`. Its same-selection
+guard then returned immediately because the IDs matched, even though pod detail,
+members, and messages had never been loaded. Direct channel URLs could therefore
+render an empty or incomplete Pod view.
+
+**Files Affected**:
+- `src/web/src/components/Pods/Pods.jsx`
+
+**Prevention**: Selection guards must check hydrated data identity, not only
+route or active IDs. Do not pre-seed active selection state before running the
+initial hydration path. Reuse complete list payloads for detail state, pass the
+selected list item into hydration when state updates are still pending, and add
+a direct-route regression that proves detail, membership, and messages load.
+
 ### 0z580. Performance Fixes Must Cover Parallel UI Surfaces
 
 **The Bug**: Active room polling was made bounded in the unified messaging
@@ -64,6 +81,7 @@ kept polling while the browser document was hidden.
 - `src/web/src/components/Messaging/MessageStream.jsx`
 - `src/web/src/components/Rooms/RoomSession.jsx`
 - `src/web/src/components/Rooms/Rooms.jsx`
+- `src/web/src/components/Pods/Pods.jsx`
 
 **Prevention**: When optimizing a shared domain, search every routed and legacy
 surface that calls the same API rather than stopping at the first consumer.
