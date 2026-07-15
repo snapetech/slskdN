@@ -57,7 +57,8 @@ This is not optional. This is the highest priority action after fixing a bug.
 **The Bug**: The unified private-chat adapter converted backend `DateTime`
 values with `Number(timestamp)`. ASP.NET serializes those values as ISO date
 strings, so every valid message timestamp became `0`, breaking chronological
-ordering and preventing the client from advancing an incremental cursor.
+ordering and preventing the client from advancing an incremental cursor. The
+same coercion also affected unified room-message ordering.
 
 **Files Affected**:
 - `src/web/src/components/Messaging/messagingAdapters.js`
