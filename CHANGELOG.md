@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Global direct-message navigation polling now uses an indexed scalar activity
+  endpoint instead of loading and aggregating full conversation/message rows
+  every ten seconds.
 - `Program.cs` no longer contains the large experimental feature registration
   graph; multi-source, VirtualSoulfind, MediaCore, pods, mesh/DHT, wishlist,
   relay, FTP, AudioCore metadata, discovery, and notification registrations now

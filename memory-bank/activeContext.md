@@ -1,3 +1,20 @@
+## Update 2026-07-15 18:18:33Z
+
+- Current task: performance and efficiency improvements in progress; direct-message navigation polling pass complete locally.
+- Last activity:
+  - Added an authenticated one-bit direct-message activity endpoint backed by a scalar SQLite existence query.
+  - Replaced app-wide full conversation aggregation polling with the bounded boolean response.
+  - Added an acknowledgement covering index to the messaging model and an idempotent migration for existing databases.
+  - Measured a representative 100-conversation response at 12,091 bytes before versus 4 bytes after (99.97% smaller), and verified the indexed query plan.
+  - Regenerated the current API route inventory and documented gotchas `0z567` and `0z568` in standalone commits `bb1c75756` and `7e3559044`.
+- Validation:
+  - Passed focused backend tests (`14/14`) and focused App/chat Web tests (`36/36`).
+  - Passed complete Web Vitest (`772` passed, `4` skipped) and the production Web build.
+  - Passed complete backend suites (`4705/4705`: `69` smoke, `4358` unit, `278` integration) and repository lint.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 18:02:25Z
 
 - Current task: performance and efficiency improvements in progress; global room-activity polling fan-out pass complete locally.

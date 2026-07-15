@@ -5,6 +5,10 @@ export const getAll = async ({ unAcknowledgedOnly = false } = {}) => {
   return (await api.get(`/conversations${query}`)).data;
 };
 
+export const hasUnAcknowledgedMessages = async () => {
+  return (await api.get('/conversations/activity/unacknowledged')).data === true;
+};
+
 export const get = async ({ username }) => {
   return (await api.get(`/conversations/${encodeURIComponent(username)}`)).data;
 };

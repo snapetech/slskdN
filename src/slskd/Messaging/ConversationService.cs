@@ -76,6 +76,12 @@ namespace slskd.Messaging
         Task<PrivateMessage?> FindMessageAsync(string username, int id);
 
         /// <summary>
+        ///     Returns a value indicating whether any private message has not been acknowledged.
+        /// </summary>
+        /// <returns>True when at least one unacknowledged private message exists.</returns>
+        Task<bool> HasUnAcknowledgedMessagesAsync();
+
+        /// <summary>
         ///     Returns the list of all <see cref="Conversation"/> records matching the specified <paramref name="expression"/>.
         /// </summary>
         /// <param name="expression">An optional expression used to locate conversations.</param>
@@ -424,6 +430,21 @@ namespace slskd.Messaging
                 .SingleOrDefault();
 
             return Task.FromResult(message);
+        }
+
+        /// <summary>
+        ///     Returns a value indicating whether any private message has not been acknowledged.
+        /// </summary>
+        /// <returns>True when at least one unacknowledged private message exists.</returns>
+        public async Task<bool> HasUnAcknowledgedMessagesAsync()
+        {
+            using var context = ContextFactory.CreateDbContext();
+            await context.Database.OpenConnectionAsync();
+
+            using var command = context.Database.GetDbConnection().CreateCommand();
+            command.CommandText = "SELECT EXISTS (SELECT 1 FROM PrivateMessages WHERE IsAcknowledged = 0)";
+
+            return Convert.ToBoolean(await command.ExecuteScalarAsync());
         }
 
         /// <summary>

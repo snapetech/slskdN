@@ -334,6 +334,11 @@ internal sealed class TestConversationService : IConversationService
         return Task.FromResult(message);
     }
 
+    public Task<bool> HasUnAcknowledgedMessagesAsync()
+    {
+        return Task.FromResult(_messages.Values.SelectMany(messages => messages).Any(message => !message.IsAcknowledged));
+    }
+
     public Task<IEnumerable<Conversation>> ListAsync(System.Linq.Expressions.Expression<Func<Conversation, bool>> expression = null)
     {
         IEnumerable<Conversation> conversations = _messages.Select(kvp => new Conversation

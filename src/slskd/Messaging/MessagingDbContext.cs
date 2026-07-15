@@ -44,6 +44,9 @@ namespace slskd.Messaging
 
             modelBuilder.Entity<PrivateMessage>().HasKey(e => new { e.Username, e.Id, e.Timestamp });
             modelBuilder.Entity<PrivateMessage>().HasIndex(e => e.Username);
+            modelBuilder.Entity<PrivateMessage>()
+                .HasIndex(e => e.IsAcknowledged)
+                .HasDatabaseName("IDX_PrivateMessages_IsAcknowledged");
 
             modelBuilder
                 .Entity<RoomMessage>()

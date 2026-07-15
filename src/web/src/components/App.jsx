@@ -87,8 +87,6 @@ const getSavedPalette = () => {
   if (!saved) return null;
   return THEME_PALETTES.some((p) => p.id === saved) ? saved : null;
 };
-const asArray = (value) => (Array.isArray(value) ? value : []);
-
 const normalizePortForwardProtocol = (proto) =>
   `${proto || ''}`.trim().toUpperCase();
 
@@ -648,8 +646,7 @@ class App extends Component {
       return false;
     }
 
-    const conversations = await chat.getAll({ unAcknowledgedOnly: true });
-    return asArray(conversations).length > 0;
+    return chat.hasUnAcknowledgedMessages();
   };
 
   getRoomsActivity = async () => {

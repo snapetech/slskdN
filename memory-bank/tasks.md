@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound global direct-message activity polling.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Added authenticated `GET /api/v0/conversations/activity/unacknowledged`, backed by an indexed SQLite scalar existence query. The app shell now polls this one-bit summary instead of loading every unacknowledged private-message row and every active conversation for per-conversation aggregation. Added the `PrivateMessages(IsAcknowledged)` model index and idempotent migration for existing databases. A representative 100-conversation response drops from 12,091 bytes to 4 bytes (99.97% smaller), and query-plan coverage verifies the covering index. Added service, migration, controller, Web client, and badge regressions; regenerated the route inventory and documented gotchas `0z567` and `0z568`.
+
 - [x] Eliminate global room-activity polling fan-out.
   - Status: completed (2026-07-15)
   - Priority: P1

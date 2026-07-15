@@ -212,6 +212,24 @@ namespace slskd.Messaging.API
         }
 
         /// <summary>
+        ///     Gets a value indicating whether any private message has not been acknowledged.
+        /// </summary>
+        /// <returns>True when at least one unacknowledged private message exists.</returns>
+        /// <response code="200">The request completed successfully.</response>
+        [HttpGet("activity/unacknowledged")]
+        [Authorize(Policy = AuthPolicy.Any)]
+        [ProducesResponseType(typeof(bool), 200)]
+        public async Task<IActionResult> GetUnAcknowledgedActivity()
+        {
+            if (Program.IsRelayAgent)
+            {
+                return Forbid();
+            }
+
+            return Ok(await Messages.Conversations.HasUnAcknowledgedMessagesAsync());
+        }
+
+        /// <summary>
         ///     Gets the conversation associated with the specified username.
         /// </summary>
         /// <param name="username">The username associated with the desired conversation.</param>

@@ -9,20 +9,20 @@ const {
   check,
   createApplicationHubConnection,
   getSecurityEnabled,
-  getConversations,
   getRoomActivity,
+  hasUnAcknowledgedMessages,
   isLoggedIn,
 } = vi.hoisted(() => ({
   check: vi.fn(),
   createApplicationHubConnection: vi.fn(),
-  getConversations: vi.fn(),
   getSecurityEnabled: vi.fn(),
   getRoomActivity: vi.fn(),
+  hasUnAcknowledgedMessages: vi.fn(),
   isLoggedIn: vi.fn(),
 }));
 
 vi.mock('../lib/chat', () => ({
-  getAll: getConversations,
+  hasUnAcknowledgedMessages,
 }));
 
 vi.mock('../lib/hubFactory', () => ({
@@ -112,7 +112,7 @@ describe('App', () => {
     createApplicationHubConnection.mockReturnValue(hub);
     getSecurityEnabled.mockResolvedValue(true);
     check.mockResolvedValue(true);
-    getConversations.mockResolvedValue([]);
+    hasUnAcknowledgedMessages.mockResolvedValue(false);
     getRoomActivity.mockResolvedValue({});
     isLoggedIn.mockReturnValue(true);
 
@@ -230,12 +230,7 @@ describe('App', () => {
   });
 
   it('shows chat activity in the header when conversations have unread messages', async () => {
-    getConversations.mockResolvedValue([
-      {
-        hasUnAcknowledgedMessages: true,
-        username: 'some-user',
-      },
-    ]);
+    hasUnAcknowledgedMessages.mockResolvedValue(true);
 
     render(
       <MemoryRouter initialEntries={['/searches']}>
@@ -244,7 +239,7 @@ describe('App', () => {
     );
 
     expect(await screen.findByTestId('nav-chat-alert')).toBeInTheDocument();
-    expect(getConversations).toHaveBeenCalledWith({ unAcknowledgedOnly: true });
+    expect(hasUnAcknowledgedMessages).toHaveBeenCalledTimes(1);
   });
 
   it('shows room activity in the header when joined rooms have newer incoming messages', async () => {
@@ -318,8 +313,7 @@ describe('App', () => {
     });
   });
 
-  it('ignores malformed navigation activity list payloads', async () => {
-    getConversations.mockResolvedValue({ conversations: [] });
+  it('ignores malformed room activity payloads', async () => {
     getRoomActivity.mockResolvedValue([]);
 
     render(

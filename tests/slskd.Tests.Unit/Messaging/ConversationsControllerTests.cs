@@ -13,6 +13,20 @@ using Xunit;
 public class ConversationsControllerTests
 {
     [Fact]
+    public async Task GetUnAcknowledgedActivity_Returns_Service_Value()
+    {
+        var conversations = new Mock<IConversationService>();
+        conversations.Setup(x => x.HasUnAcknowledgedMessagesAsync()).ReturnsAsync(true);
+        var controller = CreateController(conversations.Object);
+
+        var result = await controller.GetUnAcknowledgedActivity();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.True(Assert.IsType<bool>(ok.Value));
+        conversations.Verify(x => x.HasUnAcknowledgedMessagesAsync(), Times.Once);
+    }
+
+    [Fact]
     public async Task Send_Trims_Username_And_Message_Before_Dispatch()
     {
         var conversations = new Mock<IConversationService>();

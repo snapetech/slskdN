@@ -53,6 +53,7 @@ public class Migrator
             { nameof(Z05192026_TransferAudioMetadataMigration), new Z05192026_TransferAudioMetadataMigration(connectionStrings: Databases) },
             { nameof(Z05222026_TransferFileDetailsMigration), new Z05222026_TransferFileDetailsMigration(connectionStrings: Databases) },
             { nameof(Z05292026_DownloadRequestMigration), new Z05292026_DownloadRequestMigration(connectionStrings: Databases) },
+            { nameof(Z07152026_PrivateMessageAcknowledgementIndexMigration), new Z07152026_PrivateMessageAcknowledgementIndexMigration(connectionStrings: Databases) },
         };
     }
 
