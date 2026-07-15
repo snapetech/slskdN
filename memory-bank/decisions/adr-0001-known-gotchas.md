@@ -56,16 +56,16 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 **The Bug**: Repairing search progress-limiter ownership made its timer live
 through background completion. Without an earlier terminal boundary, a
-counter-only timer callback could race the final full response save and write
-an older progress snapshot after canonical completion data.
+progress callback could race the final full response save and broadcast an
+older counter snapshot after canonical completion data.
 
 **Files Affected**:
 - `src/slskd/Search/SearchService.cs`
 
 **Prevention**: Once the upstream operation can produce no more progress,
-dispose and drain its partial-update limiter before awaiting secondary work or
-saving the canonical terminal snapshot. Keep terminal cleanup idempotent so the
-outer `finally` can still cover exceptions.
+dispose and drain its progress limiter before awaiting secondary work or saving
+and broadcasting the canonical terminal snapshot. Keep terminal cleanup
+idempotent so the outer `finally` can still cover exceptions.
 
 ### 0z611. Async Launch Failures Need The Same Cleanup As Background Completion
 
