@@ -52,6 +52,26 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z596. Small Polling Responses Must Not Materialize Full History
+
+**The Bug**: The app-wide transfer-speed endpoint returned only eight numeric
+fields, but every two-second cache refresh loaded four full transfer lists.
+Two of those lists included every retained download and upload solely to sum
+`BytesTransferred`, causing high-frequency database reads and managed entity
+materialization proportional to lifetime transfer history.
+
+**Files Affected**:
+- `src/slskd/Transfers/TransferService.cs`
+- `src/slskd/Transfers/API/Controllers/TransfersController.cs`
+- `src/web/src/components/Shared/Footer.jsx`
+
+**Prevention**: Trace polling endpoints through the service and database layers;
+bounded JSON does not prove bounded work. Project only the active fields needed
+for live calculations, compute historical totals with translated SQL aggregates,
+and assert the concrete command shape so full entity columns cannot return.
+For app-wide consumers, also stop timers while the document is hidden and
+measure work per minute against representative retained-history size.
+
 ### 0z595. Polling Requests Must Reject Stale Resource Completions
 
 **The Bug**: Splitting swarm status and trace polling by cadence guarded each
