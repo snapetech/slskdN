@@ -771,6 +771,118 @@ public class TransfersControllerTests
     }
 
     [Fact]
+    public void GetTransferChanges_BoundedInitialSnapshotExcludesOnlySuccessfulHistoryAndReturnsTotals()
+    {
+        var completed = new SlskdTransfer
+        {
+            Id = Guid.NewGuid(),
+            State = TransferStates.Completed | TransferStates.Succeeded,
+        };
+        var failed = new SlskdTransfer
+        {
+            Id = Guid.NewGuid(),
+            State = TransferStates.Completed | TransferStates.Errored,
+        };
+        var active = new SlskdTransfer
+        {
+            Id = Guid.NewGuid(),
+            State = TransferStates.InProgress,
+        };
+        Expression<Func<SlskdTransfer, bool>>? capturedExpression = null;
+        var downloads = new Mock<IDownloadService>();
+        downloads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), false))
+            .Callback<Expression<Func<SlskdTransfer, bool>>?, bool>((expression, _) => capturedExpression = expression)
+            .Returns<Expression<Func<SlskdTransfer, bool>>?, bool>((expression, _) =>
+                new[] { completed, failed, active }.Where(expression!.Compile()).ToList());
+        downloads.Setup(service => service.Count(false)).Returns(17);
+        var uploads = new Mock<IUploadService>();
+        uploads
+            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), false))
+            .Returns(new List<SlskdTransfer>());
+        uploads.Setup(service => service.Count(false)).Returns(4);
+        var controller = CreateController(downloads: downloads, uploads: uploads);
+
+        var result = controller.GetTransferChanges(includeCompleted: false);
+
+        var response = Assert.IsType<TransferChangesResponse>(Assert.IsType<OkObjectResult>(result).Value);
+        Assert.Equal(new[] { failed, active }, response.Transfers);
+        Assert.Equal(17, response.Counts.Download);
+        Assert.Equal(4, response.Counts.Upload);
+        Assert.NotNull(capturedExpression);
+        Assert.False(ContainsMethodCall(capturedExpression!.Body));
+    }
+
+    [Fact]
+    public void GetTransferHistory_ReturnsStableBoundedDownloadPage()
+    {
+        var asOf = new DateTimeOffset(2026, 7, 15, 12, 0, 0, TimeSpan.Zero);
+        var first = new SlskdTransfer { Id = Guid.NewGuid() };
+        var second = new SlskdTransfer { Id = Guid.NewGuid() };
+        var sentinel = new SlskdTransfer { Id = Guid.NewGuid() };
+        var downloads = new Mock<IDownloadService>();
+        downloads
+            .Setup(service => service.ListCompleted(asOf.UtcDateTime, 5, 3))
+            .Returns([first, second, sentinel]);
+        var uploads = new Mock<IUploadService>();
+        var controller = CreateController(downloads: downloads, uploads: uploads);
+
+        var result = controller.GetTransferHistory(
+            "download",
+            asOf.ToUnixTimeMilliseconds(),
+            offset: 5,
+            limit: 2);
+
+        var response = Assert.IsType<TransferHistoryResponse>(Assert.IsType<OkObjectResult>(result).Value);
+        Assert.Equal(asOf.ToUnixTimeMilliseconds(), response.AsOf);
+        Assert.True(response.HasMore);
+        Assert.Equal(7, response.NextOffset);
+        Assert.Equal(new[] { first, second }, response.Transfers);
+        uploads.Verify(
+            service => service.ListCompleted(It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<int>()),
+            Times.Never);
+    }
+
+    [Theory]
+    [InlineData("sideways", 0, 250)]
+    [InlineData("download", -1, 250)]
+    [InlineData("download", 0, 0)]
+    [InlineData("download", 0, 501)]
+    public void GetTransferHistory_WithInvalidPagingInputReturnsBadRequestWithoutQueries(
+        string direction,
+        int offset,
+        int limit)
+    {
+        var downloads = new Mock<IDownloadService>();
+        var uploads = new Mock<IUploadService>();
+        var controller = CreateController(downloads: downloads, uploads: uploads);
+
+        var result = controller.GetTransferHistory(direction, offset: offset, limit: limit);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        downloads.Verify(
+            service => service.ListCompleted(It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<int>()),
+            Times.Never);
+        uploads.Verify(
+            service => service.ListCompleted(It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<int>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public void GetTransferHistory_WithNegativeWatermarkReturnsBadRequestWithoutQueries()
+    {
+        var downloads = new Mock<IDownloadService>();
+        var controller = CreateController(downloads: downloads);
+
+        var result = controller.GetTransferHistory("download", asOf: -1);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        downloads.Verify(
+            service => service.ListCompleted(It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<int>()),
+            Times.Never);
+    }
+
+    [Fact]
     public void GetTransferChanges_WithNegativeCursorReturnsBadRequestWithoutQueries()
     {
         var downloads = new Mock<IDownloadService>();

@@ -549,6 +549,7 @@ namespace slskd.Transfers.API
         ///     Gets an initial transfer snapshot or only records changed after a cursor.
         /// </summary>
         /// <param name="since">Optional Unix timestamp in milliseconds returned by the prior response.</param>
+        /// <param name="includeCompleted">Whether an initial snapshot should include successful terminal transfers.</param>
         /// <returns>A server-watermarked transfer change set.</returns>
         /// <response code="200">The request completed successfully.</response>
         /// <response code="400">The cursor was invalid.</response>
@@ -556,7 +557,7 @@ namespace slskd.Transfers.API
         [Authorize(Policy = AuthPolicy.Any)]
         [ProducesResponseType(typeof(TransferChangesResponse), 200)]
         [ProducesResponseType(typeof(string), 400)]
-        public IActionResult GetTransferChanges([FromQuery] long? since = null)
+        public IActionResult GetTransferChanges([FromQuery] long? since = null, [FromQuery] bool includeCompleted = true)
         {
             if (Program.IsRelayAgent)
             {
@@ -582,9 +583,23 @@ namespace slskd.Transfers.API
             }
 
             var snapshotAt = DateTime.UtcNow;
-            Expression<Func<global::slskd.Transfers.Transfer, bool>> filter = changedSince.HasValue
-                ? transfer => transfer.UpdatedAt > changedSince.Value && transfer.UpdatedAt <= snapshotAt
-                : transfer => transfer.UpdatedAt <= snapshotAt;
+            Expression<Func<global::slskd.Transfers.Transfer, bool>> filter;
+            if (changedSince.HasValue)
+            {
+                filter = transfer => transfer.UpdatedAt > changedSince.Value && transfer.UpdatedAt <= snapshotAt;
+            }
+            else if (!includeCompleted)
+            {
+                filter = transfer =>
+                    transfer.UpdatedAt <= snapshotAt &&
+                    ((transfer.State & Soulseek.TransferStates.Completed) != Soulseek.TransferStates.Completed ||
+                     (transfer.State & Soulseek.TransferStates.Succeeded) != Soulseek.TransferStates.Succeeded);
+            }
+            else
+            {
+                filter = transfer => transfer.UpdatedAt <= snapshotAt;
+            }
+
             var includeRemoved = changedSince.HasValue;
             var transfers = new List<global::slskd.Transfers.Transfer>();
             transfers.AddRange(Transfers.Downloads.List(filter, includeRemoved));
@@ -592,7 +607,90 @@ namespace slskd.Transfers.API
 
             return Ok(new TransferChangesResponse
             {
+                Counts = new TransferCounts
+                {
+                    Download = Transfers.Downloads.Count(),
+                    Upload = Transfers.Uploads.Count(),
+                },
                 Cursor = new DateTimeOffset(snapshotAt).ToUnixTimeMilliseconds(),
+                Transfers = transfers,
+            });
+        }
+
+        /// <summary>
+        ///     Gets a stable page of successful transfer history.
+        /// </summary>
+        /// <param name="direction">The transfer direction: download or upload.</param>
+        /// <param name="asOf">Optional Unix timestamp in milliseconds returned by the first history page.</param>
+        /// <param name="offset">The number of successful history records already requested.</param>
+        /// <param name="limit">The page size, from 1 through 500.</param>
+        /// <returns>A stable page of successful transfer history.</returns>
+        /// <response code="200">The request completed successfully.</response>
+        /// <response code="400">A history parameter was invalid.</response>
+        [HttpGet("history")]
+        [Authorize(Policy = AuthPolicy.Any)]
+        [ProducesResponseType(typeof(TransferHistoryResponse), 200)]
+        [ProducesResponseType(typeof(string), 400)]
+        public IActionResult GetTransferHistory(
+            [FromQuery] string direction,
+            [FromQuery] long? asOf = null,
+            [FromQuery] int offset = 0,
+            [FromQuery] int limit = 250)
+        {
+            if (Program.IsRelayAgent)
+            {
+                return Forbid();
+            }
+
+            direction = direction?.Trim() ?? string.Empty;
+            if (!direction.Equals("download", StringComparison.OrdinalIgnoreCase) &&
+                !direction.Equals("upload", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest("direction must be 'download' or 'upload'");
+            }
+
+            if (offset < 0)
+            {
+                return BadRequest("offset must be greater than or equal to zero");
+            }
+
+            if (limit < 1 || limit > 500)
+            {
+                return BadRequest("limit must be between 1 and 500");
+            }
+
+            DateTime historyAsOf;
+            if (asOf.HasValue)
+            {
+                if (asOf.Value < 0)
+                {
+                    return BadRequest("asOf must be a non-negative Unix timestamp in milliseconds");
+                }
+
+                try
+                {
+                    historyAsOf = DateTimeOffset.FromUnixTimeMilliseconds(asOf.Value).UtcDateTime;
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    return BadRequest("asOf is outside the supported Unix timestamp range");
+                }
+            }
+            else
+            {
+                historyAsOf = DateTime.UtcNow;
+            }
+
+            var page = direction.Equals("download", StringComparison.OrdinalIgnoreCase)
+                ? Transfers.Downloads.ListCompleted(historyAsOf, offset, limit + 1)
+                : Transfers.Uploads.ListCompleted(historyAsOf, offset, limit + 1);
+            var transfers = page.Take(limit).ToList();
+
+            return Ok(new TransferHistoryResponse
+            {
+                AsOf = new DateTimeOffset(historyAsOf).ToUnixTimeMilliseconds(),
+                HasMore = page.Count > limit,
+                NextOffset = offset + transfers.Count,
                 Transfers = transfers,
             });
         }

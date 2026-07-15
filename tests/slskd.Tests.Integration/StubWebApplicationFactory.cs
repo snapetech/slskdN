@@ -649,6 +649,22 @@ internal sealed class StubDownloadService : IDownloadService
         return list;
     }
 
+    public int Count(bool includeRemoved = false)
+        => includeRemoved ? _storage.Count : _storage.Values.Count(transfer => !transfer.Removed);
+
+    public List<Transfer> ListCompleted(DateTime asOf, int offset, int limit)
+        => _storage.Values
+            .Where(transfer =>
+                (transfer.State & TransferStates.Completed) == TransferStates.Completed &&
+                (transfer.State & TransferStates.Succeeded) == TransferStates.Succeeded)
+            .Where(transfer => transfer.EndedAt.HasValue && transfer.EndedAt.Value <= asOf)
+            .OrderByDescending(transfer => transfer.EndedAt)
+            .ThenByDescending(transfer => transfer.RequestedAt)
+            .ThenByDescending(transfer => transfer.Id)
+            .Skip(offset)
+            .Take(limit)
+            .ToList();
+
     public int Prune(int age, TransferStates stateHasFlag = TransferStates.Completed) => 0;
 
     public void Remove(Guid id, bool deleteFile = false)

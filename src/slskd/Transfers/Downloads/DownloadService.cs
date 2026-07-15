@@ -141,6 +141,23 @@ namespace slskd.Transfers.Downloads
         List<Transfer> List(Expression<Func<Transfer, bool>>? expression = null, bool includeRemoved = false);
 
         /// <summary>
+        ///     Counts downloads, optionally including soft-removed records.
+        /// </summary>
+        /// <param name="includeRemoved">Whether soft-removed records should be counted.</param>
+        /// <returns>The download count.</returns>
+        int Count(bool includeRemoved = false);
+
+        /// <summary>
+        ///     Returns a stable page of successful downloads completed no later than <paramref name="asOf"/>.
+        /// </summary>
+        /// <remarks>Soft-removed records remain in the page sequence so offsets stay stable while history is cleared.</remarks>
+        /// <param name="asOf">The inclusive completion-time watermark.</param>
+        /// <param name="offset">The number of history records to skip.</param>
+        /// <param name="limit">The maximum number of records to return.</param>
+        /// <returns>The requested successful-download history page.</returns>
+        List<Transfer> ListCompleted(DateTime asOf, int offset, int limit);
+
+        /// <summary>
         ///     Removes <see cref="TransferStates.Completed"/> downloads older than the specified <paramref name="age"/>.
         /// </summary>
         /// <param name="age">The age after which downloads are eligible for pruning, in hours.</param>
@@ -900,6 +917,39 @@ namespace slskd.Transfers.Downloads
                 Log.Error(ex, "Failed to list downloads: {Message}", ex.Message);
                 throw;
             }
+        }
+
+        public int Count(bool includeRemoved = false)
+        {
+            using var context = ContextFactory.CreateDbContext();
+            var query = context.Transfers
+                .AsNoTracking()
+                .Where(transfer => transfer.Direction == TransferDirection.Download);
+            if (!includeRemoved)
+            {
+                query = query.Where(transfer => !transfer.Removed);
+            }
+
+            return query.Count();
+        }
+
+        public List<Transfer> ListCompleted(DateTime asOf, int offset, int limit)
+        {
+            using var context = ContextFactory.CreateDbContext();
+
+            return context.Transfers
+                .AsNoTracking()
+                .Where(transfer => transfer.Direction == TransferDirection.Download)
+                .Where(transfer =>
+                    (transfer.State & TransferStates.Completed) == TransferStates.Completed &&
+                    (transfer.State & TransferStates.Succeeded) == TransferStates.Succeeded)
+                .Where(transfer => transfer.EndedAt.HasValue && transfer.EndedAt.Value <= asOf)
+                .OrderByDescending(transfer => transfer.EndedAt)
+                .ThenByDescending(transfer => transfer.RequestedAt)
+                .ThenByDescending(transfer => transfer.Id)
+                .Skip(offset)
+                .Take(limit)
+                .ToList();
         }
 
         /// <summary>

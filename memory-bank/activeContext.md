@@ -1,3 +1,20 @@
+## Update 2026-07-15 21:00:23Z
+
+- Current task: performance and efficiency improvements in progress; bounded initial transfer hydration and paged successful-history pass complete locally.
+- Last activity:
+  - Changed initial transfer hydration to return active and failed records plus server-derived total counts, excluding the large successful terminal history by default.
+  - Added stable 250-record successful-history pages behind `Hide Complete`, an explicit load-older action with a tooltip, hidden-document suspension, and initial-seed ordering so secondary hydration cannot be erased.
+  - Added partial actionable/history indexes, a covering `(Removed, Direction)` count index, distinct EF model identities for same-column indexes, and an idempotent migration that removes the redundant direction-only index.
+  - Reduced a modeled 134,777-row/99%-successful initial response from 79,653,208 bytes to about 796,749 bytes (99.0%). Across 100 synthetic 200,000-row runs, actionable snapshots improved 90.816%, counts 67.506%, and completed-history pages 99.884%.
+  - Added backend/API/Web paging, query-plan, migration, visibility, and seed-race regressions; regenerated the route inventory; extended gotchas `0z380`, `0z462`, and `0z587`; and added `0z588` through `0z590` in standalone documentation commits.
+- Validation:
+  - Passed focused backend tests (`43/43`) and focused Web tests (`9/9`).
+  - Passed complete Web tests (`810` passed, `4` skipped), production Web build, and frontend lint with zero new errors.
+  - Passed complete backend suites (`4731/4731`: `69` smoke, `4384` unit, `278` integration), repository lint, route-inventory, identity-leak, and whitespace checks.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 20:31:02Z
 
 - Current task: performance and efficiency improvements in progress; incremental transfer reconciliation and indexed mutation timeline pass complete locally.

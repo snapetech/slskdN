@@ -17,7 +17,28 @@ public class TransferChangesResponse
     public long Cursor { get; set; }
 
     /// <summary>
+    ///     Gets total non-removed transfer counts by direction.
+    /// </summary>
+    public TransferCounts Counts { get; set; } = new();
+
+    /// <summary>
     ///     Gets non-removed transfers for an initial request, or all changed records for a cursor request.
     /// </summary>
     public IEnumerable<global::slskd.Transfers.Transfer> Transfers { get; set; } = [];
+}
+
+/// <summary>
+///     Total non-removed transfer counts by direction.
+/// </summary>
+public class TransferCounts
+{
+    /// <summary>
+    ///     Gets the total non-removed downloads.
+    /// </summary>
+    public int Download { get; set; }
+
+    /// <summary>
+    ///     Gets the total non-removed uploads.
+    /// </summary>
+    public int Upload { get; set; }
 }

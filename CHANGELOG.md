@@ -10,11 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Transfer reconciliation now uses a server-watermarked, indexed change feed
-  instead of replacing the complete download/upload history every fifteen
-  seconds. The transfer page merges deltas without rerendering unchanged data,
-  rejects overlapping requests, and stops polling and applying live events
-  while hidden.
+- Transfer reconciliation now seeds only actionable records through a
+  server-watermarked, indexed change feed instead of loading the complete
+  download/upload history. Successful history loads in stable 250-record pages
+  only when requested, while total tab counts remain accurate. The transfer
+  page merges deltas without rerendering unchanged data, rejects overlapping
+  requests, and stops polling and applying live events while hidden.
 - Active private-chat polling now requests only messages newer than an
   overlapping timestamp cursor, merges them into a bounded client cache, avoids
   overlapping or unchanged refreshes, and stops legacy-chat polling while the

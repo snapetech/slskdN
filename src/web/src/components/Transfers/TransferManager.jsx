@@ -11,13 +11,14 @@ import TransferTable from './TransferTable';
 import TransfersHeader from './TransfersHeader';
 import RequestDetailModal from './RequestDetailModal';
 import React, {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
-import { Input, Menu } from 'semantic-ui-react';
+import { Button, Input, Menu, Popup } from 'semantic-ui-react';
 import { toast } from 'react-toastify';
 
 const STATUS_FILTERS = [
@@ -47,6 +48,7 @@ const STATUS_FILTERS = [
 ];
 
 const RECONCILE_INTERVAL_MS = 15_000;
+const HISTORY_PAGE_SIZE = 250;
 
 const getErrorMessage = (error) =>
   error?.response?.data ?? error?.message ?? `${error}`;
@@ -89,6 +91,9 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
   const [connecting, setConnecting] = useState(true);
   const [connected, setConnected] = useState(false);
   const [hideCompleted, setHideCompleted] = useState(true);
+  const [initialSnapshotLoaded, setInitialSnapshotLoaded] = useState(false);
+  const [totalCounts, setTotalCounts] = useState(null);
+  const [historyVersion, setHistoryVersion] = useState(0);
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchText, setSearchText] = useState('');
   const [selectedKeys, setSelectedKeys] = useState(() => new Set());
@@ -109,6 +114,10 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
   const bulkQueueRef = useRef([]);
   const queuedBulkKeysRef = useRef(new Set());
   const bulkQueueRunningRef = useRef(false);
+  const completedHistoryRef = useRef({
+    download: { asOf: null, hasMore: true, loading: false, offset: 0 },
+    upload: { asOf: null, hasMore: true, loading: false, offset: 0 },
+  });
 
   const retrying = retryingSingle || bulkCounts.retry > 0;
   const cancelling = cancellingSingle || bulkCounts.cancel > 0;
@@ -149,6 +158,7 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
             seeded = true;
             pendingEvents.forEach(({ callback, event }) => callback(event));
             pendingEvents = [];
+            setInitialSnapshotLoaded(true);
           } else {
             store.applySnapshot(snapshot.transfers);
           }
@@ -156,6 +166,7 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
           if (snapshot.cursor !== null) {
             cursor = Math.max(cursor ?? 0, snapshot.cursor);
           }
+          setTotalCounts(snapshot.counts);
         } catch (error) {
           if (!disposed) {
             console.error('transfer reconcile failed', error);
@@ -251,6 +262,46 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
       hub.stop();
     };
   }, [store]);
+
+  const loadCompletedHistory = useCallback(async (historyDirection) => {
+    const status = completedHistoryRef.current[historyDirection];
+    if (document.hidden || status.loading || !status.hasMore) return;
+
+    status.loading = true;
+    setHistoryVersion((version) => version + 1);
+    try {
+      const page = await transfersLibrary.getHistory({
+        asOf: status.asOf,
+        direction: historyDirection,
+        limit: HISTORY_PAGE_SIZE,
+        offset: status.offset,
+      });
+      if (document.hidden) return;
+
+      store.applySnapshot(page.transfers);
+      status.asOf = page.asOf;
+      status.hasMore = page.hasMore;
+      status.offset = page.nextOffset;
+    } catch (error) {
+      console.error('completed transfer history failed', error);
+    } finally {
+      status.loading = false;
+      setHistoryVersion((version) => version + 1);
+    }
+  }, [store]);
+
+  useEffect(() => {
+    if (hideCompleted || !initialSnapshotLoaded) return undefined;
+
+    const loadWhenVisible = () => {
+      if (!document.hidden) {
+        loadCompletedHistory(activeTab);
+      }
+    };
+    document.addEventListener('visibilitychange', loadWhenVisible);
+    loadWhenVisible();
+    return () => document.removeEventListener('visibilitychange', loadWhenVisible);
+  }, [activeTab, hideCompleted, initialSnapshotLoaded, loadCompletedHistory]);
 
   useEffect(() => {
     const fetchDownloadModeStatus = async () => {
@@ -534,7 +585,7 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
     }
   };
 
-  const counts = useMemo(() => {
+  const loadedCounts = useMemo(() => {
     let download = 0;
     let upload = 0;
 
@@ -548,6 +599,8 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
 
     return { download, upload };
   }, [allTransfers]);
+
+  const counts = totalCounts ?? loadedCounts;
 
   const tabTransfers = useMemo(
     () => allTransfers.filter((t) => matchesDirection(t, activeTab)),
@@ -645,7 +698,11 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
     [filteredTransfers, selectedKeys],
   );
 
-  const isEmpty = tabTransfers.length === 0;
+  const historyStatus = useMemo(
+    () => completedHistoryRef.current[activeTab],
+    [activeTab, historyVersion],
+  );
+  const isEmpty = counts[activeTab] === 0;
 
   return (
     <div data-testid={testId} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
@@ -700,6 +757,7 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
         removing={removing}
         retrying={retrying}
         server={server}
+        totalCount={counts[activeTab]}
         transfers={headerTransfers}
       />
 
@@ -727,6 +785,21 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
             size="small"
             value={searchText}
           />
+          {!hideCompleted && historyStatus.hasMore && (
+            <Popup
+              content="Load the next 250 successful transfers from the server without loading the entire history."
+              trigger={
+                <Button
+                  content="Load older completed"
+                  disabled={historyStatus.loading}
+                  icon="history"
+                  loading={historyStatus.loading}
+                  onClick={() => loadCompletedHistory(activeTab)}
+                  size="small"
+                />
+              }
+            />
+          )}
         </div>
       )}
 
@@ -744,7 +817,11 @@ const TransferManager = ({ direction, server = { isConnected: true } }) => {
           caption={
             searchText.trim() || statusFilter !== 'all'
               ? `No ${activeTab}s match the current filter`
-              : `All ${activeTab}s are completed`
+              : hideCompleted
+                ? `Successful completed ${activeTab}s are hidden`
+              : historyStatus.loading
+                ? `Loading completed ${activeTab} history`
+                : `All loaded ${activeTab}s are completed`
           }
           icon={searchText.trim() || statusFilter !== 'all' ? 'filter' : 'check'}
         />

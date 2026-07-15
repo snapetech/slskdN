@@ -5,7 +5,7 @@
 import '@testing-library/jest-dom';
 import TransferManager from './TransferManager';
 import React from 'react';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 
 const mocks = vi.hoisted(() => {
@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => {
     getAcceleratedMode: vi.fn(),
     getAutoReplaceStatus: vi.fn(),
     getChanges: vi.fn(),
+    getHistory: vi.fn(),
     hub: {
       on: vi.fn((name, callback) => {
         callbacks[name] = callback;
@@ -45,6 +46,7 @@ vi.mock('../../lib/hubFactory', () => ({
 vi.mock('../../lib/transfers', () => ({
   getAcceleratedMode: mocks.getAcceleratedMode,
   getChanges: mocks.getChanges,
+  getHistory: mocks.getHistory,
 }));
 
 vi.mock('../Shared', () => ({
@@ -58,7 +60,11 @@ vi.mock('./TransferTable', () => ({
 }));
 
 vi.mock('./TransfersHeader', () => ({
-  default: () => <div data-testid="transfers-header" />,
+  default: ({ onHideCompletedChange }) => (
+    <button onClick={() => onHideCompletedChange(false)} type="button">
+      Show completed
+    </button>
+  ),
 }));
 
 vi.mock('./RequestDetailModal', () => ({
@@ -94,6 +100,12 @@ describe('TransferManager reconciliation', () => {
     mocks.getAcceleratedMode.mockResolvedValue({ enabled: false });
     mocks.getAutoReplaceStatus.mockResolvedValue({ enabled: false });
     mocks.getChanges.mockResolvedValue({ cursor: 100, transfers: [] });
+    mocks.getHistory.mockResolvedValue({
+      asOf: 100,
+      hasMore: false,
+      nextOffset: 0,
+      transfers: [],
+    });
     mocks.hub.start.mockResolvedValue(undefined);
     setHidden(false);
   });
@@ -167,6 +179,29 @@ describe('TransferManager reconciliation', () => {
     expect(screen.getByTestId('transfer-table')).toHaveTextContent('1');
   });
 
+  it('waits for the initial seed before loading completed history', async () => {
+    let resolveInitial;
+    mocks.getChanges.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveInitial = resolve;
+      }),
+    );
+
+    render(<TransferManager direction="download" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Show completed' }));
+    await flush();
+    expect(mocks.getHistory).not.toHaveBeenCalled();
+
+    resolveInitial({
+      counts: { download: 1, upload: 0 },
+      cursor: 100,
+      transfers: [],
+    });
+    await flush();
+
+    expect(mocks.getHistory).toHaveBeenCalledTimes(1);
+  });
+
   it('suspends hidden polling and catches up immediately when visible', async () => {
     setHidden(true);
     render(<TransferManager direction="download" />);
@@ -194,5 +229,78 @@ describe('TransferManager reconciliation', () => {
     });
     expect(mocks.getChanges).toHaveBeenCalledTimes(2);
     expect(mocks.getChanges).toHaveBeenLastCalledWith({ since: 99 });
+  });
+
+  it('loads successful history only on request and advances the stable page', async () => {
+    mocks.getChanges.mockResolvedValue({
+      counts: { download: 3, upload: 0 },
+      cursor: 100,
+      transfers: [
+        {
+          direction: 'Download',
+          filename: 'Music\\failed.flac',
+          id: 'failed-1',
+          state: 'Completed, Errored',
+          username: 'listener',
+        },
+      ],
+    });
+    mocks.getHistory
+      .mockResolvedValueOnce({
+        asOf: 2_000,
+        hasMore: true,
+        nextOffset: 1,
+        transfers: [
+          {
+            direction: 'Download',
+            filename: 'Music\\completed-1.flac',
+            id: 'completed-1',
+            state: 'Completed, Succeeded',
+            username: 'listener',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        asOf: 2_000,
+        hasMore: false,
+        nextOffset: 2,
+        transfers: [
+          {
+            direction: 'Download',
+            filename: 'Music\\completed-2.flac',
+            id: 'completed-2',
+            state: 'Completed, Succeeded',
+            username: 'listener',
+          },
+        ],
+      });
+
+    render(<TransferManager direction="download" />);
+    await flush();
+    expect(mocks.getHistory).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show completed' }));
+    await flush();
+
+    expect(mocks.getHistory).toHaveBeenNthCalledWith(1, {
+      asOf: null,
+      direction: 'download',
+      limit: 250,
+      offset: 0,
+    });
+    expect(screen.getByTestId('transfer-table')).toHaveTextContent('2');
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Load older completed' }),
+    );
+    await flush();
+
+    expect(mocks.getHistory).toHaveBeenNthCalledWith(2, {
+      asOf: 2_000,
+      direction: 'download',
+      limit: 250,
+      offset: 1,
+    });
+    expect(screen.getByTestId('transfer-table')).toHaveTextContent('3');
   });
 });

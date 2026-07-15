@@ -49,12 +49,43 @@ export const getFlat = async ({
  * @returns {Promise<{cursor: number|null, transfers: Array}>}
  */
 export const getChanges = async ({ since = null } = {}) => {
-  const query = since == null ? '' : `?since=${encodeURIComponent(since)}`;
-  const response = (await api.get(`/transfers/changes${query}`)).data;
+  const params = new URLSearchParams();
+  if (since == null) {
+    params.set('includeCompleted', 'false');
+  } else {
+    params.set('since', since);
+  }
+  const response = (await api.get(`/transfers/changes?${params}`)).data;
   const cursor = Number(response?.cursor);
+  const downloadCount = Number(response?.counts?.download);
+  const uploadCount = Number(response?.counts?.upload);
 
   return {
+    counts: {
+      download: Number.isFinite(downloadCount) ? downloadCount : 0,
+      upload: Number.isFinite(uploadCount) ? uploadCount : 0,
+    },
     cursor: Number.isFinite(cursor) ? cursor : null,
+    transfers: Array.isArray(response?.transfers) ? response.transfers : [],
+  };
+};
+
+export const getHistory = async ({
+  direction,
+  asOf = null,
+  offset = 0,
+  limit = 250,
+}) => {
+  const params = new URLSearchParams({ direction, limit, offset });
+  if (asOf != null) params.set('asOf', asOf);
+  const response = (await api.get(`/transfers/history?${params}`)).data;
+  const snapshotAt = Number(response?.asOf);
+  const nextOffset = Number(response?.nextOffset);
+
+  return {
+    asOf: Number.isFinite(snapshotAt) ? snapshotAt : null,
+    hasMore: response?.hasMore === true,
+    nextOffset: Number.isFinite(nextOffset) ? nextOffset : offset,
     transfers: Array.isArray(response?.transfers) ? response.transfers : [],
   };
 };

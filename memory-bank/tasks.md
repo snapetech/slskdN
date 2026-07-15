@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound the initial transfer snapshot and page successful history.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Initial `/api/v0/transfers/changes` hydration now excludes successful terminal history while retaining active and failed transfers, and returns indexed non-removed totals for accurate direction tabs. Successful history is fetched only after `Hide Complete` is disabled, uses a stable server `asOf` watermark, and advances in explicit 250-record pages; paging waits for the initial seed and pauses while hidden. Added partial actionable/history indexes, a covering `(Removed, Direction)` count index, and removed the redundant direction-only index that competed with ordered timeline reads. A representative 134,777-row history with 99% successful records reduces the modeled initial response from 79,653,208 bytes to about 796,749 bytes (99.0%); each requested 250-record history page is about 147,818 bytes. On 200,000 synthetic records across 100 runs, actionable snapshots improved from 583.423 ms to 53.580 ms (90.816%), counts from 474.326 ms to 154.125 ms (67.506%), and completed-history pages from 3,401.472 ms to 3.946 ms (99.884%). Added controller, concrete SQLite translation/query-plan, migration/idempotence, API-boundary, history lifecycle, paging, and seed-race regressions; regenerated the route inventory; extended gotchas `0z380`, `0z462`, and `0z587`, and added `0z588` through `0z590` in required standalone documentation commits.
+
 - [x] Make transfer reconciliation incremental and lifecycle-aware.
   - Status: completed (2026-07-15)
   - Priority: P1

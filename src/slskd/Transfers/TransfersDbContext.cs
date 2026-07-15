@@ -105,13 +105,29 @@ namespace slskd.Transfers
 
             modelBuilder
                 .Entity<Transfer>()
-                .HasIndex(t => t.Direction)
-                .HasDatabaseName("IDX_Transfers_Direction");
+                .HasIndex(
+                    t => new { t.Direction, t.UpdatedAt },
+                    "TransferDirectionUpdatedAt")
+                .HasDatabaseName("IDX_Transfers_Direction_UpdatedAt");
 
             modelBuilder
                 .Entity<Transfer>()
-                .HasIndex(t => new { t.Direction, t.UpdatedAt })
-                .HasDatabaseName("IDX_Transfers_Direction_UpdatedAt");
+                .HasIndex(
+                    t => new { t.Direction, t.UpdatedAt },
+                    "TransferActionableUpdatedAt")
+                .HasDatabaseName("IDX_Transfers_Actionable_UpdatedAt")
+                .HasFilter("Removed = 0 AND ((State & 16) != 16 OR (State & 32) != 32)");
+
+            modelBuilder
+                .Entity<Transfer>()
+                .HasIndex(t => new { t.Removed, t.Direction })
+                .HasDatabaseName("IDX_Transfers_Removed_Direction");
+
+            modelBuilder
+                .Entity<Transfer>()
+                .HasIndex(t => new { t.Direction, t.EndedAt, t.RequestedAt, t.Id })
+                .HasDatabaseName("IDX_Transfers_Direction_EndedAt")
+                .HasFilter("EndedAt IS NOT NULL AND (State & 16) = 16 AND (State & 32) = 32");
 
             modelBuilder
                 .Entity<Transfer>()

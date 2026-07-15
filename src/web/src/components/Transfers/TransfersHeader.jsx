@@ -89,6 +89,7 @@ const TransfersHeader = ({
   removing = false,
   retrying = false,
   server = { isConnected: true },
+  totalCount = null,
   transfers,
 }) => {
   const appContext = useContext(AppContext) || {};
@@ -127,7 +128,13 @@ const TransfersHeader = ({
       .filter((file) => file.direction.toLowerCase() === direction);
   }, [direction, transfers]);
 
-  const empty = files.length === 0;
+  const empty = (totalCount ?? files.length) === 0;
+  const retryableFiles = getRetryableFiles({ files, retryOption });
+  const cancellableFiles = getCancellableFiles({ cancelOption, files });
+  const removableFiles = getRemovableFiles({ files, removeOption });
+  const useBulkClear =
+    removeOption === 'Completed' || removeOption === 'Succeeded';
+  const hasRemovableFiles = useBulkClear ? !empty : removableFiles.length > 0;
 
   const setHumanCheckAutoResponse = async (enabled) => {
     setHumanCheckAutoResponseEnabled(enabled);
@@ -165,13 +172,13 @@ const TransfersHeader = ({
       >
         <ShrinkableDropdownButton
           color="green"
-          disabled={retrying || empty || !server.isConnected}
+          disabled={retrying || retryableFiles.length === 0 || !server.isConnected}
           hidden={direction === 'upload'}
           icon="redo"
           loading={retrying}
           mediaQuery="(max-width: 715px)"
           onChange={(_, data) => setRetryOption(data.value)}
-          onClick={() => onRetryAll(getRetryableFiles({ files, retryOption }))}
+          onClick={() => onRetryAll(retryableFiles)}
           options={[
             { key: 'errored', text: 'Errored', value: 'Errored' },
             { key: 'cancelled', text: 'Cancelled', value: 'Cancelled' },
@@ -183,13 +190,13 @@ const TransfersHeader = ({
         <Nbsp />
         <ShrinkableDropdownButton
           color="red"
-          disabled={cancelling || empty}
+          disabled={cancelling || cancellableFiles.length === 0}
           icon="x"
           loading={cancelling}
           mediaQuery="(max-width: 715px)"
           onChange={(_, data) => setCancelOption(data.value)}
           onClick={() =>
-            onCancelAll(getCancellableFiles({ cancelOption, files }))
+            onCancelAll(cancellableFiles)
           }
           options={[
             { key: 'all', text: 'All', value: 'All' },
@@ -201,16 +208,16 @@ const TransfersHeader = ({
         </ShrinkableDropdownButton>
         <Nbsp />
         <ShrinkableDropdownButton
-          disabled={removing || empty}
+          disabled={removing || !hasRemovableFiles}
           icon="trash alternate"
           loading={removing}
           mediaQuery="(max-width: 715px)"
           onChange={(_, data) => setRemoveOption(data.value)}
           onClick={() =>
             onRemoveAll(
-              getRemovableFiles({ files, removeOption }),
+              removableFiles,
               false,
-              { useBulkClear: removeOption === 'Completed' },
+              { useBulkClear },
             )
           }
           options={[
