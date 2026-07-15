@@ -21826,3 +21826,17 @@ could not appear in "Shared with Me" for the authenticated test account.
 When the guarded E2E endpoint must exercise the recipient UI, pass its already
 authenticated web-account identity explicitly and bind only that test-ingested
 grant to the web audience. Never infer web ownership from a Soulseek username.
+### 0z552. Volatile Recipient Listings Must Disable Browser Caching
+
+**The Bug**: The browser intermittently reused an empty `GET /share-grants`
+response after a cross-node announcement had already been ingested. A direct
+authenticated lookup found the new grant, while "Shared with Me" continued to
+render the cached empty list.
+
+**Files Affected**:
+- `src/slskd/Sharing/API/SharesController.cs`
+- `src/web/e2e/policy.spec.ts`
+
+**Prevention**: Mark volatile authenticated recipient-list endpoints as
+`no-store`. In browser tests, wait for the exact list route rather than matching
+all paths that merely contain the route prefix.
