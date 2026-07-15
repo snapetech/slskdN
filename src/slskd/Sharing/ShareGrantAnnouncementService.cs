@@ -87,10 +87,25 @@ public sealed class ShareGrantAnnouncementService : IDisposable
 
     public Task IngestAsync(ShareGrantAnnouncement msg, CancellationToken ct)
     {
-        return IngestAsync(msg, senderUsername: null, ct);
+        return IngestAsync(msg, senderUsername: null, webAudienceId: null, ct);
     }
 
-    public async Task IngestAsync(ShareGrantAnnouncement msg, string? senderUsername, CancellationToken ct)
+    public Task IngestAsync(ShareGrantAnnouncement msg, string? senderUsername, CancellationToken ct)
+    {
+        return IngestAsync(msg, senderUsername, webAudienceId: null, ct);
+    }
+
+    public Task IngestForWebAccountAsync(ShareGrantAnnouncement msg, string webAudienceId, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(webAudienceId))
+        {
+            throw new ArgumentException("Web audience ID is required.", nameof(webAudienceId));
+        }
+
+        return IngestAsync(msg, senderUsername: null, webAudienceId.Trim(), ct);
+    }
+
+    private async Task IngestAsync(ShareGrantAnnouncement msg, string? senderUsername, string? webAudienceId, CancellationToken ct)
     {
         if (!_options.CurrentValue.Feature.CollectionsSharing)
         {
@@ -179,7 +194,7 @@ public sealed class ShareGrantAnnouncementService : IDisposable
 
         // Imported network grants retain their Soulseek recipient separately and are never
         // assigned to an authenticated web account implicitly.
-        var networkAudienceId = $"network:{localNetworkUserId}";
+        var audienceId = webAudienceId ?? $"network:{localNetworkUserId}";
         var g = await db.ShareGrants.FirstOrDefaultAsync(x => x.Id == msg.ShareGrantId, ct).ConfigureAwait(false);
         if (g == null)
         {
@@ -188,7 +203,7 @@ public sealed class ShareGrantAnnouncementService : IDisposable
                 Id = msg.ShareGrantId,
                 CollectionId = msg.CollectionId,
                 AudienceType = AudienceTypes.User,
-                AudienceId = networkAudienceId,
+                AudienceId = audienceId,
                 AudiencePeerId = localNetworkUserId,
                 AllowStream = msg.AllowStream,
                 AllowDownload = msg.AllowDownload,
@@ -207,7 +222,7 @@ public sealed class ShareGrantAnnouncementService : IDisposable
         {
             g.CollectionId = msg.CollectionId;
             g.AudienceType = AudienceTypes.User;
-            g.AudienceId = networkAudienceId;
+            g.AudienceId = audienceId;
             g.AudiencePeerId = localNetworkUserId;
             g.AllowStream = msg.AllowStream;
             g.AllowDownload = msg.AllowDownload;

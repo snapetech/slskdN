@@ -3,6 +3,7 @@
 // </copyright>
 
 import React, { useState, useMemo } from 'react';
+import * as lidarrAPI from '../../../lib/lidarr';
 import {
   buildServarrCompatibilityPreview,
   buildServarrReadiness,
@@ -120,7 +121,7 @@ const ServarrReadinessPanel = ({ options }) => {
         return;
       }
 
-      const result = await lidarr.syncWanted();
+      const result = await lidarrAPI.syncWanted();
       setCopyStatus(
         `Wanted sync ran: ${result.createdCount ?? result.CreatedCount ?? 0} created, ${
           result.duplicateCount ?? result.DuplicateCount ?? 0
@@ -260,4 +261,3 @@ const ServarrReadinessPanel = ({ options }) => {
 };
 
 export default ServarrReadinessPanel;
-

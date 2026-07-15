@@ -182,7 +182,9 @@ test.describe('browse transfer handoff', () => {
     });
     await clickNav(page, T.navDownloads);
 
-    const browseButton = page.getByTestId(`transfer-browse-user-${peer}`);
+    const browseButton = page.getByRole('button', {
+      name: `Browse ${peer} files`,
+    });
     await expect(
       browseButton,
       `expected mocked Downloads transfer row; transfer requests mocked: ${transferRequestCount}`,

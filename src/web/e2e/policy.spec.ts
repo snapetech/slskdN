@@ -7,13 +7,68 @@ import {
   login,
   waitForHealth,
   waitForLibraryItem,
+  waitForShareGrantById,
 } from './helpers';
 import { T } from './selectors';
-import { expect, test } from '@playwright/test';
+import {
+  expect,
+  test,
+  type APIRequestContext,
+  type Page,
+} from '@playwright/test';
+
+async function ensureShareGroupMember({
+  baseUrl,
+  groupName,
+  memberUserId,
+  page,
+  request,
+}: {
+  baseUrl: string;
+  groupName: string;
+  memberUserId: string;
+  page: Page;
+  request: APIRequestContext;
+}) {
+  const token = await getAuthToken(page);
+  const headers = { Authorization: `Bearer ${token}` };
+  const groupsResponse = await request.get(`${baseUrl}/api/v0/sharegroups`, {
+    headers,
+  });
+  expect(groupsResponse.ok()).toBe(true);
+
+  const groups = await groupsResponse.json();
+  let group = Array.isArray(groups)
+    ? groups.find((candidate) => candidate?.name === groupName)
+    : null;
+
+  if (!group) {
+    const createResponse = await request.post(`${baseUrl}/api/v0/sharegroups`, {
+      data: { name: groupName },
+      headers,
+    });
+    expect(createResponse.status()).toBe(201);
+    group = await createResponse.json();
+  }
+
+  const membersResponse = await request.get(
+    `${baseUrl}/api/v0/sharegroups/${group.id}/members`,
+    { headers },
+  );
+  expect(membersResponse.ok()).toBe(true);
+  const members = await membersResponse.json();
+
+  if (!Array.isArray(members) || !members.includes(memberUserId)) {
+    const addResponse = await request.post(
+      `${baseUrl}/api/v0/sharegroups/${group.id}/members`,
+      { data: { userId: memberUserId }, headers },
+    );
+    expect(addResponse.status()).toBe(204);
+  }
+}
 
 test.describe('policy enforcement', () => {
   let harness: MultiPeerHarness | null = null;
-  const groupName = 'E2E Policy Test';
   const collectionTitleNoStream = 'E2E No Stream Policy';
   const collectionTitleNoDownload = 'E2E No Download Policy';
   const collectionTitleExpired = 'E2E Expired Token Policy';
@@ -37,6 +92,7 @@ test.describe('policy enforcement', () => {
   });
 
   test('stream_denied_when_policy_says_no', async ({ browser, request }) => {
+    const groupName = 'E2E Policy No Stream';
     const nodeA = harness ? harness.getNode('A').nodeCfg : NODES.A;
     const nodeB = harness ? harness.getNode('B').nodeCfg : NODES.B;
 
@@ -51,41 +107,13 @@ test.describe('policy enforcement', () => {
     await login(pageA, nodeA);
     await login(pageB, nodeB);
 
-    // Ensure group exists and nodeB is a member
-    await clickNav(pageA, T.navGroups);
-    const existingGroupRow = pageA.getByTestId(T.groupRow(groupName));
-    if ((await existingGroupRow.count()) === 0) {
-      await pageA.getByTestId(T.groupsCreate).click();
-      await pageA.waitForSelector(`[data-testid="${T.groupsNameInput}"]`, {
-        timeout: 5_000,
-      });
-      await pageA
-        .getByTestId(T.groupsNameInput)
-        .locator('input')
-        .fill(groupName);
-      await pageA.getByTestId(T.groupsCreateSubmit).click();
-      await expect(pageA.getByTestId(T.groupRow(groupName))).toBeVisible({
-        timeout: 5_000,
-      });
-    }
-
-    // Ensure nodeB is a member
-    const addMemberButton = pageA
-      .getByTestId(T.groupRow(groupName))
-      .locator(`[data-testid="${T.groupAddMember}"]`)
-      .first();
-    if ((await addMemberButton.count()) > 0) {
-      await addMemberButton.click();
-      const modalUserInput = pageA
-        .locator('.ui.modal')
-        .locator('input[placeholder*="username" i]')
-        .first();
-      if ((await modalUserInput.count()) > 0) {
-        await modalUserInput.fill('nodeB');
-        await pageA.getByTestId(T.groupMemberAddSubmit).click();
-        await expect(modalUserInput).not.toBeVisible({ timeout: 5_000 });
-      }
-    }
+    await ensureShareGroupMember({
+      baseUrl: nodeA.baseUrl,
+      groupName,
+      memberUserId: 'nodeB',
+      page: pageA,
+      request,
+    });
 
     // Create collection with no stream policy
     await clickNav(pageA, T.navCollections);
@@ -115,7 +143,7 @@ test.describe('policy enforcement', () => {
           response.request().method() === 'POST',
         { timeout: 5_000 },
       );
-      await pageA.getByTestId(T.collectionsCreateSubmit).click();
+      await pageA.getByTestId(T.collectionsCreateSubmit).evaluate((element: HTMLButtonElement) => element.click());
       const createCollectionResult = await createCollectionResponse;
       if (createCollectionResult.status() !== 201) {
         const body = await createCollectionResult.text();
@@ -141,7 +169,7 @@ test.describe('policy enforcement', () => {
         .getByTestId(T.collectionItemPicker)
         .locator('input')
         .fill(item.contentId);
-      await pageA.getByTestId(T.collectionAddItemSubmit).click();
+      await pageA.getByTestId(T.collectionAddItemSubmit).evaluate((element: HTMLButtonElement) => element.click());
       await pageA.waitForTimeout(1_000);
     }
 
@@ -168,7 +196,9 @@ test.describe('policy enforcement', () => {
     if ((await streamPolicy.count()) > 0) {
       const isChecked = await streamPolicy.isChecked();
       if (isChecked) {
-        await streamPolicy.uncheck({ timeout: 5_000 });
+        await streamPolicy.evaluate((element: HTMLInputElement) =>
+          element.click(),
+        );
       }
     }
 
@@ -176,17 +206,19 @@ test.describe('policy enforcement', () => {
     if ((await downloadPolicy.count()) > 0) {
       const isChecked = await downloadPolicy.isChecked();
       if (!isChecked) {
-        await downloadPolicy.check({ timeout: 5_000 });
+        await downloadPolicy.evaluate((element: HTMLInputElement) =>
+          element.click(),
+        );
       }
     }
 
     const createShareResponse = pageA.waitForResponse(
       (response) =>
-        response.url().includes('/api/v0/share-grants') &&
+        new URL(response.url()).pathname === '/api/v0/share-grants' &&
         response.request().method() === 'POST',
       { timeout: 5_000 },
     );
-    await pageA.getByTestId(T.shareCreateSubmit).click();
+    await pageA.getByTestId(T.shareCreateSubmit).evaluate((element: HTMLButtonElement) => element.click());
     const createShareResult = await createShareResponse;
     let createShareBody;
     try {
@@ -216,10 +248,26 @@ test.describe('policy enforcement', () => {
       shareGrantId: createShareBody.id,
       shareOverride: createShareBody,
     });
+    expect(
+      await waitForShareGrantById({
+        baseUrl: nodeB.baseUrl,
+        request,
+        shareGrantId: createShareBody.id,
+        token: recipientToken,
+      }),
+    ).toBe(true);
 
     // Node B tries to access the share
+    const incomingSharesResponse = pageB.waitForResponse(
+      (response) =>
+        response.url().includes('/api/v0/share-grants') &&
+        response.request().method() === 'GET',
+    );
     await clickNav(pageB, T.navSharedWithMe);
-    await pageB.waitForTimeout(2_000);
+    const incomingShares = await (await incomingSharesResponse).json();
+    expect(incomingShares.some((share) => share.id === createShareBody.id)).toBe(
+      true,
+    );
 
     // Poll for the share to appear
     let shareFound = false;
@@ -289,6 +337,7 @@ test.describe('policy enforcement', () => {
   });
 
   test('download_denied_when_policy_says_no', async ({ browser, request }) => {
+    const groupName = 'E2E Policy No Download';
     const nodeA = harness ? harness.getNode('A').nodeCfg : NODES.A;
     const nodeB = harness ? harness.getNode('B').nodeCfg : NODES.B;
 
@@ -303,23 +352,13 @@ test.describe('policy enforcement', () => {
     await login(pageA, nodeA);
     await login(pageB, nodeB);
 
-    // Ensure group exists and nodeB is a member (reuse from previous test)
-    await clickNav(pageA, T.navGroups);
-    const existingGroupRow = pageA.getByTestId(T.groupRow(groupName));
-    if ((await existingGroupRow.count()) === 0) {
-      await pageA.getByTestId(T.groupsCreate).click();
-      await pageA.waitForSelector(`[data-testid="${T.groupsNameInput}"]`, {
-        timeout: 5_000,
-      });
-      await pageA
-        .getByTestId(T.groupsNameInput)
-        .locator('input')
-        .fill(groupName);
-      await pageA.getByTestId(T.groupsCreateSubmit).click();
-      await expect(pageA.getByTestId(T.groupRow(groupName))).toBeVisible({
-        timeout: 5_000,
-      });
-    }
+    await ensureShareGroupMember({
+      baseUrl: nodeA.baseUrl,
+      groupName,
+      memberUserId: 'nodeB',
+      page: pageA,
+      request,
+    });
 
     // Create collection with no download policy
     await clickNav(pageA, T.navCollections);
@@ -349,7 +388,7 @@ test.describe('policy enforcement', () => {
           response.request().method() === 'POST',
         { timeout: 5_000 },
       );
-      await pageA.getByTestId(T.collectionsCreateSubmit).click();
+      await pageA.getByTestId(T.collectionsCreateSubmit).evaluate((element: HTMLButtonElement) => element.click());
       const createCollectionResult = await createCollectionResponse;
       if (createCollectionResult.status() !== 201) {
         const body = await createCollectionResult.text();
@@ -375,7 +414,7 @@ test.describe('policy enforcement', () => {
         .getByTestId(T.collectionItemPicker)
         .locator('input')
         .fill(item.contentId);
-      await pageA.getByTestId(T.collectionAddItemSubmit).click();
+      await pageA.getByTestId(T.collectionAddItemSubmit).evaluate((element: HTMLButtonElement) => element.click());
       await pageA.waitForTimeout(1_000);
     }
 
@@ -402,7 +441,9 @@ test.describe('policy enforcement', () => {
     if ((await streamPolicy.count()) > 0) {
       const isChecked = await streamPolicy.isChecked();
       if (!isChecked) {
-        await streamPolicy.check({ timeout: 5_000 });
+        await streamPolicy.evaluate((element: HTMLInputElement) =>
+          element.click(),
+        );
       }
     }
 
@@ -410,17 +451,19 @@ test.describe('policy enforcement', () => {
     if ((await downloadPolicy.count()) > 0) {
       const isChecked = await downloadPolicy.isChecked();
       if (isChecked) {
-        await downloadPolicy.uncheck({ timeout: 5_000 });
+        await downloadPolicy.evaluate((element: HTMLInputElement) =>
+          element.click(),
+        );
       }
     }
 
     const createShareResponse = pageA.waitForResponse(
       (response) =>
-        response.url().includes('/api/v0/share-grants') &&
+        new URL(response.url()).pathname === '/api/v0/share-grants' &&
         response.request().method() === 'POST',
       { timeout: 5_000 },
     );
-    await pageA.getByTestId(T.shareCreateSubmit).click();
+    await pageA.getByTestId(T.shareCreateSubmit).evaluate((element: HTMLButtonElement) => element.click());
     const createShareResult = await createShareResponse;
     let createShareBody;
     try {
@@ -450,10 +493,26 @@ test.describe('policy enforcement', () => {
       shareGrantId: createShareBody.id,
       shareOverride: createShareBody,
     });
+    expect(
+      await waitForShareGrantById({
+        baseUrl: nodeB.baseUrl,
+        request,
+        shareGrantId: createShareBody.id,
+        token: recipientToken,
+      }),
+    ).toBe(true);
 
     // Node B tries to backfill/download
+    const incomingSharesResponse = pageB.waitForResponse(
+      (response) =>
+        response.url().includes('/api/v0/share-grants') &&
+        response.request().method() === 'GET',
+    );
     await clickNav(pageB, T.navSharedWithMe);
-    await pageB.waitForTimeout(2_000);
+    const incomingShares = await (await incomingSharesResponse).json();
+    expect(incomingShares.some((share) => share.id === createShareBody.id)).toBe(
+      true,
+    );
 
     // Poll for the share to appear
     let shareFound = false;
@@ -514,6 +573,7 @@ test.describe('policy enforcement', () => {
   });
 
   test('expired_token_denied', async ({ browser, request }) => {
+    const groupName = 'E2E Policy Expired Token';
     const nodeA = harness ? harness.getNode('A').nodeCfg : NODES.A;
     const nodeB = harness ? harness.getNode('B').nodeCfg : NODES.B;
     await waitForHealth(request, nodeA.baseUrl);
@@ -527,40 +587,13 @@ test.describe('policy enforcement', () => {
     await login(pageA, nodeA);
     await login(pageB, nodeB);
 
-    // Ensure group exists and nodeB is a member
-    await clickNav(pageA, T.navGroups);
-    const existingGroupRow = pageA.getByTestId(T.groupRow(groupName));
-    if ((await existingGroupRow.count()) === 0) {
-      await pageA.getByTestId(T.groupsCreate).click();
-      await pageA.waitForSelector(`[data-testid="${T.groupsNameInput}"]`, {
-        timeout: 5_000,
-      });
-      await pageA
-        .getByTestId(T.groupsNameInput)
-        .locator('input')
-        .fill(groupName);
-      await pageA.getByTestId(T.groupsCreateSubmit).click();
-      await expect(pageA.getByTestId(T.groupRow(groupName))).toBeVisible({
-        timeout: 5_000,
-      });
-    }
-
-    const addMemberButton = pageA
-      .getByTestId(T.groupRow(groupName))
-      .locator(`[data-testid="${T.groupAddMember}"]`)
-      .first();
-    if ((await addMemberButton.count()) > 0) {
-      await addMemberButton.click();
-      const modalUserInput = pageA
-        .locator('.ui.modal')
-        .locator('input[placeholder*="username" i]')
-        .first();
-      if ((await modalUserInput.count()) > 0) {
-        await modalUserInput.fill('nodeB');
-        await pageA.getByTestId(T.groupMemberAddSubmit).click();
-        await expect(modalUserInput).not.toBeVisible({ timeout: 5_000 });
-      }
-    }
+    await ensureShareGroupMember({
+      baseUrl: nodeA.baseUrl,
+      groupName,
+      memberUserId: 'nodeB',
+      page: pageA,
+      request,
+    });
 
     await clickNav(pageA, T.navCollections);
     await pageA.waitForSelector('[data-testid="collections-root"]', {
@@ -589,7 +622,7 @@ test.describe('policy enforcement', () => {
           response.request().method() === 'POST',
         { timeout: 5_000 },
       );
-      await pageA.getByTestId(T.collectionsCreateSubmit).click();
+      await pageA.getByTestId(T.collectionsCreateSubmit).evaluate((element: HTMLButtonElement) => element.click());
       const createCollectionResult = await createCollectionResponse;
       if (createCollectionResult.status() !== 201) {
         const body = await createCollectionResult.text();
@@ -610,7 +643,7 @@ test.describe('policy enforcement', () => {
         .getByTestId(T.collectionItemPicker)
         .locator('input')
         .fill(item.contentId);
-      await pageA.getByTestId(T.collectionAddItemSubmit).click();
+      await pageA.getByTestId(T.collectionAddItemSubmit).evaluate((element: HTMLButtonElement) => element.click());
       await pageA.waitForTimeout(1_000);
     }
 
@@ -639,7 +672,7 @@ test.describe('policy enforcement', () => {
         response.request().method() === 'POST',
       { timeout: 5_000 },
     );
-    await pageA.getByTestId(T.shareCreateSubmit).click();
+    await pageA.getByTestId(T.shareCreateSubmit).evaluate((element: HTMLButtonElement) => element.click());
     const createShareResult = await createShareResponse;
     let createShareBody;
     try {

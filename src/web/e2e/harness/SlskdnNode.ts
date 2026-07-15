@@ -268,19 +268,10 @@ export class SlskdnNode {
       );
     }
 
-    const sourceWwwroot = path.join(repoRoot, 'src', 'slskd', 'wwwroot');
-    await replaceDirectoryContents(webBuildPath, sourceWwwroot);
-
-    const builtAppBaseDir = await this.getBuiltAppBaseDir(repoRoot);
-    try {
-      await fs.access(builtAppBaseDir);
-      await replaceDirectoryContents(
-        webBuildPath,
-        path.join(builtAppBaseDir, 'wwwroot'),
-      );
-    } catch {
-      // No built Release app yet; fallback launch will copy from src/slskd/wwwroot.
-    }
+    await replaceDirectoryContents(
+      webBuildPath,
+      path.join(this.appDir, 'wwwroot'),
+    );
   }
 
   private async ensureWebBuild(repoRoot: string): Promise<void> {
@@ -313,7 +304,6 @@ export class SlskdnNode {
    */
   async start(): Promise<void> {
     const repoRoot = this.getRepoRoot();
-    await this.syncWebUi(repoRoot);
 
     // Enforce test fixtures exist and validate checksums (fail fast if missing/corrupt)
     // The shareDir is like 'test-data/slskdn-test-fixtures/music'
@@ -383,6 +373,7 @@ export class SlskdnNode {
     await fs.mkdir(path.join(this.appDir, 'downloads'), { recursive: true });
     await fs.mkdir(path.join(this.appDir, 'incomplete'), { recursive: true });
     await fs.mkdir(path.join(this.appDir, 'config'), { recursive: true });
+    await this.syncWebUi(repoRoot);
 
     // Write minimal config (YAML format)
     // Convert shareDir(s) to absolute paths (slskdn requires absolute paths)
@@ -528,7 +519,7 @@ flags:
 
     // Force binding to harness port via ASPNETCORE_URLS (bypasses config binding issues)
     this.process = spawn('dotnet', args, {
-      cwd: repoRoot,
+      cwd: this.appDir,
       env: {
         ...process.env,
         ASPNETCORE_ENVIRONMENT: 'Development',

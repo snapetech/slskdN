@@ -429,6 +429,15 @@ body {
     box-shadow: 0 30px 90px rgba(0, 0, 0, 0.68), 0 0 0 1px rgba(199, 167, 255, 0.22) !important;
 }
 
+/* Keep modal interactions above fixed navigation, player, and footer chrome. */
+.ui.page.modals.dimmer {
+    z-index: 2000 !important;
+}
+
+.ui.modal {
+    z-index: 2001 !important;
+}
+
 :root.dark .ui.message:not(.inverted) {
     background: var(--slskd-overlay-background) !important;
     border-color: var(--slskd-tertiary-border-color) !important;

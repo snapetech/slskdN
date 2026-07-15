@@ -34,7 +34,8 @@ export const reorderCollectionItems = (id, itemIds) =>
   api.put(`/collections/${encodeURIComponent(id)}/items/reorder`, { itemIds });
 
 // Share Grants (Shares)
-export const getShares = () => api.get('/share-grants');
+export const getShares = () =>
+  api.get('/share-grants', { params: { _: Date.now() } });
 export const getShare = (id) => api.get(`/share-grants/${encodeURIComponent(id)}`);
 export const getSharesByCollection = (collectionId) =>
   api.get(`/share-grants/by-collection/${encodeURIComponent(collectionId)}`);

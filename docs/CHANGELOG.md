@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Scheduled browser policy checks now isolate each node's Web root, avoid
+  cross-worker asset-copy races, bind test-only share announcements to the
+  authenticated recipient, and reliably exercise modal controls above the player.
+- "Shared with Me" now bypasses stale browser responses for newly announced
+  grants, while production Soulseek identities remain separate from web accounts.
+- The Servarr readiness action now calls the imported Lidarr API client instead
+  of an undefined browser symbol.
 - Wishlist results can now persistently ignore one peer folder for one saved
   search without blocking the peer. Ignored folders are excluded from display,
   hit counts, album candidates, and auto-download selection, remain reversible,

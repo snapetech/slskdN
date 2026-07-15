@@ -50,6 +50,21 @@ public class ShareGrantAnnouncementServiceTests
     }
 
     [Fact]
+    public async Task IngestForWebAccountAsync_BindsExplicitWebAudience()
+    {
+        using var fixture = new CollectionsDbFixture();
+        var service = CreateService(fixture.Factory);
+        var announcement = CreateAnnouncement(ownerUserId: "alice");
+
+        await service.IngestForWebAccountAsync(announcement, "web-recipient", default);
+
+        await using var db = await fixture.Factory.CreateDbContextAsync();
+        var grant = Assert.Single(await db.ShareGrants.ToListAsync());
+        Assert.Equal("web-recipient", grant.AudienceId);
+        Assert.Equal("recipient", grant.AudiencePeerId);
+    }
+
+    [Fact]
     public void Dispose_UnsubscribesSoulseekEvent()
     {
         var soulseekClient = new Mock<ISoulseekClient>();

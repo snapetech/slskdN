@@ -9021,3 +9021,16 @@ No release tag was created.
 Next steps: continue operator testing on the manual build and monitor normal
 workload logs; the prior service definition and image remain available for
 rollback.
+## Update 2026-07-15 01:00:00Z
+
+- Current task: GitHub maintenance and dependency PR integration in progress.
+- Last activity:
+  - Confirmed no open CodeQL, Dependabot security, or secret-scanning alerts.
+  - Repaired scheduled browse/policy E2E failures and the Servarr readiness API import.
+  - Preserved production web/network identity separation while making the guarded E2E announce path explicit.
+- Validation:
+  - Passed focused share-announcement unit tests, Web build/lint, and concurrent browse/policy Playwright tests (`4/4`).
+- Next steps:
+  1. Run full repository tests and lint, then commit and push the baseline repair.
+  2. Validate and integrate the open dependency PRs, then close the answered roadmap issue.
+  3. Do not create a release/build tag without explicit user authorization.

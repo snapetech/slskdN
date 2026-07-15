@@ -66,6 +66,7 @@ public class SharesController : ControllerBase
 
     [HttpGet]
     [Authorize(Policy = AuthPolicy.Any)]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     [ProducesResponseType(typeof(List<ShareGrant>), 200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> GetAll(CancellationToken ct)
@@ -305,6 +306,8 @@ public class SharesController : ControllerBase
         if (!CollectionsEnabled) return NotFound();
         if (_announcementService == null) return StatusCode(500, "Announcement service not available.");
         if (req == null) return BadRequest("Announcement request is required.");
+        var currentUserId = GetCurrentUserId();
+        if (currentUserId is null) return Forbid();
         req.RecipientUserId = req.RecipientUserId?.Trim();
         req.OwnerUserId = req.OwnerUserId?.Trim();
         req.OwnerEndpoint = req.OwnerEndpoint?.Trim();
@@ -315,7 +318,7 @@ public class SharesController : ControllerBase
             return BadRequest("ShareGrantId, CollectionId, and RecipientUserId are required.");
         }
 
-        await _announcementService.IngestAsync(req, ct).ConfigureAwait(false);
+        await _announcementService.IngestForWebAccountAsync(req, currentUserId, ct).ConfigureAwait(false);
         return Ok();
     }
 
