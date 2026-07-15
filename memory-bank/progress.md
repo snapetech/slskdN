@@ -1,5 +1,8 @@
 ## 2026-07-15
 
+- Split the legacy Rooms route's active-room polling into two-second message and ten-second membership cadences, rejected overlapping requests, ignored inactive/hidden/stale completions, and avoided unchanged message/user state updates. Joined-room hydration now follows the same overlap, visibility, mounted-lifecycle, and stable-state boundaries.
+- A representative room with 25 retained 256-byte messages and 100 users drops from 120 requests and 1,518,120 response bytes in the first visible minute to 36 requests and 372,636 bytes (70% fewer requests and 75.45% fewer bytes); hidden steady-state polling drops to zero. Documented parallel-surface gotcha `0z580` in standalone commit `7ebbcd6bf`.
+- Validation passed: focused Rooms tests (`11/11`), complete Web tests (`789` passed, `4` skipped), production Web build, frontend lint with zero errors, complete backend suites (`4709/4709`: `69` smoke, `4362` unit, `278` integration), and repository lint.
 - Made active Pod streams incremental by passing the existing `since` cursor, caching at most 100 messages, overlapping the boundary by one millisecond, and merging on deterministic message identities derived from the Pod storage key.
 - Hardened shared `MessageStream` polling so hidden documents perform no work, visibility restoration refreshes immediately, slow requests cannot overlap, and stale adapter results cannot update the current stream.
 - A representative idle first minute with 100 retained 256-byte Pod messages drops from 1,363,783 response bytes to 44,053 bytes (96.77% fewer); hidden steady-state polling drops to zero. Documented gotchas `0z578` and `0z579` in standalone commits `c5145e3a8` and `3eb47dcd1`.

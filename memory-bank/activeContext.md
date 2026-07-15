@@ -1,3 +1,19 @@
+## Update 2026-07-15 19:37:31Z
+
+- Current task: performance and efficiency improvements in progress; legacy Rooms route polling pass complete locally.
+- Last activity:
+  - Split active room messages and membership into two-second and ten-second cadences instead of two full requests every second.
+  - Rejected overlapping active-room and joined-room hydration, ignored inactive/hidden/stale completions, and skipped unchanged message, user, and joined-room state.
+  - Suspended every Rooms-route polling timer while the browser document is hidden and refreshed immediately when visible.
+  - Reduced a representative 25-message/100-user first visible minute from 120 requests and 1,518,120 response bytes to 36 requests and 372,636 bytes (70% fewer requests and 75.45% fewer bytes); hidden steady-state polling is zero.
+  - Added cadence, overlap, inactive, and visibility regressions; documented gotcha `0z580` in standalone commit `7ebbcd6bf`.
+- Validation:
+  - Passed focused Rooms tests (`11/11`), complete Web tests (`789` passed, `4` skipped), production Web build, and frontend lint with zero errors.
+  - Passed complete backend suites (`4709/4709`: `69` smoke, `4362` unit, `278` integration) and repository lint.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 19:20:12Z
 
 - Current task: performance and efficiency improvements in progress; active Pod message polling pass complete locally.

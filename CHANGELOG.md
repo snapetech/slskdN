@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- The legacy Rooms route now polls messages and membership on separate bounded
+  cadences, suppresses overlapping or unchanged work, and stops all hydration
+  while the browser document is hidden.
 - Active Pod streams now use incremental cursor polling with a bounded local
   message cache, while shared message polling pauses in hidden tabs and rejects
   overlapping slow refreshes.

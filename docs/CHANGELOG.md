@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- The Rooms route now refreshes messages and membership on separate cadences,
+  prevents overlapping or unchanged polling work, and suspends active-room and
+  joined-room hydration while hidden.
 - Active Pod streams now request only messages newer than their latest retained
   cursor, merge a bounded local cache by stable message identity, pause polling
   while hidden, and prevent overlapping slow refreshes.

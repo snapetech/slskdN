@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound legacy Rooms route polling and hidden work.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Split the active room's one-second paired message/user loop into two-second message and ten-second membership cadences, rejected overlapping requests, ignored stale or hidden completions, and skipped unchanged message/user state. Joined-room hydration now also deduplicates in-flight and unchanged work and stops while hidden. For a representative room with 25 retained 256-byte messages and 100 users, the first visible minute falls from 120 requests and 1,518,120 response bytes to 36 requests and 372,636 bytes (70% fewer requests and 75.45% fewer bytes); all Rooms-route steady-state polling falls to zero while hidden. Added cadence, overlap, inactive, and visibility regressions; documented gotcha `0z580` in standalone commit `7ebbcd6bf`.
+
 - [x] Make active Pod message polling incremental and lifecycle-aware.
   - Status: completed (2026-07-15)
   - Priority: P1

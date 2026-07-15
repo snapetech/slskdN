@@ -30,6 +30,27 @@ const initialState = {
   },
 };
 
+const MESSAGE_POLL_INTERVAL_MS = 2_000;
+const USER_POLL_INTERVAL_MS = 10_000;
+
+const sameMessages = (previous, next) =>
+  previous.length === next.length &&
+  previous.every(
+    (message, index) =>
+      message.timestamp === next[index]?.timestamp &&
+      message.username === next[index]?.username &&
+      message.message === next[index]?.message &&
+      message.self === next[index]?.self,
+  );
+
+const sameUsers = (previous, next) =>
+  previous.length === next.length &&
+  previous.every(
+    (user, index) =>
+      user.username === next[index]?.username &&
+      user.status === next[index]?.status,
+  );
+
 class RoomSession extends Component {
   constructor(props) {
     super(props);
@@ -37,10 +58,17 @@ class RoomSession extends Component {
     this.state = initialState;
     this.listRef = createRef();
     this.messageRef = undefined;
+    this.messageInterval = undefined;
+    this.messageRequest = null;
+    this.mounted = false;
+    this.userInterval = undefined;
+    this.userRequest = null;
   }
 
   componentDidMount() {
-    if (this.props.active !== false) {
+    this.mounted = true;
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
+    if (this.props.active !== false && !document.hidden) {
       this.startPolling();
     }
 
@@ -48,15 +76,18 @@ class RoomSession extends Component {
   }
 
   componentWillUnmount() {
+    this.mounted = false;
     this.stopPolling();
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
     document.removeEventListener('click', this.handleCloseContextMenu);
   }
 
   componentDidUpdate(previousProps) {
     if (previousProps.roomName !== this.props.roomName) {
+      this.stopPolling();
       this.setState(initialState, () => {
-        if (this.props.active !== false) {
-          this.fetchRoom();
+        if (this.props.active !== false && !document.hidden) {
+          this.startPolling();
           this.focusInput();
         }
       });
@@ -73,43 +104,132 @@ class RoomSession extends Component {
   }
 
   startPolling = () => {
-    if (this.interval) {
+    if (this.props.active === false || document.hidden) {
       return;
     }
 
-    this.fetchRoom();
-    this.interval = window.setInterval(this.fetchRoom, 1_000);
+    if (!this.messageInterval) {
+      this.fetchMessages();
+      this.messageInterval = window.setInterval(
+        this.fetchMessages,
+        MESSAGE_POLL_INTERVAL_MS,
+      );
+    }
+
+    if (!this.userInterval) {
+      this.fetchUsers();
+      this.userInterval = window.setInterval(
+        this.fetchUsers,
+        USER_POLL_INTERVAL_MS,
+      );
+    }
   };
 
   stopPolling = () => {
-    if (!this.interval) {
+    if (this.messageInterval) {
+      window.clearInterval(this.messageInterval);
+      this.messageInterval = undefined;
+    }
+
+    if (this.userInterval) {
+      window.clearInterval(this.userInterval);
+      this.userInterval = undefined;
+    }
+  };
+
+  handleVisibilityChange = () => {
+    if (document.hidden) {
+      this.stopPolling();
       return;
     }
 
-    clearInterval(this.interval);
-    this.interval = undefined;
+    if (this.props.active !== false) {
+      this.startPolling();
+    }
   };
 
-  fetchRoom = async () => {
+  fetchMessages = () => {
     const { roomName } = this.props;
 
-    if (!roomName || roomName.length === 0) return;
-
-    try {
-      const messages = await rooms.getMessages({ roomName });
-      const users = await rooms.getUsers({ roomName });
-
-      this.setState({
-        loading: false,
-        room: {
-          messages,
-          users,
-        },
-      });
-    } catch (error) {
-      console.error('Failed to fetch room data:', error);
-      this.setState({ loading: false });
+    if (!roomName || roomName.length === 0) return Promise.resolve();
+    if (this.messageRequest?.roomName === roomName) {
+      return this.messageRequest.promise;
     }
+
+    const request = (async () => {
+      try {
+        const messages = await rooms.getMessages({ roomName });
+        if (
+          !this.mounted ||
+          document.hidden ||
+          this.props.active === false ||
+          this.props.roomName !== roomName
+        ) {
+          return;
+        }
+
+        const next = Array.isArray(messages) ? messages : [];
+        this.setState((previous) =>
+          sameMessages(previous.room.messages, next)
+            ? null
+            : { room: { ...previous.room, messages: next } },
+        );
+      } catch (error) {
+        console.error('Failed to fetch room messages:', error);
+      }
+    })();
+    const tracked = {
+      promise: request.finally(() => {
+        if (this.messageRequest === tracked) {
+          this.messageRequest = null;
+        }
+      }),
+      roomName,
+    };
+    this.messageRequest = tracked;
+    return tracked.promise;
+  };
+
+  fetchUsers = () => {
+    const { roomName } = this.props;
+
+    if (!roomName || roomName.length === 0) return Promise.resolve();
+    if (this.userRequest?.roomName === roomName) {
+      return this.userRequest.promise;
+    }
+
+    const request = (async () => {
+      try {
+        const users = await rooms.getUsers({ roomName });
+        if (
+          !this.mounted ||
+          document.hidden ||
+          this.props.active === false ||
+          this.props.roomName !== roomName
+        ) {
+          return;
+        }
+
+        const next = Array.isArray(users) ? users : [];
+        this.setState((previous) =>
+          sameUsers(previous.room.users, next)
+            ? null
+            : { room: { ...previous.room, users: next } },
+        );
+      } catch (error) {
+        console.error('Failed to fetch room users:', error);
+      }
+    })();
+    const tracked = {
+      promise: request.finally(() => {
+        if (this.userRequest === tracked) {
+          this.userRequest = null;
+        }
+      }),
+      roomName,
+    };
+    this.userRequest = tracked;
+    return tracked.promise;
   };
 
   validInput = () =>

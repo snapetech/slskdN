@@ -22,6 +22,9 @@ let tabCounter = 0;
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const isTab = (tab) =>
   tab && typeof tab === 'object' && !Array.isArray(tab) && typeof tab.key === 'string';
+const sameStringList = (previous, next) =>
+  previous.length === next.length &&
+  previous.every((value, index) => value === next[index]);
 
 const normalizeTab = (tab) => ({
   key: tab.key,
@@ -69,6 +72,9 @@ const Rooms = () => {
   const [joinedRooms, setJoinedRooms] = useState([]);
   const [roomSearchLoading, setRoomSearchLoading] = useState(false);
   const closeTabRef = useRef(null);
+  const hydrationInFlightRef = useRef(null);
+  const hydrationIntervalRef = useRef(null);
+  const mountedRef = useRef(true);
 
   const closeTab = useCallback((tabKey) => {
     setTabs((previous) => {
@@ -134,36 +140,83 @@ const Rooms = () => {
     [createTab, tabs],
   );
 
-  const hydrateJoinedRooms = useCallback(async () => {
-    try {
-      const joined = await rooms.getJoined();
-      const normalized = asArray(joined)
-        .filter((roomName) => typeof roomName === 'string' && roomName)
-        .sort();
-      setJoinedRooms(normalized);
-      if (normalized.length > 0) {
-        setTabs((previous) => {
-          const existingRooms = new Set(
-            previous.map((tab) => tab.roomName).filter(Boolean),
-          );
-          const restoredTabs = normalized
-            .filter((roomName) => !existingRooms.has(roomName))
-            .map((roomName) => createTab(roomName));
-
-          return restoredTabs.length > 0
-            ? [...previous.filter((tab) => tab.roomName), ...restoredTabs]
-            : previous;
-        });
-      }
-    } catch (error) {
-      console.error('Failed to fetch joined rooms:', error);
+  const hydrateJoinedRooms = useCallback(() => {
+    if (hydrationInFlightRef.current) {
+      return hydrationInFlightRef.current;
     }
+
+    const request = (async () => {
+      try {
+        const joined = await rooms.getJoined();
+        if (!mountedRef.current || document.hidden) return;
+
+        const normalized = asArray(joined)
+          .filter((roomName) => typeof roomName === 'string' && roomName)
+          .sort();
+        setJoinedRooms((previous) =>
+          sameStringList(previous, normalized) ? previous : normalized,
+        );
+        if (normalized.length > 0) {
+          setTabs((previous) => {
+            const existingRooms = new Set(
+              previous.map((tab) => tab.roomName).filter(Boolean),
+            );
+            const restoredTabs = normalized
+              .filter((roomName) => !existingRooms.has(roomName))
+              .map((roomName) => createTab(roomName));
+
+            return restoredTabs.length > 0
+              ? [...previous.filter((tab) => tab.roomName), ...restoredTabs]
+              : previous;
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch joined rooms:', error);
+      }
+    })();
+    const trackedRequest = request.finally(() => {
+      if (hydrationInFlightRef.current === trackedRequest) {
+        hydrationInFlightRef.current = null;
+      }
+    });
+    hydrationInFlightRef.current = trackedRequest;
+    return trackedRequest;
   }, [createTab]);
 
   useEffect(() => {
-    hydrateJoinedRooms();
-    const interval = window.setInterval(hydrateJoinedRooms, 10_000);
-    return () => window.clearInterval(interval);
+    mountedRef.current = true;
+    const stopPolling = () => {
+      if (hydrationIntervalRef.current) {
+        window.clearInterval(hydrationIntervalRef.current);
+        hydrationIntervalRef.current = null;
+      }
+    };
+    const startPolling = () => {
+      if (document.hidden || hydrationIntervalRef.current) return;
+      hydrationIntervalRef.current = window.setInterval(hydrateJoinedRooms, 10_000);
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+        return;
+      }
+
+      hydrateJoinedRooms();
+      startPolling();
+    };
+
+    if (!document.hidden) {
+      hydrateJoinedRooms();
+      startPolling();
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      mountedRef.current = false;
+      hydrationInFlightRef.current = null;
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [hydrateJoinedRooms]);
 
   const fetchAvailableRooms = async () => {
