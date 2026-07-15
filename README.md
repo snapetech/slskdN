@@ -14,6 +14,11 @@
   <a href="https://discord.gg/5PyXBfvS6T">Discord</a>.
 </p>
 <p align="center">
+  Support slskdN development through
+  <a href="https://www.paypal.com/donate/?business=donations%40snape.tech">PayPal</a> or
+  <a href="https://ko-fi.com/snapetech">Ko-fi</a>.
+</p>
+<p align="center">
   <a href="https://github.com/snapetech/slskdn/releases">Releases</a> •
   <a href="https://github.com/snapetech/slskr">Rust Rewrite Preview</a> •
   <a href="https://github.com/snapetech/slskdn/issues">Issues</a> •

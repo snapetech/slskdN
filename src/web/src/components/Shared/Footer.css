@@ -66,6 +66,7 @@
     white-space: nowrap;
 }
 
+.slskdn-footer-support,
 .slskdn-footer-sponsor,
 .slskdn-footer-logo,
 .slskdn-footer-build,
@@ -108,7 +109,11 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 5px;
+    padding: 4px 7px;
+    border: 1px solid rgba(158, 114, 255, 0.28);
+    border-radius: 999px;
+    background: rgba(158, 114, 255, 0.08);
     line-height: 1;
     color: rgba(238, 233, 227, 0.78);
     text-decoration: none;
@@ -118,6 +123,17 @@
     color: #ff79a8;
     text-decoration: none;
     text-shadow: 0 0 8px rgba(255, 121, 168, 0.42);
+}
+
+.slskdn-footer-support {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.slskdn-footer-sponsor.ko-fi {
+    border-color: rgba(255, 121, 168, 0.3);
+    background: rgba(255, 121, 168, 0.08);
 }
 
 .slskdn-footer-sponsor .icon {
@@ -441,6 +457,8 @@ html:not(.dark) .slskdn-footer-stat-icon {
 
 html:not(.dark) .slskdn-footer-sponsor {
     color: rgba(39, 35, 32, 0.62);
+    background: rgba(111, 87, 150, 0.07);
+    border-color: rgba(111, 87, 150, 0.22);
 }
 
 html:not(.dark) .slskdn-footer-sponsor:hover,

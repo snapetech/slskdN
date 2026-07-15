@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- The web footer and README now offer direct PayPal and Ko-fi links for
+  supporting slskdN development.
 - GitLab CI configuration now keeps the Arch package-smoke sudoers command as
   a string scalar, and performance-test dependencies align with the runtime
   graph so GitLab pipeline creation and GitHub dependency submission succeed.
