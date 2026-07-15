@@ -22,6 +22,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Multi-source chunk calculation now guards against a non-positive chunk size,
+  which previously could spin forever and exhaust memory instead of downloading.
 - Streaming responses now forward asynchronous reads to the underlying stream
   instead of blocking a thread-pool thread per concurrent stream, and the
   content-locator fallback miss cache is bounded and evicts expired entries.

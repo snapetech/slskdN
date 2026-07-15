@@ -1470,8 +1470,22 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
         }
     }
 
-    private List<(int Index, long StartOffset, long EndOffset)> CalculateChunksFixed(long fileSize, long chunkSize)
+    internal List<(int Index, long StartOffset, long EndOffset)> CalculateChunksFixed(long fileSize, long chunkSize)
     {
+        // A non-positive chunk size would never advance the loop offset, producing an
+        // infinite loop that grows the list until the process runs out of memory. The
+        // size can originate from request.ChunkSize or a pluggable IChunkSizeOptimizer,
+        // so guard the invariant here rather than trusting every caller.
+        if (chunkSize <= 0)
+        {
+            _logger.LogWarning(
+                "Non-positive chunk size {ChunkSize} supplied for a {FileSize}-byte transfer; falling back to {DefaultChunkSize}.",
+                chunkSize,
+                fileSize,
+                DefaultChunkSize);
+            chunkSize = DefaultChunkSize;
+        }
+
         var chunks = new List<(int Index, long StartOffset, long EndOffset)>();
         var offset = 0L;
         var index = 0;
