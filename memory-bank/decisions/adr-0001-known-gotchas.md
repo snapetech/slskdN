@@ -22017,3 +22017,18 @@ keep timer ownership on the component instance, clear every timer on unmount,
 and reject a poll while its previous request is still in flight. Gate async
 state updates on the mounted lifecycle so completed requests cannot update an
 unmounted component.
+
+### 0z565. Anonymous Endpoint Changes Must Update The Security Inventory Test
+
+**The Bug**: The share-token exchange added an intentionally anonymous
+`CreateShareTicket` action to the streaming controller, but the explicit
+anonymous-action inventory still expected only the content `Get` action. The
+complete unit-test gate failed even though focused share-ticket tests passed.
+
+**Files Affected**:
+- `src/slskd/Streaming/StreamsController.cs`
+- `tests/slskd.Tests.Unit/Security/PublicProtocolAnonymousActionTests.cs`
+
+**Prevention**: Whenever an action gains or loses `AllowAnonymous`, update the
+explicit `PublicProtocolAnonymousActionTests` inventory in the same change and
+run the complete unit-test project, not only the controller's focused tests.
