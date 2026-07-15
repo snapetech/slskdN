@@ -21937,3 +21937,23 @@ making otherwise clean builds noisy and leaving generated documentation invalid.
 **Prevention**: When renaming method parameters, update matching `paramref`
 tags in the same change and treat documentation compiler warnings as build
 defects even when the build does not fail.
+
+### 0z560. Long-Lived Share Tokens Must Not Travel In URLs
+
+**The Bug**: Share manifests and shared-content streams placed reusable share
+tokens in query strings. Those URLs can persist in browser history and be
+recorded by reverse proxies, access logs, analytics, or copied referrers.
+
+**Files Affected**:
+- `src/slskd/Sharing/API/SharesController.cs`
+- `src/slskd/Streaming/StreamsController.cs`
+- `src/web/src/components/Shares/SharedWithMe.jsx`
+- `src/web/src/lib/collections.js`
+- `src/web/src/lib/streaming.js`
+
+**Prevention**: Send reusable share tokens in a dedicated request header, never
+in a URL. For browser media navigation, exchange the header token for a
+short-lived ticket bound to one content identifier and place only that ticket
+in the stream URL. Require an explicit `share:` prefix when accepting share
+tokens through the generic Authorization header so session JWTs cannot be
+misclassified.
