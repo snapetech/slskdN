@@ -3,6 +3,9 @@
 - Stopped the first `.277` pre-tag gate before tag creation after it exposed a stale XML parameter reference and the operator reported GitLab `main` pipeline-failure emails.
 - Restricted GitLab pipeline creation to tags only with an explicit terminal deny rule, matching the documented build policy, and corrected the renamed search-filter helper's XML `paramref`.
 - Documented ADR-0001 gotchas `0z558` and `0z559` before implementation.
+- Published release `2026071502-slskdn.277` from corrected commit `5a87a1aa9`, including the three functional fixes that landed after `.276` plus the GitLab trigger and XML documentation corrections.
+- Independently verified all six platform archives, published checksums, required support assets, and the Linux x64 embedded version. Primary and omnibus Docker, AUR, Nix, Homebrew, and PPA succeeded; Chocolatey and COPR external uploads failed.
+- Fast-forwarded the workflow-generated `.277` stable packaging metadata and synchronized GitHub and GitLab `main`; GitLab's new workflow boundary prevents these branch pushes from creating pipelines or failure emails.
 - The `build-main-2026071501-slskdn.275` release gate failed before publishing any artifacts when the mesh hash-mismatch regression intermittently left its pipe reader pending in CI.
 - Removed competing pipe-completion owners from `MeshStreamService`: the stream now leaves the writer open and the producer completes it once in `finally` for success, cancellation, expected peer failures, and unexpected failures.
 - Documented ADR-0001 gotcha `0z557` in the required standalone docs commit `a683cf7e5`.

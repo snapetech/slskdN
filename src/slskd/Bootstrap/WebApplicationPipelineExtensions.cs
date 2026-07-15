@@ -285,7 +285,24 @@ public static class WebApplicationPipelineExtensions
 
         if (optionsAtStartup.Web.Logging)
         {
-            app.UseSerilogRequestLogging();
+            app.UseSerilogRequestLogging(options =>
+            {
+                // Browser media elements and SignalR WebSocket clients cannot set an Authorization
+                // header, so a handful of endpoints accept auth material in the query string
+                // (?access_token=, ?token=, ?ticket=). Serilog's default request log records only
+                // the path, but we enrich the diagnostic context with the query string here so it is
+                // useful for debugging - and we MUST redact those secret values before they land in
+                // our logs (and, from there, in any log-shipping or aggregation sink). Do not remove
+                // the redaction without removing the query enrichment as well.
+                options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+                {
+                    var query = httpContext.Request.QueryString;
+                    if (query.HasValue)
+                    {
+                        diagnosticContext.Set("QueryString", RedactSensitiveQuery(query.Value));
+                    }
+                };
+            });
         }
 
         // starting with .NET 7 the framework *really* wants you to use top level endpoint mapping
@@ -584,6 +601,41 @@ public static class WebApplicationPipelineExtensions
         }
 
         return app;
+    }
+
+    // Query-string parameter names whose values are authentication/authorization material and must
+    // never be written to logs. Compared case-insensitively.
+    private static readonly HashSet<string> SensitiveQueryKeys = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "access_token", "token", "ticket", "api_key", "apikey", "key", "password", "secret", "sig", "signature",
+    };
+
+    /// <summary>
+    ///     Returns <paramref name="queryString"/> with the values of known secret parameters replaced by
+    ///     <c>REDACTED</c>, so auth material passed in the query string (required by browser media elements
+    ///     and SignalR clients that cannot set headers) never reaches the logs. Parameter names are kept so
+    ///     the log still shows which auth mechanism was used.
+    /// </summary>
+    private static string RedactSensitiveQuery(string queryString)
+    {
+        if (string.IsNullOrEmpty(queryString))
+        {
+            return queryString;
+        }
+
+        var trimmed = queryString.StartsWith('?') ? queryString[1..] : queryString;
+        var parts = trimmed.Split('&');
+        for (var i = 0; i < parts.Length; i++)
+        {
+            var separator = parts[i].IndexOf('=');
+            var name = separator >= 0 ? parts[i][..separator] : parts[i];
+            if (SensitiveQueryKeys.Contains(Uri.UnescapeDataString(name)))
+            {
+                parts[i] = name + "=REDACTED";
+            }
+        }
+
+        return "?" + string.Join('&', parts);
     }
 
 }

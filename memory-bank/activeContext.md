@@ -1,16 +1,17 @@
-## Update 2026-07-15 02:35:00Z
+## Update 2026-07-15 03:25:00Z
 
-- Current task: `.277` release and GitLab notification remediation in progress.
+- Current task: `.277` release and GitLab notification remediation complete.
 - Last activity:
   - Stopped the initial `.277` pre-tag gate before tag creation when it exposed a stale XML documentation parameter reference.
   - Confirmed GitLab admitted every branch pipeline despite the tag-only policy, causing the reported `main` pipeline-failure emails.
   - Documented gotchas `0z558` and `0z559`, restricted GitLab workflows to tags, and corrected the XML documentation.
+  - Published and verified release `2026071502-slskdn.277` from corrected commit `5a87a1aa9`, then synchronized the workflow-generated stable packaging metadata to GitLab without creating a branch pipeline.
 - Validation:
-  - Initial pre-tag gate passed frontend tests/build and backend unit tests (`4347/4347`) before it was intentionally stopped.
+  - Passed warning-free Release build, repository lint, complete local and hosted release gates, frontend tests/build, backend unit tests (`4347/4347`), smoke tests (`69/69`), integration smoke (`40/40`), all six archive checksums, required release assets, and Linux x64 version verification.
+  - AUR, Nix metadata, Homebrew, PPA, announcements, and both Docker publishers succeeded. Chocolatey and COPR failed at their external upload steps.
 - Next steps:
-  1. Validate and commit the trigger/documentation fixes.
-  2. Synchronize both remotes and restart `.277` from the corrected head.
-  3. Verify the hosted release and artifacts.
+  1. No code, synchronization, or release-artifact work remains.
+  2. Investigate the Chocolatey and COPR external publisher failures separately if those channels are required.
 
 ## Update 2026-07-15 02:27:55Z
 

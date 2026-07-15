@@ -68,8 +68,10 @@ namespace slskd
 
         /// <summary>
         ///     Soulseek.NET requires a caller-owned minor-version slot.
-        ///     slskdN reserved range: 7700000-7709999 (registry PR pending).
-        ///     Reserved range 760-7699999 belongs to upstream slskd.
+        ///     slskdN uses the self-assigned range 7700000-7709999, chosen outside the
+        ///     760-7699999 range reserved by upstream slskd. This range is not yet
+        ///     registered in the Soulseek.NET README registry; that registration is
+        ///     still owed (see memory-bank/license-rollback-plan.md, Soulseek.NET §5).
         /// </summary>
         public static readonly int SoulseekMinorVersion = 7700000;
 

@@ -106,3 +106,6 @@ SECURITY-AUDIT*.md
 # Local competitive roadmap notes
 /docs/dev/feature-expansion-prd-story-map.md
 .aider*
+
+# Council bughunt working scratch (large, local-only; do not track)
+.council/

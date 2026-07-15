@@ -9,15 +9,15 @@ if rg -n 'git push origin master|--base "master"|--base master' "$repo_root/.git
   failed=1
 fi
 
-if rg -n '^\s*schedule:' "$repo_root/.github/workflows/upstream-sync.yml" >&2; then
-  printf 'upstream-sync.yml must remain manual-only; scheduled upstream merges can push unreviewed branch changes.\n' >&2
-  failed=1
-fi
-
-if [ "$(rg -n '^\s*- name: Create Issue on Conflict$' "$repo_root/.github/workflows/upstream-sync.yml" | wc -l)" -ne 1 ]; then
-  printf 'upstream-sync.yml must contain exactly one Create Issue on Conflict step.\n' >&2
-  failed=1
-fi
+# Per the license rollback (issue #221), slskdN no longer syncs from upstream slskd at all.
+# The upstream sync/release workflows were deleted; assert they stay deleted so they can
+# never be reintroduced as a one-click path to merge/track post-0.25.0 upstream code.
+for forbidden in upstream-sync.yml upstream-release.yml; do
+  if [ -e "$repo_root/.github/workflows/$forbidden" ]; then
+    printf '%s must not exist: slskdN does not sync from upstream slskd (license rollback, issue #221).\n' "$forbidden" >&2
+    failed=1
+  fi
+done
 
 if [ "$failed" -ne 0 ]; then
   exit 1

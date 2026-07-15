@@ -2,6 +2,15 @@
 
 This file is the canonical truth table for feature maturity. README, docs, startup registration, API routes, UI routes, config examples, and release notes should agree with this inventory.
 
+## Scope of the "resolve before release claims" gate
+
+The `stable` status below and the `chore(release): update stable metadata ...` version bumps are **two different meanings of the word "stable"** and must not be conflated:
+
+- The release-channel "stable" (versus a `dev`/pre-release channel) is just which channel a build ships on. Cutting a stable-channel build is allowed regardless of this table.
+- The `stable` status in this table is a **per-feature** maturity claim. The gate ("`unknown` must be resolved before release claims are made") governs **user-facing per-feature claims** in the README, docs, config examples, UI copy, and release notes — not the channel name.
+
+Practical rule: until a feature is marked `stable` here, do not describe it as stable/production-ready/done in any user-facing text. As of this writing the large `unknown`/`experimental` columns mean most features should be presented as experimental. Resolving those rows (not softening this gate) is the way to earn "stable" language.
+
 ## Status values
 
 - `stable` - implemented, documented, tested, and intended for normal users.

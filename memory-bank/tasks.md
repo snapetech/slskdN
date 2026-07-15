@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Publish `.277` with all post-`.276` functional fixes.
+  - Status: completed (2026-07-15)
+  - Priority: P0
+  - Notes: Published and verified `2026071502-slskdn.277` from `5a87a1aa9`, including empty-swarm neutrality and both regex-timeout fixes plus the GitLab trigger and warning cleanup. Complete local/hosted gates, six archives, checksums, assets, version, and both Docker images passed. Chocolatey and COPR external uploads failed independently.
+
 - [x] Stop unintended GitLab `main` pipelines and release warning noise.
   - Status: completed (2026-07-15)
   - Priority: P0

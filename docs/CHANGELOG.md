@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Request-log query enrichment now redacts authentication and other sensitive
+  parameter values before they reach Serilog sinks.
+- Removed obsolete upstream synchronization/release workflows under the fork's
+  license rollback policy, and updated the workflow guard to keep them removed.
+- Coverage baseline metadata now states that its thresholds are aspirational
+  and not enforced by the current CI or release gates.
 - GitLab now creates pipelines only for tags, matching the repository's
   tag-only build policy and preventing failing `main` push pipelines and their
   notification emails.

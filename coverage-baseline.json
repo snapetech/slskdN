@@ -1,6 +1,7 @@
 {
   "schemaVersion": "1.0",
   "description": "Test coverage baseline configuration for slskdN",
+  "_status": "ASPIRATIONAL / NOT ENFORCED. As of 2026-07-14 no CI job or release gate reads this file; the thresholds and buildIntegration flags below are targets, not active checks. Do not cite these numbers as if they were enforced. Either wire this into CI or delete it before treating it as a guarantee.",
   "minimumOverallCoverage": 0.75,
   "subsystemBaselines": {
     "VirtualSoulfind.Core": {
@@ -121,10 +122,11 @@
     "groupByRiskLevel": true
   },
   "buildIntegration": {
-    "failOnRegression": true,
-    "failOnLowCoverage": true,
-    "generateReports": true,
-    "reportDirectory": "artifacts/coverage-reports"
+    "failOnRegression": false,
+    "failOnLowCoverage": false,
+    "generateReports": false,
+    "reportDirectory": "artifacts/coverage-reports",
+    "_note": "Set to false to reflect reality: no build or CI step currently consumes this file. Flip back to true only in the same change that adds a job which actually enforces it."
   }
 }
 
