@@ -1,3 +1,12 @@
+## Update 2026-07-15 22:12:24Z
+
+- Completed the Messaging V2 member-rail and Pod membership-history performance pass.
+- Replaced the active room/Pod member rail's overlapping five-second timer with a non-overlapping ten-second cadence that stops while hidden, refreshes immediately on visibility, preserves the last successful list on transport failure, and accepts a successful empty list as authoritative.
+- Reused Pod members already loaded for non-administrator authorization and replaced full membership-event materialization with a current-member projection plus one SQLite grouped timestamp summary per current peer.
+- For a representative authenticated non-administrator Pod with 250 current members and 250,000 retained events, first-minute managed history rows fall from 6,000,000 to 1,500 (99.975% fewer); visible requests fall from 12 to 6 and hidden requests fall to zero.
+- Added SQL command-shape/timestamp, authorization-reuse, cadence, overlap, visibility, failure-cache, valid-empty, and adapter-contract regressions; documented gotcha `0z597` in standalone commit `0b0091e20`.
+- Validation passed: focused backend tests (`2/2`), focused messaging Web tests (`13/13`), complete backend suites (`4738/4738`: `69` smoke, `4391` unit, `278` integration), complete Web tests (`826` passed, `4` skipped), production Web build, frontend lint with zero errors, repository lint, route-inventory, polling-lifecycle, CSRF, identity-leak, and whitespace checks.
+
 ## 2026-07-15
 
 - Replaced app-wide two-second transfer-speed hydration's four full-entity lists with one projected active-transfer query and one grouped SQL byte-total query, preserving fallback live-speed calculations and the existing response shape. The global footer now rejects overlapping speed/stats work, stops both timers while hidden, and catches up immediately on visibility.

@@ -329,7 +329,7 @@ public class PodsController : ControllerBase
                 return Forbid();
             }
 
-            var members = await podService.GetMembersAsync(podId, ct);
+            var members = access.Members ?? await podService.GetMembersAsync(podId, ct);
             return Ok(members);
         }
         catch (Exception ex)

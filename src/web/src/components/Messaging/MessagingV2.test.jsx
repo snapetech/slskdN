@@ -24,6 +24,7 @@ vi.mock('../../lib/pods', () => ({
 vi.mock('../../lib/rooms', () => ({
   getAvailable: vi.fn(),
   getJoined: vi.fn(),
+  getUsers: vi.fn(),
   join: vi.fn(),
   leave: vi.fn(),
 }));
@@ -68,10 +69,10 @@ const flushPromises = async () => {
   });
 };
 
-const renderMessaging = () =>
+const renderMessaging = (props = {}) =>
   render(
     <MemoryRouter>
-      <MessagingV2 state={{ user: { username: 'local-user' } }} />
+      <MessagingV2 {...props} state={{ user: { username: 'local-user' } }} />
     </MemoryRouter>,
   );
 
@@ -83,6 +84,7 @@ describe('MessagingV2 hydration', () => {
     chat.getAll.mockResolvedValue([]);
     rooms.getAvailable.mockResolvedValue(['ambient']);
     rooms.getJoined.mockResolvedValue([]);
+    rooms.getUsers.mockResolvedValue([]);
     pods.discoverAll.mockResolvedValue([]);
     pods.list.mockResolvedValue(savedPods);
   });
@@ -190,5 +192,87 @@ describe('MessagingV2 hydration', () => {
     expect(rooms.getJoined).toHaveBeenCalledTimes(1);
     expect(pods.list).toHaveBeenCalledTimes(1);
     expect(pods.discoverAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('polls active members every ten seconds and suspends while hidden', async () => {
+    vi.useFakeTimers();
+    rooms.getJoined.mockResolvedValue(['ambient']);
+    rooms.getUsers.mockResolvedValue([{ username: 'alice' }]);
+
+    renderMessaging({ initialKind: 'room' });
+    await flushPromises();
+    await flushPromises();
+    await flushPromises();
+    await flushPromises();
+
+    expect(rooms.getUsers).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('alice')).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(9_999);
+    });
+    expect(rooms.getUsers).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(rooms.getUsers).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      setDocumentHidden(true);
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(rooms.getUsers).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      setDocumentHidden(false);
+      document.dispatchEvent(new Event('visibilitychange'));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(rooms.getUsers).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not overlap member polls and retains the last successful snapshot', async () => {
+    vi.useFakeTimers();
+    let resolveMembers;
+    rooms.getJoined.mockResolvedValue(['ambient']);
+    rooms.getUsers
+      .mockReturnValueOnce(new Promise((resolve) => {
+        resolveMembers = resolve;
+      }))
+      .mockRejectedValueOnce(new Error('temporary failure'));
+
+    renderMessaging({ initialKind: 'room' });
+    await flushPromises();
+    await flushPromises();
+    await flushPromises();
+    await flushPromises();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(rooms.getUsers).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveMembers([{ username: 'alice' }]);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(screen.getByText('alice')).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(rooms.getUsers).toHaveBeenCalledTimes(2);
+    expect(screen.getByText('alice')).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(rooms.getUsers).toHaveBeenCalledTimes(3);
+    expect(screen.queryByText('alice')).not.toBeInTheDocument();
+    expect(screen.getByText('No members reported yet.')).toBeInTheDocument();
   });
 });

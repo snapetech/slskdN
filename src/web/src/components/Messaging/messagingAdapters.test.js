@@ -171,6 +171,18 @@ describe('createPodAdapter', () => {
     expect(pods.getMessages).toHaveBeenNthCalledWith(2, first.podId, 'general', 1_999);
     expect(pods.getMessages).toHaveBeenNthCalledWith(3, first.podId, 'general', 2_999);
   });
+
+  it('normalizes malformed member responses but propagates transport failures', async () => {
+    pods.getMembers
+      .mockResolvedValueOnce({ peerId: 'not-an-array' })
+      .mockRejectedValueOnce(new Error('temporary failure'));
+    const adapter = createPodAdapter({
+      channel: { channelId: 'general', podId: 'pod:test' },
+    });
+
+    await expect(adapter.members()).resolves.toEqual([]);
+    await expect(adapter.members()).rejects.toThrow('temporary failure');
+  });
 });
 
 describe('createRoomAdapter', () => {
@@ -257,5 +269,15 @@ describe('createRoomAdapter', () => {
     expect(result.messages).toHaveLength(100);
     expect(result.messages[0].id).toBe('room-message-1');
     expect(result.messages[99].id).toBe('room-message-100');
+  });
+
+  it('normalizes malformed member responses but propagates transport failures', async () => {
+    rooms.getUsers
+      .mockResolvedValueOnce({ username: 'not-an-array' })
+      .mockRejectedValueOnce(new Error('temporary failure'));
+    const adapter = createRoomAdapter({ roomName: 'ambient' });
+
+    await expect(adapter.members()).resolves.toEqual([]);
+    await expect(adapter.members()).rejects.toThrow('temporary failure');
   });
 });

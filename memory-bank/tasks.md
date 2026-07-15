@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound Messaging V2 member polling and Pod membership-history hydration.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Changed the active room/Pod member rail from an overlapping five-second timer to a non-overlapping ten-second visible-only cadence with immediate visibility catch-up, unchanged-state suppression, and cached-state retention on transport failure. Pod membership responses now reuse the list already loaded for non-administrator authorization, project only current member fields, and aggregate retained membership timestamps in SQLite to one summary per current peer instead of materializing every event. For a representative authenticated non-administrator Pod with 250 current members and 250,000 retained events, first-minute managed history rows fall from 6,000,000 to 1,500 (99.975% fewer), visible requests fall from 12 to 6, and hidden requests fall to zero. Added SQL-shape, timestamp, authorization-reuse, cadence, overlap, visibility, failure-cache, valid-empty, and adapter-contract regressions; documented gotcha `0z597` in standalone commit `0b0091e20`.
+
 - [x] Remove full-history work from global transfer-speed polling.
   - Status: completed (2026-07-15)
   - Priority: P1

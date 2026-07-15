@@ -45,16 +45,24 @@ public static class PodApiAuthorizer
             string.Equals(candidate.PeerId, peerId, StringComparison.Ordinal));
         if (member is null)
         {
-            return new PodApiAccess(peerId, IsMember: false, CanModerate: false, IsAdministrator: false);
+            return new PodApiAccess(peerId, IsMember: false, CanModerate: false, IsAdministrator: false)
+            {
+                Members = members,
+            };
         }
 
         var canModerate = member.Role.Equals("owner", StringComparison.OrdinalIgnoreCase) ||
                           member.Role.Equals("mod", StringComparison.OrdinalIgnoreCase);
-        return new PodApiAccess(peerId, IsMember: true, CanModerate: canModerate, IsAdministrator: false);
+        return new PodApiAccess(peerId, IsMember: true, CanModerate: canModerate, IsAdministrator: false)
+        {
+            Members = members,
+        };
     }
 }
 
 public sealed record PodApiAccess(string? PeerId, bool IsMember, bool CanModerate, bool IsAdministrator)
 {
     public static PodApiAccess Denied { get; } = new(null, false, false, false);
+
+    public IReadOnlyList<PodMember>? Members { get; init; }
 }

@@ -48,6 +48,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 const NETWORKS = ['all', 'soulseek', 'mesh'];
 const ROOM_DIRECTORY_MAX_RETRIES = 20;
 const MESSAGING_HYDRATION_INTERVAL_MS = 10_000;
+const MEMBER_HYDRATION_INTERVAL_MS = 10_000;
 const POD_HYDRATION_INTERVAL_MS = 60_000;
 
 const COMPOSER_COMMANDS = [
@@ -933,6 +934,9 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
       return undefined;
     }
     let cancelled = false;
+    let inFlight = false;
+    let interval = null;
+    setAdapterMembers((previous) => (previous.length === 0 ? previous : []));
     const applyMembers = (members) => {
       const next = Array.isArray(members) ? members : [];
       setAdapterMembers((previous) =>
@@ -940,18 +944,42 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
       );
     };
     const refresh = async () => {
+      if (cancelled || document.hidden || inFlight) return;
+      inFlight = true;
       try {
         const members = await adapter.members();
-        if (!cancelled) applyMembers(members);
+        if (!cancelled && !document.hidden) applyMembers(members);
       } catch {
-        if (!cancelled) applyMembers([]);
+        // Retain the last successful membership snapshot on transient failures.
+      } finally {
+        inFlight = false;
       }
     };
-    refresh();
-    const interval = window.setInterval(refresh, 5_000);
+    const stopPolling = () => {
+      if (interval) {
+        window.clearInterval(interval);
+        interval = null;
+      }
+    };
+    const startPolling = () => {
+      if (document.hidden || interval) return;
+      refresh();
+      interval = window.setInterval(refresh, MEMBER_HYDRATION_INTERVAL_MS);
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       cancelled = true;
-      window.clearInterval(interval);
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [adapter]);
 

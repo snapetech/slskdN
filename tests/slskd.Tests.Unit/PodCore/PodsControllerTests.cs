@@ -101,6 +101,32 @@ public class PodsControllerTests
     }
 
     [Fact]
+    public async Task GetMembers_AsAuthenticatedNonMember_ReusesAuthorizationSnapshot()
+    {
+        var podId = "pod:test123";
+        var members = new List<PodMember>
+        {
+            new() { PeerId = "peer:member", Role = "member" },
+        };
+        _controller.ControllerContext.HttpContext.User = new ClaimsPrincipal(
+            new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "peer:outsider") }, "test"));
+        _podServiceMock
+            .Setup(service => service.GetPodAsync(podId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Pod { IsPublic = true, PodId = podId });
+        _podServiceMock
+            .Setup(service => service.GetMembersAsync(podId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(members);
+
+        var result = await _controller.GetMembers(podId);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Same(members, ok.Value);
+        _podServiceMock.Verify(
+            service => service.GetMembersAsync(podId, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task GetPod_WithInvalidPodId_ReturnsNotFound()
     {
         // Arrange

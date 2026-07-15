@@ -199,12 +199,8 @@ export const createRoomAdapter = ({ roomName, currentUser }) => {
     },
 
     async members() {
-      try {
-        const users = await rooms.getUsers({ roomName });
-        return asArray(users).filter(Boolean);
-      } catch {
-        return [];
-      }
+      const users = await rooms.getUsers({ roomName });
+      return asArray(users).filter(Boolean);
     },
   };
 };
@@ -282,14 +278,10 @@ export const createPodAdapter = ({ channel, currentUser }) => {
 
     async members() {
       if (!channel?.podId) return [];
-      try {
-        const raw = await pods.getMembers(channel.podId);
-        return asArray(raw).filter(
-          (item) => item && typeof item === 'object' && !Array.isArray(item),
-        );
-      } catch {
-        return [];
-      }
+      const raw = await pods.getMembers(channel.podId);
+      return asArray(raw).filter(
+        (item) => item && typeof item === 'object' && !Array.isArray(item),
+      );
     },
   };
 };

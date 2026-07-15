@@ -1,3 +1,18 @@
+## Update 2026-07-15 22:12:24Z
+
+- Current task: performance and efficiency improvements in progress; Messaging V2 member-rail and Pod membership-history pass complete locally.
+- Last activity:
+  - Changed active room/Pod member hydration from an overlapping five-second timer to a non-overlapping ten-second visible-only cadence with immediate visibility catch-up, stable-state suppression, failure-cache retention, and authoritative successful-empty handling.
+  - Reused the Pod membership snapshot already loaded for non-administrator authorization, projected only current member fields, and moved earliest-join/latest-seen calculation into a grouped SQLite query limited to current peers.
+  - Reduced a representative authenticated non-administrator Pod with 250 current members and 250,000 retained events from 6,000,000 managed history rows to 1,500 summaries in the first visible minute (99.975% fewer), while requests fall from 12 to 6; hidden requests fall to zero.
+  - Added SQL-shape/timestamp, authorization-reuse, cadence, overlap, visibility, failure-cache, successful-empty, and adapter-contract regressions; documented gotcha `0z597` in standalone commit `0b0091e20`.
+- Validation:
+  - Passed focused backend tests (`2/2`) and focused messaging Web tests (`13/13`).
+  - Passed complete backend suites (`4738/4738`: `69` smoke, `4391` unit, `278` integration), complete Web tests (`826` passed, `4` skipped), production Web build, frontend lint with zero errors, repository lint, route-inventory, polling-lifecycle, CSRF, identity-leak, and whitespace checks.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 21:50:17Z
 
 - Current task: performance and efficiency improvements in progress; global transfer-speed polling pass complete locally.

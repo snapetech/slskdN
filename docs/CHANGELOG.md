@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Messaging V2's active room/Pod member rail now uses a non-overlapping,
+  visible-only ten-second cadence and preserves cached members on transient
+  failures. Pod member responses reuse authorization snapshots and aggregate
+  membership timestamps in SQLite instead of materializing retained events.
 - Footer transfer telemetry now reads projected active transfer fields and
   grouped byte totals rather than loading every retained transfer. Both global
   footer polling cadences stop in hidden documents and catch up immediately on

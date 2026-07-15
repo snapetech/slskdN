@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Messaging V2's active room/Pod member rail now uses a non-overlapping,
+  visible-only ten-second cadence and preserves cached members on transient
+  failures. Pod member responses reuse authorization snapshots and aggregate
+  membership timestamps in SQLite instead of materializing retained events.
 - App-wide transfer speed polling now uses projected active rows and grouped
   database totals instead of materializing complete download and upload
   histories. Footer speed and network timers pause while the browser document

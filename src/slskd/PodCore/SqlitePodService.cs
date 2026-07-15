@@ -244,33 +244,48 @@ namespace slskd.PodCore
         {
             await using var db = await dbFactory.CreateDbContextAsync(ct);
             var entities = await db.Members
+                .AsNoTracking()
                 .Where(m => m.PodId == podId && !m.IsBanned)
+                .Select(m => new
+                {
+                    m.PeerId,
+                    m.Role,
+                    m.PublicKey,
+                })
                 .ToListAsync(ct);
+            var activePeerIds = entities
+                .Select(entity => entity.PeerId.Trim().ToUpperInvariant())
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
             var membershipHistory = await db.MembershipRecords
-                .Where(r => r.PodId == podId)
+                .AsNoTracking()
+                .Where(r => r.PodId == podId && activePeerIds.Contains(r.PeerId.Trim().ToUpper()))
+                .GroupBy(r => r.PeerId.Trim().ToUpper())
+                .Select(group => new
+                {
+                    PeerId = group.Key,
+                    JoinedAtUnixMs = group
+                        .Where(record => record.Action.ToUpper() == "JOIN")
+                        .Select(record => (long?)record.TimestampUnixMs)
+                        .Min(),
+                    LastSeenUnixMs = group.Max(record => record.TimestampUnixMs),
+                })
                 .ToListAsync(ct);
 
             var historyByPeer = membershipHistory
-                .Where(r => !string.IsNullOrWhiteSpace(r.PeerId))
-                .GroupBy(r => r.PeerId.Trim(), StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.OrdinalIgnoreCase);
+                .ToDictionary(summary => summary.PeerId, StringComparer.OrdinalIgnoreCase);
 
             return entities.Select(e => new PodMember
             {
                 PeerId = e.PeerId,
                 Role = e.Role,
                 PublicKey = e.PublicKey,
-                IsBanned = e.IsBanned,
-                JoinedAt = historyByPeer.TryGetValue(e.PeerId, out var records)
-                    ? records.Where(record => string.Equals(record.Action, "join", StringComparison.OrdinalIgnoreCase))
-                        .Select(record => DateTimeOffset.FromUnixTimeMilliseconds(record.TimestampUnixMs))
-                        .OrderBy(timestamp => timestamp)
-                        .FirstOrDefault()
+                IsBanned = false,
+                JoinedAt = historyByPeer.TryGetValue(e.PeerId.Trim(), out var summary) && summary.JoinedAtUnixMs.HasValue
+                    ? DateTimeOffset.FromUnixTimeMilliseconds(summary.JoinedAtUnixMs.Value)
                     : null,
-                LastSeen = historyByPeer.TryGetValue(e.PeerId, out records)
-                    ? records.Select(record => DateTimeOffset.FromUnixTimeMilliseconds(record.TimestampUnixMs))
-                        .OrderByDescending(timestamp => timestamp)
-                        .FirstOrDefault()
+                LastSeen = historyByPeer.TryGetValue(e.PeerId.Trim(), out summary)
+                    ? DateTimeOffset.FromUnixTimeMilliseconds(summary.LastSeenUnixMs)
                     : null,
             }).ToList();
         }
