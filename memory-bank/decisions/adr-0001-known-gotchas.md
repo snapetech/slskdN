@@ -64,10 +64,11 @@ the shared assets directory.
 
 **Prevention**: Synchronize the built Web payload once per test process before
 parallel node launches, or give each worker/node an isolated content directory.
-When using isolated content, keep `Web.ContentPath` relative because application
-validation rejects absolute paths, and launch the node with its private app
-directory as the working directory. Never perform remove-and-recursive-copy
-operations concurrently against the same destination.
+When using isolated content, allocate the private app directory before copying
+anything, keep `Web.ContentPath` relative because application validation rejects
+absolute paths, and launch the node with its private app directory as the
+working directory. Never perform remove-and-recursive-copy operations
+concurrently against the same destination.
 
 ### 0z548. E2E Selectors And Parallel Fixtures Must Remain Stable And Isolated
 
