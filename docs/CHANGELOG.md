@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Incoming search-request filtering now applies a per-match regex timeout, so a
+  pathological configured search filter combined with a crafted peer query string
+  can no longer stall the search-response resolver via catastrophic backtracking.
 - Blacklist username-pattern matching now applies a per-match regex timeout so a
   pathological configured pattern combined with a crafted peer username cannot
   stall a request thread through catastrophic backtracking (ReDoS).

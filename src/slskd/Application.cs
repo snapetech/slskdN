@@ -194,7 +194,7 @@ namespace slskd
             }
 
             CompiledSearchRequestFilters = OptionsAtStartup.Filters.Search.Request
-                .Select(f => new Regex(f, regexOptions))
+                .Select(f => new Regex(f, regexOptions, SearchRequestFilterMatchTimeout))
                 .ToList()
                 .AsReadOnly();
 
@@ -314,6 +314,10 @@ namespace slskd
         private IRelayService Relay { get; set; }
         private IMemoryCache Cache { get; set; } = new MemoryCache(new MemoryCacheOptions());
         private IReadOnlyList<Regex> CompiledSearchRequestFilters { get; set; } = [];
+
+        // Admin-configured search filters run against untrusted, high-volume peer search
+        // query text, so bound each match to prevent catastrophic-backtracking ReDoS.
+        private static readonly TimeSpan SearchRequestFilterMatchTimeout = TimeSpan.FromMilliseconds(250);
         private ConcurrentDictionary<string, DateTimeOffset> HumanChallengeAutoResponseSentAt { get; } = new(StringComparer.InvariantCultureIgnoreCase);
 
         /// <summary>
@@ -2239,7 +2243,7 @@ namespace slskd
                     || newOptions.Filters.Search.Request.Except(PreviousOptions.Filters.Search.Request).Any())
                 {
                     CompiledSearchRequestFilters = newOptions.Filters.Search.Request
-                        .Select(f => new Regex(f, RegexOptions.Compiled))
+                        .Select(f => new Regex(f, RegexOptions.Compiled, SearchRequestFilterMatchTimeout))
                         .ToList()
                         .AsReadOnly();
 
@@ -2427,6 +2431,28 @@ namespace slskd
         /// <param name="token">The search token.</param>
         /// <param name="query">The search query.</param>
         /// <returns>A Task resolving a SearchResponse, or null.</returns>
+        private bool MatchesAnySearchRequestFilter(string searchText)
+        {
+            foreach (var filter in CompiledSearchRequestFilters)
+            {
+                try
+                {
+                    if (filter.IsMatch(searchText))
+                    {
+                        return true;
+                    }
+                }
+                catch (RegexMatchTimeoutException)
+                {
+                    // A pathological filter took too long against this query; don't let a
+                    // crafted search term stall the resolver. Treat as no-match and continue.
+                    Log.Warning("Search request filter timed out evaluating an incoming query; skipping that filter");
+                }
+            }
+
+            return false;
+        }
+
         private async Task<SearchResponse?> SearchResponseResolver(string username, int token, SearchQuery query)
         {
             Metrics.Search.Incoming.RequestsReceived.Inc(1);
@@ -2482,7 +2508,7 @@ namespace slskd
                     return null;
                 }
 
-                if (CompiledSearchRequestFilters.Any(filter => filter.IsMatch(query.SearchText)))
+                if (MatchesAnySearchRequestFilter(query.SearchText))
                 {
                     return null;
                 }
