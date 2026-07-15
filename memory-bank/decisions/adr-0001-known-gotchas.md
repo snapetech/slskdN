@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z549. Parallel E2E Workers Must Not Replace One Shared Web Directory
+
+**The Bug**: Each application-node harness start removed and recopied the same
+`src/slskd/wwwroot` directory. When two Playwright workers started nodes at the
+same time, the copy operations raced and one failed with `EEXIST` while creating
+the shared assets directory.
+
+**Files Affected**:
+- `src/web/e2e/harness/SlskdnNode.ts`
+
+**Prevention**: Synchronize the built Web payload once per test process before
+parallel node launches, or give each worker/node an isolated content directory.
+Never perform remove-and-recursive-copy operations concurrently against the
+same destination.
+
 ### 0z548. E2E Selectors And Parallel Fixtures Must Remain Stable And Isolated
 
 **The Bug**: The compact transfer-table rewrite removed a browse-link test ID
