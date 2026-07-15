@@ -1,13 +1,13 @@
 # Current API surface inventory
 
-Generated: 2026-07-15T18:13:12Z
+Generated: 2026-07-15T18:36:08Z
 
 This inventory is generated from controller attributes. It is intended for parity/security review, not as a replacement for Swagger or integration tests.
 
 ## Summary
 
-- Controller files: 116
-- Versioned API controllers: 106
+- Controller files: 117
+- Versioned API controllers: 107
 - Legacy or compatibility API controllers: 7
 - Protocol controllers outside versioned API routing: 3
 - Other route buckets: 0
@@ -51,6 +51,7 @@ Route bucket policy: new web-consumed JSON APIs should be versioned. Non-version
 | `src/slskd/Common/Security/API/SecurityController.cs` | `"api/v{version:apiVersion}/security"` | versioned | [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Roles = "Administrator")] [Authorize(Roles = "Administrator")] [Authorize(Roles = "Administrator")] [Authorize(Roles = "Administrator")] [Authorize(Roles = "Administrator")] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] | yes | no | 34 |
 | `src/slskd/Core/API/Controllers/ApplicationController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | yes | 9 |
 | `src/slskd/Core/API/Controllers/LogsController.cs` | `"api/v{version:apiVersion}/[controller]"` | versioned | [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] | yes | no | 1 |
+| `src/slskd/Core/API/Controllers/NetworkController.cs` | `"api/v{version:apiVersion}/network"` | versioned | [Authorize(Policy = AuthPolicy.Any)] | yes | no | 1 |
 | `src/slskd/Core/API/Controllers/OptionsController.cs` | `"api/v{version:apiVersion}/[controller]"<br>"startup"<br>"debug"<br>"yaml/location"<br>"yaml"<br>"yaml"<br>"yaml/validate"` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.JwtOnly, Roles = AuthRole.AdministratorOnly)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | no | 8 |
 | `src/slskd/Core/API/Controllers/ServerController.cs` | `"api/v{version:apiVersion}/[controller]"<br>""<br>""<br>""` | versioned | [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] [Authorize(Policy = AuthPolicy.Any)] | yes | no | 3 |
 | `src/slskd/Core/API/Controllers/SessionController.cs` | `"api/v{version:apiVersion}/[controller]"<br>""<br>"enabled"<br>""<br>""` | versioned | [Authorize(Policy = AuthPolicy.Any)] [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.ReadWriteOrAdministrator)] | yes | yes | 4 |

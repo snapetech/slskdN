@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Footer and System Network aggregate status now comes from one bounded server
+  snapshot per consumer instead of browser-side request fan-out; Network polling
+  also pauses while hidden and cannot overlap a slow prior cycle.
 - Global direct-message navigation polling now uses an indexed scalar activity
   endpoint instead of loading and aggregating full conversation/message rows
   every ten seconds.
@@ -37,6 +40,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- System Network now normalizes peer and swarm-job response shapes, so live
+  mesh peers, discovered clients, and active swarm progress are no longer
+  silently discarded as malformed arrays.
 - Mesh preview producers now retain ownership of their pipe writer until a
   single final completion, so hash mismatches and peer failures return clean
   end-of-stream responses instead of intermittently leaving readers pending.

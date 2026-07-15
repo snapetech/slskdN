@@ -114,87 +114,138 @@ export const getDhtStatus = async () => {
   };
 };
 
-// Combined stats fetch for dashboard
-// eslint-disable-next-line complexity
-export const getSlskdnStats = async () => {
-  try {
-    const [capabilities, hashDatabase, mesh, backfill, swarmJobs, dht] =
-      await Promise.allSettled([
-        getCapabilities(),
-        getHashDatabaseStats(),
-        getMeshStats(),
-        getBackfillStats(),
-        getActiveSwarmJobs(),
-        getDhtStatus(),
-      ]);
+const asArray = (value) => (Array.isArray(value) ? value : []);
 
-    // Normalize hashDb response to match frontend expectations
-    const rawHashDatabase =
-      hashDatabase.status === 'fulfilled' ? hashDatabase.value : null;
-    const normalizedHashDatabase = rawHashDatabase
-      ? {
-          ...rawHashDatabase,
-
-          currentSeqId: rawHashDatabase.currentSeqId ?? 0,
-          // Map backend field names to frontend expectations
-          totalEntries:
-            rawHashDatabase.totalHashEntries ??
-            rawHashDatabase.totalEntries ??
-            0,
-        }
-      : { currentSeqId: 0, totalEntries: 0 };
-
-    // Normalize mesh response to match frontend expectations
-    const rawMesh = mesh.status === 'fulfilled' ? mesh.value : null;
-    const normalizedMesh = rawMesh
-      ? {
-          ...rawMesh,
-          // Map backend field names to frontend expectations
-          connectedPeerCount:
-            rawMesh.knownMeshPeers ?? rawMesh.connectedPeerCount ?? 0,
-          isSyncing: rawMesh.isSyncing ?? false,
-          localSeqId: rawMesh.currentSeqId ?? rawMesh.localSeqId ?? 0,
-          warnings: Array.isArray(rawMesh.warnings) ? rawMesh.warnings : [],
-        }
-      : {
-          connectedPeerCount: 0,
-          isSyncing: false,
-          localSeqId: 0,
-          warnings: [],
-        };
-
-    // Normalize backfill response
-    const rawBackfill = backfill.status === 'fulfilled' ? backfill.value : null;
-    const normalizedBackfill = rawBackfill
-      ? {
-          ...rawBackfill,
-          isActive: rawBackfill.isActive ?? rawBackfill.isRunning ?? false,
-        }
-      : { isActive: false };
-
-    return {
-      backfill: normalizedBackfill,
-      capabilities:
-        capabilities.status === 'fulfilled' ? capabilities.value : null,
-      dht: dht.status === 'fulfilled' ? dht.value : null,
-      hashDb: normalizedHashDatabase,
-      mesh: normalizedMesh,
-      swarmJobs: swarmJobs.status === 'fulfilled' ? swarmJobs.value : [],
-    };
-  } catch (error) {
-    console.error('Failed to fetch slskdn stats:', error);
-    return {
-      backfill: { isActive: false },
-      capabilities: null,
-      dht: null,
-      hashDb: { currentSeqId: 0, totalEntries: 0 },
-      mesh: {
-        connectedPeerCount: 0,
-        isSyncing: false,
-        localSeqId: 0,
-        warnings: [],
-      },
-      swarmJobs: [],
-    };
+const parseCapabilities = ({ capabilitiesJson, capabilitiesVersion }) => {
+  let document = {};
+  if (typeof capabilitiesJson === 'string') {
+    try {
+      document = JSON.parse(capabilitiesJson);
+    } catch {
+      document = {};
+    }
   }
+
+  return {
+    features: asArray(document.features),
+    version: document.version || capabilitiesVersion || 'slskdN',
+  };
+};
+
+const normalizeSwarmJob = (job = {}) => {
+  const completedChunks = Number(job.completedChunks) || 0;
+  const totalChunks = Number(job.totalChunks) || 0;
+
+  return {
+    ...job,
+    activeSources: job.activeSources ?? job.activeWorkers ?? 0,
+    downloadedBytes: job.downloadedBytes ?? job.bytesDownloaded ?? 0,
+    jobId: job.jobId ?? job.id,
+    progressPercent:
+      job.progressPercent ??
+      (totalChunks > 0 ? (completedChunks * 100) / totalChunks : 0),
+    totalBytes: job.totalBytes ?? job.fileSize ?? 0,
+    workers: asArray(job.workers),
+  };
+};
+
+const emptyNetworkStats = () => ({
+  backfill: { isActive: false },
+  capabilities: null,
+  dht: null,
+  discoveredPeers: [],
+  hashDb: { currentSeqId: 0, totalEntries: 0 },
+  mesh: {
+    connectedPeerCount: 0,
+    isSyncing: false,
+    localSeqId: 0,
+    warnings: [],
+  },
+  meshPeers: [],
+  swarmJobs: [],
+  transport: null,
+});
+
+// eslint-disable-next-line complexity
+const normalizeNetworkStats = (snapshot) => {
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+    return emptyNetworkStats();
+  }
+
+  const rawBackfill = snapshot.backfill || {};
+  const rawDht = snapshot.dht || {};
+  const rawHashDatabase = snapshot.hashDb || {};
+  const rawMesh = snapshot.mesh || {};
+  const rawTransport = snapshot.transport || {};
+  const totalFlacEntries = Number(rawHashDatabase.totalFlacEntries) || 0;
+  const hashedFlacEntries = Number(rawHashDatabase.hashedFlacEntries) || 0;
+
+  return {
+    backfill: {
+      ...rawBackfill,
+      isActive:
+        rawBackfill.isActive ??
+        rawBackfill.isRunning ??
+        (Number(rawBackfill.active) || 0) > 0,
+    },
+    capabilities: parseCapabilities(snapshot),
+    dht: {
+      ...rawDht,
+      isLanOnly: rawDht.isLanOnly ?? rawDht.lanOnly ?? false,
+    },
+    discoveredPeers: asArray(snapshot.discoveredPeers).map((peer) => ({
+      ...peer,
+      lastSeenAt: peer.lastSeenAt ?? peer.lastSeen,
+      version: peer.version ?? peer.clientVersion,
+    })),
+    hashDb: {
+      ...rawHashDatabase,
+      coveragePercent:
+        rawHashDatabase.coveragePercent ??
+        (totalFlacEntries > 0
+          ? (hashedFlacEntries * 100) / totalFlacEntries
+          : undefined),
+      currentSeqId: rawHashDatabase.currentSeqId ?? 0,
+      dbSizeBytes:
+        rawHashDatabase.dbSizeBytes ??
+        rawHashDatabase.databaseSizeBytes ??
+        0,
+      totalEntries:
+        rawHashDatabase.totalHashEntries ??
+        rawHashDatabase.totalEntries ??
+        0,
+    },
+    mesh: {
+      ...rawMesh,
+      connectedPeerCount:
+        rawMesh.knownMeshPeers ?? rawMesh.connectedPeerCount ?? 0,
+      isSyncing: rawMesh.isSyncing ?? false,
+      localSeqId: rawMesh.currentSeqId ?? rawMesh.localSeqId ?? 0,
+      warnings: asArray(rawMesh.warnings),
+    },
+    meshPeers: asArray(snapshot.meshPeers).map((peer) => ({
+      ...peer,
+      lastSeqId: peer.lastSeqId ?? peer.latestSeqId,
+      lastSyncAt: peer.lastSyncAt ?? peer.lastSyncTime,
+    })),
+    swarmJobs: asArray(snapshot.swarmJobs).map(normalizeSwarmJob),
+    transport: {
+      dht: rawTransport.dht ?? rawTransport.activeDhtSessions ?? 0,
+      natType:
+        rawTransport.natType ?? rawTransport.detectedNatType ?? 'Unknown',
+      overlay:
+        rawTransport.overlay ?? rawTransport.activeOverlaySessions ?? 0,
+    },
+  };
+};
+
+export const getNetworkStats = async ({ includePeers = false } = {}) => {
+  const query = includePeers ? '?includePeers=true' : '';
+  return safeGet(`/network/stats${query}`, null);
+};
+
+// One server-side summary request shared by the footer and Network dashboard.
+export const getSlskdnStats = async ({ includePeers = false } = {}) => {
+  const snapshot = await getNetworkStats({ includePeers });
+  return normalizeNetworkStats(snapshot);
 };

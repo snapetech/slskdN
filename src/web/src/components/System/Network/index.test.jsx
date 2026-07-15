@@ -4,7 +4,7 @@
 
 import * as slskdnAPI from '../../../lib/slskdn';
 import Network from '.';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
 vi.mock('../../../lib/slskdn');
@@ -45,15 +45,23 @@ describe('Network', () => {
         isLanOnly: false,
         isDhtRunning: true,
       },
+      discoveredPeers: [],
       hashDb: { currentSeqId: 0, totalEntries: 0 },
       mesh: {
         connectedPeerCount: 0,
         warnings: [],
       },
+      meshPeers: [],
       swarmJobs: [],
     });
-    slskdnAPI.getMeshPeers.mockResolvedValue([]);
-    slskdnAPI.getDiscoveredPeers.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
   });
 
   it('shows the connectivity diagnostics warning when no peers are reachable', async () => {
@@ -259,5 +267,82 @@ describe('Network', () => {
     });
 
     expect(container.querySelector('.ui.inverted.statistics')).not.toBeNull();
+  });
+
+  it('loads the dashboard and peer lists through one combined request', async () => {
+    slskdnAPI.getSlskdnStats.mockResolvedValueOnce({
+      capabilities: { features: [], version: 'slskdn' },
+      dht: {},
+      discoveredPeers: [{ username: 'discovered-peer' }],
+      hashDb: {},
+      mesh: { warnings: [] },
+      meshPeers: [{ username: 'mesh-peer' }],
+      swarmJobs: [],
+    });
+
+    render(<Network theme="light" />);
+
+    expect(await screen.findByText('mesh-peer')).toBeInTheDocument();
+    expect(screen.getByText('discovered-peer')).toBeInTheDocument();
+    expect(slskdnAPI.getSlskdnStats).toHaveBeenCalledWith({
+      includePeers: true,
+    });
+    expect(slskdnAPI.getMeshPeers).not.toHaveBeenCalled();
+    expect(slskdnAPI.getDiscoveredPeers).not.toHaveBeenCalled();
+  });
+
+  it('does not overlap slow dashboard polls', async () => {
+    vi.useFakeTimers();
+    let resolveStats;
+    slskdnAPI.getSlskdnStats.mockReturnValue(
+      new Promise((resolve) => {
+        resolveStats = resolve;
+      }),
+    );
+
+    render(<Network theme="light" />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+
+    expect(slskdnAPI.getSlskdnStats).toHaveBeenCalledTimes(1);
+
+    resolveStats({
+      discoveredPeers: [],
+      meshPeers: [],
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+
+    expect(slskdnAPI.getSlskdnStats).toHaveBeenCalledTimes(2);
+  });
+
+  it('pauses polling while the browser document is hidden', async () => {
+    vi.useFakeTimers();
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: true,
+    });
+
+    render(<Network theme="light" />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(slskdnAPI.getSlskdnStats).not.toHaveBeenCalled();
+
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      await Promise.resolve();
+    });
+
+    expect(slskdnAPI.getSlskdnStats).toHaveBeenCalledTimes(1);
   });
 });

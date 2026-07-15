@@ -25,6 +25,7 @@ import {
 } from 'semantic-ui-react';
 
 const DHT_EXPOSURE_CONSENT_KEY = 'slskdn:ui:dht-public-exposure:consent-v1';
+const NETWORK_POLL_INTERVAL_MS = 10_000;
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 
@@ -83,7 +84,9 @@ const StatCard = ({ color, icon, inverted = false, label, subLabel, value }) => 
 
 // eslint-disable-next-line complexity
 const Network = ({ theme }) => {
+  const fetchInFlightRef = useRef(false);
   const mountedRef = useRef(true);
+  const pollIntervalRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({});
   const [meshPeers, setMeshPeers] = useState([]);
@@ -96,23 +99,27 @@ const Network = ({ theme }) => {
   });
 
   const fetchData = useCallback(async () => {
+    if (document.hidden || fetchInFlightRef.current) {
+      return;
+    }
+
+    fetchInFlightRef.current = true;
     try {
-      const [statsData, peersData, discoveredData] = await Promise.all([
-        slskdnAPI.getSlskdnStats().catch(() => ({})),
-        slskdnAPI.getMeshPeers().catch(() => []),
-        slskdnAPI.getDiscoveredPeers().catch(() => []),
-      ]);
+      const statsData = await slskdnAPI.getSlskdnStats({
+        includePeers: true,
+      });
 
       if (!mountedRef.current) return;
 
       setStats(statsData || {});
-      setMeshPeers(Array.isArray(peersData) ? peersData : []);
-      setDiscoveredPeers(Array.isArray(discoveredData) ? discoveredData : []);
+      setMeshPeers(asArray(statsData?.meshPeers));
+      setDiscoveredPeers(asArray(statsData?.discoveredPeers));
     } catch (error) {
       if (!mountedRef.current) return;
       console.error('Failed to fetch network stats:', error);
       // Don't show toast on every poll failure
     } finally {
+      fetchInFlightRef.current = false;
       if (mountedRef.current) {
         setLoading(false);
       }
@@ -124,14 +131,46 @@ const Network = ({ theme }) => {
     setDhtExposureAcknowledged(true);
   };
 
-  useEffect(() => () => {
-    mountedRef.current = false;
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 5_000); // Refresh every 5 seconds
-    return () => clearInterval(interval);
+    const stopPolling = () => {
+      if (pollIntervalRef.current) {
+        window.clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+    const startPolling = () => {
+      if (document.hidden || pollIntervalRef.current) {
+        return;
+      }
+
+      fetchData();
+      pollIntervalRef.current = window.setInterval(
+        fetchData,
+        NETWORK_POLL_INTERVAL_MS,
+      );
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      stopPolling();
+    };
   }, [fetchData]);
 
   const handleSync = async (username) => {

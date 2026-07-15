@@ -4,20 +4,15 @@ import React from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 
-const { getBuild, getSlskdnStats, getStats, getSpeeds, isLoggedIn } = vi.hoisted(() => ({
+const { getBuild, getSlskdnStats, getSpeeds, isLoggedIn } = vi.hoisted(() => ({
   getBuild: vi.fn(),
   getSlskdnStats: vi.fn(),
   getSpeeds: vi.fn(),
-  getStats: vi.fn(),
   isLoggedIn: vi.fn(),
 }));
 
 vi.mock('../../lib/application', () => ({
   getBuild,
-}));
-
-vi.mock('../../lib/mesh', () => ({
-  getStats,
 }));
 
 vi.mock('../../lib/session', () => ({
@@ -35,17 +30,17 @@ vi.mock('../../lib/transfers', () => ({
 describe('Footer', () => {
   beforeEach(() => {
     isLoggedIn.mockReturnValue(true);
-    getStats.mockResolvedValue({
-      dht: 12,
-      natType: 'FullCone',
-      overlay: 3,
-    });
     getSlskdnStats.mockResolvedValue({
       backfill: { isActive: true },
       dht: { discoveredPeerCount: 23, dhtNodeCount: 12 },
       hashDb: { currentSeqId: 14638, totalEntries: 7_300 },
       mesh: { connectedPeerCount: 6, isSyncing: true },
       swarmJobs: [{ id: 'job-1' }],
+      transport: {
+        dht: 12,
+        natType: 'FullCone',
+        overlay: 3,
+      },
     });
     getSpeeds.mockResolvedValue({
       mesh: 2_048,
@@ -93,7 +88,6 @@ describe('Footer', () => {
     });
 
     expect(getSpeeds).toHaveBeenCalledTimes(4);
-    expect(getStats).toHaveBeenCalledTimes(1);
     expect(getSlskdnStats).toHaveBeenCalledTimes(1);
 
     await act(async () => {
@@ -101,7 +95,6 @@ describe('Footer', () => {
     });
 
     expect(getSpeeds).toHaveBeenCalledTimes(6);
-    expect(getStats).toHaveBeenCalledTimes(2);
     expect(getSlskdnStats).toHaveBeenCalledTimes(2);
   });
 
@@ -120,7 +113,6 @@ describe('Footer', () => {
       await vi.advanceTimersByTimeAsync(30_000);
     });
 
-    expect(getStats).toHaveBeenCalledTimes(1);
     expect(getSlskdnStats).toHaveBeenCalledTimes(1);
 
     resolveStats({});
@@ -129,7 +121,6 @@ describe('Footer', () => {
       await vi.advanceTimersByTimeAsync(10_000);
     });
 
-    expect(getStats).toHaveBeenCalledTimes(2);
     expect(getSlskdnStats).toHaveBeenCalledTimes(2);
   });
 
@@ -149,7 +140,6 @@ describe('Footer', () => {
     expect(await screen.findByText('0.0.0-slskdn.manual.local')).toBeInTheDocument();
     expect(screen.getByText('update 2026050500-slskdn.221')).toBeInTheDocument();
     expect(getBuild).toHaveBeenCalledWith({ checkForUpdates: true });
-    expect(getStats).not.toHaveBeenCalled();
     expect(getSlskdnStats).not.toHaveBeenCalled();
     expect(getSpeeds).not.toHaveBeenCalled();
   });

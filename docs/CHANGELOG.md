@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Footer and System Network aggregate status now uses one bounded server
+  snapshot per consumer instead of browser-side request fan-out. Network polling
+  runs every ten seconds, pauses while hidden, rejects overlap, and correctly
+  renders normalized peer and swarm-job response shapes.
 - Global direct-message navigation polling now uses one indexed scalar activity
   request instead of loading and aggregating all unacknowledged message and
   active conversation rows every ten seconds.

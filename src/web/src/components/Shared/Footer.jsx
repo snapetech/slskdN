@@ -1,7 +1,6 @@
 import './Footer.css';
 import footerLogo from '../../assets/brand/slskdn-icon-wire.png';
 import * as application from '../../lib/application';
-import * as mesh from '../../lib/mesh';
 import * as session from '../../lib/session';
 import * as slskdnAPI from '../../lib/slskdn';
 import { getLocalStorageItem } from '../../lib/storage';
@@ -142,19 +141,12 @@ class Footer extends Component {
 
     this._fetchStatsInFlight = true;
     try {
-      const [transportStats, slskdnStats] = await Promise.allSettled([
-        mesh.getStats(),
-        slskdnAPI.getSlskdnStats(),
-      ]);
+      const slskdnStats = await slskdnAPI.getSlskdnStats();
 
       if (this._isMounted) {
         this.setState({
-          slskdnStats:
-            slskdnStats.status === 'fulfilled' ? slskdnStats.value : null,
-          stats:
-            transportStats.status === 'fulfilled'
-              ? transportStats.value
-              : null,
+          slskdnStats,
+          stats: slskdnStats?.transport ?? null,
         });
       }
     } catch (error) {

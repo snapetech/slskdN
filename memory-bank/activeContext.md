@@ -1,3 +1,21 @@
+## Update 2026-07-15 18:42:23Z
+
+- Current task: performance and efficiency improvements in progress; Network dashboard and shared aggregate-status fan-out pass complete locally.
+- Last activity:
+  - Added authenticated `GET /api/v0/network/stats` as one bounded server-side snapshot with optional detailed peer lists.
+  - Replaced seven footer aggregate requests per cycle and eight Network-pane requests per cycle with one summary request for each consumer.
+  - Changed the Network pane from five-second polling to ten seconds, stopped polling while hidden, and rejected overlapping cycles.
+  - Reduced first-minute visible aggregate requests across footer and Network from 153 to 14 (90.85%), excluding unchanged transfer-speed polling.
+  - Normalized real peer/job envelopes and property names so mesh peers, discovered peers, swarm jobs, capability features, HashDb size, and coverage render correctly.
+  - Regenerated the route inventory and documented gotchas `0z569` through `0z573` in standalone commits `b8ea55643`, `fe1a2111b`, `0e62eb348`, and `e934d133e`.
+- Validation:
+  - Passed focused backend tests (`2/2`) and focused Network/slskdn/Footer Web tests (`19/19`).
+  - Passed complete Web Vitest (`777` passed, `4` skipped) and the production Web build.
+  - Passed complete backend suites (`4707/4707`: `69` smoke, `4360` unit, `278` integration) and repository lint.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 18:18:33Z
 
 - Current task: performance and efficiency improvements in progress; direct-message navigation polling pass complete locally.

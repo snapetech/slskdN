@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Collapse System Network and footer aggregate-status request fan-out.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Added authenticated `GET /api/v0/network/stats`, which returns one bounded snapshot from existing capability, HashDb, mesh, backfill, multi-source, DHT, and transport services. The footer now replaces seven aggregate requests with one every ten seconds; the visible Network pane replaces eight requests every five seconds with one every ten seconds, pauses while hidden, and rejects overlap. Across both consumers, the first visible minute falls from 153 aggregate requests to 14 (90.85% fewer), excluding unchanged transfer-speed polling. The shared API boundary now normalizes real mesh-peer, discovered-peer, and swarm-job response shapes, restoring data that envelope mismatches previously hid. Swarm summaries expose only rendered counters, not rich internal status. Added backend, API-boundary, rendering, cadence, overlap, and visibility regressions; regenerated the route inventory and documented gotchas `0z569` through `0z573`.
+
 - [x] Bound global direct-message activity polling.
   - Status: completed (2026-07-15)
   - Priority: P1
