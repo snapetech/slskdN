@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove full-history work from global transfer-speed polling.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Replaced four full-entity transfer lists per two-second speed-cache refresh with one four-column active projection and one grouped SQL byte-total query while preserving live fallback speed calculation and the existing response contract. A 200,000-row SQLite proxy across 20 runs improved from 2.947 seconds for the current-shape directional lists to 0.651 seconds for grouped totals (77.91% lower before EF materialization overhead); against the representative 134,777-row history, 4,043,310 retained transfer entities per visible minute are no longer materialized. The app-wide footer now stops its 30 speed and 6 aggregate requests per hidden minute and refreshes immediately on visibility. Added concrete SQL-shape, aggregate correctness, API response, overlap, hidden, and visibility-catch-up regressions; documented gotcha `0z596` in standalone commit `03fd92d37`.
+
 - [x] Bound Jobs and swarm visualization polling.
   - Status: completed (2026-07-15)
   - Priority: P1

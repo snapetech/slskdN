@@ -20,6 +20,10 @@
 // </copyright>
 namespace slskd.Transfers
 {
+    using System;
+    using System.Linq;
+    using Microsoft.EntityFrameworkCore;
+    using Soulseek;
     using slskd.Transfers.Downloads;
     using slskd.Transfers.Uploads;
 
@@ -37,6 +41,12 @@ namespace slskd.Transfers
         ///     Gets the download service.
         /// </summary>
         IDownloadService Downloads { get; }
+
+        /// <summary>
+        ///     Gets current transfer speeds and retained byte totals without materializing transfer history.
+        /// </summary>
+        /// <returns>Current directional speeds and retained directional byte totals.</returns>
+        (double DownloadSpeed, double UploadSpeed, long DownloadedBytes, long UploadedBytes) GetSpeedSnapshot();
     }
 
     /// <summary>
@@ -48,12 +58,16 @@ namespace slskd.Transfers
         ///     Initializes a new instance of the <see cref="TransferService"/> class.
         /// </summary>
         public TransferService(
-            IUploadService? uploadService = null,
-            IDownloadService? downloadService = null)
+            IUploadService uploadService,
+            IDownloadService downloadService,
+            IDbContextFactory<TransfersDbContext> contextFactory)
         {
-            Uploads = uploadService!;
-            Downloads = downloadService!;
+            Uploads = uploadService;
+            Downloads = downloadService;
+            ContextFactory = contextFactory;
         }
+
+        private IDbContextFactory<TransfersDbContext> ContextFactory { get; }
 
         /// <summary>
         ///     Gets the upload service.
@@ -64,5 +78,68 @@ namespace slskd.Transfers
         ///     Gets the download service.
         /// </summary>
         public IDownloadService Downloads { get; init; }
+
+        /// <inheritdoc />
+        public (double DownloadSpeed, double UploadSpeed, long DownloadedBytes, long UploadedBytes) GetSpeedSnapshot()
+        {
+            using var context = ContextFactory.CreateDbContext();
+            var now = DateTime.UtcNow;
+            var activeTransfers = context.Transfers
+                .AsNoTracking()
+                .Where(transfer => !transfer.Removed && transfer.State == TransferStates.InProgress)
+                .Select(transfer => new
+                {
+                    transfer.AverageSpeed,
+                    transfer.BytesTransferred,
+                    transfer.Direction,
+                    transfer.StartedAt,
+                })
+                .ToList();
+            var byteTotals = context.Transfers
+                .AsNoTracking()
+                .GroupBy(transfer => transfer.Direction)
+                .Select(group => new
+                {
+                    Direction = group.Key,
+                    BytesTransferred = group.Sum(transfer => transfer.BytesTransferred),
+                })
+                .ToList();
+
+            double GetLiveSpeed(double averageSpeed, long bytesTransferred, DateTime? startedAt)
+            {
+                if (averageSpeed > 0)
+                {
+                    return averageSpeed;
+                }
+
+                var elapsed = startedAt.HasValue ? now - startedAt.Value : TimeSpan.Zero;
+                return elapsed.TotalSeconds > 0 && bytesTransferred > 0
+                    ? bytesTransferred / elapsed.TotalSeconds
+                    : 0;
+            }
+
+            var downloadSpeed = activeTransfers
+                .Where(transfer => transfer.Direction == TransferDirection.Download)
+                .Sum(transfer => GetLiveSpeed(
+                    transfer.AverageSpeed,
+                    transfer.BytesTransferred,
+                    transfer.StartedAt));
+            var uploadSpeed = activeTransfers
+                .Where(transfer => transfer.Direction == TransferDirection.Upload)
+                .Sum(transfer => GetLiveSpeed(
+                    transfer.AverageSpeed,
+                    transfer.BytesTransferred,
+                    transfer.StartedAt));
+            var downloadedBytes = byteTotals
+                .Where(total => total.Direction == TransferDirection.Download)
+                .Select(total => total.BytesTransferred)
+                .SingleOrDefault();
+            var uploadedBytes = byteTotals
+                .Where(total => total.Direction == TransferDirection.Upload)
+                .Select(total => total.BytesTransferred)
+                .SingleOrDefault();
+
+            return (downloadSpeed, uploadSpeed, downloadedBytes, uploadedBytes);
+        }
     }
 }

@@ -519,48 +519,13 @@ public class TransfersControllerTests
     }
 
     [Fact]
-    public void GetSpeeds_UsesTransferredBytesWhenAverageSpeedHasNotUpdatedYet()
+    public void GetSpeeds_ReturnsAggregateServiceSnapshot()
     {
-        var downloadTransfers = new List<SlskdTransfer>
-        {
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Username = "remote-user",
-                Filename = "Music/song.flac",
-                BytesTransferred = 20_000,
-                StartedAt = DateTime.UtcNow.AddSeconds(-10),
-                State = TransferStates.InProgress,
-            },
-        };
-        var uploadTransfers = new List<SlskdTransfer>
-        {
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Username = "remote-user",
-                Filename = "Uploads/song.flac",
-                AverageSpeed = 3_000,
-                State = TransferStates.InProgress,
-            },
-        };
-        var downloads = new Mock<IDownloadService>();
-        downloads
-            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>()))
-            .Returns(downloadTransfers);
-        downloads
-            .Setup(service => service.List(null, true))
-            .Returns(downloadTransfers);
-
-        var uploads = new Mock<IUploadService>();
-        uploads
-            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), false))
-            .Returns(uploadTransfers);
-        uploads
-            .Setup(service => service.List(It.IsAny<Expression<Func<SlskdTransfer, bool>>>(), true))
-            .Returns(uploadTransfers);
-
-        var controller = CreateController(downloads: downloads, uploads: uploads);
+        var transfers = new Mock<ITransferService>();
+        transfers
+            .Setup(service => service.GetSpeedSnapshot())
+            .Returns((2_000, 3_000, 20_000, 30_000));
+        var controller = CreateController(transferService: transfers);
 
         var result = controller.GetSpeeds();
 
@@ -568,9 +533,16 @@ public class TransfersControllerTests
         var total = GetDoubleProperty(ok.Value!, "total");
         var download = GetDoubleProperty(ok.Value!, "download");
         var upload = GetDoubleProperty(ok.Value!, "upload");
-        Assert.InRange(download, 1_500, 2_500);
+        var sessionDownloaded = GetInt64Property(ok.Value!, "sessionBytesDownloaded");
+        var sessionUploaded = GetInt64Property(ok.Value!, "sessionBytesUploaded");
+        var sessionTotal = GetInt64Property(ok.Value!, "sessionBytesTotal");
+        Assert.Equal(2_000, download);
         Assert.Equal(3_000, upload);
-        Assert.InRange(total, 4_500, 5_500);
+        Assert.Equal(5_000, total);
+        Assert.Equal(20_000, sessionDownloaded);
+        Assert.Equal(30_000, sessionUploaded);
+        Assert.Equal(50_000, sessionTotal);
+        transfers.Verify(service => service.GetSpeedSnapshot(), Times.Once);
     }
 
     private static double GetDoubleProperty(object source, string propertyName)
@@ -578,6 +550,13 @@ public class TransfersControllerTests
         var property = source.GetType().GetProperty(propertyName);
         Assert.NotNull(property);
         return Convert.ToDouble(property.GetValue(source));
+    }
+
+    private static long GetInt64Property(object source, string propertyName)
+    {
+        var property = source.GetType().GetProperty(propertyName);
+        Assert.NotNull(property);
+        return Convert.ToInt64(property.GetValue(source));
     }
 
     private static bool ContainsMethodCall(Expression expression)
@@ -951,9 +930,10 @@ public class TransfersControllerTests
         Mock<IAcceleratedDownloadService>? acceleratedDownloads = null,
         slskd.Options? options = null,
         slskd.State? state = null,
-        Mock<IHubContext<TransfersHub>>? transfersHub = null)
+        Mock<IHubContext<TransfersHub>>? transfersHub = null,
+        Mock<ITransferService>? transferService = null)
     {
-        var transferService = new Mock<ITransferService>();
+        transferService ??= new Mock<ITransferService>();
         transferService.SetupGet(service => service.Downloads).Returns((downloads ?? new Mock<IDownloadService>()).Object);
         transferService.SetupGet(service => service.Uploads).Returns((uploads ?? new Mock<IUploadService>()).Object);
 

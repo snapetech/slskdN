@@ -29,6 +29,10 @@ vi.mock('../../lib/transfers', () => ({
 
 describe('Footer', () => {
   beforeEach(() => {
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
     isLoggedIn.mockReturnValue(true);
     getSlskdnStats.mockResolvedValue({
       backfill: { isActive: true },
@@ -122,6 +126,74 @@ describe('Footer', () => {
     });
 
     expect(getSlskdnStats).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not overlap slow transfer speed polls', async () => {
+    vi.useFakeTimers();
+    let resolveSpeeds;
+    getSpeeds.mockReturnValue(
+      new Promise((resolve) => {
+        resolveSpeeds = resolve;
+      }),
+    );
+
+    render(<Footer />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(getSpeeds).toHaveBeenCalledTimes(1);
+
+    resolveSpeeds({ mesh: 0, soulseek: 0, total: 0 });
+    await act(async () => {
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(2_000);
+    });
+    expect(getSpeeds).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops global polling while hidden and catches up on visibility', async () => {
+    vi.useFakeTimers();
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: true,
+    });
+
+    render(<Footer />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20_000);
+    });
+    expect(getSpeeds).not.toHaveBeenCalled();
+    expect(getSlskdnStats).not.toHaveBeenCalled();
+
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      await Promise.resolve();
+    });
+    expect(getSpeeds).toHaveBeenCalledTimes(1);
+    expect(getSlskdnStats).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000);
+    });
+    expect(getSpeeds).toHaveBeenCalledTimes(2);
+    expect(getSlskdnStats).toHaveBeenCalledTimes(1);
+
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: true,
+    });
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(20_000);
+    });
+    expect(getSpeeds).toHaveBeenCalledTimes(2);
+    expect(getSlskdnStats).toHaveBeenCalledTimes(1);
   });
 
   it('renders build info and checks for updates when logged out', async () => {

@@ -258,7 +258,8 @@ public static class CoreApplicationServiceCollectionExtensions
             Log.Debug("[DI] Constructing TransferService...");
             var service = new TransferService(
                 sp.GetRequiredService<IUploadService>(),
-                sp.GetRequiredService<IDownloadService>());
+                sp.GetRequiredService<IDownloadService>(),
+                sp.GetRequiredService<IDbContextFactory<TransfersDbContext>>());
             Log.Debug("[DI] TransferService constructed");
             return service;
         });

@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Footer transfer telemetry now reads projected active transfer fields and
+  grouped byte totals rather than loading every retained transfer. Both global
+  footer polling cadences stop in hidden documents and catch up immediately on
+  visibility restoration.
 - Jobs and swarm visualization polling now keeps two-second live status while
   reading and aggregating full trace histories every ten seconds. Unchanged,
   overlapping, hidden, and transiently failed work no longer replaces or

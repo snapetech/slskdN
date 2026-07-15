@@ -1015,24 +1015,14 @@ namespace slskd.Transfers.API
 
         private object GetSpeedsResponse()
         {
-            // Calculate total speeds from active transfers
-            var activeDownloads = Transfers.Downloads.List(t =>
-                t.State == Soulseek.TransferStates.InProgress);
-            var activeUploads = Transfers.Uploads.List(t =>
-                t.State == Soulseek.TransferStates.InProgress, includeRemoved: false);
-
-            var totalDownloadSpeed = activeDownloads.Sum(GetLiveSpeed);
-            var totalUploadSpeed = activeUploads.Sum(GetLiveSpeed);
+            var snapshot = Transfers.GetSpeedSnapshot();
+            var totalDownloadSpeed = snapshot.DownloadSpeed;
+            var totalUploadSpeed = snapshot.UploadSpeed;
             var totalSpeed = totalDownloadSpeed + totalUploadSpeed;
 
             // Current transfer service telemetry is Soulseek-based; mesh chunk transfers report separately when enabled.
             var soulseekSpeed = totalSpeed;
             var meshSpeed = 0.0;
-
-            var sessionBytesDownloaded = (long)Transfers.Downloads.List(includeRemoved: true)
-                .Sum(t => (double)t.BytesTransferred);
-            var sessionBytesUploaded = (long)Transfers.Uploads.List(t => true, includeRemoved: true)
-                .Sum(t => (double)t.BytesTransferred);
 
             return new
             {
@@ -1041,26 +1031,10 @@ namespace slskd.Transfers.API
                 mesh = meshSpeed,
                 download = totalDownloadSpeed,
                 upload = totalUploadSpeed,
-                sessionBytesDownloaded,
-                sessionBytesUploaded,
-                sessionBytesTotal = sessionBytesDownloaded + sessionBytesUploaded,
+                sessionBytesDownloaded = snapshot.DownloadedBytes,
+                sessionBytesUploaded = snapshot.UploadedBytes,
+                sessionBytesTotal = snapshot.DownloadedBytes + snapshot.UploadedBytes,
             };
-        }
-
-        private static double GetLiveSpeed(global::slskd.Transfers.Transfer transfer)
-        {
-            if (transfer.AverageSpeed > 0)
-            {
-                return transfer.AverageSpeed;
-            }
-
-            var elapsed = transfer.ElapsedTime;
-            if (elapsed == null || elapsed.Value.TotalSeconds <= 0 || transfer.BytesTransferred <= 0)
-            {
-                return 0;
-            }
-
-            return transfer.BytesTransferred / elapsed.Value.TotalSeconds;
         }
 
         /// <summary>

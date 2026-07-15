@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- App-wide transfer speed polling now uses projected active rows and grouped
+  database totals instead of materializing complete download and upload
+  histories. Footer speed and network timers pause while the browser document
+  is hidden and refresh immediately when it becomes visible.
 - The Jobs page and swarm visualization now separate two-second live status
   from ten-second trace aggregation, retain unchanged/cached state, reject
   overlapping requests, and suspend all polling while the browser document is

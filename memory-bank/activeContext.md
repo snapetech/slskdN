@@ -1,3 +1,19 @@
+## Update 2026-07-15 21:50:17Z
+
+- Current task: performance and efficiency improvements in progress; global transfer-speed polling pass complete locally.
+- Last activity:
+  - Replaced four full-entity transfer lists per two-second speed-cache refresh with one four-column active projection and one grouped SQL byte-total query while preserving the existing response contract and fallback speed calculation.
+  - Reduced a 200,000-row SQLite proxy from 2.947 seconds to 0.651 seconds across 20 runs (77.91% lower before EF materialization overhead); against the representative 134,777-row history, 4,043,310 retained entities per visible minute are no longer materialized.
+  - Stopped both app-wide footer timers while hidden and added immediate visibility catch-up, dropping hidden footer polling from 36 requests per minute to zero.
+  - Added concrete SQL-shape, aggregate correctness, API response, overlap, hidden, and visibility-catch-up regressions; documented gotcha `0z596` in standalone commit `03fd92d37`.
+- Validation:
+  - Passed focused backend tests (`2/2`) and focused Footer tests (`6/6`).
+  - Passed complete Web tests (`822` passed, `4` skipped), production Web build, and frontend lint with zero new errors.
+  - Passed complete backend suites (`4736/4736`: `69` smoke, `4389` unit, `278` integration), repository lint, route-inventory, polling-lifecycle, identity-leak, and whitespace checks.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 21:28:27Z
 
 - Current task: performance and efficiency improvements in progress; Jobs and swarm visualization polling pass complete locally.

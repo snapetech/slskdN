@@ -103,23 +103,18 @@ class Footer extends Component {
     this.fetchBuildInfo();
 
     if (session.isLoggedIn()) {
-      this.fetchStats();
-      this.fetchSpeeds();
-      this._speedsInterval = setInterval(
-        this.fetchSpeeds,
-        SPEED_POLL_INTERVAL_MS,
-      );
-      this._statsInterval = setInterval(
-        this.fetchStats,
-        STATS_POLL_INTERVAL_MS,
-      );
+      document.addEventListener('visibilitychange', this.handleVisibilityChange);
+      this.startPolling();
     }
   }
 
   componentWillUnmount() {
     this._isMounted = false;
-    clearInterval(this._speedsInterval);
-    clearInterval(this._statsInterval);
+    document.removeEventListener(
+      'visibilitychange',
+      this.handleVisibilityChange,
+    );
+    this.stopPolling();
     if (this.footerResizeObserver) {
       this.footerResizeObserver.disconnect();
       this.footerResizeObserver = null;
@@ -134,8 +129,46 @@ class Footer extends Component {
     setFooterHeightVariable(this.footerRef.current);
   };
 
+  startPolling = () => {
+    if (document.hidden || !session.isLoggedIn()) return;
+
+    this.fetchStats();
+    this.fetchSpeeds();
+    if (!this._speedsInterval) {
+      this._speedsInterval = window.setInterval(
+        this.fetchSpeeds,
+        SPEED_POLL_INTERVAL_MS,
+      );
+    }
+    if (!this._statsInterval) {
+      this._statsInterval = window.setInterval(
+        this.fetchStats,
+        STATS_POLL_INTERVAL_MS,
+      );
+    }
+  };
+
+  stopPolling = () => {
+    window.clearInterval(this._speedsInterval);
+    window.clearInterval(this._statsInterval);
+    this._speedsInterval = null;
+    this._statsInterval = null;
+  };
+
+  handleVisibilityChange = () => {
+    if (document.hidden) {
+      this.stopPolling();
+    } else {
+      this.startPolling();
+    }
+  };
+
   fetchStats = async () => {
-    if (!session.isLoggedIn() || this._fetchStatsInFlight) {
+    if (
+      document.hidden ||
+      !session.isLoggedIn() ||
+      this._fetchStatsInFlight
+    ) {
       return;
     }
 
@@ -143,7 +176,7 @@ class Footer extends Component {
     try {
       const slskdnStats = await slskdnAPI.getSlskdnStats();
 
-      if (this._isMounted) {
+      if (this._isMounted && !document.hidden) {
         this.setState({
           slskdnStats,
           stats: slskdnStats?.transport ?? null,
@@ -158,13 +191,19 @@ class Footer extends Component {
   };
 
   fetchSpeeds = async () => {
-    if (!session.isLoggedIn() || this._fetchSpeedsInFlight) {
+    if (
+      document.hidden ||
+      !session.isLoggedIn() ||
+      this._fetchSpeedsInFlight
+    ) {
       return;
     }
 
     this._fetchSpeedsInFlight = true;
     try {
       const raw = await transfers.getSpeeds();
+      if (!this._isMounted || document.hidden) return;
+
       const now = Date.now();
       const HOLD_MS = 3_000;
       const DECAY = 0.65;
@@ -197,9 +236,7 @@ class Footer extends Component {
       }
 
       this._displaySpeeds = displayed;
-      if (this._isMounted) {
-        this.setState({ speeds: displayed });
-      }
+      this.setState({ speeds: displayed });
     } catch (error) {
       console.debug('Failed to fetch transfer speeds:', error);
     } finally {
