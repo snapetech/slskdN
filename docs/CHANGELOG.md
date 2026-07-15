@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Messaging V2 no longer refetches details for every saved pod during
+  hydration; slow-changing pod metadata uses a separate sixty-second cadence,
+  overlapping and hidden-tab polling is suppressed, and unchanged lists avoid
+  rerendering the workspace.
 - Conversation-list unread counts now use one indexed SQLite projection instead
   of loading every unread private-message row and rescanning it per
   conversation.

@@ -1,3 +1,18 @@
+## Update 2026-07-15 19:07:05Z
+
+- Current task: performance and efficiency improvements in progress; Messaging V2 hydration fan-out pass complete locally.
+- Last activity:
+  - Removed redundant per-pod detail requests because the saved-pod list already contains full channel metadata.
+  - Split ten-second conversation/room hydration from sixty-second pod/discovery hydration, deduplicated overlapping work and unchanged state updates, scoped post-mutation refreshes, and paused both timers while hidden.
+  - Reduced a ten-pod first visible minute from 98 hydration requests to 18 (81.63% fewer); hidden steady-state hydration is zero.
+  - Added request-shape, cadence, overlap, and visibility regressions; documented gotchas `0z575` through `0z577` in standalone commits `0b0bf3237`, `61bec4b25`, and `aca0a1f91`.
+- Validation:
+  - Passed focused Messaging V2 tests (`4/4`), complete Web tests (`781` passed, `4` skipped), production Web build, focused ESLint, polling-lifecycle, and whitespace checks.
+  - Passed complete backend suites (`4708/4708`: `69` smoke, `4361` unit, `278` integration) and repository lint.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 18:52:41Z
 
 - Current task: performance and efficiency improvements in progress; conversation unread-count query pass complete locally.

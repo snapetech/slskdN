@@ -47,6 +47,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 const NETWORKS = ['all', 'soulseek', 'mesh'];
 const ROOM_DIRECTORY_MAX_RETRIES = 20;
+const MESSAGING_HYDRATION_INTERVAL_MS = 10_000;
+const POD_HYDRATION_INTERVAL_MS = 60_000;
 
 const COMPOSER_COMMANDS = [
   {
@@ -112,6 +114,43 @@ const formatUnread = (count) => {
   if (!Number.isFinite(count) || count <= 0) return null;
   return count > 99 ? '99+' : String(count);
 };
+
+const conversationListSignature = (conversations) =>
+  conversations
+    .map((conversation) =>
+      [
+        conversation.username,
+        conversation.hasUnAcknowledgedMessages === true ? '1' : '0',
+        conversation.unAcknowledgedMessageCount || 0,
+      ].join('\u0001'))
+    .join('\u0002');
+
+const roomListSignature = (rooms) => rooms.join('\u0001');
+
+const podChannelListSignature = (channels) =>
+  channels
+    .map((channel) =>
+      [
+        channel.channelId,
+        channel.channelKind,
+        channel.channelName,
+        channel.podId,
+        channel.podName,
+        channel.target,
+      ].join('\u0001'))
+    .join('\u0002');
+
+const discoveredPodListSignature = (podsToCompare) =>
+  podsToCompare
+    .map((pod) =>
+      [
+        pod.podId || pod.PodId,
+        pod.name || pod.Name,
+        pod.focusContentId || pod.FocusContentId,
+        pod.visibility || pod.Visibility,
+        asArray(pod.tags || pod.Tags).join('\u0003'),
+      ].join('\u0001'))
+    .join('\u0002');
 
 const zoomIndex = (zoom) => Math.max(0, ZOOM_LEVELS.indexOf(zoom));
 
@@ -185,71 +224,140 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   const lastWheelZoomAt = useRef(0);
   const roomDirectoryRetryTimer = useRef(null);
   const roomDirectoryRetryCount = useRef(0);
+  const messagingHydrationInFlight = useRef(null);
+  const messagingHydrationInterval = useRef(null);
+  const mountedRef = useRef(false);
+  const podHydrationInFlight = useRef(null);
+  const podHydrationInterval = useRef(null);
   const currentUser = state?.user?.username;
 
-  const hydrate = useCallback(async () => {
-    const [
-      serverConversations,
-      serverJoinedRooms,
-      serverPods,
-      serverDiscoveredPods,
-    ] = await Promise.all([
-      chat.getAll(),
-      rooms.getJoined(),
-      pods.list().catch(() => []),
-      Promise.resolve(
-        typeof pods.discoverAll === 'function' ? pods.discoverAll(50) : [],
-      ).catch(() => []),
-    ]);
-    const podDetails = await Promise.all(
-      asArray(serverPods)
-        .filter((pod) => pod && typeof pod === 'object' && !Array.isArray(pod))
-        .map(async (pod) => {
-          try {
-            return await pods.get(pod.podId);
-          } catch {
-            return pod;
-          }
-        }),
-    );
+  const hydrateMessaging = useCallback(() => {
+    if (messagingHydrationInFlight.current) {
+      return messagingHydrationInFlight.current;
+    }
 
-    setConversations(
-      asArray(serverConversations)
-        .filter((c) => c && typeof c === 'object' && !Array.isArray(c) && c.username)
-        .sort((a, b) => {
-          if (a.hasUnAcknowledgedMessages !== b.hasUnAcknowledgedMessages) {
-            return a.hasUnAcknowledgedMessages ? -1 : 1;
-          }
-          return a.username.localeCompare(b.username);
-        }),
-    );
-    setJoinedRooms(asArray(serverJoinedRooms).filter(Boolean).sort());
-    setDiscoveredPods(
-      asArray(serverDiscoveredPods)
-        .filter((pod) => pod && typeof pod === 'object' && !Array.isArray(pod))
-        .sort((a, b) =>
-          (a.name || a.Name || a.podId || a.PodId || '').localeCompare(
-            b.name || b.Name || b.podId || b.PodId || '',
-          )),
-    );
-    setPodChannels(
-      podDetails
-        .flatMap((pod) =>
-          asArray(pod.channels)
-            .filter((channel) =>
-              channel && typeof channel === 'object' && !Array.isArray(channel))
-            .map((channel) => ({
-              channelId: channel.channelId,
-              channelKind: channel.kind,
-              channelName: channel.name,
-              podId: pod.podId,
-              podName: pod.name || pod.podId,
-              target: encodePodTarget(pod.podId, channel.channelId),
-            })),
-        )
-        .sort((a, b) => channelLabel(a).localeCompare(channelLabel(b))),
-    );
+    const request = (async () => {
+      try {
+        const [serverConversations, serverJoinedRooms] = await Promise.all([
+          chat.getAll(),
+          rooms.getJoined(),
+        ]);
+        if (!mountedRef.current) return;
+
+        const nextConversations = asArray(serverConversations)
+          .filter((c) => c && typeof c === 'object' && !Array.isArray(c) && c.username)
+          .sort((a, b) => {
+            if (a.hasUnAcknowledgedMessages !== b.hasUnAcknowledgedMessages) {
+              return a.hasUnAcknowledgedMessages ? -1 : 1;
+            }
+            return a.username.localeCompare(b.username);
+          });
+        const nextJoinedRooms = asArray(serverJoinedRooms).filter(Boolean).sort();
+
+        setConversations((previous) =>
+          conversationListSignature(previous) === conversationListSignature(nextConversations)
+            ? previous
+            : nextConversations);
+        setJoinedRooms((previous) =>
+          roomListSignature(previous) === roomListSignature(nextJoinedRooms)
+            ? previous
+            : nextJoinedRooms);
+      } catch (error) {
+        console.error('Failed to hydrate messaging workspace:', error);
+      }
+    })();
+    const trackedRequest = request.finally(() => {
+      if (messagingHydrationInFlight.current === trackedRequest) {
+        messagingHydrationInFlight.current = null;
+      }
+    });
+    messagingHydrationInFlight.current = trackedRequest;
+    return trackedRequest;
   }, []);
+
+  const hydratePods = useCallback(() => {
+    if (podHydrationInFlight.current) {
+      return podHydrationInFlight.current;
+    }
+
+    const request = (async () => {
+      try {
+        const [serverPods, serverDiscoveredPods] = await Promise.all([
+          pods.list().catch((error) => {
+            console.error('Failed to list saved pods:', error);
+            return [];
+          }),
+          Promise.resolve(
+            typeof pods.discoverAll === 'function' ? pods.discoverAll(50) : [],
+          ).catch((error) => {
+            console.debug('Failed to refresh discovered pods:', error);
+            return [];
+          }),
+        ]);
+        if (!mountedRef.current) return;
+
+        const nextDiscoveredPods = asArray(serverDiscoveredPods)
+          .filter((pod) => pod && typeof pod === 'object' && !Array.isArray(pod))
+          .sort((a, b) =>
+            (a.name || a.Name || a.podId || a.PodId || '').localeCompare(
+              b.name || b.Name || b.podId || b.PodId || '',
+            ));
+        const nextPodChannels = asArray(serverPods)
+          .filter((pod) => pod && typeof pod === 'object' && !Array.isArray(pod))
+          .flatMap((pod) =>
+            asArray(pod.channels)
+              .filter((channel) =>
+                channel && typeof channel === 'object' && !Array.isArray(channel))
+              .map((channel) => ({
+                channelId: channel.channelId,
+                channelKind: channel.kind,
+                channelName: channel.name,
+                podId: pod.podId,
+                podName: pod.name || pod.podId,
+                target: encodePodTarget(pod.podId, channel.channelId),
+              })),
+          )
+          .sort((a, b) => channelLabel(a).localeCompare(channelLabel(b)));
+
+        setDiscoveredPods((previous) =>
+          discoveredPodListSignature(previous) === discoveredPodListSignature(nextDiscoveredPods)
+            ? previous
+            : nextDiscoveredPods);
+        setPodChannels((previous) =>
+          podChannelListSignature(previous) === podChannelListSignature(nextPodChannels)
+            ? previous
+            : nextPodChannels);
+      } catch (error) {
+        console.error('Failed to hydrate pod workspace:', error);
+      }
+    })();
+    const trackedRequest = request.finally(() => {
+      if (podHydrationInFlight.current === trackedRequest) {
+        podHydrationInFlight.current = null;
+      }
+    });
+    podHydrationInFlight.current = trackedRequest;
+    return trackedRequest;
+  }, []);
+
+  const refreshMessagingAfterMutation = useCallback(async () => {
+    if (messagingHydrationInFlight.current) {
+      await messagingHydrationInFlight.current;
+    }
+    return hydrateMessaging();
+  }, [hydrateMessaging]);
+
+  const refreshPodsAfterMutation = useCallback(async () => {
+    if (podHydrationInFlight.current) {
+      await podHydrationInFlight.current;
+    }
+    return hydratePods();
+  }, [hydratePods]);
+
+  const hydrate = useCallback(
+    () => Promise.all([hydrateMessaging(), hydratePods()]),
+    [hydrateMessaging, hydratePods],
+  );
 
   const loadAvailableRooms = useCallback(async () => {
     setRoomDirectoryRequested(true);
@@ -290,16 +398,55 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
   }, []);
 
   useEffect(() => {
-    hydrate().catch((error) => {
-      console.error('Failed to hydrate v2 messaging workspace:', error);
-    });
-    const interval = window.setInterval(() => {
-      hydrate().catch((error) => {
-        console.error('Failed to hydrate v2 messaging workspace:', error);
-      });
-    }, 10_000);
-    return () => window.clearInterval(interval);
-  }, [hydrate]);
+    mountedRef.current = true;
+
+    const stopPolling = () => {
+      if (messagingHydrationInterval.current) {
+        window.clearInterval(messagingHydrationInterval.current);
+        messagingHydrationInterval.current = null;
+      }
+      if (podHydrationInterval.current) {
+        window.clearInterval(podHydrationInterval.current);
+        podHydrationInterval.current = null;
+      }
+    };
+    const startPolling = () => {
+      if (document.hidden) return;
+      if (!messagingHydrationInterval.current) {
+        messagingHydrationInterval.current = window.setInterval(
+          hydrateMessaging,
+          MESSAGING_HYDRATION_INTERVAL_MS,
+        );
+      }
+      if (!podHydrationInterval.current) {
+        podHydrationInterval.current = window.setInterval(
+          hydratePods,
+          POD_HYDRATION_INTERVAL_MS,
+        );
+      }
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+        return;
+      }
+
+      hydrate();
+      startPolling();
+    };
+
+    if (!document.hidden) {
+      hydrate();
+      startPolling();
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      mountedRef.current = false;
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [hydrate, hydrateMessaging, hydratePods]);
 
   useEffect(() => {
     if (!roomAddOpen) return;
@@ -481,7 +628,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
       }
       try {
         await chat.remove({ username });
-        await hydrate();
+        await refreshMessagingAfterMutation();
         updateWorkspace((previous) => {
           const tabs = previous.tabs.filter(
             (tab) => !(tab.type === 'chat' && tab.target === username),
@@ -500,7 +647,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         console.error('Failed to delete conversation:', error);
       }
     },
-    [hydrate, updateWorkspace],
+    [refreshMessagingAfterMutation, updateWorkspace],
   );
 
   const leaveRoom = useCallback(
@@ -509,7 +656,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
       if (!window.confirm(`Leave room "${roomName}"?`)) return;
       try {
         await rooms.leave({ roomName });
-        await hydrate();
+        await refreshMessagingAfterMutation();
         updateWorkspace((previous) => {
           const tabs = previous.tabs.filter(
             (tab) => !(tab.type === 'room' && tab.target === roomName),
@@ -528,7 +675,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         console.error('Failed to leave room:', error);
       }
     },
-    [hydrate, updateWorkspace],
+    [refreshMessagingAfterMutation, updateWorkspace],
   );
 
   const leavePod = useCallback(
@@ -543,7 +690,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
       if (!window.confirm(prompt)) return;
       try {
         await pods.leave(channel.podId, peerId);
-        await hydrate();
+        await refreshPodsAfterMutation();
         updateWorkspace((previous) => {
           const tabs = previous.tabs.filter((tab) => {
             if (tab.type !== 'pod') return true;
@@ -564,7 +711,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         console.error('Failed to leave pod:', error);
       }
     },
-    [hydrate, state?.user?.username, updateWorkspace],
+    [refreshPodsAfterMutation, state?.user?.username, updateWorkspace],
   );
 
   const startDirectMessage = useCallback(() => {
@@ -581,7 +728,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
     setRoomJoinError('');
     try {
       await rooms.join({ roomName: trimmed });
-      await hydrate();
+      await refreshMessagingAfterMutation();
       openTab('room', trimmed);
       return true;
     } catch (error) {
@@ -593,7 +740,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
       setRoomJoinError(message);
       return false;
     }
-  }, [hydrate, openTab]);
+  }, [openTab, refreshMessagingAfterMutation]);
 
   const joinRoomFromPicker = useCallback(async (roomName) => {
     const joined = await joinRoomByName(roomName);
@@ -627,14 +774,14 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         podName: created.name || name,
         target: encodePodTarget(created.podId, 'general'),
       };
-      await hydrate();
+      await refreshPodsAfterMutation();
       openTab('pod', channel.target, channelLabel(channel));
       setPodDraft('');
       setPodAddOpen(false);
     } catch (error) {
       console.error('Failed to create pod room:', error);
     }
-  }, [currentUser, hydrate, openTab, podDraft]);
+  }, [currentUser, openTab, podDraft, refreshPodsAfterMutation]);
 
   const saveDiscoveredPod = useCallback(async (pod) => {
     const podId = pod.podId || pod.PodId;
@@ -656,8 +803,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         tags: asArray(pod.tags || pod.Tags),
         visibility: pod.visibility || pod.Visibility || 'Unlisted',
       }, currentUser || 'local-peer');
-      const detail = await pods.get(saved.podId).catch(() => saved);
-      const firstChannel = asArray(detail.channels)[0] || { channelId: 'general', name: 'General' };
+      const firstChannel = asArray(saved.channels)[0] || { channelId: 'general', name: 'General' };
       const channel = {
         channelId: firstChannel.channelId,
         channelName: firstChannel.name,
@@ -665,12 +811,12 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         podName: saved.name || name,
         target: encodePodTarget(saved.podId, firstChannel.channelId),
       };
-      await hydrate();
+      await refreshPodsAfterMutation();
       openTab('pod', channel.target, channelLabel(channel));
     } catch (error) {
       console.error('Failed to save discovered pod:', error);
     }
-  }, [currentUser, hydrate, openTab]);
+  }, [currentUser, openTab, refreshPodsAfterMutation]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -926,7 +1072,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
         const roomName = argv.join(' ').trim();
         rooms.join({ roomName }).then(() => {
           openTab('room', roomName);
-          hydrate();
+          refreshMessagingAfterMutation();
         });
         return true;
       }
@@ -944,7 +1090,7 @@ const MessagingV2 = ({ initialKind = 'mixed', state }) => {
       }
       return false;
     },
-    [activePodChannel, activeTab, closeTab, hydrate, leavePod, leaveRoom, openTab, setZoom],
+    [activePodChannel, activeTab, closeTab, leavePod, leaveRoom, openTab, refreshMessagingAfterMutation, setZoom],
   );
 
   const showMembers = activeTab && activeTab.type !== 'chat' && memberRailOpen;

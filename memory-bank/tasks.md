@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove Messaging V2 hydration N+1 requests and hidden polling.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Confirmed `pods.list()` already returns full channel metadata, then removed the redundant `pods.get()` call per saved pod and the extra detail request after saving a discovered pod. Split ten-second conversation/joined-room hydration from sixty-second saved/discovered-pod hydration, deduplicated in-flight work, skipped unchanged state updates with stable field signatures, refreshed only the affected domain after mutations, and stopped both cadences while hidden. With ten pods, first-minute hydration falls from 98 requests to 18 (81.63% fewer); hidden steady-state load falls to zero. Added detail-fan-out, cadence, overlap, and visibility regressions; documented gotchas `0z575` through `0z577` in standalone commits `0b0bf3237`, `61bec4b25`, and `aca0a1f91`.
+
 - [x] Keep conversation unread-count aggregation inside SQLite.
   - Status: completed (2026-07-15)
   - Priority: P1
