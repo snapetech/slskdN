@@ -21811,3 +21811,18 @@ if (!columns.Contains("lastviewedat"))  // ← adds column only when MISSING
 ```
 
 **Why This Keeps Happening**: When writing idempotent `ALTER TABLE` migrations, it's intuitive to write "if column exists" because you're thinking about schema discovery. But the correct logic needs the negation: "if column does NOT exist, add it." Always double-check the condition — the difference between `Contains` and `!Contains` here silently breaks the migration with zero compile-time warnings.
+### 0z551. E2E Share Announcements Need Explicit Web-Audience Binding
+
+**The Bug**: After federation recipients were correctly moved into the
+`network:*` namespace, the authenticated E2E-only announcement endpoint still
+used the production ingestion path. The grant was persisted successfully but
+could not appear in "Shared with Me" for the authenticated test account.
+
+**Files Affected**:
+- `src/slskd/Sharing/ShareGrantAnnouncementService.cs`
+- `src/slskd/Sharing/API/SharesController.cs`
+
+**Prevention**: Keep private-message ingestion bound only to network identity.
+When the guarded E2E endpoint must exercise the recipient UI, pass its already
+authenticated web-account identity explicitly and bind only that test-ingested
+grant to the web audience. Never infer web ownership from a Soulseek username.
