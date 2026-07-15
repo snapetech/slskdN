@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- GitLab CI configuration now keeps the Arch package-smoke sudoers command as
+  a string scalar, and performance-test dependencies align with the runtime
+  graph so GitLab pipeline creation and GitHub dependency submission succeed.
 - Share manifests now send reusable share tokens in a request header, and
   shared-content playback exchanges them for short-lived, content-bound stream
   tickets instead of exposing long-lived secrets in URLs.

@@ -1,3 +1,14 @@
+## Update 2026-07-15 04:05:00Z
+
+- Current task: GitHub and GitLab CI failure remediation in progress.
+- Last activity:
+  - Identified GitHub dependency submission failures as a direct/transitive package downgrade in the performance tests.
+  - Identified GitLab's jobless failed pipelines as invalid CI configuration caused by an unquoted colon in a `before_script` entry.
+  - Documented gotcha `0z561`, aligned the NuGet reference, and quoted the GitLab script scalar.
+- Next steps:
+  1. Validate NuGet restore and GitLab CI lint against the target instance.
+  2. Commit/push both remotes and verify the resulting GitHub and GitLab states.
+
 ## Update 2026-07-15 03:35:00Z
 
 - Current task: share-token URL exposure remediation complete locally.

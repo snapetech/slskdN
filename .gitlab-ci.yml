@@ -245,7 +245,7 @@ package-smoke:arch:
   before_script:
     - pacman -Sy --noconfirm --needed bash ca-certificates curl git sudo
     - useradd -m package-smoke
-    - printf 'package-smoke ALL=(ALL) NOPASSWD: ALL\n' >/etc/sudoers.d/package-smoke
+    - 'printf ''package-smoke ALL=(ALL) NOPASSWD: ALL\n'' >/etc/sudoers.d/package-smoke'
     - chown -R package-smoke:package-smoke "$CI_PROJECT_DIR"
   script:
     - sudo -u package-smoke env PACKAGE_SMOKE_ARTIFACT_DIR="$PACKAGE_SMOKE_ARTIFACT_DIR" packaging/smoke/package-smoke "$SMOKE_PROJECT" "$SMOKE_CHANNEL" "$CI_COMMIT_TAG" --arch "$SMOKE_ARCH"

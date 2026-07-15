@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Fix repeated GitHub dependency-submission and GitLab pipeline failures.
+  - Status: completed (2026-07-15)
+  - Priority: P0
+  - Notes: Raised the performance test project's direct `System.Configuration.ConfigurationManager` reference to `10.0.8`, matching dotNetRdf's transitive minimum, and quoted the GitLab Arch smoke sudoers command so it remains a string scalar. Documented ADR-0001 gotcha `0z561`.
+
 - [x] Remove reusable share tokens from manifest and stream URLs.
   - Status: completed (2026-07-15)
   - Priority: P0
