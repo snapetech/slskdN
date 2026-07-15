@@ -2621,6 +2621,9 @@ virtualization, or backend paging before they are mapped into JSX.
 **The Bug**: Adding the structured `DownloadEnqueueRequest` overload to
 `IDownloadService` left the integration-test stub implementing only the older
 tuple overloads, so the integration test project failed to compile.
+The same failure recurred when `Count` and `ListCompleted` were added for
+bounded transfer history after only the main implementation and Moq-based unit
+tests were updated.
 
 **Files Affected**:
 - `src/slskd/Transfers/Downloads/DownloadService.cs`
@@ -2651,7 +2654,10 @@ public Task<(List<Transfer> Enqueued, List<string> Failed)> EnqueueAsync(
 **Why This Keeps Happening**: Controller tests often mock interfaces directly,
 while integration tests compile against lightweight service stubs. When a core
 interface gains a new overload or member, every concrete fake/stub in all test
-projects must be updated before validation can even run.
+projects must be updated before validation can even run. Before editing the
+interface, search the entire repository for `: IDownloadService` and update
+each concrete implementation in the same change; focused controller tests that
+use dynamic mocks cannot expose this contract drift.
 
 ### 0z461. Wishlist Edit Fields Must Be Wired Through Every Contract Layer
 
