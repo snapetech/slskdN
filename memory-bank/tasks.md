@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Fix nondeterministic mesh preview pipe completion during release CI.
+  - Status: completed (2026-07-15)
+  - Priority: P0
+  - Notes: The `.275` release gate exposed a race where disposing the pipe-backed stream and explicitly completing its writer created two completion owners. The producer now leaves the writer open and completes it exactly once in `finally`, making hash mismatch and peer failure paths clean EOFs. Documented ADR-0001 gotcha `0z557`. Focused Release tests passed (`3/3`).
+
 - [x] Restore Soulseek connectivity on the live VPN-required Docker install.
   - Status: completed (2026-06-19)
   - Priority: P0

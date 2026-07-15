@@ -1,3 +1,17 @@
+## Update 2026-07-15 01:40:09Z
+
+- Current task: replacement stable release in progress.
+- Last activity:
+  - The `.275` tag completed its local gate but failed the hosted release gate before publishing artifacts because a mesh hash-mismatch test timed out.
+  - Documented pipe completion ownership gotcha `0z557` in standalone commit `a683cf7e5`.
+  - Updated the mesh preview producer to retain and complete its writer exactly once.
+- Validation:
+  - Passed focused Release `MeshStreamServiceTests` (`3/3`).
+- Next steps:
+  1. Run repository lint and the replacement release gate.
+  2. Push both remotes and cut `.276`.
+  3. Verify the hosted workflow and published artifacts.
+
 ## Update 2026-07-14 16:00:00Z
 
 - Current task: release and live deployment complete.

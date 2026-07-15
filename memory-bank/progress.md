@@ -1,3 +1,10 @@
+## 2026-07-15
+
+- The `build-main-2026071501-slskdn.275` release gate failed before publishing any artifacts when the mesh hash-mismatch regression intermittently left its pipe reader pending in CI.
+- Removed competing pipe-completion owners from `MeshStreamService`: the stream now leaves the writer open and the producer completes it once in `finally` for success, cancellation, expected peer failures, and unexpected failures.
+- Documented ADR-0001 gotcha `0z557` in the required standalone docs commit `a683cf7e5`.
+- Focused Release validation passed (`MeshStreamServiceTests`, `3/3`).
+
 ## 2026-06-19
 
 - Restored Soulseek connectivity on the live VPN-required Docker install. The app was Docker-healthy, but the local Gluetun-compatible VPN status helper was stopped, so slskdN correctly fail-closed and waited for VPN status instead of connecting to Soulseek.

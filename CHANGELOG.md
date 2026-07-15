@@ -34,6 +34,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Mesh preview producers now retain ownership of their pipe writer until a
+  single final completion, so hash mismatches and peer failures return clean
+  end-of-stream responses instead of intermittently leaving readers pending.
 - Wishlist results can now persistently ignore one peer folder for one saved
   search without blocking the peer. Ignored folders are excluded from result
   display, hit counts, album candidates, and auto-download selection, can be

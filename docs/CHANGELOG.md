@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Mesh preview producers now retain ownership of their pipe writer until a
+  single final completion, so hash mismatches and peer failures return clean
+  end-of-stream responses instead of intermittently leaving readers pending.
 - The Gold Star Club auto-join, mesh bootstrap, and MediaCore content-publisher
   background services now contain non-cancellation errors instead of letting them
   escape ExecuteAsync, which under the default host behavior would stop the entire

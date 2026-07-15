@@ -104,30 +104,30 @@ public sealed class MeshStreamService : IMeshStreamService
                 return;
             }
 
-            await using var output = writer.AsStream();
+            await using var output = writer.AsStream(leaveOpen: true);
             if (!string.IsNullOrWhiteSpace(claims.ExpectedHash))
             {
                 await FetchVerifiedThenCopyAsync(claims, peerId, output, cancellationToken).ConfigureAwait(false);
-                await writer.CompleteAsync().ConfigureAwait(false);
                 return;
             }
 
             await FetchAndCopyAsync(claims, peerId, output, cancellationToken).ConfigureAwait(false);
-            await writer.CompleteAsync().ConfigureAwait(false);
         }
-        catch (OperationCanceledException ex)
+        catch (OperationCanceledException)
         {
-            await writer.CompleteAsync(ex).ConfigureAwait(false);
+            _logger.LogDebug("Mesh preview stream of {ContentId} was cancelled.", claims.ContentId);
         }
         catch (Exception ex) when (IsExpectedMeshStreamFailure(ex))
         {
             _logger.LogWarning("Mesh preview stream of {ContentId} ended because the mesh peer is unavailable: {Message}", claims.ContentId, ex.Message);
-            await writer.CompleteAsync(ex).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Mesh preview stream of {ContentId} failed: {Message}", claims.ContentId, ex.Message);
-            await writer.CompleteAsync(ex).ConfigureAwait(false);
+        }
+        finally
+        {
+            await writer.CompleteAsync().ConfigureAwait(false);
         }
     }
 
