@@ -9,8 +9,11 @@ export const hasUnAcknowledgedMessages = async () => {
   return (await api.get('/conversations/activity/unacknowledged')).data === true;
 };
 
-export const get = async ({ username }) => {
-  return (await api.get(`/conversations/${encodeURIComponent(username)}`)).data;
+export const get = async ({ username, since = null }) => {
+  const query = since == null ? '' : `?since=${encodeURIComponent(since)}`;
+  return (
+    await api.get(`/conversations/${encodeURIComponent(username)}${query}`)
+  ).data;
 };
 
 export const acknowledge = ({ username }) => {

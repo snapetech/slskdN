@@ -43,54 +43,90 @@ const classifyBody = (rawBody) => {
 };
 
 const messageId = (parts) => parts.filter((part) => part != null).join('|');
+const normalizeTimestamp = (value) => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
 
-export const createChatAdapter = ({ username, currentUser }) => ({
-  capabilities: { batch: true },
-  fetchOnce: false,
-  members: null,
-  pollIntervalMs: POLL_INTERVAL_MS,
-  topic: `@${username}`,
-  type: 'chat',
+  const numeric = Number(value);
+  if (value !== '' && Number.isFinite(numeric)) {
+    return numeric;
+  }
 
-  async list() {
-    if (!username) return { messages: [], unread: 0 };
-    let conversation;
-    try {
-      conversation = await chat.get({ username });
-    } catch {
-      return { messages: [], unread: 0 };
-    }
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 
-    const rawMessages = asArray(conversation?.messages).filter(
-      (item) => item && typeof item === 'object' && !Array.isArray(item),
-    );
-    const messages = rawMessages.map((m, index) => {
-      const isSelf = m.direction === 'Out';
-      const sender = isSelf ? currentUser || 'me' : m.username;
-      const classified = classifyBody(m.message);
-      return {
-        body: classified.body,
-        id: messageId([m.timestamp, m.direction, index]),
-        isSelf,
-        kind: classified.kind,
-        meta: classified.meta,
-        sender,
-        ts: typeof m.timestamp === 'number' ? m.timestamp : Number(m.timestamp) || 0,
-      };
-    });
+export const createChatAdapter = ({ username, currentUser }) => {
+  let cachedMessages = [];
+  let latestTimestamp = null;
 
-    if (conversation?.hasUnAcknowledgedMessages) {
-      chat.acknowledge({ username }).catch(() => {});
-    }
+  return {
+    capabilities: { batch: true },
+    fetchOnce: false,
+    members: null,
+    pollIntervalMs: POLL_INTERVAL_MS,
+    topic: `@${username}`,
+    type: 'chat',
 
-    return { messages, unread: 0 };
-  },
+    async list() {
+      if (!username) return { messages: [], unread: 0 };
+      let conversation;
+      try {
+        const since = latestTimestamp === null ? null : Math.max(0, latestTimestamp - 1);
+        conversation = await chat.get({ since, username });
+      } catch {
+        return { messages: cachedMessages, unread: 0 };
+      }
 
-  send(body) {
-    if (!username) return Promise.resolve();
-    return chat.send({ message: body, username });
-  },
-});
+      const rawMessages = asArray(conversation?.messages).filter(
+        (item) => item && typeof item === 'object' && !Array.isArray(item),
+      );
+      const mapped = rawMessages.map((message) => {
+        const isSelf = message.direction === 'Out';
+        const sender = isSelf ? currentUser || 'me' : message.username;
+        const classified = classifyBody(message.message);
+        const timestamp = normalizeTimestamp(message.timestamp);
+        return {
+          body: classified.body,
+          id: messageId([
+            message.id,
+            message.timestamp,
+            message.direction,
+            message.username,
+          ]),
+          isSelf,
+          kind: classified.kind,
+          meta: classified.meta,
+          sender,
+          ts: timestamp,
+        };
+      });
+
+      const byId = new Map(cachedMessages.map((message) => [message.id, message]));
+      mapped.forEach((message) => byId.set(message.id, message));
+      cachedMessages = Array.from(byId.values())
+        .sort((left, right) => left.ts - right.ts || left.id.localeCompare(right.id))
+        .slice(-100);
+      mapped.forEach((message) => {
+        if (latestTimestamp === null || message.ts > latestTimestamp) {
+          latestTimestamp = message.ts;
+        }
+      });
+
+      if (conversation?.hasUnAcknowledgedMessages) {
+        chat.acknowledge({ username }).catch(() => {});
+      }
+
+      return { messages: cachedMessages, unread: 0 };
+    },
+
+    send(body) {
+      if (!username) return Promise.resolve();
+      return chat.send({ message: body, username });
+    },
+  };
+};
 
 export const createRoomAdapter = ({ roomName, currentUser }) => ({
   capabilities: { contextMenu: true },
@@ -119,7 +155,7 @@ export const createRoomAdapter = ({ roomName, currentUser }) => ({
           kind: classified.kind,
           meta: classified.meta,
           sender,
-          ts: typeof m.timestamp === 'number' ? m.timestamp : Number(m.timestamp) || 0,
+          ts: normalizeTimestamp(m.timestamp),
         };
       });
     return { messages };
@@ -169,9 +205,7 @@ export const createPodAdapter = ({ channel, currentUser }) => {
         const isSelf = currentUser && sender === currentUser;
         const classified = classifyBody(m.body);
         const timestamp =
-          typeof m.timestampUnixMs === 'number'
-            ? m.timestampUnixMs
-            : Number(m.timestampUnixMs) || 0;
+          normalizeTimestamp(m.timestampUnixMs);
         return {
           body: classified.body,
           id: m.messageId || messageId([timestamp, sender, m.body, m.signature]),
@@ -227,4 +261,4 @@ export const createPodAdapter = ({ channel, currentUser }) => {
   };
 };
 
-export const __test__ = { classifyBody, detectListenAlong };
+export const __test__ = { classifyBody, detectListenAlong, normalizeTimestamp };

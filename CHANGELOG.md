@@ -10,6 +10,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Active private-chat polling now requests only messages newer than an
+  overlapping timestamp cursor, merges them into a bounded client cache, avoids
+  overlapping or unchanged refreshes, and stops legacy-chat polling while the
+  browser document is hidden. Private-message timeline reads use a composite
+  username/timestamp index.
 - The legacy Pods route now reuses list metadata, polls Pod metadata every
   sixty seconds, merges channel messages incrementally into a bounded cache,
   and stops all polling while hidden.
@@ -56,6 +61,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Private-chat unread totals now count the complete conversation rather than
+  the bounded message window, and ISO-formatted chat and room timestamps retain
+  their real ordering instead of being treated as zero.
 - Direct legacy Pod channel URLs now hydrate Pod detail, membership, and
   messages instead of treating route parameters as already-loaded state.
 - System Network now normalizes peer and swarm-job response shapes, so live

@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Private-chat polling now uses an overlapping timestamp cursor and bounded
+  client cache instead of repeatedly transferring the latest 100 messages.
+  Legacy chat also suppresses overlapping work and hidden-tab polling;
+  server-side timeline reads use a composite username/timestamp index, unread
+  totals cover the full conversation, and ISO chat/room timestamps sort
+  correctly.
 - The legacy Pods route now reuses complete list metadata, incrementally merges
   channel messages, polls slow metadata every sixty seconds, suspends hidden
   work, and correctly hydrates direct Pod channel URLs.

@@ -402,13 +402,10 @@ namespace slskd.Messaging
                 if (includeMessages)
                 {
                     conversation.Messages = await ListMessagesAsync(m => m.Username == conversation.Username);
-                    conversation.UnAcknowledgedMessageCount = conversation.Messages.Count(m => !m.IsAcknowledged);
                 }
-                else
-                {
-                    var unacked = await ListMessagesAsync(m => m.Username == conversation.Username && !m.IsAcknowledged);
-                    conversation.UnAcknowledgedMessageCount = unacked.Count();
-                }
+
+                conversation.UnAcknowledgedMessageCount = await context.PrivateMessages.CountAsync(m =>
+                    m.Username == conversation.Username && !m.IsAcknowledged);
             }
 
             return conversation;
@@ -485,21 +482,21 @@ namespace slskd.Messaging
         /// </summary>
         /// <param name="expression">An optional expression used to locate private messages.</param>
         /// <returns>The operation context, including the list of found private messages.</returns>
-        public Task<IEnumerable<PrivateMessage>> ListMessagesAsync(Expression<Func<PrivateMessage, bool>>? expression = null)
+        public async Task<IEnumerable<PrivateMessage>> ListMessagesAsync(Expression<Func<PrivateMessage, bool>>? expression = null)
         {
             expression ??= m => true;
             using var context = ContextFactory.CreateDbContext();
 
-            var response = context.PrivateMessages
+            var response = await context.PrivateMessages
                 .AsNoTracking()
                 .Where(expression)
                 .OrderByDescending(m => m.Timestamp)
-                .Take(100) // stupid.  TakeLast doesn't work
+                .Take(100)
                 .OrderBy(m => m.Timestamp)
-                .ToList()
-                .AsEnumerable();
+                .ToListAsync()
+                .ConfigureAwait(false);
 
-            return Task.FromResult(response);
+            return response;
         }
 
         /// <summary>

@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.Tests.Unit.Messaging;
 
+using System.Linq.Expressions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -12,6 +13,51 @@ using Xunit;
 
 public class ConversationsControllerTests
 {
+    [Fact]
+    public async Task GetByUsername_With_Since_Returns_Only_Newer_Messages()
+    {
+        var cutoff = new DateTime(2026, 7, 15, 12, 0, 0, DateTimeKind.Utc);
+        var messages = new[]
+        {
+            new PrivateMessage { Id = 1, Username = "user-1", Timestamp = cutoff.AddSeconds(-1) },
+            new PrivateMessage { Id = 2, Username = "user-1", Timestamp = cutoff.AddSeconds(1) },
+        };
+        var conversations = new Mock<IConversationService>();
+        conversations
+            .Setup(x => x.FindAsync("user-1", true, false))
+            .ReturnsAsync(new Conversation { Username = "user-1" });
+        conversations
+            .Setup(x => x.ListMessagesAsync(It.IsAny<Expression<Func<PrivateMessage, bool>>>()))
+            .Returns((Expression<Func<PrivateMessage, bool>> expression) =>
+                Task.FromResult(messages.Where(expression.Compile())));
+        var controller = CreateController(conversations.Object);
+
+        var result = await controller.GetByUsername(
+            " user-1 ",
+            includeMessages: true,
+            since: new DateTimeOffset(cutoff).ToUnixTimeMilliseconds());
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var conversation = Assert.IsType<Conversation>(ok.Value);
+        var message = Assert.Single(conversation.Messages);
+        Assert.Equal(2, message.Id);
+        conversations.Verify(x => x.FindAsync("user-1", true, false), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetByUsername_With_Negative_Since_Returns_BadRequest()
+    {
+        var conversations = new Mock<IConversationService>();
+        var controller = CreateController(conversations.Object);
+
+        var result = await controller.GetByUsername("user-1", since: -1);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        conversations.Verify(
+            x => x.FindAsync(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>()),
+            Times.Never);
+    }
+
     [Fact]
     public async Task GetUnAcknowledgedActivity_Returns_Service_Value()
     {

@@ -22,6 +22,7 @@ using Microsoft.Extensions.Options;
 
 namespace slskd.Messaging.API
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
@@ -234,6 +235,7 @@ namespace slskd.Messaging.API
         /// </summary>
         /// <param name="username">The username associated with the desired conversation.</param>
         /// <param name="includeMessages"></param>
+        /// <param name="since">Optional Unix timestamp in milliseconds; only newer messages are returned.</param>
         /// <returns></returns>
         /// <response code="200">The request completed successfully.</response>
         /// <response code="404">A matching search was not found.</response>
@@ -241,7 +243,10 @@ namespace slskd.Messaging.API
         [Authorize(Policy = AuthPolicy.Any)]
         [ProducesResponseType(typeof(Conversation), 200)]
         [ProducesResponseType(404)]
-        public async Task<IActionResult> GetByUsername([FromRoute] string username, [FromQuery] bool includeMessages = true)
+        public async Task<IActionResult> GetByUsername(
+            [FromRoute] string username,
+            [FromQuery] bool includeMessages = true,
+            [FromQuery] long? since = null)
         {
             if (Program.IsRelayAgent)
             {
@@ -254,11 +259,37 @@ namespace slskd.Messaging.API
                 return BadRequest("username is required");
             }
 
-            var conversation = await Messages.Conversations.FindAsync(username, includeMessages: includeMessages);
+            DateTime? messagesSince = null;
+            if (since.HasValue)
+            {
+                if (since.Value < 0)
+                {
+                    return BadRequest("since must be a non-negative Unix timestamp in milliseconds");
+                }
+
+                try
+                {
+                    messagesSince = DateTimeOffset.FromUnixTimeMilliseconds(since.Value).UtcDateTime;
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    return BadRequest("since is outside the supported Unix timestamp range");
+                }
+            }
+
+            var conversation = await Messages.Conversations.FindAsync(
+                username,
+                includeMessages: includeMessages && !messagesSince.HasValue);
 
             if (conversation == default)
             {
                 return NotFound();
+            }
+
+            if (includeMessages && messagesSince.HasValue)
+            {
+                conversation.Messages = await Messages.Conversations.ListMessagesAsync(message =>
+                    message.Username == username && message.Timestamp > messagesSince.Value);
             }
 
             return Ok(conversation);

@@ -1,3 +1,20 @@
+## Update 2026-07-15 20:11:26Z
+
+- Current task: performance and efficiency improvements in progress; incremental private-chat polling and indexed timeline pass complete locally.
+- Last activity:
+  - Added an optional Unix-millisecond conversation cursor and bounded overlapping message merging to unified and legacy chat.
+  - Prevented overlapping legacy requests, skipped unchanged state, preserved cached messages across transient failures, and stopped legacy polling while hidden.
+  - Added an idempotent `(Username, Timestamp)` SQLite index, kept full unread totals in SQL outside the bounded display window, and fixed ISO timestamp ordering in chat and room adapters.
+  - Reduced representative first-minute 100-message response traffic by 96.49% in unified chat and 92.04% in legacy chat; hidden legacy traffic falls from 12 requests per minute to zero. Synthetic 200,000-message timeline queries improved from 3,611 ms to 11 ms across 200 runs.
+  - Added service, migration, query-plan, controller, API-client, cursor/merge, cache-failure, overlap, timestamp, and visibility regressions; documented gotchas `0z583` through `0z585` in standalone commits `a6a94ddfc`, `606a433e5`, `d480d948e`, and `e93833c2e`.
+- Validation:
+  - Passed focused backend tests (`15/15`) and focused Web tests (`28/28`).
+  - Passed complete Web tests (`799` passed, `4` skipped), production Web build, and frontend lint with zero errors.
+  - Passed complete backend suites (`4714/4714`: `69` smoke, `4367` unit, `278` integration) and repository lint.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 19:53:55Z
 
 - Current task: performance and efficiency improvements in progress; legacy Pods route polling pass complete locally.

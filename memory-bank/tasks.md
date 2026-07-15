@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make active private-chat polling incremental and index timeline reads.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Added an optional Unix-millisecond `since` cursor to the conversation endpoint, a bounded overlapping merge cache in unified and legacy chat, overlap/visibility lifecycle guards, and an idempotent `(Username, Timestamp)` SQLite index migration. Conversation unread totals now use a full SQL count outside the 100-message display window, and ISO timestamp normalization preserves ordering. For a representative 100-message/256-byte conversation, the unified first visible minute falls from 1,241,829 bytes to 43,599 bytes (96.49% fewer) and legacy chat falls from 520,767 bytes to 41,475 bytes (92.04% fewer); hidden legacy polling falls from 12 requests per minute to zero. On a synthetic 200,000-message database, 200 timeline queries fell from 3,611 ms to 11 ms (99.70% faster). Added service, migration, query-plan, controller, API-client, cursor/merge, failure-cache, overlap, timestamp, and visibility regressions; documented gotchas `0z583` through `0z585` in standalone commits `a6a94ddfc`, `606a433e5`, `d480d948e`, and `e93833c2e`.
+
 - [x] Make the legacy Pods route incremental and lifecycle-aware.
   - Status: completed (2026-07-15)
   - Priority: P1
