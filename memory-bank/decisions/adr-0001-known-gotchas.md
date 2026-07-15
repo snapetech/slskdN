@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z591. Room Collections Must Be Materialized Under Their Mutation Lock
+
+**The Bug**: `RoomTracker` correctly mutated each room's `List<T>` message and
+user collections under `lock (room)`, but the room-message API returned a
+deferred LINQ projection over `room.Messages` without taking that lock. A new
+Soulseek room message could mutate the list while ASP.NET enumerated it during
+JSON serialization, producing inconsistent output or an enumeration failure.
+
+**Files Affected**:
+- `src/slskd/Messaging/RoomTracker.cs`
+- `src/slskd/Messaging/API/Controllers/RoomsController.cs`
+
+**Prevention**: Every reader of a room's mutable `List<T>` collections must use
+the same `lock (room)` as writers and materialize the result before releasing
+the lock. Never return deferred LINQ over tracker-owned lists from a controller;
+cursor filtering and DTO projection must both complete inside the locked
+snapshot boundary.
+
 ### 0z590. Gotcha Identifiers Cannot Be Chosen From File Position
 
 **The Bug**: A new gotcha was assigned `0z574` after inspecting the end of this
