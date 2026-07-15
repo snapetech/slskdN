@@ -9045,3 +9045,14 @@ rollback.
 - Next steps:
   1. No security, CodeQL, dependency PR, or roadmap-issue maintenance remains.
   2. No release/build tag was created.
+## Update 2026-07-15 01:30:00Z
+
+- Current task: GitHub/GitLab main reconciliation complete.
+- Last activity:
+  - Merged the duplicate GitLab libclang history without replacing newer main content.
+  - Hardened Prometheus HELP/TYPE metadata parsing against malformed collector output.
+- Validation:
+  - Passed focused Prometheus parsing tests (`6/6`) and diff checks.
+- Next steps:
+  1. Push the unified main tip to GitHub and GitLab.
+  2. No release/build tag was created.

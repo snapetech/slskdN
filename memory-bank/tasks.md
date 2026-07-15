@@ -3024,3 +3024,4 @@
 - [2026-07-11T18:34:00Z] Completed: build and deploy manual image `0.0.0-manual.20260711182800.34113e245` to the live validation host, restore the hardened slskdN service layout with rollback backups, and pass authenticated headless core and broad route validation with clean final health and logs.
 - [2026-07-15T01:00:00Z] Completed: resolve scheduled E2E browse/policy failures, isolate concurrent node Web roots, preserve explicit web/network share identity boundaries, prevent stale incoming-share listings, and fix the Servarr readiness API import.
 - [2026-07-15T01:15:00Z] Completed: integrate and validate Dependabot PRs #257, #263, and #264, including direct test-package alignment for grouped NuGet updates.
+- [2026-07-15T01:30:00Z] Completed: harden Prometheus metadata parsing against malformed custom collector lines.

@@ -99,7 +99,15 @@ public class PrometheusService
 
         foreach (var (startIndex, endIndex) in offsets)
         {
-            var header = lines[startIndex].Substring(7).Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+            // "# HELP " is 7 characters; a malformed/short HELP line would otherwise
+            // throw ArgumentOutOfRangeException and fail the whole metrics response.
+            var helpLine = lines[startIndex];
+            if (helpLine.Length <= 7)
+            {
+                continue;
+            }
+
+            var header = helpLine.Substring(7).Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
             if (header.Length < 2)
             {
                 continue;
@@ -124,7 +132,16 @@ public class PrometheusService
                 continue;
             }
 
-            var typeParts = lines[startIndex + 1].Substring(7).Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+            // The line after a HELP line is only a TYPE line in well-formed output. A
+            // custom collector could emit a HELP without a following TYPE, leaving a short
+            // sample line here; Substring(7) on it would throw and fail the response.
+            var typeLine = lines[startIndex + 1];
+            if (!typeLine.StartsWith("# TYPE ", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var typeParts = typeLine.Substring(7).Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
             if (typeParts.Length < 2)
             {
                 continue;

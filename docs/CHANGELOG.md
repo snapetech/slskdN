@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Prometheus metrics responses now skip malformed HELP/TYPE metadata lines
+  instead of failing the entire response.
+- The metrics object endpoint no longer throws on malformed Prometheus exposition
+  text (a HELP line with no following TYPE line, or an over-short header line),
+  skipping unparseable metric families instead of failing the whole response.
 - Multi-source chunk calculation now guards against a non-positive chunk size,
   which previously could spin forever and exhaust memory instead of downloading.
 - Streaming responses now forward asynchronous reads to the underlying stream
