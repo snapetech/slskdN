@@ -52,6 +52,31 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z597. Membership Rails Must Not Multiply Full Membership Reconstruction
+
+**The Bug**: Messaging V2 refreshed the active room or pod's complete member
+list every five seconds without visibility or overlap guards. Pod refreshes then
+loaded membership twice—once to authorize the request and once for the
+response—and each load materialized every retained membership event before
+computing two timestamps per current member. Transport failures were also
+converted to `[]`, erasing the last successful rail as if the pod had become
+empty.
+
+**Files Affected**:
+- `src/slskd/PodCore/SqlitePodService.cs`
+- `src/slskd/PodCore/API/PodApiAuthorizer.cs`
+- `src/slskd/API/Native/PodsController.cs`
+- `src/web/src/components/Messaging/MessagingV2.jsx`
+- `src/web/src/components/Messaging/messagingAdapters.js`
+
+**Prevention**: Trace collection polling through every authorization and data
+layer. Reuse a membership snapshot already loaded for authorization, aggregate
+retained event history in SQL to one row per peer, and assert the generated
+command does not return unused event columns. Collection rails must use a
+bounded cadence, stop while hidden, reject overlapping requests, retain the
+last successful snapshot on transport failure, and still accept a successful
+empty response as authoritative.
+
 ### 0z596. Small Polling Responses Must Not Materialize Full History
 
 **The Bug**: The app-wide transfer-speed endpoint returned only eight numeric
