@@ -52,6 +52,20 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z602. Analytics Reads Must Preserve Request Cancellation
+
+**The Bug**: Swarm efficiency analytics accepted the controller's cancellation
+token but replaced it with `CancellationToken.None` before loading and ranking
+the complete peer-metrics table. Disconnecting or superseding the request could
+therefore leave the expensive database read and managed ranking work running.
+
+**Files Affected**:
+- `src/slskd/Transfers/MultiSource/Analytics/SwarmAnalyticsService.cs`
+
+**Prevention**: Propagate the request token through every analytics layer,
+especially full-table reads and ranking operations. Do not replace a supplied
+token with `CancellationToken.None` inside a read-only request path.
+
 ### 0z601. Async UI Tests Must Wait For Loaded Data, Not Static Shells
 
 **The Bug**: An Integrations test used `findByText` on a panel heading that was
