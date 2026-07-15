@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z606. Polling Guards Must Preserve The Lifecycle Checker's Literal Contract
+
+**The Bug**: A polling component guarded async completion with a compound
+condition containing `!mountedRef.current`, which was behaviorally correct but
+did not satisfy `check-web-polling-lifecycle.sh`. The repository gate requires
+the established literal `if (!mountedRef.current) return;` shape and failed the
+implementation late in validation.
+
+**Files Affected**:
+- `src/web/src/components/System/SwarmAnalytics/index.jsx`
+- `scripts/check-web-polling-lifecycle.sh`
+
+**Prevention**: Before adding a component to recurring polling, inspect the
+lifecycle checker and keep its literal mounted-completion guard as a standalone
+statement. Put visibility, generation, and stale-request checks after it rather
+than combining them into one equivalent expression.
+
 ### 0z605. Build-Enabled Dotnet Tests Must Not Share Output Concurrently
 
 **The Bug**: Unit and integration `dotnet test` commands were started in
