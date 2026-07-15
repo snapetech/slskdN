@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z575. Vitest Mock Implementations Do Not Clear Invocation History
+
+**The Bug**: A multi-case polling test reset each mock's resolved value in
+`beforeEach` but did not clear its call history. Later cadence and hidden-tab
+assertions therefore counted requests made by earlier tests and failed with
+misleading overlap results.
+
+**Files Affected**:
+- `src/web/src/components/Messaging/MessagingV2.test.jsx`
+
+**Prevention**: Call `vi.clearAllMocks()` in `beforeEach` before assigning
+per-test implementations whenever assertions depend on exact invocation counts.
+Changing `mockResolvedValue` or `mockImplementation` does not reset calls from
+earlier tests.
+
 ### 0z574. Summary Counts Must Stay In SQL And Match A Covering Index
 
 **The Bug**: Conversation listing loaded every unacknowledged private-message
