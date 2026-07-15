@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Blacklist username-pattern matching now applies a per-match regex timeout so a
+  pathological configured pattern combined with a crafted peer username cannot
+  stall a request thread through catastrophic backtracking (ReDoS).
 - Swarm performance analysis now treats an empty peer set as a neutral result
   instead of averaging an empty sequence, which was swallowed as a spurious
   "analysis failed" error on every analysis of a new or idle swarm.

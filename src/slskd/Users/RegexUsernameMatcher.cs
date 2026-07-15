@@ -12,6 +12,11 @@ using Microsoft.Extensions.Options;
 
 public sealed class RegexUsernameMatcher : IUsernameMatcher, IDisposable
 {
+    // Patterns are admin-configured but usernames come from the Soulseek network. A
+    // pathological pattern (accidental or malicious) applied to a crafted username can
+    // backtrack catastrophically, so bound every match with a timeout.
+    private static readonly TimeSpan RegexMatchTimeout = TimeSpan.FromMilliseconds(250);
+
     public RegexUsernameMatcher(
         IOptionsMonitor<global::slskd.Options> optionsMonitor,
         IMemoryCache memoryCache)
@@ -38,7 +43,17 @@ public sealed class RegexUsernameMatcher : IUsernameMatcher, IDisposable
         return Cache.GetOrCreate(cacheKey, entry =>
         {
             entry.SlidingExpiration = TimeSpan.FromMinutes(10);
-            return Patterns.Expressions.Any(pattern => pattern.IsMatch(username));
+            try
+            {
+                return Patterns.Expressions.Any(pattern => pattern.IsMatch(username));
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                // A pattern took too long against this username; don't let it stall the
+                // caller. Treat as no-match and cache so a crafted username can't be
+                // replayed to burn CPU repeatedly.
+                return false;
+            }
         });
     }
 
@@ -61,7 +76,7 @@ public sealed class RegexUsernameMatcher : IUsernameMatcher, IDisposable
         }
 
         var expressions = rawPatterns
-            .Select(pattern => new Regex(pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase))
+            .Select(pattern => new Regex(pattern, RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase, RegexMatchTimeout))
             .ToArray();
 
         Patterns = new CompiledPatterns(CreateSignature(rawPatterns), expressions);
