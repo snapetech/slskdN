@@ -22144,3 +22144,18 @@ compile.
 **Prevention**: Inspect the concrete enum before writing cross-layer fixtures.
 Use mesh-native NAT values for `MeshTransportStats`, and let JSON/API mapping
 carry their string representation instead of inventing UI-only enum members.
+
+### 0z573. Dashboard Summaries Must Not Serialize Rich Internal Status Types
+
+**The Bug**: The first network-summary implementation returned
+`MultiSourceDownloadStatus` objects directly. That internal type contains more
+state than the dashboard needs, including local output-path and fingerprint
+metadata that the existing active-jobs endpoint does not expose. The shortcut
+would have increased payload size and broadened authenticated API disclosure.
+
+**Files Affected**:
+- `src/slskd/Core/API/Controllers/NetworkController.cs`
+
+**Prevention**: Project dashboard summaries to the smallest established public
+shape. Return only identifiers and counters rendered by the UI; do not reuse a
+rich internal entity merely to avoid a small response type.
