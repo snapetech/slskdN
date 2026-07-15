@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z585. Timestamp Cursors Must Normalize Serialized Date Strings
+
+**The Bug**: The unified private-chat adapter converted backend `DateTime`
+values with `Number(timestamp)`. ASP.NET serializes those values as ISO date
+strings, so every valid message timestamp became `0`, breaking chronological
+ordering and preventing the client from advancing an incremental cursor.
+
+**Files Affected**:
+- `src/web/src/components/Messaging/messagingAdapters.js`
+- `src/web/src/components/Chat/ChatSession.jsx`
+
+**Prevention**: Normalize cursor timestamps at the API boundary: preserve
+finite numeric milliseconds, parse ISO date strings with `Date.parse`, and
+reject non-finite results. Test with the actual serialized representation, not
+only numeric fixtures. Cursor and merge regressions must assert both the next
+request's millisecond value and the displayed chronological order.
+
 ### 0z584. Async Database APIs Must Perform Async Materialization
 
 **The Bug**: `ConversationService.ListMessagesAsync` executed EF Core's
