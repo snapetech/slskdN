@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z574. Summary Counts Must Stay In SQL And Match A Covering Index
+
+**The Bug**: Conversation listing loaded every unacknowledged private-message
+row, including message bodies, then rescanned that materialized list once per
+conversation to calculate unread counts. The acknowledgement index covered only
+the filter column, so even a grouped replacement still needed extra table or
+temporary grouping work.
+
+**Files Affected**:
+- `src/slskd/Messaging/ConversationService.cs`
+- `src/slskd/Messaging/MessagingDbContext.cs`
+- `src/slskd/Core/Data/Migrations/Z07152026_PrivateMessageAcknowledgementIndexMigration.cs`
+
+**Prevention**: Project summary counts in the database query instead of loading
+the counted entities. For correlated counts filtered by acknowledgement and
+matched by username, keep a covering `(IsAcknowledged, Username)` index and make
+the migration verify the ordered index columns, not merely the index name. Add
+query-plan coverage that requires the covering index.
+
 ### 0z550. Fixed Application Chrome Must Stay Below Modal Dimmers
 
 **The Bug**: The persistent player bar used `z-index: 1100`, above Semantic
