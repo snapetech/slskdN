@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z578. Read Models Must Not Generate New Entity IDs Per Fetch
+
+**The Bug**: `SqlitePodMessaging.GetMessagesAsync` generated a new GUID for
+every returned message on every read even though the stored composite key was
+stable. Repeated polling therefore made unchanged messages appear to have new
+identities and prevented reliable incremental merging or deduplication.
+
+**Files Affected**:
+- `src/slskd/PodCore/SqlitePodMessaging.cs`
+- `src/web/src/components/Messaging/messagingAdapters.js`
+
+**Prevention**: Derive read-model IDs from the persisted uniqueness key. Pod
+messages use `(PodId, ChannelId, TimestampUnixMs, SenderPeerId)` as their key,
+so expose that same deterministic identity and test that two reads return an
+identical ID before relying on cursor-based client merging.
+
 ### 0z577. Verify List Payloads Before Adding Per-Item Detail Fetches
 
 **The Bug**: Messaging V2 fetched the saved-pod list, then issued one detail
