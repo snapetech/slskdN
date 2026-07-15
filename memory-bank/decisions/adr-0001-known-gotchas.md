@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z607. Aggregate Failures Must Not Masquerade As Successful Empty State
+
+**The Bug**: The first combined Swarm Analytics service caught a peer-snapshot
+failure and returned an all-empty dashboard. The browser could not distinguish
+that fallback from an authoritative successful response and would replace its
+last good cached analytics with empty data.
+
+**Files Affected**:
+- `src/slskd/Transfers/MultiSource/Analytics/SwarmAnalyticsService.cs`
+- `src/web/src/components/System/SwarmAnalytics/index.jsx`
+
+**Prevention**: New aggregate read endpoints must propagate source failures so
+HTTP clients can execute their failure-cache path. Reserve successful empty
+collections for authoritative empty results; do not catch a failed snapshot and
+translate it into the same response shape.
+
 ### 0z606. Polling Guards Must Preserve The Lifecycle Checker's Literal Contract
 
 **The Bug**: A polling component guarded async completion with a compound
