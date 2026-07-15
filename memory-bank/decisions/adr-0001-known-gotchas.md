@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z595. Polling Requests Must Reject Stale Resource Completions
+
+**The Bug**: Splitting swarm status and trace polling by cadence guarded each
+request type against overlap, but a request started for one job could resolve
+after the modal switched to another job and populate the new view with the old
+job's data. The shared in-flight flag could also delay the new job's immediate
+refresh until the stale request completed.
+
+**Files Affected**:
+- `src/web/src/components/System/SwarmVisualization/index.jsx`
+- `src/web/src/components/System/SwarmVisualization/index.test.jsx`
+
+**Prevention**: Bind every resource-scoped poll completion to the resource ID
+captured when the request started. On resource changes, invalidate prior
+request generations and clear their in-flight ownership before starting the
+new resource's refresh. After every await, reject completions whose captured ID
+or generation no longer matches the active resource. Cover both status and
+optional telemetry with a deferred-response resource-switch regression.
+
 ### 0z594. Polling API Fallbacks Must Not Conflate Failure With Empty State
 
 **The Bug**: The Jobs page was changed to preserve its current swarm cards on
