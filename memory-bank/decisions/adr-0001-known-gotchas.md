@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z599. Testing Library Text Queries Must Be Scoped To Semantic Context
+
+**The Bug**: A Port Forwarding component test used `getByText('3')` after both
+an aggregate statistic and a detail table correctly rendered the same member
+count. Testing Library rejected the ambiguous query because two elements
+matched, even though the product behavior was correct.
+
+**Files Affected**:
+- `src/web/src/components/Pods/PortForwarding.test.jsx`
+
+**Prevention**: Do not assert common numbers or labels with a document-wide
+singular text query. Locate the unique semantic label, row, region, or accessible
+name first, then assert the related value within that context. Use `getAllBy*`
+only when multiplicity itself is the behavior under test.
+
 ### 0z598. Runtime-Type xUnit Assertions Do Not Return The Value
 
 **The Bug**: A controller test tried to assign the result of
