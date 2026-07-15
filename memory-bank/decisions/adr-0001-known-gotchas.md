@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z550. Fixed Application Chrome Must Stay Below Modal Dimmers
+
+**The Bug**: The persistent player bar used `z-index: 1100`, above Semantic
+UI's page-modal dimmer. Player display and analyzer elements therefore
+intercepted pointer events intended for visible Share Group and Collection
+modal buttons, causing both real UI breakage and repeated E2E timeouts.
+
+**Files Affected**:
+- `src/web/src/components/App.css`
+- `src/web/src/components/Player/Player.css`
+
+**Prevention**: Define an explicit application stacking order in which page
+modal dimmers sit above fixed navigation, footer, and player chrome. When adding
+or raising a fixed surface, exercise a modal over that surface and verify its
+controls receive pointer events.
+
 ### 0z549. Parallel E2E Workers Must Not Replace One Shared Web Directory
 
 **The Bug**: Each application-node harness start removed and recopied the same
