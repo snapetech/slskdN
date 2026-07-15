@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z612. Final Snapshots Must Drain Partial-Update Timers First
+
+**The Bug**: Repairing search progress-limiter ownership made its timer live
+through background completion. Without an earlier terminal boundary, a
+counter-only timer callback could race the final full response save and write
+an older progress snapshot after canonical completion data.
+
+**Files Affected**:
+- `src/slskd/Search/SearchService.cs`
+
+**Prevention**: Once the upstream operation can produce no more progress,
+dispose and drain its partial-update limiter before awaiting secondary work or
+saving the canonical terminal snapshot. Keep terminal cleanup idempotent so the
+outer `finally` can still cover exceptions.
+
 ### 0z611. Async Launch Failures Need The Same Cleanup As Background Completion
 
 **The Bug**: Search startup registered a per-search cancellation token before
