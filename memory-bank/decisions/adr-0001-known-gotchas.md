@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z609. Record Reconstruction Must Preserve Persisted Provenance
+
+**The Bug**: The search state-transition helper created a new `Search` record
+from Soulseek progress but copied only counters, state, identity, and query
+fields. It omitted the persisted `Source` and `WishlistItemId`, so the next
+database update could relabel a background search as manual and sever its
+wishlist association.
+
+**Files Affected**:
+- `src/slskd/Search/Extensions.cs`
+- `src/slskd/Search/SearchService.cs`
+
+**Prevention**: Prefer a record `with` expression when applying partial runtime
+state to a persisted record. If explicit reconstruction is unavoidable, test
+every persisted provenance and correlation field, not only the changing state
+and counters.
+
 ### 0z608. Polling Start Paths Must Check Current Visibility
 
 **The Bug**: Browse Session stopped its progress timer when a later
