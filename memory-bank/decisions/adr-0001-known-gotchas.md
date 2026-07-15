@@ -22001,3 +22001,19 @@ human-readable plan detail that names the selected index.
 **Prevention**: Read `EXPLAIN QUERY PLAN` through a data reader and inspect the
 fourth `detail` column. Do not use `ExecuteScalar()` when asserting which SQLite
 index or scan strategy the planner selected.
+
+### 0z564. Shared Footer Polls Need Separate Cadences And In-Flight Guards
+
+**The Bug**: The shared footer polled real-time speeds and seven aggregate or
+network status endpoints together every two seconds. Slow aggregate polls could
+overlap on each interval and later update state after the footer unmounted,
+multiplying backend work for every logged-in browser.
+
+**Files Affected**:
+- `src/web/src/components/Shared/Footer.jsx`
+
+**Prevention**: Give real-time and aggregate data separate polling cadences,
+keep timer ownership on the component instance, clear every timer on unmount,
+and reject a poll while its previous request is still in flight. Gate async
+state updates on the mounted lifecycle so completed requests cannot update an
+unmounted component.
