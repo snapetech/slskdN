@@ -104,6 +104,39 @@ Tone notes:
 
 Don't force-push or rewrite history on `main`. Preserve existing history as a record.
 
+### 7a. Decision of record: git history is intentionally preserved (not rewritten)
+
+**Status:** Decided 2026-07-14 (Keith). Supersedes the ambiguity flagged in a later audit.
+
+The tainted upstream sync merge `881453d29` (PR #217, which brought post-0.25.0 upstream
+slskd commits) remains an ancestor of `main` HEAD. The **working tree** and every
+**distributed binary** have had post-0.25.0 upstream code removed; the git **history**
+still contains those commits and blobs. We are deliberately **not** rewriting history to
+excise them, for these reasons:
+
+- **This is the cure standard we're relying on.** AGPLv3 §8's cure covers *ongoing*
+  conveyance once you stop it. The operative act of conveyance is distributing the
+  software (source tree + binaries), which is what users install. Cure is effected by
+  rolling the tree back to a pre-0.25.0 base and yanking/replacing the post-0.25.0-based
+  binaries from every distribution channel (see §8). That work — not history surgery — is
+  the cure. Whether an unrewritten git history independently counts as continued
+  "conveyance" of the post-0.25.0 code is a genuine legal judgment call; our position is
+  that it does not rise to the level requiring a destructive rewrite, and that preserving
+  the record is the more defensible posture.
+- **History rewriting is destructive and irreversible on a public repo.** A `filter-repo`
+  pass would change every commit hash from the merge point forward, force everyone to
+  re-clone, and can break release-tag commit references and cross-links. The audit trail
+  of exactly what happened and when — which is itself evidence of good-faith cure — would
+  be harder to reconstruct.
+- **Consistency.** §7 above already committed to "preserve existing history as a record."
+  This subsection makes the reasoning explicit so the choice isn't mistaken for an
+  oversight.
+
+If upstream specifically demands history excision and that demand is judged worth
+honoring, a `git filter-repo` rewrite (dropping the `881453d29` lineage, and ideally the
+oversized `.council/active-bughunt.md` blob in the same pass) followed by a force-push is
+the mechanism — but it should be a deliberate, separately-authorized action, not a default.
+
 1. Tag current `main` HEAD as `archive/pre-rollback-0.25.1` (local only until reviewed).
 2. Create branch `rollback/0.24.x` starting from `0cf819292`.
 3. Cherry-pick onto it the post-sync commits that are NOT dependent on 0.25.1 upstream code:
