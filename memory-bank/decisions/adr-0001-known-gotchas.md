@@ -22431,11 +22431,12 @@ rich internal entity merely to avoid a small response type.
 
 ### 0z574. New SQLite Indexes Can Steal Existing Ordered Queries
 
-**The Bug**: A new transfer count index used `(Direction, Removed)`. On a fresh
-or otherwise un-analyzed SQLite database, the planner selected it for an
-existing `Direction + UpdatedAt` timeline query because its leading column
-matched, then created a temporary B-tree for the timestamp order. The count
-query became faster, but the competing index regressed another hot path.
+**The Bug**: Adding transfer count and history indexes changed SQLite's choice
+for an existing `Direction + UpdatedAt` timeline query on a fresh or otherwise
+un-analyzed database. The planner selected the redundant `Direction`-only
+index, then created a temporary B-tree for the timestamp order. Reversing the
+new count index from `(Direction, Removed)` to `(Removed, Direction)` avoided
+one potential competitor but did not resolve the established redundant index.
 
 **Files Affected**:
 - `src/slskd/Transfers/TransfersDbContext.cs`
@@ -22443,8 +22444,11 @@ query became faster, but the competing index regressed another hot path.
 - `tests/slskd.Tests.Unit/Transfers/TransfersDbContextTests.cs`
 
 **Prevention**: Evaluate new indexes against existing query plans on an empty
-database as well as representative data. Order covering-index keys so the
-specific equality predicate comes first when doing so prevents the index from
-competing with unrelated ordered queries; for transfer counts, use
-`(Removed, Direction)`. Keep regression assertions for both the intended new
-plan and neighboring established plans, including absence of temporary sorts.
+database as well as representative data. Remove redundant prefix indexes when
+a composite index already covers the same lookup; the transfer
+`(Direction, UpdatedAt)` index makes the `Direction`-only index unnecessary.
+Order covering-index keys so the specific equality predicate comes first when
+doing so prevents competition with unrelated ordered queries; for transfer
+counts, use `(Removed, Direction)`. Keep regression assertions for both the
+intended new plan and neighboring established plans, including absence of
+temporary sorts.
