@@ -129,6 +129,12 @@ anchor patches with the unique test method name and nearby unique statements.
 Immediately inspect every occurrence of the edited symbol after applying the
 patch rather than assuming the first textual match was the intended block.
 
+**2026-07-16 update:** A patch intended to put a 10,000-item Wishlist fixture
+in the maximum Library Bloom promotion regression matched the earlier
+single-suggestion test's identical `wishlist.Setup(ListAsync)` line. Anchor
+fixture-size changes on the full unique test name plus its local count constant,
+then inspect every occurrence of the new numeric sentinel before running tests.
+
 ### 0z677. Use The Value Returned By `Interlocked` For Threshold Decisions
 
 **The Bug**: Library Health scan progress incremented a shared counter with
