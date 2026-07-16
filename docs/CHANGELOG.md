@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Discography and label-crate job reads now derive child aggregates in one pass
+  and skip the parent upsert when totals and status are unchanged. Steady-state
+  polling falls from three database operations to two (33.3% fewer) and avoids
+  a write lock; a 10,000-release aggregate falls from four list passes to one.
 - HashDb history backfill now flattens each retained search page into one
   existing bounded inventory/peer ingestion transaction. With one FLAC response
   per search, the default 50-search page falls from 100 database commands to

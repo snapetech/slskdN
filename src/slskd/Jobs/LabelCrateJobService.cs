@@ -80,22 +80,41 @@ namespace slskd.Jobs
                 releaseStatuses = seeds.ToList();
             }
 
-            job.TotalReleases = releaseStatuses.Count;
-            job.CompletedReleases = releaseStatuses.Count(r => r.Status == JobStatus.Completed);
-            job.FailedReleases = releaseStatuses.Count(r => r.Status == JobStatus.Failed);
+            var completedReleases = 0;
+            var failedReleases = 0;
+            var anyRunning = false;
+            var anyPending = false;
+            foreach (var release in releaseStatuses)
+            {
+                completedReleases += release.Status == JobStatus.Completed ? 1 : 0;
+                failedReleases += release.Status == JobStatus.Failed ? 1 : 0;
+                anyRunning |= release.Status == JobStatus.Running;
+                anyPending |= release.Status == JobStatus.Pending;
+            }
 
-            var anyRunning = releaseStatuses.Any(r => r.Status == JobStatus.Running);
-            var anyPending = releaseStatuses.Any(r => r.Status == JobStatus.Pending);
-
-            job.Status = job.TotalReleases == 0
+            var totalReleases = releaseStatuses.Count;
+            var status = totalReleases == 0
                 ? JobStatus.Pending
-                : job.CompletedReleases == job.TotalReleases
+                : completedReleases == totalReleases
                     ? JobStatus.Completed
-                    : job.FailedReleases > 0 && !anyRunning && !anyPending
+                    : failedReleases > 0 && !anyRunning && !anyPending
                         ? JobStatus.Failed
                         : JobStatus.Running;
 
-            await hashDb.UpsertLabelCrateJobAsync(job, ct).ConfigureAwait(false);
+            var aggregateChanged =
+                job.TotalReleases != totalReleases ||
+                job.CompletedReleases != completedReleases ||
+                job.FailedReleases != failedReleases ||
+                job.Status != status;
+            job.TotalReleases = totalReleases;
+            job.CompletedReleases = completedReleases;
+            job.FailedReleases = failedReleases;
+            job.Status = status;
+
+            if (aggregateChanged)
+            {
+                await hashDb.UpsertLabelCrateJobAsync(job, ct).ConfigureAwait(false);
+            }
 
             return job;
         }

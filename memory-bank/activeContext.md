@@ -1,3 +1,17 @@
+## Update 2026-07-16 09:33:06Z
+
+- Current task: performance and efficiency improvements in progress; job aggregate polling pass complete locally.
+- Last activity:
+  - Converted discography and label-crate child-status aggregation from four list passes to one and compare derived totals/status before writing the parent.
+  - Unchanged polls fall from three DB operations to two (33.3% fewer) and avoid a write lock; a 10,000-release aggregate falls from 40,000 predicate visits to 10,000. Changed state still writes exactly once.
+- Validation:
+  - Passed focused aggregation coverage (`2/2`), complete Jobs coverage (`25/25`), and full backend tests (`4852/4852`: `69` application, `4503` unit, `280` integration).
+  - Repository lint and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the job aggregate polling slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 09:25:29Z
 
 - Current task: performance and efficiency improvements in progress; history-backfill page consolidation pass complete locally.

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove unchanged job-aggregate writes and repeated list scans.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Converted both DiscographyJobService and LabelCrateJobService aggregation from four predicate passes to one loop and compare all derived fields before persisting the parent. Steady-state `GetJobAsync` polling falls from two reads plus one write to two reads (33.3% fewer operations) and no write lock; changed child state still produces exactly one parent update. A 10,000-release aggregate falls from 40,000 predicate visits to 10,000. Added unchanged-then-changed exact call-boundary regressions for both job types.
+
 - [x] Consolidate each HashDb history-backfill search page.
   - Status: completed (2026-07-16)
   - Priority: P1
