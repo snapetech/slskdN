@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z693. Migration Classes Do Nothing Until Migrator Registration
+
+**The Bug**: The ordered download auto-retry index migration was implemented
+and had direct migration tests, but it was never added to `Migrator.Migrations`.
+Application startup therefore never evaluated or applied the migration on
+existing transfer databases, even though isolated tests passed.
+
+**Files Affected**:
+- `src/slskd/Core/Data/Migrator.cs`
+- `src/slskd/Core/Data/Migrations/Z07162026_AutoRetryIndexMigration.cs`
+
+**Prevention**: Every new `IMigration` implementation must be registered in
+the append-only `Migrator.Migrations` initializer in dependency order. Add an
+integration assertion that constructs `Migrator` and observes the resulting
+schema; testing the migration class directly proves idempotence and SQL shape,
+but not that production startup can reach it.
+
 ### 0z692. HashDb Mutators Overwrite Fixture Recency
 
 **The Bug**: A recent-variant ordering regression assigned distinct
