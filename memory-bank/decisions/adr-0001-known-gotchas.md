@@ -52,6 +52,36 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z699. Extracted Helpers Cannot Start With A Blank Line
+
+**The Bug**: Extracting announcement persistence into a transactional helper
+left a blank line immediately after the opening brace. StyleCop reported
+SA1505 even though the method body and tests otherwise compiled.
+
+**Files Affected**:
+- `src/slskd/Sharing/ShareGrantAnnouncementService.cs`
+
+**Prevention**: When extracting a method, place its first comment or statement
+directly after the opening brace. Blank lines may separate later logical
+sections, but not the brace from the first body element.
+
+### 0z698. SaveChanges Wraps Interceptor Failures
+
+**The Bug**: A transaction rollback regression injected an
+`InvalidOperationException` from a command interceptor during
+`SaveChangesAsync` and asserted that exact exception. EF Core wraps command
+failures in `DbUpdateException`, so the rollback occurred but the assertion
+failed on the outer exception type.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Sharing/ShareGrantAnnouncementServiceTests.cs`
+
+**Prevention**: When a command interceptor deliberately fails an EF
+`SaveChanges` operation, assert `DbUpdateException` and inspect its inner
+exception only when the injected cause matters. Direct `ExecuteDeleteAsync`
+interceptor failures may propagate differently; match the assertion to the
+actual EF execution boundary.
+
 ### 0z697. Object Initializer Comments Still Need Blank Separation
 
 **The Bug**: Moving an explanatory comment directly between object initializer
