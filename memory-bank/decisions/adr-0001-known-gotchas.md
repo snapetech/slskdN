@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z620. Wall-Clock Rate Fixtures Must Not Assume Fast Test Setup
+
+**The Bug**: A transfer-speed regression seeded a transfer as starting ten
+seconds before `DateTime.UtcNow`, then asserted the calculated live speed
+within a narrow range. Under full-suite load, database setup and scheduling
+consumed enough additional wall time to push the correct bytes-per-elapsed-time
+result below that range.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Transfers/TransferServiceTests.cs`
+
+**Prevention**: Do not use a precomputed wall-clock timestamp plus a narrow
+derived-rate assertion when setup time is outside the test's control. Assert
+stable branches with explicit average speeds, inject a clock when elapsed-time
+behavior itself matters, or use bounds that prove the intended calculation
+without assuming sub-second test execution.
+
 ### 0z619. Supplemental Loading Must Not Hide Supplied Primary Data
 
 **The Bug**: Search result cards reused already-available speed, queue, and
