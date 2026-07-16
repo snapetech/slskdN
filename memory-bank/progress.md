@@ -1,3 +1,10 @@
+## Update 2026-07-16 15:01:26Z
+
+- Completed the atomic single-row peer-member removal performance pass.
+- Peer-ID removal now deletes one matching `rowid` through one bounded SQLite command instead of selecting, hydrating, tracking, and deleting a member in a second command.
+- Existing and missing paths fall from two commands to one (50% fewer), and hydration falls from one entity to zero. Exactly-one legacy duplicate removal, group scoping, no-op behavior, and EF/provider exception boundaries remain unchanged.
+- Validation passed: focused repository tests (`13/13`), broader Sharing tests (`98/98`), full backend tests (`4925/4925`: `69` application, `4576` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 14:56:01Z
 
 - Completed the atomic collection-item append performance pass.

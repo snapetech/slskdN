@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Peer-ID share-group member removal now deletes one matching legacy row with
+  one atomic SQLite command instead of reading and hydrating it first.
 - Collection-item append now assigns and returns its next ordinal in the same
   atomic SQLite insert instead of issuing a separate maximum-ordinal query.
 - Share-group member admission now uses one atomic conditional SQLite insert

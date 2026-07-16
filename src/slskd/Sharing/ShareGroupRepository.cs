@@ -111,10 +111,22 @@ public sealed class ShareGroupRepository : IShareGroupRepository
     public async Task RemoveMemberByPeerIdAsync(Guid shareGroupId, string peerId, CancellationToken cancellationToken = default)
     {
         await using var db = await _factory.CreateDbContextAsync(cancellationToken);
-        var m = await db.ShareGroupMembers.FirstOrDefaultAsync(x => x.ShareGroupId == shareGroupId && x.PeerId == peerId, cancellationToken);
-        if (m == null) return;
-        db.ShareGroupMembers.Remove(m);
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync($$"""
+                DELETE FROM "ShareGroupMembers"
+                WHERE rowid = (
+                    SELECT rowid
+                    FROM "ShareGroupMembers"
+                    WHERE "ShareGroupId" = {{shareGroupId}}
+                      AND "PeerId" = {{peerId}}
+                    LIMIT 1)
+                """, cancellationToken);
+        }
+        catch (DbException ex)
+        {
+            throw new DbUpdateException("An error occurred while saving the entity changes.", ex);
+        }
     }
 
     public async Task<IReadOnlyList<string>> GetMemberIdsAsync(Guid shareGroupId, CancellationToken cancellationToken = default)

@@ -176,13 +176,70 @@ public class ShareGroupRepositoryTests : IDisposable
             await db.SaveChangesAsync();
         }
 
+        _commands.Commands.Clear();
         await repo.RemoveMemberByPeerIdAsync(groupId, "peer123", default);
+        AssertSinglePeerDelete();
 
         using (var db = await _factory.CreateDbContextAsync())
         {
             var member = await db.ShareGroupMembers.FirstOrDefaultAsync(m => m.ShareGroupId == groupId && m.PeerId == "peer123");
             Assert.Null(member);
         }
+    }
+
+    [Fact]
+    public async Task RemoveMemberByPeerIdAsync_DuplicatePeer_RemovesOnlyOneMember()
+    {
+        var repo = new ShareGroupRepository(_factory);
+        var groupId = Guid.NewGuid();
+        using (var db = await _factory.CreateDbContextAsync())
+        {
+            db.ShareGroups.Add(new ShareGroup { Id = groupId, Name = "Test", OwnerUserId = "alice" });
+            db.ShareGroupMembers.AddRange(
+                new ShareGroupMember { ShareGroupId = groupId, UserId = "legacy-1", PeerId = "peer123" },
+                new ShareGroupMember { ShareGroupId = groupId, UserId = "legacy-2", PeerId = "peer123" });
+            await db.SaveChangesAsync();
+        }
+
+        _commands.Commands.Clear();
+        await repo.RemoveMemberByPeerIdAsync(groupId, "peer123", default);
+        AssertSinglePeerDelete();
+
+        using var verification = await _factory.CreateDbContextAsync();
+        Assert.Single(await verification.ShareGroupMembers.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
+    public async Task RemoveMemberByPeerIdAsync_MissingPeer_UsesOneNoOpCommand()
+    {
+        _commands.Commands.Clear();
+        await new ShareGroupRepository(_factory).RemoveMemberByPeerIdAsync(Guid.NewGuid(), "missing", default);
+        AssertSinglePeerDelete();
+    }
+
+    [Fact]
+    public async Task RemoveMemberByPeerIdAsync_DeleteFailure_PreservesExceptionBoundary()
+    {
+        var groupId = Guid.NewGuid();
+        using (var db = await _factory.CreateDbContextAsync())
+        {
+            db.ShareGroups.Add(new ShareGroup { Id = groupId, Name = "Test", OwnerUserId = "alice" });
+            db.ShareGroupMembers.Add(new ShareGroupMember { ShareGroupId = groupId, UserId = "peer123", PeerId = "peer123" });
+            await db.SaveChangesAsync();
+            await db.Database.ExecuteSqlRawAsync("""
+                CREATE TRIGGER BlockMemberDelete
+                BEFORE DELETE ON ShareGroupMembers
+                BEGIN
+                    SELECT RAISE(ABORT, 'blocked');
+                END
+                """);
+        }
+
+        _commands.Commands.Clear();
+        var exception = await Assert.ThrowsAsync<DbUpdateException>(() =>
+            new ShareGroupRepository(_factory).RemoveMemberByPeerIdAsync(groupId, "peer123", default));
+        Assert.IsType<SqliteException>(exception.InnerException);
+        AssertSinglePeerDelete();
     }
 
     [Fact]
@@ -249,6 +306,14 @@ public class ShareGroupRepositoryTests : IDisposable
         var command = Assert.Single(_commands.Commands);
         Assert.StartsWith("INSERT INTO \"ShareGroupMembers\"", command.TrimStart(), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("WHERE NOT EXISTS", command, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void AssertSinglePeerDelete()
+    {
+        var command = Assert.Single(_commands.Commands);
+        Assert.StartsWith("DELETE FROM \"ShareGroupMembers\"", command.TrimStart(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("WHERE rowid =", command, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("LIMIT 1", command, StringComparison.OrdinalIgnoreCase);
     }
 
     private class TestDbContextFactory : IDbContextFactory<CollectionsDbContext>

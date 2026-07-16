@@ -1,3 +1,17 @@
+## Update 2026-07-16 15:01:26Z
+
+- Current task: performance and efficiency improvements in progress; atomic single-row peer-member removal complete locally.
+- Last activity:
+  - Replaced peer-ID lookup, hydration, and tracked delete with one `rowid`-limited SQLite delete.
+  - Commands fall 50% and hydration falls to zero while one-row duplicate, no-op, group-scope, and EF exception semantics remain unchanged.
+- Validation:
+  - Passed focused repository (`13/13`), broader Sharing (`98/98`), and full backend (`4925/4925`) tests.
+  - Exact command/single-row/duplicate/no-op/exception boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the atomic peer-member removal slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 14:56:01Z
 
 - Current task: performance and efficiency improvements in progress; atomic collection-item append complete locally.

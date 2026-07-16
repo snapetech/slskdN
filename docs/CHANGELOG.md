@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Peer-ID share-group member removal now targets one matching SQLite `rowid`
+  through a bounded delete subquery instead of reading, hydrating, and then
+  deleting the entity. Existing and missing paths fall from two commands to
+  one (50% fewer), and hydration falls from one entity to zero. Exactly one
+  legacy duplicate remains the removal boundary, while no-op and EF/provider
+  exception behavior remain unchanged.
 - Collection-item append now assigns the next ordinal and returns it through
   one parameterized SQLite `INSERT ... SELECT ... RETURNING` statement instead
   of querying the maximum ordinal before a tracked insert. Each append falls
@@ -49,9 +55,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
   deletion now uses one key-targeted SQLite command instead of a lookup plus a
   tracked delete. Each operation falls from two commands to one (50% fewer)
   and entity hydration falls from one row to zero. Existing/missing return
-  values, missing-member no-ops, and database cascades remain unchanged;
-  peer-ID member deletion retains its single-row behavior because that
-  predicate is not database-unique.
+  values, missing-member no-ops, and database cascades remain unchanged.
 - Incoming collection announcements now replace prior collection items with
   one set-based SQLite delete inside the same explicit transaction as the new
   item, collection, and grant writes. With 1,000 prior items, replacement
