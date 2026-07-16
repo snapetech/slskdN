@@ -134,7 +134,6 @@ namespace slskd.HashDb
             try
             {
                 // Track this peer - they're active on the network and might have FLACs we want
-                await GetOrCreatePeerAsync(evt.Username);
                 await TouchPeerAsync(evt.Username);
                 log.Debug("[HashDb] Tracked peer {Username} who searched us (had results: {HadResults})", evt.Username, evt.HadResults);
             }
@@ -152,7 +151,6 @@ namespace slskd.HashDb
             try
             {
                 // Track this peer - they're active and downloading, good candidate for FLAC discovery
-                await GetOrCreatePeerAsync(evt.Username);
                 await TouchPeerAsync(evt.Username);
                 log.Debug("[HashDb] Tracked peer {Username} who downloaded {File}", evt.Username, evt.Filename);
             }
@@ -1199,17 +1197,16 @@ namespace slskd.HashDb
                 return;
             }
 
-            await GetOrCreatePeerAsync(username, cancellationToken);
-
             using var conn = GetConnection();
             using var cmd = conn.CreateCommand();
             cmd.CommandText = @"
-                UPDATE Peers 
-                SET caps = @caps, 
-                    client_version = COALESCE(@version, client_version),
-                    last_cap_check = @now,
-                    last_seen = @now
-                WHERE peer_id = @peer_id";
+                INSERT INTO Peers (peer_id, caps, client_version, last_cap_check, last_seen)
+                VALUES (@peer_id, @caps, @version, @now, @now)
+                ON CONFLICT(peer_id) DO UPDATE SET
+                    caps = excluded.caps,
+                    client_version = COALESCE(excluded.client_version, Peers.client_version),
+                    last_cap_check = excluded.last_cap_check,
+                    last_seen = excluded.last_seen";
             cmd.Parameters.AddWithValue("@peer_id", username);
             cmd.Parameters.AddWithValue("@caps", (int)caps);
             cmd.Parameters.AddWithValue("@version", clientVersion ?? (object)DBNull.Value);
@@ -1237,11 +1234,18 @@ namespace slskd.HashDb
         /// <inheritdoc/>
         public async Task TouchPeerAsync(string username, CancellationToken cancellationToken = default)
         {
-            await GetOrCreatePeerAsync(username, cancellationToken);
+            username = username?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                throw new ArgumentException("Peer ID is required", nameof(username));
+            }
 
             using var conn = GetConnection();
             using var cmd = conn.CreateCommand();
-            cmd.CommandText = "UPDATE Peers SET last_seen = @now WHERE peer_id = @peer_id";
+            cmd.CommandText = @"
+                INSERT INTO Peers (peer_id, last_seen)
+                VALUES (@peer_id, @now)
+                ON CONFLICT(peer_id) DO UPDATE SET last_seen = excluded.last_seen";
             cmd.Parameters.AddWithValue("@peer_id", username);
             cmd.Parameters.AddWithValue("@now", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
             await cmd.ExecuteNonQueryAsync(cancellationToken);

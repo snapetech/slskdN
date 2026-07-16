@@ -1,3 +1,17 @@
+## Update 2026-07-16 08:29:58Z
+
+- Current task: performance and efficiency improvements in progress; atomic HashDb peer-state write pass complete locally.
+- Last activity:
+  - Replaced peer activity and capability read-before-write sequences with one normalized atomic upsert, and removed the redundant explicit lookup from peer interaction events.
+  - Search/download events fall from three-to-five local database commands to one (66.7–80% fewer); touch and capability state preserve unrelated fields. Fixed spaced peer identifiers failing their final touch update. Documented gotcha `0z675` (`3ec78e1cf`).
+- Validation:
+  - Passed focused peer-state coverage (`2/2`), the complete HashDb class suite (`75/75`), and full backend tests (`4843/4843`: `69` application, `4494` unit, `280` integration).
+  - Repository lint and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the HashDb peer-state slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 08:19:45Z
 
 - Current task: performance and efficiency improvements in progress; passive FLAC ingestion batching pass complete locally.

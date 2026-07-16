@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- HashDb peer activity and capability updates now normalize identifiers once
+  and create-or-update with one atomic SQLite command. Peer search/download
+  events fall from three-to-five database commands to one (66.7–80% fewer),
+  while existing capabilities, versions, and backfill counters are preserved.
 - Passive FLAC discovery now writes inventory in 100-row SQLite batches, while
   history backfill also inserts 500 distinct peers per command in the same
   transaction. Persisting 100 live FLAC results falls from 100 commands to one;

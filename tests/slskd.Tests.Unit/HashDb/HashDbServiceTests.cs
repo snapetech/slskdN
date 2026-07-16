@@ -307,35 +307,45 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task TouchPeerAsync_UpdatesLastSeen()
+    public async Task TouchPeerAsync_NormalizesCreatesAndPreservesCapabilities()
     {
-        // Arrange
-        var peer1 = await service.GetOrCreatePeerAsync("testuser");
-        var originalLastSeen = peer1.LastSeen;
-        await Task.Delay(10); // Ensure time passes
+        await service.UpdatePeerCapabilitiesAsync(
+            "testuser",
+            slskd.Capabilities.PeerCapabilityFlags.SupportsMeshSync,
+            "slskdn/1.0");
+        await using (var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}"))
+        {
+            await conn.OpenAsync();
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = "UPDATE Peers SET last_seen = 1, backfills_today = 3, backfill_reset_date = 2 WHERE peer_id = 'testuser'";
+            await cmd.ExecuteNonQueryAsync();
+        }
 
-        // Act
-        await service.TouchPeerAsync("testuser");
-        var peer2 = await service.GetOrCreatePeerAsync("testuser");
+        await service.TouchPeerAsync(" testuser ");
+        await service.TouchPeerAsync(" new-peer ");
 
-        // Assert
-        Assert.True(peer2.LastSeen >= originalLastSeen);
+        var peer = Assert.Single(await service.GetSlskdnPeersAsync());
+        Assert.Equal("testuser", peer.PeerId);
+        Assert.Equal((int)slskd.Capabilities.PeerCapabilityFlags.SupportsMeshSync, peer.Caps);
+        Assert.Equal("slskdn/1.0", peer.ClientVersion);
+        Assert.True(peer.LastSeen > 1);
+        Assert.Equal(3, peer.BackfillsToday);
+        Assert.Equal(2, peer.BackfillResetDate);
+        Assert.Equal("new-peer", (await service.GetOrCreatePeerAsync("new-peer")).PeerId);
     }
 
     [Fact]
-    public async Task UpdatePeerCapabilitiesAsync_UpdatesCaps()
+    public async Task UpdatePeerCapabilitiesAsync_CreatesAndPreservesVersionWhenOmitted()
     {
-        // Arrange
-        await service.GetOrCreatePeerAsync("testuser");
+        await service.UpdatePeerCapabilitiesAsync(" testuser ", slskd.Capabilities.PeerCapabilityFlags.SupportsMeshSync, " slskdn/1.0 ");
+        await service.UpdatePeerCapabilitiesAsync("testuser", slskd.Capabilities.PeerCapabilityFlags.SupportsMeshSync);
 
-        // Act
-        await service.UpdatePeerCapabilitiesAsync("testuser", slskd.Capabilities.PeerCapabilityFlags.SupportsMeshSync, "slskdn/1.0");
-
-        // Assert
         var peers = await service.GetSlskdnPeersAsync();
         var peer = Assert.Single(peers);
         Assert.Equal("testuser", peer.PeerId);
+        Assert.Equal((int)slskd.Capabilities.PeerCapabilityFlags.SupportsMeshSync, peer.Caps);
         Assert.Equal("slskdn/1.0", peer.ClientVersion);
+        Assert.NotNull(peer.LastCapCheck);
     }
 
     // ========== FLAC Inventory Tests ==========

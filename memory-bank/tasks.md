@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Collapse HashDb peer state read-before-write sequences.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced peer touch and capability existence checks with single atomic SQLite upserts and removed duplicate event-handler lookups. A peer search/download event falls from three commands for an existing peer or five for a new peer to one (66.7–80% fewer); direct touches fall from two-to-four commands to one, and capability updates from two-to-four to one. Identifier normalization now applies to the actual write while capabilities, client versions, and backfill counters remain intact. Added normalized create/update and state-preservation regressions; documented gotcha `0z675` (`3ec78e1cf`).
+
 - [x] Batch passive FLAC inventory and history peer ingestion.
   - Status: completed (2026-07-16)
   - Priority: P1
