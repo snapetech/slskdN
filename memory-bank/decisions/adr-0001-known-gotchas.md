@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z629. ClearAllMocks Does Not Reset Queued Implementations
+
+**The Bug**: A Security polling test queued a one-time rejected dashboard
+response. The following test called `vi.clearAllMocks()` and installed its own
+default rejection, but received the earlier queued rejection instead, so the
+asserted error message depended on test order.
+
+**Files Affected**:
+- `src/web/src/components/System/Security/index.test.jsx`
+
+**Prevention**: Use `vi.resetAllMocks()` before installing per-test defaults
+when tests use `mockResolvedValueOnce`, `mockRejectedValueOnce`, or otherwise
+replace implementations. `clearAllMocks()` clears invocation history only; it
+does not discard queued or default implementations. Keep `clearAllMocks()` for
+suites that only need fresh call counts, as described in 0z575.
+
 ### 0z628. Hidden-Completion Guards Must Clear Owned UI Flags
 
 **The Bug**: A visible-only Security dashboard refresh correctly rejected an
