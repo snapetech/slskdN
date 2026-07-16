@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Both connection-fingerprint services now format the retained 12-character ID
+  and privacy-preserving IP hash directly from stack buffers. Admission no
+  longer creates a full GUID string plus slice, IP address byte array, SHA-256
+  byte array, full hex string, hex slice, and lowercase copy. Complete warmed
+  admission allocates less than 2 KiB in each service. Lowercase GUID-prefix
+  shape, exact IPv4/IPv6 SHA-256 prefix, fingerprint/event objects, logging,
+  retention, and security semantics remain unchanged.
 - The Common.Security connection-fingerprint service now uses the same bounded
   algorithms as DHT rendezvous diagnostics: direct dictionary queries,
   single-pass statistics and oldest-entry eviction, requested-size recent-event

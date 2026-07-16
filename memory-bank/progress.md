@@ -1,3 +1,10 @@
+## Update 2026-07-16 17:49:45Z
+
+- Completed the compact fingerprint identifier allocation performance pass across both production services.
+- GUID prefixes and SHA-256 IP prefixes now format from stack spans, removing full GUID/address/digest/hex/slice/lowercase intermediates while retaining only the two required 12-character strings.
+- Complete warmed admission allocates below 2 KiB in each service. Exact lowercase ID shape, IPv6 legacy hash compatibility, object/event/log/retention, and security behavior remain unchanged.
+- Validation passed: focused fingerprint tests (`14/14`), combined Common.Security/DHT rendezvous tests (`483/483`), full backend suites (`4972/4972`: `69` application, `4623` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 17:43:10Z
 
 - Completed the Common.Security connection-fingerprint diagnostics performance pass.

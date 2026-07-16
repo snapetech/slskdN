@@ -1,3 +1,17 @@
+## Update 2026-07-16 17:49:45Z
+
+- Current task: performance and efficiency improvements in progress; compact fingerprint ID/hash allocation pass complete locally.
+- Last activity:
+  - Replaced full GUID/address/digest/hex/slice/lowercase intermediates with stack-backed formatting in both fingerprint services.
+  - Each warmed admission allocates below 2 KiB and produces exact legacy lowercase 12-character formats.
+- Validation:
+  - Passed focused fingerprint (`14/14`), combined Common.Security/DHT rendezvous (`483/483`), and full backend suites (`4972/4972`) tests.
+  - Exact IPv6 hash/ID/allocation boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the compact fingerprint allocation slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 17:43:10Z
 
 - Current task: performance and efficiency improvements in progress; Common.Security fingerprint diagnostics bounded locally.

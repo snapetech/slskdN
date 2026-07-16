@@ -6,6 +6,7 @@ namespace slskd.Tests.Unit.DhtRendezvous.Security;
 using System;
 using System.Linq;
 using System.Net;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -178,5 +179,24 @@ public class ConnectionFingerprintServiceTests
         Assert.True(
             allocatedBytes < 48 * 1024,
             $"Expected direct dictionary query allocation below 48 KiB, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
+    public void RecordConnection_UsesExactCompactIdentifiersWithBoundedAllocation()
+    {
+        var service = new ConnectionFingerprintService(NullLogger<ConnectionFingerprintService>.Instance);
+        var ip = IPAddress.Parse("2001:db8::1");
+        var expectedIpHash = Convert.ToHexString(SHA256.HashData(ip.GetAddressBytes()))[..12].ToLowerInvariant();
+        _ = service.RecordConnection(ip, 1, null, null, null, null);
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var fingerprint = service.RecordConnection(ip, 2, null, null, null, null);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Matches("^[0-9a-f]{12}$", fingerprint.Id);
+        Assert.Equal(expectedIpHash, fingerprint.IpHash);
+        Assert.True(
+            allocatedBytes < 2 * 1024,
+            $"Expected compact fingerprint allocation below 2 KiB, got {allocatedBytes:N0} bytes.");
     }
 }

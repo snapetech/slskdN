@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove compact fingerprint identifier intermediates.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Both DHT rendezvous and Common.Security fingerprint services now use stack spans for GUID `N` formatting, IP address bytes, SHA-256 output, and lowercase six-byte hash-prefix encoding. Admission retains only the required 12-character ID and 12-character IP-hash strings instead of allocating a 32-character GUID string plus slice, address byte array, digest byte array, 64-character hex string, 12-character slice, and lowercase copy. Complete warmed admission allocates less than 2 KiB in each service. Exact lowercase `[0-9a-f]{12}` ID shape, legacy IPv4/IPv6 SHA-256 prefix values, fingerprint/event fields, logging, retention, and security behavior remain unchanged. Added exact IPv6 compatibility/format and per-service allocation regressions. Validation passed: focused fingerprint tests (`14/14`), combined Common.Security/DHT rendezvous tests (`483/483`), full backend suites (`4972/4972`: `69` application, `4623` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Bound Common.Security connection fingerprint diagnostics.
   - Status: completed (2026-07-16)
   - Priority: P1

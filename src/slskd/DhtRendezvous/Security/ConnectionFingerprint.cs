@@ -285,7 +285,9 @@ public sealed class ConnectionFingerprintService
 
     private static string GenerateFingerprintId()
     {
-        return Guid.NewGuid().ToString("N")[..12];
+        Span<char> buffer = stackalloc char[32];
+        Guid.NewGuid().TryFormat(buffer, out _, "N");
+        return new string(buffer[..12]);
     }
 
     /// <summary>
@@ -293,9 +295,21 @@ public sealed class ConnectionFingerprintService
     /// </summary>
     private static string HashIp(IPAddress ip)
     {
-        var bytes = ip.GetAddressBytes();
-        var hash = SHA256.HashData(bytes);
-        return Convert.ToHexString(hash)[..12].ToLowerInvariant();
+        Span<byte> addressBytes = stackalloc byte[16];
+        ip.TryWriteBytes(addressBytes, out var addressLength);
+
+        Span<byte> hash = stackalloc byte[32];
+        SHA256.HashData(addressBytes[..addressLength], hash);
+
+        Span<char> hashPrefix = stackalloc char[12];
+        const string Hex = "0123456789abcdef";
+        for (var index = 0; index < 6; index++)
+        {
+            hashPrefix[index * 2] = Hex[hash[index] >> 4];
+            hashPrefix[(index * 2) + 1] = Hex[hash[index] & 0x0f];
+        }
+
+        return new string(hashPrefix);
     }
 }
 
