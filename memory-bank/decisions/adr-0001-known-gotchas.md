@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z721. Exact-Method Warm-Ups Must Exercise The Measured State Branch
+
+**The Bug**: A cache-clear allocation regression warmed `ClearCacheAsync` on
+an empty `ConcurrentDictionary`, then measured the method on 10,000 entries.
+The focused test passed after an earlier failure had initialized the populated
+clear path, but a fresh full-suite run allocated 11,104 bytes and exceeded its
+8 KiB boundary because the empty warm-up never exercised that branch.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/MediaCore/DescriptorRetrieverTests.cs`
+
+**Prevention**: Warm the exact public method on a separate instance whose state
+selects every material branch used by the measurement. For collection methods,
+an empty fixture does not warm populated enumeration, removal, resize, or clear
+paths. Keep the measured instance pristine, but seed the warm-up instance with
+at least one representative entry before invoking the method.
+
 ### 0z720. Span Locals In Async Methods Exceed The C# 12 Boundary
 
 **The Bug**: A planner optimization stored a `ReadOnlySpan<char>` local inside
