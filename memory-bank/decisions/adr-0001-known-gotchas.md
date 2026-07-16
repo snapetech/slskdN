@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z626. Polling Must Not Rehydrate A Distributed Directory On Every Request
+
+**The Bug**: The listen-along panel polled its HTTP directory every 30 seconds,
+and every request synchronously fetched the DHT index plus every listed party
+announcement. Multiple panels or clients multiplied the same sequential DHT
+fan-out, while a slow refresh could overlap the next poll.
+
+**Files Affected**:
+- `src/slskd/ListeningParty/ListeningPartyService.cs`
+- `src/web/src/components/Player/PodListenAlongPanel.jsx`
+
+**Prevention**: Treat distributed directory hydration as shared backend work,
+not request work. Bound refresh frequency process-wide, coalesce concurrent
+callers onto one refresh, and let individual request cancellation stop waiting
+without cancelling the shared refresh. Frontend pollers must pause while hidden,
+reject overlapping cycles, retain the last successful result on transient
+failure, and avoid writing unchanged snapshots back to React state.
+
 ### 0z625. Object Dictionaries Deserialize JSON Values As JsonElement
 
 **The Bug**: Library Health codec grouping deserialized metadata into
