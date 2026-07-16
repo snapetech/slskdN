@@ -52,6 +52,19 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z714. Use Target-Typed `new()` For Value-Type Initialization
+
+**The Bug**: A byte-array equality comparer initialized `HashCode` with
+`new HashCode()`, which compiles but violates the repository's StyleCop
+`SA1129` rule and introduces a warning before lint runs.
+
+**Files Affected**:
+- `src/slskd/MediaCore/ShadowIndexDescriptorSource.cs`
+
+**Prevention**: Use target-typed `new()` when explicitly initializing a value
+type in repository C# code. Treat analyzer warnings emitted by focused builds
+as immediate failures; do not defer them to the final lint gate.
+
 ### 0z713. Derive Confidence Bounds From Every Contribution Cap
 
 **The Bug**: A Shadow Index descriptor regression asserted the final `0.98`
