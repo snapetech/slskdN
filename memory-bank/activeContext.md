@@ -1,3 +1,17 @@
+## Update 2026-07-16 20:13:35Z
+
+- Current task: performance and efficiency improvements in progress; direct descriptor cache diagnostics complete locally.
+- Last activity:
+  - Replaced expired-key buffers, values snapshots, duplicate active scans, count, and boxed size sums with direct dictionary/list passes.
+  - At 10,000 entries, mixed cleanup/stats falls from 389,872 bytes to below 4 KiB; clear falls from 87,840 bytes to below 8 KiB.
+- Validation:
+  - Passed focused descriptor retriever (`8/8`), broader MediaCore (`255/255`), and full backend suites (`4998/4998`) tests.
+  - Exact expiry/count/size/clear/allocation boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the descriptor cache diagnostics slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 19:42:45Z
 
 - Current task: performance and efficiency improvements in progress; single-pass combine-all metadata aggregation complete locally.

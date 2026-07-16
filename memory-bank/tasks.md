@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove descriptor cache diagnostic snapshots and iterator allocations.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `DescriptorRetriever` now removes expired cache entries during direct dictionary enumeration, computes active count and byte size together in one entry pass, accounts clear count/bytes in one direct pass, and estimates hash/perceptual-hash payloads with concrete list loops. This removes the expired-key list, repeated `ConcurrentDictionary.Values` snapshots, duplicate active scans/expiry checks, separate concurrent count, and boxed LINQ list enumerators. For a covered 10,000-entry cache with 5,000 expired entries, warmed cleanup/statistics allocation falls from 389,872 bytes to less than 4 KiB (>98.9%); clearing 10,000 active entries falls from 87,840 bytes to less than 8 KiB (>90.6%). A captured timestamp makes each cleanup/stats pass internally consistent. Exact expiry removal, active/cleared counts, 900,000/1,800,000-byte estimates, clear result/cache state, cleanup timestamp/logging, and weakly consistent concurrency remain unchanged. Added large mixed-cache statistics/cleanup and large clear allocation regressions. Validation passed: focused descriptor retriever tests (`8/8`), broader MediaCore tests (`255/255`), full backend suites (`4998/4998`: `69` application, `4649` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Make combine-all metadata aggregation single-pass.
   - Status: completed (2026-07-16)
   - Priority: P1

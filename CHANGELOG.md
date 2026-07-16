@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Descriptor cache cleanup, statistics, size estimation, and clear accounting
+  now use direct passes instead of snapshots, key buffers, and boxed LINQ sums.
 - Combine-all metadata merging now aggregates ordered distinct hashes and scalar
   fields in one source pass instead of building duplicate lists and rescanning.
 - Metadata export checksums now stream JSON segments directly into SHA-256

@@ -1,3 +1,10 @@
+## Update 2026-07-16 20:13:35Z
+
+- Completed the descriptor cache diagnostic direct-enumeration performance pass.
+- Expired-key buffering, values snapshots, duplicate active scans, separate count, and boxed list sums are replaced by direct cleanup, stats, clear, and size-estimation loops.
+- At 10,000 entries, mixed cleanup/stats falls from 389,872 bytes to below 4 KiB (>98.9%), and clear accounting falls from 87,840 bytes to below 8 KiB (>90.6%). Exact expiry/count/size/clear/logging/concurrency behavior remains unchanged.
+- Validation passed: focused descriptor retriever tests (`8/8`), broader MediaCore tests (`255/255`), full backend suites (`4998/4998`: `69` application, `4649` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 19:42:45Z
 
 - Completed the single-pass combine-all metadata aggregation performance pass.

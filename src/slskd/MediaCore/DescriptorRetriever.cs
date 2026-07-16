@@ -358,10 +358,17 @@ public class DescriptorRetriever : IDescriptorRetriever
         var cacheMisses = _totalRetrievals - _cacheHits;
         var cacheHitRatio = _totalRetrievals > 0 ? (double)_cacheHits / _totalRetrievals : 0;
 
-        var activeEntries = _cache.Values.Count(cached => !IsExpired(cached));
-        var cacheSizeBytes = _cache.Values
-            .Where(cached => !IsExpired(cached))
-            .Sum(cached => EstimateDescriptorSize(cached.Descriptor));
+        var activeEntries = 0;
+        long cacheSizeBytes = 0;
+        var now = DateTimeOffset.UtcNow;
+        foreach (var entry in _cache)
+        {
+            if (now <= entry.Value.ExpiresAt)
+            {
+                activeEntries++;
+                cacheSizeBytes += EstimateDescriptorSize(entry.Value.Descriptor);
+            }
+        }
 
         var avgRetrievalTime = TimeSpan.Zero; // Would need to track individual retrieval times
 
@@ -379,8 +386,13 @@ public class DescriptorRetriever : IDescriptorRetriever
     /// <inheritdoc/>
     public Task<CacheOperationResult> ClearCacheAsync(CancellationToken cancellationToken = default)
     {
-        var entriesCleared = _cache.Count;
-        var bytesFreed = _cache.Values.Sum(c => EstimateDescriptorSize(c.Descriptor));
+        var entriesCleared = 0;
+        long bytesFreed = 0;
+        foreach (var entry in _cache)
+        {
+            entriesCleared++;
+            bytesFreed += EstimateDescriptorSize(entry.Value.Descriptor);
+        }
 
         _cache.Clear();
         _lastCacheCleanup = DateTimeOffset.UtcNow;
@@ -444,21 +456,21 @@ public class DescriptorRetriever : IDescriptorRetriever
 
     private Task PerformCacheCleanupAsync(CancellationToken cancellationToken)
     {
-        // Remove expired entries
-        var expiredKeys = _cache
-            .Where(kvp => IsExpired(kvp.Value))
-            .Select(kvp => kvp.Key)
-            .ToList();
-
-        foreach (var key in expiredKeys)
+        var expiredCount = 0;
+        var now = DateTimeOffset.UtcNow;
+        foreach (var entry in _cache)
         {
-            _cache.TryRemove(key, out _);
+            if (now > entry.Value.ExpiresAt)
+            {
+                expiredCount++;
+                _cache.TryRemove(entry.Key, out _);
+            }
         }
 
-        if (expiredKeys.Count > 0)
+        if (expiredCount > 0)
         {
             _lastCacheCleanup = DateTimeOffset.UtcNow;
-            _logger.LogInformation("[DescriptorRetriever] Cleaned {Count} expired cache entries", expiredKeys.Count);
+            _logger.LogInformation("[DescriptorRetriever] Cleaned {Count} expired cache entries", expiredCount);
         }
 
         return Task.CompletedTask;
@@ -482,10 +494,20 @@ public class DescriptorRetriever : IDescriptorRetriever
         var size = descriptor.ContentId.Length * 2L; // UTF-16
 
         if (descriptor.Hashes != null)
-            size += descriptor.Hashes.Sum(h => (h.Algorithm.Length + h.Hex.Length) * 2);
+        {
+            foreach (var hash in descriptor.Hashes)
+            {
+                size += (hash.Algorithm.Length + hash.Hex.Length) * 2;
+            }
+        }
 
         if (descriptor.PerceptualHashes != null)
-            size += descriptor.PerceptualHashes.Sum(h => (h.Algorithm.Length + h.Hex.Length) * 2);
+        {
+            foreach (var perceptualHash in descriptor.PerceptualHashes)
+            {
+                size += (perceptualHash.Algorithm.Length + perceptualHash.Hex.Length) * 2;
+            }
+        }
 
         size += (descriptor.Codec?.Length ?? 0) * 2;
         size += 100; // Overhead for object structure

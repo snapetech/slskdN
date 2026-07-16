@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Descriptor cache diagnostics now clean expired entries, count/size active
+  entries, estimate descriptor payloads, and account clear operations through
+  direct collection/list passes. They no longer buffer every expired key, take
+  repeated `ConcurrentDictionary.Values` snapshots, scan active entries twice,
+  or box hash-list enumerators through LINQ `Sum`. On the covered 10,000-entry
+  mixed cache, cleanup plus statistics falls from 389,872 bytes to below 4 KiB
+  (>98.9%); clearing 10,000 active entries falls from 87,840 bytes to below
+  8 KiB (>90.6%). Expiry removal, one-time pass timestamps, active/cleared
+  counts, exact byte estimates, clear results, logging, and weakly consistent
+  concurrent diagnostics remain unchanged.
 - Combine-all metadata merging now aggregates every output field in one stable
   source pass. It maintains ordered-distinct hash/perceptual-hash result lists
   with membership sets and accumulates maximum size, first nonblank codec, and
