@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z634. Bounded Plans Must Not Materialize Unbounded Candidate History
+
+**The Bug**: Download auto-retry selected at most a configured number of files
+per cycle, but first loaded every retained eligible failed download into
+memory. The service therefore repeated database reads and allocations that
+grew with lifetime failure history on its default 60-second cadence even
+though each retry plan was bounded.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadAutoRetryService.cs`
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+
+**Prevention**: Apply stable eligibility predicates and ordering in the
+database, consume candidates as an asynchronous stream, and stop enumeration
+as soon as the bounded planner has enough leading peer groups to produce its
+full result. Back recurring ordered scans with a matching partial index. A
+bounded final `Take` does not bound upstream materialization or sorting.
+
 ### 0z633. Global Timer Spies Include Testing Library Polling
 
 **The Bug**: A Lyrics regression spied on `window.setInterval`, awaited text
