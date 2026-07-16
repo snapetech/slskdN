@@ -146,7 +146,7 @@ public class IpldMapperTests
     }
 
     [Fact]
-    public async Task GetGraphAsync_WideGraphAvoidsDuplicateNodeHydration()
+    public async Task GetGraphAsync_WideGraphUsesIndexedInboundLinks()
     {
         const int childCount = 10_000;
         const string RootContentId = "content:audio:album:root";
@@ -178,8 +178,45 @@ public class IpldMapperTests
         Assert.Equal(links[0], graph.Paths[0].Links[0]);
         Assert.Equal(links[^1], graph.Paths[^1].Links[0]);
         Assert.True(
-            allocatedBytes < 11 * 1024 * 1024,
-            $"Expected single-hydration graph building below 11 MiB allocated, got {allocatedBytes:N0} bytes.");
+            allocatedBytes < 9_700_000,
+            $"Expected indexed wide-graph building below 9,700,000 allocated bytes, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
+    public async Task FindInboundLinksAsync_IndexPreservesSourceOrderFiltersAndDeduplication()
+    {
+        const string FirstSource = "content:audio:track:first";
+        const string SecondSource = "content:audio:track:second";
+        const string ThirdSource = "content:audio:track:third";
+        const string TargetContentId = "content:audio:album:target";
+        _registryMock
+            .Setup(registry => registry.IsContentIdRegisteredAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        await _mapper.AddLinksAsync(FirstSource, [new IpldLink(IpldLinkNames.Artist, "content:audio:artist:other")]);
+        await _mapper.AddLinksAsync(SecondSource, [new IpldLink(IpldLinkNames.Artist, TargetContentId)]);
+        await _mapper.AddLinksAsync(FirstSource,
+        [
+            new IpldLink(IpldLinkNames.Parent, TargetContentId),
+            new IpldLink(IpldLinkNames.Artist, TargetContentId),
+            new IpldLink(IpldLinkNames.Artist, TargetContentId),
+        ]);
+        await _mapper.AddLinksAsync(ThirdSource,
+        [
+            new IpldLink(IpldLinkNames.Parent, TargetContentId),
+            new IpldLink("Artist", TargetContentId),
+        ]);
+
+        var all = await _mapper.FindInboundLinksAsync(TargetContentId);
+        var artists = await _mapper.FindInboundLinksAsync(TargetContentId, IpldLinkNames.Artist);
+        var parents = await _mapper.FindInboundLinksAsync(TargetContentId, IpldLinkNames.Parent);
+        var caseVariant = await _mapper.FindInboundLinksAsync(TargetContentId, "Artist");
+        var differentTargetCase = await _mapper.FindInboundLinksAsync(TargetContentId.ToUpperInvariant());
+
+        Assert.Equal([FirstSource, SecondSource, ThirdSource], all);
+        Assert.Equal([FirstSource, SecondSource], artists);
+        Assert.Equal([FirstSource, ThirdSource], parents);
+        Assert.Equal([ThirdSource], caseVariant);
+        Assert.Empty(differentTargetCase);
     }
 
     [Fact]

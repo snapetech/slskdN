@@ -20,6 +20,8 @@ public class IpldMapper : IIpldMapper
     private readonly IContentIdRegistry _registry;
     private readonly ILogger<IpldMapper> _logger;
     private readonly Dictionary<string, List<IpldLink>> _outgoingLinks = new();
+    private readonly Dictionary<string, List<IncomingLink>> _incomingLinksByTarget = new();
+    private readonly Dictionary<string, int> _sourceOrder = new();
     private readonly object _linksLock = new();
 
     public IpldMapper(
@@ -87,9 +89,15 @@ public class IpldMapper : IIpldMapper
             {
                 list = new List<IpldLink>();
                 _outgoingLinks[contentId] = list;
+                _sourceOrder[contentId] = _sourceOrder.Count;
             }
 
             list.AddRange(linksList);
+            var sourceOrder = _sourceOrder[contentId];
+            foreach (var link in linksList)
+            {
+                IndexIncomingLink(contentId, sourceOrder, link);
+            }
         }
 
         _logger.LogInformation(
@@ -137,10 +145,25 @@ public class IpldMapper : IIpldMapper
 
         lock (_linksLock)
         {
-            foreach (var kv in _outgoingLinks)
+            if (_incomingLinksByTarget.TryGetValue(targetContentId, out var incomingLinks))
             {
-                if (kv.Value.Any(l => l.Target == targetContentId && (linkName == null || l.Name == linkName)))
-                    inboundContentIds.Add(kv.Key);
+                var index = 0;
+                while (index < incomingLinks.Count)
+                {
+                    var sourceContentId = incomingLinks[index].SourceContentId;
+                    var matches = false;
+                    do
+                    {
+                        matches |= linkName == null || incomingLinks[index].Link.Name == linkName;
+                        index++;
+                    }
+                    while (index < incomingLinks.Count && incomingLinks[index].SourceContentId == sourceContentId);
+
+                    if (matches)
+                    {
+                        inboundContentIds.Add(sourceContentId);
+                    }
+                }
             }
         }
 
@@ -372,6 +395,39 @@ public class IpldMapper : IIpldMapper
             OutgoingLinks: outgoingLinks,
             IncomingLinks: incomingLinks);
     }
+
+    private void IndexIncomingLink(string sourceContentId, int sourceOrder, IpldLink link)
+    {
+        if (link.Target == null)
+        {
+            return;
+        }
+
+        if (!_incomingLinksByTarget.TryGetValue(link.Target, out var incomingLinks))
+        {
+            incomingLinks = new List<IncomingLink>();
+            _incomingLinksByTarget[link.Target] = incomingLinks;
+        }
+
+        var low = 0;
+        var high = incomingLinks.Count;
+        while (low < high)
+        {
+            var middle = low + ((high - low) / 2);
+            if (incomingLinks[middle].SourceOrder <= sourceOrder)
+            {
+                low = middle + 1;
+            }
+            else
+            {
+                high = middle;
+            }
+        }
+
+        incomingLinks.Insert(low, new IncomingLink(sourceContentId, sourceOrder, link));
+    }
+
+    private readonly record struct IncomingLink(string SourceContentId, int SourceOrder, IpldLink Link);
 
     private static bool IsInboundLink(string sourceContentId, string targetContentId, string? linkName)
     {

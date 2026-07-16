@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- IPLD inbound-link lookup now uses a source-ordered reverse target index
+  instead of scanning every outgoing source and link for each query.
 - IPLD graph construction now passes each hydrated node into recursion instead
   of rebuilding its outgoing and incoming link snapshots.
 - Music-domain variant projection now deduplicates HashDb variant IDs before

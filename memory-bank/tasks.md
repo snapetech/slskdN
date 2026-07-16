@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Index IPLD inbound links by target without changing source order.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `IpldMapper.AddLinksAsync` now maintains a reverse target index whose entries are binary-inserted by the source's original outgoing-map order, grouping later links from an earlier source ahead of newer sources. `FindInboundLinksAsync` scans only the requested target group, returns each source once, and applies the existing optional exact-name filter without scanning every outgoing source/list. For the covered 10,000-child graph, warmed construction allocation falls from the previous single-hydration baseline of 10,398,992 to 8,958,848 bytes (13.8%); it is 48.4% below the original double-hydration/full-scan path. Per-target inbound work changes from O(all graph sources + links) to O(links for target), at the cost of retaining one local reverse-index entry per link. Exact ordinal target/name matching, global source order including late earlier-source links, duplicate-link collapse, graph nodes/paths, cycles, shared targets, and validation behavior remain unchanged. Added exact source-order/filter/case/deduplication plus tightened wide-graph allocation coverage. Validation passed: focused IPLD tests (`17/17`), broader MediaCore tests (`271/271`), full backend suites (`5014/5014`: `69` application, `4665` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Reuse hydrated IPLD nodes during graph recursion.
   - Status: completed (2026-07-16)
   - Priority: P1

@@ -22,6 +22,19 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- IPLD link insertion now maintains a reverse target index ordered by each
+  source's original insertion position. Inbound queries and graph-node
+  hydration scan only links for the requested target instead of applying an
+  `Any` predicate across every outgoing source/list. Late links from an earlier
+  source are inserted back into that source-order group, so unfiltered and
+  name-filtered results retain the previous order and one-result-per-source
+  behavior. On the covered 10,000-child graph, warmed construction allocation
+  falls from the previous single-hydration baseline of 10,398,992 to 8,958,848
+  bytes (13.8%); compared with the original double-hydration/full-scan path it
+  is 48.4% lower. More importantly, inbound work changes from O(all graph
+  sources + links) per target to O(links for target). Exact ordinal target/name
+  matching, source order, duplicate-link collapse, late earlier-source links,
+  graph nodes/paths, cycles, shared targets, and link validation remain intact.
 - IPLD graph construction now passes the already-hydrated root and child nodes
   into recursive expansion. It no longer recreates the root before visiting its
   links or recreates every expanded child after that same node was added to the

@@ -1,3 +1,17 @@
+## Update 2026-07-16 22:09:47Z
+
+- Current task: performance and efficiency improvements in progress; source-ordered IPLD reverse target indexing complete locally.
+- Last activity:
+  - Added a reverse target index maintained in original source order so inbound queries scan only target-local links and still return each matching source once.
+  - The 10,000-child graph falls from the previous 10,398,992-byte single-hydration baseline to 8,958,848 warmed allocated bytes (13.8%); inbound lookup changes from full-graph scans to target-local scans.
+- Validation:
+  - Passed focused IPLD (`17/17`), broader MediaCore (`271/271`), and full backend suites (`5014/5014`: `69` application, `4665` unit, `280` integration) tests.
+  - Exact target/name case, global source order, late-link insertion, filter/deduplication, graph/allocation behavior, repository lint, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Run the remediation baseline and commit only the IPLD reverse-index slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 21:59:15Z
 
 - Current task: performance and efficiency improvements in progress; single-hydration IPLD graph recursion complete locally.
