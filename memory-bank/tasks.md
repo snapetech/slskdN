@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make recipient collection authorization scalar.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added a parameterized scalar collection-access query that evaluates active direct-user grants and group membership in SQLite using the collection grant index and composite membership key. Recipient collection GET now calls it instead of hydrating every grant accessible to the user. With 1,000 unrelated accessible grants, authorization hydration falls from 1,000 entities to zero. Owner short-circuiting, expiry, direct/group identity, lowercase GUID audience compatibility, membership, malformed/unrelated grants, and not-found behavior remain unchanged. Added production SQLite direct/group/expired/unrelated result, exact command, zero-materialization, and both-index query-plan coverage plus exact service/controller zero-list-call boundaries. Validation passed: focused repository/service/controller tests (`35/35`), broader Sharing tests (`109/109`), full backend tests (`4936/4936`: `69` application, `4587` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Index share-token streaming content authorization.
   - Status: completed (2026-07-16)
   - Priority: P1

@@ -1,3 +1,17 @@
+## Update 2026-07-16 15:31:26Z
+
+- Current task: performance and efficiency improvements in progress; scalar recipient collection authorization complete locally.
+- Last activity:
+  - Added one indexed active direct/group collection-access query and replaced recipient GET's complete accessible-grant hydration.
+  - With 1,000 unrelated accessible grants, hydration falls to zero while owner, expiry, identity/membership, GUID, malformed/unrelated, and not-found semantics remain unchanged.
+- Validation:
+  - Passed focused repository/service/controller (`35/35`), broader Sharing (`109/109`), and full backend (`4936/4936`) tests.
+  - Exact result/SQL/materialization/query-plan and zero-list service/controller boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the scalar recipient collection-access slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 15:23:21Z
 
 - Current task: performance and efficiency improvements in progress; indexed share-token content authorization complete locally.

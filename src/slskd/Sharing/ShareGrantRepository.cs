@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 /// <summary>EF Core implementation of IShareGrantRepository.</summary>
@@ -52,6 +53,37 @@ public sealed class ShareGrantRepository : IShareGrantRepository
             .AnyAsync(member => member.ShareGroupId == groupId && member.UserId == userId, cancellationToken)
             ? grant
             : null;
+    }
+
+    public async Task<bool> HasCollectionAccessAsync(Guid collectionId, string userId, CancellationToken cancellationToken = default)
+    {
+        var parameters = new object[]
+        {
+            new SqliteParameter("@collection_id", collectionId),
+            new SqliteParameter("@user_id", userId),
+            new SqliteParameter("@user_type", AudienceTypes.User),
+            new SqliteParameter("@group_type", AudienceTypes.ShareGroup),
+            new SqliteParameter("@now", DateTime.UtcNow),
+        };
+        await using var db = await _factory.CreateDbContextAsync(cancellationToken);
+        return await db.Database.SqlQueryRaw<int>("""
+            SELECT EXISTS (
+                SELECT 1
+                FROM "ShareGrants" AS grant
+                WHERE grant."CollectionId" = @collection_id
+                  AND (grant."ExpiryUtc" IS NULL OR grant."ExpiryUtc" > @now)
+                  AND (
+                      (grant."AudienceType" = @user_type AND grant."AudienceId" = @user_id)
+                      OR (
+                          grant."AudienceType" = @group_type
+                          AND EXISTS (
+                              SELECT 1
+                              FROM "ShareGroupMembers" AS member
+                              WHERE member."UserId" = @user_id
+                                AND member."ShareGroupId" = grant."AudienceId" COLLATE NOCASE)))
+            ) AS "Value"
+            """, parameters)
+            .SingleAsync(cancellationToken) != 0;
     }
 
     public async Task<IReadOnlyList<ShareGrant>> GetAccessibleByUserAsync(string userId, CancellationToken cancellationToken = default)

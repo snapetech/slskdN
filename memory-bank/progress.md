@@ -1,3 +1,10 @@
+## Update 2026-07-16 15:31:26Z
+
+- Completed the scalar recipient collection-authorization performance pass.
+- Recipient collection GET now evaluates active direct-user and group-member access in one indexed SQLite scalar query instead of hydrating the user's complete accessible-grant list.
+- With 1,000 unrelated accessible grants, hydration falls from 1,000 entities to zero. Owner short-circuiting, expiry, identity/group membership, lowercase GUIDs, malformed/unrelated grants, and not-found behavior remain unchanged.
+- Validation passed: focused repository/service/controller tests (`35/35`), broader Sharing tests (`109/109`), full backend tests (`4936/4936`: `69` application, `4587` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 15:23:21Z
 
 - Completed the indexed share-token streaming content-authorization performance pass.

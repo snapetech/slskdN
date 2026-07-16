@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Recipient collection GET authorization now resolves active direct-user and
+  group-member access through one scalar SQLite query instead of hydrating the
+  user's complete accessible-grant list. The query uses the collection grant
+  index and composite group-membership key and hydrates zero grants. With 1,000
+  unrelated accessible grants, authorization hydration falls from 1,000 rows
+  to zero. Owner access, expiry, direct/group identity, lowercase group IDs,
+  membership, malformed or unrelated grants, and not-found behavior remain
+  unchanged.
 - Share-ticket creation and share-token streaming now authorize content through
   one exact indexed collection-membership existence query instead of hydrating
   and scanning every collection item. A `(CollectionId, ContentId)` index is

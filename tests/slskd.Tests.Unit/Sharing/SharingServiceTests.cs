@@ -66,6 +66,23 @@ public class SharingServiceTests
     }
 
     [Fact]
+    public async Task HasCollectionAccessAsync_DelegatesScalarLookup()
+    {
+        var collectionId = Guid.NewGuid();
+        _grantsMock
+            .Setup(repository => repository.HasCollectionAccessAsync(collectionId, "alice", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        Assert.True(await CreateService().HasCollectionAccessAsync(collectionId, "alice", default));
+        _grantsMock.Verify(
+            repository => repository.HasCollectionAccessAsync(collectionId, "alice", It.IsAny<CancellationToken>()),
+            Times.Once);
+        _grantsMock.Verify(
+            repository => repository.GetAccessibleByUserAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task CreateTokenAsync_GrantNotFound_Throws()
     {
         var svc = CreateService();

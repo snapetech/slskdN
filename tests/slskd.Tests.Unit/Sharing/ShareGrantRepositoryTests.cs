@@ -41,6 +41,80 @@ public sealed class ShareGrantRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task HasCollectionAccessAsync_UsesIndexedScalarQueryWithoutGrantHydration()
+    {
+        var directCollectionId = Guid.NewGuid();
+        var groupCollectionId = Guid.NewGuid();
+        var otherCollectionId = Guid.NewGuid();
+        var groupId = Guid.NewGuid();
+        await using (var db = await _factory.CreateDbContextAsync())
+        {
+            db.Collections.AddRange(
+                new Collection { Id = directCollectionId, OwnerUserId = "owner", Title = "Direct" },
+                new Collection { Id = groupCollectionId, OwnerUserId = "owner", Title = "Group" },
+                new Collection { Id = otherCollectionId, OwnerUserId = "owner", Title = "Other" });
+            db.ShareGroups.Add(new ShareGroup { Id = groupId, Name = "Group", OwnerUserId = "owner" });
+            db.ShareGroupMembers.Add(new ShareGroupMember { ShareGroupId = groupId, UserId = "alice" });
+            db.ShareGrants.Add(CreateGrant(directCollectionId, AudienceTypes.User, "alice"));
+            db.ShareGrants.Add(CreateGrant(groupCollectionId, AudienceTypes.ShareGroup, groupId.ToString().ToLowerInvariant()));
+            db.ShareGrants.Add(CreateGrant(groupCollectionId, AudienceTypes.User, "alice", DateTime.UtcNow.AddMinutes(-1)));
+            db.ShareGrants.AddRange(Enumerable.Range(0, 1000)
+                .Select(_ => CreateGrant(otherCollectionId, AudienceTypes.User, "alice")));
+            await db.SaveChangesAsync();
+        }
+
+        var repository = new ShareGrantRepository(_factory);
+        _interceptor.Commands.Clear();
+        _materialization.Count = 0;
+        Assert.True(await repository.HasCollectionAccessAsync(directCollectionId, "alice"));
+        Assert.Equal(0, _materialization.Count);
+        var directCommand = Assert.Single(_interceptor.Commands);
+        Assert.Contains("SELECT EXISTS", directCommand, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"CollectionId\"", directCommand, StringComparison.Ordinal);
+        Assert.Contains("ShareGroupMembers", directCommand, StringComparison.Ordinal);
+
+        _interceptor.Commands.Clear();
+        Assert.True(await repository.HasCollectionAccessAsync(groupCollectionId, "alice"));
+        Assert.False(await repository.HasCollectionAccessAsync(groupCollectionId, "bob"));
+        Assert.False(await repository.HasCollectionAccessAsync(otherCollectionId, "bob"));
+        Assert.Equal(3, _interceptor.Commands.Count);
+        Assert.Equal(0, _materialization.Count);
+
+        await using var verification = await _factory.CreateDbContextAsync();
+        await verification.Database.OpenConnectionAsync();
+        await using var plan = verification.Database.GetDbConnection().CreateCommand();
+        plan.CommandText = """
+            EXPLAIN QUERY PLAN
+            SELECT 1
+            FROM ShareGrants AS grant
+            WHERE grant.CollectionId = $collection_id
+              AND (grant.ExpiryUtc IS NULL OR grant.ExpiryUtc > $now)
+              AND (
+                  (grant.AudienceType = 'User' AND grant.AudienceId = $user_id)
+                  OR (
+                      grant.AudienceType = 'ShareGroup'
+                      AND EXISTS (
+                          SELECT 1
+                          FROM ShareGroupMembers AS member
+                          WHERE member.UserId = $user_id
+                            AND member.ShareGroupId = grant.AudienceId COLLATE NOCASE)))
+            LIMIT 1
+            """;
+        AddPlanParameter(plan, "$collection_id", groupCollectionId);
+        AddPlanParameter(plan, "$user_id", "alice");
+        AddPlanParameter(plan, "$now", DateTime.UtcNow);
+        await using var reader = await plan.ExecuteReaderAsync();
+        var details = new List<string>();
+        while (await reader.ReadAsync())
+        {
+            details.Add(reader.GetString(3));
+        }
+
+        Assert.Contains(details, detail => detail.Contains("IX_ShareGrants_CollectionId", StringComparison.Ordinal));
+        Assert.Contains(details, detail => detail.Contains("sqlite_autoindex_ShareGroupMembers_1", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task GetAccessibleByIdAsync_DirectGrant_HydratesOnlyTarget()
     {
         var collectionId = Guid.NewGuid();
@@ -149,6 +223,14 @@ public sealed class ShareGrantRepositoryTests : IDisposable
             AudienceId = audienceId,
             ExpiryUtc = expiryUtc,
         };
+
+    private static void AddPlanParameter(DbCommand command, string name, object value)
+    {
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = name;
+        parameter.Value = value;
+        command.Parameters.Add(parameter);
+    }
 
     private sealed class TestDbContextFactory(DbContextOptions<CollectionsDbContext> options)
         : IDbContextFactory<CollectionsDbContext>

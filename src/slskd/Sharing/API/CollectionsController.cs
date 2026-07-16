@@ -66,9 +66,7 @@ public class CollectionsController : ControllerBase
         // Owner access
         if (c.OwnerUserId == currentUserId) return Ok(c);
 
-        // Recipient access (Shared with Me): allow access when a share-grant for this collection is accessible to the user
-        var accessible = await _sharing.GetShareGrantsAccessibleByUserAsync(currentUserId, ct);
-        if (accessible.Any(g => g.CollectionId == id))
+        if (await _sharing.HasCollectionAccessAsync(id, currentUserId, ct))
         {
             return Ok(c);
         }

@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Recipient collection authorization now uses one indexed scalar direct/group
+  access query instead of loading every grant accessible to the user.
 - Share-token streaming authorization now uses an indexed content-membership
   existence query instead of loading and scanning every collection item.
 - Single-grant authorization now resolves one active grant by ID and checks

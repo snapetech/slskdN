@@ -42,6 +42,7 @@ public interface ISharingService
     Task<ShareGrant?> GetShareGrantAsync(Guid id, CancellationToken ct = default);
     Task<ShareGrant?> GetAccessibleShareGrantAsync(Guid id, string userId, CancellationToken ct = default);
     Task<IReadOnlyList<ShareGrant>> GetShareGrantsByCollectionAsync(Guid collectionId, CancellationToken ct = default);
+    Task<bool> HasCollectionAccessAsync(Guid collectionId, string userId, CancellationToken ct = default);
     /// <summary>Grants the given user can access (recipient or group member). Excludes expired.</summary>
     Task<IReadOnlyList<ShareGrant>> GetShareGrantsAccessibleByUserAsync(string userId, CancellationToken ct = default);
     Task<ShareGrant> CreateShareGrantAsync(ShareGrant g, CancellationToken ct = default);

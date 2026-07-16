@@ -98,6 +98,7 @@ public sealed class SharingService : ISharingService
     public Task<ShareGrant?> GetShareGrantAsync(Guid id, CancellationToken ct = default) => _grants.GetByIdAsync(id, ct);
     public Task<ShareGrant?> GetAccessibleShareGrantAsync(Guid id, string userId, CancellationToken ct = default) => _grants.GetAccessibleByIdAsync(id, userId, ct);
     public Task<IReadOnlyList<ShareGrant>> GetShareGrantsByCollectionAsync(Guid collectionId, CancellationToken ct = default) => _grants.GetByCollectionIdAsync(collectionId, ct);
+    public Task<bool> HasCollectionAccessAsync(Guid collectionId, string userId, CancellationToken ct = default) => _grants.HasCollectionAccessAsync(collectionId, userId, ct);
     public Task<IReadOnlyList<ShareGrant>> GetShareGrantsAccessibleByUserAsync(string userId, CancellationToken ct = default) => _grants.GetAccessibleByUserAsync(userId, ct);
     public Task<ShareGrant> CreateShareGrantAsync(ShareGrant g, CancellationToken ct = default) => _grants.AddAsync(g, ct);
     public Task UpdateShareGrantAsync(ShareGrant g, CancellationToken ct = default) => _grants.UpdateAsync(g, ct);

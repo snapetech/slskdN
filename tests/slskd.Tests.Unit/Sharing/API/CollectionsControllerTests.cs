@@ -95,12 +95,34 @@ public class CollectionsControllerTests
         var id = Guid.NewGuid();
         _sharingMock.Setup(x => x.GetCollectionAsync(id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Collection { Id = id, OwnerUserId = "bob" });
-        _sharingMock.Setup(x => x.GetShareGrantsAccessibleByUserAsync("alice", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ShareGrant>()); // Empty list - user has no share grants for this collection
+        _sharingMock.Setup(x => x.HasCollectionAccessAsync(id, "alice", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
 
         var r = await c.Get(id, CancellationToken.None);
 
         Assert.IsType<NotFoundResult>(r);
+        _sharingMock.Verify(x => x.GetShareGrantsAccessibleByUserAsync(
+            It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Get_RecipientAccess_UsesScalarGrantLookup()
+    {
+        var c = CreateController();
+        var id = Guid.NewGuid();
+        var collection = new Collection { Id = id, OwnerUserId = "bob" };
+        _sharingMock.Setup(x => x.GetCollectionAsync(id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(collection);
+        _sharingMock.Setup(x => x.HasCollectionAccessAsync(id, "alice", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var result = await c.Get(id, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Same(collection, ok.Value);
+        _sharingMock.Verify(x => x.HasCollectionAccessAsync(id, "alice", It.IsAny<CancellationToken>()), Times.Once);
+        _sharingMock.Verify(x => x.GetShareGrantsAccessibleByUserAsync(
+            It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
