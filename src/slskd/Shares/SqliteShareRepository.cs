@@ -885,6 +885,27 @@ namespace slskd.Shares
         }
 
         /// <summary>
+        ///     Lists advertisable content IDs for files eligible to appear in shares.
+        /// </summary>
+        public IEnumerable<string> ListAdvertisableContentIds()
+        {
+            using var conn = GetConnection();
+            using var cmd = new SqliteCommand(
+                "SELECT c.contentId " +
+                "FROM content_items c " +
+                "JOIN files f ON f.maskedFilename = c.maskedFilename " +
+                "WHERE c.isAdvertisable = 1 AND f.isBlocked = 0 AND f.isQuarantined = 0 " +
+                "ORDER BY c.contentId ASC;",
+                conn);
+            using var reader = cmd.ExecuteReader();
+
+            while (reader.Read())
+            {
+                yield return reader.GetString(0);
+            }
+        }
+
+        /// <summary>
         ///     Counts advertisable content items.
         /// </summary>
         public int CountAdvertisableItems()

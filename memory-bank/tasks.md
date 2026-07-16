@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove share content-hint producer N+1 queries.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced full eligible-file enumeration plus `ListContentItemsForFile` per file with one repository projection joining the indexed `content_items` and `files` tables while preserving blocked, quarantined, non-advertisable, empty-ID, and cross-repository deduplication behavior. A 100,000-file repository falls from 100,001 SQL queries and full file-object hydration to one content-ID query (99.999% fewer queries). Added SQL moderation-boundary and scan-producer call-count regressions; documented gotcha `0z648` in `33be38516`.
+
 - [x] Stop hydrating search responses during background completion polling.
   - Status: completed (2026-07-16)
   - Priority: P1

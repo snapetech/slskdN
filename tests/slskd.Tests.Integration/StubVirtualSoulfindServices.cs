@@ -72,6 +72,18 @@ internal sealed class StubShareRepository : IShareRepository
         return Array.Empty<(string, string, string, bool, string)>();
     }
 
+    public IEnumerable<string> ListAdvertisableContentIds()
+    {
+        lock (_contentItemsByFile)
+        {
+            return _contentItemsByFile.Values
+                .SelectMany(items => items)
+                .Where(item => item.IsAdvertisable)
+                .Select(item => item.ContentId)
+                .ToList();
+        }
+    }
+
     /// <summary>
     /// Seeds data so ListFiles and ListContentItemsForFile return items for IsAdvertisable integration tests.
     /// </summary>

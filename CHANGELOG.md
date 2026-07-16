@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Share scan completion now queries advertisable content IDs directly instead
+  of enumerating every file and loading its mappings individually.
 - Wishlist and Auto-Replace search completion polling now reads lightweight
   state projections and hydrates final response payloads once.
 - Share content-peer hint publication now drains deduplicated bounded batches

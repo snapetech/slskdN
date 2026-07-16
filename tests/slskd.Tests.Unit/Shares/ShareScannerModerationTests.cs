@@ -317,6 +317,35 @@ public class ShareRepositoryModerationTests : IDisposable
     }
 
     [Fact]
+    public void ListAdvertisableContentIds_FiltersModeratedFilesInSql()
+    {
+        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        InsertContentFile("allowed.flac", isBlocked: false, isQuarantined: false, timestamp);
+        InsertContentFile("blocked.flac", isBlocked: true, isQuarantined: false, timestamp);
+        InsertContentFile("quarantined.flac", isBlocked: false, isQuarantined: true, timestamp);
+        _repository.UpsertContentItem("content:allowed", "audio", "", "allowed.flac", true, null, timestamp);
+        _repository.UpsertContentItem("content:blocked", "audio", "", "blocked.flac", true, null, timestamp);
+        _repository.UpsertContentItem("content:quarantined", "audio", "", "quarantined.flac", true, null, timestamp);
+        _repository.UpsertContentItem("content:private", "audio", "", "allowed.flac", false, null, timestamp);
+
+        var contentIds = _repository.ListAdvertisableContentIds().ToList();
+
+        Assert.Equal(new[] { "content:allowed" }, contentIds);
+    }
+
+    private void InsertContentFile(string filename, bool isBlocked, bool isQuarantined, long timestamp)
+    {
+        _repository.InsertFile(
+            filename,
+            $"/tmp/{filename}",
+            DateTime.UtcNow,
+            new Soulseek.File(1, filename, 1000, "flac"),
+            timestamp,
+            isBlocked,
+            isQuarantined);
+    }
+
+    [Fact]
     public void TryValidate_WhenContentItemsTableIsMissing_MigratesItInPlace()
     {
         using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={_databasePath}"))

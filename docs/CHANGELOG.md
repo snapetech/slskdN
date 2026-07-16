@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Share scan completion now selects advertisable content IDs with one indexed
+  join per repository while retaining blocked and quarantined file filtering.
+  A 100,000-file repository falls from 100,001 SQL queries plus full file
+  hydration to one projected query before hint enqueueing.
 - Wishlist and Auto-Replace now poll response-free search state at one- and
   two-second cadences, respectively, and hydrate responses once after
   completion. At their timeout bounds, repeated database reads fall from 40 to

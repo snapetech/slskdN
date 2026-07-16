@@ -1,3 +1,18 @@
+## Update 2026-07-16 05:07:02Z
+
+- Current task: performance and efficiency improvements in progress; share content-hint producer N+1 pass complete locally.
+- Last activity:
+  - Replaced all-file hydration plus one content lookup per file with one indexed joined projection per share repository.
+  - Preserved blocked/quarantined/non-advertisable filtering and cross-repository deduplication.
+  - A 100,000-file repository falls from 100,001 queries to one (99.999% fewer). Added SQL boundary and producer call-count regressions; documented gotcha `0z648` in `33be38516`.
+- Validation:
+  - Passed focused share tests (`12/12`), complete smoke/unit/integration suites (`4807/4807`: `69` smoke, `4458` unit, `280` integration), repository lint, identity, and diff checks.
+  - The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+- Next steps:
+  1. Commit this share producer slice.
+  2. Continue the broader performance goal from the next measured recurring hot path.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 04:56:29Z
 
 - Current task: performance and efficiency improvements in progress; search completion-polling payload pass complete locally.

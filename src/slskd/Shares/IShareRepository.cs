@@ -254,6 +254,11 @@ namespace slskd.Shares
         IEnumerable<(string ContentId, string Domain, string WorkId, bool IsAdvertisable, string ModerationReason)> ListContentItemsForFile(string maskedFilename);
 
         /// <summary>
+        ///     Lists advertisable content IDs whose files are not blocked or quarantined.
+        /// </summary>
+        IEnumerable<string> ListAdvertisableContentIds();
+
+        /// <summary>
         ///     Counts advertisable content items.
         /// </summary>
         /// <returns>The number of advertisable items.</returns>

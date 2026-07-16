@@ -460,21 +460,14 @@ namespace slskd.Shares
 
                 var contentIds = new HashSet<string>();
 
-                // Collect all unique content IDs from shared files
+                // Collect all unique advertisable content IDs directly from repository mappings.
                 foreach (var repository in AllRepositories)
                 {
-                    // Get all files from the repository
-                    var files = repository.ListFiles(includeFullPath: true);
-                    foreach (var file in files)
+                    foreach (var contentId in repository.ListAdvertisableContentIds())
                     {
-                        // Get content items associated with this file
-                        var contentItems = repository.ListContentItemsForFile(file.Filename);
-                        foreach (var (contentId, _, _, isAdvertisable, _) in contentItems)
+                        if (!string.IsNullOrEmpty(contentId))
                         {
-                            if (isAdvertisable && !string.IsNullOrEmpty(contentId))
-                            {
-                                contentIds.Add(contentId);
-                            }
+                            contentIds.Add(contentId);
                         }
                     }
                 }

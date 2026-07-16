@@ -1,3 +1,11 @@
+## Update 2026-07-16 05:07:02Z
+
+- Completed the share scan content-hint producer performance pass.
+- Replaced full unblocked-file enumeration and one content-mapping lookup per file with one direct joined projection of advertisable content IDs per repository.
+- Preserved file moderation boundaries and cross-repository ID deduplication while eliminating full file-object/attribute hydration.
+- A 100,000-file repository falls from 100,001 SQL queries to one (99.999% fewer). Added SQL blocked/quarantined/non-advertisable coverage and a lifecycle regression that forbids file enumeration and per-file mapping calls; documented gotcha `0z648` in `33be38516`.
+- Validation passed: focused share tests (`12/12`), complete smoke/unit/integration suites (`4807/4807`: `69` smoke, `4458` unit, `280` integration), repository lint, identity, and diff checks. The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+
 ## Update 2026-07-16 04:56:29Z
 
 - Completed the Wishlist and Auto-Replace search-completion polling performance pass.

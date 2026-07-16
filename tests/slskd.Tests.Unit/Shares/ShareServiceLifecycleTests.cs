@@ -12,6 +12,7 @@ using Moq;
 using slskd;
 using slskd.Common.Moderation;
 using slskd.Files;
+using slskd.Mesh.Dht;
 using slskd.Shares;
 using Soulseek;
 using Xunit;
@@ -79,7 +80,29 @@ public class ShareServiceLifecycleTests
         Assert.True(factory.Repositories["remote"].Disposed);
     }
 
-    private static ShareService CreateService(TestShareRepositoryFactory factory, out TestShareScanner scanner, out TestOptionsMonitor<Options> optionsMonitor)
+    [Fact]
+    public async Task ScanAsync_QueuesDirectAdvertisableContentProjection()
+    {
+        var factory = new TestShareRepositoryFactory();
+        var hints = new Mock<IContentPeerHintService>();
+        var service = CreateService(factory, out _, out _, hints.Object);
+        var repository = factory.Repositories["local"];
+        repository.AdvertisableContentIds.AddRange(["content:one", "content:two"]);
+
+        await service.ScanAsync();
+
+        Assert.Equal(1, repository.ListAdvertisableContentIdsCalls);
+        Assert.Equal(0, repository.ListFilesCalls);
+        Assert.Equal(0, repository.ListContentItemsForFileCalls);
+        hints.Verify(hintService => hintService.Enqueue("content:one"), Times.Once);
+        hints.Verify(hintService => hintService.Enqueue("content:two"), Times.Once);
+    }
+
+    private static ShareService CreateService(
+        TestShareRepositoryFactory factory,
+        out TestShareScanner scanner,
+        out TestOptionsMonitor<Options> optionsMonitor,
+        IContentPeerHintService? contentPeerHintService = null)
     {
         optionsMonitor = new TestOptionsMonitor<Options>(new Options());
         scanner = new TestShareScanner();
@@ -89,7 +112,8 @@ public class ShareServiceLifecycleTests
             factory,
             optionsMonitor,
             Mock.Of<IModerationProvider>(),
-            scanner);
+            scanner,
+            contentPeerHintService);
     }
 
     private sealed class TestShareRepositoryFactory : IShareRepositoryFactory
@@ -123,6 +147,10 @@ public class ShareServiceLifecycleTests
 
         public string ConnectionString { get; }
         public bool Disposed { get; private set; }
+        public List<string> AdvertisableContentIds { get; } = new();
+        public int ListAdvertisableContentIdsCalls { get; private set; }
+        public int ListContentItemsForFileCalls { get; private set; }
+        public int ListFilesCalls { get; private set; }
 
         public void BackupTo(IShareRepository repository) { }
         public int CountAdvertisableItems() => 0;
@@ -141,8 +169,20 @@ public class ShareServiceLifecycleTests
         public void InsertScan(long timestamp, Options.SharesOptions options) { }
         public IEnumerable<string> ListDirectories(string? parentDirectory = null) => Array.Empty<string>();
         public IEnumerable<(string ContentId, string Domain, string WorkId, bool IsAdvertisable, string ModerationReason)> ListContentItemsForFile(string maskedFilename)
-            => Array.Empty<(string ContentId, string Domain, string WorkId, bool IsAdvertisable, string ModerationReason)>();
-        public IEnumerable<Soulseek.File> ListFiles(string? parentDirectory = null, bool includeFullPath = false) => Array.Empty<Soulseek.File>();
+        {
+            ListContentItemsForFileCalls++;
+            return Array.Empty<(string ContentId, string Domain, string WorkId, bool IsAdvertisable, string ModerationReason)>();
+        }
+        public IEnumerable<string> ListAdvertisableContentIds()
+        {
+            ListAdvertisableContentIdsCalls++;
+            return AdvertisableContentIds;
+        }
+        public IEnumerable<Soulseek.File> ListFiles(string? parentDirectory = null, bool includeFullPath = false)
+        {
+            ListFilesCalls++;
+            return Array.Empty<Soulseek.File>();
+        }
         public IEnumerable<(string LocalPath, long Size)> ListLocalPathsAndSizes(string? parentDirectory = null) => Array.Empty<(string LocalPath, long Size)>();
         public IEnumerable<Scan> ListScans(long startedAtOrAfter = 0) => Array.Empty<Scan>();
         public long PruneDirectories(long olderThanTimestamp) => 0;
