@@ -1,3 +1,17 @@
+## Update 2026-07-16 15:53:55Z
+
+- Current task: performance and efficiency improvements in progress; AdvancedDiscovery peer-metric batching complete locally.
+- Last activity:
+  - Added bounded 500-ID HashDb metric reads and a cache-aware batch service, then replaced serialized ranking lookups with one metrics map.
+  - At 100 uncached peers, reads fall 99%; 501 IDs use two reads while source/cache/default/fallback/ranking/network semantics remain unchanged.
+- Validation:
+  - Passed focused (`23/23`), broader MultiSource/HashDb (`255/255`), and full backend suites (`4945/4945`) tests.
+  - Exact 100-peer batch/zero-scalar, cache/default, 501-ID normalization/miss/index, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. The concurrent full run again hit the unrelated Mesh stream pipe timeout; its exact rerun and complete unit rerun passed. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the peer-metric batching slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 15:44:51Z
 
 - Current task: performance and efficiency improvements in progress; bounded multi-source canonical skip reads complete locally.

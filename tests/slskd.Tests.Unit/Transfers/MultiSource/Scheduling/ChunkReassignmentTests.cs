@@ -206,6 +206,19 @@ public class ChunkReassignmentTests
             });
         }
 
+        public async Task<IReadOnlyDictionary<string, PeerPerformanceMetrics?>> GetMetricsAsync(
+            IEnumerable<(string PeerId, PeerSource Source)> peers,
+            CancellationToken cancellationToken = default)
+        {
+            var result = new Dictionary<string, PeerPerformanceMetrics?>();
+            foreach (var peer in peers.GroupBy(peer => peer.PeerId).Select(group => group.First()))
+            {
+                result[peer.PeerId] = await GetMetricsAsync(peer.PeerId, peer.Source, cancellationToken);
+            }
+
+            return result;
+        }
+
         public Task RecordRttSampleAsync(string peerId, double rttMs, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;

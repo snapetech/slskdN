@@ -504,6 +504,7 @@ namespace slskd.HashDb
 
         // Peer metrics
         Task<Transfers.MultiSource.Metrics.PeerPerformanceMetrics?> GetPeerMetricsAsync(string peerId, CancellationToken cancellationToken = default);
+        Task<List<Transfers.MultiSource.Metrics.PeerPerformanceMetrics>> GetPeerMetricsAsync(IEnumerable<string> peerIds, CancellationToken cancellationToken = default);
         Task UpsertPeerMetricsAsync(Transfers.MultiSource.Metrics.PeerPerformanceMetrics metrics, CancellationToken cancellationToken = default);
         Task<List<Transfers.MultiSource.Metrics.PeerPerformanceMetrics>> GetAllPeerMetricsAsync(CancellationToken cancellationToken = default);
         Task<List<Transfers.MultiSource.Metrics.PeerPerformanceMetrics>> GetTopPeerMetricsAsync(int limit, CancellationToken cancellationToken = default);

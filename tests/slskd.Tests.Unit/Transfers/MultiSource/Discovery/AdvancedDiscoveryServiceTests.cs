@@ -5,6 +5,7 @@ namespace slskd.Tests.Unit.Transfers.MultiSource.Discovery;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -31,6 +32,23 @@ public class AdvancedDiscoveryServiceTests
         _output = output;
         _contentVerificationMock = new Mock<IContentVerificationService>();
         _peerMetricsMock = new Mock<IPeerMetricsService>();
+        _peerMetricsMock
+            .Setup(service => service.GetMetricsAsync(
+                It.IsAny<IEnumerable<(string PeerId, PeerSource Source)>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(async (
+                IEnumerable<(string PeerId, PeerSource Source)> peers,
+                CancellationToken cancellationToken) =>
+            {
+                var result = new Dictionary<string, PeerPerformanceMetrics?>();
+                foreach (var peer in peers.GroupBy(peer => peer.PeerId).Select(group => group.First()))
+                {
+                    result[peer.PeerId] = await _peerMetricsMock.Object
+                        .GetMetricsAsync(peer.PeerId, peer.Source, cancellationToken);
+                }
+
+                return result;
+            });
         _loggerMock = new Mock<ILogger<AdvancedDiscoveryService>>();
         _service = new AdvancedDiscoveryService(
             _contentVerificationMock.Object,
@@ -458,5 +476,46 @@ public class AdvancedDiscoveryServiceTests
         Assert.NotNull(result);
         // Should return peers with default scores on error
         Assert.Equal(peers.Count, result.Count);
+    }
+
+    [Fact]
+    public async Task RankPeersAsync_UsesOneMetricsBatchForLargePeerSet()
+    {
+        var peers = Enumerable.Range(0, 100)
+            .Select(index => new DiscoveredPeer
+            {
+                PeerId = $"peer-{index:D3}",
+                Source = index % 2 == 0 ? "soulseek" : "overlay",
+                SimilarityScore = 0.8,
+            })
+            .ToList();
+        var metrics = peers.ToDictionary(
+            peer => peer.PeerId,
+            peer => (PeerPerformanceMetrics?)new PeerPerformanceMetrics
+            {
+                PeerId = peer.PeerId,
+                Source = peer.Source == "soulseek" ? PeerSource.Soulseek : PeerSource.Overlay,
+                ReputationScore = 0.5,
+            });
+        _peerMetricsMock.Reset();
+        _peerMetricsMock
+            .Setup(service => service.GetMetricsAsync(
+                It.IsAny<IEnumerable<(string PeerId, PeerSource Source)>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(metrics);
+
+        var result = await _service.RankPeersAsync(
+            peers,
+            new ContentDiscoveryRequest { Filename = "test.flac", FileSize = 123 },
+            CancellationToken.None);
+
+        Assert.Equal(100, result.Count);
+        _peerMetricsMock.Verify(service => service.GetMetricsAsync(
+            It.Is<IEnumerable<(string PeerId, PeerSource Source)>>(requests => requests.Count() == 100),
+            It.IsAny<CancellationToken>()), Times.Once);
+        _peerMetricsMock.Verify(service => service.GetMetricsAsync(
+            It.IsAny<string>(),
+            It.IsAny<PeerSource>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 }

@@ -23,6 +23,13 @@ namespace slskd.Transfers.MultiSource.Metrics
         Task<PeerPerformanceMetrics> GetMetricsAsync(string peerId, PeerSource source, CancellationToken cancellationToken = default);
 
         /// <summary>
+        ///     Gets or creates metrics for the requested peers.
+        /// </summary>
+        Task<IReadOnlyDictionary<string, PeerPerformanceMetrics?>> GetMetricsAsync(
+            IEnumerable<(string PeerId, PeerSource Source)> peers,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         ///     Record an RTT sample for a peer.
         /// </summary>
         /// <param name="peerId">The peer identifier.</param>

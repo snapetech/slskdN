@@ -1,3 +1,10 @@
+## Update 2026-07-16 15:53:55Z
+
+- Completed the AdvancedDiscovery peer-metric batching performance pass.
+- Ranking now resolves all uncached peers through one cache-aware service batch and bounded 500-ID HashDb reads instead of serialized scalar reads.
+- At 100 uncached peers, service/storage reads fall from 100 to one (99% fewer); 501 storage IDs use two bounded reads. Source, persisted/default/cache, null/exception fallback, ranking, and network semantics remain unchanged.
+- Validation passed: focused tests (`23/23`), broader MultiSource/HashDb tests (`255/255`), full backend suites (`4945/4945`: `69` application, `4596` unit, `280` integration), repository lint, and diff checks. The concurrent full run again exposed the unrelated Mesh stream pipe timeout under load; the exact test passed immediately (`1/1`) and the complete unit rerun passed (`4596/4596`). Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 15:44:51Z
 
 - Completed the bounded multi-source canonical skip local-variant read performance pass.

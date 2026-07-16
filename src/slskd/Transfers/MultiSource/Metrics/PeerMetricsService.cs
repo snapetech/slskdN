@@ -50,6 +50,58 @@ namespace slskd.Transfers.MultiSource.Metrics
         }
 
         /// <inheritdoc/>
+        public async Task<IReadOnlyDictionary<string, PeerPerformanceMetrics?>> GetMetricsAsync(
+            IEnumerable<(string PeerId, PeerSource Source)> peers,
+            CancellationToken cancellationToken = default)
+        {
+            var requests = peers
+                .GroupBy(peer => peer.PeerId, StringComparer.Ordinal)
+                .Select(group => group.First())
+                .ToArray();
+            var result = new Dictionary<string, PeerPerformanceMetrics?>(StringComparer.Ordinal);
+            var missing = new List<(string PeerId, PeerSource Source)>();
+            foreach (var request in requests)
+            {
+                if (metricsCache.TryGetValue(request.PeerId, out var cached))
+                {
+                    result[request.PeerId] = cached;
+                }
+                else
+                {
+                    missing.Add(request);
+                }
+            }
+
+            if (missing.Count == 0)
+            {
+                return result;
+            }
+
+            var persisted = await hashDb
+                .GetPeerMetricsAsync(missing.Select(request => request.PeerId), cancellationToken)
+                .ConfigureAwait(false);
+            var persistedByPeerId = persisted.ToDictionary(metrics => metrics.PeerId, StringComparer.Ordinal);
+            var now = DateTimeOffset.UtcNow;
+            foreach (var request in missing)
+            {
+                var lookupPeerId = request.PeerId.Trim();
+                var metrics = persistedByPeerId.GetValueOrDefault(lookupPeerId) ?? new PeerPerformanceMetrics
+                {
+                    PeerId = request.PeerId,
+                    Source = request.Source,
+                    FirstSeen = now,
+                    LastUpdated = now,
+                    ReputationScore = 0.5,
+                    ReputationUpdatedAt = now,
+                };
+                metricsCache[request.PeerId] = metrics;
+                result[request.PeerId] = metrics;
+            }
+
+            return result;
+        }
+
+        /// <inheritdoc/>
         public async Task RecordRttSampleAsync(string peerId, double rttMs, CancellationToken cancellationToken = default)
         {
             var metrics = await GetOrCreateMetricsAsync(peerId, PeerSource.Soulseek, cancellationToken).ConfigureAwait(false);

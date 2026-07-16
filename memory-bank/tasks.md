@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch AdvancedDiscovery peer metric hydration.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added bounded 500-ID peer-metric reads to HashDb and a cache-aware peer metrics batch API, then replaced AdvancedDiscovery's serialized per-peer awaits with one metrics map. Ranking 100 uncached peers falls from 100 service/storage reads to one (99% fewer); 501 distinct storage IDs use two bounded reads. First-occurrence source selection for duplicate peer IDs, persisted/default metrics, cache identity/reuse, null and exception fallback scores, ranking calculation/order, and network behavior remain unchanged. Added exact 100-peer one-batch/zero-scalar ranking coverage, persisted/default/cache service coverage, a production 501-ID normalization/duplicate/miss/index fixture, and compatibility coverage for the explicit scheduler fake. Validation passed: focused tests (`23/23`), broader MultiSource/HashDb tests (`255/255`), full backend suites (`4945/4945`: `69` application, `4596` unit, `280` integration), repository lint, and diff checks. The concurrent full run again exposed the unrelated Mesh stream pipe timeout under load; the exact test passed immediately (`1/1`) and the complete unit rerun passed (`4596/4596`). Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Bound multi-source canonical skip local-variant reads.
   - Status: completed (2026-07-16)
   - Priority: P1

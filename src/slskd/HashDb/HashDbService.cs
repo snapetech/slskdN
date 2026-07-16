@@ -5672,6 +5672,43 @@ namespace slskd.HashDb
         }
 
         /// <inheritdoc/>
+        public async Task<List<Transfers.MultiSource.Metrics.PeerPerformanceMetrics>> GetPeerMetricsAsync(
+            IEnumerable<string> peerIds,
+            CancellationToken cancellationToken = default)
+        {
+            var normalized = peerIds
+                .Select(peerId => peerId?.Trim() ?? string.Empty)
+                .Where(peerId => !string.IsNullOrWhiteSpace(peerId))
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            var metrics = new List<Transfers.MultiSource.Metrics.PeerPerformanceMetrics>();
+            if (normalized.Length == 0)
+            {
+                return metrics;
+            }
+
+            using var conn = GetConnection();
+            foreach (var batch in normalized.Chunk(500))
+            {
+                using var cmd = conn.CreateCommand();
+                var parameters = batch.Select((_, index) => $"@peer_id{index}").ToArray();
+                cmd.CommandText = $"SELECT * FROM PeerMetrics WHERE peer_id IN ({string.Join(", ", parameters)})";
+                for (var index = 0; index < batch.Length; index++)
+                {
+                    cmd.Parameters.AddWithValue(parameters[index], batch[index]);
+                }
+
+                using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    metrics.Add(ReadPeerMetrics(reader));
+                }
+            }
+
+            return metrics;
+        }
+
+        /// <inheritdoc/>
         public Task UpsertPeerMetricsAsync(Transfers.MultiSource.Metrics.PeerPerformanceMetrics metrics, CancellationToken cancellationToken = default)
         {
             if (metrics == null || string.IsNullOrWhiteSpace(metrics.PeerId))

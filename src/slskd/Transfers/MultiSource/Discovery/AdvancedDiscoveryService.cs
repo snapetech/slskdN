@@ -103,14 +103,15 @@ public class AdvancedDiscoveryService : IAdvancedDiscoveryService
         try
         {
             var rankedPeers = new List<RankedPeer>();
+            var metricsByPeerId = await _peerMetrics.GetMetricsAsync(
+                peers.Select(peer => (
+                    peer.PeerId,
+                    peer.Source == "soulseek" ? PeerSource.Soulseek : PeerSource.Overlay)),
+                cancellationToken).ConfigureAwait(false);
 
             foreach (var peer in peers)
             {
-                // Get peer performance metrics
-                var metrics = await _peerMetrics.GetMetricsAsync(
-                    peer.PeerId,
-                    peer.Source == "soulseek" ? PeerSource.Soulseek : PeerSource.Overlay,
-                    cancellationToken).ConfigureAwait(false);
+                metricsByPeerId.TryGetValue(peer.PeerId, out var metrics);
 
                 // Calculate performance score
                 var performanceScore = CalculatePerformanceScore(metrics);
@@ -328,7 +329,7 @@ public class AdvancedDiscoveryService : IAdvancedDiscoveryService
         return confidence;
     }
 
-    private double CalculatePerformanceScore(PeerPerformanceMetrics metrics)
+    private double CalculatePerformanceScore(PeerPerformanceMetrics? metrics)
     {
         if (metrics == null)
         {
@@ -353,7 +354,7 @@ public class AdvancedDiscoveryService : IAdvancedDiscoveryService
                (rttScore * rttWeight);
     }
 
-    private double CalculateAvailabilityScore(PeerPerformanceMetrics metrics)
+    private double CalculateAvailabilityScore(PeerPerformanceMetrics? metrics)
     {
         if (metrics == null)
         {

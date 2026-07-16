@@ -2298,6 +2298,45 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetPeerMetricsAsync_BatchesDistinctNormalizedIdsAcrossSqliteBoundary()
+    {
+        await using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}"))
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                WITH RECURSIVE sequence(value) AS (
+                    SELECT 1
+                    UNION ALL
+                    SELECT value + 1 FROM sequence WHERE value < 501
+                )
+                INSERT INTO PeerMetrics (peer_id, source)
+                SELECT printf('peer-%03d', value), 'Soulseek'
+                FROM sequence
+                """;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        var requested = Enumerable.Range(1, 501)
+            .Select(index => $"peer-{index:D3}")
+            .Concat(new[] { " peer-001 ", "missing" })
+            .ToArray();
+        var metrics = await service.GetPeerMetricsAsync(requested);
+
+        Assert.Equal(501, metrics.Count);
+        Assert.Equal(501, metrics.Select(item => item.PeerId).Distinct(StringComparer.Ordinal).Count());
+        Assert.DoesNotContain(metrics, item => item.PeerId == "missing");
+
+        await using var planConnection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await planConnection.OpenAsync();
+        await using var planCommand = planConnection.CreateCommand();
+        planCommand.CommandText = "EXPLAIN QUERY PLAN SELECT * FROM PeerMetrics WHERE peer_id IN ('peer-001', 'peer-501')";
+        await using var reader = await planCommand.ExecuteReaderAsync();
+        Assert.True(await reader.ReadAsync());
+        Assert.Contains("sqlite_autoindex_PeerMetrics_1", reader.GetString(3), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task GetTopPeerMetricsAsync_MatchesCanonicalCostRankingAndBoundsResults()
     {
         var now = DateTimeOffset.UtcNow;

@@ -34,6 +34,40 @@ namespace slskd.Tests.Unit.Transfers.MultiSource.Metrics
         }
 
         [Fact]
+        public async Task GetMetricsAsync_BatchesMissingPeersAndReusesCache()
+        {
+            var hashDb = new Mock<IHashDbService>();
+            hashDb.Setup(database => database.GetPeerMetricsAsync(
+                    It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<PeerPerformanceMetrics>
+                {
+                    new() { PeerId = "persisted", Source = PeerSource.Soulseek, ReputationScore = 0.9 },
+                });
+            var service = new PeerMetricsService(hashDb.Object, NullLogger<PeerMetricsService>.Instance);
+            var requests = new[]
+            {
+                (PeerId: "persisted", Source: PeerSource.Overlay),
+                (PeerId: "new-peer", Source: PeerSource.Overlay),
+                (PeerId: "persisted", Source: PeerSource.Overlay),
+            };
+
+            var first = await service.GetMetricsAsync(requests);
+            var second = await service.GetMetricsAsync(requests);
+
+            Assert.Equal(2, first.Count);
+            Assert.Equal(PeerSource.Soulseek, first["persisted"]!.Source);
+            Assert.Equal(PeerSource.Overlay, first["new-peer"]!.Source);
+            Assert.Same(first["persisted"], second["persisted"]);
+            hashDb.Verify(database => database.GetPeerMetricsAsync(
+                It.Is<IEnumerable<string>>(peerIds => peerIds.Count() == 2),
+                It.IsAny<CancellationToken>()), Times.Once);
+            hashDb.Verify(database => database.GetPeerMetricsAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
         public async Task GetRankedPeersAsync_UsesBoundedDatabaseRankingAndCanonicalReturnOrder()
         {
             var hashDb = new Mock<IHashDbService>();

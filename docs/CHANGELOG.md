@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Advanced discovery peer ranking now resolves uncached local metrics through
+  one service batch and bounded 500-ID HashDb reads instead of awaiting one
+  storage lookup per peer. Ranking 100 uncached peers falls from 100 serialized
+  reads to one (99% fewer); 501 IDs use two reads. First-occurrence peer source,
+  persisted/default metrics, cache reuse, null/exception fallbacks, ranking
+  scores/order, and network behavior remain unchanged.
 - Multi-source canonical download skip decisions now reuse the bounded HashDb
   best-variant query instead of loading and sorting every local variant for the
   recording. With 1,003 local rows, mapped rows fall from 1,003 to one (99.9%
