@@ -52,6 +52,26 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z663. Album-Wide Analysis Must Batch Tracks And Index Membership
+
+**The Bug**: Library Bloom loaded album targets once, queried
+`AlbumTargetTracks` separately for every release, then checked each track by
+linearly scanning the complete held-recording list. A 100-release analysis used
+101 database queries, while 10,000 held IDs and 10,000 tracks could perform 100
+million string comparisons.
+
+**Files Affected**:
+- `src/slskd/HashDb/IHashDbService.cs`
+- `src/slskd/HashDb/HashDbService.cs`
+- `src/slskd/Integrations/MusicBrainz/Bloom/LibraryBloomDiffService.cs`
+
+**Prevention**: Load dependent album tracks with a bounded `release_id IN (...)`
+query and group the returned rows in memory. Convert repeated membership inputs
+to a comparer-correct `HashSet` before scanning tracks. Preserve the existing
+single-release API for targeted reads, keep SQLite parameter batches below the
+conservative variable limit, and cover exact repository call counts so N+1
+fan-out cannot return unnoticed.
+
 ### 0z662. Removing A Cancellable Wait Must Preserve Its Cancellation Checkpoint
 
 **The Bug**: Removing SignalBus's deduplication semaphore also removed the
