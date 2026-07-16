@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- SignalBus now admits distinct incoming signal IDs concurrently with atomic
+  cache operations while preserving duplicate, expiry, and cancellation
+  behavior. A 100,000-signal burst avoids 200,000 global semaphore operations,
+  and concurrent copies of one ID still produce exactly one delivery.
 - Source Discovery now streams returned files into 100-row SQLite UPSERT
   commands inside the existing transaction. Persisting 100,000 results falls
   from 100,000 commands to 1,000 without changing Soulseek search traffic, and

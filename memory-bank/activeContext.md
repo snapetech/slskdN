@@ -1,3 +1,17 @@
+## Update 2026-07-16 06:48:55Z
+
+- Current task: performance and efficiency improvements in progress; SignalBus receive-concurrency pass complete locally.
+- Last activity:
+  - Removed the global deduplication semaphore and use atomic concurrent-cache admission/maintenance. A 100,000-signal burst avoids 200,000 semaphore operations, while 128 simultaneous copies of one ID still deliver exactly once.
+  - Preserved the removed wait's cancellation checkpoint so a pre-cancelled receive does not poison a later retry. Documented gotchas `0z661` (`1defd7ed1`) and `0z662` (`f0558e1a1`).
+- Validation:
+  - Passed focused SignalBus coverage (`15/15`) and complete smoke/unit/integration suites (`4826/4826`: `69` smoke, `4477` unit, `280` integration).
+  - Repository lint and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. The initial integration attempt hit transient `/tmp` capacity; harness cleanup restored space and the full `280/280` rerun passed without manual deletion. Concurrent Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the SignalBus implementation and handoff slice.
+  2. Continue the broader performance goal outside the dirty Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 06:32:01Z
 
 - Current task: performance and efficiency improvements in progress; Source Discovery ingestion pass complete locally.

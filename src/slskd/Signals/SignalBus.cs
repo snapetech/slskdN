@@ -18,7 +18,6 @@ public class SignalBus : ISignalBus, IDisposable
     private readonly ConcurrentDictionary<SignalChannel, ISignalChannelHandler> channelHandlers = new();
     private readonly CancellationTokenSource cleanupCancellationTokenSource = new();
     private readonly ConcurrentDictionary<string, DateTimeOffset> seenSignalIds = new(); // LRU cache for deduplication
-    private readonly SemaphoreSlim seenSignalIdsLock = new(1, 1);
     private readonly List<Func<Signal, CancellationToken, Task>> subscribers = new();
     private readonly SemaphoreSlim subscribersLock = new(1, 1);
     private readonly Task cleanupTask;
@@ -149,33 +148,31 @@ public class SignalBus : ISignalBus, IDisposable
         if (signal == null)
             return;
 
-        // Deduplication: Check if we've seen this SignalId before
-        await seenSignalIdsLock.WaitAsync(cancellationToken);
-        try
-        {
-            if (seenSignalIds.ContainsKey(signal.SignalId))
-            {
-                Interlocked.Increment(ref duplicateSignalsDropped);
-                logger.LogDebug("Dropping duplicate signal: {SignalId}", signal.SignalId);
-                return;
-            }
+        cancellationToken.ThrowIfCancellationRequested();
 
-            // Check expiration
-            if (signal.IsExpired(DateTimeOffset.UtcNow))
-            {
-                Interlocked.Increment(ref expiredSignalsDropped);
-                logger.LogDebug("Dropping expired signal: {SignalId}", signal.SignalId);
-                return;
-            }
-
-            // Add to seen cache
-            seenSignalIds[signal.SignalId] = signal.SentAt;
-            Interlocked.Increment(ref signalsReceived);
-        }
-        finally
+        // Preserve duplicate classification for cached IDs before checking expiry.
+        if (seenSignalIds.ContainsKey(signal.SignalId))
         {
-            seenSignalIdsLock.Release();
+            Interlocked.Increment(ref duplicateSignalsDropped);
+            logger.LogDebug("Dropping duplicate signal: {SignalId}", signal.SignalId);
+            return;
         }
+
+        if (signal.IsExpired(DateTimeOffset.UtcNow))
+        {
+            Interlocked.Increment(ref expiredSignalsDropped);
+            logger.LogDebug("Dropping expired signal: {SignalId}", signal.SignalId);
+            return;
+        }
+
+        if (!seenSignalIds.TryAdd(signal.SignalId, signal.SentAt))
+        {
+            Interlocked.Increment(ref duplicateSignalsDropped);
+            logger.LogDebug("Dropping duplicate signal: {SignalId}", signal.SignalId);
+            return;
+        }
+
+        Interlocked.Increment(ref signalsReceived);
 
         // Forward to all subscribers
         await subscribersLock.WaitAsync(cancellationToken);
@@ -228,46 +225,38 @@ public class SignalBus : ISignalBus, IDisposable
 
             try
             {
-                seenSignalIdsLock.Wait();
-                try
+                var now = DateTimeOffset.UtcNow;
+                var expired = seenSignalIds
+                    .Where(kvp => now > kvp.Value + TimeSpan.FromHours(1)) // Keep IDs for 1 hour
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+
+                foreach (var signalId in expired)
                 {
-                    var now = DateTimeOffset.UtcNow;
-                    var expired = seenSignalIds
-                        .Where(kvp => now > kvp.Value + TimeSpan.FromHours(1)) // Keep IDs for 1 hour
+                    seenSignalIds.TryRemove(signalId, out _);
+                }
+
+                // Enforce cache size limit
+                var removed = 0;
+                if (seenSignalIds.Count > options.DeduplicationCacheSize)
+                {
+                    var toRemove = seenSignalIds
+                        .OrderBy(kvp => kvp.Value)
+                        .Take(seenSignalIds.Count - options.DeduplicationCacheSize)
                         .Select(kvp => kvp.Key)
                         .ToList();
 
-                    foreach (var signalId in expired)
+                    foreach (var signalId in toRemove)
                     {
-                        seenSignalIds.TryRemove(signalId, out _);
-                    }
-
-                    // Enforce cache size limit
-                    var removed = 0;
-                    if (seenSignalIds.Count > options.DeduplicationCacheSize)
-                    {
-                        var toRemove = seenSignalIds
-                            .OrderBy(kvp => kvp.Value)
-                            .Take(seenSignalIds.Count - options.DeduplicationCacheSize)
-                            .Select(kvp => kvp.Key)
-                            .ToList();
-
-                        foreach (var signalId in toRemove)
-                        {
-                            if (seenSignalIds.TryRemove(signalId, out _))
-                                removed++;
-                        }
-                    }
-
-                    if (expired.Count > 0 || removed > 0)
-                    {
-                        logger.LogDebug("Cleaned up {Expired} expired and {Removed} excess signal IDs from cache",
-                            expired.Count, removed);
+                        if (seenSignalIds.TryRemove(signalId, out _))
+                            removed++;
                     }
                 }
-                finally
+
+                if (expired.Count > 0 || removed > 0)
                 {
-                    seenSignalIdsLock.Release();
+                    logger.LogDebug("Cleaned up {Expired} expired and {Removed} excess signal IDs from cache",
+                        expired.Count, removed);
                 }
             }
             catch (Exception ex)
@@ -321,7 +310,6 @@ public class SignalBus : ISignalBus, IDisposable
             }
 
             cleanupCancellationTokenSource.Dispose();
-            seenSignalIdsLock.Dispose();
             subscribersLock.Dispose();
         }
 

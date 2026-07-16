@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove global SignalBus receive serialization.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced the semaphore-protected `ConcurrentDictionary` contains/add sequence with atomic `TryAdd` admission and lock-free concurrent cleanup. Each accepted or duplicate signal avoids one asynchronous wait and release, removing 200,000 global semaphore operations from a 100,000-signal burst while preserving duplicate-first classification, expiry, and pre-cancelled retry behavior. Added 128-way same-ID admission and cancelled-then-retry regressions; documented gotchas `0z661` (`1defd7ed1`) and `0z662` (`f0558e1a1`).
+
 - [x] Batch Source Discovery SQLite ingestion.
   - Status: completed (2026-07-16)
   - Priority: P1

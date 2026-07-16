@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- SignalBus receive deduplication now uses atomic concurrent-cache admission
+  instead of serializing every signal through one global semaphore.
 - Source Discovery now persists returned files with bounded multi-row SQLite
   upserts instead of compiling and executing one command per file.
 - Library Health release completeness checks now coalesce files by release and

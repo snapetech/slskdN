@@ -205,6 +205,51 @@ public class SignalBusTests
     }
 
     [Fact]
+    public async Task OnSignalReceived_WithConcurrentDuplicateBurst_DeliversExactlyOnce()
+    {
+        using var signalBus = new SignalBus(loggerMock.Object, optionsMonitorMock.Object);
+        var deliveries = 0;
+        await signalBus.SubscribeAsync((_, _) =>
+        {
+            Interlocked.Increment(ref deliveries);
+            return Task.CompletedTask;
+        });
+        var signal = CreateTestSignal(SignalChannel.Mesh);
+
+        await Task.WhenAll(Enumerable.Range(0, 128)
+            .Select(_ => signalBus.OnSignalReceivedAsync(signal, CancellationToken.None)));
+
+        Assert.Equal(1, deliveries);
+        var statistics = signalBus.GetStatistics();
+        Assert.Equal(1, statistics.SignalsReceived);
+        Assert.Equal(127, statistics.DuplicateSignalsDropped);
+    }
+
+    [Fact]
+    public async Task OnSignalReceived_WhenAlreadyCancelled_DoesNotCacheSignal()
+    {
+        using var signalBus = new SignalBus(loggerMock.Object, optionsMonitorMock.Object);
+        var deliveries = 0;
+        await signalBus.SubscribeAsync((_, _) =>
+        {
+            Interlocked.Increment(ref deliveries);
+            return Task.CompletedTask;
+        });
+        var signal = CreateTestSignal(SignalChannel.Mesh);
+        using var cancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            signalBus.OnSignalReceivedAsync(signal, cancellationTokenSource.Token));
+        await signalBus.OnSignalReceivedAsync(signal, CancellationToken.None);
+
+        Assert.Equal(1, deliveries);
+        var statistics = signalBus.GetStatistics();
+        Assert.Equal(1, statistics.SignalsReceived);
+        Assert.Equal(0, statistics.DuplicateSignalsDropped);
+    }
+
+    [Fact]
     public async Task OnSignalReceived_ShouldDropExpiredSignals()
     {
         // Arrange
