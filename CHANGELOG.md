@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Spectral hashing now evaluates decimated RMS samples directly instead of
+  allocating the complete downsampled signal first.
 - Chromaprint hashing now reuses immutable Hann and normal-rate FFT-bin mapping
   tables instead of rebuilding them for every audio hash.
 - Perceptual-hash Hamming distance now uses the runtime population-count

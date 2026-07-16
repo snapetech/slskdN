@@ -1,3 +1,17 @@
+## Update 2026-07-16 18:26:58Z
+
+- Current task: performance and efficiency improvements in progress; spectral hashing downsample-buffer elimination complete locally.
+- Last activity:
+  - Replaced the allocated decimated signal with direct RMS evaluation over exact virtual downsample indexes.
+  - A one-second 44.1 kHz spectral call removes roughly 44 KiB and stays below 256 allocated bytes with identical output.
+- Validation:
+  - Passed focused perceptual hasher (`36/36`), broader MediaCore (`233/233`), and full backend suites (`4976/4976`) tests.
+  - Exact downsampled output/allocation plus existing similarity boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the direct-decimation spectral slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 18:20:03Z
 
 - Current task: performance and efficiency improvements in progress; immutable Chromaprint analysis-table reuse complete locally.

@@ -113,25 +113,26 @@ public class PerceptualHasher : IPerceptualHasher
         if (samples == null || samples.Length == 0)
             return 0;
 
-        // Downsample to ~11kHz mono if needed (reduces computation)
-        var targetRate = 11025;
-        if (sampleRate > targetRate)
-        {
-            samples = Downsample(samples, sampleRate, targetRate);
-            sampleRate = targetRate;
-        }
-
         // Compute spectral features across 8 time windows
         Span<double> features = stackalloc double[8];
-        var windowSize = samples.Length / 8;
+        const int TargetRate = 11025;
+        var downsampleRatio = sampleRate > TargetRate
+            ? sampleRate / (double)TargetRate
+            : 1.0;
+        var analyzedLength = sampleRate > TargetRate
+            ? (int)(samples.Length / downsampleRatio)
+            : samples.Length;
+        var windowSize = analyzedLength / 8;
 
         for (int w = 0; w < 8; w++)
         {
             var start = w * windowSize;
-            var end = Math.Min(start + windowSize, samples.Length);
+            var end = Math.Min(start + windowSize, analyzedLength);
 
             // Compute energy in frequency bands (simplified spectral feature)
-            features[w] = ComputeSpectralEnergy(samples.AsSpan(start, end - start));
+            features[w] = downsampleRatio == 1.0
+                ? ComputeSpectralEnergy(samples.AsSpan(start, end - start))
+                : ComputeDownsampledSpectralEnergy(samples, downsampleRatio, start, end);
         }
 
         // Generate hash from feature comparisons
@@ -189,6 +190,27 @@ public class PerceptualHasher : IPerceptualHasher
         }
 
         return Math.Sqrt(sum / window.Length);
+    }
+
+    private static double ComputeDownsampledSpectralEnergy(
+        ReadOnlySpan<float> samples,
+        double ratio,
+        int start,
+        int end)
+    {
+        if (start == end)
+        {
+            return 0;
+        }
+
+        var sum = 0.0;
+        for (var index = start; index < end; index++)
+        {
+            var sample = samples[(int)(index * ratio)];
+            sum += sample * sample;
+        }
+
+        return Math.Sqrt(sum / (end - start));
     }
 
     /// <summary>

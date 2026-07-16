@@ -353,6 +353,22 @@ public class PerceptualHasherTests
     }
 
     [Fact]
+    public void ComputeHash_DownsamplesWithoutIntermediateBuffer()
+    {
+        var samples = GenerateSineWave(44100, 1.0f, 440);
+        var expected = hasher.ComputeHash(samples, 44100);
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var result = hasher.ComputeHash(samples, 44100);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(expected, result);
+        Assert.True(
+            allocatedBytes < 256,
+            $"Expected direct decimated spectral hashing below 256 allocated bytes, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
     public void HammingDistance_IsSymmetric()
     {
         var hash1 = 0x123456789ABCDEF0UL;

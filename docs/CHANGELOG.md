@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Spectral hashing now computes each RMS window directly over the virtual
+  decimated sample sequence instead of allocating and filling the complete
+  downsampled signal before visiting it once. A one-second 44.1 kHz input no
+  longer allocates the 11,025-float intermediate (roughly 44 KiB), and the
+  complete warmed hash call remains below 256 allocated bytes. Decimated length,
+  `floor(index × ratio)` source selection, window partitioning, arithmetic order,
+  exact hash output, and downsampling similarity remain unchanged. Chromaprint
+  retains a contiguous downsample buffer because its FFT requires one.
 - Chromaprint hashing now precomputes its immutable 4,096-point Hann window and
   normal 11,025 Hz FFT-bin-to-chroma map once instead of rebuilding them for
   every hash. Typical calls remove roughly 40 KiB of table arrays plus 4,096

@@ -1,3 +1,10 @@
+## Update 2026-07-16 18:26:58Z
+
+- Completed the direct-decimation spectral hashing performance pass.
+- RMS features now read the virtual decimated sequence directly instead of allocating/filling a full temporary signal that is visited once.
+- A one-second 44.1 kHz call removes the roughly 44 KiB 11,025-float buffer and remains below 256 allocated bytes. Length/index/window/arithmetic/median/hash/similarity semantics remain unchanged; Chromaprint keeps its FFT buffer.
+- Validation passed: focused perceptual hasher tests (`36/36`), broader MediaCore tests (`233/233`), full backend suites (`4976/4976`: `69` application, `4627` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 18:20:03Z
 
 - Completed the immutable Chromaprint analysis-table reuse performance pass.

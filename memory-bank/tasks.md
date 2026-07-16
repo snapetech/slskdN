@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Eliminate spectral hashing's downsample buffer.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `PerceptualHasher.ComputeHash` now evaluates RMS windows directly over the virtual decimated sequence instead of calling `Downsample` to allocate/fill the entire result and then reading it once. For a one-second 44.1 kHz input, the 11,025-float intermediate (roughly 44 KiB plus its array header) is eliminated and the complete warmed spectral call remains below 256 allocated bytes. The code preserves the exact truncated analyzed length, `floor(index * ratio)` source indexes, eight-window boundaries, float multiplication/double accumulation order, median threshold, exact numeric hash, and downsampling similarity. Chromaprint intentionally retains its contiguous buffer for FFT input. Added exact 44.1 kHz output/allocation coverage. Validation passed: focused perceptual hasher tests (`36/36`), broader MediaCore tests (`233/233`), full backend suites (`4976/4976`: `69` application, `4627` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Reuse immutable Chromaprint analysis tables.
   - Status: completed (2026-07-16)
   - Priority: P1
