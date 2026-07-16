@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z671. SQLite Partial Index Queries Must Repeat The Predicate
+
+**The Bug**: The first remediation-linkage query used a partial index on
+non-empty job IDs but only stated `remediation_job_id = @job_id`. SQLite did not
+infer the index predicate, scanned `LibraryHealthIssues`, and would also sort
+because the index omitted the requested `detected_at DESC` order.
+
+**Files Affected**:
+- `src/slskd/HashDb/Migrations/HashDbMigrations.cs`
+- `src/slskd/HashDb/HashDbService.cs`
+
+**Prevention**: Repeat a partial index's `IS NOT NULL`/non-empty predicate in
+the consuming query, and include stable order columns after equality keys when
+the read requires ordering. Confirm `SEARCH ... USING INDEX` and absence of a
+temporary B-tree with the exact production query shape.
+
 ### 0z670. Remediation Linkage Must Persist The Job Identifier
 
 **The Bug**: Library Health's `LinkJobToIssuesAsync` changed issues to `Fixing`
