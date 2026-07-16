@@ -111,6 +111,33 @@ public class FuzzyMatcherTests
     }
 
     [Fact]
+    public void ScoreLevenshtein_LongSharedPrefixSkipsRedundantDistanceCells()
+    {
+        const int sharedLength = 20_000;
+        var prefix = new string('a', sharedLength);
+        var a = prefix + "b";
+        var b = prefix + "c";
+        _ = matcher.ScoreLevenshtein("warm", "worm");
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var score = matcher.ScoreLevenshtein(a, b);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(1.0 - (1.0 / (sharedLength + 1)), score, precision: 10);
+        Assert.True(
+            allocatedBytes < 128 * 1024,
+            $"Expected affix-trimmed allocation below 128 KiB, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
+    public void ScoreLevenshtein_SharedPrefixAndSuffixPreserveExactDistance()
+    {
+        var score = matcher.ScoreLevenshtein("prefixkitten-suffix", "prefixsitting-suffix");
+
+        Assert.Equal(0.85, score, precision: 10);
+    }
+
+    [Fact]
     public void ScorePhonetic_IsCaseInsensitive()
     {
         var score1 = matcher.ScorePhonetic("SMITH", "smith");

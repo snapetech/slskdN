@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Skip shared affixes during Levenshtein fuzzy scoring.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added an ordinal-ignore-case equality fast path and zero-copy shared-prefix/shared-suffix trimming before the rolling-row distance pass. For the covered 20,001-character near-match with a 20,000-character shared prefix, distance-cell evaluations fall from 400,040,001 to one and total measured call allocation remains below 128 KiB. Exact edit distance, normalized scores, case-insensitive behavior, prefix/suffix correctness, and worst-case quadratic complexity remain unchanged. Added exact long-prefix score/allocation and combined-prefix/suffix distance regressions. Validation passed: focused fuzzy matcher tests (`41/41`), broader MediaCore tests (`228/228`), full backend suites (`4953/4953`: `69` application, `4604` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Bound Levenshtein fuzzy-score working memory.
   - Status: completed (2026-07-16)
   - Priority: P1

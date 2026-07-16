@@ -1,3 +1,17 @@
+## Update 2026-07-16 16:31:50Z
+
+- Current task: performance and efficiency improvements in progress; Levenshtein shared-affix elimination complete locally.
+- Last activity:
+  - Added a case-insensitive equality fast path and zero-copy shared-prefix/suffix trimming before edit-distance evaluation.
+  - At the covered 20,001-character near-match, distance cells fall from 400,040,001 to one while the exact score is unchanged.
+- Validation:
+  - Passed focused fuzzy matcher (`41/41`), broader MediaCore (`228/228`), and full backend suites (`4953/4953`) tests.
+  - Exact long-prefix allocation/score, combined-prefix/suffix correctness, case/empty/distance behavior, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the Levenshtein shared-affix slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 16:23:50Z
 
 - Current task: performance and efficiency improvements in progress; bounded Levenshtein working memory complete locally.

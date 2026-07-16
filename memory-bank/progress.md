@@ -1,3 +1,10 @@
+## Update 2026-07-16 16:31:50Z
+
+- Completed the Levenshtein shared-affix elimination performance pass.
+- Case-insensitive equality now returns before normalization, and zero-copy spans remove shared prefixes/suffixes before the rolling distance rows execute.
+- At a 20,001-character near-match with a 20,000-character shared prefix, distance-cell evaluations fall from 400,040,001 to one and measured call allocation remains below 128 KiB. Exact distance, normalized scores, case/suffix behavior, and worst-case complexity remain unchanged.
+- Validation passed: focused fuzzy matcher tests (`41/41`), broader MediaCore tests (`228/228`), full backend suites (`4953/4953`: `69` application, `4604` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 16:23:50Z
 
 - Completed the bounded Levenshtein working-memory performance pass.

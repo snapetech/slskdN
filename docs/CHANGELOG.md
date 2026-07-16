@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Levenshtein fuzzy scoring now removes shared prefixes and suffixes through
+  zero-copy spans before evaluating distance, and exact case-insensitive
+  matches return before lowercase normalization. In the covered 20,001-character
+  near-match with a 20,000-character shared prefix, distance-cell evaluations
+  fall from 400,040,001 to one and measured call allocation stays below 128
+  KiB. Exact distance, normalized scores, case behavior, shared-suffix behavior,
+  and worst-case quadratic complexity remain unchanged.
 - Levenshtein fuzzy scoring now keeps two distance rows sized to the shorter
   input instead of allocating the complete dynamic-programming matrix. At the
   covered 2,048-by-2,048 boundary, distance storage falls from 4,198,401

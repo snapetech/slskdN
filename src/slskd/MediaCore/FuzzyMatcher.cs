@@ -103,6 +103,7 @@ public class FuzzyMatcher : IFuzzyMatcher
     {
         if (string.IsNullOrEmpty(a) && string.IsNullOrEmpty(b)) return 1.0;
         if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b)) return 0.0;
+        if (string.Equals(a, b, StringComparison.OrdinalIgnoreCase)) return 1.0;
 
         // Normalize to lowercase for case-insensitive comparison
         a = a.ToLowerInvariant();
@@ -141,11 +142,47 @@ public class FuzzyMatcher : IFuzzyMatcher
     /// Computes Levenshtein edit distance between two strings.
     /// Measures minimum number of single-character edits (insertions, deletions, substitutions).
     /// </summary>
-    private static int ComputeLevenshteinDistance(string a, string b)
+    private static int ComputeLevenshteinDistance(ReadOnlySpan<char> a, ReadOnlySpan<char> b)
     {
+        var sharedPrefixLength = 0;
+        var shorterLength = Math.Min(a.Length, b.Length);
+        while (sharedPrefixLength < shorterLength && a[sharedPrefixLength] == b[sharedPrefixLength])
+        {
+            sharedPrefixLength++;
+        }
+
+        a = a[sharedPrefixLength..];
+        b = b[sharedPrefixLength..];
+
+        var sharedSuffixLength = 0;
+        shorterLength = Math.Min(a.Length, b.Length);
+        while (sharedSuffixLength < shorterLength &&
+            a[^(sharedSuffixLength + 1)] == b[^(sharedSuffixLength + 1)])
+        {
+            sharedSuffixLength++;
+        }
+
+        if (sharedSuffixLength > 0)
+        {
+            a = a[..^sharedSuffixLength];
+            b = b[..^sharedSuffixLength];
+        }
+
+        if (a.Length == 0)
+        {
+            return b.Length;
+        }
+
+        if (b.Length == 0)
+        {
+            return a.Length;
+        }
+
         if (b.Length > a.Length)
         {
-            (a, b) = (b, a);
+            var temporary = a;
+            a = b;
+            b = temporary;
         }
 
         var previousRow = new int[b.Length + 1];
