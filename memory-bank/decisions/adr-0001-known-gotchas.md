@@ -52,6 +52,19 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z691. MediaCore Variant Fixtures Need The Audio Namespace
+
+**The Bug**: A `HashDbMediaVariantStore` regression imported the HashDb,
+MediaCore, and Virtual Soulfind namespaces but constructed `AudioVariant`
+without importing `slskd.Audio`, causing CS0246 before the focused test ran.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/MediaCore/HashDbMediaVariantStoreTests.cs`
+
+**Prevention**: `AudioVariant` belongs to `slskd.Audio`; HashDb services expose
+it but do not re-export its namespace. MediaCore tests that construct audio
+variants must import `slskd.Audio` explicitly before compiling.
+
 ### 0z690. Scalar-to-Batch Delegation Must Preserve No-Op Boundaries
 
 **The Bug**: The first warm-cache popularity batching pass delegated the
