@@ -68,6 +68,13 @@ method's reassignment of a by-value string parameter propagates back to its
 caller. Prefer one atomic upsert when a write must create-or-update the same
 normalized key.
 
+**2026-07-16 update:** Mesh hash merging had the same split boundary: the
+existence lookup trimmed `FlacKey`, but a miss passed the original entry to
+`StoreHashAsync`, allowing an authenticated direct merge to store a spaced key
+that later normalized lookups would not address consistently. Batched merge
+classification and insertion must carry one normalized key alongside each
+entry and use it for both indexed reads and writes.
+
 ### 0z674. `GetSlskdnPeersAsync` Is A Capability Filter, Not A Peer Inventory
 
 **The Bug**: A passive-ingestion regression tried to count all newly inserted
