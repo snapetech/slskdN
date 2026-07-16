@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Source Discovery now streams returned files into 100-row SQLite UPSERT
+  commands inside the existing transaction. Persisting 100,000 results falls
+  from 100,000 commands to 1,000 without changing Soulseek search traffic, and
+  post-commit hash-verification failures no longer attempt an invalid rollback.
 - Library Health now performs release completeness analysis once per release
   directory after the file scan and checks recording presence with one indexed
   batch query. A ten-track release containing ten files falls from 120 database

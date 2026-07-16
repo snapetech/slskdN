@@ -30,6 +30,8 @@ namespace slskd.Transfers.MultiSource.Discovery
         /// </summary>
         private const int CyclePauseMs = 1000;
 
+        private const int UpsertBatchSize = 100;
+
         private readonly ISoulseekClient client;
         private readonly ISoulseekSafetyLimiter safetyLimiter;
         private readonly IContentVerificationService verificationService;
@@ -413,58 +415,19 @@ namespace slskd.Transfers.MultiSource.Discovery
 
         private async Task<int> ProcessResponsesAsync(List<SearchResponse> responses, CancellationToken cancellationToken)
         {
-            var newFiles = 0;
             var nowUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
             using var connection = new SqliteConnection($"Data Source={dbPath}");
             connection.Open();
 
             using var transaction = connection.BeginTransaction();
+            (int AffectedRows, int CommandCount) ingestion;
 
             try
             {
-                foreach (var response in responses)
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        break;
-                    }
-
-                    foreach (var file in response.Files)
-                    {
-                        // Insert or update (UPDATE LastSeenUnix if exists)
-                        using var cmd = connection.CreateCommand();
-                        cmd.Transaction = transaction;
-                        cmd.CommandText = @"
-                            INSERT INTO DiscoveredFiles (Username, Filename, Size, UploadSpeed, FirstSeenUnix, LastSeenUnix)
-                            VALUES (@username, @filename, @size, @speed, @now, @now)
-                            ON CONFLICT(Username, Filename, Size) DO UPDATE SET
-                                LastSeenUnix = @now,
-                                UploadSpeed = @speed";
-                        cmd.Parameters.AddWithValue("@username", response.Username);
-                        cmd.Parameters.AddWithValue("@filename", file.Filename);
-                        cmd.Parameters.AddWithValue("@size", file.Size);
-                        cmd.Parameters.AddWithValue("@speed", response.UploadSpeed);
-                        cmd.Parameters.AddWithValue("@now", nowUnix);
-
-                        var affected = cmd.ExecuteNonQuery();
-                        if (affected > 0)
-                        {
-                            // Check if this was an INSERT (new) vs UPDATE
-                            // SQLite doesn't distinguish easily, so we count all inserts
-                            // A more accurate count would require checking rowid changes
-                            newFiles++;
-                        }
-                    }
-                }
+                ingestion = UpsertResponses(connection, transaction, responses, nowUnix, cancellationToken);
 
                 transaction.Commit();
-
-                // Future: Hash verification for FLAC files
-                if (enableHashVerification)
-                {
-                    await VerifyFlacHashesAsync(connection, cancellationToken);
-                }
             }
             catch (Exception ex)
             {
@@ -473,7 +436,97 @@ namespace slskd.Transfers.MultiSource.Discovery
                 throw;
             }
 
-            return newFiles;
+            log.Debug(
+                "[Discovery] Persisted {FileCount} response files with {CommandCount} batched upsert commands",
+                ingestion.AffectedRows,
+                ingestion.CommandCount);
+
+            // Future: Hash verification for FLAC files
+            if (enableHashVerification)
+            {
+                await VerifyFlacHashesAsync(connection, cancellationToken);
+            }
+
+            return ingestion.AffectedRows;
+        }
+
+        internal static (int AffectedRows, int CommandCount) UpsertResponses(
+            SqliteConnection connection,
+            SqliteTransaction transaction,
+            IEnumerable<SearchResponse> responses,
+            long nowUnix,
+            CancellationToken cancellationToken)
+        {
+            var batch = new List<(string Username, string Filename, long Size, int UploadSpeed)>(UpsertBatchSize);
+            var affectedRows = 0;
+            var commandCount = 0;
+            var cancelled = false;
+
+            foreach (var response in responses)
+            {
+                foreach (var file in response.Files)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        cancelled = true;
+                        break;
+                    }
+
+                    batch.Add((response.Username, file.Filename, file.Size, response.UploadSpeed));
+                    if (batch.Count < UpsertBatchSize)
+                    {
+                        continue;
+                    }
+
+                    affectedRows += ExecuteUpsertBatch(connection, transaction, batch, nowUnix);
+                    commandCount++;
+                    batch.Clear();
+                }
+
+                if (cancelled)
+                {
+                    break;
+                }
+            }
+
+            if (batch.Count > 0)
+            {
+                affectedRows += ExecuteUpsertBatch(connection, transaction, batch, nowUnix);
+                commandCount++;
+            }
+
+            return (affectedRows, commandCount);
+        }
+
+        private static int ExecuteUpsertBatch(
+            SqliteConnection connection,
+            SqliteTransaction transaction,
+            IReadOnlyList<(string Username, string Filename, long Size, int UploadSpeed)> batch,
+            long nowUnix)
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = transaction;
+            var values = Enumerable.Range(0, batch.Count)
+                .Select(index => $"(@username{index}, @filename{index}, @size{index}, @speed{index}, @now{index}, @now{index})");
+            cmd.CommandText = $"""
+                INSERT INTO DiscoveredFiles (Username, Filename, Size, UploadSpeed, FirstSeenUnix, LastSeenUnix)
+                VALUES {string.Join(", ", values)}
+                ON CONFLICT(Username, Filename, Size) DO UPDATE SET
+                    LastSeenUnix = excluded.LastSeenUnix,
+                    UploadSpeed = excluded.UploadSpeed
+                """;
+
+            for (var index = 0; index < batch.Count; index++)
+            {
+                var row = batch[index];
+                cmd.Parameters.AddWithValue($"@username{index}", row.Username);
+                cmd.Parameters.AddWithValue($"@filename{index}", row.Filename);
+                cmd.Parameters.AddWithValue($"@size{index}", row.Size);
+                cmd.Parameters.AddWithValue($"@speed{index}", row.UploadSpeed);
+                cmd.Parameters.AddWithValue($"@now{index}", nowUnix);
+            }
+
+            return cmd.ExecuteNonQuery();
         }
 
         private async Task VerifyFlacHashesAsync(SqliteConnection connection, CancellationToken cancellationToken)

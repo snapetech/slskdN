@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch Source Discovery SQLite ingestion.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced one command allocation and UPSERT execution per returned Soulseek file with streamed 100-row multi-value UPSERTs inside the existing transaction. At 100,000 results, SQLite command compilation/execution falls from 100,000 to 1,000 (99% fewer) without changing search cadence, response limits, or peer traffic. The 201-row regression requires three commands and preserves conflict-update timestamps/speed; post-commit hash verification was moved outside the rollback catch. Documented gotchas `0z658` (`43406562e`), `0z659` (`d5a080944`), and `0z660` (`9165ba73f`).
+
 - [x] Batch Library Health release completeness analysis.
   - Status: completed (2026-07-16)
   - Priority: P1

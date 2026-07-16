@@ -1,3 +1,17 @@
+## Update 2026-07-16 06:32:01Z
+
+- Current task: performance and efficiency improvements in progress; Source Discovery ingestion pass complete locally.
+- Last activity:
+  - Batched returned files into 100-row SQLite UPSERT commands within the existing transaction. At 100,000 files, command compilation/execution falls from 100,000 to 1,000 (99% fewer) with no change to Soulseek traffic or safety limits.
+  - Moved optional hash verification outside the transaction rollback catch so a post-commit failure cannot attempt an invalid rollback. Documented gotchas `0z658` (`43406562e`), `0z659` (`d5a080944`), and `0z660` (`9165ba73f`).
+- Validation:
+  - Passed focused Source Discovery coverage (`2/2`) and complete smoke/unit/integration suites (`4823/4823`: `69` smoke, `4474` unit, `280` integration).
+  - Repository lint and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. Concurrent Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the Source Discovery implementation and handoff slice.
+  2. Continue the broader performance goal outside the dirty Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 06:19:37Z
 
 - Current task: performance and efficiency improvements in progress; Library Health release-analysis pass complete locally.

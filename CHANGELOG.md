@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Source Discovery now persists returned files with bounded multi-row SQLite
+  upserts instead of compiling and executing one command per file.
 - Library Health release completeness checks now coalesce files by release and
   directory, then query all track recording IDs in indexed batches instead of
   repeating the complete album analysis for every file.
