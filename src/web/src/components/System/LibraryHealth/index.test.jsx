@@ -1,6 +1,6 @@
 import LibraryHealth from './index';
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 import * as libraryHealth from '../../../lib/libraryHealth';
 import * as searches from '../../../lib/searches';
@@ -44,10 +44,18 @@ vi.mock('semantic-ui-react', async () => {
   };
 });
 
+const setDocumentHidden = (hidden) => {
+  Object.defineProperty(document, 'hidden', {
+    configurable: true,
+    value: hidden,
+  });
+};
+
 describe('LibraryHealth', () => {
   beforeEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+    setDocumentHidden(false);
     libraryHealth.startScan.mockResolvedValue({ data: { scanId: 'scan-1' } });
     libraryHealth.getScanStatus.mockResolvedValue({ data: { status: 'Completed' } });
     libraryHealth.getDashboard.mockResolvedValue({
@@ -79,6 +87,7 @@ describe('LibraryHealth', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    setDocumentHidden(false);
   });
 
   it('copies a read-only health report from loaded scan data', async () => {
@@ -254,5 +263,65 @@ describe('LibraryHealth', () => {
     );
     await vi.advanceTimersByTimeAsync(2_000);
     expect(libraryHealth.getScanStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it('schedules the next status poll only after a slow request completes', async () => {
+    vi.useFakeTimers();
+    let resolveStatus;
+    libraryHealth.getScanStatus
+      .mockImplementationOnce(
+        () => new Promise((resolve) => {
+          resolveStatus = resolve;
+        }),
+      )
+      .mockResolvedValue({ data: { status: 'Running' } });
+
+    render(<LibraryHealth />);
+    fireEvent.change(screen.getByPlaceholderText('Enter library path (e.g., /music or C:\\Music)'), {
+      target: { value: '/fixture/music' },
+    });
+    fireEvent.click(screen.getByText('Start Scan'));
+
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(libraryHealth.getScanStatus).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(libraryHealth.getScanStatus).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveStatus({ data: { status: 'Running' } });
+      await Promise.resolve();
+    });
+    await vi.advanceTimersByTimeAsync(1_999);
+    expect(libraryHealth.getScanStatus).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(libraryHealth.getScanStatus).toHaveBeenCalledTimes(2);
+  });
+
+  it('pauses while hidden without extending the scan polling deadline', async () => {
+    vi.useFakeTimers();
+    libraryHealth.getScanStatus.mockResolvedValue({ data: { status: 'Running' } });
+
+    render(<LibraryHealth />);
+    fireEvent.change(screen.getByPlaceholderText('Enter library path (e.g., /music or C:\\Music)'), {
+      target: { value: '/fixture/music' },
+    });
+    fireEvent.click(screen.getByText('Start Scan'));
+    await waitFor(() => expect(libraryHealth.startScan).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      setDocumentHidden(true);
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+    expect(libraryHealth.getScanStatus).not.toHaveBeenCalled();
+
+    await act(async () => {
+      setDocumentHidden(false);
+      document.dispatchEvent(new Event('visibilitychange'));
+      await Promise.resolve();
+    });
+    expect(libraryHealth.getScanStatus).not.toHaveBeenCalled();
+    expect(libraryHealth.getDashboard).toHaveBeenCalledWith('/fixture/music', 10, 100);
+    expect(screen.getByText('Start Scan')).toBeInTheDocument();
   });
 });

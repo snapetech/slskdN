@@ -1,3 +1,18 @@
+## Update 2026-07-16 05:38:31Z
+
+- Current task: performance and efficiency improvements in progress; Library Health scan-polling pass complete locally.
+- Last activity:
+  - Replaced async fixed-interval polling with completion-driven scheduling so a slow request cannot overlap another status check.
+  - Hidden tabs pause status checks without resetting the absolute one-minute deadline; returning after expiry loads the dashboard directly. A fully hidden minute falls from up to 30 status calls to zero. Documented gotcha `0z652` in `68fbaad05`.
+- Validation:
+  - Passed focused Library Health tests (`9/9`), complete frontend tests (`878` passed, `4` skipped), and complete smoke/unit/integration suites (`4815/4815`: `69` smoke, `4466` unit, `280` integration).
+  - Repository lint passed. The remediation baseline passed every substantive check before its expected release-sync stop because local `main` diverges from `origin/main`.
+  - Concurrent Mesh and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the Library Health implementation and handoff slice.
+  2. Continue the broader performance goal outside the dirty Mesh/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 05:26:31Z
 
 - Current task: performance and efficiency improvements in progress; set-based Wishlist viewed-state pass complete locally.

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make Library Health scan polling visibility-aware and non-overlapping.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced the async two-second `setInterval` with completion-driven timeout scheduling, one active-request identity, hidden-document pause/resume, and an absolute one-minute deadline. A slow status request now permits exactly one in-flight call instead of accumulating interval work; a scan hidden for the full minute issues zero status requests instead of up to 30 and loads the dashboard on return. Added cadence, visibility, deadline, error, and unmount regressions; documented gotcha `0z652` in `68fbaad05`.
+
 - [x] Make Wishlist bulk viewed-state updates set-based.
   - Status: completed (2026-07-16)
   - Priority: P1

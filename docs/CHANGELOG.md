@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Library Health scan status checks now stop while the document is hidden and
+  resume against the original one-minute deadline. Slow requests remain capped
+  at one in flight instead of accumulating on a fixed two-second interval, and
+  a fully hidden minute produces zero status requests instead of up to 30.
 - Wishlist “mark all viewed” now applies its timestamp with one predicate
   update. Database commands and managed memory no longer scale with the number
   of unread Wishlist items.

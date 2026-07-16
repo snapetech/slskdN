@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Library Health scan status polling now pauses in hidden tabs, preserves its
+  one-minute deadline, and schedules each check after the previous request
+  completes so slow responses cannot create overlapping work.
 - Wishlist “mark all viewed” now uses one set-based update instead of loading
   and tracking every matching item.
 - Pod deletion now removes messages, members, and membership history with

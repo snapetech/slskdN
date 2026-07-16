@@ -1,3 +1,10 @@
+## Update 2026-07-16 05:38:31Z
+
+- Completed the Library Health scan-polling performance pass.
+- Replaced async fixed-interval status polling with completion-driven scheduling, one active request per scan, hidden-tab pause/resume, and the original absolute one-minute deadline.
+- A never-completing request now remains at one in-flight status call instead of accumulating a new call every two seconds. A fully hidden minute issues zero status requests instead of up to 30, then loads the dashboard when visibility returns without extending the deadline. Documented gotcha `0z652` in `68fbaad05`.
+- Validation passed: focused Library Health tests (`9/9`), complete frontend tests (`878` passed, `4` skipped), complete smoke/unit/integration suites (`4815/4815`: `69` smoke, `4466` unit, `280` integration), and repository lint. The remediation baseline passed every substantive check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+
 ## Update 2026-07-16 05:26:31Z
 
 - Completed the Wishlist bulk viewed-state update performance pass.

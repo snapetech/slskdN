@@ -29,6 +29,8 @@ import {
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+const SCAN_POLL_INTERVAL_MS = 2_000;
+const SCAN_POLL_TIMEOUT_MS = 60_000;
 
 const LibraryHealth = () => {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -44,27 +46,40 @@ const LibraryHealth = () => {
   const [reportMessage, setReportMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const activeScanRef = useRef(null);
   const mountedRef = useRef(true);
-  const pollIntervalRef = useRef(null);
-  const pollTimeoutRef = useRef(null);
+  const pollDeadlineRef = useRef(null);
+  const pollRequestRef = useRef(null);
+  const pollScanStatusRef = useRef(null);
+  const pollTimerRef = useRef(null);
 
-  const clearScanTimers = () => {
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
+  const clearScanTimer = () => {
+    if (pollTimerRef.current) {
+      clearTimeout(pollTimerRef.current);
+      pollTimerRef.current = null;
     }
+  };
 
-    if (pollTimeoutRef.current) {
-      clearTimeout(pollTimeoutRef.current);
-      pollTimeoutRef.current = null;
-    }
+  const resetScanPolling = () => {
+    clearScanTimer();
+    activeScanRef.current = null;
+    pollDeadlineRef.current = null;
   };
 
   useEffect(() => {
     mountedRef.current = true;
+    const handleVisibilityChange = () => {
+      clearScanTimer();
+      if (!document.hidden) {
+        pollScanStatusRef.current?.();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       mountedRef.current = false;
-      clearScanTimers();
+      resetScanPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
@@ -106,6 +121,71 @@ const LibraryHealth = () => {
     }
   };
 
+  const scheduleScanPoll = (delay = SCAN_POLL_INTERVAL_MS) => {
+    clearScanTimer();
+    if (!activeScanRef.current || document.hidden) {
+      return;
+    }
+
+    const remaining = pollDeadlineRef.current - Date.now();
+    pollTimerRef.current = window.setTimeout(() => {
+      pollTimerRef.current = null;
+      pollScanStatusRef.current?.();
+    }, Math.max(0, Math.min(delay, remaining)));
+  };
+
+  const pollScanStatus = async () => {
+    const activeScan = activeScanRef.current;
+    if (!activeScan || document.hidden || pollRequestRef.current === activeScan) {
+      return;
+    }
+
+    if (Date.now() >= pollDeadlineRef.current) {
+      resetScanPolling();
+      if (mountedRef.current) {
+        setScanning(false);
+        loadSummary(activeScan.libraryPath);
+      }
+      return;
+    }
+
+    pollRequestRef.current = activeScan;
+    try {
+      const statusResp = await libraryHealth.getScanStatus(activeScan.scanId);
+      if (!mountedRef.current || activeScanRef.current !== activeScan) {
+        return;
+      }
+
+      const status = isObject(statusResp.data) ? statusResp.data.status : '';
+      if (status === 'Completed' || status === 'Failed') {
+        resetScanPolling();
+        setScanning(false);
+        loadSummary(activeScan.libraryPath);
+      }
+    } catch (error_) {
+      if (!mountedRef.current || activeScanRef.current !== activeScan) {
+        return;
+      }
+
+      resetScanPolling();
+      setError(
+        error_.response?.data?.message ||
+          error_.message ||
+          'Failed to poll Library Health scan status',
+      );
+      setScanning(false);
+    } finally {
+      if (pollRequestRef.current === activeScan) {
+        pollRequestRef.current = null;
+      }
+      if (mountedRef.current && activeScanRef.current === activeScan) {
+        scheduleScanPoll();
+      }
+    }
+  };
+
+  pollScanStatusRef.current = pollScanStatus;
+
   const handleStartScan = async () => {
     if (!libraryPath) {
       setError('Please enter a library path');
@@ -113,7 +193,7 @@ const LibraryHealth = () => {
     }
 
     try {
-      clearScanTimers();
+      resetScanPolling();
       setScanning(true);
       setError(null);
       const response = await libraryHealth.startScan(libraryPath);
@@ -123,50 +203,23 @@ const LibraryHealth = () => {
       if (!scanId) {
         throw new Error('Library Health scan response did not include a scan id');
       }
+      if (!mountedRef.current) {
+        return;
+      }
 
-      // Poll for completion
-      pollIntervalRef.current = setInterval(async () => {
-        try {
-          const statusResp = await libraryHealth.getScanStatus(scanId);
-          const status = isObject(statusResp.data) ? statusResp.data.status : '';
-          if (
-            status === 'Completed' ||
-            status === 'Failed'
-          ) {
-            clearScanTimers();
-            if (mountedRef.current) {
-              setScanning(false);
-              loadSummary(libraryPath);
-            }
-          }
-        } catch (error_) {
-          clearScanTimers();
-          if (mountedRef.current) {
-            setError(
-              error_.response?.data?.message ||
-                error_.message ||
-                'Failed to poll Library Health scan status',
-            );
-            setScanning(false);
-          }
-        }
-      }, 2_000);
-
-      pollTimeoutRef.current = setTimeout(() => {
-        clearScanTimers();
-        if (mountedRef.current) {
-          setScanning(false);
-          loadSummary(libraryPath);
-        }
-      }, 60_000); // Max 1 minute polling
+      activeScanRef.current = { libraryPath, scanId };
+      pollDeadlineRef.current = Date.now() + SCAN_POLL_TIMEOUT_MS;
+      scheduleScanPoll();
     } catch (error_) {
-      clearScanTimers();
-      setError(
-        error_.response?.data?.message ||
-          error_.message ||
-          'Failed to start scan',
-      );
-      setScanning(false);
+      resetScanPolling();
+      if (mountedRef.current) {
+        setError(
+          error_.response?.data?.message ||
+            error_.message ||
+            'Failed to start scan',
+        );
+        setScanning(false);
+      }
     }
   };
 
