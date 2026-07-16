@@ -172,8 +172,10 @@ public class ApplicationLifecycleTests
         soulseekClient.VerifyRemove(x => x.ExcludedSearchPhrasesReceived -= It.IsAny<EventHandler<IReadOnlyCollection<string>>>(), Times.Once);
     }
 
-    [Fact]
-    public async Task OptionsChanged_WhenListenPortChangesWhileConnected_SetsPendingReconnect()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OptionsChanged_WhenListenerReconfigurationSucceeds_DoesNotSetPendingReconnect(bool changeIpAddress)
     {
         var optionsMonitor = new TestOptionsMonitor<Options>(new Options());
         var applicationState = new ManagedState<State>();
@@ -199,13 +201,14 @@ public class ApplicationLifecycleTests
         {
             Soulseek = new Options.SoulseekOptions
             {
-                ListenPort = 50301,
+                ListenIpAddress = changeIpAddress ? "0.0.0.1" : "0.0.0.0",
+                ListenPort = changeIpAddress ? 50300 : 50301,
             },
         });
 
         await reconfigured.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
-        Assert.True(applicationState.CurrentValue.PendingReconnect);
+        Assert.False(applicationState.CurrentValue.PendingReconnect);
         application.Dispose();
     }
 

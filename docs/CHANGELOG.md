@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Listener IP and port changes no longer report a reconnect requirement after
+  Soulseek.NET has already rebound the live listeners and advertised the new
+  endpoint to the Soulseek server.
 - The web footer and README now offer direct PayPal and Ko-fi links for
   supporting slskdN development.
 - GitLab CI configuration now keeps the Arch package-smoke sudoers command as
