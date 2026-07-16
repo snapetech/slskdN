@@ -1,3 +1,17 @@
+## Update 2026-07-16 21:48:43Z
+
+- Current task: performance and efficiency improvements in progress; pre-allocation music variant deduplication complete locally.
+- Last activity:
+  - Replaced convert-all plus LINQ grouping with one ordinal first-ID scan that allocates `MediaVariant` results only for retained HashDb rows.
+  - A 100,000-row/10-ID fixture falls from 17,028,440 to 4,600 warmed allocated bytes (>99.97%), with retained memory proportional to distinct output.
+- Validation:
+  - Passed focused store (`4/4`), broader MediaCore (`268/268`), and full backend suites (`5011/5011`: `69` application, `4662` unit, `280` integration) tests.
+  - Exact fallback/empty/case/order/identity/limit/allocation behavior, repository lint, and diff checks passed. Documented gotcha `0z715` (`5c3263dff`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Run the remediation baseline and commit only the music variant projection slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 21:37:41Z
 
 - Current task: performance and efficiency improvements in progress; duplicate-heavy Shadow Index descriptor projection complete locally.

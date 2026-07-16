@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Music-domain variant projection now applies the existing ordinal
+  `VariantId ?? FlacKey ?? ""` deduplication while scanning recent HashDb rows
+  and allocates a `MediaVariant` only for the first occurrence retained in the
+  result. It no longer converts every row and builds `GroupBy` lookup/group/
+  iterator state before discarding duplicates. For the covered 100,000-row
+  input containing 10 distinct IDs, warmed allocation falls from 17,028,440 to
+  4,600 bytes (>99.97%), and retained result memory scales with distinct output
+  rather than input rows. First-occurrence order and object identity, ordinal
+  case sensitivity, explicit empty IDs, null-to-FlacKey fallback, positive
+  limit behavior, and the single bounded HashDb read remain unchanged.
 - Shadow Index descriptor projection now selects the highest-quality/largest
   variant during one input scan, structurally deduplicates hash prefixes before
   ordering, sorts only each prefix's highest-ranked representative, and writes

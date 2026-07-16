@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Deduplicate music-domain variants before allocating projections.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `HashDbMediaVariantStore.GetByDomainAsync` now scans the bounded recent music rows once, applies the existing ordinal `VariantId ?? FlacKey ?? string.Empty` key contract, and creates a `MediaVariant` only when that key is first retained. It no longer converts every input row and constructs LINQ grouping/group/iterator state before discarding duplicates. For 100,000 rows containing 10 distinct IDs, warmed allocation falls from 17,028,440 to 4,600 bytes (>99.97%), and retained projection memory scales with unique output. First-occurrence ordering and `AudioVariant` identity, ordinal case sensitivity, explicit empty IDs, null-to-FlacKey fallback, output limiting, and the single bounded HashDb read remain unchanged. Added exact fallback/order/identity and large allocation regressions; documented default-initialized string gotcha `0z715` (`5c3263dff`). Validation passed: focused store tests (`4/4`), broader MediaCore tests (`268/268`), full backend suites (`5011/5011`: `69` application, `4662` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Remove duplicate-heavy Shadow Index descriptor sorting and hash allocations.
   - Status: completed (2026-07-16)
   - Priority: P1

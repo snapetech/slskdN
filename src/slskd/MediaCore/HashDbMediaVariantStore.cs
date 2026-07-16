@@ -83,12 +83,22 @@ namespace slskd.MediaCore
                 }
 
                 var variants = await _hashDb.GetRecentVariantsAsync(limit, cancellationToken).ConfigureAwait(false);
-                return variants
-                    .ConvertAll(MediaVariant.FromAudioVariant)
-                    .GroupBy(v => v.VariantId, StringComparer.Ordinal)
-                    .Select(g => g.First())
-                    .Take(limit)
-                    .ToList();
+                var results = new List<MediaVariant>();
+                var variantIds = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var variant in variants)
+                {
+                    var variantId = variant.VariantId ?? variant.FlacKey ?? string.Empty;
+                    if (variantIds.Add(variantId))
+                    {
+                        results.Add(MediaVariant.FromAudioVariant(variant));
+                        if (results.Count == limit)
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                return results;
             }
 
             lock (_nonMusicLock)
