@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch album-target track replacement writes.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Normalized the complete track list before issuing bounded 100-row SQLite inserts inside the existing album replacement transaction. A typical 12-track album falls from 14 commands to three (78.6% fewer); a 202-row replacement falls from 204 commands to five (97.5% fewer). Preserved zero-position ordinal fallback, field trimming, later duplicate-position wins across batch boundaries, and deletion of stale tracks. Added a 202-row normalization/duplicate and subsequent replacement regression.
+
 - [x] Batch HashDb mesh hash merge reads and inserts.
   - Status: completed (2026-07-16)
   - Priority: P1

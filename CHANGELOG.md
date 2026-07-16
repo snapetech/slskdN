@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Album-target persistence now replaces normalized track lists with bounded
+  multi-row SQLite inserts instead of one command per track.
 - HashDb mesh synchronization now classifies existing hashes through bounded
   indexed batches and inserts new hashes with transactional multi-row writes.
 - HashDb peer activity and capability writes now use single atomic SQLite

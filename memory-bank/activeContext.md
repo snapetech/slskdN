@@ -1,3 +1,17 @@
+## Update 2026-07-16 08:51:29Z
+
+- Current task: performance and efficiency improvements in progress; album-target track-write batching pass complete locally.
+- Last activity:
+  - Replaced one SQLite insert per normalized album track with bounded 100-row commands inside the existing replacement transaction.
+  - A typical 12-track album falls from 14 commands to three (78.6% fewer); a 202-row replacement falls from 204 commands to five (97.5% fewer). Zero-position fallback, later duplicate-position wins, normalization, and stale-row deletion remain intact.
+- Validation:
+  - Passed focused album persistence coverage (`2/2`), the complete HashDb class suite (`78/78`), and full backend tests (`4846/4846`: `69` application, `4497` unit, `280` integration).
+  - Repository lint and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the album-target persistence slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 08:42:53Z
 
 - Current task: performance and efficiency improvements in progress; HashDb mesh-merge batching pass complete locally.

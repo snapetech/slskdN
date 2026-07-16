@@ -48,6 +48,7 @@ namespace slskd.HashDb
         private const int PeerUpsertBatchSize = 500;
         private const int MeshMergeLookupBatchSize = 500;
         private const int MeshMergeInsertBatchSize = 100;
+        private const int AlbumTrackUpsertBatchSize = 100;
 
         private readonly string dbPath;
         private readonly ILogger log = Log.ForContext<HashDbService>();
@@ -1060,6 +1061,7 @@ namespace slskd.HashDb
             await DeleteAlbumTracksAsync(conn, normalizedTarget.MusicBrainzReleaseId, cancellationToken).ConfigureAwait(false);
 
             var tracks = normalizedTarget.Tracks ?? Array.Empty<TrackTarget>();
+            var normalizedTracks = new List<(TrackTarget Track, int Position)>(tracks.Count);
             for (var i = 0; i < tracks.Count; i++)
             {
                 var sourceTrack = tracks[i];
@@ -1074,8 +1076,15 @@ namespace slskd.HashDb
                     Isrc = normalizedIsrc,
                 };
 
+                normalizedTracks.Add((track, track.Position == 0 ? i + 1 : track.Position));
+            }
+
+            foreach (var batch in normalizedTracks.Chunk(AlbumTrackUpsertBatchSize))
+            {
                 using var trackCmd = conn.CreateCommand();
-                trackCmd.CommandText = @"
+                var values = batch.Select((_, index) =>
+                    $"(@release_id, @track_position{index}, @recording_id{index}, @title{index}, @artist{index}, @duration_ms{index}, @isrc{index})");
+                trackCmd.CommandText = $"""
                     INSERT INTO AlbumTargetTracks (
                         release_id,
                         track_position,
@@ -1085,29 +1094,26 @@ namespace slskd.HashDb
                         duration_ms,
                         isrc
                     )
-                    VALUES (
-                        @release_id,
-                        @track_position,
-                        @recording_id,
-                        @title,
-                        @artist,
-                        @duration_ms,
-                        @isrc
-                    )
+                    VALUES {string.Join(", ", values)}
                     ON CONFLICT(release_id, track_position) DO UPDATE SET
                         recording_id = excluded.recording_id,
                         title = excluded.title,
                         artist = excluded.artist,
                         duration_ms = excluded.duration_ms,
-                        isrc = excluded.isrc;
-                ";
+                        isrc = excluded.isrc
+                    """;
                 trackCmd.Parameters.AddWithValue("@release_id", normalizedTarget.MusicBrainzReleaseId);
-                trackCmd.Parameters.AddWithValue("@track_position", track.Position == 0 ? i + 1 : track.Position);
-                trackCmd.Parameters.AddWithValue("@recording_id", string.IsNullOrWhiteSpace(track.MusicBrainzRecordingId) ? DBNull.Value : track.MusicBrainzRecordingId);
-                trackCmd.Parameters.AddWithValue("@title", track.Title);
-                trackCmd.Parameters.AddWithValue("@artist", track.Artist);
-                trackCmd.Parameters.AddWithValue("@duration_ms", (object?)DurationToMilliseconds(track.Duration) ?? DBNull.Value);
-                trackCmd.Parameters.AddWithValue("@isrc", (object?)track.Isrc ?? DBNull.Value);
+                for (var index = 0; index < batch.Length; index++)
+                {
+                    var item = batch[index];
+                    trackCmd.Parameters.AddWithValue($"@track_position{index}", item.Position);
+                    trackCmd.Parameters.AddWithValue($"@recording_id{index}", string.IsNullOrWhiteSpace(item.Track.MusicBrainzRecordingId) ? DBNull.Value : item.Track.MusicBrainzRecordingId);
+                    trackCmd.Parameters.AddWithValue($"@title{index}", item.Track.Title);
+                    trackCmd.Parameters.AddWithValue($"@artist{index}", item.Track.Artist);
+                    trackCmd.Parameters.AddWithValue($"@duration_ms{index}", (object?)DurationToMilliseconds(item.Track.Duration) ?? DBNull.Value);
+                    trackCmd.Parameters.AddWithValue($"@isrc{index}", (object?)item.Track.Isrc ?? DBNull.Value);
+                }
+
                 await trackCmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
         }

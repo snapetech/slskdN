@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Album-target persistence now normalizes track metadata once and replaces the
+  list with 100-row SQLite inserts inside its existing transaction. A typical
+  12-track album falls from 14 database commands to three (78.6% fewer); a
+  202-row large replacement falls from 204 commands to five (97.5% fewer),
+  while zero-position fallback and later-duplicate-wins behavior remain intact.
 - HashDb mesh merge now checks exact FLAC keys and variant aliases in bounded
   500-key indexed reads, preserves local conflicts and input duplicate
   semantics, and inserts new entries in transactional 100-row commands. At the

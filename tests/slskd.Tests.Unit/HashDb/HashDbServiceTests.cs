@@ -558,6 +558,56 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task UpsertAlbumTargetAsync_BatchesLargeTrackReplacementAndPreservesPositionSemantics()
+    {
+        var tracks = Enumerable.Range(1, 201)
+            .Select(index => new TrackTarget
+            {
+                Position = 0,
+                MusicBrainzRecordingId = $" recording-{index} ",
+                Title = $" Track {index} ",
+                Artist = " Artist ",
+            })
+            .Append(new TrackTarget
+            {
+                Position = 1,
+                MusicBrainzRecordingId = "recording-replacement",
+                Title = "Replacement",
+                Artist = "Artist",
+            })
+            .ToArray();
+        var target = new AlbumTarget
+        {
+            MusicBrainzReleaseId = "large-release",
+            Title = "Large Album",
+            Artist = "Artist",
+            Tracks = tracks,
+        };
+
+        await service.UpsertAlbumTargetAsync(target);
+
+        var stored = (await service.GetAlbumTracksAsync("large-release")).ToList();
+        Assert.Equal(201, stored.Count);
+        Assert.Equal(Enumerable.Range(1, 201), stored.Select(track => track.Position));
+        Assert.Equal("recording-replacement", stored[0].RecordingId);
+        Assert.Equal("Replacement", stored[0].Title);
+        Assert.Equal("recording-201", stored[^1].RecordingId);
+
+        await service.UpsertAlbumTargetAsync(target with
+        {
+            Tracks = new[]
+            {
+                new TrackTarget { Position = 0, MusicBrainzRecordingId = "new-1", Title = "New One" },
+                new TrackTarget { Position = 0, MusicBrainzRecordingId = "new-2", Title = "New Two" },
+            },
+        });
+
+        var replaced = (await service.GetAlbumTracksAsync("large-release")).ToList();
+        Assert.Equal(2, replaced.Count);
+        Assert.Equal(new[] { "new-1", "new-2" }, replaced.Select(track => track.RecordingId));
+    }
+
+    [Fact]
     public async Task GetAlbumTracksAsync_WithReleaseBatch_ReturnsRequestedTracks()
     {
         await service.UpsertAlbumTargetAsync(new AlbumTarget
