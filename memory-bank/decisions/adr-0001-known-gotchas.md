@@ -220,11 +220,13 @@ every completed stats request to be discarded.
 
 **Files Affected**:
 - `src/web/src/components/System/MediaCore/index.jsx`
+- `scripts/check-web-polling-lifecycle.sh`
 
 **Prevention**: Set mounted lifecycle refs to true inside the effect setup that
 owns their false cleanup. Do not rely on the ref initializer for an effect that
 may be replayed; cover setup/cleanup symmetry when adding polling lifecycle
-guards.
+guards. Lifecycle gates must require the setup assignment as well as cleanup;
+requiring `useRef(true)` preserves the unsafe pattern instead of detecting it.
 
 ### 0z617. Reverse Indexes Must Remove Empty Buckets On Remap
 
@@ -424,6 +426,11 @@ implementation late in validation.
 lifecycle checker and keep its literal mounted-completion guard as a standalone
 statement. Put visibility, generation, and stale-request checks after it rather
 than combining them into one equivalent expression.
+
+**2026-07-15 update**: The lifecycle checker now recognizes mounted guards in
+compound conditions and verifies Strict Mode-safe setup/cleanup symmetry.
+Behavioral gates should validate the required tokens and lifecycle contract,
+not force one exact single-line spelling.
 
 ### 0z605. Build-Enabled Dotnet Tests Must Not Share Output Concurrently
 
