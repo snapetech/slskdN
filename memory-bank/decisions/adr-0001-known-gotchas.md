@@ -22609,6 +22609,14 @@ npm run check:council
 
 **How to prevent:** Compare compact render signatures before state writes, but derive every compared field from the concrete API contract and all downstream calculations rather than an assumed view model. Preserve previous state only when every relevant field is unchanged, memoize high-churn panes, and use stable message render keys instead of visible-slice indexes. Cover a real-contract field change in polling regressions.
 
+**Follow-on recurrence:** The Bridge dashboard signature compared
+`bytesViaMesh` and `bytesViaSoulseek` but omitted the API's directly rendered
+`meshPercentage` field. The current backend derives all three consistently,
+but the browser renders the response field rather than recalculating it, so a
+contract-valid percentage-only change could be suppressed. Include the exact
+rendered field even when other response fields appear sufficient to derive it,
+and pair the uptime-only suppression test with a rendered-field change test.
+
 ### 0z351. Dynamic Semantic UI Browse Tabs Must Render Active Pane
 
 **What went wrong:** Browse could open a user tab from `/browse?user=...` but show a blank pane. The tab label existed, so it looked like browse returned no files.
