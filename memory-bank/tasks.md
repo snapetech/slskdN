@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Stream and allocation-bound cross-provider search aggregation.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `SearchAggregator.MergeResults` now consumes its input once instead of materializing a complete copy, removes the unused hash dictionary, uses a bounded exact initial capacity only for small known inputs, and deduplicates common ASCII filename/size keys through allocation-free ordinal-ignore-case comparison. Non-ASCII paths still use the exact legacy `ToLowerInvariant` result and ordinal comparison, preserving Unicode folding distinctions as well as slash normalization and outer trimming. For 100,000 unique mixed-case paths, warmed allocation falls from the combined original 21,764,680-byte path to 12,964,632 bytes (40.4%) while three-run aggregation timing remains approximately 39 ms for both paths. A lowercase no-case-change fixture falls from 13,764,736 to 12,964,632 bytes (5.8%), and 100,000 duplicate results remain below 32 KiB instead of causing input-sized speculative reservation. First-result identity/order, invalid-response skipping, provider deduplication, preferred-primary selection, Pod/Scene reference propagation, null/empty equivalence, and BMP/supplementary Unicode normalization remain unchanged. Added unique/duplicate allocation, normalization, null, Unicode parity, and existing behavior regressions; documented capped dictionary-growth gotcha `0z718` (`23bc601ab`). Validation passed: focused aggregator tests (`12/12`), broader Search tests (`70/70`), full backend suites (`5022/5022`: `69` application, `4673` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Bound IPLD graph coordinator and leaf allocations.
   - Status: completed (2026-07-16)
   - Priority: P1

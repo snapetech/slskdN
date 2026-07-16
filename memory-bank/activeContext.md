@@ -1,3 +1,17 @@
+## Update 2026-07-16 22:46:11Z
+
+- Current task: performance and efficiency improvements in progress; streaming cross-provider search aggregation complete locally.
+- Last activity:
+  - Removed the complete input copy and unused hash dictionary, bounded small exact capacity hints, and split ASCII ignore-case keys from exact legacy-normalized Unicode keys.
+  - A 100,000-result mixed-case fixture falls from the combined original 21,764,680-byte path to 12,964,632 warmed allocated bytes (40.4%) while remaining approximately 39 ms. Lowercase input improves 5.8%, and a 100,000-result duplicate fixture remains below 32 KiB.
+- Validation:
+  - Passed focused aggregator (`12/12`), broader Search (`70/70`), and full backend suites (`5022/5022`: `69` application, `4673` unit, `280` integration) tests.
+  - Exact provider/reference/preference/order/filtering/null/ASCII/BMP/supplementary-Unicode/allocation behavior, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Documented gotcha `0z718` (`23bc601ab`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the Search aggregator slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 22:24:19Z
 
 - Current task: performance and efficiency improvements in progress; bounded IPLD graph coordinator and leaf allocation complete locally.

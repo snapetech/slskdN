@@ -17,6 +17,8 @@ using ILogger = Serilog.ILogger;
 /// </summary>
 public class SearchAggregator
 {
+    private const int MaxInitialResultCapacity = 4096;
+
     private readonly ILogger _logger;
     private readonly string _preferredPrimarySource; // "pod" or "scene", default "pod"
 
@@ -33,31 +35,29 @@ public class SearchAggregator
     /// <returns>Merged and deduplicated results.</returns>
     public List<SearchResult> MergeResults(IEnumerable<SearchResult> results)
     {
-        var resultsList = results.ToList();
-        if (resultsList.Count == 0)
+        var hasInputCount = results.TryGetNonEnumeratedCount(out var inputCountHint);
+        if (hasInputCount && inputCountHint == 0)
         {
             return new List<SearchResult>();
         }
 
-        // Deduplication keys (ordered by priority):
-        // 1. Hash (exact match)
-        // 2. Normalized filename + size
-        // 3. Optional metadata fields (duration, bitrate)
-        var seenByHash = new Dictionary<string, SearchResult>();
-        var seenByFilename = new Dictionary<(string NormalizedFilename, long Size), SearchResult>();
-        var merged = new List<SearchResult>();
+        var initialCapacity = inputCountHint <= MaxInitialResultCapacity
+            ? inputCountHint
+            : 0;
 
-        string NormalizeFilename(string filename)
-        {
-            return filename?.ToLowerInvariant()
-                .Replace('\\', '/')
-                .Trim() ?? string.Empty;
-        }
+        var seenByAsciiFilename = new Dictionary<(string Filename, long Size), SearchResult>(
+            initialCapacity,
+            AsciiFilenameKeyComparer.Instance);
+        Dictionary<(string Filename, long Size), SearchResult>? seenByUnicodeFilename = null;
+        var merged = new List<SearchResult>(initialCapacity);
+        var inputCount = 0;
 
         // Deduplicate by response (username + first file) rather than individual files
         // This matches the existing SearchResponseMerger behavior
-        foreach (var result in resultsList)
+        foreach (var result in results)
         {
+            inputCount++;
+
             if (result.Response?.Files == null || !result.Response.Files.Any())
             {
                 continue;
@@ -67,8 +67,11 @@ public class SearchAggregator
             // For cross-provider deduplication, we ignore username (pod and scene may have different usernames)
             // and match on normalized filename + size only
             var firstFile = result.Response.Files.First();
-            var normalizedFilename = NormalizeFilename(firstFile.Filename);
-            var key = (normalizedFilename, firstFile.Size);
+            var (filename, size, isAscii) = CreateFilenameKey(firstFile.Filename, firstFile.Size);
+            var seenByFilename = isAscii
+                ? seenByAsciiFilename
+                : seenByUnicodeFilename ??= new Dictionary<(string Filename, long Size), SearchResult>();
+            var key = (filename, size);
 
             if (seenByFilename.TryGetValue(key, out var existingResult))
             {
@@ -127,9 +130,51 @@ public class SearchAggregator
             }
         }
 
-        _logger.Debug("[SearchAggregator] Merged {InputCount} results into {OutputCount} unique results", resultsList.Count, merged.Count);
+        _logger.Debug("[SearchAggregator] Merged {InputCount} results into {OutputCount} unique results", inputCount, merged.Count);
 
         return merged;
+    }
+
+    private static (string Filename, long Size, bool IsAscii) CreateFilenameKey(string? filename, long size)
+    {
+        var normalized = (filename ?? string.Empty).Replace('\\', '/').Trim();
+        var isAscii = IsAscii(normalized);
+        if (!isAscii)
+        {
+            normalized = normalized.ToLowerInvariant();
+            isAscii = IsAscii(normalized);
+        }
+
+        return (normalized, size, isAscii);
+    }
+
+    private static bool IsAscii(string value)
+    {
+        foreach (var character in value)
+        {
+            if (character > 0x7F)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private sealed class AsciiFilenameKeyComparer : IEqualityComparer<(string Filename, long Size)>
+    {
+        public static AsciiFilenameKeyComparer Instance { get; } = new();
+
+        public bool Equals((string Filename, long Size) x, (string Filename, long Size) y)
+        {
+            return x.Size == y.Size && string.Equals(x.Filename, y.Filename, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public int GetHashCode((string Filename, long Size) obj)
+        {
+            var filenameHash = StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Filename);
+            return HashCode.Combine(obj.Size, filenameHash);
+        }
     }
 
     /// <summary>

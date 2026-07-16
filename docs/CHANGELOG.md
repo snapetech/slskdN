@@ -22,6 +22,19 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Cross-provider search aggregation now consumes result sequences directly
+  instead of first copying every result, removes its unused hash dictionary,
+  and deduplicates ASCII filename/size keys with allocation-free ordinal-ignore-
+  case comparison. Non-ASCII keys retain the exact legacy invariant-lowercase
+  and ordinal comparison path, including Unicode folding distinctions; slash
+  replacement, outer trimming, first-result retention, provider/reference
+  merging, preferred-source selection, input order, and invalid-result skipping
+  remain unchanged. For 100,000 unique mixed-case paths, warmed allocation falls
+  from the combined original 21,764,680-byte path to 12,964,632 bytes (40.4%)
+  while measured aggregation time remains approximately 39 ms. A lowercase
+  no-case-change fixture still falls from 13,764,736 to 12,964,632 bytes (5.8%),
+  and a 100,000-result duplicate fixture stays below 32 KiB instead of using
+  raw input count as exact output capacity.
 - IPLD graph construction now pre-sizes its node, path, and visited collections
   from direct root fan-out, capped at 4,096 entries so duplicate or cyclic link
   lists cannot force unbounded speculative reservation. Leaf nodes reuse the

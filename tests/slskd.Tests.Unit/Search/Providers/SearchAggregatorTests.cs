@@ -16,6 +16,7 @@ using slskd.Search.Providers;
 using Xunit;
 using NullLogger = Microsoft.Extensions.Logging.Abstractions.NullLogger<slskd.Search.Providers.SearchAggregator>;
 
+[Collection(AllocationTestCollection.Name)]
 public class SearchAggregatorTests
 {
     private readonly ILogger<SearchAggregator> _logger = NullLogger.Instance;
@@ -199,6 +200,137 @@ public class SearchAggregatorTests
         var result = Assert.Single(results);
         Assert.Equal("pod", result.PrimarySource);
         Assert.Equal(new[] { "pod" }, result.SourceProviders);
+    }
+
+    [Fact]
+    public void MergeResults_LargeUniqueInputAllocationBaseline()
+    {
+        const int resultCount = 100_000;
+        var aggregator = CreateAggregator();
+        var results = Enumerable.Range(0, resultCount)
+            .Select(index => CreateSearchResult("pod", $"Artist/Album/Track-{index}.FLAC", index, "pod"))
+            .ToArray();
+        _ = aggregator.MergeResults([CreateSearchResult("pod", "warm.flac", 1, "pod")]);
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var merged = aggregator.MergeResults(results);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(resultCount, merged.Count);
+        Assert.Same(results[0], merged[0]);
+        Assert.Same(results[^1], merged[^1]);
+        Assert.True(
+            allocatedBytes < 13_500_000,
+            $"Expected streaming normalized aggregation below 13,500,000 allocated bytes, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
+    public void MergeResults_LargeDuplicateInputKeepsCapacityHintBounded()
+    {
+        const int resultCount = 100_000;
+        var aggregator = CreateAggregator();
+        var duplicate = CreateSearchResult("pod", "Artist/Album/Track.FLAC", 1234, "pod");
+        var results = Enumerable.Repeat(duplicate, resultCount).ToArray();
+        _ = aggregator.MergeResults([duplicate]);
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var merged = aggregator.MergeResults(results);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Same(duplicate, Assert.Single(merged));
+        Assert.True(
+            allocatedBytes < 32_768,
+            $"Expected duplicate aggregation below 32,768 allocated bytes, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
+    public void MergeResults_NormalizesCaseSlashesAndOuterWhitespace()
+    {
+        var aggregator = CreateAggregator();
+        var first = CreateSearchResult("scene", "  ARTIST\\Album\\Track.FLAC  ", 1234, "scene");
+        var second = CreateSearchResult("pod", "artist/album/track.flac", 1234, "pod");
+
+        var result = Assert.Single(aggregator.MergeResults([first, second]));
+
+        Assert.Same(first, result);
+        Assert.Equal(["scene", "pod"], result.SourceProviders);
+        Assert.Equal("pod", result.PrimarySource);
+        Assert.NotNull(result.PodContentRef);
+    }
+
+    [Fact]
+    public void MergeResults_NormalizationMatchesLegacyUnicodeTransformation()
+    {
+        const int sampleCount = 1024;
+        var aggregator = CreateAggregator();
+        string[] supplementarySamples = ["\U00010400", "\U00010428", "\U0001F600"];
+        var expectedCount = sampleCount + supplementarySamples.Length;
+        var results = new List<SearchResult>(expectedCount * 2);
+        for (var index = 0; index < sampleCount; index++)
+        {
+            var character = (char)(index * char.MaxValue / (sampleCount - 1));
+            var original = $" \tFolder\\{character}Track.FLAC \r\n";
+            var normalized = original.ToLowerInvariant().Replace('\\', '/').Trim();
+            results.Add(CreateSearchResult("scene", original, index, "scene"));
+            results.Add(CreateSearchResult("pod", normalized, index, "pod"));
+        }
+
+        for (var index = 0; index < supplementarySamples.Length; index++)
+        {
+            var original = $" Folder\\{supplementarySamples[index]}Track.FLAC ";
+            var normalized = original.ToLowerInvariant().Replace('\\', '/').Trim();
+            var size = sampleCount + index;
+            results.Add(CreateSearchResult("scene", original, size, "scene"));
+            results.Add(CreateSearchResult("pod", normalized, size, "pod"));
+        }
+
+        var merged = aggregator.MergeResults(results);
+
+        Assert.Equal(expectedCount, merged.Count);
+        Assert.All(merged, result => Assert.Equal(2, result.SourceProviders.Count));
+    }
+
+    [Fact]
+    public void MergeResults_TreatsNullAndEmptyFilenamesEqually()
+    {
+        var aggregator = CreateAggregator();
+        var first = CreateSearchResult("scene", null, 1234, "scene");
+        var second = CreateSearchResult("pod", string.Empty, 1234, "pod");
+
+        var result = Assert.Single(aggregator.MergeResults([first, second]));
+
+        Assert.Same(first, result);
+        Assert.Equal(["scene", "pod"], result.SourceProviders);
+    }
+
+    [Fact]
+    public void MergeResults_UnicodeLowercaseThatBecomesAsciiUsesAsciiKey()
+    {
+        var aggregator = CreateAggregator();
+        var first = CreateSearchResult("scene", "\u212A.flac", 1234, "scene");
+        var second = CreateSearchResult("pod", "K.FLAC", 1234, "pod");
+
+        var result = Assert.Single(aggregator.MergeResults([first, second]));
+
+        Assert.Same(first, result);
+        Assert.Equal(["scene", "pod"], result.SourceProviders);
+    }
+
+    [Fact]
+    public void MergeResults_PreservesLegacyLowercaseUnicodeDistinctions()
+    {
+        const string CapitalSigma = "\u03A3.flac";
+        const string FinalSigma = "\u03C2.flac";
+        Assert.NotEqual(CapitalSigma.ToLowerInvariant(), FinalSigma.ToLowerInvariant());
+        var aggregator = CreateAggregator();
+
+        var results = aggregator.MergeResults(
+        [
+            CreateSearchResult("scene", CapitalSigma, 1234, "scene"),
+            CreateSearchResult("pod", FinalSigma, 1234, "pod"),
+        ]);
+
+        Assert.Equal(2, results.Count);
     }
 
     private ISearchProvider CreateMockProvider(string name, List<SearchResult> results)

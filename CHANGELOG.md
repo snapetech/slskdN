@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Cross-provider search aggregation now streams results once and deduplicates
+  common ASCII filename keys without allocating lowercase path copies.
 - IPLD graph construction now pre-sizes bounded coordinator collections from
   root fan-out and reuses the shared empty array for leaf outgoing links.
 - IPLD inbound-link lookup now uses a source-ordered reverse target index
