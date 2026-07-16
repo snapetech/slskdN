@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z702. ConcurrentDictionary Values Creates A Snapshot Allocation
+
+**The Bug**: Rewriting fingerprint statistics as one pass over
+`ConcurrentDictionary.Values` removed an explicit `ToList`, but the warmed
+1,000-entry call still allocated 8,480 bytes because the `Values` property
+itself creates a snapshot collection.
+
+**Files Affected**:
+- `src/slskd/DhtRendezvous/Security/ConnectionFingerprint.cs`
+- `tests/slskd.Tests.Unit/DhtRendezvous/Security/ConnectionFingerprintServiceTests.cs`
+
+**Prevention**: When a weakly consistent pass is sufficient, enumerate the
+`ConcurrentDictionary<TKey, TValue>` entries directly and read each
+`KeyValuePair.Value`; do not use `.Keys` or `.Values` when the goal is to avoid
+snapshot allocation. Add a warmed allocation regression at the production
+cardinality limit so removing an explicit LINQ materialization cannot hide an
+implicit concurrent-collection snapshot.
+
 ### 0z701. Fuzzy Match Tests Must Use The Weighted Combined Score
 
 **The Bug**: A fuzzy-match recovery regression returned perceptual similarity
