@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z675. Callee Normalization Does Not Mutate A Caller's Local Value
+
+**The Bug**: `TouchPeerAsync` passed a username to `GetOrCreatePeerAsync`, which
+trimmed its own parameter, then issued an update using the caller's original
+untrimmed string. A value such as `" peer "` created the normalized `"peer"`
+row but failed to update its activity timestamp.
+
+**Files Affected**:
+- `src/slskd/HashDb/HashDbService.cs`
+
+**Prevention**: Normalize identifiers once at the public method boundary and
+reuse that normalized local value for every statement. Do not assume a called
+method's reassignment of a by-value string parameter propagates back to its
+caller. Prefer one atomic upsert when a write must create-or-update the same
+normalized key.
+
 ### 0z674. `GetSlskdnPeersAsync` Is A Capability Filter, Not A Peer Inventory
 
 **The Bug**: A passive-ingestion regression tried to count all newly inserted
