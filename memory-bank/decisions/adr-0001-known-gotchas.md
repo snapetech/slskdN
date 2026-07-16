@@ -52,6 +52,26 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z666. Reverse Lookups Need A Direct Comparer-Matched Index
+
+**The Bug**: Music recording-ID resolution loaded every album and queried each
+release's tracks until it found a match, even though the track table stores the
+recording ID directly. The existing recording index used SQLite's binary
+collation, while the caller's established match was case-insensitive, so simply
+adding a `COLLATE NOCASE` predicate would still scan the table.
+
+**Files Affected**:
+- `src/slskd/HashDb/Migrations/HashDbMigrations.cs`
+- `src/slskd/HashDb/IHashDbService.cs`
+- `src/slskd/HashDb/HashDbService.cs`
+- `src/slskd/VirtualSoulfind/Core/Music/MusicContentDomainProvider.cs`
+
+**Prevention**: Replace parent-by-parent searches with a direct child-key query
+and ensure the index expression/collation exactly matches the caller's equality
+semantics. Lock the plan with `EXPLAIN QUERY PLAN`, including the named index
+and absence of temporary work, and verify the old catalog/per-parent methods
+are never invoked from the direct path.
+
 ### 0z665. Enumerating An ILookup Yields Groups, Not Elements
 
 **The Bug**: The first album-completion batching patch called `Select` on an
