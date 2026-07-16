@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z638. Later DI Registrations Override Options-Aware Factories
+
+**The Bug**: Virtual Soulfind registered `IDhtRateLimiter` first through an
+options-aware singleton factory and then registered the same interface again
+by implementation type. Normal single-service resolution selected the later
+registration, silently discarding the configured `MaxDhtOperationsPerMinute`
+and using the constructor default.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/VirtualSoulfindServiceCollectionExtensions.cs`
+
+**Prevention**: Register each single-service interface once. When a factory
+exists to apply runtime options, do not append a convenience type registration
+for the same interface. Add a composition-root test that resolves the service
+with a non-default option and proves the configured behavior, not merely that
+the service can be resolved.
+
 ### 0z637. Periodic Publish Limits Need Indexed Rotation, Not Full-Set Take
 
 **The Bug**: Shadow Index publishing loaded and sorted every distinct
