@@ -123,10 +123,9 @@ public class PerceptualHasher : IPerceptualHasher
         {
             var start = w * windowSize;
             var end = Math.Min(start + windowSize, samples.Length);
-            var window = samples[start..end];
 
             // Compute energy in frequency bands (simplified spectral feature)
-            features[w] = ComputeSpectralEnergy(window);
+            features[w] = ComputeSpectralEnergy(samples.AsSpan(start, end - start));
         }
 
         // Generate hash from feature comparisons
@@ -182,7 +181,7 @@ public class PerceptualHasher : IPerceptualHasher
     /// Computes spectral energy for a window of samples.
     /// Simplified frequency analysis without full FFT.
     /// </summary>
-    private static double ComputeSpectralEnergy(float[] window)
+    private static double ComputeSpectralEnergy(ReadOnlySpan<float> window)
     {
         if (window.Length == 0) return 0;
 

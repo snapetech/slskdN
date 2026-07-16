@@ -1,3 +1,10 @@
+## Update 2026-07-16 17:56:38Z
+
+- Completed the zero-copy spectral perceptual-hash window performance pass.
+- Eight RMS windows now use read-only spans instead of array ranges whose combined float payload copied the complete input.
+- At 11,025 samples, roughly 44 KiB plus eight array headers are removed and the complete warmed call allocates below 2 KiB. Window/RMS/median/hash/downsample/similarity behavior remains unchanged.
+- Validation passed: focused perceptual hasher tests (`33/33`), broader MediaCore tests (`230/230`), full backend suites (`4973/4973`: `69` application, `4624` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 17:49:45Z
 
 - Completed the compact fingerprint identifier allocation performance pass across both production services.

@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Spectral perceptual hashing now evaluates audio windows as spans instead of
+  copying the complete sample payload across eight slice arrays.
 - Connection fingerprint admission now formats compact IDs and IP hashes from
   stack buffers instead of allocating full intermediate strings and arrays.
 - Common security connection fingerprints now use bounded recent reads,

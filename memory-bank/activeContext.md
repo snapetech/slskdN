@@ -1,3 +1,17 @@
+## Update 2026-07-16 17:56:38Z
+
+- Current task: performance and efficiency improvements in progress; zero-copy spectral perceptual-hash windows complete locally.
+- Last activity:
+  - Replaced eight sample-array ranges with read-only spans for RMS feature extraction.
+  - At 11,025 samples, roughly 44 KiB plus array headers are removed while the exact warmed hash call stays below 2 KiB allocated.
+- Validation:
+  - Passed focused perceptual hasher (`33/33`), broader MediaCore (`230/230`), and full backend suites (`4973/4973`) tests.
+  - Exact output/allocation and existing similarity/downsampling boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the zero-copy spectral window slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 17:49:45Z
 
 - Current task: performance and efficiency improvements in progress; compact fingerprint ID/hash allocation pass complete locally.

@@ -320,6 +320,22 @@ public class PerceptualHasherTests
     }
 
     [Fact]
+    public void ComputeHash_UsesZeroCopySpectralWindows()
+    {
+        var samples = GenerateSineWave(11025, 1.0f, 440);
+        var expected = hasher.ComputeHash(samples, 11025);
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var result = hasher.ComputeHash(samples, 11025);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(expected, result);
+        Assert.True(
+            allocatedBytes < 2 * 1024,
+            $"Expected zero-copy spectral-window allocation below 2 KiB, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
     public void HammingDistance_IsSymmetric()
     {
         var hash1 = 0x123456789ABCDEF0UL;

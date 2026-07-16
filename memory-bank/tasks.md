@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Eliminate spectral perceptual-hash window copies.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `PerceptualHasher.ComputeHash` now passes each of its eight audio windows as a `ReadOnlySpan<float>` into RMS-energy calculation instead of creating eight array ranges whose combined payload copies the complete sample input. At the covered 11,025-sample boundary, roughly 44 KiB of float payload plus eight array headers are eliminated and the complete warmed hash call allocates less than 2 KiB. Window start/end behavior including short inputs, RMS arithmetic order, eight-feature median comparison, exact numeric hash, optional downsampling, and similarity results remain unchanged. Added exact repeated-output and allocation coverage. Validation passed: focused perceptual hasher tests (`33/33`), broader MediaCore tests (`230/230`), full backend suites (`4973/4973`: `69` application, `4624` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Remove compact fingerprint identifier intermediates.
   - Status: completed (2026-07-16)
   - Priority: P1

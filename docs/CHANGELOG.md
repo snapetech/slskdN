@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Spectral perceptual hashing now computes each of its eight RMS-energy windows
+  over read-only spans instead of allocating eight array slices whose combined
+  payload equals the complete input. At the covered 11,025-sample boundary,
+  roughly 44 KiB of copied float payload plus eight array headers are removed
+  and the complete warmed hash call allocates less than 2 KiB. Window boundaries,
+  arithmetic order, median thresholding, exact hash output, downsampling, and
+  similarity behavior remain unchanged.
 - Both connection-fingerprint services now format the retained 12-character ID
   and privacy-preserving IP hash directly from stack buffers. Admission no
   longer creates a full GUID string plus slice, IP address byte array, SHA-256
