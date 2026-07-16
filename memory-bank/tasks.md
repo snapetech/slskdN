@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch accessible share-grant membership resolution.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced one fresh group-membership database query and context per active group grant with one distinct-ID membership projection in the existing context. The candidate read now filters unrelated direct grants in SQLite, and direct-only lookups still complete in one read. With 100 valid group grants, reads fall from 101 to two (98.02% fewer) and contexts from 101 to one (99.01% fewer), while duplicate group grants, expiry filtering, malformed group IDs, and direct-before-group result ordering remain unchanged. Added a SQLite-backed result and exact command-count regression. Validation passed: focused repository test (`1/1`), complete Sharing unit coverage (`79/79`), full backend tests (`4881/4881`: `69` application, `4532` unit, `280` integration), repository lint, diff checks, and every substantive remediation check before the expected divergent-branch release-sync stop.
+
 - [x] Page Virtual Soulfind verified-copy hydration.
   - Status: completed (2026-07-16)
   - Priority: P1

@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Accessible share-grant resolution now batches group-membership evidence and
+  filters unrelated direct grants in SQLite.
 - Virtual Soulfind upgrade and orphan scans now hydrate verified-copy evidence
   only for unresolved files in each bounded page.
 - Virtual Soulfind release-gap analysis now batch-loads page-scoped tracks,

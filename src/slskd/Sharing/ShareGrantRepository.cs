@@ -14,12 +14,10 @@ using Microsoft.EntityFrameworkCore;
 public sealed class ShareGrantRepository : IShareGrantRepository
 {
     private readonly IDbContextFactory<CollectionsDbContext> _factory;
-    private readonly IShareGroupRepository _shareGroupRepo;
 
-    public ShareGrantRepository(IDbContextFactory<CollectionsDbContext> factory, IShareGroupRepository shareGroupRepo)
+    public ShareGrantRepository(IDbContextFactory<CollectionsDbContext> factory)
     {
         _factory = factory ?? throw new ArgumentNullException(nameof(factory));
-        _shareGroupRepo = shareGroupRepo ?? throw new ArgumentNullException(nameof(shareGroupRepo));
     }
 
     public async Task<ShareGrant?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -38,19 +36,35 @@ public sealed class ShareGrantRepository : IShareGrantRepository
     {
         var now = DateTime.UtcNow;
         await using var db = await _factory.CreateDbContextAsync(cancellationToken);
-        var all = await db.ShareGrants.AsNoTracking()
-            .Where(g => g.ExpiryUtc == null || g.ExpiryUtc > now)
+        var candidates = await db.ShareGrants.AsNoTracking()
+            .Where(g =>
+                (g.ExpiryUtc == null || g.ExpiryUtc > now) &&
+                ((g.AudienceType == AudienceTypes.User && g.AudienceId == userId) ||
+                 g.AudienceType == AudienceTypes.ShareGroup))
             .ToListAsync(cancellationToken);
 
-        var direct = all.Where(g => g.AudienceType == AudienceTypes.User && g.AudienceId == userId).ToList();
-        var groupGrants = all.Where(g => g.AudienceType == AudienceTypes.ShareGroup).ToList();
+        var direct = candidates.Where(g => g.AudienceType == AudienceTypes.User).ToList();
+        var groupGrants = candidates.Where(g => g.AudienceType == AudienceTypes.ShareGroup).ToList();
         var result = new List<ShareGrant>(direct);
+        var groupIds = groupGrants
+            .Select(g => Guid.TryParse(g.AudienceId, out var groupId) ? groupId : (Guid?)null)
+            .Where(groupId => groupId.HasValue)
+            .Select(groupId => groupId!.Value)
+            .Distinct()
+            .ToList();
 
-        foreach (var g in groupGrants)
+        if (groupIds.Count == 0)
+            return result;
+
+        var memberGroupIds = await db.ShareGroupMembers.AsNoTracking()
+            .Where(member => member.UserId == userId && groupIds.Contains(member.ShareGroupId))
+            .Select(member => member.ShareGroupId)
+            .ToHashSetAsync(cancellationToken);
+
+        foreach (var grant in groupGrants)
         {
-            if (!Guid.TryParse(g.AudienceId, out var groupId)) continue;
-            if (await _shareGroupRepo.IsMemberAsync(groupId, userId, cancellationToken))
-                result.Add(g);
+            if (Guid.TryParse(grant.AudienceId, out var groupId) && memberGroupIds.Contains(groupId))
+                result.Add(grant);
         }
 
         return result;

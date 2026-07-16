@@ -1,3 +1,10 @@
+## Update 2026-07-16 11:56:01Z
+
+- Completed the accessible share-grant membership batching performance pass.
+- The repository now filters relevant active candidates in SQLite, deduplicates valid group IDs, and resolves all group memberships with one set-based read in the existing context instead of one fresh context/query per group grant.
+- With 100 valid group grants, reads fall from 101 to two (98.02% fewer) and contexts from 101 to one (99.01% fewer). Direct-only access remains one read; duplicate grants, expiry behavior, malformed group IDs, and direct-before-group result ordering remain unchanged.
+- Added a SQLite-backed exact result/command-count regression. Validation passed: focused repository (`1/1`) and Sharing (`79/79`) tests, complete smoke/unit/integration suites (`4881/4881`: `69` smoke, `4532` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 06:02:15Z
 
 - Completed the scheduled file-retention enumeration performance pass.

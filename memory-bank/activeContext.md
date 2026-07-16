@@ -1,3 +1,17 @@
+## Update 2026-07-16 11:56:01Z
+
+- Current task: performance and efficiency improvements in progress; accessible share-grant membership batching pass complete locally.
+- Last activity:
+  - Filtered the candidate grant read to active group grants plus the requested user's direct grants, deduplicated valid group IDs, and resolved membership through one set-based read in the existing context.
+  - With 100 valid group grants, database reads fall from 101 to two (98.02% fewer) and contexts from 101 to one (99.01% fewer). Direct-only lookups remain one read; accessible-result semantics are unchanged.
+- Validation:
+  - Passed focused repository coverage (`1/1`), complete Sharing unit coverage (`79/79`), and full backend tests (`4881/4881`: `69` application, `4532` unit, `280` integration).
+  - Exact SQLite command counts, duplicate-group handling, expiry and malformed-ID filtering, result semantics, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the accessible share-grant batching slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 11:45:30Z
 
 - Current task: performance and efficiency improvements in progress; Virtual Soulfind page-scoped verified-copy hydration pass complete locally.

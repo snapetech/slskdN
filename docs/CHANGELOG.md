@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Accessible share-grant resolution now loads relevant active candidates and
+  resolves every distinct group membership through one set-based read instead
+  of opening a new database context per group grant. With 100 valid group
+  grants, database reads fall from 101 to two (98.02% fewer) and contexts from
+  101 to one (99.01% fewer). Direct grants for other users, expired grants, and
+  malformed group IDs are filtered without changing accessible results.
 - Virtual Soulfind upgrade and orphan scans now query the newest verified copy
   only for unresolved files in each 250-file page, using a new local-file/time
   index instead of materializing the complete verified-copy table. With 10,000
