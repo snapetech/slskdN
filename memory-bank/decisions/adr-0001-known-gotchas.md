@@ -52,6 +52,20 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z635. Multiline Expressions Must Not Be Passed Directly As Arguments
+
+**The Bug**: A migration passed a SQL string concatenated across several lines
+directly to a method argument, producing StyleCop `SA1118` even though the code
+compiled and the focused tests passed.
+
+**Files Affected**:
+- `src/slskd/Core/Data/Migrations/Z07162026_AutoRetryIndexMigration.cs`
+
+**Prevention**: Assign multiline SQL expressions to a clearly named local
+variable, then pass that variable to the command helper. Run the focused test
+through compilation before expanding validation so analyzer failures surface
+immediately.
+
 ### 0z634. Bounded Plans Must Not Materialize Unbounded Candidate History
 
 **The Bug**: Download auto-retry selected at most a configured number of files
