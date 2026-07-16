@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z720. Span Locals In Async Methods Exceed The C# 12 Boundary
+
+**The Bug**: A planner optimization stored a `ReadOnlySpan<char>` local inside
+an async method before a later reputation-service await. The span did not cross
+the await logically, but the C# 12 compiler rejected the method with `CS9202`;
+ref-struct locals in async methods require the C# 13 feature.
+
+**Files Affected**:
+- `src/slskd/VirtualSoulfind/v2/Planning/MultiSourcePlanner.cs`
+
+**Prevention**: Keep span creation and inspection inside synchronous helper or
+comparer methods when the caller is async. Pass the owning string plus integer
+offset/length through the async method, and never rely on lexical placement
+before an await to make a span local valid under C# 12.
+
 ### 0z719. Expression-Bodied Local Initializers Need Continuation Indentation
 
 **The Bug**: A test-local expression-bodied factory placed the object
