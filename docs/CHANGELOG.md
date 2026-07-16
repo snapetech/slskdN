@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Metadata export checksum generation now writes the existing ordered
+  `entries`/`links` JSON object through a reusable pooled buffer directly into
+  incremental SHA-256. It no longer materializes the complete JSON as a UTF-16
+  string and then copies it into a second UTF-8 byte array. For the covered
+  10,000-entry package, warmed allocation falls from 19,947,096 to 561,008
+  bytes (97.2%) and remains below 600 KiB. The exact legacy lowercase digest,
+  property order/names, default JSON serialization, input enumeration order,
+  entry/link contents, and package metadata contract remain unchanged.
 - Metadata merge `PreferNewer` and `PreferHigherPriority` strategies now select
   the winning source in one stable pass while counting sources for diagnostics,
   instead of copying every source into a list and applying ordered selection.

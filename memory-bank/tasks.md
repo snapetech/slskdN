@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Stream metadata package checksums without payload copies.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `MetadataPortability.ComputePackageChecksum` now emits the existing ordered lowercase-property JSON object through `Utf8JsonWriter` into a reusable pooled `IBufferWriter<byte>` that appends completed spans directly to `IncrementalHash`. It no longer serializes the whole package to a UTF-16 string and then allocates a complete UTF-8 byte array for `SHA256.ComputeHash`. For a 10,000-entry package, warmed allocation falls from 19,947,096 to 561,008 bytes (97.2%) and remains below 600 KiB; working storage tracks the largest individual writer request rather than total package size. The exact legacy digest `de17fafc70333e87d0a34b787e01b59786d83af7eb737b55a7037d2a2cc31c94`, `entries` then `links` property order, default serializer behavior, input enumeration order, lowercase hex, and export package contract remain unchanged. Added exact digest plus large allocation coverage. Documented `CryptoStream` transform-copy gotcha `0z707` (`976b581be`). Validation passed: focused metadata portability tests (`20/20`), broader MediaCore tests (`251/251`), full backend suites (`4994/4994`: `69` application, `4645` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Make metadata merge preference selection single-pass.
   - Status: completed (2026-07-16)
   - Priority: P1

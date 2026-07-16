@@ -1,3 +1,10 @@
+## Update 2026-07-16 19:33:12Z
+
+- Completed the streaming metadata package-checksum performance pass.
+- The ordered entries/links JSON object now writes through one pooled buffer directly into incremental SHA-256 instead of allocating complete UTF-16 and UTF-8 payloads.
+- At 10,000 entries, warmed allocation falls from 19,947,096 to 561,008 bytes (97.2%) and stays below 600 KiB while preserving the exact legacy digest and serialization contract. Documented hidden `CryptoStream` transform-copy gotcha `0z707` (`976b581be`).
+- Validation passed: focused metadata portability tests (`20/20`), broader MediaCore tests (`251/251`), full backend suites (`4994/4994`: `69` application, `4645` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 19:23:18Z
 
 - Completed the single-pass metadata merge preference-selection performance pass.

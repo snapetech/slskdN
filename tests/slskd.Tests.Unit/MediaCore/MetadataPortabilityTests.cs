@@ -385,6 +385,38 @@ public class MetadataPortabilityTests
     }
 
     [Fact]
+    public void ComputePackageChecksum_LargePackageAvoidsSerializedPayloadCopies()
+    {
+        var timestamp = DateTimeOffset.Parse("2026-07-16T00:00:00Z");
+        var entries = Enumerable.Range(0, 10_000)
+            .Select(index => new MetadataEntry(
+                $"content:audio:track:fixture-{index}",
+                new ContentDescriptor
+                {
+                    ContentId = $"content:audio:track:fixture-{index}",
+                    Codec = "flac",
+                    SizeBytes = index,
+                },
+                new MetadataSourceInfo(
+                    "fixture",
+                    timestamp,
+                    "1.0.0",
+                    new Dictionary<string, string> { ["source"] = "test" })))
+            .ToArray();
+        var links = Array.Empty<IpldLink>();
+        _ = MetadataPortability.ComputePackageChecksum(entries.AsSpan(0, 1).ToArray(), links);
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var checksum = MetadataPortability.ComputePackageChecksum(entries, links);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal("de17fafc70333e87d0a34b787e01b59786d83af7eb737b55a7037d2a2cc31c94", checksum);
+        Assert.True(
+            allocatedBytes < 600 * 1024,
+            $"Expected streaming checksum allocation below 600 KiB, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
     public void ConflictResolutionStrategy_EnumValues_AreDefined()
     {
         // Assert that all expected strategy values are defined

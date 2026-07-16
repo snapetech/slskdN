@@ -1,3 +1,17 @@
+## Update 2026-07-16 19:33:12Z
+
+- Current task: performance and efficiency improvements in progress; streaming metadata package checksums complete locally.
+- Last activity:
+  - Replaced full JSON string and UTF-8 byte payloads with one pooled writer buffer feeding incremental SHA-256.
+  - A 10,000-entry checksum falls from 19,947,096 to 561,008 warmed allocated bytes (97.2%).
+- Validation:
+  - Passed focused metadata portability (`20/20`), broader MediaCore (`251/251`), and full backend suites (`4994/4994`) tests.
+  - Exact legacy digest/property order/serialization/allocation boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Documented gotcha `0z707` (`976b581be`). Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the streaming metadata checksum slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 19:23:18Z
 
 - Current task: performance and efficiency improvements in progress; single-pass metadata merge preference selection complete locally.

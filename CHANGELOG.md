@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Metadata export checksums now stream JSON segments directly into SHA-256
+  instead of materializing complete UTF-16 and UTF-8 payload copies.
 - Metadata merge preference strategies now select their winning source in one
   pass instead of copying and ordering every source.
 - Levenshtein fuzzy scoring now removes invariant-case shared affixes before

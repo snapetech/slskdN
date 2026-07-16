@@ -1,10 +1,10 @@
 // <copyright file="MetadataPortability.cs" company="slskdN Team">
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -427,11 +427,67 @@ public class MetadataPortability : IMetadataPortability
         return combined;
     }
 
-    private static string ComputePackageChecksum(IEnumerable<MetadataEntry> entries, IEnumerable<IpldLink> links)
+    internal static string ComputePackageChecksum(IEnumerable<MetadataEntry> entries, IEnumerable<IpldLink> links)
     {
-        using var sha256 = SHA256.Create();
-        var data = JsonSerializer.Serialize(new { entries, links });
-        var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(data));
-        return Convert.ToHexString(hash).ToLowerInvariant();
+        using var sha256 = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        using var hashingBuffer = new IncrementalHashBufferWriter(sha256);
+        using (var writer = new Utf8JsonWriter(hashingBuffer))
+        {
+            writer.WriteStartObject();
+            writer.WritePropertyName("entries");
+            JsonSerializer.Serialize(writer, entries);
+            writer.WritePropertyName("links");
+            JsonSerializer.Serialize(writer, links);
+            writer.WriteEndObject();
+        }
+
+        return Convert.ToHexString(sha256.GetHashAndReset()).ToLowerInvariant();
+    }
+
+    private sealed class IncrementalHashBufferWriter : IBufferWriter<byte>, IDisposable
+    {
+        private const int DefaultBufferSize = 16 * 1024;
+        private readonly IncrementalHash _hash;
+        private byte[] _buffer;
+
+        public IncrementalHashBufferWriter(IncrementalHash hash)
+        {
+            _hash = hash;
+            _buffer = ArrayPool<byte>.Shared.Rent(DefaultBufferSize);
+        }
+
+        public void Advance(int count)
+        {
+            _hash.AppendData(_buffer.AsSpan(0, count));
+        }
+
+        public Memory<byte> GetMemory(int sizeHint = 0)
+        {
+            EnsureBuffer(sizeHint);
+            return _buffer;
+        }
+
+        public Span<byte> GetSpan(int sizeHint = 0)
+        {
+            EnsureBuffer(sizeHint);
+            return _buffer;
+        }
+
+        public void Dispose()
+        {
+            ArrayPool<byte>.Shared.Return(_buffer);
+            _buffer = Array.Empty<byte>();
+        }
+
+        private void EnsureBuffer(int sizeHint)
+        {
+            if (sizeHint <= _buffer.Length)
+            {
+                return;
+            }
+
+            ArrayPool<byte>.Shared.Return(_buffer);
+            _buffer = ArrayPool<byte>.Shared.Rent(sizeHint);
+        }
     }
 }
