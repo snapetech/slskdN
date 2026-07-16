@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z677. Use The Value Returned By `Interlocked` For Threshold Decisions
+
+**The Bug**: Library Health scan progress incremented a shared counter with
+`Interlocked.Increment`, then separately read the shared variable to decide
+whether it was a 100-file checkpoint. Multiple workers could observe the same
+later value and persist duplicate checkpoints.
+
+**Files Affected**:
+- `src/slskd/LibraryHealth/LibraryHealthService.cs`
+
+**Prevention**: Capture the value returned by `Interlocked.Increment` and use
+that unique local value for both the snapshot assignment and threshold test.
+Do not perform a second unsynchronized read of the shared counter when exactly
+one worker must own each threshold.
+
 ### 0z676. Job Child Keys Must Normalize Before Composite-Key Upserts
 
 **The Bug**: Discography release-job writes did not trim either the parent job
