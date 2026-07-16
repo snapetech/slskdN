@@ -455,6 +455,27 @@ internal class StubLibraryHealthService : global::slskd.LibraryHealth.ILibraryHe
     public Task<List<global::slskd.LibraryHealth.LibraryIssue>> GetIssuesAsync(global::slskd.LibraryHealth.LibraryHealthIssueFilter filter, CancellationToken ct = default) =>
         Task.FromResult(new List<global::slskd.LibraryHealth.LibraryIssue>());
 
+    public Task<global::slskd.LibraryHealth.LibraryIssuePage> GetIssuePageAsync(global::slskd.LibraryHealth.LibraryHealthIssueFilter filter, CancellationToken ct = default) =>
+        Task.FromResult(new global::slskd.LibraryHealth.LibraryIssuePage());
+
+    public Task<List<global::slskd.LibraryHealth.LibraryIssueTypeSummary>> GetIssueTypeSummariesAsync(string libraryPath, CancellationToken ct = default) =>
+        Task.FromResult(new List<global::slskd.LibraryHealth.LibraryIssueTypeSummary>());
+
+    public Task<List<global::slskd.LibraryHealth.LibraryIssueArtistSummary>> GetIssueArtistSummariesAsync(string libraryPath, int limit, CancellationToken ct = default) =>
+        Task.FromResult(new List<global::slskd.LibraryHealth.LibraryIssueArtistSummary>());
+
+    public Task<List<global::slskd.LibraryHealth.LibraryIssueReleaseSummary>> GetIssueReleaseSummariesAsync(string libraryPath, int limit, CancellationToken ct = default) =>
+        Task.FromResult(new List<global::slskd.LibraryHealth.LibraryIssueReleaseSummary>());
+
+    public Task<List<global::slskd.LibraryHealth.IssueCodecGroup>> GetIssueCodecSummariesAsync(string libraryPath, CancellationToken ct = default) =>
+        Task.FromResult(new List<global::slskd.LibraryHealth.IssueCodecGroup>());
+
+    public Task<global::slskd.LibraryHealth.LibraryHealthDashboard> GetDashboardAsync(string libraryPath, int artistLimit, int issueLimit, CancellationToken ct = default) =>
+        Task.FromResult(new global::slskd.LibraryHealth.LibraryHealthDashboard
+        {
+            Summary = new global::slskd.LibraryHealth.LibraryHealthSummary { LibraryPath = libraryPath }
+        });
+
     public Task UpdateIssueStatusAsync(string issueId, global::slskd.LibraryHealth.LibraryIssueStatus newStatus, CancellationToken ct = default) =>
         Task.CompletedTask;
 

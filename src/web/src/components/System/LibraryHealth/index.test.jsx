@@ -7,6 +7,7 @@ import * as searches from '../../../lib/searches';
 
 vi.mock('../../../lib/libraryHealth', () => ({
   createRemediationJob: vi.fn(),
+  getDashboard: vi.fn(),
   getIssues: vi.fn(),
   getIssuesByArtist: vi.fn(),
   getIssuesByType: vi.fn(),
@@ -49,25 +50,15 @@ describe('LibraryHealth', () => {
     vi.clearAllMocks();
     libraryHealth.startScan.mockResolvedValue({ data: { scanId: 'scan-1' } });
     libraryHealth.getScanStatus.mockResolvedValue({ data: { status: 'Completed' } });
-    libraryHealth.getSummary.mockResolvedValue({
+    libraryHealth.getDashboard.mockResolvedValue({
       data: {
-        issuesOpen: 1,
-        issuesResolved: 2,
-        totalIssues: 3,
-      },
-    });
-    libraryHealth.getIssuesByType.mockResolvedValue({
-      data: {
-        groups: [{ count: 1, type: 'SuspectedTranscode' }],
-      },
-    });
-    libraryHealth.getIssuesByArtist.mockResolvedValue({
-      data: {
-        groups: [{ artist: 'Fixture Artist', count: 1 }],
-      },
-    });
-    libraryHealth.getIssues.mockResolvedValue({
-      data: {
+        summary: {
+          issuesOpen: 1,
+          issuesResolved: 2,
+          totalIssues: 3,
+        },
+        issuesByType: [{ count: 1, type: 'SuspectedTranscode' }],
+        issuesByArtist: [{ artist: 'Fixture Artist', count: 1 }],
         issues: [
           {
             album: 'Fixture Album',
@@ -100,7 +91,11 @@ describe('LibraryHealth', () => {
     fireEvent.click(screen.getByText('Start Scan'));
 
     await vi.advanceTimersByTimeAsync(2_000);
-    await waitFor(() => expect(libraryHealth.getSummary).toHaveBeenCalledWith('/fixture/music'));
+    await waitFor(() => expect(libraryHealth.getDashboard).toHaveBeenCalledWith('/fixture/music', 10, 100));
+    expect(libraryHealth.getSummary).not.toHaveBeenCalled();
+    expect(libraryHealth.getIssuesByType).not.toHaveBeenCalled();
+    expect(libraryHealth.getIssuesByArtist).not.toHaveBeenCalled();
+    expect(libraryHealth.getIssues).not.toHaveBeenCalled();
     fireEvent.click(await screen.findByTestId('library-health-copy-report'));
 
     expect(screen.getByTestId('library-health-report-message')).toHaveTextContent(
@@ -185,14 +180,13 @@ describe('LibraryHealth', () => {
 
   it('ignores malformed Library Health group and issue list payloads', async () => {
     vi.useFakeTimers();
-    libraryHealth.getIssuesByType.mockResolvedValue({
-      data: { groups: { type: 'SuspectedTranscode' } },
-    });
-    libraryHealth.getIssuesByArtist.mockResolvedValue({
-      data: { groups: { artist: 'Fixture Artist' } },
-    });
-    libraryHealth.getIssues.mockResolvedValue({
-      data: { issues: { issueId: 'issue-1', title: 'Fixture Track' } },
+    libraryHealth.getDashboard.mockResolvedValue({
+      data: {
+        summary: {},
+        issuesByType: { type: 'SuspectedTranscode' },
+        issuesByArtist: { artist: 'Fixture Artist' },
+        issues: { issueId: 'issue-1', title: 'Fixture Track' },
+      },
     });
 
     render(<LibraryHealth />);
@@ -203,7 +197,7 @@ describe('LibraryHealth', () => {
     fireEvent.click(screen.getByText('Start Scan'));
 
     await vi.advanceTimersByTimeAsync(2_000);
-    await waitFor(() => expect(libraryHealth.getSummary).toHaveBeenCalledWith('/fixture/music'));
+    await waitFor(() => expect(libraryHealth.getDashboard).toHaveBeenCalledWith('/fixture/music', 10, 100));
     expect(screen.queryByText('Fixture Track')).not.toBeInTheDocument();
     expect(screen.getAllByText('No issues detected').length).toBeGreaterThan(0);
   });
@@ -239,7 +233,7 @@ describe('LibraryHealth', () => {
     await vi.advanceTimersByTimeAsync(60_000);
 
     expect(libraryHealth.getScanStatus).not.toHaveBeenCalled();
-    expect(libraryHealth.getSummary).not.toHaveBeenCalledWith('/fixture/music');
+    expect(libraryHealth.getDashboard).not.toHaveBeenCalledWith('/fixture/music', 10, 100);
   });
 
   it('stops scanning and surfaces polling failures', async () => {

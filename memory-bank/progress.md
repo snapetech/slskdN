@@ -1,3 +1,13 @@
+## Update 2026-07-16 01:17:27Z
+
+- Completed the Library Health dashboard aggregation, pagination, and recency-index performance pass.
+- Replaced four Web requests and up to 400 rich issue materializations per dashboard load with one transactional snapshot that hydrates only 100 details and computes summary/type/artist aggregates in SQLite.
+- Moved all legacy summary, type, artist, release, and codec groupings off the default 100-row issue page, restoring authoritative counts beyond 100; persisted codec/transcode JSON metadata is now read correctly by SQLite.
+- Added authoritative issue-page totals, explicit API bounds of 1-250, database-side clamping, and HashDb migration 19's `detected_at DESC` index.
+- A 100,000-row SQLite proxy improved from 9.653 seconds to 1.958 seconds across 25 dashboard loads (79.72%); dashboard requests and full entity materialization both fall 75%.
+- Added >100-row aggregate, bounded-page, recency query-plan, controller limit/total/snapshot, Web single-request, malformed-payload, and API client regressions; regenerated the route inventory. Documented gotchas `0z621`-`0z625` and extended `0z542` in standalone commits `70667de6c`, `dd617bce8`, `b2b84244d`, `a3d0dd461`, `893216c76`, and `fb3407503`.
+- Validation passed: focused backend tests (`79/79`), focused Web tests (`12/12`), complete Web tests (`858` passed, `4` skipped), production Web build, complete backend suites (`4773/4773`: `69` smoke, `4424` unit, `280` integration), frontend/repository lint, route/security/polling/identity gates, and every post-sync remediation check. The consolidated baseline stopped only at the expected branch-sync gate because local work remains intentionally unpushed.
+
 ## Update 2026-07-16 00:50:17Z
 
 - Completed the Lidarr external-status polling and render-efficiency pass.

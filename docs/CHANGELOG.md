@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Library Health dashboard hydration now uses one database-backed snapshot for
+  summary, type, artist, and bounded issue details. Legacy aggregate endpoints
+  also count the complete filtered set, recent pages use a recency index, and
+  public page limits are explicitly bounded.
 - Lidarr dashboard status polling now stops in hidden documents, refreshes on
   visibility restoration, rejects overlap, reuses a short-lived external
   status snapshot across rapid remounts, and skips unchanged state updates.

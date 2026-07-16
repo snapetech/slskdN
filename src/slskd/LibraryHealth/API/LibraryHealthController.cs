@@ -118,6 +118,35 @@ namespace slskd.LibraryHealth.API
         }
 
         /// <summary>
+        /// Get the bounded Library Health dashboard snapshot for a path.
+        /// </summary>
+        [HttpGet("dashboard")]
+        [Authorize(Policy = AuthPolicy.Any, Roles = AuthRole.AdministratorOnly)]
+        public async Task<ActionResult<LibraryHealthDashboard>> GetDashboard(
+            [FromQuery] string libraryPath,
+            [FromQuery] int artistLimit = 10,
+            [FromQuery] int issueLimit = 100,
+            CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(libraryPath))
+            {
+                return BadRequest(new { message = "libraryPath query parameter is required" });
+            }
+
+            if (artistLimit <= 0 || artistLimit > 100 || issueLimit <= 0 || issueLimit > 250)
+            {
+                return BadRequest(new { message = "artistLimit must be between 1 and 100 and issueLimit must be between 1 and 250" });
+            }
+
+            var dashboard = await libraryHealth.GetDashboardAsync(
+                libraryPath,
+                artistLimit,
+                issueLimit,
+                ct);
+            return Ok(dashboard);
+        }
+
+        /// <summary>
         /// Get library health issues with optional filtering.
         /// </summary>
         /// <param name="filter">Filter parameters (from query string).</param>
@@ -129,6 +158,11 @@ namespace slskd.LibraryHealth.API
             [FromQuery] LibraryHealthIssueFilter filter,
             CancellationToken ct)
         {
+            if (filter.Limit <= 0 || filter.Limit > 250 || filter.Offset < 0)
+            {
+                return BadRequest(new { message = "limit must be between 1 and 250 and offset must be non-negative" });
+            }
+
             log.LogInformation(
                 "Getting library health issues: Types={Types}, Severities={Severities}, Statuses={Statuses}, Limit={Limit}",
                 filter.Types != null ? string.Join(",", filter.Types) : "all",
@@ -136,12 +170,12 @@ namespace slskd.LibraryHealth.API
                 filter.Statuses != null ? string.Join(",", filter.Statuses) : "all",
                 filter.Limit);
 
-            var issues = await libraryHealth.GetIssuesAsync(filter, ct);
+            var page = await libraryHealth.GetIssuePageAsync(filter, ct);
 
             return Ok(new IssuesResponse
             {
-                Issues = issues,
-                TotalCount = issues.Count,
+                Issues = page.Issues,
+                TotalCount = page.TotalCount,
                 Filter = filter
             });
         }
@@ -158,25 +192,12 @@ namespace slskd.LibraryHealth.API
             [FromQuery] string libraryPath,
             CancellationToken ct)
         {
-            var filter = new LibraryHealthIssueFilter { LibraryPath = libraryPath };
-            var issues = await libraryHealth.GetIssuesAsync(filter, ct);
-
-            var grouped = issues
-                .GroupBy(i => i.Type)
-                .Select(g => new IssueTypeGroup
-                {
-                    Type = g.Key,
-                    Count = g.Count(),
-                    BySeverity = g.GroupBy(i => i.Severity)
-                        .ToDictionary(sg => sg.Key, sg => sg.Count())
-                })
-                .OrderByDescending(g => g.Count)
-                .ToList();
+            var grouped = await libraryHealth.GetIssueTypeSummariesAsync(libraryPath, ct);
 
             return Ok(new IssuesByTypeResponse
             {
                 Groups = grouped,
-                TotalIssues = issues.Count,
+                TotalIssues = grouped.Sum(group => group.Count),
             });
         }
 
@@ -192,22 +213,12 @@ namespace slskd.LibraryHealth.API
             [FromQuery] int limit = 20,
             CancellationToken ct = default)
         {
-            var filter = new LibraryHealthIssueFilter();
-            var issues = await libraryHealth.GetIssuesAsync(filter, ct);
+            if (limit <= 0 || limit > 100)
+            {
+                return BadRequest(new { message = "limit must be between 1 and 100" });
+            }
 
-            var grouped = issues
-                .Where(i => !string.IsNullOrWhiteSpace(i.Artist))
-                .GroupBy(i => i.Artist)
-                .Select(g => new IssueArtistGroup
-                {
-                    Artist = g.Key,
-                    Count = g.Count(),
-                    ByType = g.GroupBy(i => i.Type)
-                        .ToDictionary(tg => tg.Key, tg => tg.Count())
-                })
-                .OrderByDescending(g => g.Count)
-                .Take(limit)
-                .ToList();
+            var grouped = await libraryHealth.GetIssueArtistSummariesAsync(string.Empty, limit, ct);
 
             return Ok(new IssuesByArtistResponse
             {
@@ -228,24 +239,12 @@ namespace slskd.LibraryHealth.API
             [FromQuery] int limit = 20,
             CancellationToken ct = default)
         {
-            var filter = new LibraryHealthIssueFilter();
-            var issues = await libraryHealth.GetIssuesAsync(filter, ct);
+            if (limit <= 0 || limit > 100)
+            {
+                return BadRequest(new { message = "limit must be between 1 and 100" });
+            }
 
-            var grouped = issues
-                .Where(i => !string.IsNullOrWhiteSpace(i.Album))
-                .GroupBy(i => new { i.Artist, i.Album, i.MusicBrainzReleaseId })
-                .Select(g => new IssueReleaseGroup
-                {
-                    Artist = g.Key.Artist,
-                    Album = g.Key.Album,
-                    MusicBrainzReleaseId = g.Key.MusicBrainzReleaseId,
-                    Count = g.Count(),
-                    ByType = g.GroupBy(i => i.Type)
-                        .ToDictionary(tg => tg.Key, tg => tg.Count())
-                })
-                .OrderByDescending(g => g.Count)
-                .Take(limit)
-                .ToList();
+            var grouped = await libraryHealth.GetIssueReleaseSummariesAsync(string.Empty, limit, ct);
 
             return Ok(new IssuesByReleaseResponse
             {
@@ -263,36 +262,12 @@ namespace slskd.LibraryHealth.API
         [Authorize]
         public async Task<ActionResult<object>> GetIssuesByCodec(CancellationToken ct = default)
         {
-            var filter = new LibraryHealthIssueFilter();
-            var issues = await libraryHealth.GetIssuesAsync(filter, ct);
-
-            var grouped = issues
-                .Select(i =>
-                {
-                    i.Metadata.TryGetValue("codec", out var codecObj);
-                    var codec = (codecObj as string)?.ToUpperInvariant() ?? "UNKNOWN";
-                    var transcode = i.Type == LibraryIssueType.SuspectedTranscode;
-                    if (!transcode && i.Metadata.TryGetValue("transcode_suspect", out var suspectObj) && suspectObj is bool b)
-                    {
-                        transcode = b;
-                    }
-
-                    return (codec, transcode);
-                })
-                .GroupBy(x => x.codec)
-                .Select(g => new IssueCodecGroup
-                {
-                    Codec = g.Key,
-                    Count = g.Count(),
-                    TranscodeSuspect = g.Count(x => x.transcode),
-                })
-                .OrderByDescending(g => g.Count)
-                .ToList();
+            var grouped = await libraryHealth.GetIssueCodecSummariesAsync(string.Empty, ct);
 
             return Ok(new
             {
                 Groups = grouped,
-                TotalIssues = issues.Count,
+                TotalIssues = grouped.Sum(group => group.Count),
             });
         }
 
@@ -359,43 +334,20 @@ namespace slskd.LibraryHealth.API
 
     public class IssuesByTypeResponse
     {
-        public List<IssueTypeGroup> Groups { get; set; } = new();
+        public List<LibraryIssueTypeSummary> Groups { get; set; } = new();
         public int TotalIssues { get; set; }
-    }
-
-    public class IssueTypeGroup
-    {
-        public LibraryIssueType Type { get; set; }
-        public int Count { get; set; }
-        public Dictionary<LibraryIssueSeverity, int> BySeverity { get; set; } = new();
     }
 
     public class IssuesByArtistResponse
     {
-        public List<IssueArtistGroup> Groups { get; set; } = new();
+        public List<LibraryIssueArtistSummary> Groups { get; set; } = new();
         public int TotalArtists { get; set; }
-    }
-
-    public class IssueArtistGroup
-    {
-        public string Artist { get; set; } = string.Empty;
-        public int Count { get; set; }
-        public Dictionary<LibraryIssueType, int> ByType { get; set; } = new();
     }
 
     public class IssuesByReleaseResponse
     {
-        public List<IssueReleaseGroup> Groups { get; set; } = new();
+        public List<LibraryIssueReleaseSummary> Groups { get; set; } = new();
         public int TotalReleases { get; set; }
-    }
-
-    public class IssueReleaseGroup
-    {
-        public string Artist { get; set; } = string.Empty;
-        public string Album { get; set; } = string.Empty;
-        public string MusicBrainzReleaseId { get; set; } = string.Empty;
-        public int Count { get; set; }
-        public Dictionary<LibraryIssueType, int> ByType { get; set; } = new();
     }
 
     public class UpdateIssueStatusRequest

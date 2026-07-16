@@ -61,6 +61,7 @@ const LibraryHealth = () => {
   };
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       clearScanTimers();
@@ -77,22 +78,16 @@ const LibraryHealth = () => {
 
       setLoading(true);
       setError(null);
-      const [summaryResp, byTypeResp, byArtistResp, issuesResp] =
-        await Promise.all([
-          libraryHealth.getSummary(path),
-          libraryHealth.getIssuesByType(path),
-          libraryHealth.getIssuesByArtist(10),
-          libraryHealth.getIssues({ libraryPath: path, limit: 100 }),
-      ]);
+      const response = await libraryHealth.getDashboard(path, 10, 100);
 
       if (!mountedRef.current) {
         return;
       }
 
-      setSummary(summaryResp.data);
-      setIssuesByType(asArray(byTypeResp.data?.groups).filter(isObject));
-      setIssuesByArtist(asArray(byArtistResp.data?.groups).filter(isObject));
-      setIssues(asArray(issuesResp.data?.issues).filter(isObject));
+      setSummary(isObject(response.data?.summary) ? response.data.summary : null);
+      setIssuesByType(asArray(response.data?.issuesByType).filter(isObject));
+      setIssuesByArtist(asArray(response.data?.issuesByArtist).filter(isObject));
+      setIssues(asArray(response.data?.issues).filter(isObject));
       setReportMessage('');
     } catch (error_) {
       if (!mountedRef.current) {

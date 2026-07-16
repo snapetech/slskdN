@@ -52,6 +52,16 @@ describe('libraryHealth', () => {
     );
   });
 
+  it('loads the bounded dashboard through one encoded request', async () => {
+    api.get.mockResolvedValue({ data: {} });
+
+    await libraryHealth.getDashboard('/music/Artist Name', 8, 75);
+
+    expect(api.get).toHaveBeenCalledWith(
+      '/library/health/dashboard?artistLimit=8&issueLimit=75&libraryPath=%2Fmusic%2FArtist+Name',
+    );
+  });
+
   it('updates and remediates issues through versioned paths', async () => {
     api.patch.mockResolvedValue({});
     api.post.mockResolvedValue({});

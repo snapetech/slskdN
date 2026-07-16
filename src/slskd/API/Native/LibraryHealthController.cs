@@ -48,9 +48,9 @@ public class LibraryHealthController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         path = string.IsNullOrWhiteSpace(path) ? null : path.Trim();
-        if (limit <= 0)
+        if (limit <= 0 || limit > 250)
         {
-            return BadRequest(new { error = "limit must be greater than 0" });
+            return BadRequest(new { error = "limit must be between 1 and 250" });
         }
 
         logger.LogInformation("Library health check requested for path: {Path}", path ?? "(all)");

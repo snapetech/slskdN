@@ -74,6 +74,8 @@ public class LibraryHealthControllerTests
 
         var badRequest = await controller.GetHealth("   ", 0, default);
         Assert.IsType<BadRequestObjectResult>(badRequest);
+        var overMaximum = await controller.GetHealth("   ", 251, default);
+        Assert.IsType<BadRequestObjectResult>(overMaximum);
 
         healthService
             .Setup(service => service.GetSummaryAsync(string.Empty, default))

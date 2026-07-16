@@ -14,6 +14,15 @@ export const getSummary = (libraryPath) =>
     `/library/health/summary?libraryPath=${encodeURIComponent(libraryPath)}`,
   );
 
+export const getDashboard = (libraryPath, artistLimit = 10, issueLimit = 100) => {
+  const parameters = new URLSearchParams({
+    artistLimit: String(artistLimit),
+    issueLimit: String(issueLimit),
+    libraryPath,
+  });
+  return api.get(`/library/health/dashboard?${parameters.toString()}`);
+};
+
 export const getIssues = (filter = {}) => {
   const parameters = new URLSearchParams();
   if (filter.libraryPath) parameters.append('libraryPath', filter.libraryPath);
@@ -43,6 +52,7 @@ export const createRemediationJob = (issueIds) =>
 
 export default {
   createRemediationJob,
+  getDashboard,
   getIssues,
   getIssuesByArtist,
   getIssuesByRelease,

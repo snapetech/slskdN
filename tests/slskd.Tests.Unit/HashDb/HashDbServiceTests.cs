@@ -16,6 +16,7 @@ using slskd.HashDb;
 using slskd.HashDb.Models;
 using slskd.Integrations.MusicBrainz.Models;
 using slskd.Jobs;
+using slskd.LibraryHealth;
 using Xunit;
 
 public class HashDbServiceTests : IDisposable
@@ -1093,6 +1094,98 @@ public class HashDbServiceTests : IDisposable
         Assert.Equal("peer-metrics", metric!.PeerId);
         var single = Assert.Single(all);
         Assert.Equal("peer-metrics", single.PeerId);
+    }
+
+    [Fact]
+    public async Task LibraryHealthDashboard_AggregatesBeyondDefaultPageAndBoundsDetails()
+    {
+        for (var index = 0; index < 157; index++)
+        {
+            var inSelectedLibrary = index < 150;
+            await service.InsertLibraryIssueAsync(new LibraryIssue
+            {
+                IssueId = $"issue-{index:D3}",
+                Type = index % 2 == 0 ? LibraryIssueType.CorruptedFile : LibraryIssueType.MissingMetadata,
+                Severity = index % 3 == 0 ? LibraryIssueSeverity.High : LibraryIssueSeverity.Medium,
+                FilePath = inSelectedLibrary ? $"/music/track-{index:D3}.flac" : $"/other/track-{index:D3}.flac",
+                Artist = index % 2 == 0 ? "Artist A" : "Artist B",
+                Album = "Fixture Album",
+                MusicBrainzReleaseId = "fixture-release",
+                Status = index < 120
+                    ? LibraryIssueStatus.Detected
+                    : index < 140
+                        ? LibraryIssueStatus.Resolved
+                        : LibraryIssueStatus.Ignored,
+                DetectedAt = DateTimeOffset.FromUnixTimeSeconds(1_700_000_000 + index),
+                Metadata = new Dictionary<string, object>
+                {
+                    ["codec"] = index % 2 == 0 ? "flac" : "mp3",
+                    ["payload"] = new string('x', 256),
+                    ["transcode_suspect"] = index % 10 == 0,
+                },
+            });
+        }
+
+        var dashboard = await service.GetLibraryHealthDashboardAsync("/music", artistLimit: 1, issueLimit: 25);
+
+        Assert.Equal(150, dashboard.Summary.TotalIssues);
+        Assert.Equal(120, dashboard.Summary.IssuesOpen);
+        Assert.Equal(20, dashboard.Summary.IssuesResolved);
+        Assert.Equal(150, dashboard.IssuesByType.Sum(group => group.Count));
+        var artist = Assert.Single(dashboard.IssuesByArtist);
+        Assert.Equal("Artist A", artist.Artist);
+        Assert.Equal(75, artist.Count);
+        Assert.Equal(25, dashboard.Issues.Count);
+        Assert.Equal("issue-149", dashboard.Issues[0].IssueId);
+        Assert.All(dashboard.Issues, issue => Assert.StartsWith("/music/", issue.FilePath, StringComparison.Ordinal));
+
+        var releases = await service.GetLibraryIssueReleaseSummariesAsync("/music", limit: 2);
+        Assert.Equal(2, releases.Count);
+        Assert.All(releases, release => Assert.Equal(75, release.Count));
+        Assert.Equal(150, releases.Sum(release => release.ByType.Values.Sum()));
+
+        var codecs = await service.GetLibraryIssueCodecSummariesAsync("/music");
+        Assert.Equal(150, codecs.Sum(group => group.Count));
+        Assert.Contains(codecs, group => group.Codec == "FLAC" && group.Count == 75);
+        Assert.Contains(codecs, group => group.Codec == "MP3" && group.Count == 75);
+    }
+
+    [Fact]
+    public async Task LibraryHealthIssuePage_ReturnsFullFilteredCountWithBoundedRows()
+    {
+        for (var index = 0; index < 120; index++)
+        {
+            await service.InsertLibraryIssueAsync(new LibraryIssue
+            {
+                IssueId = $"page-issue-{index:D3}",
+                FilePath = $"/music/track-{index:D3}.flac",
+                DetectedAt = DateTimeOffset.FromUnixTimeSeconds(1_700_000_000 + index),
+            });
+        }
+
+        var page = await service.GetLibraryIssuePageAsync(new LibraryHealthIssueFilter
+        {
+            LibraryPath = "/music",
+            Limit = 20,
+        });
+
+        Assert.Equal(120, page.TotalCount);
+        Assert.Equal(20, page.Issues.Count);
+    }
+
+    [Fact]
+    public async Task Constructor_IndexesLibraryHealthRecentIssueQuery()
+    {
+        await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "EXPLAIN QUERY PLAN SELECT * FROM LibraryHealthIssues WHERE file_path LIKE @path ORDER BY detected_at DESC LIMIT 100";
+        cmd.Parameters.AddWithValue("@path", "/music/%");
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        Assert.True(await reader.ReadAsync());
+
+        Assert.Contains("idx_issues_detected", reader.GetString(3), StringComparison.Ordinal);
     }
 
     // ========== FlacInventoryEntry Tests ==========

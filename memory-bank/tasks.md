@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Collapse Library Health dashboard fan-out and paged aggregates.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced the System Library Health page's four-request summary/type/artist/detail load with one bounded dashboard snapshot. SQLite now computes full-set summary, type, artist, release, and codec aggregates without materializing rich issue metadata, while only the newest requested issue details are hydrated inside the same dashboard transaction. Added an indexed `detected_at DESC` path, authoritative filtered totals, and 1-250 public/database page bounds so negative SQLite limits cannot disable pagination. This also fixes legacy summary/group results that silently stopped at the default 100 issues and persisted codec flags that were ignored after untyped JSON deserialization. On a 100,000-row proxy, 25 dashboard loads improved from 9.653 seconds to 1.958 seconds (79.72%); HTTP requests and full issue-entity materialization fall from four/400 to one/100 (75% each). Added >100-row aggregate, bounded-page, query-plan, controller-boundary, one-request Web, malformed-payload, and API-route regressions; regenerated the route inventory. Documented gotchas `0z621`-`0z625` and extended `0z542` in standalone commits `70667de6c`, `dd617bce8`, `b2b84244d`, `a3d0dd461`, `893216c76`, and `fb3407503`.
+
 - [x] Bound Lidarr external status polling and render churn.
   - Status: completed (2026-07-16)
   - Priority: P1

@@ -16,7 +16,7 @@ public static class HashDbMigrations
     /// <summary>
     ///     Current schema version. Increment when adding new migrations.
     /// </summary>
-    public const int CurrentVersion = 18;
+    public const int CurrentVersion = 19;
 
     private static readonly ILogger Log = Serilog.Log.ForContext(typeof(HashDbMigrations));
 
@@ -760,6 +760,18 @@ public static class HashDbMigrations
                 {
                     using var cmd = conn.CreateCommand();
                     cmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_peers_caps ON Peers(caps)";
+                    cmd.ExecuteNonQuery();
+                },
+            },
+
+            new Migration
+            {
+                Version = 19,
+                Name = "Library health recency index",
+                Apply = conn =>
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_issues_detected ON LibraryHealthIssues(detected_at DESC)";
                     cmd.ExecuteNonQuery();
                 },
             },

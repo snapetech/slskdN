@@ -712,6 +712,12 @@ internal class StubLibraryHealthService : ILibraryHealthService
     });
 
     public Task<List<LibraryIssue>> GetIssuesAsync(LibraryHealthIssueFilter filter, CancellationToken ct = default) => Task.FromResult(new List<LibraryIssue>());
+    public Task<LibraryIssuePage> GetIssuePageAsync(LibraryHealthIssueFilter filter, CancellationToken ct = default) => Task.FromResult(new LibraryIssuePage());
+    public Task<List<LibraryIssueTypeSummary>> GetIssueTypeSummariesAsync(string libraryPath, CancellationToken ct = default) => Task.FromResult(new List<LibraryIssueTypeSummary>());
+    public Task<List<LibraryIssueArtistSummary>> GetIssueArtistSummariesAsync(string libraryPath, int limit, CancellationToken ct = default) => Task.FromResult(new List<LibraryIssueArtistSummary>());
+    public Task<List<LibraryIssueReleaseSummary>> GetIssueReleaseSummariesAsync(string libraryPath, int limit, CancellationToken ct = default) => Task.FromResult(new List<LibraryIssueReleaseSummary>());
+    public Task<List<IssueCodecGroup>> GetIssueCodecSummariesAsync(string libraryPath, CancellationToken ct = default) => Task.FromResult(new List<IssueCodecGroup>());
+    public Task<LibraryHealthDashboard> GetDashboardAsync(string libraryPath, int artistLimit, int issueLimit, CancellationToken ct = default) => Task.FromResult(new LibraryHealthDashboard { Summary = new LibraryHealthSummary { LibraryPath = libraryPath } });
 
     public Task UpdateIssueStatusAsync(string issueId, LibraryIssueStatus newStatus, CancellationToken ct = default) => Task.CompletedTask;
 

@@ -147,6 +147,48 @@ namespace slskd.LibraryHealth
             return hashDb.GetLibraryIssuesAsync(filter, ct);
         }
 
+        public Task<LibraryIssuePage> GetIssuePageAsync(LibraryHealthIssueFilter filter, CancellationToken ct = default)
+        {
+            return hashDb.GetLibraryIssuePageAsync(filter, ct);
+        }
+
+        public Task<List<LibraryIssueTypeSummary>> GetIssueTypeSummariesAsync(string libraryPath, CancellationToken ct = default)
+        {
+            return hashDb.GetLibraryIssueTypeSummariesAsync(libraryPath, ct);
+        }
+
+        public Task<List<LibraryIssueArtistSummary>> GetIssueArtistSummariesAsync(
+            string libraryPath,
+            int limit,
+            CancellationToken ct = default)
+        {
+            return hashDb.GetLibraryIssueArtistSummariesAsync(libraryPath, limit, ct);
+        }
+
+        public Task<List<LibraryIssueReleaseSummary>> GetIssueReleaseSummariesAsync(
+            string libraryPath,
+            int limit,
+            CancellationToken ct = default)
+        {
+            return hashDb.GetLibraryIssueReleaseSummariesAsync(libraryPath, limit, ct);
+        }
+
+        public Task<List<IssueCodecGroup>> GetIssueCodecSummariesAsync(
+            string libraryPath,
+            CancellationToken ct = default)
+        {
+            return hashDb.GetLibraryIssueCodecSummariesAsync(libraryPath, ct);
+        }
+
+        public Task<LibraryHealthDashboard> GetDashboardAsync(
+            string libraryPath,
+            int artistLimit,
+            int issueLimit,
+            CancellationToken ct = default)
+        {
+            return hashDb.GetLibraryHealthDashboardAsync(libraryPath, artistLimit, issueLimit, ct);
+        }
+
         public Task UpdateIssueStatusAsync(string issueId, LibraryIssueStatus newStatus, CancellationToken ct = default)
         {
             return hashDb.UpdateLibraryIssueStatusAsync(issueId, newStatus, ct);
@@ -158,16 +200,9 @@ namespace slskd.LibraryHealth
             return await remediationService.CreateRemediationJobAsync(issueIds ?? new List<string>(), ct).ConfigureAwait(false);
         }
 
-        public async Task<LibraryHealthSummary> GetSummaryAsync(string libraryPath, CancellationToken ct = default)
+        public Task<LibraryHealthSummary> GetSummaryAsync(string libraryPath, CancellationToken ct = default)
         {
-            var issues = await hashDb.GetLibraryIssuesAsync(new LibraryHealthIssueFilter { LibraryPath = libraryPath }, ct).ConfigureAwait(false);
-            return new LibraryHealthSummary
-            {
-                LibraryPath = libraryPath,
-                TotalIssues = issues.Count,
-                IssuesOpen = issues.Count(i => i.Status != LibraryIssueStatus.Resolved && i.Status != LibraryIssueStatus.Ignored),
-                IssuesResolved = issues.Count(i => i.Status == LibraryIssueStatus.Resolved),
-            };
+            return hashDb.GetLibraryHealthSummaryAsync(libraryPath, ct);
         }
 
         private async Task PerformScanAsync(string scanId, LibraryHealthScanRequest request, CancellationToken ct)

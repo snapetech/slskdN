@@ -1,3 +1,18 @@
+## Update 2026-07-16 01:17:27Z
+
+- Current task: performance and efficiency improvements in progress; Library Health aggregate/dashboard pass complete locally.
+- Last activity:
+  - Replaced the System Library Health page's four-request load with one transactional SQLite dashboard snapshot and bounded 100-issue detail hydration.
+  - Moved summary, type, artist, release, and codec groupings off the default 100-row entity page, fixed persisted JSON codec handling, and returned authoritative filtered issue totals.
+  - Added 1-250 page bounds plus HashDb migration 19's recent-issue index; 25 loads over a 100,000-row proxy improved from 9.653 seconds to 1.958 seconds (79.72%), while HTTP requests and rich entity materialization fall 75%.
+  - Added backend/Web regressions, regenerated the route inventory, documented gotchas `0z621`-`0z625`, and extended `0z542` in standalone commits.
+- Validation:
+  - Passed focused backend tests (`79/79`), focused Web tests (`12/12`), complete Web tests (`858` passed, `4` skipped), production Web build, complete backend suites (`4773/4773`: `69` smoke, `4424` unit, `280` integration), frontend and repository lint, route/security/polling/identity checks, and every post-sync remediation check.
+  - The consolidated release baseline stopped only at its expected branch-sync gate because this local work is intentionally unpushed.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 00:50:17Z
 
 - Current task: performance and efficiency improvements in progress; Lidarr external-status polling pass complete locally.

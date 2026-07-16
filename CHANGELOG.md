@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Library Health now loads its System dashboard through one bounded SQLite
+  snapshot instead of four paged entity reads, reports full-set summary and
+  grouping counts beyond 100 issues, uses an indexed recent-issue page, and
+  rejects limits that could disable SQLite pagination.
 - Lidarr dashboard status polling now pauses while the document is hidden,
   rejects overlapping refreshes, coalesces rapid duplicate external status
   requests, and preserves React state when every rendered status field is

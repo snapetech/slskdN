@@ -1466,25 +1466,504 @@ namespace slskd.HashDb
         /// <inheritdoc/>
         public async Task<List<LibraryHealth.LibraryIssue>> GetLibraryIssuesAsync(LibraryHealth.LibraryHealthIssueFilter filter, CancellationToken cancellationToken = default)
         {
-            var issues = new List<LibraryHealth.LibraryIssue>();
+            using var conn = GetConnection();
+            return await ReadLibraryIssuesAsync(conn, filter, transaction: null, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <inheritdoc/>
+        public async Task<LibraryHealth.LibraryIssuePage> GetLibraryIssuePageAsync(
+            LibraryHealth.LibraryHealthIssueFilter filter,
+            CancellationToken cancellationToken = default)
+        {
+            using var conn = GetConnection();
+            using var transaction = conn.BeginTransaction();
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = transaction;
+            cmd.CommandText = "SELECT COUNT(*) FROM LibraryHealthIssues" + BuildLibraryIssueFilterSql(cmd, filter);
+            var totalCount = Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false), CultureInfo.InvariantCulture);
+            var issues = await ReadLibraryIssuesAsync(conn, filter, transaction, cancellationToken).ConfigureAwait(false);
+            transaction.Commit();
+
+            return new LibraryHealth.LibraryIssuePage
+            {
+                Issues = issues,
+                TotalCount = totalCount,
+            };
+        }
+
+        /// <inheritdoc/>
+        public async Task<LibraryHealth.LibraryHealthSummary> GetLibraryHealthSummaryAsync(
+            string libraryPath,
+            CancellationToken cancellationToken = default)
+        {
             using var conn = GetConnection();
             using var cmd = conn.CreateCommand();
-            var sql = @"SELECT * FROM LibraryHealthIssues WHERE 1=1";
+            var where = string.Empty;
+            if (!string.IsNullOrWhiteSpace(libraryPath))
+            {
+                where = " WHERE file_path LIKE @path";
+                cmd.Parameters.AddWithValue("@path", $"{libraryPath}%");
+            }
+
+            cmd.CommandText = $@"
+                SELECT
+                    COUNT(*),
+                    COALESCE(SUM(CASE WHEN status NOT IN ('resolved', 'ignored') THEN 1 ELSE 0 END), 0),
+                    COALESCE(SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END), 0)
+                FROM LibraryHealthIssues{where}";
+
+            using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            return new LibraryHealth.LibraryHealthSummary
+            {
+                LibraryPath = libraryPath,
+                TotalIssues = Convert.ToInt32(reader.GetInt64(0), CultureInfo.InvariantCulture),
+                IssuesOpen = Convert.ToInt32(reader.GetInt64(1), CultureInfo.InvariantCulture),
+                IssuesResolved = Convert.ToInt32(reader.GetInt64(2), CultureInfo.InvariantCulture),
+            };
+        }
+
+        /// <inheritdoc/>
+        public async Task<List<LibraryHealth.LibraryIssueTypeSummary>> GetLibraryIssueTypeSummariesAsync(
+            string libraryPath,
+            CancellationToken cancellationToken = default)
+        {
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            var where = string.Empty;
+            if (!string.IsNullOrWhiteSpace(libraryPath))
+            {
+                where = " WHERE file_path LIKE @path";
+                cmd.Parameters.AddWithValue("@path", $"{libraryPath}%");
+            }
+
+            cmd.CommandText = $@"
+                SELECT type, severity, COUNT(*)
+                FROM LibraryHealthIssues{where}
+                GROUP BY type, severity";
+
+            var groups = new Dictionary<LibraryHealth.LibraryIssueType, LibraryHealth.LibraryIssueTypeSummary>();
+            using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                if (!Enum.TryParse<LibraryHealth.LibraryIssueType>(reader.GetString(0), ignoreCase: true, out var type) ||
+                    !Enum.TryParse<LibraryHealth.LibraryIssueSeverity>(reader.GetString(1), ignoreCase: true, out var severity))
+                {
+                    continue;
+                }
+
+                var count = Convert.ToInt32(reader.GetInt64(2), CultureInfo.InvariantCulture);
+                if (!groups.TryGetValue(type, out var group))
+                {
+                    group = new LibraryHealth.LibraryIssueTypeSummary { Type = type };
+                    groups[type] = group;
+                }
+
+                group.Count += count;
+                group.BySeverity[severity] = count;
+            }
+
+            return groups.Values
+                .OrderByDescending(group => group.Count)
+                .ThenBy(group => group.Type)
+                .ToList();
+        }
+
+        /// <inheritdoc/>
+        public async Task<List<LibraryHealth.LibraryIssueArtistSummary>> GetLibraryIssueArtistSummariesAsync(
+            string libraryPath,
+            int limit,
+            CancellationToken cancellationToken = default)
+        {
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            var where = "WHERE LENGTH(TRIM(artist)) > 0";
+            if (!string.IsNullOrWhiteSpace(libraryPath))
+            {
+                where += " AND file_path LIKE @path";
+                cmd.Parameters.AddWithValue("@path", $"{libraryPath}%");
+            }
+
+            cmd.Parameters.AddWithValue("@artistLimit", Math.Clamp(limit, 1, 100));
+            cmd.CommandText = BuildLibraryIssueArtistSummarySql(where);
+            return await ReadLibraryIssueArtistSummariesAsync(cmd, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <inheritdoc/>
+        public async Task<List<LibraryHealth.LibraryIssueReleaseSummary>> GetLibraryIssueReleaseSummariesAsync(
+            string libraryPath,
+            int limit,
+            CancellationToken cancellationToken = default)
+        {
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            var where = "WHERE LENGTH(TRIM(album)) > 0";
+            if (!string.IsNullOrWhiteSpace(libraryPath))
+            {
+                where += " AND file_path LIKE @path";
+                cmd.Parameters.AddWithValue("@path", $"{libraryPath}%");
+            }
+
+            cmd.Parameters.AddWithValue("@releaseLimit", Math.Clamp(limit, 1, 100));
+            cmd.CommandText = $@"
+                WITH filtered AS MATERIALIZED (
+                    SELECT
+                        COALESCE(artist, '') AS artist,
+                        album,
+                        COALESCE(mb_release_id, '') AS release_id,
+                        type
+                    FROM LibraryHealthIssues
+                    {where}
+                ),
+                type_counts AS (
+                    SELECT artist, album, release_id, type, COUNT(*) AS item_count
+                    FROM filtered
+                    GROUP BY artist, album, release_id, type
+                ),
+                totals AS (
+                    SELECT artist, album, release_id, SUM(item_count) AS total_count
+                    FROM type_counts
+                    GROUP BY artist, album, release_id
+                ),
+                top_releases AS (
+                    SELECT artist, album, release_id, total_count
+                    FROM totals
+                    ORDER BY total_count DESC, artist, album, release_id
+                    LIMIT @releaseLimit
+                )
+                SELECT counts.artist, counts.album, counts.release_id, counts.type, counts.item_count, top.total_count
+                FROM type_counts AS counts
+                INNER JOIN top_releases AS top
+                    ON top.artist = counts.artist
+                    AND top.album = counts.album
+                    AND top.release_id = counts.release_id
+                ORDER BY top.total_count DESC, counts.artist, counts.album, counts.release_id, counts.type";
+
+            var groups = new Dictionary<(string Artist, string Album, string ReleaseId), LibraryHealth.LibraryIssueReleaseSummary>();
+            using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                if (!Enum.TryParse<LibraryHealth.LibraryIssueType>(reader.GetString(3), ignoreCase: true, out var type))
+                {
+                    continue;
+                }
+
+                var key = (reader.GetString(0), reader.GetString(1), reader.GetString(2));
+                if (!groups.TryGetValue(key, out var group))
+                {
+                    group = new LibraryHealth.LibraryIssueReleaseSummary
+                    {
+                        Artist = key.Item1,
+                        Album = key.Item2,
+                        MusicBrainzReleaseId = key.Item3,
+                        Count = Convert.ToInt32(reader.GetInt64(5), CultureInfo.InvariantCulture),
+                    };
+                    groups[key] = group;
+                }
+
+                group.ByType[type] = Convert.ToInt32(reader.GetInt64(4), CultureInfo.InvariantCulture);
+            }
+
+            return groups.Values
+                .OrderByDescending(group => group.Count)
+                .ThenBy(group => group.Artist, StringComparer.Ordinal)
+                .ThenBy(group => group.Album, StringComparer.Ordinal)
+                .ThenBy(group => group.MusicBrainzReleaseId, StringComparer.Ordinal)
+                .ToList();
+        }
+
+        /// <inheritdoc/>
+        public async Task<List<LibraryHealth.IssueCodecGroup>> GetLibraryIssueCodecSummariesAsync(
+            string libraryPath,
+            CancellationToken cancellationToken = default)
+        {
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            var where = string.Empty;
+            if (!string.IsNullOrWhiteSpace(libraryPath))
+            {
+                where = "WHERE file_path LIKE @path";
+                cmd.Parameters.AddWithValue("@path", $"{libraryPath}%");
+            }
+
+            cmd.CommandText = $@"
+                WITH normalized AS (
+                    SELECT
+                        UPPER(COALESCE(
+                            NULLIF(CASE WHEN json_valid(metadata) THEN CAST(json_extract(metadata, '$.codec') AS TEXT) END, ''),
+                            'UNKNOWN')) AS codec,
+                        CASE
+                            WHEN type = 'SuspectedTranscode' THEN 1
+                            WHEN json_valid(metadata) AND json_extract(metadata, '$.transcode_suspect') = 1 THEN 1
+                            ELSE 0
+                        END AS transcode_suspect
+                    FROM LibraryHealthIssues
+                    {where}
+                )
+                SELECT codec, COUNT(*), SUM(transcode_suspect)
+                FROM normalized
+                GROUP BY codec
+                ORDER BY COUNT(*) DESC, codec";
+
+            var groups = new List<LibraryHealth.IssueCodecGroup>();
+            using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                groups.Add(new LibraryHealth.IssueCodecGroup
+                {
+                    Codec = reader.GetString(0),
+                    Count = Convert.ToInt32(reader.GetInt64(1), CultureInfo.InvariantCulture),
+                    TranscodeSuspect = Convert.ToInt32(reader.GetInt64(2), CultureInfo.InvariantCulture),
+                });
+            }
+
+            return groups;
+        }
+
+        /// <inheritdoc/>
+        public async Task<LibraryHealth.LibraryHealthDashboard> GetLibraryHealthDashboardAsync(
+            string libraryPath,
+            int artistLimit,
+            int issueLimit,
+            CancellationToken cancellationToken = default)
+        {
+            using var conn = GetConnection();
+            using var transaction = conn.BeginTransaction();
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = transaction;
+            var where = string.Empty;
+            if (!string.IsNullOrWhiteSpace(libraryPath))
+            {
+                where = "WHERE file_path LIKE @path";
+                cmd.Parameters.AddWithValue("@path", $"{libraryPath}%");
+            }
+
+            cmd.Parameters.AddWithValue("@artistLimit", Math.Clamp(artistLimit, 1, 100));
+            cmd.CommandText = $@"
+                WITH filtered AS MATERIALIZED (
+                    SELECT type, severity, status, artist
+                    FROM LibraryHealthIssues
+                    {where}
+                ),
+                type_counts AS (
+                    SELECT type, severity, COUNT(*) AS item_count
+                    FROM filtered
+                    GROUP BY type, severity
+                ),
+                artist_type_counts AS (
+                    SELECT artist, type, COUNT(*) AS item_count
+                    FROM filtered
+                    WHERE LENGTH(TRIM(artist)) > 0
+                    GROUP BY artist, type
+                ),
+                artist_totals AS (
+                    SELECT artist, SUM(item_count) AS total_count
+                    FROM artist_type_counts
+                    GROUP BY artist
+                ),
+                top_artists AS (
+                    SELECT artist, total_count
+                    FROM artist_totals
+                    ORDER BY total_count DESC, artist
+                    LIMIT @artistLimit
+                )
+                SELECT
+                    'summary' AS result_kind,
+                    '' AS group_key,
+                    '' AS subgroup_key,
+                    COUNT(*) AS item_count,
+                    0 AS group_total,
+                    COALESCE(SUM(CASE WHEN status NOT IN ('resolved', 'ignored') THEN 1 ELSE 0 END), 0) AS open_count,
+                    COALESCE(SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END), 0) AS resolved_count
+                FROM filtered
+                UNION ALL
+                SELECT 'type', type, severity, item_count, 0, 0, 0
+                FROM type_counts
+                UNION ALL
+                SELECT 'artist', counts.artist, counts.type, counts.item_count, top.total_count, 0, 0
+                FROM artist_type_counts AS counts
+                INNER JOIN top_artists AS top ON top.artist = counts.artist";
+
+            var dashboard = new LibraryHealth.LibraryHealthDashboard();
+            var typeGroups = new Dictionary<LibraryHealth.LibraryIssueType, LibraryHealth.LibraryIssueTypeSummary>();
+            var artistGroups = new Dictionary<string, LibraryHealth.LibraryIssueArtistSummary>(StringComparer.Ordinal);
+            using (var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false))
+            {
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    var kind = reader.GetString(0);
+                    if (kind == "summary")
+                    {
+                        dashboard.Summary = new LibraryHealth.LibraryHealthSummary
+                        {
+                            LibraryPath = libraryPath,
+                            TotalIssues = Convert.ToInt32(reader.GetInt64(3), CultureInfo.InvariantCulture),
+                            IssuesOpen = Convert.ToInt32(reader.GetInt64(5), CultureInfo.InvariantCulture),
+                            IssuesResolved = Convert.ToInt32(reader.GetInt64(6), CultureInfo.InvariantCulture),
+                        };
+                        dashboard.TotalIssues = dashboard.Summary.TotalIssues;
+                    }
+                    else if (kind == "type" &&
+                        Enum.TryParse<LibraryHealth.LibraryIssueType>(reader.GetString(1), ignoreCase: true, out var type) &&
+                        Enum.TryParse<LibraryHealth.LibraryIssueSeverity>(reader.GetString(2), ignoreCase: true, out var severity))
+                    {
+                        var count = Convert.ToInt32(reader.GetInt64(3), CultureInfo.InvariantCulture);
+                        if (!typeGroups.TryGetValue(type, out var group))
+                        {
+                            group = new LibraryHealth.LibraryIssueTypeSummary { Type = type };
+                            typeGroups[type] = group;
+                        }
+
+                        group.Count += count;
+                        group.BySeverity[severity] = count;
+                    }
+                    else if (kind == "artist" &&
+                        Enum.TryParse<LibraryHealth.LibraryIssueType>(reader.GetString(2), ignoreCase: true, out var artistType))
+                    {
+                        var artist = reader.GetString(1);
+                        if (!artistGroups.TryGetValue(artist, out var group))
+                        {
+                            group = new LibraryHealth.LibraryIssueArtistSummary
+                            {
+                                Artist = artist,
+                                Count = Convert.ToInt32(reader.GetInt64(4), CultureInfo.InvariantCulture),
+                            };
+                            artistGroups[artist] = group;
+                        }
+
+                        group.ByType[artistType] = Convert.ToInt32(reader.GetInt64(3), CultureInfo.InvariantCulture);
+                    }
+                }
+            }
+
+            dashboard.IssuesByType = typeGroups.Values
+                .OrderByDescending(group => group.Count)
+                .ThenBy(group => group.Type)
+                .ToList();
+            dashboard.IssuesByArtist = artistGroups.Values
+                .OrderByDescending(group => group.Count)
+                .ThenBy(group => group.Artist, StringComparer.Ordinal)
+                .ToList();
+            dashboard.Issues = await ReadLibraryIssuesAsync(
+                conn,
+                new LibraryHealth.LibraryHealthIssueFilter
+                {
+                    LibraryPath = libraryPath,
+                    Limit = Math.Clamp(issueLimit, 1, 250),
+                },
+                transaction,
+                cancellationToken).ConfigureAwait(false);
+            transaction.Commit();
+            return dashboard;
+        }
+
+        private static string BuildLibraryIssueArtistSummarySql(string where)
+        {
+            return $@"
+                WITH filtered AS MATERIALIZED (
+                    SELECT artist, type
+                    FROM LibraryHealthIssues
+                    {where}
+                ),
+                type_counts AS (
+                    SELECT artist, type, COUNT(*) AS item_count
+                    FROM filtered
+                    GROUP BY artist, type
+                ),
+                totals AS (
+                    SELECT artist, SUM(item_count) AS total_count
+                    FROM type_counts
+                    GROUP BY artist
+                ),
+                top_artists AS (
+                    SELECT artist, total_count
+                    FROM totals
+                    ORDER BY total_count DESC, artist
+                    LIMIT @artistLimit
+                )
+                SELECT counts.artist, counts.type, counts.item_count, top.total_count
+                FROM type_counts AS counts
+                INNER JOIN top_artists AS top ON top.artist = counts.artist
+                ORDER BY top.total_count DESC, counts.artist, counts.type";
+        }
+
+        private static async Task<List<LibraryHealth.LibraryIssueArtistSummary>> ReadLibraryIssueArtistSummariesAsync(
+            SqliteCommand cmd,
+            CancellationToken cancellationToken)
+        {
+            var groups = new Dictionary<string, LibraryHealth.LibraryIssueArtistSummary>(StringComparer.Ordinal);
+            using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                if (!Enum.TryParse<LibraryHealth.LibraryIssueType>(reader.GetString(1), ignoreCase: true, out var type))
+                {
+                    continue;
+                }
+
+                var artist = reader.GetString(0);
+                if (!groups.TryGetValue(artist, out var group))
+                {
+                    group = new LibraryHealth.LibraryIssueArtistSummary
+                    {
+                        Artist = artist,
+                        Count = Convert.ToInt32(reader.GetInt64(3), CultureInfo.InvariantCulture),
+                    };
+                    groups[artist] = group;
+                }
+
+                group.ByType[type] = Convert.ToInt32(reader.GetInt64(2), CultureInfo.InvariantCulture);
+            }
+
+            return groups.Values
+                .OrderByDescending(group => group.Count)
+                .ThenBy(group => group.Artist, StringComparer.Ordinal)
+                .ToList();
+        }
+
+        private static async Task<List<LibraryHealth.LibraryIssue>> ReadLibraryIssuesAsync(
+            SqliteConnection conn,
+            LibraryHealth.LibraryHealthIssueFilter filter,
+            SqliteTransaction? transaction,
+            CancellationToken cancellationToken)
+        {
+            var issues = new List<LibraryHealth.LibraryIssue>();
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = transaction;
+            var sql = "SELECT * FROM LibraryHealthIssues" + BuildLibraryIssueFilterSql(cmd, filter);
+            sql += " ORDER BY detected_at DESC LIMIT @limit OFFSET @offset";
+            cmd.Parameters.AddWithValue("@limit", Math.Clamp(filter.Limit, 1, 250));
+            cmd.Parameters.AddWithValue("@offset", Math.Max(0, filter.Offset));
+            cmd.CommandText = sql;
+
+            using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                issues.Add(ReadIssue(reader));
+            }
+
+            return issues;
+        }
+
+        private static string BuildLibraryIssueFilterSql(
+            SqliteCommand cmd,
+            LibraryHealth.LibraryHealthIssueFilter filter)
+        {
+            var conditions = new List<string>();
             if (!string.IsNullOrWhiteSpace(filter.LibraryPath))
             {
-                sql += " AND file_path LIKE @path";
+                conditions.Add("file_path LIKE @path");
                 cmd.Parameters.AddWithValue("@path", $"{filter.LibraryPath}%");
             }
 
             if (!string.IsNullOrWhiteSpace(filter.MusicBrainzReleaseId))
             {
-                sql += " AND mb_release_id = @rid";
+                conditions.Add("mb_release_id = @rid");
                 cmd.Parameters.AddWithValue("@rid", filter.MusicBrainzReleaseId);
             }
 
             if (filter.Types != null && filter.Types.Count > 0)
             {
-                sql += $" AND type IN ({string.Join(",", filter.Types.Select((_, i) => $"@t{i}"))})";
+                conditions.Add($"type IN ({string.Join(",", filter.Types.Select((_, i) => $"@t{i}"))})");
                 for (int i = 0; i < filter.Types.Count; i++)
                 {
                     cmd.Parameters.AddWithValue($"@t{i}", filter.Types[i].ToString());
@@ -1493,7 +1972,7 @@ namespace slskd.HashDb
 
             if (filter.Severities != null && filter.Severities.Count > 0)
             {
-                sql += $" AND severity IN ({string.Join(",", filter.Severities.Select((_, i) => $"@s{i}"))})";
+                conditions.Add($"severity IN ({string.Join(",", filter.Severities.Select((_, i) => $"@s{i}"))})");
                 for (int i = 0; i < filter.Severities.Count; i++)
                 {
                     cmd.Parameters.AddWithValue($"@s{i}", filter.Severities[i].ToString());
@@ -1502,25 +1981,14 @@ namespace slskd.HashDb
 
             if (filter.Statuses != null && filter.Statuses.Count > 0)
             {
-                sql += $" AND status IN ({string.Join(",", filter.Statuses.Select((_, i) => $"@st{i}"))})";
+                conditions.Add($"status IN ({string.Join(",", filter.Statuses.Select((_, i) => $"@st{i}"))})");
                 for (int i = 0; i < filter.Statuses.Count; i++)
                 {
                     cmd.Parameters.AddWithValue($"@st{i}", filter.Statuses[i].ToString().ToLowerInvariant());
                 }
             }
 
-            sql += " ORDER BY detected_at DESC LIMIT @limit OFFSET @offset";
-            cmd.Parameters.AddWithValue("@limit", filter.Limit);
-            cmd.Parameters.AddWithValue("@offset", filter.Offset);
-            cmd.CommandText = sql;
-
-            using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-            while (await reader.ReadAsync(cancellationToken))
-            {
-                issues.Add(ReadIssue(reader));
-            }
-
-            return issues;
+            return conditions.Count == 0 ? string.Empty : " WHERE " + string.Join(" AND ", conditions);
         }
 
         /// <inheritdoc/>

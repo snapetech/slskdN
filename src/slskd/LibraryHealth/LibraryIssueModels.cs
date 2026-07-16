@@ -95,6 +95,57 @@ namespace slskd.LibraryHealth
         public int IssuesResolved { get; set; }
     }
 
+    public class LibraryIssueTypeSummary
+    {
+        public LibraryIssueType Type { get; set; }
+
+        public int Count { get; set; }
+
+        public Dictionary<LibraryIssueSeverity, int> BySeverity { get; set; } = new();
+    }
+
+    public class LibraryIssueArtistSummary
+    {
+        public string Artist { get; set; } = string.Empty;
+
+        public int Count { get; set; }
+
+        public Dictionary<LibraryIssueType, int> ByType { get; set; } = new();
+    }
+
+    public class LibraryIssueReleaseSummary
+    {
+        public string Artist { get; set; } = string.Empty;
+
+        public string Album { get; set; } = string.Empty;
+
+        public string MusicBrainzReleaseId { get; set; } = string.Empty;
+
+        public int Count { get; set; }
+
+        public Dictionary<LibraryIssueType, int> ByType { get; set; } = new();
+    }
+
+    public class LibraryIssuePage
+    {
+        public List<LibraryIssue> Issues { get; set; } = new();
+
+        public int TotalCount { get; set; }
+    }
+
+    public class LibraryHealthDashboard
+    {
+        public LibraryHealthSummary Summary { get; set; } = new();
+
+        public List<LibraryIssueTypeSummary> IssuesByType { get; set; } = new();
+
+        public List<LibraryIssueArtistSummary> IssuesByArtist { get; set; } = new();
+
+        public List<LibraryIssue> Issues { get; set; } = new();
+
+        public int TotalIssues { get; set; }
+    }
+
     public class IssueCodecGroup
     {
         public string Codec { get; set; } = string.Empty;
