@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- IPLD graph construction now passes the already-hydrated root and child nodes
+  into recursive expansion. It no longer recreates the root before visiting its
+  links or recreates every expanded child after that same node was added to the
+  output, eliminating duplicate `ContentGraphNode`, outgoing-list copy, and
+  inbound-list allocations. For the covered depth-two graph with 10,000 direct
+  children, warmed allocation falls from 17,359,648 to 10,398,992 bytes (40.1%)
+  while retaining all required 10,001 nodes and 10,000 paths. Depth boundaries,
+  depth-first node/path order, duplicate-edge suppression through the visited
+  set, cycles, shared targets, incoming/outgoing link contents, and root identity
+  remain unchanged.
 - Music-domain variant projection now applies the existing ordinal
   `VariantId ?? FlacKey ?? ""` deduplication while scanning recent HashDb rows
   and allocates a `MediaVariant` only for the first occurrence retained in the

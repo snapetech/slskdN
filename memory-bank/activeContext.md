@@ -1,3 +1,17 @@
+## Update 2026-07-16 21:59:15Z
+
+- Current task: performance and efficiency improvements in progress; single-hydration IPLD graph recursion complete locally.
+- Last activity:
+  - Passed already-created root and child graph nodes through recursive expansion instead of rebuilding their outgoing and incoming snapshots.
+  - A depth-two graph with 10,000 direct children falls from 17,359,648 to 10,398,992 warmed allocated bytes (40.1%) while retaining 10,001 nodes and 10,000 paths.
+- Validation:
+  - Passed focused IPLD (`16/16`), broader MediaCore (`270/270`), and full backend suites (`5013/5013`: `69` application, `4664` unit, `280` integration) tests.
+  - Exact depth/order/duplicate-edge/cycle/shared-target/link/allocation behavior, repository lint, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Run the remediation baseline and commit only the IPLD graph hydration slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 21:48:43Z
 
 - Current task: performance and efficiency improvements in progress; pre-allocation music variant deduplication complete locally.

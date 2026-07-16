@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- IPLD graph construction now passes each hydrated node into recursion instead
+  of rebuilding its outgoing and incoming link snapshots.
 - Music-domain variant projection now deduplicates HashDb variant IDs before
   allocating returned `MediaVariant` objects and grouping state.
 - Shadow Index descriptor projection now selects its best variant in one pass

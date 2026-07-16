@@ -162,7 +162,7 @@ public class IpldMapper : IIpldMapper
         nodes.Add(rootNode);
 
         // Build the graph recursively
-        await BuildGraphRecursiveAsync(contentId, maxDepth, 0, nodes, paths, new HashSet<string> { contentId }, cancellationToken);
+        await BuildGraphRecursiveAsync(rootNode, maxDepth, 0, nodes, paths, new HashSet<string> { contentId }, cancellationToken);
 
         return new ContentGraph(
             RootContentId: contentId,
@@ -326,7 +326,7 @@ public class IpldMapper : IIpldMapper
     }
 
     private async Task BuildGraphRecursiveAsync(
-        string currentContentId,
+        ContentGraphNode node,
         int maxDepth,
         int currentDepth,
         List<ContentGraphNode> nodes,
@@ -337,8 +337,6 @@ public class IpldMapper : IIpldMapper
         if (currentDepth >= maxDepth)
             return;
 
-        var node = await CreateGraphNodeAsync(currentContentId, cancellationToken);
-
         foreach (var link in node.OutgoingLinks)
         {
             if (!visited.Contains(link.Target))
@@ -348,11 +346,11 @@ public class IpldMapper : IIpldMapper
                 nodes.Add(childNode);
 
                 paths.Add(new ContentGraphPath(
-                    ContentIds: new[] { currentContentId, link.Target },
+                    ContentIds: new[] { node.ContentId, link.Target },
                     Links: new[] { link }));
 
                 await BuildGraphRecursiveAsync(
-                    link.Target, maxDepth, currentDepth + 1, nodes, paths, visited, cancellationToken);
+                    childNode, maxDepth, currentDepth + 1, nodes, paths, visited, cancellationToken);
             }
         }
     }

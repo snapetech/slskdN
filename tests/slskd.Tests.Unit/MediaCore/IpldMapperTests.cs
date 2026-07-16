@@ -13,6 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
+[Collection(AllocationTestCollection.Name)]
 public class IpldMapperTests
 {
     private readonly IpldMapper _mapper;
@@ -142,6 +143,79 @@ public class IpldMapperTests
         Assert.Equal(contentId, result.RootContentId);
         Assert.NotNull(result.Nodes);
         Assert.NotNull(result.Paths);
+    }
+
+    [Fact]
+    public async Task GetGraphAsync_WideGraphAvoidsDuplicateNodeHydration()
+    {
+        const int childCount = 10_000;
+        const string RootContentId = "content:audio:album:root";
+        var links = Enumerable.Range(0, childCount)
+            .Select(index => new IpldLink(IpldLinkNames.Tracks, $"content:audio:track:{index}"))
+            .ToArray();
+        _registryMock
+            .Setup(registry => registry.IsContentIdRegisteredAsync(RootContentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        await _mapper.AddLinksAsync(RootContentId, links);
+
+        var warmRegistry = new Mock<IContentIdRegistry>();
+        warmRegistry
+            .Setup(registry => registry.IsContentIdRegisteredAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var warmMapper = new IpldMapper(warmRegistry.Object, Mock.Of<ILogger<IpldMapper>>());
+        await warmMapper.AddLinksAsync("content:audio:album:warm", [new IpldLink(IpldLinkNames.Tracks, "content:audio:track:warm")]);
+        _ = await warmMapper.GetGraphAsync("content:audio:album:warm", maxDepth: 2);
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var graph = await _mapper.GetGraphAsync(RootContentId, maxDepth: 2);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(childCount + 1, graph.Nodes.Count);
+        Assert.Equal(childCount, graph.Paths.Count);
+        Assert.Equal(RootContentId, graph.Nodes[0].ContentId);
+        Assert.Equal(childCount, graph.Nodes[0].OutgoingLinks.Count);
+        Assert.Equal([RootContentId], graph.Nodes[1].IncomingLinks);
+        Assert.Equal(links[0], graph.Paths[0].Links[0]);
+        Assert.Equal(links[^1], graph.Paths[^1].Links[0]);
+        Assert.True(
+            allocatedBytes < 11 * 1024 * 1024,
+            $"Expected single-hydration graph building below 11 MiB allocated, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
+    public async Task GetGraphAsync_PreservesDepthOrderCyclesAndSharedTargets()
+    {
+        const string RootContentId = "content:audio:album:root";
+        const string FirstChild = "content:audio:track:first";
+        const string SecondChild = "content:audio:track:second";
+        const string Grandchild = "content:audio:artist:shared";
+        _registryMock
+            .Setup(registry => registry.IsContentIdRegisteredAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        await _mapper.AddLinksAsync(RootContentId,
+        [
+            new IpldLink(IpldLinkNames.Tracks, FirstChild),
+            new IpldLink(IpldLinkNames.Tracks, SecondChild),
+            new IpldLink(IpldLinkNames.Tracks, FirstChild),
+        ]);
+        await _mapper.AddLinksAsync(FirstChild, [new IpldLink(IpldLinkNames.Artist, Grandchild)]);
+        await _mapper.AddLinksAsync(SecondChild,
+        [
+            new IpldLink(IpldLinkNames.Artist, Grandchild),
+            new IpldLink(IpldLinkNames.Parent, RootContentId),
+        ]);
+
+        var graph = await _mapper.GetGraphAsync(RootContentId, maxDepth: 2);
+
+        Assert.Equal([RootContentId, FirstChild, Grandchild, SecondChild], graph.Nodes.Select(node => node.ContentId));
+        Assert.Equal(
+        [
+            new[] { RootContentId, FirstChild },
+            new[] { FirstChild, Grandchild },
+            new[] { RootContentId, SecondChild },
+        ],
+            graph.Paths.Select(path => path.ContentIds));
+        Assert.Equal([FirstChild, SecondChild], graph.Nodes[2].IncomingLinks);
     }
 
     [Fact]

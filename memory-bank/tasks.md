@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Reuse hydrated IPLD nodes during graph recursion.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `IpldMapper.GetGraphAsync` now passes its hydrated root node into recursive expansion, and each recursive step passes the already-created child node onward. The prior path rebuilt the root before reading its links and rebuilt every expanded child after adding that first snapshot to the returned graph, duplicating `ContentGraphNode`, outgoing-list copy, and incoming-list allocations. For a covered depth-two graph with 10,000 direct children, warmed allocation falls from 17,359,648 to 10,398,992 bytes (40.1%) while retaining all required 10,001 nodes and 10,000 paths. Exact depth boundaries, depth-first node/path order, duplicate-edge suppression, cycles, shared-target handling, inbound/outbound link contents, and root identity remain unchanged. Added exact wide-graph allocation plus branching/cycle/shared-target regressions. Validation passed: focused IPLD tests (`16/16`), broader MediaCore tests (`270/270`), full backend suites (`5013/5013`: `69` application, `4664` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Deduplicate music-domain variants before allocating projections.
   - Status: completed (2026-07-16)
   - Priority: P1
