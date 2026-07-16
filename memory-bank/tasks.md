@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make music recording-ID resolution a direct indexed lookup.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added schema-v21 `idx_album_tracks_recording_nocase` and a direct HashDb query that preserves case-insensitive matching plus newest-release/earliest-track selection. Successful resolution across 100 albums falls from up to 103 database queries to two (98.1% fewer), and variant hydration now occurs only when no stored track matches. Added migration-backed query-plan, collation/selection, and exact provider-call regressions; documented gotcha `0z666` in `170cd27a0` and refined its query-plan tradeoff in `818d073aa`.
+
 - [x] Batch MusicBrainz album-completion evidence reads.
   - Status: completed (2026-07-16)
   - Priority: P1

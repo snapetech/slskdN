@@ -16,7 +16,7 @@ public static class HashDbMigrations
     /// <summary>
     ///     Current schema version. Increment when adding new migrations.
     /// </summary>
-    public const int CurrentVersion = 20;
+    public const int CurrentVersion = 21;
 
     private static readonly ILogger Log = Serilog.Log.ForContext(typeof(HashDbMigrations));
 
@@ -788,6 +788,23 @@ public static class HashDbMigrations
                         CREATE INDEX IF NOT EXISTS idx_hashdb_recording_normalized
                         ON HashDb (TRIM(musicbrainz_id) COLLATE NOCASE)
                         WHERE musicbrainz_id IS NOT NULL AND TRIM(musicbrainz_id) <> ''
+                        """;
+                    cmd.ExecuteNonQuery();
+                },
+            },
+
+            new Migration
+            {
+                Version = 21,
+                Name = "Case-insensitive album track recording lookup",
+                Apply = conn =>
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText =
+                        """
+                        CREATE INDEX IF NOT EXISTS idx_album_tracks_recording_nocase
+                        ON AlbumTargetTracks (recording_id COLLATE NOCASE)
+                        WHERE recording_id IS NOT NULL AND recording_id <> ''
                         """;
                     cmd.ExecuteNonQuery();
                 },

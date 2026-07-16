@@ -55,6 +55,13 @@ namespace slskd.HashDb
             CancellationToken cancellationToken = default);
 
         /// <summary>
+        ///     Gets the newest stored album track for a MusicBrainz recording identifier.
+        /// </summary>
+        Task<AlbumTargetTrackEntry?> GetAlbumTrackByRecordingIdAsync(
+            string recordingId,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         ///     Gets the stored album targets.
         /// </summary>
         Task<IEnumerable<AlbumTargetEntry>> GetAlbumTargetsAsync(CancellationToken cancellationToken = default);

@@ -138,6 +138,37 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Constructor_IndexesCaseInsensitiveRecordingTrackLookup()
+    {
+        await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText =
+            """
+            EXPLAIN QUERY PLAN
+            SELECT track.release_id, track.track_position, track.recording_id, track.title, track.artist, track.duration_ms, track.isrc
+            FROM AlbumTargetTracks AS track
+            INNER JOIN AlbumTargets AS album ON album.release_id = track.release_id
+            WHERE track.recording_id IS NOT NULL
+              AND track.recording_id <> ''
+              AND track.recording_id = 'RECORDING-1' COLLATE NOCASE
+            ORDER BY album.created_at DESC, track.track_position ASC
+            LIMIT 1
+            """;
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        var plan = new List<string>();
+        while (await reader.ReadAsync())
+        {
+            plan.Add(reader.GetString(3));
+        }
+
+        Assert.Contains(plan, detail =>
+            detail.Contains("SEARCH track USING INDEX idx_album_tracks_recording_nocase", StringComparison.Ordinal));
+        Assert.DoesNotContain(plan, detail => detail.Contains("SCAN track", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Constructor_IndexesBatchedHashEvidenceQueryWithoutTemporarySort()
     {
         await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
@@ -450,6 +481,48 @@ public class HashDbServiceTests : IDisposable
         Assert.Equal(2, tracks.Count);
         Assert.Equal(new[] { "release-1", "release-2" }, tracks.Select(track => track.ReleaseId));
         Assert.Equal(new[] { "recording-1", "recording-2" }, tracks.Select(track => track.RecordingId));
+    }
+
+    [Fact]
+    public async Task GetAlbumTrackByRecordingIdAsync_ReturnsNewestCaseInsensitiveMatch()
+    {
+        await service.UpsertAlbumTargetAsync(new AlbumTarget
+        {
+            MusicBrainzReleaseId = "release-old",
+            Title = "Old Album",
+            Artist = "Artist",
+            Tracks = new[]
+            {
+                new TrackTarget { Position = 1, MusicBrainzRecordingId = "recording-1", Title = "Old Track" },
+            },
+        });
+        await service.UpsertAlbumTargetAsync(new AlbumTarget
+        {
+            MusicBrainzReleaseId = "release-new",
+            Title = "New Album",
+            Artist = "Artist",
+            Tracks = new[]
+            {
+                new TrackTarget { Position = 1, MusicBrainzRecordingId = "recording-1", Title = "New Track" },
+            },
+        });
+        await using (var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}"))
+        {
+            await conn.OpenAsync();
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText =
+                """
+                UPDATE AlbumTargets
+                SET created_at = CASE release_id WHEN 'release-old' THEN 1 ELSE 2 END
+                """;
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        var track = await service.GetAlbumTrackByRecordingIdAsync(" RECORDING-1 ");
+
+        Assert.NotNull(track);
+        Assert.Equal("release-new", track!.ReleaseId);
+        Assert.Equal("New Track", track.Title);
     }
 
     [Fact]

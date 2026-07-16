@@ -1,3 +1,17 @@
+## Update 2026-07-16 07:27:33Z
+
+- Current task: performance and efficiency improvements in progress; direct music recording lookup pass complete locally.
+- Last activity:
+  - Added schema-v21 case-insensitive album-track recording index and replaced album/per-release scanning with one direct query. A successful lookup across 100 albums falls from up to 103 database queries to two (98.1% fewer).
+  - Deferred variant hydration until the indexed track lookup misses while preserving newest-release/earliest-track selection. Documented gotcha `0z666` (`170cd27a0`, `818d073aa`).
+- Validation:
+  - Passed focused lookup/index coverage (`9/9`), complete HashDb/provider suites (`75/75`), and full backend tests (`4833/4833`: `69` application, `4484` unit, `280` integration).
+  - Repository lint and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Run remediation and commit only the HashDb migration/direct-lookup slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 07:15:50Z
 
 - Current task: performance and efficiency improvements in progress; MusicBrainz album-completion pass complete locally.

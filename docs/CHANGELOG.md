@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Virtual Soulfind music recording-ID resolution now uses a schema-v21
+  case-insensitive album-track index instead of loading the album catalog and
+  querying every release. A successful lookup across 100 albums falls from up
+  to 103 database queries to two (98.1% fewer), and does not hydrate variants.
 - MusicBrainz album completion now batches both release tracks and full hash
   evidence through existing SQLite indexes before assembling its unchanged
   response. A 100-album collection with ten tracks each falls from 1,101

@@ -275,21 +275,13 @@ namespace slskd.VirtualSoulfind.Core.Music
             {
                 var hashes = await _hashDb.LookupHashesByRecordingIdAsync(recordingId, cancellationToken).ConfigureAwait(false);
                 var isAdvertisable = hashes.Any();
-                var variants = await _hashDb.GetVariantsByRecordingAsync(recordingId, cancellationToken).ConfigureAwait(false);
-
-                var albums = await _hashDb.GetAlbumTargetsAsync(cancellationToken).ConfigureAwait(false);
-                foreach (var album in albums)
+                var track = await _hashDb.GetAlbumTrackByRecordingIdAsync(recordingId, cancellationToken).ConfigureAwait(false);
+                if (track != null)
                 {
-                    var tracks = await _hashDb.GetAlbumTracksAsync(album.ReleaseId, cancellationToken).ConfigureAwait(false);
-                    var track = tracks.FirstOrDefault(candidate =>
-                        string.Equals(candidate.RecordingId, recordingId, StringComparison.OrdinalIgnoreCase));
-
-                    if (track != null)
-                    {
-                        return MusicItem.FromTrackEntry(track, isAdvertisable);
-                    }
+                    return MusicItem.FromTrackEntry(track, isAdvertisable);
                 }
 
+                var variants = await _hashDb.GetVariantsByRecordingAsync(recordingId, cancellationToken).ConfigureAwait(false);
                 var bestVariant = variants
                     .OrderByDescending(variant => variant.QualityScore)
                     .ThenByDescending(variant => variant.SeenCount)

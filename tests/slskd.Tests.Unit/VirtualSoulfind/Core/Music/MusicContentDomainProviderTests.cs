@@ -119,14 +119,14 @@ namespace slskd.Tests.Unit.VirtualSoulfind.Core.Music
             var releaseId = "22345678-1234-1234-1234-123456789abc";
             _hashDbMock.Setup(h => h.LookupHashesByRecordingIdAsync(recordingId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new[] { new HashDbEntry { MusicBrainzId = recordingId } });
-            _hashDbMock.Setup(h => h.GetVariantsByRecordingAsync(recordingId, It.IsAny<CancellationToken>()))
-                .Returns(Task.FromResult(new List<slskd.Audio.AudioVariant>()));
-            _hashDbMock.Setup(h => h.GetAlbumTargetsAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new[] { new AlbumTargetEntry { ReleaseId = releaseId, Title = "Album", Artist = "Artist" } });
-            _hashDbMock.Setup(h => h.GetAlbumTracksAsync(releaseId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new[]
+            _hashDbMock.Setup(h => h.GetAlbumTrackByRecordingIdAsync(recordingId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new AlbumTargetTrackEntry
                 {
-                    new AlbumTargetTrackEntry { ReleaseId = releaseId, RecordingId = recordingId, Title = "Track", Artist = "Artist", Position = 1 }
+                    ReleaseId = releaseId,
+                    RecordingId = recordingId,
+                    Title = "Track",
+                    Artist = "Artist",
+                    Position = 1,
                 });
             var provider = new MusicContentDomainProvider(_loggerMock.Object, _hashDbMock.Object);
 
@@ -137,6 +137,10 @@ namespace slskd.Tests.Unit.VirtualSoulfind.Core.Music
             Assert.NotNull(result);
             Assert.Equal("Track", result.Title);
             Assert.True(result.IsAdvertisable);
+            _hashDbMock.Verify(h => h.GetAlbumTrackByRecordingIdAsync(recordingId, It.IsAny<CancellationToken>()), Times.Once);
+            _hashDbMock.Verify(h => h.GetVariantsByRecordingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+            _hashDbMock.Verify(h => h.GetAlbumTargetsAsync(It.IsAny<CancellationToken>()), Times.Never);
+            _hashDbMock.Verify(h => h.GetAlbumTracksAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         }
 
         [Fact]
