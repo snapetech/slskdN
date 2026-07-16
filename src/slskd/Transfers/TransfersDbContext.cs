@@ -131,6 +131,15 @@ namespace slskd.Transfers
 
             modelBuilder
                 .Entity<Transfer>()
+                .HasIndex(t => new { t.Direction, t.EndedAt, t.Id })
+                .HasDatabaseName("IDX_Transfers_AutoRetry_EndedAt")
+                .HasFilter(
+                    "Removed = 0 AND EndedAt IS NOT NULL " +
+                    "AND (State & 16) = 16 AND (State & 32) != 32 " +
+                    "AND (State & 64) != 64 AND (State & 512) != 512");
+
+            modelBuilder
+                .Entity<Transfer>()
                 .HasIndex(t => t.State)
                 .HasDatabaseName("IDX_Transfers_State");
 

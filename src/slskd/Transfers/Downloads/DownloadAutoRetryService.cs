@@ -99,23 +99,15 @@ namespace slskd.Transfers.Downloads
         {
             var cutoff = DateTime.UtcNow - TimeSpan.FromSeconds(opts.RetryDelaySeconds);
 
-            var failed = downloadService.List(
-                t => t.State.HasFlag(TransferStates.Completed)
-                     && !t.State.HasFlag(TransferStates.Succeeded)
-                     && !t.State.HasFlag(TransferStates.Cancelled)
-                     && !t.State.HasFlag(TransferStates.Rejected)
-                     && t.EndedAt != null
-                     && t.EndedAt < cutoff,
-                includeRemoved: false);
-
             var now = DateTime.UtcNow;
-            var plan = CreateRetryPlan(
-                failed,
+            var plan = await CreateRetryPlanAsync(
+                downloadService.StreamAutoRetryCandidatesAsync(cutoff, ct),
                 retriedIds,
                 retryCounts,
                 peerRetryCooldowns,
                 opts,
-                now);
+                now,
+                ct).ConfigureAwait(false);
 
             if (plan.Count == 0)
             {
@@ -374,19 +366,141 @@ namespace slskd.Transfers.Downloads
         {
             var perPeerLimit = Math.Max(1, opts.MaxFilesPerPeerPerCycle);
             var globalLimit = Math.Max(1, opts.MaxFilesPerCycle);
+            var accumulator = new RetryPlanAccumulator(perPeerLimit, globalLimit);
 
-            return failed
-                .Where(t => IsAudioFile(t.Filename))
-                .Where(t => !alreadyRetried.Contains(t.Id))
-                .Where(t => IsWithinAttemptBudget(retryCounts.GetOrAdd(RetryKey(t), 0), opts))
-                .Where(t => !peerRetryCooldowns.TryGetValue(t.Username, out var retryAfter) || retryAfter <= now)
-                .GroupBy(t => t.Username, StringComparer.OrdinalIgnoreCase)
-                .OrderBy(g => g.Min(t => t.EndedAt ?? DateTime.MaxValue))
-                .SelectMany(g => g
-                    .OrderBy(t => t.EndedAt ?? DateTime.MaxValue)
-                    .Take(perPeerLimit))
-                .Take(globalLimit)
-                .ToList();
+            foreach (var transfer in failed.OrderBy(t => t.EndedAt ?? DateTime.MaxValue))
+            {
+                if (!IsEligibleForRetry(
+                    transfer,
+                    alreadyRetried,
+                    retryCounts,
+                    peerRetryCooldowns,
+                    opts,
+                    now))
+                {
+                    continue;
+                }
+
+                accumulator.Add(transfer);
+            }
+
+            return accumulator.Build();
+        }
+
+        internal static async Task<IReadOnlyList<slskd.Transfers.Transfer>> CreateRetryPlanAsync(
+            IAsyncEnumerable<slskd.Transfers.Transfer> orderedFailed,
+            ISet<Guid> alreadyRetried,
+            ConcurrentDictionary<string, int> retryCounts,
+            ConcurrentDictionary<string, DateTime> peerRetryCooldowns,
+            slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions opts,
+            DateTime now,
+            CancellationToken cancellationToken)
+        {
+            var accumulator = new RetryPlanAccumulator(
+                Math.Max(1, opts.MaxFilesPerPeerPerCycle),
+                Math.Max(1, opts.MaxFilesPerCycle));
+
+            await foreach (var transfer in orderedFailed.WithCancellation(cancellationToken))
+            {
+                if (!IsEligibleForRetry(
+                    transfer,
+                    alreadyRetried,
+                    retryCounts,
+                    peerRetryCooldowns,
+                    opts,
+                    now))
+                {
+                    continue;
+                }
+
+                accumulator.Add(transfer);
+                if (accumulator.IsFinal)
+                {
+                    break;
+                }
+            }
+
+            return accumulator.Build();
+        }
+
+        private static bool IsEligibleForRetry(
+            slskd.Transfers.Transfer transfer,
+            ISet<Guid> alreadyRetried,
+            ConcurrentDictionary<string, int> retryCounts,
+            ConcurrentDictionary<string, DateTime> peerRetryCooldowns,
+            slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions opts,
+            DateTime now)
+            => IsAudioFile(transfer.Filename)
+                && !alreadyRetried.Contains(transfer.Id)
+                && IsWithinAttemptBudget(retryCounts.GetOrAdd(RetryKey(transfer), 0), opts)
+                && (!peerRetryCooldowns.TryGetValue(transfer.Username, out var retryAfter) || retryAfter <= now);
+
+        private sealed class RetryPlanAccumulator
+        {
+            private readonly int perPeerLimit;
+            private readonly int globalLimit;
+            private readonly Dictionary<string, List<slskd.Transfers.Transfer>> transfersByPeer =
+                new(StringComparer.OrdinalIgnoreCase);
+            private readonly List<List<slskd.Transfers.Transfer>> peerGroups = [];
+
+            public RetryPlanAccumulator(int perPeerLimit, int globalLimit)
+            {
+                this.perPeerLimit = Math.Min(perPeerLimit, globalLimit);
+                this.globalLimit = globalLimit;
+            }
+
+            public bool IsFinal
+            {
+                get
+                {
+                    // A later row can still fill an earlier peer group and displace a newer peer.
+                    // The plan is final only when every group before the global boundary is full.
+                    var remaining = globalLimit;
+                    foreach (var group in peerGroups)
+                    {
+                        if (group.Count >= remaining)
+                        {
+                            return true;
+                        }
+
+                        if (group.Count < perPeerLimit)
+                        {
+                            return false;
+                        }
+
+                        remaining -= group.Count;
+                    }
+
+                    return false;
+                }
+            }
+
+            public void Add(slskd.Transfers.Transfer transfer)
+            {
+                if (!transfersByPeer.TryGetValue(transfer.Username, out var peerTransfers))
+                {
+                    // Later peer groups cannot enter a plan already containing this many older peers.
+                    if (peerGroups.Count >= globalLimit)
+                    {
+                        return;
+                    }
+
+                    peerTransfers = [];
+                    transfersByPeer.Add(transfer.Username, peerTransfers);
+                    peerGroups.Add(peerTransfers);
+                }
+
+                if (peerTransfers.Count < perPeerLimit)
+                {
+                    peerTransfers.Add(transfer);
+                }
+            }
+
+            public IReadOnlyList<slskd.Transfers.Transfer> Build()
+                => peerGroups
+                    .SelectMany(group => group)
+                    .Take(globalLimit)
+                    .ToList();
         }
 
         private static bool IsWithinAttemptBudget(

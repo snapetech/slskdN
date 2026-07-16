@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Download auto-retry now streams a minimal, indexed oldest-first candidate
+  sequence and stops database enumeration once its bounded global/per-peer plan
+  cannot change, instead of materializing every retained failed download each
+  minute.
 - System Bridge keeps its ten-second visible dashboard cadence but stops while
   hidden, coalesces slow requests, suppresses uptime-only rerenders, and retries
   failed initial config hydration. The synced-lyrics pane now follows native

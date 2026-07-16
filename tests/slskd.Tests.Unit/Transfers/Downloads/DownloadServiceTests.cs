@@ -671,6 +671,116 @@ public class DownloadServiceTests
     }
 
     [Fact]
+    public async Task CreateRetryPlanAsync_StopsAfterDefaultPlanIsFinal()
+    {
+        var now = DateTime.UtcNow;
+        var enumerated = 0;
+        var transfers = Enumerable.Range(0, 50)
+            .Select(index => CreateFailedDownload($"peer-{index}", $"track-{index}.flac", now.AddMinutes(index - 100)))
+            .ToList();
+
+        var plan = await DownloadAutoRetryService.CreateRetryPlanAsync(
+            ToAsyncSequence(transfers, () => enumerated++),
+            new HashSet<Guid>(),
+            new System.Collections.Concurrent.ConcurrentDictionary<string, int>(),
+            new System.Collections.Concurrent.ConcurrentDictionary<string, DateTime>(),
+            new slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions(),
+            now,
+            CancellationToken.None);
+
+        Assert.Equal(10, plan.Count);
+        Assert.Equal(10, enumerated);
+        Assert.Equal(transfers.Take(10).Select(transfer => transfer.Id), plan.Select(transfer => transfer.Id));
+    }
+
+    [Fact]
+    public async Task CreateRetryPlanAsync_WaitsForEarlierUnderfilledPeerGroups()
+    {
+        var now = DateTime.UtcNow;
+        var aliceFirst = CreateFailedDownload("alice", "alice-1.flac", now.AddMinutes(-50));
+        var bob = CreateFailedDownload("bob", "bob.flac", now.AddMinutes(-49));
+        var carol = CreateFailedDownload("carol", "carol.flac", now.AddMinutes(-48));
+        var aliceSecond = CreateFailedDownload("alice", "alice-2.flac", now.AddMinutes(-47));
+        var dave = CreateFailedDownload("dave", "dave.flac", now.AddMinutes(-46));
+        var ordered = new[] { aliceFirst, bob, carol, aliceSecond, dave };
+        var enumerated = 0;
+        var opts = new slskd.Options.GlobalOptions.GlobalDownloadOptions.AutoRetryOptions
+        {
+            MaxFilesPerCycle = 3,
+            MaxFilesPerPeerPerCycle = 2,
+        };
+
+        var plan = await DownloadAutoRetryService.CreateRetryPlanAsync(
+            ToAsyncSequence(ordered, () => enumerated++),
+            new HashSet<Guid>(),
+            new System.Collections.Concurrent.ConcurrentDictionary<string, int>(),
+            new System.Collections.Concurrent.ConcurrentDictionary<string, DateTime>(),
+            opts,
+            now,
+            CancellationToken.None);
+
+        Assert.Equal(new[] { aliceFirst.Id, aliceSecond.Id, bob.Id }, plan.Select(transfer => transfer.Id));
+        Assert.Equal(4, enumerated);
+    }
+
+    [Fact]
+    public async Task StreamAutoRetryCandidatesAsync_FiltersAndOrdersInDatabase()
+    {
+        var databasePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"{Guid.NewGuid():N}.db");
+        var options = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite($"Data Source={databasePath}")
+            .Options;
+        var now = DateTime.UtcNow;
+        var oldest = CreateFailedDownload("alice", "oldest.flac", now.AddHours(-3));
+        var newer = CreateFailedDownload("bob", "newer.flac", now.AddHours(-2));
+        var removed = CreateFailedDownload("carol", "removed.flac", now.AddHours(-4));
+        removed.Removed = true;
+        var succeeded = CreateFailedDownload("dave", "succeeded.flac", now.AddHours(-4));
+        succeeded.State = TransferStates.Completed | TransferStates.Succeeded;
+        var cancelled = CreateFailedDownload("erin", "cancelled.flac", now.AddHours(-4));
+        cancelled.State = TransferStates.Completed | TransferStates.Cancelled;
+        var rejected = CreateFailedDownload("frank", "rejected.flac", now.AddHours(-4));
+        rejected.State = TransferStates.Completed | TransferStates.Rejected;
+        var tooRecent = CreateFailedDownload("grace", "recent.flac", now.AddMinutes(-5));
+        var upload = CreateFailedDownload("heidi", "upload.flac", now.AddHours(-4));
+        upload = new slskd.Transfers.Transfer
+        {
+            Id = upload.Id,
+            Username = upload.Username,
+            Direction = TransferDirection.Upload,
+            Filename = upload.Filename,
+            Size = upload.Size,
+            RequestedAt = upload.RequestedAt,
+            EndedAt = upload.EndedAt,
+            State = upload.State,
+        };
+
+        await using (var context = new TransfersDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Transfers.AddRange(oldest, newer, removed, succeeded, cancelled, rejected, tooRecent, upload);
+            await context.SaveChangesAsync();
+        }
+
+        try
+        {
+            using var service = CreateDownloadService(options, new Mock<ISoulseekClient>());
+            var candidates = new List<slskd.Transfers.Transfer>();
+            await foreach (var candidate in service.StreamAutoRetryCandidatesAsync(now.AddHours(-1)))
+            {
+                candidates.Add(candidate);
+            }
+
+            Assert.Equal(new[] { oldest.Id, newer.Id }, candidates.Select(candidate => candidate.Id));
+            Assert.All(candidates, candidate => Assert.Null(candidate.RequestId));
+        }
+        finally
+        {
+            DeleteDatabase(databasePath);
+        }
+    }
+
+    [Fact]
     public async Task ResolveRetryTargetAsync_PrefersCooledDownHashDbAlternate()
     {
         var now = DateTime.UtcNow;
@@ -1546,6 +1656,20 @@ public class DownloadServiceTests
             EndedAt = endedAt,
             State = TransferStates.Completed | TransferStates.Errored,
         };
+
+    private static async IAsyncEnumerable<slskd.Transfers.Transfer> ToAsyncSequence(
+        IEnumerable<slskd.Transfers.Transfer> transfers,
+        Action onEnumerated,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        foreach (var transfer in transfers)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            onEnumerated();
+            yield return transfer;
+            await Task.Yield();
+        }
+    }
 
     private static Mock<ISoulseekClient> CreateHangingSoulseekClient()
     {

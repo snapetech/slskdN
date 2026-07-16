@@ -1,3 +1,13 @@
+## Update 2026-07-16 02:46:03Z
+
+- Completed the recurring download auto-retry candidate-materialization performance pass.
+- Replaced full retained-failure materialization every default 60-second cycle with an asynchronous minimal transfer projection ordered by the retry planner's oldest-failure priority.
+- Added a bounded peer-group accumulator that stops database enumeration only after later rows cannot alter the global/per-peer result, preserving cooldown, attempt-budget, already-retried, audio-file, peer ordering, and fairness behavior.
+- Added an idempotent partial `(Direction, EndedAt, Id)` SQLite index so candidate reads avoid retained-history sorting and table scans.
+- On a 25,000-failure proxy, one cycle improved from 327.5 ms and 30.53 MiB allocated to 76.9 ms and 0.31 MiB for the default ten-file plan (about 4.3x faster and 99% less allocation).
+- Added streaming-stop, underfilled-peer ordering, database filter/projection, query-plan, and migration/idempotence regressions. Documented gotchas `0z634` through `0z636` in standalone commits `7a82a2c04`, `edefe5077`, and `c26337c7c`.
+- Validation passed: focused backend tests (`9/9`), complete smoke/unit/integration suites (`4784/4784`: `69` smoke, `4435` unit, `280` integration), repository lint, identity and diff checks. The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+
 ## Update 2026-07-16 01:17:27Z
 
 - Completed the Library Health dashboard aggregation, pagination, and recency-index performance pass.

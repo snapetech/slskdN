@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound recurring download auto-retry candidate materialization.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced the default 60-second auto-retry cycle's full materialization of every retained eligible failed download with a minimal oldest-first asynchronous SQLite projection. The planner retains the established peer-oldest ordering, per-peer cap, cooldown, attempt budget, audio filtering, and global limit while stopping enumeration only when later rows cannot change the leading peer groups. Added an idempotent partial `(Direction, EndedAt, Id)` index migration and query-plan coverage that forbids temporary sorting. On a 25,000-failure proxy, one cycle improved from 327.5 ms and 30.53 MiB allocated to 76.9 ms and 0.31 MiB while producing the default ten-file plan (about 4.3x faster and 99% less allocation). Added streaming-stop, underfilled-peer fairness, database filter/order, migration, and query-plan regressions; documented gotchas `0z634` through `0z636` in standalone commits `7a82a2c04`, `edefe5077`, and `c26337c7c`.
+
 - [x] Remove avoidable Bridge and Lyrics periodic work.
   - Status: completed (2026-07-16)
   - Priority: P1

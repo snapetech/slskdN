@@ -1,3 +1,20 @@
+## Update 2026-07-16 02:46:03Z
+
+- Current task: performance and efficiency improvements in progress; recurring download auto-retry candidate-materialization pass complete locally.
+- Last activity:
+  - Replaced full materialization of every retained eligible failed download on the default 60-second cycle with a minimal asynchronous SQLite stream ordered by oldest completion and stable ID.
+  - Preserved peer-oldest priority, per-peer/global limits, cooldowns, attempt budgets, already-retried suppression, and audio filtering with a bounded accumulator that stops only once later candidates cannot alter the plan.
+  - Added the idempotent partial `IDX_Transfers_AutoRetry_EndedAt` migration and model index; query-plan tests require the index and reject temporary sorting.
+  - A 25,000-failure proxy improved from 327.5 ms and 30.53 MiB allocated to 76.9 ms and 0.31 MiB for the default ten-file plan (about 4.3x faster and 99% less allocation).
+  - Added streaming-stop, underfilled-peer fairness, database filter/order/projection, migration, and query-plan regressions. Documented gotchas `0z634` through `0z636` in standalone commits `7a82a2c04`, `edefe5077`, and `c26337c7c`.
+- Validation:
+  - Passed focused backend tests (`9/9`), complete smoke/unit/integration suites (`4784/4784`: `69` smoke, `4435` unit, `280` integration), repository lint, identity and diff checks.
+  - The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+- Next steps:
+  1. Commit this auto-retry pass.
+  2. Continue the broader performance goal from the next measured recurring hot path.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 02:21:44Z
 
 - Current task: performance and efficiency improvements in progress; avoidable Bridge and Lyrics periodic-work pass complete locally.

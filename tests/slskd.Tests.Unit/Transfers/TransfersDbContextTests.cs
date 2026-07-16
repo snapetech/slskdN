@@ -139,9 +139,24 @@ public sealed class TransfersDbContextTests
             .ThenByDescending(transfer => transfer.Id)
             .Take(250)
             .ToListAsync();
+        var autoRetry = await context.Transfers
+            .AsNoTracking()
+            .Where(transfer => transfer.Direction == TransferDirection.Download)
+            .Where(transfer => !transfer.Removed)
+            .Where(transfer =>
+                (transfer.State & TransferStates.Completed) == TransferStates.Completed &&
+                (transfer.State & TransferStates.Succeeded) != TransferStates.Succeeded &&
+                (transfer.State & TransferStates.Cancelled) != TransferStates.Cancelled &&
+                (transfer.State & TransferStates.Rejected) != TransferStates.Rejected)
+            .Where(transfer => transfer.EndedAt.HasValue && transfer.EndedAt.Value < now.AddMinutes(1))
+            .OrderBy(transfer => transfer.EndedAt)
+            .ThenBy(transfer => transfer.Id)
+            .Take(10)
+            .ToListAsync();
 
         Assert.Equal(failed.Id, Assert.Single(actionable).Id);
         Assert.Equal(completed.Id, Assert.Single(history).Id);
+        Assert.Equal(failed.Id, Assert.Single(autoRetry).Id);
         await context.Database.ExecuteSqlRawAsync("ANALYZE");
 
         var actionablePlan = await ReadQueryPlanAsync(
@@ -169,6 +184,22 @@ public sealed class TransfersDbContextTests
             ORDER BY EndedAt DESC, RequestedAt DESC, Id DESC
             LIMIT 250
             """);
+        var autoRetryPlan = await ReadQueryPlanAsync(
+            connection,
+            """
+            SELECT Id, Username, Direction, Filename, Size, State, EndedAt
+            FROM Transfers
+            WHERE Direction = 'Download'
+              AND Removed = 0
+              AND EndedAt IS NOT NULL
+              AND EndedAt < '2026-07-15 12:00:00'
+              AND (State & 16) = 16
+              AND (State & 32) != 32
+              AND (State & 64) != 64
+              AND (State & 512) != 512
+            ORDER BY EndedAt, Id
+            LIMIT 10
+            """);
 
         Assert.Contains(actionablePlan, detail =>
             detail.Contains("INDEX IDX_Transfers_Actionable_UpdatedAt", StringComparison.Ordinal));
@@ -176,7 +207,9 @@ public sealed class TransfersDbContextTests
             detail.Contains("COVERING INDEX IDX_Transfers_Removed_Direction", StringComparison.Ordinal));
         Assert.Contains(historyPlan, detail =>
             detail.Contains("INDEX IDX_Transfers_Direction_EndedAt", StringComparison.Ordinal));
-        Assert.DoesNotContain(actionablePlan.Concat(historyPlan), detail =>
+        Assert.Contains(autoRetryPlan, detail =>
+            detail.Contains("INDEX IDX_Transfers_AutoRetry_EndedAt", StringComparison.Ordinal));
+        Assert.DoesNotContain(actionablePlan.Concat(historyPlan).Concat(autoRetryPlan), detail =>
             detail.Contains("TEMP B-TREE", StringComparison.Ordinal));
     }
 
@@ -239,6 +272,69 @@ public sealed class TransfersDbContextTests
                 Assert.Contains("WHERE EndedAt IS NOT NULL", sql, StringComparison.OrdinalIgnoreCase);
                 Assert.Contains("State & 16", sql, StringComparison.OrdinalIgnoreCase);
                 Assert.Contains("State & 32", sql, StringComparison.OrdinalIgnoreCase);
+            }
+
+            migration.Apply();
+            Assert.False(migration.NeedsToBeApplied());
+        }
+        finally
+        {
+            System.IO.File.Delete(databasePath);
+        }
+    }
+
+    [Fact]
+    public void AutoRetryIndexMigration_CreatesExactIdempotentIndex()
+    {
+        var databasePath = Path.Combine(Path.GetTempPath(), $"slskdn-auto-retry-{Guid.NewGuid():N}.db");
+        var connectionString = $"Data Source={databasePath}";
+
+        try
+        {
+            using (var connection = new SqliteConnection(connectionString))
+            {
+                connection.Open();
+                using var command = connection.CreateCommand();
+                command.CommandText =
+                    """
+                    CREATE TABLE Transfers (
+                        Id TEXT PRIMARY KEY,
+                        Direction TEXT NOT NULL,
+                        State INTEGER NOT NULL,
+                        Removed INTEGER NOT NULL,
+                        EndedAt TEXT NULL
+                    );
+                    CREATE INDEX IDX_Transfers_AutoRetry_EndedAt ON Transfers (Direction);
+                    """;
+                command.ExecuteNonQuery();
+            }
+
+            var migration = new Z07162026_AutoRetryIndexMigration(
+                new ConnectionStringDictionary(new()
+                {
+                    [Database.Transfers] = connectionString,
+                }));
+
+            Assert.True(migration.NeedsToBeApplied());
+            migration.Apply();
+            Assert.False(migration.NeedsToBeApplied());
+
+            using (var connection = new SqliteConnection(connectionString))
+            {
+                connection.Open();
+                Assert.Equal(
+                    ["Direction", "EndedAt", "Id"],
+                    ReadIndexColumns(connection, "IDX_Transfers_AutoRetry_EndedAt"));
+
+                using var sqlCommand = connection.CreateCommand();
+                sqlCommand.CommandText =
+                    "SELECT sql FROM sqlite_master WHERE type = 'index' AND name = 'IDX_Transfers_AutoRetry_EndedAt'";
+                var sql = Assert.IsType<string>(sqlCommand.ExecuteScalar());
+                Assert.Contains("WHERE Removed = 0", sql, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("State & 16", sql, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("State & 32", sql, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("State & 64", sql, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("State & 512", sql, StringComparison.OrdinalIgnoreCase);
             }
 
             migration.Apply();

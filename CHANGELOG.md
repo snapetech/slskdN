@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Download auto-retry now reads an indexed, minimal oldest-first candidate
+  stream and stops once its bounded global/per-peer plan is final instead of
+  materializing the complete retained failure history on every cycle.
 - System Bridge dashboard polling now stops while hidden, coalesces overlapping
   requests, ignores uptime-only response churn, retries failed initial config
   hydration, and retains its last successful snapshot. Synced lyrics now follow

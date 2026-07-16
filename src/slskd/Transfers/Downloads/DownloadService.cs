@@ -33,6 +33,7 @@ namespace slskd.Transfers.Downloads
     using System.Linq;
     using System.Linq.Expressions;
     using System.Net;
+    using System.Runtime.CompilerServices;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
@@ -139,6 +140,16 @@ namespace slskd.Transfers.Downloads
         /// <param name="includeRemoved">Optionally include downloads that have been removed previously.</param>
         /// <returns>The list of downloads matching the specified expression, or all downloads if no expression is specified.</returns>
         List<Transfer> List(Expression<Func<Transfer, bool>>? expression = null, bool includeRemoved = false);
+
+        /// <summary>
+        ///     Streams retryable failed downloads in stable oldest-first order.
+        /// </summary>
+        /// <param name="endedBefore">The exclusive completion-time cutoff.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation.</param>
+        /// <returns>An asynchronous sequence containing only the fields required by auto-retry.</returns>
+        IAsyncEnumerable<Transfer> StreamAutoRetryCandidatesAsync(
+            DateTime endedBefore,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         ///     Counts downloads, optionally including soft-removed records.
@@ -916,6 +927,41 @@ namespace slskd.Transfers.Downloads
             {
                 Log.Error(ex, "Failed to list downloads: {Message}", ex.Message);
                 throw;
+            }
+        }
+
+        public async IAsyncEnumerable<Transfer> StreamAutoRetryCandidatesAsync(
+            DateTime endedBefore,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await using var context = ContextFactory.CreateDbContext();
+
+            var query = context.Transfers
+                .AsNoTracking()
+                .Where(transfer => transfer.Direction == TransferDirection.Download)
+                .Where(transfer => !transfer.Removed)
+                .Where(transfer =>
+                    (transfer.State & TransferStates.Completed) == TransferStates.Completed &&
+                    (transfer.State & TransferStates.Succeeded) != TransferStates.Succeeded &&
+                    (transfer.State & TransferStates.Cancelled) != TransferStates.Cancelled &&
+                    (transfer.State & TransferStates.Rejected) != TransferStates.Rejected)
+                .Where(transfer => transfer.EndedAt.HasValue && transfer.EndedAt.Value < endedBefore)
+                .OrderBy(transfer => transfer.EndedAt)
+                .ThenBy(transfer => transfer.Id)
+                .Select(transfer => new Transfer
+                {
+                    Id = transfer.Id,
+                    Username = transfer.Username,
+                    Direction = transfer.Direction,
+                    Filename = transfer.Filename,
+                    Size = transfer.Size,
+                    State = transfer.State,
+                    EndedAt = transfer.EndedAt,
+                });
+
+            await foreach (var transfer in query.AsAsyncEnumerable().WithCancellation(cancellationToken))
+            {
+                yield return transfer;
             }
         }
 

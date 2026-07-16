@@ -661,6 +661,30 @@ internal sealed class StubDownloadService : IDownloadService
         return list;
     }
 
+    public async IAsyncEnumerable<Transfer> StreamAutoRetryCandidatesAsync(
+        DateTime endedBefore,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var candidates = _storage.Values
+            .Where(transfer => transfer.Direction == Soulseek.TransferDirection.Download)
+            .Where(transfer => !transfer.Removed)
+            .Where(transfer =>
+                (transfer.State & TransferStates.Completed) == TransferStates.Completed &&
+                (transfer.State & TransferStates.Succeeded) != TransferStates.Succeeded &&
+                (transfer.State & TransferStates.Cancelled) != TransferStates.Cancelled &&
+                (transfer.State & TransferStates.Rejected) != TransferStates.Rejected)
+            .Where(transfer => transfer.EndedAt.HasValue && transfer.EndedAt.Value < endedBefore)
+            .OrderBy(transfer => transfer.EndedAt)
+            .ThenBy(transfer => transfer.Id);
+
+        foreach (var transfer in candidates)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return transfer;
+            await Task.Yield();
+        }
+    }
+
     public int Count(bool includeRemoved = false)
         => includeRemoved ? _storage.Count : _storage.Values.Count(transfer => !transfer.Removed);
 
