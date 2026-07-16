@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z676. Job Child Keys Must Normalize Before Composite-Key Upserts
+
+**The Bug**: Discography release-job writes did not trim either the parent job
+ID or child release ID, while the corresponding reads trimmed the lookup job ID
+and returned release IDs. A spaced key could be persisted under a composite key
+that normal reads could not reach, or coexist with its logical normalized key.
+
+**Files Affected**:
+- `src/slskd/HashDb/HashDbService.cs`
+
+**Prevention**: Normalize every component of a composite key before opening the
+write transaction, skip keys that become empty, and use those same normalized
+values for batching and conflict handling. Cover spaced parent/child IDs plus
+duplicate child keys whose later input status must win, including duplicates
+that cross a batch boundary.
+
 ### 0z675. Callee Normalization Does Not Mutate A Caller's Local Value
 
 **The Bug**: `TouchPeerAsync` passed a username to `GetOrCreatePeerAsync`, which
