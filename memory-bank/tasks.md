@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Honor the configured automatic search-retention cadence.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `Filters.SearchRetention.CleanupIntervalSeconds` was validated and documented with a one-day default but never consumed; the retention policy instead ran from the fixed five-minute application clock. Added a concurrency-safe due-time gate that reads live options on every evaluation, runs immediately at startup, remembers only successful starts, prevents overlap, and leaves failures eligible for the next five-minute retry. Default recurring database policy evaluations fall from 288 per day to one (99.65% fewer). Added exact interval, failure-retry, and overlap regressions; documented gotcha `0z640` in standalone commit `3990938a9`.
+
 - [x] Bound and rotate Shadow Index shard publication.
   - Status: completed (2026-07-16)
   - Priority: P1

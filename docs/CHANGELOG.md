@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Automatic search retention now honors `cleanup_interval_seconds`, suppresses
+  overlapping runs, and retries failures at the next five-minute evaluation.
+  Under the one-day default, policy database evaluations fall from 288 per day
+  to one after the immediate startup run.
 - Shadow Index publishing now advances through indexed normalized recording-ID
   pages instead of loading the full library and repeatedly selecting one fixed
   newest batch. Its candidate count is clamped to the immediate DHT write

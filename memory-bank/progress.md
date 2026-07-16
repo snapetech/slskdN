@@ -1,3 +1,12 @@
+## Update 2026-07-16 03:32:33Z
+
+- Completed the automatic search-retention scheduling efficiency pass.
+- Confirmed that the validated `CleanupIntervalSeconds` option was never read and the one-day default cleanup ran from the fixed five-minute application clock instead.
+- Added a concurrency-safe application gate that evaluates the current interval on every clock tick, preserves immediate startup cleanup, suppresses overlapping runs, records only successful starts, and leaves failures eligible for the next five-minute retry.
+- Default recurring database policy evaluations fall from 288 per day to one after startup (99.65% fewer) without changing retention limits or the older optional search-age prune.
+- Added exact configured-interval, failure-retry, and overlap regressions. Documented gotcha `0z640` in standalone commit `3990938a9`.
+- Validation passed: focused application lifecycle tests (`10/10`), complete smoke/unit/integration suites (`4794/4794`: `69` smoke, `4445` unit, `280` integration), repository lint, identity, and diff checks. The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+
 ## Update 2026-07-16 03:12:37Z
 
 - Completed the Shadow Index query, publication rotation, and DHT-budget efficiency pass.

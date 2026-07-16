@@ -209,6 +209,92 @@ public class ApplicationLifecycleTests
         application.Dispose();
     }
 
+    [Fact]
+    public async Task PruneSearches_HonorsConfiguredCleanupInterval()
+    {
+        var optionsMonitor = new TestOptionsMonitor<Options>(new Options
+        {
+            Filters = new Options.FiltersOptions
+            {
+                SearchRetention = new Options.FiltersOptions.SearchRetentionOptions
+                {
+                    CleanupIntervalSeconds = 3600,
+                },
+            },
+        });
+        var application = CreateApplication(
+            optionsMonitor,
+            new ManagedState<State>(),
+            new ManagedState<ShareState>(),
+            new ManagedState<RelayState>(),
+            out _,
+            out _,
+            out var searchService);
+        searchService
+            .Setup(service => service.CleanupAsync(30, 1000))
+            .ReturnsAsync(0);
+        var startedAt = new DateTime(2026, 7, 15, 12, 0, 0, DateTimeKind.Utc);
+
+        await application.PruneSearches(startedAt);
+        await application.PruneSearches(startedAt.AddMinutes(59));
+        await application.PruneSearches(startedAt.AddHours(1));
+
+        searchService.Verify(service => service.CleanupAsync(30, 1000), Times.Exactly(2));
+        application.Dispose();
+    }
+
+    [Fact]
+    public async Task PruneSearches_WhenCleanupFails_RetriesAtNextEvaluation()
+    {
+        var optionsMonitor = new TestOptionsMonitor<Options>(new Options());
+        var application = CreateApplication(
+            optionsMonitor,
+            new ManagedState<State>(),
+            new ManagedState<ShareState>(),
+            new ManagedState<RelayState>(),
+            out _,
+            out _,
+            out var searchService);
+        searchService
+            .SetupSequence(service => service.CleanupAsync(30, 1000))
+            .ThrowsAsync(new InvalidOperationException("cleanup failed"))
+            .ReturnsAsync(0);
+        var startedAt = new DateTime(2026, 7, 15, 12, 0, 0, DateTimeKind.Utc);
+
+        await application.PruneSearches(startedAt);
+        await application.PruneSearches(startedAt.AddMinutes(5));
+
+        searchService.Verify(service => service.CleanupAsync(30, 1000), Times.Exactly(2));
+        application.Dispose();
+    }
+
+    [Fact]
+    public async Task PruneSearches_WhenCleanupIsRunning_DoesNotOverlap()
+    {
+        var optionsMonitor = new TestOptionsMonitor<Options>(new Options());
+        var application = CreateApplication(
+            optionsMonitor,
+            new ManagedState<State>(),
+            new ManagedState<ShareState>(),
+            new ManagedState<RelayState>(),
+            out _,
+            out _,
+            out var searchService);
+        var cleanupCompletion = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+        searchService
+            .Setup(service => service.CleanupAsync(30, 1000))
+            .Returns(cleanupCompletion.Task);
+        var startedAt = new DateTime(2026, 7, 15, 12, 0, 0, DateTimeKind.Utc);
+
+        var firstCleanup = application.PruneSearches(startedAt);
+        await application.PruneSearches(startedAt.AddMinutes(5));
+
+        searchService.Verify(service => service.CleanupAsync(30, 1000), Times.Once);
+        cleanupCompletion.SetResult(0);
+        await firstCleanup;
+        application.Dispose();
+    }
+
     private static Application CreateApplication(
         OptionsAtStartup optionsAtStartup,
         TestOptionsMonitor<Options> optionsMonitor,
@@ -217,6 +303,27 @@ public class ApplicationLifecycleTests
         ManagedState<RelayState> relayState,
         out Mock<IClientProxy> applicationHub,
         out Mock<ISoulseekClient> soulseekClient)
+    {
+        return CreateApplication(
+            optionsAtStartup,
+            optionsMonitor,
+            applicationState,
+            shareState,
+            relayState,
+            out applicationHub,
+            out soulseekClient,
+            out _);
+    }
+
+    private static Application CreateApplication(
+        OptionsAtStartup optionsAtStartup,
+        TestOptionsMonitor<Options> optionsMonitor,
+        ManagedState<State> applicationState,
+        ManagedState<ShareState> shareState,
+        ManagedState<RelayState> relayState,
+        out Mock<IClientProxy> applicationHub,
+        out Mock<ISoulseekClient> soulseekClient,
+        out Mock<ISearchService> searchService)
     {
         applicationHub = new Mock<IClientProxy>();
         soulseekClient = new Mock<ISoulseekClient>();
@@ -258,7 +365,7 @@ public class ApplicationLifecycleTests
         transferService.SetupGet(service => service.Uploads).Returns(uploadService.Object);
         transferService.SetupGet(service => service.Downloads).Returns(downloadService.Object);
 
-        var searchService = new Mock<ISearchService>();
+        searchService = new Mock<ISearchService>();
         searchService
             .Setup(service => service.ListAsync(
                 It.IsAny<System.Linq.Expressions.Expression<Func<slskd.Search.Search, bool>>>(),
@@ -315,6 +422,26 @@ public class ApplicationLifecycleTests
             relayState,
             out applicationHub,
             out soulseekClient);
+    }
+
+    private static Application CreateApplication(
+        TestOptionsMonitor<Options> optionsMonitor,
+        ManagedState<State> applicationState,
+        ManagedState<ShareState> shareState,
+        ManagedState<RelayState> relayState,
+        out Mock<IClientProxy> applicationHub,
+        out Mock<ISoulseekClient> soulseekClient,
+        out Mock<ISearchService> searchService)
+    {
+        return CreateApplication(
+            new OptionsAtStartup(),
+            optionsMonitor,
+            applicationState,
+            shareState,
+            relayState,
+            out applicationHub,
+            out soulseekClient,
+            out searchService);
     }
 
     private static int GetStaticEventInvocationCount(Type type, string eventName)

@@ -1,3 +1,19 @@
+## Update 2026-07-16 03:32:33Z
+
+- Current task: performance and efficiency improvements in progress; automatic search-retention cadence pass complete locally.
+- Last activity:
+  - Confirmed that `Filters.SearchRetention.CleanupIntervalSeconds` was a dead option: its one-day default was ignored while the policy ran every five minutes.
+  - Added a concurrency-safe due-time gate that consumes the current option value on every evaluation, runs immediately at startup, suppresses overlap, records only successful starts, and retries failures on the next five-minute tick.
+  - Default database policy evaluations fall from 288 per day to one after startup (99.65% fewer), while the older optional search-age prune keeps its established cadence.
+  - Added exact interval, failure-retry, and overlap regressions. Documented gotcha `0z640` in standalone commit `3990938a9`.
+- Validation:
+  - Passed focused application lifecycle tests (`10/10`), complete smoke/unit/integration suites (`4794/4794`: `69` smoke, `4445` unit, `280` integration), repository lint, identity, and diff checks.
+  - The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+- Next steps:
+  1. Commit this search-retention scheduling pass.
+  2. Continue the broader performance goal from the next measured recurring hot path.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 03:12:37Z
 
 - Current task: performance and efficiency improvements in progress; Shadow Index publication/query pass complete locally.

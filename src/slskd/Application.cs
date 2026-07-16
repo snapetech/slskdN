@@ -79,6 +79,9 @@ namespace slskd
         private EventHandler<string>? _privateRoomModerationRemovedHandler;
         private EventHandler<DownloadDeniedEventArgs>? _downloadDeniedHandler;
         private EventHandler<DownloadFailedEventArgs>? _downloadFailedHandler;
+        private readonly object _searchRetentionCleanupSyncRoot = new();
+        private bool _searchRetentionCleanupRunning;
+        private DateTime? _lastSearchRetentionCleanupAt;
 
         /// <summary>
         ///     The name of the default user group.
@@ -1833,7 +1836,7 @@ namespace slskd
 
         private void Clock_EveryFiveMinutes(object? sender, ClockEventArgs e)
         {
-            _ = ObserveBackgroundTaskAsync(Task.Run(() => PruneSearches(), CancellationToken.None), "Failed to prune searches");
+            _ = ObserveBackgroundTaskAsync(Task.Run(() => PruneSearches(DateTime.UtcNow), CancellationToken.None), "Failed to prune searches");
             _ = ObserveBackgroundTaskAsync(Task.Run(() => PruneTransfers(), CancellationToken.None), "Failed to prune transfers");
             _ = ObserveBackgroundTaskAsync(Task.Run(() => PruneEvents(), CancellationToken.None), "Failed to prune events");
         }
@@ -1974,7 +1977,7 @@ namespace slskd
             }
         }
 
-        private async Task PruneSearches()
+        internal async Task PruneSearches(DateTime utcNow)
         {
             var age = OptionsMonitor.CurrentValue.Retention.Search;
 
@@ -1992,11 +1995,15 @@ namespace slskd
 
             // Apply search retention policy (cleanup based on max age and max count)
             var retentionConfig = OptionsMonitor.CurrentValue.Filters.SearchRetention;
-            if (retentionConfig.MaxAgeDays > 0 || retentionConfig.MaxCount > 0)
+            if ((retentionConfig.MaxAgeDays > 0 || retentionConfig.MaxCount > 0) &&
+                TryBeginSearchRetentionCleanup(utcNow, retentionConfig.CleanupIntervalSeconds))
             {
+                var succeeded = false;
+
                 try
                 {
                     var cleaned = await Search.CleanupAsync(retentionConfig.MaxAgeDays, retentionConfig.MaxCount);
+                    succeeded = true;
                     if (cleaned > 0)
                     {
                         Log.Debug("Search retention cleanup removed {Count} searches", cleaned);
@@ -2006,6 +2013,39 @@ namespace slskd
                 {
                     Log.Error("Encountered one or more errors while cleaning up searches");
                 }
+                finally
+                {
+                    CompleteSearchRetentionCleanup(utcNow, succeeded);
+                }
+            }
+        }
+
+        private bool TryBeginSearchRetentionCleanup(DateTime utcNow, int cleanupIntervalSeconds)
+        {
+            lock (_searchRetentionCleanupSyncRoot)
+            {
+                if (_searchRetentionCleanupRunning ||
+                    (_lastSearchRetentionCleanupAt.HasValue &&
+                     utcNow - _lastSearchRetentionCleanupAt.Value < TimeSpan.FromSeconds(cleanupIntervalSeconds)))
+                {
+                    return false;
+                }
+
+                _searchRetentionCleanupRunning = true;
+                return true;
+            }
+        }
+
+        private void CompleteSearchRetentionCleanup(DateTime startedAt, bool succeeded)
+        {
+            lock (_searchRetentionCleanupSyncRoot)
+            {
+                if (succeeded)
+                {
+                    _lastSearchRetentionCleanupAt = startedAt;
+                }
+
+                _searchRetentionCleanupRunning = false;
             }
         }
 

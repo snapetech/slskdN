@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Automatic search retention now honors its configured cleanup interval instead
+  of evaluating the database policy every five minutes. Cleanup runs cannot
+  overlap, and failed runs remain eligible for the next clock evaluation.
 - Shadow Index publishing now rotates through bounded indexed recording-ID
   pages, avoids full-library sorting and materialization, and does not build
   more shard candidates than the immediate DHT write budget can admit. The
