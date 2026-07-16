@@ -1,3 +1,17 @@
+## Update 2026-07-16 22:24:19Z
+
+- Current task: performance and efficiency improvements in progress; bounded IPLD graph coordinator and leaf allocation complete locally.
+- Last activity:
+  - Pre-sized node, path, and visited collections from direct root fan-out with a 4,096-entry cap, and reused the shared empty outgoing-link array for leaves.
+  - The 10,000-child graph falls from the previous 8,958,848-byte indexed baseline to 8,199,368 warmed allocated bytes (8.5%), or 52.8% below the original path. A 100,000-link duplicate fan-out remains below 1.1 MB while retaining its required root link snapshot.
+- Validation:
+  - Passed focused IPLD (`18/18`), broader MediaCore (`272/272`), and full backend suites (`5015/5015`: `69` application, `4666` unit, `280` integration) tests.
+  - Exact graph/order/depth/duplicate/cycle/shared-target/link/allocation behavior, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Documented gotchas `0z716` (`b466a862d`) and `0z717` (`e779c4da1`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the bounded IPLD graph collection slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 22:09:47Z
 
 - Current task: performance and efficiency improvements in progress; source-ordered IPLD reverse target indexing complete locally.

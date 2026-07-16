@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound IPLD graph coordinator and leaf allocations.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `IpldMapper.GetGraphAsync` now pre-sizes its node, path, and visited collections from the hydrated root's direct outgoing count, capped at 4,096 so duplicate or cyclic raw fan-out cannot cause unbounded speculative reservation. Nodes without stored outgoing links reuse `Array.Empty<IpldLink>()` rather than allocating an empty list. For the covered depth-two graph with 10,000 unique children, warmed allocation falls from the previous indexed baseline of 8,958,848 to 8,199,368 bytes (8.5%); it is 52.8% below the original double-hydration/full-scan path. A 100,000-link duplicate-fan-out fixture retains the complete required root link snapshot while producing two nodes and one path below 1.1 MB. Exact graph nodes/paths, depth-first ordering, duplicate suppression, cycles, shared targets, and incoming/outgoing link contents remain unchanged. Added wide and adversarial duplicate-fan-out allocation regressions; documented concrete collection null-coalescing gotcha `0z716` (`b466a862d`) and raw fan-out capacity-hint gotcha `0z717` (`e779c4da1`). Validation passed: focused IPLD tests (`18/18`), broader MediaCore tests (`272/272`), full backend suites (`5015/5015`: `69` application, `4666` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Index IPLD inbound links by target without changing source order.
   - Status: completed (2026-07-16)
   - Priority: P1

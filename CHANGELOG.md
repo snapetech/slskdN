@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- IPLD graph construction now pre-sizes bounded coordinator collections from
+  root fan-out and reuses the shared empty array for leaf outgoing links.
 - IPLD inbound-link lookup now uses a source-ordered reverse target index
   instead of scanning every outgoing source and link for each query.
 - IPLD graph construction now passes each hydrated node into recursion instead

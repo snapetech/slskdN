@@ -17,6 +17,8 @@ namespace slskd.MediaCore;
 /// </summary>
 public class IpldMapper : IIpldMapper
 {
+    private const int MaxInitialGraphCapacity = 4096;
+
     private readonly IContentIdRegistry _registry;
     private readonly ILogger<IpldMapper> _logger;
     private readonly Dictionary<string, List<IpldLink>> _outgoingLinks = new();
@@ -177,15 +179,14 @@ public class IpldMapper : IIpldMapper
         if (string.IsNullOrWhiteSpace(contentId))
             throw new ArgumentException("ContentID cannot be empty", nameof(contentId));
 
-        var nodes = new List<ContentGraphNode>();
-        var paths = new List<ContentGraphPath>();
-
-        // Add the root node
         var rootNode = await CreateGraphNodeAsync(contentId, cancellationToken);
-        nodes.Add(rootNode);
+        var directCapacity = Math.Min(rootNode.OutgoingLinks.Count, MaxInitialGraphCapacity);
+        var nodes = new List<ContentGraphNode>(directCapacity + 1) { rootNode };
+        var paths = new List<ContentGraphPath>(directCapacity);
+        var visited = new HashSet<string>(directCapacity + 1) { contentId };
 
         // Build the graph recursively
-        await BuildGraphRecursiveAsync(rootNode, maxDepth, 0, nodes, paths, new HashSet<string> { contentId }, cancellationToken);
+        await BuildGraphRecursiveAsync(rootNode, maxDepth, 0, nodes, paths, visited, cancellationToken);
 
         return new ContentGraph(
             RootContentId: contentId,
@@ -387,7 +388,9 @@ public class IpldMapper : IIpldMapper
                 storedCopy = stored.ToList();
         }
 
-        var outgoingLinks = storedCopy ?? new List<IpldLink>();
+        IReadOnlyList<IpldLink> outgoingLinks = storedCopy is null
+            ? Array.Empty<IpldLink>()
+            : storedCopy;
         var incomingLinks = await FindInboundLinksAsync(contentId, linkName: null, cancellationToken);
 
         return new ContentGraphNode(

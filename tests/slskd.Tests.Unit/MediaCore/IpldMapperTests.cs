@@ -178,8 +178,41 @@ public class IpldMapperTests
         Assert.Equal(links[0], graph.Paths[0].Links[0]);
         Assert.Equal(links[^1], graph.Paths[^1].Links[0]);
         Assert.True(
-            allocatedBytes < 9_700_000,
-            $"Expected indexed wide-graph building below 9,700,000 allocated bytes, got {allocatedBytes:N0} bytes.");
+            allocatedBytes < 8_600_000,
+            $"Expected pre-sized wide-graph building below 8,600,000 allocated bytes, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
+    public async Task GetGraphAsync_DuplicateFanOutKeepsCapacityHintBounded()
+    {
+        const int linkCount = 100_000;
+        const string RootContentId = "content:audio:album:duplicates";
+        const string ChildContentId = "content:audio:track:one";
+        var link = new IpldLink(IpldLinkNames.Tracks, ChildContentId);
+        var links = Enumerable.Repeat(link, linkCount).ToArray();
+        _registryMock
+            .Setup(registry => registry.IsContentIdRegisteredAsync(RootContentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        await _mapper.AddLinksAsync(RootContentId, links);
+        var warmRegistry = new Mock<IContentIdRegistry>();
+        warmRegistry
+            .Setup(registry => registry.IsContentIdRegisteredAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        var warmMapper = new IpldMapper(warmRegistry.Object, Mock.Of<ILogger<IpldMapper>>());
+        await warmMapper.AddLinksAsync("content:audio:album:warm-duplicate", [link]);
+        _ = await warmMapper.GetGraphAsync("content:audio:album:warm-duplicate", maxDepth: 1);
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var graph = await _mapper.GetGraphAsync(RootContentId, maxDepth: 1);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(2, graph.Nodes.Count);
+        Assert.Single(graph.Paths);
+        Assert.Equal(linkCount, graph.Nodes[0].OutgoingLinks.Count);
+        Assert.Equal(ChildContentId, graph.Nodes[1].ContentId);
+        Assert.True(
+            allocatedBytes < 1_100_000,
+            $"Expected duplicate-fan-out graph building below 1,100,000 allocated bytes, got {allocatedBytes:N0} bytes.");
     }
 
     [Fact]

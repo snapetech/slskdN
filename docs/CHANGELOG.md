@@ -22,6 +22,17 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- IPLD graph construction now pre-sizes its node, path, and visited collections
+  from direct root fan-out, capped at 4,096 entries so duplicate or cyclic link
+  lists cannot force unbounded speculative reservation. Leaf nodes reuse the
+  shared empty outgoing-link array instead of allocating an empty list. On the
+  covered depth-two graph with 10,000 unique direct children, warmed allocation
+  falls from the previous indexed baseline of 8,958,848 to 8,199,368 bytes
+  (8.5%); it is 52.8% below the original double-hydration/full-scan path. A
+  100,000-link duplicate-fan-out regression retains the complete root link
+  snapshot while producing only two nodes and one path below 1.1 MB. Exact
+  graph contents, depth-first order, duplicate-edge suppression, cycles, shared
+  targets, and incoming/outgoing link snapshots remain unchanged.
 - IPLD link insertion now maintains a reverse target index ordered by each
   source's original insertion position. Inbound queries and graph-node
   hydration scan only links for the requested target instead of applying an
