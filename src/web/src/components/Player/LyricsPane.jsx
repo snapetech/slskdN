@@ -134,13 +134,28 @@ const LyricsPane = ({ audioElement, current, visible }) => {
   useEffect(() => {
     if (!audioElement || !visible) return undefined;
 
-    const updatePosition = () => setPosition(audioElement.currentTime || 0);
+    const updatePosition = () => {
+      if (!document.hidden) {
+        setPosition(audioElement.currentTime || 0);
+      }
+    };
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        updatePosition();
+      }
+    };
+
+    updatePosition();
+    audioElement.addEventListener('loadedmetadata', updatePosition);
+    audioElement.addEventListener('seeked', updatePosition);
     audioElement.addEventListener('timeupdate', updatePosition);
-    const interval = window.setInterval(updatePosition, 500);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
+      audioElement.removeEventListener('loadedmetadata', updatePosition);
+      audioElement.removeEventListener('seeked', updatePosition);
       audioElement.removeEventListener('timeupdate', updatePosition);
-      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [audioElement, visible]);
 

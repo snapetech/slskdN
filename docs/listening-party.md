@@ -65,6 +65,10 @@ Controls include:
 - Browser Media Session metadata and transport handlers for supported mobile/PWA lock-screen controls.
 - Optional MilkDrop visualizer, lightweight analyzer, equalizer, synced lyrics, crossfade, karaoke-style center-channel reduction, and ListenBrainz now-playing/scrobble submission when the relevant player controls are enabled.
 
+Synced lyric highlighting follows the browser media element's playback, seek,
+and metadata events. It does not run a separate fixed polling timer, and hidden
+documents defer position updates until visibility returns.
+
 The browser owns audio output. A listener can keep following a party while locally muted, and the host can keep playing locally while publishing metadata.
 
 ### External Visualizers

@@ -101,6 +101,15 @@ actions should remain user-triggered and visibly rate-limited.
 See [Federation Diagnostics](federation-diagnostics.md) for the read-only checks
 and privacy posture.
 
+## Legacy Client Bridge
+
+**System -> Bridge** configures and controls the optional local legacy-client
+bridge. Its dashboard refreshes every ten seconds only while visible, rejects
+overlapping slow requests, retains the last successful snapshot after transient
+failures, and ignores uptime-only response changes that do not affect the
+rendered controls or statistics. Start, stop, and save remain explicit operator
+actions.
+
 ## Source Providers
 
 **System -> Source Providers** is a read-only acquisition provider catalog. It

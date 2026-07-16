@@ -1,6 +1,6 @@
 import LyricsPane from './LyricsPane';
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
 
 describe('LyricsPane', () => {
@@ -10,6 +10,54 @@ describe('LyricsPane', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it('uses media events without a redundant timer and catches up after visibility returns', async () => {
+    window.fetch = vi.fn(() =>
+      Promise.resolve({
+        json: () =>
+          Promise.resolve({
+            syncedLyrics: '[00:01.00]First line\n[00:02.00]Second line',
+          }),
+        ok: true,
+      }),
+    );
+    const intervalSpy = vi.spyOn(window, 'setInterval');
+    const audio = document.createElement('audio');
+    render(
+      <LyricsPane
+        audioElement={audio}
+        current={{ artist: 'Example Artist', title: 'Example Song' }}
+        visible
+      />,
+    );
+
+    await screen.findByText('First line');
+    audio.currentTime = 1.5;
+    await act(async () => {
+      audio.dispatchEvent(new Event('timeupdate'));
+    });
+    expect(screen.getByText('First line')).toHaveClass('player-lyrics-line-active');
+
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: true,
+    });
+    audio.currentTime = 2.5;
+    await act(async () => {
+      audio.dispatchEvent(new Event('timeupdate'));
+    });
+    expect(screen.getByText('First line')).toHaveClass('player-lyrics-line-active');
+
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    expect(screen.getByText('Second line')).toHaveClass('player-lyrics-line-active');
+    expect(intervalSpy.mock.calls.some(([, delay]) => delay === 500)).toBe(false);
   });
 
   it('derives artist and title from local filenames when metadata is placeholder text', async () => {

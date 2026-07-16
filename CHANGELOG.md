@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- System Bridge dashboard polling now stops while hidden, coalesces overlapping
+  requests, ignores uptime-only response churn, retries failed initial config
+  hydration, and retains its last successful snapshot. Synced lyrics now follow
+  media/seek events without a redundant fixed 500 ms timer.
 - Security dashboard statistics now aggregate each retained collector set in a
   single pass instead of repeatedly materializing and rescanning it. System
   Security polling is visible-only, non-overlapping, preserves unchanged and

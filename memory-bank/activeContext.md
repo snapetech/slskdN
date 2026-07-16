@@ -1,3 +1,21 @@
+## Update 2026-07-16 02:21:44Z
+
+- Current task: performance and efficiency improvements in progress; avoidable Bridge and Lyrics periodic-work pass complete locally.
+- Last activity:
+  - Identified System Bridge as the only remaining recurring System dashboard poll without visibility/overlap control and LyricsPane as a fixed 500-millisecond timer duplicating native media events.
+  - Kept Bridge's ten-second visible cadence while adding initial-hidden and visibility lifecycle ownership, request coalescing, last-success retention, rendered-field signatures, Strict Mode lifecycle generations, and retryable shared config hydration.
+  - Hidden Bridge traffic falls from six requests per minute to zero; uptime-only responses no longer cause dashboard state writes.
+  - Replaced LyricsPane's fixed timer with `timeupdate`, `seeked`, and `loadedmetadata` events plus visibility catch-up. An open pane eliminates 120 fixed callbacks/state attempts per minute, including the prior paused-playback work.
+  - Added Popup explanations to all touched Bridge buttons, documented gotchas `0z632` and `0z633` in standalone commits `a1c87b594` and `616ed4243`, and extended render-signature gotcha `0z350` in `42c0c69fc`.
+- Validation:
+  - Passed focused Bridge/Lyrics Web tests (`9/9`), frontend lint with zero errors, the polling lifecycle gate, and diff checks.
+  - Passed complete backend suites (`4780/4780`: `69` smoke, `4431` unit, `280` integration), complete Web tests (`876` passed, `4` skipped), production Web build, repository lint, and diff checks.
+  - The consolidated remediation baseline passed every check before stopping at its expected branch-sync gate because this local work is intentionally unpushed.
+- Next steps:
+  1. Commit this scheduling pass.
+  2. Continue the broader performance goal from the next measured hot path.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 02:04:20Z
 
 - Current task: performance and efficiency improvements in progress; Security dashboard aggregation and polling pass complete locally.

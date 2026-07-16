@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- System Bridge keeps its ten-second visible dashboard cadence but stops while
+  hidden, coalesces slow requests, suppresses uptime-only rerenders, and retries
+  failed initial config hydration. The synced-lyrics pane now follows native
+  media and seek events without an additional 500 ms timer.
 - Security dashboard statistics now use single-pass retained-set aggregation
   across event, reputation, violation, canary, network, reconnaissance,
   honeypot, consensus, verification, disclosure, and temporal collectors.

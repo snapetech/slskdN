@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove avoidable Bridge and Lyrics periodic work.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Kept System Bridge's ten-second visible dashboard freshness while making it initial-hidden safe, visibility-controlled, Strict Mode-safe, request-coalesced, last-success retaining, and selective about rendered response fields so the backend's changing unrendered uptime does not force a rerender. Initial config requests are shared only while in flight and failures remain retryable. Hidden Bridge traffic falls from six dashboard requests per minute to zero. Removed LyricsPane's redundant 500-millisecond timer and now follow existing media `timeupdate`, `seeked`, and `loadedmetadata` events with visibility catch-up, eliminating 120 fixed callbacks/state attempts per open minute while preserving synchronized highlighting. Added five Bridge lifecycle/cache/render regressions and a Lyrics event/visibility/timer regression, added Popup tooltips to all touched Bridge buttons, documented gotchas `0z632` and `0z633` in standalone commits `a1c87b594` and `616ed4243`, and extended render-signature gotcha `0z350` in `42c0c69fc`.
+
 - [x] Bound Security dashboard aggregation and polling.
   - Status: completed (2026-07-16)
   - Priority: P1
