@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z678. Patch Context Must Uniquely Identify Repeated Test Scaffolding
+
+**The Bug**: A patch intended to make one Library Health scan completion source
+return a file count matched an earlier test with identical `scanCompleted`
+scaffolding, changing the wrong regression and placing its assertion in the
+unrelated release-coalescing test.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/LibraryHealth/LibraryHealthServiceTests.cs`
+
+**Prevention**: When a test file repeats callback or completion-source setup,
+anchor patches with the unique test method name and nearby unique statements.
+Immediately inspect every occurrence of the edited symbol after applying the
+patch rather than assuming the first textual match was the intended block.
+
 ### 0z677. Use The Value Returned By `Interlocked` For Threshold Decisions
 
 **The Bug**: Library Health scan progress incremented a shared counter with
