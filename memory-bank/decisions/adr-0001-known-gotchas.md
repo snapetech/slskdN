@@ -52,6 +52,20 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z649. EF Entity Classes Do Not Support Record Copy Expressions
+
+**The Bug**: A Pod deletion regression attempted to customize a
+`SignedMembershipRecordEntity` fixture with a C# `with` expression, but the EF
+entity is a mutable class rather than a record and would not compile.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/PodCore/SqlitePodServiceTests.cs`
+
+**Prevention**: Check whether a fixture type is a record before using copy
+expressions. Construct mutable EF entities explicitly or make the fixture
+helper accept every field that varies; do not infer record semantics from
+object-initializer syntax.
+
 ### 0z648. Bulk Content-ID Producers Must Query Mappings Directly
 
 **The Bug**: Share scan completion loaded every unblocked file and then queried
