@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z648. Bulk Content-ID Producers Must Query Mappings Directly
+
+**The Bug**: Share scan completion loaded every unblocked file and then queried
+`content_items` once per filename solely to collect advertisable content IDs.
+A large library therefore performed one full file query plus an N+1 mapping
+query sequence before any hint could be queued.
+
+**Files Affected**:
+- `src/slskd/Shares/ShareService.cs`
+- `src/slskd/Shares/SqliteShareRepository.cs`
+
+**Prevention**: Express bulk mapping requirements directly in the repository
+with one indexed join that preserves file moderation filters. Do not enumerate
+parent entities and invoke a single-parent lookup for every row when the final
+result needs only a projected child key set.
+
 ### 0z647. Completion Polls Must Not Hydrate Final Payloads
 
 **The Bug**: Wishlist and Auto-Replace waited for search completion by polling
