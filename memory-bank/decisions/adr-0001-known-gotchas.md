@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z625. Object Dictionaries Deserialize JSON Values As JsonElement
+
+**The Bug**: Library Health codec grouping deserialized metadata into
+`Dictionary<string, object>`, then used `value as string` and `value is bool`.
+`System.Text.Json` materializes those untyped values as `JsonElement`, so
+persisted codec names became `UNKNOWN` and persisted transcode flags were
+ignored.
+
+**Files Affected**:
+- `src/slskd/LibraryHealth/API/LibraryHealthController.cs`
+- `src/slskd/HashDb/HashDbService.cs`
+
+**Prevention**: Do not cast values from a `Dictionary<string, object>` JSON
+round trip to primitive CLR types unless a converter guarantees those types.
+Read `JsonElement` explicitly, deserialize into a typed model, or project the
+required JSON scalars in SQLite. Cover persisted round trips rather than only
+in-memory dictionaries.
+
 ### 0z624. Unscoped Dotnet Format Rewrites Vendored Runtime Sources
 
 **The Bug**: Running `dotnet format` across the complete solution while making
