@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z662. Removing A Cancellable Wait Must Preserve Its Cancellation Checkpoint
+
+**The Bug**: Removing SignalBus's deduplication semaphore also removed the
+initial `WaitAsync(cancellationToken)` checkpoint. A pre-cancelled receive could
+therefore enter the deduplication cache and increment statistics before later
+failing at the subscriber lock, causing a valid retry to be dropped.
+
+**Files Affected**:
+- `src/slskd/Signals/SignalBus.cs`
+
+**Prevention**: When eliminating an awaited lock, delay, or I/O operation,
+identify whether it was also the method's first cancellation observation. Add
+an explicit `ThrowIfCancellationRequested()` at the same boundary and cover a
+pre-cancelled call followed by a successful retry of the same logical item.
+
 ### 0z661. Concurrent Collections Must Not Be Wrapped In Unnecessary Global Locks
 
 **The Bug**: SignalBus serialized every incoming signal through one
