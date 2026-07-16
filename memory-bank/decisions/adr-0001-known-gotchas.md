@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z642. Periodic DHT Refresh Must Batch Shared Index Work
+
+**The Bug**: Pod refresh loaded every pod, filtered listed pods in memory, then
+re-queried each listed pod and re-read the same shared DHT index once per pod.
+The index was not rewritten when its membership was unchanged, so its one-hour
+TTL could expire even though the 30-minute refresh loop kept running.
+
+**Files Affected**:
+- `src/slskd/PodCore/PodPublisher.cs`
+- `src/slskd/PodCore/SqlitePodService.cs`
+
+**Prevention**: Query only refresh-eligible metadata once, publish each required
+per-item descriptor directly from that snapshot, and read/write shared index
+state once per cycle. A TTL refresh must rewrite unchanged distributed index
+state before expiry; checking membership without refreshing the value does not
+extend its lifetime. Do not implement a batch owner by calling a single-item
+method that rehydrates the same entity and shared state on every iteration.
+
 ### 0z641. Retention Cleanup Needs Bounded Pages And Set-Based Deletes
 
 **The Bug**: Search retention materialized every expired or excess record and
