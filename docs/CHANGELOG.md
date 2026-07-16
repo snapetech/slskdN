@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Share content-peer hints retain their conservative one-second publication
+  pacing but now deduplicate pending IDs and update the shared reverse index
+  once per 32-ID batch. Publishing 1,000 IDs falls from 3,000 DHT operations to
+  1,064 while preserving later TTL refreshes.
 - Conservative FLAC backfill scheduling now loads daily counters for its
   bounded peer set in one case-insensitive query and reuses them while applying
   per-peer limits. A full ten-candidate cycle falls from 21 database queries to

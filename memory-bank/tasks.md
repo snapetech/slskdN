@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch shared content-peer reverse-index publication.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Preserved one-second pacing for required per-content DHT writes while draining at most 32 pending IDs per batch, merging the shared peer-to-content index once, and suppressing duplicate IDs only while queued/in flight. For 1,000 IDs, DHT work falls from 3,000 operations to 1,064 (64.5% fewer) without increasing publication rate or preventing later TTL refresh scans. Added exact batch operation-count, pending-deduplication, and concurrent merge coverage; documented gotcha `0z645` in `cab572b52` and the caught test symbol-shadowing bug as `0z646` in `75f25c5d5`.
+
 - [x] Batch recurring backfill peer-count enrichment.
   - Status: completed (2026-07-16)
   - Priority: P1

@@ -1,3 +1,11 @@
+## Update 2026-07-16 04:47:48Z
+
+- Completed the share content-peer hint publication performance pass.
+- Retained one-second network pacing for per-content hint writes while draining bounded 32-ID batches and performing the shared peer-content index read/write once per batch.
+- Added pending-ID deduplication that releases IDs after completion or failure, so repeated scans cannot fill the channel with duplicate work but later scans still refresh TTLs.
+- Publishing 1,000 IDs falls from 3,000 DHT operations to 1,064 (64.5% fewer). Added exact operation-count, pending deduplication, and concurrent merge regressions; documented gotcha `0z645` in `cab572b52` and the test compile trap caught during validation as `0z646` in `75f25c5d5`.
+- Validation passed: focused publisher/service tests (`4/4`), complete smoke/unit/integration suites (`4805/4805`: `69` smoke, `4456` unit, `280` integration), repository lint, identity, and diff checks. The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+
 ## Update 2026-07-16 04:38:31Z
 
 - Completed the recurring FLAC backfill candidate-enrichment performance pass.

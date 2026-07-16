@@ -548,6 +548,38 @@ public class Phase8MeshTests
     }
 
     [Fact]
+    public async Task ContentPeerPublisher_BatchUpdatesReverseIndexOnce()
+    {
+        var dhtClient = new Mock<IMeshDhtClient>();
+        dhtClient.Setup(client => client.GetAsync<List<string>>(
+                "mesh:peer-content:self-peer",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<string>());
+        var publisher = new ContentPeerPublisher(
+            Mock.Of<ILogger<ContentPeerPublisher>>(),
+            dhtClient.Object,
+            Microsoft.Extensions.Options.Options.Create(new MeshOptions { SelfPeerId = "self-peer" }));
+
+        await publisher.PublishBatchAsync(
+            new[] { "content:one", "content:two", "content:three" },
+            TimeSpan.Zero);
+
+        dhtClient.Verify(client => client.PutAsync(
+            It.Is<string>(key => key.StartsWith("mesh:content-peers:", StringComparison.Ordinal)),
+            It.IsAny<ContentPeerHints>(),
+            1800,
+            It.IsAny<CancellationToken>()), Times.Exactly(3));
+        dhtClient.Verify(client => client.GetAsync<List<string>>(
+            "mesh:peer-content:self-peer",
+            It.IsAny<CancellationToken>()), Times.Once);
+        dhtClient.Verify(client => client.PutAsync(
+            "mesh:peer-content:self-peer",
+            It.Is<List<string>>(contentIds => contentIds.Count == 3),
+            1800,
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task ContentPeerPublisher_ConcurrentPublishes_DoNotDropPeerContentMappings()
     {
         var logger = Mock.Of<Microsoft.Extensions.Logging.ILogger<ContentPeerPublisher>>();

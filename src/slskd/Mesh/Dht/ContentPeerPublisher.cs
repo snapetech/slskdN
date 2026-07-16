@@ -12,6 +12,10 @@ namespace slskd.Mesh.Dht;
 public interface IContentPeerPublisher : IDisposable
 {
     Task PublishAsync(string contentId, CancellationToken ct = default);
+    Task PublishBatchAsync(
+        IReadOnlyList<string> contentIds,
+        TimeSpan delayBetween,
+        CancellationToken ct = default);
 }
 
 public sealed class ContentPeerPublisher : IContentPeerPublisher, IDisposable
@@ -31,26 +35,46 @@ public sealed class ContentPeerPublisher : IContentPeerPublisher, IDisposable
         this.options = options.Value;
     }
 
-    public async Task PublishAsync(string contentId, CancellationToken ct = default)
-    {
-        var hint = new ContentPeerHints
-        {
-            Peers = new List<ContentPeerHint>
-            {
-                new()
-                {
-                    PeerId = options.SelfPeerId,
-                    Endpoints = options.SelfEndpoints
-                        .Concat(options.RelayEndpoints ?? new List<string>())
-                        .ToList(),
-                    TimestampUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-                }
-            }
-        };
+    public Task PublishAsync(string contentId, CancellationToken ct = default) =>
+        PublishBatchAsync([contentId], TimeSpan.Zero, ct);
 
-        var key = $"mesh:content-peers:{contentId}";
-        await dht.PutAsync(key, hint, ttlSeconds: 1800, ct: ct); // 30m TTL
-        logger.LogDebug("[MeshContent] Published peer hint for {ContentId} as {PeerId}", contentId, options.SelfPeerId);
+    public async Task PublishBatchAsync(
+        IReadOnlyList<string> contentIds,
+        TimeSpan delayBetween,
+        CancellationToken ct = default)
+    {
+        if (contentIds.Count == 0)
+        {
+            return;
+        }
+
+        for (var index = 0; index < contentIds.Count; index++)
+        {
+            var contentId = contentIds[index];
+            var hint = new ContentPeerHints
+            {
+                Peers = new List<ContentPeerHint>
+                {
+                    new()
+                    {
+                        PeerId = options.SelfPeerId,
+                        Endpoints = options.SelfEndpoints
+                            .Concat(options.RelayEndpoints ?? new List<string>())
+                            .ToList(),
+                        TimestampUnixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                    }
+                }
+            };
+
+            var key = $"mesh:content-peers:{contentId}";
+            await dht.PutAsync(key, hint, ttlSeconds: 1800, ct: ct); // 30m TTL
+            logger.LogDebug("[MeshContent] Published peer hint for {ContentId} as {PeerId}", contentId, options.SelfPeerId);
+
+            if (index < contentIds.Count - 1 && delayBetween > TimeSpan.Zero)
+            {
+                await Task.Delay(delayBetween, ct);
+            }
+        }
 
         // Reverse mapping: peer -> content list
         var peerKey = $"mesh:peer-content:{options.SelfPeerId}";
@@ -58,9 +82,13 @@ public sealed class ContentPeerPublisher : IContentPeerPublisher, IDisposable
         try
         {
             var existing = await dht.GetAsync<List<string>>(peerKey, ct) ?? new List<string>();
-            if (!existing.Contains(contentId))
+            var indexedContentIds = existing.ToHashSet(StringComparer.Ordinal);
+            foreach (var contentId in contentIds)
             {
-                existing.Add(contentId);
+                if (indexedContentIds.Add(contentId))
+                {
+                    existing.Add(contentId);
+                }
             }
 
             await dht.PutAsync(peerKey, existing, ttlSeconds: 1800, ct: ct);

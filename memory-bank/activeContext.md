@@ -1,3 +1,18 @@
+## Update 2026-07-16 04:47:48Z
+
+- Current task: performance and efficiency improvements in progress; content-peer hint batching pass complete locally.
+- Last activity:
+  - Preserved conservative one-second content-hint pacing while batching the shared peer-content index read/write across at most 32 queued IDs.
+  - Deduplicated pending IDs without suppressing later scan-driven TTL refreshes.
+  - A 1,000-ID publication falls from 3,000 DHT operations to 1,064 (64.5% fewer). Added operation-count, queue-deduplication, and concurrent merge regressions; documented gotchas `0z645` (`cab572b52`) and `0z646` (`75f25c5d5`).
+- Validation:
+  - Passed focused publisher/service tests (`4/4`), complete smoke/unit/integration suites (`4805/4805`: `69` smoke, `4456` unit, `280` integration), repository lint, identity, and diff checks.
+  - The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+- Next steps:
+  1. Commit this content-hint slice.
+  2. Continue the broader performance goal from the next measured recurring hot path.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 04:38:31Z
 
 - Current task: performance and efficiency improvements in progress; recurring backfill count-query pass complete locally.

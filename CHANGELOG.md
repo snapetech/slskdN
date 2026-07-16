@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Share content-peer hint publication now drains deduplicated bounded batches
+  and updates the shared peer-content DHT index once per batch.
 - Backfill candidate scheduling now batches daily peer counters and reuses the
   snapshot through each cycle instead of querying every counter twice.
 - Periodic Pod discovery publication now loads one listed-only database
