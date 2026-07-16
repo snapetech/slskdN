@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Virtual Soulfind library reconciliation now batch-loads local-file and
+  verified-copy presence for each bounded track set.
 - Native shared-library browser directory aggregation now indexes normalized
   paths, file counts, and immediate-child counts in one pass.
 - Native shared-library search and browser pages now resolve their bounded file

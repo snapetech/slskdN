@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch Virtual Soulfind reconciliation copy-state reads.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added a bounded 500-track catalogue projection that returns local-file and verified-copy presence together, then replaced per-track evidence reads in release missing-track checks, whole-catalogue missing-copy scans, and release gap analysis. A 1,000-track release falls from 2,001 track/copy reads to three (99.85% fewer); a full 250-track scan page falls from 252 catalogue reads to three (98.81% fewer). Inferred-file and verified-link semantics, missing-track order, and gap counts remain unchanged. Added exact 1,000-track/250-track call-boundary regressions, partial-release count coverage, and a SQLite 501-ID boundary fixture. Validation passed: focused catalogue/reconciliation tests (`38/38`), complete Virtual Soulfind v2 unit tests (`199/199`), full backend tests (`4874/4874`: `69` application, `4525` unit, `280` integration), repository lint, diff checks, and every substantive remediation check before the expected divergent-branch release-sync stop.
+
 - [x] Index native shared-library browser directory aggregation.
   - Status: completed (2026-07-16)
   - Priority: P1

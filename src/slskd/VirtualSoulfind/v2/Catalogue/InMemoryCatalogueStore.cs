@@ -274,6 +274,42 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
             return Task.FromResult<IReadOnlyList<LocalFile>>(results);
         }
 
+        public Task<IReadOnlyDictionary<string, TrackCopyState>> GetTrackCopyStatesAsync(
+            IReadOnlyCollection<string> trackIds,
+            CancellationToken ct = default)
+        {
+            var requested = trackIds.ToHashSet(StringComparer.Ordinal);
+            var states = new Dictionary<string, TrackCopyState>(StringComparer.Ordinal);
+
+            foreach (var localFile in _localFiles.Values)
+            {
+                if (localFile.InferredTrackId != null && requested.Contains(localFile.InferredTrackId))
+                {
+                    states[localFile.InferredTrackId] = states.GetValueOrDefault(localFile.InferredTrackId) with
+                    {
+                        HasLocalFile = true,
+                    };
+                }
+            }
+
+            foreach (var verifiedCopy in _verifiedCopies.Values)
+            {
+                if (!requested.Contains(verifiedCopy.TrackId))
+                {
+                    continue;
+                }
+
+                states[verifiedCopy.TrackId] = states.GetValueOrDefault(verifiedCopy.TrackId) with
+                {
+                    HasLocalFile = _localFiles.ContainsKey(verifiedCopy.LocalFileId) ||
+                        states.GetValueOrDefault(verifiedCopy.TrackId).HasLocalFile,
+                    HasVerifiedCopy = true,
+                };
+            }
+
+            return Task.FromResult<IReadOnlyDictionary<string, TrackCopyState>>(states);
+        }
+
         public Task<IReadOnlyList<LocalFile>> FindLocalFilesByHashAsync(string hashPrimary, CancellationToken ct = default)
         {
             var results = _localFiles.Values

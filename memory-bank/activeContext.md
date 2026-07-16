@@ -1,3 +1,17 @@
+## Update 2026-07-16 11:15:06Z
+
+- Current task: performance and efficiency improvements in progress; Virtual Soulfind reconciliation copy-state batching pass complete locally.
+- Last activity:
+  - Added one combined, indexed catalogue projection for local-file and verified-copy presence in bounded 500-track batches, then used it across release missing-track checks, whole-catalogue missing-copy scans, and gap analysis.
+  - A 1,000-track release falls from 2,001 track/copy reads to three (99.85% fewer); a full 250-track scan page falls from 252 catalogue reads to three (98.81% fewer). No remote traffic changed.
+- Validation:
+  - Passed focused catalogue/reconciliation coverage (`38/38`), complete Virtual Soulfind v2 unit coverage (`199/199`), and full backend tests (`4874/4874`: `69` application, `4525` unit, `280` integration).
+  - Exact 1,000-track and 250-track call boundaries, SQLite 501-ID batching, inferred/verified state separation, partial-release counts, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the Virtual Soulfind catalogue/reconciliation slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 11:04:00Z
 
 - Current task: performance and efficiency improvements in progress; native shared-library directory indexing pass complete locally.

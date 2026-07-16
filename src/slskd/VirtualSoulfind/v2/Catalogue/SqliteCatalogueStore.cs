@@ -22,6 +22,7 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
     /// </remarks>
     public sealed class SqliteCatalogueStore : ICatalogueStore, IDisposable
     {
+        private const int TrackCopyStateBatchSize = 500;
         private readonly string _connectionString;
         private bool _disposed;
 
@@ -432,6 +433,57 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
             return results.ToList();
         }
 
+        public async Task<IReadOnlyDictionary<string, TrackCopyState>> GetTrackCopyStatesAsync(
+            IReadOnlyCollection<string> trackIds,
+            CancellationToken ct = default)
+        {
+            var uniqueTrackIds = trackIds.Distinct(StringComparer.Ordinal).ToList();
+            var states = new Dictionary<string, TrackCopyState>(StringComparer.Ordinal);
+            using var connection = CreateConnection();
+
+            foreach (var batch in uniqueTrackIds.Chunk(TrackCopyStateBatchSize))
+            {
+                var parameters = new DynamicParameters();
+                var parameterNames = batch.Select((trackId, index) =>
+                {
+                    var name = $"TrackId{index}";
+                    parameters.Add(name, trackId);
+                    return $"@{name}";
+                });
+                var placeholders = string.Join(", ", parameterNames);
+                var rows = await connection.QueryAsync<TrackCopyStateRow>(new CommandDefinition($@"
+                    SELECT TrackId,
+                           MAX(HasLocalFile) AS HasLocalFile,
+                           MAX(HasVerifiedCopy) AS HasVerifiedCopy
+                    FROM (
+                        SELECT InferredTrackId AS TrackId,
+                               1 AS HasLocalFile,
+                               0 AS HasVerifiedCopy
+                        FROM LocalFiles
+                        WHERE InferredTrackId IN ({placeholders})
+
+                        UNION ALL
+
+                        SELECT vc.TrackId,
+                               CASE WHEN lf.LocalFileId IS NULL THEN 0 ELSE 1 END AS HasLocalFile,
+                               1 AS HasVerifiedCopy
+                        FROM VerifiedCopies vc
+                        LEFT JOIN LocalFiles lf ON lf.LocalFileId = vc.LocalFileId
+                        WHERE vc.TrackId IN ({placeholders})
+                    )
+                    GROUP BY TrackId",
+                    parameters,
+                    cancellationToken: ct));
+
+                foreach (var row in rows)
+                {
+                    states[row.TrackId] = new TrackCopyState(row.HasLocalFile != 0, row.HasVerifiedCopy != 0);
+                }
+            }
+
+            return states;
+        }
+
         public async Task<IReadOnlyList<LocalFile>> FindLocalFilesByHashAsync(string hashPrimary, CancellationToken ct = default)
         {
             using var connection = CreateConnection();
@@ -555,6 +607,15 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
         {
             using var connection = CreateConnection();
             return await connection.ExecuteScalarAsync<int>("SELECT COUNT(*) FROM VerifiedCopies");
+        }
+
+        private sealed class TrackCopyStateRow
+        {
+            public string TrackId { get; init; } = string.Empty;
+
+            public int HasLocalFile { get; init; }
+
+            public int HasVerifiedCopy { get; init; }
         }
 
         /// <summary>

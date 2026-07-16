@@ -162,6 +162,13 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
         Task<IReadOnlyList<LocalFile>> ListLocalFilesForTrackAsync(string trackId, CancellationToken ct = default);
 
         /// <summary>
+        ///     Gets local-file and verified-copy presence for a bounded set of tracks.
+        /// </summary>
+        Task<IReadOnlyDictionary<string, TrackCopyState>> GetTrackCopyStatesAsync(
+            IReadOnlyCollection<string> trackIds,
+            CancellationToken ct = default);
+
+        /// <summary>
         ///     Finds local files matching a primary hash.
         /// </summary>
         Task<IReadOnlyList<LocalFile>> FindLocalFilesByHashAsync(string hashPrimary, CancellationToken ct = default);

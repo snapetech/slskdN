@@ -4,8 +4,11 @@
 namespace slskd.Tests.Unit.VirtualSoulfind.v2.Reconciliation
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
+    using Moq;
     using slskd.VirtualSoulfind.v2.Catalogue;
     using slskd.VirtualSoulfind.v2.Reconciliation;
     using Xunit;
@@ -125,6 +128,51 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Reconciliation
         }
 
         [Fact]
+        public async Task FindMissingTracksForRelease_OneThousandTracks_LoadsCopyStatesOnce()
+        {
+            var tracks = Enumerable.Range(0, 1_000)
+                .Select(index => new Track
+                {
+                    TrackId = $"track-{index:D4}",
+                    ReleaseId = "release",
+                    DiscNumber = 1,
+                    TrackNumber = index + 1,
+                    Title = $"Track {index}",
+                })
+                .ToList();
+            IReadOnlyCollection<string>? requestedTrackIds = null;
+            var catalogue = new Mock<ICatalogueStore>(MockBehavior.Strict);
+            catalogue
+                .Setup(store => store.ListTracksForReleaseAsync("release", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(tracks);
+            catalogue
+                .Setup(store => store.GetTrackCopyStatesAsync(
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()))
+                .Callback<IReadOnlyCollection<string>, CancellationToken>((trackIds, _) => requestedTrackIds = trackIds)
+                .ReturnsAsync(new Dictionary<string, TrackCopyState>
+                {
+                    [tracks[0].TrackId] = new(HasLocalFile: true, HasVerifiedCopy: false),
+                    [tracks[1].TrackId] = new(HasLocalFile: false, HasVerifiedCopy: true),
+                });
+            var service = new LibraryReconciliationService(catalogue.Object);
+
+            var missing = await service.FindMissingTracksForReleaseAsync("release");
+
+            Assert.Equal(tracks.Skip(2).Select(track => track.TrackId), missing);
+            Assert.Equal(tracks.Select(track => track.TrackId), requestedTrackIds);
+            catalogue.Verify(store => store.GetTrackCopyStatesAsync(
+                It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<CancellationToken>()), Times.Once);
+            catalogue.Verify(store => store.ListLocalFilesForTrackAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+            catalogue.Verify(store => store.FindVerifiedCopyForTrackAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
         public async Task FindTracksWithoutLocalCopies_NoTracks_ReturnsEmpty()
         {
             using var catalogue = new InMemoryCatalogueStore();
@@ -135,6 +183,49 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Reconciliation
 
             // Assert
             Assert.Empty(result);
+        }
+
+        [Fact]
+        public async Task FindTracksWithoutLocalCopies_FullPage_LoadsCopyStatesOnce()
+        {
+            var tracks = Enumerable.Range(0, 250)
+                .Select(index => new Track
+                {
+                    TrackId = $"track-{index:D3}",
+                    ReleaseId = "release",
+                    DiscNumber = 1,
+                    TrackNumber = index + 1,
+                    Title = $"Track {index}",
+                })
+                .ToList();
+            IReadOnlyDictionary<string, TrackCopyState> states = tracks
+                .Where((_, index) => index % 2 == 0)
+                .ToDictionary(
+                    track => track.TrackId,
+                    _ => new TrackCopyState(HasLocalFile: true, HasVerifiedCopy: false));
+            var catalogue = new Mock<ICatalogueStore>(MockBehavior.Strict);
+            catalogue
+                .Setup(store => store.CountTracksAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(tracks.Count);
+            catalogue
+                .Setup(store => store.ListTracksAsync(0, 250, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(tracks);
+            catalogue
+                .Setup(store => store.GetTrackCopyStatesAsync(
+                    It.Is<IReadOnlyCollection<string>>(trackIds => trackIds.Count == tracks.Count),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(states);
+            var service = new LibraryReconciliationService(catalogue.Object);
+
+            var missing = await service.FindTracksWithoutLocalCopiesAsync(limit: 250);
+
+            Assert.Equal(tracks.Where((_, index) => index % 2 != 0).Select(track => track.TrackId), missing);
+            catalogue.Verify(store => store.GetTrackCopyStatesAsync(
+                It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<CancellationToken>()), Times.Once);
+            catalogue.Verify(store => store.ListLocalFilesForTrackAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()), Times.Never);
         }
 
         [Fact]
@@ -161,6 +252,35 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Reconciliation
 
             // Assert
             Assert.Empty(result);
+        }
+
+        [Fact]
+        public async Task AnalyzeAllReleases_PartialRelease_PreservesCopyCounts()
+        {
+            using var catalogue = new InMemoryCatalogueStore();
+            var service = new LibraryReconciliationService(catalogue);
+            var (release, tracks) = await CreateTestReleaseWithTracks(catalogue, 3);
+            await catalogue.UpsertLocalFileAsync(CreateLocalFile(tracks[0].TrackId));
+            var verifiedFile = CreateLocalFile();
+            await catalogue.UpsertLocalFileAsync(verifiedFile);
+            await catalogue.UpsertVerifiedCopyAsync(new VerifiedCopy
+            {
+                VerifiedCopyId = Guid.NewGuid().ToString(),
+                TrackId = tracks[1].TrackId,
+                LocalFileId = verifiedFile.LocalFileId,
+                HashPrimary = verifiedFile.HashPrimary,
+                DurationSeconds = verifiedFile.DurationSeconds,
+                VerificationSource = VerificationSource.Manual,
+                VerifiedAt = DateTimeOffset.UtcNow,
+            });
+
+            var results = await service.AnalyzeAllReleasesAsync();
+
+            var analysis = Assert.Single(results);
+            Assert.Equal(release.ReleaseId, analysis.ReleaseId);
+            Assert.Equal(2, analysis.TracksWithLocalCopies);
+            Assert.Equal(1, analysis.TracksWithVerifiedCopies);
+            Assert.Equal(new[] { tracks[2].TrackId }, analysis.MissingTrackIds);
         }
 
         [Fact]

@@ -29,14 +29,16 @@ namespace slskd.VirtualSoulfind.v2.Reconciliation
 
             // For each track, check if it has a local copy or verified copy
             var missingTrackIds = new List<string>();
+            var copyStates = await _catalogue.GetTrackCopyStatesAsync(
+                allTracks.Select(track => track.TrackId).ToList(),
+                ct);
 
             foreach (var track in allTracks)
             {
-                var localFiles = await _catalogue.ListLocalFilesForTrackAsync(track.TrackId, ct);
-                var verifiedCopy = await _catalogue.FindVerifiedCopyForTrackAsync(track.TrackId, ct);
+                var copyState = copyStates.GetValueOrDefault(track.TrackId);
 
                 // Missing if no local files AND no verified copy
-                if (localFiles.Count == 0 && verifiedCopy == null)
+                if (!copyState.HasLocalFile && !copyState.HasVerifiedCopy)
                 {
                     missingTrackIds.Add(track.TrackId);
                 }
@@ -140,10 +142,12 @@ namespace slskd.VirtualSoulfind.v2.Reconciliation
             for (var offset = 0; offset < trackCount && tracksWithoutCopies.Count < limit; offset += PageSize)
             {
                 var tracks = await _catalogue.ListTracksAsync(offset, PageSize, ct);
+                var copyStates = await _catalogue.GetTrackCopyStatesAsync(
+                    tracks.Select(track => track.TrackId).ToList(),
+                    ct);
                 foreach (var track in tracks)
                 {
-                    var localFiles = await _catalogue.ListLocalFilesForTrackAsync(track.TrackId, ct);
-                    if (localFiles.Count == 0)
+                    if (!copyStates.GetValueOrDefault(track.TrackId).HasLocalFile)
                     {
                         tracksWithoutCopies.Add(track.TrackId);
                         if (tracksWithoutCopies.Count >= limit)
@@ -201,23 +205,25 @@ namespace slskd.VirtualSoulfind.v2.Reconciliation
             var localCopyCount = 0;
             var verifiedCopyCount = 0;
             var missingTrackIds = new List<string>();
+            var copyStates = await _catalogue.GetTrackCopyStatesAsync(
+                tracks.Select(track => track.TrackId).ToList(),
+                ct);
 
             foreach (var track in tracks)
             {
-                var localFiles = await _catalogue.ListLocalFilesForTrackAsync(track.TrackId, ct);
-                var verifiedCopy = await _catalogue.FindVerifiedCopyForTrackAsync(track.TrackId, ct);
+                var copyState = copyStates.GetValueOrDefault(track.TrackId);
 
-                if (localFiles.Count > 0)
+                if (copyState.HasLocalFile)
                 {
                     localCopyCount++;
                 }
 
-                if (verifiedCopy != null)
+                if (copyState.HasVerifiedCopy)
                 {
                     verifiedCopyCount++;
                 }
 
-                if (localFiles.Count == 0 && verifiedCopy == null)
+                if (!copyState.HasLocalFile && !copyState.HasVerifiedCopy)
                 {
                     missingTrackIds.Add(track.TrackId);
                 }

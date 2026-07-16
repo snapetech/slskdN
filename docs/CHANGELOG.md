@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Virtual Soulfind library reconciliation now loads local-file and
+  verified-copy presence through one indexed, 500-track catalogue projection
+  instead of querying both states for every track. A 1,000-track release falls
+  from 2,001 track/copy reads to three (99.85% fewer), while a full 250-track
+  missing-copy page falls from 252 catalogue reads to three (98.81% fewer).
+  Inferred files, files linked only through verification, missing-track order,
+  copy counts, and network behavior remain unchanged.
 - Native shared-library browser directory aggregation now indexes normalized
   paths, file counts, and immediate-child counts in one pass instead of
   rescanning every directory twice per returned child. In the 10,002-directory

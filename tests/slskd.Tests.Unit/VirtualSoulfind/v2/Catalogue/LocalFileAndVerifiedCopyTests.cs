@@ -181,6 +181,30 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Catalogue
         }
 
         [Fact]
+        public async Task TrackCopyStates_OverBatchBoundary_PreservesInferredAndVerifiedPresence()
+        {
+            var verifiedTrack = await CreateAndInsertTestTrackWithDependencies();
+            var inferredTrack = await CreateAndInsertTestTrackWithDependencies();
+            var verifiedFile = CreateTestLocalFile();
+            var inferredFile = CreateTestLocalFile(inferredTrackId: inferredTrack.TrackId);
+            await _store.UpsertLocalFileAsync(verifiedFile);
+            await _store.UpsertLocalFileAsync(inferredFile);
+            await _store.UpsertVerifiedCopyAsync(CreateTestVerifiedCopy(verifiedTrack.TrackId, verifiedFile.LocalFileId));
+            var requestedTrackIds = new[] { verifiedTrack.TrackId }
+                .Concat(Enumerable.Range(0, 499).Select(index => $"missing-{index:D3}"))
+                .Append(inferredTrack.TrackId)
+                .Append(inferredTrack.TrackId)
+                .ToList();
+
+            var states = await _store.GetTrackCopyStatesAsync(requestedTrackIds);
+
+            Assert.Equal(2, states.Count);
+            Assert.Equal(new TrackCopyState(HasLocalFile: true, HasVerifiedCopy: true), states[verifiedTrack.TrackId]);
+            Assert.Equal(new TrackCopyState(HasLocalFile: true, HasVerifiedCopy: false), states[inferredTrack.TrackId]);
+            Assert.DoesNotContain("missing-000", states.Keys);
+        }
+
+        [Fact]
         public async Task LocalFile_CanBeUpdated()
         {
             // Arrange
