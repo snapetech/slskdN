@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make metadata merge preference selection single-pass.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `MetadataPortability.MergeMetadataAsync` now handles `PreferNewer` and `PreferHigherPriority` with one enumerator pass that retains only the current winner and exact source count instead of materializing every source through `ToList` before ordered selection. For each covered 100,000-source strategy, warmed allocation falls from 801,040 bytes to less than 4 KiB (>99.4%) and working storage becomes constant. Strict-greater replacement preserves stable first-source ties; later timestamp/priority maxima, returned descriptor identity, complete enumeration and diagnostic count, custom first-source fallback, empty-source `ArgumentException`, and null-source `ArgumentNullException` remain unchanged. `CombineAll` intentionally retains a list because it aggregates each descriptor across multiple fields. Added both-strategy large allocation/tie identity and null-boundary regressions. Documented removed-LINQ validation gotcha `0z706` (`1c0050e90`). Validation passed: focused metadata portability tests (`19/19`), broader MediaCore tests (`250/250`), full backend suites (`4993/4993`: `69` application, `4644` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Trim Levenshtein affixes before normalization.
   - Status: completed (2026-07-16)
   - Priority: P1

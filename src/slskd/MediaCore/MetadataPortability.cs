@@ -272,34 +272,47 @@ public class MetadataPortability : IMetadataPortability
         MetadataMergeStrategy strategy = MetadataMergeStrategy.PreferNewer,
         CancellationToken cancellationToken = default)
     {
-        var sourceList = sources.ToList();
-        if (!sourceList.Any())
-            throw new ArgumentException("At least one metadata source is required", nameof(sources));
+        ArgumentNullException.ThrowIfNull(sources);
 
         ContentDescriptor result;
+        int sourceCount;
 
-        switch (strategy)
+        if (strategy == MetadataMergeStrategy.CombineAll)
         {
-            case MetadataMergeStrategy.PreferNewer:
-                result = sourceList.OrderByDescending(s => s.Timestamp).First().Descriptor;
-                break;
+            var sourceList = sources.ToList();
+            if (sourceList.Count == 0)
+                throw new ArgumentException("At least one metadata source is required", nameof(sources));
 
-            case MetadataMergeStrategy.PreferHigherPriority:
-                result = sourceList.OrderByDescending(s => s.Priority).First().Descriptor;
-                break;
+            result = await CombineAllMetadataAsync(sourceList, cancellationToken);
+            sourceCount = sourceList.Count;
+        }
+        else
+        {
+            using var enumerator = sources.GetEnumerator();
+            if (!enumerator.MoveNext())
+                throw new ArgumentException("At least one metadata source is required", nameof(sources));
 
-            case MetadataMergeStrategy.CombineAll:
-                result = await CombineAllMetadataAsync(sourceList, cancellationToken);
-                break;
+            var selected = enumerator.Current;
+            sourceCount = 1;
 
-            default:
-                result = sourceList.First().Descriptor;
-                break;
+            while (enumerator.MoveNext())
+            {
+                var candidate = enumerator.Current;
+                sourceCount++;
+
+                if ((strategy == MetadataMergeStrategy.PreferNewer && candidate.Timestamp > selected.Timestamp) ||
+                    (strategy == MetadataMergeStrategy.PreferHigherPriority && candidate.Priority > selected.Priority))
+                {
+                    selected = candidate;
+                }
+            }
+
+            result = selected.Descriptor;
         }
 
         _logger.LogInformation(
             "[MetadataPortability] Merged {SourceCount} metadata sources for {ContentId} using {Strategy}",
-            sourceList.Count, contentId, strategy);
+            sourceCount, contentId, strategy);
 
         return result;
     }

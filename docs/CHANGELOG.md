@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Metadata merge `PreferNewer` and `PreferHigherPriority` strategies now select
+  the winning source in one stable pass while counting sources for diagnostics,
+  instead of copying every source into a list and applying ordered selection.
+  For the covered 100,000-source inputs, warmed allocation falls from 801,040
+  bytes to below 4 KiB (>99.4%), working storage becomes constant, and runtime
+  remains linear without ordering overhead. First-source tie behavior, later
+  maxima, exact returned descriptor identity, full enumeration/diagnostic count,
+  null and empty argument boundaries, custom fallback, and `CombineAll`
+  materialization remain unchanged.
 - Levenshtein fuzzy scoring now locates invariant-case shared prefixes and
   suffixes before allocating lowercase comparison strings, then normalizes only
   the unmatched middle slices. For the covered mixed-case inputs with a

@@ -1,3 +1,17 @@
+## Update 2026-07-16 19:23:18Z
+
+- Current task: performance and efficiency improvements in progress; single-pass metadata merge preference selection complete locally.
+- Last activity:
+  - Replaced complete source-list materialization/ordered selection with one stable winner/count pass for newer and priority strategies.
+  - Each 100,000-source strategy falls from 801,040 warmed allocated bytes to below 4 KiB (>99.4%).
+- Validation:
+  - Passed focused metadata portability (`19/19`), broader MediaCore (`250/250`), and full backend suites (`4993/4993`) tests.
+  - Exact tie/max/identity/count/null/empty/allocation boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Documented gotcha `0z706` (`1c0050e90`). Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the single-pass metadata merge selection slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 19:13:25Z
 
 - Current task: performance and efficiency improvements in progress; pre-normalization Levenshtein affix trimming complete locally.

@@ -1,3 +1,10 @@
+## Update 2026-07-16 19:23:18Z
+
+- Completed the single-pass metadata merge preference-selection performance pass.
+- `PreferNewer` and `PreferHigherPriority` now retain one current winner and exact count instead of copying/ordering all sources.
+- At 100,000 sources, warmed allocation falls from 801,040 bytes to below 4 KiB (>99.4%) for both strategies. Stable ties, later maxima, identity, complete enumeration/counting, null/empty, custom, and combine-all behavior remain unchanged. Documented removed-LINQ validation gotcha `0z706` (`1c0050e90`).
+- Validation passed: focused metadata portability tests (`19/19`), broader MediaCore tests (`250/250`), full backend suites (`4993/4993`: `69` application, `4644` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 19:13:25Z
 
 - Completed the pre-normalization Levenshtein affix-trimming performance pass.

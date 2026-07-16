@@ -301,6 +301,35 @@ public class MetadataPortabilityTests
         Assert.Equal(highPriorityDescriptor.Confidence, result.Confidence);
     }
 
+    [Theory]
+    [InlineData(MetadataMergeStrategy.PreferNewer)]
+    [InlineData(MetadataMergeStrategy.PreferHigherPriority)]
+    public async Task MergeMetadataAsync_SelectionStrategiesAvoidSortingAllSources(MetadataMergeStrategy strategy)
+    {
+        const int sourceCount = 100_000;
+        var contentId = "content:audio:track:mb-large";
+        var selectedDescriptor = new ContentDescriptor { ContentId = contentId, Confidence = 1.0 };
+        var tiedDescriptor = new ContentDescriptor { ContentId = contentId, Confidence = 0.5 };
+        var timestamp = DateTimeOffset.UtcNow;
+        var sources = Enumerable.Range(0, sourceCount)
+            .Select(index => new MetadataSource(
+                $"source-{index}",
+                index == 0 ? selectedDescriptor : tiedDescriptor,
+                timestamp,
+                Priority: 1))
+            .ToArray();
+        _ = await _portability.MergeMetadataAsync(contentId, sources.AsSpan(0, 2).ToArray(), strategy);
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var result = await _portability.MergeMetadataAsync(contentId, sources, strategy);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Same(selectedDescriptor, result);
+        Assert.True(
+            allocatedBytes < 4 * 1024,
+            $"Expected single-pass source selection below 4 KiB allocated, got {allocatedBytes:N0} bytes.");
+    }
+
     [Fact]
     public async Task MergeMetadataAsync_CombineAllStrategy_MergesFields()
     {
@@ -346,6 +375,13 @@ public class MetadataPortabilityTests
             _portability.MergeMetadataAsync(contentId, emptySources));
 
         Assert.Contains("At least one metadata source", exception.Message);
+    }
+
+    [Fact]
+    public async Task MergeMetadataAsync_NullSources_ThrowsArgumentNullException()
+    {
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            _portability.MergeMetadataAsync("content:audio:track:mb-null", null!));
     }
 
     [Fact]

@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Metadata merge preference strategies now select their winning source in one
+  pass instead of copying and ordering every source.
 - Levenshtein fuzzy scoring now removes invariant-case shared affixes before
   allocating lowercase comparison strings.
 - Soundex fuzzy scoring now scans and invariant-cases only contributing letters
