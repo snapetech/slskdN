@@ -179,6 +179,22 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
             return Task.FromResult(track);
         }
 
+        public Task<IReadOnlyDictionary<string, Track>> GetTracksByIdsAsync(
+            IReadOnlyCollection<string> trackIds,
+            CancellationToken ct = default)
+        {
+            var tracks = new Dictionary<string, Track>(StringComparer.Ordinal);
+            foreach (var trackId in trackIds.Distinct(StringComparer.Ordinal))
+            {
+                if (_tracks.TryGetValue(trackId, out var track))
+                {
+                    tracks[trackId] = track;
+                }
+            }
+
+            return Task.FromResult<IReadOnlyDictionary<string, Track>>(tracks);
+        }
+
         public Task<Track?> FindTrackByMBIDAsync(string mbid, CancellationToken ct = default)
         {
             if (_trackMbidToId.TryGetValue(mbid, out var id))

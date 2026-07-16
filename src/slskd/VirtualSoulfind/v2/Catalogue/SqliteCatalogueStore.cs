@@ -22,7 +22,7 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
     /// </remarks>
     public sealed class SqliteCatalogueStore : ICatalogueStore, IDisposable
     {
-        private const int TrackCopyStateBatchSize = 500;
+        private const int TrackBatchSize = 500;
         private readonly string _connectionString;
         private bool _disposed;
 
@@ -330,6 +330,36 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
                 new { TrackId = trackId });
         }
 
+        public async Task<IReadOnlyDictionary<string, Track>> GetTracksByIdsAsync(
+            IReadOnlyCollection<string> trackIds,
+            CancellationToken ct = default)
+        {
+            var tracks = new Dictionary<string, Track>(StringComparer.Ordinal);
+            using var connection = CreateConnection();
+
+            foreach (var batch in trackIds.Distinct(StringComparer.Ordinal).Chunk(TrackBatchSize))
+            {
+                var parameters = new DynamicParameters();
+                var parameterNames = batch.Select((trackId, index) =>
+                {
+                    var name = $"TrackId{index}";
+                    parameters.Add(name, trackId);
+                    return $"@{name}";
+                });
+                var rows = await connection.QueryAsync<Track>(new CommandDefinition(
+                    $"SELECT * FROM Tracks WHERE TrackId IN ({string.Join(", ", parameterNames)})",
+                    parameters,
+                    cancellationToken: ct));
+
+                foreach (var track in rows)
+                {
+                    tracks[track.TrackId] = track;
+                }
+            }
+
+            return tracks;
+        }
+
         public async Task<Track?> FindTrackByMBIDAsync(string mbid, CancellationToken ct = default)
         {
             using var connection = CreateConnection();
@@ -441,7 +471,7 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
             var states = new Dictionary<string, TrackCopyState>(StringComparer.Ordinal);
             using var connection = CreateConnection();
 
-            foreach (var batch in uniqueTrackIds.Chunk(TrackCopyStateBatchSize))
+            foreach (var batch in uniqueTrackIds.Chunk(TrackBatchSize))
             {
                 var parameters = new DynamicParameters();
                 var parameterNames = batch.Select((trackId, index) =>

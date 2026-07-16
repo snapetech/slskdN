@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Virtual Soulfind upgrade analysis now hydrates distinct track metadata
+  through bounded indexed batches after filtering each 250-file page, instead
+  of querying one track per eligible file. For 10,000 eligible files with no
+  verified-copy rows, catalogue reads fall from 10,042 to 82 (99.18% fewer),
+  while memory remains page-bounded. Suggestion order, quality thresholds,
+  verified-copy track resolution, and missing-track title fallback are
+  unchanged.
 - Virtual Soulfind library reconciliation now loads local-file and
   verified-copy presence through one indexed, 500-track catalogue projection
   instead of querying both states for every track. A 1,000-track release falls

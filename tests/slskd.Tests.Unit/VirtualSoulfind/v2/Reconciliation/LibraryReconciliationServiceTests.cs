@@ -284,6 +284,57 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Reconciliation
         }
 
         [Fact]
+        public async Task FindUpgradeOpportunities_FullPage_LoadsTracksOnce()
+        {
+            var localFiles = Enumerable.Range(0, 250)
+                .Select(index => CreateLocalFile($"track-{index:D3}", codec: "MP3", bitrate: 128))
+                .ToList();
+            var tracks = localFiles
+                .Take(localFiles.Count - 1)
+                .ToDictionary(
+                    file => file.InferredTrackId!,
+                    file => new Track
+                    {
+                        TrackId = file.InferredTrackId!,
+                        ReleaseId = "release",
+                        DiscNumber = 1,
+                        TrackNumber = 1,
+                        Title = $"Title {file.InferredTrackId}",
+                    });
+            IReadOnlyCollection<string>? requestedTrackIds = null;
+            var catalogue = new Mock<ICatalogueStore>(MockBehavior.Strict);
+            catalogue
+                .Setup(store => store.CountLocalFilesAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(localFiles.Count);
+            catalogue
+                .Setup(store => store.CountVerifiedCopiesAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(0);
+            catalogue
+                .Setup(store => store.ListLocalFilesAsync(0, 250, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(localFiles);
+            catalogue
+                .Setup(store => store.GetTracksByIdsAsync(
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()))
+                .Callback<IReadOnlyCollection<string>, CancellationToken>((trackIds, _) => requestedTrackIds = trackIds)
+                .ReturnsAsync(tracks);
+            var service = new LibraryReconciliationService(catalogue.Object);
+
+            var suggestions = await service.FindUpgradeOpportunitiesAsync();
+
+            Assert.Equal(localFiles.Count, suggestions.Count);
+            Assert.Equal(localFiles.Select(file => file.InferredTrackId), requestedTrackIds);
+            Assert.Equal("Title track-000", suggestions[0].TrackTitle);
+            Assert.Equal("track-249", suggestions[^1].TrackTitle);
+            catalogue.Verify(store => store.GetTracksByIdsAsync(
+                It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<CancellationToken>()), Times.Once);
+            catalogue.Verify(store => store.FindTrackByIdAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
         public async Task ReleaseGapAnalysis_CompletionPercentage_CalculatesCorrectly()
         {
             // Arrange
@@ -462,7 +513,10 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Reconciliation
             return (release, tracks);
         }
 
-        private LocalFile CreateLocalFile(string? inferredTrackId = null)
+        private LocalFile CreateLocalFile(
+            string? inferredTrackId = null,
+            string codec = "FLAC",
+            int bitrate = 1411)
         {
             return new LocalFile
             {
@@ -470,8 +524,8 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Reconciliation
                 Path = $"/music/test/{Guid.NewGuid()}.flac",
                 SizeBytes = 25_000_000,
                 DurationSeconds = 180,
-                Codec = "FLAC",
-                Bitrate = 1411,
+                Codec = codec,
+                Bitrate = bitrate,
                 Channels = 2,
                 HashPrimary = Guid.NewGuid().ToString("N"),
                 HashSecondary = Guid.NewGuid().ToString("N"),

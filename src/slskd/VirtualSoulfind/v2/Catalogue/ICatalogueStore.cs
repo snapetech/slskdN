@@ -108,6 +108,13 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
         Task<Track?> FindTrackByIdAsync(string trackId, CancellationToken ct = default);
 
         /// <summary>
+        ///     Finds tracks by a bounded set of internal IDs.
+        /// </summary>
+        Task<IReadOnlyDictionary<string, Track>> GetTracksByIdsAsync(
+            IReadOnlyCollection<string> trackIds,
+            CancellationToken ct = default);
+
+        /// <summary>
         ///     Finds a track by MusicBrainz recording ID.
         /// </summary>
         Task<Track?> FindTrackByMBIDAsync(string mbid, CancellationToken ct = default);

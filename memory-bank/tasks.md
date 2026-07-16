@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch Virtual Soulfind upgrade track hydration.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added a bounded 500-ID catalogue track lookup and changed upgrade analysis to filter each 250-file page before one track metadata batch instead of reading one track per eligible file. For 10,000 eligible files with no verified-copy rows, complete-operation catalogue reads fall from 10,042 to 82 (99.18% fewer) with page-bounded memory. Suggestion order, quality thresholds, verified-copy resolution, and missing-track title fallback remain unchanged. Added an exact full-page one-batch/zero-legacy-call regression and a SQLite 501-distinct-ID boundary fixture with duplicates and misses. Documented database scalar assertion gotcha `0z687` (`5ecce3d1e`) and relational catalogue fixture gotcha `0z688` (`7addea4a8`). Validation passed: focused catalogue/reconciliation tests (`40/40`), complete Virtual Soulfind v2 unit tests (`201/201`), full backend tests (`4876/4876`: `69` application, `4527` unit, `280` integration), repository lint, diff checks, and every substantive remediation check before the expected divergent-branch release-sync stop.
+
 - [x] Batch Virtual Soulfind reconciliation copy-state reads.
   - Status: completed (2026-07-16)
   - Priority: P1

@@ -1,3 +1,17 @@
+## Update 2026-07-16 11:25:25Z
+
+- Current task: performance and efficiency improvements in progress; Virtual Soulfind upgrade track batching pass complete locally.
+- Last activity:
+  - Added bounded 500-ID catalogue track hydration and changed upgrade analysis to filter each 250-file page before one indexed metadata batch instead of reading tracks individually.
+  - For 10,000 eligible files with no verified-copy rows, complete-operation catalogue reads fall from 10,042 to 82 (99.18% fewer) with page-bounded memory. Documented gotchas `0z687` (`5ecce3d1e`) and `0z688` (`7addea4a8`).
+- Validation:
+  - Passed focused catalogue/reconciliation coverage (`40/40`), complete Virtual Soulfind v2 unit coverage (`201/201`), and full backend tests (`4876/4876`: `69` application, `4527` unit, `280` integration).
+  - Exact 250-file call boundaries, SQLite 501-distinct-ID batching, duplicate/missing ID handling, title fallback, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the Virtual Soulfind upgrade-hydration slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 11:15:06Z
 
 - Current task: performance and efficiency improvements in progress; Virtual Soulfind reconciliation copy-state batching pass complete locally.

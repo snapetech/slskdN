@@ -91,6 +91,7 @@ namespace slskd.VirtualSoulfind.v2.Reconciliation
             for (var offset = 0; offset < fileCount; offset += PageSize)
             {
                 var localFiles = await _catalogue.ListLocalFilesAsync(offset, PageSize, ct);
+                var candidates = new List<(LocalFile LocalFile, string TrackId, float QualityImprovement)>();
                 foreach (var localFile in localFiles)
                 {
                     var trackId = localFile.InferredTrackId;
@@ -111,17 +112,29 @@ namespace slskd.VirtualSoulfind.v2.Reconciliation
                         continue;
                     }
 
-                    var track = await _catalogue.FindTrackByIdAsync(trackId, ct);
+                    candidates.Add((localFile, trackId, qualityImprovement));
+                }
+
+                if (candidates.Count == 0)
+                {
+                    continue;
+                }
+
+                var tracks = await _catalogue.GetTracksByIdsAsync(
+                    candidates.Select(candidate => candidate.TrackId).ToList(),
+                    ct);
+                foreach (var candidate in candidates)
+                {
                     suggestions.Add(new UpgradeSuggestion
                     {
-                        TrackId = trackId,
-                        TrackTitle = track?.Title ?? trackId,
-                        LocalFileId = localFile.LocalFileId,
-                        CurrentQuality = localFile.QualityRating,
+                        TrackId = candidate.TrackId,
+                        TrackTitle = tracks.GetValueOrDefault(candidate.TrackId)?.Title ?? candidate.TrackId,
+                        LocalFileId = candidate.LocalFile.LocalFileId,
+                        CurrentQuality = candidate.LocalFile.QualityRating,
                         TargetQuality = "FLAC",
-                        QualityImprovement = qualityImprovement,
-                        CurrentCodec = localFile.Codec,
-                        CurrentBitrate = localFile.Bitrate,
+                        QualityImprovement = candidate.QualityImprovement,
+                        CurrentCodec = candidate.LocalFile.Codec,
+                        CurrentBitrate = candidate.LocalFile.Bitrate,
                     });
                 }
             }

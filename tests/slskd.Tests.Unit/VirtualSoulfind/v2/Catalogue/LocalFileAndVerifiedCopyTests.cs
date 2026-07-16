@@ -93,6 +93,25 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Catalogue
         }
 
         [Fact]
+        public async Task TracksByIds_OverBatchBoundary_ReturnsDistinctExistingTracks()
+        {
+            var first = await CreateAndInsertTestTrackWithDependencies();
+            var second = await CreateAndInsertTestTrackWithDependencies();
+            var requestedTrackIds = new[] { first.TrackId }
+                .Concat(Enumerable.Range(0, 499).Select(index => $"missing-{index:D3}"))
+                .Append(second.TrackId)
+                .Append(first.TrackId)
+                .ToList();
+
+            var tracks = await _store.GetTracksByIdsAsync(requestedTrackIds);
+
+            Assert.Equal(2, tracks.Count);
+            Assert.Equal(first.Title, tracks[first.TrackId].Title);
+            Assert.Equal(second.Title, tracks[second.TrackId].Title);
+            Assert.DoesNotContain("missing-000", tracks.Keys);
+        }
+
+        [Fact]
         public async Task LocalFile_QualityRating_FLAC_Is1_0()
         {
             // Arrange
