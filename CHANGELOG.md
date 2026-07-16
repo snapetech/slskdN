@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- PCM extraction now decodes ffmpeg output directly from the existing stream
+  buffer into normalized samples instead of copying two intermediate payloads.
 - Image pHash now converts only the 32 source pixels that contribute to its
   result and keeps the bounded coefficient buffer on the stack.
 - Spectral hashing now evaluates decimated RMS samples directly instead of

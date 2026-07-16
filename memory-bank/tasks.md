@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove PCM extraction payload copies.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `AudioUtilities.ExtractPcmSamplesAsync` now decodes ffmpeg's signed 16-bit little-endian PCM directly from the existing `MemoryStream` buffer into the required normalized `float[]`. It no longer calls `ToArray` for a complete byte copy or `Buffer.BlockCopy` into a second `short[]`. For one million samples, conversion allocation remains below 4.1 MB and consists only of the approximately 4 MB float result, removing another approximately 4 MB of transient payload arrays. Explicit little-endian decoding preserves `-32768`, `-1`, `0`, and `32767` normalization; sample ordering/count, ignored odd trailing byte, empty/error behavior, and sync/async results remain unchanged. Added exact boundary/odd-byte/allocation coverage. Validation passed: focused perceptual/audio utility tests (`38/38`), broader MediaCore tests (`235/235`), full backend suites (`4978/4978`: `69` application, `4629` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Bound image pHash intermediate storage.
   - Status: completed (2026-07-16)
   - Priority: P1

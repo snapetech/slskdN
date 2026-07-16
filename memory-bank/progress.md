@@ -1,3 +1,10 @@
+## Update 2026-07-16 18:44:46Z
+
+- Completed the PCM extraction payload-copy removal performance pass.
+- ffmpeg's buffered signed 16-bit little-endian output now decodes directly into normalized floats instead of being copied through new byte and short arrays.
+- At one million samples, measured conversion allocation stays below 4.1 MB and consists only of the roughly 4 MB result, removing roughly 4 MB of transient copies. Signed boundaries, ordering/count, odd trailing-byte truncation, and error/API behavior remain unchanged.
+- Validation passed: focused perceptual/audio utility tests (`38/38`), broader MediaCore tests (`235/235`), full backend suites (`4978/4978`: `69` application, `4629` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 18:37:02Z
 
 - Completed the bounded image pHash intermediate-storage performance pass.

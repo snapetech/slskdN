@@ -1,3 +1,17 @@
+## Update 2026-07-16 18:44:46Z
+
+- Current task: performance and efficiency improvements in progress; PCM extraction payload-copy removal complete locally.
+- Last activity:
+  - Decoded ffmpeg's existing little-endian stream buffer directly into normalized float samples.
+  - A one-million-sample conversion removes roughly 4 MB of byte/short copies and allocates below 4.1 MB including its required result.
+- Validation:
+  - Passed focused perceptual/audio utility (`38/38`), broader MediaCore (`235/235`), and full backend suites (`4978/4978`) tests.
+  - Exact signed boundaries, odd-byte/allocation behavior, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the PCM extraction slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 18:37:02Z
 
 - Current task: performance and efficiency improvements in progress; bounded image pHash intermediate storage complete locally.

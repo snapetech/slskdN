@@ -610,28 +610,28 @@ public static class AudioUtilities
                 $"ffmpeg exited with code {process.ExitCode} while decoding {audioFilePath}. stderr: {stderr.Trim()}");
         }
 
-        var bytes = ms.ToArray();
-        if (bytes.Length == 0)
+        if (ms.Length == 0)
         {
             throw new InvalidOperationException(
                 $"ffmpeg produced no PCM output for {audioFilePath}. ffmpeg stderr: {stderr}");
         }
 
-        if (bytes.Length % sizeof(short) != 0)
+        return (ConvertPcm16LittleEndianToSamples(ms.GetBuffer().AsSpan(0, (int)ms.Length)), sampleRate);
+    }
+
+    internal static float[] ConvertPcm16LittleEndianToSamples(ReadOnlySpan<byte> bytes)
+    {
+        var sampleCount = bytes.Length / sizeof(short);
+        var samples = new float[sampleCount];
+
+        for (var index = 0; index < samples.Length; index++)
         {
-            var truncated = bytes.Length - (bytes.Length % sizeof(short));
-            Array.Resize(ref bytes, truncated);
+            var offset = index * sizeof(short);
+            var sample = (short)(bytes[offset] | (bytes[offset + 1] << 8));
+            samples[index] = sample / 32768f;
         }
 
-        var sampleCount = bytes.Length / sizeof(short);
-        var shorts = new short[sampleCount];
-        Buffer.BlockCopy(bytes, 0, shorts, 0, bytes.Length);
-
-        var samples = new float[sampleCount];
-        for (int i = 0; i < sampleCount; i++)
-            samples[i] = shorts[i] / 32768f;
-
-        return (samples, sampleRate);
+        return samples;
     }
 
     /// <summary>

@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- PCM extraction now decodes ffmpeg's buffered signed 16-bit little-endian
+  output directly into the required normalized `float[]`. It no longer copies
+  the complete stream into a new `byte[]` and then again into a `short[]`; for
+  one million samples, measured conversion allocation is below 4.1 MB and
+  consists only of the approximately 4 MB result payload, removing another
+  approximately 4 MB of transient copies. Signed boundary values, normalization,
+  sample order/count, odd trailing-byte truncation, empty-output errors, and the
+  synchronous/async API results remain unchanged.
 - Image pHash now samples, converts, and transforms only the 32 source pixels
   that contribute to its low-frequency result, using one 256-byte stack buffer
   instead of allocating a full-image grayscale array plus 8×8 downsample, DCT,

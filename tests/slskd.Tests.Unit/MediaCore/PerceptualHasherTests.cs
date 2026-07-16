@@ -442,6 +442,35 @@ public class PerceptualHasherTests
         Assert.Contains("nonexistent", ex.FileName, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void ConvertPcm16LittleEndianToSamples_DecodesWithoutIntermediatePayloadCopies()
+    {
+        const int sampleCount = 1_000_000;
+        var bytes = new byte[(sampleCount * sizeof(short)) + 1];
+        bytes[0] = 0x00;
+        bytes[1] = 0x80;
+        bytes[2] = 0xFF;
+        bytes[3] = 0xFF;
+        bytes[4] = 0x00;
+        bytes[5] = 0x00;
+        bytes[6] = 0xFF;
+        bytes[7] = 0x7F;
+        bytes[^1] = 0x7A;
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var samples = AudioUtilities.ConvertPcm16LittleEndianToSamples(bytes);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(sampleCount, samples.Length);
+        Assert.Equal(-1.0f, samples[0]);
+        Assert.Equal(-1.0f / 32768.0f, samples[1]);
+        Assert.Equal(0.0f, samples[2]);
+        Assert.Equal(32767.0f / 32768.0f, samples[3]);
+        Assert.True(
+            allocatedBytes < 4_100_000,
+            $"Expected only the float sample payload below 4.1 MB allocated, got {allocatedBytes:N0} bytes.");
+    }
+
     [Theory]
     [InlineData(0, 1.0)]
     [InlineData(1, 0.984375)] // 63/64
