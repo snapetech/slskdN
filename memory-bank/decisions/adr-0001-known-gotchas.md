@@ -63,9 +63,11 @@ later value and persist duplicate checkpoints.
 - `src/slskd/LibraryHealth/LibraryHealthService.cs`
 
 **Prevention**: Capture the value returned by `Interlocked.Increment` and use
-that unique local value for both the snapshot assignment and threshold test.
-Do not perform a second unsynchronized read of the shared counter when exactly
-one worker must own each threshold.
+that unique local value for threshold ownership. Do not perform a second
+unsynchronized read of the shared counter when exactly one worker must own each
+threshold. Because workers can acquire the snapshot lock out of completion
+order, update visible progress with the monotonic maximum of its current value
+and the unique local count rather than assigning the local count directly.
 
 ### 0z676. Job Child Keys Must Normalize Before Composite-Key Upserts
 
