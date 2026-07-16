@@ -1,3 +1,12 @@
+## Update 2026-07-16 04:56:29Z
+
+- Completed the Wishlist and Auto-Replace search-completion polling performance pass.
+- Both consumers now poll the existing response-free SQL projection and hydrate the final response payload once after observing completion.
+- Wishlist moved from 500-millisecond to one-second readiness checks: at its 20-second bound, 40 full reads become 20 lightweight reads plus one hydration (47.5% fewer queries and 97.5% fewer payload hydrations).
+- Auto-Replace moved from one-second to two-second checks: at its 45-second bound, 45 full reads become at most 23 lightweight reads plus one hydration (46.7% fewer queries and 97.8% fewer payload hydrations).
+- Added exact summary/final hydration boundary coverage in both workflows and documented gotcha `0z647` in `e37d5a155`.
+- Validation passed: focused Auto-Replace/Wishlist tests (`21/21`), complete smoke/unit/integration suites (`4805/4805`: `69` smoke, `4456` unit, `280` integration), repository lint, identity, and diff checks. The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+
 ## Update 2026-07-16 04:47:48Z
 
 - Completed the share content-peer hint publication performance pass.

@@ -637,25 +637,25 @@ namespace slskd.Wishlist
 
             // Poll for search completion (up to 20 seconds)
             var maxWait = TimeSpan.FromSeconds(20);
-            var pollInterval = TimeSpan.FromMilliseconds(500);
+            var pollInterval = TimeSpan.FromSeconds(1);
             var waited = TimeSpan.Zero;
-            slskd.Search.Search? searchWithResponses = null;
+            slskd.Search.Search? searchState = null;
 
             while (waited < maxWait)
             {
                 await Task.Delay(pollInterval, cancellationToken);
                 waited += pollInterval;
 
-                searchWithResponses = await SearchService.FindAsync(s => s.Id == searchId, includeResponses: true);
+                searchState = await SearchService.FindAsync(s => s.Id == searchId, includeResponses: false);
 
-                if (searchWithResponses?.State.HasFlag(Soulseek.SearchStates.Completed) == true)
+                if (searchState?.State.HasFlag(Soulseek.SearchStates.Completed) == true)
                 {
                     break;
                 }
             }
 
-            // If we timed out, get the final state anyway
-            searchWithResponses ??= await SearchService.FindAsync(s => s.Id == searchId, includeResponses: true);
+            // Hydrate the response payload once after polling only the lightweight state projection.
+            var searchWithResponses = await SearchService.FindAsync(s => s.Id == searchId, includeResponses: true);
 
             var ignoredResults = await context.WishlistIgnoredResults
                 .Where(rule => rule.WishlistItemId == item.Id)

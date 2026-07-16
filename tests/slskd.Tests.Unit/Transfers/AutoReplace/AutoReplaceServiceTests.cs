@@ -49,8 +49,13 @@ public class AutoReplaceServiceTests
         searchService
             .SetupSequence(service => service.FindAsync(
                 It.IsAny<Expression<Func<SearchModel, bool>>>(),
-                true))
+                false))
             .ReturnsAsync(new SearchModel { State = SearchStates.Requested })
+            .ReturnsAsync(new SearchModel { State = SearchStates.Completed });
+        searchService
+            .Setup(service => service.FindAsync(
+                It.IsAny<Expression<Func<SearchModel, bool>>>(),
+                true))
             .ReturnsAsync(new SearchModel
             {
                 State = SearchStates.Completed,
@@ -114,6 +119,9 @@ public class AutoReplaceServiceTests
         Assert.Equal("Artist - Track.flac", alternative.Filename);
         searchService.Verify(
             service => service.FindAsync(It.IsAny<Expression<Func<SearchModel, bool>>>(), true),
+            Times.Once);
+        searchService.Verify(
+            service => service.FindAsync(It.IsAny<Expression<Func<SearchModel, bool>>>(), false),
             Times.Exactly(2));
     }
 
@@ -136,6 +144,11 @@ public class AutoReplaceServiceTests
                 State = SearchStates.Completed,
             });
 
+        searchService
+            .Setup(service => service.FindAsync(
+                It.IsAny<Expression<Func<SearchModel, bool>>>(),
+                false))
+            .ReturnsAsync(new SearchModel { State = SearchStates.Completed });
         searchService
             .Setup(service => service.FindAsync(
                 It.IsAny<Expression<Func<SearchModel, bool>>>(),

@@ -1,3 +1,18 @@
+## Update 2026-07-16 04:56:29Z
+
+- Current task: performance and efficiency improvements in progress; search completion-polling payload pass complete locally.
+- Last activity:
+  - Changed Wishlist and Auto-Replace readiness checks to response-free search projections followed by one final response hydration.
+  - Wishlist's bound falls from 40 full reads to 21 total reads; Auto-Replace's falls from 45 full reads to at most 24. Full payload hydration falls to one in both workflows.
+  - Added exact light/final read boundary regressions and documented gotcha `0z647` in `e37d5a155`.
+- Validation:
+  - Passed focused Auto-Replace/Wishlist tests (`21/21`), complete smoke/unit/integration suites (`4805/4805`: `69` smoke, `4456` unit, `280` integration), repository lint, identity, and diff checks.
+  - The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+- Next steps:
+  1. Commit this polling slice.
+  2. Continue the broader performance goal from the next measured recurring hot path.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 04:47:48Z
 
 - Current task: performance and efficiency improvements in progress; content-peer hint batching pass complete locally.

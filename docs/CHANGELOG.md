@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Wishlist and Auto-Replace now poll response-free search state at one- and
+  two-second cadences, respectively, and hydrate responses once after
+  completion. At their timeout bounds, repeated database reads fall from 40 to
+  21 and from 45 to 24 while full-payload hydrations fall to one.
 - Share content-peer hints retain their conservative one-second publication
   pacing but now deduplicate pending IDs and update the shared reverse index
   once per 32-ID batch. Publishing 1,000 IDs falls from 3,000 DHT operations to

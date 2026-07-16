@@ -244,7 +244,7 @@ namespace slskd.Transfers.AutoReplace
         };
 
         private static readonly TimeSpan DefaultSearchCompletionTimeout = TimeSpan.FromSeconds(45);
-        private static readonly TimeSpan DefaultSearchPollInterval = TimeSpan.FromSeconds(1);
+        private static readonly TimeSpan DefaultSearchPollInterval = TimeSpan.FromSeconds(2);
         private readonly SemaphoreSlim _searchBudgetGate = new(1, 1);
         private DateTimeOffset _nextAlternativeSearchNotBeforeUtc = DateTimeOffset.MinValue;
 
@@ -353,26 +353,28 @@ namespace slskd.Transfers.AutoReplace
                     safetySource: "auto-replace");
 
                 var waited = TimeSpan.Zero;
-                slskd.Search.Search? searchWithResponses = null;
+                slskd.Search.Search? searchState = null;
 
                 while (waited < SearchCompletionTimeout)
                 {
                     await Task.Delay(SearchPollInterval, cancellationToken);
                     waited += SearchPollInterval;
 
-                    searchWithResponses = await Searches.FindAsync(s => s.Id == searchId, includeResponses: true);
+                    searchState = await Searches.FindAsync(s => s.Id == searchId, includeResponses: false);
 
-                    if (searchWithResponses?.State.HasFlag(SearchStates.Completed) == true)
+                    if (searchState?.State.HasFlag(SearchStates.Completed) == true)
                     {
                         break;
                     }
                 }
 
-                if (searchWithResponses?.State.HasFlag(SearchStates.Completed) != true)
+                if (searchState?.State.HasFlag(SearchStates.Completed) != true)
                 {
                     Log.Warning("Search for alternatives did not complete within {TimeoutSeconds}s: {SearchText}", SearchCompletionTimeout.TotalSeconds, searchText);
                     return (candidates, SearchBudgetExceeded: false);
                 }
+
+                var searchWithResponses = await Searches.FindAsync(s => s.Id == searchId, includeResponses: true);
 
                 if (searchWithResponses?.Responses == null || !searchWithResponses.Responses.Any())
                 {

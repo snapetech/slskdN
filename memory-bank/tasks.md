@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Stop hydrating search responses during background completion polling.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Wishlist and Auto-Replace now poll the existing response-free SQL projection, use one- and two-second readiness cadences, and hydrate responses exactly once after completion. At the 20-second Wishlist bound, work falls from 40 full reads to 20 lightweight reads plus one final hydration (47.5% fewer queries, 97.5% fewer payload hydrations). At Auto-Replace's 45-second bound, work falls from 45 full reads to at most 23 lightweight reads plus one hydration (46.7% fewer queries, 97.8% fewer payload hydrations). Added exact light/final query-boundary regressions; documented gotcha `0z647` in `e37d5a155`.
+
 - [x] Batch shared content-peer reverse-index publication.
   - Status: completed (2026-07-16)
   - Priority: P1

@@ -354,6 +354,9 @@ public class WishlistControllerTests : IDisposable
                     State = SearchStates.Requested,
                 });
         searchService
+            .Setup(service => service.FindAsync(It.IsAny<Expression<Func<SlskdSearch, bool>>>(), false))
+            .ReturnsAsync(new SlskdSearch { State = SearchStates.Completed });
+        searchService
             .Setup(service => service.FindAsync(It.IsAny<Expression<Func<SlskdSearch, bool>>>(), true))
             .ReturnsAsync((Expression<Func<SlskdSearch, bool>> expression, bool includeResponses) =>
                 new SlskdSearch
@@ -378,6 +381,12 @@ public class WishlistControllerTests : IDisposable
         Assert.Equal("wishlist", capturedSafetySource);
         Assert.Equal(25, capturedOptions?.ResponseLimit);
         Assert.Equal(3, result.ResponseCount);
+        searchService.Verify(
+            service => service.FindAsync(It.IsAny<Expression<Func<SlskdSearch, bool>>>(), false),
+            Times.Once);
+        searchService.Verify(
+            service => service.FindAsync(It.IsAny<Expression<Func<SlskdSearch, bool>>>(), true),
+            Times.Once);
     }
 
     [Fact]
@@ -413,6 +422,9 @@ public class WishlistControllerTests : IDisposable
                     SearchText = query.SearchText,
                     State = SearchStates.Requested,
                 });
+        searchService
+            .Setup(service => service.FindAsync(It.IsAny<Expression<Func<SlskdSearch, bool>>>(), false))
+            .ReturnsAsync(new SlskdSearch { State = SearchStates.Completed });
         searchService
             .Setup(service => service.FindAsync(It.IsAny<Expression<Func<SlskdSearch, bool>>>(), true))
             .ReturnsAsync((Expression<Func<SlskdSearch, bool>> expression, bool includeResponses) =>
@@ -599,6 +611,9 @@ public class WishlistControllerTests : IDisposable
                     SearchText = query.SearchText,
                     State = SearchStates.Requested,
                 });
+        searchService
+            .Setup(service => service.FindAsync(It.IsAny<Expression<Func<SlskdSearch, bool>>>(), false))
+            .ReturnsAsync(new SlskdSearch { State = SearchStates.Completed });
         searchService
             .Setup(service => service.FindAsync(It.IsAny<Expression<Func<SlskdSearch, bool>>>(), true))
             .ReturnsAsync(new SlskdSearch
