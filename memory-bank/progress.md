@@ -1,3 +1,10 @@
+## Update 2026-07-16 06:02:15Z
+
+- Completed the scheduled file-retention enumeration performance pass.
+- Replaced recursive filename-array materialization and three evaluations of the resolve/age pipeline with a single streaming pass that counts found, deleted, and failed files during mutation.
+- At 100,000 candidates, file resolution and age checks fall from 300,000 to 100,000 (66.7% fewer), and the 100,000-entry filename array is eliminated. The regression proves nested old-file deletion, recent-file retention, and exactly one resolution per directory entry. Documented gotcha `0z655` in `3225e9209`; focused compilation caught and documented static logger shadowing as `0z656` in `fbe3037f7` before repair.
+- Validation passed: focused pruning test (`1/1`), complete smoke/unit/integration suites (`4819/4819`: `69` smoke, `4470` unit, `280` integration), and repository lint. The remediation baseline passed every substantive check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+
 ## Update 2026-07-16 05:50:50Z
 
 - Completed the Virtual Soulfind intent-batch queue-read performance pass.

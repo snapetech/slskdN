@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Scheduled incomplete/download retention now streams recursive directory
+  entries and counts outcomes during the destructive pass. Each candidate is
+  resolved and age-checked once instead of three times, removing 200,000
+  repeated filesystem checks and a 100,000-entry filename array at that scale.
 - Virtual Soulfind intent batches now claim loaded pending records atomically
   instead of fetching every same intent again. A full default batch falls from
   11 intent reads to one, concurrent/manual processors cannot duplicate a

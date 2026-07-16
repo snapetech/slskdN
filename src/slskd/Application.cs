@@ -1900,36 +1900,9 @@ namespace slskd
                     }
 
                     Log.Debug("Pruning files older than {Age} minutes from {Directory}", age, directory);
-
-                    var options = new EnumerationOptions
-                    {
-                        IgnoreInaccessible = true,
-                        AttributesToSkip = FileAttributes.Hidden | FileAttributes.System,
-                        RecurseSubdirectories = true,
-                    };
-
-                    var files = System.IO.Directory.GetFiles(directory, "*", options)
-                        .Select(filename => Files.ResolveFileInfo(filename))
-                        .Where(file => file.LastAccessTimeUtc <= DateTime.UtcNow.AddMinutes(-age.Value));
-
-                    Log.Debug("Found {Count} files of need of pruning", files.Count());
-
-                    int errors = 0;
-
-                    foreach (var file in files)
-                    {
-                        try
-                        {
-                            file.Delete();
-                        }
-                        catch (Exception ex)
-                        {
-                            errors++;
-                            Log.Warning(ex, "Failed to prune file {File}: {Message}", file, ex.Message);
-                        }
-                    }
-
-                    Log.Debug("Pruning complete. Deleted: {Deleted}, Errors: {Errors}", files.Count() - errors, errors);
+                    var result = PruneDirectoryFiles(age.Value, directory, Files, DateTime.UtcNow);
+                    Log.Debug("Found {Count} files in need of pruning", result.Found);
+                    Log.Debug("Pruning complete. Deleted: {Deleted}, Errors: {Errors}", result.Deleted, result.Errors);
                 }
                 catch (Exception ex)
                 {
@@ -1939,6 +1912,47 @@ namespace slskd
 
             PruneDirectory(age: Options.Retention.Files.Incomplete, directory: Options.Directories.Incomplete);
             PruneDirectory(age: Options.Retention.Files.Complete, directory: Options.Directories.Downloads);
+        }
+
+        internal static (int Found, int Deleted, int Errors) PruneDirectoryFiles(
+            int age,
+            string directory,
+            FileService fileService,
+            DateTime utcNow)
+        {
+            var options = new EnumerationOptions
+            {
+                IgnoreInaccessible = true,
+                AttributesToSkip = FileAttributes.Hidden | FileAttributes.System,
+                RecurseSubdirectories = true,
+            };
+            var cutoff = utcNow.AddMinutes(-age);
+            var found = 0;
+            var deleted = 0;
+            var errors = 0;
+
+            foreach (var filename in System.IO.Directory.EnumerateFiles(directory, "*", options))
+            {
+                var file = fileService.ResolveFileInfo(filename);
+                if (file.LastAccessTimeUtc > cutoff)
+                {
+                    continue;
+                }
+
+                found++;
+                try
+                {
+                    file.Delete();
+                    deleted++;
+                }
+                catch (Exception ex)
+                {
+                    errors++;
+                    Serilog.Log.Warning(ex, "Failed to prune file {File}: {Message}", file, ex.Message);
+                }
+            }
+
+            return (found, deleted, errors);
         }
 
         private void PruneTransfers()

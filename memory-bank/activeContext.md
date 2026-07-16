@@ -1,3 +1,17 @@
+## Update 2026-07-16 06:02:15Z
+
+- Current task: performance and efficiency improvements in progress; streaming file-retention pass complete locally.
+- Last activity:
+  - Replaced recursive filename materialization and triple resolve/age enumeration with one streaming destructive pass.
+  - At 100,000 candidates, resolution and age checks fall from 300,000 to 100,000 and the full filename array is removed. Documented gotcha `0z655` (`3225e9209`) and caught static logger shadowing gotcha `0z656` (`fbe3037f7`).
+- Validation:
+  - Passed focused pruning coverage (`1/1`) and complete smoke/unit/integration suites (`4819/4819`: `69` smoke, `4470` unit, `280` integration).
+  - Repository lint passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. Concurrent Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the file-retention implementation and handoff slice.
+  2. Continue the broader performance goal outside the dirty Mesh/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 05:50:50Z
 
 - Current task: performance and efficiency improvements in progress; intent-batch queue-read pass complete locally.

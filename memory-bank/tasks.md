@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Stream scheduled file retention in one destructive pass.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced recursive `Directory.GetFiles` materialization plus three enumerations of a lazy resolve/age pipeline with `Directory.EnumerateFiles` and one pass that tracks found, deleted, and failed counts while pruning. At 100,000 candidates this reduces `ResolveFileInfo` and age checks from 300,000 to 100,000 (66.7% fewer) and removes the complete filename array. Added nested retention-boundary and exact resolution-count coverage; documented gotcha `0z655` in `3225e9209` and the caught static logger shadowing issue as `0z656` in `fbe3037f7`.
+
 - [x] Remove redundant intent-batch reads and debug-only queue scans.
   - Status: completed (2026-07-16)
   - Priority: P1

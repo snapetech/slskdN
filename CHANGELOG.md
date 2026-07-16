@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Scheduled file retention now streams directory entries and resolves each
+  candidate once instead of materializing all names and reevaluating the same
+  lazy filesystem pipeline three times.
 - Intent queue batches now reuse their loaded pending records behind atomic
   status claims, and skip whole-queue statistics hydration when debug logging
   is disabled.
