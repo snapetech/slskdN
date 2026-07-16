@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z707. CryptoStream Hash Sinks Can Still Copy Output Blocks
+
+**The Bug**: Streaming JSON through `CryptoStream(Stream.Null, SHA256, Write)`
+preserved checksum bytes but still allocated 17.8 MB for a payload whose old
+string-plus-byte-array path allocated 19.9 MB. `HashAlgorithm` participates as
+an `ICryptoTransform`, and `CryptoStream` still processes/copies transform
+output blocks even when the destination discards them.
+
+**Files Affected**:
+- `src/slskd/MediaCore/MetadataPortability.cs`
+- `tests/slskd.Tests.Unit/MediaCore/MetadataPortabilityTests.cs`
+
+**Prevention**: For write-only hashing, feed bytes directly to
+`IncrementalHash.AppendData` from a small reusable `IBufferWriter<byte>` (or
+equivalent measured sink) instead of assuming `CryptoStream` is allocation-
+bounded because its destination is `Stream.Null`. Measure the warmed complete
+payload path and assert the exact legacy digest; streaming APIs can hide
+per-block copies just as collection APIs can hide snapshots.
+
 ### 0z706. Removing LINQ Can Remove Implicit Null Validation
 
 **The Bug**: Replacing `sources.ToList()` with direct `GetEnumerator()` for a
