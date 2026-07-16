@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Registered the ordered download auto-retry index migration so application
+  startup applies it to existing transfer databases.
+
 ### Changed
 
 - Swarm peer ranking now selects its bounded top set in SQLite before

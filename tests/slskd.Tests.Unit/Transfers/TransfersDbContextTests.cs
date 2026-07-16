@@ -347,6 +347,26 @@ public sealed class TransfersDbContextTests
     }
 
     [Fact]
+    public void Migrator_RegistersAutoRetryIndexMigration()
+    {
+        var connectionStrings = new ConnectionStringDictionary(new()
+        {
+            [Database.Search] = "Data Source=:memory:",
+            [Database.Transfers] = "Data Source=:memory:",
+            [Database.Messaging] = "Data Source=:memory:",
+            [Database.Events] = "Data Source=:memory:",
+        });
+        var migrator = new Migrator(connectionStrings);
+        var migrationsProperty = typeof(Migrator).GetProperty(
+            "Migrations",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        var migrations = Assert.IsType<Dictionary<string, IMigration>>(migrationsProperty!.GetValue(migrator));
+
+        Assert.IsType<Z07162026_AutoRetryIndexMigration>(
+            migrations[nameof(Z07162026_AutoRetryIndexMigration)]);
+    }
+
+    [Fact]
     public void TransferUpdatedAtMigration_Adds_Backfills_And_Reuses_Ordered_Index()
     {
         var databasePath = Path.Combine(Path.GetTempPath(), $"slskdn-transfers-{Guid.NewGuid():N}.db");

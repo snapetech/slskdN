@@ -1,3 +1,17 @@
+## Update 2026-07-16 13:13:18Z
+
+- Current task: performance and efficiency improvements in progress; unreachable auto-retry index migration repaired locally.
+- Last activity:
+  - Registered the existing ordered partial auto-retry index migration in the production startup migrator.
+  - Added a registry reachability regression alongside the existing schema/idempotence test. Documented gotcha `0z693` (`1e4b65c37`).
+- Validation:
+  - Focused migration tests passed (`2/2`); broader validation will run with the next isolated performance slice.
+  - Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the migration registration repair.
+  2. Replace download-request list full attempt hydration with indexed aggregate/current-attempt projections.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 13:07:41Z
 
 - Current task: performance and efficiency improvements in progress; bounded persisted peer ranking complete locally.

@@ -1,3 +1,9 @@
+## Update 2026-07-16 13:13:18Z
+
+- Repaired production reachability for the ordered download auto-retry index migration.
+- Registered `Z07162026_AutoRetryIndexMigration` in the append-only startup migrator; existing installations can now receive the partial `(Direction, EndedAt, Id)` index already modeled and tested by the application.
+- The direct schema/idempotence test and new production-registry reachability test pass (`2/2`). Documented the unregistered-migration pattern as gotcha `0z693` in standalone commit `1e4b65c37`. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 13:07:41Z
 
 - Completed the persisted peer-metrics ranking performance pass.

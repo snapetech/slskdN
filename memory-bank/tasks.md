@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Register the download auto-retry index migration.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added the existing `Z07162026_AutoRetryIndexMigration` to the append-only production `Migrator` registry. The migration's direct schema/idempotence regression and a new registry reachability regression both pass (`2/2`), proving application startup can now apply the ordered partial retry-candidate index to existing transfer databases. Documented gotcha `0z693` in standalone commit `1e4b65c37`.
+
 - [x] Bound persisted peer-metrics ranking.
   - Status: completed (2026-07-16)
   - Priority: P1

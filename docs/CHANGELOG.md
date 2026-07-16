@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Application startup now registers and applies the previously unreachable
+  ordered download auto-retry index migration. Existing installations receive
+  the partial `(Direction, EndedAt, Id)` index instead of retaining a full scan
+  and temporary sort on each retry-candidate page.
 - Swarm analytics and scheduling peer ranking now applies the canonical
   default cost formula and requested limit in SQLite, then reuses the C# cost
   function to finalize the bounded return order. At the normal 100-peer limit

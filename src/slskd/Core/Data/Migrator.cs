@@ -57,6 +57,7 @@ public class Migrator
             { nameof(Z07152026_PrivateMessageTimelineIndexMigration), new Z07152026_PrivateMessageTimelineIndexMigration(connectionStrings: Databases) },
             { nameof(Z07152026_TransferUpdatedAtMigration), new Z07152026_TransferUpdatedAtMigration(connectionStrings: Databases) },
             { nameof(Z07152026_TransferHistoryIndexesMigration), new Z07152026_TransferHistoryIndexesMigration(connectionStrings: Databases) },
+            { nameof(Z07162026_AutoRetryIndexMigration), new Z07162026_AutoRetryIndexMigration(connectionStrings: Databases) },
         };
     }
 
