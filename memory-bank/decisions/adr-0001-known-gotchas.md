@@ -57,7 +57,9 @@ This is not optional. This is the highest priority action after fixing a bug.
 **The Bug**: The listen-along panel polled its HTTP directory every 30 seconds,
 and every request synchronously fetched the DHT index plus every listed party
 announcement. Multiple panels or clients multiplied the same sequential DHT
-fan-out, while a slow refresh could overlap the next poll.
+fan-out, while a slow refresh could overlap the next poll. The only production
+call site used compact mode, which never rendered the directory, but the compact
+panel still performed the same polling and post-publish refreshes.
 
 **Files Affected**:
 - `src/slskd/ListeningParty/ListeningPartyService.cs`
@@ -69,6 +71,7 @@ callers onto one refresh, and let individual request cancellation stop waiting
 without cancelling the shared refresh. Frontend pollers must pause while hidden,
 reject overlapping cycles, retain the last successful result on transient
 failure, and avoid writing unchanged snapshots back to React state.
+Component modes must not fetch data that their render path never consumes.
 
 ### 0z625. Object Dictionaries Deserialize JSON Values As JsonElement
 
