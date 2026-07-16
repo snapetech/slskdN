@@ -89,9 +89,20 @@ public class FuzzyMatcher : IFuzzyMatcher
         var t = Tokenize($"{title} {artist}");
         var c = Tokenize($"{candidateTitle} {candidateArtist}");
         if (t.Count == 0 || c.Count == 0) return 0;
-        var intersection = t.Intersect(c).Count();
-        var union = t.Union(c).Count();
-        return union == 0 ? 0 : (double)intersection / union;
+
+        var smaller = t.Count <= c.Count ? t : c;
+        var larger = ReferenceEquals(smaller, t) ? c : t;
+        var intersectionCount = 0;
+        foreach (var token in smaller)
+        {
+            if (larger.Contains(token))
+            {
+                intersectionCount++;
+            }
+        }
+
+        var unionCount = t.Count + c.Count - intersectionCount;
+        return (double)intersectionCount / unionCount;
     }
 
     /// <summary>
@@ -273,12 +284,52 @@ public class FuzzyMatcher : IFuzzyMatcher
         };
     }
 
-    private static HashSet<string> Tokenize(string s) =>
-        s.ToLowerInvariant()
-         .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-         .Select(x => x.Trim('\"', '\'', ',', '.', '(', ')', '[', ']'))
-         .Where(x => x.Length > 0)
-         .ToHashSet();
+    private static HashSet<string> Tokenize(string value)
+    {
+        var normalized = value.ToLowerInvariant();
+        var tokens = new HashSet<string>();
+        var start = 0;
+
+        while (start < normalized.Length)
+        {
+            while (start < normalized.Length && normalized[start] == ' ')
+            {
+                start++;
+            }
+
+            var separator = start;
+            while (separator < normalized.Length && normalized[separator] != ' ')
+            {
+                separator++;
+            }
+
+            var tokenStart = start;
+            var tokenEnd = separator;
+            while (tokenStart < tokenEnd && IsTokenBoundaryPunctuation(normalized[tokenStart]))
+            {
+                tokenStart++;
+            }
+
+            while (tokenEnd > tokenStart && IsTokenBoundaryPunctuation(normalized[tokenEnd - 1]))
+            {
+                tokenEnd--;
+            }
+
+            if (tokenStart < tokenEnd)
+            {
+                tokens.Add(normalized[tokenStart..tokenEnd]);
+            }
+
+            start = separator + 1;
+        }
+
+        return tokens;
+    }
+
+    private static bool IsTokenBoundaryPunctuation(char value)
+    {
+        return value is '\"' or '\'' or ',' or '.' or '(' or ')' or '[' or ']';
+    }
 
     /// <inheritdoc/>
     public Task<double> ScorePerceptualAsync(string contentIdA, string contentIdB, IContentIdRegistry registry, CancellationToken cancellationToken = default)

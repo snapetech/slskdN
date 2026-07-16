@@ -1,3 +1,17 @@
+## Update 2026-07-16 18:54:47Z
+
+- Current task: performance and efficiency improvements in progress; single-pass Jaccard fuzzy scoring complete locally.
+- Last activity:
+  - Replaced split/LINQ tokenization and duplicate intersection/union structures with direct normalized scans and smaller-set membership probes.
+  - Two 5,000-token inputs fall from 3,172,664 to 1,335,064 warmed allocated bytes (57.9%).
+- Validation:
+  - Passed focused fuzzy matcher (`49/49`), broader MediaCore (`243/243`), and full backend suites (`4986/4986`) tests.
+  - Exact case/separator/punctuation/duplicate/score/allocation boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Documented gotcha `0z704` (`3668b9e5e`). Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the Jaccard fuzzy-score slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 18:44:46Z
 
 - Current task: performance and efficiency improvements in progress; PCM extraction payload-copy removal complete locally.

@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Jaccard fuzzy scoring now tokenizes each input in one direct scan and counts
+  overlap by probing the smaller token set, deriving union cardinality from the
+  two existing set sizes. It no longer creates a split array, per-token trim
+  parameter arrays, LINQ iterator pipeline, or extra intersection and union
+  sets. Across two covered 5,000-token inputs, warmed allocation falls from
+  3,172,664 to 1,335,064 bytes (57.9%). Case-insensitive token identity,
+  ASCII-space splitting, boundary punctuation trimming, internal punctuation,
+  duplicate collapse, Unicode invariant casing, empty inputs, exact Jaccard
+  scores, and title/artist combination remain unchanged.
 - PCM extraction now decodes ffmpeg's buffered signed 16-bit little-endian
   output directly into the required normalized `float[]`. It no longer copies
   the complete stream into a new `byte[]` and then again into a `short[]`; for

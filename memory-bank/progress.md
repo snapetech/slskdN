@@ -1,3 +1,10 @@
+## Update 2026-07-16 18:54:47Z
+
+- Completed the single-pass Jaccard fuzzy-score performance pass.
+- Tokenization now scans normalized inputs directly, and intersection walks only the smaller existing set while union size is derived without another set.
+- Across two 5,000-token inputs, warmed allocation falls from 3,172,664 to 1,335,064 bytes (57.9%). Exact case, separator, punctuation, duplicate, empty, and Jaccard behavior remain unchanged. Documented parser cursor gotcha `0z704` (`3668b9e5e`).
+- Validation passed: focused fuzzy matcher tests (`49/49`), broader MediaCore tests (`243/243`), full backend suites (`4986/4986`: `69` application, `4637` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 18:44:46Z
 
 - Completed the PCM extraction payload-copy removal performance pass.

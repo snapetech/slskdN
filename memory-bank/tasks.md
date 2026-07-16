@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make Jaccard fuzzy scoring single-pass and allocation-bounded.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `FuzzyMatcher.Score` now tokenizes each normalized title/artist input in one direct scan, counts intersection membership by walking the smaller existing `HashSet`, and derives union size as `left.Count + right.Count - intersection`. This removes the split array, per-token `Trim(params char[])` arrays, LINQ token pipeline, and the extra `Intersect`/`Union` set structures. For two 5,000-token inputs with 2,500 shared tokens, warmed allocation falls from 3,172,664 to 1,335,064 bytes (57.9%) and remains below 1.4 MB. ASCII-space splitting, eight-character boundary trimming, internal punctuation, duplicate collapse, Unicode invariant lowercasing, empty handling, title/artist separation, and exact Jaccard scores remain unchanged. Added exact punctuation/next-token, duplicate, Unicode, tab, internal-punctuation, score, and allocation regressions. Documented parser cursor gotcha `0z704` (`3668b9e5e`). Validation passed: focused fuzzy matcher tests (`49/49`), broader MediaCore tests (`243/243`), full backend suites (`4986/4986`: `69` application, `4637` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Remove PCM extraction payload copies.
   - Status: completed (2026-07-16)
   - Priority: P1

@@ -173,6 +173,37 @@ public class FuzzyMatcherTests
         Assert.Equal(0.0, score);
     }
 
+    [Theory]
+    [InlineData("\"Alpha,\" beta", "alpha beta", 1.0)]
+    [InlineData("alpha,,, beta", "alpha beta", 1.0)]
+    [InlineData(",,, alpha", "alpha", 1.0)]
+    [InlineData("alpha alpha beta", "alpha beta", 1.0)]
+    [InlineData("ÄPFEL", "äpfel", 1.0)]
+    [InlineData("alpha\tbeta", "alpha beta", 0.0)]
+    [InlineData("alpha,beta gamma", "alpha beta gamma", 0.25)]
+    public void Score_PreservesTokenizationSemantics(string value, string candidate, double expected)
+    {
+        Assert.Equal(expected, matcher.Score(value, string.Empty, candidate, string.Empty));
+    }
+
+    [Fact]
+    public void Score_LargeTokenSetsAvoidsIntermediateSetCopies()
+    {
+        const int tokenCount = 5_000;
+        var left = string.Join(' ', Enumerable.Range(0, tokenCount).Select(index => $"token-{index}"));
+        var right = string.Join(' ', Enumerable.Range(tokenCount / 2, tokenCount).Select(index => $"token-{index}"));
+        _ = matcher.Score("warm shared", string.Empty, "warm different", string.Empty);
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var score = matcher.Score(left, string.Empty, right, string.Empty);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(1.0 / 3.0, score, precision: 10);
+        Assert.True(
+            allocatedBytes < 1_400_000,
+            $"Expected single-pass token scoring below 1.4 MB allocated, got {allocatedBytes:N0} bytes.");
+    }
+
     [Fact]
     public void ScoreLevenshtein_EmptyStrings_ReturnsOne()
     {
