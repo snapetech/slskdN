@@ -1,6 +1,6 @@
 # Listening Party
 
-Last updated: 2026-04-30
+Last updated: 2026-07-15
 
 slskdN listening parties are metadata-synchronized playback sessions for pods. They intentionally do not relay music bytes through the host.
 
@@ -118,6 +118,14 @@ The registry announcement is TTL-based and contains metadata plus a relative str
   "expiresAtUnixMs": 1777501646000
 }
 ```
+
+Directory hydration is deliberately conservative. The current compact pod
+panel does not request the global directory because it does not display it.
+Full directory views refresh only while visible, at most once per minute, and
+do not overlap slow requests or discard the last successful listing after a
+transient failure. On the server, concurrent HTTP callers share one DHT index
+and announcement refresh, and the resulting snapshot is reused process-wide
+for one minute.
 
 The integrated radio endpoint only serves the active party's current `ContentId`, only while the host has both listing and mesh streaming enabled, and only while the normal streaming feature is enabled. It uses the same content locator and stream session limiter pattern as `/api/v0/streams/{contentId}`.
 

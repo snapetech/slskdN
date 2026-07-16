@@ -23,6 +23,7 @@ public sealed class ListeningPartyService : IListeningPartyService
     private const string DirectoryIndexKey = "slskdn:listening-party:index:v1";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly TimeSpan DirectoryRefreshInterval = TimeSpan.FromMinutes(1);
 
     private readonly IHubContext<ListeningPartyHub> _hub;
     private readonly IMeshDhtClient _dht;
@@ -33,6 +34,9 @@ public sealed class ListeningPartyService : IListeningPartyService
     private readonly ILogger<ListeningPartyService> _logger;
     private readonly ConcurrentDictionary<string, ListeningPartyEvent> _states = new();
     private readonly ConcurrentDictionary<string, ListeningPartyAnnouncement> _directory = new();
+    private readonly object _directoryRefreshLock = new();
+    private Task? _directoryRefreshTask;
+    private DateTimeOffset _directoryLastRefreshedAt;
     private long _sequence;
 
     public ListeningPartyService(
@@ -68,13 +72,42 @@ public sealed class ListeningPartyService : IListeningPartyService
 
     public async Task<IReadOnlyList<ListeningPartyAnnouncement>> ListDirectoryAsync(CancellationToken cancellationToken = default)
     {
-        await RefreshDirectoryFromDhtAsync(cancellationToken);
+        Task refreshTask;
+        lock (_directoryRefreshLock)
+        {
+            var refreshIsCurrent = _directoryLastRefreshedAt != default
+                && DateTimeOffset.UtcNow - _directoryLastRefreshedAt < DirectoryRefreshInterval;
+            if (refreshIsCurrent)
+            {
+                refreshTask = Task.CompletedTask;
+            }
+            else if (_directoryRefreshTask is { IsCompleted: false })
+            {
+                refreshTask = _directoryRefreshTask;
+            }
+            else
+            {
+                refreshTask = _directoryRefreshTask = RefreshDirectoryAndMarkAsync();
+            }
+        }
+
+        await refreshTask.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         return _directory.Values
             .Where(x => x.ExpiresAtUnixMs > now)
             .OrderByDescending(x => x.LastSeenUnixMs)
             .ToList();
+    }
+
+    private async Task RefreshDirectoryAndMarkAsync()
+    {
+        await RefreshDirectoryFromDhtAsync(CancellationToken.None).ConfigureAwait(false);
+
+        lock (_directoryRefreshLock)
+        {
+            _directoryLastRefreshedAt = DateTimeOffset.UtcNow;
+        }
     }
 
     public async Task<ListeningPartyEvent> PublishAsync(ListeningPartyEvent partyEvent, CancellationToken cancellationToken = default)

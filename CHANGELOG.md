@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Compact listen-along panels no longer fetch the global radio directory they
+  do not render. Full directory views now poll once per visible minute without
+  overlap or transient cache loss, while the backend coalesces concurrent
+  callers onto one process-wide DHT hydration and reuses it for one minute.
 - Library Health now loads its System dashboard through one bounded SQLite
   snapshot instead of four paged entity reads, reports full-set summary and
   grouping counts beyond 100 issues, uses an indexed recent-issue page, and

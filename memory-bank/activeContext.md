@@ -1,3 +1,21 @@
+## Update 2026-07-16 01:31:53Z
+
+- Current task: performance and efficiency improvements in progress; listen-along directory polling/DHT hydration pass complete locally.
+- Last activity:
+  - Compared Bridge, Security, Mesh, and listen-along dashboard costs; selected listen-along because every 30-second browser poll synchronously fetched one DHT index plus every party announcement.
+  - Removed all directory hydration from the only production call site's compact mode because that render path never displays the directory.
+  - Changed full-panel polling to a visible-only, non-overlapping one-minute cadence with immediate visibility catch-up, unchanged-result suppression, and last-success retention.
+  - Coalesced concurrent HTTP callers onto one process-wide, cancellation-safe DHT refresh and reused the result for one minute; failed refreshes remain immediately retryable.
+  - Current compact traffic falls from two HTTP requests and `2 x (N + 1)` DHT reads per minute to zero. A full panel halves HTTP frequency, while backend DHT hydration is bounded at `N + 1` reads per minute for the process regardless of client count.
+  - Added backend/Web regressions, updated listening-party and release documentation, and documented gotcha `0z626` in standalone commits `59004f367` and `7c0df4f73`.
+- Validation:
+  - Passed focused Listening Party backend tests (`4/4`) and focused Web tests (`6/6`).
+  - Passed complete backend suites (`4776/4776`: `69` smoke, `4427` unit, `280` integration), complete Web tests (`862` passed, `4` skipped), production Web build, frontend lint with zero errors, and repository lint.
+  - The consolidated remediation baseline passed every check before stopping at its expected branch-sync gate because this local work is intentionally unpushed.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 01:17:27Z
 
 - Current task: performance and efficiency improvements in progress; Library Health aggregate/dashboard pass complete locally.

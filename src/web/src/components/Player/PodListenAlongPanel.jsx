@@ -1,8 +1,26 @@
 import { createListeningPartyHubConnection } from '../../lib/hubFactory';
 import * as listeningParty from '../../lib/listeningParty';
 import { usePlayer } from './PlayerContext';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, Checkbox, Icon, Label, List, Popup, Segment } from 'semantic-ui-react';
+
+const DIRECTORY_POLL_INTERVAL_MS = 60_000;
+
+const sameDirectory = (previous, next) =>
+  previous.length === next.length &&
+  previous.every(
+    (party, index) =>
+      party.partyId === next[index]?.partyId &&
+      party.podId === next[index]?.podId &&
+      party.channelId === next[index]?.channelId &&
+      party.hostPeerId === next[index]?.hostPeerId &&
+      party.title === next[index]?.title &&
+      party.artist === next[index]?.artist &&
+      party.album === next[index]?.album &&
+      party.contentId === next[index]?.contentId &&
+      party.allowMeshStreaming === next[index]?.allowMeshStreaming &&
+      party.streamPath === next[index]?.streamPath,
+  );
 
 const applyPartyState = (state, player) => {
   if (!state) return;
@@ -40,8 +58,17 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
   const [globalRadio, setGlobalRadio] = useState(false);
   const [meshStreaming, setMeshStreaming] = useState(false);
   const [partyState, setPartyState] = useState(null);
+  const directoryFetchInFlightRef = useRef(false);
+  const mountedRef = useRef(false);
   const followingRef = useRef(false);
   const playerRef = useRef(player);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     followingRef.current = following;
@@ -90,19 +117,56 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
     };
   }, [channelId, podId]);
 
-  const refreshDirectory = async () => {
+  const refreshDirectory = useCallback(async () => {
+    if (compact || document.hidden || directoryFetchInFlightRef.current) return;
+
+    directoryFetchInFlightRef.current = true;
     try {
-      setDirectory(await listeningParty.getPartyDirectory());
+      const next = await listeningParty.getPartyDirectory();
+      if (!mountedRef.current || document.hidden) return;
+      setDirectory((previous) =>
+        sameDirectory(previous, next) ? previous : next,
+      );
     } catch {
-      setDirectory([]);
+      // Retain the last successful directory during transient failures.
+    } finally {
+      directoryFetchInFlightRef.current = false;
     }
-  };
+  }, [compact]);
 
   useEffect(() => {
-    refreshDirectory();
-    const id = window.setInterval(refreshDirectory, 30_000);
-    return () => window.clearInterval(id);
-  }, []);
+    if (compact) return undefined;
+
+    let interval = null;
+    const stopPolling = () => {
+      if (interval) {
+        window.clearInterval(interval);
+        interval = null;
+      }
+    };
+    const startPolling = () => {
+      if (document.hidden || interval) return;
+      refreshDirectory();
+      interval = window.setInterval(
+        refreshDirectory,
+        DIRECTORY_POLL_INTERVAL_MS,
+      );
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      stopPolling();
+    };
+  }, [compact, refreshDirectory]);
 
   const publish = async (action) => {
     const current = player.current;
@@ -121,7 +185,9 @@ const PodListenAlongPanel = ({ channelId, compact = false, podId, user }) => {
       title: current?.title || current?.fileName || '',
     });
     setPartyState(state);
-    await refreshDirectory();
+    if (!compact) {
+      await refreshDirectory();
+    }
   };
 
   const joinListedParty = (party) => {

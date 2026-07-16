@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Compact listen-along panels no longer request the unrendered global radio
+  directory. Full panels use visible-only, non-overlapping one-minute polling,
+  and the singleton backend coalesces callers onto one shared DHT directory
+  hydration per minute while preserving the last successful browser result.
 - Library Health dashboard hydration now uses one database-backed snapshot for
   summary, type, artist, and bounded issue details. Legacy aggregate endpoints
   also count the complete filtered set, recent pages use a recency index, and
