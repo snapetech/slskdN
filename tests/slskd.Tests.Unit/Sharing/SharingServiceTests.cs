@@ -28,6 +28,27 @@ public class SharingServiceTests
     }
 
     [Fact]
+    public async Task GetCollectionItemAsync_DelegatesScopedLookup()
+    {
+        var collectionId = Guid.NewGuid();
+        var itemId = Guid.NewGuid();
+        var item = new CollectionItem { Id = itemId, CollectionId = collectionId, ContentId = "content" };
+        _collectionsMock
+            .Setup(repository => repository.GetItemAsync(collectionId, itemId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(item);
+
+        var result = await CreateService().GetCollectionItemAsync(collectionId, itemId, default);
+
+        Assert.Same(item, result);
+        _collectionsMock.Verify(
+            repository => repository.GetItemAsync(collectionId, itemId, It.IsAny<CancellationToken>()),
+            Times.Once);
+        _collectionsMock.Verify(
+            repository => repository.GetItemsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task CreateTokenAsync_GrantNotFound_Throws()
     {
         var svc = CreateService();

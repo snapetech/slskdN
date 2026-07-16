@@ -240,8 +240,8 @@ public class CollectionsControllerTests
 
         _sharingMock.Setup(x => x.GetCollectionAsync(collectionId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Collection { Id = collectionId, OwnerUserId = "alice" });
-        _sharingMock.Setup(x => x.GetCollectionItemsAsync(collectionId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CollectionItem> { item });
+        _sharingMock.Setup(x => x.GetCollectionItemAsync(collectionId, itemId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(item);
         _sharingMock.Setup(x => x.UpdateCollectionItemAsync(It.IsAny<CollectionItem>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
@@ -269,6 +269,8 @@ public class CollectionsControllerTests
         Assert.Equal("Track", updated.Title);
         Assert.Equal("Artist", updated.Artist);
         Assert.Equal("Album", updated.Album);
+        _sharingMock.Verify(x => x.GetCollectionItemAsync(collectionId, itemId, It.IsAny<CancellationToken>()), Times.Once);
+        _sharingMock.Verify(x => x.GetCollectionItemsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

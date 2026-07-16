@@ -44,6 +44,48 @@ public sealed class CollectionRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task GetItemAsync_HydratesOnlyTheScopedItem()
+    {
+        var collectionId = Guid.NewGuid();
+        var otherCollectionId = Guid.NewGuid();
+        var items = Enumerable.Range(0, 1000)
+            .Select(index => new CollectionItem
+            {
+                CollectionId = collectionId,
+                ContentId = $"item:{index:D4}",
+                Ordinal = index,
+            })
+            .ToArray();
+        await using (var db = await _factory.CreateDbContextAsync())
+        {
+            db.Collections.AddRange(
+                new Collection { Id = collectionId, OwnerUserId = "owner", Title = "Collection" },
+                new Collection { Id = otherCollectionId, OwnerUserId = "owner", Title = "Other" });
+            db.CollectionItems.AddRange(items);
+            await db.SaveChangesAsync();
+        }
+
+        _commands.Commands.Clear();
+        _materialization.Count = 0;
+        var result = await new CollectionRepository(_factory).GetItemAsync(collectionId, items[777].Id);
+
+        Assert.NotNull(result);
+        Assert.Equal(items[777].Id, result.Id);
+        Assert.Equal(1, _materialization.Count);
+        var command = Assert.Single(_commands.Commands);
+        Assert.Contains("SELECT", command, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"CollectionId\"", command, StringComparison.Ordinal);
+        Assert.Contains("\"Id\"", command, StringComparison.Ordinal);
+        Assert.Contains("LIMIT 1", command, StringComparison.OrdinalIgnoreCase);
+
+        _commands.Commands.Clear();
+        _materialization.Count = 0;
+        Assert.Null(await new CollectionRepository(_factory).GetItemAsync(otherCollectionId, items[777].Id));
+        Assert.Equal(0, _materialization.Count);
+        Assert.Single(_commands.Commands);
+    }
+
+    [Fact]
     public async Task AddItemAsync_AssignsNextOrdinalAndPersistsAllFieldsWithOneCommand()
     {
         var collectionId = Guid.NewGuid();

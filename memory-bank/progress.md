@@ -1,3 +1,10 @@
+## Update 2026-07-16 15:06:54Z
+
+- Completed the scoped collection-item update lookup performance pass.
+- Item updates now resolve one untracked `(CollectionId, Id)` row instead of loading and scanning the complete ordered item list.
+- With 1,000 items, lookup hydration falls from 1,000 entities to one (99.9% fewer). Ownership, wrong-collection/missing-item results, normalization, persistence, and response behavior remain unchanged.
+- Validation passed: focused repository/service/controller tests (`33/33`), broader Sharing tests (`100/100`), full backend tests (`4927/4927`: `69` application, `4578` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 15:01:26Z
 
 - Completed the atomic single-row peer-member removal performance pass.

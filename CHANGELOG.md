@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Collection item updates now resolve one scoped item by ID instead of loading
+  and scanning the collection's complete ordered item list.
 - Peer-ID share-group member removal now deletes one matching legacy row with
   one atomic SQLite command instead of reading and hydrating it first.
 - Collection-item append now assigns and returns its next ordinal in the same

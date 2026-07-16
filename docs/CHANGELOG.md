@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Collection item updates now resolve the requested item through one untracked
+  collection/ID lookup instead of hydrating and scanning the complete ordered
+  collection. With 1,000 items, update lookup hydration falls from 1,000 rows
+  to one (99.9% fewer). Collection ownership checks, wrong-collection and
+  missing-item results, field normalization, update persistence, and response
+  data remain unchanged.
 - Peer-ID share-group member removal now targets one matching SQLite `rowid`
   through a bounded delete subquery instead of reading, hydrating, and then
   deleting the entity. Existing and missing paths fall from two commands to

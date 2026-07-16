@@ -17,6 +17,7 @@ public interface ICollectionRepository
     Task UpdateAsync(Collection entity, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 
+    Task<CollectionItem?> GetItemAsync(Guid collectionId, Guid itemId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CollectionItem>> GetItemsAsync(Guid collectionId, CancellationToken cancellationToken = default);
     Task<CollectionItem> AddItemAsync(CollectionItem item, CancellationToken cancellationToken = default);
     Task UpdateItemAsync(CollectionItem item, CancellationToken cancellationToken = default);

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Scope collection item update lookup by item ID.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added an untracked `(CollectionId, Id)` repository/service lookup and routed item updates through it instead of loading and scanning the complete ordered collection. With 1,000 items, lookup hydration falls from 1,000 entities to one (99.9% fewer). Collection ownership, wrong-collection and missing-item behavior, field normalization, persistence, and response identity remain unchanged. Added production SQLite SQL/materialization/result/scope coverage, exact service delegation, and a controller boundary requiring one scoped lookup with zero list calls. Validation passed: focused repository/service/controller tests (`33/33`), broader Sharing tests (`100/100`), full backend tests (`4927/4927`: `69` application, `4578` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Make peer-ID member removal atomic without widening deletion.
   - Status: completed (2026-07-16)
   - Priority: P1

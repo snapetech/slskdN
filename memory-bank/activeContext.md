@@ -1,3 +1,17 @@
+## Update 2026-07-16 15:06:54Z
+
+- Current task: performance and efficiency improvements in progress; scoped collection-item update lookup complete locally.
+- Last activity:
+  - Added an untracked collection/ID item lookup and replaced the update controller's full-list scan.
+  - At 1,000 items, hydration falls 99.9% while ownership, scope, missing-item, normalization, persistence, and response semantics remain unchanged.
+- Validation:
+  - Passed focused repository/service/controller (`33/33`), broader Sharing (`100/100`), and full backend (`4927/4927`) tests.
+  - Exact SQL/materialization/result/service/controller boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the scoped collection-item lookup slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 15:01:26Z
 
 - Current task: performance and efficiency improvements in progress; atomic single-row peer-member removal complete locally.

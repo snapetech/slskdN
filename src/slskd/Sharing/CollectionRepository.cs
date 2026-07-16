@@ -67,6 +67,14 @@ public sealed class CollectionRepository : ICollectionRepository
         return await db.CollectionItems.AsNoTracking().Where(x => x.CollectionId == collectionId).OrderBy(x => x.Ordinal).ToListAsync(cancellationToken);
     }
 
+    public async Task<CollectionItem?> GetItemAsync(Guid collectionId, Guid itemId, CancellationToken cancellationToken = default)
+    {
+        await using var db = await _factory.CreateDbContextAsync(cancellationToken);
+        return await db.CollectionItems
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.CollectionId == collectionId && item.Id == itemId, cancellationToken);
+    }
+
     public async Task<CollectionItem> AddItemAsync(CollectionItem item, CancellationToken cancellationToken = default)
     {
         await using var db = await _factory.CreateDbContextAsync(cancellationToken);

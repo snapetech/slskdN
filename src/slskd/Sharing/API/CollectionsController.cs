@@ -195,8 +195,7 @@ public class CollectionsController : ControllerBase
         if (currentUserId is null) return Forbid();
         var c = await _sharing.GetCollectionAsync(id, ct);
         if (c == null || c.OwnerUserId != currentUserId) return NotFound();
-        var items = await _sharing.GetCollectionItemsAsync(id, ct);
-        var it = items.FirstOrDefault(x => x.Id == itemId);
+        var it = await _sharing.GetCollectionItemAsync(id, itemId, ct);
         if (it == null) return NotFound();
         if (req.ContentId != null)
         {
