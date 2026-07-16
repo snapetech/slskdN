@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z655. Destructive File Pipelines Must Be Streamed And Enumerated Once
+
+**The Bug**: Retention pruning materialized every filename with
+`Directory.GetFiles`, then enumerated a lazy resolve-and-age-filter pipeline to
+count matches, delete them, and count matches again. Every candidate was
+resolved and inspected three times, including once after deletion, while the
+complete filename array remained resident.
+
+**Files Affected**:
+- `src/slskd/Application.cs`
+
+**Prevention**: Use `Directory.EnumerateFiles` for recursive maintenance and
+track found, deleted, and failed counts during the same destructive pass.
+Never call `Count()` before or after a `foreach` over a lazy pipeline that does
+filesystem I/O or mutation; materialize only when a stable snapshot is truly
+required.
+
 ### 0z654. Reusing Batch Snapshots Requires An Atomic Eligibility Claim
 
 **The Bug**: Removing per-item intent reloads by passing pending batch snapshots
