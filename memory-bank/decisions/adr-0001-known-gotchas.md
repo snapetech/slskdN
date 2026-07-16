@@ -52,6 +52,20 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z684. Lambda Object Initializers Align With The `new` Expression
+
+**The Bug**: A HashDb batch-analysis regression indented the object initializer
+inside `Select((item, index) => new Type { ... })` one level deeper than the
+repository formatter permits, causing `./bin/lint` to fail its whitespace gate.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/HashDb/HashDbServiceTests.cs`
+
+**Prevention**: In multiline LINQ selectors, align the initializer braces and
+properties with the `new` expression according to `dotnet format`; do not add
+an extra block indentation merely because the lambda spans lines. Run focused
+format verification after inserting large test fixtures.
+
 ### 0z683. Test Factories Must Not Override Caller Mock Setups
 
 **The Bug**: `LibraryBloomDiffServiceTests.CreateService` always configured
