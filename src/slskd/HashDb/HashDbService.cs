@@ -861,6 +861,47 @@ namespace slskd.HashDb
         }
 
         /// <inheritdoc/>
+        public async Task<IEnumerable<AlbumTargetEntry>> GetAlbumTargetsAsync(
+            IEnumerable<string> releaseIds,
+            CancellationToken cancellationToken = default)
+        {
+            var normalized = releaseIds
+                .Where(releaseId => !string.IsNullOrWhiteSpace(releaseId))
+                .Select(releaseId => releaseId.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            var targets = new List<AlbumTargetEntry>();
+            if (normalized.Length == 0)
+            {
+                return targets;
+            }
+
+            using var conn = GetConnection();
+            foreach (var batch in normalized.Chunk(500))
+            {
+                using var cmd = conn.CreateCommand();
+                var parameters = batch.Select((_, index) => $"@release{index}").ToArray();
+                cmd.CommandText = $"""
+                    SELECT release_id, discogs_release_id, title, artist, metadata_release_date, metadata_country, metadata_label, metadata_status, created_at
+                    FROM AlbumTargets
+                    WHERE release_id IN ({string.Join(", ", parameters)})
+                    """;
+                for (var index = 0; index < batch.Length; index++)
+                {
+                    cmd.Parameters.AddWithValue(parameters[index], batch[index]);
+                }
+
+                await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    targets.Add(ReadAlbumTargetEntry(reader));
+                }
+            }
+
+            return targets;
+        }
+
+        /// <inheritdoc/>
         public async Task<IEnumerable<HashDbEntry>> LookupHashesByRecordingIdAsync(string recordingId, CancellationToken cancellationToken = default)
         {
             var matches = new List<HashDbEntry>();

@@ -548,6 +548,36 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetAlbumTargetsAsync_WithReleaseBatch_ReturnsRequestedTargets()
+    {
+        await service.UpsertAlbumTargetAsync(new AlbumTarget
+        {
+            MusicBrainzReleaseId = "release-1",
+            Title = "Album One",
+            Artist = "Artist",
+        });
+        await service.UpsertAlbumTargetAsync(new AlbumTarget
+        {
+            MusicBrainzReleaseId = "release-2",
+            Title = "Album Two",
+            Artist = "Artist",
+        });
+
+        var targets = (await service.GetAlbumTargetsAsync(new[]
+        {
+            " release-2 ",
+            "release-1",
+            "release-2",
+            "missing",
+        })).ToList();
+
+        Assert.Equal(2, targets.Count);
+        Assert.Equal(
+            new[] { "release-1", "release-2" },
+            targets.Select(target => target.ReleaseId).OrderBy(releaseId => releaseId));
+    }
+
+    [Fact]
     public async Task UpsertAlbumTargetAsync_TrimsStoredAlbumAndTrackFields()
     {
         var target = new AlbumTarget

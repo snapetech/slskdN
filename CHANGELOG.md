@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Discography coverage now batches cached releases, tracks, and recording-hash
+  evidence, and indexes Wishlist search text for constant-time membership tests.
 - Discography and label-crate status reads now aggregate child state in one
   pass and persist the parent only when derived fields change.
 - HashDb history backfill now ingests each retained search page through one

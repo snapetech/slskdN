@@ -1,3 +1,17 @@
+## Update 2026-07-16 09:45:59Z
+
+- Current task: performance and efficiency improvements in progress; discography coverage batching pass complete locally.
+- Last activity:
+  - Batched cached album-target, release-track, and recording-hash reads while preserving graph ordering and sequential MusicBrainz cache-miss behavior.
+  - A cached 100-release/1,000-track request falls from 1,200 SQLite commands to four (99.7% fewer) through three service read calls. Wishlist fallback now uses constant-time normalized search-text membership. Documented fixture gotcha `0z679` (`bed247404`).
+- Validation:
+  - Passed focused coverage (`5/5`), broader HashDb/MusicBrainz coverage (`144/144`), and full backend tests (`4854/4854`: `69` application, `4505` unit, `280` integration).
+  - Repository lint and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the discography coverage batching slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 09:33:06Z
 
 - Current task: performance and efficiency improvements in progress; job aggregate polling pass complete locally.

@@ -74,6 +74,13 @@ namespace slskd.HashDb
         Task<IEnumerable<AlbumTargetEntry>> GetAlbumTargetsAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
+        ///     Gets the requested stored album targets.
+        /// </summary>
+        Task<IEnumerable<AlbumTargetEntry>> GetAlbumTargetsAsync(
+            IEnumerable<string> releaseIds,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         ///     Looks up hash entries by MusicBrainz recording identifier.
         /// </summary>
         Task<IEnumerable<HashDbEntry>> LookupHashesByRecordingIdAsync(string recordingId, CancellationToken cancellationToken = default);

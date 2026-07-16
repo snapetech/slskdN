@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- MusicBrainz discography coverage now batches cached album targets, release
+  tracks, and recording-hash evidence before assembling the unchanged response.
+  A cached 100-release collection with ten tracks each falls from 1,200 SQLite
+  commands to four (99.7% fewer), while cache misses remain sequential and
+  Wishlist fallback uses indexed membership instead of per-track prefix scans.
 - Discography and label-crate job reads now derive child aggregates in one pass
   and skip the parent upsert when totals and status are unchanged. Steady-state
   polling falls from three database operations to two (33.3% fewer) and avoids

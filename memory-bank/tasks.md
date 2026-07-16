@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch MusicBrainz discography coverage evidence reads.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added a normalized bounded album-target batch read, then loaded all resolved release tracks and recording hashes through the existing batch APIs before assembling coverage in the original graph order. A cached 100-release collection with ten tracks each falls from 1,200 SQLite commands to four (99.7% fewer), represented by three service read calls; remote MusicBrainz cache misses remain sequential. Wishlist fallback now uses normalized search-text membership instead of scanning all Wishlist keys for every missing track. Added batch normalization and exact 100-release/1,000-track call-boundary regressions; documented batched child-key fixture gotcha `0z679` (`bed247404`).
+
 - [x] Remove unchanged job-aggregate writes and repeated list scans.
   - Status: completed (2026-07-16)
   - Priority: P1

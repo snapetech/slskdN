@@ -73,9 +73,70 @@ public sealed class DiscographyCoverageService : IDiscographyCoverageService
             .ApplyProfile(graph, DiscographyProfileFilter.FromProfile(request.Profile))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var wishlistKeys = (await wishlistService.ListAsync().ConfigureAwait(false))
+        var wishlistItems = await wishlistService.ListAsync().ConfigureAwait(false);
+        var wishlistKeys = wishlistItems
             .Select(item => NormalizeKey(item.SearchText, item.Filter))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var wishlistSearchTexts = wishlistItems
+            .Select(item => NormalizeSearchText(item.SearchText))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var selectedReleases = graph.ReleaseGroups
+            .SelectMany(group => group.Releases
+                .Where(release => releaseIds.Contains(release.ReleaseId))
+                .Select(release => (Group: group, Release: release)))
+            .ToList();
+        var storedAlbums = (await hashDb
+                .GetAlbumTargetsAsync(
+                    selectedReleases.Select(item => item.Release.ReleaseId),
+                    cancellationToken)
+                .ConfigureAwait(false))
+            .ToDictionary(album => album.ReleaseId, StringComparer.OrdinalIgnoreCase);
+        var resolvedReleases = new List<(ReleaseGroup Group, Release Release, AlbumTarget? Album)>(selectedReleases.Count);
+        foreach (var item in selectedReleases)
+        {
+            AlbumTarget? album;
+            if (storedAlbums.TryGetValue(item.Release.ReleaseId, out var storedAlbum))
+            {
+                album = ToAlbumTarget(storedAlbum);
+            }
+            else
+            {
+                album = await musicBrainzClient
+                    .GetReleaseAsync(item.Release.ReleaseId, cancellationToken)
+                    .ConfigureAwait(false);
+                if (album == null)
+                {
+                    logger.LogDebug(
+                        "[DiscographyCoverage] Release {ReleaseId} could not be resolved",
+                        item.Release.ReleaseId);
+                }
+                else
+                {
+                    await hashDb.UpsertAlbumTargetAsync(album, cancellationToken).ConfigureAwait(false);
+                }
+            }
+
+            resolvedReleases.Add((item.Group, item.Release, album));
+        }
+
+        var resolvedReleaseIds = resolvedReleases
+            .Where(item => item.Album != null)
+            .Select(item => item.Release.ReleaseId)
+            .ToArray();
+        var tracksByRelease = (await hashDb
+                .GetAlbumTracksAsync(resolvedReleaseIds, cancellationToken)
+                .ConfigureAwait(false))
+            .ToLookup(track => track.ReleaseId, StringComparer.OrdinalIgnoreCase);
+        var hashesByRecording = (await hashDb
+                .LookupHashesByRecordingIdsAsync(
+                    tracksByRelease
+                        .SelectMany(group => group)
+                        .Where(track => !string.IsNullOrWhiteSpace(track.RecordingId))
+                        .Select(track => track.RecordingId),
+                    cancellationToken)
+                .ConfigureAwait(false))
+            .ToLookup(hash => hash.MusicBrainzId, StringComparer.Ordinal);
 
         var result = new DiscographyCoverageResult
         {
@@ -84,51 +145,53 @@ public sealed class DiscographyCoverageService : IDiscographyCoverageService
             Profile = request.Profile,
         };
 
-        foreach (var group in graph.ReleaseGroups)
+        foreach (var item in resolvedReleases)
         {
-            foreach (var release in group.Releases.Where(release => releaseIds.Contains(release.ReleaseId)))
+            var group = item.Group;
+            var release = item.Release;
+            var album = item.Album;
+            if (album == null)
             {
-                var album = await EnsureAlbumTargetAsync(release.ReleaseId, cancellationToken).ConfigureAwait(false);
-                if (album == null)
-                {
-                    result.Releases.Add(new DiscographyCoverageRelease
-                    {
-                        ReleaseGroupId = group.ReleaseGroupId,
-                        ReleaseId = release.ReleaseId,
-                        Title = release.Title,
-                        ReleaseDate = release.ReleaseDate,
-                        Type = group.Type,
-                    });
-                    continue;
-                }
-
-                var tracks = (await hashDb.GetAlbumTracksAsync(release.ReleaseId, cancellationToken).ConfigureAwait(false))
-                    .OrderBy(track => track.Position)
-                    .ToList();
-
-                var coverageRelease = new DiscographyCoverageRelease
+                result.Releases.Add(new DiscographyCoverageRelease
                 {
                     ReleaseGroupId = group.ReleaseGroupId,
                     ReleaseId = release.ReleaseId,
-                    Title = string.IsNullOrWhiteSpace(album.Title) ? release.Title : album.Title,
-                    ReleaseDate = album.Metadata.ReleaseDate?.ToString("yyyy-MM-dd") ?? release.ReleaseDate,
+                    Title = release.Title,
+                    ReleaseDate = release.ReleaseDate,
                     Type = group.Type,
-                    TotalTracks = tracks.Count,
-                };
-
-                foreach (var track in tracks)
-                {
-                    var coverageTrack = await BuildTrackCoverageAsync(track, wishlistKeys, cancellationToken).ConfigureAwait(false);
-                    coverageRelease.Tracks.Add(coverageTrack);
-
-                    if (coverageTrack.Status == DiscographyCoverageStatus.MeshAvailable)
-                    {
-                        coverageRelease.CoveredTracks++;
-                    }
-                }
-
-                result.Releases.Add(coverageRelease);
+                });
+                continue;
             }
+
+            var tracks = tracksByRelease[release.ReleaseId]
+                .OrderBy(track => track.Position)
+                .ToList();
+            var coverageRelease = new DiscographyCoverageRelease
+            {
+                ReleaseGroupId = group.ReleaseGroupId,
+                ReleaseId = release.ReleaseId,
+                Title = string.IsNullOrWhiteSpace(album.Title) ? release.Title : album.Title,
+                ReleaseDate = album.Metadata.ReleaseDate?.ToString("yyyy-MM-dd") ?? release.ReleaseDate,
+                Type = group.Type,
+                TotalTracks = tracks.Count,
+            };
+
+            foreach (var track in tracks)
+            {
+                var coverageTrack = BuildTrackCoverage(
+                    track,
+                    wishlistKeys,
+                    wishlistSearchTexts,
+                    hashesByRecording[track.RecordingId]);
+                coverageRelease.Tracks.Add(coverageTrack);
+
+                if (coverageTrack.Status == DiscographyCoverageStatus.MeshAvailable)
+                {
+                    coverageRelease.CoveredTracks++;
+                }
+            }
+
+            result.Releases.Add(coverageRelease);
         }
 
         result.TotalReleases = result.Releases.Count;
@@ -203,41 +266,28 @@ public sealed class DiscographyCoverageService : IDiscographyCoverageService
         return result;
     }
 
-    private async Task<AlbumTarget?> EnsureAlbumTargetAsync(string releaseId, CancellationToken cancellationToken)
+    private static AlbumTarget ToAlbumTarget(HashDb.Models.AlbumTargetEntry existing)
     {
-        var existing = await hashDb.GetAlbumTargetAsync(releaseId, cancellationToken).ConfigureAwait(false);
-        if (existing != null)
+        return new AlbumTarget
         {
-            return new AlbumTarget
+            MusicBrainzReleaseId = existing.ReleaseId,
+            DiscogsReleaseId = existing.DiscogsReleaseId,
+            Title = existing.Title,
+            Artist = existing.Artist,
+            Metadata = new ReleaseMetadata
             {
-                MusicBrainzReleaseId = existing.ReleaseId,
-                DiscogsReleaseId = existing.DiscogsReleaseId,
-                Title = existing.Title,
-                Artist = existing.Artist,
-                Metadata = new ReleaseMetadata
-                {
-                    Country = existing.Country,
-                    Label = existing.Label,
-                    Status = existing.Status,
-                },
-            };
-        }
-
-        var album = await musicBrainzClient.GetReleaseAsync(releaseId, cancellationToken).ConfigureAwait(false);
-        if (album == null)
-        {
-            logger.LogDebug("[DiscographyCoverage] Release {ReleaseId} could not be resolved", releaseId);
-            return null;
-        }
-
-        await hashDb.UpsertAlbumTargetAsync(album, cancellationToken).ConfigureAwait(false);
-        return album;
+                Country = existing.Country,
+                Label = existing.Label,
+                Status = existing.Status,
+            },
+        };
     }
 
-    private async Task<DiscographyCoverageTrack> BuildTrackCoverageAsync(
+    private static DiscographyCoverageTrack BuildTrackCoverage(
         HashDb.Models.AlbumTargetTrackEntry track,
         HashSet<string> wishlistKeys,
-        CancellationToken cancellationToken)
+        HashSet<string> wishlistSearchTexts,
+        IEnumerable<HashDb.Models.HashDbEntry> hashes)
     {
         var result = new DiscographyCoverageTrack
         {
@@ -255,8 +305,7 @@ public sealed class DiscographyCoverageService : IDiscographyCoverageService
             return result;
         }
 
-        var hashes = await hashDb.LookupHashesByRecordingIdAsync(track.RecordingId, cancellationToken).ConfigureAwait(false);
-        foreach (var hash in hashes)
+        foreach (var hash in hashes.OrderByDescending(hash => hash.LastUpdatedAt))
         {
             result.Matches.Add(new HashMatch
             {
@@ -275,8 +324,9 @@ public sealed class DiscographyCoverageService : IDiscographyCoverageService
             return result;
         }
 
-        if (wishlistKeys.Contains(NormalizeKey(BuildSearchText(result), "flac")) ||
-            wishlistKeys.Any(key => key.StartsWith(NormalizeSearchText(BuildSearchText(result)) + "\u001f", StringComparison.OrdinalIgnoreCase)))
+        var searchText = BuildSearchText(result);
+        if (wishlistKeys.Contains(NormalizeKey(searchText, "flac")) ||
+            wishlistSearchTexts.Contains(NormalizeSearchText(searchText)))
         {
             result.Status = DiscographyCoverageStatus.WishlistSeeded;
             result.Evidence.Add("Wishlist already has a matching search seed");

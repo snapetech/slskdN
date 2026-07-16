@@ -28,8 +28,8 @@ public class DiscographyCoverageServiceTests
             .ReturnsAsync(CreateGraph());
         profile.Setup(x => x.ApplyProfile(It.IsAny<ArtistReleaseGraph>(), It.IsAny<DiscographyProfileFilter>()))
             .Returns(new List<string> { "release-1" });
-        hashDb.Setup(x => x.GetAlbumTargetAsync("release-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((AlbumTargetEntry?)null);
+        hashDb.Setup(x => x.GetAlbumTargetsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<AlbumTargetEntry>());
         client.Setup(x => x.GetReleaseAsync("release-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AlbumTarget
             {
@@ -37,7 +37,7 @@ public class DiscographyCoverageServiceTests
                 Title = "Release One",
                 Artist = "Artist",
             });
-        hashDb.Setup(x => x.GetAlbumTracksAsync("release-1", It.IsAny<CancellationToken>()))
+        hashDb.Setup(x => x.GetAlbumTracksAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[]
             {
                 new AlbumTargetTrackEntry
@@ -49,12 +49,13 @@ public class DiscographyCoverageServiceTests
                     Artist = "Artist",
                 },
             });
-        hashDb.Setup(x => x.LookupHashesByRecordingIdAsync("recording-1", It.IsAny<CancellationToken>()))
+        hashDb.Setup(x => x.LookupHashesByRecordingIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[]
             {
                 new HashDbEntry
                 {
                     FlacKey = "flac-key",
+                    MusicBrainzId = "recording-1",
                     Size = 123,
                     UseCount = 2,
                 },
@@ -89,14 +90,17 @@ public class DiscographyCoverageServiceTests
             .ReturnsAsync(CreateGraph());
         profile.Setup(x => x.ApplyProfile(It.IsAny<ArtistReleaseGraph>(), It.IsAny<DiscographyProfileFilter>()))
             .Returns(new List<string> { "release-1" });
-        hashDb.Setup(x => x.GetAlbumTargetAsync("release-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AlbumTargetEntry
+        hashDb.Setup(x => x.GetAlbumTargetsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
             {
-                ReleaseId = "release-1",
-                Title = "Release One",
-                Artist = "Artist",
+                new AlbumTargetEntry
+                {
+                    ReleaseId = "release-1",
+                    Title = "Release One",
+                    Artist = "Artist",
+                },
             });
-        hashDb.Setup(x => x.GetAlbumTracksAsync("release-1", It.IsAny<CancellationToken>()))
+        hashDb.Setup(x => x.GetAlbumTracksAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[]
             {
                 new AlbumTargetTrackEntry
@@ -116,7 +120,7 @@ public class DiscographyCoverageServiceTests
                     Artist = "Artist",
                 },
             });
-        hashDb.Setup(x => x.LookupHashesByRecordingIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        hashDb.Setup(x => x.LookupHashesByRecordingIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<HashDbEntry>());
         wishlist.Setup(x => x.ListAsync())
             .ReturnsAsync(new List<WishlistItem>
@@ -162,14 +166,17 @@ public class DiscographyCoverageServiceTests
             .ReturnsAsync(CreateGraph());
         profile.Setup(x => x.ApplyProfile(It.IsAny<ArtistReleaseGraph>(), It.IsAny<DiscographyProfileFilter>()))
             .Returns(new List<string> { "release-1" });
-        hashDb.Setup(x => x.GetAlbumTargetAsync("release-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AlbumTargetEntry
+        hashDb.Setup(x => x.GetAlbumTargetsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
             {
-                ReleaseId = "release-1",
-                Title = "Release One",
-                Artist = "Artist",
+                new AlbumTargetEntry
+                {
+                    ReleaseId = "release-1",
+                    Title = "Release One",
+                    Artist = "Artist",
+                },
             });
-        hashDb.Setup(x => x.GetAlbumTracksAsync("release-1", It.IsAny<CancellationToken>()))
+        hashDb.Setup(x => x.GetAlbumTracksAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[]
             {
                 new AlbumTargetTrackEntry
@@ -189,17 +196,16 @@ public class DiscographyCoverageServiceTests
                     Artist = "Artist",
                 },
             });
-        hashDb.Setup(x => x.LookupHashesByRecordingIdAsync("recording-1", It.IsAny<CancellationToken>()))
+        hashDb.Setup(x => x.LookupHashesByRecordingIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[]
             {
                 new HashDbEntry
                 {
                     FlacKey = "flac-key",
+                    MusicBrainzId = "recording-1",
                     UseCount = 4,
                 },
             });
-        hashDb.Setup(x => x.LookupHashesByRecordingIdAsync("recording-2", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Array.Empty<HashDbEntry>());
         wishlist.Setup(x => x.ListAsync()).ReturnsAsync(new List<WishlistItem>());
         discoveryGraph.Setup(x => x.BuildAsync(
                 It.Is<DiscoveryGraphRequest>(request =>
@@ -238,6 +244,107 @@ public class DiscographyCoverageServiceTests
         Assert.True(release.EvidenceScore > 0);
         Assert.Contains("Release sits in a dense Discovery Graph artist neighborhood.", release.PriorityReasons);
         Assert.Contains("Existing HashDb or Wishlist evidence makes completion lower risk.", release.PriorityReasons);
+    }
+
+    [Fact]
+    public async Task GetCoverageAsync_WithLargeCachedDiscography_UsesThreeBatchedLocalReadCalls()
+    {
+        const int releaseCount = 100;
+        const int tracksPerRelease = 10;
+        var releaseIds = Enumerable.Range(1, releaseCount)
+            .Select(index => $"release-{index}")
+            .ToList();
+        var graph = new ArtistReleaseGraph
+        {
+            ArtistId = "artist-1",
+            Name = "Artist",
+            ReleaseGroups = new List<ReleaseGroup>
+            {
+                new()
+                {
+                    ReleaseGroupId = "rg-1",
+                    Title = "Discography",
+                    Type = ReleaseGroupType.Album,
+                    Releases = releaseIds
+                        .Select(releaseId => new Release
+                        {
+                            ReleaseId = releaseId,
+                            Title = $"Album {releaseId}",
+                        })
+                        .ToList(),
+                },
+            },
+        };
+        var albums = releaseIds
+            .Select(releaseId => new AlbumTargetEntry
+            {
+                ReleaseId = releaseId,
+                Title = $"Album {releaseId}",
+                Artist = "Artist",
+            })
+            .ToArray();
+        var tracks = releaseIds
+            .SelectMany(releaseId => Enumerable.Range(1, tracksPerRelease)
+                .Select(position => new AlbumTargetTrackEntry
+                {
+                    ReleaseId = releaseId,
+                    Position = position,
+                    RecordingId = $"recording-{releaseId}-{position}",
+                    Title = $"Track {position}",
+                    Artist = "Artist",
+                }))
+            .ToArray();
+        var hashes = tracks
+            .Where((_, index) => index % 2 == 0)
+            .Select(track => new HashDbEntry
+            {
+                FlacKey = $"flac-{track.RecordingId}",
+                MusicBrainzId = track.RecordingId,
+            })
+            .ToArray();
+        var releaseGraph = new Mock<IArtistReleaseGraphService>();
+        var profile = new Mock<IDiscographyProfileService>();
+        var client = new Mock<IMusicBrainzClient>();
+        var hashDb = new Mock<IHashDbService>();
+        var wishlist = new Mock<IWishlistService>();
+
+        releaseGraph.Setup(x => x.GetArtistReleaseGraphAsync("artist-1", false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(graph);
+        profile.Setup(x => x.ApplyProfile(graph, It.IsAny<DiscographyProfileFilter>()))
+            .Returns(releaseIds);
+        hashDb.Setup(x => x.GetAlbumTargetsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(albums);
+        hashDb.Setup(x => x.GetAlbumTracksAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tracks);
+        hashDb.Setup(x => x.LookupHashesByRecordingIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(hashes);
+        wishlist.Setup(x => x.ListAsync()).ReturnsAsync(new List<WishlistItem>());
+
+        var service = CreateService(releaseGraph, profile, client, hashDb, wishlist);
+
+        var result = await service.GetCoverageAsync(new DiscographyCoverageRequest
+        {
+            ArtistId = "artist-1",
+            IncludeDiscoveryGraphPriority = false,
+        });
+
+        Assert.NotNull(result);
+        Assert.Equal(releaseCount, result.TotalReleases);
+        Assert.Equal(releaseCount * tracksPerRelease, result.TotalTracks);
+        Assert.Equal(releaseCount * tracksPerRelease / 2, result.CoveredTracks);
+        hashDb.Verify(x => x.GetAlbumTargetsAsync(
+            It.Is<IEnumerable<string>>(ids => ids.Count() == releaseCount),
+            It.IsAny<CancellationToken>()), Times.Once);
+        hashDb.Verify(x => x.GetAlbumTracksAsync(
+            It.Is<IEnumerable<string>>(ids => ids.Count() == releaseCount),
+            It.IsAny<CancellationToken>()), Times.Once);
+        hashDb.Verify(x => x.LookupHashesByRecordingIdsAsync(
+            It.Is<IEnumerable<string>>(ids => ids.Count() == releaseCount * tracksPerRelease),
+            It.IsAny<CancellationToken>()), Times.Once);
+        hashDb.Verify(x => x.GetAlbumTargetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        hashDb.Verify(x => x.GetAlbumTracksAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        hashDb.Verify(x => x.LookupHashesByRecordingIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        client.Verify(x => x.GetReleaseAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private static DiscographyCoverageService CreateService(
