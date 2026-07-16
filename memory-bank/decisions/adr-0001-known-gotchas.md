@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z674. `GetSlskdnPeersAsync` Is A Capability Filter, Not A Peer Inventory
+
+**The Bug**: A passive-ingestion regression tried to count all newly inserted
+peer rows through `GetSlskdnPeersAsync`. That API deliberately selects only
+rows with `caps > 0`, so valid newly discovered peers with default capabilities
+appear absent.
+
+**Files Affected**:
+- `src/slskd/HashDb/HashDbService.cs`
+- `tests/slskd.Tests.Unit/HashDb/HashDbServiceTests.cs`
+
+**Prevention**: Use a direct `Peers` table count when testing peer persistence.
+Use `GetSlskdnPeersAsync` only for capability-advertising peer behavior, and set
+a nonzero capability before expecting a peer in that result.
+
 ### 0z673. Batched `IN` Reads Do Not Preserve Caller Order
 
 **The Bug**: Replacing Library Health's caller-ordered issue lookup with one
