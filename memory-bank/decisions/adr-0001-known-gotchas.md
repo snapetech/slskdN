@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z718. A Nonzero Capacity Cap Can Worsen Dictionary Growth
+
+**The Bug**: Search aggregation initially pre-sized a dictionary to the maximum
+allowed hint when the known input count exceeded that cap. Starting from that
+nonzero prime changed the dictionary's later prime-growth sequence, produced a
+larger final table for a 100,000-item unique input, and increased allocation
+from 13,764,736 to 14,948,952 bytes despite removing an input copy.
+
+**Files Affected**:
+- `src/slskd/Search/Providers/SearchAggregator.cs`
+- `tests/slskd.Tests.Unit/Search/Providers/SearchAggregatorTests.cs`
+
+**Prevention**: Use a bounded exact capacity only when the known count is at or
+below the cap. When a raw count exceeds the cap and deduplication makes output
+cardinality unknown, start at the collection's default capacity instead of at
+the cap; this preserves the runtime's normal growth sequence. Measure the full
+large-input path because a locally reasonable initial reservation can worsen
+total allocation after all growth steps.
+
 ### 0z717. Raw Fan-Out Is Not An Exact Graph Capacity
 
 **The Bug**: IPLD graph optimization initially used the root's complete
