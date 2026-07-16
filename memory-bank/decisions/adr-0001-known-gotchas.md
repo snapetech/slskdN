@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z668. MusicItem Fixtures Require Valid MusicBrainz GUIDs
+
+**The Bug**: A recent-items provider regression used labels such as
+`recording-1` and `release` for track identifiers. `MusicItem.FromTrackEntry`
+maps MusicBrainz IDs through strict GUID validation, so the provider caught an
+`ArgumentException` and returned its documented empty fallback, making the
+performance path appear broken.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/VirtualSoulfind/Core/Music/MusicContentDomainProviderTests.cs`
+
+**Prevention**: Any test that maps `AlbumTargetTrackEntry` into `MusicItem` must
+use valid GUID strings for both `RecordingId` and `ReleaseId`. When a provider
+returns an empty fallback unexpectedly, inspect logged/caught mapping
+invariants before changing production query behavior.
+
 ### 0z667. Recent-Item Reads Must Push The Global Limit Into The Database
 
 **The Bug**: Music recent-item enumeration loaded the complete album catalog,
