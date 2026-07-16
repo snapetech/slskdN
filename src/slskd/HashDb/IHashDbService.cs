@@ -161,6 +161,13 @@ namespace slskd.HashDb
         Task<HashDbEntry?> LookupHashAsync(string flacKey, CancellationToken cancellationToken = default);
 
         /// <summary>
+        ///     Looks up hashes by exact FLAC keys in bounded batches.
+        /// </summary>
+        Task<List<HashDbEntry>> LookupHashesByFlacKeysAsync(
+            IEnumerable<string> flacKeys,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         ///     Gets an AudioVariant by FlacKey (or VariantId that equals FlacKey). T-911 MediaVariant.
         /// </summary>
         Task<AudioVariant?> GetAudioVariantByFlacKeyAsync(string flacKey, CancellationToken cancellationToken = default);

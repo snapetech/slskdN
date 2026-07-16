@@ -1,3 +1,17 @@
+## Update 2026-07-16 10:53:47Z
+
+- Current task: performance and efficiency improvements in progress; native shared-library hash batching pass complete locally.
+- Last activity:
+  - Search and browser pages now resolve their bounded file set once and batch exact FLAC-key evidence through HashDb before preserving the existing SHA fallback.
+  - At the 100-item endpoint maximum, local HashDb reads fall from 100 to one (99.0% fewer). Documented gotchas `0z685` (`681eae85c`) and `0z686` (`b0f8217b4`).
+- Validation:
+  - Passed focused native-library/hash coverage (`23/23`), broader native API/HashDb coverage (`152/152`), and full backend tests (`4869/4869`: `69` application, `4520` unit, `280` integration).
+  - Exact primary-key query-plan, search/browser call boundaries, SHA content-ID preservation, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the native shared-library batching slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 10:42:25Z
 
 - Current task: performance and efficiency improvements in progress; audio analyzer-migration batching pass complete locally.

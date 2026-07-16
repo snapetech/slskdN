@@ -113,16 +113,13 @@ public class LibraryItemsController : ControllerBase
             var results = filtered.Take(limit).ToList();
 
             var codeToMasked = BuildCodeToMaskedFilenameMap();
-            var items = new List<LibraryItemResponse>();
-            foreach (var file in results)
-            {
-                var maskedFilename = GetMaskedFilename(file, codeToMasked);
-                var item = await ConvertToLibraryItemAsync(file, maskedFilename, cancellationToken);
-                if (item != null)
-                {
-                    items.Add(item);
-                }
-            }
+            var items = await ConvertToLibraryItemsAsync(
+                results.Select(file => new LibraryItemCandidate(
+                    File: file,
+                    RemoteFilename: GetMaskedFilename(file, codeToMasked),
+                    DisplayPath: null,
+                    DuplicateCount: 1)),
+                cancellationToken).ConfigureAwait(false);
 
             if (items.Count == 0 && options != null)
             {
@@ -183,21 +180,13 @@ public class LibraryItemsController : ControllerBase
                 .OrderBy(file => file.Path, StringComparer.OrdinalIgnoreCase)
                 .ToList();
             var pagedFiles = groupedFiles.Skip(offset).Take(limit).ToList();
-            var items = new List<LibraryItemResponse>();
-
-            foreach (var file in pagedFiles)
-            {
-                var item = await ConvertToLibraryItemAsync(
-                    file.File,
-                    file.RemoteFilename,
-                    cancellationToken,
-                    file.Path).ConfigureAwait(false);
-                if (item != null)
-                {
-                    item.DuplicateCount = file.DuplicateCount;
-                    items.Add(item);
-                }
-            }
+            var items = await ConvertToLibraryItemsAsync(
+                pagedFiles.Select(file => new LibraryItemCandidate(
+                    File: file.File,
+                    RemoteFilename: file.RemoteFilename,
+                    DisplayPath: file.Path,
+                    DuplicateCount: file.DuplicateCount)),
+                cancellationToken).ConfigureAwait(false);
 
             return Ok(new
             {
@@ -496,27 +485,110 @@ public class LibraryItemsController : ControllerBase
         try
         {
             // Resolve local file path
-            var (host, filename, size) = await shareService.ResolveFileAsync(maskedFilename);
+            var (_, filename, size) = await shareService.ResolveFileAsync(maskedFilename);
 
             // Try to get sha256 from HashDb first
-            string? sha256 = null;
+            HashDb.Models.HashDbEntry? hashEntry = null;
             if (hashDbService != null)
             {
                 try
                 {
                     // Try to lookup by size (HashDb uses FlacKey which is based on filename+size)
                     var flacKey = HashDb.Models.HashDbEntry.GenerateFlacKey(filename, size);
-                    var hashEntry = await hashDbService.LookupHashAsync(flacKey, cancellationToken);
-                    if (hashEntry != null && !string.IsNullOrEmpty(hashEntry.FileSha256))
-                    {
-                        sha256 = hashEntry.FileSha256;
-                    }
+                    hashEntry = await hashDbService.LookupHashAsync(flacKey, cancellationToken);
                 }
                 catch
                 {
                     // HashDb lookup failed, will compute on-demand if needed
                 }
             }
+
+            return await ConvertResolvedLibraryItemAsync(
+                new ResolvedLibraryItem(file, maskedFilename, displayPath, DuplicateCount: 1, filename, size),
+                hashEntry,
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "Failed to convert file to library item: {Filename}", file.Filename);
+            return null;
+        }
+    }
+
+    private async Task<List<LibraryItemResponse>> ConvertToLibraryItemsAsync(
+        IEnumerable<LibraryItemCandidate> candidates,
+        CancellationToken cancellationToken)
+    {
+        var resolved = new List<ResolvedLibraryItem>();
+        foreach (var candidate in candidates)
+        {
+            try
+            {
+                var (_, filename, size) = await shareService
+                    .ResolveFileAsync(candidate.RemoteFilename)
+                    .ConfigureAwait(false);
+                resolved.Add(new ResolvedLibraryItem(
+                    candidate.File,
+                    candidate.RemoteFilename,
+                    candidate.DisplayPath,
+                    candidate.DuplicateCount,
+                    filename,
+                    size));
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "Failed to resolve file: {Filename}", candidate.File.Filename);
+            }
+        }
+
+        var hashesByFlacKey = new Dictionary<string, HashDb.Models.HashDbEntry>(StringComparer.Ordinal);
+        if (hashDbService != null && resolved.Count > 0)
+        {
+            try
+            {
+                hashesByFlacKey = (await hashDbService
+                        .LookupHashesByFlacKeysAsync(
+                            resolved.Select(item => HashDb.Models.HashDbEntry.GenerateFlacKey(item.Filename, item.Size)),
+                            cancellationToken)
+                        .ConfigureAwait(false))
+                    .ToDictionary(entry => entry.FlacKey, StringComparer.Ordinal);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogDebug(ex, "Failed to batch lookup library item hashes");
+            }
+        }
+
+        var items = new List<LibraryItemResponse>(resolved.Count);
+        foreach (var item in resolved)
+        {
+            var flacKey = HashDb.Models.HashDbEntry.GenerateFlacKey(item.Filename, item.Size);
+            var converted = await ConvertResolvedLibraryItemAsync(
+                item,
+                hashesByFlacKey.GetValueOrDefault(flacKey),
+                cancellationToken).ConfigureAwait(false);
+            if (converted != null)
+            {
+                converted.DuplicateCount = item.DuplicateCount;
+                items.Add(converted);
+            }
+        }
+
+        return items;
+    }
+
+    private async Task<LibraryItemResponse?> ConvertResolvedLibraryItemAsync(
+        ResolvedLibraryItem item,
+        HashDb.Models.HashDbEntry? hashEntry,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var filename = item.Filename;
+            var size = item.Size;
+            var maskedFilename = item.RemoteFilename;
+            var displayPath = item.DisplayPath;
+            var sha256 = string.IsNullOrEmpty(hashEntry?.FileSha256) ? null : hashEntry.FileSha256;
 
             // If no sha256 from HashDb and file exists, compute it (for test fixtures)
             if (string.IsNullOrEmpty(sha256) && System.IO.File.Exists(filename))
@@ -570,7 +642,7 @@ public class LibraryItemsController : ControllerBase
         }
         catch (Exception ex)
         {
-            logger?.LogWarning(ex, "Failed to convert file to library item: {Filename}", file.Filename);
+            logger?.LogWarning(ex, "Failed to convert file to library item: {Filename}", item.File.Filename);
             return null;
         }
     }
@@ -765,6 +837,20 @@ public class LibraryItemsController : ControllerBase
         public string DuplicateKey => $"{FileName}|{Bytes}";
         public string PathKey => Path;
     }
+
+    private sealed record LibraryItemCandidate(
+        Soulseek.File File,
+        string RemoteFilename,
+        string? DisplayPath,
+        int DuplicateCount);
+
+    private sealed record ResolvedLibraryItem(
+        Soulseek.File File,
+        string RemoteFilename,
+        string? DisplayPath,
+        int DuplicateCount,
+        string Filename,
+        long Size);
 
     private class LibraryItemResponse
     {

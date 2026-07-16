@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch native shared-library page hash evidence.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Search and browser endpoints now resolve their bounded page once, generate exact FLAC keys, hydrate HashDb evidence through a normalized 500-key API, and assemble responses in original order. At the 100-item endpoint cap, local reads fall from 100 to one (99.0% fewer). Batch failures still fall back to per-file SHA computation, successful entries populate the existing five-minute exact-key cache, and individual resolution failures remain isolated. Added exact 100-file search and browser call-boundary regressions, SHA content-ID preservation, normalized exact-only lookup coverage, and primary-key query-plan verification. Documented omitted intermediate-type gotcha `0z685` (`681eae85c`) and positional-record argument casing gotcha `0z686` (`b0f8217b4`).
+
 - [x] Page and batch audio analyzer migration.
   - Status: completed (2026-07-16)
   - Priority: P1

@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Native shared-library search and browser pages now resolve their bounded file
+  set once and batch exact HashDb evidence lookup.
 - Audio analyzer migrations now page variant reads and batch recalculated
   analysis-field updates instead of scanning and writing one recording at a time.
 - MusicBrainz discography and Library Bloom Wishlist promotions now batch new

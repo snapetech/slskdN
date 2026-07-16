@@ -1623,6 +1623,44 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task LookupHashesByFlacKeysAsync_ReturnsNormalizedExactMatches()
+    {
+        await service.StoreHashAsync(new HashDbEntry
+        {
+            FlacKey = "exact-key-1",
+            ByteHash = "hash-1",
+            Size = 1,
+            FirstSeenAt = 1,
+            LastUpdatedAt = 1,
+            SeqId = 1,
+            UseCount = 1,
+        });
+        await service.StoreHashAsync(new HashDbEntry
+        {
+            FlacKey = "exact-key-2",
+            VariantId = "variant-key-2",
+            ByteHash = "hash-2",
+            Size = 2,
+            FirstSeenAt = 1,
+            LastUpdatedAt = 2,
+            SeqId = 2,
+            UseCount = 1,
+        });
+
+        var entries = await service.LookupHashesByFlacKeysAsync(new[]
+        {
+            " exact-key-1 ",
+            "exact-key-1",
+            "exact-key-2",
+            "variant-key-2",
+            "missing",
+        });
+
+        Assert.Equal(2, entries.Count);
+        Assert.Equal(new[] { "exact-key-1", "exact-key-2" }, entries.Select(entry => entry.FlacKey).OrderBy(key => key));
+    }
+
+    [Fact]
     public async Task LookupHashesBySizeAsync_FindsMatchingHashes()
     {
         // Arrange
@@ -1850,6 +1888,21 @@ public class HashDbServiceTests : IDisposable
         Assert.Contains(plan, detail => detail.Contains("sqlite_autoindex_HashDb_1", StringComparison.Ordinal));
         Assert.Contains(plan, detail => detail.Contains("idx_hashdb_variant", StringComparison.Ordinal));
         Assert.DoesNotContain(plan, detail => detail.Contains("SCAN HashDb", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Constructor_IndexesBatchedExactFlacKeyLookup()
+    {
+        await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "EXPLAIN QUERY PLAN SELECT * FROM HashDb WHERE flac_key IN ('key-1', 'key-2')";
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        Assert.True(await reader.ReadAsync());
+        var plan = reader.GetString(3);
+
+        Assert.Contains("SEARCH HashDb USING INDEX sqlite_autoindex_HashDb_1", plan, StringComparison.Ordinal);
     }
 
     [Fact]

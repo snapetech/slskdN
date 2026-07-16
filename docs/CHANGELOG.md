@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Native shared-library search and browser pages now resolve their bounded file
+  set once and query exact FLAC keys through one indexed HashDb batch. At the
+  100-item endpoint maximum, local database reads fall from 100 to one (99.0%
+  fewer), while cache population, per-file resolution isolation, and SHA-256
+  fallback for missing evidence remain unchanged.
 - Audio analyzer migration now keyset-pages 500 recording IDs, batch-loads
   variants, and updates only recalculated analysis fields in transactional
   100-row commands. For 10,000 recordings with three stale variants each,

@@ -52,6 +52,7 @@ namespace slskd.HashDb
         private const int ReleaseJobUpsertBatchSize = 100;
         private const int CanonicalStatsUpsertBatchSize = 100;
         private const int VariantAnalysisUpdateBatchSize = 100;
+        private const int HashLookupBatchSize = 500;
 
         private readonly string dbPath;
         private readonly ILogger log = Log.ForContext<HashDbService>();
@@ -1654,6 +1655,73 @@ namespace slskd.HashDb
 
             activity?.SetTag("hashdb.lookup.found", false);
             return null;
+        }
+
+        /// <inheritdoc/>
+        public async Task<List<HashDbEntry>> LookupHashesByFlacKeysAsync(
+            IEnumerable<string> flacKeys,
+            CancellationToken cancellationToken = default)
+        {
+            var normalized = flacKeys
+                .Where(flacKey => !string.IsNullOrWhiteSpace(flacKey))
+                .Select(flacKey => flacKey.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            var entries = new List<HashDbEntry>();
+            if (normalized.Length == 0)
+            {
+                return entries;
+            }
+
+            var missing = new List<string>(normalized.Length);
+            foreach (var flacKey in normalized)
+            {
+                if (hashCache != null &&
+                    hashCache.TryGetValue($"hashdb:lookup:{flacKey}", out var cachedObj) &&
+                    cachedObj is HashDbEntry cached &&
+                    string.Equals(cached.FlacKey, flacKey, StringComparison.Ordinal))
+                {
+                    entries.Add(cached);
+                }
+                else
+                {
+                    missing.Add(flacKey);
+                }
+            }
+
+            if (missing.Count == 0)
+            {
+                return entries;
+            }
+
+            using var connection = GetConnection();
+            foreach (var batch in missing.Chunk(HashLookupBatchSize))
+            {
+                using var command = connection.CreateCommand();
+                var parameters = batch.Select((_, index) => $"@flac_key{index}").ToArray();
+                command.CommandText = $"""
+                    SELECT *
+                    FROM HashDb
+                    WHERE flac_key IN ({string.Join(", ", parameters)})
+                    """;
+                for (var index = 0; index < batch.Length; index++)
+                {
+                    command.Parameters.AddWithValue(parameters[index], batch[index]);
+                }
+
+                using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    var entry = ReadHashEntry(reader);
+                    entries.Add(entry);
+                    hashCache?.Set($"hashdb:lookup:{entry.FlacKey}", entry, new MemoryCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                    });
+                }
+            }
+
+            return entries;
         }
 
         /// <inheritdoc/>

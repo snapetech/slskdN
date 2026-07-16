@@ -47,6 +47,11 @@ public class LibraryItemsControllerTests
         shareServiceMock
             .Setup(x => x.GetLocalRepository())
             .Returns(shareRepositoryMock.Object);
+        hashDbServiceMock
+            .Setup(x => x.LookupHashesByFlacKeysAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<HashDbEntry>());
 
         controller = new LibraryItemsController(
             shareServiceMock.Object,
@@ -315,6 +320,51 @@ public class LibraryItemsControllerTests
     }
 
     [Fact]
+    public async Task SearchItems_WithOneHundredFiles_UsesOneBatchHashLookup()
+    {
+        const int fileCount = 100;
+        var directories = new List<Soulseek.Directory>
+        {
+            new("Music", Enumerable.Range(1, fileCount)
+                .Select(index => new Soulseek.File(index, $"Music/song-{index}.mp3", index, ".mp3"))
+                .ToList()),
+        };
+        shareServiceMock
+            .Setup(x => x.BrowseAsync(It.IsAny<slskd.Shares.Share>()))
+            .ReturnsAsync(directories);
+        shareServiceMock
+            .Setup(x => x.ResolveFileAsync(It.IsAny<string>()))
+            .ReturnsAsync((string filename) => ("local", $"/missing/{filename}", long.Parse(Path.GetFileNameWithoutExtension(filename).Split('-')[1])));
+        hashDbServiceMock
+            .Setup(x => x.LookupHashesByFlacKeysAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<string> keys, CancellationToken _) => keys
+                .Select((key, index) => new HashDbEntry
+                {
+                    FlacKey = key,
+                    FileSha256 = $"sha-{index}",
+                })
+                .ToList());
+
+        var result = await controller.SearchItems(limit: fileCount, cancellationToken: CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var itemsProperty = okResult.Value!.GetType().GetProperty("items");
+        var items = (itemsProperty!.GetValue(okResult.Value) as System.Collections.IEnumerable)!.Cast<object>().ToList();
+        Assert.Equal(fileCount, items.Count);
+        Assert.All(items, item => Assert.StartsWith(
+            "sha256:sha-",
+            item.GetType().GetProperty("ContentId")!.GetValue(item) as string));
+        hashDbServiceMock.Verify(service => service.LookupHashesByFlacKeysAsync(
+            It.Is<IEnumerable<string>>(keys => keys.Count() == fileCount),
+            It.IsAny<CancellationToken>()), Times.Once);
+        hashDbServiceMock.Verify(service => service.LookupHashAsync(
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task BrowseItems_ListsChildFoldersAndPagedFilesForPath()
     {
         var directories = new List<Soulseek.Directory>
@@ -366,6 +416,12 @@ public class LibraryItemsControllerTests
 
         var fileType = files[0].GetType();
         Assert.Equal("Music\\Artist\\song1.mp3", fileType.GetProperty("Path")?.GetValue(files[0]));
+        hashDbServiceMock.Verify(service => service.LookupHashesByFlacKeysAsync(
+            It.Is<IEnumerable<string>>(keys => keys.Count() == 1),
+            It.IsAny<CancellationToken>()), Times.Once);
+        hashDbServiceMock.Verify(service => service.LookupHashAsync(
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -468,10 +524,16 @@ public class LibraryItemsControllerTests
 
             var flacKey = HashDbEntry.GenerateFlacKey(testFilePath, 1024);
             hashDbServiceMock
-                .Setup(x => x.LookupHashAsync(flacKey, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new HashDbEntry
+                .Setup(x => x.LookupHashesByFlacKeysAsync(
+                    It.Is<IEnumerable<string>>(keys => keys.SequenceEqual(new[] { flacKey })),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<HashDbEntry>
                 {
-                    FileSha256 = testSha256
+                    new()
+                    {
+                        FlacKey = flacKey,
+                        FileSha256 = testSha256,
+                    },
                 });
 
             // Act
