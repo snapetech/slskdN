@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z708. Allocation Regressions Must Warm The Exact Measured Method
+
+**The Bug**: A descriptor cache-clear allocation regression stayed below its
+8 KiB ceiling in focused class runs but allocated 12,032 bytes in the broader
+MediaCore suite because it relied on incidental test order to initialize the
+method's task/logging path before measurement.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/MediaCore/DescriptorRetrieverTests.cs`
+
+**Prevention**: Every allocation regression must invoke the exact measured
+public method on a separate representative fixture before reading
+`GC.GetAllocatedBytesForCurrentThread`. Warming a neighboring method, the class
+constructor, or relying on another test is insufficient; filtered and broader
+suite order differs. Keep the real fixture untouched until measurement, and run
+both the focused test and its broader suite before accepting a tight ceiling.
+
 ### 0z707. CryptoStream Hash Sinks Can Still Copy Output Blocks
 
 **The Bug**: Streaming JSON through `CryptoStream(Stream.Null, SHA256, Write)`
