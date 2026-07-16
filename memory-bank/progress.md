@@ -1,3 +1,10 @@
+## Update 2026-07-16 13:07:41Z
+
+- Completed the persisted peer-metrics ranking performance pass.
+- Swarm ranking now computes the canonical default peer cost and applies its requested limit in SQLite, then finalizes the bounded return order through the existing C# cost function instead of hydrating and sorting every stored peer.
+- At the normal 100-peer limit over 100,000 metrics, application hydration falls from 100,000 rows to 100 (99.9% fewer). A five-run synthetic SQLite query median fell from 0.088 seconds for full-row streaming to 0.044 seconds for bounded selection, before counting the eliminated full C# sort.
+- Validation passed: focused HashDb/service tests (`8/8`), complete smoke/unit/integration suites (`4898/4898`: `69` application, `4549` unit, `280` integration), repository lint, and diff checks. Cost parity, case-insensitive first-row deduplication, stable tie order, clamping, and non-positive-limit no-op behavior are covered. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 12:49:02Z
 
 - Completed the atomic warm-cache access-touch performance pass.

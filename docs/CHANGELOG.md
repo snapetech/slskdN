@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Swarm analytics and scheduling peer ranking now applies the canonical
+  default cost formula and requested limit in SQLite, then reuses the C# cost
+  function to finalize the bounded return order. At the normal 100-peer limit
+  over 100,000 stored metrics, application hydration falls from 100,000 rows to
+  100 (99.9% fewer); a five-run synthetic SQLite query median fell from 0.088
+  seconds for full-row streaming to 0.044 seconds for bounded selection before
+  also removing the full application-side sort. Case-insensitive first-row
+  deduplication, tie order, cost clamping, and empty-limit behavior remain
+  unchanged.
 - Warm-cache access touches now update `last_accessed` directly instead of
   reading and hydrating the complete metadata row before rewriting it. Each
   touch falls from two SQLite commands and connections to one (50% fewer),

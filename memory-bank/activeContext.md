@@ -1,3 +1,17 @@
+## Update 2026-07-16 13:07:41Z
+
+- Current task: performance and efficiency improvements in progress; bounded persisted peer ranking complete locally.
+- Last activity:
+  - Moved default peer-cost selection and the requested limit into HashDb while keeping the existing C# cost function authoritative for the bounded return order.
+  - At limit 100 over 100,000 metrics, application hydration falls by 99.9%; the synthetic bounded-query median was 0.044 seconds versus 0.088 seconds for full-row streaming before application sorting.
+- Validation:
+  - Passed focused tests (`8/8`) and full backend tests (`4898/4898`: `69` application, `4549` unit, `280` integration).
+  - Cost parity, first-row case-insensitive deduplication, tie order, limits, repository lint, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the peer-metrics ranking slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 12:49:02Z
 
 - Current task: performance and efficiency improvements in progress; atomic warm-cache touch pass complete locally.

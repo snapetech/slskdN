@@ -5408,6 +5408,73 @@ namespace slskd.HashDb
         }
 
         /// <inheritdoc/>
+        public async Task<List<Transfers.MultiSource.Metrics.PeerPerformanceMetrics>> GetTopPeerMetricsAsync(int limit, CancellationToken cancellationToken = default)
+        {
+            var list = new List<Transfers.MultiSource.Metrics.PeerPerformanceMetrics>();
+            if (limit <= 0)
+            {
+                return list;
+            }
+
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = """
+                WITH first_metrics AS (
+                    SELECT MIN(rowid) AS source_rowid
+                    FROM PeerMetrics
+                    GROUP BY peer_id COLLATE NOCASE
+                ), costed_metrics AS (
+                    SELECT
+                        PeerMetrics.*,
+                        PeerMetrics.rowid AS source_rowid,
+                        (CASE
+                            WHEN COALESCE(throughput_avg_bps, 0) > 0
+                                THEN 1.0 / (throughput_avg_bps / (1024.0 * 1024.0))
+                            ELSE 1000.0
+                        END)
+                        + (CASE
+                            WHEN COALESCE(chunks_requested, 0) > 0
+                                THEN (0.5 * (CAST(COALESCE(chunks_failed, 0) AS REAL) / chunks_requested)) * 10.0
+                            ELSE 0.0
+                        END)
+                        + (CASE
+                            WHEN COALESCE(chunks_requested, 0) > 0
+                                THEN (0.3 * (CAST(COALESCE(chunks_timedout, 0) AS REAL) / chunks_requested)) * 10.0
+                            ELSE 0.0
+                        END)
+                        + (CASE
+                            WHEN COALESCE(rtt_avg_ms, 0) > 0
+                                THEN 0.2 * (rtt_avg_ms / 1000.0)
+                            ELSE 0.0
+                        END)
+                        + (CASE
+                            WHEN COALESCE(throughput_stddev_bps, 0) > 0
+                                AND COALESCE(throughput_avg_bps, 0) > 0
+                                THEN 0.1 * (throughput_stddev_bps / throughput_avg_bps)
+                            ELSE 0.0
+                        END)
+                        + (1.0 * (1.0 - MAX(0.0, MIN(1.0, COALESCE(reputation_score, 0.5))))) * 5.0
+                        AS peer_cost
+                    FROM PeerMetrics
+                    INNER JOIN first_metrics ON first_metrics.source_rowid = PeerMetrics.rowid
+                )
+                SELECT *
+                FROM costed_metrics
+                ORDER BY peer_cost, source_rowid
+                LIMIT @limit
+                """;
+            cmd.Parameters.AddWithValue("@limit", limit);
+
+            using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                list.Add(ReadPeerMetrics(reader));
+            }
+
+            return list;
+        }
+
+        /// <inheritdoc/>
         public Task<Transfers.MultiSource.Metrics.PeerPerformanceMetrics?> GetPeerMetricsAsync(string peerId, CancellationToken cancellationToken = default)
         {
             peerId = peerId?.Trim() ?? string.Empty;

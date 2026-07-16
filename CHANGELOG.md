@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Swarm peer ranking now selects its bounded top set in SQLite before
+  hydrating metrics instead of loading and sorting every persisted peer.
 - Warm-cache access touches now update only their timestamp through one atomic
   SQLite command.
 - Federated recommendation promotion now checks Wishlist duplicates through an

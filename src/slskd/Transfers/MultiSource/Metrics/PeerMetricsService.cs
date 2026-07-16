@@ -199,16 +199,19 @@ namespace slskd.Transfers.MultiSource.Metrics
         /// <inheritdoc/>
         public async Task<List<PeerPerformanceMetrics>> GetRankedPeersAsync(int limit = 100, CancellationToken cancellationToken = default)
         {
-            // Get all peers from cache and database
-            var allMetrics = await hashDb.GetAllPeerMetricsAsync(cancellationToken).ConfigureAwait(false);
+            if (limit <= 0)
+            {
+                return new List<PeerPerformanceMetrics>();
+            }
 
-            // Use cost function to rank peers
+            var topMetrics = await hashDb.GetTopPeerMetricsAsync(limit, cancellationToken).ConfigureAwait(false);
+
+            // Keep the C# cost function authoritative for the returned order. The database query
+            // applies the same default formula to avoid hydrating every persisted peer.
             var costFunction = new PeerCostFunction();
-            var rankedPeers = costFunction.RankPeers(allMetrics);
+            var rankedPeers = costFunction.RankPeers(topMetrics);
 
-            // Return top peers with metrics
             return rankedPeers
-                .Take(limit)
                 .Select(rp => rp.Metrics)
                 .ToList();
         }

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound persisted peer-metrics ranking.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced complete `PeerMetrics` hydration and application sorting with a bounded SQLite cost projection, then retained the canonical C# cost function for final return ordering. At the normal 100-peer limit over 100,000 metrics, application hydration falls from 100,000 rows to 100 (99.9% fewer); five synthetic SQLite runs had a 0.044-second median versus 0.088 seconds merely streaming every row, before the removed full C# sort. The query preserves case-insensitive first-row deduplication, stable tie ordering, zero-throughput penalties, reliability rates, reputation clamping, and non-positive-limit no-op behavior. Added production SQLite parity/dedup/limit coverage and exact service call-boundary regressions. Validation passed: focused tests (`8/8`), full backend tests (`4898/4898`: `69` application, `4549` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Make warm-cache access touches atomic.
   - Status: completed (2026-07-16)
   - Priority: P1

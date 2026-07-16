@@ -17,6 +17,7 @@ using slskd.HashDb.Models;
 using slskd.Integrations.MusicBrainz.Models;
 using slskd.Jobs;
 using slskd.LibraryHealth;
+using slskd.Transfers.MultiSource.Metrics;
 using Xunit;
 
 public class HashDbServiceTests : IDisposable
@@ -2214,6 +2215,95 @@ public class HashDbServiceTests : IDisposable
         Assert.Equal("peer-metrics", metric!.PeerId);
         var single = Assert.Single(all);
         Assert.Equal("peer-metrics", single.PeerId);
+    }
+
+    [Fact]
+    public async Task GetTopPeerMetricsAsync_MatchesCanonicalCostRankingAndBoundsResults()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var metrics = Enumerable.Range(0, 12)
+            .Select(index => new PeerPerformanceMetrics
+            {
+                PeerId = $"peer-{index:D2}",
+                Source = PeerSource.Soulseek,
+                RttAvgMs = index % 4 == 0 ? 0 : 25 + (index * 17),
+                ThroughputAvgBytesPerSec = index % 5 == 0 ? 0 : 128_000 + (index * 91_000),
+                ThroughputStdDevBytesPerSec = index % 3 == 0 ? 0 : 10_000 + (index * 1_000),
+                ChunksRequested = index % 6 == 0 ? 0 : 10 + index,
+                ChunksFailed = index % 6 == 0 ? 0 : index % 4,
+                ChunksTimedOut = index % 6 == 0 ? 0 : index % 3,
+                ReputationScore = index == 10 ? -0.5 : index == 11 ? 1.5 : index % 4 * 0.3,
+                FirstSeen = now.AddMinutes(-index),
+                LastUpdated = now,
+            })
+            .ToList();
+
+        foreach (var metric in metrics)
+        {
+            await service.UpsertPeerMetricsAsync(metric);
+        }
+
+        var expected = new PeerCostFunction()
+            .RankPeers(await service.GetAllPeerMetricsAsync())
+            .Take(5)
+            .Select(peer => peer.PeerId);
+
+        var actual = await service.GetTopPeerMetricsAsync(5);
+
+        Assert.Equal(expected, actual.Select(metric => metric.PeerId));
+        Assert.Equal(5, actual.Count);
+    }
+
+    [Fact]
+    public async Task GetTopPeerMetricsAsync_PreservesCaseInsensitiveFirstRowDeduplication()
+    {
+        var now = DateTimeOffset.UtcNow;
+        await service.UpsertPeerMetricsAsync(new PeerPerformanceMetrics
+        {
+            PeerId = "Peer-A",
+            Source = PeerSource.Soulseek,
+            ThroughputAvgBytesPerSec = 1_000,
+            FirstSeen = now,
+            LastUpdated = now,
+        });
+        await service.UpsertPeerMetricsAsync(new PeerPerformanceMetrics
+        {
+            PeerId = "peer-a",
+            Source = PeerSource.Soulseek,
+            ThroughputAvgBytesPerSec = 10_000_000,
+            FirstSeen = now,
+            LastUpdated = now,
+        });
+        await service.UpsertPeerMetricsAsync(new PeerPerformanceMetrics
+        {
+            PeerId = "peer-b",
+            Source = PeerSource.Soulseek,
+            ThroughputAvgBytesPerSec = 2_000,
+            FirstSeen = now,
+            LastUpdated = now,
+        });
+        await service.UpsertPeerMetricsAsync(new PeerPerformanceMetrics
+        {
+            PeerId = "peer-c",
+            Source = PeerSource.Soulseek,
+            ThroughputAvgBytesPerSec = 2_000,
+            FirstSeen = now,
+            LastUpdated = now,
+        });
+
+        var top = await service.GetTopPeerMetricsAsync(2);
+
+        Assert.Equal(new[] { "peer-b", "peer-c" }, top.Select(metric => metric.PeerId));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task GetTopPeerMetricsAsync_NonPositiveLimitReturnsEmpty(int limit)
+    {
+        var metrics = await service.GetTopPeerMetricsAsync(limit);
+
+        Assert.Empty(metrics);
     }
 
     [Fact]
