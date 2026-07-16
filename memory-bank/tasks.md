@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make Pod deletion set-based and history-size independent.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced materialization/tracking of every Pod message, member, and signed membership record with one parent existence query and four set-based deletes in the existing transaction. The 1,012-child regression executes exactly four `DELETE ... WHERE` commands, retains unrelated Pods, and proves missing-parent requests do not mutate orphan rows. Extended gotcha `0z641` in `b66dd2cdd`; documented caught fixture and mutation-order bugs as `0z649` (`a5c0a57b2`) and `0z650` (`5f1815f79`).
+
 - [x] Remove share content-hint producer N+1 queries.
   - Status: completed (2026-07-16)
   - Priority: P1

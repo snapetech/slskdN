@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Pod deletion now removes messages, members, and membership history with
+  bounded set-based database commands instead of tracking every child row.
 - Share scan completion now queries advertisable content IDs directly instead
   of enumerating every file and loading its mappings individually.
 - Wishlist and Auto-Replace search completion polling now reads lightweight

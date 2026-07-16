@@ -1,3 +1,11 @@
+## Update 2026-07-16 05:17:30Z
+
+- Completed the Pod deletion set-based performance pass.
+- Replaced full EF materialization and tracking of messages, members, and signed membership history with one parent existence query and four direct set-based deletes in the established transaction.
+- The 1,012-child regression executes exactly four bounded delete commands, retains unrelated Pods, and preserves no-mutation behavior for a missing parent.
+- Extended set-based deletion gotcha `0z641` in `b66dd2cdd`; documented and repaired the caught EF fixture construction and missing-parent mutation-order issues as gotchas `0z649` (`a5c0a57b2`) and `0z650` (`5f1815f79`).
+- Validation passed: focused Pod tests (`11/11`), complete smoke/unit/integration suites (`4811/4811`: `69` smoke, `4462` unit, `280` integration), repository lint, identity, and diff checks. The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+
 ## Update 2026-07-16 05:07:02Z
 
 - Completed the share scan content-hint producer performance pass.

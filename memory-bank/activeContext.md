@@ -1,3 +1,18 @@
+## Update 2026-07-16 05:17:30Z
+
+- Current task: performance and efficiency improvements in progress; set-based Pod deletion pass complete locally.
+- Last activity:
+  - Replaced tracked child-history deletion with one existence query and four set-based deletes inside the existing transaction.
+  - The 1,012-child regression proves bounded command count, unrelated-Pod retention, and no mutation for missing parents.
+  - Extended gotcha `0z641` in `b66dd2cdd` and documented caught implementation issues as `0z649` (`a5c0a57b2`) and `0z650` (`5f1815f79`).
+- Validation:
+  - Passed focused Pod tests (`11/11`), complete smoke/unit/integration suites (`4811/4811`: `69` smoke, `4462` unit, `280` integration), repository lint, identity, and diff checks.
+  - The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+- Next steps:
+  1. Commit this Pod deletion slice.
+  2. Continue the broader performance goal from the next measured hot path.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 05:07:02Z
 
 - Current task: performance and efficiency improvements in progress; share content-hint producer N+1 pass complete locally.

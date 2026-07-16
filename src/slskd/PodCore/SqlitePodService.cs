@@ -228,19 +228,19 @@ namespace slskd.PodCore
             using var transaction = await db.Database.BeginTransactionAsync(ct);
             try
             {
-                var pod = await db.Pods.FindAsync(new object[] { podId }, ct);
-                if (pod == null)
+                if (!await db.Pods.AnyAsync(pod => pod.PodId == podId, ct))
+                {
                     return false;
+                }
 
-                db.Messages.RemoveRange(await db.Messages.Where(m => m.PodId == podId).ToListAsync(ct));
-                db.Members.RemoveRange(await db.Members.Where(m => m.PodId == podId).ToListAsync(ct));
-                db.MembershipRecords.RemoveRange(await db.MembershipRecords.Where(r => r.PodId == podId).ToListAsync(ct));
-                db.Pods.Remove(pod);
-
-                await db.SaveChangesAsync(ct);
+                await db.Messages.Where(message => message.PodId == podId).ExecuteDeleteAsync(ct);
+                await db.Members.Where(member => member.PodId == podId).ExecuteDeleteAsync(ct);
+                await db.MembershipRecords.Where(record => record.PodId == podId).ExecuteDeleteAsync(ct);
+                var deleted = await db.Pods.Where(pod => pod.PodId == podId).ExecuteDeleteAsync(ct);
                 await transaction.CommitAsync(ct);
+
                 logger.LogInformation("Pod {PodId} deleted", podId);
-                return true;
+                return deleted == 1;
             }
             catch (Exception ex)
             {

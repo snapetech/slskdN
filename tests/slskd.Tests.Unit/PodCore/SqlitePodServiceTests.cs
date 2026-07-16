@@ -16,6 +16,76 @@ using Xunit;
 public sealed class SqlitePodServiceTests
 {
     [Fact]
+    public async Task DeletePodAsync_UsesBoundedSetBasedDeletes()
+    {
+        const string podId = "pod:00000000000000000000000000000001";
+        const string retainedPodId = "pod:00000000000000000000000000000002";
+        const string missingPodId = "pod:00000000000000000000000000000003";
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var commandCapture = new CommandCaptureInterceptor();
+        var options = new DbContextOptionsBuilder<PodDbContext>()
+            .UseSqlite(connection)
+            .AddInterceptors(commandCapture)
+            .Options;
+        var contextFactory = new TestDbContextFactory(options);
+        await using (var context = await contextFactory.CreateDbContextAsync())
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Pods.AddRange(
+                PodEntity(podId, PodVisibility.Private),
+                PodEntity(retainedPodId, PodVisibility.Private));
+            context.Members.AddRange(
+                Enumerable.Range(0, 10).Select(index => new PodMemberEntity
+                {
+                    PodId = podId,
+                    PeerId = $"peer-{index}",
+                }));
+            context.Messages.AddRange(
+                Enumerable.Range(0, 501).Select(index => new PodMessageEntity
+                {
+                    PodId = podId,
+                    ChannelId = "general",
+                    SenderPeerId = "peer-0",
+                    TimestampUnixMs = index,
+                }));
+            context.Messages.Add(new PodMessageEntity
+            {
+                PodId = missingPodId,
+                ChannelId = "general",
+                SenderPeerId = "orphan",
+                TimestampUnixMs = 1,
+            });
+            context.MembershipRecords.AddRange(
+                Enumerable.Range(0, 501).Select(index => MembershipRecord("peer-0", "join", index, podId)));
+            await context.SaveChangesAsync();
+        }
+        commandCapture.Commands.Clear();
+        var service = new SqlitePodService(
+            contextFactory,
+            Mock.Of<IPodPublisher>(),
+            Mock.Of<IPodMembershipSigner>(),
+            NullLogger<SqlitePodService>.Instance);
+
+        var deleted = await service.DeletePodAsync(podId);
+
+        Assert.True(deleted);
+        var deleteCommands = commandCapture.Commands
+            .Where(command => command.TrimStart().StartsWith("DELETE", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        Assert.Equal(4, deleteCommands.Count);
+        Assert.All(deleteCommands, command => Assert.Contains("WHERE", command, StringComparison.OrdinalIgnoreCase));
+        await using var verificationContext = await contextFactory.CreateDbContextAsync();
+        Assert.False(await verificationContext.Pods.AnyAsync(pod => pod.PodId == podId));
+        Assert.True(await verificationContext.Pods.AnyAsync(pod => pod.PodId == retainedPodId));
+        Assert.False(await verificationContext.Messages.AnyAsync(message => message.PodId == podId));
+        Assert.False(await verificationContext.Members.AnyAsync(member => member.PodId == podId));
+        Assert.False(await verificationContext.MembershipRecords.AnyAsync(record => record.PodId == podId));
+        Assert.False(await service.DeletePodAsync(missingPodId));
+        Assert.True(await verificationContext.Messages.AnyAsync(message => message.PodId == missingPodId));
+    }
+
+    [Fact]
     public async Task ListListedAsync_FiltersPodsInSql()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
@@ -99,11 +169,12 @@ public sealed class SqlitePodServiceTests
     private static SignedMembershipRecordEntity MembershipRecord(
         string peerId,
         string action,
-        long timestampUnixMs) => new()
+        long timestampUnixMs,
+        string podId = "pod-one") => new()
         {
             Action = action,
             PeerId = peerId,
-            PodId = "pod-one",
+            PodId = podId,
             Signature = "signature",
             TimestampUnixMs = timestampUnixMs,
         };
@@ -135,6 +206,16 @@ public sealed class SqlitePodServiceTests
             DbCommand command,
             CommandEventData eventData,
             InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            Commands.Add(command.CommandText);
+            return ValueTask.FromResult(result);
+        }
+
+        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<int> result,
             CancellationToken cancellationToken = default)
         {
             Commands.Add(command.CommandText);
