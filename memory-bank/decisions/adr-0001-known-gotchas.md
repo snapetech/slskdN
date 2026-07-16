@@ -22537,6 +22537,14 @@ npm run check:council
 
 **How to prevent:** Use active-pane rendering for dynamic Browse tabs, keep add-tab behavior in the tab menu only, and cover transfer-to-browse handoff with a headless browser test that asserts rendered browse content, not just API responses.
 
+**Follow-on recurrence:** The System Security dashboard repeated the same
+contract mismatch with dynamically constructed `render` panes and
+`renderActiveOnly={false}`. Semantic UI rendered the Status and Adversarial tab
+labels but mounted neither pane body, leaving the dashboard blank. Use the
+default active-pane rendering for dynamic diagnostic tabs, especially when an
+inactive pane has its own data work, and cover both the initial pane body and a
+tab switch in the component test.
+
 ### 0z352. Release Workflows Must Pin The Exact .NET SDK
 
 **What went wrong:** A release publish job used a broad `dotnet-version: 10` setup. GitHub resolved that to a newer SDK/runtime combination, then self-contained publish failed restoring `Microsoft.NETCore.App.Runtime.linux-x64` for the runner-selected runtime version.
