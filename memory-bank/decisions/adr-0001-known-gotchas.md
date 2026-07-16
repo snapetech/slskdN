@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z716. Null-Coalescing Operands Must Share A Compile-Time Type
+
+**The Bug**: IPLD node hydration assigned `List<IpldLink> ?? IpldLink[]`
+to an `IReadOnlyList<IpldLink>` variable and expected the destination type to
+make the null-coalescing expression compile. `??` resolves its operand types
+before assignment, so the list and array remained incompatible (`CS0019`).
+
+**Files Affected**:
+- `src/slskd/MediaCore/IpldMapper.cs`
+
+**Prevention**: When selecting between different concrete collection types,
+use a target-typed conditional expression (`value is null ? array : list`) or
+cast one operand to their shared interface before applying `??`. Run the
+focused build immediately after collection-type substitutions.
+
 ### 0z715. Default-Initialized Strings Do Not Exercise Null Fallbacks
 
 **The Bug**: A MediaVariant projection regression created an `AudioVariant`
