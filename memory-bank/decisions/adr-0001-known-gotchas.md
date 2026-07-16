@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z683. Test Factories Must Not Override Caller Mock Setups
+
+**The Bug**: `LibraryBloomDiffServiceTests.CreateService` always configured
+`IWishlistService.ListAsync` to return an empty list, even when the caller
+passed a mock already configured with 10,000 Wishlist items. Moq's later setup
+won, so the large-fixture regression passed without exercising the intended
+membership index.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Integrations/MusicBrainz/LibraryBloomDiffServiceTests.cs`
+
+**Prevention**: Test factories may install defaults only when they create the
+mock themselves. When a caller supplies a mock, preserve every caller setup.
+For performance fixtures, assert a behavior that depends on the supplied data
+in addition to call counts so a silently replaced fixture cannot pass.
+
 ### 0z682. EF Command Interceptors Do Not See Direct Connection Commands
 
 **The Bug**: Wishlist bulk-insert tests attached an EF Core
