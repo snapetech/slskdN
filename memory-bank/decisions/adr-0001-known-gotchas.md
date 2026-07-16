@@ -4681,6 +4681,7 @@ requested.
 - `src/slskd/Wishlist/WishlistService.cs`
 - `src/slskd/Transfers/Downloads/DownloadService.cs`
 - `src/slskd/VirtualSoulfind/ShadowIndex/ShardPublisher.cs`
+- `src/slskd/PodCore/PodPublisher.cs`
 
 **Wrong**:
 ```csharp
@@ -4708,6 +4709,12 @@ when shutdown is driving the cancellation.
 exception around the cancellable HashDb page, logged shutdown cancellation as
 a warning, and returned an empty cycle. Keep host-token cancellation filters
 inside nested query/publish catches as well as around the outer service loop.
+
+**Recurrence (2026-07-16, Pod refresh)**: Pod metadata and index publication
+caught cancellation inside the per-pod publisher. A batch refresh would then
+log one error per remaining pod and keep invoking the DHT with an already
+cancelled token. Propagate host-token cancellation before per-item error
+handling so the batch and hosted loop stop immediately.
 
 ### 0z428. Expected Download Timeouts Should Warn Once
 
