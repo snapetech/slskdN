@@ -1,3 +1,17 @@
+## Update 2026-07-16 19:13:25Z
+
+- Current task: performance and efficiency improvements in progress; pre-normalization Levenshtein affix trimming complete locally.
+- Last activity:
+  - Moved invariant-case shared-prefix/suffix detection ahead of lowercase string allocation and normalize only unmatched middles.
+  - Mixed-case 20,001-character near-matches fall from 80,112 warmed allocated bytes to below 512 (>99.3%).
+- Validation:
+  - Passed focused fuzzy matcher (`53/53`), broader MediaCore (`247/247`), and full backend suites (`4990/4990`) tests.
+  - Exact case/equality/prefix/suffix/distance/score/allocation boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the pre-normalization Levenshtein slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 19:04:00Z
 
 - Current task: performance and efficiency improvements in progress; direct Soundex scanning complete locally.

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Trim Levenshtein affixes before normalization.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `FuzzyMatcher.ScoreLevenshtein` now finds shared prefixes and suffixes with the same invariant-lowercase character comparison before creating normalized strings, then lowercases only the unmatched middle slices. For two mixed-case 20,001-character inputs sharing the first 20,000 characters, warmed allocation falls from 80,112 bytes to less than 512 bytes (>99.3%). No-affix inputs retain the existing full-input normalization cost and bounded rolling rows; the distance helper still trims any normalized affixes and uses the shorter input for row width. Empty/equal behavior, invariant case insensitivity, combined prefix/suffix edit distance, original maximum-length denominator, exact normalized scores, and worst-case quadratic runtime remain unchanged. Strengthened the long-prefix regression to mixed case with a 512-byte bound and added exact mixed-case prefix/suffix coverage. Validation passed: focused fuzzy matcher tests (`53/53`), broader MediaCore tests (`247/247`), full backend suites (`4990/4990`: `69` application, `4641` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Remove Soundex input-sized intermediates.
   - Status: completed (2026-07-16)
   - Priority: P1

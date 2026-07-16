@@ -116,7 +116,7 @@ public class FuzzyMatcherTests
     public void ScoreLevenshtein_LongSharedPrefixSkipsRedundantDistanceCells()
     {
         const int sharedLength = 20_000;
-        var prefix = new string('a', sharedLength);
+        var prefix = new string('A', sharedLength);
         var a = prefix + "b";
         var b = prefix + "c";
         _ = matcher.ScoreLevenshtein("warm", "worm");
@@ -127,14 +127,22 @@ public class FuzzyMatcherTests
 
         Assert.Equal(1.0 - (1.0 / (sharedLength + 1)), score, precision: 10);
         Assert.True(
-            allocatedBytes < 128 * 1024,
-            $"Expected affix-trimmed allocation below 128 KiB, got {allocatedBytes:N0} bytes.");
+            allocatedBytes < 512,
+            $"Expected pre-normalization affix trimming below 512 allocated bytes, got {allocatedBytes:N0} bytes.");
     }
 
     [Fact]
     public void ScoreLevenshtein_SharedPrefixAndSuffixPreserveExactDistance()
     {
         var score = matcher.ScoreLevenshtein("prefixkitten-suffix", "prefixsitting-suffix");
+
+        Assert.Equal(0.85, score, precision: 10);
+    }
+
+    [Fact]
+    public void ScoreLevenshtein_MixedCaseSharedAffixesPreserveExactDistance()
+    {
+        var score = matcher.ScoreLevenshtein("PREFIXkitten-SUFFIX", "prefixsitting-suffix");
 
         Assert.Equal(0.85, score, precision: 10);
     }

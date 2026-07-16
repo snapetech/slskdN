@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Levenshtein fuzzy scoring now removes invariant-case shared affixes before
+  allocating lowercase comparison strings.
 - Soundex fuzzy scoring now scans and invariant-cases only contributing letters
   instead of normalizing and filtering complete input payloads into copies.
 - Jaccard fuzzy scoring now tokenizes and measures set overlap in direct passes

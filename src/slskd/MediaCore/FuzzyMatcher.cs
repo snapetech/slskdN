@@ -116,15 +116,56 @@ public class FuzzyMatcher : IFuzzyMatcher
         if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b)) return 0.0;
         if (string.Equals(a, b, StringComparison.OrdinalIgnoreCase)) return 1.0;
 
-        // Normalize to lowercase for case-insensitive comparison
-        a = a.ToLowerInvariant();
-        b = b.ToLowerInvariant();
+        var sharedPrefixLength = 0;
+        var shorterLength = Math.Min(a.Length, b.Length);
+        while (sharedPrefixLength < shorterLength &&
+            EqualInvariantIgnoreCase(a[sharedPrefixLength], b[sharedPrefixLength]))
+        {
+            sharedPrefixLength++;
+        }
 
-        var distance = ComputeLevenshteinDistance(a, b);
+        var sharedSuffixLength = 0;
+        shorterLength -= sharedPrefixLength;
+        while (sharedSuffixLength < shorterLength &&
+            EqualInvariantIgnoreCase(
+                a[^(sharedSuffixLength + 1)],
+                b[^(sharedSuffixLength + 1)]))
+        {
+            sharedSuffixLength++;
+        }
+
+        var normalizedA = NormalizeInvariant(
+            a,
+            sharedPrefixLength,
+            a.Length - sharedPrefixLength - sharedSuffixLength);
+        var normalizedB = NormalizeInvariant(
+            b,
+            sharedPrefixLength,
+            b.Length - sharedPrefixLength - sharedSuffixLength);
+
+        var distance = ComputeLevenshteinDistance(normalizedA, normalizedB);
         var maxLength = Math.Max(a.Length, b.Length);
 
         // Convert distance to similarity score (0.0 to 1.0)
         return 1.0 - ((double)distance / maxLength);
+    }
+
+    private static bool EqualInvariantIgnoreCase(char left, char right)
+    {
+        return left == right || char.ToLowerInvariant(left) == char.ToLowerInvariant(right);
+    }
+
+    private static string NormalizeInvariant(string value, int start, int length)
+    {
+        if (length == 0)
+        {
+            return string.Empty;
+        }
+
+        var segment = start == 0 && length == value.Length
+            ? value
+            : value.Substring(start, length);
+        return segment.ToLowerInvariant();
     }
 
     /// <summary>

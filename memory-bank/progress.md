@@ -1,3 +1,10 @@
+## Update 2026-07-16 19:13:25Z
+
+- Completed the pre-normalization Levenshtein affix-trimming performance pass.
+- Invariant-case shared prefixes/suffixes are removed before lowercase comparison strings are allocated, so only unmatched middle slices are normalized.
+- The mixed-case 20,000-character shared-prefix fixture falls from 80,112 warmed allocated bytes to below 512 (>99.3%). No-affix normalization, rolling rows, exact distance, and score semantics remain unchanged.
+- Validation passed: focused fuzzy matcher tests (`53/53`), broader MediaCore tests (`247/247`), full backend suites (`4990/4990`: `69` application, `4641` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 19:04:00Z
 
 - Completed the direct Soundex scanning performance pass.

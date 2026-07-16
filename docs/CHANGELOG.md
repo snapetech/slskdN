@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Levenshtein fuzzy scoring now locates invariant-case shared prefixes and
+  suffixes before allocating lowercase comparison strings, then normalizes only
+  the unmatched middle slices. For the covered mixed-case inputs with a
+  20,000-character shared prefix and one differing character, warmed allocation
+  falls from 80,112 bytes to below 512 bytes (>99.3%). Inputs without shared
+  affixes retain the existing full normalization and two rolling distance rows.
+  Case-insensitive equality, edit distance, mixed-case prefix/suffix behavior,
+  empty inputs, original-length score normalization, and exact scores remain
+  unchanged.
 - Soundex fuzzy scoring now scans input characters directly, applies invariant
   uppercase only to recognized letters, and builds the fixed four-character
   code in a stack buffer. It stops once the code is complete instead of
