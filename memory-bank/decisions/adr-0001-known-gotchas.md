@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z628. Hidden-Completion Guards Must Clear Owned UI Flags
+
+**The Bug**: A visible-only Security dashboard refresh correctly rejected an
+async completion after the document became hidden, but the manual refresh had
+already set its spinner state. Because the hidden completion skipped all state
+writes, the spinner could remain set when the user returned.
+
+**Files Affected**:
+- `src/web/src/components/System/Security/index.jsx`
+
+**Prevention**: When a poll or manual refresh owns loading/error/spinner state,
+define who clears that state for every early-return path. If hidden completions
+must not update React, clear transient UI flags during the visibility transition
+and let the visible catch-up request establish the next state. Cover hiding a
+pending manual refresh, not only background interval requests.
+
 ### 0z627. Diagnostic Reads Must Not Trigger External Network Probes
 
 **The Bug**: Mesh transport-stat reads launched STUN NAT detection whenever the
