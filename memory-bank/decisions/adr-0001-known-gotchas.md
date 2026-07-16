@@ -52,6 +52,26 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z621. Aggregate Endpoints Must Not Reuse Bounded Entity Lists
+
+**The Bug**: Library Health summary and grouping endpoints reused
+`GetLibraryIssuesAsync`, whose default filter applies `LIMIT 100`. Counts and
+top groups therefore described only the newest 100 issues while each endpoint
+also materialized complete issue entities and metadata that its aggregate did
+not need.
+
+**Files Affected**:
+- `src/slskd/LibraryHealth/LibraryHealthService.cs`
+- `src/slskd/LibraryHealth/API/LibraryHealthController.cs`
+- `src/slskd/HashDb/HashDbService.cs`
+
+**Prevention**: Give aggregate API contracts dedicated database projections
+that scan the authoritative filtered set without page limits and return only
+the grouped/count fields the caller needs. Do not derive totals or rankings
+from an entity-list method whose pagination is correct for detail rendering.
+Cover datasets larger than the default page size so a bounded implementation
+cannot pass accidentally.
+
 ### 0z620. Wall-Clock Rate Fixtures Must Not Assume Fast Test Setup
 
 **The Bug**: A transfer-speed regression seeded a transfer as starting ten
