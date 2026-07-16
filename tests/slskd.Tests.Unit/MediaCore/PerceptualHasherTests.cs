@@ -102,8 +102,25 @@ public class PerceptualHasherTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal("PHash", result.Algorithm);
-        Assert.NotNull(result.Hex);
-        Assert.True(result.NumericHash.HasValue);
+        Assert.Equal("00000000FFF00000", result.Hex);
+        Assert.Equal(0x00000000FFF00000UL, result.NumericHash);
+    }
+
+    [Fact]
+    public void ComputeImageHash_PHashUsesBoundedIntermediateStorage()
+    {
+        var pixels = GenerateTestImagePixels(1024, 1024);
+        var expected = hasher.ComputeImageHash(pixels, 1024, 1024, PerceptualHashAlgorithm.PHash);
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var result = hasher.ComputeImageHash(pixels, 1024, 1024, PerceptualHashAlgorithm.PHash);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(expected.NumericHash, result.NumericHash);
+        Assert.Equal(expected.Hex, result.Hex);
+        Assert.True(
+            allocatedBytes < 512,
+            $"Expected stack-backed pHash analysis below 512 allocated bytes, got {allocatedBytes:N0} bytes.");
     }
 
     [Fact]

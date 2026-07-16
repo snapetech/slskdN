@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Image pHash now converts only the 32 source pixels that contribute to its
+  result and keeps the bounded coefficient buffer on the stack.
 - Spectral hashing now evaluates decimated RMS samples directly instead of
   allocating the complete downsampled signal first.
 - Chromaprint hashing now reuses immutable Hann and normal-rate FFT-bin mapping

@@ -1,3 +1,10 @@
+## Update 2026-07-16 18:37:02Z
+
+- Completed the bounded image pHash intermediate-storage performance pass.
+- The simplified pHash now reads and converts only its 32 contributing source pixels and keeps coefficients in a 256-byte stack span instead of allocating full-image grayscale, downsample, transform, and low-frequency arrays.
+- A 1024×1024 RGBA call avoids more than 8 MiB of grayscale allocation and 1,048,544 unused pixel conversions while remaining below 512 warmed allocated bytes. Sampling, luminance, transform, median, exact hash, empty, and malformed-buffer behavior remain unchanged.
+- Validation passed: focused perceptual hasher tests (`37/37`), broader MediaCore tests (`234/234`), full backend suites (`4977/4977`: `69` application, `4628` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 18:26:58Z
 
 - Completed the direct-decimation spectral hashing performance pass.

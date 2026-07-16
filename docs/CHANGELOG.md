@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Image pHash now samples, converts, and transforms only the 32 source pixels
+  that contribute to its low-frequency result, using one 256-byte stack buffer
+  instead of allocating a full-image grayscale array plus 8×8 downsample, DCT,
+  and low-frequency arrays. For the covered 1024×1024 RGBA image, the warmed
+  end-to-end call allocates less than 512 bytes instead of over 8 MiB for the
+  grayscale payload alone. Nearest-neighbor source coordinates, luminance
+  coefficients and arithmetic, alternating transform signs, sorted upper-median
+  thresholding, exact numeric/hex hash, empty-input handling, and malformed RGBA
+  behavior remain unchanged.
 - Spectral hashing now computes each RMS window directly over the virtual
   decimated sample sequence instead of allocating and filling the complete
   downsampled signal before visiting it once. A one-second 44.1 kHz input no

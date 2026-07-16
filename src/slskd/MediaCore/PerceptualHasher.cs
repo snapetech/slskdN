@@ -369,14 +369,49 @@ public class PerceptualHasher : IPerceptualHasher
         if (pixels == null || pixels.Length == 0 || width <= 0 || height <= 0)
             return 0;
 
-        // Convert to grayscale and downsample to 8x8
+        if ((long)width * height > pixels.Length / 4)
+        {
+            return ComputePHashWithIntermediateBuffers(pixels, width, height);
+        }
+
+        const int downsampledWidth = 8;
+        const int lowFrequencyCount = 32;
+        Span<double> lowFrequency = stackalloc double[lowFrequencyCount];
+
+        for (var index = 0; index < lowFrequency.Length; index++)
+        {
+            var x = index % downsampledWidth;
+            var y = index / downsampledWidth;
+            var sourceX = (int)(x * (double)width / downsampledWidth);
+            var sourceY = (int)(y * (double)height / downsampledWidth);
+            var pixelIndex = ((sourceY * width) + sourceX) * 4;
+            var luminance = ((0.299 * pixels[pixelIndex])
+                + (0.587 * pixels[pixelIndex + 1])
+                + (0.114 * pixels[pixelIndex + 2])) / 255.0;
+
+            lowFrequency[index] = luminance * (index % 2 == 0 ? 1.0 : -1.0);
+        }
+
+        lowFrequency.Sort();
+        var median = lowFrequency[lowFrequency.Length / 2];
+        ulong hash = 0;
+
+        for (var index = 0; index < lowFrequency.Length; index++)
+        {
+            if (lowFrequency[index] > median)
+            {
+                hash |= 1UL << index;
+            }
+        }
+
+        return hash;
+    }
+
+    private static ulong ComputePHashWithIntermediateBuffers(byte[] pixels, int width, int height)
+    {
         var grayPixels = ConvertToGrayscale(pixels, width, height);
         var smallImage = DownsampleImage(grayPixels, width, height, 8, 8);
-
-        // Compute DCT (simplified)
         var dct = ComputeDCT(smallImage);
-
-        // Generate hash from DCT coefficients
         return GenerateHashFromDCT(dct);
     }
 

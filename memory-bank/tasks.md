@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound image pHash intermediate storage.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `PerceptualHasher.ComputePHash` now computes the existing simplified pHash directly from the 32 nearest-neighbor source pixels that contribute to its low-frequency result, holding those coefficients in one 256-byte stack span. This removes the full `width * height` grayscale array and the separate 64-value downsample, 64-value transform, and 32-value low-frequency arrays. For a 1024×1024 RGBA image, the warmed end-to-end call allocates less than 512 bytes instead of over 8 MiB for grayscale data alone and avoids converting the other 1,048,544 pixels. Source coordinate truncation, RGBA luminance coefficients/arithmetic, alternating transform signs, sorted upper-median comparison, exact numeric/hex hash, empty input, and undersized-buffer exception behavior remain unchanged. Added an exact known-output regression and large-image allocation boundary. Validation passed: focused perceptual hasher tests (`37/37`), broader MediaCore tests (`234/234`), full backend suites (`4977/4977`: `69` application, `4628` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Eliminate spectral hashing's downsample buffer.
   - Status: completed (2026-07-16)
   - Priority: P1

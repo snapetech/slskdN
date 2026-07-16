@@ -1,3 +1,17 @@
+## Update 2026-07-16 18:37:02Z
+
+- Current task: performance and efficiency improvements in progress; bounded image pHash intermediate storage complete locally.
+- Last activity:
+  - Fused nearest-neighbor source selection, grayscale conversion, and simplified transform for the 32 values that determine the hash.
+  - A 1024×1024 call removes over 8 MiB of grayscale allocation and stays below 512 warmed allocated bytes with identical output.
+- Validation:
+  - Passed focused perceptual hasher (`37/37`), broader MediaCore (`234/234`), and full backend suites (`4977/4977`) tests.
+  - Exact output/allocation plus empty and malformed-buffer behavior, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the bounded image pHash slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 18:26:58Z
 
 - Current task: performance and efficiency improvements in progress; spectral hashing downsample-buffer elimination complete locally.
