@@ -247,29 +247,38 @@ namespace slskd.VirtualSoulfind.v2.Planning
                 return filtered;
             }
 
+            Dictionary<string, bool>? peerAllowedById = null;
             foreach (var candidate in candidates)
             {
                 try
                 {
                     // Check peer reputation (T-MCP04)
                     // For Soulseek backend, BackendRef contains "peerId|filepath"
-                    string? peerId = null;
                     if (candidate.Backend == ContentBackendType.Soulseek && !string.IsNullOrWhiteSpace(candidate.BackendRef))
                     {
-                        var parts = candidate.BackendRef.Split('|', 2);
-                        peerId = parts.Length > 0 ? parts[0] : null;
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(peerId))
-                    {
-                        var isAllowed = await _peerReputationService.IsPeerAllowedForPlanningAsync(
-                            peerId,
-                            cancellationToken);
-
-                        if (!isAllowed)
+                        var separatorIndex = candidate.BackendRef.IndexOf('|');
+                        var peerIdLength = separatorIndex >= 0
+                            ? separatorIndex
+                            : candidate.BackendRef.Length;
+                        var peerId = peerIdLength == candidate.BackendRef.Length
+                            ? candidate.BackendRef
+                            : candidate.BackendRef[..peerIdLength];
+                        if (!string.IsNullOrWhiteSpace(peerId))
                         {
-                            // Skip banned peers
-                            continue;
+                            peerAllowedById ??= new Dictionary<string, bool>(StringComparer.Ordinal);
+                            if (!peerAllowedById.TryGetValue(peerId, out var isAllowed))
+                            {
+                                isAllowed = await _peerReputationService.IsPeerAllowedForPlanningAsync(
+                                    peerId,
+                                    cancellationToken);
+                                peerAllowedById.Add(peerId, isAllowed);
+                            }
+
+                            if (!isAllowed)
+                            {
+                                // Skip banned peers
+                                continue;
+                            }
                         }
                     }
 

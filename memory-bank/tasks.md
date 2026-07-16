@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Reuse per-peer reputation decisions within each multi-source plan.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `MultiSourcePlanner.FilterThroughModerationAsync` now extracts Soulseek peer IDs with delimiter indexing instead of `Split('|', 2)` and caches successful allowed/banned results in an ordinal dictionary scoped to one plan. Failed reputation reads are not cached, so a later candidate for the same peer retries exactly as before. For 10,000 candidates from one peer, warmed whole-plan allocation falls from 7,910,048 to 2,620,064 bytes (66.9%) and reputation-store reads fall from 10,000 to one (99.99%). For 10,000 unique peers, all 10,000 required reads remain while allocation falls from 7,909,568 to 7,740,064 bytes (2.1%), proving the cache does not trade repeated-peer savings for unique-peer regression. Exact case-sensitive peer identity, blank-prefix handling, candidate/path order, allowed/banned filtering, non-Soulseek behavior, and transient-error retry/fail-closed semantics remain unchanged. Added repeated/unique allocation and call-count coverage plus a same-peer error-then-success regression; documented C# 12 async-span gotcha `0z720` (`de1298f41`) and clarified local initializer formatting gotcha `0z719` (`385da81dd`). Validation passed: focused reputation tests (`4/4`), all planner tests (`17/17`), broader VirtualSoulfind v2 tests (`208/208`), full backend suites (`5025/5025`: `69` application, `4676` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Deduplicate planner candidates directly and reuse content moderation decisions.
   - Status: completed (2026-07-16)
   - Priority: P1

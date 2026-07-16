@@ -1,3 +1,17 @@
+## Update 2026-07-16 23:21:25Z
+
+- Current task: performance and efficiency improvements in progress; plan-local Soulseek reputation reuse complete locally.
+- Last activity:
+  - Replaced per-candidate peer-reference splitting with delimiter indexing and reused successful exact peer decisions within each plan while leaving failures retryable.
+  - A 10,000-candidate single-peer plan falls from 7,910,048 to 2,620,064 warmed allocated bytes (66.9%) and from 10,000 reputation reads to one (99.99%). A 10,000-unique-peer plan retains all reads while improving allocation by 2.1%.
+- Validation:
+  - Passed focused reputation (`4/4`), all planner (`17/17`), broader VirtualSoulfind v2 (`208/208`), and full backend suites (`5025/5025`: `69` application, `4676` unit, `280` integration) tests.
+  - Exact case/blank/order/allowed/banned/unique-peer/retry/allocation behavior, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Documented gotcha `0z720` (`de1298f41`) and clarified `0z719` (`385da81dd`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the plan-local peer-reputation slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 23:04:08Z
 
 - Current task: performance and efficiency improvements in progress; direct-deduplication and single-moderation multi-source planning complete locally.

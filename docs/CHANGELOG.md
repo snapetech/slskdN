@@ -22,6 +22,17 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Multi-source planning now caches successful allowed/banned reputation reads
+  by exact ordinal Soulseek peer ID for the lifetime of one plan. Peer IDs are
+  extracted with delimiter indexing, eliminating each candidate's `Split`
+  array and unused path substring; failed reads are not cached, so a later
+  candidate for the same peer still retries and remains fail-closed on its own
+  failure. For 10,000 candidates from one peer, warmed allocation falls from
+  7,910,048 to 2,620,064 bytes (66.9%) and reputation-store reads fall from
+  10,000 to one (99.99%). For 10,000 unique peers, all 10,000 required reads
+  remain and allocation still falls from 7,909,568 to 7,740,064 bytes (2.1%).
+  Candidate order, same-peer path retention, banned-peer exclusion, blank peer
+  handling, case sensitivity, and transient-error retry behavior remain intact.
 - Multi-source planning now merges registry and backend candidates through a
   first-retaining `(backend, reference)` set instead of allocating formatted
   string keys and LINQ grouping state. Null and empty references retain their

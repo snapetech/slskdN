@@ -23,6 +23,7 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Planning
     ///     Tests for T-MCP04: MultiSourcePlanner reputation integration.
     ///     The planner only runs peer reputation checks for Soulseek candidates (BackendRef = "peerId|filepath").
     /// </summary>
+    [Collection(AllocationTestCollection.Name)]
     public class MultiSourcePlannerReputationTests
     {
         [Fact]
@@ -209,7 +210,7 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Planning
         }
 
         [Fact]
-        public async Task CreatePlanAsync_WithPeerReputationCheckThrowing_ExcludesCandidate()
+        public async Task CreatePlanAsync_WithPeerReputationCheckThrowing_RetriesLaterCandidate()
         {
             var trackId = ContentItemId.NewId().ToString();
             var itemId = ContentItemId.Parse(trackId);
@@ -245,6 +246,17 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Planning
                         LastValidatedAt = now,
                         LastSeenAt = now,
                     },
+                    new SourceCandidate
+                    {
+                        Id = "sc-2",
+                        ItemId = itemId,
+                        Backend = ContentBackendType.Soulseek,
+                        BackendRef = $"{peerId}|/second.flac",
+                        ExpectedQuality = 0.7f,
+                        TrustScore = 0.8f,
+                        LastValidatedAt = now,
+                        LastSeenAt = now,
+                    },
                 });
 
             var moderationMock = new Mock<IModerationProvider>();
@@ -254,8 +266,9 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Planning
 
             var storeMock = new Mock<IPeerReputationStore>();
             storeMock
-                .Setup(s => s.IsPeerBannedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("Reputation check failed"));
+                .SetupSequence(s => s.IsPeerBannedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("Reputation check failed"))
+                .ReturnsAsync(false);
 
             var peerRep = new PeerReputationService(
                 new Mock<ILogger<PeerReputationService>>().Object,
@@ -281,7 +294,105 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Planning
 
             var plan = await planner.CreatePlanAsync(desiredTrack);
 
-            Assert.Empty(plan.Steps);
+            var candidate = Assert.Single(Assert.Single(plan.Steps).Candidates);
+            Assert.Equal("sc-2", candidate.Id);
+            storeMock.Verify(
+                store => store.IsPeerBannedAsync(peerId, It.IsAny<CancellationToken>()),
+                Times.Exactly(2));
+        }
+
+        [Fact]
+        public async Task CreatePlanAsync_LargePeerSetsReuseReputationWithoutRegressingUniquePeers()
+        {
+            const int candidateCount = 10_000;
+            var trackId = ContentItemId.NewId().ToString();
+            var itemId = ContentItemId.Parse(trackId);
+            var now = DateTimeOffset.UtcNow;
+            SourceCandidate Candidate(int index, string peerId) => new()
+            {
+                Id = $"candidate-{index}",
+                ItemId = itemId,
+                Backend = ContentBackendType.Soulseek,
+                BackendRef = $"{peerId}|/music/track-{index}.flac",
+                ExpectedQuality = index,
+                TrustScore = index,
+                LastValidatedAt = now,
+                LastSeenAt = now,
+            };
+            var repeatedPeerCandidates = Enumerable.Range(0, candidateCount)
+                .Select(index => Candidate(index, "same-peer"))
+                .ToArray();
+            var uniquePeerCandidates = Enumerable.Range(0, candidateCount)
+                .Select(index => Candidate(index, $"peer-{index}"))
+                .ToArray();
+            var catalogueStore = new Mock<ICatalogueStore>();
+            catalogueStore
+                .Setup(store => store.FindTrackByIdAsync(trackId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Track
+                {
+                    TrackId = trackId,
+                    ReleaseId = "release-1",
+                    TrackNumber = 1,
+                    Title = "Track",
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                });
+            var sourceRegistry = new Mock<ISourceRegistry>();
+            sourceRegistry
+                .Setup(registry => registry.FindCandidatesForItemAsync(itemId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(repeatedPeerCandidates);
+            var moderation = new Mock<IModerationProvider>();
+            moderation
+                .Setup(provider => provider.CheckContentIdAsync(trackId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(ModerationDecision.Allow("test"));
+            var reputationStore = new Mock<IPeerReputationStore>();
+            reputationStore
+                .Setup(store => store.IsPeerBannedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            var planner = new MultiSourcePlanner(
+                catalogueStore.Object,
+                sourceRegistry.Object,
+                Array.Empty<IContentBackend>(),
+                moderation.Object,
+                new PeerReputationService(Mock.Of<ILogger<PeerReputationService>>(), reputationStore.Object));
+            var desiredTrack = new DesiredTrack
+            {
+                Domain = ContentDomain.Music,
+                DesiredTrackId = "desired-1",
+                TrackId = trackId,
+                Priority = IntentPriority.Normal,
+                Status = IntentStatus.Pending,
+                CreatedAt = now,
+                UpdatedAt = now,
+            };
+            _ = await planner.CreatePlanAsync(desiredTrack);
+            reputationStore.Invocations.Clear();
+
+            var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+            var repeatedPlan = await planner.CreatePlanAsync(desiredTrack);
+            var repeatedAllocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+            var repeatedCalls = reputationStore.Invocations.Count;
+
+            sourceRegistry
+                .Setup(registry => registry.FindCandidatesForItemAsync(itemId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(uniquePeerCandidates);
+            _ = await planner.CreatePlanAsync(desiredTrack);
+            reputationStore.Invocations.Clear();
+            allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+            var uniquePlan = await planner.CreatePlanAsync(desiredTrack);
+            var uniqueAllocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+            var uniqueCalls = reputationStore.Invocations.Count;
+
+            Assert.Equal(candidateCount, Assert.Single(repeatedPlan.Steps).Candidates.Count);
+            Assert.Equal(candidateCount, Assert.Single(uniquePlan.Steps).Candidates.Count);
+            Assert.True(
+                repeatedAllocatedBytes < 2_900_000,
+                $"Expected repeated-peer planning below 2,900,000 allocated bytes, got {repeatedAllocatedBytes:N0} bytes.");
+            Assert.True(
+                uniqueAllocatedBytes < 7_850_000,
+                $"Expected unique-peer planning below 7,850,000 allocated bytes, got {uniqueAllocatedBytes:N0} bytes.");
+            Assert.Equal(1, repeatedCalls);
+            Assert.Equal(candidateCount, uniqueCalls);
         }
     }
 }

@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Multi-source planning now reuses successful Soulseek peer-reputation reads
+  within each plan and parses peer references without `Split` allocations.
 - Multi-source planning now deduplicates candidates without formatted grouping
   keys and performs one content-level moderation check per plan.
 - Cross-provider search aggregation now streams results once and deduplicates
