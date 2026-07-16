@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Download-request list reads now project per-request attempt counts and
+  current-attempt IDs in SQLite, then hydrate only those current transfers
+  instead of loading every historical attempt. A mixed-direction
+  `(RequestId, Removed, RequestedAt DESC)` index replaces the redundant
+  single-column request index and supports newest-active/fallback selection
+  without a temporary sort. With 100,000 attempts across 5,000 requests,
+  hydrated transfer rows fall from 100,000 to 5,000 (95% fewer), and a
+  five-run synthetic SQLite median fell from 0.082 seconds to 0.021 seconds
+  (74.4% faster). Request/state ordering, attempt counts, active-attempt
+  preference, newest-removed fallback, and empty histories remain unchanged.
 - Application startup now registers and applies the previously unreachable
   ordered download auto-retry index migration. Existing installations receive
   the partial `(Direction, EndedAt, Id)` index instead of retaining a full scan

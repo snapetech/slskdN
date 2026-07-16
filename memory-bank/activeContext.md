@@ -1,3 +1,17 @@
+## Update 2026-07-16 13:24:12Z
+
+- Current task: performance and efficiency improvements in progress; bounded download-request attempt hydration complete locally.
+- Last activity:
+  - Replaced full attempt loading/sorting with aggregate/current-ID projection and current-row-only hydration.
+  - Added a mixed-direction request/current index for fresh and migrated databases; documented direction parity gotcha `0z694` (`ed5679f6d`).
+- Validation:
+  - Passed focused tests (`4/4`), complete Transfers unit coverage (`269/269`), and full backend tests (`4902/4902`: `69` application, `4553` unit, `280` integration).
+  - Synthetic 100,000-attempt median improved from 0.082 seconds to 0.021 seconds; hydration fell 95%. Repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the download-request list/index slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 13:13:18Z
 
 - Current task: performance and efficiency improvements in progress; unreachable auto-retry index migration repaired locally.

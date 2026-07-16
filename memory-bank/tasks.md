@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound download-request list attempt hydration.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced complete attempt hydration, lookup construction, and per-request application sorting with one SQLite aggregate/current-ID projection plus hydration of only the selected current rows. Replaced the redundant request-ID index with `(RequestId, Removed, RequestedAt DESC)`, explicitly matching EF and migration direction metadata. With 100,000 attempts across 5,000 requests, transfer hydration falls by 95% and a five-run synthetic SQLite median improves from 0.082 seconds to 0.021 seconds (74.4%). The regression preserves request/state ordering, counts, non-removed preference, newest-removed fallback, and empty histories while proving only two current transfers materialize from 53 relevant and 50 filtered historical attempts. Documented gotcha `0z694` (`ed5679f6d`). Validation passed: focused tests (`4/4`), complete Transfers unit coverage (`269/269`), full backend tests (`4902/4902`: `69` application, `4553` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Register the download auto-retry index migration.
   - Status: completed (2026-07-16)
   - Priority: P1

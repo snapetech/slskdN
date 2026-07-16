@@ -145,8 +145,9 @@ namespace slskd.Transfers
 
             modelBuilder
                 .Entity<Transfer>()
-                .HasIndex(t => t.RequestId)
-                .HasDatabaseName("IDX_Transfers_RequestId");
+                .HasIndex(t => new { t.RequestId, t.Removed, t.RequestedAt })
+                .HasDatabaseName("IDX_Transfers_RequestId_Current")
+                .IsDescending(false, false, true);
 
             modelBuilder
                 .Entity<DownloadRequest>()

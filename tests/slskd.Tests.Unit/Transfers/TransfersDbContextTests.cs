@@ -214,6 +214,38 @@ public sealed class TransfersDbContextTests
     }
 
     [Fact]
+    public async Task DownloadRequestSummaryQuery_UsesModelCreatedMixedDirectionIndex()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var context = new TransfersDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+
+        await using var sqlCommand = connection.CreateCommand();
+        sqlCommand.CommandText =
+            "SELECT sql FROM sqlite_master WHERE type = 'index' AND name = 'IDX_Transfers_RequestId_Current'";
+        var sql = Assert.IsType<string>(await sqlCommand.ExecuteScalarAsync());
+        Assert.Contains("\"RequestedAt\" DESC", sql, StringComparison.OrdinalIgnoreCase);
+
+        var plan = await ReadQueryPlanAsync(
+            connection,
+            """
+            SELECT Id
+            FROM Transfers
+            WHERE RequestId = 'request-1'
+            ORDER BY Removed, RequestedAt DESC
+            LIMIT 1
+            """);
+        Assert.Contains(plan, detail =>
+            detail.Contains("INDEX IDX_Transfers_RequestId_Current", StringComparison.Ordinal));
+        Assert.DoesNotContain(plan, detail =>
+            detail.Contains("TEMP B-TREE", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void TransferHistoryIndexesMigration_CreatesExactIdempotentIndexes()
     {
         var databasePath = Path.Combine(Path.GetTempPath(), $"slskdn-transfer-history-{Guid.NewGuid():N}.db");
@@ -364,6 +396,90 @@ public sealed class TransfersDbContextTests
 
         Assert.IsType<Z07162026_AutoRetryIndexMigration>(
             migrations[nameof(Z07162026_AutoRetryIndexMigration)]);
+        Assert.IsType<Z07162026_DownloadRequestSummaryIndexMigration>(
+            migrations[nameof(Z07162026_DownloadRequestSummaryIndexMigration)]);
+    }
+
+    [Fact]
+    public async Task DownloadRequestSummaryIndexMigration_ReplacesLegacyIndexAndSupportsCurrentSelection()
+    {
+        var databasePath = Path.Combine(Path.GetTempPath(), $"slskdn-request-summary-{Guid.NewGuid():N}.db");
+        var connectionString = $"Data Source={databasePath}";
+
+        try
+        {
+            using (var connection = new SqliteConnection(connectionString))
+            {
+                connection.Open();
+                using var command = connection.CreateCommand();
+                command.CommandText =
+                    """
+                    CREATE TABLE Transfers (
+                        Id TEXT PRIMARY KEY,
+                        RequestId TEXT NULL,
+                        Removed INTEGER NOT NULL,
+                        RequestedAt TEXT NOT NULL
+                    );
+                    CREATE INDEX IDX_Transfers_RequestId ON Transfers (RequestId);
+                    """;
+                command.ExecuteNonQuery();
+            }
+
+            var migration = new Z07162026_DownloadRequestSummaryIndexMigration(
+                new ConnectionStringDictionary(new()
+                {
+                    [Database.Transfers] = connectionString,
+                }));
+
+            Assert.True(migration.NeedsToBeApplied());
+            migration.Apply();
+            Assert.False(migration.NeedsToBeApplied());
+
+            await using (var connection = new SqliteConnection(connectionString))
+            {
+                await connection.OpenAsync();
+                Assert.Equal(
+                    ["RequestId", "Removed", "RequestedAt"],
+                    ReadIndexColumns(connection, "IDX_Transfers_RequestId_Current"));
+                Assert.Empty(ReadIndexColumns(connection, "IDX_Transfers_RequestId"));
+
+                await using var sqlCommand = connection.CreateCommand();
+                sqlCommand.CommandText =
+                    "SELECT sql FROM sqlite_master WHERE type = 'index' AND name = 'IDX_Transfers_RequestId_Current'";
+                var sql = Assert.IsType<string>(await sqlCommand.ExecuteScalarAsync());
+                Assert.Contains("RequestedAt DESC", sql, StringComparison.OrdinalIgnoreCase);
+
+                var plan = await ReadQueryPlanAsync(
+                    connection,
+                    """
+                    SELECT Id
+                    FROM Transfers
+                    WHERE RequestId = 'request-1'
+                    ORDER BY Removed, RequestedAt DESC
+                    LIMIT 1
+                    """);
+                Assert.Contains(plan, detail =>
+                    detail.Contains("INDEX IDX_Transfers_RequestId_Current", StringComparison.Ordinal));
+                Assert.DoesNotContain(plan, detail =>
+                    detail.Contains("TEMP B-TREE", StringComparison.Ordinal));
+
+                await using var replaceCommand = connection.CreateCommand();
+                replaceCommand.CommandText =
+                    """
+                    DROP INDEX IDX_Transfers_RequestId_Current;
+                    CREATE INDEX IDX_Transfers_RequestId_Current ON Transfers (RequestId, Removed, RequestedAt);
+                    """;
+                await replaceCommand.ExecuteNonQueryAsync();
+            }
+
+            Assert.True(migration.NeedsToBeApplied());
+            migration.Apply();
+            Assert.False(migration.NeedsToBeApplied());
+        }
+        finally
+        {
+            System.IO.File.Delete(databasePath);
+        }
     }
 
     [Fact]

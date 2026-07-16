@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Download-request lists now aggregate attempt counts in SQLite and hydrate
+  only each request's current attempt through a matching composite index.
 - Swarm peer ranking now selects its bounded top set in SQLite before
   hydrating metrics instead of loading and sorting every persisted peer.
 - Warm-cache access touches now update only their timestamp through one atomic

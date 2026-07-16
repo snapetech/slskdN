@@ -1,3 +1,10 @@
+## Update 2026-07-16 13:24:12Z
+
+- Completed the download-request list attempt-hydration performance pass.
+- The list endpoint now queries per-request counts/current IDs and hydrates only current transfers instead of every historical attempt; the new `(RequestId, Removed, RequestedAt DESC)` index replaces the single-column prefix and avoids current-selection sorts on fresh and migrated databases.
+- With 100,000 attempts across 5,000 requests, transfer hydration falls from 100,000 to 5,000 (95% fewer), and the five-run synthetic SQLite median improves from 0.082 seconds to 0.021 seconds (74.4%). Documented EF/migration direction gotcha `0z694` (`ed5679f6d`).
+- Validation passed: focused result/schema/materialization tests (`4/4`), complete Transfers unit coverage (`269/269`), full backend tests (`4902/4902`: `69` application, `4553` unit, `280` integration), repository lint, and diff checks. Request ordering, state filtering, counts, active-attempt preference, newest-removed fallback, and empty histories are covered. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 13:13:18Z
 
 - Repaired production reachability for the ordered download auto-retry index migration.

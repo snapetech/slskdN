@@ -58,14 +58,54 @@ namespace slskd.Transfers.Downloads.API
 
             var requests = await query.OrderByDescending(r => r.CreatedAt).ToListAsync();
             var ids = requests.Select(r => r.Id).ToList();
+            if (ids.Count == 0)
+            {
+                return Ok(new List<DownloadRequestSummary>());
+            }
 
-            var attempts = await context.Transfers
+            var attemptAggregates = await context.Transfers
                 .AsNoTracking()
                 .Where(t => t.RequestId.HasValue && ids.Contains(t.RequestId!.Value))
+                .GroupBy(t => t.RequestId!.Value)
+                .Select(group => new
+                {
+                    RequestId = group.Key,
+                    AttemptCount = group.Count(),
+                    CurrentId = group
+                        .OrderBy(t => t.Removed)
+                        .ThenByDescending(t => t.RequestedAt)
+                        .Select(t => t.Id)
+                        .First(),
+                })
                 .ToListAsync();
 
-            var byRequest = attempts.ToLookup(t => t.RequestId!.Value);
-            var summaries = requests.Select(r => BuildSummary(r, byRequest[r.Id])).ToList();
+            var currentIds = attemptAggregates.Select(aggregate => aggregate.CurrentId).ToList();
+            var currentAttempts = currentIds.Count == 0
+                ? new Dictionary<Guid, Transfer>()
+                : await context.Transfers
+                    .AsNoTracking()
+                    .Where(t => currentIds.Contains(t.Id))
+                    .ToDictionaryAsync(t => t.Id);
+            var aggregatesByRequest = attemptAggregates.ToDictionary(aggregate => aggregate.RequestId);
+            var summaries = requests.Select(request =>
+            {
+                if (!aggregatesByRequest.TryGetValue(request.Id, out var aggregate))
+                {
+                    return new DownloadRequestSummary
+                    {
+                        Request = request,
+                        AttemptCount = 0,
+                        Current = null,
+                    };
+                }
+
+                return new DownloadRequestSummary
+                {
+                    Request = request,
+                    AttemptCount = aggregate.AttemptCount,
+                    Current = currentAttempts.GetValueOrDefault(aggregate.CurrentId),
+                };
+            }).ToList();
 
             return Ok(summaries);
         }
@@ -168,18 +208,6 @@ namespace slskd.Transfers.Downloads.API
             return NoContent();
         }
 
-        private static DownloadRequestSummary BuildSummary(DownloadRequest request, IEnumerable<Transfer> attempts)
-        {
-            var attemptList = attempts.OrderByDescending(t => t.RequestedAt).ToList();
-            var current = attemptList.FirstOrDefault(t => !t.Removed) ?? attemptList.FirstOrDefault();
-
-            return new DownloadRequestSummary
-            {
-                Request = request,
-                AttemptCount = attemptList.Count,
-                Current = current,
-            };
-        }
     }
 
     public class RenameRequest
