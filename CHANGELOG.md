@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Library Health release completeness checks now coalesce files by release and
+  directory, then query all track recording IDs in indexed batches instead of
+  repeating the complete album analysis for every file.
 - Scheduled file retention now streams directory entries and resolves each
   candidate once instead of materializing all names and reevaluating the same
   lazy filesystem pipeline three times.

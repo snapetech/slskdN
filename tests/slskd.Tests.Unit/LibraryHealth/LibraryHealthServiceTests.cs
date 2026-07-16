@@ -7,6 +7,8 @@ namespace slskd.Tests.Unit.LibraryHealth
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging.Abstractions;
@@ -182,6 +184,124 @@ namespace slskd.Tests.Unit.LibraryHealth
             }
         }
 
+        [Fact]
+        public async Task StartScanAsync_CoalescesReleaseChecksAndBatchesRecordingPresence()
+        {
+            var shareRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(shareRoot);
+            var recordingIds = Enumerable.Range(1, 10)
+                .Select(index => $"recording-{index}")
+                .ToArray();
+            foreach (var recordingId in recordingIds)
+            {
+                WriteWaveFile(Path.Combine(shareRoot, $"{recordingId}.wav"));
+            }
+
+            try
+            {
+                var scanCompleted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                var hashDb = new Mock<IHashDbService>();
+                hashDb
+                    .Setup(service => service.UpsertLibraryHealthScanAsync(
+                        It.IsAny<LibraryHealthScan>(),
+                        It.IsAny<CancellationToken>()))
+                    .Callback<LibraryHealthScan, CancellationToken>((scan, _) =>
+                    {
+                        if (scan.Status == ScanStatus.Completed)
+                        {
+                            scanCompleted.TrySetResult();
+                        }
+                    })
+                    .Returns(Task.CompletedTask);
+                hashDb
+                    .Setup(service => service.GetAlbumTargetAsync("release-1", It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(new global::slskd.HashDb.Models.AlbumTargetEntry
+                    {
+                        Artist = "Fixture Artist",
+                        ReleaseId = "release-1",
+                        Title = "Fixture Album",
+                    });
+                hashDb
+                    .Setup(service => service.GetAlbumTracksAsync("release-1", It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(recordingIds.Select((recordingId, index) =>
+                        new global::slskd.HashDb.Models.AlbumTargetTrackEntry
+                        {
+                            Position = index + 1,
+                            RecordingId = recordingId,
+                            ReleaseId = "release-1",
+                            Title = $"Track {index + 1}",
+                        }).ToArray());
+                hashDb
+                    .Setup(service => service.GetRecordingIdsWithHashesAsync(
+                        It.IsAny<IEnumerable<string>>(),
+                        It.IsAny<CancellationToken>()))
+                    .Returns<IEnumerable<string>, CancellationToken>((ids, _) =>
+                        Task.FromResult(new HashSet<string>(ids, StringComparer.OrdinalIgnoreCase)));
+                var metadata = new Mock<IMetadataFacade>();
+                metadata
+                    .Setup(service => service.GetByFileAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                    .Returns<string, CancellationToken>((path, _) =>
+                        Task.FromResult<MetadataResult?>(new MetadataResult(
+                            Artist: "Fixture Artist",
+                            Title: Path.GetFileNameWithoutExtension(path),
+                            Album: "Fixture Album",
+                            MusicBrainzRecordingId: Path.GetFileNameWithoutExtension(path),
+                            MusicBrainzReleaseId: "release-1",
+                            MusicBrainzArtistId: null,
+                            Isrc: null,
+                            Year: null,
+                            Genre: null,
+                            Source: MetadataResult.SourceFileTags)));
+                var canonicalStats = new Mock<ICanonicalStatsService>();
+                canonicalStats
+                    .Setup(service => service.GetCanonicalVariantCandidatesAsync(
+                        It.IsAny<string>(),
+                        It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(new List<AudioVariant>());
+                var options = new slskd.Options
+                {
+                    Shares = new slskd.Options.SharesOptions { Directories = new[] { shareRoot } },
+                };
+                var service = new LibraryHealthService(
+                    hashDb.Object,
+                    Mock.Of<ILibraryHealthRemediationService>(),
+                    metadata.Object,
+                    canonicalStats.Object,
+                    Mock.Of<IMusicBrainzClient>(),
+                    new TestOptionsMonitor<slskd.Options>(options),
+                    NullLogger<LibraryHealthService>.Instance);
+
+                await service.StartScanAsync(new LibraryHealthScanRequest
+                {
+                    FileExtensions = new List<string> { ".wav" },
+                    LibraryPath = shareRoot,
+                    MaxConcurrentFiles = 8,
+                });
+                await scanCompleted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+                hashDb.Verify(
+                    value => value.GetAlbumTargetAsync("release-1", It.IsAny<CancellationToken>()),
+                    Times.Once);
+                hashDb.Verify(
+                    value => value.GetAlbumTracksAsync("release-1", It.IsAny<CancellationToken>()),
+                    Times.Once);
+                hashDb.Verify(
+                    value => value.GetRecordingIdsWithHashesAsync(
+                        It.Is<IEnumerable<string>>(ids => ids.Count() == 10),
+                        It.IsAny<CancellationToken>()),
+                    Times.Once);
+                hashDb.Verify(
+                    value => value.LookupHashesByRecordingIdAsync(
+                        It.IsAny<string>(),
+                        It.IsAny<CancellationToken>()),
+                    Times.Never);
+            }
+            finally
+            {
+                Directory.Delete(shareRoot, recursive: true);
+            }
+        }
+
         private static LibraryHealthScan Clone(LibraryHealthScan scan)
         {
             return new LibraryHealthScan
@@ -195,6 +315,30 @@ namespace slskd.Tests.Unit.LibraryHealth
                 IssuesDetected = scan.IssuesDetected,
                 ErrorMessage = scan.ErrorMessage,
             };
+        }
+
+        private static void WriteWaveFile(string path)
+        {
+            const int sampleRate = 8_000;
+            const short channels = 1;
+            const short bitsPerSample = 16;
+            var audio = new byte[32];
+            using var stream = File.Create(path);
+            using var writer = new BinaryWriter(stream, Encoding.ASCII);
+            writer.Write(Encoding.ASCII.GetBytes("RIFF"));
+            writer.Write(36 + audio.Length);
+            writer.Write(Encoding.ASCII.GetBytes("WAVE"));
+            writer.Write(Encoding.ASCII.GetBytes("fmt "));
+            writer.Write(16);
+            writer.Write((short)1);
+            writer.Write(channels);
+            writer.Write(sampleRate);
+            writer.Write(sampleRate * channels * bitsPerSample / 8);
+            writer.Write((short)(channels * bitsPerSample / 8));
+            writer.Write(bitsPerSample);
+            writer.Write(Encoding.ASCII.GetBytes("data"));
+            writer.Write(audio.Length);
+            writer.Write(audio);
         }
     }
 }

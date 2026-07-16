@@ -229,6 +229,7 @@ namespace slskd.LibraryHealth
 
                 var scanLock = new object();
                 var scannedCount = 0;
+                var releaseChecks = new ConcurrentDictionary<(string ReleaseId, string Directory), string>();
 
                 await Parallel.ForEachAsync(
                     files,
@@ -241,7 +242,7 @@ namespace slskd.LibraryHealth
                     {
                         try
                         {
-                            await ScanFileAsync(file, scan, scanLock, fileCancellationToken);
+                            await ScanFileAsync(file, scan, scanLock, releaseChecks, fileCancellationToken);
                         }
                         catch (Exception ex)
                         {
@@ -255,6 +256,23 @@ namespace slskd.LibraryHealth
                         }
 
                         await hashDb.UpsertLibraryHealthScanAsync(scan, fileCancellationToken).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
+
+                await Parallel.ForEachAsync(
+                    releaseChecks,
+                    new ParallelOptions
+                    {
+                        CancellationToken = ct,
+                        MaxDegreeOfParallelism = request.MaxConcurrentFiles,
+                    },
+                    async (releaseCheck, releaseCancellationToken) =>
+                    {
+                        await CheckReleaseCompletenessAsync(
+                            releaseCheck.Value,
+                            releaseCheck.Key.ReleaseId,
+                            scan,
+                            scanLock,
+                            releaseCancellationToken).ConfigureAwait(false);
                     }).ConfigureAwait(false);
 
                 scan.Status = ScanStatus.Completed;
@@ -290,7 +308,12 @@ namespace slskd.LibraryHealth
             }
         }
 
-        private async Task ScanFileAsync(string filePath, LibraryHealthScan scan, object scanLock, CancellationToken ct)
+        private async Task ScanFileAsync(
+            string filePath,
+            LibraryHealthScan scan,
+            object scanLock,
+            ConcurrentDictionary<(string ReleaseId, string Directory), string> releaseChecks,
+            CancellationToken ct)
         {
             try
             {
@@ -433,7 +456,9 @@ namespace slskd.LibraryHealth
                 // Step 5: Check release completeness (if release ID available)
                 if (!string.IsNullOrWhiteSpace(metadata.MusicBrainzReleaseId))
                 {
-                    await CheckReleaseCompletenessAsync(filePath, metadata.MusicBrainzReleaseId, scan, scanLock, ct);
+                    var releaseId = metadata.MusicBrainzReleaseId.Trim();
+                    var directory = Path.GetDirectoryName(filePath) ?? string.Empty;
+                    releaseChecks.TryAdd((releaseId, directory), filePath);
                 }
             }
             catch (Exception ex)
@@ -466,53 +491,25 @@ namespace slskd.LibraryHealth
                     return; // No album target, skip completeness check
                 }
 
-                var tracks = await hashDb.GetAlbumTracksAsync(releaseId, ct).ConfigureAwait(false);
-                if (tracks == null || !tracks.Any())
+                var tracks = (await hashDb.GetAlbumTracksAsync(releaseId, ct).ConfigureAwait(false)).ToList();
+                if (tracks.Count == 0)
                 {
                     return;
                 }
 
                 var libraryPath = Path.GetDirectoryName(filePath);
-                var missingTracks = new List<HashDb.Models.AlbumTargetTrackEntry>();
-
-                foreach (var track in tracks)
-                {
-                    if (string.IsNullOrWhiteSpace(track.RecordingId))
-                    {
-                        continue;
-                    }
-
-                    var hashes = await hashDb.LookupHashesByRecordingIdAsync(track.RecordingId, ct).ConfigureAwait(false);
-                    if (hashes == null || !hashes.Any())
-                    {
-                        missingTracks.Add(track);
-                        continue;
-                    }
-
-                    // Check if any hash corresponds to a file in the same directory
-                    bool foundInAlbum = false;
-                    foreach (var hash in hashes)
-                    {
-                        // Try to find file by FlacKey in the library directory
-                        // Note: This is simplified - in practice, we'd need a reverse lookup from FlacKey to file path
-                        // For now, we'll check if the recording ID matches any files in the directory
-                        var filesInDir = Directory.EnumerateFiles(
-                                libraryPath ?? string.Empty,
-                                "*.*",
-                                CreateLibraryEnumerationOptions(includeSubdirectories: false))
-                            .Where(f => Path.GetExtension(f).ToLowerInvariant() is ".flac" or ".mp3" or ".m4a" or ".ogg" or ".opus");
-
-                        // Simplified check: if we have hashes for this recording, assume it might be present
-                        // Full implementation would need reverse lookup from HashDb
-                        foundInAlbum = true; // Optimistic for now
-                        break;
-                    }
-
-                    if (!foundInAlbum)
-                    {
-                        missingTracks.Add(track);
-                    }
-                }
+                var recordingIds = tracks
+                    .Where(track => !string.IsNullOrWhiteSpace(track.RecordingId))
+                    .Select(track => track.RecordingId)
+                    .ToArray();
+                var presentRecordingIds = await hashDb
+                    .GetRecordingIdsWithHashesAsync(recordingIds, ct)
+                    .ConfigureAwait(false);
+                var missingTracks = tracks
+                    .Where(track =>
+                        !string.IsNullOrWhiteSpace(track.RecordingId) &&
+                        !presentRecordingIds.Contains(track.RecordingId))
+                    .ToList();
 
                 if (missingTracks.Count > 0)
                 {
@@ -520,12 +517,12 @@ namespace slskd.LibraryHealth
                     {
                         IssueId = Guid.NewGuid().ToString(),
                         Type = LibraryIssueType.MissingTrackInRelease,
-                        Severity = missingTracks.Count > tracks.Count() / 2 ? LibraryIssueSeverity.High : LibraryIssueSeverity.Medium,
+                        Severity = missingTracks.Count > tracks.Count / 2 ? LibraryIssueSeverity.High : LibraryIssueSeverity.Medium,
                         FilePath = libraryPath ?? string.Empty, // Directory, not specific file
                         MusicBrainzReleaseId = releaseId,
                         Artist = albumTarget.Artist,
                         Album = albumTarget.Title,
-                        Reason = $"Album incomplete: {missingTracks.Count}/{tracks.Count()} tracks missing",
+                        Reason = $"Album incomplete: {missingTracks.Count}/{tracks.Count} tracks missing",
                         Metadata = new Dictionary<string, object>
                         {
                             ["missing_tracks"] = missingTracks.Select(t => new
@@ -534,7 +531,7 @@ namespace slskd.LibraryHealth
                                 title = t.Title,
                                 recording_id = t.RecordingId
                             }).ToList(),
-                            ["total_tracks"] = tracks.Count(),
+                            ["total_tracks"] = tracks.Count,
                         },
                         CanAutoFix = true,
                         SuggestedAction = "Download missing tracks via multi-swarm",

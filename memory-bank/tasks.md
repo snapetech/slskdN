@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch Library Health release completeness analysis.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Collected unique `(release ID, directory)` work during parallel file scanning, analyzed each release once after the file pass, and replaced one hash lookup per album track with bounded indexed recording-ID presence queries. A ten-track release with ten files falls from 120 database reads to three (97.5% fewer) without increasing scan concurrency or changing the existing conservative presence semantics. Added scan-level call-boundary, batch-result, and SQLite query-plan regressions; documented gotcha `0z657` in `6aba3b354` and `b7dfc99dc`, and extended symbol-shadowing gotcha `0z646` in `329587f51`.
+
 - [x] Stream scheduled file retention in one destructive pass.
   - Status: completed (2026-07-16)
   - Priority: P1

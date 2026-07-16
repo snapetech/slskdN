@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Library Health now performs release completeness analysis once per release
+  directory after the file scan and checks recording presence with one indexed
+  batch query. A ten-track release containing ten files falls from 120 database
+  reads to three, while retaining the existing conservative hash-presence
+  semantics and scan concurrency bound.
 - Scheduled incomplete/download retention now streams recursive directory
   entries and counts outcomes during the destructive pass. Each candidate is
   resolved and age-checked once instead of three times, removing 200,000

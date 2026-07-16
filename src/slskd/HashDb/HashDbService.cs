@@ -760,6 +760,50 @@ namespace slskd.HashDb
             return matches;
         }
 
+        /// <inheritdoc/>
+        public async Task<HashSet<string>> GetRecordingIdsWithHashesAsync(
+            IEnumerable<string> recordingIds,
+            CancellationToken cancellationToken = default)
+        {
+            var normalized = recordingIds
+                .Where(recordingId => !string.IsNullOrWhiteSpace(recordingId))
+                .Select(recordingId => recordingId.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            var matches = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (normalized.Length == 0)
+            {
+                return matches;
+            }
+
+            using var conn = GetConnection();
+            foreach (var batch in normalized.Chunk(500))
+            {
+                using var cmd = conn.CreateCommand();
+                var parameters = batch.Select((_, index) => $"@recording{index}").ToArray();
+                cmd.CommandText = $"""
+                    SELECT TRIM(musicbrainz_id)
+                    FROM HashDb
+                    WHERE musicbrainz_id IS NOT NULL
+                      AND TRIM(musicbrainz_id) <> ''
+                      AND TRIM(musicbrainz_id) COLLATE NOCASE IN ({string.Join(", ", parameters)})
+                    """;
+
+                for (var index = 0; index < batch.Length; index++)
+                {
+                    cmd.Parameters.AddWithValue(parameters[index], batch[index]);
+                }
+
+                await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    matches.Add(reader.GetString(0));
+                }
+            }
+
+            return matches;
+        }
+
         private static AlbumTargetEntry ReadAlbumTargetEntry(SqliteDataReader reader)
         {
             return new AlbumTargetEntry

@@ -1,3 +1,17 @@
+## Update 2026-07-16 06:19:37Z
+
+- Current task: performance and efficiency improvements in progress; Library Health release-analysis pass complete locally.
+- Last activity:
+  - Coalesced release completeness checks by release ID and directory after the parallel file pass, preventing every file in one album from repeating the same analysis and issue creation.
+  - Batched indexed recording-ID presence checks in groups of at most 500. A ten-track release with ten files falls from 120 database reads to three (97.5% fewer). Documented gotcha `0z657` (`6aba3b354`, `b7dfc99dc`) and extended namespace-shadowing gotcha `0z646` (`329587f51`).
+- Validation:
+  - Passed focused Library Health/HashDb coverage (`7/7`) and complete smoke/unit/integration suites (`4822/4822`: `69` smoke, `4473` unit, `280` integration).
+  - Repository lint and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. Concurrent Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the Library Health/HashDb implementation and handoff slice.
+  2. Continue the broader performance goal outside the dirty Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 06:02:15Z
 
 - Current task: performance and efficiency improvements in progress; streaming file-retention pass complete locally.
