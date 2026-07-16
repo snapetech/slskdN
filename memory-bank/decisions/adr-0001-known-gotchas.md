@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z682. EF Command Interceptors Do Not See Direct Connection Commands
+
+**The Bug**: Wishlist bulk-insert tests attached an EF Core
+`DbCommandInterceptor`, but the implementation created commands directly from
+`context.Database.GetDbConnection()`. Inserts succeeded and rows persisted,
+yet the interceptor correctly observed zero commands because execution bypassed
+EF Core's command pipeline.
+
+**Files Affected**:
+- `src/slskd/Wishlist/WishlistService.cs`
+- `tests/slskd.Tests.Unit/Wishlist/WishlistServicePersistenceTests.cs`
+
+**Prevention**: When command-count coverage relies on EF interceptors, execute
+raw SQL through `Database.ExecuteSqlRawAsync` or another EF command API. If
+production must use direct `DbCommand`, instrument at the ADO.NET provider layer
+instead; do not interpret an empty EF interceptor capture as proof that no SQL
+ran. Pair command counts with persisted-state assertions.
+
 ### 0z681. Multi-Line Generated SQL Fragments Need Raw Strings
 
 **The Bug**: A canonical-stat batch patch generated each multi-line `VALUES`
