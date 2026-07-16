@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z673. Batched `IN` Reads Do Not Preserve Caller Order
+
+**The Bug**: Replacing Library Health's caller-ordered issue lookup with one
+SQLite `IN` query returned rows in unspecified database order. Remediation uses
+the first issue to select its target directory, so the optimization could send
+downloads to a different directory for the same ordered request.
+
+**Files Affected**:
+- `src/slskd/HashDb/HashDbService.cs`
+- `src/slskd/LibraryHealth/Remediation/LibraryHealthRemediationService.cs`
+
+**Prevention**: When batching an ordered sequence into `IN` queries, collect
+rows by their stable key and reconstruct the result from the normalized caller
+sequence. Do not treat SQLite row order as input order unless the query has an
+explicit `ORDER BY` that encodes that order. Cover the requested order across
+duplicate, missing, and chunk-boundary keys.
+
 ### 0z672. Moq Expression Matchers Cannot Use Out Discards
 
 **The Bug**: A remediation regression used
