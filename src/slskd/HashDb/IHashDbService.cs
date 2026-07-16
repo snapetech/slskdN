@@ -62,6 +62,13 @@ namespace slskd.HashDb
             CancellationToken cancellationToken = default);
 
         /// <summary>
+        ///     Gets a bounded list of tracks from the newest stored albums.
+        /// </summary>
+        Task<IEnumerable<AlbumTargetTrackEntry>> GetRecentAlbumTracksAsync(
+            int count,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         ///     Gets the stored album targets.
         /// </summary>
         Task<IEnumerable<AlbumTargetEntry>> GetAlbumTargetsAsync(CancellationToken cancellationToken = default);

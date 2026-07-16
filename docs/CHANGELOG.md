@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Recent Virtual Soulfind music enumeration now uses a schema-v22 album-recency
+  index, hydrates at most the requested track count, and batches advertisable
+  presence. The default 50-item request falls from 52–101 database queries to
+  two (96.2–98.0% fewer).
 - Virtual Soulfind music recording-ID resolution now uses a schema-v21
   case-insensitive album-track index instead of loading the album catalog and
   querying every release. A successful lookup across 100 albums falls from up

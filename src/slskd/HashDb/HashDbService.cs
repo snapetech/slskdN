@@ -788,6 +788,38 @@ namespace slskd.HashDb
         }
 
         /// <inheritdoc/>
+        public async Task<IEnumerable<AlbumTargetTrackEntry>> GetRecentAlbumTracksAsync(
+            int count,
+            CancellationToken cancellationToken = default)
+        {
+            var tracks = new List<AlbumTargetTrackEntry>();
+            if (count <= 0)
+            {
+                return tracks;
+            }
+
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText =
+                """
+                SELECT track.release_id, track.track_position, track.recording_id, track.title, track.artist, track.duration_ms, track.isrc
+                FROM AlbumTargets AS album INDEXED BY idx_album_targets_created
+                INNER JOIN AlbumTargetTracks AS track ON track.release_id = album.release_id
+                ORDER BY album.created_at DESC, track.track_position ASC
+                LIMIT @count
+                """;
+            cmd.Parameters.AddWithValue("@count", count);
+
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                tracks.Add(ReadAlbumTargetTrackEntry(reader));
+            }
+
+            return tracks;
+        }
+
+        /// <inheritdoc/>
         public async Task<IEnumerable<AlbumTargetEntry>> GetAlbumTargetsAsync(CancellationToken cancellationToken = default)
         {
             var targets = new List<AlbumTargetEntry>();

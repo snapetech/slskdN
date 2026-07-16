@@ -190,30 +190,15 @@ namespace slskd.VirtualSoulfind.Core.Music
 
             try
             {
-                var items = new List<MusicItem>(count);
-                var albums = await _hashDb.GetAlbumTargetsAsync(cancellationToken).ConfigureAwait(false);
-
-                foreach (var album in albums.OrderByDescending(entry => entry.CreatedAt))
-                {
-                    if (items.Count >= count)
-                    {
-                        break;
-                    }
-
-                    var tracks = await _hashDb.GetAlbumTracksAsync(album.ReleaseId, cancellationToken).ConfigureAwait(false);
-                    foreach (var track in tracks.OrderBy(track => track.Position))
-                    {
-                        var isAdvertisable = (await _hashDb.LookupHashesByRecordingIdAsync(track.RecordingId, cancellationToken).ConfigureAwait(false)).Any();
-                        items.Add(MusicItem.FromTrackEntry(track, isAdvertisable));
-
-                        if (items.Count >= count)
-                        {
-                            break;
-                        }
-                    }
-                }
-
-                return items;
+                var tracks = (await _hashDb.GetRecentAlbumTracksAsync(count, cancellationToken).ConfigureAwait(false)).ToList();
+                var presentRecordingIds = await _hashDb
+                    .GetRecordingIdsWithHashesAsync(tracks.Select(track => track.RecordingId), cancellationToken)
+                    .ConfigureAwait(false);
+                return tracks
+                    .Select(track => MusicItem.FromTrackEntry(
+                        track,
+                        presentRecordingIds.Contains(track.RecordingId)))
+                    .ToList();
             }
             catch (Exception ex)
             {

@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Recent music enumeration now pushes its global item limit into an indexed
+  album-track query and batches recording-presence checks.
 - Music recording-ID resolution now uses a direct case-insensitive indexed
   album-track lookup and defers variant hydration until the track lookup misses.
 - MusicBrainz album completion now batches release-track and recording-hash

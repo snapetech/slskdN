@@ -16,7 +16,7 @@ public static class HashDbMigrations
     /// <summary>
     ///     Current schema version. Increment when adding new migrations.
     /// </summary>
-    public const int CurrentVersion = 21;
+    public const int CurrentVersion = 22;
 
     private static readonly ILogger Log = Serilog.Log.ForContext(typeof(HashDbMigrations));
 
@@ -806,6 +806,18 @@ public static class HashDbMigrations
                         ON AlbumTargetTracks (recording_id COLLATE NOCASE)
                         WHERE recording_id IS NOT NULL AND recording_id <> ''
                         """;
+                    cmd.ExecuteNonQuery();
+                },
+            },
+
+            new Migration
+            {
+                Version = 22,
+                Name = "Album target recency index",
+                Apply = conn =>
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_album_targets_created ON AlbumTargets(created_at DESC)";
                     cmd.ExecuteNonQuery();
                 },
             },

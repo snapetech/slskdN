@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound and batch recent music enumeration.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added schema-v22 `idx_album_targets_created`, a globally limited recent album-track projection anchored on that index, and one batched recording-presence lookup. The default 50-item request falls from 52–101 local database queries to two (96.2–98.0% fewer), and track hydration is capped at 50. Added query-plan, global-limit/order, advertisable-state, and exact legacy-call-boundary regressions; documented gotcha `0z667` (`ac41ee106`) and the caught MusicItem GUID fixture invariant as `0z668` (`f58451259`).
+
 - [x] Make music recording-ID resolution a direct indexed lookup.
   - Status: completed (2026-07-16)
   - Priority: P1

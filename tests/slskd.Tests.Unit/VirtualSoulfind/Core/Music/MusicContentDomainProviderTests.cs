@@ -172,6 +172,43 @@ namespace slskd.Tests.Unit.VirtualSoulfind.Core.Music
         }
 
         [Fact]
+        public async Task GetRecentItemsAsync_UsesBoundedTracksAndBatchedPresence()
+        {
+            var recordingIds = Enumerable.Range(1, 3)
+                .Select(index => $"20000000-0000-0000-0000-{index:D12}")
+                .ToArray();
+            var tracks = Enumerable.Range(1, 3)
+                .Select(index => new AlbumTargetTrackEntry
+                {
+                    ReleaseId = "10000000-0000-0000-0000-000000000000",
+                    RecordingId = recordingIds[index - 1],
+                    Title = $"Track {index}",
+                    Artist = "Artist",
+                    Position = index,
+                })
+                .ToArray();
+            _hashDbMock.Setup(h => h.GetRecentAlbumTracksAsync(3, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(tracks);
+            _hashDbMock.Setup(h => h.GetRecordingIdsWithHashesAsync(
+                    It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new HashSet<string>(new[] { recordingIds[0], recordingIds[2] }, StringComparer.OrdinalIgnoreCase));
+            var provider = new MusicContentDomainProvider(_loggerMock.Object, _hashDbMock.Object);
+
+            var items = await provider.GetRecentItemsAsync(3);
+
+            Assert.Equal(new[] { "Track 1", "Track 2", "Track 3" }, items.Select(item => item.Title));
+            Assert.Equal(new[] { true, false, true }, items.Select(item => item.IsAdvertisable));
+            _hashDbMock.Verify(h => h.GetRecentAlbumTracksAsync(3, It.IsAny<CancellationToken>()), Times.Once);
+            _hashDbMock.Verify(h => h.GetRecordingIdsWithHashesAsync(
+                It.Is<IEnumerable<string>>(ids => ids.SequenceEqual(recordingIds)),
+                It.IsAny<CancellationToken>()), Times.Once);
+            _hashDbMock.Verify(h => h.GetAlbumTargetsAsync(It.IsAny<CancellationToken>()), Times.Never);
+            _hashDbMock.Verify(h => h.GetAlbumTracksAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+            _hashDbMock.Verify(h => h.LookupHashesByRecordingIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
         public async Task TryMatchTrackByFingerprintAsync_ReturnsClosestDurationMatch()
         {
             // Arrange

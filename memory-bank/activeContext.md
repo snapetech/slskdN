@@ -1,3 +1,17 @@
+## Update 2026-07-16 07:38:13Z
+
+- Current task: performance and efficiency improvements in progress; recent music enumeration pass complete locally.
+- Last activity:
+  - Added schema-v22 album-recency index and a database-limited recent-track projection, then batched advertisable presence. The default 50-item request falls from 52–101 queries to two (96.2–98.0% fewer), with at most 50 tracks hydrated.
+  - Query-plan and provider regressions prove indexed traversal and zero legacy catalog/per-album/per-track calls. Documented gotcha `0z667` (`ac41ee106`) and fixture gotcha `0z668` (`f58451259`).
+- Validation:
+  - Passed focused recent-item/index coverage (`10/10`), complete HashDb/provider suites (`78/78`), and full backend tests (`4836/4836`: `69` application, `4487` unit, `280` integration).
+  - Repository lint and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Run remediation and commit only the schema-v22/recent-items slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 07:27:33Z
 
 - Current task: performance and efficiency improvements in progress; direct music recording lookup pass complete locally.

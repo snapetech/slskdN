@@ -169,6 +169,37 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Constructor_IndexesBoundedRecentAlbumTrackQuery()
+    {
+        await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText =
+            """
+            EXPLAIN QUERY PLAN
+            SELECT track.release_id, track.track_position, track.recording_id, track.title, track.artist, track.duration_ms, track.isrc
+            FROM AlbumTargets AS album INDEXED BY idx_album_targets_created
+            INNER JOIN AlbumTargetTracks AS track ON track.release_id = album.release_id
+            ORDER BY album.created_at DESC, track.track_position ASC
+            LIMIT 50
+            """;
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        var plan = new List<string>();
+        while (await reader.ReadAsync())
+        {
+            plan.Add(reader.GetString(3));
+        }
+
+        Assert.Contains(plan, detail =>
+            detail.Contains("SCAN album USING INDEX idx_album_targets_created", StringComparison.Ordinal));
+        Assert.Contains(plan, detail =>
+            detail.Contains("SEARCH track USING INDEX", StringComparison.Ordinal) &&
+            detail.Contains("release_id=?", StringComparison.Ordinal));
+        Assert.DoesNotContain(plan, detail => detail.Contains("SCAN track", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Constructor_IndexesBatchedHashEvidenceQueryWithoutTemporarySort()
     {
         await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
@@ -523,6 +554,49 @@ public class HashDbServiceTests : IDisposable
         Assert.NotNull(track);
         Assert.Equal("release-new", track!.ReleaseId);
         Assert.Equal("New Track", track.Title);
+    }
+
+    [Fact]
+    public async Task GetRecentAlbumTracksAsync_AppliesGlobalLimitInAlbumOrder()
+    {
+        await service.UpsertAlbumTargetAsync(new AlbumTarget
+        {
+            MusicBrainzReleaseId = "release-old",
+            Title = "Old Album",
+            Artist = "Artist",
+            Tracks = new[]
+            {
+                new TrackTarget { Position = 1, MusicBrainzRecordingId = "old-1", Title = "Old One" },
+            },
+        });
+        await service.UpsertAlbumTargetAsync(new AlbumTarget
+        {
+            MusicBrainzReleaseId = "release-new",
+            Title = "New Album",
+            Artist = "Artist",
+            Tracks = new[]
+            {
+                new TrackTarget { Position = 1, MusicBrainzRecordingId = "new-1", Title = "New One" },
+                new TrackTarget { Position = 2, MusicBrainzRecordingId = "new-2", Title = "New Two" },
+            },
+        });
+        await using (var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}"))
+        {
+            await conn.OpenAsync();
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText =
+                """
+                UPDATE AlbumTargets
+                SET created_at = CASE release_id WHEN 'release-old' THEN 1 ELSE 2 END
+                """;
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        var tracks = (await service.GetRecentAlbumTracksAsync(2)).ToList();
+
+        Assert.Equal(2, tracks.Count);
+        Assert.All(tracks, track => Assert.Equal("release-new", track.ReleaseId));
+        Assert.Equal(new[] { 1, 2 }, tracks.Select(track => track.Position));
     }
 
     [Fact]
