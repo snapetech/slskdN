@@ -52,6 +52,20 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z686. Positional Record Named Arguments Are Case-Sensitive
+
+**The Bug**: A `ResolvedLibraryItem` constructor call used the named argument
+`duplicateCount`, but the positional record parameter is `DuplicateCount`.
+C# named arguments are case-sensitive, so the project failed with CS1739.
+
+**Files Affected**:
+- `src/slskd/API/Native/LibraryItemsController.cs`
+
+**Prevention**: Copy positional record parameter names exactly when using named
+arguments, including capitalization. Prefer all-positional or all-correctly-
+named construction for short private records; do not mix a lowercase field
+style with PascalCase record parameters.
+
 ### 0z685. Refactors Must Declare Every New Intermediate Type
 
 **The Bug**: Native library item batching introduced `LibraryItemCandidate`
