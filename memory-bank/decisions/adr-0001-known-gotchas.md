@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z696. Interface Changes Must Search Every Test Project
+
+**The Bug**: Replacing the synchronous Jobs list interface with a bounded
+async page compiled and passed the unit project, but the separate integration
+test host contained its own `IJobServiceWithList` adapter. Full solution
+compilation then failed with CS0535 because that fake still implemented the old
+contract.
+
+**Files Affected**:
+- `src/slskd/API/Native/JobsController.cs`
+- `tests/slskd.Tests.Integration/StubWebApplicationFactory.cs`
+
+**Prevention**: Before compiling an interface change, search the entire
+repository—not only the focused test project—for implementations, explicit
+fakes, host adapters, and test doubles. Run at least a solution build when the
+contract crosses API/DI boundaries; a focused project cannot compile sibling
+integration hosts.
+
 ### 0z695. SignalR Caller Mocks Require The Single-Client Proxy
 
 **The Bug**: A `SearchHub.OnConnectedAsync` regression mocked
