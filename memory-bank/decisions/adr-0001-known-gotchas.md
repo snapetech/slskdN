@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z715. Default-Initialized Strings Do Not Exercise Null Fallbacks
+
+**The Bug**: A MediaVariant projection regression created an `AudioVariant`
+with only `FlacKey` populated and expected `VariantId ?? FlacKey` to choose the
+FlacKey. `AudioVariant.VariantId` defaults to `string.Empty`, so the null-
+coalescing expression correctly retained the empty string instead.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/MediaCore/HashDbMediaVariantStoreTests.cs`
+
+**Prevention**: Inspect model property initializers before constructing null-
+fallback fixtures. Explicitly assign `null!` when a test must traverse a null-
+coalescing branch, and separately cover empty-string behavior when the contract
+distinguishes null from empty.
+
 ### 0z714. Use `default` Instead Of A Value-Type Constructor
 
 **The Bug**: A byte-array equality comparer initialized `HashCode` with
