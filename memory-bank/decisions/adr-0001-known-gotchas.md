@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z646. Test Helpers Can Shadow Static Options Factories
+
+**The Bug**: A Mesh regression used `Options.Create(...)` inside a test class
+that already exposed an `Options` symbol. C# resolved the local symbol instead
+of `Microsoft.Extensions.Options.Options`, causing the test project to fail at
+compile time.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Mesh/Phase8MeshTests.cs`
+
+**Prevention**: In broad test fixtures with common member names, fully qualify
+static factories such as `Microsoft.Extensions.Options.Options.Create(...)` or
+use an unambiguous alias. A namespace import does not override a nearer member
+or type name during symbol resolution.
+
 ### 0z645. Bulk Hint Publication Must Not Rewrite Shared Indexes Per Item
 
 **The Bug**: Share initialization deduplicated content IDs in memory, but the
