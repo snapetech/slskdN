@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z630. Semantic UI Tab Menu Items Must Use Its Item Contract
+
+**The Bug**: The Security dashboard supplied raw `<span>` elements as Semantic
+UI `Tab` menu items. Labels rendered, but clicking Adversarial threw while the
+Menu tried to read injected item props, so the pane could not be selected.
+
+**Files Affected**:
+- `src/web/src/components/System/Security/index.jsx`
+
+**Prevention**: Define Tab menu items with Semantic UI shorthand objects such
+as `{ content, icon, key }`, matching the established System and Library Health
+tabs. Do not use an arbitrary React element as a clickable `menuItem`; visual
+output alone does not prove that its selection contract works. Cover the click
+and resulting pane body in a component test.
+
 ### 0z629. ClearAllMocks Does Not Reset Queued Implementations
 
 **The Bug**: A Security polling test queued a one-time rejected dashboard
