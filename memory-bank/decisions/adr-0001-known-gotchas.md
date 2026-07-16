@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z665. Enumerating An ILookup Yields Groups, Not Elements
+
+**The Bug**: The first album-completion batching patch called `Select` on an
+`ILookup<string, AlbumTargetTrackEntry>` as though it enumerated tracks.
+`ILookup` enumeration yields `IGrouping<TKey, TElement>` objects, so the code
+could not project `RecordingId` from the sequence.
+
+**Files Affected**:
+- `src/slskd/Integrations/MusicBrainz/API/MusicBrainzController.cs`
+
+**Prevention**: Use keyed lookup access when processing one group and
+`SelectMany(group => group)` when flattening all lookup elements. Review the
+static element type after introducing `ToLookup`; dictionary-like indexed
+access does not mean its enumerable surface is flat.
+
 ### 0z664. Aggregate Endpoints Must Batch Both Parent And Evidence Reads
 
 **The Bug**: MusicBrainz album completion loaded every release, queried tracks
