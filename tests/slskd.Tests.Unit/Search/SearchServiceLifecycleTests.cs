@@ -6,6 +6,7 @@ namespace slskd.Tests.Unit.Search;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -13,6 +14,7 @@ using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Moq;
 using slskd.Common.Security;
 using slskd.Search;
@@ -545,6 +547,100 @@ public class SearchServiceLifecycleTests
         Assert.Equal(2, persisted.Responses.Count());
     }
 
+    [Fact]
+    public async Task CleanupAsync_WithLargeExpiredSet_UsesBoundedSetBasedDeletesAndBroadcastsEachSearch()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var commandInterceptor = new RecordingCommandInterceptor();
+        var options = new DbContextOptionsBuilder<SearchDbContext>()
+            .UseSqlite(connection)
+            .AddInterceptors(commandInterceptor)
+            .Options;
+        var now = DateTime.UtcNow;
+        var expiredSearches = Enumerable.Range(0, 501)
+            .Select(index => CreateCompletedSearch(now.AddDays(-2).AddSeconds(index)))
+            .ToList();
+        var retainedSearches = Enumerable.Range(0, 2)
+            .Select(index => CreateCompletedSearch(now.AddMinutes(-index)))
+            .ToList();
+        await using (var context = new SearchDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Searches.AddRange(expiredSearches.Concat(retainedSearches));
+            await context.SaveChangesAsync();
+        }
+
+        commandInterceptor.Commands.Clear();
+        var deletedSearches = new ConcurrentQueue<slskd.Search.Search>();
+        using var service = new SearchService(
+            CreateSearchHub(deletes: deletedSearches).Object,
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            Mock.Of<ISoulseekClient>(),
+            new SearchDbContextFactory(options),
+            Mock.Of<ISoulseekSafetyLimiter>());
+
+        var deletedCount = await service.CleanupAsync(maxAgeDays: 1);
+
+        Assert.Equal(501, deletedCount);
+        Assert.Equal(
+            expiredSearches.Select(search => search.Id).OrderBy(id => id),
+            deletedSearches.Select(search => search.Id).OrderBy(id => id));
+        Assert.All(deletedSearches, search => Assert.Empty(search.Responses));
+        Assert.Equal(
+            3,
+            commandInterceptor.Commands.Count(command =>
+                command.StartsWith("DELETE FROM \"Searches\"", StringComparison.Ordinal)));
+        await using var verifyContext = new SearchDbContext(options);
+        Assert.Equal(
+            retainedSearches.Select(search => search.Id).OrderBy(id => id),
+            await verifyContext.Searches
+                .AsNoTracking()
+                .OrderBy(search => search.Id)
+                .Select(search => search.Id)
+                .ToListAsync());
+    }
+
+    [Fact]
+    public async Task CleanupAsync_WithCountLimit_DeletesOnlyOldestExcessSearches()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<SearchDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        var startedAt = DateTime.UtcNow.AddHours(-1);
+        var searches = Enumerable.Range(0, 301)
+            .Select(index => CreateCompletedSearch(startedAt.AddSeconds(index)))
+            .ToList();
+        await using (var context = new SearchDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Searches.AddRange(searches);
+            await context.SaveChangesAsync();
+        }
+
+        using var service = new SearchService(
+            CreateSearchHub().Object,
+            new TestOptionsMonitor<slskd.Options>(new slskd.Options()),
+            Mock.Of<ISoulseekClient>(),
+            new SearchDbContextFactory(options),
+            Mock.Of<ISoulseekSafetyLimiter>());
+
+        var deletedCount = await service.CleanupAsync(maxCount: 101);
+
+        Assert.Equal(200, deletedCount);
+        await using var verifyContext = new SearchDbContext(options);
+        Assert.Equal(
+            searches.Skip(200).Select(search => search.Id),
+            await verifyContext.Searches
+                .AsNoTracking()
+                .OrderBy(search => search.StartedAt)
+                .ThenBy(search => search.Id)
+                .Select(search => search.Id)
+                .ToListAsync());
+    }
+
     private static SearchService CreateService()
     {
         return new SearchService(
@@ -556,7 +652,8 @@ public class SearchServiceLifecycleTests
     }
 
     private static Mock<IHubContext<SearchHub>> CreateSearchHub(
-        ConcurrentQueue<slskd.Search.Search>? updates = null)
+        ConcurrentQueue<slskd.Search.Search>? updates = null,
+        ConcurrentQueue<slskd.Search.Search>? deletes = null)
     {
         var clientProxy = new Mock<IClientProxy>();
         clientProxy
@@ -574,6 +671,15 @@ public class SearchServiceLifecycleTests
                 {
                     updates.Enqueue(search);
                 }
+
+                if (
+                    deletes != null
+                    && method == SearchHubMethods.Delete
+                    && arguments.FirstOrDefault() is slskd.Search.Search deletedSearch
+                )
+                {
+                    deletes.Enqueue(deletedSearch);
+                }
             })
             .Returns(Task.CompletedTask);
 
@@ -583,6 +689,18 @@ public class SearchServiceLifecycleTests
         var hub = new Mock<IHubContext<SearchHub>>();
         hub.Setup(h => h.Clients).Returns(clients.Object);
         return hub;
+    }
+
+    private static slskd.Search.Search CreateCompletedSearch(DateTime startedAt)
+    {
+        return new slskd.Search.Search
+        {
+            Id = Guid.NewGuid(),
+            EndedAt = startedAt.AddSeconds(1),
+            SearchText = "retained search",
+            StartedAt = startedAt,
+            State = SearchStates.Completed,
+        };
     }
 
     private static ConcurrentDictionary<Guid, CancellationTokenSource> GetCancellationTokens(SearchService service)
@@ -622,5 +740,20 @@ public class SearchServiceLifecycleTests
 
         public ValueTask<SearchDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
             ValueTask.FromResult(CreateDbContext());
+    }
+
+    private sealed class RecordingCommandInterceptor : DbCommandInterceptor
+    {
+        public List<string> Commands { get; } = new();
+
+        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
+        {
+            Commands.Add(command.CommandText);
+            return ValueTask.FromResult(result);
+        }
     }
 }

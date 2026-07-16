@@ -1,3 +1,12 @@
+## Update 2026-07-16 03:42:46Z
+
+- Completed the bounded, set-based search-history maintenance pass.
+- Replaced full candidate materialization and one fresh DbContext/transaction per row across automatic retention, legacy age pruning, and manual completed-history clearing with stable 250-row `(StartedAt, Id)` pages.
+- Each page selects response-free summaries, deletes its IDs with one database command, and then emits every existing per-search SignalR deletion payload for client compatibility.
+- The 501-row regression requires three delete commands instead of 501 (99.4% fewer); a 10,000-row cleanup falls from 10,000 delete transactions to 40 while keeping at most 250 summaries resident.
+- Added large expired-set command-count, notification, payload, and retained-row coverage plus exact oldest-excess count coverage. Documented gotcha `0z641` in standalone commit `f1e916d6b`.
+- Validation passed: focused Search lifecycle tests (`21/21`), complete smoke/unit/integration suites (`4796/4796`: `69` smoke, `4447` unit, `280` integration), repository lint, identity, and diff checks. One unrelated Mesh pipe-read test hit its five-second timeout in the first combined run, then passed in isolation in 59 ms and the complete unit suite passed on rerun. The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+
 ## Update 2026-07-16 03:32:33Z
 
 - Completed the automatic search-retention scheduling efficiency pass.

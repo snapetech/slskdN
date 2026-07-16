@@ -149,6 +149,7 @@ namespace slskd.Search
     /// </summary>
     public sealed partial class SearchService : ISearchService
     {
+        private const int RetentionCleanupBatchSize = 250;
         private const int SearchProgressIntervalMs = 1_000;
 
         /// <summary>
@@ -810,19 +811,9 @@ namespace slskd.Search
                 // unlike other pruning operations, we don't care about state, since there's a 60 minute minimum
                 // and searches are guaranteed to be at least 60 minutes old by the time they can be pruned, they will
                 // be completed unless someone applied some rather dumb settings
-                var expired = context.Searches
-                    .Where(s => s.EndedAt.HasValue && s.EndedAt.Value < cutoffDateTime)
-                    .WithoutResponses()
-                    .ToList();
-
-                // defer the deletion to DeleteAsync() so that SignalR broadcasting works properly and the UI
-                // is updated in real time
-                foreach (var search in expired)
-                {
-                    await DeleteAsync(search);
-                }
-
-                return expired.Count;
+                return await DeleteSearchesInBatchesAsync(
+                    context,
+                    context.Searches.Where(s => s.EndedAt.HasValue && s.EndedAt.Value < cutoffDateTime));
             }
             catch (Exception ex)
             {
@@ -841,20 +832,12 @@ namespace slskd.Search
             {
                 using var context = ContextFactory.CreateDbContext();
 
-                var allSearches = context.Searches
-                    .Where(s => s.State.HasFlag(SearchStates.Completed))
-                    .WithoutResponses()
-                    .ToList();
+                var deletedCount = await DeleteSearchesInBatchesAsync(
+                    context,
+                    context.Searches.Where(s => s.State.HasFlag(SearchStates.Completed)));
 
-                // defer the deletion to DeleteAsync() so that SignalR broadcasting works properly and the UI
-                // is updated in real time
-                foreach (var search in allSearches)
-                {
-                    await DeleteAsync(search);
-                }
-
-                Log.Information("Deleted {Count} searches", allSearches.Count);
-                return allSearches.Count;
+                Log.Information("Deleted {Count} searches", deletedCount);
+                return deletedCount;
             }
             catch (Exception ex)
             {
@@ -881,48 +864,35 @@ namespace slskd.Search
                 if (maxAgeDays > 0)
                 {
                     var cutoff = DateTime.UtcNow.AddDays(-maxAgeDays);
-                    var expiredSearches = context.Searches
-                        .Where(s => s.State.HasFlag(SearchStates.Completed) && s.StartedAt < cutoff)
-                        .WithoutResponses()
-                        .ToList();
+                    var expiredCount = await DeleteSearchesInBatchesAsync(
+                        context,
+                        context.Searches.Where(s => s.State.HasFlag(SearchStates.Completed) && s.StartedAt < cutoff));
 
-                    foreach (var search in expiredSearches)
+                    deletedCount += expiredCount;
+                    if (expiredCount > 0)
                     {
-                        await DeleteAsync(search);
-                    }
-
-                    deletedCount += expiredSearches.Count;
-                    if (expiredSearches.Count > 0)
-                    {
-                        Log.Information("Retention cleanup: deleted {Count} searches older than {Days} days", expiredSearches.Count, maxAgeDays);
+                        Log.Information("Retention cleanup: deleted {Count} searches older than {Days} days", expiredCount, maxAgeDays);
                     }
                 }
 
                 // Delete by count (oldest first)
                 if (maxCount > 0)
                 {
-                    var totalCount = context.Searches
-                        .Count(s => s.State.HasFlag(SearchStates.Completed));
+                    var totalCount = await context.Searches
+                        .CountAsync(s => s.State.HasFlag(SearchStates.Completed));
 
                     if (totalCount > maxCount)
                     {
                         var excessCount = totalCount - maxCount;
-                        var oldestSearches = context.Searches
-                            .Where(s => s.State.HasFlag(SearchStates.Completed))
-                            .OrderBy(s => s.StartedAt)
-                            .Take(excessCount)
-                            .WithoutResponses()
-                            .ToList();
+                        var excessDeletedCount = await DeleteSearchesInBatchesAsync(
+                            context,
+                            context.Searches.Where(s => s.State.HasFlag(SearchStates.Completed)),
+                            excessCount);
 
-                        foreach (var search in oldestSearches)
+                        deletedCount += excessDeletedCount;
+                        if (excessDeletedCount > 0)
                         {
-                            await DeleteAsync(search);
-                        }
-
-                        deletedCount += oldestSearches.Count;
-                        if (oldestSearches.Count > 0)
-                        {
-                            Log.Information("Retention cleanup: deleted {Count} oldest searches (limit: {MaxCount})", oldestSearches.Count, maxCount);
+                            Log.Information("Retention cleanup: deleted {Count} oldest searches (limit: {MaxCount})", excessDeletedCount, maxCount);
                         }
                     }
                 }
@@ -934,6 +904,49 @@ namespace slskd.Search
                 Log.Error(ex, "Failed to cleanup searches: {Message}", ex.Message);
                 throw;
             }
+        }
+
+        private async Task<int> DeleteSearchesInBatchesAsync(
+            SearchDbContext context,
+            IQueryable<Search> candidates,
+            int maxCount = int.MaxValue)
+        {
+            var deletedCount = 0;
+
+            while (deletedCount < maxCount)
+            {
+                var batchSize = Math.Min(RetentionCleanupBatchSize, maxCount - deletedCount);
+                var batch = await candidates
+                    .OrderBy(search => search.StartedAt)
+                    .ThenBy(search => search.Id)
+                    .Take(batchSize)
+                    .WithoutResponses()
+                    .AsNoTracking()
+                    .ToListAsync();
+
+                if (batch.Count == 0)
+                {
+                    break;
+                }
+
+                var ids = batch.Select(search => search.Id).ToList();
+                await context.Searches
+                    .Where(search => ids.Contains(search.Id))
+                    .ExecuteDeleteAsync();
+
+                foreach (var search in batch)
+                {
+                    await SearchHub.BroadcastDeleteAsync(search);
+                }
+
+                deletedCount += batch.Count;
+                if (batch.Count < batchSize)
+                {
+                    break;
+                }
+            }
+
+            return deletedCount;
         }
 
         /// <summary>

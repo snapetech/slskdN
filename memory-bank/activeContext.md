@@ -1,3 +1,20 @@
+## Update 2026-07-16 03:42:46Z
+
+- Current task: performance and efficiency improvements in progress; bounded search-history maintenance pass complete locally.
+- Last activity:
+  - Replaced full expired/excess/completed search materialization and one database context/transaction per row with stable 250-row `(StartedAt, Id)` pages and one set-based delete per page.
+  - Applied the path consistently to automatic retention, legacy age pruning, and manual completed-history clearing while preserving every existing response-free per-search SignalR deletion payload.
+  - The 501-row regression requires three delete commands instead of 501 (99.4% fewer); a 10,000-row cleanup uses 40 delete transactions with at most 250 summaries resident.
+  - Added large expired-set command-boundary/notification/retention coverage and exact oldest-excess count coverage. Documented gotcha `0z641` in standalone commit `f1e916d6b`.
+- Validation:
+  - Passed focused Search lifecycle tests (`21/21`), complete smoke/unit/integration suites (`4796/4796`: `69` smoke, `4447` unit, `280` integration), repository lint, identity, and diff checks.
+  - One unrelated Mesh pipe-read test hit its five-second timeout during the first combined run, then passed in isolation in 59 ms and the complete unit suite passed on rerun.
+  - The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+- Next steps:
+  1. Commit this bounded search-history maintenance pass.
+  2. Continue the broader performance goal from the next measured recurring hot path.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 03:32:33Z
 
 - Current task: performance and efficiency improvements in progress; automatic search-retention cadence pass complete locally.

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound and batch search-history maintenance deletion.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced unbounded expired/excess/completed search materialization and one-DbContext/transaction-per-row deletion across automatic retention, legacy pruning, and manual clearing with stable 250-row `(StartedAt, Id)` pages and one set-based delete per page. Existing response-free per-search SignalR deletion payloads remain intact. The 501-row regression requires three delete commands instead of 501 (99.4% fewer); a 10,000-row cleanup uses 40 delete transactions with at most 250 summaries resident. Added large expired-set command-boundary/notification/retention coverage and exact oldest-excess count coverage; documented gotcha `0z641` in standalone commit `f1e916d6b`.
+
 - [x] Honor the configured automatic search-retention cadence.
   - Status: completed (2026-07-16)
   - Priority: P1

@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Search retention, legacy pruning, and completed-history clearing now process
+  stable 250-search pages with one set-based delete per page instead of loading
+  the full candidate set and opening one database transaction per search.
 - Automatic search retention now honors its configured cleanup interval instead
   of evaluating the database policy every five minutes. Cleanup runs cannot
   overlap, and failed runs remain eligible for the next clock evaluation.

@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Search retention, legacy age pruning, and manual completed-history clearing
+  now select at most 250 response-free summaries and delete each page with one
+  database command while preserving every existing live deletion notification.
+  A 10,000-row cleanup falls from 10,000 delete transactions to 40.
 - Automatic search retention now honors `cleanup_interval_seconds`, suppresses
   overlapping runs, and retries failures at the next five-minute evaluation.
   Under the one-day default, policy database evaluations fall from 288 per day
