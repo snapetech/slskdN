@@ -1,3 +1,17 @@
+## Update 2026-07-16 23:50:21Z
+
+- Current task: performance and efficiency improvements in progress; single-pass bounded taste-recommendation aggregation complete locally.
+- Last activity:
+  - Replaced full LINQ observation groups and eager all-candidate DTO/source/reason construction with direct per-work accumulators, lazy distinct-actor sets, prefix-free MusicBrainz keys, and stable top-K retention bounded by the result limit.
+  - A 100,000-observation/two-source duplicate fixture falls from 7,701,032 to 1,696 warmed allocated bytes (>99.97%); 10,000 unique candidates rejected by the anonymity threshold fall from 17,515,168 to 1,924,952 bytes (89.0%).
+- Validation:
+  - Passed focused recommendation service (`11/11`), broader SocialFederation (`82/82`), and full backend suites (`5029/5029`: `69` application, `4680` unit, `280` integration) tests.
+  - Exact filtering/grouping/candidate/newest/tie/actor/score/order/limit/allocation behavior, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. The full-suite audit found and fixed a pre-existing empty-cache warm-up defect; documented gotcha `0z721` (`5dbf2c0bb`) and committed its test fix separately (`444129d0e`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the taste-recommendation aggregation slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 23:34:44Z
 
 - Current task: performance and efficiency improvements in progress; allocation-free warmed WorkRef pattern validation complete.

@@ -308,52 +308,135 @@ public sealed class TasteRecommendationService : ITasteRecommendationService
         int limit,
         bool includeSourceActors)
     {
-        var grouped = observations
-            .Where(o => string.Equals(o.ActorName, "music", StringComparison.OrdinalIgnoreCase))
-            .Where(o => !string.IsNullOrWhiteSpace(o.RemoteActor))
-            .Where(o => IsRecommendable(o.WorkRef))
-            .GroupBy(o => BuildWorkKey(o.WorkRef), StringComparer.OrdinalIgnoreCase)
-            .Select(group =>
+        var externalIdGroups = new Dictionary<string, RecommendationGroup>(StringComparer.OrdinalIgnoreCase);
+        var textGroups = new Dictionary<string, RecommendationGroup>(StringComparer.OrdinalIgnoreCase);
+        var groups = new List<RecommendationGroup>();
+
+        foreach (var observation in observations)
+        {
+            if (!string.Equals(observation.ActorName, "music", StringComparison.OrdinalIgnoreCase) ||
+                string.IsNullOrWhiteSpace(observation.RemoteActor) ||
+                !IsRecommendable(observation.WorkRef))
             {
-                var sourceActors = group
-                    .Select(o => o.RemoteActor)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .Order(StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-                var lastSeen = group.Max(o => o.ObservedAt);
-                var workRef = group
-                    .OrderByDescending(o => o.ObservedAt)
-                    .Select(o => o.WorkRef)
-                    .First();
-                var sourceCount = sourceActors.Count;
+                continue;
+            }
 
-                return new TasteRecommendation
+            Dictionary<string, RecommendationGroup> groupMap;
+            string workKey;
+            if (TryGetMusicBrainzWorkKey(observation.WorkRef, out var musicBrainzId))
+            {
+                groupMap = externalIdGroups;
+                workKey = musicBrainzId;
+            }
+            else
+            {
+                groupMap = textGroups;
+                workKey = BuildTextWorkKey(observation.WorkRef);
+            }
+
+            if (!groupMap.TryGetValue(workKey, out var group))
+            {
+                group = new RecommendationGroup(observation, groups.Count);
+                groupMap.Add(workKey, group);
+                groups.Add(group);
+            }
+            else
+            {
+                group.Add(observation);
+            }
+        }
+
+        var recommendationLimit = Math.Max(0, Math.Min(limit, groups.Count));
+        var selectedGroups = new List<RecommendationGroup>(recommendationLimit);
+        if (recommendationLimit > 0)
+        {
+            foreach (var group in groups)
+            {
+                if (group.TrustedSourceCount < minimumTrustedSources)
                 {
-                    WorkRef = workRef,
-                    TrustedSourceCount = sourceCount,
-                    LastSeenAt = lastSeen,
-                    Score = Math.Round(sourceCount * 10 + RecencyScore(lastSeen), 3),
-                    Reasons = BuildReasons(workRef, sourceCount),
-                    SourceActors = includeSourceActors ? sourceActors : new List<string>(),
-                };
-            })
-            .ToList();
+                    continue;
+                }
 
-        var recommendations = grouped
-            .Where(r => r.TrustedSourceCount >= minimumTrustedSources)
-            .OrderByDescending(r => r.Score)
-            .ThenBy(r => r.WorkRef.Creator ?? string.Empty, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(r => r.WorkRef.Title, StringComparer.OrdinalIgnoreCase)
-            .Take(limit)
-            .ToList();
+                group.Score = Math.Round(
+                    group.TrustedSourceCount * 10 + RecencyScore(group.LastSeenAt),
+                    3);
+                RetainBestGroup(selectedGroups, group, recommendationLimit);
+            }
+        }
+
+        var recommendations = new List<TasteRecommendation>(selectedGroups.Count);
+        foreach (var group in selectedGroups)
+        {
+            recommendations.Add(new TasteRecommendation
+            {
+                WorkRef = group.WorkRef,
+                TrustedSourceCount = group.TrustedSourceCount,
+                LastSeenAt = group.LastSeenAt,
+                Score = group.Score,
+                Reasons = BuildReasons(group.WorkRef, group.TrustedSourceCount),
+                SourceActors = includeSourceActors ? group.GetSortedSourceActors() : new List<string>(),
+            });
+        }
 
         return new TasteRecommendationResult
         {
             MinimumTrustedSources = minimumTrustedSources,
             TrustedActorCount = trustedActorCount,
-            CandidateCount = grouped.Count,
+            CandidateCount = groups.Count,
             Recommendations = recommendations,
         };
+    }
+
+    private static void RetainBestGroup(
+        List<RecommendationGroup> selectedGroups,
+        RecommendationGroup candidate,
+        int limit)
+    {
+        var low = 0;
+        var high = selectedGroups.Count;
+        while (low < high)
+        {
+            var middle = low + ((high - low) / 2);
+            if (CompareRecommendationGroups(candidate, selectedGroups[middle]) < 0)
+            {
+                high = middle;
+            }
+            else
+            {
+                low = middle + 1;
+            }
+        }
+
+        if (low == limit)
+        {
+            return;
+        }
+
+        selectedGroups.Insert(low, candidate);
+        if (selectedGroups.Count > limit)
+        {
+            selectedGroups.RemoveAt(limit);
+        }
+    }
+
+    private static int CompareRecommendationGroups(RecommendationGroup left, RecommendationGroup right)
+    {
+        var comparison = right.Score.CompareTo(left.Score);
+        if (comparison != 0)
+        {
+            return comparison;
+        }
+
+        comparison = StringComparer.OrdinalIgnoreCase.Compare(
+            left.WorkRef.Creator ?? string.Empty,
+            right.WorkRef.Creator ?? string.Empty);
+        if (comparison != 0)
+        {
+            return comparison;
+        }
+
+        comparison = StringComparer.OrdinalIgnoreCase.Compare(left.WorkRef.Title, right.WorkRef.Title);
+        return comparison != 0 ? comparison : left.Sequence.CompareTo(right.Sequence);
     }
 
     private IEnumerable<FederatedWorkRefObservation> ExtractObservations(ActivityPubInboxEntry entry)
@@ -442,14 +525,21 @@ public sealed class TasteRecommendationService : ITasteRecommendationService
             workRef.ValidateSecurity();
     }
 
-    private static string BuildWorkKey(WorkRef workRef)
+    private static bool TryGetMusicBrainzWorkKey(WorkRef workRef, out string workKey)
     {
         if (workRef.ExternalIds.TryGetValue("musicbrainz", out var musicBrainzId) &&
             !string.IsNullOrWhiteSpace(musicBrainzId))
         {
-            return $"mb:{musicBrainzId.Trim()}";
+            workKey = musicBrainzId.Trim();
+            return true;
         }
 
+        workKey = string.Empty;
+        return false;
+    }
+
+    private static string BuildTextWorkKey(WorkRef workRef)
+    {
         var creator = NormalizeKeyPart(workRef.Creator);
         var title = NormalizeKeyPart(workRef.Title);
         var year = workRef.Year?.ToString() ?? string.Empty;
@@ -494,6 +584,68 @@ public sealed class TasteRecommendationService : ITasteRecommendationService
         }
 
         return reasons;
+    }
+
+    private sealed class RecommendationGroup
+    {
+        private readonly string _firstSourceActor;
+        private HashSet<string>? _sourceActors;
+
+        public RecommendationGroup(FederatedWorkRefObservation observation, int sequence)
+        {
+            WorkRef = observation.WorkRef;
+            LastSeenAt = observation.ObservedAt;
+            Sequence = sequence;
+            _firstSourceActor = observation.RemoteActor;
+        }
+
+        public WorkRef WorkRef { get; private set; }
+
+        public DateTimeOffset LastSeenAt { get; private set; }
+
+        public int Sequence { get; }
+
+        public int TrustedSourceCount => _sourceActors?.Count ?? 1;
+
+        public double Score { get; set; }
+
+        public void Add(FederatedWorkRefObservation observation)
+        {
+            if (observation.ObservedAt > LastSeenAt)
+            {
+                WorkRef = observation.WorkRef;
+                LastSeenAt = observation.ObservedAt;
+            }
+
+            if (_sourceActors is null)
+            {
+                if (StringComparer.OrdinalIgnoreCase.Equals(_firstSourceActor, observation.RemoteActor))
+                {
+                    return;
+                }
+
+                _sourceActors = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    _firstSourceActor,
+                    observation.RemoteActor,
+                };
+                return;
+            }
+
+            _sourceActors.Add(observation.RemoteActor);
+        }
+
+        public List<string> GetSortedSourceActors()
+        {
+            if (_sourceActors is null)
+            {
+                return new List<string> { _firstSourceActor };
+            }
+
+            var sourceActors = _sourceActors.ToList();
+            sourceActors.Sort(StringComparer.OrdinalIgnoreCase);
+            return sourceActors;
+        }
     }
 
     private async Task AddGraphEvidenceAsync(

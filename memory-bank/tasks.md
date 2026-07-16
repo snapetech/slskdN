@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Stream and bound taste-recommendation aggregation.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `TasteRecommendationService.BuildRecommendations` now scans observations directly into insertion-ordered per-work accumulators instead of retaining every observation in `GroupBy` buffers and eagerly building recommendation, reason, and sorted-source objects for every candidate. MusicBrainz work IDs use a separate ordinal-ignore-case map without per-observation `mb:` strings; fallback normalized-text keys retain their prior contract. Each group keeps its first actor directly and creates a case-insensitive set only when another distinct actor appears. Eligible groups are inserted into a stable best-first list bounded by the requested limit (at most 100 through the public API), and only returned groups materialize DTOs, reasons, and source lists. For 100,000 observations of one two-source work, warmed allocation falls from 7,701,032 to 1,696 bytes (>99.97%). For 10,000 unique single-source candidates rejected by the anonymity threshold, allocation falls from 17,515,168 to 1,924,952 bytes (89.0%). Exact actor/domain/safety filtering, candidate counts, case-insensitive external-ID and normalized-text grouping, newest representative and first-on-equal timestamp ties, first actor casing, sorted source disclosure, score/creator/title/stable ordering, threshold, and limit behavior remain unchanged. Added focused semantic/top-K and large allocation regressions. Validation passed: focused service tests (`11/11`), broader SocialFederation tests (`82/82`), full backend suites (`5029/5029`: `69` application, `4680` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. The full-suite audit also fixed a pre-existing empty-state allocation warm-up defect in standalone commits `5dbf2c0bb` and `444129d0e` (gotcha `0z721`).
+
 - [x] Reuse WorkRef security-validation patterns.
   - Status: completed (2026-07-16)
   - Priority: P1

@@ -22,6 +22,19 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Taste-recommendation building now aggregates observations directly into
+  per-work state, creates a case-insensitive actor set only after a second
+  distinct source appears, and maintains a stable best-first list bounded by
+  the requested result limit. MusicBrainz identifiers are grouped in their own
+  case-insensitive map without allocating a prefixed key for every observation;
+  reasons, sorted source lists, and recommendation DTOs are created only for
+  returned results. For 100,000 observations of one two-source work, warmed
+  allocation falls from 7,701,032 to 1,696 bytes (>99.97%). For 10,000 unique
+  single-source candidates rejected by the anonymity threshold, allocation
+  falls from 17,515,168 to 1,924,952 bytes (89.0%). Candidate counting, filters,
+  external-ID and normalized-text grouping, newest representative selection,
+  first-on-equal timestamp ties, source casing/order, score ordering, stable
+  ties, and result limits remain unchanged.
 - WorkRef security validation now shares one process-wide sensitive-pattern
   table instead of recreating the same nine-element array for every external-ID,
   metadata, title, and creator field checked. The pattern strings, evaluation

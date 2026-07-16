@@ -11,6 +11,7 @@ using slskd.Integrations.MusicBrainz.Radar;
 using slskd.SocialFederation;
 using slskd.Wishlist;
 
+[Collection(AllocationTestCollection.Name)]
 public sealed class TasteRecommendationServiceTests
 {
     private readonly Mock<IActivityPubInboxStore> _inboxStore = new();
@@ -151,6 +152,130 @@ public sealed class TasteRecommendationServiceTests
         Assert.Equal("artist:artist-1", recommendation.GraphEvidence.SeedNodeId);
         Assert.Contains("near a Discovery Graph neighborhood with 2 nodes", recommendation.Reasons);
         Assert.True(recommendation.Score > 20);
+    }
+
+    [Fact]
+    public void BuildRecommendations_PreservesGroupingRepresentativeActorAndRankingSemantics()
+    {
+        var observedAt = DateTimeOffset.UtcNow.AddHours(-1);
+        var older = CreateWorkRef("Older Title", "Zulu Artist", recordingId: " shared-id ");
+        var newest = CreateWorkRef("Newest Title", "Zulu Artist", recordingId: "SHARED-ID");
+        var equalTimestampLater = CreateWorkRef("Equal Timestamp Later", "Zulu Artist", recordingId: "shared-id");
+        var fallbackFirst = CreateWorkRef("  Fallback   Song ", "Alpha Artist", recordingId: null);
+        var fallbackNewest = CreateWorkRef("fallback song", "Alpha Artist", recordingId: null);
+        var lowerRanked = CreateWorkRef("Lower Ranked", "Beta Artist", recordingId: "lower-id");
+        var hidden = CreateWorkRef("Hidden Song", "Hidden Artist", recordingId: "hidden-id");
+        var ignored = CreateWorkRef("Ignored Song", "Ignored Artist", recordingId: "ignored-id");
+        var observations = new[]
+        {
+            Observation(lowerRanked, "lower-a", observedAt.AddDays(-30)),
+            Observation(lowerRanked, "lower-b", observedAt.AddDays(-30)),
+            Observation(older, "peer-b", observedAt.AddMinutes(-1)),
+            Observation(newest, "PEER-A", observedAt),
+            Observation(equalTimestampLater, "peer-a", observedAt),
+            Observation(fallbackFirst, "fallback-b", observedAt.AddMinutes(-1)),
+            Observation(fallbackNewest, "fallback-a", observedAt),
+            Observation(hidden, "hidden-peer", observedAt),
+            Observation(ignored, "ignored-peer", observedAt, actorName: "books"),
+            Observation(ignored, " ", observedAt),
+        };
+
+        var result = TasteRecommendationService.BuildRecommendations(
+            observations,
+            trustedActorCount: 5,
+            minimumTrustedSources: 2,
+            limit: 2,
+            includeSourceActors: true);
+
+        Assert.Equal(4, result.CandidateCount);
+        Assert.Equal(5, result.TrustedActorCount);
+        Assert.Equal(2, result.MinimumTrustedSources);
+        Assert.Collection(
+            result.Recommendations,
+            recommendation =>
+            {
+                Assert.Same(fallbackNewest, recommendation.WorkRef);
+                Assert.Equal(new[] { "fallback-a", "fallback-b" }, recommendation.SourceActors);
+            },
+            recommendation =>
+            {
+                Assert.Same(newest, recommendation.WorkRef);
+                Assert.Equal(new[] { "PEER-A", "peer-b" }, recommendation.SourceActors);
+            });
+    }
+
+    [Fact]
+    public void BuildRecommendations_DuplicateHeavyInput_HasBoundedAllocation()
+    {
+        var warmupWorkRef = CreateWorkRef("Warmup Song", "Warmup Artist", recordingId: "warmup-id");
+        var warmup = new[]
+        {
+            Observation(warmupWorkRef, "warmup-a", DateTimeOffset.UtcNow),
+            Observation(warmupWorkRef, "warmup-b", DateTimeOffset.UtcNow),
+        };
+        TasteRecommendationService.BuildRecommendations(warmup, 2, 2, 1, includeSourceActors: false);
+
+        const int observationCount = 100_000;
+        var workRef = CreateWorkRef("Measured Song", "Measured Artist", recordingId: "measured-id");
+        var observedAt = DateTimeOffset.UtcNow.AddHours(-1);
+        var observations = new FederatedWorkRefObservation[observationCount];
+        for (var i = 0; i < observations.Length; i++)
+        {
+            observations[i] = Observation(workRef, (i & 1) == 0 ? "peer-a" : "peer-b", observedAt);
+        }
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var result = TasteRecommendationService.BuildRecommendations(
+            observations,
+            trustedActorCount: 2,
+            minimumTrustedSources: 2,
+            limit: 1,
+            includeSourceActors: false);
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        var recommendation = Assert.Single(result.Recommendations);
+        Assert.Same(workRef, recommendation.WorkRef);
+        Assert.Equal(2, recommendation.TrustedSourceCount);
+        Assert.True(allocated < 4_096, $"Expected less than 4,096 allocated bytes, but allocated {allocated:N0} bytes.");
+    }
+
+    [Fact]
+    public void BuildRecommendations_ThresholdRejectedInput_HasBoundedAllocation()
+    {
+        var warmupWorkRef = CreateWorkRef("Warmup Song", "Warmup Artist", recordingId: "warmup-id");
+        TasteRecommendationService.BuildRecommendations(
+            new[] { Observation(warmupWorkRef, "warmup", DateTimeOffset.UtcNow) },
+            1,
+            2,
+            20,
+            includeSourceActors: false);
+
+        const int observationCount = 10_000;
+        var observedAt = DateTimeOffset.UtcNow.AddHours(-1);
+        var observations = new FederatedWorkRefObservation[observationCount];
+        for (var i = 0; i < observations.Length; i++)
+        {
+            var workRef = CreateWorkRef(
+                $"Measured Song {i}",
+                "Measured Artist",
+                recordingId: $"measured-id-{i}");
+            observations[i] = Observation(workRef, "peer-a", observedAt);
+        }
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var result = TasteRecommendationService.BuildRecommendations(
+            observations,
+            trustedActorCount: 1,
+            minimumTrustedSources: 2,
+            limit: 20,
+            includeSourceActors: false);
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(observationCount, result.CandidateCount);
+        Assert.Empty(result.Recommendations);
+        Assert.True(
+            allocated < 2_100_000,
+            $"Expected less than 2,100,000 allocated bytes, but allocated {allocated:N0} bytes.");
     }
 
     [Fact]
@@ -315,7 +440,23 @@ public sealed class TasteRecommendationServiceTests
         };
     }
 
-    private static WorkRef CreateWorkRef(string title, string creator, string? artistId = null)
+    private static FederatedWorkRefObservation Observation(
+        WorkRef workRef,
+        string remoteActor,
+        DateTimeOffset observedAt,
+        string actorName = "music") => new()
+        {
+            ActorName = actorName,
+            RemoteActor = remoteActor,
+            WorkRef = workRef,
+            ObservedAt = observedAt,
+        };
+
+    private static WorkRef CreateWorkRef(
+        string title,
+        string creator,
+        string? artistId = null,
+        string? recordingId = "12345678-1234-1234-1234-1234567890ab")
     {
         var workRef = new WorkRef
         {
@@ -323,11 +464,12 @@ public sealed class TasteRecommendationServiceTests
             Domain = "music",
             Title = title,
             Creator = creator,
-            ExternalIds = new Dictionary<string, string>
-            {
-                ["musicbrainz"] = "12345678-1234-1234-1234-1234567890ab",
-            },
         };
+
+        if (!string.IsNullOrWhiteSpace(recordingId))
+        {
+            workRef.ExternalIds["musicbrainz"] = recordingId;
+        }
 
         if (!string.IsNullOrWhiteSpace(artistId))
         {

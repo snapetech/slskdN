@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Taste recommendations now aggregate observations directly and retain only the
+  bounded best result groups instead of buffering LINQ groups and eager DTOs.
 - WorkRef security validation now reuses its sensitive-pattern table instead of
   allocating the same pattern array for every checked field.
 - Multi-source planning now reuses successful Soulseek peer-reputation reads
