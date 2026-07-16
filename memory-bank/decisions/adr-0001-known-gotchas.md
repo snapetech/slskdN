@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z705. Direct Character Casing Must Cover Derived State
+
+**The Bug**: Removing a full uppercase Soundex string converted the emitted
+first character and subsequent scanned characters individually, but initially
+left the duplicate-suppression `prevCode` derived from the original lowercase
+first character. Lowercase consonants therefore initialized the previous code
+as `0` instead of their Soundex digit.
+
+**Files Affected**:
+- `src/slskd/MediaCore/FuzzyMatcher.cs`
+
+**Prevention**: When replacing whole-input normalization with per-character
+normalization, compute every derived value from the normalized character,
+including emitted values, comparison state, lookup keys, and initial state.
+Store the normalized first character once and derive both the output prefix and
+previous-code state from it. Cover lowercase names whose second letter shares
+the first letter's Soundex code so duplicate suppression is observable.
+
 ### 0z704. Token Trimming Must Not Move The Separator Cursor
 
 **The Bug**: A single-pass fuzzy-token parser reused its token-end cursor for
