@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch periodic Pod discovery publication.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced the 30-minute refresh cycle's all-Pod query, per-listed-Pod scoped reload, and per-Pod shared-index read with one SQL-filtered, no-tracking listed snapshot and a publisher batch that updates the index once after successful metadata writes. The batch also renews the one-hour index TTL when membership is unchanged, fixing expiry under the established 30-minute refresh cadence. At 100 listed Pods the cycle falls from 101 database queries and 200 DHT operations to one query and 102 operations (99% and 49% fewer, respectively). Added SQL-boundary, DHT-operation-count, unchanged-index TTL, cancellation, and background-delegation regressions; documented gotcha `0z642` in standalone commit `d832306b2` and extended shutdown-cancellation gotcha `0z429` in `33ddd257f`.
+
 - [x] Remove duplicate periodic mesh self-descriptor publication.
   - Status: completed (2026-07-16)
   - Priority: P1

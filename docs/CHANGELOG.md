@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Periodic Pod discovery refresh now queries one listed-only snapshot and
+  batches the shared DHT index read/write around all successful metadata
+  publications. A 100-Pod cycle falls from 101 database queries and 200 DHT
+  operations to one query and 102 operations, and the index TTL is renewed even
+  when membership is unchanged.
 - Mesh bootstrap now performs one initial self-descriptor publication and
   completes, leaving configured periodic and IP-change refresh ownership to
   `PeerDescriptorRefreshService`. Under defaults this removes 48 duplicate DHT

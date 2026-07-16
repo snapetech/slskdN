@@ -23,6 +23,7 @@ public interface IPodService
     Task<Pod> CreateAsync(Pod pod, CancellationToken ct = default);
     Task<Pod> UpdateAsync(Pod pod, CancellationToken ct = default);
     Task<IReadOnlyList<Pod>> ListAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<Pod>> ListListedAsync(CancellationToken ct = default);
     Task<bool> JoinAsync(string podId, PodMember member, CancellationToken ct = default);
     Task<bool> LeaveAsync(string podId, string peerId, CancellationToken ct = default);
     Task<bool> BanAsync(string podId, string peerId, CancellationToken ct = default);
@@ -162,6 +163,11 @@ public class PodService : IPodService
 
     public Task<IReadOnlyList<Pod>> ListAsync(CancellationToken ct = default) =>
         Task.FromResult((IReadOnlyList<Pod>)pods.Values.ToList());
+
+    public Task<IReadOnlyList<Pod>> ListListedAsync(CancellationToken ct = default) =>
+        Task.FromResult((IReadOnlyList<Pod>)pods.Values
+            .Where(pod => pod.Visibility == PodVisibility.Listed)
+            .ToList());
 
     public Task<Pod?> GetPodAsync(string podId, CancellationToken ct = default)
     {

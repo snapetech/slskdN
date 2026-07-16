@@ -4,7 +4,6 @@
 namespace slskd.PodCore;
 
 using System;
-using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -41,6 +40,11 @@ public interface IPodPublisher
     /// Refreshes pod metadata in DHT (updates TTL).
     /// </summary>
     Task RefreshPodAsync(string podId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Refreshes a complete local snapshot of listed pods and their shared index.
+    /// </summary>
+    Task RefreshListedPodsAsync(IReadOnlyList<Pod> pods, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -66,26 +70,62 @@ public class PodPublisher : IPodPublisher
 
     public async Task PublishPodAsync(Pod pod, CancellationToken ct = default)
     {
-        if (pod == null || string.IsNullOrWhiteSpace(pod.PodId))
+        if (!CanPublish(pod))
         {
-            logger.LogWarning("[PodPublisher] Cannot publish pod - invalid pod data");
             return;
         }
 
-        // Only publish listed pods
+        if (await TryPublishMetadataAsync(pod, ct))
+        {
+            await UpdatePodIndexAsync([pod.PodId], add: true, refreshUnchanged: false, ct);
+        }
+    }
+
+    public async Task RefreshListedPodsAsync(IReadOnlyList<Pod> pods, CancellationToken ct = default)
+    {
+        var publishedPodIds = new List<string>(pods.Count);
+
+        foreach (var pod in pods)
+        {
+            ct.ThrowIfCancellationRequested();
+            if (CanPublish(pod) && await TryPublishMetadataAsync(pod, ct))
+            {
+                publishedPodIds.Add(pod.PodId);
+            }
+        }
+
+        if (publishedPodIds.Count > 0)
+        {
+            await UpdatePodIndexAsync(publishedPodIds, add: true, refreshUnchanged: true, ct);
+        }
+    }
+
+    private bool CanPublish(Pod? pod)
+    {
+        if (pod == null || string.IsNullOrWhiteSpace(pod.PodId))
+        {
+            logger.LogWarning("[PodPublisher] Cannot publish pod - invalid pod data");
+            return false;
+        }
+
         if (pod.Visibility != PodVisibility.Listed)
         {
             logger.LogDebug("[PodPublisher] Skipping publish for unlisted pod {PodId}", pod.PodId);
-            return;
+            return false;
         }
 
         // HARDENING: Never publish DM pods, even if marked as listed
         if (pod.Tags?.Contains("dm") == true)
         {
             logger.LogWarning("[PodPublisher] Blocking publish attempt for DM pod {PodId}", pod.PodId);
-            return;
+            return false;
         }
 
+        return true;
+    }
+
+    private async Task<bool> TryPublishMetadataAsync(Pod pod, CancellationToken ct)
+    {
         try
         {
             var dhtKey = DeriveDhtKey(pod.PodId);
@@ -105,15 +145,18 @@ public class PodPublisher : IPodPublisher
             // Publish to DHT with TTL
             await dht.PutAsync(dhtKey, Serialize(metadata), DefaultTTLSeconds, ct);
 
-            // Update pod index (list of all listed pod IDs)
-            await UpdatePodIndexAsync(pod.PodId, add: true, ct);
-
             logger.LogInformation("[PodPublisher] Published pod {PodId} ({Name}) to DHT with TTL {TTL}s",
                 pod.PodId, pod.Name, DefaultTTLSeconds);
+            return true;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "[PodPublisher] Failed to publish pod {PodId} to DHT", pod.PodId);
+            return false;
         }
     }
 
@@ -129,10 +172,14 @@ public class PodPublisher : IPodPublisher
             logger.LogInformation("[PodPublisher] Unpublishing pod {PodId} from DHT", podId);
 
             // Remove from index
-            await UpdatePodIndexAsync(podId, add: false, ct);
+            await UpdatePodIndexAsync([podId], add: false, refreshUnchanged: false, ct);
 
             // Note: DHT doesn't support deletion, metadata entry will expire naturally
             // We could publish a tombstone with short TTL if needed
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -162,39 +209,62 @@ public class PodPublisher : IPodPublisher
                 logger.LogWarning("[PodPublisher] Cannot refresh pod {PodId} - pod not found", podId);
             }
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "[PodPublisher] Failed to refresh pod {PodId} in DHT", podId);
         }
     }
 
-    private async Task UpdatePodIndexAsync(string podId, bool add, CancellationToken ct)
+    private async Task UpdatePodIndexAsync(
+        IReadOnlyCollection<string> podIds,
+        bool add,
+        bool refreshUnchanged,
+        CancellationToken ct)
     {
         const string indexKey = "pod:index:listed";
         try
         {
             // Get current index
             var index = await GetPodIndexAsync(indexKey, ct);
+            var changed = false;
 
             if (add)
             {
-                if (!index.PodIds.Contains(podId))
+                foreach (var podId in podIds)
                 {
-                    index.PodIds.Add(podId);
-                    index.UpdatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                    await dht.PutAsync(indexKey, Serialize(index), DefaultTTLSeconds, ct);
-                    logger.LogDebug("[PodPublisher] Added pod {PodId} to index", podId);
+                    if (!index.PodIds.Contains(podId))
+                    {
+                        index.PodIds.Add(podId);
+                        changed = true;
+                        logger.LogDebug("[PodPublisher] Added pod {PodId} to index", podId);
+                    }
                 }
             }
             else
             {
-                if (index.PodIds.Remove(podId))
+                foreach (var podId in podIds)
                 {
-                    index.UpdatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                    await dht.PutAsync(indexKey, Serialize(index), DefaultTTLSeconds, ct);
-                    logger.LogDebug("[PodPublisher] Removed pod {PodId} from index", podId);
+                    if (index.PodIds.Remove(podId))
+                    {
+                        changed = true;
+                        logger.LogDebug("[PodPublisher] Removed pod {PodId} from index", podId);
+                    }
                 }
             }
+
+            if (changed || refreshUnchanged)
+            {
+                index.UpdatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                await dht.PutAsync(indexKey, Serialize(index), DefaultTTLSeconds, ct);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -262,29 +332,7 @@ public class PodPublisherBackgroundService : BackgroundService
             try
             {
                 await Task.Delay(TimeSpan.FromMinutes(RefreshIntervalMinutes), stoppingToken);
-
-                using var scope = scopeFactory.CreateScope();
-                var podService = scope.ServiceProvider.GetRequiredService<IPodService>();
-
-                // Refresh all listed pods
-                var pods = await podService.ListAsync(stoppingToken);
-                var listedPods = pods.Where(p => p.Visibility == PodVisibility.Listed).ToList();
-
-                logger.LogDebug("[PodPublisher] Refreshing {Count} listed pods in DHT", listedPods.Count);
-
-                foreach (var pod in listedPods)
-                {
-                    try
-                    {
-                        await podPublisher.RefreshPodAsync(pod.PodId, stoppingToken);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogWarning(ex, "[PodPublisher] Failed to refresh pod {PodId} in DHT", pod.PodId);
-                    }
-                }
-
-                logger.LogInformation("[PodPublisher] Refreshed {Count} pods in DHT", listedPods.Count);
+                await RefreshOnceAsync(stoppingToken);
             }
             catch (OperationCanceledException)
             {
@@ -300,6 +348,17 @@ public class PodPublisherBackgroundService : BackgroundService
         }
 
         logger.LogInformation("[PodPublisher] Background refresh service stopped");
+    }
+
+    internal async Task RefreshOnceAsync(CancellationToken ct)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var podService = scope.ServiceProvider.GetRequiredService<IPodService>();
+        var listedPods = await podService.ListListedAsync(ct);
+
+        logger.LogDebug("[PodPublisher] Refreshing {Count} listed pods in DHT", listedPods.Count);
+        await podPublisher.RefreshListedPodsAsync(listedPods, ct);
+        logger.LogInformation("[PodPublisher] Refreshed {Count} pods in DHT", listedPods.Count);
     }
 }
 

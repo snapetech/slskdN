@@ -180,7 +180,17 @@ namespace slskd.PodCore
         public async Task<IReadOnlyList<Pod>> ListAsync(CancellationToken ct = default)
         {
             await using var db = await dbFactory.CreateDbContextAsync(ct);
-            var entities = await db.Pods.ToListAsync(ct);
+            var entities = await db.Pods.AsNoTracking().ToListAsync(ct);
+            return entities.Select(EntityToPod).ToList();
+        }
+
+        public async Task<IReadOnlyList<Pod>> ListListedAsync(CancellationToken ct = default)
+        {
+            await using var db = await dbFactory.CreateDbContextAsync(ct);
+            var entities = await db.Pods
+                .AsNoTracking()
+                .Where(pod => pod.Visibility == PodVisibility.Listed)
+                .ToListAsync(ct);
             return entities.Select(EntityToPod).ToList();
         }
 

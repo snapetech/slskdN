@@ -1,3 +1,19 @@
+## Update 2026-07-16 04:28:58Z
+
+- Current task: performance and efficiency improvements in progress; periodic Pod discovery publication pass complete locally.
+- Last activity:
+  - Replaced one all-Pod query and one scoped reload per listed Pod with a single SQL-filtered, no-tracking listed snapshot every 30 minutes.
+  - Added one batch publisher operation that retains per-Pod metadata writes but performs the shared listed-index read/write once per cycle and renews its TTL even when membership is unchanged.
+  - A 100-Pod cycle falls from 101 database queries and 200 DHT operations to one query and 102 operations (99% and 49% fewer). Host cancellation now propagates through publisher/index paths.
+  - Added SQL-boundary, exact DHT-operation, unchanged-index TTL, cancellation, and background-delegation regressions. Documented gotcha `0z642` in standalone commit `d832306b2` and extended shutdown gotcha `0z429` in `33ddd257f`.
+- Validation:
+  - Passed focused publisher/SQLite tests (`5/5`), broader PodCore tests (`381/381`), complete smoke/unit/integration suites (`4801/4801`: `69` smoke, `4452` unit, `280` integration), repository lint, identity, and diff checks.
+  - The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+- Next steps:
+  1. Commit this Pod publication pass.
+  2. Continue the broader performance goal from the next measured recurring hot path.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 03:53:51Z
 
 - Current task: performance and efficiency improvements in progress; duplicate periodic mesh descriptor publication pass complete locally.

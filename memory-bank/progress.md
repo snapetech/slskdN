@@ -1,3 +1,12 @@
+## Update 2026-07-16 04:28:58Z
+
+- Completed the periodic Pod discovery publication performance pass.
+- Replaced the background cycle's all-Pod query plus one scoped database reload per listed Pod with one SQL-filtered, no-tracking listed-Pod snapshot passed directly to the publisher.
+- Batched the shared listed-index read/modify/write around all successful metadata publications and now renew its one-hour TTL on unchanged 30-minute refreshes.
+- At 100 listed Pods, one cycle falls from 101 database queries to one (99% fewer) and from 200 DHT operations to 102 (49% fewer) while preserving one metadata write per Pod.
+- Propagated host cancellation through Pod publication and index paths instead of logging it as an ordinary per-Pod error. Added SQL-boundary, exact DHT-operation, unchanged-index TTL, cancellation, and background-delegation regressions. Documented gotcha `0z642` in standalone commit `d832306b2` and extended gotcha `0z429` in `33ddd257f`.
+- Validation passed: focused publisher/SQLite tests (`5/5`), broader PodCore tests (`381/381`), complete smoke/unit/integration suites (`4801/4801`: `69` smoke, `4452` unit, `280` integration), repository lint, identity, and diff checks. The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+
 ## Update 2026-07-16 03:53:51Z
 
 - Completed the duplicate periodic mesh self-descriptor publication pass.

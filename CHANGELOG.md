@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Periodic Pod discovery publication now loads one listed-only database
+  snapshot, publishes its metadata without per-Pod reloads, and refreshes the
+  shared listed-Pod index once per cycle instead of once per Pod.
 - Mesh bootstrap now publishes the initial self descriptor once and leaves all
   periodic and IP-change refreshes to the configured refresh service, removing
   duplicate DHT writes and active STUN detection every 30 minutes.

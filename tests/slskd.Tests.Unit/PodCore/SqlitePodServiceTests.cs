@@ -16,6 +16,41 @@ using Xunit;
 public sealed class SqlitePodServiceTests
 {
     [Fact]
+    public async Task ListListedAsync_FiltersPodsInSql()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var commandCapture = new CommandCaptureInterceptor();
+        var options = new DbContextOptionsBuilder<PodDbContext>()
+            .UseSqlite(connection)
+            .AddInterceptors(commandCapture)
+            .Options;
+        var contextFactory = new TestDbContextFactory(options);
+        await using (var context = await contextFactory.CreateDbContextAsync())
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Pods.AddRange(
+                PodEntity("listed", PodVisibility.Listed),
+                PodEntity("private", PodVisibility.Private));
+            await context.SaveChangesAsync();
+        }
+        commandCapture.Commands.Clear();
+        var service = new SqlitePodService(
+            contextFactory,
+            Mock.Of<IPodPublisher>(),
+            Mock.Of<IPodMembershipSigner>(),
+            NullLogger<SqlitePodService>.Instance);
+
+        var pods = await service.ListListedAsync();
+
+        var pod = Assert.Single(pods);
+        Assert.Equal("listed", pod.PodId);
+        var command = Assert.Single(commandCapture.Commands);
+        Assert.Contains("WHERE", command, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Visibility", command, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task GetMembersAsync_AggregatesMembershipHistoryInSql()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
@@ -72,6 +107,16 @@ public sealed class SqlitePodServiceTests
             Signature = "signature",
             TimestampUnixMs = timestampUnixMs,
         };
+
+    private static PodEntity PodEntity(string podId, PodVisibility visibility) => new()
+    {
+        PodId = podId,
+        Name = podId,
+        Visibility = visibility,
+        Tags = "[]",
+        Channels = "[]",
+        ExternalBindings = "[]",
+    };
 
     private sealed class TestDbContextFactory(DbContextOptions<PodDbContext> options)
         : IDbContextFactory<PodDbContext>
