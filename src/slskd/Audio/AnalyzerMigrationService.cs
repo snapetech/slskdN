@@ -24,6 +24,8 @@ namespace slskd.Audio
     /// </summary>
     public class AnalyzerMigrationService : IAnalyzerMigrationService
     {
+        private const int RecordingPageSize = 500;
+
         private readonly IHashDbService hashDb;
         private readonly ILogger<AnalyzerMigrationService> log;
         private readonly QualityScorer qualityScorer = new();
@@ -43,24 +45,24 @@ namespace slskd.Audio
             }
 
             var updated = 0;
-            var recordingIds = await hashDb.GetRecordingIdsWithVariantsAsync(ct).ConfigureAwait(false);
-
-            foreach (var recId in recordingIds)
+            string? afterRecordingId = null;
+            while (true)
             {
-                var variants = await hashDb.GetVariantsByRecordingAsync(recId, ct).ConfigureAwait(false);
-                if (variants == null || variants.Count == 0)
+                ct.ThrowIfCancellationRequested();
+                var recordingIds = await hashDb
+                    .GetRecordingIdsWithVariantsPageAsync(afterRecordingId, RecordingPageSize, ct)
+                    .ConfigureAwait(false);
+                if (recordingIds.Count == 0)
                 {
-                    continue;
+                    break;
                 }
 
+                var variants = await hashDb
+                    .GetVariantsByRecordingsAsync(recordingIds, ct)
+                    .ConfigureAwait(false);
                 var stale = force
                     ? variants
                     : variants.Where(v => string.IsNullOrWhiteSpace(v.AnalyzerVersion) || !string.Equals(v.AnalyzerVersion, targetAnalyzerVersion, StringComparison.OrdinalIgnoreCase)).ToList();
-                if (stale.Count == 0)
-                {
-                    continue;
-                }
-
                 foreach (var v in stale)
                 {
                     v.QualityScore = qualityScorer.ComputeQualityScore(v);
@@ -68,10 +70,15 @@ namespace slskd.Audio
                     v.TranscodeSuspect = suspect;
                     v.TranscodeReason = reason;
                     v.AnalyzerVersion = targetAnalyzerVersion;
-
-                    await hashDb.UpdateVariantMetadataAsync(v.FlacKey, v, ct).ConfigureAwait(false);
-                    updated++;
                 }
+
+                if (stale.Count > 0)
+                {
+                    await hashDb.UpdateVariantAnalysisAsync(stale, ct).ConfigureAwait(false);
+                    updated += stale.Count;
+                }
+
+                afterRecordingId = recordingIds[^1];
             }
 
             log.LogInformation("[AnalyzerMigration] Updated {Count} variants to analyzer_version {Version}", updated, targetAnalyzerVersion);

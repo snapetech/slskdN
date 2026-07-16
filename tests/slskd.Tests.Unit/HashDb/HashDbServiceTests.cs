@@ -1029,6 +1029,75 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateVariantAnalysisAsync_WithLargeBatch_UpdatesAnalysisOnly()
+    {
+        var entries = Enumerable.Range(1, 201)
+            .Select(index => new HashDbEntry
+            {
+                FlacKey = $"analysis-key-{index}",
+                ByteHash = $"analysis-hash-{index}",
+                Size = index,
+                FirstSeenAt = 1,
+                LastUpdatedAt = 1,
+                SeqId = index,
+                UseCount = 1,
+            })
+            .ToList();
+        foreach (var entry in entries)
+        {
+            await service.StoreHashAsync(entry);
+        }
+        await service.UpdateVariantMetadataAsync(entries[0].FlacKey, new AudioVariant
+        {
+            FlacKey = entries[0].FlacKey,
+            VariantId = "preserved-variant",
+            Codec = "FLAC",
+            SampleRateHz = 96000,
+            BitDepth = 24,
+            Channels = 2,
+            QualityScore = 0.1,
+            AnalyzerVersion = "old",
+        });
+        var updates = entries.Select((entry, index) => new AudioVariant
+        {
+            FlacKey = $" {entry.FlacKey} ",
+            QualityScore = index / 201.0,
+            TranscodeSuspect = index % 2 == 0,
+            TranscodeReason = " recalculated ",
+            AnalyzerVersion = " audioqa-2 ",
+        })
+            .Append(new AudioVariant
+            {
+                FlacKey = entries[0].FlacKey,
+                QualityScore = 0.99,
+                TranscodeSuspect = true,
+                TranscodeReason = " replacement ",
+                AnalyzerVersion = " audioqa-3 ",
+            })
+            .ToList();
+
+        await service.UpdateVariantAnalysisAsync(updates);
+
+        await using var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await connection.OpenAsync();
+        await using var countCommand = connection.CreateCommand();
+        countCommand.CommandText = "SELECT COUNT(*) FROM HashDb WHERE analyzer_version = 'audioqa-2'";
+        Assert.Equal(200L, (long)(await countCommand.ExecuteScalarAsync())!);
+        await using var firstCommand = connection.CreateCommand();
+        firstCommand.CommandText = "SELECT variant_id, codec, sample_rate_hz, bit_depth, quality_score, transcode_suspect, transcode_reason, analyzer_version FROM HashDb WHERE flac_key = 'analysis-key-1'";
+        await using var reader = await firstCommand.ExecuteReaderAsync();
+        Assert.True(await reader.ReadAsync());
+        Assert.Equal("preserved-variant", reader.GetString(0));
+        Assert.Equal("FLAC", reader.GetString(1));
+        Assert.Equal(96000, reader.GetInt32(2));
+        Assert.Equal(24, reader.GetInt32(3));
+        Assert.Equal(0.99, reader.GetDouble(4), precision: 6);
+        Assert.True(reader.GetBoolean(5));
+        Assert.Equal("replacement", reader.GetString(6));
+        Assert.Equal("audioqa-3", reader.GetString(7));
+    }
+
+    [Fact]
     public async Task GetRecordingIdsWithHashesAsync_ReturnsRequestedMatchesInOneBatchShape()
     {
         var first = new HashDbEntry

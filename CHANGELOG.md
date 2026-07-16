@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Audio analyzer migrations now page variant reads and batch recalculated
+  analysis-field updates instead of scanning and writing one recording at a time.
 - MusicBrainz discography and Library Bloom Wishlist promotions now batch new
   seeds, reuse one Wishlist snapshot, and index search-text membership.
 - Lidarr wanted synchronization and Wishlist CSV imports now persist new items

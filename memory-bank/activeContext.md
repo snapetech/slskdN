@@ -1,3 +1,17 @@
+## Update 2026-07-16 10:42:25Z
+
+- Current task: performance and efficiency improvements in progress; audio analyzer-migration batching pass complete locally.
+- Last activity:
+  - Analyzer migration now keyset-pages 500 recording IDs, batch-loads variants, and applies transactional 100-row updates limited to recalculated analysis fields.
+  - A 10,000-recording/three-stale-variant workload falls from 40,001 commands to 341 (99.1% fewer), and 30,000 write transactions to 20, with page-bounded memory. Documented gotcha `0z684` (`7886d94ca`).
+- Validation:
+  - Passed focused migration coverage (`2/2`), broader Audio/HashDb coverage (`148/148`), and full backend tests (`4866/4866`: `69` application, `4517` unit, `280` integration).
+  - The 201-row normalization/duplicate/preserved-metadata fixture, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the audio analyzer-migration slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 10:30:40Z
 
 - Current task: performance and efficiency improvements in progress; MusicBrainz Wishlist-promotion batching pass complete locally.

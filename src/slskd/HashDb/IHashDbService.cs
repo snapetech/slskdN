@@ -201,6 +201,13 @@ namespace slskd.HashDb
         Task UpdateVariantMetadataAsync(string flacKey, AudioVariant variant, CancellationToken cancellationToken = default);
 
         /// <summary>
+        ///     Updates recalculated analysis fields for variants in bounded batches.
+        /// </summary>
+        Task UpdateVariantAnalysisAsync(
+            IEnumerable<AudioVariant> variants,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         ///     Get all variants for a recording.
         /// </summary>
         Task<List<AudioVariant>> GetVariantsByRecordingAsync(string recordingId, CancellationToken cancellationToken = default);

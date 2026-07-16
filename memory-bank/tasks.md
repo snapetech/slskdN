@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Page and batch audio analyzer migration.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced full recording-ID materialization, one variant query per recording, and one broad metadata update per stale variant with 500-recording keyset pages, batch variant hydration, and transactional 100-row updates limited to quality/transcode/analyzer fields. At 10,000 recordings with three stale variants each, commands fall from 40,001 to 341 (99.1% fewer) and write transactions from 30,000 to 20; memory remains page-bounded. Added an exact 1,000-recording call-boundary regression and a 201-row SQLite normalization/duplicate/preserved-metadata regression. Documented lambda initializer formatting gotcha `0z684` (`7886d94ca`).
+
 - [x] Batch MusicBrainz Wishlist promotions and Bloom membership checks.
   - Status: completed (2026-07-16)
   - Priority: P1

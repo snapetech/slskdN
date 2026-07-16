@@ -51,6 +51,7 @@ namespace slskd.HashDb
         private const int AlbumTrackUpsertBatchSize = 100;
         private const int ReleaseJobUpsertBatchSize = 100;
         private const int CanonicalStatsUpsertBatchSize = 100;
+        private const int VariantAnalysisUpdateBatchSize = 100;
 
         private readonly string dbPath;
         private readonly ILogger log = Log.ForContext<HashDbService>();
@@ -2825,6 +2826,80 @@ namespace slskd.HashDb
             cmd.Parameters.AddWithValue("@flac_key", flacKey);
 
             await cmd.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        /// <inheritdoc/>
+        public async Task UpdateVariantAnalysisAsync(
+            IEnumerable<AudioVariant> variants,
+            CancellationToken cancellationToken = default)
+        {
+            var normalized = new Dictionary<string, AudioVariant>(StringComparer.Ordinal);
+            foreach (var variant in variants.Where(variant => !string.IsNullOrWhiteSpace(variant.FlacKey)))
+            {
+                variant.FlacKey = variant.FlacKey.Trim();
+                variant.TranscodeReason = string.IsNullOrWhiteSpace(variant.TranscodeReason)
+                    ? string.Empty
+                    : variant.TranscodeReason.Trim();
+                variant.AnalyzerVersion = string.IsNullOrWhiteSpace(variant.AnalyzerVersion)
+                    ? string.Empty
+                    : variant.AnalyzerVersion.Trim();
+                normalized[variant.FlacKey] = variant;
+            }
+
+            if (normalized.Count == 0)
+            {
+                return;
+            }
+
+            using var connection = GetConnection();
+            using var transaction = connection.BeginTransaction();
+            foreach (var batch in normalized.Values.Chunk(VariantAnalysisUpdateBatchSize))
+            {
+                using var command = connection.CreateCommand();
+                command.Transaction = transaction;
+                var values = batch.Select((_, index) =>
+                    $"(@flac_key{index}, @quality_score{index}, @transcode_suspect{index}, @transcode_reason{index}, @analyzer_version{index}, @last_updated_at)");
+                command.CommandText = $"""
+                    WITH updates (
+                        flac_key,
+                        quality_score,
+                        transcode_suspect,
+                        transcode_reason,
+                        analyzer_version,
+                        last_updated_at) AS (
+                        VALUES {string.Join(", ", values)}
+                    )
+                    UPDATE HashDb AS target
+                    SET quality_score = updates.quality_score,
+                        transcode_suspect = updates.transcode_suspect,
+                        transcode_reason = updates.transcode_reason,
+                        analyzer_version = updates.analyzer_version,
+                        last_updated_at = updates.last_updated_at
+                    FROM updates
+                    WHERE target.flac_key = updates.flac_key
+                    """;
+                command.Parameters.AddWithValue("@last_updated_at", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+                for (var index = 0; index < batch.Length; index++)
+                {
+                    var variant = batch[index];
+                    command.Parameters.AddWithValue($"@flac_key{index}", variant.FlacKey);
+                    command.Parameters.AddWithValue($"@quality_score{index}", variant.QualityScore);
+                    command.Parameters.AddWithValue($"@transcode_suspect{index}", variant.TranscodeSuspect);
+                    command.Parameters.AddWithValue($"@transcode_reason{index}", variant.TranscodeReason);
+                    command.Parameters.AddWithValue($"@analyzer_version{index}", variant.AnalyzerVersion);
+                }
+
+                await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            transaction.Commit();
+            if (hashCache != null)
+            {
+                foreach (var flacKey in normalized.Keys)
+                {
+                    hashCache.Remove($"hashdb:lookup:{flacKey}");
+                }
+            }
         }
 
         /// <inheritdoc/>

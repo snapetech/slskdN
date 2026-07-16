@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Audio analyzer migration now keyset-pages 500 recording IDs, batch-loads
+  variants, and updates only recalculated analysis fields in transactional
+  100-row commands. For 10,000 recordings with three stale variants each,
+  database commands fall from 40,001 to 341 (99.1% fewer), write transactions
+  fall from 30,000 to 20, and memory remains page-bounded.
 - MusicBrainz discography and Library Bloom promotions now persist Wishlist
   seeds through one bounded bulk call. A 1,000-track discography promotion falls
   from 1,000 insert commands to 25 (97.5% fewer); the Bloom maximum of 250 falls
