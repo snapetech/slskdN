@@ -52,6 +52,20 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z681. Multi-Line Generated SQL Fragments Need Raw Strings
+
+**The Bug**: A canonical-stat batch patch generated each multi-line `VALUES`
+tuple with a normal interpolated string. C# normal string literals cannot span
+source lines, so the generated SQL helper did not compile.
+
+**Files Affected**:
+- `src/slskd/HashDb/HashDbService.cs`
+
+**Prevention**: Keep generated SQL tuple fragments on one source line when
+using `$"..."`, or use an interpolated raw string when the fragment itself must
+span lines. Inspect the delimiter type independently for the outer command and
+every LINQ-generated fragment before compiling.
+
 ### 0z680. Extracted Database Helpers Must Use Their Declared Receiver
 
 **The Bug**: Extracting canonical-stat upsert SQL from an instance method into
