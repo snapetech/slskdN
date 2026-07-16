@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z688. SQLite Catalogue Tracks Require Their Parent Hierarchy
+
+**The Bug**: A catalogue batch-read regression inserted standalone `Track`
+rows whose generated `ReleaseId` values did not exist. The production SQLite
+store enables foreign-key enforcement, so setup failed before exercising the
+batch read.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/VirtualSoulfind/v2/Catalogue/LocalFileAndVerifiedCopyTests.cs`
+
+**Prevention**: Create SQLite catalogue tracks through the existing
+artist→release-group→release→track fixture helper, or explicitly insert every
+required parent first. Do not reuse lightweight entity constructors intended
+only for in-memory/value tests when writing relational fixtures.
+
 ### 0z687. Database-Materialized Strings Require Value Assertions
 
 **The Bug**: A SQLite catalogue batch regression used `Assert.Same` to compare
