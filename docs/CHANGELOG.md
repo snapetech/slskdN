@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Recent connection-event retrieval now keeps a rolling tail sized to the
+  requested result count instead of `Reverse()`-buffering the complete audit
+  queue before taking the newest entries. With a full 10,000-event log and the
+  default 100-event request, measured warmed allocation remains below 8 KiB and
+  working memory scales with 100 rather than 10,000 events. Newest-first order,
+  exact count bounds, empty/non-positive requests, event objects, log retention,
+  and best-effort concurrent enumeration remain unchanged.
 - Connection fingerprint retention now selects the oldest entry with a stable
   direct minimum scan when the 1,000-entry cap is reached instead of allocating
   a values snapshot and fully sorting it. Cap eviction falls from O(n log n) to

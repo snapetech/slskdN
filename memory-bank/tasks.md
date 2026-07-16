@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound recent connection-event retrieval memory.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `GetRecentEvents` now maintains a rolling tail bounded by the requested result count and reverses only that tail instead of using LINQ `Reverse` to buffer the complete 10,000-event queue before `Take`. With a full production-cap log and the default 100-event request, measured warmed allocation remains below 8 KiB and working memory scales with 100 rather than 10,000 events. Newest-first ordering, exact result bounds, zero/negative request behavior, event identity/details, queue retention, and best-effort concurrent enumeration remain unchanged. Added exact newest-order/non-positive and full-log cardinality/allocation regressions. Validation passed: focused fingerprint tests (`5/5`), broader DHT rendezvous tests (`152/152`), full backend suites (`4963/4963`: `69` application, `4614` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Make capped fingerprint eviction single-pass.
   - Status: completed (2026-07-16)
   - Priority: P1

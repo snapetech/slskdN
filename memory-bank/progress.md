@@ -1,3 +1,10 @@
+## Update 2026-07-16 17:20:26Z
+
+- Completed the bounded recent connection-event retrieval performance pass.
+- `GetRecentEvents` now maintains only the requested rolling tail and reverses that tail instead of buffering the complete audit queue before taking results.
+- With 10,000 retained events and the default 100-event request, warmed allocation remains below 8 KiB and working memory scales with 100 entries. Newest order, counts, non-positive behavior, event identity, retention, and best-effort concurrency remain unchanged.
+- Validation passed: focused fingerprint tests (`5/5`), broader DHT rendezvous tests (`152/152`), full backend suites (`4963/4963`: `69` application, `4614` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 17:12:55Z
 
 - Completed the capped connection-fingerprint eviction performance pass.

@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Recent connection-event retrieval now retains only the requested tail instead
+  of reverse-buffering the complete 10,000-event audit queue.
 - Connection fingerprint retention now finds the oldest capped entry in one
   pass instead of snapshotting and sorting all tracked fingerprints.
 - Connection fingerprint statistics now aggregate directly in one dictionary

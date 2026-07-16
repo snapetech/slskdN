@@ -1,3 +1,17 @@
+## Update 2026-07-16 17:20:26Z
+
+- Current task: performance and efficiency improvements in progress; bounded recent connection-event retrieval complete locally.
+- Last activity:
+  - Replaced complete audit-queue reverse buffering with a rolling requested-size tail and tail-only reversal.
+  - At 10,000 retained events, the default 100-event read allocates below 8 KiB while preserving newest-first results and count behavior.
+- Validation:
+  - Passed focused fingerprint (`5/5`), broader DHT rendezvous (`152/152`), and full backend suites (`4963/4963`) tests.
+  - Exact order/count/non-positive/full-log allocation boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the recent-event retrieval slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 17:12:55Z
 
 - Current task: performance and efficiency improvements in progress; capped fingerprint eviction single-pass selection complete locally.

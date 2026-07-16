@@ -76,4 +76,42 @@ public class ConnectionFingerprintServiceTests
             allocatedBytes < 32 * 1024,
             $"Expected single-pass eviction allocation below 32 KiB, got {allocatedBytes:N0} bytes.");
     }
+
+    [Fact]
+    public void GetRecentEvents_ReturnsRequestedNewestEventsFirst()
+    {
+        var service = new ConnectionFingerprintService(NullLogger<ConnectionFingerprintService>.Instance);
+        var fingerprint = service.RecordConnection(IPAddress.Loopback, 1, "user", null, null, null);
+        service.RecordSecurityEvent(fingerprint.Id, "first", "one");
+        service.RecordSecurityEvent(fingerprint.Id, "second", "two");
+
+        var events = service.GetRecentEvents(2);
+
+        Assert.Equal(2, events.Count);
+        Assert.Equal("second: two", events[0].Details);
+        Assert.Equal("first: one", events[1].Details);
+        Assert.Empty(service.GetRecentEvents(0));
+        Assert.Empty(service.GetRecentEvents(-1));
+    }
+
+    [Fact]
+    public void GetRecentEvents_FullLogUsesRequestedSizeWorkingMemory()
+    {
+        var service = new ConnectionFingerprintService(NullLogger<ConnectionFingerprintService>.Instance);
+        var fingerprint = service.RecordConnection(IPAddress.Loopback, 1, "user", null, null, null);
+        for (var index = 0; index < ConnectionFingerprintService.MaxEventLogSize; index++)
+        {
+            service.RecordDisconnection(fingerprint.Id, string.Empty);
+        }
+
+        _ = service.GetRecentEvents();
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var events = service.GetRecentEvents();
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(100, events.Count);
+        Assert.True(
+            allocatedBytes < 8 * 1024,
+            $"Expected requested-size tail allocation below 8 KiB, got {allocatedBytes:N0} bytes.");
+    }
 }

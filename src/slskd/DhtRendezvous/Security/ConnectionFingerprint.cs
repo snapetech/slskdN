@@ -197,10 +197,25 @@ public sealed class ConnectionFingerprintService
     /// </summary>
     public IReadOnlyList<ConnectionEvent> GetRecentEvents(int count = 100)
     {
-        return _eventLog
-            .Reverse()
-            .Take(count)
-            .ToList();
+        if (count <= 0)
+        {
+            return Array.Empty<ConnectionEvent>();
+        }
+
+        var recentEvents = new Queue<ConnectionEvent>(Math.Min(count, MaxEventLogSize));
+        foreach (var connectionEvent in _eventLog)
+        {
+            if (recentEvents.Count == count)
+            {
+                recentEvents.Dequeue();
+            }
+
+            recentEvents.Enqueue(connectionEvent);
+        }
+
+        var result = recentEvents.ToArray();
+        Array.Reverse(result);
+        return result;
     }
 
     /// <summary>
