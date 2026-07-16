@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z700. Direct EF SQL Changes Database Exception Boundaries
+
+**The Bug**: Replacing a tracked `SaveChangesAsync` insert with
+`ExecuteSqlInterpolatedAsync` preserved a missing-parent foreign-key failure
+but exposed `SqliteException` directly instead of the prior `DbUpdateException`
+wrapper.
+
+**Files Affected**:
+- `src/slskd/Sharing/ShareGroupRepository.cs`
+- `tests/slskd.Tests.Unit/Sharing/ShareGroupRepositoryTests.cs`
+
+**Prevention**: When replacing EF tracked writes with direct SQL, identify
+whether callers can observe the existing exception boundary. Wrap provider
+`DbException` failures in `DbUpdateException` when the old path failed through
+`SaveChangesAsync`, and assert both the outer EF exception and provider inner
+exception in a regression.
+
 ### 0z699. Extracted Helpers Cannot Start With A Blank Line
 
 **The Bug**: Extracting announcement persistence into a transactional helper
