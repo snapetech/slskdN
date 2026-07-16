@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- MediaCore dashboards now share one content-registry snapshot between registry
+  and IPLD statistics instead of enumerating every domain twice.
 - Levenshtein fuzzy scoring now skips shared prefixes and suffixes before its
   distance pass and short-circuits case-insensitive equality.
 - Levenshtein fuzzy scoring now uses two bounded working rows instead of an

@@ -72,10 +72,11 @@ public class MediaCoreStatsService : IMediaCoreStatsService
         var uptime = _uptimeStopwatch.Elapsed;
 
         // Collect all statistics (some in parallel for performance)
-        var contentRegistryTask = GetContentRegistryStatsAsync(cancellationToken);
+        var registrySnapshotTask = GetRegistrySnapshotAsync(cancellationToken);
+        var contentRegistryTask = GetContentRegistryStatsAsync(registrySnapshotTask);
         var descriptorTask = GetDescriptorStatsAsync(cancellationToken);
         var fuzzyTask = GetFuzzyMatchingStatsAsync(cancellationToken);
-        var ipldTask = GetIpldMappingStatsAsync(cancellationToken);
+        var ipldTask = GetIpldMappingStatsAsync(registrySnapshotTask, cancellationToken);
         var perceptualTask = GetPerceptualHashingStatsAsync(cancellationToken);
         var portabilityTask = GetMetadataPortabilityStatsAsync(cancellationToken);
         var publishingTask = GetContentPublishingStatsAsync(cancellationToken);
@@ -101,16 +102,21 @@ public class MediaCoreStatsService : IMediaCoreStatsService
     }
 
     /// <inheritdoc/>
-    public async Task<ContentRegistryStats> GetContentRegistryStatsAsync(CancellationToken cancellationToken = default)
+    public Task<ContentRegistryStats> GetContentRegistryStatsAsync(CancellationToken cancellationToken = default)
     {
-        var registryStats = await _contentRegistry.GetStatsAsync(cancellationToken);
+        return GetContentRegistryStatsAsync(GetRegistrySnapshotAsync(cancellationToken));
+    }
+
+    private static async Task<ContentRegistryStats> GetContentRegistryStatsAsync(Task<RegistrySnapshot> snapshotTask)
+    {
+        var snapshot = await snapshotTask;
+        var registryStats = snapshot.Stats;
 
         var mappingsByDomain = registryStats.MappingsByDomain.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         var mappingsByType = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var domain in mappingsByDomain.Keys)
+        foreach (var contentIds in snapshot.ContentIdsByDomain.Values)
         {
-            var contentIds = await _contentRegistry.FindByDomainAsync(domain, cancellationToken);
             foreach (var contentId in contentIds)
             {
                 var type = ContentIdParser.GetType(contentId) ?? "unknown";
@@ -192,14 +198,21 @@ public class MediaCoreStatsService : IMediaCoreStatsService
     }
 
     /// <inheritdoc/>
-    public async Task<IpldMappingStats> GetIpldMappingStatsAsync(CancellationToken cancellationToken = default)
+    public Task<IpldMappingStats> GetIpldMappingStatsAsync(CancellationToken cancellationToken = default)
     {
-        var registryStats = await _contentRegistry.GetStatsAsync(cancellationToken);
+        return GetIpldMappingStatsAsync(GetRegistrySnapshotAsync(cancellationToken), cancellationToken);
+    }
+
+    private async Task<IpldMappingStats> GetIpldMappingStatsAsync(
+        Task<RegistrySnapshot> snapshotTask,
+        CancellationToken cancellationToken)
+    {
+        var snapshot = await snapshotTask;
         var contentIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var domain in registryStats.MappingsByDomain.Keys)
+        foreach (var domainContentIds in snapshot.ContentIdsByDomain.Values)
         {
-            foreach (var contentId in await _contentRegistry.FindByDomainAsync(domain, cancellationToken))
+            foreach (var contentId in domainContentIds)
             {
                 contentIds.Add(contentId);
             }
@@ -280,6 +293,19 @@ public class MediaCoreStatsService : IMediaCoreStatsService
             OrphanedNodes: orphanedNodes.Count,
             AverageTraversalTime: averageTraversalTime,
             GraphConnectivityRatio: overallGraphConnectivityRatio);
+    }
+
+    private async Task<RegistrySnapshot> GetRegistrySnapshotAsync(CancellationToken cancellationToken)
+    {
+        var stats = await _contentRegistry.GetStatsAsync(cancellationToken);
+        var contentIdsByDomain = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var domain in stats.MappingsByDomain.Keys)
+        {
+            contentIdsByDomain[domain] = await _contentRegistry.FindByDomainAsync(domain, cancellationToken);
+        }
+
+        return new RegistrySnapshot(stats, contentIdsByDomain);
     }
 
     /// <inheritdoc/>
@@ -454,4 +480,8 @@ public class MediaCoreStatsService : IMediaCoreStatsService
             Interlocked.Increment(ref _successfulImports);
         }
     }
+
+    private sealed record RegistrySnapshot(
+        ContentIdRegistryStats Stats,
+        IReadOnlyDictionary<string, IReadOnlyList<string>> ContentIdsByDomain);
 }

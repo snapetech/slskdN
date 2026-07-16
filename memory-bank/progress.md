@@ -1,3 +1,10 @@
+## Update 2026-07-16 16:40:52Z
+
+- Completed the MediaCore dashboard registry-snapshot consolidation performance pass.
+- Dashboard registry and IPLD sections now consume one shared immutable registry/domain snapshot instead of independently repeating the same enumeration.
+- For `D` domains, registry calls fall from `2 + 2D` to `1 + D` (50% fewer); the covered three-domain dashboard falls from eight to four. Standalone endpoints remain fresh, and registry/IPLD results and cancellation behavior remain unchanged.
+- Validation passed: focused stats tests (`1/1`), broader MediaCore tests (`229/229`), full backend suites (`4954/4954`: `69` application, `4605` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 16:31:50Z
 
 - Completed the Levenshtein shared-affix elimination performance pass.

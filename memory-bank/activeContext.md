@@ -1,3 +1,17 @@
+## Update 2026-07-16 16:40:52Z
+
+- Current task: performance and efficiency improvements in progress; MediaCore dashboard registry-snapshot consolidation complete locally.
+- Last activity:
+  - Shared one immutable registry/domain snapshot between dashboard registry and IPLD aggregation while leaving standalone endpoints fresh.
+  - For three domains, registry calls fall from eight to four (50% fewer) while both dashboard sections retain their results.
+- Validation:
+  - Passed focused stats (`1/1`), broader MediaCore (`229/229`), and full backend suites (`4954/4954`) tests.
+  - Exact one-stats/one-domain-call boundary, registry/type/IPLD results, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the MediaCore dashboard snapshot slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 16:31:50Z
 
 - Current task: performance and efficiency improvements in progress; Levenshtein shared-affix elimination complete locally.

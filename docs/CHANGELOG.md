@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- MediaCore dashboard aggregation now shares one immutable content-registry
+  snapshot between its registry and IPLD sections instead of reading registry
+  statistics and every domain twice. For `D` domains, registry calls fall from
+  `2 + 2D` to `1 + D` (50% fewer); the covered three-domain dashboard falls
+  from eight calls to four. Standalone section endpoints still obtain fresh
+  snapshots, while dashboard counts, type grouping, graph statistics,
+  validation, and result shapes remain unchanged.
 - Levenshtein fuzzy scoring now removes shared prefixes and suffixes through
   zero-copy spans before evaluating distance, and exact case-insensitive
   matches return before lowercase normalization. In the covered 20,001-character

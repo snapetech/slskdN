@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Consolidate MediaCore dashboard registry snapshots.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `GetDashboardAsync` now shares one registry-statistics/domain-content snapshot between content-registry and IPLD aggregation instead of running both complete enumerations concurrently. For `D` domains, registry calls fall from `2 + 2D` to `1 + D` (50% fewer); the covered three-domain dashboard falls from eight calls to four. Standalone content-registry and IPLD endpoints still obtain fresh snapshots. Mapping totals, domain/type grouping, case-insensitive IPLD deduplication, per-root graph statistics, link validation, cancellation propagation, and dashboard shape remain unchanged. Added an exact three-domain one-stats/one-call-per-domain regression that asserts both sections' results. Validation passed: focused stats tests (`1/1`), broader MediaCore tests (`229/229`), full backend suites (`4954/4954`: `69` application, `4605` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Skip shared affixes during Levenshtein fuzzy scoring.
   - Status: completed (2026-07-16)
   - Priority: P1
