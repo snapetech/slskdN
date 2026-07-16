@@ -1018,10 +1018,16 @@ while the full unit-test project no longer compiled.
 **Files Affected**:
 - `src/slskd/Wishlist/WishlistService.cs`
 - `tests/slskd.Tests.Unit/Integrations/Lidarr/LidarrSyncServiceTests.cs`
+- `tests/slskd.Tests.Integration/Harness/SlskdnTestClient.cs`
 
 **Prevention**: When adding an interface member, search the full repository for
 every implementation, including nested test fakes, and compile the complete
 solution rather than only the changed production project.
+
+**2026-07-16 update**: A Library Health interface expansion repeated this in
+an integration harness that spelled the implemented interface with its fully
+qualified namespace. Search for the interface name itself, not only the exact
+`: IInterfaceName` declaration shape.
 
 ### 0z541. Task Races Must Observe Faulting Losers
 
