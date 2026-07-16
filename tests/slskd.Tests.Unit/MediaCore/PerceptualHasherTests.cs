@@ -306,6 +306,23 @@ public class PerceptualHasherTests
     }
 
     [Fact]
+    public void ComputeAudioHash_ChromaprintReusesTargetRateAnalysisTables()
+    {
+        var samples = GenerateSineWave(44100, 1.0f, 440.0f);
+        var expected = hasher.ComputeAudioHash(samples, 44100, PerceptualHashAlgorithm.Chromaprint);
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var result = hasher.ComputeAudioHash(samples, 44100, PerceptualHashAlgorithm.Chromaprint);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(expected.NumericHash, result.NumericHash);
+        Assert.Equal(expected.Hex, result.Hex);
+        Assert.True(
+            allocatedBytes < 220 * 1024,
+            $"Expected cached Chromaprint tables below 220 KiB allocated, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
     public void ComputeHash_DownsamplingProducesSimilarHash()
     {
         // Test that downsampling doesn't drastically change the hash

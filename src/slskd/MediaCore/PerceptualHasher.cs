@@ -85,8 +85,14 @@ public interface IPerceptualHasher
 
 public class PerceptualHasher : IPerceptualHasher
 {
+    private const int ChromaBins = 24;
+    private const int ChromaFftSize = 4096;
+    private const double ChromaReferenceFrequency = 55.0;
+    private const int ChromaTargetSampleRate = 11025;
     private const int FrameSize = 4096; // Frame size for analysis
     private const int HashBits = 64;    // 64-bit hash output
+    private static readonly double[] ChromaHannWindow = CreateChromaHannWindow();
+    private static readonly int[] TargetRateChromaPerFftBin = CreateChromaPerFftBin(ChromaTargetSampleRate);
 
     public PerceptualHash ComputeAudioHash(float[] samples, int sampleRate, PerceptualHashAlgorithm algorithm = PerceptualHashAlgorithm.Chromaprint)
     {
@@ -248,47 +254,27 @@ public class PerceptualHasher : IPerceptualHasher
         if (samples == null || samples.Length == 0)
             return 0;
 
-        const int fftSize = 4096;
         const int hopSize = 2048;
-        const int chromaBins = 24;
         const int superBands = 8;
         const int framesForHash = 8;
-        const double fRef = 55.0;
 
-        var targetRate = 11025;
-        if (sampleRate > targetRate)
+        if (sampleRate > ChromaTargetSampleRate)
         {
-            samples = Downsample(samples, sampleRate, targetRate);
-            sampleRate = targetRate;
+            samples = Downsample(samples, sampleRate, ChromaTargetSampleRate);
+            sampleRate = ChromaTargetSampleRate;
         }
 
-        var numFrames = (samples.Length - fftSize) / hopSize + 1;
+        var numFrames = (samples.Length - ChromaFftSize) / hopSize + 1;
         if (numFrames <= 0)
             return 0;
 
-        var binFreq = (double)sampleRate / fftSize;
-
-        var hann = new double[fftSize];
-        for (int i = 0; i < fftSize; i++)
-            hann[i] = 0.5 * (1.0 - Math.Cos(2.0 * Math.PI * i / (fftSize - 1)));
-
-        var chromaPerFftBin = new int[(fftSize / 2) + 1];
-        for (int k = 0; k <= fftSize / 2; k++)
-        {
-            var f = k * binFreq;
-            if (f < fRef)
-            {
-                chromaPerFftBin[k] = -1;
-                continue;
-            }
-
-            var c = (int)Math.Round(12.0 * Math.Log(f / fRef, 2)) % chromaBins;
-            chromaPerFftBin[k] = (c + chromaBins) % chromaBins;
-        }
+        var chromaPerFftBin = sampleRate == ChromaTargetSampleRate
+            ? TargetRateChromaPerFftBin
+            : CreateChromaPerFftBin(sampleRate);
 
         Span<double> hashValues = stackalloc double[framesForHash * superBands];
-        var complexFrame = new Complex[fftSize];
-        Span<double> chromaVec = stackalloc double[chromaBins];
+        var complexFrame = new Complex[ChromaFftSize];
+        Span<double> chromaVec = stackalloc double[ChromaBins];
 
         for (int i = 0; i < framesForHash; i++)
         {
@@ -297,16 +283,16 @@ public class PerceptualHasher : IPerceptualHasher
                 frameIdx = numFrames - 1;
 
             int start = frameIdx * hopSize;
-            for (int j = 0; j < fftSize; j++)
+            for (int j = 0; j < ChromaFftSize; j++)
             {
-                var s = (start + j) < samples.Length ? (double)samples[start + j] * hann[j] : 0.0;
+                var s = (start + j) < samples.Length ? (double)samples[start + j] * ChromaHannWindow[j] : 0.0;
                 complexFrame[j] = new Complex(s, 0);
             }
 
             Fourier.Forward(complexFrame);
 
             chromaVec.Clear();
-            for (int k = 1; k < fftSize / 2; k++)
+            for (int k = 1; k < ChromaFftSize / 2; k++)
             {
                 var c = chromaPerFftBin[k];
                 if (c >= 0)
@@ -318,6 +304,38 @@ public class PerceptualHasher : IPerceptualHasher
         }
 
         return GenerateHash(hashValues);
+    }
+
+    private static double[] CreateChromaHannWindow()
+    {
+        var hann = new double[ChromaFftSize];
+        for (var index = 0; index < ChromaFftSize; index++)
+        {
+            hann[index] = 0.5 * (1.0 - Math.Cos(2.0 * Math.PI * index / (ChromaFftSize - 1)));
+        }
+
+        return hann;
+    }
+
+    private static int[] CreateChromaPerFftBin(int sampleRate)
+    {
+        var binFrequency = (double)sampleRate / ChromaFftSize;
+        var chromaPerFftBin = new int[(ChromaFftSize / 2) + 1];
+
+        for (var index = 0; index <= ChromaFftSize / 2; index++)
+        {
+            var frequency = index * binFrequency;
+            if (frequency < ChromaReferenceFrequency)
+            {
+                chromaPerFftBin[index] = -1;
+                continue;
+            }
+
+            var chroma = (int)Math.Round(12.0 * Math.Log(frequency / ChromaReferenceFrequency, 2)) % ChromaBins;
+            chromaPerFftBin[index] = (chroma + ChromaBins) % ChromaBins;
+        }
+
+        return chromaPerFftBin;
     }
 
     /// <summary>

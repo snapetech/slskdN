@@ -1,3 +1,10 @@
+## Update 2026-07-16 18:20:03Z
+
+- Completed the immutable Chromaprint analysis-table reuse performance pass.
+- The 4,096-point Hann window and normal 11,025 Hz FFT-bin map are built once, removing roughly 40 KiB plus thousands of cosine/log calculations from typical per-hash setup; lower nonstandard rates retain a correct per-call map without unbounded caching.
+- Exact numeric/hex output and all analysis semantics remain unchanged. The warmed 44.1 kHz end-to-end call stays below 220 KiB including MathNet workspace. Documented gotcha `0z703` (`e3278d5e3`).
+- Validation passed: focused perceptual hasher tests (`35/35`), broader MediaCore tests (`232/232`), full backend suites (`4975/4975`: `69` application, `4626` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 18:10:34Z
 
 - Completed the intrinsic perceptual-hash Hamming-distance performance pass.

@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Chromaprint hashing now precomputes its immutable 4,096-point Hann window and
+  normal 11,025 Hz FFT-bin-to-chroma map once instead of rebuilding them for
+  every hash. Typical calls remove roughly 40 KiB of table arrays plus 4,096
+  cosine evaluations and about 2,048 logarithmic bin calculations. The warmed
+  44.1 kHz end-to-end call remains below 220 KiB including MathNet FFT workspace.
+  Lower nonstandard sample rates still build the correct per-rate bin map;
+  downsampling, coefficients, bins, exact hashes, and similarity remain unchanged.
 - Perceptual-hash Hamming distance now uses `BitOperations.PopCount`, allowing
   the runtime to select a hardware population-count instruction where supported,
   instead of shifting and branching once per set bit (up to 64 iterations).

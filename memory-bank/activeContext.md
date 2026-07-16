@@ -1,3 +1,17 @@
+## Update 2026-07-16 18:20:03Z
+
+- Current task: performance and efficiency improvements in progress; immutable Chromaprint analysis-table reuse complete locally.
+- Last activity:
+  - Precomputed the 4,096 Hann coefficients and common 11,025 Hz bin-to-chroma map while retaining per-call maps for lower uncommon rates.
+  - Typical hashes remove roughly 40 KiB and thousands of cosine/log setup operations; exact warmed output is unchanged.
+- Validation:
+  - Passed focused perceptual hasher (`35/35`), broader MediaCore (`232/232`), and full backend suites (`4975/4975`) tests.
+  - Exact output/normal-rate allocation plus existing algorithm/frequency boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Documented gotcha `0z703` (`e3278d5e3`). Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the Chromaprint table-reuse slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 18:10:34Z
 
 - Current task: performance and efficiency improvements in progress; intrinsic perceptual-hash Hamming distance complete locally.

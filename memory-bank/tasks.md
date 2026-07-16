@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Reuse immutable Chromaprint analysis tables.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `PerceptualHasher` now precomputes the immutable 4,096-point Hann coefficients and 11,025 Hz FFT-bin-to-24-chroma map once. Normal 44.1/22.05/11.025 kHz inputs reuse both after downsampling instead of allocating roughly 40 KiB of tables and repeating 4,096 cosine plus about 2,048 logarithmic calculations per hash. Lower nonstandard sample rates still build a correct per-call bin map rather than populating an unbounded cache. Window coefficients, reference frequency, chroma modulo behavior, downsampling, exact numeric/hex hashes, cross-frequency distinction, and similarity remain unchanged. Added exact warmed output/allocation coverage; the complete 44.1 kHz call remains below 220 KiB including MathNet workspace. Documented FFT allocation-test gotcha `0z703` (`e3278d5e3`). Validation passed: focused perceptual hasher tests (`35/35`), broader MediaCore tests (`232/232`), full backend suites (`4975/4975`: `69` application, `4626` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Use intrinsic perceptual-hash Hamming distance.
   - Status: completed (2026-07-16)
   - Priority: P1
