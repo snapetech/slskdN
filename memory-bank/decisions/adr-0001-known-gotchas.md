@@ -4627,6 +4627,7 @@ requested.
 **Files Affected**:
 - `src/slskd/Wishlist/WishlistService.cs`
 - `src/slskd/Transfers/Downloads/DownloadService.cs`
+- `src/slskd/VirtualSoulfind/ShadowIndex/ShardPublisher.cs`
 
 **Wrong**:
 ```csharp
@@ -4649,6 +4650,11 @@ catch (OperationCanceledException) when (cancellationToken.IsCancellationRequest
 so one failed item does not stop the loop. Always place host-token cancellation
 filters before broad catches, and keep expected retry cancellation debug-only
 when shutdown is driving the cancellation.
+
+**Recurrence (2026-07-16)**: Shadow Index candidate retrieval caught every
+exception around the cancellable HashDb page, logged shutdown cancellation as
+a warning, and returned an empty cycle. Keep host-token cancellation filters
+inside nested query/publish catches as well as around the outer service loop.
 
 ### 0z428. Expected Download Timeouts Should Warn Once
 
