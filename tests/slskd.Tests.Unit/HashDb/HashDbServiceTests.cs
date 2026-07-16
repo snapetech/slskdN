@@ -1035,8 +1035,8 @@ public class HashDbServiceTests : IDisposable
         {
             CreateVariantEntry("old-best-key", "recording-a-old", "old-best", 20, 0.9),
             CreateVariantEntry("old-other-key", "recording-a-old", "old-other", 20, 0.8),
-            CreateVariantEntry("new-low-key", "recording-z-new", "new-low", 30, 0.4),
-            CreateVariantEntry("new-best-key", "recording-z-new", "new-best", 30, 0.7),
+            CreateVariantEntry("new-a-other-key", "recording-z-new", "new-other", 30, 0.7),
+            CreateVariantEntry("new-z-best-key", "recording-z-new", "new-best", 30, 0.7),
             CreateVariantEntry("case-shadow-key", "RECORDING-Z-NEW", "case-shadow", 10, 1.0),
         };
         foreach (var entry in entries)
@@ -1057,18 +1057,25 @@ public class HashDbServiceTests : IDisposable
             await using var command = connection.CreateCommand();
             command.CommandText = """
                 UPDATE HashDb
-                SET last_updated_at = CASE musicbrainz_id
-                    WHEN 'recording-z-new' THEN 30
-                    WHEN 'recording-a-old' THEN 20
-                    ELSE 10
-                END
+                SET
+                    last_updated_at = CASE musicbrainz_id
+                        WHEN 'recording-z-new' THEN 30
+                        WHEN 'recording-a-old' THEN 20
+                        ELSE 10
+                    END,
+                    seen_count = CASE flac_key
+                        WHEN 'new-z-best-key' THEN 5
+                        ELSE 1
+                    END
                 """;
             await command.ExecuteNonQueryAsync();
         }
 
         var variants = await service.GetRecentVariantsAsync(3);
+        var bestVariants = await service.GetRecentBestVariantsByRecordingAsync(2);
 
-        Assert.Equal(new[] { "new-best", "new-low", "old-best" }, variants.Select(variant => variant.VariantId));
+        Assert.Equal(new[] { "new-other", "new-best", "old-best" }, variants.Select(variant => variant.VariantId));
+        Assert.Equal(new[] { "new-best", "old-best" }, bestVariants.Select(variant => variant.VariantId));
     }
 
     private static HashDbEntry CreateVariantEntry(

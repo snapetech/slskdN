@@ -1,3 +1,17 @@
+## Update 2026-07-16 12:32:29Z
+
+- Current task: performance and efficiency improvements in progress; bounded music metadata variant fallback pass complete locally.
+- Last activity:
+  - Added one bounded best-variant-per-recent-recording HashDb projection and replaced full recording-ID enumeration plus batch hydration in local metadata fallback matching.
+  - Reads fall from two to one (50% fewer), and application memory is bounded at 256 variants instead of scaling with all variant recording IDs.
+- Validation:
+  - Passed focused regressions (`2/2`), broader HashDb/music-provider coverage (`137/137`), and full backend tests (`4888/4888`: `69` application, `4539` unit, `280` integration).
+  - Exact one-query/zero-legacy-call boundaries, 256-recording limit, recency, case-insensitive selection, quality/seen-count ranking, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the HashDb/music fallback slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 12:23:47Z
 
 - Current task: performance and efficiency improvements in progress; MediaCore music-variant sampling pass complete locally.

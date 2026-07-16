@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Music metadata fallback matching now reads one bounded best-variant row for
+  each of at most 256 recent recordings instead of materializing every variant
+  recording ID and issuing a second hydration query. Local reads fall from two
+  to one (50% fewer), and application memory falls from full-library recording
+  IDs plus variants to at most 256 variants. Recent-recording selection,
+  quality/seen-count ranking, case-insensitive IDs, and fallback matching are
+  unchanged.
 - MediaCore music-domain variant sampling now applies recording recency,
   per-recording quality ordering, duplicate filtering, and the requested limit
   in one HashDb query instead of materializing every recording ID and reading

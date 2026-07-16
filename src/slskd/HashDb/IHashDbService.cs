@@ -232,6 +232,13 @@ namespace slskd.HashDb
         Task<List<AudioVariant>> GetRecentVariantsAsync(int limit, CancellationToken cancellationToken = default);
 
         /// <summary>
+        ///     Gets the best variant for each recent recording in a bounded recording sample.
+        /// </summary>
+        Task<List<AudioVariant>> GetRecentBestVariantsByRecordingAsync(
+            int recordingLimit,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         ///     Get variants for a recording and codec profile key.
         /// </summary>
         Task<List<AudioVariant>> GetVariantsByRecordingAndProfileAsync(string recordingId, string codecProfileKey, CancellationToken cancellationToken = default);

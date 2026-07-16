@@ -309,23 +309,11 @@ namespace slskd.VirtualSoulfind.Core.Music
             string? album,
             CancellationToken cancellationToken)
         {
-            var recordingIds = await _hashDb.GetRecordingIdsWithVariantsAsync(cancellationToken).ConfigureAwait(false);
-            var candidateRecordingIds = recordingIds.Take(VariantBackfillScanLimit).ToList();
-            var variantsByRecording = (await _hashDb
-                    .GetVariantsByRecordingsAsync(candidateRecordingIds, cancellationToken)
-                    .ConfigureAwait(false))
-                .ToLookup(variant => variant.MusicBrainzRecordingId, StringComparer.OrdinalIgnoreCase);
-            foreach (var recordingId in candidateRecordingIds)
+            var variants = await _hashDb
+                .GetRecentBestVariantsByRecordingAsync(VariantBackfillScanLimit, cancellationToken)
+                .ConfigureAwait(false);
+            foreach (var bestVariant in variants)
             {
-                var bestVariant = variantsByRecording[recordingId]
-                    .OrderByDescending(variant => variant.QualityScore)
-                    .ThenByDescending(variant => variant.SeenCount)
-                    .FirstOrDefault();
-                if (bestVariant == null)
-                {
-                    continue;
-                }
-
                 var candidateTitle = NormalizeText(DeriveFallbackTitle(bestVariant));
                 if (!string.Equals(candidateTitle, title, StringComparison.OrdinalIgnoreCase))
                 {
@@ -334,7 +322,7 @@ namespace slskd.VirtualSoulfind.Core.Music
 
                 var isAdvertisable = true;
                 return MusicItem.FromRecordingFallback(
-                    recordingId,
+                    bestVariant.MusicBrainzRecordingId,
                     DeriveFallbackTitle(bestVariant),
                     artist,
                     bestVariant.DurationMs > 0 ? bestVariant.DurationMs : null,

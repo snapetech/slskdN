@@ -1,3 +1,10 @@
+## Update 2026-07-16 12:32:29Z
+
+- Completed the music metadata fallback variant-scan performance pass.
+- Replaced full variant recording-ID enumeration plus a second 256-ID hydration read with one HashDb query returning the best quality/seen-count variant for each of at most 256 recent case-insensitive recording groups.
+- Local reads fall from two to one (50% fewer), and application memory falls from all recording IDs plus variants to at most 256 variants. Recent ordering, title matching, and fallback response behavior remain unchanged.
+- Validation passed: focused regressions (`2/2`), broader HashDb/music-provider tests (`137/137`), complete smoke/unit/integration suites (`4888/4888`: `69` smoke, `4539` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 12:23:47Z
 
 - Completed the MediaCore music-domain variant sampling performance pass.

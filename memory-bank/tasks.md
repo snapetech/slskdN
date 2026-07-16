@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound music metadata variant fallback matching.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced complete variant recording-ID enumeration followed by a 256-ID batch hydration with one HashDb projection returning the best variant for each of at most 256 recent case-insensitive recording groups. Local reads fall from two to one (50% fewer), while application memory falls from all recording IDs plus hydrated variants to at most 256 variants. Recent-recording order, quality-then-seen-count ranking, title matching, and fallback response fields remain unchanged. Extended the production SQLite recency/case/quality fixture with a conflicting seen-count tie and changed the provider regression to require one bounded call with zero legacy ID, batch, or scalar variant reads. Validation passed: focused regressions (`2/2`), broader HashDb/music-provider coverage (`137/137`), full backend tests (`4888/4888`: `69` application, `4539` unit, `280` integration), repository lint, diff checks, and every substantive remediation check before the expected divergent-branch release-sync stop.
+
 - [x] Bound MediaCore music-domain variant sampling.
   - Status: completed (2026-07-16)
   - Priority: P1
