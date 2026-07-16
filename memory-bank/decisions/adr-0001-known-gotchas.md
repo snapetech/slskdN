@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z640. Configured Maintenance Intervals Must Own Their Scheduling
+
+**The Bug**: Automatic search retention exposed a validated
+`CleanupIntervalSeconds` option with a one-day default, but the application
+never read it and instead ran the cleanup from a fixed five-minute clock. The
+default configuration therefore evaluated the database policy 288 times per
+day rather than once.
+
+**Files Affected**:
+- `src/slskd/Application.cs`
+- `src/slskd/Core/Options.cs`
+
+**Prevention**: Trace every scheduling option through to the timer or due-time
+decision that consumes it, and cover the configured cadence with a focused
+test. Do not attach configurable maintenance directly to a shorter shared
+clock unless the handler explicitly gates execution by the configured
+interval; declaring and documenting an interval does not make it effective.
+
 ### 0z639. Statement-Level Comments Need A Separating Blank Line
 
 **The Bug**: An explanatory comment inserted immediately after a local
