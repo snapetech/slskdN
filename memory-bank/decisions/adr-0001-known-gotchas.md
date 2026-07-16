@@ -106,8 +106,9 @@ temporary B-tree with the exact production query shape.
 **The Bug**: Library Health's `LinkJobToIssuesAsync` changed issues to `Fixing`
 but never stored `RemediationJobId`. Status polling later selected fixing issues
 and compared that empty field to the job ID, so jobs created by the remediation
-service could never resolve their linked issues. The generic issue list is also
-capped at 250, making its in-memory linkage scan incomplete.
+service could never resolve their linked issues. The generic issue list also
+defaults to 100 rows and is capped at 250, making its in-memory linkage scan
+incomplete.
 
 **Files Affected**:
 - `src/slskd/LibraryHealth/Remediation/LibraryHealthRemediationService.cs`
