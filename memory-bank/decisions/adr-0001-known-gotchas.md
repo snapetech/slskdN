@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z657. File Scans Must Defer Group-Level Analysis And Batch Child Keys
+
+**The Bug**: Library Health ran release-completeness analysis from every file
+task. Each track in one album therefore reloaded the same album target and
+track list, then queried HashDb once per recording. A ten-track album caused
+120 database reads for one logical release check and could race duplicate issue
+creation.
+
+**Files Affected**:
+- `src/slskd/LibraryHealth/LibraryHealthService.cs`
+- `src/slskd/HashDb/IHashDbService.cs`
+- `src/slskd/HashDb/HashDbService.cs`
+
+**Prevention**: During parallel file work, collect distinct group keys such as
+`(release, directory)` and run group analysis once after file hydration. Query
+dependent recording presence in one indexed batch rather than one lookup per
+track. Preserve distinct directories for the same release and cover exact
+repository call counts so per-file fan-out cannot return unnoticed.
+
 ### 0z656. Static Application Helpers Must Qualify The Serilog Logger
 
 **The Bug**: A static file-pruning helper called `Log.Warning`, but
