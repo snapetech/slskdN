@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z643. Recurring Candidate Enrichment Must Batch And Reuse Peer State
+
+**The Bug**: The backfill scheduler queried each candidate peer's daily count
+while constructing a ten-item candidate snapshot, then queried the same count
+again for every candidate when executing the cycle. One bounded candidate read
+therefore expanded into twenty repeated count queries per cycle.
+
+**Files Affected**:
+- `src/slskd/Backfill/BackfillSchedulerService.cs`
+- `src/slskd/HashDb/HashDbService.cs`
+
+**Prevention**: Batch shared per-peer state for a bounded candidate set in one
+storage call, attach it to the candidate snapshot, and reuse the attached value
+throughout that cycle. Do not enrich a recurring list with one database query
+per row, and do not discard already-loaded rate-limit state only to read it
+again immediately before acting.
+
 ### 0z642. Periodic DHT Refresh Must Batch Shared Index Work
 
 **The Bug**: Pod refresh loaded every pod, filtered listed pods in memory, then
