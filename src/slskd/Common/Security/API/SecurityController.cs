@@ -48,7 +48,7 @@ public class SecurityController : ControllerBase
     public SecurityController(
         SecurityServices? security = null,
         ISecurityEventSink? eventSink = null,
-        AdversarialOptions? adversarialOptions = null,
+        IOptions<AdversarialOptions>? adversarialOptions = null,
         AnonymityTransportSelector? transportSelector = null,
         Mesh.IMeshCircuitBuilder? circuitBuilder = null,
         Mesh.IMeshPeerManager? peerManager = null,
@@ -57,7 +57,7 @@ public class SecurityController : ControllerBase
     {
         _security = security;
         _eventSink = eventSink ?? security?.EventSink;
-        _adversarialOptions = adversarialOptions;
+        _adversarialOptions = adversarialOptions?.Value;
         _transportSelector = transportSelector;
         _circuitBuilder = circuitBuilder;
         _peerManager = peerManager;

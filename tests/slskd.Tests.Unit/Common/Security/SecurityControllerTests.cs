@@ -110,7 +110,9 @@ public class SecurityControllerTests
         return new SecurityController(
             security,
             security?.EventSink,
-            adversarialOptions,
+            adversarialOptions == null
+                ? null
+                : Microsoft.Extensions.Options.Options.Create(adversarialOptions),
             null,
             circuitBuilder,
             null,
