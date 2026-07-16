@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z679. Batched Child Fixtures Must Carry Their Parent Key
+
+**The Bug**: Discography coverage tests converted per-recording hash mocks to a
+batched hash lookup but left `HashDbEntry.MusicBrainzId` empty. The old mock
+implicitly supplied the recording key through the called method; the batched
+result must carry that key so production code can regroup rows by recording.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Integrations/MusicBrainz/DiscographyCoverageServiceTests.cs`
+
+**Prevention**: When replacing keyed single-item mocks with batch results, set
+the parent/grouping key on every returned child fixture. Assert regrouped output
+for at least one populated key and one empty key rather than relying only on
+batch method call verification.
+
 ### 0z678. Patch Context Must Uniquely Identify Repeated Test Scaffolding
 
 **The Bug**: A patch intended to make one Library Health scan completion source
