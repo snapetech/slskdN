@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z713. Derive Confidence Bounds From Every Contribution Cap
+
+**The Bug**: A Shadow Index descriptor regression asserted the final `0.98`
+clamp as the reachable confidence maximum, but the actual capped formula is
+`0.55 + 0.15 + 0.18 = 0.88`; the outer clamp never raises that value.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/MediaCore/ShadowIndexDescriptorSourceTests.cs`
+
+**Prevention**: For weighted or capped scores, calculate the reachable range
+from the base and every contribution cap before choosing fixtures or expected
+values. A final `Math.Min` ceiling is only an upper guard, not proof the inputs
+can reach it. Assert the formula result with appropriate floating-point
+precision and keep selection/order assertions independent from score bounds.
+
 ### 0z712. Stack Formatting Must Handle Custom Culture Expansion
 
 **The Bug**: Descriptor version generation formatted a nullable negative size
