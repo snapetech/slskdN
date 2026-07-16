@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z631. React Event Handlers Must Not Feed Events Into Option Parameters
+
+**The Bug**: The Security dashboard changed `fetchData` to accept a boolean
+`showRefreshing` option but left one button wired as `onClick={fetchData}`.
+React therefore passed a click event as the option. Its truthiness happened to
+enable the spinner, but the callback contract was wrong and future boolean or
+serialization logic could break.
+
+**Files Affected**:
+- `src/web/src/components/System/Security/index.jsx`
+
+**Prevention**: When a callback accepts application options rather than a DOM
+event, wrap event handlers explicitly, for example
+`onClick={() => fetchData(true)}`. Do not rely on a synthetic event being
+truthy or ignore the mismatch because the immediate branch happens to work.
+
 ### 0z630. Semantic UI Tab Menu Items Must Use Its Item Contract
 
 **The Bug**: The Security dashboard supplied raw `<span>` elements as Semantic
