@@ -95,6 +95,7 @@ public sealed class SharingService : ISharingService
     public Task ReorderCollectionItemsAsync(Guid collectionId, IReadOnlyList<Guid> itemIdsInOrder, CancellationToken ct = default) => _collections.ReorderItemsAsync(collectionId, itemIdsInOrder, ct);
 
     public Task<ShareGrant?> GetShareGrantAsync(Guid id, CancellationToken ct = default) => _grants.GetByIdAsync(id, ct);
+    public Task<ShareGrant?> GetAccessibleShareGrantAsync(Guid id, string userId, CancellationToken ct = default) => _grants.GetAccessibleByIdAsync(id, userId, ct);
     public Task<IReadOnlyList<ShareGrant>> GetShareGrantsByCollectionAsync(Guid collectionId, CancellationToken ct = default) => _grants.GetByCollectionIdAsync(collectionId, ct);
     public Task<IReadOnlyList<ShareGrant>> GetShareGrantsAccessibleByUserAsync(string userId, CancellationToken ct = default) => _grants.GetAccessibleByUserAsync(userId, ct);
     public Task<ShareGrant> CreateShareGrantAsync(ShareGrant g, CancellationToken ct = default) => _grants.AddAsync(g, ct);
@@ -125,8 +126,7 @@ public sealed class SharingService : ISharingService
         }
         else if (currentUserId != null)
         {
-            var accessible = await _grants.GetAccessibleByUserAsync(currentUserId, ct).ConfigureAwait(false);
-            g = accessible.FirstOrDefault(x => x.Id == shareGrantId);
+            g = await _grants.GetAccessibleByIdAsync(shareGrantId, currentUserId, ct).ConfigureAwait(false);
         }
         else
         {

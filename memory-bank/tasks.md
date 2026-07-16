@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Scope single-grant access authorization by grant ID.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added an exact active-grant repository/service lookup that filters direct access in the primary-key query and performs one membership existence read only for the requested group grant. Routed grant GET, backfill, and authenticated manifest resolution away from complete accessible-grant lists. With 1,001 direct grants for one user, authorization hydration falls from 1,001 entities to one (99.9% fewer); grant GET falls from two grant reads to one. Expiry, direct/group identity, membership, malformed group IDs, not-found, download policy, and manifest results remain unchanged. Added production SQLite direct/group command/materialization/result coverage plus controller and manifest zero-list-call boundaries. Validation passed: focused repository/service/controller tests (`37/37`), broader Sharing tests (`103/103`), full backend tests (`4930/4930`: `69` application, `4581` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Scope collection item update lookup by item ID.
   - Status: completed (2026-07-16)
   - Priority: P1

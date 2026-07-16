@@ -1,3 +1,10 @@
+## Update 2026-07-16 15:13:51Z
+
+- Completed the exact single-grant access authorization performance pass.
+- Grant GET, backfill, and authenticated manifest resolution now query one active grant by ID and only that grant's group membership instead of loading every accessible grant.
+- With 1,001 direct grants for a user, authorization hydration falls from 1,001 entities to one (99.9% fewer), and grant GET falls from two grant reads to one. Expiry, identity/membership, malformed-group, not-found, download-policy, and manifest behavior remain unchanged.
+- Validation passed: focused repository/service/controller tests (`37/37`), broader Sharing tests (`103/103`), full backend tests (`4930/4930`: `69` application, `4581` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 15:06:54Z
 
 - Completed the scoped collection-item update lookup performance pass.

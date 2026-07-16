@@ -93,6 +93,30 @@ public class SharesControllerTests
     }
 
     [Fact]
+    public async Task Get_UsesExactAccessibleGrantLookup()
+    {
+        var grantId = Guid.NewGuid();
+        var grant = new ShareGrant { Id = grantId, AudienceType = AudienceTypes.User, AudienceId = "alice" };
+        _sharingMock
+            .Setup(service => service.GetAccessibleShareGrantAsync(grantId, "alice", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(grant);
+
+        var result = await CreateController().Get(grantId, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Same(grant, ok.Value);
+        _sharingMock.Verify(
+            service => service.GetAccessibleShareGrantAsync(grantId, "alice", It.IsAny<CancellationToken>()),
+            Times.Once);
+        _sharingMock.Verify(
+            service => service.GetShareGrantsAccessibleByUserAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        _sharingMock.Verify(
+            service => service.GetShareGrantAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task Create_EmptyCollectionId_ReturnsBadRequest()
     {
         var c = CreateController();
@@ -365,16 +389,13 @@ public class SharesControllerTests
         shareService.Setup(x => x.GetLocalRepository()).Returns(shareRepo.Object);
 
         _sharingMock
-            .Setup(x => x.GetShareGrantsAccessibleByUserAsync("alice", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ShareGrant>
+            .Setup(x => x.GetAccessibleShareGrantAsync(grantId, "alice", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ShareGrant
             {
-                new()
-                {
-                    Id = grantId,
-                    CollectionId = collectionId,
-                    AllowDownload = true,
-                    ShareToken = "token"
-                }
+                Id = grantId,
+                CollectionId = collectionId,
+                AllowDownload = true,
+                ShareToken = "token"
             });
         _sharingMock
             .Setup(x => x.GetCollectionAsync(collectionId, It.IsAny<CancellationToken>()))
@@ -425,16 +446,13 @@ public class SharesControllerTests
         shareService.Setup(x => x.GetLocalRepository()).Returns(shareRepo.Object);
 
         _sharingMock
-            .Setup(x => x.GetShareGrantsAccessibleByUserAsync("alice", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ShareGrant>
+            .Setup(x => x.GetAccessibleShareGrantAsync(grantId, "alice", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ShareGrant
             {
-                new()
-                {
-                    Id = grantId,
-                    CollectionId = collectionId,
-                    AllowDownload = true,
-                    ShareToken = "token"
-                }
+                Id = grantId,
+                CollectionId = collectionId,
+                AllowDownload = true,
+                ShareToken = "token"
             });
         _sharingMock
             .Setup(x => x.GetCollectionAsync(collectionId, It.IsAny<CancellationToken>()))
@@ -489,17 +507,14 @@ public class SharesControllerTests
             });
 
             _sharingMock
-                .Setup(x => x.GetShareGrantsAccessibleByUserAsync("alice", It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new List<ShareGrant>
+                .Setup(x => x.GetAccessibleShareGrantAsync(grantId, "alice", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new ShareGrant
                 {
-                    new()
-                    {
-                        Id = grantId,
-                        CollectionId = collectionId,
-                        AllowDownload = true,
-                        ShareToken = "secret-token",
-                        OwnerEndpoint = "http://127.0.0.1:1"
-                    }
+                    Id = grantId,
+                    CollectionId = collectionId,
+                    AllowDownload = true,
+                    ShareToken = "secret-token",
+                    OwnerEndpoint = "http://127.0.0.1:1"
                 });
             _sharingMock
                 .Setup(x => x.GetCollectionAsync(collectionId, It.IsAny<CancellationToken>()))

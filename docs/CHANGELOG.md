@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Single-grant get, backfill, and authenticated-manifest authorization now
+  resolves one active grant by ID and queries group membership only for that
+  grant instead of hydrating every accessible direct and group grant. With
+  1,001 direct grants for a user, authorization hydration falls from 1,001
+  rows to one (99.9% fewer); the grant GET also falls from two grant reads to
+  one. Expiry, direct-user, group-member, malformed-group, not-found, download
+  policy, and manifest behavior remain unchanged.
 - Collection item updates now resolve the requested item through one untracked
   collection/ID lookup instead of hydrating and scanning the complete ordered
   collection. With 1,000 items, update lookup hydration falls from 1,000 rows

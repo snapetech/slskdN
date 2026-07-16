@@ -13,6 +13,7 @@ public interface IShareGrantRepository
 {
     Task<ShareGrant?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ShareGrant>> GetByCollectionIdAsync(Guid collectionId, CancellationToken cancellationToken = default);
+    Task<ShareGrant?> GetAccessibleByIdAsync(Guid id, string userId, CancellationToken cancellationToken = default);
     /// <summary>Grants where AudienceType=User and AudienceId=userId, or AudienceType=ShareGroup and userId is in that group. Excludes expired.</summary>
     Task<IReadOnlyList<ShareGrant>> GetAccessibleByUserAsync(string userId, CancellationToken cancellationToken = default);
     Task<ShareGrant> AddAsync(ShareGrant entity, CancellationToken cancellationToken = default);

@@ -32,6 +32,28 @@ public sealed class ShareGrantRepository : IShareGrantRepository
         return await db.ShareGrants.AsNoTracking().Where(x => x.CollectionId == collectionId).ToListAsync(cancellationToken);
     }
 
+    public async Task<ShareGrant?> GetAccessibleByIdAsync(Guid id, string userId, CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        await using var db = await _factory.CreateDbContextAsync(cancellationToken);
+        var grant = await db.ShareGrants.AsNoTracking()
+            .FirstOrDefaultAsync(candidate =>
+                candidate.Id == id &&
+                (candidate.ExpiryUtc == null || candidate.ExpiryUtc > now) &&
+                ((candidate.AudienceType == AudienceTypes.User && candidate.AudienceId == userId) ||
+                 candidate.AudienceType == AudienceTypes.ShareGroup),
+                cancellationToken);
+        if (grant == null || grant.AudienceType == AudienceTypes.User)
+            return grant;
+        if (!Guid.TryParse(grant.AudienceId, out var groupId))
+            return null;
+
+        return await db.ShareGroupMembers.AsNoTracking()
+            .AnyAsync(member => member.ShareGroupId == groupId && member.UserId == userId, cancellationToken)
+            ? grant
+            : null;
+    }
+
     public async Task<IReadOnlyList<ShareGrant>> GetAccessibleByUserAsync(string userId, CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;

@@ -18,13 +18,14 @@ public sealed class ShareGrantRepositoryTests : IDisposable
 {
     private readonly string _dbPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"test_{Guid.NewGuid()}.db");
     private readonly CommandCaptureInterceptor _interceptor = new();
+    private readonly ShareGrantMaterializationInterceptor _materialization = new();
     private readonly IDbContextFactory<CollectionsDbContext> _factory;
 
     public ShareGrantRepositoryTests()
     {
         var options = new DbContextOptionsBuilder<CollectionsDbContext>()
             .UseSqlite($"Data Source={_dbPath}")
-            .AddInterceptors(_interceptor)
+            .AddInterceptors(_interceptor, _materialization)
             .Options;
         _factory = new TestDbContextFactory(options);
 
@@ -37,6 +38,69 @@ public sealed class ShareGrantRepositoryTests : IDisposable
     {
         if (System.IO.File.Exists(_dbPath))
             System.IO.File.Delete(_dbPath);
+    }
+
+    [Fact]
+    public async Task GetAccessibleByIdAsync_DirectGrant_HydratesOnlyTarget()
+    {
+        var collectionId = Guid.NewGuid();
+        var target = CreateGrant(collectionId, AudienceTypes.User, "alice");
+        await using (var db = await _factory.CreateDbContextAsync())
+        {
+            db.Collections.Add(new Collection { Id = collectionId, OwnerUserId = "owner", Title = "Test" });
+            db.ShareGrants.Add(target);
+            db.ShareGrants.AddRange(Enumerable.Range(0, 1000)
+                .Select(_ => CreateGrant(collectionId, AudienceTypes.User, "alice")));
+            await db.SaveChangesAsync();
+        }
+
+        _interceptor.Commands.Clear();
+        _materialization.Count = 0;
+        var result = await new ShareGrantRepository(_factory).GetAccessibleByIdAsync(target.Id, "alice");
+
+        Assert.NotNull(result);
+        Assert.Equal(target.Id, result.Id);
+        Assert.Equal(1, _materialization.Count);
+        var command = Assert.Single(_interceptor.Commands);
+        Assert.Contains("\"Id\"", command, StringComparison.Ordinal);
+        Assert.Contains("LIMIT 1", command, StringComparison.OrdinalIgnoreCase);
+
+        _interceptor.Commands.Clear();
+        _materialization.Count = 0;
+        Assert.Null(await new ShareGrantRepository(_factory).GetAccessibleByIdAsync(target.Id, "bob"));
+        Assert.Equal(0, _materialization.Count);
+        Assert.Single(_interceptor.Commands);
+    }
+
+    [Fact]
+    public async Task GetAccessibleByIdAsync_GroupGrant_QueriesOnlyTargetMembership()
+    {
+        var collectionId = Guid.NewGuid();
+        var groupId = Guid.NewGuid();
+        var grant = CreateGrant(collectionId, AudienceTypes.ShareGroup, groupId.ToString());
+        await using (var db = await _factory.CreateDbContextAsync())
+        {
+            db.Collections.Add(new Collection { Id = collectionId, OwnerUserId = "owner", Title = "Test" });
+            db.ShareGroups.Add(new ShareGroup { Id = groupId, Name = "Group", OwnerUserId = "owner" });
+            db.ShareGroupMembers.Add(new ShareGroupMember { ShareGroupId = groupId, UserId = "alice" });
+            db.ShareGrants.Add(grant);
+            await db.SaveChangesAsync();
+        }
+
+        _interceptor.Commands.Clear();
+        _materialization.Count = 0;
+        var result = await new ShareGrantRepository(_factory).GetAccessibleByIdAsync(grant.Id, "alice");
+
+        Assert.NotNull(result);
+        Assert.Equal(grant.Id, result.Id);
+        Assert.Equal(1, _materialization.Count);
+        Assert.Equal(2, _interceptor.Commands.Count);
+
+        _interceptor.Commands.Clear();
+        _materialization.Count = 0;
+        Assert.Null(await new ShareGrantRepository(_factory).GetAccessibleByIdAsync(grant.Id, "bob"));
+        Assert.Equal(1, _materialization.Count);
+        Assert.Equal(2, _interceptor.Commands.Count);
     }
 
     [Fact]
@@ -107,6 +171,21 @@ public sealed class ShareGrantRepositoryTests : IDisposable
         {
             Commands.Add(command.CommandText);
             return ValueTask.FromResult(result);
+        }
+    }
+
+    private sealed class ShareGrantMaterializationInterceptor : IMaterializationInterceptor
+    {
+        public int Count { get; set; }
+
+        public object InitializedInstance(MaterializationInterceptionData materializationData, object entity)
+        {
+            if (entity is ShareGrant)
+            {
+                Count++;
+            }
+
+            return entity;
         }
     }
 }

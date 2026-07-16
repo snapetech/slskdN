@@ -106,10 +106,8 @@ public class SharesController : ControllerBase
         if (!CollectionsEnabled) return NotFound();
         var currentUserId = GetCurrentUserId();
         if (currentUserId is null) return Forbid();
-        var g = await _sharing.GetShareGrantAsync(id, ct);
+        var g = await _sharing.GetAccessibleShareGrantAsync(id, currentUserId, ct);
         if (g == null) return NotFound();
-        var accessible = await _sharing.GetShareGrantsAccessibleByUserAsync(currentUserId, ct);
-        if (accessible.All(x => x.Id != id)) return NotFound();
         return Ok(g);
     }
 
@@ -435,9 +433,7 @@ public class SharesController : ControllerBase
         var currentUserId = GetCurrentUserId();
         if (currentUserId is null) return Forbid();
 
-        // Get the share grant
-        var accessible = await _sharing.GetShareGrantsAccessibleByUserAsync(currentUserId, ct).ConfigureAwait(false);
-        var grant = accessible.FirstOrDefault(x => x.Id == id);
+        var grant = await _sharing.GetAccessibleShareGrantAsync(id, currentUserId, ct).ConfigureAwait(false);
         if (grant == null) return NotFound();
 
         // Check AllowDownload policy

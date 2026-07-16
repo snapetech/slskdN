@@ -1,3 +1,17 @@
+## Update 2026-07-16 15:13:51Z
+
+- Current task: performance and efficiency improvements in progress; exact single-grant access authorization complete locally.
+- Last activity:
+  - Added active grant-by-ID access resolution with group membership evidence scoped to that grant, then routed GET, backfill, and authenticated manifests through it.
+  - At 1,001 direct grants, hydration falls 99.9%; grant GET also removes one redundant read while authorization and response semantics remain unchanged.
+- Validation:
+  - Passed focused repository/service/controller (`37/37`), broader Sharing (`103/103`), and full backend (`4930/4930`) tests.
+  - Exact direct/group SQL/materialization/result and zero-list caller boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the exact single-grant access slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 15:06:54Z
 
 - Current task: performance and efficiency improvements in progress; scoped collection-item update lookup complete locally.

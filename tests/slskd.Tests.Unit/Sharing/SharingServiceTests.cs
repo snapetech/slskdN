@@ -139,8 +139,8 @@ public class SharingServiceTests
         var collection = new Collection { Id = collectionId, Title = "Test", Type = CollectionType.Playlist };
         var items = new List<CollectionItem> { new() { ContentId = "c1" } };
 
-        _grantsMock.Setup(x => x.GetAccessibleByUserAsync("alice", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ShareGrant> { grant });
+        _grantsMock.Setup(x => x.GetAccessibleByIdAsync(grantId, "alice", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(grant);
         _collectionsMock.Setup(x => x.GetByIdAsync(collectionId, It.IsAny<CancellationToken>())).ReturnsAsync(collection);
         _collectionsMock.Setup(x => x.GetItemsAsync(collectionId, It.IsAny<CancellationToken>())).ReturnsAsync(items);
 
@@ -150,6 +150,7 @@ public class SharingServiceTests
         Assert.Single(m.Items);
         Assert.NotNull(m.Items[0].StreamUrl);
         Assert.DoesNotContain("token=", m.Items[0].StreamUrl);
+        _grantsMock.Verify(x => x.GetAccessibleByUserAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
