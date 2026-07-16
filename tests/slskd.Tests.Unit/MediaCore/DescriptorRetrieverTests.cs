@@ -173,6 +173,88 @@ public class DescriptorRetrieverTests
             $"Expected direct cache-clear accounting below 8 KiB allocated, got {allocatedBytes:N0} bytes.");
     }
 
+    [Fact]
+    public async Task QueryByDomainAsync_LargeCacheBoundsOrderedResultMaterialization()
+    {
+        const int entryCount = 10_000;
+        const int maxResults = 50;
+        var retriever = CreateRetriever();
+        var cacheField = typeof(DescriptorRetriever).GetField(
+            "_cache",
+            BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var cache = (ConcurrentDictionary<string, CachedDescriptor>)cacheField.GetValue(retriever)!;
+        var now = DateTimeOffset.UtcNow;
+
+        for (var index = 0; index < entryCount; index++)
+        {
+            var contentId = $"content:audio:track:{index:D5}";
+            cache[contentId] = new CachedDescriptor(
+                new ContentDescriptor { ContentId = contentId },
+                now.AddSeconds(index),
+                now.AddHours(1));
+        }
+
+        _ = await retriever.QueryByDomainAsync("audio", "track", 1);
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var result = await retriever.QueryByDomainAsync("audio", "track", maxResults);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(maxResults, result.TotalFound);
+        Assert.True(result.HasMoreResults);
+        Assert.Equal(
+            Enumerable.Range(entryCount - maxResults, maxResults)
+                .Reverse()
+                .Select(index => $"content:audio:track:{index:D5}"),
+            result.Descriptors.Select(descriptor => descriptor.ContentId));
+        Assert.True(
+            allocatedBytes < 2 * 1024 * 1024,
+            $"Expected bounded domain query below 2 MiB allocated, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
+    public async Task QueryByDomainAsync_PreservesNewestDistinctExpiryAndNormalizationSemantics()
+    {
+        var retriever = CreateRetriever();
+        var cacheField = typeof(DescriptorRetriever).GetField(
+            "_cache",
+            BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var cache = (ConcurrentDictionary<string, CachedDescriptor>)cacheField.GetValue(retriever)!;
+        var now = DateTimeOffset.UtcNow;
+        var duplicateOld = new ContentDescriptor { ContentId = "content:audio:track:duplicate" };
+        var duplicateNew = new ContentDescriptor { ContentId = "CONTENT:AUDIO:TRACK:DUPLICATE" };
+        var newest = new ContentDescriptor { ContentId = "content:audio:track:newest" };
+        var musicBrainz = new ContentDescriptor { ContentId = "content:mb:recording:recording" };
+
+        cache["content:audio:track:duplicate-old"] = new CachedDescriptor(
+            duplicateOld, now.AddMinutes(-4), now.AddMinutes(10));
+        cache["content:audio:track:duplicate-new"] = new CachedDescriptor(
+            duplicateNew, now.AddMinutes(-1), now.AddMinutes(10));
+        cache["content:audio:track:newest"] = new CachedDescriptor(
+            newest, now, now.AddMinutes(10));
+        cache["content:mb:recording:recording"] = new CachedDescriptor(
+            musicBrainz, now.AddMinutes(-2), now.AddMinutes(10));
+        cache["content:audio:album:not-a-track"] = new CachedDescriptor(
+            new ContentDescriptor { ContentId = "content:audio:album:not-a-track" },
+            now.AddMinutes(1),
+            now.AddMinutes(10));
+        cache["content:audio:track:expired"] = new CachedDescriptor(
+            new ContentDescriptor { ContentId = "content:audio:track:expired" },
+            now.AddMinutes(2),
+            now.AddMinutes(-1));
+
+        var result = await retriever.QueryByDomainAsync("audio", "track", maxResults: 2);
+
+        Assert.True(result.HasMoreResults);
+        Assert.Equal(newest, result.Descriptors[0]);
+        Assert.Equal(duplicateNew, result.Descriptors[1]);
+        Assert.DoesNotContain(duplicateOld, result.Descriptors);
+        Assert.DoesNotContain(cache.Keys, key => key.EndsWith("expired", StringComparison.Ordinal));
+
+        var complete = await retriever.QueryByDomainAsync("audio", "track", maxResults: 10);
+        Assert.False(complete.HasMoreResults);
+        Assert.Equal(new[] { newest, duplicateNew, musicBrainz }, complete.Descriptors);
+    }
+
     private static DescriptorRetriever CreateRetriever(IMeshDhtClient? dht = null)
     {
         return new DescriptorRetriever(

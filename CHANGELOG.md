@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Descriptor cache domain queries now parse keys without allocations and bound
+  newest-distinct result ordering instead of sorting/grouping every match.
 - Descriptor cache cleanup, statistics, size estimation, and clear accounting
   now use direct passes instead of snapshots, key buffers, and boxed LINQ sums.
 - Combine-all metadata merging now aggregates ordered distinct hashes and scalar

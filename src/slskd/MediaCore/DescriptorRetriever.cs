@@ -229,36 +229,63 @@ public class DescriptorRetriever : IDescriptorRetriever
 
         try
         {
-            var matchingDescriptors = _cache
-                .Where(kvp =>
-                {
-                    if (IsExpired(kvp.Value))
-                    {
-                        _cache.TryRemove(kvp.Key, out _);
-                        return false;
-                    }
+            var newestByContentId = new Dictionary<string, QueryCandidate>(StringComparer.OrdinalIgnoreCase);
+            var now = DateTimeOffset.UtcNow;
+            var sequence = 0;
 
-                    var parsed = ContentIdParser.Parse(kvp.Key);
-                    return parsed != null &&
-                           ContentIdParser.NormalizeDomain(parsed.Domain, parsed.Type)
-                               .Equals(domain, StringComparison.OrdinalIgnoreCase) &&
-                           (type == null || ContentIdParser.NormalizeType(parsed.Domain, parsed.Type)
-                               .Equals(type, StringComparison.OrdinalIgnoreCase));
-                })
-                .OrderByDescending(kvp => kvp.Value.RetrievedAt)
-                .Select(kvp => kvp.Value.Descriptor)
-                .GroupBy(descriptor => descriptor.ContentId, StringComparer.OrdinalIgnoreCase)
-                .Select(group => group.First())
-                .Take(maxResults + 1)
-                .ToList();
-
-            if (matchingDescriptors.Count > maxResults)
+            foreach (var entry in _cache)
             {
-                hasMore = true;
-                matchingDescriptors = matchingDescriptors.Take(maxResults).ToList();
+                var currentSequence = sequence++;
+                if (now > entry.Value.ExpiresAt)
+                {
+                    _cache.TryRemove(entry.Key, out _);
+                    continue;
+                }
+
+                if (!MatchesDomainAndType(entry.Key, domain, type))
+                {
+                    continue;
+                }
+
+                var candidate = new QueryCandidate(
+                    entry.Value.Descriptor,
+                    entry.Value.RetrievedAt,
+                    currentSequence);
+                if (!newestByContentId.TryGetValue(candidate.Descriptor.ContentId, out var existing) ||
+                    candidate.RetrievedAt > existing.RetrievedAt)
+                {
+                    newestByContentId[candidate.Descriptor.ContentId] = candidate;
+                }
             }
 
-            results = matchingDescriptors;
+            var selectionLimit = Math.Min(maxResults + 1, newestByContentId.Count);
+            var newest = new PriorityQueue<QueryCandidate, QueryCandidate>(QueryCandidateWorstFirstComparer.Instance);
+            foreach (var candidate in newestByContentId.Values)
+            {
+                if (newest.Count < selectionLimit)
+                {
+                    newest.Enqueue(candidate, candidate);
+                }
+                else if (selectionLimit > 0 &&
+                    QueryCandidateWorstFirstComparer.Instance.Compare(candidate, newest.Peek()) > 0)
+                {
+                    newest.Dequeue();
+                    newest.Enqueue(candidate, candidate);
+                }
+            }
+
+            var ordered = new QueryCandidate[newest.Count];
+            for (var index = ordered.Length - 1; index >= 0; index--)
+            {
+                ordered[index] = newest.Dequeue();
+            }
+
+            hasMore = ordered.Length > maxResults;
+            results = new List<ContentDescriptor>(Math.Min(maxResults, ordered.Length));
+            for (var index = 0; index < Math.Min(maxResults, ordered.Length); index++)
+            {
+                results.Add(ordered[index].Descriptor);
+            }
         }
         catch (Exception ex)
         {
@@ -488,6 +515,70 @@ public class DescriptorRetriever : IDescriptorRetriever
                hex.All(c => "0123456789abcdefABCDEF".Contains(c));
     }
 
+    private static bool MatchesDomainAndType(string contentId, string domain, string? type)
+    {
+        var value = contentId.AsSpan().Trim();
+        const string Prefix = "content:";
+        if (!value.StartsWith(Prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        value = value[Prefix.Length..];
+        var domainSeparator = value.IndexOf(':');
+        if (domainSeparator <= 0)
+        {
+            return false;
+        }
+
+        var parsedDomain = value[..domainSeparator];
+        value = value[(domainSeparator + 1)..];
+        var typeSeparator = value.IndexOf(':');
+        if (typeSeparator <= 0 || typeSeparator == value.Length - 1)
+        {
+            return false;
+        }
+
+        var parsedType = value[..typeSeparator];
+        var parsedId = value[(typeSeparator + 1)..];
+        if (parsedDomain.IsWhiteSpace() || parsedType.IsWhiteSpace() || parsedId.IsWhiteSpace() || parsedId.Contains('\n'))
+        {
+            return false;
+        }
+
+        if (parsedDomain.Equals("mb", StringComparison.OrdinalIgnoreCase))
+        {
+            var normalizedDomain = parsedType.Equals("recording", StringComparison.OrdinalIgnoreCase) ||
+                parsedType.Equals("release", StringComparison.OrdinalIgnoreCase) ||
+                parsedType.Equals("artist", StringComparison.OrdinalIgnoreCase)
+                    ? ContentDomains.Audio
+                    : "mb";
+            if (!domain.Equals(normalizedDomain, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            if (type == null)
+            {
+                return true;
+            }
+
+            var normalizedType = parsedType.Equals("recording", StringComparison.OrdinalIgnoreCase)
+                ? ContentDomains.AudioTrack
+                : parsedType.Equals("release", StringComparison.OrdinalIgnoreCase)
+                    ? ContentDomains.AudioAlbum
+                    : parsedType.Equals("artist", StringComparison.OrdinalIgnoreCase)
+                        ? ContentDomains.AudioArtist
+                        : null;
+            return normalizedType == null
+                ? parsedType.Equals(type, StringComparison.OrdinalIgnoreCase)
+                : type.Equals(normalizedType, StringComparison.OrdinalIgnoreCase);
+        }
+
+        return parsedDomain.Equals(domain, StringComparison.OrdinalIgnoreCase) &&
+            (type == null || parsedType.Equals(type, StringComparison.OrdinalIgnoreCase));
+    }
+
     private static long EstimateDescriptorSize(ContentDescriptor descriptor)
     {
         // Rough estimation of memory usage
@@ -513,6 +604,24 @@ public class DescriptorRetriever : IDescriptorRetriever
         size += 100; // Overhead for object structure
 
         return size;
+    }
+
+    private readonly record struct QueryCandidate(
+        ContentDescriptor Descriptor,
+        DateTimeOffset RetrievedAt,
+        int Sequence);
+
+    private sealed class QueryCandidateWorstFirstComparer : IComparer<QueryCandidate>
+    {
+        public static QueryCandidateWorstFirstComparer Instance { get; } = new();
+
+        public int Compare(QueryCandidate left, QueryCandidate right)
+        {
+            var timestampComparison = left.RetrievedAt.CompareTo(right.RetrievedAt);
+            return timestampComparison != 0
+                ? timestampComparison
+                : right.Sequence.CompareTo(left.Sequence);
+        }
     }
 }
 

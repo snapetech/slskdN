@@ -1,3 +1,10 @@
+## Update 2026-07-16 20:27:30Z
+
+- Completed the bounded descriptor domain-query performance pass.
+- Cache-key matching now uses spans, newest-per-ID deduplication uses one dictionary, and newest ordering uses a priority queue capped at `maxResults + 1` instead of regex allocation plus full sort/group/copy pipelines.
+- For 10,000 matches and 50 results, warmed allocation falls from 9,025,920 to 1,759,304 bytes (80.5%). Exact normalization, expiry, deduplication, order, limit, and `hasMore` behavior remain unchanged.
+- Validation passed: focused descriptor retriever tests (`10/10`), broader MediaCore tests (`257/257`), full backend suites (`5000/5000`: `69` application, `4651` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 20:13:35Z
 
 - Completed the descriptor cache diagnostic direct-enumeration performance pass.

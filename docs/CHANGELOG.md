@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Descriptor cache domain queries now parse `content:<domain>:<type>:<id>` keys
+  through spans, retain only the newest entry per case-insensitive descriptor
+  ID, and select the bounded newest `maxResults + 1` set with a worst-first
+  priority queue. They no longer allocate regex match/group strings, fully sort
+  every matching cache entry, create grouping objects, or copy the result when
+  reporting `hasMore`. For 10,000 matching entries and 50 returned descriptors,
+  warmed allocation falls from 9,025,920 to 1,759,304 bytes (80.5%), while the
+  ordering heap is capped at 51. Exact domain/type and MusicBrainz normalization,
+  expired removal, case-insensitive newest-per-ID deduplication, newest-first
+  ordering/stable timestamp ties, clamped limits, and `hasMore` remain unchanged.
 - Descriptor cache diagnostics now clean expired entries, count/size active
   entries, estimate descriptor payloads, and account clear operations through
   direct collection/list passes. They no longer buffer every expired key, take

@@ -1,3 +1,17 @@
+## Update 2026-07-16 20:27:30Z
+
+- Current task: performance and efficiency improvements in progress; bounded descriptor domain querying complete locally.
+- Last activity:
+  - Replaced per-key regex parsing and complete sort/group/list-copy pipelines with span matching, newest-per-ID deduplication, and a bounded priority queue.
+  - A 10,000-match/50-result query falls from 9,025,920 to 1,759,304 warmed allocated bytes (80.5%).
+- Validation:
+  - Passed focused descriptor retriever (`10/10`), broader MediaCore (`257/257`), and full backend suites (`5000/5000`) tests.
+  - Exact normalization/expiry/dedup/order/limit/has-more/allocation boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the bounded descriptor domain-query slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 20:13:35Z
 
 - Current task: performance and efficiency improvements in progress; direct descriptor cache diagnostics complete locally.

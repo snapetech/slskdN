@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound descriptor cache domain-query parsing and ordering.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `DescriptorRetriever.QueryByDomainAsync` now parses cache keys with an allocation-free span implementation of the existing `content:<domain>:<type>:<id>`/MusicBrainz normalization rules, keeps the newest candidate for each case-insensitive descriptor ContentID, and uses a worst-first priority queue capped at `maxResults + 1` to select newest results. It no longer allocates regex `Match`/group strings for every key, fully orders all matches, creates `GroupBy` objects, or copies a second list when `hasMore` is true. For 10,000 matching cache entries and 50 results, warmed allocation falls from 9,025,920 to 1,759,304 bytes (80.5%); ordering storage is capped at 51, while the distinct-ID dictionary retains required newest-per-ID correctness. Exact normalized domain/type filtering including `mb:recording`, expired entry removal, case-insensitive duplicate replacement, strict-newer/stable equal-time behavior, newest-first order, 1–500 limit clamp, result shape/count, error handling, and weakly consistent concurrency remain unchanged. Added large exact order/allocation plus duplicate/expiry/nonmatching/MusicBrainz/has-more coverage. Validation passed: focused descriptor retriever tests (`10/10`), broader MediaCore tests (`257/257`), full backend suites (`5000/5000`: `69` application, `4651` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Remove descriptor cache diagnostic snapshots and iterator allocations.
   - Status: completed (2026-07-16)
   - Priority: P1
