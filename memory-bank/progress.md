@@ -1,3 +1,10 @@
+## Update 2026-07-16 17:03:10Z
+
+- Completed the connection-fingerprint statistics single-pass performance pass.
+- Statistics now enumerate dictionary entries directly and accumulate all counters/sets once instead of allocating `.Values`, copying a list, and making five aggregate traversals.
+- At the 1,000-fingerprint cap, warmed allocation remains below 8 KiB. Aggregate definitions, case-sensitive usernames, event locking/log size, and best-effort diagnostic behavior remain unchanged. Documented gotcha `0z702` (`f85a7034e`).
+- Validation passed: focused stats tests (`2/2`), broader DHT rendezvous tests (`149/149`), full backend suites (`4960/4960`: `69` application, `4611` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 16:54:43Z
 
 - Completed the mesh-search content-mapping streaming performance pass.

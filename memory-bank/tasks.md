@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make connection fingerprint statistics single-pass.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `GetStats` now enumerates `ConcurrentDictionary` entries directly and accumulates active/recent connections, unique IPs/usernames, and locked security-event counts in one pass instead of allocating the `.Values` snapshot, copying it to a list, and making five aggregate traversals. At the 1,000-fingerprint production cap, measured warmed allocation remains below 8 KiB. Total/active/recent definitions, case-sensitive username uniqueness, event locking, event-log size, and best-effort concurrent diagnostic semantics remain unchanged. Added exact aggregate and 1,000-entry allocation regressions. Documented implicit concurrent-collection snapshot gotcha `0z702` (`f85a7034e`). Validation passed: focused stats tests (`2/2`), broader DHT rendezvous tests (`149/149`), full backend suites (`4960/4960`: `69` application, `4611` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Stream mesh-search content mapping selection.
   - Status: completed (2026-07-16)
   - Priority: P1

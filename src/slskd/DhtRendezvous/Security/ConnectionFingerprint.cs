@@ -203,18 +203,49 @@ public sealed class ConnectionFingerprintService
     /// </summary>
     public FingerprintStats GetStats()
     {
-        var fingerprints = _recentFingerprints.Values.ToList();
         var now = DateTimeOffset.UtcNow;
         var lastHour = now.AddHours(-1);
+        var uniqueIps = new HashSet<string>();
+        var uniqueUsernames = new HashSet<string>();
+        var totalFingerprints = 0;
+        var activeConnections = 0;
+        var connectionsLastHour = 0;
+        var totalSecurityEvents = 0;
+
+        foreach (var entry in _recentFingerprints)
+        {
+            var fingerprint = entry.Value;
+            totalFingerprints++;
+            if (fingerprint.DisconnectedAt == null)
+            {
+                activeConnections++;
+            }
+
+            if (fingerprint.Timestamp >= lastHour)
+            {
+                connectionsLastHour++;
+            }
+
+            uniqueIps.Add(fingerprint.IpHash);
+            if (fingerprint.Username != null)
+            {
+                uniqueUsernames.Add(fingerprint.Username);
+            }
+
+            lock (fingerprint.SecurityEvents)
+            {
+                totalSecurityEvents += fingerprint.SecurityEvents.Count;
+            }
+        }
 
         return new FingerprintStats
         {
-            TotalFingerprints = fingerprints.Count,
-            ActiveConnections = fingerprints.Count(f => f.DisconnectedAt == null),
-            ConnectionsLastHour = fingerprints.Count(f => f.Timestamp >= lastHour),
-            UniqueIps = fingerprints.Select(f => f.IpHash).Distinct().Count(),
-            UniqueUsernames = fingerprints.Where(f => f.Username != null).Select(f => f.Username).Distinct().Count(),
-            TotalSecurityEvents = fingerprints.Sum(f => { lock (f.SecurityEvents) { return f.SecurityEvents.Count; } }),
+            TotalFingerprints = totalFingerprints,
+            ActiveConnections = activeConnections,
+            ConnectionsLastHour = connectionsLastHour,
+            UniqueIps = uniqueIps.Count,
+            UniqueUsernames = uniqueUsernames.Count,
+            TotalSecurityEvents = totalSecurityEvents,
             EventLogSize = _eventLog.Count,
         };
     }

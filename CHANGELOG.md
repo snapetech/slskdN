@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Connection fingerprint statistics now aggregate directly in one dictionary
+  pass instead of snapshotting and repeatedly scanning all fingerprints.
 - Mesh search response enrichment now stops streaming file-content mappings at
   the first advertisable item instead of buffering every mapping.
 - Virtual Soulfind canonical selection now scans variant hints once instead of

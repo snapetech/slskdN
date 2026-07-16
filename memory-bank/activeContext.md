@@ -1,3 +1,17 @@
+## Update 2026-07-16 17:03:10Z
+
+- Current task: performance and efficiency improvements in progress; connection-fingerprint statistics single-pass aggregation complete locally.
+- Last activity:
+  - Removed implicit `.Values` snapshot, explicit list buffering, and five repeated aggregate traversals from fingerprint stats.
+  - At the 1,000-entry cap, warmed stats allocation remains below 8 KiB while all counters retain their definitions.
+- Validation:
+  - Passed focused stats (`2/2`), broader DHT rendezvous (`149/149`), and full backend suites (`4960/4960`) tests.
+  - Exact aggregate/allocation boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Documented gotcha `0z702` (`f85a7034e`). Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the fingerprint statistics slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 16:54:43Z
 
 - Current task: performance and efficiency improvements in progress; mesh-search content mapping streaming complete locally.

@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Connection fingerprint statistics now aggregate active/recent connections,
+  unique identities, and security-event totals in one direct concurrent-
+  dictionary pass instead of allocating both a values snapshot and a list,
+  then traversing them five more times. At the 1,000-fingerprint production
+  cap, measured warmed allocation remains below 8 KiB. Count definitions,
+  case-sensitive username uniqueness, security-event locking, event-log size,
+  and best-effort concurrent diagnostic behavior remain unchanged.
 - DHT rendezvous mesh-search response enrichment now consumes the share
   repository's file-content mapping iterator lazily and stops at the first
   advertisable mapping instead of buffering every row. In the covered
