@@ -477,6 +477,35 @@ public class LibraryItemsControllerTests
     }
 
     [Fact]
+    public void BuildDirectoryEntries_WithTenThousandRoots_EnumeratesInputOnce()
+    {
+        const int rootCount = 10_000;
+        var directories = Enumerable.Range(0, rootCount)
+            .Select(index => new Soulseek.Directory($"Root-{index:D5}", new List<Soulseek.File>
+            {
+                new(index, $"track-{index}.flac", index + 1, ".flac"),
+            }))
+            .Append(new Soulseek.Directory("Root-00000\\Child", new List<Soulseek.File>()))
+            .Append(new Soulseek.Directory("Root-00000/Child", new List<Soulseek.File>()))
+            .ToList();
+        var counted = new CountingReadOnlyList<Soulseek.Directory>(directories);
+        var method = typeof(LibraryItemsController).GetMethod(
+            "BuildDirectoryEntries",
+            BindingFlags.NonPublic | BindingFlags.Static);
+
+        var result = Assert.IsAssignableFrom<System.Collections.IEnumerable>(method!.Invoke(null, new object[] { counted, string.Empty }));
+        var entries = result.Cast<object>().ToList();
+
+        Assert.Equal(rootCount, entries.Count);
+        Assert.Equal(1, counted.EnumerationCount);
+        Assert.Equal(rootCount + 2, counted.VisitedCount);
+        var first = entries[0];
+        Assert.Equal("Root-00000", first.GetType().GetProperty("Path")!.GetValue(first));
+        Assert.Equal(1, first.GetType().GetProperty("FileCount")!.GetValue(first));
+        Assert.Equal(2, first.GetType().GetProperty("ChildDirectoryCount")!.GetValue(first));
+    }
+
+    [Fact]
     public async Task SearchItems_EmptyShares_ReturnsEmptyList()
     {
         // Arrange
@@ -842,5 +871,28 @@ public class LibraryItemsControllerTests
         var contentIdProp = itemType.GetProperty("ContentId");
         var contentId = contentIdProp?.GetValue(items[0]) as string;
         Assert.StartsWith("path:", contentId); // Should use path-based fallback when file doesn't exist
+    }
+
+    private sealed class CountingReadOnlyList<T>(IReadOnlyList<T> items) : IReadOnlyList<T>
+    {
+        public int Count => items.Count;
+
+        public int EnumerationCount { get; private set; }
+
+        public int VisitedCount { get; private set; }
+
+        public T this[int index] => items[index];
+
+        public IEnumerator<T> GetEnumerator()
+        {
+            EnumerationCount++;
+            foreach (var item in items)
+            {
+                VisitedCount++;
+                yield return item;
+            }
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

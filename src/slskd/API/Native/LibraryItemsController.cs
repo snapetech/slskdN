@@ -708,35 +708,37 @@ public class LibraryItemsController : ControllerBase
         IReadOnlyList<Soulseek.Directory> directories,
         string path)
     {
-        var prefix = string.IsNullOrEmpty(path) ? string.Empty : $"{path}\\";
-        return directories
-            .Select(directory => NormalizeVirtualPath(directory.Name))
-            .Where(directory => !string.Equals(directory, path, StringComparison.OrdinalIgnoreCase))
-            .Where(directory => string.IsNullOrEmpty(path)
-                ? !directory.Contains('\\')
-                : directory.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
-                    && !directory[prefix.Length..].Contains('\\'))
-            .Select(directory =>
+        var indexed = new List<LibraryDirectoryIndexEntry>(directories.Count);
+        var fileCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var childDirectoryCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var directory in directories)
+        {
+            var directoryPath = NormalizeVirtualPath(directory.Name);
+            var parentPath = GetParentVirtualPath(directoryPath);
+            indexed.Add(new LibraryDirectoryIndexEntry(directoryPath, parentPath));
+            fileCounts[directoryPath] = fileCounts.GetValueOrDefault(directoryPath) +
+                (directory.Files?.Count() ?? 0);
+            childDirectoryCounts[parentPath] = childDirectoryCounts.GetValueOrDefault(parentPath) + 1;
+        }
+
+        return indexed
+            .Where(directory => !string.Equals(directory.Path, path, StringComparison.OrdinalIgnoreCase))
+            .Where(directory => string.Equals(directory.ParentPath, path, StringComparison.OrdinalIgnoreCase))
+            .Select(directory => new LibraryDirectoryResponse
             {
-                var childPrefix = $"{directory}\\";
-                var fileCount = directories
-                    .Where(candidate => string.Equals(NormalizeVirtualPath(candidate.Name), directory, StringComparison.OrdinalIgnoreCase))
-                    .SelectMany(candidate => candidate.Files ?? Enumerable.Empty<Soulseek.File>())
-                    .Count();
-                var childDirectoryCount = directories
-                    .Select(candidate => NormalizeVirtualPath(candidate.Name))
-                    .Count(candidate => candidate.StartsWith(childPrefix, StringComparison.OrdinalIgnoreCase)
-                        && !candidate[childPrefix.Length..].Contains('\\'));
-                return new LibraryDirectoryResponse
-                {
-                    Name = SplitVirtualPath(directory).LastOrDefault() ?? directory,
-                    Path = directory,
-                    FileCount = fileCount,
-                    ChildDirectoryCount = childDirectoryCount,
-                };
+                Name = SplitVirtualPath(directory.Path).LastOrDefault() ?? directory.Path,
+                Path = directory.Path,
+                FileCount = fileCounts[directory.Path],
+                ChildDirectoryCount = childDirectoryCounts.GetValueOrDefault(directory.Path),
             })
             .OrderBy(directory => directory.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private static string GetParentVirtualPath(string path)
+    {
+        var separatorIndex = path.LastIndexOf('\\');
+        return separatorIndex < 0 ? string.Empty : path[..separatorIndex];
     }
 
     private static List<LibraryFileCandidate> BuildFileCandidates(
@@ -851,6 +853,8 @@ public class LibraryItemsController : ControllerBase
         int DuplicateCount,
         string Filename,
         long Size);
+
+    private sealed record LibraryDirectoryIndexEntry(string Path, string ParentPath);
 
     private class LibraryItemResponse
     {

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Index native shared-library browser directory aggregation.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced repeated full-list scans for every returned browser directory with one normalized path index that accumulates file and immediate-child counts. In a 10,002-directory fixture producing 10,000 root entries, full-list traversals fall from 20,001 to one and directory element visits from 200,050,002 to 10,002 (99.995% fewer). Duplicate directory records, duplicate-path file aggregation, case-insensitive normalized matching, and name sorting remain unchanged. Added an exact single-enumeration regression. Validation passed: native API tests (`67/67`), full backend tests (`4870/4870`: `69` application, `4521` unit, `280` integration), repository lint, diff checks, and every substantive remediation check before the expected divergent-branch release-sync stop.
+
 - [x] Batch native shared-library page hash evidence.
   - Status: completed (2026-07-16)
   - Priority: P1

@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Native shared-library browser directory aggregation now indexes normalized
+  paths, file counts, and immediate-child counts in one pass instead of
+  rescanning every directory twice per returned child. In the 10,002-directory
+  regression fixture producing 10,000 root entries, full-list traversals fall
+  from 20,001 to one and directory visits from 200,050,002 to 10,002 (99.995%
+  fewer), while duplicate records, normalized path matching, and sorting remain
+  unchanged.
 - Native shared-library search and browser pages now resolve their bounded file
   set once and query exact FLAC keys through one indexed HashDb batch. At the
   100-item endpoint maximum, local database reads fall from 100 to one (99.0%

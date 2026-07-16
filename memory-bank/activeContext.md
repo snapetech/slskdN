@@ -1,3 +1,17 @@
+## Update 2026-07-16 11:04:00Z
+
+- Current task: performance and efficiency improvements in progress; native shared-library directory indexing pass complete locally.
+- Last activity:
+  - Browser directory aggregation now indexes normalized paths, aggregate file counts, and immediate-child counts in one traversal instead of rescanning the complete share directory list twice for every returned entry.
+  - In the 10,002-directory regression fixture producing 10,000 root entries, full-list traversals fall from 20,001 to one and directory visits from 200,050,002 to 10,002 (99.995% fewer). Duplicate records, normalized matching, and sort behavior remain unchanged.
+- Validation:
+  - Passed focused native-library coverage (`22/22`), broader native API coverage (`67/67`), and full backend tests (`4870/4870`: `69` application, `4521` unit, `280` integration).
+  - Exact single-enumeration/visit-count coverage, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the native browser directory-indexing slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 10:53:47Z
 
 - Current task: performance and efficiency improvements in progress; native shared-library hash batching pass complete locally.
