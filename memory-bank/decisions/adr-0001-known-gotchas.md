@@ -23018,3 +23018,22 @@ doing so prevents competition with unrelated ordered queries; for transfer
 counts, use `(Removed, Direction)`. Keep regression assertions for both the
 intended new plan and neighboring established plans, including absence of
 temporary sorts.
+
+### 0z590. External Integration Status Polls Must Pause While Hidden
+
+**The Bug**: The Lidarr dashboard requested remote Lidarr system status and
+local sync status every 30 seconds for as long as the component remained
+mounted. Hidden tabs continued contacting the external service, slow requests
+could overlap later intervals, Strict Mode or rapid remounts could duplicate
+the same remote request, and unchanged response objects forced avoidable React
+updates.
+
+**Files Affected**:
+- `src/web/src/components/Lidarr/Lidarr.jsx`
+- `src/web/src/lib/lidarr.js`
+
+**Prevention**: Treat external integration status as a visibility-aware,
+bounded snapshot. Stop its interval while the document is hidden, refresh once
+when visibility returns, reject overlapping cycles, coalesce concurrent client
+requests behind a short cache, and retain prior React state when every rendered
+field is unchanged.
