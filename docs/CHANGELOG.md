@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Connection-event retention now maintains an exact atomic queue-size counter
+  instead of evaluating `ConcurrentQueue.Count` after every enqueue, during
+  trimming, and for statistics. Each event performs one increment and, only
+  above the 10,000-event cap, one dequeue/decrement. Four concurrent producers
+  adding 12,000 events retain and report exactly 10,000. Event ordering, cap,
+  event contents, statistics shape, and best-effort concurrent reads remain
+  unchanged.
 - Recent connection-event retrieval now keeps a rolling tail sized to the
   requested result count instead of `Reverse()`-buffering the complete audit
   queue before taking the newest entries. With a full 10,000-event log and the

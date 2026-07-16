@@ -1,3 +1,10 @@
+## Update 2026-07-16 17:27:55Z
+
+- Completed the atomic connection-event queue-size accounting performance pass.
+- Event retention and statistics now use one `Interlocked` counter instead of invoking `ConcurrentQueue.Count` after every enqueue, during trim loops, and on stats reads.
+- Four concurrent producers adding 12,000 events plus the initial connection retain and report exactly the 10,000-event cap. Ordering, contents, cap, stats shape, and best-effort reads remain unchanged.
+- Validation passed: focused fingerprint tests (`6/6`), broader DHT rendezvous tests (`153/153`), full backend suites (`4964/4964`: `69` application, `4615` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 17:20:26Z
 
 - Completed the bounded recent connection-event retrieval performance pass.

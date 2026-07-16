@@ -1,3 +1,17 @@
+## Update 2026-07-16 17:27:55Z
+
+- Current task: performance and efficiency improvements in progress; atomic connection-event size accounting complete locally.
+- Last activity:
+  - Replaced per-event/per-trim/per-stats concurrent queue counts with exact atomic increments and excess-event decrements.
+  - Four concurrent producers retain and report exactly the 10,000-event cap without competing-trimmer over-dequeue.
+- Validation:
+  - Passed focused fingerprint (`6/6`), broader DHT rendezvous (`153/153`), and full backend suites (`4964/4964`) tests.
+  - Exact concurrent cap/counter/enumeration boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the event-log size-accounting slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 17:20:26Z
 
 - Current task: performance and efficiency improvements in progress; bounded recent connection-event retrieval complete locally.

@@ -4,8 +4,10 @@
 namespace slskd.Tests.Unit.DhtRendezvous.Security;
 
 using System;
+using System.Linq;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using slskd.DhtRendezvous.Security;
 using Xunit;
@@ -113,5 +115,30 @@ public class ConnectionFingerprintServiceTests
         Assert.True(
             allocatedBytes < 8 * 1024,
             $"Expected requested-size tail allocation below 8 KiB, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
+    public async Task RecordEvent_ConcurrentProducersRetainExactCapAndSize()
+    {
+        var service = new ConnectionFingerprintService(NullLogger<ConnectionFingerprintService>.Instance);
+        var fingerprint = service.RecordConnection(IPAddress.Loopback, 1, "user", null, null, null);
+        const int ProducerCount = 4;
+        const int EventsPerProducer = 3_000;
+
+        var producers = Enumerable.Range(0, ProducerCount)
+            .Select(producer => Task.Run(() =>
+            {
+                for (var index = 0; index < EventsPerProducer; index++)
+                {
+                    service.RecordDisconnection(fingerprint.Id, $"{producer}-{index}");
+                }
+            }));
+
+        await Task.WhenAll(producers);
+
+        Assert.Equal(ConnectionFingerprintService.MaxEventLogSize, service.GetStats().EventLogSize);
+        Assert.Equal(
+            ConnectionFingerprintService.MaxEventLogSize,
+            service.GetRecentEvents(ConnectionFingerprintService.MaxEventLogSize + 1).Count);
     }
 }

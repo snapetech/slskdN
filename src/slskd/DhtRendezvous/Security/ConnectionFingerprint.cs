@@ -21,6 +21,7 @@ public sealed class ConnectionFingerprintService
     private readonly ILogger<ConnectionFingerprintService> _logger;
     private readonly ConcurrentDictionary<string, ConnectionFingerprint> _recentFingerprints = new();
     private readonly ConcurrentQueue<ConnectionEvent> _eventLog = new();
+    private int _eventLogSize;
 
     /// <summary>
     /// Maximum events to keep in memory.
@@ -266,7 +267,7 @@ public sealed class ConnectionFingerprintService
             UniqueIps = uniqueIps.Count,
             UniqueUsernames = uniqueUsernames.Count,
             TotalSecurityEvents = totalSecurityEvents,
-            EventLogSize = _eventLog.Count,
+            EventLogSize = Volatile.Read(ref _eventLogSize),
         };
     }
 
@@ -274,10 +275,10 @@ public sealed class ConnectionFingerprintService
     {
         _eventLog.Enqueue(evt);
 
-        // Trim if too large
-        while (_eventLog.Count > MaxEventLogSize)
+        if (Interlocked.Increment(ref _eventLogSize) > MaxEventLogSize &&
+            _eventLog.TryDequeue(out _))
         {
-            _eventLog.TryDequeue(out _);
+            Interlocked.Decrement(ref _eventLogSize);
         }
     }
 

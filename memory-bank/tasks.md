@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove repeated connection-event queue counts.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced `ConcurrentQueue.Count` calls after every audit event, inside the trim loop, and in fingerprint statistics with an exact `Interlocked` size counter. Each enqueue now performs one increment and, only when its returned size exceeds the 10,000-event cap, one dequeue/decrement; this avoids repeated concurrent-queue segment counts without allowing competing trimmers to over-dequeue. Four concurrent producers adding 12,000 disconnection events plus the initial connection event retain and report exactly 10,000. Event FIFO order, cap, event identity/details, statistics shape, and best-effort concurrent reads remain unchanged. Added exact concurrent over-cap retained-enumeration/counter coverage. Validation passed: focused fingerprint tests (`6/6`), broader DHT rendezvous tests (`153/153`), full backend suites (`4964/4964`: `69` application, `4615` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Bound recent connection-event retrieval memory.
   - Status: completed (2026-07-16)
   - Priority: P1

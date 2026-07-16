@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Connection-event retention now uses atomic queue-size accounting instead of
+  recounting the concurrent queue on every event and statistics read.
 - Recent connection-event retrieval now retains only the requested tail instead
   of reverse-buffering the complete 10,000-event audit queue.
 - Connection fingerprint retention now finds the oldest capped entry in one
