@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z623. Aggregate Fixtures Must Match Every Composite Group Key
+
+**The Bug**: A Library Health release-summary regression seeded one album and
+one release ID across two artists, then expected the query's top-one result to
+contain all rows. The established release grouping key includes artist, album,
+and release ID, so the fixture correctly produced two equal groups instead.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/HashDb/HashDbServiceTests.cs`
+
+**Prevention**: When asserting aggregate cardinality, derive expected groups
+from every field in the production grouping key. Keep non-target key fields
+constant when a fixture intends to form one group, or explicitly assert the
+multiple groups that varying those fields creates.
+
 ### 0z622. SQLite Negative Limits Disable Pagination
 
 **The Bug**: The Library Health issues API passed caller-provided limits
