@@ -3724,6 +3724,46 @@ namespace slskd.HashDb
         }
 
         /// <inheritdoc/>
+        public async Task<IReadOnlyDictionary<string, int>> GetPeerBackfillCountsTodayAsync(
+            IReadOnlyCollection<string> peerIds,
+            CancellationToken cancellationToken = default)
+        {
+            var normalizedPeerIds = peerIds
+                .Where(peerId => !string.IsNullOrWhiteSpace(peerId))
+                .Select(peerId => peerId.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            if (normalizedPeerIds.Length == 0)
+            {
+                return counts;
+            }
+
+            var today = new DateTimeOffset(DateTimeOffset.UtcNow.Date).ToUnixTimeSeconds();
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            var parameters = normalizedPeerIds.Select((_, index) => $"@peer_id_{index}").ToArray();
+            cmd.CommandText = $@"
+                SELECT peer_id,
+                       CASE WHEN backfill_reset_date = @today THEN backfills_today ELSE 0 END
+                FROM Peers
+                WHERE peer_id COLLATE NOCASE IN ({string.Join(", ", parameters)})";
+            cmd.Parameters.AddWithValue("@today", today);
+            for (var index = 0; index < normalizedPeerIds.Length; index++)
+            {
+                cmd.Parameters.AddWithValue(parameters[index], normalizedPeerIds[index]);
+            }
+
+            using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                counts[reader.GetString(0)] = reader.GetInt32(1);
+            }
+
+            return counts;
+        }
+
+        /// <inheritdoc/>
         public async Task ResetDailyBackfillCountersAsync(CancellationToken cancellationToken = default)
         {
             using var conn = GetConnection();

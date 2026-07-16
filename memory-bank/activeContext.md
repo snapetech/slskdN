@@ -1,3 +1,18 @@
+## Update 2026-07-16 04:38:31Z
+
+- Current task: performance and efficiency improvements in progress; recurring backfill count-query pass complete locally.
+- Last activity:
+  - Replaced ten per-candidate daily-count queries and ten duplicate execution-time reads with one case-insensitive batch query plus a mutable cycle snapshot.
+  - A ten-candidate cycle falls from 21 database queries to two (90.5% fewer) while keeping the same peer status calls and conservative per-peer limits.
+  - Added batch normalization/collation, snapshot reuse, rate-limit, and cancellation regressions. Documented gotchas `0z643` (`6cb84fb88`) and `0z644` (`4c4779d97`).
+- Validation:
+  - Passed focused Backfill/HashDb tests (`65/65`), cycle-focused tests (`7/7`), complete smoke/unit/integration suites (`4803/4803`: `69` smoke, `4454` unit, `280` integration), repository lint, identity, and diff checks.
+  - The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+- Next steps:
+  1. Commit this backfill slice.
+  2. Continue the broader performance goal from the next measured recurring hot path.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 04:28:58Z
 
 - Current task: performance and efficiency improvements in progress; periodic Pod discovery publication pass complete locally.

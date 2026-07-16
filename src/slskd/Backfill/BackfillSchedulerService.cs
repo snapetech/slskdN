@@ -117,8 +117,14 @@ namespace slskd.Backfill
             try
             {
                 // Get candidates
-                var candidates = await GetCandidatesAsync(10, cancellationToken);
-                result.CandidatesEvaluated = candidates.Count();
+                var candidates = (await GetCandidatesAsync(10, cancellationToken)).ToList();
+                var peerBackfillCounts = candidates
+                    .GroupBy(candidate => candidate.PeerId, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group.First().PeerBackfillsToday,
+                        StringComparer.OrdinalIgnoreCase);
+                result.CandidatesEvaluated = candidates.Count;
 
                 foreach (var candidate in candidates)
                 {
@@ -129,7 +135,7 @@ namespace slskd.Backfill
                     }
 
                     // Check rate limit
-                    var todayCount = await hashDb.GetPeerBackfillCountTodayAsync(candidate.PeerId, cancellationToken);
+                    var todayCount = peerBackfillCounts[candidate.PeerId];
                     if (todayCount >= config.MaxPerPeerPerDay)
                     {
                         result.RateLimited++;
@@ -156,6 +162,7 @@ namespace slskd.Backfill
 
                     if (backfillResult.Success)
                     {
+                        peerBackfillCounts[candidate.PeerId] = todayCount + 1;
                         result.Successful++;
                         lock (statsLock)
                         {
@@ -191,13 +198,16 @@ namespace slskd.Backfill
         public async Task<IEnumerable<BackfillCandidate>> GetCandidatesAsync(int limit = 10, CancellationToken cancellationToken = default)
         {
             var clampedLimit = Math.Clamp(limit, 1, 100);
-            var entries = await hashDb.GetBackfillCandidatesAsync(clampedLimit, cancellationToken);
+            var entries = (await hashDb.GetBackfillCandidatesAsync(clampedLimit, cancellationToken)).ToList();
+            var backfillCounts = await hashDb.GetPeerBackfillCountsTodayAsync(
+                entries.Select(entry => entry.PeerId).ToArray(),
+                cancellationToken);
 
             var candidates = new List<BackfillCandidate>();
             foreach (var entry in entries)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var backfillsToday = await hashDb.GetPeerBackfillCountTodayAsync(entry.PeerId, cancellationToken);
+                var backfillsToday = backfillCounts.GetValueOrDefault(entry.PeerId);
                 var isPeerOnline = false;
 
                 try

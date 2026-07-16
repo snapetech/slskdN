@@ -326,6 +326,13 @@ namespace slskd.HashDb
         Task<int> GetPeerBackfillCountTodayAsync(string peerId, CancellationToken cancellationToken = default);
 
         /// <summary>
+        ///     Gets today's backfill counts for a bounded set of peers.
+        /// </summary>
+        Task<IReadOnlyDictionary<string, int>> GetPeerBackfillCountsTodayAsync(
+            IReadOnlyCollection<string> peerIds,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         ///     Resets daily backfill counters (called at midnight).
         /// </summary>
         Task ResetDailyBackfillCountersAsync(CancellationToken cancellationToken = default);

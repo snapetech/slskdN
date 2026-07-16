@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch recurring backfill peer-count enrichment.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced one daily-count query per candidate plus the same query again during execution with one case-insensitive batch query and a mutable cycle snapshot that still consumes successful probes locally. At the ten-candidate cap, database work falls from 21 queries to two (90.5% fewer) without increasing Soulseek peer-status traffic or weakening `MaxPerPeerPerDay`. Added batch normalization/collation, cycle reuse, rate-limit, and cancellation coverage; documented gotcha `0z643` in `6cb84fb88` and the caught SQLite collation bug as `0z644` in `4c4779d97`.
+
 - [x] Batch periodic Pod discovery publication.
   - Status: completed (2026-07-16)
   - Priority: P1

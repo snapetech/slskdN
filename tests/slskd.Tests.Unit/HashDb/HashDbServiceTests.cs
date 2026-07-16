@@ -1093,6 +1093,24 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetPeerBackfillCountsTodayAsync_ReturnsAllRequestedCountsInOneSnapshot()
+    {
+        await service.GetOrCreatePeerAsync("alice");
+        await service.GetOrCreatePeerAsync("bob");
+        await service.IncrementPeerBackfillCountAsync("alice");
+        await service.IncrementPeerBackfillCountAsync("alice");
+        await service.IncrementPeerBackfillCountAsync("bob");
+
+        var counts = await service.GetPeerBackfillCountsTodayAsync(
+            new[] { " alice ", "BOB", "missing", "alice" });
+
+        Assert.Equal(2, counts["alice"]);
+        Assert.Equal(1, counts["bob"]);
+        Assert.False(counts.ContainsKey("missing"));
+        Assert.Equal(2, counts.Count);
+    }
+
+    [Fact]
     public async Task GetLabelPresenceAndReleaseIds_NormalizeTrimAndDeduplicate()
     {
         await service.UpsertAlbumTargetAsync(new AlbumTarget

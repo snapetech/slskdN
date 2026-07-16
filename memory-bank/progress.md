@@ -1,3 +1,11 @@
+## Update 2026-07-16 04:38:31Z
+
+- Completed the recurring FLAC backfill candidate-enrichment performance pass.
+- Batched daily counters for the bounded peer set into one SQLite query and reused a mutable per-peer snapshot through execution, preserving successful-probe rate-limit consumption.
+- A full ten-candidate cycle falls from 21 database queries to two (90.5% fewer) without additional Soulseek status calls or weaker network-health limits.
+- Added mixed-case/trimmed identity, cycle-reuse, rate-limit, and cancellation regressions. Documented the N+1/duplicate-read pattern as gotcha `0z643` in `6cb84fb88`; a focused test caught the first batch query's missing SQLite collation, documented as `0z644` in `4c4779d97` before repair.
+- Validation passed: focused Backfill/HashDb tests (`65/65`), cycle-focused tests (`7/7`), complete smoke/unit/integration suites (`4803/4803`: `69` smoke, `4454` unit, `280` integration), repository lint, identity, and diff checks. The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+
 ## Update 2026-07-16 04:28:58Z
 
 - Completed the periodic Pod discovery publication performance pass.

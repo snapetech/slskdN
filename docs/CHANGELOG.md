@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Conservative FLAC backfill scheduling now loads daily counters for its
+  bounded peer set in one case-insensitive query and reuses them while applying
+  per-peer limits. A full ten-candidate cycle falls from 21 database queries to
+  two without increasing peer traffic.
 - Periodic Pod discovery refresh now queries one listed-only snapshot and
   batches the shared DHT index read/write around all successful metadata
   publications. A 100-Pod cycle falls from 101 database queries and 200 DHT

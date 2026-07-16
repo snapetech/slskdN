@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Backfill candidate scheduling now batches daily peer counters and reuses the
+  snapshot through each cycle instead of querying every counter twice.
 - Periodic Pod discovery publication now loads one listed-only database
   snapshot, publishes its metadata without per-Pod reloads, and refreshes the
   shared listed-Pod index once per cycle instead of once per Pod.

@@ -16,6 +16,48 @@ using Xunit;
 public class BackfillSchedulerServiceTests
 {
     [Fact]
+    public async Task TriggerCycleAsync_ReusesBatchedCandidateCounts()
+    {
+        var hashDb = CreateHashDb();
+        hashDb.Setup(service => service.GetBackfillCandidatesAsync(10, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new FlacInventoryEntry
+                {
+                    FileId = "file-1",
+                    PeerId = "alice",
+                    Path = "song.flac",
+                    Size = 1234,
+                },
+            });
+        hashDb.Setup(service => service.GetPeerBackfillCountsTodayAsync(
+                It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) { ["alice"] = 10 });
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient.Setup(client => client.GetUserStatusAsync("alice", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UserStatus("alice", UserPresence.Online, false));
+        var service = new BackfillSchedulerService(
+            hashDb.Object,
+            Mock.Of<IMeshSyncService>(),
+            soulseekClient.Object,
+            Mock.Of<ICapabilityService?>(),
+            NullLogger<BackfillSchedulerService>.Instance);
+
+        var result = await service.TriggerCycleAsync();
+
+        Assert.Equal(1, result.CandidatesEvaluated);
+        Assert.Equal(1, result.RateLimited);
+        Assert.Equal(0, result.BackfillsAttempted);
+        hashDb.Verify(candidateStore => candidateStore.GetPeerBackfillCountsTodayAsync(
+            It.IsAny<IReadOnlyCollection<string>>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+        hashDb.Verify(candidateStore => candidateStore.GetPeerBackfillCountTodayAsync(
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task GetCandidatesAsync_ClampsLimitAndPropagatesStatusCancellation()
     {
         using var cts = new CancellationTokenSource();
@@ -34,8 +76,10 @@ public class BackfillSchedulerServiceTests
                 },
             });
         hashDb
-            .Setup(service => service.GetPeerBackfillCountTodayAsync("alice", cts.Token))
-            .ReturnsAsync(3);
+            .Setup(service => service.GetPeerBackfillCountsTodayAsync(
+                It.Is<IReadOnlyCollection<string>>(peerIds => peerIds.SequenceEqual(new[] { "alice" })),
+                cts.Token))
+            .ReturnsAsync(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) { ["alice"] = 3 });
 
         var soulseekClient = new Mock<ISoulseekClient>();
         soulseekClient
@@ -54,6 +98,9 @@ public class BackfillSchedulerServiceTests
         var candidate = Assert.Single(candidates);
         Assert.True(candidate.IsPeerOnline);
         Assert.Equal(3, candidate.PeerBackfillsToday);
+        hashDb.Verify(service => service.GetPeerBackfillCountTodayAsync(
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -75,8 +122,10 @@ public class BackfillSchedulerServiceTests
                 },
             });
         hashDb
-            .Setup(service => service.GetPeerBackfillCountTodayAsync("alice", cts.Token))
-            .ReturnsAsync(0);
+            .Setup(service => service.GetPeerBackfillCountsTodayAsync(
+                It.IsAny<IReadOnlyCollection<string>>(),
+                cts.Token))
+            .ReturnsAsync(new Dictionary<string, int>());
 
         var soulseekClient = new Mock<ISoulseekClient>();
         soulseekClient
