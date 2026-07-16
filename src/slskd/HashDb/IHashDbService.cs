@@ -305,6 +305,15 @@ namespace slskd.HashDb
 
         Task<IReadOnlyList<Jobs.DiscographyJob>> ListDiscographyJobsAsync(CancellationToken cancellationToken = default);
 
+        Task<Jobs.JobListPage> GetJobListPageAsync(
+            string? type,
+            string? status,
+            int limit,
+            int offset,
+            string? sortBy,
+            bool descending,
+            CancellationToken cancellationToken = default);
+
         Task UpsertDiscographyJobAsync(Jobs.DiscographyJob job, CancellationToken cancellationToken = default);
 
         Task<List<Jobs.DiscographyReleaseJobStatus>> GetDiscographyReleaseJobsAsync(string jobId, CancellationToken cancellationToken = default);

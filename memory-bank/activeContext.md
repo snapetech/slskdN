@@ -1,3 +1,17 @@
+## Update 2026-07-16 13:50:47Z
+
+- Current task: performance and efficiency improvements in progress; bounded native Jobs database pages complete locally.
+- Last activity:
+  - Replaced synchronous full job lists/JSON hydration/application pagination with a scalar HashDb union count and bounded page.
+  - Added created/status indexes through HashDb migration 24 and removed the blocking full-list adapter contract. Documented gotcha `0z696` (`1d175baec`).
+- Validation:
+  - Passed focused (`12/12`), broader HashDb/Jobs (`115/115`), and full backend (`4907/4907`) tests.
+  - The 100,000-job database median improved from 0.091 seconds to 0.033 seconds; returned rows fell 99.9%. Repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the Jobs/HashDb page slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 13:33:47Z
 
 - Current task: performance and efficiency improvements in progress; Search startup snapshot consolidation complete locally.

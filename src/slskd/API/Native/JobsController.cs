@@ -174,7 +174,7 @@ public class JobsController : ControllerBase
     /// <returns>The filtered, sorted, and paginated job list.</returns>
     [HttpGet]
     [Authorize(Policy = AuthPolicy.Any)]
-    public Task<IActionResult> GetJobs(
+    public async Task<IActionResult> GetJobs(
         [FromQuery] string? type,
         [FromQuery] string? status,
         [FromQuery] int? limit,
@@ -191,114 +191,42 @@ public class JobsController : ControllerBase
         logger.LogDebug("Getting jobs with filters: type={Type}, status={Status}, limit={Limit}, offset={Offset}, sortBy={SortBy}, sortOrder={SortOrder}",
             type, status, limit, offset, sortBy, sortOrder);
 
-        var allJobs = new List<object>();
-
-        // Get discography jobs
-        if (type == null || type.Equals("discography", StringComparison.OrdinalIgnoreCase))
-        {
-            if (jobServiceList != null)
-            {
-                var discJobs = jobServiceList.GetAllDiscographyJobs();
-                if (discJobs != null)
-                {
-                    foreach (var job in discJobs)
-                    {
-                        if (status == null || MapStatus(job.Status).Equals(status, StringComparison.OrdinalIgnoreCase))
-                        {
-                            allJobs.Add(new
-                            {
-                                id = job.JobId,
-                                type = "discography",
-                                status = MapStatus(job.Status),
-                                created_at = job.CreatedAt,
-                                progress = new
-                                {
-                                    releases_total = job.TotalReleases,
-                                    releases_done = job.CompletedReleases,
-                                    releases_failed = job.FailedReleases
-                                },
-                            });
-                        }
-                    }
-                }
-            }
-        }
-
-        // Get label crate jobs
-        if (type == null || type.Equals("label_crate", StringComparison.OrdinalIgnoreCase))
-        {
-            if (jobServiceList != null)
-            {
-                var labelJobs = jobServiceList.GetAllLabelCrateJobs();
-                if (labelJobs != null)
-                {
-                    foreach (var job in labelJobs)
-                    {
-                        if (status == null || MapStatus(job.Status).Equals(status, StringComparison.OrdinalIgnoreCase))
-                        {
-                            allJobs.Add(new
-                            {
-                                id = job.JobId,
-                                type = "label_crate",
-                                status = MapStatus(job.Status),
-                                created_at = job.CreatedAt,
-                                progress = new
-                                {
-                                    releases_total = job.TotalReleases,
-                                    releases_done = job.CompletedReleases,
-                                    releases_failed = job.FailedReleases
-                                },
-                            });
-                        }
-                    }
-                }
-            }
-        }
-
-        // T-1410: Apply sorting
-        if (!string.IsNullOrWhiteSpace(sortBy))
-        {
-            var sortOrderLower = (sortOrder ?? "asc").ToLowerInvariant();
-            var descending = sortOrderLower == "desc" || sortOrderLower == "descending";
-
-            allJobs = sortBy.ToLowerInvariant() switch
-            {
-                "status" => descending
-                    ? allJobs.OrderByDescending(j => ((dynamic)j).status).ToList()
-                    : allJobs.OrderBy(j => ((dynamic)j).status).ToList(),
-                "created_at" or "created" => descending
-                    ? allJobs.OrderByDescending(j => ((dynamic)j).created_at).ToList()
-                    : allJobs.OrderBy(j => ((dynamic)j).created_at).ToList(),
-                "id" => descending
-                    ? allJobs.OrderByDescending(j => ((dynamic)j).id).ToList()
-                    : allJobs.OrderBy(j => ((dynamic)j).id).ToList(),
-                _ => allJobs, // Unknown sort field, return unsorted
-            };
-        }
-        else
-        {
-            // Default: sort by created_at descending (newest first)
-            allJobs = allJobs.OrderByDescending(j => ((dynamic)j).created_at).ToList();
-        }
-
-        // T-1410: Apply pagination
-        var totalCount = allJobs.Count;
         var effectiveOffset = Math.Max(0, offset ?? 0);
         var effectiveLimit = limit > 0 ? Math.Min(limit.Value, 100) : 100; // Default limit 100, max reasonable
-
-        var paginatedJobs = allJobs
-            .Skip(effectiveOffset)
-            .Take(effectiveLimit)
-            .ToList();
-
-        return Task.FromResult<IActionResult>(Ok(new
+        var sortOrderLower = (sortOrder ?? "asc").ToLowerInvariant();
+        var descending = sortOrderLower == "desc" || sortOrderLower == "descending";
+        var page = jobServiceList == null
+            ? new JobListPage(Array.Empty<JobListItem>(), 0)
+            : await jobServiceList.GetJobListPageAsync(
+                type,
+                status,
+                effectiveLimit,
+                effectiveOffset,
+                sortBy,
+                descending,
+                cancellationToken).ConfigureAwait(false);
+        var jobs = page.Items.Select(job => new
         {
-            jobs = paginatedJobs,
-            total = totalCount,
+            id = job.Id,
+            type = job.Type,
+            status = job.Status,
+            created_at = job.CreatedAt,
+            progress = new
+            {
+                releases_total = job.TotalReleases,
+                releases_done = job.CompletedReleases,
+                releases_failed = job.FailedReleases,
+            },
+        }).ToList();
+
+        return Ok(new
+        {
+            jobs,
+            total = page.Total,
             limit = effectiveLimit,
             offset = effectiveOffset,
-            has_more = (effectiveOffset + effectiveLimit) < totalCount,
-        }));
+            has_more = (effectiveOffset + effectiveLimit) < page.Total,
+        });
     }
 
     /// <summary>
@@ -396,10 +324,16 @@ public record JobConstraints(
     [property: JsonPropertyName("use_overlay")] bool UseOverlay = true);
 
 /// <summary>
-/// Helper interface for test host to access all jobs.
+/// Provides bounded combined job-list pages.
 /// </summary>
 public interface IJobServiceWithList
 {
-    IReadOnlyList<DiscographyJob> GetAllDiscographyJobs();
-    IReadOnlyList<LabelCrateJob> GetAllLabelCrateJobs();
+    Task<JobListPage> GetJobListPageAsync(
+        string? type,
+        string? status,
+        int limit,
+        int offset,
+        string? sortBy,
+        bool descending,
+        CancellationToken cancellationToken = default);
 }

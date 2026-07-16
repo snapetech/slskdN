@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Native Jobs listing now counts and pages a lightweight union of discography
+  and label-crate scalar columns in HashDb instead of synchronously loading,
+  JSON-deserializing, combining, sorting, and then truncating both complete job
+  tables. Created/status composite indexes support common filtered pages, and
+  the API's 100-row cap is enforced at the database boundary. With 100,000
+  stored jobs, returned rows fall from 100,000 to 100 (99.9% fewer), while a
+  five-run database-only median fell from 0.091 seconds to 0.033 seconds
+  (63.7% faster) before the removed JSON parsing and application sorting.
+  Existing type/status filters, sort aliases/directions, totals, progress
+  fields, offsets, and unknown-filter behavior remain unchanged.
 - Search page startup now uses the SignalR connection's initial history
   snapshot as its normal data source instead of requesting the same list over
   REST in parallel. The hub snapshot uses the same 500-search cap as the REST

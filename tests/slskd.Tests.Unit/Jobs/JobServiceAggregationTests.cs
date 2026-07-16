@@ -13,6 +13,35 @@ using Xunit;
 public class JobServiceAggregationTests
 {
     [Fact]
+    public async Task HashDbListAdapter_DelegatesBoundedPageWithoutLoadingCompleteLists()
+    {
+        var expected = new JobListPage(Array.Empty<JobListItem>(), 123);
+        var hashDb = new Mock<IHashDbService>();
+        hashDb.Setup(service => service.GetJobListPageAsync(
+                "discography",
+                "running",
+                25,
+                50,
+                "created_at",
+                true,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+        var adapter = new HashDbJobServiceListAdapter(hashDb.Object);
+
+        var actual = await adapter.GetJobListPageAsync(
+            "discography",
+            "running",
+            25,
+            50,
+            "created_at",
+            true);
+
+        Assert.Same(expected, actual);
+        hashDb.Verify(service => service.ListDiscographyJobsAsync(It.IsAny<CancellationToken>()), Times.Never);
+        hashDb.Verify(service => service.ListLabelCrateJobsAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task DiscographyGetJobAsync_WritesOnlyWhenDerivedAggregateChanges()
     {
         var job = new DiscographyJob

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Push native Jobs listing into bounded HashDb pages.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced synchronous complete discography/label-crate list loading, JSON deserialization, application combination/sorting, and post-hoc truncation with one scalar union count and one bounded scalar page. Removed the blocking full-list adapter contract and added created/status job indexes in HashDb migration 24. With 100,000 jobs, returned rows fall by 99.9% and a five-run database-only median improves from 0.091 seconds to 0.033 seconds (63.7%) before eliminated JSON parsing/sorting. Exact controller, adapter, result/filter/sort/offset, invalid-JSON, migration/query-plan, and no-legacy-list boundaries are covered. Documented cross-project interface fake gotcha `0z696` (`1d175baec`). Validation passed: focused tests (`12/12`), broader HashDb/Jobs tests (`115/115`), full backend tests (`4907/4907`: `69` application, `4558` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Consolidate and bound Search startup snapshots.
   - Status: completed (2026-07-16)
   - Priority: P1

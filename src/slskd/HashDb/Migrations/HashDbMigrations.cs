@@ -16,7 +16,7 @@ public static class HashDbMigrations
     /// <summary>
     ///     Current schema version. Increment when adding new migrations.
     /// </summary>
-    public const int CurrentVersion = 23;
+    public const int CurrentVersion = 24;
 
     private static readonly ILogger Log = Serilog.Log.ForContext(typeof(HashDbMigrations));
 
@@ -834,6 +834,28 @@ public static class HashDbMigrations
                         CREATE INDEX IF NOT EXISTS idx_issues_remediation_status
                         ON LibraryHealthIssues(remediation_job_id, status, detected_at DESC)
                         WHERE remediation_job_id IS NOT NULL AND remediation_job_id <> ''
+                        """;
+                    cmd.ExecuteNonQuery();
+                },
+            },
+
+            new Migration
+            {
+                Version = 24,
+                Name = "Bounded job list indexes",
+                Apply = conn =>
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText =
+                        """
+                        CREATE INDEX IF NOT EXISTS idx_discography_jobs_created
+                        ON DiscographyJobs(created_at DESC, job_id);
+                        CREATE INDEX IF NOT EXISTS idx_discography_jobs_status_created
+                        ON DiscographyJobs(LOWER(status), created_at DESC, job_id);
+                        CREATE INDEX IF NOT EXISTS idx_label_crate_jobs_created
+                        ON LabelCrateJobs(created_at DESC, job_id);
+                        CREATE INDEX IF NOT EXISTS idx_label_crate_jobs_status_created
+                        ON LabelCrateJobs(LOWER(status), created_at DESC, job_id);
                         """;
                     cmd.ExecuteNonQuery();
                 },

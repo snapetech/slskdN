@@ -33,6 +33,8 @@ public class JobsControllerPaginationTests
     private readonly Mock<IMusicBrainzClient> musicBrainzClient;
     private readonly Mock<ILogger<JobsController>> logger;
     private readonly JobsController controller;
+    private IReadOnlyList<DiscographyJob> discographyJobs = Array.Empty<DiscographyJob>();
+    private IReadOnlyList<LabelCrateJob> labelCrateJobs = Array.Empty<LabelCrateJob>();
 
     public JobsControllerPaginationTests(ITestOutputHelper output)
     {
@@ -42,6 +44,31 @@ public class JobsControllerPaginationTests
         jobServiceList = new Mock<IJobServiceWithList>();
         musicBrainzClient = new Mock<IMusicBrainzClient>();
         logger = new Mock<ILogger<JobsController>>();
+        jobServiceList
+            .Setup(service => service.GetJobListPageAsync(
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<string?>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((
+                string? type,
+                string? status,
+                int limit,
+                int offset,
+                string? sortBy,
+                bool descending,
+                CancellationToken _) => Task.FromResult(BuildPage(
+                    discographyJobs,
+                    labelCrateJobs,
+                    type,
+                    status,
+                    limit,
+                    offset,
+                    sortBy,
+                    descending)));
 
         controller = new JobsController(
             discographyService.Object,
@@ -63,6 +90,66 @@ public class JobsControllerPaginationTests
         };
     }
 
+    private static JobListPage BuildPage(
+        IReadOnlyList<DiscographyJob> discographyJobs,
+        IReadOnlyList<LabelCrateJob> labelCrateJobs,
+        string? type,
+        string? status,
+        int limit,
+        int offset,
+        string? sortBy,
+        bool descending)
+    {
+        var items = new List<JobListItem>();
+        if (type == null || type.Equals("discography", StringComparison.OrdinalIgnoreCase))
+        {
+            items.AddRange(discographyJobs.Select(job => new JobListItem(
+                job.JobId,
+                "discography",
+                job.Status.ToString().ToLowerInvariant(),
+                job.CreatedAt,
+                job.TotalReleases,
+                job.CompletedReleases,
+                job.FailedReleases)));
+        }
+
+        if (type == null || type.Equals("label_crate", StringComparison.OrdinalIgnoreCase))
+        {
+            items.AddRange(labelCrateJobs.Select(job => new JobListItem(
+                job.JobId,
+                "label_crate",
+                job.Status.ToString().ToLowerInvariant(),
+                job.CreatedAt,
+                job.TotalReleases,
+                job.CompletedReleases,
+                job.FailedReleases)));
+        }
+
+        if (status != null)
+        {
+            items = items
+                .Where(item => item.Status.Equals(status, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        items = sortBy?.ToLowerInvariant() switch
+        {
+            "status" => descending
+                ? items.OrderByDescending(item => item.Status).ToList()
+                : items.OrderBy(item => item.Status).ToList(),
+            "created_at" or "created" => descending
+                ? items.OrderByDescending(item => item.CreatedAt).ToList()
+                : items.OrderBy(item => item.CreatedAt).ToList(),
+            "id" => descending
+                ? items.OrderByDescending(item => item.Id).ToList()
+                : items.OrderBy(item => item.Id).ToList(),
+            null => items.OrderByDescending(item => item.CreatedAt).ToList(),
+            _ => items,
+        };
+
+        return new JobListPage(items.Skip(offset).Take(limit).ToList(), items.Count);
+    }
+
     [Fact]
     public async Task GetJobs_Should_Apply_Pagination_With_Limit_And_Offset()
     {
@@ -74,8 +161,7 @@ public class JobsControllerPaginationTests
             CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-i)
         }).ToList();
 
-        jobServiceList.Setup(x => x.GetAllDiscographyJobs()).Returns(jobs);
-        jobServiceList.Setup(x => x.GetAllLabelCrateJobs()).Returns(new List<LabelCrateJob>());
+        discographyJobs = jobs;
 
         // Act - Request first 3 jobs
         var result = await controller.GetJobs(
@@ -117,6 +203,53 @@ public class JobsControllerPaginationTests
     }
 
     [Fact]
+    public async Task GetJobs_UsesOneBoundedPageAndDoesNotLoadCompleteJobLists()
+    {
+        jobServiceList.Reset();
+        jobServiceList
+            .Setup(service => service.GetJobListPageAsync(
+                "label_crate",
+                "running",
+                100,
+                0,
+                "id",
+                true,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new JobListPage(
+                new[]
+                {
+                    new JobListItem(
+                        "job-1",
+                        "label_crate",
+                        "running",
+                        DateTimeOffset.UnixEpoch,
+                        10,
+                        4,
+                        1),
+                },
+                1));
+
+        var result = await controller.GetJobs(
+            type: " label_crate ",
+            status: " running ",
+            limit: 500,
+            offset: -10,
+            sortBy: " id ",
+            sortOrder: " descending ",
+            CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        jobServiceList.Verify(service => service.GetJobListPageAsync(
+            "label_crate",
+            "running",
+            100,
+            0,
+            "id",
+            true,
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task GetJobs_Should_Clamp_Oversized_Limit()
     {
         var jobs = Enumerable.Range(1, 150).Select(i => new DiscographyJob
@@ -126,8 +259,7 @@ public class JobsControllerPaginationTests
             CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-i)
         }).ToList();
 
-        jobServiceList.Setup(x => x.GetAllDiscographyJobs()).Returns(jobs);
-        jobServiceList.Setup(x => x.GetAllLabelCrateJobs()).Returns(new List<LabelCrateJob>());
+        discographyJobs = jobs;
 
         var result = await controller.GetJobs(
             type: null,
@@ -159,8 +291,7 @@ public class JobsControllerPaginationTests
             CreatedAt = DateTimeOffset.UtcNow.AddMinutes(-i)
         }).ToList();
 
-        jobServiceList.Setup(x => x.GetAllDiscographyJobs()).Returns(jobs);
-        jobServiceList.Setup(x => x.GetAllLabelCrateJobs()).Returns(new List<LabelCrateJob>());
+        discographyJobs = jobs;
 
         // Act - Request jobs starting at offset 5
         var result = await controller.GetJobs(
@@ -193,8 +324,7 @@ public class JobsControllerPaginationTests
             new() { JobId = "mid", Status = JobStatus.Pending, CreatedAt = now.AddHours(-1) }
         };
 
-        jobServiceList.Setup(x => x.GetAllDiscographyJobs()).Returns(jobs);
-        jobServiceList.Setup(x => x.GetAllLabelCrateJobs()).Returns(new List<LabelCrateJob>());
+        discographyJobs = jobs;
 
         // Act
         var result = await controller.GetJobs(
@@ -236,8 +366,7 @@ public class JobsControllerPaginationTests
             new() { JobId = "completed", Status = JobStatus.Completed, CreatedAt = DateTimeOffset.UtcNow }
         };
 
-        jobServiceList.Setup(x => x.GetAllDiscographyJobs()).Returns(jobs);
-        jobServiceList.Setup(x => x.GetAllLabelCrateJobs()).Returns(new List<LabelCrateJob>());
+        discographyJobs = jobs;
 
         // Act - Sort by status ascending
         var result = await controller.GetJobs(
@@ -268,8 +397,7 @@ public class JobsControllerPaginationTests
     public async Task GetJobs_Should_Handle_Empty_Result_Set()
     {
         // Arrange
-        jobServiceList.Setup(x => x.GetAllDiscographyJobs()).Returns(new List<DiscographyJob>());
-        jobServiceList.Setup(x => x.GetAllLabelCrateJobs()).Returns(new List<LabelCrateJob>());
+        discographyJobs = Array.Empty<DiscographyJob>();
 
         // Act
         var result = await controller.GetJobs(
@@ -309,8 +437,7 @@ public class JobsControllerPaginationTests
             FailedReleases = 1
         };
 
-        jobServiceList.Setup(x => x.GetAllDiscographyJobs()).Returns(new List<DiscographyJob> { job });
-        jobServiceList.Setup(x => x.GetAllLabelCrateJobs()).Returns(new List<LabelCrateJob>());
+        discographyJobs = new[] { job };
 
         // Act
         var result = await controller.GetJobs(
@@ -358,8 +485,7 @@ public class JobsControllerPaginationTests
             CreatedAt = DateTimeOffset.UtcNow
         }).ToList();
 
-        jobServiceList.Setup(x => x.GetAllDiscographyJobs()).Returns(jobs);
-        jobServiceList.Setup(x => x.GetAllLabelCrateJobs()).Returns(new List<LabelCrateJob>());
+        discographyJobs = jobs;
 
         // Act - Request offset beyond available jobs
         var result = await controller.GetJobs(

@@ -1,3 +1,10 @@
+## Update 2026-07-16 13:50:47Z
+
+- Completed the native Jobs listing database-pagination performance pass.
+- HashDb now counts and pages a scalar union of both job types, backed by created/status indexes, while the API consumes the bounded async page and no longer exposes synchronous complete-list adapter methods or deserializes job JSON.
+- With 100,000 jobs, returned rows fall from 100,000 to 100 (99.9% fewer), and the five-run database-only median improves from 0.091 seconds to 0.033 seconds (63.7%) before removed JSON parsing/application sorting. Documented cross-project interface fake gotcha `0z696` (`1d175baec`).
+- Validation passed: focused tests (`12/12`), broader HashDb/Jobs tests (`115/115`), full backend tests (`4907/4907`: `69` application, `4558` unit, `280` integration), repository lint, and diff checks. Type/status filters, sort aliases/directions, offsets, totals, progress fields, invalid JSON independence, and indexed status pages are covered. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 13:33:47Z
 
 - Completed the Search startup snapshot consolidation and bounding pass.

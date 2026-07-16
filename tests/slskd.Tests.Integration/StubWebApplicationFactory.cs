@@ -584,8 +584,66 @@ internal class JobServiceListAdapter : global::slskd.API.Native.IJobServiceWithL
         this.labelCrateService = labelCrateService;
     }
 
-    public IReadOnlyList<global::slskd.Jobs.DiscographyJob> GetAllDiscographyJobs() => discographyService.GetAllJobs();
-    public IReadOnlyList<global::slskd.Jobs.LabelCrateJob> GetAllLabelCrateJobs() => labelCrateService.GetAllJobs();
+    public Task<global::slskd.Jobs.JobListPage> GetJobListPageAsync(
+        string? type,
+        string? status,
+        int limit,
+        int offset,
+        string? sortBy,
+        bool descending,
+        CancellationToken cancellationToken = default)
+    {
+        var items = new List<global::slskd.Jobs.JobListItem>();
+        if (type == null || type.Equals("discography", StringComparison.OrdinalIgnoreCase))
+        {
+            items.AddRange(discographyService.GetAllJobs().Select(job => new global::slskd.Jobs.JobListItem(
+                job.JobId,
+                "discography",
+                job.Status.ToString().ToLowerInvariant(),
+                job.CreatedAt,
+                job.TotalReleases,
+                job.CompletedReleases,
+                job.FailedReleases)));
+        }
+
+        if (type == null || type.Equals("label_crate", StringComparison.OrdinalIgnoreCase))
+        {
+            items.AddRange(labelCrateService.GetAllJobs().Select(job => new global::slskd.Jobs.JobListItem(
+                job.JobId,
+                "label_crate",
+                job.Status.ToString().ToLowerInvariant(),
+                job.CreatedAt,
+                job.TotalReleases,
+                job.CompletedReleases,
+                job.FailedReleases)));
+        }
+
+        if (status != null)
+        {
+            items = items
+                .Where(item => item.Status.Equals(status, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        items = sortBy?.ToLowerInvariant() switch
+        {
+            "status" => descending
+                ? items.OrderByDescending(item => item.Status).ToList()
+                : items.OrderBy(item => item.Status).ToList(),
+            "created_at" or "created" => descending
+                ? items.OrderByDescending(item => item.CreatedAt).ToList()
+                : items.OrderBy(item => item.CreatedAt).ToList(),
+            "id" => descending
+                ? items.OrderByDescending(item => item.Id).ToList()
+                : items.OrderBy(item => item.Id).ToList(),
+            null => items.OrderByDescending(item => item.CreatedAt).ToList(),
+            _ => items,
+        };
+
+        return Task.FromResult(new global::slskd.Jobs.JobListPage(
+            items.Skip(offset).Take(limit).ToList(),
+            items.Count));
+    }
 }
 
 internal sealed class StubDownloadService : IDownloadService

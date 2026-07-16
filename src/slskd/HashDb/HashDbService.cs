@@ -3658,6 +3658,145 @@ namespace slskd.HashDb
         }
 
         /// <inheritdoc/>
+        public async Task<Jobs.JobListPage> GetJobListPageAsync(
+            string? type,
+            string? status,
+            int limit,
+            int offset,
+            string? sortBy,
+            bool descending,
+            CancellationToken cancellationToken = default)
+        {
+            var normalizedType = type?.Trim().ToLowerInvariant();
+            var normalizedStatus = status?.Trim().ToLowerInvariant();
+            var normalizedSort = sortBy?.Trim().ToLowerInvariant();
+            var knownStatus = normalizedStatus is "pending" or "running" or "completed" or "failed";
+            var selects = new List<string>();
+            if (normalizedType == null || normalizedType == "discography")
+            {
+                selects.Add(BuildJobListSelect(
+                    "DiscographyJobs",
+                    "discography",
+                    sourceOrder: 0,
+                    filterStatus: normalizedStatus != null,
+                    knownStatus: knownStatus));
+            }
+
+            if (normalizedType == null || normalizedType == "label_crate")
+            {
+                selects.Add(BuildJobListSelect(
+                    "LabelCrateJobs",
+                    "label_crate",
+                    sourceOrder: 1,
+                    filterStatus: normalizedStatus != null,
+                    knownStatus: knownStatus));
+            }
+
+            if (selects.Count == 0 || limit <= 0)
+            {
+                return new Jobs.JobListPage(Array.Empty<Jobs.JobListItem>(), 0);
+            }
+
+            var unionSql = string.Join(" UNION ALL ", selects);
+            using var conn = GetConnection();
+            using var countCommand = conn.CreateCommand();
+            countCommand.CommandText = $"SELECT COUNT(*) FROM ({unionSql})";
+            if (knownStatus)
+            {
+                countCommand.Parameters.AddWithValue("@status", normalizedStatus);
+            }
+
+            var total = Convert.ToInt32(await countCommand.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false));
+            if (total == 0 || offset >= total)
+            {
+                return new Jobs.JobListPage(Array.Empty<Jobs.JobListItem>(), total);
+            }
+
+            var direction = descending ? "DESC" : "ASC";
+            var orderBy = normalizedSort switch
+            {
+                "status" => $"status_value {direction}, source_order, created_at DESC",
+                "created_at" or "created" => $"created_at {direction}, source_order",
+                "id" => $"job_id {direction}, source_order, created_at DESC",
+                null => "created_at DESC, source_order",
+                _ => "source_order, created_at DESC",
+            };
+
+            using var pageCommand = conn.CreateCommand();
+            pageCommand.CommandText = $"""
+                SELECT
+                    job_id,
+                    job_type,
+                    status_value,
+                    created_at,
+                    total_releases,
+                    completed_releases,
+                    failed_releases
+                FROM ({unionSql})
+                ORDER BY {orderBy}
+                LIMIT @limit OFFSET @offset
+                """;
+            pageCommand.Parameters.AddWithValue("@limit", limit);
+            pageCommand.Parameters.AddWithValue("@offset", Math.Max(0, offset));
+            if (knownStatus)
+            {
+                pageCommand.Parameters.AddWithValue("@status", normalizedStatus);
+            }
+
+            var items = new List<Jobs.JobListItem>();
+            await using var reader = await pageCommand.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                items.Add(new Jobs.JobListItem(
+                    Id: reader.GetString(0).Trim(),
+                    Type: reader.GetString(1),
+                    Status: reader.GetString(2),
+                    CreatedAt: DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(3)),
+                    TotalReleases: reader.GetInt32(4),
+                    CompletedReleases: reader.GetInt32(5),
+                    FailedReleases: reader.GetInt32(6)));
+            }
+
+            return new Jobs.JobListPage(items, total);
+        }
+
+        private static string BuildJobListSelect(
+            string table,
+            string type,
+            int sourceOrder,
+            bool filterStatus,
+            bool knownStatus)
+        {
+            var statusExpression = """
+                CASE LOWER(status)
+                    WHEN 'pending' THEN 'pending'
+                    WHEN 'running' THEN 'running'
+                    WHEN 'completed' THEN 'completed'
+                    WHEN 'failed' THEN 'failed'
+                    ELSE 'unknown'
+                END
+                """;
+            var where = !filterStatus
+                ? string.Empty
+                : knownStatus
+                    ? "WHERE LOWER(status) = @status"
+                    : "WHERE LOWER(status) IS NULL OR LOWER(status) NOT IN ('pending', 'running', 'completed', 'failed')";
+            return $"""
+                SELECT
+                    job_id,
+                    '{type}' AS job_type,
+                    {statusExpression} AS status_value,
+                    created_at,
+                    COALESCE(total_releases, 0) AS total_releases,
+                    COALESCE(completed_releases, 0) AS completed_releases,
+                    COALESCE(failed_releases, 0) AS failed_releases,
+                    {sourceOrder} AS source_order
+                FROM {table}
+                {where}
+                """;
+        }
+
+        /// <inheritdoc/>
         public async Task UpsertDiscographyJobAsync(Jobs.DiscographyJob job, CancellationToken cancellationToken = default)
         {
             if (job == null || string.IsNullOrWhiteSpace(job.JobId))

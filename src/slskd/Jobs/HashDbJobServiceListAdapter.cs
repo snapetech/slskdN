@@ -3,7 +3,8 @@
 // </copyright>
 namespace slskd.Jobs
 {
-    using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
     using slskd.API.Native;
     using slskd.HashDb;
 
@@ -22,15 +23,23 @@ namespace slskd.Jobs
             this.hashDb = hashDb;
         }
 
-        public IReadOnlyList<DiscographyJob> GetAllDiscographyJobs()
+        public Task<JobListPage> GetJobListPageAsync(
+            string? type,
+            string? status,
+            int limit,
+            int offset,
+            string? sortBy,
+            bool descending,
+            CancellationToken cancellationToken = default)
         {
-            // The interface is synchronous; HashDb reads are local SQLite and fast.
-            return hashDb.ListDiscographyJobsAsync().GetAwaiter().GetResult();
-        }
-
-        public IReadOnlyList<LabelCrateJob> GetAllLabelCrateJobs()
-        {
-            return hashDb.ListLabelCrateJobsAsync().GetAwaiter().GetResult();
+            return hashDb.GetJobListPageAsync(
+                type,
+                status,
+                limit,
+                offset,
+                sortBy,
+                descending,
+                cancellationToken);
         }
     }
 }

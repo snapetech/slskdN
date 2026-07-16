@@ -2307,6 +2307,112 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetJobListPageAsync_FiltersSortsAndBoundsWithoutReadingJobJson()
+    {
+        var createdAt = DateTimeOffset.FromUnixTimeSeconds(1_700_000_000);
+        for (var index = 0; index < 120; index++)
+        {
+            await service.UpsertDiscographyJobAsync(new slskd.Jobs.DiscographyJob
+            {
+                JobId = $"disc-{index:D3}",
+                ArtistId = $"artist-{index:D3}",
+                Status = index % 2 == 0 ? slskd.Jobs.JobStatus.Running : slskd.Jobs.JobStatus.Pending,
+                CreatedAt = createdAt.AddSeconds(index),
+                TotalReleases = index + 10,
+                CompletedReleases = index,
+                FailedReleases = index % 3,
+            });
+            await service.UpsertLabelCrateJobAsync(new slskd.Jobs.LabelCrateJob
+            {
+                JobId = $"label-{index:D3}",
+                LabelName = $"Label {index:D3}",
+                Status = index % 2 == 0 ? slskd.Jobs.JobStatus.Running : slskd.Jobs.JobStatus.Completed,
+                CreatedAt = createdAt.AddSeconds(index),
+                TotalReleases = index + 20,
+                CompletedReleases = index + 1,
+                FailedReleases = index % 5,
+            });
+        }
+
+        await using (var connection = new Microsoft.Data.Sqlite.SqliteConnection(
+            $"Data Source={Path.Combine(testDir, "hashdb.db")}"))
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText =
+                """
+                UPDATE DiscographyJobs SET json_data = 'invalid-json';
+                UPDATE LabelCrateJobs SET json_data = 'invalid-json';
+                """;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        var page = await service.GetJobListPageAsync(
+            type: null,
+            status: "running",
+            limit: 25,
+            offset: 10,
+            sortBy: "created_at",
+            descending: true);
+
+        Assert.Equal(120, page.Total);
+        Assert.Equal(25, page.Items.Count);
+        Assert.All(page.Items, item => Assert.Equal("running", item.Status));
+        Assert.Equal("disc-108", page.Items[0].Id);
+        Assert.Equal("label-108", page.Items[1].Id);
+        Assert.Equal(108, page.Items[0].CompletedReleases);
+
+        var labelPage = await service.GetJobListPageAsync(
+            type: "label_crate",
+            status: "completed",
+            limit: 3,
+            offset: 0,
+            sortBy: "id",
+            descending: false);
+        Assert.Equal(60, labelPage.Total);
+        Assert.Equal(new[] { "label-001", "label-003", "label-005" }, labelPage.Items.Select(item => item.Id));
+
+        var unknownType = await service.GetJobListPageAsync(
+            type: "unknown",
+            status: null,
+            limit: 100,
+            offset: 0,
+            sortBy: null,
+            descending: false);
+        Assert.Equal(0, unknownType.Total);
+        Assert.Empty(unknownType.Items);
+    }
+
+    [Fact]
+    public async Task Constructor_IndexesBoundedJobStatusPages()
+    {
+        await using var connection = new Microsoft.Data.Sqlite.SqliteConnection(
+            $"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText =
+            """
+            EXPLAIN QUERY PLAN
+            SELECT job_id
+            FROM DiscographyJobs
+            WHERE LOWER(status) = 'running'
+            ORDER BY created_at DESC
+            LIMIT 100
+            """;
+
+        await using var reader = await command.ExecuteReaderAsync();
+        var plan = new List<string>();
+        while (await reader.ReadAsync())
+        {
+            plan.Add(reader.GetString(3));
+        }
+
+        Assert.Contains(plan, detail =>
+            detail.Contains("INDEX idx_discography_jobs_status_created", StringComparison.Ordinal));
+        Assert.DoesNotContain(plan, detail => detail.Contains("TEMP B-TREE", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task LibraryHealthDashboard_AggregatesBeyondDefaultPageAndBoundsDetails()
     {
         for (var index = 0; index < 157; index++)
