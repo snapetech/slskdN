@@ -2546,7 +2546,6 @@ namespace slskd
             [EnvironmentVariable("SLSK_LISTEN_IP_ADDRESS")]
             [Description("local IP address on which to listen for incoming connections")]
             [IPAddress]
-            [RequiresReconnect]
             public string ListenIpAddress { get; init; } = "0.0.0.0";
 
             /// <summary>
@@ -2556,7 +2555,6 @@ namespace slskd
             [EnvironmentVariable("SLSK_LISTEN_PORT")]
             [Description("port on which to listen for incoming connections")]
             [Range(1024, 65535)]
-            [RequiresReconnect]
             public int ListenPort { get; init; } = 50300;
 
             /// <summary>
