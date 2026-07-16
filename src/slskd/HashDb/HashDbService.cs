@@ -50,6 +50,7 @@ namespace slskd.HashDb
         private const int MeshMergeInsertBatchSize = 100;
         private const int AlbumTrackUpsertBatchSize = 100;
         private const int ReleaseJobUpsertBatchSize = 100;
+        private const int CanonicalStatsUpsertBatchSize = 100;
 
         private readonly string dbPath;
         private readonly ILogger log = Log.ForContext<HashDbService>();
@@ -2946,20 +2947,82 @@ namespace slskd.HashDb
         /// <inheritdoc/>
         public async Task UpsertCanonicalStatsAsync(CanonicalStats stats, CancellationToken cancellationToken = default)
         {
-            stats.Id = stats.Id?.Trim() ?? string.Empty;
-            stats.MusicBrainzRecordingId = stats.MusicBrainzRecordingId?.Trim() ?? string.Empty;
-            stats.CodecProfileKey = stats.CodecProfileKey?.Trim() ?? string.Empty;
-            stats.BestVariantId = string.IsNullOrWhiteSpace(stats.BestVariantId) ? string.Empty : stats.BestVariantId.Trim();
-            if (string.IsNullOrWhiteSpace(stats.Id) ||
-                string.IsNullOrWhiteSpace(stats.MusicBrainzRecordingId) ||
-                string.IsNullOrWhiteSpace(stats.CodecProfileKey))
+            if (!NormalizeCanonicalStats(stats))
             {
                 return;
             }
 
             using var conn = GetConnection();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = @"
+            await UpsertCanonicalStatsBatchAsync(
+                conn,
+                transaction: null,
+                new[] { stats },
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <inheritdoc/>
+        public async Task UpsertCanonicalStatsAsync(
+            IEnumerable<CanonicalStats> stats,
+            CancellationToken cancellationToken = default)
+        {
+            var normalized = stats
+                .Where(NormalizeCanonicalStats)
+                .ToList();
+            if (normalized.Count == 0)
+            {
+                return;
+            }
+
+            using var conn = GetConnection();
+            using var transaction = conn.BeginTransaction();
+            foreach (var batch in normalized.Chunk(CanonicalStatsUpsertBatchSize))
+            {
+                await UpsertCanonicalStatsBatchAsync(
+                    conn,
+                    transaction,
+                    batch,
+                    cancellationToken).ConfigureAwait(false);
+            }
+
+            transaction.Commit();
+        }
+
+        private static bool NormalizeCanonicalStats(CanonicalStats stats)
+        {
+            stats.Id = stats.Id?.Trim() ?? string.Empty;
+            stats.MusicBrainzRecordingId = stats.MusicBrainzRecordingId?.Trim() ?? string.Empty;
+            stats.CodecProfileKey = stats.CodecProfileKey?.Trim() ?? string.Empty;
+            stats.BestVariantId = string.IsNullOrWhiteSpace(stats.BestVariantId) ? string.Empty : stats.BestVariantId.Trim();
+            return !string.IsNullOrWhiteSpace(stats.Id) &&
+                !string.IsNullOrWhiteSpace(stats.MusicBrainzRecordingId) &&
+                !string.IsNullOrWhiteSpace(stats.CodecProfileKey);
+        }
+
+        private static async Task UpsertCanonicalStatsBatchAsync(
+            SqliteConnection connection,
+            SqliteTransaction? transaction,
+            IReadOnlyList<CanonicalStats> stats,
+            CancellationToken cancellationToken)
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = transaction;
+            var values = stats.Select((_, index) => $"""
+                (@id{index},
+                 @recording_id{index},
+                 @codec_profile_key{index},
+                 @variant_count{index},
+                 @total_seen_count{index},
+                 @avg_quality_score{index},
+                 @max_quality_score{index},
+                 @percent_transcode_suspect{index},
+                 @codec_distribution{index},
+                 @bitrate_distribution{index},
+                 @sample_rate_distribution{index},
+                 @best_variant_id{index},
+                 @canonicality_score{index},
+                 @last_updated{index})
+                """);
+            cmd.CommandText = $"""
                 INSERT INTO CanonicalStats (
                     id,
                     musicbrainz_recording_id,
@@ -2975,21 +3038,7 @@ namespace slskd.HashDb
                     best_variant_id,
                     canonicality_score,
                     last_updated)
-                VALUES (
-                    @id,
-                    @recording_id,
-                    @codec_profile_key,
-                    @variant_count,
-                    @total_seen_count,
-                    @avg_quality_score,
-                    @max_quality_score,
-                    @percent_transcode_suspect,
-                    @codec_distribution,
-                    @bitrate_distribution,
-                    @sample_rate_distribution,
-                    @best_variant_id,
-                    @canonicality_score,
-                    @last_updated)
+                VALUES {string.Join(", ", values)}
                 ON CONFLICT(id) DO UPDATE SET
                     variant_count = excluded.variant_count,
                     total_seen_count = excluded.total_seen_count,
@@ -3001,22 +3050,27 @@ namespace slskd.HashDb
                     sample_rate_distribution = excluded.sample_rate_distribution,
                     best_variant_id = excluded.best_variant_id,
                     canonicality_score = excluded.canonicality_score,
-                    last_updated = excluded.last_updated";
+                    last_updated = excluded.last_updated
+                """;
 
-            cmd.Parameters.AddWithValue("@id", stats.Id);
-            cmd.Parameters.AddWithValue("@recording_id", stats.MusicBrainzRecordingId);
-            cmd.Parameters.AddWithValue("@codec_profile_key", stats.CodecProfileKey);
-            cmd.Parameters.AddWithValue("@variant_count", stats.VariantCount);
-            cmd.Parameters.AddWithValue("@total_seen_count", stats.TotalSeenCount);
-            cmd.Parameters.AddWithValue("@avg_quality_score", stats.AvgQualityScore);
-            cmd.Parameters.AddWithValue("@max_quality_score", stats.MaxQualityScore);
-            cmd.Parameters.AddWithValue("@percent_transcode_suspect", stats.PercentTranscodeSuspect);
-            cmd.Parameters.AddWithValue("@codec_distribution", JsonSerializer.Serialize(stats.CodecDistribution));
-            cmd.Parameters.AddWithValue("@bitrate_distribution", JsonSerializer.Serialize(stats.BitrateDistribution));
-            cmd.Parameters.AddWithValue("@sample_rate_distribution", JsonSerializer.Serialize(stats.SampleRateDistribution));
-            cmd.Parameters.AddWithValue("@best_variant_id", (object?)stats.BestVariantId ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@canonicality_score", stats.CanonicalityScore);
-            cmd.Parameters.AddWithValue("@last_updated", stats.LastUpdated.ToUnixTimeSeconds());
+            for (var index = 0; index < stats.Count; index++)
+            {
+                var item = stats[index];
+                cmd.Parameters.AddWithValue($"@id{index}", item.Id);
+                cmd.Parameters.AddWithValue($"@recording_id{index}", item.MusicBrainzRecordingId);
+                cmd.Parameters.AddWithValue($"@codec_profile_key{index}", item.CodecProfileKey);
+                cmd.Parameters.AddWithValue($"@variant_count{index}", item.VariantCount);
+                cmd.Parameters.AddWithValue($"@total_seen_count{index}", item.TotalSeenCount);
+                cmd.Parameters.AddWithValue($"@avg_quality_score{index}", item.AvgQualityScore);
+                cmd.Parameters.AddWithValue($"@max_quality_score{index}", item.MaxQualityScore);
+                cmd.Parameters.AddWithValue($"@percent_transcode_suspect{index}", item.PercentTranscodeSuspect);
+                cmd.Parameters.AddWithValue($"@codec_distribution{index}", JsonSerializer.Serialize(item.CodecDistribution));
+                cmd.Parameters.AddWithValue($"@bitrate_distribution{index}", JsonSerializer.Serialize(item.BitrateDistribution));
+                cmd.Parameters.AddWithValue($"@sample_rate_distribution{index}", JsonSerializer.Serialize(item.SampleRateDistribution));
+                cmd.Parameters.AddWithValue($"@best_variant_id{index}", (object?)item.BestVariantId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue($"@canonicality_score{index}", item.CanonicalityScore);
+                cmd.Parameters.AddWithValue($"@last_updated{index}", item.LastUpdated.ToUnixTimeSeconds());
+            }
 
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
@@ -3044,6 +3098,32 @@ namespace slskd.HashDb
             }
 
             return null;
+        }
+
+        /// <inheritdoc/>
+        public async Task<List<CanonicalStats>> GetCanonicalStatsForRecordingAsync(
+            string recordingId,
+            CancellationToken cancellationToken = default)
+        {
+            var stats = new List<CanonicalStats>();
+            recordingId = recordingId?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(recordingId))
+            {
+                return stats;
+            }
+
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT * FROM CanonicalStats WHERE musicbrainz_recording_id = @rec";
+            cmd.Parameters.AddWithValue("@rec", recordingId);
+
+            using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                stats.Add(ReadCanonicalStats(reader));
+            }
+
+            return stats;
         }
 
         /// <inheritdoc/>

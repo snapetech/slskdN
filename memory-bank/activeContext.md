@@ -1,3 +1,17 @@
+## Update 2026-07-16 10:01:01Z
+
+- Current task: performance and efficiency improvements in progress; canonical audio-stat batching pass complete locally.
+- Last activity:
+  - Candidate ranking now reuses loaded variants, reads all stored profile stats once, and batch-persists missing profiles. A 100-profile all-missing request falls from 301 SQLite commands to three (99.0% fewer).
+  - Full recomputation now keyset-pages 500 recording IDs and batch-loads their variants before bounded 100-row writes. A 10,000-recording/three-profile workload falls from 70,001 commands to 341 (99.5% fewer) with page-bounded memory. Documented gotchas `0z680` (`171276e30`) and `0z681` (`2eda5d03a`).
+- Validation:
+  - Passed focused canonical-stat coverage (`7/7`), broader Audio/HashDb coverage (`145/145`), and full backend tests (`4858/4858`: `69` application, `4509` unit, `280` integration).
+  - Exact canonical recording query-plan coverage, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the canonical audio-stat batching slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 09:45:59Z
 
 - Current task: performance and efficiency improvements in progress; discography coverage batching pass complete locally.

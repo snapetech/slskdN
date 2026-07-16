@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch canonical audio-stat ranking and recomputation.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Candidate ranking now reuses its loaded variants, hydrates every stored profile stat through one indexed recording read, and writes all missing profiles with bounded 100-row upserts. A 100-profile all-missing request falls from 301 SQLite commands to three (99.0% fewer). Full recomputation now keyset-pages 500 recording IDs, batch-loads variants, computes profiles in memory, and persists each page transactionally; 10,000 recordings with three profiles each fall from 70,001 commands to 341 (99.5% fewer) while memory stays page-bounded. Added exact 100-profile and 1,000-recording call-boundary regressions, a 202-row SQLite persistence regression, and an exact index-plan check. Documented implementation gotchas `0z680` (`171276e30`) and `0z681` (`2eda5d03a`).
+
 - [x] Batch MusicBrainz discography coverage evidence reads.
   - Status: completed (2026-07-16)
   - Priority: P1

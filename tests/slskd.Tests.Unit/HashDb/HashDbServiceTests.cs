@@ -226,6 +226,22 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Constructor_IndexesCanonicalStatsRecordingLookup()
+    {
+        await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText =
+            "EXPLAIN QUERY PLAN SELECT * FROM CanonicalStats WHERE musicbrainz_recording_id = 'recording-1'";
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        Assert.True(await reader.ReadAsync());
+        var plan = reader.GetString(3);
+
+        Assert.Contains("SEARCH CanonicalStats USING INDEX idx_canonical_recording", plan, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Constructor_IndexesPeerCapabilityStatsQuery()
     {
         await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
@@ -827,6 +843,50 @@ public class HashDbServiceTests : IDisposable
         Assert.Equal("rec-1", stored.MusicBrainzRecordingId);
         Assert.Equal("FLAC_44100_16_2", stored.CodecProfileKey);
         Assert.Equal("variant-1", stored.BestVariantId);
+    }
+
+    [Fact]
+    public async Task UpsertCanonicalStatsAsync_WithLargeBatch_PersistsAllAndReturnsRecordingStats()
+    {
+        var stats = Enumerable.Range(1, 201)
+            .Select(index => new CanonicalStats
+            {
+                Id = $" stats-{index} ",
+                MusicBrainzRecordingId = " recording-1 ",
+                CodecProfileKey = $" profile-{index} ",
+                BestVariantId = $" variant-{index} ",
+                VariantCount = index,
+                TotalSeenCount = index,
+                LastUpdated = DateTimeOffset.UtcNow,
+            })
+            .Append(new CanonicalStats
+            {
+                Id = "stats-1",
+                MusicBrainzRecordingId = "recording-1",
+                CodecProfileKey = "profile-1",
+                BestVariantId = "replacement",
+                VariantCount = 999,
+                TotalSeenCount = 999,
+                LastUpdated = DateTimeOffset.UtcNow,
+            })
+            .ToList();
+
+        await service.UpsertCanonicalStatsAsync(stats);
+        await service.UpsertCanonicalStatsAsync(new CanonicalStats
+        {
+            Id = "other-stats",
+            MusicBrainzRecordingId = "recording-2",
+            CodecProfileKey = "profile-1",
+            LastUpdated = DateTimeOffset.UtcNow,
+        });
+
+        var stored = await service.GetCanonicalStatsForRecordingAsync(" recording-1 ");
+
+        Assert.Equal(201, stored.Count);
+        Assert.All(stored, item => Assert.Equal("recording-1", item.MusicBrainzRecordingId));
+        var replacement = Assert.Single(stored, item => item.Id == "stats-1");
+        Assert.Equal(999, replacement.VariantCount);
+        Assert.Equal("replacement", replacement.BestVariantId);
     }
 
     [Fact]

@@ -14,6 +14,8 @@ namespace slskd.Audio
 
     public class CanonicalStatsService : ICanonicalStatsService
     {
+        private const int RecomputeRecordingPageSize = 500;
+
         private readonly IHashDbService hashDb;
         private readonly ILogger<CanonicalStatsService> log;
 
@@ -31,37 +33,7 @@ namespace slskd.Audio
                 return null;
             }
 
-            // Deduplicate identical streams within the profile using codec-specific hashes
-            var distinctVariants = DeduplicateStreams(variants);
-
-            var stats = new CanonicalStats
-            {
-                Id = $"{recordingId}:{codecProfileKey}",
-                MusicBrainzRecordingId = recordingId,
-                CodecProfileKey = codecProfileKey,
-                VariantCount = distinctVariants.Count,
-                TotalSeenCount = distinctVariants.Sum(v => v.SeenCount <= 0 ? 1 : v.SeenCount),
-                AvgQualityScore = distinctVariants.Average(v => v.QualityScore),
-                MaxQualityScore = distinctVariants.Max(v => v.QualityScore),
-                PercentTranscodeSuspect = (distinctVariants.Count(v => v.TranscodeSuspect) / (double)distinctVariants.Count) * 100.0,
-                LastUpdated = DateTimeOffset.UtcNow,
-            };
-
-            stats.CodecDistribution = distinctVariants.GroupBy(v => v.Codec ?? "unknown")
-                .ToDictionary(g => g.Key, g => g.Count());
-            stats.BitrateDistribution = distinctVariants.GroupBy(v => RoundToNearestBitrate(v.BitrateKbps))
-                .ToDictionary(g => g.Key, g => g.Count());
-            stats.SampleRateDistribution = distinctVariants.GroupBy(v => v.SampleRateHz)
-                .ToDictionary(g => g.Key, g => g.Count());
-
-            var bestVariant = distinctVariants
-                .OrderByDescending(v => v.QualityScore)
-                .ThenByDescending(v => v.SeenCount)
-                .First();
-
-            stats.BestVariantId = bestVariant.VariantId ?? bestVariant.FlacKey;
-            stats.CanonicalityScore = ComputeCanonicalityScore(bestVariant, stats);
-
+            var stats = BuildCanonicalStats(recordingId, codecProfileKey, variants);
             await hashDb.UpsertCanonicalStatsAsync(stats, ct).ConfigureAwait(false);
             return stats;
         }
@@ -77,20 +49,30 @@ namespace slskd.Audio
             // Deduplicate across codecs using stream hash or audio sketch + duration bucket
             var deduped = DeduplicateStreams(variants, crossCodec: true);
 
-            // Group by codec profile
-            var statsByProfile = new Dictionary<string, CanonicalStats>();
-            foreach (var v in deduped)
+            var variantsByProfile = variants
+                .GroupBy(variant => CodecProfile.FromVariant(variant).ToKey(), StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
+            var statsByProfile = (await hashDb
+                    .GetCanonicalStatsForRecordingAsync(recordingId, ct)
+                    .ConfigureAwait(false))
+                .GroupBy(stats => stats.CodecProfileKey, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+            var missingStats = new List<CanonicalStats>();
+            foreach (var profileKey in deduped
+                .Select(variant => CodecProfile.FromVariant(variant).ToKey())
+                .Distinct(StringComparer.Ordinal))
             {
-                var profileKey = CodecProfile.FromVariant(v).ToKey();
                 if (!statsByProfile.ContainsKey(profileKey))
                 {
-                    var existing = await hashDb.GetCanonicalStatsAsync(recordingId, profileKey, ct).ConfigureAwait(false);
-                    var computed = existing ?? await AggregateStatsAsync(recordingId, profileKey, ct).ConfigureAwait(false);
-                    if (computed != null)
-                    {
-                        statsByProfile[profileKey] = computed;
-                    }
+                    var computed = BuildCanonicalStats(recordingId, profileKey, variantsByProfile[profileKey]);
+                    statsByProfile[profileKey] = computed;
+                    missingStats.Add(computed);
                 }
+            }
+
+            if (missingStats.Count > 0)
+            {
+                await hashDb.UpsertCanonicalStatsAsync(missingStats, ct).ConfigureAwait(false);
             }
 
             return deduped
@@ -107,15 +89,75 @@ namespace slskd.Audio
 
         public async Task RecomputeAllStatsAsync(CancellationToken ct = default)
         {
-            var recordingIds = await hashDb.GetRecordingIdsWithVariantsAsync(ct).ConfigureAwait(false);
-            foreach (var recId in recordingIds)
+            string? afterRecordingId = null;
+            while (true)
             {
-                var profileKeys = await hashDb.GetCodecProfilesForRecordingAsync(recId, ct).ConfigureAwait(false);
-                foreach (var profile in profileKeys)
+                ct.ThrowIfCancellationRequested();
+                var recordingIds = await hashDb
+                    .GetRecordingIdsWithVariantsPageAsync(afterRecordingId, RecomputeRecordingPageSize, ct)
+                    .ConfigureAwait(false);
+                if (recordingIds.Count == 0)
                 {
-                    await AggregateStatsAsync(recId, profile, ct).ConfigureAwait(false);
+                    break;
                 }
+
+                var variants = await hashDb
+                    .GetVariantsByRecordingsAsync(recordingIds, ct)
+                    .ConfigureAwait(false);
+                var variantsByRecording = variants.ToLookup(
+                    variant => variant.MusicBrainzRecordingId,
+                    StringComparer.Ordinal);
+                var stats = recordingIds
+                    .SelectMany(recordingId => variantsByRecording[recordingId]
+                        .GroupBy(variant => CodecProfile.FromVariant(variant).ToKey(), StringComparer.Ordinal)
+                        .Select(group => BuildCanonicalStats(recordingId, group.Key, group.ToList())))
+                    .ToList();
+                if (stats.Count > 0)
+                {
+                    await hashDb.UpsertCanonicalStatsAsync(stats, ct).ConfigureAwait(false);
+                }
+
+                afterRecordingId = recordingIds[^1];
             }
+        }
+
+        private static CanonicalStats BuildCanonicalStats(
+            string recordingId,
+            string codecProfileKey,
+            List<AudioVariant> variants)
+        {
+            // Deduplicate identical streams within the profile using codec-specific hashes.
+            var distinctVariants = DeduplicateStreams(variants);
+            var stats = new CanonicalStats
+            {
+                Id = $"{recordingId}:{codecProfileKey}",
+                MusicBrainzRecordingId = recordingId,
+                CodecProfileKey = codecProfileKey,
+                VariantCount = distinctVariants.Count,
+                TotalSeenCount = distinctVariants.Sum(variant => variant.SeenCount <= 0 ? 1 : variant.SeenCount),
+                AvgQualityScore = distinctVariants.Average(variant => variant.QualityScore),
+                MaxQualityScore = distinctVariants.Max(variant => variant.QualityScore),
+                PercentTranscodeSuspect = (distinctVariants.Count(variant => variant.TranscodeSuspect) / (double)distinctVariants.Count) * 100.0,
+                LastUpdated = DateTimeOffset.UtcNow,
+            };
+
+            stats.CodecDistribution = distinctVariants
+                .GroupBy(variant => variant.Codec ?? "unknown")
+                .ToDictionary(group => group.Key, group => group.Count());
+            stats.BitrateDistribution = distinctVariants
+                .GroupBy(variant => RoundToNearestBitrate(variant.BitrateKbps))
+                .ToDictionary(group => group.Key, group => group.Count());
+            stats.SampleRateDistribution = distinctVariants
+                .GroupBy(variant => variant.SampleRateHz)
+                .ToDictionary(group => group.Key, group => group.Count());
+
+            var bestVariant = distinctVariants
+                .OrderByDescending(variant => variant.QualityScore)
+                .ThenByDescending(variant => variant.SeenCount)
+                .First();
+            stats.BestVariantId = bestVariant.VariantId ?? bestVariant.FlacKey;
+            stats.CanonicalityScore = ComputeCanonicalityScore(bestVariant, stats);
+            return stats;
         }
 
         private static int RoundToNearestBitrate(int bitrate)

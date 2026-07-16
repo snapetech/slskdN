@@ -223,9 +223,23 @@ namespace slskd.HashDb
         Task UpsertCanonicalStatsAsync(CanonicalStats stats, CancellationToken cancellationToken = default);
 
         /// <summary>
+        ///     Upserts canonical stats entries in bounded batches.
+        /// </summary>
+        Task UpsertCanonicalStatsAsync(
+            IEnumerable<CanonicalStats> stats,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         ///     Get canonical stats for recording/profile.
         /// </summary>
         Task<CanonicalStats?> GetCanonicalStatsAsync(string recordingId, string codecProfileKey, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        ///     Gets all canonical stats for a recording.
+        /// </summary>
+        Task<List<CanonicalStats>> GetCanonicalStatsForRecordingAsync(
+            string recordingId,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         ///     Get recording IDs that have variants.

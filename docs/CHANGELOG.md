@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Canonical audio candidate ranking now reuses its loaded variants, reads all
+  stored profile stats once, and batches missing-stat persistence. With 100
+  missing profiles it falls from 301 SQLite commands to three (99.0% fewer).
+  Full recomputation now keyset-pages 500 recording IDs and batch-loads their
+  variants; 10,000 recordings with three profiles each fall from 70,001
+  commands to 341 (99.5% fewer) without full-library variant materialization.
 - MusicBrainz discography coverage now batches cached album targets, release
   tracks, and recording-hash evidence before assembling the unchanged response.
   A cached 100-release collection with ten tracks each falls from 1,200 SQLite

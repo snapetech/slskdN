@@ -36,12 +36,10 @@ namespace slskd.Tests.Unit.Audio
                 .Returns(Task.CompletedTask);
             mockDb.Setup(m => m.GetVariantsByRecordingAsync("rec1", It.IsAny<CancellationToken>()))
                 .ReturnsAsync(variants);
-            mockDb.Setup(m => m.GetCanonicalStatsAsync("rec1", It.IsAny<string>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((CanonicalStats)null);
-            mockDb.Setup(m => m.GetRecordingIdsWithVariantsAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new List<string> { "rec1" });
-            mockDb.Setup(m => m.GetCodecProfilesForRecordingAsync("rec1", It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new List<string> { "FLAC-16bit-44100Hz-2ch", "MP3-lossy-44100Hz-2ch" });
+            mockDb.Setup(m => m.GetCanonicalStatsForRecordingAsync("rec1", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<CanonicalStats>());
+            mockDb.Setup(m => m.UpsertCanonicalStatsAsync(It.IsAny<IEnumerable<CanonicalStats>>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
 
             var svc = new CanonicalStatsService(mockDb.Object, Mock.Of<Microsoft.Extensions.Logging.ILogger<CanonicalStatsService>>());
 
@@ -66,6 +64,157 @@ namespace slskd.Tests.Unit.Audio
 
             Assert.Null(stats);
             mockDb.Verify(m => m.UpsertCanonicalStatsAsync(It.IsAny<CanonicalStats>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task GetCanonicalVariantCandidatesAsync_WithOneHundredProfiles_UsesThreeDatabaseCalls()
+        {
+            const int profileCount = 100;
+            var variants = Enumerable.Range(1, profileCount)
+                .Select(index => new AudioVariant
+                {
+                    VariantId = $"variant-{index}",
+                    MusicBrainzRecordingId = "recording-1",
+                    Codec = "FLAC",
+                    SampleRateHz = 44000 + index,
+                    BitDepth = 16,
+                    Channels = 2,
+                    FlacPcmMd5 = $"stream-{index}",
+                    QualityScore = index / 100.0,
+                    SeenCount = index,
+                })
+                .ToList();
+            var hashDb = new Mock<IHashDbService>();
+            hashDb.Setup(service => service.GetVariantsByRecordingAsync("recording-1", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(variants);
+            hashDb.Setup(service => service.GetCanonicalStatsForRecordingAsync("recording-1", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<CanonicalStats>());
+            hashDb.Setup(service => service.UpsertCanonicalStatsAsync(
+                    It.IsAny<IEnumerable<CanonicalStats>>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            var service = new CanonicalStatsService(
+                hashDb.Object,
+                Mock.Of<Microsoft.Extensions.Logging.ILogger<CanonicalStatsService>>());
+
+            var candidates = await service.GetCanonicalVariantCandidatesAsync("recording-1");
+
+            Assert.Equal(profileCount, candidates.Count);
+            hashDb.Verify(service => service.GetVariantsByRecordingAsync(
+                "recording-1",
+                It.IsAny<CancellationToken>()), Times.Once);
+            hashDb.Verify(service => service.GetCanonicalStatsForRecordingAsync(
+                "recording-1",
+                It.IsAny<CancellationToken>()), Times.Once);
+            hashDb.Verify(service => service.UpsertCanonicalStatsAsync(
+                It.Is<IEnumerable<CanonicalStats>>(stats => stats.Count() == profileCount),
+                It.IsAny<CancellationToken>()), Times.Once);
+            hashDb.Verify(service => service.GetCanonicalStatsAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+            hashDb.Verify(service => service.GetVariantsByRecordingAndProfileAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+            hashDb.Verify(service => service.UpsertCanonicalStatsAsync(
+                It.IsAny<CanonicalStats>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task RecomputeAllStatsAsync_WithOneThousandRecordings_UsesPagedBatchCalls()
+        {
+            const int recordingCount = 1000;
+            const int profilesPerRecording = 3;
+            var recordingIds = Enumerable.Range(0, recordingCount)
+                .Select(index => $"recording-{index:D4}")
+                .ToList();
+            var hashDb = new Mock<IHashDbService>();
+            hashDb.Setup(service => service.GetRecordingIdsWithVariantsPageAsync(
+                    null,
+                    500,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(recordingIds.Take(500).ToList());
+            hashDb.Setup(service => service.GetRecordingIdsWithVariantsPageAsync(
+                    "recording-0499",
+                    500,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(recordingIds.Skip(500).ToList());
+            hashDb.Setup(service => service.GetRecordingIdsWithVariantsPageAsync(
+                    "recording-0999",
+                    500,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<string>());
+            hashDb.Setup(service => service.GetVariantsByRecordingsAsync(
+                    It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync((IEnumerable<string> ids, CancellationToken _) => ids
+                    .SelectMany(recordingId => new[]
+                    {
+                        CreateVariant(recordingId, "FLAC", 44100, 16),
+                        CreateVariant(recordingId, "FLAC", 48000, 24),
+                        CreateVariant(recordingId, "MP3", 44100, null),
+                    })
+                    .ToList());
+            var persistedStats = new List<CanonicalStats>();
+            hashDb.Setup(service => service.UpsertCanonicalStatsAsync(
+                    It.IsAny<IEnumerable<CanonicalStats>>(),
+                    It.IsAny<CancellationToken>()))
+                .Callback((IEnumerable<CanonicalStats> stats, CancellationToken _) => persistedStats.AddRange(stats))
+                .Returns(Task.CompletedTask);
+            var service = new CanonicalStatsService(
+                hashDb.Object,
+                Mock.Of<Microsoft.Extensions.Logging.ILogger<CanonicalStatsService>>());
+
+            await service.RecomputeAllStatsAsync();
+
+            Assert.Equal(recordingCount * profilesPerRecording, persistedStats.Count);
+            Assert.Equal(recordingCount * profilesPerRecording, persistedStats.Select(stats => stats.Id).Distinct().Count());
+            hashDb.Verify(service => service.GetRecordingIdsWithVariantsPageAsync(
+                It.IsAny<string?>(),
+                500,
+                It.IsAny<CancellationToken>()), Times.Exactly(3));
+            hashDb.Verify(service => service.GetVariantsByRecordingsAsync(
+                It.Is<IEnumerable<string>>(ids => ids.Count() == 500),
+                It.IsAny<CancellationToken>()), Times.Exactly(2));
+            hashDb.Verify(service => service.UpsertCanonicalStatsAsync(
+                It.Is<IEnumerable<CanonicalStats>>(stats => stats.Count() == 1500),
+                It.IsAny<CancellationToken>()), Times.Exactly(2));
+            hashDb.Verify(service => service.GetRecordingIdsWithVariantsAsync(
+                It.IsAny<CancellationToken>()), Times.Never);
+            hashDb.Verify(service => service.GetCodecProfilesForRecordingAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+            hashDb.Verify(service => service.GetVariantsByRecordingAndProfileAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+            hashDb.Verify(service => service.UpsertCanonicalStatsAsync(
+                It.IsAny<CanonicalStats>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        private static AudioVariant CreateVariant(
+            string recordingId,
+            string codec,
+            int sampleRate,
+            int? bitDepth)
+        {
+            var profile = $"{codec}-{sampleRate}-{bitDepth}";
+            return new AudioVariant
+            {
+                VariantId = $"{recordingId}-{profile}",
+                MusicBrainzRecordingId = recordingId,
+                Codec = codec,
+                SampleRateHz = sampleRate,
+                BitDepth = bitDepth,
+                Channels = 2,
+                FlacPcmMd5 = $"{recordingId}-{profile}",
+                Mp3StreamHash = $"{recordingId}-{profile}",
+                QualityScore = 0.8,
+                SeenCount = 1,
+            };
         }
     }
 }
