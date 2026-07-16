@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Text.Json.Serialization;
-using System.Threading.Channels;
 using slskd;
 using slskd.Transfers.MultiSource.Caching;
 using OptionsModel = slskd.Options;
@@ -28,7 +27,6 @@ public class WarmCacheController : ControllerBase
 {
     private const int MaxHintsPerRequest = 100;
     private const int MaxIdentifierLength = 128;
-    private const int MaxWorkers = 4;
 
     private readonly IWarmCachePopularityService popularityService;
     private readonly IOptionsMonitor<OptionsModel> optionsMonitor;
@@ -110,41 +108,9 @@ public class WarmCacheController : ControllerBase
             .Concat(artistIds.Select(id => $"mb:artist:{id}"))
             .Concat(labelIds.Select(id => $"mb:label:{id}"))
             .ToArray();
-        await RecordHintsWithBoundedWorkersAsync(hints, cancellationToken);
+        await popularityService.RecordAccessesAsync(hints, cancellationToken);
 
         return Ok(new { accepted = true });
-    }
-
-    private async Task RecordHintsWithBoundedWorkersAsync(IReadOnlyCollection<string> hints, CancellationToken cancellationToken)
-    {
-        var channel = Channel.CreateBounded<string>(new BoundedChannelOptions(Math.Min(64, hints.Count))
-        {
-            FullMode = BoundedChannelFullMode.Wait,
-            SingleWriter = true,
-        });
-        var workers = Enumerable.Range(0, Math.Min(MaxWorkers, hints.Count))
-            .Select(_ => Task.Run(async () =>
-            {
-                await foreach (var hint in channel.Reader.ReadAllAsync(cancellationToken))
-                {
-                    await popularityService.RecordAccessAsync(hint, cancellationToken);
-                }
-            }, CancellationToken.None))
-            .ToArray();
-
-        try
-        {
-            foreach (var hint in hints)
-            {
-                await channel.Writer.WriteAsync(hint, cancellationToken);
-            }
-        }
-        finally
-        {
-            channel.Writer.TryComplete();
-        }
-
-        await Task.WhenAll(workers);
     }
 }
 

@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Warm-cache hint ingestion now sends the complete validated request through
+  one service call and persists normalized popularity increments in bounded
+  400-ID SQLite upserts. At the 100-hint endpoint maximum, writes and
+  transactions fall from 100 to one (99.0% fewer). Duplicate inputs retain
+  their full hit count, while an empty normalized batch performs no database
+  work.
 - Accessible share-grant resolution now loads relevant active candidates and
   resolves every distinct group membership through one set-based read instead
   of opening a new database context per group grant. With 100 valid group

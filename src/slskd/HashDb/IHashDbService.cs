@@ -343,6 +343,11 @@ namespace slskd.HashDb
         Task IncrementPopularityAsync(string contentId, CancellationToken cancellationToken = default);
 
         /// <summary>
+        ///     Increment popularity for a bounded set of content IDs.
+        /// </summary>
+        Task IncrementPopularitiesAsync(IEnumerable<string> contentIds, CancellationToken cancellationToken = default);
+
+        /// <summary>
         ///     Get top popular content IDs above threshold.
         /// </summary>
         Task<IReadOnlyList<(string ContentId, long Hits)>> GetTopPopularAsync(int limit, long minHits = 1, CancellationToken cancellationToken = default);

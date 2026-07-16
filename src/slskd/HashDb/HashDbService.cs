@@ -53,6 +53,7 @@ namespace slskd.HashDb
         private const int CanonicalStatsUpsertBatchSize = 100;
         private const int VariantAnalysisUpdateBatchSize = 100;
         private const int HashLookupBatchSize = 500;
+        private const int WarmCachePopularityUpsertBatchSize = 400;
 
         private readonly string dbPath;
         private readonly ILogger log = Log.ForContext<HashDbService>();
@@ -3759,28 +3760,66 @@ namespace slskd.HashDb
         // ========== Warm Cache Popularity ==========
 
         /// <inheritdoc/>
-        public async Task IncrementPopularityAsync(string contentId, CancellationToken cancellationToken = default)
+        public Task IncrementPopularityAsync(string contentId, CancellationToken cancellationToken = default)
+            => IncrementPopularitiesAsync(new[] { contentId }, cancellationToken);
+
+        /// <inheritdoc/>
+        public async Task IncrementPopularitiesAsync(IEnumerable<string> contentIds, CancellationToken cancellationToken = default)
         {
-            contentId = contentId?.Trim() ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(contentId))
+            var normalized = contentIds
+                .Where(contentId => !string.IsNullOrWhiteSpace(contentId))
+                .Select(contentId => contentId.Trim())
+                .ToArray();
+            if (normalized.Length == 0)
             {
                 return;
             }
 
             using var conn = GetConnection();
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = @"
-                INSERT INTO WarmCachePopularity (content_id, hits, last_updated)
-                VALUES (@cid, 1, @now)
-                ON CONFLICT(content_id) DO UPDATE SET
-                    hits = WarmCachePopularity.hits + 1,
-                    last_updated = @now;
-            ";
-            var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            cmd.Parameters.AddWithValue("@cid", contentId);
-            cmd.Parameters.AddWithValue("@now", now);
+            using var transaction = conn.BeginTransaction();
+            await UpsertPopularityInBatchesAsync(conn, transaction, normalized, cancellationToken).ConfigureAwait(false);
+            transaction.Commit();
+        }
 
-            await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        internal static async Task<int> UpsertPopularityInBatchesAsync(
+            SqliteConnection connection,
+            SqliteTransaction transaction,
+            IEnumerable<string> contentIds,
+            CancellationToken cancellationToken)
+        {
+            var normalized = contentIds
+                .Where(contentId => !string.IsNullOrWhiteSpace(contentId))
+                .Select(contentId => contentId.Trim())
+                .GroupBy(contentId => contentId, StringComparer.Ordinal)
+                .Select(group => (ContentId: group.Key, Hits: group.LongCount()))
+                .ToArray();
+            var commandCount = 0;
+            var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+            foreach (var batch in normalized.Chunk(WarmCachePopularityUpsertBatchSize))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.Transaction = transaction;
+                var values = batch.Select((_, index) => $"(@content_id{index}, @hits{index}, @now)");
+                cmd.CommandText = $"""
+                    INSERT INTO WarmCachePopularity (content_id, hits, last_updated)
+                    VALUES {string.Join(", ", values)}
+                    ON CONFLICT(content_id) DO UPDATE SET
+                        hits = WarmCachePopularity.hits + excluded.hits,
+                        last_updated = excluded.last_updated
+                    """;
+                cmd.Parameters.AddWithValue("@now", now);
+                for (var index = 0; index < batch.Length; index++)
+                {
+                    cmd.Parameters.AddWithValue($"@content_id{index}", batch[index].ContentId);
+                    cmd.Parameters.AddWithValue($"@hits{index}", batch[index].Hits);
+                }
+
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                commandCount++;
+            }
+
+            return commandCount;
         }
 
         /// <inheritdoc/>

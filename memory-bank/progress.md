@@ -1,3 +1,10 @@
+## Update 2026-07-16 12:04:16Z
+
+- Completed the warm-cache popularity persistence batching pass.
+- The endpoint now forwards all validated hints once, and HashDb groups normalized hit counts into bounded 400-ID multi-row upserts instead of opening one independent write per hint.
+- At the 100-hint endpoint maximum, database commands and transactions fall from 100 to one (99.0% fewer). The 401-distinct-ID regression executes two commands, duplicate inputs retain their full hit count, and an empty normalized batch performs no database work. Documented caught no-op regression as gotcha `0z690` (`177404d1f`).
+- Validation passed: focused warm-cache tests (`7/7`), broader HashDb/warm-cache tests (`92/92`), complete smoke/unit/integration suites (`4884/4884`: `69` smoke, `4535` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 11:56:01Z
 
 - Completed the accessible share-grant membership batching performance pass.

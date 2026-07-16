@@ -1234,6 +1234,44 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task WarmCachePopularityBatch_BoundsCommandsAndPreservesDuplicateHits()
+    {
+        var contentIds = Enumerable.Range(0, 401)
+            .Select(index => $"content-{index}")
+            .Append(" content-0 ")
+            .ToList();
+        await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await conn.OpenAsync();
+        using var transaction = conn.BeginTransaction();
+
+        var commandCount = await HashDbService.UpsertPopularityInBatchesAsync(
+            conn,
+            transaction,
+            contentIds,
+            CancellationToken.None);
+        transaction.Commit();
+
+        Assert.Equal(2, commandCount);
+        await using var countCommand = conn.CreateCommand();
+        countCommand.CommandText = "SELECT COUNT(*) FROM WarmCachePopularity";
+        Assert.Equal(401L, (long)(await countCommand.ExecuteScalarAsync())!);
+        await using var hitsCommand = conn.CreateCommand();
+        hitsCommand.CommandText = "SELECT hits FROM WarmCachePopularity WHERE content_id = 'content-0'";
+        Assert.Equal(2L, (long)(await hitsCommand.ExecuteScalarAsync())!);
+    }
+
+    [Fact]
+    public async Task IncrementPopularitiesAsync_EmptyInputDoesNotOpenDatabase()
+    {
+        var dbPath = Path.Combine(testDir, "hashdb.db");
+        File.Delete(dbPath);
+
+        await service.IncrementPopularitiesAsync(new[] { " ", string.Empty });
+
+        Assert.False(File.Exists(dbPath));
+    }
+
+    [Fact]
     public async Task GetLabelCrateJobAsync_NormalizesDeserializedJsonPayload()
     {
         await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");

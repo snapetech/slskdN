@@ -1,3 +1,17 @@
+## Update 2026-07-16 12:04:16Z
+
+- Current task: performance and efficiency improvements in progress; warm-cache popularity batching pass complete locally.
+- Last activity:
+  - Replaced the endpoint's per-hint worker channel with one bounded service call and added transactional 400-ID HashDb popularity upserts with grouped duplicate counts.
+  - At the 100-hint endpoint maximum, database commands and transactions fall from 100 to one (99.0% fewer). Empty normalized batches retain their zero-database-work boundary. Documented gotcha `0z690` (`177404d1f`).
+- Validation:
+  - Passed focused warm-cache coverage (`7/7`), broader HashDb/warm-cache coverage (`92/92`), and full backend tests (`4884/4884`: `69` application, `4535` unit, `280` integration).
+  - Exact 100-hint service boundaries, SQLite 401-distinct-ID batching, duplicate-hit persistence, empty-batch no-open behavior, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the warm-cache popularity batching slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 11:56:01Z
 
 - Current task: performance and efficiency improvements in progress; accessible share-grant membership batching pass complete locally.

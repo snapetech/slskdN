@@ -14,6 +14,8 @@ namespace slskd.Transfers.MultiSource.Caching
     {
         Task RecordAccessAsync(string contentId, CancellationToken ct = default);
 
+        Task RecordAccessesAsync(IReadOnlyCollection<string> contentIds, CancellationToken ct = default);
+
         Task<IReadOnlyList<string>> GetPopularContentAsync(int limit, CancellationToken ct = default);
     }
 
@@ -28,15 +30,18 @@ namespace slskd.Transfers.MultiSource.Caching
             this.optionsMonitor = optionsMonitor;
         }
 
-        public async Task RecordAccessAsync(string contentId, CancellationToken ct = default)
+        public Task RecordAccessAsync(string contentId, CancellationToken ct = default)
+            => RecordAccessesAsync(new[] { contentId }, ct);
+
+        public async Task RecordAccessesAsync(IReadOnlyCollection<string> contentIds, CancellationToken ct = default)
         {
             var opts = optionsMonitor.CurrentValue;
-            if (!opts.Enabled || string.IsNullOrWhiteSpace(contentId))
+            if (!opts.Enabled)
             {
                 return;
             }
 
-            await hashDb.IncrementPopularityAsync(contentId, ct).ConfigureAwait(false);
+            await hashDb.IncrementPopularitiesAsync(contentIds, ct).ConfigureAwait(false);
         }
 
         public async Task<IReadOnlyList<string>> GetPopularContentAsync(int limit, CancellationToken ct = default)

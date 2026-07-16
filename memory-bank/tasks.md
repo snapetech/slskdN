@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch warm-cache popularity hint persistence.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced the warm-cache endpoint's per-hint work channel and up to 100 independent HashDb writes with one service call and bounded 400-ID multi-row popularity upserts. At the endpoint maximum, database commands and transactions fall from 100 to one (99.0% fewer). Normalization remains case-sensitive at the persisted content-ID boundary, repeated inputs preserve their complete hit count, and empty normalized batches open no database resources. Added exact 100-hint controller/service call coverage, a 401-distinct-ID two-command SQLite boundary with duplicate-hit verification, and an empty-batch no-open regression. Documented scalar-to-batch no-op gotcha `0z690` (`177404d1f`). Validation passed: focused warm-cache coverage (`7/7`), broader HashDb/warm-cache coverage (`92/92`), full backend tests (`4884/4884`: `69` application, `4535` unit, `280` integration), repository lint, diff checks, and every substantive remediation check before the expected divergent-branch release-sync stop.
+
 - [x] Batch accessible share-grant membership resolution.
   - Status: completed (2026-07-16)
   - Priority: P1
