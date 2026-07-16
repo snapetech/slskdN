@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z695. SignalR Caller Mocks Require The Single-Client Proxy
+
+**The Bug**: A `SearchHub.OnConnectedAsync` regression mocked
+`IHubCallerClients.Caller` with `IClientProxy`. The property contract is the
+more specific `ISingleClientProxy`, so the test project failed with CS1503
+before exercising the bounded hub snapshot.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Search/API/SearchHubTests.cs`
+
+**Prevention**: Mock `ISingleClientProxy` for `Clients.Caller` and
+`Clients.Client(connectionId)` paths. Use `IClientProxy` only for broadcast or
+group properties whose declared return type is actually the broader proxy.
+Verify the property signature before building Hub caller fixtures.
+
 ### 0z694. EF Index Direction Must Match Migration SQL
 
 **The Bug**: A composite current-attempt index migration declared
