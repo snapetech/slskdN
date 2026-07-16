@@ -128,4 +128,70 @@ public class MeshSearchRpcHandlerTests
         Assert.Equal("Search failed", response.Error);
         Assert.True(timer.Elapsed < TimeSpan.FromSeconds(1));
     }
+
+    [Fact]
+    public async Task HandleAsync_StopsContentMappingEnumerationAtFirstAdvertisableItem()
+    {
+        var repository = new Mock<IShareRepository>();
+        var enumerated = 0;
+
+        IEnumerable<(string ContentId, string Domain, string WorkId, bool IsAdvertisable, string ModerationReason)> ContentItems()
+        {
+            for (var index = 0; index < 1_000; index++)
+            {
+                enumerated++;
+                yield return ($"content-{index}", "audio", string.Empty, index == 0, string.Empty);
+            }
+        }
+
+        repository
+            .Setup(r => r.ListContentItemsForFile("song.flac"))
+            .Returns(ContentItems());
+        _shareServiceMock
+            .Setup(s => s.SearchLocalAsync(It.IsAny<SearchQuery>()))
+            .ReturnsAsync(new[] { new Soulseek.File(1, "song.flac", 1_000, ".flac", null) });
+        _shareServiceMock
+            .Setup(s => s.GetLocalRepository())
+            .Returns(repository.Object);
+
+        var response = await CreateHandler().HandleAsync(new MeshSearchRequestMessage
+        {
+            RequestId = "request-1",
+            SearchText = "song",
+            MaxResults = 10,
+        });
+
+        Assert.Equal("content-0", Assert.Single(response.Files).ContentId);
+        Assert.Equal(1, enumerated);
+    }
+
+    [Fact]
+    public async Task HandleAsync_NoAdvertisableMappingRetainsFirstFallbackWithoutBuffering()
+    {
+        var repository = new Mock<IShareRepository>();
+        var contentItems = new[]
+        {
+            (ContentId: "first", Domain: "audio", WorkId: string.Empty, IsAdvertisable: false, ModerationReason: string.Empty),
+            (ContentId: "second", Domain: "audio", WorkId: string.Empty, IsAdvertisable: false, ModerationReason: string.Empty),
+        };
+
+        repository
+            .Setup(r => r.ListContentItemsForFile("song.flac"))
+            .Returns(contentItems);
+        _shareServiceMock
+            .Setup(s => s.SearchLocalAsync(It.IsAny<SearchQuery>()))
+            .ReturnsAsync(new[] { new Soulseek.File(1, "song.flac", 1_000, ".flac", null) });
+        _shareServiceMock
+            .Setup(s => s.GetLocalRepository())
+            .Returns(repository.Object);
+
+        var response = await CreateHandler().HandleAsync(new MeshSearchRequestMessage
+        {
+            RequestId = "request-1",
+            SearchText = "song",
+            MaxResults = 10,
+        });
+
+        Assert.Equal("first", Assert.Single(response.Files).ContentId);
+    }
 }

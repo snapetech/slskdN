@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Mesh search response enrichment now stops streaming file-content mappings at
+  the first advertisable item instead of buffering every mapping.
 - Virtual Soulfind canonical selection now scans variant hints once instead of
   sorting and allocating the complete result list.
 - MediaCore dashboards now share one content-registry snapshot between registry

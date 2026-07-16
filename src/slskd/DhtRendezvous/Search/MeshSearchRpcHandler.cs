@@ -87,18 +87,25 @@ public sealed class MeshSearchRpcHandler : IMeshSearchRpcHandler
                     string? contentId = null;
                     try
                     {
-                        var contentItems = repo.ListContentItemsForFile(f.Filename).ToList();
-                        if (contentItems.Count > 0)
+                        var hasFallback = false;
+                        string? fallbackContentId = null;
+
+                        foreach (var contentItem in repo.ListContentItemsForFile(f.Filename))
                         {
-                            // Use the first advertisable content item, or first item if none are advertisable
-                            var item = contentItems.FirstOrDefault(ci => ci.IsAdvertisable);
-                            if (item.ContentId == null)
+                            if (!hasFallback)
                             {
-                                item = contentItems.FirstOrDefault();
+                                fallbackContentId = contentItem.ContentId;
+                                hasFallback = true;
                             }
 
-                            contentId = item.ContentId;
+                            if (contentItem.IsAdvertisable)
+                            {
+                                contentId = contentItem.ContentId;
+                                break;
+                            }
                         }
+
+                        contentId ??= fallbackContentId;
                     }
                     catch (Exception ex)
                     {

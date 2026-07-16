@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Stream mesh-search content mapping selection.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Mesh-search response enrichment now walks `ListContentItemsForFile` lazily, retains only the first fallback, and stops as soon as it encounters the first advertisable mapping instead of forcing the complete SQLite-backed iterator into a list. In the covered 1,000-row best case, mapping rows read fall from 1,000 to one (99.9% fewer). When no row is advertisable, the iterator is still fully checked without list allocation and the original first-row fallback is retained. First-advertisable preference, fallback identity including nullable IDs, per-file lookup failure handling, result ordering/limits, response fields, cancellation, and network behavior remain unchanged. Added exact 1,000-row early-stop and no-advertisable fallback regressions. Validation passed: focused handler tests (`9/9`), broader DHT rendezvous tests (`147/147`), full backend suites (`4958/4958`: `69` application, `4609` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Make Virtual Soulfind canonical selection single-pass.
   - Status: completed (2026-07-16)
   - Priority: P1

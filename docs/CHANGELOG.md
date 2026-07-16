@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- DHT rendezvous mesh-search response enrichment now consumes the share
+  repository's file-content mapping iterator lazily and stops at the first
+  advertisable mapping instead of buffering every row. In the covered
+  1,000-row best case, mapping rows read fall from 1,000 to one (99.9% fewer).
+  If no mapping is advertisable, all rows are still checked without a list
+  allocation and the first mapping remains the fallback. Search result limits,
+  ordering, moderation preference, response shape, and network behavior remain
+  unchanged.
 - Virtual Soulfind canonical selection now uses a stable single-pass maximum
   instead of sorting and materializing the complete variant list. Selection
   complexity falls from O(n log n) to O(n) with constant working memory; the

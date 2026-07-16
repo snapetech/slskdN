@@ -1,3 +1,10 @@
+## Update 2026-07-16 16:54:43Z
+
+- Completed the mesh-search content-mapping streaming performance pass.
+- Response enrichment now keeps the first fallback and stops the SQLite-backed mapping iterator at the first advertisable row instead of materializing every row.
+- At the covered 1,000-row best case, rows read fall from 1,000 to one (99.9% fewer). No-advertisable inputs still inspect all rows without buffering and retain the same first fallback; ordering, limits, moderation, response, cancellation, and network behavior remain unchanged.
+- Validation passed: focused handler tests (`9/9`), broader DHT rendezvous tests (`147/147`), full backend suites (`4958/4958`: `69` application, `4609` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 16:47:58Z
 
 - Completed the Virtual Soulfind canonical-selection performance pass.

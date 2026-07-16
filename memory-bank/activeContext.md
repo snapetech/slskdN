@@ -1,3 +1,17 @@
+## Update 2026-07-16 16:54:43Z
+
+- Current task: performance and efficiency improvements in progress; mesh-search content mapping streaming complete locally.
+- Last activity:
+  - Removed full mapping-list materialization from mesh-search response enrichment and stopped at the first advertisable row while retaining the first fallback.
+  - At the covered 1,000-row best case, mapping reads fall 99.9%; the no-advertisable fallback remains unchanged without buffering.
+- Validation:
+  - Passed focused handler (`9/9`), broader DHT rendezvous (`147/147`), and full backend suites (`4958/4958`) tests.
+  - Exact early-stop/fallback boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the mesh-search mapping slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 16:47:58Z
 
 - Current task: performance and efficiency improvements in progress; Virtual Soulfind canonical single-pass selection complete locally.
