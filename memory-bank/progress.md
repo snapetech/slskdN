@@ -1,3 +1,10 @@
+## Update 2026-07-16 20:57:07Z
+
+- Completed the fixed-worker descriptor batch-publishing performance pass.
+- Exactly five persistent workers and a pre-sized result list replace one async task/semaphore waiter per descriptor while retaining the conservative publication cap.
+- Across 10,000 genuinely async publishes, isolated process-wide allocation falls from 33,285,480 to 27,487,104 bytes (17.4%) and coordinator state becomes O(5). Exact counters, result completion order, publication, cancellation, and concurrency remain unchanged. Documented async allocation counter gotcha `0z709` (`eb892ed32`).
+- Validation passed: focused publisher tests (`8/8`), broader MediaCore tests (`261/261`), full backend suites (`5004/5004`: `69` application, `4655` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 20:41:39Z
 
 - Completed the fixed-worker descriptor batch-retrieval performance pass.

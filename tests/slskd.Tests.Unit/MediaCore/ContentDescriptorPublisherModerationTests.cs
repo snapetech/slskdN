@@ -4,6 +4,7 @@
 namespace slskd.Tests.Unit.MediaCore
 {
     using System;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
@@ -15,6 +16,7 @@ namespace slskd.Tests.Unit.MediaCore
     /// <summary>
     ///     Tests for T-MCP03: Moderation filtering in ContentDescriptorPublisher.
     /// </summary>
+    [Collection(AllocationTestCollection.Name)]
     public class ContentDescriptorPublisherModerationTests
     {
         private readonly Mock<IDescriptorPublisher> _basePublisherMock = new();
@@ -149,6 +151,88 @@ namespace slskd.Tests.Unit.MediaCore
             Assert.False(result.Success);
             Assert.Equal("Failed to publish descriptor", result.ErrorMessage);
             Assert.DoesNotContain("sensitive", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task PublishBatchAsync_LargeBatchAvoidsPerItemWaitingTasks()
+        {
+            const int descriptorCount = 10_000;
+            _basePublisherMock
+                .Setup(x => x.PublishAsync(It.IsAny<ContentDescriptor>(), It.IsAny<CancellationToken>()))
+                .Returns(async () =>
+                {
+                    await Task.Yield();
+                    return true;
+                });
+            var publisher = CreatePublisher();
+            var signature = new DescriptorSignature("pk", "ABCD", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            var descriptors = Enumerable.Range(0, descriptorCount)
+                .Select(index => new ContentDescriptor
+                {
+                    ContentId = $"content:audio:track:{index}",
+                    Signature = signature,
+                })
+                .ToArray();
+            _ = await publisher.PublishBatchAsync(descriptors.AsSpan(0, 1).ToArray());
+
+            var allocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
+            var result = await publisher.PublishBatchAsync(descriptors);
+            var allocatedBytes = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;
+
+            Assert.Equal(descriptorCount, result.TotalRequested);
+            Assert.Equal(descriptorCount, result.SuccessfullyPublished);
+            Assert.Equal(0, result.FailedToPublish);
+            Assert.Equal(0, result.Skipped);
+            Assert.Equal(descriptorCount, result.Results.Count);
+            Assert.True(
+                allocatedBytes < 30 * 1024 * 1024,
+                $"Expected fixed-worker batch publishing below 30 MiB allocated, got {allocatedBytes:N0} bytes.");
+        }
+
+        [Fact]
+        public async Task PublishBatchAsync_UsesExactlyBoundedWorkerConcurrency()
+        {
+            var active = 0;
+            var maximumActive = 0;
+            _basePublisherMock
+                .Setup(x => x.PublishAsync(It.IsAny<ContentDescriptor>(), It.IsAny<CancellationToken>()))
+                .Returns(async () =>
+                {
+                    var currentActive = Interlocked.Increment(ref active);
+                    var observedMaximum = Volatile.Read(ref maximumActive);
+                    while (currentActive > observedMaximum)
+                    {
+                        var priorMaximum = Interlocked.CompareExchange(
+                            ref maximumActive,
+                            currentActive,
+                            observedMaximum);
+                        if (priorMaximum == observedMaximum)
+                        {
+                            break;
+                        }
+
+                        observedMaximum = priorMaximum;
+                    }
+
+                    await Task.Delay(5);
+                    Interlocked.Decrement(ref active);
+                    return true;
+                });
+            var publisher = CreatePublisher();
+            var signature = new DescriptorSignature("pk", "ABCD", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            var descriptors = Enumerable.Range(0, 100)
+                .Select(index => new ContentDescriptor
+                {
+                    ContentId = $"content:audio:track:{index}",
+                    Signature = signature,
+                })
+                .ToArray();
+
+            var result = await publisher.PublishBatchAsync(descriptors);
+
+            Assert.Equal(100, result.SuccessfullyPublished);
+            Assert.Equal(5, maximumActive);
+            Assert.Equal(0, active);
         }
 
         [Fact]

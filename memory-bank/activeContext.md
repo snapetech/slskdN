@@ -1,3 +1,17 @@
+## Update 2026-07-16 20:57:07Z
+
+- Current task: performance and efficiency improvements in progress; fixed-worker descriptor batch publishing complete locally.
+- Last activity:
+  - Replaced per-descriptor async task/semaphore waiters with exactly five persistent workers and a pre-sized result list.
+  - A 10,000-descriptor async batch falls from 33,285,480 to 27,487,104 isolated process-wide allocated bytes; scheduler state becomes O(5).
+- Validation:
+  - Passed focused publisher (`8/8`), broader MediaCore (`261/261`), and full backend suites (`5004/5004`) tests.
+  - Exact concurrency/counter/result/allocation boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Documented gotcha `0z709` (`eb892ed32`). Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the fixed-worker descriptor publisher batch slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 20:41:39Z
 
 - Current task: performance and efficiency improvements in progress; fixed-worker descriptor batch retrieval complete locally.

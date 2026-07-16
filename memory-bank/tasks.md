@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound descriptor batch publishing task fan-out.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `ContentDescriptorPublisher.PublishBatchAsync` now pre-sizes its required result list and uses at most five persistent worker tasks with an atomic descriptor index instead of constructing one async lambda task plus semaphore waiter per descriptor. For a covered 10,000-descriptor batch whose base publisher genuinely yields asynchronously, isolated precise process-wide allocation falls from 33,285,480 to 27,487,104 bytes (17.4%) while coordinator task/state memory becomes O(5) instead of O(descriptors). A delayed-publisher regression proves exactly five simultaneous base publications and zero active calls after drain. Materialized input/single enumeration, total/success/failure/not-newer-skip counts, completion-order results, version/signature/publishing behavior, cancellation propagation, and the conservative network limit remain unchanged. Added a non-parallel allocation collection plus large allocation and exact active-concurrency regressions; documented async allocation counter gotcha `0z709` (`eb892ed32`). Validation passed: focused publisher tests (`8/8`), broader MediaCore tests (`261/261`), full backend suites (`5004/5004`: `69` application, `4655` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Bound descriptor batch retrieval task fan-out.
   - Status: completed (2026-07-16)
   - Priority: P1

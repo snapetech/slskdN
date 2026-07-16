@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Descriptor batch publishing now drains its materialized descriptor input
+  through exactly five long-lived workers and pre-sizes its required result
+  list. It no longer creates one async task and semaphore waiter per descriptor
+  before publication. For the covered 10,000 genuinely asynchronous publishes,
+  isolated process-wide allocation falls from 33,285,480 to 27,487,104 bytes
+  (17.4%), while coordinator task/state memory becomes O(5). Total/success/
+  failure/skip counters, completion-order results, version/publication behavior,
+  cancellation propagation, and the conservative five-call network concurrency
+  limit remain unchanged.
 - Descriptor batch retrieval now normalizes/deduplicates IDs in one direct pass,
   pre-sizes required lists, and drains them through exactly 10 long-lived async
   workers. It no longer creates one async task and semaphore waiter for every

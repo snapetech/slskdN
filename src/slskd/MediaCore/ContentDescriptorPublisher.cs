@@ -157,37 +157,52 @@ public class ContentDescriptorPublisher : IContentDescriptorPublisher
 
         var descriptorList = descriptors.ToList();
         var startTime = DateTimeOffset.UtcNow;
-        var results = new List<DescriptorPublishResult>();
+        var results = new List<DescriptorPublishResult>(descriptorList.Count);
         var successfullyPublished = 0;
         var failedToPublish = 0;
         var skipped = 0;
+        var nextIndex = -1;
 
-        // Process in parallel with limited concurrency
-        using var semaphore = new SemaphoreSlim(5); // Limit concurrent operations
-        var tasks = descriptorList.Select(async descriptor =>
+        const int MaxConcurrency = 5;
+        var workers = new Task[Math.Min(MaxConcurrency, descriptorList.Count)];
+        for (var workerIndex = 0; workerIndex < workers.Length; workerIndex++)
         {
-            await semaphore.WaitAsync(cancellationToken);
-            try
+            workers[workerIndex] = ProcessBatchAsync();
+        }
+
+        await Task.WhenAll(workers);
+
+        async Task ProcessBatchAsync()
+        {
+            while (true)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                var index = Interlocked.Increment(ref nextIndex);
+                if (index >= descriptorList.Count)
+                {
+                    return;
+                }
+
+                var descriptor = descriptorList[index];
                 var result = await PublishAsync(descriptor, forceUpdate: false, cancellationToken);
                 lock (results)
                 {
                     results.Add(result);
                     if (result.Success)
+                    {
                         successfullyPublished++;
+                    }
                     else if (result.ErrorMessage?.Contains("not newer") == true)
+                    {
                         skipped++;
+                    }
                     else
+                    {
                         failedToPublish++;
+                    }
                 }
             }
-            finally
-            {
-                semaphore.Release();
-            }
-        });
-
-        await Task.WhenAll(tasks);
+        }
 
         var duration = DateTimeOffset.UtcNow - startTime;
 
