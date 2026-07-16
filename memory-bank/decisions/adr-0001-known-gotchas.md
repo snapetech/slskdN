@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z706. Removing LINQ Can Remove Implicit Null Validation
+
+**The Bug**: Replacing `sources.ToList()` with direct `GetEnumerator()` for a
+single-pass metadata selection path initially changed a null source from LINQ's
+`ArgumentNullException` boundary to a `NullReferenceException`.
+
+**Files Affected**:
+- `src/slskd/MediaCore/MetadataPortability.cs`
+
+**Prevention**: Before replacing a LINQ entry point with direct enumeration,
+inventory behavior supplied by the removed operator, including null argument
+validation, deferred execution, stable ties, and exception timing. Add explicit
+`ArgumentNullException.ThrowIfNull` at the public boundary when the LINQ method
+previously provided that contract, and cover both selection and materializing
+branches when they share the argument.
+
 ### 0z705. Direct Character Casing Must Cover Derived State
 
 **The Bug**: Removing a full uppercase Soundex string converted the emitted
