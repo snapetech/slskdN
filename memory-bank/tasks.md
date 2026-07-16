@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make capped fingerprint eviction single-pass.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: At the 1,000-fingerprint cap, `RecordConnection` now finds the oldest entry through a stable direct dictionary minimum scan instead of allocating `.Values`, sorting every fingerprint by timestamp, and taking one. Eviction falls from O(n log n) to O(n) with constant working memory; the covered complete admission/eviction operation allocates less than 32 KiB. Oldest timestamp selection, first-enumerated equal-timestamp ties, exact cap retention, replacement visibility, event recording, logging, and best-effort concurrent removal behavior remain unchanged. Added exact oldest-removal/cap/replacement/allocation coverage. Validation passed: focused fingerprint tests (`3/3`), broader DHT rendezvous tests (`150/150`), full backend suites (`4961/4961`: `69` application, `4612` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Make connection fingerprint statistics single-pass.
   - Status: completed (2026-07-16)
   - Priority: P1

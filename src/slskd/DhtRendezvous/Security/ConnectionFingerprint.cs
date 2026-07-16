@@ -64,10 +64,15 @@ public sealed class ConnectionFingerprintService
         // Store fingerprint
         if (_recentFingerprints.Count >= MaxFingerprints)
         {
-            // Remove oldest
-            var oldest = _recentFingerprints.Values
-                .OrderBy(f => f.Timestamp)
-                .FirstOrDefault();
+            ConnectionFingerprint? oldest = null;
+            foreach (var entry in _recentFingerprints)
+            {
+                if (oldest == null || entry.Value.Timestamp < oldest.Timestamp)
+                {
+                    oldest = entry.Value;
+                }
+            }
+
             if (oldest != null)
             {
                 _recentFingerprints.TryRemove(oldest.Id, out _);

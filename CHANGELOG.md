@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Connection fingerprint retention now finds the oldest capped entry in one
+  pass instead of snapshotting and sorting all tracked fingerprints.
 - Connection fingerprint statistics now aggregate directly in one dictionary
   pass instead of snapshotting and repeatedly scanning all fingerprints.
 - Mesh search response enrichment now stops streaming file-content mappings at

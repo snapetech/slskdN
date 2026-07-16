@@ -1,3 +1,17 @@
+## Update 2026-07-16 17:12:55Z
+
+- Current task: performance and efficiency improvements in progress; capped fingerprint eviction single-pass selection complete locally.
+- Last activity:
+  - Replaced full timestamp sorting at the 1,000-entry cap with a stable direct oldest-entry scan.
+  - The covered replacement retains exactly 1,000 entries, removes the actual oldest, exposes the replacement, and allocates below 32 KiB.
+- Validation:
+  - Passed focused fingerprint (`3/3`), broader DHT rendezvous (`150/150`), and full backend suites (`4961/4961`) tests.
+  - Exact oldest/cap/replacement/allocation boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the capped fingerprint eviction slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 17:03:10Z
 
 - Current task: performance and efficiency improvements in progress; connection-fingerprint statistics single-pass aggregation complete locally.

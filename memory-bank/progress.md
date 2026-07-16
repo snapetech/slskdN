@@ -1,3 +1,10 @@
+## Update 2026-07-16 17:12:55Z
+
+- Completed the capped connection-fingerprint eviction performance pass.
+- Admission at the 1,000-entry cap now finds the oldest fingerprint with one stable direct minimum scan instead of allocating a values snapshot and fully sorting it.
+- Eviction complexity falls from O(n log n) to O(n) with constant working memory; the covered full replacement allocates below 32 KiB. Oldest/tie behavior, exact cap, replacement, events, logging, and best-effort concurrency remain unchanged.
+- Validation passed: focused fingerprint tests (`3/3`), broader DHT rendezvous tests (`150/150`), full backend suites (`4961/4961`: `69` application, `4612` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 17:03:10Z
 
 - Completed the connection-fingerprint statistics single-pass performance pass.

@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Connection fingerprint retention now selects the oldest entry with a stable
+  direct minimum scan when the 1,000-entry cap is reached instead of allocating
+  a values snapshot and fully sorting it. Cap eviction falls from O(n log n) to
+  O(n) with constant working memory; the covered complete replacement operation
+  allocates less than 32 KiB. Oldest timestamp selection, first-enumerated tie
+  behavior, cap size, event recording, logging, and best-effort concurrency
+  remain unchanged.
 - Connection fingerprint statistics now aggregate active/recent connections,
   unique identities, and security-event totals in one direct concurrent-
   dictionary pass instead of allocating both a values snapshot and a list,
