@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Perceptual-hash Hamming distance now uses the runtime population-count
+  intrinsic instead of a per-set-bit shift and branch loop.
 - Spectral and Chromaprint hashing now keep bounded feature, median, and chroma
   work buffers on the stack instead of allocating them per hash/frame.
 - Spectral perceptual hashing now evaluates audio windows as spans instead of

@@ -134,17 +134,7 @@ public class PerceptualHasher : IPerceptualHasher
 
     public int HammingDistance(ulong hashA, ulong hashB)
     {
-        var xor = hashA ^ hashB;
-        var distance = 0;
-
-        // Count set bits in XOR result
-        while (xor != 0)
-        {
-            distance += (int)(xor & 1);
-            xor >>= 1;
-        }
-
-        return distance;
+        return BitOperations.PopCount(hashA ^ hashB);
     }
 
     public double Similarity(ulong hashA, ulong hashB)

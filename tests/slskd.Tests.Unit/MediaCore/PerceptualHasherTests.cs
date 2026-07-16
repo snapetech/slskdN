@@ -348,6 +348,29 @@ public class PerceptualHasherTests
     }
 
     [Fact]
+    public void HammingDistance_DeterministicVectorsMatchReferenceBitCount()
+    {
+        var random = new Random(12345);
+        var bytes = new byte[16];
+
+        for (var vector = 0; vector < 10_000; vector++)
+        {
+            random.NextBytes(bytes);
+            var hashA = BitConverter.ToUInt64(bytes, 0);
+            var hashB = BitConverter.ToUInt64(bytes, 8);
+            var xor = hashA ^ hashB;
+            var expected = 0;
+
+            for (var bit = 0; bit < 64; bit++)
+            {
+                expected += (int)((xor >> bit) & 1);
+            }
+
+            Assert.Equal(expected, hasher.HammingDistance(hashA, hashB));
+        }
+    }
+
+    [Fact]
     public void Similarity_IsSymmetric()
     {
         var hash1 = 0x123456789ABCDEF0UL;

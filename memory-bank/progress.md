@@ -1,3 +1,10 @@
+## Update 2026-07-16 18:10:34Z
+
+- Completed the intrinsic perceptual-hash Hamming-distance performance pass.
+- Distance now uses runtime `BitOperations.PopCount` instead of shifting/branching once per set bit, enabling hardware population count where supported.
+- Exact distance/symmetry/similarity behavior remains unchanged; 10,000 deterministic 64-bit pairs match an independent reference counter.
+- Validation passed: focused perceptual hasher tests (`34/34`), broader MediaCore tests (`231/231`), full backend suites (`4974/4974`: `69` application, `4625` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 18:03:32Z
 
 - Completed the stack-backed perceptual-hash feature-buffer performance pass.

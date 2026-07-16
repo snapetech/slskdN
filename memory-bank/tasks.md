@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Use intrinsic perceptual-hash Hamming distance.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced the manual `while` loop that shifted and branched once per set bit with `BitOperations.PopCount(hashA ^ hashB)`, allowing the .NET runtime to use hardware population count where available and its optimized fallback elsewhere. Worst-case work no longer executes 64 loop iterations in application code. Exact 0–64 distance, symmetry, single/all/half-bit boundaries, similarity normalization/threshold behavior, API results, and portability remain unchanged. Added 10,000 deterministic 64-bit pair comparisons against an independent fixed-64-position reference counter. Validation passed: focused perceptual hasher tests (`34/34`), broader MediaCore tests (`231/231`), full backend suites (`4974/4974`: `69` application, `4625` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Stack-allocate bounded perceptual-hash feature buffers.
   - Status: completed (2026-07-16)
   - Priority: P1

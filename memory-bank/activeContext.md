@@ -1,3 +1,17 @@
+## Update 2026-07-16 18:10:34Z
+
+- Current task: performance and efficiency improvements in progress; intrinsic perceptual-hash Hamming distance complete locally.
+- Last activity:
+  - Replaced the manual per-set-bit shift/branch loop with runtime population count.
+  - Ten thousand deterministic pairs match the independent reference counter across exact 0–64 outputs.
+- Validation:
+  - Passed focused perceptual hasher (`34/34`), broader MediaCore (`231/231`), and full backend suites (`4974/4974`) tests.
+  - Exact vector/distance/similarity boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the intrinsic Hamming-distance slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 18:03:32Z
 
 - Current task: performance and efficiency improvements in progress; stack-backed perceptual-hash feature buffers complete locally.

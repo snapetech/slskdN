@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Perceptual-hash Hamming distance now uses `BitOperations.PopCount`, allowing
+  the runtime to select a hardware population-count instruction where supported,
+  instead of shifting and branching once per set bit (up to 64 iterations).
+  Distance range, symmetry, zero/one/half/all-bit results, similarity conversion,
+  controller responses, and platform-independent fallback behavior remain
+  unchanged. Ten thousand deterministic 64-bit pairs match an independent
+  reference counter exactly.
 - Spectral and Chromaprint hashing now keep their bounded feature/median buffers
   on the stack, and Chromaprint clears/reuses one 24-bin chroma vector across
   eight frames. This removes the remaining two spectral arrays and ten
