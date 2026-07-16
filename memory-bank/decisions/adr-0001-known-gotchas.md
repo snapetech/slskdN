@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z652. Async Scan Polls Must Schedule After Completion
+
+**The Bug**: Library Health used `setInterval` with an async status callback.
+When a status request took longer than the two-second interval, another request
+started before it completed; hidden tabs also continued polling until the
+fallback timeout expired.
+
+**Files Affected**:
+- `src/web/src/components/System/LibraryHealth/index.jsx`
+
+**Prevention**: Schedule the next status check only after the current request
+settles, reject duplicate poll starts, and pause timers while the document is
+hidden. Preserve an absolute polling deadline so hiding and restoring a tab
+cannot extend bounded polling indefinitely, and refresh once when visibility
+returns.
+
 ### 0z651. Uniform Bulk Updates Must Stay In The Database
 
 **The Bug**: Wishlist “mark all viewed” selected and tracked every unread item,
