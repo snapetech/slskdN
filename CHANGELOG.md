@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Wishlist ignored-result duplicate checks now use the existing composite
+  case-insensitive index instead of loading every rule for the item.
 - Share-group member details now batch peer-contact nickname lookup instead of
   opening one contact query and DbContext per peer-backed member.
 - Share-manifest reads no longer load the complete contact table when no peer

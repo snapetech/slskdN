@@ -1,3 +1,10 @@
+## Update 2026-07-16 14:09:48Z
+
+- Completed the Wishlist ignored-result exact-lookup performance pass.
+- Duplicate rule creation now uses the existing case-insensitive composite index rather than loading every ignored rule for the Wishlist item and comparing usernames/directories in memory.
+- With 1,001 rules, hydrated duplicate-check rules fall from 1,001 to one (99.9% fewer). Parent validation, normalization, case-insensitive behavior, existing identity, and zero-write duplicate handling remain unchanged.
+- Validation passed: focused regression (`1/1`), broader Wishlist tests (`36/36`), full backend tests (`4909/4909`: `69` application, `4560` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 14:03:18Z
 
 - Completed the share-group contact nickname batching performance pass.

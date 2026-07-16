@@ -1,3 +1,17 @@
+## Update 2026-07-16 14:09:48Z
+
+- Current task: performance and efficiency improvements in progress; indexed Wishlist ignored-result duplicate lookup complete locally.
+- Last activity:
+  - Replaced full per-item ignored-rule hydration with an exact composite-index lookup using existing `NOCASE` collations.
+  - At 1,001 rules, hydrated duplicate candidates fall 99.9% while existing-rule identity and zero-write behavior remain unchanged.
+- Validation:
+  - Passed focused (`1/1`), broader Wishlist (`36/36`), and full backend (`4909/4909`) tests.
+  - Exact SQL fields/limit, composite-index use, case/normalization semantics, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the Wishlist ignored-result lookup slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 14:03:18Z
 
 - Current task: performance and efficiency improvements in progress; share-group contact nickname batching complete locally.

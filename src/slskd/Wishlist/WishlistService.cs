@@ -292,12 +292,10 @@ namespace slskd.Wishlist
             }
 
             var normalizedDirectory = NormalizeDirectory(directory);
-            var existing = (await context.WishlistIgnoredResults
-                    .Where(rule => rule.WishlistItemId == wishlistItemId)
-                    .ToListAsync())
-                .FirstOrDefault(rule =>
-                    rule.Username.Equals(username, StringComparison.OrdinalIgnoreCase) &&
-                    rule.Directory.Equals(normalizedDirectory, StringComparison.OrdinalIgnoreCase));
+            var existing = await context.WishlistIgnoredResults.FirstOrDefaultAsync(rule =>
+                rule.WishlistItemId == wishlistItemId &&
+                rule.Username == username &&
+                rule.Directory == normalizedDirectory);
             if (existing != null)
             {
                 return existing;

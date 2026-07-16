@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Index Wishlist ignored-result duplicate checks.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced per-item ignored-rule materialization and in-memory case-insensitive matching with one exact EF lookup backed by the existing unique `(WishlistItemId, Username, Directory)` index and column `NOCASE` collations. With 1,001 rules, duplicate-check rule hydration falls from 1,001 rows to one (99.9% fewer). Parent existence, directory normalization, case variants, existing-rule identity, and zero-write duplicate behavior remain unchanged. Added a 1,001-rule SQL/result/query-plan/zero-write regression. Validation passed: focused regression (`1/1`), broader Wishlist tests (`36/36`), full backend tests (`4909/4909`: `69` application, `4560` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Batch share-group contact nickname resolution.
   - Status: completed (2026-07-16)
   - Priority: P1

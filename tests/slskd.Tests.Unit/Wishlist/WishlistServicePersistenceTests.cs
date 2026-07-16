@@ -109,6 +109,99 @@ public sealed class WishlistServicePersistenceTests
     }
 
     [Fact]
+    public async Task IgnoreResultAsync_UsesCaseInsensitiveCompositeIndexAndHydratesOneRule()
+    {
+        var databasePath = Path.Combine(Path.GetTempPath(), $"wishlist-ignore-lookup-{Guid.NewGuid():N}.db");
+        var connectionString = $"Data Source={databasePath}";
+        try
+        {
+            var commandCapture = new CommandCaptureInterceptor();
+            var options = new DbContextOptionsBuilder<WishlistDbContext>()
+                .UseSqlite(connectionString)
+                .AddInterceptors(commandCapture)
+                .Options;
+            var contextFactory = new TestDbContextFactory(options);
+            var wishlistItemId = Guid.NewGuid();
+            var targetId = Guid.NewGuid();
+            await using (var context = await contextFactory.CreateDbContextAsync())
+            {
+                await context.Database.EnsureCreatedAsync();
+                context.WishlistItems.Add(new WishlistItem
+                {
+                    Id = wishlistItemId,
+                    SearchText = "fixture",
+                });
+                context.WishlistIgnoredResults.AddRange(Enumerable.Range(0, 1000).Select(index => new WishlistIgnoredResult
+                {
+                    WishlistItemId = wishlistItemId,
+                    Username = $"peer-{index:D4}",
+                    Directory = $"Music/Directory-{index:D4}",
+                }));
+                context.WishlistIgnoredResults.Add(new WishlistIgnoredResult
+                {
+                    Id = targetId,
+                    WishlistItemId = wishlistItemId,
+                    Username = "TARGET PEER",
+                    Directory = "Music/Target",
+                });
+                await context.SaveChangesAsync();
+            }
+
+            commandCapture.Commands.Clear();
+            commandCapture.ReadCommands.Clear();
+            var optionsMonitor = new Mock<IOptionsMonitor<slskd.Options>>();
+            optionsMonitor.SetupGet(monitor => monitor.CurrentValue).Returns(new slskd.Options());
+            using var service = new WishlistService(
+                contextFactory,
+                Mock.Of<ISearchService>(),
+                Mock.Of<ISoulseekClient>(),
+                optionsMonitor.Object,
+                Mock.Of<ISourceRankingService>(),
+                Mock.Of<IDownloadService>());
+
+            var existing = await service.IgnoreResultAsync(
+                wishlistItemId,
+                "target peer",
+                "Music\\Target\\");
+
+            Assert.Equal(targetId, existing.Id);
+            Assert.Equal(2, commandCapture.ReadCommands.Count);
+            var lookup = commandCapture.ReadCommands[1];
+            Assert.Contains("Username", lookup, StringComparison.Ordinal);
+            Assert.Contains("Directory", lookup, StringComparison.Ordinal);
+            Assert.Contains("LIMIT", lookup, StringComparison.OrdinalIgnoreCase);
+            Assert.Empty(commandCapture.Commands);
+
+            await using var connection = new SqliteConnection(connectionString);
+            await connection.OpenAsync();
+            await using var planCommand = connection.CreateCommand();
+            planCommand.CommandText = $"""
+                EXPLAIN QUERY PLAN
+                SELECT Id
+                FROM WishlistIgnoredResults
+                WHERE WishlistItemId = '{wishlistItemId}'
+                  AND Username = 'target peer'
+                  AND Directory = 'Music/Target'
+                LIMIT 1
+                """;
+            await using var reader = await planCommand.ExecuteReaderAsync();
+            var plan = new List<string>();
+            while (await reader.ReadAsync())
+            {
+                plan.Add(reader.GetString(3));
+            }
+            Assert.Contains(plan, detail =>
+                detail.Contains("IX_WishlistIgnoredResults_WishlistItemId_Username_Directory", StringComparison.Ordinal));
+        }
+        finally
+        {
+            System.IO.File.Delete(databasePath);
+            System.IO.File.Delete(databasePath + "-shm");
+            System.IO.File.Delete(databasePath + "-wal");
+        }
+    }
+
+    [Fact]
     public async Task CreateManyAsync_WithOneHundredItems_UsesThreeMultiRowCommands()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");

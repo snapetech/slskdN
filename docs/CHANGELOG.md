@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Wishlist ignored-result creation now resolves an existing
+  item/peer/directory rule through the existing unique case-insensitive
+  composite index instead of hydrating every ignored rule for that Wishlist
+  item and comparing them in memory. With 1,001 rules, duplicate-check rule
+  hydration falls from 1,001 rows to one (99.9% fewer). Parent existence,
+  username/directory case-insensitivity, directory normalization, duplicate
+  return behavior, and new-rule creation remain unchanged.
 - Share-group member details now resolve all distinct peer-contact nicknames
   through bounded 500-ID contact queries in one DbContext instead of one
   context/query per peer-backed member. With 100 peer-backed members, contact
