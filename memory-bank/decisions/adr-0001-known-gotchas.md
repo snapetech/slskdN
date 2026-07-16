@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z644. Batched SQLite Identity Lookups Need Explicit Collation
+
+**The Bug**: A batched peer-count query deduplicated inputs and returned results
+with case-insensitive .NET collections but used a plain SQLite `IN` predicate.
+A case-variant input such as `BOB` therefore failed to match the stored `bob`
+row and silently appeared to have no state.
+
+**Files Affected**:
+- `src/slskd/HashDb/HashDbService.cs`
+
+**Prevention**: When an identity is case-insensitive at the service boundary,
+apply the same explicit collation inside batched SQLite predicates; a
+case-insensitive `Dictionary` or `Distinct` only affects managed processing and
+does not change SQL comparison semantics. Cover batch APIs with mixed-case and
+trimmed inputs rather than testing only canonical stored values.
+
 ### 0z643. Recurring Candidate Enrichment Must Batch And Reuse Peer State
 
 **The Bug**: The backfill scheduler queried each candidate peer's daily count
