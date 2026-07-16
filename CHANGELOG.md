@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Spectral and Chromaprint hashing now keep bounded feature, median, and chroma
+  work buffers on the stack instead of allocating them per hash/frame.
 - Spectral perceptual hashing now evaluates audio windows as spans instead of
   copying the complete sample payload across eight slice arrays.
 - Connection fingerprint admission now formats compact IDs and IP hashes from

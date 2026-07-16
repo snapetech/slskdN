@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Stack-allocate bounded perceptual-hash feature buffers.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Spectral hashing now stack-allocates its eight features and 64-slot median work buffer; Chromaprint stack-allocates its 64 hash values and median buffer and clears/reuses one 24-bin chroma vector across eight FFT frames. This removes the remaining two spectral arrays and ten Chromaprint arrays per hash. The covered 11,025-sample no-downsample spectral call now allocates less than 256 bytes. Feature/frame order, upper-median selection, strict-greater threshold bits, exact numeric hashes, FFT/chroma accumulation, cross-frequency behavior, and similarity results remain unchanged. Tightened the exact-output allocation regression from 2 KiB to 256 bytes; existing algorithm and frequency coverage guards Chromaprint behavior. Validation passed: focused perceptual hasher tests (`33/33`), broader MediaCore tests (`230/230`), full backend suites (`4973/4973`: `69` application, `4624` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Eliminate spectral perceptual-hash window copies.
   - Status: completed (2026-07-16)
   - Priority: P1

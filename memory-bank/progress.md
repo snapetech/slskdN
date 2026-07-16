@@ -1,3 +1,10 @@
+## Update 2026-07-16 18:03:32Z
+
+- Completed the stack-backed perceptual-hash feature-buffer performance pass.
+- Spectral features/median and Chromaprint hash values/median now use bounded stack spans; one cleared chroma vector replaces eight per-frame arrays.
+- Two spectral and ten Chromaprint arrays are removed per hash, and the covered no-downsample spectral call allocates below 256 bytes. Feature/median/bit/FFT/chroma/hash/similarity behavior remains unchanged.
+- Validation passed: focused perceptual hasher tests (`33/33`), broader MediaCore tests (`230/230`), full backend suites (`4973/4973`: `69` application, `4624` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 17:56:38Z
 
 - Completed the zero-copy spectral perceptual-hash window performance pass.

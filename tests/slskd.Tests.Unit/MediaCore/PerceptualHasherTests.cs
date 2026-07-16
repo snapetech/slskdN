@@ -331,8 +331,8 @@ public class PerceptualHasherTests
 
         Assert.Equal(expected, result);
         Assert.True(
-            allocatedBytes < 2 * 1024,
-            $"Expected zero-copy spectral-window allocation below 2 KiB, got {allocatedBytes:N0} bytes.");
+            allocatedBytes < 256,
+            $"Expected stack-backed spectral hashing below 256 allocated bytes, got {allocatedBytes:N0} bytes.");
     }
 
     [Fact]

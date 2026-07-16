@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Spectral and Chromaprint hashing now keep their bounded feature/median buffers
+  on the stack, and Chromaprint clears/reuses one 24-bin chroma vector across
+  eight frames. This removes the remaining two spectral arrays and ten
+  Chromaprint arrays per hash. The covered no-downsample spectral call now
+  allocates less than 256 bytes. Feature order, median selection, threshold
+  comparisons, exact hashes, FFT/chroma accumulation, and similarity behavior
+  remain unchanged.
 - Spectral perceptual hashing now computes each of its eight RMS-energy windows
   over read-only spans instead of allocating eight array slices whose combined
   payload equals the complete input. At the covered 11,025-sample boundary,

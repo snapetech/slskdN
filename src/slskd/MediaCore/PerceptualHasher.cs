@@ -116,7 +116,7 @@ public class PerceptualHasher : IPerceptualHasher
         }
 
         // Compute spectral features across 8 time windows
-        var features = new double[8];
+        Span<double> features = stackalloc double[8];
         var windowSize = samples.Length / 8;
 
         for (int w = 0; w < 8; w++)
@@ -199,12 +199,14 @@ public class PerceptualHasher : IPerceptualHasher
     /// Generates 64-bit hash from feature vector.
     /// Uses median comparison (similar to pHash algorithm).
     /// </summary>
-    private static ulong GenerateHash(double[] features)
+    private static ulong GenerateHash(ReadOnlySpan<double> features)
     {
         if (features.Length == 0) return 0;
 
         // Compute median feature value
-        var sorted = features.OrderBy(x => x).ToArray();
+        Span<double> sorted = stackalloc double[HashBits];
+        features.CopyTo(sorted);
+        sorted[..features.Length].Sort();
         var median = sorted[features.Length / 2];
 
         // Generate hash bits: 1 if feature > median, 0 otherwise
@@ -294,8 +296,9 @@ public class PerceptualHasher : IPerceptualHasher
             chromaPerFftBin[k] = (c + chromaBins) % chromaBins;
         }
 
-        var hashValues = new double[framesForHash * superBands];
+        Span<double> hashValues = stackalloc double[framesForHash * superBands];
         var complexFrame = new Complex[fftSize];
+        Span<double> chromaVec = stackalloc double[chromaBins];
 
         for (int i = 0; i < framesForHash; i++)
         {
@@ -312,7 +315,7 @@ public class PerceptualHasher : IPerceptualHasher
 
             Fourier.Forward(complexFrame);
 
-            var chromaVec = new double[chromaBins];
+            chromaVec.Clear();
             for (int k = 1; k < fftSize / 2; k++)
             {
                 var c = chromaPerFftBin[k];

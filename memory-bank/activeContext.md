@@ -1,3 +1,17 @@
+## Update 2026-07-16 18:03:32Z
+
+- Current task: performance and efficiency improvements in progress; stack-backed perceptual-hash feature buffers complete locally.
+- Last activity:
+  - Moved spectral/Chromaprint feature and median buffers to stack spans and reused one cleared Chromaprint vector across frames.
+  - Removed two spectral and ten Chromaprint arrays per hash; the covered spectral call allocates below 256 bytes.
+- Validation:
+  - Passed focused perceptual hasher (`33/33`), broader MediaCore (`230/230`), and full backend suites (`4973/4973`) tests.
+  - Tightened exact output/allocation plus existing algorithm/frequency boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the perceptual-hash feature-buffer slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 17:56:38Z
 
 - Current task: performance and efficiency improvements in progress; zero-copy spectral perceptual-hash windows complete locally.
