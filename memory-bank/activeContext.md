@@ -1,3 +1,19 @@
+## Update 2026-07-16 00:02:29Z
+
+- Current task: performance and efficiency improvements in progress; MediaCore ContentID registry-read and stats-polling pass complete locally.
+- Last activity:
+  - Replaced full-registry stats parsing and domain/type scans with mutation-maintained mapping counts and exact-key secondary indexes while preserving normalized and case-insensitive query behavior.
+  - Improved 25 reads over 100,000 mappings from 1,196 ms to 2 ms for stats (99.83%) and from 1,307 ms to 93 ms for a domain query (92.88%); the two-domain dashboard path reduces parsing passes by 75%.
+  - Removed empty reverse buckets after last-member remaps, preventing retained dictionaries and false registered-state results while retaining shared ContentID mappings.
+  - Made System MediaCore's one-minute stats refresh visible-only and non-overlapping with immediate catch-up, initial-only loading transitions, unchanged-field render suppression, and Strict Mode-safe mount-guard setup. Hidden requests fall from one per minute to zero and unchanged refresh rerenders from two to zero.
+  - Added backend correctness/performance and Web lifecycle regressions; documented gotchas `0z616` through `0z618` in standalone commits `3cab6b0f2`, `8d857f4fe`, and `baa7c4966`.
+- Validation:
+  - Passed focused registry tests (`24/24`), broader MediaCore unit tests (`218/218`), MediaCore integration tests (`26/26`), and focused Web tests (`9/9`).
+  - Passed complete backend suites (`4759/4759`: `69` smoke, `4410` unit, `280` integration), complete Web tests (`847` passed, `4` skipped), production Web build, frontend lint with zero errors, repository lint, polling-lifecycle, identity-leak, and whitespace checks.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-15 23:39:36Z
 
 - Current task: performance and efficiency improvements in progress; search progress-persistence and response-hydration pass complete locally.

@@ -118,6 +118,50 @@ public class MediaCorePerformanceTests
     }
 
     [Fact]
+    public async Task ContentIdRegistry_RepeatedStatsAndDomainQueries_PerformanceWithinLimits()
+    {
+        const int dataSize = 100_000;
+        const int repetitions = 25;
+
+        for (var index = 0; index < dataSize; index++)
+        {
+            var domain = index % 2 == 0 ? "audio" : "video";
+            var type = domain == "audio" ? "track" : "movie";
+            await _registry.RegisterAsync(
+                $"external:{index}",
+                $"content:{domain}:{type}:{index}");
+        }
+
+        var statsStopwatch = Stopwatch.StartNew();
+        for (var iteration = 0; iteration < repetitions; iteration++)
+        {
+            var stats = await _registry.GetStatsAsync();
+            Assert.Equal(dataSize, stats.TotalMappings);
+        }
+
+        statsStopwatch.Stop();
+
+        var queryStopwatch = Stopwatch.StartNew();
+        for (var iteration = 0; iteration < repetitions; iteration++)
+        {
+            var results = await _registry.FindByDomainAsync("audio");
+            Assert.Equal(dataSize / 2, results.Count);
+        }
+
+        queryStopwatch.Stop();
+
+        Assert.True(
+            statsStopwatch.ElapsedMilliseconds < 250,
+            $"Repeated stats reads took {statsStopwatch.ElapsedMilliseconds}ms, expected < 250ms");
+        Assert.True(
+            queryStopwatch.ElapsedMilliseconds < 750,
+            $"Repeated domain queries took {queryStopwatch.ElapsedMilliseconds}ms, expected < 750ms");
+
+        Console.WriteLine(
+            $"ContentID repeated reads: stats={statsStopwatch.ElapsedMilliseconds}ms, domain={queryStopwatch.ElapsedMilliseconds}ms");
+    }
+
+    [Fact]
     public async Task PerceptualHasher_BulkHashing_PerformanceWithinLimits()
     {
         // Arrange - Prepare test audio data

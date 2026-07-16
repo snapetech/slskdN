@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- MediaCore ContentID statistics and domain/type lookups now use
+  mutation-maintained indexes instead of reparsing the complete registry on
+  every read. The System MediaCore page also stops stats polling while hidden,
+  rejects overlapping refreshes, and suppresses unchanged rerenders.
 - Live search progress now uses a background-owned one-second hub cadence
   without rewriting incomplete response rows, while response payload hydration
   waits for completion or explicitly persisted early mesh results. Search state

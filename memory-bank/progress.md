@@ -1,3 +1,13 @@
+## Update 2026-07-16 00:02:29Z
+
+- Completed the MediaCore ContentID registry-read and stats-polling performance pass.
+- Replaced repeated full-registry parsing and domain/type scans with mutation-maintained mapping counts and exact-key secondary indexes, retaining case-insensitive response deduplication and normalized domain/type semantics.
+- Across 25 reads of 100,000 mappings, stats improved from 1,196 ms to 2 ms (99.83%) and one-domain queries from 1,307 ms to 93 ms (92.88%). The two-domain MediaCore dashboard now performs one output parsing pass instead of four full parsing passes (75% fewer).
+- Removed empty reverse-index buckets on last-member remaps, eliminating retained dictionaries and false `IsContentIdRegisteredAsync` results while preserving shared ContentIDs.
+- Changed the System MediaCore stats lifecycle to visible-only, non-overlapping one-minute polling with immediate visibility catch-up, initial-only loading transitions, unchanged-field identity retention, and a mount guard restored during effect replay. Hidden requests fall from one per minute to zero and unchanged refresh rerenders from two to zero.
+- Added registry remap/shared-content/case-variant/clear/reverse-index tests, a 100,000-mapping performance regression, and Web equality/cadence/overlap/visibility/Strict Mode regressions. Documented gotchas `0z616` through `0z618` in standalone commits `3cab6b0f2`, `8d857f4fe`, and `baa7c4966`.
+- Validation passed: focused registry unit tests (`24/24`), broader MediaCore unit tests (`218/218`), MediaCore integration tests (`26/26`), focused Web tests (`9/9`), complete Web tests (`847` passed, `4` skipped), production Web build, frontend lint with zero errors, complete backend suites (`4759/4759`: `69` smoke, `4410` unit, `280` integration), repository lint, polling-lifecycle, identity-leak, and whitespace checks.
+
 ## Update 2026-07-15 23:39:36Z
 
 - Completed the search progress-persistence and response-hydration performance pass.

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Index MediaCore ContentID reads and bound stats polling.
+  - Status: completed (2026-07-15)
+  - Priority: P1
+  - Notes: Replaced full-registry parsing in `GetStatsAsync` and full-registry domain/type scans with mutation-maintained counts and exact-key secondary indexes while preserving case-insensitive result deduplication, shared-ContentID semantics, normalized MusicBrainz domains/types, invalid-ID statistics, and thread-safe remaps. Last-member remaps now remove empty reverse buckets, preventing retained dictionaries and false registered-state results. Across 25 reads of a 100,000-mapping registry, stats improved from 1,196 ms to 2 ms (99.83%) and one-domain queries from 1,307 ms to 93 ms (92.88%); the two-domain MediaCore dashboard path reduces ContentID parsing from four full passes to one output pass (75%). System MediaCore stats polling now stops while hidden, catches up immediately on visibility, rejects overlap, avoids loading-state churn after initial hydration, preserves object identity for unchanged rendered fields, and resets its mount guard during effect replay; hidden requests fall from one per minute to zero and unchanged steady refresh rerenders from two to zero. Added remap, shared-content, case-variant, clear, reverse-index, 100,000-mapping performance, equality, cadence, overlap, visibility, and Strict Mode regressions; documented gotchas `0z616` through `0z618` in standalone commits `3cab6b0f2`, `8d857f4fe`, and `baa7c4966`.
+
 - [x] Bound search progress persistence and response hydration.
   - Status: completed (2026-07-15)
   - Priority: P1

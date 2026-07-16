@@ -3,9 +3,9 @@
 // </copyright>
 
 import * as mediacore from '../../../lib/mediacore';
-import MediaCore from './index';
+import MediaCore, { areContentIdStatsEqual } from './index';
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../lib/mediacore', () => ({
@@ -25,6 +25,10 @@ vi.mock('react-toastify', () => ({
 describe('MediaCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
     mediacore.getContentIdStats.mockResolvedValue({
       mappingsByDomain: {},
       totalDomains: 0,
@@ -36,6 +40,14 @@ describe('MediaCore', () => {
     });
     mediacore.getConflictStrategies.mockResolvedValue([]);
     mediacore.getChannels.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
   });
 
   it('renders a pod workflow index with safety framing', async () => {
@@ -97,6 +109,35 @@ describe('MediaCore', () => {
     expect(screen.getByText(/Candidate search can scan registry entries/)).toBeInTheDocument();
   });
 
+  it('hydrates stats after Strict Mode replays the polling effect', async () => {
+    render(
+      <React.StrictMode>
+        <MediaCore />
+      </React.StrictMode>,
+    );
+
+    expect(await screen.findByText('Pod Workflow Index')).toBeInTheDocument();
+    expect(mediacore.getContentIdStats).toHaveBeenCalledTimes(1);
+  });
+
+  it('compares ContentID stats by rendered fields', () => {
+    const stats = {
+      mappingsByDomain: { audio: 2, video: 1 },
+      totalDomains: 2,
+      totalMappings: 3,
+    };
+
+    expect(areContentIdStatsEqual(stats, { ...stats })).toBe(true);
+    expect(areContentIdStatsEqual(stats, {
+      ...stats,
+      mappingsByDomain: { audio: 1, video: 2 },
+    })).toBe(false);
+    expect(areContentIdStatsEqual(stats, {
+      ...stats,
+      totalMappings: 4,
+    })).toBe(false);
+  });
+
   it('focuses a pod workflow from the index card', async () => {
     render(<MediaCore />);
 
@@ -136,5 +177,89 @@ describe('MediaCore', () => {
     await waitFor(() => expect(mediacore.getChannels).toHaveBeenCalledWith('pod/with/slash'));
     expect(await screen.findByText('Load Pod Channels')).toBeInTheDocument();
     expect(screen.queryByText('Existing Channels')).not.toBeInTheDocument();
+  });
+
+  it('refreshes ContentID stats once per visible minute', async () => {
+    vi.useFakeTimers();
+
+    render(<MediaCore />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(mediacore.getContentIdStats).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(59_999);
+    });
+    expect(mediacore.getContentIdStats).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(mediacore.getContentIdStats).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not overlap slow ContentID stats refreshes', async () => {
+    vi.useFakeTimers();
+    let resolveStats;
+    mediacore.getContentIdStats.mockReturnValue(
+      new Promise((resolve) => {
+        resolveStats = resolve;
+      }),
+    );
+
+    render(<MediaCore />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(180_000);
+    });
+
+    expect(mediacore.getContentIdStats).toHaveBeenCalledTimes(1);
+
+    resolveStats({
+      mappingsByDomain: {},
+      totalDomains: 0,
+      totalMappings: 0,
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+
+    expect(mediacore.getContentIdStats).toHaveBeenCalledTimes(2);
+  });
+
+  it('suspends ContentID stats polling while hidden and catches up on visibility', async () => {
+    vi.useFakeTimers();
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: true,
+    });
+
+    render(<MediaCore />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(120_000);
+    });
+    expect(mediacore.getContentIdStats).not.toHaveBeenCalled();
+
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      await Promise.resolve();
+    });
+    expect(mediacore.getContentIdStats).toHaveBeenCalledTimes(1);
+
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: true,
+    });
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(120_000);
+    });
+    expect(mediacore.getContentIdStats).toHaveBeenCalledTimes(1);
   });
 });

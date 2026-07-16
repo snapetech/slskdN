@@ -284,17 +284,77 @@ public class ContentIdRegistryTests
 
         var oldExternalIds = await _registry.GetExternalIdsAsync(oldContentId);
         Assert.DoesNotContain(externalId, oldExternalIds);
+        Assert.False(await _registry.IsContentIdRegisteredAsync(oldContentId));
 
         var newExternalIds = await _registry.GetExternalIdsAsync(newContentId);
         Assert.Contains(externalId, newExternalIds);
+        Assert.True(await _registry.IsContentIdRegisteredAsync(newContentId));
     }
 
     [Fact]
-    public void Clear_RemovesAllMappings()
+    public async Task OverwriteMapping_UpdatesStatsAndDomainIndexes()
     {
-        // Arrange - this would normally be async, but Clear is synchronous
-        // In a real scenario, we'd have a way to test this with async registrations
-        // For now, just test that the method exists and doesn't throw
+        var externalId = "external:one";
+        await _registry.RegisterAsync(externalId, "content:audio:track:one");
+
+        await _registry.RegisterAsync(externalId, "content:video:movie:one");
+
+        var stats = await _registry.GetStatsAsync();
+        Assert.Equal(1, stats.TotalMappings);
+        Assert.Equal(1, stats.TotalDomains);
+        Assert.False(stats.MappingsByDomain.ContainsKey("audio"));
+        Assert.Equal(1, stats.MappingsByDomain["video"]);
+        Assert.Empty(await _registry.FindByDomainAsync("audio"));
+        Assert.Empty(await _registry.FindByDomainAndTypeAsync("audio", "track"));
+        Assert.Equal(
+            ["content:video:movie:one"],
+            await _registry.FindByDomainAndTypeAsync("video", "movie"));
+    }
+
+    [Fact]
+    public async Task OverwriteSharedContentMapping_PreservesIndexedContentUntilLastMapping()
+    {
+        var sharedContentId = "content:audio:track:shared";
+        await _registry.RegisterAsync("external:one", sharedContentId);
+        await _registry.RegisterAsync("external:two", sharedContentId);
+
+        await _registry.RegisterAsync("external:one", "content:video:movie:one");
+
+        Assert.Equal([sharedContentId], await _registry.FindByDomainAsync("audio"));
+        Assert.True(await _registry.IsContentIdRegisteredAsync(sharedContentId));
+        var stats = await _registry.GetStatsAsync();
+        Assert.Equal(2, stats.TotalMappings);
+        Assert.Equal(1, stats.MappingsByDomain["audio"]);
+        Assert.Equal(1, stats.MappingsByDomain["video"]);
+    }
+
+    [Fact]
+    public async Task CaseVariantContentIds_RemovingOnePreservesEquivalentIndexedResult()
+    {
+        await _registry.RegisterAsync("external:upper", "content:audio:track:CASE");
+        await _registry.RegisterAsync("external:lower", "content:audio:track:case");
+
+        Assert.Single(await _registry.FindByDomainAsync("audio"));
+
+        await _registry.RegisterAsync("external:upper", "content:video:movie:upper");
+
+        Assert.Equal(
+            ["content:audio:track:case"],
+            await _registry.FindByDomainAndTypeAsync("audio", "track"));
+    }
+
+    [Fact]
+    public async Task Clear_RemovesAllMappings()
+    {
+        await _registry.RegisterAsync("external:one", "content:audio:track:one");
+
         _registry.Clear();
+
+        Assert.Null(await _registry.ResolveAsync("external:one"));
+        Assert.Empty(await _registry.FindByDomainAsync("audio"));
+        var stats = await _registry.GetStatsAsync();
+        Assert.Equal(0, stats.TotalMappings);
+        Assert.Equal(0, stats.TotalDomains);
+        Assert.Empty(stats.MappingsByDomain);
     }
 }

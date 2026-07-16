@@ -8,7 +8,7 @@ import {
   podWorkflowFilterOptions,
   podWorkflowSections,
 } from './mediaCoreWorkflows';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import {
   Card,
@@ -31,9 +31,32 @@ import {
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const asObject = (value) =>
   value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+const CONTENT_ID_STATS_INTERVAL_MS = 60_000;
+
+export const areContentIdStatsEqual = (left, right) => {
+  if (left === right) return true;
+  if (!left || !right) return false;
+  if (
+    left.totalDomains !== right.totalDomains ||
+    left.totalMappings !== right.totalMappings
+  ) {
+    return false;
+  }
+
+  const leftByDomain = asObject(left.mappingsByDomain);
+  const rightByDomain = asObject(right.mappingsByDomain);
+  const domains = Object.keys(leftByDomain);
+  return (
+    domains.length === Object.keys(rightByDomain).length &&
+    domains.every((domain) => leftByDomain[domain] === rightByDomain[domain])
+  );
+};
 
 const MediaCore = () => {
   const mountedRef = useRef(true);
+  const statsLoadedRef = useRef(false);
+  const statsInFlightRef = useRef(false);
+  const statsIntervalRef = useRef(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -144,33 +167,72 @@ const MediaCore = () => {
   const [republishing, setRepublishing] = useState(false);
   const [loadingStats, setLoadingStats] = useState(false);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
+  const fetchStats = useCallback(async () => {
+    if (document.hidden || statsInFlightRef.current) {
+      return;
+    }
+
+    statsInFlightRef.current = true;
+    try {
+      if (!statsLoadedRef.current) {
         setLoading(true);
-        setError(null);
-        const data = await mediacore.getContentIdStats();
-        if (!mountedRef.current) return;
-        setStats(data);
-      } catch (error_) {
-        if (!mountedRef.current) return;
-        setError(error_.message);
-      } finally {
-        if (mountedRef.current) {
-          setLoading(false);
-        }
+      }
+      setError(null);
+      const data = await mediacore.getContentIdStats();
+      if (!mountedRef.current) return;
+      if (document.hidden) return;
+      statsLoadedRef.current = true;
+      setStats((current) =>
+        areContentIdStatsEqual(current, data) ? current : data,
+      );
+    } catch (error_) {
+      if (!mountedRef.current) return;
+      if (document.hidden) return;
+      setError(error_.message);
+    } finally {
+      statsInFlightRef.current = false;
+      if (mountedRef.current && !document.hidden) {
+        setLoading(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    const stopPolling = () => {
+      if (statsIntervalRef.current) {
+        window.clearInterval(statsIntervalRef.current);
+        statsIntervalRef.current = null;
+      }
+    };
+    const startPolling = () => {
+      if (document.hidden || statsIntervalRef.current) {
+        return;
+      }
+
+      fetchStats();
+      statsIntervalRef.current = window.setInterval(
+        fetchStats,
+        CONTENT_ID_STATS_INTERVAL_MS,
+      );
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
       }
     };
 
-    fetchStats();
-
-    // Refresh stats every 60 seconds
-    const interval = setInterval(fetchStats, 60_000);
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      stopPolling();
       mountedRef.current = false;
-      clearInterval(interval);
     };
-  }, []);
+  }, [fetchStats]);
 
   const handleRegister = async () => {
     if (!externalId.trim() || !descriptorContentId.trim()) return;

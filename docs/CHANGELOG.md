@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- MediaCore ContentID stats and domain/type queries now read maintained
+  secondary indexes instead of rescanning and reparsing all mappings. Empty
+  reverse buckets are removed on remap, while the System MediaCore stats poll
+  is visible-only, non-overlapping, and skips unchanged renders.
 - Search progress now remains live on a bounded one-second hub cadence without
   persisting incomplete response rows. The detail route hydrates response
   payloads only at completion or when early mesh data is durable, clears reused

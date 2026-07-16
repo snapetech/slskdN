@@ -15,14 +15,20 @@ namespace slskd.MediaCore;
 /// </summary>
 public class ContentIdRegistry : IContentIdRegistry
 {
+    private readonly object _mutationLock = new();
+
     // externalId -> contentId mapping
     private readonly ConcurrentDictionary<string, string> _externalToContent = new();
 
     // contentId -> set of externalId (values ignored) for reverse lookup; supports remove on overwrite
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> _contentToExternal = new();
 
+    private readonly Dictionary<string, int> _mappingCountsByDomain = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, HashSet<string>> _contentIdsByDomain = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Dictionary<string, HashSet<string>>> _contentIdsByDomainAndType = new(StringComparer.OrdinalIgnoreCase);
+
     /// <inheritdoc/>
-    public async Task RegisterAsync(string externalId, string contentId, CancellationToken cancellationToken = default)
+    public Task RegisterAsync(string externalId, string contentId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(externalId))
             throw new ArgumentException("External ID cannot be empty", nameof(externalId));
@@ -33,141 +39,127 @@ public class ContentIdRegistry : IContentIdRegistry
         externalId = externalId.Trim();
         contentId = contentId.Trim();
 
-        // If overwriting a mapping to a different contentId, remove externalId from the old contentId's set
-        if (_externalToContent.TryGetValue(externalId, out var oldContentId) && oldContentId != contentId &&
-            _contentToExternal.TryGetValue(oldContentId, out var oldSet))
+        lock (_mutationLock)
         {
-            oldSet.TryRemove(externalId, out _);
+            if (_externalToContent.TryGetValue(externalId, out var oldContentId))
+            {
+                if (oldContentId == contentId)
+                {
+                    return Task.CompletedTask;
+                }
+
+                var oldSet = _contentToExternal[oldContentId];
+                oldSet.TryRemove(externalId, out _);
+                var oldContentStillMapped = oldSet.Count > 0;
+                if (!oldContentStillMapped)
+                {
+                    _contentToExternal.TryRemove(oldContentId, out _);
+                }
+
+                RemoveFromIndexes(oldContentId, oldContentStillMapped);
+            }
+
+            _externalToContent[externalId] = contentId;
+
+            var externalIds = _contentToExternal.GetOrAdd(contentId, _ => new ConcurrentDictionary<string, byte>());
+            externalIds.TryAdd(externalId, 0);
+            AddToIndexes(contentId);
         }
 
-        // Register external -> content mapping
-        _externalToContent[externalId] = contentId;
-
-        // Register reverse mapping
-        var externalIds = _contentToExternal.GetOrAdd(contentId, _ => new ConcurrentDictionary<string, byte>());
-        externalIds.TryAdd(externalId, 0);
-
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc/>
-    public async Task<string?> ResolveAsync(string externalId, CancellationToken cancellationToken = default)
+    public Task<string?> ResolveAsync(string externalId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(externalId))
-            return null;
+            return Task.FromResult<string?>(null);
 
         externalId = externalId.Trim();
         _externalToContent.TryGetValue(externalId, out var contentId);
-        return await Task.FromResult(contentId);
+        return Task.FromResult(contentId);
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<string>> GetExternalIdsAsync(string contentId, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<string>> GetExternalIdsAsync(string contentId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(contentId))
-            return Array.Empty<string>();
+            return Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
 
         contentId = contentId.Trim();
         if (_contentToExternal.TryGetValue(contentId, out var externalIds))
         {
-            return await Task.FromResult(externalIds.Keys.ToArray());
+            return Task.FromResult<IReadOnlyList<string>>(externalIds.Keys.ToArray());
         }
 
-        return Array.Empty<string>();
+        return Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
     }
 
     /// <inheritdoc/>
-    public async Task<bool> IsRegisteredAsync(string externalId, CancellationToken cancellationToken = default)
+    public Task<bool> IsRegisteredAsync(string externalId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(externalId))
-            return await Task.FromResult(false);
+            return Task.FromResult(false);
 
         externalId = externalId.Trim();
-        return await Task.FromResult(_externalToContent.ContainsKey(externalId));
+        return Task.FromResult(_externalToContent.ContainsKey(externalId));
     }
 
     /// <inheritdoc/>
-    public async Task<bool> IsContentIdRegisteredAsync(string contentId, CancellationToken cancellationToken = default)
+    public Task<bool> IsContentIdRegisteredAsync(string contentId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(contentId))
-            return await Task.FromResult(false);
+            return Task.FromResult(false);
 
         contentId = contentId.Trim();
-        return await Task.FromResult(_contentToExternal.ContainsKey(contentId));
+        return Task.FromResult(_contentToExternal.ContainsKey(contentId));
     }
 
     /// <inheritdoc/>
-    public async Task<ContentIdRegistryStats> GetStatsAsync(CancellationToken cancellationToken = default)
+    public Task<ContentIdRegistryStats> GetStatsAsync(CancellationToken cancellationToken = default)
     {
-        var totalMappings = _externalToContent.Count;
-
-        // Count mappings by domain (extract domain from contentId, e.g. content:audio:track:id -> "audio")
-        var mappingsByDomain = new Dictionary<string, int>();
-        foreach (var contentId in _externalToContent.Values)
+        lock (_mutationLock)
         {
-            var parsed = ContentIdParser.Parse(contentId);
-            var domain = parsed == null
-                ? "unknown"
-                : ContentIdParser.NormalizeDomain(parsed.Domain, parsed.Type);
-            mappingsByDomain.TryGetValue(domain, out var count);
-            mappingsByDomain[domain] = count + 1;
+            var mappingsByDomain = new Dictionary<string, int>(_mappingCountsByDomain, StringComparer.OrdinalIgnoreCase);
+            return Task.FromResult(new ContentIdRegistryStats(
+                TotalMappings: _externalToContent.Count,
+                TotalDomains: mappingsByDomain.Count,
+                MappingsByDomain: mappingsByDomain));
         }
-
-        var totalDomains = mappingsByDomain.Count;
-
-        return await Task.FromResult(new ContentIdRegistryStats(
-            TotalMappings: totalMappings,
-            TotalDomains: totalDomains,
-            MappingsByDomain: mappingsByDomain));
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<string>> FindByDomainAsync(string domain, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<string>> FindByDomainAsync(string domain, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(domain))
-            return Array.Empty<string>();
+            return Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
 
-        var results = new List<string>();
         var normalizedDomain = ContentIdParser.NormalizeDomain(domain.Trim(), string.Empty);
-
-        foreach (var contentId in _externalToContent.Values)
+        lock (_mutationLock)
         {
-            var parsedContentId = ContentIdParser.Parse(contentId);
-            if (parsedContentId != null &&
-                ContentIdParser.NormalizeDomain(parsedContentId.Domain, parsedContentId.Type)
-                    .Equals(normalizedDomain, StringComparison.OrdinalIgnoreCase))
-            {
-                results.Add(contentId);
-            }
+            var results = _contentIdsByDomain.TryGetValue(normalizedDomain, out var contentIds)
+                ? contentIds.Distinct(StringComparer.OrdinalIgnoreCase).ToArray()
+                : Array.Empty<string>();
+            return Task.FromResult<IReadOnlyList<string>>(results);
         }
-
-        return await Task.FromResult(results.Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
     }
 
     /// <inheritdoc/>
-    public async Task<IReadOnlyList<string>> FindByDomainAndTypeAsync(string domain, string type, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<string>> FindByDomainAndTypeAsync(string domain, string type, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(domain) || string.IsNullOrWhiteSpace(type))
-            return Array.Empty<string>();
+            return Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
 
-        var results = new List<string>();
         var normalizedDomain = ContentIdParser.NormalizeDomain(domain.Trim(), type.Trim());
         var normalizedType = ContentIdParser.NormalizeType(domain.Trim(), type.Trim());
-
-        foreach (var contentId in _externalToContent.Values)
+        lock (_mutationLock)
         {
-            var parsedContentId = ContentIdParser.Parse(contentId);
-            if (parsedContentId != null &&
-                ContentIdParser.NormalizeDomain(parsedContentId.Domain, parsedContentId.Type)
-                    .Equals(normalizedDomain, StringComparison.OrdinalIgnoreCase) &&
-                ContentIdParser.NormalizeType(parsedContentId.Domain, parsedContentId.Type)
-                    .Equals(normalizedType, StringComparison.OrdinalIgnoreCase))
-            {
-                results.Add(contentId);
-            }
+            var results = _contentIdsByDomainAndType.TryGetValue(normalizedDomain, out var contentIdsByType)
+                && contentIdsByType.TryGetValue(normalizedType, out var contentIds)
+                    ? contentIds.Distinct(StringComparer.OrdinalIgnoreCase).ToArray()
+                    : Array.Empty<string>();
+            return Task.FromResult<IReadOnlyList<string>>(results);
         }
-
-        return await Task.FromResult(results.Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
     }
 
     /// <summary>
@@ -175,7 +167,100 @@ public class ContentIdRegistry : IContentIdRegistry
     /// </summary>
     public void Clear()
     {
-        _externalToContent.Clear();
-        _contentToExternal.Clear();
+        lock (_mutationLock)
+        {
+            _externalToContent.Clear();
+            _contentToExternal.Clear();
+            _mappingCountsByDomain.Clear();
+            _contentIdsByDomain.Clear();
+            _contentIdsByDomainAndType.Clear();
+        }
+    }
+
+    private void AddToIndexes(string contentId)
+    {
+        var parsed = ContentIdParser.Parse(contentId);
+        var domain = parsed == null
+            ? "unknown"
+            : ContentIdParser.NormalizeDomain(parsed.Domain, parsed.Type);
+        _mappingCountsByDomain.TryGetValue(domain, out var count);
+        _mappingCountsByDomain[domain] = count + 1;
+
+        if (parsed == null)
+        {
+            return;
+        }
+
+        var type = ContentIdParser.NormalizeType(parsed.Domain, parsed.Type);
+        var domainContentIds = GetOrAdd(_contentIdsByDomain, domain);
+        domainContentIds.Add(contentId);
+
+        if (!_contentIdsByDomainAndType.TryGetValue(domain, out var contentIdsByType))
+        {
+            contentIdsByType = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+            _contentIdsByDomainAndType[domain] = contentIdsByType;
+        }
+
+        GetOrAdd(contentIdsByType, type).Add(contentId);
+    }
+
+    private void RemoveFromIndexes(string contentId, bool contentIdStillMapped)
+    {
+        var parsed = ContentIdParser.Parse(contentId);
+        var domain = parsed == null
+            ? "unknown"
+            : ContentIdParser.NormalizeDomain(parsed.Domain, parsed.Type);
+        var remainingMappings = _mappingCountsByDomain[domain] - 1;
+        if (remainingMappings == 0)
+        {
+            _mappingCountsByDomain.Remove(domain);
+        }
+        else
+        {
+            _mappingCountsByDomain[domain] = remainingMappings;
+        }
+
+        if (parsed == null || contentIdStillMapped)
+        {
+            return;
+        }
+
+        if (_contentIdsByDomain.TryGetValue(domain, out var domainContentIds))
+        {
+            domainContentIds.Remove(contentId);
+            if (domainContentIds.Count == 0)
+            {
+                _contentIdsByDomain.Remove(domain);
+            }
+        }
+
+        var type = ContentIdParser.NormalizeType(parsed.Domain, parsed.Type);
+        if (_contentIdsByDomainAndType.TryGetValue(domain, out var contentIdsByType)
+            && contentIdsByType.TryGetValue(type, out var contentIds))
+        {
+            contentIds.Remove(contentId);
+            if (contentIds.Count == 0)
+            {
+                contentIdsByType.Remove(type);
+            }
+
+            if (contentIdsByType.Count == 0)
+            {
+                _contentIdsByDomainAndType.Remove(domain);
+            }
+        }
+    }
+
+    private static HashSet<string> GetOrAdd(
+        Dictionary<string, HashSet<string>> index,
+        string key)
+    {
+        if (!index.TryGetValue(key, out var contentIds))
+        {
+            contentIds = new HashSet<string>(StringComparer.Ordinal);
+            index[key] = contentIds;
+        }
+
+        return contentIds;
     }
 }
