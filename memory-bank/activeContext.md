@@ -1,3 +1,17 @@
+## Update 2026-07-16 17:43:10Z
+
+- Current task: performance and efficiency improvements in progress; Common.Security fingerprint diagnostics bounded locally.
+- Last activity:
+  - Ported direct enumeration, single-pass stats/eviction, bounded recent reads, and atomic queue sizing to the separate Common.Security fingerprint service.
+  - Production-cap allocation bounds are below 8/32/48 KiB for recent reads, eviction, and 1,000-result queries; concurrent retention remains exactly 10,000 events.
+- Validation:
+  - Passed focused service (`4/4`), broader Common.Security (`326/326`), and full backend suites (`4970/4970`) tests.
+  - Exact aggregate/auth/history/clear, concurrent cap, order/filter, and allocation boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop; follows gotcha `0z702` (`f85a7034e`). Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the Common.Security fingerprint slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 17:34:49Z
 
 - Current task: performance and efficiency improvements in progress; filtered fingerprint values-snapshot removal complete locally.

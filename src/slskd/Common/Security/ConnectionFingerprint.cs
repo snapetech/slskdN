@@ -21,6 +21,7 @@ public sealed class ConnectionFingerprintService
     private readonly ILogger<ConnectionFingerprintService> _logger;
     private readonly ConcurrentDictionary<string, ConnectionFingerprint> _fingerprints = new();
     private readonly ConcurrentQueue<ConnectionEvent> _eventLog = new();
+    private int _eventLogSize;
 
     /// <summary>
     /// Maximum fingerprints to keep in memory.
@@ -75,9 +76,15 @@ public sealed class ConnectionFingerprintService
         // Enforce max size
         if (_fingerprints.Count >= MaxFingerprints)
         {
-            var oldest = _fingerprints.Values
-                .OrderBy(f => f.Timestamp)
-                .FirstOrDefault();
+            ConnectionFingerprint? oldest = null;
+            foreach (var entry in _fingerprints)
+            {
+                if (oldest == null || entry.Value.Timestamp < oldest.Timestamp)
+                {
+                    oldest = entry.Value;
+                }
+            }
+
             if (oldest != null)
             {
                 _fingerprints.TryRemove(oldest.Id, out _);
@@ -222,7 +229,8 @@ public sealed class ConnectionFingerprintService
         string? certThumbprint = null,
         DateTimeOffset? since = null)
     {
-        return _fingerprints.Values
+        return _fingerprints
+            .Select(entry => entry.Value)
             .Where(f =>
                 (ipHash == null || f.IpHash == ipHash) &&
                 (username == null || f.Username?.Equals(username, StringComparison.OrdinalIgnoreCase) == true) &&
@@ -239,10 +247,25 @@ public sealed class ConnectionFingerprintService
     /// <returns>Recent events in reverse chronological order.</returns>
     public IReadOnlyList<ConnectionEvent> GetRecentEvents(int count = 100)
     {
-        return _eventLog
-            .Reverse()
-            .Take(count)
-            .ToList();
+        if (count <= 0)
+        {
+            return Array.Empty<ConnectionEvent>();
+        }
+
+        var recentEvents = new Queue<ConnectionEvent>(Math.Min(count, MaxEventLogSize));
+        foreach (var connectionEvent in _eventLog)
+        {
+            if (recentEvents.Count == count)
+            {
+                recentEvents.Dequeue();
+            }
+
+            recentEvents.Enqueue(connectionEvent);
+        }
+
+        var result = recentEvents.ToArray();
+        Array.Reverse(result);
+        return result;
     }
 
     /// <summary>
@@ -263,19 +286,50 @@ public sealed class ConnectionFingerprintService
     /// </summary>
     public FingerprintStats GetStats()
     {
-        var fingerprints = _fingerprints.Values.ToList();
         var now = DateTimeOffset.UtcNow;
         var lastHour = now.AddHours(-1);
+        var uniqueIpHashes = new HashSet<string>();
+        var uniqueUsernames = new HashSet<string>();
+        var totalFingerprints = 0;
+        var activeConnections = 0;
+        var connectionsLastHour = 0;
+        var totalSecurityEvents = 0;
+
+        foreach (var entry in _fingerprints)
+        {
+            var fingerprint = entry.Value;
+            totalFingerprints++;
+            if (fingerprint.DisconnectedAt == null)
+            {
+                activeConnections++;
+            }
+
+            if (fingerprint.Timestamp >= lastHour)
+            {
+                connectionsLastHour++;
+            }
+
+            uniqueIpHashes.Add(fingerprint.IpHash);
+            if (fingerprint.Username != null)
+            {
+                uniqueUsernames.Add(fingerprint.Username);
+            }
+
+            lock (fingerprint.SecurityEvents)
+            {
+                totalSecurityEvents += fingerprint.SecurityEvents.Count;
+            }
+        }
 
         return new FingerprintStats
         {
-            TotalFingerprints = fingerprints.Count,
-            ActiveConnections = fingerprints.Count(f => f.DisconnectedAt == null),
-            ConnectionsLastHour = fingerprints.Count(f => f.Timestamp >= lastHour),
-            UniqueIpHashes = fingerprints.Select(f => f.IpHash).Distinct().Count(),
-            UniqueUsernames = fingerprints.Where(f => f.Username != null).Select(f => f.Username).Distinct().Count(),
-            TotalSecurityEvents = fingerprints.Sum(f => { lock (f.SecurityEvents) { return f.SecurityEvents.Count; } }),
-            EventLogSize = _eventLog.Count,
+            TotalFingerprints = totalFingerprints,
+            ActiveConnections = activeConnections,
+            ConnectionsLastHour = connectionsLastHour,
+            UniqueIpHashes = uniqueIpHashes.Count,
+            UniqueUsernames = uniqueUsernames.Count,
+            TotalSecurityEvents = totalSecurityEvents,
+            EventLogSize = Volatile.Read(ref _eventLogSize),
         };
     }
 
@@ -287,7 +341,7 @@ public sealed class ConnectionFingerprintService
         _fingerprints.Clear();
         while (_eventLog.TryDequeue(out _))
         {
-            // Drain the queue
+            Interlocked.Decrement(ref _eventLogSize);
         }
     }
 
@@ -295,10 +349,10 @@ public sealed class ConnectionFingerprintService
     {
         _eventLog.Enqueue(evt);
 
-        // Trim if too large
-        while (_eventLog.Count > MaxEventLogSize)
+        if (Interlocked.Increment(ref _eventLogSize) > MaxEventLogSize &&
+            _eventLog.TryDequeue(out _))
         {
-            _eventLog.TryDequeue(out _);
+            Interlocked.Decrement(ref _eventLogSize);
         }
     }
 

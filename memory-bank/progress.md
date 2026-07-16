@@ -1,3 +1,10 @@
+## Update 2026-07-16 17:43:10Z
+
+- Completed the Common.Security connection-fingerprint diagnostics performance pass.
+- The separate security service now uses direct dictionary enumeration, single-pass statistics/oldest eviction, requested-size recent tails, and atomic event-log accounting instead of snapshots, repeated scans/sorts/counts, and full-log reverse buffers.
+- At production caps, recent reads allocate below 8 KiB, full eviction below 32 KiB, and 1,000-result queries below 48 KiB; concurrent producers retain/report exactly 10,000 events. Authentication/history/clear, filters/order/counters, locking/logging, and best-effort concurrency remain unchanged; follows gotcha `0z702` (`f85a7034e`).
+- Validation passed: focused service tests (`4/4`), broader Common.Security tests (`326/326`), full backend suites (`4970/4970`: `69` application, `4621` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 17:34:49Z
 
 - Completed the filtered fingerprint-query snapshot-removal performance pass.

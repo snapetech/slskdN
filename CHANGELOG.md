@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Common security connection fingerprints now use bounded recent reads,
+  single-pass queries/statistics/eviction, and atomic event-log sizing.
 - Filtered connection-fingerprint queries now enumerate dictionary entries
   directly instead of allocating an implicit values snapshot before sorting.
 - Connection-event retention now uses atomic queue-size accounting instead of

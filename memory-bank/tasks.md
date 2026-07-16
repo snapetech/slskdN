@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound Common.Security connection fingerprint diagnostics.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Ported the proven bounded DHT fingerprint algorithms to the separate `slskd.Common.Security.ConnectionFingerprintService`: direct dictionary enumeration removes `.Values` snapshots; statistics and capped oldest-entry selection are single-pass; recent reads retain only the requested tail; and an exact atomic counter replaces repeated queue counts. At production caps, warmed recent reads allocate below 8 KiB, full admission/eviction below 32 KiB, and 1,000-result filtered/sorted queries below 48 KiB; four concurrent producers retain/report exactly 10,000 events. Common-specific authenticated events, per-fingerprint history, `SetUsername`, `Clear` counter reset, filters/order, aggregate definitions, event locking, logging, and best-effort concurrency remain unchanged. Added exact aggregate/auth/history/clear, concurrent cap/recent allocation, oldest/cap/allocation, and filter/order/query allocation coverage; follows gotcha `0z702` (`f85a7034e`). Validation passed: focused service tests (`4/4`), broader Common.Security tests (`326/326`), full backend suites (`4970/4970`: `69` application, `4621` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Remove filtered fingerprint values snapshots.
   - Status: completed (2026-07-16)
   - Priority: P1

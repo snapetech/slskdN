@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- The Common.Security connection-fingerprint service now uses the same bounded
+  algorithms as DHT rendezvous diagnostics: direct dictionary queries,
+  single-pass statistics and oldest-entry eviction, requested-size recent-event
+  tails, and exact atomic event-log sizing. At production caps, recent reads
+  allocate below 8 KiB, complete eviction below 32 KiB, and 1,000-result queries
+  below 48 KiB; four concurrent producers retain/report exactly 10,000 events.
+  Authentication events, per-fingerprint history, all counters/filters/orders,
+  clear/reset behavior, logging, and best-effort concurrency remain unchanged.
 - Filtered connection-fingerprint queries now enumerate concurrent-dictionary
   entries directly instead of allocating the `.Values` snapshot before their
   required filtering and stable descending timestamp sort. At the 1,000-result
