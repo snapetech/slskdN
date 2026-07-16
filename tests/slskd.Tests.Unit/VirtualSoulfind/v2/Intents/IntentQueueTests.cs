@@ -5,6 +5,7 @@
 // Intent Queue tests
 namespace slskd.Tests.Unit.VirtualSoulfind.v2.Intents
 {
+    using System.Linq;
     using System.Threading.Tasks;
     using slskd.VirtualSoulfind.Core;
     using slskd.VirtualSoulfind.v2.Intents;
@@ -68,6 +69,30 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Intents
 
             var updated = await queue.GetTrackIntentAsync(intent.DesiredTrackId);
 
+            Assert.NotNull(updated);
+            Assert.Equal(IntentStatus.InProgress, updated.Status);
+        }
+
+        [Fact]
+        public async Task TryUpdateTrackStatus_AllowsOnlyOneConcurrentClaim()
+        {
+            var queue = new InMemoryIntentQueue();
+            var intent = await queue.EnqueueTrackAsync(ContentDomain.Music, "track1");
+            var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var claimTasks = Enumerable.Range(0, 32).Select(async _ =>
+            {
+                await start.Task;
+                return await queue.TryUpdateTrackStatusAsync(
+                    intent.DesiredTrackId,
+                    IntentStatus.Pending,
+                    IntentStatus.InProgress);
+            }).ToArray();
+
+            start.SetResult();
+            var claims = await Task.WhenAll(claimTasks);
+            var updated = await queue.GetTrackIntentAsync(intent.DesiredTrackId);
+
+            Assert.Single(claims, claimed => claimed);
             Assert.NotNull(updated);
             Assert.Equal(IntentStatus.InProgress, updated.Status);
         }

@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Virtual Soulfind intent batches now claim loaded pending records atomically
+  instead of fetching every same intent again. A full default batch falls from
+  11 intent reads to one, concurrent/manual processors cannot duplicate a
+  claim, and normal info-level cycles no longer scan the queue twice solely to
+  prepare a suppressed debug message.
 - Library Health scan status checks now stop while the document is hidden and
   resume against the original one-minute deadline. Slow requests remain capped
   at one in flight instead of accumulating on a fixed two-second interval, and

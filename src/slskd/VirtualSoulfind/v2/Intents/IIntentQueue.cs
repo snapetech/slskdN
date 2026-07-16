@@ -53,6 +53,15 @@ namespace slskd.VirtualSoulfind.v2.Intents
             CancellationToken cancellationToken = default);
 
         /// <summary>
+        ///     Atomically updates an intent only when it still has the expected status.
+        /// </summary>
+        Task<bool> TryUpdateTrackStatusAsync(
+            string desiredTrackId,
+            IntentStatus expectedStatus,
+            IntentStatus newStatus,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         ///     Get intent by ID.
         /// </summary>
         Task<DesiredTrack?> GetTrackIntentAsync(

@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Intent queue batches now reuse their loaded pending records behind atomic
+  status claims, and skip whole-queue statistics hydration when debug logging
+  is disabled.
 - Library Health scan status polling now pauses in hidden tabs, preserves its
   one-minute deadline, and schedules each check after the previous request
   completes so slow responses cannot create overlapping work.

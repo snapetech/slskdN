@@ -1,3 +1,10 @@
+## Update 2026-07-16 05:50:50Z
+
+- Completed the Virtual Soulfind intent-batch queue-read performance pass.
+- Reused batch-loaded pending intents behind a new atomic `Pending` to `InProgress` claim while preserving the public ID-based processing path. This removes one same-record lookup per item without allowing stale snapshots or concurrent/manual workers to duplicate processing.
+- A full default ten-item batch falls from 11 intent reads to one (90.9% fewer). Normal info-level background cycles also skip two whole-queue status counts that existed solely to populate a suppressed debug message. Documented gotchas `0z653` in `e28ef2f58` and `0z654` in `875e0dc4c`.
+- Validation passed: focused intent tests (`18/18`), complete smoke/unit/integration suites (`4818/4818`: `69` smoke, `4469` unit, `280` integration), and repository lint. The remediation baseline passed every substantive check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+
 ## Update 2026-07-16 05:38:31Z
 
 - Completed the Library Health scan-polling performance pass.

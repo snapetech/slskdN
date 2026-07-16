@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove redundant intent-batch reads and debug-only queue scans.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Batch processing now reuses the complete pending records returned by `GetPendingTracksAsync`, claims each with an atomic expected-state transition, and retains the public ID-based fetch path for standalone callers. At the default ten-item cap, intent reads fall from 11 to one (90.9% fewer), while info-level background cycles avoid two complete queue scans previously performed only for a suppressed debug message. Added duplicate-read, atomic-claim, debug-gating, and standalone-path regressions; documented gotchas `0z653` (`e28ef2f58`) and `0z654` (`875e0dc4c`).
+
 - [x] Make Library Health scan polling visibility-aware and non-overlapping.
   - Status: completed (2026-07-16)
   - Priority: P1

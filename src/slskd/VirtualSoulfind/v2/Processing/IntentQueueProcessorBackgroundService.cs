@@ -69,15 +69,17 @@ namespace slskd.VirtualSoulfind.v2.Processing
                     {
                         _logger.LogInformation("Processed {Count} intents", processed);
 
-                        // Get stats for monitoring
-                        var stats = await _processor.GetStatsAsync();
-                        _logger.LogDebug(
-                            "Processor stats: Total={Total}, Success={Success}, Failed={Failed}, Pending={Pending}, InProgress={InProgress}",
-                            stats.TotalProcessed,
-                            stats.SuccessCount,
-                            stats.FailureCount,
-                            stats.PendingCount,
-                            stats.InProgressCount);
+                        if (_logger.IsEnabled(LogLevel.Debug))
+                        {
+                            var stats = await _processor.GetStatsAsync();
+                            _logger.LogDebug(
+                                "Processor stats: Total={Total}, Success={Success}, Failed={Failed}, Pending={Pending}, InProgress={InProgress}",
+                                stats.TotalProcessed,
+                                stats.SuccessCount,
+                                stats.FailureCount,
+                                stats.PendingCount,
+                                stats.InProgressCount);
+                        }
                     }
                 }
                 catch (OperationCanceledException)

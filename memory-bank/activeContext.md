@@ -1,3 +1,17 @@
+## Update 2026-07-16 05:50:50Z
+
+- Current task: performance and efficiency improvements in progress; intent-batch queue-read pass complete locally.
+- Last activity:
+  - Reused batch-loaded pending intents behind atomic expected-status claims, removing the per-item same-record reload without permitting duplicate processing.
+  - Gated expensive queue statistics behind debug-log enablement. A full ten-item cycle falls from 11 intent reads plus two whole-queue scans to one read and zero scans at normal info logging. Documented gotchas `0z653` (`e28ef2f58`) and `0z654` (`875e0dc4c`).
+- Validation:
+  - Passed focused intent tests (`18/18`) and complete smoke/unit/integration suites (`4818/4818`: `69` smoke, `4469` unit, `280` integration).
+  - Repository lint and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. Concurrent Mesh and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the intent processing implementation and handoff slice.
+  2. Continue the broader performance goal outside the dirty Mesh/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 05:38:31Z
 
 - Current task: performance and efficiency improvements in progress; Library Health scan-polling pass complete locally.

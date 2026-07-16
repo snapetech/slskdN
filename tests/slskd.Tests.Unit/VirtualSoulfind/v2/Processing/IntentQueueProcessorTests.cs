@@ -37,6 +37,13 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Processing
             _mockPlanner = new Mock<IPlanner>();
             _mockResolver = new Mock<IResolver>();
             _mockLogger = new Mock<ILogger<IntentQueueProcessor>>();
+            _mockIntentQueue
+                .Setup(q => q.TryUpdateTrackStatusAsync(
+                    It.IsAny<string>(),
+                    IntentStatus.Pending,
+                    IntentStatus.InProgress,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
         }
 
         [Fact]
@@ -151,6 +158,16 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Processing
             // Assert
             Assert.Equal(2, result);
             _mockIntentQueue.Verify(
+                q => q.GetTrackIntentAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+                Times.Never);
+            _mockIntentQueue.Verify(
+                q => q.TryUpdateTrackStatusAsync(
+                    It.IsAny<string>(),
+                    IntentStatus.Pending,
+                    IntentStatus.InProgress,
+                    It.IsAny<CancellationToken>()),
+                Times.Exactly(2));
+            _mockIntentQueue.Verify(
                 q => q.UpdateTrackStatusAsync(It.IsAny<string>(), IntentStatus.Completed, It.IsAny<CancellationToken>()),
                 Times.Exactly(2));
         }
@@ -226,7 +243,11 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Processing
             // Assert
             Assert.True(result);
             _mockIntentQueue.Verify(
-                q => q.UpdateTrackStatusAsync("intent1", IntentStatus.InProgress, It.IsAny<CancellationToken>()),
+                q => q.TryUpdateTrackStatusAsync(
+                    "intent1",
+                    IntentStatus.Pending,
+                    IntentStatus.InProgress,
+                    It.IsAny<CancellationToken>()),
                 Times.Once);
             _mockIntentQueue.Verify(
                 q => q.UpdateTrackStatusAsync("intent1", IntentStatus.Completed, It.IsAny<CancellationToken>()),

@@ -106,6 +106,43 @@ namespace slskd.VirtualSoulfind.v2.Intents
             return Task.CompletedTask;
         }
 
+        public Task<bool> TryUpdateTrackStatusAsync(
+            string desiredTrackId,
+            IntentStatus expectedStatus,
+            IntentStatus newStatus,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            while (_tracks.TryGetValue(desiredTrackId, out var track))
+            {
+                if (track.Status != expectedStatus)
+                {
+                    return Task.FromResult(false);
+                }
+
+                var updated = new DesiredTrack
+                {
+                    Domain = track.Domain,
+                    DesiredTrackId = track.DesiredTrackId,
+                    TrackId = track.TrackId,
+                    ParentDesiredReleaseId = track.ParentDesiredReleaseId,
+                    Priority = track.Priority,
+                    Status = newStatus,
+                    PlannedSources = track.PlannedSources,
+                    CreatedAt = track.CreatedAt,
+                    UpdatedAt = DateTimeOffset.UtcNow,
+                };
+
+                if (_tracks.TryUpdate(desiredTrackId, updated, track))
+                {
+                    return Task.FromResult(true);
+                }
+            }
+
+            return Task.FromResult(false);
+        }
+
         public Task<DesiredTrack?> GetTrackIntentAsync(
             string desiredTrackId,
             CancellationToken cancellationToken = default)

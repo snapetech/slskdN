@@ -73,7 +73,7 @@ namespace slskd.VirtualSoulfind.v2.Processing
 
                 try
                 {
-                    await ProcessIntentAsync(intent.DesiredTrackId, cancellationToken);
+                    await ProcessIntentAsync(intent, cancellationToken);
                     processed++;
                 }
                 catch (Exception ex)
@@ -99,6 +99,13 @@ namespace slskd.VirtualSoulfind.v2.Processing
                 return false;
             }
 
+            return await ProcessIntentAsync(intent, cancellationToken);
+        }
+
+        private async Task<bool> ProcessIntentAsync(DesiredTrack intent, CancellationToken cancellationToken)
+        {
+            var desiredTrackId = intent.DesiredTrackId;
+
             // Skip if already in progress or completed
             if (intent.Status != IntentStatus.Pending)
             {
@@ -106,11 +113,18 @@ namespace slskd.VirtualSoulfind.v2.Processing
                 return false;
             }
 
+            if (!await _intentQueue.TryUpdateTrackStatusAsync(
+                    desiredTrackId,
+                    IntentStatus.Pending,
+                    IntentStatus.InProgress,
+                    cancellationToken))
+            {
+                _logger.LogDebug("Intent {IntentId} is no longer pending, skipping", desiredTrackId);
+                return false;
+            }
+
             try
             {
-                // Mark as in progress
-                await _intentQueue.UpdateTrackStatusAsync(desiredTrackId, IntentStatus.InProgress, cancellationToken);
-
                 // Get track info from catalogue
                 if (!ContentItemId.TryParse(intent.TrackId, out var trackId))
                 {
