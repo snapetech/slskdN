@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z701. Fuzzy Match Tests Must Use The Weighted Combined Score
+
+**The Bug**: A fuzzy-match recovery regression returned perceptual similarity
+`1.0` but used a `0.9` result threshold for textually dissimilar ContentIDs.
+The matcher weights perceptual similarity at `0.7`, so the recovered candidate
+was correctly excluded and the test failed.
+
+**Files Affected**:
+- `src/slskd/MediaCore/FuzzyMatcher.cs`
+- `tests/slskd.Tests.Unit/MediaCore/FuzzyMatcherTests.cs`
+
+**Prevention**: Assertions on `FindSimilarContentAsync` must calculate the
+combined score (`0.7 * perceptual + 0.3 * text`) rather than treating the raw
+perceptual score as final confidence. When testing descriptor recovery or call
+counts rather than threshold behavior, use a threshold below the guaranteed
+combined score and separately assert the selected candidate.
+
 ### 0z700. Direct EF SQL Changes Database Exception Boundaries
 
 **The Bug**: Replacing a tracked `SaveChangesAsync` insert with
