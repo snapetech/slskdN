@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Keep Search user-history ranking aggregation inside SQLite.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced `/transfers/downloads/user-stats` materialization and managed grouping of every retained download with one asynchronous SQLite aggregate that returns one row per username while preserving counts, successful bytes, terminal failure semantics, removal filtering, and last-download timestamps. Search API clients now deduplicate concurrent requests and reuse the result for 30 seconds; ten rapid detail remounts fall from ten history requests to one without reducing freshness relative to the existing mount-only load. On a 134,777-row/1,000-user SQLite proxy, one query's intermediate output fell from 40,066,203 bytes to 35,112 bytes (99.912%), while 25 runs fell from 2,972 ms to 867 ms (70.83%). A candidate index improved the aggregate only another 2.8%, so no schema growth was added. Added SQL-shape/aggregate/controller and client cache/expiry regressions; documented wall-clock rate-fixture gotcha `0z620` in standalone commit `c0cbec90a`.
+
 - [x] Collapse Search result metadata request fan-out.
   - Status: completed (2026-07-16)
   - Priority: P1

@@ -21,7 +21,10 @@
 namespace slskd.Transfers
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
     using Soulseek;
     using slskd.Transfers.Downloads;
@@ -47,6 +50,14 @@ namespace slskd.Transfers
         /// </summary>
         /// <returns>Current directional speeds and retained directional byte totals.</returns>
         (double DownloadSpeed, double UploadSpeed, long DownloadedBytes, long UploadedBytes) GetSpeedSnapshot();
+
+        /// <summary>
+        ///     Gets retained download statistics grouped by username without materializing transfer history.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>Download statistics keyed by username.</returns>
+        Task<IReadOnlyDictionary<string, UserDownloadStats>> GetUserDownloadStatsAsync(
+            CancellationToken cancellationToken = default);
     }
 
     /// <summary>
@@ -140,6 +151,38 @@ namespace slskd.Transfers
                 .SingleOrDefault();
 
             return (downloadSpeed, uploadSpeed, downloadedBytes, uploadedBytes);
+        }
+
+        /// <inheritdoc />
+        public async Task<IReadOnlyDictionary<string, UserDownloadStats>> GetUserDownloadStatsAsync(
+            CancellationToken cancellationToken = default)
+        {
+            await using var context = await ContextFactory.CreateDbContextAsync(cancellationToken);
+            var stats = await context.Transfers
+                .AsNoTracking()
+                .Where(transfer =>
+                    transfer.Direction == TransferDirection.Download &&
+                    !transfer.Removed)
+                .GroupBy(transfer => transfer.Username)
+                .Select(group => new UserDownloadStats
+                {
+                    Username = group.Key,
+                    TotalDownloads = group.Count(),
+                    SuccessfulDownloads = group.Count(transfer =>
+                        (transfer.State & TransferStates.Completed) == TransferStates.Completed &&
+                        (transfer.State & TransferStates.Succeeded) == TransferStates.Succeeded),
+                    FailedDownloads = group.Count(transfer =>
+                        (transfer.State & TransferStates.Completed) == TransferStates.Completed &&
+                        (transfer.State & TransferStates.Succeeded) != TransferStates.Succeeded),
+                    TotalBytes = group.Sum(transfer =>
+                        (transfer.State & TransferStates.Succeeded) == TransferStates.Succeeded
+                            ? transfer.BytesTransferred
+                            : 0),
+                    LastDownloadAt = group.Max(transfer => transfer.EndedAt),
+                })
+                .ToListAsync(cancellationToken);
+
+            return stats.ToDictionary(stat => stat.Username, StringComparer.Ordinal);
         }
     }
 }

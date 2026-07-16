@@ -4,9 +4,38 @@ import * as search from './searches';
 vi.mock('./api', () => ({
   __esModule: true,
   default: {
+    get: vi.fn(),
     post: vi.fn(),
   },
 }));
+
+describe('user download stats', () => {
+  it('dedupes concurrent requests and reuses the bounded cache', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-16T00:00:00Z'));
+    api.get
+      .mockResolvedValueOnce({ data: { alice: { successfulDownloads: 3 } } })
+      .mockResolvedValueOnce({ data: { bob: { successfulDownloads: 1 } } });
+
+    const [first, second] = await Promise.all([
+      search.getUserDownloadStats(),
+      search.getUserDownloadStats(),
+    ]);
+    const cached = await search.getUserDownloadStats();
+
+    expect(api.get).toHaveBeenCalledTimes(1);
+    expect(first).toBe(second);
+    expect(cached).toBe(first);
+
+    await vi.advanceTimersByTimeAsync(30_001);
+
+    await expect(search.getUserDownloadStats()).resolves.toEqual({
+      bob: { successfulDownloads: 1 },
+    });
+    expect(api.get).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+});
 
 describe('createBatch', () => {
   beforeEach(() => {

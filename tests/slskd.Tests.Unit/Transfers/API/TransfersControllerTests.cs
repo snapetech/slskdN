@@ -22,6 +22,28 @@ using SlskdTransfer = slskd.Transfers.Transfer;
 public class TransfersControllerTests
 {
     [Fact]
+    public async Task GetUserDownloadStats_UsesAggregateTransferSnapshot()
+    {
+        var stats = new Dictionary<string, UserDownloadStats>
+        {
+            ["alice"] = new() { Username = "alice", SuccessfulDownloads = 3 },
+        };
+        var transferService = new Mock<ITransferService>();
+        transferService
+            .Setup(service => service.GetUserDownloadStatsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(stats);
+        var controller = CreateController(transferService: transferService);
+
+        var result = await controller.GetUserDownloadStats();
+
+        var response = Assert.IsType<OkObjectResult>(result);
+        Assert.Same(stats, response.Value);
+        transferService.Verify(
+            service => service.GetUserDownloadStatsAsync(It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task EnqueueAsync_WithWhitespaceFilename_ReturnsBadRequest()
     {
         var downloads = new Mock<IDownloadService>();

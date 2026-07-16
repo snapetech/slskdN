@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Search download-history ranking now uses one database aggregate instead of
+  materializing the complete retained download history, and short-lived client
+  reuse prevents repeated detail navigation from rerunning the same summary.
 - Search results now batch cached user-group metadata for visible peers, reuse
   response-provided speed, queue, and slot data, and wait for user interaction
   before loading reputation and opinion details. Initial result rendering no

@@ -1344,44 +1344,15 @@ namespace slskd.Transfers.API
         [HttpGet("downloads/user-stats")]
         [Authorize(Policy = AuthPolicy.Any)]
         [ProducesResponseType(typeof(Dictionary<string, UserDownloadStats>), 200)]
-        public IActionResult GetUserDownloadStats()
+        public async Task<IActionResult> GetUserDownloadStats(CancellationToken cancellationToken = default)
         {
             if (Program.IsRelayAgent)
             {
                 return Forbid();
             }
 
-            var downloads = Transfers.Downloads.List();
-
-            var stats = downloads
-                .GroupBy(d => d.Username)
-                .ToDictionary(
-                    g => g.Key,
-                    g => new UserDownloadStats
-                    {
-                        Username = g.Key,
-                        TotalDownloads = g.Count(),
-                        SuccessfulDownloads = g.Count(d => d.State.HasFlag(Soulseek.TransferStates.Completed) && d.State.HasFlag(Soulseek.TransferStates.Succeeded)),
-                        FailedDownloads = g.Count(d => d.State.HasFlag(Soulseek.TransferStates.Completed) && !d.State.HasFlag(Soulseek.TransferStates.Succeeded)),
-                        TotalBytes = g.Where(d => d.State.HasFlag(Soulseek.TransferStates.Succeeded)).Sum(d => d.BytesTransferred),
-                        LastDownloadAt = g.Max(d => d.EndedAt),
-                    });
-
-            return Ok(stats);
+            return Ok(await Transfers.GetUserDownloadStatsAsync(cancellationToken));
         }
-    }
-
-    /// <summary>
-    ///     Download statistics for a user.
-    /// </summary>
-    public class UserDownloadStats
-    {
-        public string Username { get; set; } = string.Empty;
-        public int TotalDownloads { get; set; }
-        public int SuccessfulDownloads { get; set; }
-        public int FailedDownloads { get; set; }
-        public long TotalBytes { get; set; }
-        public DateTime? LastDownloadAt { get; set; }
     }
 
     public class AcceleratedDownloadModeRequest

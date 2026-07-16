@@ -1,3 +1,12 @@
+## Update 2026-07-16 00:34:00Z
+
+- Completed the Search user-history aggregation and request-reuse performance pass.
+- Replaced full download-entity materialization and controller-side grouping with one asynchronous SQLite aggregate that emits only username, counts, successful bytes, and last-download time while preserving the existing API response.
+- Added a shared 30-second Web cache with in-flight deduplication. Ten Search Detail remounts inside that window now make one user-history request instead of ten (90% fewer), with the same mount-only freshness boundary as before.
+- On a 134,777-row/1,000-user SQLite proxy, intermediate output fell from 40,066,203 bytes to 35,112 bytes (99.912%), and 25 queries fell from 2,972 ms to 867 ms (70.83%). A candidate partial index improved the aggregate only to 843 ms (2.8% additional), so it was rejected.
+- Added SQL aggregate/command-shape, controller delegation, cache deduplication, and expiry regressions. Repaired a load-sensitive wall-clock speed assertion and documented gotcha `0z620` in standalone commit `c0cbec90a`.
+- Validation passed: focused transfer tests (`254/254`), focused Search Web tests (`72/72`), complete Web tests (`852` passed, `4` skipped), production Web build, complete backend suites (`4763/4763`: `69` smoke, `4414` unit, `280` integration), frontend and repository lint, route/security/polling/identity checks, and every post-sync remediation check. The consolidated release baseline stopped only at its expected branch-sync gate because this local work is intentionally unpushed.
+
 ## Update 2026-07-16 00:18:24Z
 
 - Completed the Search result metadata fan-out performance pass.

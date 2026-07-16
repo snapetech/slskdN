@@ -1,3 +1,20 @@
+## Update 2026-07-16 00:34:00Z
+
+- Current task: performance and efficiency improvements in progress; Search user-history aggregation pass complete locally.
+- Last activity:
+  - Moved retained download-history grouping from full managed entity materialization into one asynchronous SQLite aggregate without changing the API contract.
+  - Added 30-second client reuse and concurrent-request deduplication for Search Detail history ranking.
+  - Reduced a 134,777-row/1,000-user proxy from 40,066,203 to 35,112 intermediate bytes (99.912%) and from 2,972 ms to 867 ms across 25 runs (70.83%).
+  - Rejected a new partial index after measurement showed only another 2.8% improvement.
+  - Added backend SQL-shape/semantics and Web cache/expiry regressions; repaired a wall-clock-sensitive existing speed test and documented gotcha `0z620` in standalone commit `c0cbec90a`.
+- Validation:
+  - Passed focused transfer tests (`254/254`) and focused Search Web tests (`72/72`).
+  - Passed complete Web tests (`852` passed, `4` skipped), production Web build, complete backend suites (`4763/4763`: `69` smoke, `4414` unit, `280` integration), frontend and repository lint, route/security/polling/identity checks, and every post-sync remediation check.
+  - The consolidated release baseline stopped only at its expected branch-sync gate because this local work is intentionally unpushed.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 00:18:24Z
 
 - Current task: performance and efficiency improvements in progress; Search result metadata fan-out pass complete locally.

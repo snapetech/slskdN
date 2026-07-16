@@ -2,6 +2,11 @@ import api from './api';
 import { getLocalStorageItem, setLocalStorageItem } from './storage';
 import { v4 as uuidv4 } from 'uuid';
 
+const USER_DOWNLOAD_STATS_CACHE_TTL_MS = 30_000;
+let userDownloadStatsCache = null;
+let userDownloadStatsCacheExpiresAt = 0;
+let userDownloadStatsInflight = null;
+
 export const getAll = async (limit = 500, source = null) => {
   const params = new URLSearchParams({ limit: String(limit) });
   if (source && source !== 'all') {
@@ -31,8 +36,37 @@ export const removeAll = () => {
 };
 
 // User download stats for badges
-export const getUserDownloadStats = async () => {
-  return (await api.get('/transfers/downloads/user-stats')).data;
+export const getUserDownloadStats = () => {
+  if (
+    userDownloadStatsCache &&
+    userDownloadStatsCacheExpiresAt > Date.now()
+  ) {
+    return Promise.resolve(userDownloadStatsCache);
+  }
+
+  if (userDownloadStatsInflight) {
+    return userDownloadStatsInflight;
+  }
+
+  userDownloadStatsInflight = api
+    .get('/transfers/downloads/user-stats')
+    .then((response) => {
+      const stats =
+        response.data &&
+        typeof response.data === 'object' &&
+        !Array.isArray(response.data)
+          ? response.data
+          : {};
+      userDownloadStatsCache = stats;
+      userDownloadStatsCacheExpiresAt =
+        Date.now() + USER_DOWNLOAD_STATS_CACHE_TTL_MS;
+      return stats;
+    })
+    .finally(() => {
+      userDownloadStatsInflight = null;
+    });
+
+  return userDownloadStatsInflight;
 };
 
 // Blocked users management (localStorage-based)

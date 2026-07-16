@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Search download-history ranking now aggregates counts, successful bytes, and
+  last-download timestamps inside SQLite instead of materializing every
+  retained download. Concurrent and rapid detail loads reuse one short-lived
+  client result.
 - Search results now batch cached group metadata for visible users, reuse
   response-provided speed, queue, and slot fields, and defer reputation and
   opinion hydration until interaction instead of contacting every peer for
