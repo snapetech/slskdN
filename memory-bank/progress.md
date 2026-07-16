@@ -1,3 +1,10 @@
+## Update 2026-07-16 16:23:50Z
+
+- Completed the bounded Levenshtein working-memory performance pass.
+- Fuzzy scoring now retains two distance rows sized to the shorter input instead of a full input-product matrix.
+- At 2,048-by-2,048 characters, distance storage falls from 4,198,401 integers to 4,098 (99.90% fewer), and measured call allocation remains below 128 KiB. Exact distance, case normalization, empty behavior, normalized scores, and quadratic runtime remain unchanged.
+- Validation passed: focused fuzzy matcher tests (`39/39`), broader MediaCore tests (`226/226`), full backend suites (`4951/4951`: `69` application, `4602` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 16:16:31Z
 
 - Completed the fuzzy candidate descriptor-reuse performance pass.

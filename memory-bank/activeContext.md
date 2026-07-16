@@ -1,3 +1,17 @@
+## Update 2026-07-16 16:23:50Z
+
+- Current task: performance and efficiency improvements in progress; bounded Levenshtein working memory complete locally.
+- Last activity:
+  - Replaced the full edit-distance matrix with two rolling rows sized to the shorter input.
+  - At 2,048-by-2,048 characters, distance storage falls 99.90% and measured call allocation stays below 128 KiB while exact scores remain unchanged.
+- Validation:
+  - Passed focused fuzzy matcher (`39/39`), broader MediaCore (`226/226`), and full backend suites (`4951/4951`) tests.
+  - Exact long-input score/allocation, case/empty/distance behavior, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the bounded Levenshtein slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 16:16:31Z
 
 - Current task: performance and efficiency improvements in progress; fuzzy candidate descriptor reuse complete locally.

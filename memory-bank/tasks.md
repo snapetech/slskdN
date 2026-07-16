@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound Levenshtein fuzzy-score working memory.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced the `(aLength + 1) * (bLength + 1)` integer matrix with two rolling rows sized to the shorter input. At the covered 2,048-by-2,048 boundary, distance storage falls from 4,198,401 integers to 4,098 (99.90% fewer), and total measured `ScoreLevenshtein` allocation stays below 128 KiB instead of requiring about 16 MiB for the matrix alone. Exact edit distance, case-insensitive normalization, empty-input behavior, normalized scores, and quadratic runtime remain unchanged. Added an exact long-input score and allocation-boundary regression. Validation passed: focused fuzzy matcher tests (`39/39`), broader MediaCore tests (`226/226`), full backend suites (`4951/4951`: `69` application, `4602` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Reuse descriptors during fuzzy candidate matching.
   - Status: completed (2026-07-16)
   - Priority: P1

@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Levenshtein fuzzy scoring now uses two bounded working rows instead of an
+  input-product-sized distance matrix.
 - Fuzzy content searches now reuse usable target and candidate descriptors
   within each search instead of retrieving the target for every candidate.
 - IPLD link validation now reuses registry membership results within each run

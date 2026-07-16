@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.Tests.Unit.MediaCore;
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -89,6 +90,24 @@ public class FuzzyMatcherTests
         var score2 = matcher.ScoreLevenshtein("Hello", "hElLo");
         Assert.Equal(1.0, score1);
         Assert.Equal(1.0, score2);
+    }
+
+    [Fact]
+    public void ScoreLevenshtein_LongInputsUseBoundedWorkingMemory()
+    {
+        const int length = 2048;
+        var a = new string('a', length);
+        var b = new string('a', length - 1) + "b";
+        _ = matcher.ScoreLevenshtein("warm", "worm");
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var score = matcher.ScoreLevenshtein(a, b);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(1.0 - (1.0 / length), score, precision: 10);
+        Assert.True(
+            allocatedBytes < 128 * 1024,
+            $"Expected rolling-row allocation below 128 KiB, got {allocatedBytes:N0} bytes.");
     }
 
     [Fact]

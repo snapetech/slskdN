@@ -143,36 +143,37 @@ public class FuzzyMatcher : IFuzzyMatcher
     /// </summary>
     private static int ComputeLevenshteinDistance(string a, string b)
     {
-        var aLen = a.Length;
-        var bLen = b.Length;
-
-        // Create distance matrix
-        var dp = new int[aLen + 1, bLen + 1];
-
-        // Initialize base cases
-        for (int i = 0; i <= aLen; i++) dp[i, 0] = i;
-        for (int j = 0; j <= bLen; j++) dp[0, j] = j;
-
-        // Fill matrix
-        for (int i = 1; i <= aLen; i++)
+        if (b.Length > a.Length)
         {
-            for (int j = 1; j <= bLen; j++)
-            {
-                if (a[i - 1] == b[j - 1])
-                {
-                    dp[i, j] = dp[i - 1, j - 1]; // No edit needed
-                }
-                else
-                {
-                    dp[i, j] = 1 + Math.Min(
-                        Math.Min(dp[i - 1, j],    // Deletion
-                                dp[i, j - 1]),    // Insertion
-                        dp[i - 1, j - 1]);        // Substitution
-                }
-            }
+            (a, b) = (b, a);
         }
 
-        return dp[aLen, bLen];
+        var previousRow = new int[b.Length + 1];
+        var currentRow = new int[b.Length + 1];
+
+        for (var column = 0; column <= b.Length; column++)
+        {
+            previousRow[column] = column;
+        }
+
+        for (var row = 1; row <= a.Length; row++)
+        {
+            currentRow[0] = row;
+
+            for (var column = 1; column <= b.Length; column++)
+            {
+                var substitutionCost = a[row - 1] == b[column - 1] ? 0 : 1;
+                currentRow[column] = Math.Min(
+                    Math.Min(
+                        previousRow[column] + 1,
+                        currentRow[column - 1] + 1),
+                    previousRow[column - 1] + substitutionCost);
+            }
+
+            (previousRow, currentRow) = (currentRow, previousRow);
+        }
+
+        return previousRow[b.Length];
     }
 
     /// <summary>

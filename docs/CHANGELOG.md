@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Levenshtein fuzzy scoring now keeps two distance rows sized to the shorter
+  input instead of allocating the complete dynamic-programming matrix. At the
+  covered 2,048-by-2,048 boundary, distance storage falls from 4,198,401
+  integers to 4,098 (99.90% fewer) and total measured call allocation remains
+  below 128 KiB. Exact edit distance, case-insensitive normalization, empty
+  input behavior, and normalized similarity scores remain unchanged; runtime
+  complexity remains quadratic.
 - Fuzzy content searches now reuse usable descriptors within one candidate
   pass instead of retrieving the target descriptor for every comparison. For
   100 unique candidates, descriptor-retriever calls fall from 200 to 101
