@@ -1,3 +1,17 @@
+## Update 2026-07-16 21:37:41Z
+
+- Current task: performance and efficiency improvements in progress; duplicate-heavy Shadow Index descriptor projection complete locally.
+- Last activity:
+  - Replaced complete variant sorting and post-format hash deduplication with one best-variant scan, structural prefix deduplication, distinct-representative sorting, and direct lowercase hex formatting.
+  - A 100,000-variant/10-prefix fixture falls from 11,061,944 to 4,880 warmed allocated bytes (>99.95%); ordering becomes O(variants + distinct hashes log distinct hashes).
+- Validation:
+  - Passed focused source (`3/3`), broader MediaCore (`266/266`), and full backend suites (`5009/5009`: `69` application, `4660` unit, `280` integration) tests.
+  - Exact quality/size/stable/`NaN` selection, hash order/deduplication, null handling, confidence, allocation, repository lint, and diff checks passed. Documented gotchas `0z713` (`ca7ba9b41`) and `0z714` (`b9eeb4536`, corrected by `9bd08db8e`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Run the remediation baseline and commit only the Shadow Index descriptor projection slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 21:15:42Z
 
 - Current task: performance and efficiency improvements in progress; bounded descriptor version generation complete locally.

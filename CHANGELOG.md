@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Shadow Index descriptor projection now selects its best variant in one pass
+  and sorts/formats only structurally distinct hash-prefix representatives.
 - Descriptor version generation now streams bounded UTF-8 chunks directly into
   SHA-256 and formats its compact output from stack buffers.
 - Descriptor batch publishing now uses a fixed five-worker pool instead of

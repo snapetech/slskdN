@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove duplicate-heavy Shadow Index descriptor sorting and hash allocations.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `ShadowIndexDescriptorSource.BuildDescriptor` now selects its best variant during one direct scan, structurally deduplicates byte hash prefixes, retains the highest-ranked representative for each prefix, sorts only those distinct representatives, and writes lowercase hex directly into the required final strings. It no longer copies/sorts the complete variant list or creates uppercase/lowercase strings and `ContentHash` records for duplicates that `Distinct` later discards. For 100,000 variants sharing 10 prefixes, warmed allocation falls from 11,061,944 to 4,880 bytes (>99.95%); ranking work falls from O(variants log variants) to O(variants + distinct hashes log distinct hashes), and working memory scales with distinct hashes. Exact quality/size ranking, stable ties, `NaN` order, null variants/prefixes, sorted-distinct hash order, lowercase output, selected size/codec, and confidence arithmetic remain unchanged. Added focused stable-rank/no-variant/allocation regressions. Documented confidence-bound gotcha `0z713` (`ca7ba9b41`) and corrected value-type initialization gotcha `0z714` (`b9eeb4536`, `9bd08db8e`). Validation passed: focused source tests (`3/3`), broader MediaCore tests (`266/266`), full backend suites (`5009/5009`: `69` application, `4660` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Bound descriptor version-generation allocations.
   - Status: completed (2026-07-16)
   - Priority: P1

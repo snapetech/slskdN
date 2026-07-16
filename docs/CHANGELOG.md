@@ -22,6 +22,18 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Shadow Index descriptor projection now selects the highest-quality/largest
+  variant during one input scan, structurally deduplicates hash prefixes before
+  ordering, sorts only each prefix's highest-ranked representative, and writes
+  lowercase hex directly into its final strings. It no longer copies and sorts
+  every variant or creates an uppercase string, lowercase string, and
+  `ContentHash` for every duplicate before `Distinct`. For the covered 100,000
+  variants sharing 10 prefixes, warmed allocation falls from 11,061,944 to
+  4,880 bytes (>99.95%), and ordering work falls from O(variants log variants)
+  to O(variants + distinct hashes log distinct hashes). Highest quality then
+  size selection, stable ties, `NaN` ordering, null variants/prefixes, distinct
+  hash order, size/codec/confidence output, and lowercase hash values remain
+  unchanged.
 - Descriptor publication now generates content versions by feeding bounded
   UTF-8 chunks directly into incremental SHA-256 and formatting the timestamp,
   eight-character lowercase digest prefix, and final version in stack buffers.

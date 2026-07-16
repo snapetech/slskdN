@@ -65,22 +65,61 @@ public class ShadowIndexDescriptorSource : IContentDescriptorSource
 
     private static ContentDescriptor? BuildDescriptor(string contentId, ShadowIndexQueryResult result)
     {
-        var variants = result.CanonicalVariants
-            .Where(variant => variant != null)
-            .OrderByDescending(variant => variant.QualityScore)
-            .ThenByDescending(variant => variant.SizeBytes)
-            .ToList();
-        if (variants.Count == 0)
+        VariantHint? bestVariant = null;
+        var hashCandidates = new List<HashCandidate>();
+        var candidateIndexByHash = new Dictionary<byte[], int>(ByteArrayEqualityComparer.Instance);
+
+        for (var index = 0; index < result.CanonicalVariants.Count; index++)
+        {
+            var variant = result.CanonicalVariants[index];
+            if (variant == null)
+            {
+                continue;
+            }
+
+            if (bestVariant == null || CompareRank(variant, bestVariant) > 0)
+            {
+                bestVariant = variant;
+            }
+
+            if (variant.HashPrefix == null || variant.HashPrefix.Length == 0)
+            {
+                continue;
+            }
+
+            var candidate = new HashCandidate(variant.HashPrefix, variant, index);
+            if (candidateIndexByHash.TryGetValue(variant.HashPrefix, out var candidateIndex))
+            {
+                if (CompareRank(variant, hashCandidates[candidateIndex].Variant) > 0)
+                {
+                    hashCandidates[candidateIndex] = candidate;
+                }
+            }
+            else
+            {
+                candidateIndexByHash.Add(variant.HashPrefix, hashCandidates.Count);
+                hashCandidates.Add(candidate);
+            }
+        }
+
+        if (bestVariant == null)
         {
             return null;
         }
 
-        var bestVariant = variants[0];
-        var hashes = variants
-            .Where(variant => variant.HashPrefix != null && variant.HashPrefix.Length > 0)
-            .Select(variant => new ContentHash("sha256-prefix16", Convert.ToHexString(variant.HashPrefix).ToLowerInvariant()))
-            .Distinct()
-            .ToList();
+        hashCandidates.Sort(static (left, right) =>
+        {
+            var rankComparison = CompareRank(right.Variant, left.Variant);
+            return rankComparison != 0
+                ? rankComparison
+                : left.InputIndex.CompareTo(right.InputIndex);
+        });
+        var hashes = new List<ContentHash>(hashCandidates.Count);
+        foreach (var candidate in hashCandidates)
+        {
+            hashes.Add(new ContentHash("sha256-prefix16", ToLowerHex(candidate.HashPrefix)));
+        }
+
         var peerContribution = Math.Min(0.15, result.TotalPeerCount * 0.03);
         var qualityContribution = Math.Min(0.18, Math.Max(0.0, bestVariant.QualityScore) * 0.18);
         var confidenceBase = 0.55 + peerContribution + qualityContribution;
@@ -95,5 +134,50 @@ public class ShadowIndexDescriptorSource : IContentDescriptorSource
             Confidence = confidence,
             IsAdvertisable = true,
         };
+    }
+
+    private static int CompareRank(VariantHint left, VariantHint right)
+    {
+        var qualityComparison = Comparer<double>.Default.Compare(left.QualityScore, right.QualityScore);
+        return qualityComparison != 0
+            ? qualityComparison
+            : left.SizeBytes.CompareTo(right.SizeBytes);
+    }
+
+    private static string ToLowerHex(byte[] value)
+    {
+        const string LowerHex = "0123456789abcdef";
+        return string.Create(value.Length * 2, value, static (characters, bytes) =>
+        {
+            for (var index = 0; index < bytes.Length; index++)
+            {
+                characters[index * 2] = LowerHex[bytes[index] >> 4];
+                characters[(index * 2) + 1] = LowerHex[bytes[index] & 0x0F];
+            }
+        });
+    }
+
+    private readonly record struct HashCandidate(byte[] HashPrefix, VariantHint Variant, int InputIndex);
+
+    private sealed class ByteArrayEqualityComparer : IEqualityComparer<byte[]>
+    {
+        public static readonly ByteArrayEqualityComparer Instance = new();
+
+        public bool Equals(byte[]? left, byte[]? right)
+        {
+            return ReferenceEquals(left, right) ||
+                (left != null && right != null && left.AsSpan().SequenceEqual(right));
+        }
+
+        public int GetHashCode(byte[] value)
+        {
+            HashCode hashCode = default;
+            foreach (var item in value)
+            {
+                hashCode.Add(item);
+            }
+
+            return hashCode.ToHashCode();
+        }
     }
 }
