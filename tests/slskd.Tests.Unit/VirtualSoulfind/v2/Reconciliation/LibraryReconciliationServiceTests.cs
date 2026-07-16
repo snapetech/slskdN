@@ -284,6 +284,112 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Reconciliation
         }
 
         [Fact]
+        public async Task AnalyzeAllReleases_FullPage_LoadsEvidenceInBatches()
+        {
+            const int releaseCount = 250;
+            const int tracksPerRelease = 10;
+            var artists = Enumerable.Range(0, releaseCount)
+                .ToDictionary(
+                    index => $"artist-{index:D3}",
+                    index => new Artist
+                    {
+                        ArtistId = $"artist-{index:D3}",
+                        Name = $"Artist {index:D3}",
+                    });
+            var releaseGroups = Enumerable.Range(0, releaseCount)
+                .ToDictionary(
+                    index => $"group-{index:D3}",
+                    index => new ReleaseGroup
+                    {
+                        ReleaseGroupId = $"group-{index:D3}",
+                        ArtistId = $"artist-{index:D3}",
+                        Title = $"Group {index:D3}",
+                    });
+            var releases = Enumerable.Range(0, releaseCount)
+                .Select(index => new Release
+                {
+                    ReleaseId = $"release-{index:D3}",
+                    ReleaseGroupId = $"group-{index:D3}",
+                    Title = $"Release {index:D3}",
+                })
+                .ToList();
+            IReadOnlyDictionary<string, IReadOnlyList<Track>> tracksByRelease = releases
+                .ToDictionary(
+                    release => release.ReleaseId,
+                    release => (IReadOnlyList<Track>)Enumerable.Range(0, tracksPerRelease)
+                        .Select(index => new Track
+                        {
+                            TrackId = $"{release.ReleaseId}-track-{index:D2}",
+                            ReleaseId = release.ReleaseId,
+                            DiscNumber = 1,
+                            TrackNumber = index + 1,
+                            Title = $"Track {index:D2}",
+                        })
+                        .ToList());
+            var copyStates = tracksByRelease.Values
+                .Select(tracks => tracks[0])
+                .ToDictionary(
+                    track => track.TrackId,
+                    _ => new TrackCopyState(HasLocalFile: true, HasVerifiedCopy: false));
+            var catalogue = new Mock<ICatalogueStore>(MockBehavior.Strict);
+            catalogue
+                .Setup(store => store.CountReleasesAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(releaseCount);
+            catalogue
+                .Setup(store => store.ListReleasesAsync(0, 250, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(releases);
+            catalogue
+                .Setup(store => store.GetTracksByReleaseIdsAsync(
+                    It.Is<IReadOnlyCollection<string>>(ids => ids.Count == releaseCount),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(tracksByRelease);
+            catalogue
+                .Setup(store => store.GetReleaseGroupsByIdsAsync(
+                    It.Is<IReadOnlyCollection<string>>(ids => ids.Count == releaseCount),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(releaseGroups);
+            catalogue
+                .Setup(store => store.GetArtistsByIdsAsync(
+                    It.Is<IReadOnlyCollection<string>>(ids => ids.Count == releaseCount),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(artists);
+            catalogue
+                .Setup(store => store.GetTrackCopyStatesAsync(
+                    It.Is<IReadOnlyCollection<string>>(ids => ids.Count == releaseCount * tracksPerRelease),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(copyStates);
+            var service = new LibraryReconciliationService(catalogue.Object);
+
+            var results = await service.AnalyzeAllReleasesAsync();
+
+            Assert.Equal(releaseCount, results.Count);
+            Assert.Equal(releases.Select(release => release.ReleaseId), results.Select(result => result.ReleaseId));
+            Assert.Equal("Artist 000", results[0].ArtistName);
+            Assert.Equal(tracksPerRelease - 1, results[0].MissingTrackIds.Count);
+            catalogue.Verify(store => store.GetTracksByReleaseIdsAsync(
+                It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<CancellationToken>()), Times.Once);
+            catalogue.Verify(store => store.GetReleaseGroupsByIdsAsync(
+                It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<CancellationToken>()), Times.Once);
+            catalogue.Verify(store => store.GetArtistsByIdsAsync(
+                It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<CancellationToken>()), Times.Once);
+            catalogue.Verify(store => store.GetTrackCopyStatesAsync(
+                It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<CancellationToken>()), Times.Once);
+            catalogue.Verify(store => store.ListTracksForReleaseAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+            catalogue.Verify(store => store.FindReleaseGroupByIdAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+            catalogue.Verify(store => store.FindArtistByIdAsync(
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
         public async Task FindUpgradeOpportunities_FullPage_LoadsTracksOnce()
         {
             var localFiles = Enumerable.Range(0, 250)

@@ -166,6 +166,29 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
                 new { ArtistId = artistId });
         }
 
+        public async Task<IReadOnlyDictionary<string, Artist>> GetArtistsByIdsAsync(
+            IReadOnlyCollection<string> artistIds,
+            CancellationToken ct = default)
+        {
+            var artists = new Dictionary<string, Artist>(StringComparer.Ordinal);
+            using var connection = CreateConnection();
+
+            foreach (var batch in artistIds.Distinct(StringComparer.Ordinal).Chunk(TrackBatchSize))
+            {
+                var parameters = CreateIdParameters(batch, "ArtistId", out var placeholders);
+                var rows = await connection.QueryAsync<Artist>(new CommandDefinition(
+                    $"SELECT * FROM Artists WHERE ArtistId IN ({placeholders})",
+                    parameters,
+                    cancellationToken: ct));
+                foreach (var artist in rows)
+                {
+                    artists[artist.ArtistId] = artist;
+                }
+            }
+
+            return artists;
+        }
+
         public async Task<Artist?> FindArtistByMBIDAsync(string mbid, CancellationToken ct = default)
         {
             using var connection = CreateConnection();
@@ -214,6 +237,29 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
             return await connection.QuerySingleOrDefaultAsync<ReleaseGroup>(
                 "SELECT * FROM ReleaseGroups WHERE ReleaseGroupId = @ReleaseGroupId",
                 new { ReleaseGroupId = releaseGroupId });
+        }
+
+        public async Task<IReadOnlyDictionary<string, ReleaseGroup>> GetReleaseGroupsByIdsAsync(
+            IReadOnlyCollection<string> releaseGroupIds,
+            CancellationToken ct = default)
+        {
+            var releaseGroups = new Dictionary<string, ReleaseGroup>(StringComparer.Ordinal);
+            using var connection = CreateConnection();
+
+            foreach (var batch in releaseGroupIds.Distinct(StringComparer.Ordinal).Chunk(TrackBatchSize))
+            {
+                var parameters = CreateIdParameters(batch, "ReleaseGroupId", out var placeholders);
+                var rows = await connection.QueryAsync<ReleaseGroup>(new CommandDefinition(
+                    $"SELECT * FROM ReleaseGroups WHERE ReleaseGroupId IN ({placeholders})",
+                    parameters,
+                    cancellationToken: ct));
+                foreach (var releaseGroup in rows)
+                {
+                    releaseGroups[releaseGroup.ReleaseGroupId] = releaseGroup;
+                }
+            }
+
+            return releaseGroups;
         }
 
         public async Task<ReleaseGroup?> FindReleaseGroupByMBIDAsync(string mbid, CancellationToken ct = default)
@@ -412,6 +458,40 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
                 "SELECT * FROM Tracks WHERE ReleaseId = @ReleaseId ORDER BY DiscNumber, TrackNumber",
                 new { ReleaseId = releaseId });
             return results.ToList();
+        }
+
+        public async Task<IReadOnlyDictionary<string, IReadOnlyList<Track>>> GetTracksByReleaseIdsAsync(
+            IReadOnlyCollection<string> releaseIds,
+            CancellationToken ct = default)
+        {
+            var tracks = new Dictionary<string, List<Track>>(StringComparer.Ordinal);
+            using var connection = CreateConnection();
+
+            foreach (var batch in releaseIds.Distinct(StringComparer.Ordinal).Chunk(TrackBatchSize))
+            {
+                var parameters = CreateIdParameters(batch, "ReleaseId", out var placeholders);
+                var rows = await connection.QueryAsync<Track>(new CommandDefinition($@"
+                    SELECT * FROM Tracks
+                    WHERE ReleaseId IN ({placeholders})
+                    ORDER BY ReleaseId, DiscNumber, TrackNumber",
+                    parameters,
+                    cancellationToken: ct));
+                foreach (var track in rows)
+                {
+                    if (!tracks.TryGetValue(track.ReleaseId, out var releaseTracks))
+                    {
+                        releaseTracks = [];
+                        tracks[track.ReleaseId] = releaseTracks;
+                    }
+
+                    releaseTracks.Add(track);
+                }
+            }
+
+            return tracks.ToDictionary(
+                pair => pair.Key,
+                pair => (IReadOnlyList<Track>)pair.Value,
+                StringComparer.Ordinal);
         }
 
         // Count operations
@@ -646,6 +726,21 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
             public int HasLocalFile { get; init; }
 
             public int HasVerifiedCopy { get; init; }
+        }
+
+        private static DynamicParameters CreateIdParameters(
+            IEnumerable<string> ids,
+            string prefix,
+            out string placeholders)
+        {
+            var parameters = new DynamicParameters();
+            placeholders = string.Join(", ", ids.Select((id, index) =>
+            {
+                var name = $"{prefix}{index}";
+                parameters.Add(name, id);
+                return $"@{name}";
+            }));
+            return parameters;
         }
 
         /// <summary>

@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Virtual Soulfind release-gap analysis now batch-loads page-scoped tracks,
+  release groups, artists, and copy evidence.
 - Virtual Soulfind upgrade analysis now batch-loads track metadata for each
   bounded local-file page.
 - Virtual Soulfind library reconciliation now batch-loads local-file and

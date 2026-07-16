@@ -40,6 +40,22 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
             return Task.FromResult(artist);
         }
 
+        public Task<IReadOnlyDictionary<string, Artist>> GetArtistsByIdsAsync(
+            IReadOnlyCollection<string> artistIds,
+            CancellationToken ct = default)
+        {
+            var artists = new Dictionary<string, Artist>(StringComparer.Ordinal);
+            foreach (var artistId in artistIds.Distinct(StringComparer.Ordinal))
+            {
+                if (_artists.TryGetValue(artistId, out var artist))
+                {
+                    artists[artistId] = artist;
+                }
+            }
+
+            return Task.FromResult<IReadOnlyDictionary<string, Artist>>(artists);
+        }
+
         public Task<Artist?> FindArtistByMBIDAsync(string mbid, CancellationToken ct = default)
         {
             if (_artistMbidToId.TryGetValue(mbid, out var id))
@@ -89,6 +105,22 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
         {
             _releaseGroups.TryGetValue(releaseGroupId, out var rg);
             return Task.FromResult(rg);
+        }
+
+        public Task<IReadOnlyDictionary<string, ReleaseGroup>> GetReleaseGroupsByIdsAsync(
+            IReadOnlyCollection<string> releaseGroupIds,
+            CancellationToken ct = default)
+        {
+            var releaseGroups = new Dictionary<string, ReleaseGroup>(StringComparer.Ordinal);
+            foreach (var releaseGroupId in releaseGroupIds.Distinct(StringComparer.Ordinal))
+            {
+                if (_releaseGroups.TryGetValue(releaseGroupId, out var releaseGroup))
+                {
+                    releaseGroups[releaseGroupId] = releaseGroup;
+                }
+            }
+
+            return Task.FromResult<IReadOnlyDictionary<string, ReleaseGroup>>(releaseGroups);
         }
 
         public Task<ReleaseGroup?> FindReleaseGroupByMBIDAsync(string mbid, CancellationToken ct = default)
@@ -214,6 +246,25 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
                 .ToList();
 
             return Task.FromResult<IReadOnlyList<Track>>(results);
+        }
+
+        public Task<IReadOnlyDictionary<string, IReadOnlyList<Track>>> GetTracksByReleaseIdsAsync(
+            IReadOnlyCollection<string> releaseIds,
+            CancellationToken ct = default)
+        {
+            var requested = releaseIds.ToHashSet(StringComparer.Ordinal);
+            var tracks = _tracks.Values
+                .Where(track => requested.Contains(track.ReleaseId))
+                .OrderBy(track => track.ReleaseId, StringComparer.Ordinal)
+                .ThenBy(track => track.DiscNumber)
+                .ThenBy(track => track.TrackNumber)
+                .GroupBy(track => track.ReleaseId, StringComparer.Ordinal)
+                .ToDictionary(
+                    group => group.Key,
+                    group => (IReadOnlyList<Track>)group.ToList(),
+                    StringComparer.Ordinal);
+
+            return Task.FromResult<IReadOnlyDictionary<string, IReadOnlyList<Track>>>(tracks);
         }
 
         public Task UpsertTrackAsync(Track track, CancellationToken ct = default)

@@ -32,6 +32,13 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
         Task<Artist?> FindArtistByIdAsync(string artistId, CancellationToken ct = default);
 
         /// <summary>
+        ///     Finds artists by a bounded set of internal IDs.
+        /// </summary>
+        Task<IReadOnlyDictionary<string, Artist>> GetArtistsByIdsAsync(
+            IReadOnlyCollection<string> artistIds,
+            CancellationToken ct = default);
+
+        /// <summary>
         ///     Finds an artist by MusicBrainz ID.
         /// </summary>
         Task<Artist?> FindArtistByMBIDAsync(string mbid, CancellationToken ct = default);
@@ -57,6 +64,13 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
         ///     Finds a release group by internal ID.
         /// </summary>
         Task<ReleaseGroup?> FindReleaseGroupByIdAsync(string releaseGroupId, CancellationToken ct = default);
+
+        /// <summary>
+        ///     Finds release groups by a bounded set of internal IDs.
+        /// </summary>
+        Task<IReadOnlyDictionary<string, ReleaseGroup>> GetReleaseGroupsByIdsAsync(
+            IReadOnlyCollection<string> releaseGroupIds,
+            CancellationToken ct = default);
 
         /// <summary>
         ///     Finds a release group by MusicBrainz ID.
@@ -123,6 +137,13 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
         ///     Lists tracks for a release.
         /// </summary>
         Task<IReadOnlyList<Track>> ListTracksForReleaseAsync(string releaseId, CancellationToken ct = default);
+
+        /// <summary>
+        ///     Lists tracks for a bounded set of releases.
+        /// </summary>
+        Task<IReadOnlyDictionary<string, IReadOnlyList<Track>>> GetTracksByReleaseIdsAsync(
+            IReadOnlyCollection<string> releaseIds,
+            CancellationToken ct = default);
 
         /// <summary>
         ///     Inserts or updates a track.

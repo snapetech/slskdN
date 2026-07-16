@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Virtual Soulfind release-gap analysis now hydrates tracks, release groups,
+  artists, and copy states in bounded batches for each 250-release page instead
+  of loading all four evidence sets per release. For 10,000 releases with ten
+  tracks each, catalogue reads fall from 40,041 to 361 (99.10% fewer), while
+  memory remains page-bounded. Release and track order, partial-release
+  filtering, copy counts, and unknown-artist fallback remain unchanged.
 - Virtual Soulfind upgrade analysis now hydrates distinct track metadata
   through bounded indexed batches after filtering each 250-file page, instead
   of querying one track per eligible file. For 10,000 eligible files with no

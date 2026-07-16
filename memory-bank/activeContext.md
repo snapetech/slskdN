@@ -1,3 +1,17 @@
+## Update 2026-07-16 11:35:09Z
+
+- Current task: performance and efficiency improvements in progress; Virtual Soulfind release-gap evidence batching pass complete locally.
+- Last activity:
+  - Added bounded artist, release-group, and release-track catalogue projections, then combined those with page-level copy-state hydration for each 250-release analysis page.
+  - For 10,000 ten-track releases, complete-operation catalogue reads fall from 40,041 to 361 (99.10% fewer) with page-bounded memory and no remote work.
+- Validation:
+  - Passed focused catalogue/reconciliation coverage (`42/42`), complete Virtual Soulfind v2 unit coverage (`203/203`), and full backend tests (`4878/4878`: `69` application, `4529` unit, `280` integration).
+  - Exact 250-release/2,500-track call boundaries, SQLite 501-distinct-ID batching, duplicate/missing key handling, release/track ordering, fallback behavior, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the Virtual Soulfind release-analysis slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 11:25:25Z
 
 - Current task: performance and efficiency improvements in progress; Virtual Soulfind upgrade track batching pass complete locally.

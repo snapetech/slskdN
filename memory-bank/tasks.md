@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch Virtual Soulfind release-gap evidence.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added bounded catalogue reads for artists, release groups, and release-linked tracks, then changed gap analysis to hydrate those plus copy states once per 250-release page instead of making four reads per release. For 10,000 ten-track releases, complete-operation catalogue reads fall from 40,041 to 361 (99.10% fewer) with page-bounded memory. Release/track order, partial-release filtering, copy counts, and unknown-artist fallback remain unchanged. Added an exact 250-release/2,500-track one-call-per-evidence regression with zero legacy calls and a SQLite 501-distinct-ID boundary fixture for all three new projections. Validation passed: focused catalogue/reconciliation tests (`42/42`), complete Virtual Soulfind v2 unit tests (`203/203`), full backend tests (`4878/4878`: `69` application, `4529` unit, `280` integration), repository lint, diff checks, and every substantive remediation check before the expected divergent-branch release-sync stop.
+
 - [x] Batch Virtual Soulfind upgrade track hydration.
   - Status: completed (2026-07-16)
   - Priority: P1

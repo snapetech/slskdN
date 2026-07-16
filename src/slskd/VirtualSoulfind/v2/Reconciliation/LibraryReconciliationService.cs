@@ -61,9 +61,30 @@ namespace slskd.VirtualSoulfind.v2.Reconciliation
             for (var offset = 0; offset < releaseCount; offset += PageSize)
             {
                 var releases = await _catalogue.ListReleasesAsync(offset, PageSize, ct);
+                var tracksByRelease = await _catalogue.GetTracksByReleaseIdsAsync(
+                    releases.Select(release => release.ReleaseId).ToList(),
+                    ct);
+                var releasesWithTracks = releases
+                    .Where(release => tracksByRelease.ContainsKey(release.ReleaseId))
+                    .ToList();
+                var releaseGroups = await _catalogue.GetReleaseGroupsByIdsAsync(
+                    releasesWithTracks.Select(release => release.ReleaseGroupId).ToList(),
+                    ct);
+                var artists = await _catalogue.GetArtistsByIdsAsync(
+                    releaseGroups.Values.Select(releaseGroup => releaseGroup.ArtistId).ToList(),
+                    ct);
+                var copyStates = await _catalogue.GetTrackCopyStatesAsync(
+                    tracksByRelease.Values.SelectMany(tracks => tracks).Select(track => track.TrackId).ToList(),
+                    ct);
+
                 foreach (var release in releases)
                 {
-                    var analysis = await AnalyzeReleaseAsync(release, ct);
+                    var analysis = AnalyzeRelease(
+                        release,
+                        tracksByRelease.GetValueOrDefault(release.ReleaseId) ?? [],
+                        releaseGroups,
+                        artists,
+                        copyStates);
                     if (analysis != null)
                     {
                         results.Add(analysis);
@@ -202,25 +223,26 @@ namespace slskd.VirtualSoulfind.v2.Reconciliation
             return orphanedFiles;
         }
 
-        private async Task<ReleaseGapAnalysis?> AnalyzeReleaseAsync(Release release, CancellationToken ct)
+        private static ReleaseGapAnalysis? AnalyzeRelease(
+            Release release,
+            IReadOnlyList<Track> tracks,
+            IReadOnlyDictionary<string, ReleaseGroup> releaseGroups,
+            IReadOnlyDictionary<string, Artist> artists,
+            IReadOnlyDictionary<string, TrackCopyState> copyStates)
         {
-            var tracks = await _catalogue.ListTracksForReleaseAsync(release.ReleaseId, ct);
             if (tracks.Count == 0)
             {
                 return null;
             }
 
-            var releaseGroup = await _catalogue.FindReleaseGroupByIdAsync(release.ReleaseGroupId, ct);
+            releaseGroups.TryGetValue(release.ReleaseGroupId, out var releaseGroup);
             var artist = releaseGroup == null
                 ? null
-                : await _catalogue.FindArtistByIdAsync(releaseGroup.ArtistId, ct);
+                : artists.GetValueOrDefault(releaseGroup.ArtistId);
 
             var localCopyCount = 0;
             var verifiedCopyCount = 0;
             var missingTrackIds = new List<string>();
-            var copyStates = await _catalogue.GetTrackCopyStatesAsync(
-                tracks.Select(track => track.TrackId).ToList(),
-                ct);
 
             foreach (var track in tracks)
             {

@@ -112,6 +112,37 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Catalogue
         }
 
         [Fact]
+        public async Task ReleaseAnalysisEvidence_OverBatchBoundary_ReturnsExistingHierarchy()
+        {
+            var firstTrack = await CreateAndInsertTestTrackWithDependencies();
+            var secondTrack = await CreateAndInsertTestTrackWithDependencies();
+            var firstRelease = Assert.IsType<Release>(await _store.FindReleaseByIdAsync(firstTrack.ReleaseId));
+            var secondRelease = Assert.IsType<Release>(await _store.FindReleaseByIdAsync(secondTrack.ReleaseId));
+            var firstGroup = Assert.IsType<ReleaseGroup>(await _store.FindReleaseGroupByIdAsync(firstRelease.ReleaseGroupId));
+            var secondGroup = Assert.IsType<ReleaseGroup>(await _store.FindReleaseGroupByIdAsync(secondRelease.ReleaseGroupId));
+            var firstArtist = Assert.IsType<Artist>(await _store.FindArtistByIdAsync(firstGroup.ArtistId));
+            var secondArtist = Assert.IsType<Artist>(await _store.FindArtistByIdAsync(secondGroup.ArtistId));
+            var missingIds = Enumerable.Range(0, 499).Select(index => $"missing-{index:D3}").ToList();
+
+            var artists = await _store.GetArtistsByIdsAsync(
+                new[] { firstArtist.ArtistId }.Concat(missingIds).Append(secondArtist.ArtistId).Append(firstArtist.ArtistId).ToList());
+            var groups = await _store.GetReleaseGroupsByIdsAsync(
+                new[] { firstGroup.ReleaseGroupId }.Concat(missingIds).Append(secondGroup.ReleaseGroupId).Append(firstGroup.ReleaseGroupId).ToList());
+            var tracks = await _store.GetTracksByReleaseIdsAsync(
+                new[] { firstRelease.ReleaseId }.Concat(missingIds).Append(secondRelease.ReleaseId).Append(firstRelease.ReleaseId).ToList());
+
+            Assert.Equal(2, artists.Count);
+            Assert.Equal(firstArtist.Name, artists[firstArtist.ArtistId].Name);
+            Assert.Equal(secondArtist.Name, artists[secondArtist.ArtistId].Name);
+            Assert.Equal(2, groups.Count);
+            Assert.Equal(firstGroup.Title, groups[firstGroup.ReleaseGroupId].Title);
+            Assert.Equal(secondGroup.Title, groups[secondGroup.ReleaseGroupId].Title);
+            Assert.Equal(2, tracks.Count);
+            Assert.Equal(firstTrack.TrackId, Assert.Single(tracks[firstRelease.ReleaseId]).TrackId);
+            Assert.Equal(secondTrack.TrackId, Assert.Single(tracks[secondRelease.ReleaseId]).TrackId);
+        }
+
+        [Fact]
         public async Task LocalFile_QualityRating_FLAC_Is1_0()
         {
             // Arrange
