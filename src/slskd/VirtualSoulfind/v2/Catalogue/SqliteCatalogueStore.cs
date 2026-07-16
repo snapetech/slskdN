@@ -154,6 +154,7 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
 
                 CREATE INDEX IF NOT EXISTS IX_VerifiedCopies_TrackId ON VerifiedCopies(TrackId);
                 CREATE INDEX IF NOT EXISTS IX_VerifiedCopies_LocalFileId ON VerifiedCopies(LocalFileId);
+                CREATE INDEX IF NOT EXISTS IX_VerifiedCopies_LocalFileId_VerifiedAt ON VerifiedCopies(LocalFileId, VerifiedAt DESC);
             ");
         }
 
@@ -663,6 +664,31 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
                 "SELECT * FROM VerifiedCopies WHERE TrackId = @TrackId ORDER BY VerifiedAt DESC",
                 new { TrackId = trackId });
             return results.ToList();
+        }
+
+        public async Task<IReadOnlyDictionary<string, VerifiedCopy>> GetLatestVerifiedCopiesByLocalFileIdsAsync(
+            IReadOnlyCollection<string> localFileIds,
+            CancellationToken ct = default)
+        {
+            var verifiedCopies = new Dictionary<string, VerifiedCopy>(StringComparer.Ordinal);
+            using var connection = CreateConnection();
+
+            foreach (var batch in localFileIds.Distinct(StringComparer.Ordinal).Chunk(TrackBatchSize))
+            {
+                var parameters = CreateIdParameters(batch, "LocalFileId", out var placeholders);
+                var rows = await connection.QueryAsync<VerifiedCopy>(new CommandDefinition($@"
+                    SELECT * FROM VerifiedCopies
+                    WHERE LocalFileId IN ({placeholders})
+                    ORDER BY LocalFileId, VerifiedAt DESC",
+                    parameters,
+                    cancellationToken: ct));
+                foreach (var verifiedCopy in rows)
+                {
+                    verifiedCopies.TryAdd(verifiedCopy.LocalFileId, verifiedCopy);
+                }
+            }
+
+            return verifiedCopies;
         }
 
         public async Task<IReadOnlyList<VerifiedCopy>> ListVerifiedCopiesAsync(int offset = 0, int limit = 100, CancellationToken ct = default)

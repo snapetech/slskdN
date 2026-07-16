@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Page Virtual Soulfind verified-copy hydration.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added a bounded latest-verified-copy lookup backed by `(LocalFileId, VerifiedAt DESC)` and replaced full-table verified-copy snapshots in upgrade and orphan scans with unresolved IDs from each 250-file page. With 10,000 unresolved files and one million verified-copy rows, upgrade-analysis reads fall from 4,082 to 121 (97.04% fewer) and orphan-scan reads from 4,042 to 81 (98.00% fewer); memory no longer scales with unrelated verification history. Newest-copy selection, output order, inferred-track precedence, and quality filtering remain unchanged. Added exact full-page one-batch/zero-global-read regressions and a SQLite 501-distinct-ID newest-copy boundary fixture. Documented required `VerifiedCopy` fixture members as gotcha `0z689` (`258c6108b`, `a4f46eb08`). Validation passed: focused catalogue/reconciliation tests (`44/44`), complete Virtual Soulfind v2 unit tests (`205/205`), full backend tests (`4880/4880`: `69` application, `4531` unit, `280` integration), repository lint, diff checks, and every substantive remediation check before the expected divergent-branch release-sync stop.
+
 - [x] Batch Virtual Soulfind release-gap evidence.
   - Status: completed (2026-07-16)
   - Priority: P1

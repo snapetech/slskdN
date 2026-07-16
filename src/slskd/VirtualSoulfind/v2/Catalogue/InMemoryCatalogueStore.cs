@@ -431,6 +431,22 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
             return Task.FromResult<IReadOnlyList<VerifiedCopy>>(results);
         }
 
+        public Task<IReadOnlyDictionary<string, VerifiedCopy>> GetLatestVerifiedCopiesByLocalFileIdsAsync(
+            IReadOnlyCollection<string> localFileIds,
+            CancellationToken ct = default)
+        {
+            var requested = localFileIds.ToHashSet(StringComparer.Ordinal);
+            var verifiedCopies = _verifiedCopies.Values
+                .Where(verifiedCopy => requested.Contains(verifiedCopy.LocalFileId))
+                .GroupBy(verifiedCopy => verifiedCopy.LocalFileId, StringComparer.Ordinal)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.OrderByDescending(verifiedCopy => verifiedCopy.VerifiedAt).First(),
+                    StringComparer.Ordinal);
+
+            return Task.FromResult<IReadOnlyDictionary<string, VerifiedCopy>>(verifiedCopies);
+        }
+
         public Task<IReadOnlyList<VerifiedCopy>> ListVerifiedCopiesAsync(int offset = 0, int limit = 100, CancellationToken ct = default)
         {
             var results = _verifiedCopies.Values

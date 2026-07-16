@@ -107,11 +107,17 @@ namespace slskd.VirtualSoulfind.v2.Reconciliation
                 return suggestions;
             }
 
-            var verifiedByLocalFileId = await GetVerifiedCopiesByLocalFileIdAsync(ct);
-
             for (var offset = 0; offset < fileCount; offset += PageSize)
             {
                 var localFiles = await _catalogue.ListLocalFilesAsync(offset, PageSize, ct);
+                var unresolvedLocalFileIds = localFiles
+                    .Where(localFile => string.IsNullOrWhiteSpace(localFile.InferredTrackId))
+                    .Where(localFile => 1.0f - localFile.QualityRating >= minQualityImprovement)
+                    .Select(localFile => localFile.LocalFileId)
+                    .ToList();
+                var verifiedByLocalFileId = unresolvedLocalFileIds.Count == 0
+                    ? new Dictionary<string, VerifiedCopy>()
+                    : await _catalogue.GetLatestVerifiedCopiesByLocalFileIdsAsync(unresolvedLocalFileIds, ct);
                 var candidates = new List<(LocalFile LocalFile, string TrackId, float QualityImprovement)>();
                 foreach (var localFile in localFiles)
                 {
@@ -205,11 +211,16 @@ namespace slskd.VirtualSoulfind.v2.Reconciliation
                 return orphanedFiles;
             }
 
-            var verifiedByLocalFileId = await GetVerifiedCopiesByLocalFileIdAsync(ct);
-
             for (var offset = 0; offset < fileCount; offset += PageSize)
             {
                 var localFiles = await _catalogue.ListLocalFilesAsync(offset, PageSize, ct);
+                var unresolvedLocalFileIds = localFiles
+                    .Where(localFile => string.IsNullOrWhiteSpace(localFile.InferredTrackId))
+                    .Select(localFile => localFile.LocalFileId)
+                    .ToList();
+                var verifiedByLocalFileId = unresolvedLocalFileIds.Count == 0
+                    ? new Dictionary<string, VerifiedCopy>()
+                    : await _catalogue.GetLatestVerifiedCopiesByLocalFileIdsAsync(unresolvedLocalFileIds, ct);
                 foreach (var localFile in localFiles)
                 {
                     if (string.IsNullOrWhiteSpace(localFile.InferredTrackId) &&
@@ -279,26 +290,6 @@ namespace slskd.VirtualSoulfind.v2.Reconciliation
                 TracksWithVerifiedCopies = verifiedCopyCount,
                 MissingTrackIds = missingTrackIds,
             };
-        }
-
-        private async Task<Dictionary<string, VerifiedCopy>> GetVerifiedCopiesByLocalFileIdAsync(CancellationToken ct)
-        {
-            var verifiedCopies = new Dictionary<string, VerifiedCopy>();
-            var verifiedCopyCount = await _catalogue.CountVerifiedCopiesAsync(ct);
-
-            for (var offset = 0; offset < verifiedCopyCount; offset += PageSize)
-            {
-                var page = await _catalogue.ListVerifiedCopiesAsync(offset, PageSize, ct);
-                foreach (var verifiedCopy in page)
-                {
-                    if (!verifiedCopies.ContainsKey(verifiedCopy.LocalFileId))
-                    {
-                        verifiedCopies[verifiedCopy.LocalFileId] = verifiedCopy;
-                    }
-                }
-            }
-
-            return verifiedCopies;
         }
     }
 }

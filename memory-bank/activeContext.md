@@ -1,3 +1,17 @@
+## Update 2026-07-16 11:45:30Z
+
+- Current task: performance and efficiency improvements in progress; Virtual Soulfind page-scoped verified-copy hydration pass complete locally.
+- Last activity:
+  - Added a bounded newest-copy lookup backed by a local-file/time index and replaced global verified-copy snapshots with unresolved IDs from each 250-file upgrade/orphan page.
+  - With 10,000 unresolved files and one million verified-copy rows, upgrade reads fall from 4,082 to 121 (97.04% fewer) and orphan reads from 4,042 to 81 (98.00% fewer); memory is page-bounded. Documented gotcha `0z689` (`258c6108b`, `a4f46eb08`).
+- Validation:
+  - Passed focused catalogue/reconciliation coverage (`44/44`), complete Virtual Soulfind v2 unit coverage (`205/205`), and full backend tests (`4880/4880`: `69` application, `4531` unit, `280` integration).
+  - Exact 250-file call boundaries, SQLite 501-distinct-ID batching, newest-copy selection, zero global verified-copy reads, output ordering, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the Virtual Soulfind verified-copy hydration slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 11:35:09Z
 
 - Current task: performance and efficiency improvements in progress; Virtual Soulfind release-gap evidence batching pass complete locally.

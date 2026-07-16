@@ -242,6 +242,58 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Reconciliation
         }
 
         [Fact]
+        public async Task FindOrphanedLocalFiles_FullPage_LoadsVerifiedCopiesOnce()
+        {
+            var localFiles = Enumerable.Range(0, 250)
+                .Select(_ => CreateLocalFile())
+                .ToList();
+            IReadOnlyDictionary<string, VerifiedCopy> verifiedCopies = localFiles
+                .Where((_, index) => index % 2 == 0)
+                .ToDictionary(
+                    localFile => localFile.LocalFileId,
+                    localFile => new VerifiedCopy
+                    {
+                        VerifiedCopyId = Guid.NewGuid().ToString(),
+                        TrackId = Guid.NewGuid().ToString(),
+                        LocalFileId = localFile.LocalFileId,
+                        HashPrimary = localFile.HashPrimary,
+                        DurationSeconds = localFile.DurationSeconds,
+                        VerificationSource = VerificationSource.Manual,
+                        VerifiedAt = DateTimeOffset.UtcNow,
+                    });
+            IReadOnlyCollection<string>? requestedLocalFileIds = null;
+            var catalogue = new Mock<ICatalogueStore>(MockBehavior.Strict);
+            catalogue
+                .Setup(store => store.CountLocalFilesAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(localFiles.Count);
+            catalogue
+                .Setup(store => store.ListLocalFilesAsync(0, 250, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(localFiles);
+            catalogue
+                .Setup(store => store.GetLatestVerifiedCopiesByLocalFileIdsAsync(
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()))
+                .Callback<IReadOnlyCollection<string>, CancellationToken>((localFileIds, _) => requestedLocalFileIds = localFileIds)
+                .ReturnsAsync(verifiedCopies);
+            var service = new LibraryReconciliationService(catalogue.Object);
+
+            var orphaned = await service.FindOrphanedLocalFilesAsync();
+
+            Assert.Equal(localFiles.Select(localFile => localFile.LocalFileId), requestedLocalFileIds);
+            Assert.Equal(
+                localFiles.Where((_, index) => index % 2 != 0).Select(localFile => localFile.LocalFileId),
+                orphaned);
+            catalogue.Verify(store => store.GetLatestVerifiedCopiesByLocalFileIdsAsync(
+                It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<CancellationToken>()), Times.Once);
+            catalogue.Verify(store => store.CountVerifiedCopiesAsync(It.IsAny<CancellationToken>()), Times.Never);
+            catalogue.Verify(store => store.ListVerifiedCopiesAsync(
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
         public async Task AnalyzeAllReleases_NoReleases_ReturnsEmpty()
         {
             using var catalogue = new InMemoryCatalogueStore();
@@ -393,31 +445,49 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Reconciliation
         public async Task FindUpgradeOpportunities_FullPage_LoadsTracksOnce()
         {
             var localFiles = Enumerable.Range(0, 250)
-                .Select(index => CreateLocalFile($"track-{index:D3}", codec: "MP3", bitrate: 128))
+                .Select(index => CreateLocalFile(index < 125 ? null : $"track-{index:D3}", codec: "MP3", bitrate: 128))
                 .ToList();
-            var tracks = localFiles
-                .Take(localFiles.Count - 1)
+            var verifiedCopies = localFiles
+                .Take(125)
+                .Select((file, index) => (file, index))
                 .ToDictionary(
-                    file => file.InferredTrackId!,
-                    file => new Track
+                    item => item.file.LocalFileId,
+                    item => new VerifiedCopy
                     {
-                        TrackId = file.InferredTrackId!,
+                        VerifiedCopyId = Guid.NewGuid().ToString(),
+                        TrackId = $"track-{item.index:D3}",
+                        LocalFileId = item.file.LocalFileId,
+                        HashPrimary = item.file.HashPrimary,
+                        DurationSeconds = item.file.DurationSeconds,
+                        VerificationSource = VerificationSource.Manual,
+                        VerifiedAt = DateTimeOffset.UtcNow,
+                    });
+            var tracks = Enumerable.Range(0, localFiles.Count - 1)
+                .ToDictionary(
+                    index => $"track-{index:D3}",
+                    index => new Track
+                    {
+                        TrackId = $"track-{index:D3}",
                         ReleaseId = "release",
                         DiscNumber = 1,
                         TrackNumber = 1,
-                        Title = $"Title {file.InferredTrackId}",
+                        Title = $"Title track-{index:D3}",
                     });
+            IReadOnlyCollection<string>? requestedLocalFileIds = null;
             IReadOnlyCollection<string>? requestedTrackIds = null;
             var catalogue = new Mock<ICatalogueStore>(MockBehavior.Strict);
             catalogue
                 .Setup(store => store.CountLocalFilesAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(localFiles.Count);
             catalogue
-                .Setup(store => store.CountVerifiedCopiesAsync(It.IsAny<CancellationToken>()))
-                .ReturnsAsync(0);
-            catalogue
                 .Setup(store => store.ListLocalFilesAsync(0, 250, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(localFiles);
+            catalogue
+                .Setup(store => store.GetLatestVerifiedCopiesByLocalFileIdsAsync(
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()))
+                .Callback<IReadOnlyCollection<string>, CancellationToken>((localFileIds, _) => requestedLocalFileIds = localFileIds)
+                .ReturnsAsync(verifiedCopies);
             catalogue
                 .Setup(store => store.GetTracksByIdsAsync(
                     It.IsAny<IReadOnlyCollection<string>>(),
@@ -429,14 +499,23 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Reconciliation
             var suggestions = await service.FindUpgradeOpportunitiesAsync();
 
             Assert.Equal(localFiles.Count, suggestions.Count);
-            Assert.Equal(localFiles.Select(file => file.InferredTrackId), requestedTrackIds);
+            Assert.Equal(localFiles.Take(125).Select(file => file.LocalFileId), requestedLocalFileIds);
+            Assert.Equal(Enumerable.Range(0, localFiles.Count).Select(index => $"track-{index:D3}"), requestedTrackIds);
             Assert.Equal("Title track-000", suggestions[0].TrackTitle);
             Assert.Equal("track-249", suggestions[^1].TrackTitle);
+            catalogue.Verify(store => store.GetLatestVerifiedCopiesByLocalFileIdsAsync(
+                It.IsAny<IReadOnlyCollection<string>>(),
+                It.IsAny<CancellationToken>()), Times.Once);
             catalogue.Verify(store => store.GetTracksByIdsAsync(
                 It.IsAny<IReadOnlyCollection<string>>(),
                 It.IsAny<CancellationToken>()), Times.Once);
             catalogue.Verify(store => store.FindTrackByIdAsync(
                 It.IsAny<string>(),
+                It.IsAny<CancellationToken>()), Times.Never);
+            catalogue.Verify(store => store.CountVerifiedCopiesAsync(It.IsAny<CancellationToken>()), Times.Never);
+            catalogue.Verify(store => store.ListVerifiedCopiesAsync(
+                It.IsAny<int>(),
+                It.IsAny<int>(),
                 It.IsAny<CancellationToken>()), Times.Never);
         }
 

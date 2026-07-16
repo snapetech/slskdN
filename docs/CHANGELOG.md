@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Virtual Soulfind upgrade and orphan scans now query the newest verified copy
+  only for unresolved files in each 250-file page, using a new local-file/time
+  index instead of materializing the complete verified-copy table. With 10,000
+  unresolved files and one million verified-copy rows, upgrade-analysis reads
+  fall from 4,082 to 121 (97.04% fewer) and orphan-scan reads from 4,042 to 81
+  (98.00% fewer). Memory is page-bounded, while newest-copy selection, output
+  order, and inferred-track precedence remain unchanged.
 - Virtual Soulfind release-gap analysis now hydrates tracks, release groups,
   artists, and copy states in bounded batches for each 250-release page instead
   of loading all four evidence sets per release. For 10,000 releases with ten

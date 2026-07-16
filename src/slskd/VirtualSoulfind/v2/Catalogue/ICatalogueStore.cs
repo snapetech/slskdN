@@ -232,6 +232,13 @@ namespace slskd.VirtualSoulfind.v2.Catalogue
         Task<IReadOnlyList<VerifiedCopy>> ListVerifiedCopiesForTrackAsync(string trackId, CancellationToken ct = default);
 
         /// <summary>
+        ///     Finds the most recent verified copy for each bounded local-file ID.
+        /// </summary>
+        Task<IReadOnlyDictionary<string, VerifiedCopy>> GetLatestVerifiedCopiesByLocalFileIdsAsync(
+            IReadOnlyCollection<string> localFileIds,
+            CancellationToken ct = default);
+
+        /// <summary>
         ///     Lists verified copies in stable recency order.
         /// </summary>
         Task<IReadOnlyList<VerifiedCopy>> ListVerifiedCopiesAsync(int offset = 0, int limit = 100, CancellationToken ct = default);

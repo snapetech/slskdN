@@ -389,6 +389,35 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Catalogue
         }
 
         [Fact]
+        public async Task LatestVerifiedCopies_OverBatchBoundary_ReturnsNewestExistingCopies()
+        {
+            var firstTrack = await CreateAndInsertTestTrackWithDependencies();
+            var secondTrack = await CreateAndInsertTestTrackWithDependencies();
+            var firstFile = CreateTestLocalFile(path: "/music/latest-first.flac");
+            var secondFile = CreateTestLocalFile(path: "/music/latest-second.flac");
+            await _store.UpsertLocalFileAsync(firstFile);
+            await _store.UpsertLocalFileAsync(secondFile);
+            var oldCopy = CreateTestVerifiedCopy(firstTrack.TrackId, firstFile.LocalFileId, DateTimeOffset.UtcNow.AddDays(-1));
+            var latestCopy = CreateTestVerifiedCopy(firstTrack.TrackId, firstFile.LocalFileId, DateTimeOffset.UtcNow);
+            var secondCopy = CreateTestVerifiedCopy(secondTrack.TrackId, secondFile.LocalFileId);
+            await _store.UpsertVerifiedCopyAsync(oldCopy);
+            await _store.UpsertVerifiedCopyAsync(latestCopy);
+            await _store.UpsertVerifiedCopyAsync(secondCopy);
+            var requestedLocalFileIds = new[] { firstFile.LocalFileId }
+                .Concat(Enumerable.Range(0, 499).Select(index => $"missing-{index:D3}"))
+                .Append(secondFile.LocalFileId)
+                .Append(firstFile.LocalFileId)
+                .ToList();
+
+            var copies = await _store.GetLatestVerifiedCopiesByLocalFileIdsAsync(requestedLocalFileIds);
+
+            Assert.Equal(2, copies.Count);
+            Assert.Equal(latestCopy.VerifiedCopyId, copies[firstFile.LocalFileId].VerifiedCopyId);
+            Assert.Equal(secondCopy.VerifiedCopyId, copies[secondFile.LocalFileId].VerifiedCopyId);
+            Assert.DoesNotContain("missing-000", copies.Keys);
+        }
+
+        [Fact]
         public async Task VerifiedCopy_CanBeFoundById()
         {
             // Arrange
