@@ -141,4 +141,42 @@ public class ConnectionFingerprintServiceTests
             ConnectionFingerprintService.MaxEventLogSize,
             service.GetRecentEvents(ConnectionFingerprintService.MaxEventLogSize + 1).Count);
     }
+
+    [Fact]
+    public void FindFingerprints_PreservesFiltersAndDescendingTimestampOrder()
+    {
+        var service = new ConnectionFingerprintService(NullLogger<ConnectionFingerprintService>.Instance);
+        var older = service.RecordConnection(IPAddress.Parse("192.0.2.1"), 1, "Alice", "cert-1", null, null);
+        Assert.True(SpinWait.SpinUntil(() => DateTimeOffset.UtcNow > older.Timestamp, TimeSpan.FromSeconds(1)));
+        var newer = service.RecordConnection(IPAddress.Parse("192.0.2.1"), 2, "alice", "cert-1", null, null);
+        service.RecordConnection(IPAddress.Parse("192.0.2.2"), 3, "bob", "cert-2", null, null);
+
+        var results = service.FindFingerprints(
+            ipHash: older.IpHash,
+            username: "ALICE",
+            certThumbprint: "cert-1",
+            since: older.Timestamp);
+
+        Assert.Equal(new[] { newer.Id, older.Id }, results.Select(result => result.Id));
+    }
+
+    [Fact]
+    public void FindFingerprints_ThousandResultsAvoidsConcurrentValuesSnapshot()
+    {
+        var service = new ConnectionFingerprintService(NullLogger<ConnectionFingerprintService>.Instance);
+        for (var index = 0; index < ConnectionFingerprintService.MaxFingerprints; index++)
+        {
+            service.RecordConnection(IPAddress.Loopback, index, "same-user", null, null, null);
+        }
+
+        _ = service.FindFingerprints();
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var results = service.FindFingerprints();
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(ConnectionFingerprintService.MaxFingerprints, results.Count);
+        Assert.True(
+            allocatedBytes < 48 * 1024,
+            $"Expected direct dictionary query allocation below 48 KiB, got {allocatedBytes:N0} bytes.");
+    }
 }

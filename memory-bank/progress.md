@@ -1,3 +1,10 @@
+## Update 2026-07-16 17:34:49Z
+
+- Completed the filtered fingerprint-query snapshot-removal performance pass.
+- `FindFingerprints` now projects values from direct dictionary enumeration instead of allocating the implicit `.Values` snapshot before its required filter/sort result.
+- At the 1,000-result cap, the complete warmed query allocates below 48 KiB. All combined filters, stable descending order, cardinality, identities, and best-effort concurrency remain unchanged; follows gotcha `0z702` (`f85a7034e`).
+- Validation passed: focused fingerprint tests (`8/8`), broader DHT rendezvous tests (`155/155`), full backend suites (`4966/4966`: `69` application, `4617` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 17:27:55Z
 
 - Completed the atomic connection-event queue-size accounting performance pass.

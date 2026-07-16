@@ -183,7 +183,8 @@ public sealed class ConnectionFingerprintService
         string? certThumbprint = null,
         DateTimeOffset? since = null)
     {
-        return _recentFingerprints.Values
+        return _recentFingerprints
+            .Select(entry => entry.Value)
             .Where(f =>
                 (ipHash == null || f.IpHash == ipHash) &&
                 (username == null || f.Username?.Equals(username, StringComparison.OrdinalIgnoreCase) == true) &&

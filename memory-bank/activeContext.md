@@ -1,3 +1,17 @@
+## Update 2026-07-16 17:34:49Z
+
+- Current task: performance and efficiency improvements in progress; filtered fingerprint values-snapshot removal complete locally.
+- Last activity:
+  - Removed the implicit concurrent `.Values` snapshot from filtered fingerprint queries while preserving required stable sorting.
+  - At 1,000 returned fingerprints, the warmed full query allocates below 48 KiB with combined filters/order verified.
+- Validation:
+  - Passed focused fingerprint (`8/8`), broader DHT rendezvous (`155/155`), and full backend suites (`4966/4966`) tests.
+  - Exact filter/order/cardinality/allocation boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop; follows gotcha `0z702` (`f85a7034e`). Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the fingerprint-query snapshot slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 17:27:55Z
 
 - Current task: performance and efficiency improvements in progress; atomic connection-event size accounting complete locally.

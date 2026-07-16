@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Filtered connection-fingerprint queries now enumerate concurrent-dictionary
+  entries directly instead of allocating the `.Values` snapshot before their
+  required filtering and stable descending timestamp sort. At the 1,000-result
+  production cap, the complete warmed query allocates less than 48 KiB. IP,
+  case-insensitive username, certificate, and `since` filters, descending
+  timestamp order, result cardinality, and best-effort concurrent query
+  semantics remain unchanged.
 - Connection-event retention now maintains an exact atomic queue-size counter
   instead of evaluating `ConcurrentQueue.Count` after every enqueue, during
   trimming, and for statistics. Each event performs one increment and, only

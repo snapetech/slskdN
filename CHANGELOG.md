@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Filtered connection-fingerprint queries now enumerate dictionary entries
+  directly instead of allocating an implicit values snapshot before sorting.
 - Connection-event retention now uses atomic queue-size accounting instead of
   recounting the concurrent queue on every event and statistics read.
 - Recent connection-event retrieval now retains only the requested tail instead

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove filtered fingerprint values snapshots.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `FindFingerprints` now projects values while directly enumerating `ConcurrentDictionary` entries instead of accessing `.Values`, which created an extra full snapshot before the query's required ordered result materialization. At the 1,000-result production cap, the complete warmed filtered/sorted query allocates less than 48 KiB. IP-hash, case-insensitive username, certificate-thumbprint, and inclusive-`since` filters, stable descending timestamp order, result identity/cardinality, and best-effort concurrent semantics remain unchanged. Added exact combined-filter/order and 1,000-result allocation regressions; this follows gotcha `0z702` (`f85a7034e`). Validation passed: focused fingerprint tests (`8/8`), broader DHT rendezvous tests (`155/155`), full backend suites (`4966/4966`: `69` application, `4617` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Remove repeated connection-event queue counts.
   - Status: completed (2026-07-16)
   - Priority: P1
