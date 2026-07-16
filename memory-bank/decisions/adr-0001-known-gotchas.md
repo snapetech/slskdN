@@ -55,16 +55,17 @@ This is not optional. This is the highest priority action after fixing a bug.
 ### 0z689. VerifiedCopy Fixtures Require Verification Timestamps
 
 **The Bug**: Reconciliation performance regressions created `VerifiedCopy`
-objects without setting the required `VerifiedAt` member, causing CS9035 before
-the focused tests could run.
+objects without setting the required `VerifiedAt` and `VerificationSource`
+members, causing successive CS9035 failures before the focused tests could run.
 
 **Files Affected**:
 - `tests/slskd.Tests.Unit/VirtualSoulfind/v2/Reconciliation/LibraryReconciliationServiceTests.cs`
 
-**Prevention**: Every direct `VerifiedCopy` initializer must set `VerifiedAt`
-alongside its IDs, hash, duration, and source fields. Prefer the existing
-fixture constructor when provider persistence is involved; for mock-only rows,
-still populate every C# `required` member before compiling.
+**Prevention**: Every direct `VerifiedCopy` initializer must set both
+`VerifiedAt` and `VerificationSource` alongside its IDs, hash, and duration.
+Prefer the existing fixture constructor when provider persistence is involved;
+for mock-only rows, inspect the model and populate every C# `required` member
+before compiling instead of fixing compiler reports one at a time.
 
 ### 0z688. SQLite Catalogue Tracks Require Their Parent Hierarchy
 
