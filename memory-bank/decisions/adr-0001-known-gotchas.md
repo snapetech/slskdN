@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z717. Raw Fan-Out Is Not An Exact Graph Capacity
+
+**The Bug**: IPLD graph optimization initially used the root's complete
+outgoing-link count as the node, path, and visited-set capacity. Duplicate
+targets and cycles are later suppressed, so an unbounded raw-link hint could
+reserve memory proportional to hostile/redundant input rather than returned
+graph size.
+
+**Files Affected**:
+- `src/slskd/MediaCore/IpldMapper.cs`
+- `tests/slskd.Tests.Unit/MediaCore/IpldMapperTests.cs`
+
+**Prevention**: Treat fan-out and page counts as capacity hints, not exact
+cardinality, whenever later deduplication/filtering can shrink output. Cap the
+initial reservation, allow collections to grow normally beyond it, and pair a
+wide-unique allocation fixture with a duplicate-heavy fixture that proves the
+hint cannot cause input-sized over-allocation for tiny output.
+
 ### 0z716. Null-Coalescing Operands Must Share A Compile-Time Type
 
 **The Bug**: IPLD node hydration assigned `List<IpldLink> ?? IpldLink[]`
