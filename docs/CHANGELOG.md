@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- MusicBrainz album completion now batches both release tracks and full hash
+  evidence through existing SQLite indexes before assembling its unchanged
+  response. A 100-album collection with ten tracks each falls from 1,101
+  database queries to four (99.6% fewer).
 - Library Bloom now loads album tracks through bounded indexed release batches
   and indexes held recording IDs before testing track membership. A 100-release
   operation falls from 101 database queries to two, while a 10,000-by-10,000

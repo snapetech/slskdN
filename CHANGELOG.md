@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- MusicBrainz album completion now batches release-track and recording-hash
+  evidence reads instead of issuing one database query per album and track.
 - Library Bloom album analysis now loads release tracks in indexed batches and
   uses set-based held-recording membership instead of per-release queries and
   nested linear scans.

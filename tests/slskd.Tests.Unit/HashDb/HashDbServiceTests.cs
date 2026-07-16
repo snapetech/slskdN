@@ -138,6 +138,32 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Constructor_IndexesBatchedHashEvidenceQueryWithoutTemporarySort()
+    {
+        await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText =
+            """
+            EXPLAIN QUERY PLAN
+            SELECT *
+            FROM HashDb
+            WHERE musicbrainz_id IN ('recording-1', 'recording-2')
+            """;
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        var plan = new List<string>();
+        while (await reader.ReadAsync())
+        {
+            plan.Add(reader.GetString(3));
+        }
+
+        Assert.Contains(plan, detail =>
+            detail.Contains("SEARCH HashDb USING INDEX idx_hashdb_musicbrainz_id", StringComparison.Ordinal));
+        Assert.DoesNotContain(plan, detail => detail.Contains("TEMP B-TREE", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Constructor_IndexesPeerCapabilityStatsQuery()
     {
         await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
@@ -501,6 +527,47 @@ public class HashDbServiceTests : IDisposable
 
         var match = Assert.Single(matches);
         Assert.Equal(entry.FlacKey, match.FlacKey);
+    }
+
+    [Fact]
+    public async Task LookupHashesByRecordingIdsAsync_ReturnsRequestedMatches()
+    {
+        var first = new HashDbEntry
+        {
+            FlacKey = HashDbEntry.GenerateFlacKey("first.flac", 123),
+            ByteHash = "first-hash",
+            Size = 123,
+            FirstSeenAt = 1,
+            LastUpdatedAt = 1,
+            SeqId = 1,
+            UseCount = 1,
+        };
+        var second = new HashDbEntry
+        {
+            FlacKey = HashDbEntry.GenerateFlacKey("second.flac", 456),
+            ByteHash = "second-hash",
+            Size = 456,
+            FirstSeenAt = 1,
+            LastUpdatedAt = 2,
+            SeqId = 2,
+            UseCount = 1,
+        };
+        await service.StoreHashAsync(first);
+        await service.StoreHashAsync(second);
+        await service.UpdateHashRecordingIdAsync(first.FlacKey, "recording-1");
+        await service.UpdateHashRecordingIdAsync(second.FlacKey, "recording-2");
+
+        var matches = (await service.LookupHashesByRecordingIdsAsync(new[]
+        {
+            " recording-1 ",
+            "recording-1",
+            "recording-2",
+            "missing",
+        })).ToList();
+
+        Assert.Equal(2, matches.Count);
+        Assert.Contains(matches, match => match.FlacKey == first.FlacKey && match.MusicBrainzId == "recording-1");
+        Assert.Contains(matches, match => match.FlacKey == second.FlacKey && match.MusicBrainzId == "recording-2");
     }
 
     [Fact]

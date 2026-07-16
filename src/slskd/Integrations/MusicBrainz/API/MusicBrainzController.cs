@@ -121,12 +121,25 @@ namespace slskd.Integrations.MusicBrainz.API
                 return Forbid();
             }
 
-            var targets = await hashDbService.GetAlbumTargetsAsync(cancellationToken).ConfigureAwait(false);
+            var targets = (await hashDbService.GetAlbumTargetsAsync(cancellationToken).ConfigureAwait(false)).ToList();
+            var tracksByRelease = (await hashDbService
+                    .GetAlbumTracksAsync(targets.Select(target => target.ReleaseId), cancellationToken)
+                    .ConfigureAwait(false))
+                .ToLookup(track => track.ReleaseId, StringComparer.OrdinalIgnoreCase);
+            var hashesByRecording = (await hashDbService
+                    .LookupHashesByRecordingIdsAsync(
+                        tracksByRelease
+                            .SelectMany(group => group)
+                            .Select(track => track.RecordingId)
+                            .Where(recordingId => !string.IsNullOrWhiteSpace(recordingId)),
+                        cancellationToken)
+                    .ConfigureAwait(false))
+                .ToLookup(hash => hash.MusicBrainzId, StringComparer.Ordinal);
             var summaries = new List<AlbumCompletionSummary>();
 
             foreach (var target in targets)
             {
-                var tracks = (await hashDbService.GetAlbumTracksAsync(target.ReleaseId, cancellationToken).ConfigureAwait(false)).ToList();
+                var tracks = tracksByRelease[target.ReleaseId].ToList();
                 var trackSummaries = new List<AlbumCompletionTrack>();
                 var completedTracks = 0;
 
@@ -137,9 +150,8 @@ namespace slskd.Integrations.MusicBrainz.API
 
                     if (!string.IsNullOrWhiteSpace(track.RecordingId))
                     {
-                        var hashes = await hashDbService.LookupHashesByRecordingIdAsync(track.RecordingId, cancellationToken).ConfigureAwait(false);
-
-                        foreach (var hash in hashes)
+                        foreach (var hash in hashesByRecording[track.RecordingId]
+                            .OrderByDescending(hash => hash.LastUpdatedAt))
                         {
                             matches.Add(new HashMatch
                             {

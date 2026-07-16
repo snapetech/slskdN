@@ -96,7 +96,9 @@ public class MusicBrainzControllerTests
         hashDb.Setup(x => x.GetAlbumTargetsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[] { release });
 
-        hashDb.Setup(x => x.GetAlbumTracksAsync("release-1", It.IsAny<CancellationToken>()))
+        hashDb.Setup(x => x.GetAlbumTracksAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[]
             {
                 new AlbumTargetTrackEntry
@@ -108,12 +110,15 @@ public class MusicBrainzControllerTests
                 },
             });
 
-        hashDb.Setup(x => x.LookupHashesByRecordingIdAsync("rec-1", It.IsAny<CancellationToken>()))
+        hashDb.Setup(x => x.LookupHashesByRecordingIdsAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[]
             {
                 new HashDbEntry
                 {
                     FlacKey = "flackey",
+                    MusicBrainzId = "rec-1",
                     Size = 1024,
                     UseCount = 2,
                     FirstSeenAt = 1,
@@ -133,6 +138,18 @@ public class MusicBrainzControllerTests
         Assert.True(track.Complete);
         var match = Assert.Single(track.Matches);
         Assert.Equal("flackey", match.FlacKey);
+        hashDb.Verify(x => x.GetAlbumTracksAsync(
+            It.Is<IEnumerable<string>>(releaseIds => releaseIds.SequenceEqual(new[] { "release-1" })),
+            It.IsAny<CancellationToken>()), Times.Once);
+        hashDb.Verify(x => x.LookupHashesByRecordingIdsAsync(
+            It.Is<IEnumerable<string>>(recordingIds => recordingIds.SequenceEqual(new[] { "rec-1" })),
+            It.IsAny<CancellationToken>()), Times.Once);
+        hashDb.Verify(x => x.GetAlbumTracksAsync(
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        hashDb.Verify(x => x.LookupHashesByRecordingIdAsync(
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

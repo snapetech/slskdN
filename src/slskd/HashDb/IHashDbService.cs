@@ -65,6 +65,13 @@ namespace slskd.HashDb
         Task<IEnumerable<HashDbEntry>> LookupHashesByRecordingIdAsync(string recordingId, CancellationToken cancellationToken = default);
 
         /// <summary>
+        ///     Looks up hash entries for the requested MusicBrainz recording identifiers.
+        /// </summary>
+        Task<IEnumerable<HashDbEntry>> LookupHashesByRecordingIdsAsync(
+            IEnumerable<string> recordingIds,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         ///     Gets the requested MusicBrainz recording identifiers that have at least one hash entry.
         /// </summary>
         Task<HashSet<string>> GetRecordingIdsWithHashesAsync(

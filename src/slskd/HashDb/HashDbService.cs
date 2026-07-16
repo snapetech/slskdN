@@ -804,6 +804,48 @@ namespace slskd.HashDb
         }
 
         /// <inheritdoc/>
+        public async Task<IEnumerable<HashDbEntry>> LookupHashesByRecordingIdsAsync(
+            IEnumerable<string> recordingIds,
+            CancellationToken cancellationToken = default)
+        {
+            var normalized = recordingIds
+                .Where(recordingId => !string.IsNullOrWhiteSpace(recordingId))
+                .Select(recordingId => recordingId.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            var matches = new List<HashDbEntry>();
+            if (normalized.Length == 0)
+            {
+                return matches;
+            }
+
+            using var conn = GetConnection();
+            foreach (var batch in normalized.Chunk(500))
+            {
+                using var cmd = conn.CreateCommand();
+                var parameters = batch.Select((_, index) => $"@recording{index}").ToArray();
+                cmd.CommandText = $"""
+                    SELECT *
+                    FROM HashDb
+                    WHERE musicbrainz_id IN ({string.Join(", ", parameters)})
+                    """;
+
+                for (var index = 0; index < batch.Length; index++)
+                {
+                    cmd.Parameters.AddWithValue(parameters[index], batch[index]);
+                }
+
+                await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    matches.Add(ReadHashEntry(reader));
+                }
+            }
+
+            return matches;
+        }
+
+        /// <inheritdoc/>
         public async Task<HashSet<string>> GetRecordingIdsWithHashesAsync(
             IEnumerable<string> recordingIds,
             CancellationToken cancellationToken = default)

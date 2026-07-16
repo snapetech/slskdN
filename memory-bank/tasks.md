@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch MusicBrainz album-completion evidence reads.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Reused the bounded multi-release track API and added a bounded full HashDb-entry lookup by recording IDs, then grouped both result sets before building completion DTOs. A 100-album collection with ten tracks each falls from 1,101 database queries to four (99.6% fewer) while preserving per-track hash details and newest-first match order. Added batch semantics, exact aggregate-call boundaries, and SQLite index/no-temp-sort regressions; documented gotcha `0z664` (`86e24501e`) and caught lookup-shape bug `0z665` (`ce868ef92`).
+
 - [x] Batch Library Bloom album analysis.
   - Status: completed (2026-07-16)
   - Priority: P1

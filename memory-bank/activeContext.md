@@ -1,3 +1,17 @@
+## Update 2026-07-16 07:15:50Z
+
+- Current task: performance and efficiency improvements in progress; MusicBrainz album-completion pass complete locally.
+- Last activity:
+  - Batched release-track and full recording-hash evidence reads before assembling album completion. A 100-album, ten-track collection falls from 1,101 database queries to four (99.6% fewer) with the response contract and match order preserved.
+  - Query-plan coverage proves the existing recording-ID index serves the batch without a temporary sort. Documented gotcha `0z664` (`86e24501e`) and caught lookup-shape gotcha `0z665` (`ce868ef92`).
+- Validation:
+  - Passed focused endpoint/query coverage (`3/3`), complete HashDb/controller suites (`72/72`), and full backend tests (`4831/4831`: `69` application, `4482` unit, `280` integration).
+  - Repository lint and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Run the remediation gate and commit only the HashDb/MusicBrainz completion slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 07:03:30Z
 
 - Current task: performance and efficiency improvements in progress; Library Bloom album-analysis pass complete locally.
