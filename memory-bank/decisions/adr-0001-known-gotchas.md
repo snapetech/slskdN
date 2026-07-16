@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z664. Aggregate Endpoints Must Batch Both Parent And Evidence Reads
+
+**The Bug**: MusicBrainz album completion loaded every release, queried tracks
+once per release, then queried complete HashDb evidence once per track. A
+100-album collection with ten tracks each required 1,101 database queries for
+one local dashboard response.
+
+**Files Affected**:
+- `src/slskd/HashDb/IHashDbService.cs`
+- `src/slskd/HashDb/HashDbService.cs`
+- `src/slskd/Integrations/MusicBrainz/API/MusicBrainzController.cs`
+
+**Prevention**: For aggregate responses, batch every dependent level before
+building DTOs: release tracks by release IDs and hash evidence by recording IDs.
+Group materialized rows with comparer-correct lookups, retain per-item ordering
+in memory when a batch query would otherwise require a temporary SQLite sort,
+and keep parameter chunks below the conservative variable limit. Verify the
+legacy single-key methods are not called from the aggregate path.
+
 ### 0z663. Album-Wide Analysis Must Batch Tracks And Index Membership
 
 **The Bug**: Library Bloom loaded album targets once, queried
