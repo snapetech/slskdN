@@ -3,8 +3,10 @@
 // </copyright>
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -376,15 +378,73 @@ public class ContentDescriptorPublisher : IContentDescriptorPublisher
             AverageTtlHours: averageTtlHours));
     }
 
-    private static string GenerateVersion(ContentDescriptor descriptor)
+    internal static string GenerateVersion(ContentDescriptor descriptor)
     {
-        // Create a version string based on descriptor content and timestamp
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var content = $"{descriptor.ContentId}:{descriptor.Codec}:{descriptor.SizeBytes}";
-        var hash = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(content));
-        var versionHash = BitConverter.ToString(hash).Replace("-", string.Empty).Substring(0, 8).ToLower();
+        using var incrementalHash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        AppendUtf8(incrementalHash, descriptor.ContentId);
+        incrementalHash.AppendData(":"u8);
+        AppendUtf8(incrementalHash, descriptor.Codec ?? string.Empty);
+        incrementalHash.AppendData(":"u8);
 
-        return $"{timestamp}-{versionHash}";
+        Span<char> sizeChars = stackalloc char[32];
+        if (descriptor.SizeBytes.HasValue)
+        {
+            if (descriptor.SizeBytes.Value.TryFormat(
+                sizeChars,
+                out var sizeLength,
+                provider: CultureInfo.CurrentCulture))
+            {
+                AppendUtf8(incrementalHash, sizeChars[..sizeLength]);
+            }
+            else
+            {
+                AppendUtf8(incrementalHash, descriptor.SizeBytes.Value.ToString(CultureInfo.CurrentCulture));
+            }
+        }
+
+        Span<byte> hash = stackalloc byte[32];
+        incrementalHash.TryGetHashAndReset(hash, out _);
+        const string LowerHex = "0123456789abcdef";
+        Span<char> versionHash = stackalloc char[8];
+        for (var index = 0; index < versionHash.Length / 2; index++)
+        {
+            versionHash[index * 2] = LowerHex[hash[index] >> 4];
+            versionHash[(index * 2) + 1] = LowerHex[hash[index] & 0x0F];
+        }
+
+        Span<char> version = stackalloc char[32];
+        if (!timestamp.TryFormat(version, out var timestampLength, provider: CultureInfo.CurrentCulture))
+        {
+            return $"{timestamp.ToString(CultureInfo.CurrentCulture)}-{new string(versionHash)}";
+        }
+
+        version[timestampLength] = '-';
+        versionHash.CopyTo(version[(timestampLength + 1)..]);
+
+        return new string(version[..(timestampLength + 1 + versionHash.Length)]);
+    }
+
+    private static void AppendUtf8(IncrementalHash hash, ReadOnlySpan<char> value)
+    {
+        const int CharacterChunkSize = 1024;
+        Span<byte> utf8 = stackalloc byte[CharacterChunkSize * 3];
+        var offset = 0;
+
+        while (offset < value.Length)
+        {
+            var characterCount = Math.Min(CharacterChunkSize, value.Length - offset);
+            if (offset + characterCount < value.Length &&
+                char.IsHighSurrogate(value[offset + characterCount - 1]) &&
+                char.IsLowSurrogate(value[offset + characterCount]))
+            {
+                characterCount--;
+            }
+
+            var byteCount = Encoding.UTF8.GetBytes(value.Slice(offset, characterCount), utf8);
+            hash.AppendData(utf8[..byteCount]);
+            offset += characterCount;
+        }
     }
 
     private static bool IsNewerVersion(string newVersion, string existingVersion)

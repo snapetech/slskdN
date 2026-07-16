@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Descriptor version generation now streams bounded UTF-8 chunks directly into
+  SHA-256 and formats its compact output from stack buffers.
 - Descriptor batch publishing now uses a fixed five-worker pool instead of
   creating one semaphore-waiting async task per descriptor.
 - Descriptor batch retrieval now uses a fixed 10-worker pool instead of creating

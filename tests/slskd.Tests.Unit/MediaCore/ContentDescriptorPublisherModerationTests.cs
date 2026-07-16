@@ -4,7 +4,10 @@
 namespace slskd.Tests.Unit.MediaCore
 {
     using System;
+    using System.Globalization;
     using System.Linq;
+    using System.Security.Cryptography;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
@@ -164,7 +167,6 @@ namespace slskd.Tests.Unit.MediaCore
                     await Task.Yield();
                     return true;
                 });
-            var publisher = CreatePublisher();
             var signature = new DescriptorSignature("pk", "ABCD", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             var descriptors = Enumerable.Range(0, descriptorCount)
                 .Select(index => new ContentDescriptor
@@ -173,8 +175,9 @@ namespace slskd.Tests.Unit.MediaCore
                     Signature = signature,
                 })
                 .ToArray();
-            _ = await publisher.PublishBatchAsync(descriptors.AsSpan(0, 1).ToArray());
+            _ = await CreatePublisher().PublishBatchAsync(descriptors.AsSpan(0, 1).ToArray());
 
+            var publisher = CreatePublisher();
             var allocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
             var result = await publisher.PublishBatchAsync(descriptors);
             var allocatedBytes = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;
@@ -233,6 +236,88 @@ namespace slskd.Tests.Unit.MediaCore
             Assert.Equal(100, result.SuccessfullyPublished);
             Assert.Equal(5, maximumActive);
             Assert.Equal(0, active);
+        }
+
+        [Fact]
+        public void GenerateVersion_LargeContentIdAvoidsIntermediatePayloads()
+        {
+            var descriptor = new ContentDescriptor
+            {
+                ContentId = "content:audio:track:" + new string('x', 100_000),
+                Codec = null,
+                SizeBytes = 123456789,
+            };
+            _ = ContentDescriptorPublisher.GenerateVersion(new ContentDescriptor { ContentId = "warm" });
+
+            var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+            var version = ContentDescriptorPublisher.GenerateVersion(descriptor);
+            var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+            Assert.EndsWith("-7b8f1451", version, StringComparison.Ordinal);
+            Assert.True(
+                allocatedBytes < 2 * 1024,
+                $"Expected bounded version generation below 2 KiB allocated, got {allocatedBytes:N0} bytes.");
+        }
+
+        [Fact]
+        public void GenerateVersion_PreservesLegacyPayloadAcrossNullCultureAndChunkBoundary()
+        {
+            var previousCulture = CultureInfo.CurrentCulture;
+            try
+            {
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("ar-SA");
+                var descriptors = new[]
+                {
+                    new ContentDescriptor { ContentId = "content:audio:track:nulls" },
+                    new ContentDescriptor
+                    {
+                        ContentId = "content:audio:track:culture",
+                        Codec = "flac",
+                        SizeBytes = -123456789,
+                    },
+                    new ContentDescriptor
+                    {
+                        ContentId = "content:audio:track:" + new string('x', 1003) + "🎵tail",
+                        Codec = "opus",
+                        SizeBytes = long.MaxValue,
+                    },
+                };
+
+                foreach (var descriptor in descriptors)
+                {
+                    var version = ContentDescriptorPublisher.GenerateVersion(descriptor);
+                    Assert.EndsWith(
+                        $"-{ComputeLegacyVersionHash(descriptor)}",
+                        version,
+                        StringComparison.Ordinal);
+                }
+
+                var customCulture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
+                customCulture.NumberFormat.NegativeSign = new string('~', 40);
+                CultureInfo.CurrentCulture = customCulture;
+                var expandedSignDescriptor = new ContentDescriptor
+                {
+                    ContentId = "content:audio:track:expanded-sign",
+                    Codec = "flac",
+                    SizeBytes = -1,
+                };
+                var expandedSignVersion = ContentDescriptorPublisher.GenerateVersion(expandedSignDescriptor);
+                Assert.EndsWith(
+                    $"-{ComputeLegacyVersionHash(expandedSignDescriptor)}",
+                    expandedSignVersion,
+                    StringComparison.Ordinal);
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = previousCulture;
+            }
+        }
+
+        private static string ComputeLegacyVersionHash(ContentDescriptor descriptor)
+        {
+            var content = $"{descriptor.ContentId}:{descriptor.Codec}:{descriptor.SizeBytes}";
+            var hash = SHA256.HashData(Encoding.UTF8.GetBytes(content));
+            return BitConverter.ToString(hash).Replace("-", string.Empty).Substring(0, 8).ToLower();
         }
 
         [Fact]

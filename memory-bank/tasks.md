@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound descriptor version-generation allocations.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `ContentDescriptorPublisher.GenerateVersion` now streams the existing `ContentId:Codec:SizeBytes` payload into incremental SHA-256 through a fixed UTF-8 stack buffer, preserves surrogate pairs across chunk boundaries, formats nullable size and the millisecond timestamp through current-culture stack spans with exact expansion fallbacks, writes the first four digest bytes as eight lowercase hex characters, and creates only the required final version string. It no longer allocates the complete interpolated payload, UTF-8 payload array, digest array, dashed uppercase hex string, replacement, substring, lowercase copy, or intermediate final string components. For a covered 100,000-character ContentID, warmed allocation falls from 562,912 bytes to less than 2 KiB (>99.6%) and temporary storage remains bounded on the normal path. Exact legacy hashes across null fields, negative and maximum sizes, standard and expanded-sign custom cultures, and a surrogate pair split at the chunk boundary remain unchanged. Added exact compatibility and large allocation regressions; isolated the existing async batch allocation warm-up from the measured publisher instance. Documented gotchas `0z710` (`da2325cc7`), `0z711` (`b2f37cf16`), and `0z712` (`6bd798dbb`). Validation passed: focused publisher tests (`10/10`), full backend suites (`5006/5006`: `69` application, `4657` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Bound descriptor batch publishing task fan-out.
   - Status: completed (2026-07-16)
   - Priority: P1

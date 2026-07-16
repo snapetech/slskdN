@@ -22,6 +22,17 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Descriptor publication now generates content versions by feeding bounded
+  UTF-8 chunks directly into incremental SHA-256 and formatting the timestamp,
+  eight-character lowercase digest prefix, and final version in stack buffers.
+  It no longer materializes the complete interpolated content payload, UTF-8
+  byte array, 32-byte digest array, dashed uppercase hex string, replacement,
+  substring, lowercase copy, or intermediate final components. For the covered
+  100,000-character ContentID, warmed allocation falls from 562,912 bytes to
+  below 2 KiB (>99.6%) and working storage remains bounded. The exact legacy
+  `ContentId:Codec:SizeBytes` UTF-8 payload, current-culture nullable number
+  formatting, SHA-256 prefix, lowercase version shape, surrogate-pair encoding,
+  and millisecond timestamp semantics remain unchanged.
 - Descriptor batch publishing now drains its materialized descriptor input
   through exactly five long-lived workers and pre-sizes its required result
   list. It no longer creates one async task and semaphore waiter per descriptor

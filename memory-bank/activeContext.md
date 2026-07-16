@@ -1,3 +1,17 @@
+## Update 2026-07-16 21:15:42Z
+
+- Current task: performance and efficiency improvements in progress; bounded descriptor version generation complete locally.
+- Last activity:
+  - Streamed the exact legacy `ContentId:Codec:SizeBytes` UTF-8 payload into incremental SHA-256 through fixed stack storage and formatted the compact version without intermediate strings or arrays.
+  - A 100,000-character ContentID falls from 562,912 warmed allocated bytes to below 2 KiB (>99.6%) while culture, null, digest, lowercase, surrogate-pair, and timestamp semantics remain unchanged.
+- Validation:
+  - Passed focused publisher (`10/10`) and full backend suites (`5006/5006`: `69` application, `4657` unit, `280` integration) tests.
+  - Exact compatibility including expanded-sign custom culture and allocation boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Documented gotchas `0z710` (`da2325cc7`), `0z711` (`b2f37cf16`), and `0z712` (`6bd798dbb`). Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the bounded descriptor version-generation slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 20:57:07Z
 
 - Current task: performance and efficiency improvements in progress; fixed-worker descriptor batch publishing complete locally.
