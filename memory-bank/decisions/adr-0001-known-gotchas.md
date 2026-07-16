@@ -52,6 +52,20 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z685. Refactors Must Declare Every New Intermediate Type
+
+**The Bug**: Native library item batching introduced `LibraryItemCandidate`
+and `ResolvedLibraryItem` usages but omitted both private record declarations,
+causing the focused project build to fail with CS0246.
+
+**Files Affected**:
+- `src/slskd/API/Native/LibraryItemsController.cs`
+
+**Prevention**: When a refactor adds named intermediate pipeline states, list
+each new type alongside the methods that consume and produce it before applying
+the patch. After editing, search for every new type name and confirm at least
+one declaration exists before compiling.
+
 ### 0z684. Lambda Object Initializers Align With The `new` Expression
 
 **The Bug**: A HashDb batch-analysis regression indented the object initializer
