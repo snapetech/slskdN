@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z697. Object Initializer Comments Still Need Blank Separation
+
+**The Bug**: Moving an explanatory comment directly between object initializer
+assignments introduced StyleCop warning SA1515. The comment described the next
+properties correctly, but initializer syntax does not exempt it from the
+repository's blank-line-before-comment rule.
+
+**Files Affected**:
+- `src/slskd/Sharing/SharingService.cs`
+
+**Prevention**: Insert a blank line before standalone comments inside object
+and collection initializers, just as in ordinary statement blocks. Run the
+focused compile with warnings visible before the full lint gate; successful
+tests do not mean analyzer output is clean.
+
 ### 0z696. Interface Changes Must Search Every Test Project
 
 **The Bug**: Replacing the synchronous Jobs list interface with a bounded
