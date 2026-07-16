@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z618. Mounted Refs Must Reset During Effect Setup
+
+**The Bug**: The System MediaCore polling effect initialized `mountedRef` only
+when the component function first ran and set it false during cleanup. React
+development Strict Mode can replay effect setup and cleanup without recreating
+that ref, leaving the second setup permanently marked unmounted and causing
+every completed stats request to be discarded.
+
+**Files Affected**:
+- `src/web/src/components/System/MediaCore/index.jsx`
+
+**Prevention**: Set mounted lifecycle refs to true inside the effect setup that
+owns their false cleanup. Do not rely on the ref initializer for an effect that
+may be replayed; cover setup/cleanup symmetry when adding polling lifecycle
+guards.
+
 ### 0z617. Reverse Indexes Must Remove Empty Buckets On Remap
 
 **The Bug**: ContentID remapping removed an external ID from its old reverse
