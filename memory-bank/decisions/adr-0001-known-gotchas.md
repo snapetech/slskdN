@@ -71,6 +71,13 @@ dependent recording presence in one indexed batch rather than one lookup per
 track. Preserve distinct directories for the same release and cover exact
 repository call counts so per-file fan-out cannot return unnoticed.
 
+**2026-07-16 update:** The first batch query used `SELECT DISTINCT`, which made
+SQLite build a temporary B-tree even though the normalized recording-ID index
+served the `IN` predicate. When the consumer already inserts rows into a
+case-insensitive `HashSet`, select indexed rows directly and let the consumer
+deduplicate. Lock both index use and absence of temporary sorting with an
+`EXPLAIN QUERY PLAN` regression.
+
 ### 0z656. Static Application Helpers Must Qualify The Serilog Logger
 
 **The Bug**: A static file-pruning helper called `Log.Warning`, but
