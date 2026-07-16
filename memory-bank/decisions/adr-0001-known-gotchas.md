@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z680. Extracted Database Helpers Must Use Their Declared Receiver
+
+**The Bug**: Extracting canonical-stat upsert SQL from an instance method into
+a static helper left `conn.CreateCommand()` in the body even though the helper
+parameter was named `connection`, causing a compile-time undefined-name error.
+
+**Files Affected**:
+- `src/slskd/HashDb/HashDbService.cs`
+
+**Prevention**: After moving database code into a helper, inspect every
+connection, transaction, command, and cancellation-token receiver against the
+new parameter list before continuing. Prefer replacing the receiver as part of
+the extraction patch and run a focused compile immediately after the helper is
+introduced.
+
 ### 0z679. Batched Child Fixtures Must Carry Their Parent Key
 
 **The Bug**: Discography coverage tests converted per-recording hash mocks to a
