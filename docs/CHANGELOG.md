@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Share-group member details now resolve all distinct peer-contact nicknames
+  through bounded 500-ID contact queries in one DbContext instead of one
+  context/query per peer-backed member. With 100 peer-backed members, contact
+  reads and contexts fall from 100 to one (99% fewer); 501 distinct peer IDs
+  use two bounded reads in the same context. Exact peer-ID matching, duplicate
+  member handling, missing contacts, result ordering, and non-contact members
+  remain unchanged.
 - Share-manifest generation no longer resolves and loads every contact before
   returning owner contact fields that must remain empty: collection ownership
   stores an application user ID, not a resolvable peer ID. Each manifest read

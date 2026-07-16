@@ -78,6 +78,32 @@ public class ContactRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task GetByPeerIdsAsync_NormalizesDeduplicatesAndCrossesBatchBoundary()
+    {
+        using (var ctx = new IdentityDbContext(new DbContextOptionsBuilder<IdentityDbContext>().UseSqlite(_connectionString).Options))
+        {
+            ctx.Contacts.AddRange(Enumerable.Range(0, 502).Select(index => new Contact
+            {
+                PeerId = $"peer-{index:D3}",
+                Nickname = $"Contact {index:D3}",
+            }));
+            await ctx.SaveChangesAsync();
+        }
+
+        var peerIds = Enumerable.Range(0, 501)
+            .Select(index => $" peer-{index:D3} ")
+            .Append("peer-000")
+            .Append(string.Empty);
+
+        var contacts = await _repo.GetByPeerIdsAsync(peerIds, CancellationToken.None);
+
+        Assert.Equal(501, contacts.Count);
+        Assert.Contains(contacts, contact => contact.PeerId == "peer-000");
+        Assert.Contains(contacts, contact => contact.PeerId == "peer-500");
+        Assert.DoesNotContain(contacts, contact => contact.PeerId == "peer-501");
+    }
+
+    [Fact]
     public async Task GetAllAsync_ReturnsAllContacts()
     {
         using var ctx = new IdentityDbContext(new DbContextOptionsBuilder<IdentityDbContext>().UseSqlite(_connectionString).Options);

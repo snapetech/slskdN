@@ -51,6 +51,15 @@ public sealed class SharingService : ISharingService
     {
         var members = await _shareGroups.GetMembersAsync(shareGroupId, ct).ConfigureAwait(false);
         var contactService = _serviceProvider.GetService<Identity.IContactService>();
+        var peerIds = members
+            .Where(member => !string.IsNullOrEmpty(member.PeerId))
+            .Select(member => member.PeerId!)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        var contacts = contactService == null || peerIds.Length == 0
+            ? Array.Empty<Contact>()
+            : await contactService.GetByPeerIdsAsync(peerIds, ct).ConfigureAwait(false);
+        var contactsByPeerId = contacts.ToDictionary(contact => contact.PeerId, StringComparer.Ordinal);
         var result = new List<ShareGroupMemberInfo>();
 
         foreach (var m in members)
@@ -62,13 +71,9 @@ public sealed class SharingService : ISharingService
             };
 
             // Resolve contact nickname if PeerId is set
-            if (!string.IsNullOrEmpty(m.PeerId) && contactService != null)
+            if (!string.IsNullOrEmpty(m.PeerId) && contactsByPeerId.TryGetValue(m.PeerId, out var contact))
             {
-                var contact = await contactService.GetByPeerIdAsync(m.PeerId, ct).ConfigureAwait(false);
-                if (contact != null)
-                {
-                    info.ContactNickname = contact.Nickname;
-                }
+                info.ContactNickname = contact.Nickname;
             }
 
             result.Add(info);

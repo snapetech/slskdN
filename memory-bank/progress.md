@@ -1,3 +1,10 @@
+## Update 2026-07-16 14:03:18Z
+
+- Completed the share-group contact nickname batching performance pass.
+- Contact repository/service now resolves distinct peer IDs in bounded 500-ID queries, and group-member details use one result index instead of awaiting one contact read/context per peer-backed member.
+- With 100 peer-backed members, reads and contexts fall from 100 to one (99% fewer); 501 IDs use two queries in one context. Duplicate/missing contacts, exact identity matching, nickname results, and member ordering remain unchanged.
+- Validation passed: focused Identity/Sharing tests (`17/17`), full backend tests (`4908/4908`: `69` application, `4559` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 13:56:03Z
 
 - Completed the share-manifest discarded-contact-read performance pass.

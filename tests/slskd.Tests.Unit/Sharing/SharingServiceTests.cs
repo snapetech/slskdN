@@ -191,8 +191,10 @@ public class SharingServiceTests
         };
         var contact = new Contact { PeerId = "peer123", Nickname = "Alice" };
         var contactServiceMock = new Mock<IContactService>();
-        contactServiceMock.Setup(x => x.GetByPeerIdAsync("peer123", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(contact);
+        contactServiceMock.Setup(x => x.GetByPeerIdsAsync(
+                It.Is<IEnumerable<string>>(peerIds => peerIds.SequenceEqual(new[] { "peer123" })),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { contact });
 
         _groupsMock.Setup(x => x.GetMembersAsync(groupId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(members);
@@ -206,6 +208,12 @@ public class SharingServiceTests
         Assert.Equal("Alice", result[0].ContactNickname);
         Assert.False(result[1].IsContactBased);
         Assert.Null(result[1].ContactNickname);
+        contactServiceMock.Verify(x => x.GetByPeerIdsAsync(
+            It.IsAny<IEnumerable<string>>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+        contactServiceMock.Verify(x => x.GetByPeerIdAsync(
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

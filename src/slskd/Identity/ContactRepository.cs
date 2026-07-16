@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 /// <summary>EF Core implementation of IContactRepository.</summary>
 public sealed class ContactRepository : IContactRepository
 {
+    private const int PeerIdBatchSize = 500;
     private readonly IDbContextFactory<IdentityDbContext> _factory;
 
     public ContactRepository(IDbContextFactory<IdentityDbContext> factory)
@@ -36,6 +37,32 @@ public sealed class ContactRepository : IContactRepository
     {
         using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
         return await ctx.Contacts.FirstOrDefaultAsync(x => x.PeerId == peerId, ct).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<Contact>> GetByPeerIdsAsync(IEnumerable<string> peerIds, CancellationToken ct = default)
+    {
+        var normalized = peerIds
+            .Where(peerId => !string.IsNullOrWhiteSpace(peerId))
+            .Select(peerId => peerId.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (normalized.Length == 0)
+        {
+            return Array.Empty<Contact>();
+        }
+
+        using var ctx = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var contacts = new List<Contact>();
+        foreach (var batch in normalized.Chunk(PeerIdBatchSize))
+        {
+            contacts.AddRange(await ctx.Contacts
+                .AsNoTracking()
+                .Where(contact => batch.Contains(contact.PeerId))
+                .ToListAsync(ct)
+                .ConfigureAwait(false));
+        }
+
+        return contacts;
     }
 
     public async Task<Contact> AddAsync(Contact contact, CancellationToken ct = default)

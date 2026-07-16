@@ -1,3 +1,17 @@
+## Update 2026-07-16 14:03:18Z
+
+- Current task: performance and efficiency improvements in progress; share-group contact nickname batching complete locally.
+- Last activity:
+  - Added bounded 500-peer contact lookup and replaced per-member contact contexts/queries with one indexed result map.
+  - At 100 peer-backed members, reads/contexts fall 99%; 501 IDs use two queries in one context.
+- Validation:
+  - Passed focused Identity/Sharing (`17/17`) and full backend (`4908/4908`) tests.
+  - Exact batch/scalar call boundaries, 501-ID chunking, nickname/member semantics, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the contact/share-group batching slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 13:56:03Z
 
 - Current task: performance and efficiency improvements in progress; discarded share-manifest contact hydration removed locally.

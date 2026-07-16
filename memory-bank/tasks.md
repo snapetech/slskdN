@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch share-group contact nickname resolution.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added a normalized, exact, distinct peer-ID batch lookup to the contact repository/service, bounded at 500 IDs per SQLite query, and replaced per-member contact reads in share-group details. With 100 peer-backed members, contact reads and DbContexts fall from 100 to one (99% fewer); 501 IDs execute two reads in one context. Duplicate peer IDs, member order, missing contacts, non-contact members, exact peer identity, and nickname output remain unchanged. Added exact one-batch/zero-scalar-call service coverage and a 501-ID repository boundary regression. Validation passed: focused Identity/Sharing tests (`17/17`), full backend tests (`4908/4908`: `69` application, `4559` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Remove discarded contact hydration from share manifests.
   - Status: completed (2026-07-16)
   - Priority: P1

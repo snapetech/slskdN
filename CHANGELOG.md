@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Share-group member details now batch peer-contact nickname lookup instead of
+  opening one contact query and DbContext per peer-backed member.
 - Share-manifest reads no longer load the complete contact table when no peer
   identity exists for owner-contact resolution.
 - Native Jobs filtering, sorting, counting, and pagination now execute in

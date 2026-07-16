@@ -14,6 +14,7 @@ public interface IContactRepository
     Task<IReadOnlyList<Contact>> GetAllAsync(CancellationToken ct = default);
     Task<Contact?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<Contact?> GetByPeerIdAsync(string peerId, CancellationToken ct = default);
+    Task<IReadOnlyList<Contact>> GetByPeerIdsAsync(IEnumerable<string> peerIds, CancellationToken ct = default);
     Task<Contact> AddAsync(Contact contact, CancellationToken ct = default);
     Task UpdateAsync(Contact contact, CancellationToken ct = default);
     Task<bool> DeleteAsync(Guid id, CancellationToken ct = default);

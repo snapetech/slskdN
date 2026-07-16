@@ -21,6 +21,7 @@ public sealed class ContactService : IContactService
     public Task<IReadOnlyList<Contact>> GetAllAsync(CancellationToken ct = default) => _repo.GetAllAsync(ct);
     public Task<Contact?> GetByIdAsync(Guid id, CancellationToken ct = default) => _repo.GetByIdAsync(id, ct);
     public Task<Contact?> GetByPeerIdAsync(string peerId, CancellationToken ct = default) => _repo.GetByPeerIdAsync(peerId, ct);
+    public Task<IReadOnlyList<Contact>> GetByPeerIdsAsync(IEnumerable<string> peerIds, CancellationToken ct = default) => _repo.GetByPeerIdsAsync(peerIds, ct);
 
     public async Task<Contact> AddAsync(string peerId, string nickname, bool verified, CancellationToken ct = default)
     {
