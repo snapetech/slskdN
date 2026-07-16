@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z709. Current-Thread Allocation Counters Cannot Span Async Hops
+
+**The Bug**: A descriptor batch-publishing regression measured
+`GC.GetAllocatedBytesForCurrentThread` around deliberately asynchronous
+`Task.Yield` work. The continuation could resume on another pool thread, so the
+before and after counters described different threads and produced misleading
+comparisons.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/MediaCore/ContentDescriptorPublisherModerationTests.cs`
+
+**Prevention**: Use `GC.GetAllocatedBytesForCurrentThread` only when the entire
+measured operation is guaranteed to remain synchronously on one thread. For
+async/concurrent paths, warm the exact path and measure
+`GC.GetTotalAllocatedBytes(precise: true)` around an isolated operation. Avoid
+running competing allocation-heavy work in parallel with that regression, and
+pair the allocation ceiling with direct concurrency/state assertions.
+
 ### 0z708. Allocation Regressions Must Warm The Exact Measured Method
 
 **The Bug**: A descriptor cache-clear allocation regression stayed below its
