@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z690. Scalar-to-Batch Delegation Must Preserve No-Op Boundaries
+
+**The Bug**: The first warm-cache popularity batching pass delegated the
+single-ID method directly to the batch method, but the batch method opened a
+SQLite connection and transaction before filtering blank IDs. A blank access
+that previously returned without database work would therefore acquire and
+commit an empty write transaction.
+
+**Files Affected**:
+- `src/slskd/HashDb/HashDbService.cs`
+
+**Prevention**: When replacing a scalar persistence path with a batch delegate,
+normalize and reject an empty batch before opening connections, transactions,
+files, or other resources. Preserve the scalar method's no-op boundary in the
+shared batch entry point so every caller receives the same behavior.
+
 ### 0z689. VerifiedCopy Fixtures Require Verification Timestamps
 
 **The Bug**: Reconciliation performance regressions created `VerifiedCopy`
