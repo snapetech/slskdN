@@ -3,9 +3,9 @@
 - Current task: performance and efficiency improvements in progress; atomic share-group member admission complete locally.
 - Last activity:
   - Replaced separate duplicate reads and inserts with one parameterized conditional insert for user- and peer-keyed membership.
-  - Commands fall 50% and duplicate decisions are atomic while legacy peer, backward-compatible user ID, and foreign-key behavior remain unchanged.
+  - Commands fall 50% and duplicate decisions are atomic while legacy peer, backward-compatible user ID, and `DbUpdateException` behavior remain unchanged. Documented gotcha `0z700` (`9f9eda8f6`).
 - Validation:
-  - Passed focused repository (`9/9`), broader Sharing (`92/92`), and full backend (`4919/4919`) tests.
+  - Passed focused repository (`10/10`), broader Sharing (`93/93`), and full backend (`4920/4920`) tests.
   - Exact command/new/duplicate, legacy-peer, foreign-key, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
 - Next steps:
   1. Commit only the atomic member-admission slice.

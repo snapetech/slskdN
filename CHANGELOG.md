@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Preserved the existing `DbUpdateException` boundary when atomic share-group
+  member admission encounters a database constraint failure.
 - Registered the ordered download auto-retry index migration so application
   startup applies it to existing transfer databases.
 

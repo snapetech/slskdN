@@ -5,6 +5,7 @@ namespace slskd.Sharing;
 
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -60,29 +61,43 @@ public sealed class ShareGroupRepository : IShareGroupRepository
     public async Task AddMemberAsync(Guid shareGroupId, string userId, CancellationToken cancellationToken = default)
     {
         await using var db = await _factory.CreateDbContextAsync(cancellationToken);
-        await db.Database.ExecuteSqlInterpolatedAsync($$"""
-            INSERT INTO "ShareGroupMembers" ("ShareGroupId", "UserId", "PeerId")
-            SELECT {{shareGroupId}}, {{userId}}, NULL
-            WHERE NOT EXISTS (
-                SELECT 1
-                FROM "ShareGroupMembers"
-                WHERE "ShareGroupId" = {{shareGroupId}}
-                  AND "UserId" = {{userId}})
-            """, cancellationToken);
+        try
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync($$"""
+                INSERT INTO "ShareGroupMembers" ("ShareGroupId", "UserId", "PeerId")
+                SELECT {{shareGroupId}}, {{userId}}, NULL
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM "ShareGroupMembers"
+                    WHERE "ShareGroupId" = {{shareGroupId}}
+                      AND "UserId" = {{userId}})
+                """, cancellationToken);
+        }
+        catch (DbException ex)
+        {
+            throw new DbUpdateException("An error occurred while saving the entity changes.", ex);
+        }
     }
 
     public async Task AddMemberByPeerIdAsync(Guid shareGroupId, string peerId, CancellationToken cancellationToken = default)
     {
         await using var db = await _factory.CreateDbContextAsync(cancellationToken);
-        await db.Database.ExecuteSqlInterpolatedAsync($$"""
-            INSERT INTO "ShareGroupMembers" ("ShareGroupId", "UserId", "PeerId")
-            SELECT {{shareGroupId}}, {{peerId}}, {{peerId}}
-            WHERE NOT EXISTS (
-                SELECT 1
-                FROM "ShareGroupMembers"
-                WHERE "ShareGroupId" = {{shareGroupId}}
-                  AND "PeerId" = {{peerId}})
-            """, cancellationToken);
+        try
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync($$"""
+                INSERT INTO "ShareGroupMembers" ("ShareGroupId", "UserId", "PeerId")
+                SELECT {{shareGroupId}}, {{peerId}}, {{peerId}}
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM "ShareGroupMembers"
+                    WHERE "ShareGroupId" = {{shareGroupId}}
+                      AND "PeerId" = {{peerId}})
+                """, cancellationToken);
+        }
+        catch (DbException ex)
+        {
+            throw new DbUpdateException("An error occurred while saving the entity changes.", ex);
+        }
     }
 
     public async Task RemoveMemberAsync(Guid shareGroupId, string userId, CancellationToken cancellationToken = default)

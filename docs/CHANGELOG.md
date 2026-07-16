@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Atomic share-group member admission now retains the prior EF
+  `DbUpdateException` boundary for database constraint failures, with the
+  provider error available as its inner exception. This restores compatibility
+  with the tracked-write path while keeping the one-command conditional insert.
 - Share-group user and peer admission now uses one parameterized conditional
   SQLite insert instead of a duplicate query followed by an insert. New and
   duplicate admission fall from two commands to one (50% fewer), and the

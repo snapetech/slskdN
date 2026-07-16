@@ -2,8 +2,8 @@
 
 - Completed the atomic share-group member admission performance pass.
 - User and peer member admission now combine duplicate detection and insertion in one parameterized conditional SQLite command instead of separate read and write commands.
-- New and duplicate paths fall from two commands to one (50% fewer) while composite user identity, peer identity, legacy peer rows, backward-compatible peer user IDs, and missing-parent foreign-key failures remain unchanged.
-- Validation passed: focused repository tests (`9/9`), broader Sharing tests (`92/92`), full backend tests (`4919/4919`: `69` application, `4570` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- New and duplicate paths fall from two commands to one (50% fewer) while composite user identity, peer identity, legacy peer rows, backward-compatible peer user IDs, and missing-parent `DbUpdateException` boundaries remain unchanged. Documented direct-SQL exception gotcha `0z700` (`9f9eda8f6`).
+- Validation passed: focused repository tests (`10/10`), broader Sharing tests (`93/93`), full backend tests (`4920/4920`: `69` application, `4571` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
 
 ## Update 2026-07-16 14:36:53Z
 

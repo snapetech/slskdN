@@ -147,12 +147,18 @@ public class ShareGroupRepositoryTests : IDisposable
         Assert.Equal("legacy-user-id", member.UserId);
     }
 
-    [Fact]
-    public async Task AddMemberAsync_MissingGroup_PreservesForeignKeyFailure()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AddMemberAsync_MissingGroup_PreservesForeignKeyFailure(bool byPeerId)
     {
+        var repository = new ShareGroupRepository(_factory);
+        Func<Task> addMember = byPeerId
+            ? () => repository.AddMemberByPeerIdAsync(Guid.NewGuid(), "peer123", default)
+            : () => repository.AddMemberAsync(Guid.NewGuid(), "bob", default);
         _commands.Commands.Clear();
-        await Assert.ThrowsAsync<SqliteException>(() =>
-            new ShareGroupRepository(_factory).AddMemberAsync(Guid.NewGuid(), "bob", default));
+        var exception = await Assert.ThrowsAsync<DbUpdateException>(addMember);
+        Assert.IsType<SqliteException>(exception.InnerException);
         AssertSingleConditionalInsert();
     }
 
