@@ -230,7 +230,7 @@ Choose a polling cadence appropriate to the background workflow; do not use a
 high-frequency full-entity read merely because the eventual consumer needs the
 entity's large payload.
 
-### 0z646. Test Helpers Can Shadow Static Options Factories
+### 0z646. Test Scope Names Can Shadow Production Symbols
 
 **The Bug**: A Mesh regression used `Options.Create(...)` inside a test class
 that already exposed an `Options` symbol. C# resolved the local symbol instead
@@ -239,11 +239,18 @@ compile time.
 
 **Files Affected**:
 - `tests/slskd.Tests.Unit/Mesh/Phase8MeshTests.cs`
+- `tests/slskd.Tests.Unit/LibraryHealth/LibraryHealthServiceTests.cs`
 
 **Prevention**: In broad test fixtures with common member names, fully qualify
 static factories such as `Microsoft.Extensions.Options.Options.Create(...)` or
 use an unambiguous alias. A namespace import does not override a nearer member
 or type name during symbol resolution.
+
+**2026-07-16 update:** A Library Health regression referenced `HashDb.Models`
+from inside `slskd.Tests.Unit.LibraryHealth`. C# bound `HashDb` to the sibling
+`slskd.Tests.Unit.HashDb` namespace instead of production `slskd.HashDb`.
+Fully qualify production namespaces when a test namespace tree contains the
+same short segment.
 
 ### 0z645. Bulk Hint Publication Must Not Rewrite Shared Indexes Per Item
 
