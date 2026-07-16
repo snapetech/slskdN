@@ -9,14 +9,13 @@ using slskd.Mesh.Dht;
 namespace slskd.Mesh.Bootstrap;
 
 /// <summary>
-/// Hosted service to publish self descriptor and optionally warm up bootstrap.
+/// Hosted service to publish the initial self descriptor during bootstrap.
 /// </summary>
 public class MeshBootstrapService : BackgroundService
 {
     private readonly ILogger<MeshBootstrapService> logger;
     private readonly IPeerDescriptorPublisher publisher;
     private readonly MeshOptions options;
-    private readonly TimeSpan refreshInterval = TimeSpan.FromMinutes(30);
 
     public MeshBootstrapService(
         ILogger<MeshBootstrapService> logger,
@@ -42,25 +41,10 @@ public class MeshBootstrapService : BackgroundService
         }
 
         logger.LogDebug("[MeshBootstrapService] ExecuteAsync called");
-        logger.LogInformation("[MeshBootstrap] Starting service (refresh interval: {Minutes} minutes, bootstrap nodes: {Count})",
-            refreshInterval.TotalMinutes, options.BootstrapNodes.Count);
+        logger.LogInformation("[MeshBootstrap] Publishing initial self descriptor (bootstrap nodes: {Count})", options.BootstrapNodes.Count);
 
         await PublishOnce(stoppingToken);
-
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await Task.Delay(refreshInterval, stoppingToken);
-                await PublishOnce(stoppingToken);
-            }
-            catch (OperationCanceledException)
-            {
-                // shutdown
-            }
-        }
-
-        logger.LogInformation("[MeshBootstrap] Service stopped");
+        logger.LogInformation("[MeshBootstrap] Initial self descriptor publication completed");
     }
 
     private async Task PublishOnce(CancellationToken ct)

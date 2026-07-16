@@ -1,3 +1,19 @@
+## Update 2026-07-16 03:53:51Z
+
+- Current task: performance and efficiency improvements in progress; duplicate periodic mesh descriptor publication pass complete locally.
+- Last activity:
+  - Confirmed that Mesh bootstrap and refresh hosted services both published the same self descriptor every 30 minutes after an earlier fix removed only the startup duplicate.
+  - Changed bootstrap to publish exactly once and complete, leaving configured periodic and IP-change refresh ownership to `PeerDescriptorRefreshService`.
+  - Defaults avoid 48 duplicate DHT writes and up to 144 active STUN probes per day (50% of periodic self-publication work), and longer configured refresh intervals are no longer defeated by the fixed second loop.
+  - Added bootstrap completion/single-publish coverage alongside the existing no-immediate-refresh regression. Extended gotcha `0z119` in standalone commit `4181cd45c`.
+- Validation:
+  - Passed focused Mesh scheduling tests (`2/2`), complete smoke/unit/integration suites (`4797/4797`: `69` smoke, `4448` unit, `280` integration), repository lint, identity, and diff checks.
+  - The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+- Next steps:
+  1. Commit this duplicate-publication pass.
+  2. Continue the broader performance goal from the next measured recurring hot path.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 03:42:46Z
 
 - Current task: performance and efficiency improvements in progress; bounded search-history maintenance pass complete locally.

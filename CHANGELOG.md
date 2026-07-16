@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Mesh bootstrap now publishes the initial self descriptor once and leaves all
+  periodic and IP-change refreshes to the configured refresh service, removing
+  duplicate DHT writes and active STUN detection every 30 minutes.
 - Search retention, legacy pruning, and completed-history clearing now process
   stable 250-search pages with one set-based delete per page instead of loading
   the full candidate set and opening one database transaction per search.

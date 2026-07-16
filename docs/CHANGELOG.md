@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Mesh bootstrap now performs one initial self-descriptor publication and
+  completes, leaving configured periodic and IP-change refresh ownership to
+  `PeerDescriptorRefreshService`. Under defaults this removes 48 duplicate DHT
+  writes and up to 144 active STUN probes per day.
 - Search retention, legacy age pruning, and manual completed-history clearing
   now select at most 250 response-free summaries and delete each page with one
   database command while preserving every existing live deletion notification.

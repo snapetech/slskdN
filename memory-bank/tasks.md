@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove duplicate periodic mesh self-descriptor publication.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `MeshBootstrapService` and `PeerDescriptorRefreshService` both continued publishing the same descriptor every 30 minutes after an earlier startup-only duplicate fix. Made bootstrap publish exactly once and complete, leaving configured periodic and IP-change refresh ownership to the refresh service. Because every publication performs a DHT write and up to three active STUN probes, defaults avoid 48 duplicate DHT writes and up to 144 STUN probes per day (50% of periodic self-publication work), and longer configured intervals are no longer defeated by a fixed second loop. Added bootstrap completion/single-publish coverage alongside the existing no-immediate-refresh regression; extended gotcha `0z119` in standalone commit `4181cd45c`.
+
 - [x] Bound and batch search-history maintenance deletion.
   - Status: completed (2026-07-16)
   - Priority: P1
