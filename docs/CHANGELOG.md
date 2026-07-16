@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Passive FLAC discovery now writes inventory in 100-row SQLite batches, while
+  history backfill also inserts 500 distinct peers per command in the same
+  transaction. Persisting 100 live FLAC results falls from 100 commands to one;
+  100 historical one-file responses fall from 200–400 commands to two
+  (99.0–99.5% fewer), without changing Soulseek traffic or probe scheduling.
 - Library Health remediation now persists its job linkage, reads requested and
   active-job issues directly, and changes their state with bounded set-based
   updates. At 100 issues, job creation falls from 102 database operations to

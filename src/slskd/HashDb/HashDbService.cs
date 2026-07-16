@@ -44,6 +44,8 @@ namespace slskd.HashDb
         ///     Size of verification chunk for hashing (32KB).
         /// </summary>
         private const int HashChunkSize = 32768;
+        private const int FlacInventoryUpsertBatchSize = 100;
+        private const int PeerUpsertBatchSize = 500;
 
         private readonly string dbPath;
         private readonly ILogger log = Log.ForContext<HashDbService>();
@@ -170,39 +172,52 @@ namespace slskd.HashDb
                 var flacCount = 0;
                 var skippedCount = 0;
 
-                foreach (var response in evt.Responses)
+                IEnumerable<FlacInventoryEntry> EnumerateEntries()
                 {
-                    foreach (var file in response.Files)
+                    foreach (var response in evt.Responses)
                     {
-                        // Only interested in FLAC files large enough to hash
-                        if (!file.Filename.EndsWith(".flac", StringComparison.OrdinalIgnoreCase))
+                        foreach (var file in response.Files)
                         {
-                            continue;
+                            // Only interested in FLAC files large enough to hash
+                            if (!file.Filename.EndsWith(".flac", StringComparison.OrdinalIgnoreCase))
+                            {
+                                continue;
+                            }
+
+                            if (file.Size < HashChunkSize)
+                            {
+                                skippedCount++;
+                                continue;
+                            }
+
+                            flacCount++;
+                            yield return new FlacInventoryEntry
+                            {
+                                PeerId = response.Username,
+                                Path = file.Filename,
+                                Size = file.Size,
+                                HashStatusStr = "none",
+                            };
                         }
-
-                        if (file.Size < HashChunkSize)
-                        {
-                            skippedCount++;
-                            continue;
-                        }
-
-                        // Add to inventory for backfill probing
-                        var entry = new FlacInventoryEntry
-                        {
-                            PeerId = response.Username,
-                            Path = file.Filename,
-                            Size = file.Size,
-                            HashStatusStr = "none",
-                        };
-
-                        await UpsertFlacEntryAsync(entry);
-                        flacCount++;
                     }
                 }
 
+                using var conn = GetConnection();
+                using var transaction = conn.BeginTransaction();
+                var ingestion = await UpsertFlacEntriesInBatchesAsync(
+                    conn,
+                    transaction,
+                    EnumerateEntries(),
+                    CancellationToken.None).ConfigureAwait(false);
+                transaction.Commit();
+
                 if (flacCount > 0)
                 {
-                    log.Debug("[HashDb] Discovered {Count} FLAC files from search results ({Skipped} too small)", flacCount, skippedCount);
+                    log.Debug(
+                        "[HashDb] Discovered {Count} FLAC files from search results with {CommandCount} database commands ({Skipped} too small)",
+                        flacCount,
+                        ingestion.CommandCount,
+                        skippedCount);
                 }
             }
             catch (Exception ex)
@@ -1237,17 +1252,7 @@ namespace slskd.HashDb
         /// <inheritdoc/>
         public async Task UpsertFlacEntryAsync(FlacInventoryEntry entry, CancellationToken cancellationToken = default)
         {
-            entry.PeerId = entry.PeerId?.Trim() ?? string.Empty;
-            entry.Path = entry.Path?.Trim() ?? string.Empty;
-            if (string.IsNullOrEmpty(entry.FileId))
-            {
-                entry.FileId = FlacInventoryEntry.GenerateFileId(entry.PeerId, entry.Path, entry.Size);
-            }
-
-            if (entry.DiscoveredAt == 0)
-            {
-                entry.DiscoveredAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            }
+            NormalizeFlacEntry(entry);
 
             using var conn = GetConnection();
             using var cmd = conn.CreateCommand();
@@ -1279,6 +1284,144 @@ namespace slskd.HashDb
             cmd.Parameters.AddWithValue("@duration_samples", entry.DurationSamples ?? (object)DBNull.Value);
 
             await cmd.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        internal static async Task<(int AffectedRows, int CommandCount)> UpsertFlacEntriesInBatchesAsync(
+            SqliteConnection connection,
+            SqliteTransaction transaction,
+            IEnumerable<FlacInventoryEntry> entries,
+            CancellationToken cancellationToken)
+        {
+            var batch = new List<FlacInventoryEntry>(FlacInventoryUpsertBatchSize);
+            var affectedRows = 0;
+            var commandCount = 0;
+
+            foreach (var entry in entries)
+            {
+                NormalizeFlacEntry(entry);
+                batch.Add(entry);
+                if (batch.Count < FlacInventoryUpsertBatchSize)
+                {
+                    continue;
+                }
+
+                affectedRows += await ExecuteFlacInventoryUpsertBatchAsync(
+                    connection,
+                    transaction,
+                    batch,
+                    cancellationToken).ConfigureAwait(false);
+                commandCount++;
+                batch.Clear();
+            }
+
+            if (batch.Count > 0)
+            {
+                affectedRows += await ExecuteFlacInventoryUpsertBatchAsync(
+                    connection,
+                    transaction,
+                    batch,
+                    cancellationToken).ConfigureAwait(false);
+                commandCount++;
+            }
+
+            return (affectedRows, commandCount);
+        }
+
+        internal static async Task<int> UpsertPeersInBatchesAsync(
+            SqliteConnection connection,
+            SqliteTransaction transaction,
+            IEnumerable<string> peerIds,
+            CancellationToken cancellationToken)
+        {
+            var normalized = peerIds
+                .Where(peerId => !string.IsNullOrWhiteSpace(peerId))
+                .Select(peerId => peerId.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            var commandCount = 0;
+            var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+            foreach (var batch in normalized.Chunk(PeerUpsertBatchSize))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.Transaction = transaction;
+                var values = batch.Select((_, index) => $"(@peer_id{index}, @last_seen)");
+                cmd.CommandText = $"""
+                    INSERT OR IGNORE INTO Peers (peer_id, last_seen)
+                    VALUES {string.Join(", ", values)}
+                    """;
+                cmd.Parameters.AddWithValue("@last_seen", now);
+                for (var index = 0; index < batch.Length; index++)
+                {
+                    cmd.Parameters.AddWithValue($"@peer_id{index}", batch[index]);
+                }
+
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                commandCount++;
+            }
+
+            return commandCount;
+        }
+
+        private static async Task<int> ExecuteFlacInventoryUpsertBatchAsync(
+            SqliteConnection connection,
+            SqliteTransaction transaction,
+            IReadOnlyList<FlacInventoryEntry> batch,
+            CancellationToken cancellationToken)
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = transaction;
+            var values = batch.Select((_, index) =>
+                $"(@file_id{index}, @peer_id{index}, @path{index}, @size{index}, @discovered_at{index}, @hash_status{index}, @hash_value{index}, @hash_source{index}, @flac_audio_md5{index}, @sample_rate{index}, @channels{index}, @bit_depth{index}, @duration_samples{index})");
+            cmd.CommandText = $"""
+                INSERT INTO FlacInventory
+                    (file_id, peer_id, path, size, discovered_at, hash_status, hash_value, hash_source, flac_audio_md5, sample_rate, channels, bit_depth, duration_samples)
+                VALUES {string.Join(", ", values)}
+                ON CONFLICT(file_id) DO UPDATE SET
+                    hash_status = COALESCE(excluded.hash_status, hash_status),
+                    hash_value = COALESCE(excluded.hash_value, hash_value),
+                    hash_source = COALESCE(excluded.hash_source, hash_source),
+                    flac_audio_md5 = COALESCE(excluded.flac_audio_md5, flac_audio_md5),
+                    sample_rate = COALESCE(excluded.sample_rate, sample_rate),
+                    channels = COALESCE(excluded.channels, channels),
+                    bit_depth = COALESCE(excluded.bit_depth, bit_depth),
+                    duration_samples = COALESCE(excluded.duration_samples, duration_samples)
+                """;
+
+            for (var index = 0; index < batch.Count; index++)
+            {
+                var entry = batch[index];
+                cmd.Parameters.AddWithValue($"@file_id{index}", entry.FileId);
+                cmd.Parameters.AddWithValue($"@peer_id{index}", entry.PeerId);
+                cmd.Parameters.AddWithValue($"@path{index}", entry.Path);
+                cmd.Parameters.AddWithValue($"@size{index}", entry.Size);
+                cmd.Parameters.AddWithValue($"@discovered_at{index}", entry.DiscoveredAt);
+                cmd.Parameters.AddWithValue($"@hash_status{index}", entry.HashStatusStr ?? "none");
+                cmd.Parameters.AddWithValue($"@hash_value{index}", entry.HashValue ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue($"@hash_source{index}", entry.HashSourceStr ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue($"@flac_audio_md5{index}", entry.FlacAudioMd5 ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue($"@sample_rate{index}", entry.SampleRate ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue($"@channels{index}", entry.Channels ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue($"@bit_depth{index}", entry.BitDepth ?? (object)DBNull.Value);
+                cmd.Parameters.AddWithValue($"@duration_samples{index}", entry.DurationSamples ?? (object)DBNull.Value);
+            }
+
+            return await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        private static void NormalizeFlacEntry(FlacInventoryEntry entry)
+        {
+            entry.PeerId = entry.PeerId?.Trim() ?? string.Empty;
+            entry.Path = entry.Path?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(entry.FileId))
+            {
+                entry.FileId = FlacInventoryEntry.GenerateFileId(entry.PeerId, entry.Path, entry.Size);
+            }
+
+            if (entry.DiscoveredAt == 0)
+            {
+                entry.DiscoveredAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            }
         }
 
         /// <inheritdoc/>
@@ -4153,58 +4296,75 @@ namespace slskd.HashDb
         {
             var flacCount = 0;
             var skippedCount = 0;
+            var peerIds = new HashSet<string>(StringComparer.Ordinal);
 
-            foreach (var response in responses)
+            IEnumerable<FlacInventoryEntry> EnumerateEntries()
             {
-                if (flacCount >= maxFiles)
+                foreach (var response in responses)
                 {
-                    break;
-                }
-
-                if (string.IsNullOrEmpty(response.Username))
-                {
-                    continue;
-                }
-
-                foreach (var file in response.Files)
-                {
-                    if (cancellationToken.IsCancellationRequested || flacCount >= maxFiles)
+                    if (flacCount >= maxFiles)
                     {
-                        break;
+                        yield break;
                     }
 
-                    // Only interested in FLAC files large enough to hash
-                    if (!file.Filename.EndsWith(".flac", StringComparison.OrdinalIgnoreCase))
+                    if (string.IsNullOrEmpty(response.Username))
                     {
                         continue;
                     }
 
-                    if (file.Size < HashChunkSize)
+                    peerIds.Add(response.Username);
+                    foreach (var file in response.Files)
                     {
-                        skippedCount++;
-                        continue;
+                        if (cancellationToken.IsCancellationRequested || flacCount >= maxFiles)
+                        {
+                            yield break;
+                        }
+
+                        // Only interested in FLAC files large enough to hash
+                        if (!file.Filename.EndsWith(".flac", StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        if (file.Size < HashChunkSize)
+                        {
+                            skippedCount++;
+                            continue;
+                        }
+
+                        flacCount++;
+                        yield return new FlacInventoryEntry
+                        {
+                            PeerId = response.Username,
+                            Path = file.Filename,
+                            Size = file.Size,
+                            HashStatusStr = "none",
+                        };
                     }
-
-                    // Add to inventory for backfill probing
-                    var entry = new FlacInventoryEntry
-                    {
-                        PeerId = response.Username,
-                        Path = file.Filename,
-                        Size = file.Size,
-                        HashStatusStr = "none",
-                    };
-
-                    await UpsertFlacEntryAsync(entry, cancellationToken);
-                    flacCount++;
                 }
-
-                // Also track the peer
-                await GetOrCreatePeerAsync(response.Username, cancellationToken);
             }
+
+            using var conn = GetConnection();
+            using var transaction = conn.BeginTransaction();
+            var ingestion = await UpsertFlacEntriesInBatchesAsync(
+                conn,
+                transaction,
+                EnumerateEntries(),
+                cancellationToken).ConfigureAwait(false);
+            var peerCommandCount = await UpsertPeersInBatchesAsync(
+                conn,
+                transaction,
+                peerIds,
+                cancellationToken).ConfigureAwait(false);
+            transaction.Commit();
 
             if (flacCount > 0 || skippedCount > 0)
             {
-                log.Information("[HashDb] Backfilled {Count} FLAC files from search history ({Skipped} too small)", flacCount, skippedCount);
+                log.Information(
+                    "[HashDb] Backfilled {Count} FLAC files from search history with {CommandCount} database commands ({Skipped} too small)",
+                    flacCount,
+                    ingestion.CommandCount + peerCommandCount,
+                    skippedCount);
             }
 
             return flacCount;

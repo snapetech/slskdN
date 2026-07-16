@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Passive FLAC discovery and history backfill now persist inventory and peer
+  records with bounded multi-row SQLite upserts.
 - Library Health remediation now targets requested and job-linked issues through
   indexed reads and applies state changes with bounded set-based updates.
 - Music tag matching now batches candidate album tracks, recording presence,

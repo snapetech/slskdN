@@ -1,3 +1,17 @@
+## Update 2026-07-16 08:19:45Z
+
+- Current task: performance and efficiency improvements in progress; passive FLAC ingestion batching pass complete locally.
+- Last activity:
+  - Streamed live and historical search FLACs through bounded 100-row SQLite upserts and inserted up to 500 distinct history peers per command in the same transaction.
+  - At 100 live files, commands fall from 100 to one. At 100 historical one-file responses, inventory and peer commands fall from 200–400 to two (99.0–99.5% fewer), without changing Soulseek traffic or probing. Documented gotcha `0z674` (`47bfc7aea`).
+- Validation:
+  - Passed focused ingestion coverage (`2/2`), the complete HashDb class suite (`75/75`), and full backend tests (`4843/4843`: `69` application, `4494` unit, `280` integration).
+  - Repository lint and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the passive FLAC ingestion slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 08:01:58Z
 
 - Current task: performance and efficiency improvements in progress; Library Health remediation batching pass complete locally.

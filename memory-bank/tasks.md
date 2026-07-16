@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch passive FLAC inventory and history peer ingestion.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Streamed live and historical search results into 100-row multi-value FLAC upserts and inserted up to 500 distinct history peers per command in the same transaction. At 100 live FLACs, commands fall from 100 to one; at 100 historical one-file responses, inventory plus peer commands fall from 200–400 to two (99.0–99.5% fewer), with no change to Soulseek requests or probe scheduling. Added exact 201-row/peer command-boundary and production history filtering/persistence regressions; documented gotcha `0z674` (`47bfc7aea`).
+
 - [x] Batch Library Health remediation linkage and status transitions.
   - Status: completed (2026-07-16)
   - Priority: P1

@@ -400,6 +400,76 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task PassiveFlacBatchHelpers_BoundInventoryAndPeerCommands()
+    {
+        var entries = Enumerable.Range(1, 201)
+            .Select(index => new FlacInventoryEntry
+            {
+                PeerId = $"peer-{index}",
+                Path = $"/music/track-{index}.flac",
+                Size = 50_000_000 + index,
+                HashStatusStr = "none",
+            })
+            .ToList();
+        await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await conn.OpenAsync();
+        using var transaction = conn.BeginTransaction();
+
+        var ingestion = await HashDbService.UpsertFlacEntriesInBatchesAsync(
+            conn,
+            transaction,
+            entries,
+            CancellationToken.None);
+        var peerCommands = await HashDbService.UpsertPeersInBatchesAsync(
+            conn,
+            transaction,
+            entries.Select(entry => entry.PeerId),
+            CancellationToken.None);
+        transaction.Commit();
+
+        Assert.Equal(201, ingestion.AffectedRows);
+        Assert.Equal(3, ingestion.CommandCount);
+        Assert.Equal(1, peerCommands);
+        Assert.Equal(201, service.GetStats().TotalFlacEntries);
+        await using var peerCountCommand = conn.CreateCommand();
+        peerCountCommand.CommandText = "SELECT COUNT(*) FROM Peers";
+        Assert.Equal(201L, (long)(await peerCountCommand.ExecuteScalarAsync())!);
+    }
+
+    [Fact]
+    public async Task BackfillFromSearchResponsesAsync_PersistsBoundedFilesAndPeers()
+    {
+        var responses = Enumerable.Range(1, 100)
+            .Select(index => new slskd.Search.Response
+            {
+                Username = $"peer-{index}",
+                Files = new[]
+                {
+                    new slskd.Search.File
+                    {
+                        Filename = $"/music/track-{index}.flac",
+                        Size = 50_000_000 + index,
+                    },
+                    new slskd.Search.File
+                    {
+                        Filename = $"/music/cover-{index}.jpg",
+                        Size = 100_000,
+                    },
+                },
+            })
+            .ToList();
+
+        var count = await service.BackfillFromSearchResponsesAsync(responses);
+
+        Assert.Equal(100, count);
+        Assert.Equal(100, service.GetStats().TotalFlacEntries);
+        await service.UpdatePeerCapabilitiesAsync(
+            "peer-100",
+            slskd.Capabilities.PeerCapabilityFlags.SupportsMeshSync);
+        Assert.Contains(await service.GetSlskdnPeersAsync(), peer => peer.PeerId == "peer-100");
+    }
+
+    [Fact]
     public async Task GetAlbumTargetsAsync_ReturnsStoredTarget()
     {
         var target = new AlbumTarget
