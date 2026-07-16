@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Descriptor batch retrieval now normalizes/deduplicates IDs in one direct pass,
+  pre-sizes required lists, and drains them through exactly 10 long-lived async
+  workers. It no longer creates one async task and semaphore waiter for every
+  requested ContentID before work begins. For the covered 10,000-request batch,
+  warmed whole-call allocation falls from 12,743,928 to 11,418,688 bytes (10.4%)
+  despite retaining 10,000 required result objects and DHT/mock calls; scheduler
+  task/state memory now scales with 10 rather than request count. Trimming,
+  case-insensitive first-ID deduplication, requested/found/failed counts,
+  completion-order results, cancellation stop behavior, error handling, and the
+  existing 10-call network concurrency cap remain unchanged.
 - Descriptor cache domain queries now parse `content:<domain>:<type>:<id>` keys
   through spans, retain only the newest entry per case-insensitive descriptor
   ID, and select the bounded newest `maxResults + 1` set with a worst-first

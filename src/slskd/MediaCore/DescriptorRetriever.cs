@@ -155,41 +155,67 @@ public class DescriptorRetriever : IDescriptorRetriever
         if (contentIds == null)
             throw new ArgumentNullException(nameof(contentIds));
 
-        var contentIdList = contentIds
-            .Where(contentId => !string.IsNullOrWhiteSpace(contentId))
-            .Select(contentId => contentId.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        contentIds.TryGetNonEnumeratedCount(out var requestedCapacity);
+        var contentIdList = new List<string>(requestedCapacity);
+        var seenContentIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var contentId in contentIds)
+        {
+            if (string.IsNullOrWhiteSpace(contentId))
+            {
+                continue;
+            }
+
+            var trimmedContentId = contentId.Trim();
+            if (seenContentIds.Add(trimmedContentId))
+            {
+                contentIdList.Add(trimmedContentId);
+            }
+        }
+
         var startTime = DateTimeOffset.UtcNow;
-        var results = new List<DescriptorRetrievalResult>();
+        var results = new List<DescriptorRetrievalResult>(contentIdList.Count);
         var found = 0;
         var failed = 0;
-
-        // Process in parallel with concurrency control
-        using var semaphore = new SemaphoreSlim(10); // Allow more concurrent retrievals for batch
+        var nextIndex = -1;
 
         try
         {
-            var tasks = contentIdList.Select(async contentId =>
+            const int MaxConcurrency = 10;
+            var workers = new Task[Math.Min(MaxConcurrency, contentIdList.Count)];
+            for (var workerIndex = 0; workerIndex < workers.Length; workerIndex++)
             {
-                await semaphore.WaitAsync(cancellationToken);
-                try
+                workers[workerIndex] = ProcessBatchAsync();
+            }
+
+            await Task.WhenAll(workers);
+
+            async Task ProcessBatchAsync()
+            {
+                while (true)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var index = Interlocked.Increment(ref nextIndex);
+                    if (index >= contentIdList.Count)
+                    {
+                        return;
+                    }
+
+                    var contentId = contentIdList[index];
                     var result = await RetrieveAsync(contentId, bypassCache: false, cancellationToken);
                     lock (results)
                     {
                         results.Add(result);
-                        if (result.Found) found++;
-                        else if (result.ErrorMessage != null) failed++;
+                        if (result.Found)
+                        {
+                            found++;
+                        }
+                        else if (result.ErrorMessage != null)
+                        {
+                            failed++;
+                        }
                     }
                 }
-                finally
-                {
-                    semaphore.Release();
-                }
-            });
-
-            await Task.WhenAll(tasks);
+            }
         }
         catch (Exception ex)
         {

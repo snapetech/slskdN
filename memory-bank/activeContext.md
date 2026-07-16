@@ -1,3 +1,17 @@
+## Update 2026-07-16 20:41:39Z
+
+- Current task: performance and efficiency improvements in progress; fixed-worker descriptor batch retrieval complete locally.
+- Last activity:
+  - Replaced per-request async task/semaphore waiters with exactly 10 persistent workers and direct pre-sized normalization/result buffers.
+  - A 10,000-request whole call falls from 12,743,928 to 11,418,688 warmed allocated bytes; scheduler state becomes O(10).
+- Validation:
+  - Passed focused descriptor retriever (`12/12`), broader MediaCore (`259/259`), and full backend suites (`5002/5002`) tests.
+  - Exact concurrency/dedup/count/result/allocation boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Documented gotcha `0z708` (`9cbb008f3`). Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the fixed-worker descriptor batch slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 20:27:30Z
 
 - Current task: performance and efficiency improvements in progress; bounded descriptor domain querying complete locally.

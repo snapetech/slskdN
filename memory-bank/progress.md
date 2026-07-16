@@ -1,3 +1,10 @@
+## Update 2026-07-16 20:41:39Z
+
+- Completed the fixed-worker descriptor batch-retrieval performance pass.
+- Batch normalization/deduplication is direct and required lists are pre-sized; exactly 10 persistent workers replace one async task/semaphore waiter per request.
+- For 10,000 requests, warmed whole-call allocation falls from 12,743,928 to 11,418,688 bytes (10.4%) while coordinator task/state memory becomes O(10). Exact concurrency, deduplication, counts, results, cancellation, and error behavior remain unchanged. Documented allocation warm-up gotcha `0z708` (`9cbb008f3`).
+- Validation passed: focused descriptor retriever tests (`12/12`), broader MediaCore tests (`259/259`), full backend suites (`5002/5002`: `69` application, `4653` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 20:27:30Z
 
 - Completed the bounded descriptor domain-query performance pass.

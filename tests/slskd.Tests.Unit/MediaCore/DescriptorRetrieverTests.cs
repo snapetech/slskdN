@@ -52,6 +52,73 @@ public class DescriptorRetrieverTests
     }
 
     [Fact]
+    public async Task RetrieveBatchAsync_LargeBatchAvoidsPerItemWaitingTasks()
+    {
+        const int contentIdCount = 10_000;
+        var dht = new Mock<IMeshDhtClient>();
+        dht.Setup(client => client.GetAsync<ContentDescriptor>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ContentDescriptor?)null);
+        var retriever = CreateRetriever(dht.Object);
+        var contentIds = Enumerable.Range(0, contentIdCount)
+            .Select(index => $"content:audio:track:{index}")
+            .ToArray();
+        _ = await retriever.RetrieveBatchAsync(contentIds.AsSpan(0, 1).ToArray());
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var result = await retriever.RetrieveBatchAsync(contentIds);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(contentIdCount, result.Requested);
+        Assert.Equal(contentIdCount, result.Results.Count);
+        Assert.Equal(0, result.Found);
+        Assert.Equal(0, result.Failed);
+        Assert.True(
+            allocatedBytes < 12 * 1024 * 1024,
+            $"Expected fixed-worker batch retrieval below 12 MiB allocated, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
+    public async Task RetrieveBatchAsync_UsesExactlyBoundedWorkerConcurrency()
+    {
+        var active = 0;
+        var maximumActive = 0;
+        var dht = new Mock<IMeshDhtClient>();
+        dht.Setup(client => client.GetAsync<ContentDescriptor>(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(async () =>
+            {
+                var currentActive = Interlocked.Increment(ref active);
+                var observedMaximum = Volatile.Read(ref maximumActive);
+                while (currentActive > observedMaximum)
+                {
+                    var priorMaximum = Interlocked.CompareExchange(
+                        ref maximumActive,
+                        currentActive,
+                        observedMaximum);
+                    if (priorMaximum == observedMaximum)
+                    {
+                        break;
+                    }
+
+                    observedMaximum = priorMaximum;
+                }
+
+                await Task.Delay(5);
+                Interlocked.Decrement(ref active);
+                return null;
+            });
+        var retriever = CreateRetriever(dht.Object);
+        var contentIds = Enumerable.Range(0, 100)
+            .Select(index => $"content:audio:track:{index}")
+            .ToArray();
+
+        var result = await retriever.RetrieveBatchAsync(contentIds);
+
+        Assert.Equal(100, result.Results.Count);
+        Assert.Equal(10, maximumActive);
+        Assert.Equal(0, active);
+    }
+
+    [Fact]
     public async Task RetrieveAsync_TrimsContentIdBeforeLookup()
     {
         var dht = new Mock<IMeshDhtClient>();
@@ -123,6 +190,7 @@ public class DescriptorRetrieverTests
                 index % 2 == 0 ? now.AddMinutes(5) : now.AddMinutes(-5));
         }
 
+        _ = await CreateRetriever().GetStatsAsync();
         var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
         var stats = await retriever.GetStatsAsync();
         var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
@@ -160,6 +228,7 @@ public class DescriptorRetrieverTests
                 now.AddMinutes(5));
         }
 
+        _ = await CreateRetriever().ClearCacheAsync();
         var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
         var result = await retriever.ClearCacheAsync();
         var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;

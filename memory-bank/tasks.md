@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound descriptor batch retrieval task fan-out.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `DescriptorRetriever.RetrieveBatchAsync` now performs trim/filter/case-insensitive deduplication in one direct pass, pre-sizes the request/result lists, and uses at most 10 persistent worker tasks with an atomic next-index cursor. It no longer constructs one async lambda task plus semaphore waiter for every deduplicated ContentID. For a covered 10,000-request batch, warmed whole-call allocation falls from 12,743,928 to 11,418,688 bytes (10.4%) even though the measurement intentionally retains all 10,000 required retrieval results, DHT mock calls, cache keys, and statistics; coordinator task/state memory is now O(10) instead of O(requests). A delayed-DHT regression proves exactly 10 simultaneous calls and zero active workers after drain. Input enumeration, blank filtering, trimming, first case-insensitive duplicate selection, requested/found/failed counts, completion-order results, exception logging, cancellation stop behavior, and the conservative network concurrency limit remain unchanged. Added large allocation and exact active-concurrency coverage; fixed allocation warm-up gotcha `0z708` (`9cbb008f3`). Validation passed: focused descriptor retriever tests (`12/12`), broader MediaCore tests (`259/259`), full backend suites (`5002/5002`: `69` application, `4653` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Bound descriptor cache domain-query parsing and ordering.
   - Status: completed (2026-07-16)
   - Priority: P1

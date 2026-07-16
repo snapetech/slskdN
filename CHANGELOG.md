@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Descriptor batch retrieval now uses a fixed 10-worker pool instead of creating
+  one semaphore-waiting async task per requested ContentID.
 - Descriptor cache domain queries now parse keys without allocations and bound
   newest-distinct result ordering instead of sorting/grouping every match.
 - Descriptor cache cleanup, statistics, size estimation, and clear accounting
