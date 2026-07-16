@@ -1,3 +1,10 @@
+## Update 2026-07-16 13:33:47Z
+
+- Completed the Search startup snapshot consolidation and bounding pass.
+- Normal page startup now loads one 500-row-capped SignalR snapshot instead of racing parallel REST and unbounded hub lists; REST remains the failure fallback, and direct older-search URLs still perform their scalar lookup.
+- Normal list reads and payloads fall from two to one (50% fewer). With 100,000 retained searches, hub snapshot rows fall from 100,000 to 500 (99.5% fewer). Documented SignalR caller-fixture gotcha `0z695` (`43a92a1e3`).
+- Validation passed: focused backend (`3/3`) and Search Web (`12/12`) tests, full backend tests (`4903/4903`: `69` application, `4554` unit, `280` integration), full Web tests (`880` passed, `4` skipped), production Web build, changed-file ESLint, repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 13:24:12Z
 
 - Completed the download-request list attempt-hydration performance pass.

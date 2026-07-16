@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Consolidate and bound Search startup snapshots.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Removed the normal parallel REST history request and made the SignalR initial snapshot authoritative, retaining REST only after hub connection failure and the existing direct-ID fallback for older searches. Capped hub history at the controller's shared 500-search default. Normal list reads/payloads fall from two to one (50% fewer); at 100,000 retained searches, hub rows fall by 99.5%. Added backend exact-limit/payload coverage and Web normal/failure request-boundary regressions. Documented SignalR fixture gotcha `0z695` (`43a92a1e3`). Validation passed: focused backend (`3/3`) and Web (`12/12`) tests, full backend tests (`4903/4903`: `69` application, `4554` unit, `280` integration), full Web tests (`880` passed, `4` skipped), production Web build, changed-file ESLint, repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Bound download-request list attempt hydration.
   - Status: completed (2026-07-16)
   - Priority: P1

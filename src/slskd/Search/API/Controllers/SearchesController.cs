@@ -45,7 +45,7 @@ namespace slskd.Search.API
     [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
     public class SearchesController : ControllerBase
     {
-        private const int DefaultListLimit = 500;
+        internal const int DefaultListLimit = 500;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="SearchesController"/> class.

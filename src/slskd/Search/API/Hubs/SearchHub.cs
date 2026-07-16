@@ -110,7 +110,7 @@ namespace slskd.Search.API
 
         public override async Task OnConnectedAsync()
         {
-            var searches = await Searches.ListAsync();
+            var searches = await Searches.ListAsync(limit: SearchesController.DefaultListLimit);
             await Clients.Caller.SendAsync(SearchHubMethods.List, searches);
         }
     }

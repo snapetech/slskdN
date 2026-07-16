@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Search page startup now uses the SignalR connection's initial history
+  snapshot as its normal data source instead of requesting the same list over
+  REST in parallel. The hub snapshot uses the same 500-search cap as the REST
+  endpoint, while a failed hub connection still loads REST history and direct
+  older-search URLs retain their scalar fallback. Normal list database reads
+  and payloads fall from two to one (50% fewer); with 100,000 retained
+  searches, hub snapshot rows fall from 100,000 to 500 (99.5% fewer).
 - Download-request list reads now project per-request attempt counts and
   current-attempt IDs in SQLite, then hydrate only those current transfers
   instead of loading every historical attempt. A mixed-direction

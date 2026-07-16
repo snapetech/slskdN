@@ -44,6 +44,9 @@ vi.mock('./List/SearchList', () => ({
 const callbacks = {};
 
 const renderSearches = async ({
+  hubStart = async () => {
+    callbacks.list?.([]);
+  },
   initialEntries = ['/searches'],
   waitForInput = true,
 } = {}) => {
@@ -55,9 +58,7 @@ const renderSearches = async ({
     onclose: vi.fn(),
     onreconnected: vi.fn(),
     onreconnecting: vi.fn(),
-    start: vi.fn(async () => {
-      callbacks.list?.([]);
-    }),
+    start: vi.fn(hubStart),
     stop: vi.fn(),
   });
 
@@ -105,6 +106,25 @@ describe('Searches', () => {
         searchText: 'beatles',
       }),
     );
+  });
+
+  it('uses the hub snapshot without a duplicate REST list request', async () => {
+    await renderSearches();
+
+    expect(library.getAll).not.toHaveBeenCalled();
+  });
+
+  it('loads the REST snapshot only when the hub connection fails', async () => {
+    library.getAll.mockResolvedValue([{ id: 'fallback-search' }]);
+
+    await renderSearches({
+      hubStart: async () => {
+        throw new Error('hub unavailable');
+      },
+    });
+
+    await waitFor(() => expect(library.getAll).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId('search-list')).toHaveTextContent('fallback-search');
   });
 
   it('only sends bridge providers when the backend explicitly advertises ScenePodBridge', async () => {

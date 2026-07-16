@@ -283,16 +283,6 @@ const Searches = ({ server } = {}) => {
       onConnectionError(connectionError?.message ?? 'Disconnected'),
     );
 
-    const connect = async () => {
-      try {
-        onConnecting();
-        await searchHub.start();
-      } catch (connectionError) {
-        toast.error(connectionError?.message ?? 'Failed to connect');
-        onConnectionError(connectionError?.message ?? 'Failed to connect');
-      }
-    };
-
     const loadInitialSearches = async () => {
       try {
         const searchList = await library.getAll();
@@ -305,7 +295,17 @@ const Searches = ({ server } = {}) => {
       }
     };
 
-    loadInitialSearches();
+    const connect = async () => {
+      try {
+        onConnecting();
+        await searchHub.start();
+      } catch (connectionError) {
+        toast.error(connectionError?.message ?? 'Failed to connect');
+        onConnectionError(connectionError?.message ?? 'Failed to connect');
+        await loadInitialSearches();
+      }
+    };
+
     connect();
 
     // Scene ↔ Pod Bridging is opt-in. Do not infer it from generic capabilities,

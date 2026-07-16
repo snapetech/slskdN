@@ -1,3 +1,17 @@
+## Update 2026-07-16 13:33:47Z
+
+- Current task: performance and efficiency improvements in progress; Search startup snapshot consolidation complete locally.
+- Last activity:
+  - Removed the duplicate normal REST history load, retained it as hub-failure fallback, and capped the hub snapshot at the shared 500-search default.
+  - Normal Search list reads/payloads fall 50%; a 100,000-search hub snapshot falls 99.5%. Documented gotcha `0z695` (`43a92a1e3`).
+- Validation:
+  - Passed focused backend (`3/3`) and Web (`12/12`), full backend (`4903/4903`), and full Web (`880` passed, `4` skipped) suites.
+  - Production Web build, changed-file ESLint, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the Search hub/Web startup slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 13:24:12Z
 
 - Current task: performance and efficiency improvements in progress; bounded download-request attempt hydration complete locally.
