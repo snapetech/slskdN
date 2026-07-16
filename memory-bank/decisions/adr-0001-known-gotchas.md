@@ -67,21 +67,24 @@ comparer methods when the caller is async. Pass the owning string plus integer
 offset/length through the async method, and never rely on lexical placement
 before an await to make a span local valid under C# 12.
 
-### 0z719. Expression-Bodied Local Initializers Need Continuation Indentation
+### 0z719. Local Initializer Indentation Depends On Signature Layout
 
-**The Bug**: A test-local expression-bodied factory placed the object
-initializer at the local function's base indentation. The code compiled and all
-tests passed, but repository lint rejected every initializer line with
-`WHITESPACE` errors because the expression after `=>` requires continuation
-indentation.
+**The Bug**: Two test-local expression-bodied factories used the same object-
+initializer indentation even though one signature occupied one line and the
+other wrapped its parameters. Both versions compiled and passed tests, but the
+formatter required opposite four-space changes: continuation indentation after
+the wrapped signature and declaration-level indentation after the single-line
+signature.
 
 **Files Affected**:
 - `tests/slskd.Tests.Unit/VirtualSoulfind/v2/Planning/MultiSourcePlannerTests.cs`
+- `tests/slskd.Tests.Unit/VirtualSoulfind/v2/Planning/MultiSourcePlannerReputationTests.cs`
 
-**Prevention**: When an expression-bodied local function returns an object
-initializer, indent the opening brace, members, and closing brace one
-continuation level beneath `=> new()`. Run `./bin/lint` after adding multiline
-local functions even when focused compilation and tests are already green.
+**Prevention**: Copy the formatter-established shape for the same signature
+layout instead of applying one blanket initializer rule. Wrapped local-function
+signatures use continuation indentation; single-line signatures align the
+initializer with the declaration body. Run `./bin/lint` immediately after
+adding either form, before expensive full-suite validation.
 
 ### 0z718. A Nonzero Capacity Cap Can Worsen Dictionary Growth
 
