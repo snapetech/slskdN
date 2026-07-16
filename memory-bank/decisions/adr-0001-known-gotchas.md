@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z704. Token Trimming Must Not Move The Separator Cursor
+
+**The Bug**: A single-pass fuzzy-token parser reused its token-end cursor for
+both trailing-punctuation trimming and advancing past the original space
+separator. When trimming shortened the token, the next iteration resumed
+inside the same token instead of after its separator.
+
+**Files Affected**:
+- `src/slskd/MediaCore/FuzzyMatcher.cs`
+
+**Prevention**: Preserve the untrimmed separator position before adjusting the
+token's start/end bounds. Use the trimmed bounds only to create the token, and
+advance from the preserved separator position. Parser cursors that control the
+outer scan must not be reused as mutable slice boundaries without saving the
+next position first. Cover trailing punctuation followed by another token so a
+parser cannot pass only punctuation-free fixtures.
+
 ### 0z703. FFT Allocation Tests Must Include Library Workspace
 
 **The Bug**: A Chromaprint allocation regression assumed that the visible
