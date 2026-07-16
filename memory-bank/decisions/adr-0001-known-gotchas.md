@@ -172,19 +172,22 @@ method that rehydrates the same entity and shared state on every iteration.
 ### 0z641. Retention Cleanup Needs Bounded Pages And Set-Based Deletes
 
 **The Bug**: Search retention materialized every expired or excess record and
-then opened a fresh database context and transaction to delete each row. A
-large first cleanup therefore had unbounded memory use and database round trips
-even though deletion notifications did not require per-row transactions.
+then opened a fresh database context and transaction to delete each row. Pod
+deletion repeated the pattern by loading every message, member, and membership
+record into EF tracking before removal. Large histories therefore had unbounded
+memory use and row-wise delete generation.
 
 **Files Affected**:
 - `src/slskd/Search/SearchService.cs`
+- `src/slskd/PodCore/SqlitePodService.cs`
 
 **Prevention**: Process potentially large maintenance sets in stable bounded
 pages and delete each selected page with one set-based database command. Keep
 required per-record side effects, such as compatibility notifications, outside
 the transaction and bounded by the same page. Do not mistake a per-record side
 effect for a requirement to perform the underlying database mutation one row
-and one context at a time.
+and one context at a time. When no per-record side effect exists, issue a
+direct set-based delete for each dependent table instead of tracking entities.
 
 ### 0z640. Configured Maintenance Intervals Must Own Their Scheduling
 
