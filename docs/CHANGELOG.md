@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Search results now batch cached group metadata for visible users, reuse
+  response-provided speed, queue, and slot fields, and defer reputation and
+  opinion hydration until interaction instead of contacting every peer for
+  duplicate user information during initial rendering.
 - MediaCore ContentID stats and domain/type queries now read maintained
   secondary indexes instead of rescanning and reparsing all mappings. Empty
   reverse buckets are removed on remap, while the System MediaCore stats poll

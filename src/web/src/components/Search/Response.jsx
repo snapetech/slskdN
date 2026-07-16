@@ -12,7 +12,7 @@ import {
   getCommunityQualitySummary,
   recordCommunityQualitySignal,
 } from '../../lib/communityQualitySignals';
-import { getDirectoryContents, getGroup } from '../../lib/users';
+import { getDirectoryContents } from '../../lib/users';
 import { formatBytes, getDirectoryName, getFileName } from '../../lib/util';
 import DiscoveryGraphModal from './DiscoveryGraphModal';
 import FileList from '../Shared/FileList';
@@ -25,8 +25,6 @@ import { Button, Card, Icon, Label, List, Modal, Popup } from 'semantic-ui-react
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const segment = (value) => encodeURIComponent(String(value));
-const USER_GROUP_CACHE_TTL_MS = 5 * 60 * 1000;
-const userGroupCache = new Map();
 
 const getFileSignature = (file) => [
   file?.filename,
@@ -42,39 +40,6 @@ const getResponseSignature = (response) => [
   asArray(response?.files).map(getFileSignature).join('\u001f'),
   asArray(response?.lockedFiles).map(getFileSignature).join('\u001f'),
 ].join('\u001e');
-
-const getCachedUserGroup = (username) => {
-  const cached = userGroupCache.get(username);
-
-  if (!cached || cached.expiresAt <= Date.now()) {
-    userGroupCache.delete(username);
-    return undefined;
-  }
-
-  return cached.value;
-};
-
-const setCachedUserGroup = (username, value) => {
-  userGroupCache.set(username, {
-    expiresAt: Date.now() + USER_GROUP_CACHE_TTL_MS,
-    value,
-  });
-};
-
-const scheduleAfterPaint = (callback) => {
-  if (typeof window === 'undefined') {
-    callback();
-    return undefined;
-  }
-
-  if (typeof window.requestIdleCallback === 'function') {
-    const idleHandle = window.requestIdleCallback(callback, { timeout: 1_500 });
-    return () => window.cancelIdleCallback?.(idleHandle);
-  }
-
-  const timeout = window.setTimeout(callback, 250);
-  return () => window.clearTimeout(timeout);
-};
 
 export const buildSearchItemActionPath = (searchId, itemId, action) =>
   `/searches/${segment(searchId)}/items/${segment(itemId)}/${action}`;
@@ -150,17 +115,8 @@ class Response extends Component {
       previewOpen: false,
       qualitySummary: getCommunityQualitySummary(this.props.response.username),
       tree: buildTree(this.props.response),
-      userGroup: null,
-      userGroupLoading: false,
     };
-    this.cancelScheduledUserGroupFetch = null;
     this.responseSignature = getResponseSignature(this.props.response);
-    this.mounted = false;
-  }
-
-  componentDidMount() {
-    this.mounted = true;
-    this.scheduleUserGroupFetch();
   }
 
   componentDidUpdate(previousProps) {
@@ -175,53 +131,11 @@ class Response extends Component {
     }
 
     if (this.props.response.username !== previousProps.response.username) {
-      this.cancelScheduledUserGroupFetch?.();
-      this.scheduleUserGroupFetch();
       this.setState({
         qualitySummary: getCommunityQualitySummary(this.props.response.username),
       });
     }
   }
-
-  componentWillUnmount() {
-    this.mounted = false;
-    this.cancelScheduledUserGroupFetch?.();
-  }
-
-  scheduleUserGroupFetch = () => {
-    const { username } = this.props.response;
-    const cached = getCachedUserGroup(username);
-    if (cached !== undefined) {
-      this.setState({ userGroup: cached, userGroupLoading: false });
-      return;
-    }
-
-    this.cancelScheduledUserGroupFetch = scheduleAfterPaint(() => {
-      this.fetchUserGroup(username);
-    });
-  };
-
-  fetchUserGroup = async (username) => {
-    if (!this.mounted || this.props.response.username !== username) {
-      return;
-    }
-
-    this.setState({ userGroupLoading: true });
-
-    try {
-      const response = await getGroup({ username });
-      setCachedUserGroup(username, response.data);
-      if (this.mounted && this.props.response.username === username) {
-        this.setState({ userGroup: response.data, userGroupLoading: false });
-      }
-    } catch (error) {
-      console.debug('Failed to fetch user group for', username, error);
-      setCachedUserGroup(username, null);
-      if (this.mounted && this.props.response.username === username) {
-        this.setState({ userGroup: null, userGroupLoading: false });
-      }
-    }
-  };
 
   handleFileSelectionChange = (file, state) => {
     file.selected = state;
@@ -723,6 +637,8 @@ class Response extends Component {
       onUnblock,
       response,
       candidateRank,
+      userGroup,
+      userGroupLoading,
       userNote,
     } = this.props;
     const free = response.hasFreeUploadSlot;
@@ -733,8 +649,6 @@ class Response extends Component {
       fetchingDirectoryContents,
       isFolded,
       tree,
-      userGroup,
-      userGroupLoading,
       graphData,
       graphLoading,
       graphOpen,
@@ -773,7 +687,11 @@ class Response extends Component {
                 title="Browse files"
                 to={`/browse?user=${encodeURIComponent(response.username)}`}
               >
-                <UserCard username={response.username}>
+                <UserCard
+                  deferSupplementalData
+                  info={response}
+                  username={response.username}
+                >
                   {response.username}
                 </UserCard>
               </Link>

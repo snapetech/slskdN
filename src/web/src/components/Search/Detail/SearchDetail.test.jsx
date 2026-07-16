@@ -1,9 +1,11 @@
 import SearchDetail, {
+  batchUsernames,
   getInitialResultFilters,
   mapUserNotesByUsername,
   shouldFetchSearchResponses,
 } from './SearchDetail';
 import { getResponses } from '../../../lib/searches';
+import { getGroups } from '../../../lib/users';
 import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
@@ -33,14 +35,23 @@ vi.mock('../../../lib/searches', () => ({
 vi.mock('../../../lib/userNotes', () => ({
   getAllNotes: vi.fn(async () => ({ data: [] })),
 }));
+vi.mock('../../../lib/users', () => ({
+  getGroups: vi.fn(async () => ({})),
+}));
 vi.mock('../../../lib/wishlist', () => ({
   getIgnoredResults: vi.fn(async () => []),
   ignoreResult: vi.fn(),
 }));
 vi.mock('../DiscoveryGraphModal', () => ({ default: () => null }));
 vi.mock('../Response', () => ({
-  default: ({ response }) => (
-    <div data-testid="search-response">{response.username}</div>
+  default: ({ response, userGroup, userGroupLoading }) => (
+    <div
+      data-group={userGroup || ''}
+      data-group-loading={String(userGroupLoading)}
+      data-testid="search-response"
+    >
+      {response.username}
+    </div>
   ),
 }));
 vi.mock('./SearchDetailHeader', () => ({ default: () => null }));
@@ -100,7 +111,18 @@ describe('SearchDetail', () => {
     })).toBe(true);
   });
 
+  it('partitions visible usernames to the bounded group endpoint size', () => {
+    const usernames = Array.from({ length: 205 }, (_, index) => `peer-${index}`);
+
+    expect(batchUsernames(usernames)).toEqual([
+      usernames.slice(0, 100),
+      usernames.slice(100, 200),
+      usernames.slice(200),
+    ]);
+  });
+
   it('clears hydrated results when a reused detail changes to an active search without responses', async () => {
+    getGroups.mockResolvedValue({ 'first-search-peer': 'privileged' });
     getResponses.mockResolvedValue([
       {
         fileCount: 1,
@@ -134,9 +156,14 @@ describe('SearchDetail', () => {
     };
     const { rerender } = render(<SearchDetail {...props} />);
 
-    expect(await screen.findByTestId('search-response')).toHaveTextContent(
-      'first-search-peer',
+    const response = await screen.findByTestId('search-response');
+    expect(response).toHaveTextContent('first-search-peer');
+    await waitFor(() =>
+      expect(response).toHaveAttribute('data-group', 'privileged'),
     );
+    expect(getGroups).toHaveBeenCalledWith({
+      usernames: ['first-search-peer'],
+    });
 
     rerender(
       <SearchDetail

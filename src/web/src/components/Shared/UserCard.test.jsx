@@ -3,7 +3,7 @@ import UserCard from './UserCard';
 import * as opinions from '../../lib/opinions';
 import * as security from '../../lib/security';
 import * as users from '../../lib/users';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { vi } from 'vitest';
 
@@ -65,5 +65,58 @@ describe('UserCard', () => {
     await waitFor(() => expect(users.getInfo).toHaveBeenCalledTimes(1));
     expect(security.getReputation).toHaveBeenCalledTimes(1);
     expect(opinions.getOpinionSummary).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses supplied search metadata and waits for interaction before supplemental lookups', async () => {
+    let resolveOpinion;
+    let resolveReputation;
+    opinions.getOpinionSummary.mockReturnValue(
+      new Promise((resolve) => {
+        resolveOpinion = resolve;
+      }),
+    );
+    security.getReputation.mockReturnValue(
+      new Promise((resolve) => {
+        resolveReputation = resolve;
+      }),
+    );
+
+    render(
+      <UserCard
+        deferSupplementalData
+        info={{
+          hasFreeUploadSlot: true,
+          queueLength: 2,
+          uploadSpeed: 4096,
+        }}
+        username="search-peer"
+      >
+        search-peer
+      </UserCard>,
+    );
+
+    await vi.advanceTimersByTimeAsync(300);
+
+    expect(users.getInfo).not.toHaveBeenCalled();
+    expect(security.getReputation).not.toHaveBeenCalled();
+    expect(opinions.getOpinionSummary).not.toHaveBeenCalled();
+
+    fireEvent.mouseEnter(screen.getByText('search-peer').closest('.user-card'));
+    await vi.advanceTimersByTimeAsync(300);
+
+    await waitFor(() =>
+      expect(security.getReputation).toHaveBeenCalledWith('search-peer'),
+    );
+    expect(opinions.getOpinionSummary).toHaveBeenCalledTimes(1);
+    expect(users.getInfo).not.toHaveBeenCalled();
+    expect(document.querySelector('.user-card-stats')).toBeInTheDocument();
+
+    resolveReputation({ score: 88 });
+    resolveOpinion({
+      data: {
+        total: 1,
+        weightedScore: 0.5,
+      },
+    });
   });
 });

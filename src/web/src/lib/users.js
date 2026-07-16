@@ -32,3 +32,15 @@ export const getDirectoryContents = async ({ username, directory }) => {
 export const getGroup = ({ username }) => {
   return api.get(`/users/${encodeURIComponent(username)}/group`);
 };
+
+export const getGroups = async ({ usernames }) => {
+  const params = new URLSearchParams();
+  for (const username of usernames) {
+    params.append('usernames', username);
+  }
+
+  const response = (await api.get(`/users/groups?${params.toString()}`)).data;
+  return response && typeof response === 'object' && !Array.isArray(response)
+    ? response
+    : {};
+};

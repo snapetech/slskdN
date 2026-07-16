@@ -1,3 +1,12 @@
+## Update 2026-07-16 00:18:24Z
+
+- Completed the Search result metadata fan-out performance pass.
+- Added authenticated `GET /api/v0/users/groups`, which resolves up to 100 normalized usernames from the existing cached user-group service, and changed Search Detail to batch only currently visible usernames.
+- Search result user cards now reuse response-provided upload speed, queue depth, and free-slot state. Reputation and opinion requests wait for hover or keyboard focus, while remote Soulseek user-info calls are eliminated from initial result rendering.
+- A default 25-result page falls from 100 automatic per-user metadata HTTP requests to one (99% fewer), and automatic remote peer contacts fall from 25 to zero. An interacted card performs two local supplemental requests without replacing valid primary metadata during loading.
+- Added controller, Web API, batch-boundary, route-reuse, deferred-interaction, deduplication, and supplied-data loading regressions; regenerated the route inventory; documented gotcha `0z619` in standalone commit `21ac9339b`.
+- Validation passed: focused controller tests (`17/17`), focused Web tests (`13/13`), complete backend suites (`4761/4761`: `69` smoke, `4412` unit, `280` integration), complete Web tests (`851` passed, `4` skipped), production Web build, frontend and repository lint, route/security/polling/identity checks, and all post-sync remediation checks. The consolidated release baseline stopped only at its expected branch-sync gate because this local work is intentionally unpushed.
+
 ## Update 2026-07-16 00:02:29Z
 
 - Completed the MediaCore ContentID registry-read and stats-polling performance pass.

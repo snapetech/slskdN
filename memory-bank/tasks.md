@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Collapse Search result metadata request fan-out.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added a cached, authenticated, 100-username group batch endpoint and changed Search Detail to request groups only for visible results in bounded batches. Search result user cards now reuse response-provided upload speed, queue length, and free-slot state instead of contacting every remote peer for duplicate user info; reputation and opinion hydration begins only after hover or keyboard focus and does not hide supplied primary metadata while loading. A default 25-result page falls from 100 automatic per-user metadata requests to one (99% fewer), including 25 remote Soulseek user-info contacts falling to zero. Added controller, API-client, batching, route-reuse, deferral, deduplication, and loading-state regressions; regenerated the route inventory; documented gotcha `0z619` in standalone commit `21ac9339b`.
+
 - [x] Index MediaCore ContentID reads and bound stats polling.
   - Status: completed (2026-07-15)
   - Priority: P1

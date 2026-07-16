@@ -25,6 +25,7 @@ namespace slskd.Users.API
     using System;
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
+    using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
     using Asp.Versioning;
@@ -46,6 +47,8 @@ namespace slskd.Users.API
     [ValidateCsrfForCookiesOnly] // CSRF protection for cookie-based auth (exempts JWT/API key)
     public class UsersController : ControllerBase
     {
+        private const int MaxGroupBatchSize = 100;
+
         /// <summary>
         ///     Initializes a new instance of the <see cref="UsersController"/> class.
         /// </summary>
@@ -434,6 +437,40 @@ namespace slskd.Users.API
 
             var group = Users.GetGroup(username);
             return Ok(group);
+        }
+
+        /// <summary>
+        ///     Retrieves cached groups for a bounded set of users.
+        /// </summary>
+        /// <param name="usernames">The usernames to resolve.</param>
+        /// <returns>A username-to-group map.</returns>
+        [HttpGet("groups")]
+        [Authorize(Policy = AuthPolicy.Any)]
+        [ProducesResponseType(typeof(IReadOnlyDictionary<string, string>), 200)]
+        [ProducesResponseType(400)]
+        public IActionResult Groups([FromQuery] string[]? usernames)
+        {
+            if (Program.IsRelayAgent)
+            {
+                return Forbid();
+            }
+
+            var normalizedUsernames = (usernames ?? Array.Empty<string>())
+                .Select(username => username?.Trim() ?? string.Empty)
+                .Where(username => !string.IsNullOrWhiteSpace(username))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(MaxGroupBatchSize + 1)
+                .ToList();
+
+            if (normalizedUsernames.Count > MaxGroupBatchSize)
+            {
+                return BadRequest($"A maximum of {MaxGroupBatchSize} usernames is allowed");
+            }
+
+            return Ok(normalizedUsernames.ToDictionary(
+                username => username,
+                username => Users.GetGroup(username),
+                StringComparer.OrdinalIgnoreCase));
         }
     }
 }

@@ -4,6 +4,8 @@
 namespace slskd.Tests.Unit.Users
 {
     using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using Microsoft.AspNetCore.Mvc;
     using Moq;
@@ -75,6 +77,47 @@ namespace slskd.Tests.Unit.Users
             var result = controller.Group("   ");
 
             Assert.IsType<BadRequestObjectResult>(result);
+        }
+
+        [Fact]
+        public void Groups_ReturnsDistinctTrimmedCachedGroups()
+        {
+            var userServiceMock = new Mock<IUserService>();
+            userServiceMock.Setup(service => service.GetGroup("alice")).Returns("privileged");
+            userServiceMock.Setup(service => service.GetGroup("bob")).Returns("default");
+            var controller = new UsersController(
+                soulseekClient: Mock.Of<ISoulseekClient>(),
+                browseTracker: Mock.Of<IBrowseTracker>(),
+                userService: userServiceMock.Object,
+                safetyLimiter: Mock.Of<ISoulseekSafetyLimiter>(),
+                optionsSnapshot: Mock.Of<Microsoft.Extensions.Options.IOptionsSnapshot<slskd.Options>>());
+
+            var result = controller.Groups([" alice ", "ALICE", "bob", " "]);
+
+            var groups = Assert.IsAssignableFrom<IReadOnlyDictionary<string, string>>(
+                Assert.IsType<OkObjectResult>(result).Value);
+            Assert.Equal(2, groups.Count);
+            Assert.Equal("privileged", groups["alice"]);
+            Assert.Equal("default", groups["bob"]);
+            userServiceMock.Verify(service => service.GetGroup(It.IsAny<string>()), Times.Exactly(2));
+        }
+
+        [Fact]
+        public void Groups_WithMoreThanMaximumDistinctUsers_ReturnsBadRequest()
+        {
+            var userServiceMock = new Mock<IUserService>();
+            var controller = new UsersController(
+                soulseekClient: Mock.Of<ISoulseekClient>(),
+                browseTracker: Mock.Of<IBrowseTracker>(),
+                userService: userServiceMock.Object,
+                safetyLimiter: Mock.Of<ISoulseekSafetyLimiter>(),
+                optionsSnapshot: Mock.Of<Microsoft.Extensions.Options.IOptionsSnapshot<slskd.Options>>());
+
+            var result = controller.Groups(
+                Enumerable.Range(0, 101).Select(index => $"user-{index}").ToArray());
+
+            Assert.IsType<BadRequestObjectResult>(result);
+            userServiceMock.Verify(service => service.GetGroup(It.IsAny<string>()), Times.Never);
         }
 
         [Fact]

@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Search results now batch cached user-group metadata for visible peers, reuse
+  response-provided speed, queue, and slot data, and wait for user interaction
+  before loading reputation and opinion details. Initial result rendering no
+  longer contacts every remote peer for duplicate user information.
 - MediaCore ContentID statistics and domain/type lookups now use
   mutation-maintained indexes instead of reparsing the complete registry on
   every read. The System MediaCore page also stops stats polling while hidden,

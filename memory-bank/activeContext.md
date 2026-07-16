@@ -1,3 +1,20 @@
+## Update 2026-07-16 00:18:24Z
+
+- Current task: performance and efficiency improvements in progress; Search result metadata fan-out pass complete locally.
+- Last activity:
+  - Added a cached, authenticated group batch endpoint with a 100-username request bound and changed Search Detail to batch only visible result users.
+  - Reused search-response upload speed, queue length, and free-slot metadata in each user card, eliminating initial remote user-info contacts.
+  - Deferred reputation and opinion lookups until hover or keyboard focus while preserving supplied primary metadata during supplemental loading.
+  - Reduced a default 25-result page from 100 automatic per-user metadata requests to one (99% fewer) and from 25 remote Soulseek peer contacts to zero.
+  - Added backend and Web regressions, regenerated the route inventory, and documented gotcha `0z619` in standalone commit `21ac9339b`.
+- Validation:
+  - Passed focused controller tests (`17/17`) and focused Web tests (`13/13`).
+  - Passed complete backend suites (`4761/4761`: `69` smoke, `4412` unit, `280` integration), complete Web tests (`851` passed, `4` skipped), production Web build, frontend and repository lint, route/security/polling/identity checks, and all post-sync remediation checks.
+  - The consolidated release baseline stopped only at its expected branch-sync gate because this local work is intentionally unpushed.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 00:02:29Z
 
 - Current task: performance and efficiency improvements in progress; MediaCore ContentID registry-read and stats-polling pass complete locally.

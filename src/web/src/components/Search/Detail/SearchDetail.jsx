@@ -27,6 +27,7 @@ import {
   setLocalStorageItem,
 } from '../../../lib/storage';
 import { getAllNotes } from '../../../lib/userNotes';
+import { getGroups } from '../../../lib/users';
 import { getDirectoryName, sleep } from '../../../lib/util';
 import * as wishlistAPI from '../../../lib/wishlist';
 import ErrorSegment from '../../Shared/ErrorSegment';
@@ -114,6 +115,16 @@ export const shouldFetchSearchResponses = ({
   responsesAvailable,
 }) => isComplete || responsesAvailable;
 
+export const batchUsernames = (usernames, batchSize = 100) => {
+  const batches = [];
+
+  for (let index = 0; index < usernames.length; index += batchSize) {
+    batches.push(usernames.slice(index, index + batchSize));
+  }
+
+  return batches;
+};
+
 // eslint-disable-next-line complexity
 const SearchDetail = ({
   creating,
@@ -161,6 +172,8 @@ const SearchDetail = ({
     Number.parseInt(getLocalStorageItem('slskd-search-page-size', '25'), 10),
   );
   const [displayCount, setDisplayCount] = useState(pageSize);
+  const [userGroups, setUserGroups] = useState({});
+  const [userGroupsLoading, setUserGroupsLoading] = useState(false);
   const [userStats, setUserStats] = useState({});
   const [userNotes, setUserNotes] = useState({});
   const [qualitySignalVersion, setQualitySignalVersion] = useState(0);
@@ -437,6 +450,53 @@ const SearchDetail = ({
   );
 
   const sortedAndFilteredResults = deduplicatedResults.responses;
+  const visibleResults = useMemo(
+    () => sortedAndFilteredResults.slice(0, displayCount),
+    [displayCount, sortedAndFilteredResults],
+  );
+  const visibleUsernames = useMemo(
+    () => [...new Set(visibleResults.map((response) => response.username).filter(Boolean))],
+    [visibleResults],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (visibleUsernames.length === 0) {
+      setUserGroups({});
+      setUserGroupsLoading(false);
+      return undefined;
+    }
+
+    const loadGroups = async () => {
+      setUserGroupsLoading(true);
+
+      try {
+        const groups = await Promise.all(
+          batchUsernames(visibleUsernames).map((usernames) =>
+            getGroups({ usernames }),
+          ),
+        );
+
+        if (!cancelled) {
+          setUserGroups(Object.assign({}, ...groups));
+        }
+      } catch {
+        if (!cancelled) {
+          setUserGroups({});
+        }
+      } finally {
+        if (!cancelled) {
+          setUserGroupsLoading(false);
+        }
+      }
+    };
+
+    loadGroups();
+    return () => {
+      cancelled = true;
+    };
+  }, [visibleUsernames]);
 
   const albumCandidates = useMemo(
     () =>
@@ -1002,7 +1062,7 @@ const SearchDetail = ({
           </Segment>
         )}
         {loaded &&
-          sortedAndFilteredResults.slice(0, displayCount).map((r, index) => (
+          visibleResults.map((r, index) => (
             <Response
               disabled={disabled}
               downloadStats={r.downloadStats}
@@ -1023,6 +1083,8 @@ const SearchDetail = ({
               responseIndex={index}
               searchId={id}
               candidateRank={r.candidateRank}
+              userGroup={userGroups[r.username]}
+              userGroupLoading={userGroupsLoading}
               userNote={userNotes[r.username]}
             />
           ))}

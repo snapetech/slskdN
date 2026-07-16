@@ -73,7 +73,7 @@ class UserCard extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      info: null,
+      info: this.props.info || null,
       interests: null,
       interestsError: null,
       interestsLoading: false,
@@ -83,25 +83,53 @@ class UserCard extends Component {
     };
     this.cancelScheduledFetch = null;
     this.mounted = false;
+    this.userDataRequested = false;
   }
 
   componentDidMount() {
     this.mounted = true;
-    this.scheduleUserDataFetch();
+    const cached = getCachedUserData(this.props.username);
+    if (cached) {
+      this.userDataRequested = true;
+      this.setState({ ...cached, info: this.props.info || cached.info });
+    } else if (!this.props.deferSupplementalData) {
+      this.scheduleUserDataFetch();
+    }
   }
 
   componentDidUpdate(previousProps) {
     if (previousProps.username !== this.props.username) {
       this.cancelScheduledFetch?.();
-      this.setState({
+      this.userDataRequested = false;
+      const cached = getCachedUserData(this.props.username);
+      const nextState = {
         interests: null,
         interestsError: null,
         interestsLoading: false,
-        info: null,
+        info: this.props.info || null,
         loading: false,
         opinionSummary: null,
         reputation: null,
-      });
+      };
+
+      if (cached) {
+        this.userDataRequested = true;
+        this.setState({ ...nextState, ...cached, info: this.props.info || cached.info });
+      } else {
+        this.setState(nextState);
+      }
+
+      if (!cached && !this.props.deferSupplementalData) {
+        this.scheduleUserDataFetch();
+      }
+    } else if (previousProps.info !== this.props.info) {
+      this.setState({ info: this.props.info || null });
+    }
+
+    if (
+      previousProps.deferSupplementalData &&
+      !this.props.deferSupplementalData
+    ) {
       this.scheduleUserDataFetch();
     }
   }
@@ -113,11 +141,13 @@ class UserCard extends Component {
 
   scheduleUserDataFetch = () => {
     const { username } = this.props;
-    if (!username) return;
+    if (!username || this.userDataRequested) return;
+
+    this.userDataRequested = true;
 
     const cached = getCachedUserData(username);
     if (cached) {
-      this.setState(cached);
+      this.setState({ ...cached, info: this.props.info || cached.info });
       return;
     }
 
@@ -130,7 +160,7 @@ class UserCard extends Component {
     const cached = getCachedUserData(username);
     if (cached) {
       if (this.mounted && this.props.username === username) {
-        this.setState(cached);
+        this.setState({ ...cached, info: this.props.info || cached.info });
       }
 
       return;
@@ -145,7 +175,9 @@ class UserCard extends Component {
 
       if (!userDataPromise) {
         userDataPromise = Promise.allSettled([
-          users.getInfo({ quietUnavailable: true, username }),
+          this.props.info
+            ? Promise.resolve({ data: this.props.info })
+            : users.getInfo({ quietUnavailable: true, username }),
           security.getReputation(username).catch(() => null),
           opinions.getOpinionSummary({
             subjectId: username,
@@ -176,13 +208,19 @@ class UserCard extends Component {
       userDataInflight.delete(username);
 
       if (this.mounted && this.props.username === username) {
-        this.setState(userData);
+        this.setState({ ...userData, info: this.props.info || userData.info });
       }
     } catch {
       userDataInflight.delete(username);
       if (this.mounted && this.props.username === username) {
         this.setState({ loading: false });
       }
+    }
+  };
+
+  requestSupplementalData = () => {
+    if (this.props.deferSupplementalData) {
+      this.scheduleUserDataFetch();
     }
   };
 
@@ -405,9 +443,13 @@ class UserCard extends Component {
 
     // Render the card
     const cardContent = (
-      <span className={`user-card ${inline ? 'user-card-inline' : ''}`}>
+      <span
+        className={`user-card ${inline ? 'user-card-inline' : ''}`}
+        onFocus={this.requestSupplementalData}
+        onMouseEnter={this.requestSupplementalData}
+      >
         <span className="user-card-username">{children || username}</span>
-        {loading ? (
+        {loading && !info ? (
           <span className="user-card-loading">
             <Icon
               loading
