@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z653. Batch Workers Must Reuse Loaded Items And Gate Debug Hydration
+
+**The Bug**: Intent processing loaded a bounded pending batch, then looked up
+each same intent again by ID before processing. After any successful batch, it
+also scanned the complete queue twice to build statistics for a debug message
+even when debug logging was disabled.
+
+**Files Affected**:
+- `src/slskd/VirtualSoulfind/v2/Processing/IntentQueueProcessor.cs`
+- `src/slskd/VirtualSoulfind/v2/Processing/IntentQueueProcessorBackgroundService.cs`
+
+**Prevention**: Pass complete items returned by a batch query directly into the
+item processor while retaining the public ID-based entry point for standalone
+callers. Guard expensive debug-only statistics or payload hydration with
+`ILogger.IsEnabled(LogLevel.Debug)` before performing the work; the logging
+call alone does not suppress argument evaluation.
+
 ### 0z652. Async Scan Polls Must Schedule After Completion
 
 **The Bug**: Library Health used `setInterval` with an async status callback.
