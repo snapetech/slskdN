@@ -4612,8 +4612,17 @@ namespace Soulseek
                 var listenAddressChanged = patch.ListenIPAddress != null && !patch.ListenIPAddress.Equals(Options.ListenIPAddress);
                 var listenPortChanged = patch.ListenPort.HasValue && patch.ListenPort.Value != Options.ListenPort;
                 var incomingConnectionOptionsChanged = patch.IncomingConnectionOptions != null && patch.IncomingConnectionOptions != Options.IncomingConnectionOptions;
+                var peerObfuscationOptionsChanged = patch.PeerObfuscationOptions != null &&
+                    (patch.PeerObfuscationOptions.Enabled != Options.PeerObfuscationOptions.Enabled ||
+                     patch.PeerObfuscationOptions.ListenPort != Options.PeerObfuscationOptions.ListenPort ||
+                     patch.PeerObfuscationOptions.Type != Options.PeerObfuscationOptions.Type ||
+                     patch.PeerObfuscationOptions.AdvertiseRegularPort != Options.PeerObfuscationOptions.AdvertiseRegularPort ||
+                     patch.PeerObfuscationOptions.PreferOutbound != Options.PeerObfuscationOptions.PreferOutbound);
+                var peerObfuscationListenerChanged = peerObfuscationOptionsChanged &&
+                    (patch.PeerObfuscationOptions.Enabled != Options.PeerObfuscationOptions.Enabled ||
+                     patch.PeerObfuscationOptions.ListenPort != Options.PeerObfuscationOptions.ListenPort);
 
-                if (enableListenerChanged || listenAddressChanged || listenPortChanged || incomingConnectionOptionsChanged)
+                if (enableListenerChanged || listenAddressChanged || listenPortChanged || incomingConnectionOptionsChanged || peerObfuscationListenerChanged)
                 {
                     var wasListening = Listener?.Listening ?? false;
 
@@ -4626,7 +4635,8 @@ namespace Soulseek
                         enableListener: patch.EnableListener,
                         listenIPAddress: patch.ListenIPAddress,
                         listenPort: patch.ListenPort,
-                        incomingConnectionOptions: patch.IncomingConnectionOptions);
+                        incomingConnectionOptions: patch.IncomingConnectionOptions,
+                        peerObfuscationOptions: patch.PeerObfuscationOptions);
 
                     if (wasListening && Options.EnableListener)
                     {
@@ -4664,6 +4674,7 @@ namespace Soulseek
                     peerConnectionOptions: patch.PeerConnectionOptions,
                     transferConnectionOptions: patch.TransferConnectionOptions,
                     incomingConnectionOptions: patch.IncomingConnectionOptions,
+                    peerObfuscationOptions: patch.PeerObfuscationOptions,
                     distributedConnectionOptions: patch.DistributedConnectionOptions,
                     userEndPointCache: patch.UserEndPointCache,
                     searchResponseResolver: patch.SearchResponseResolver,
