@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z637. Periodic Publish Limits Need Indexed Rotation, Not Full-Set Take
+
+**The Bug**: Shadow Index publishing loaded and sorted every distinct
+MusicBrainz recording ID from HashDb, then retained only the configured batch.
+Because each cycle selected the same newest IDs, it repeatedly refreshed one
+batch while older shards were never selected, and query work grew with the
+complete library even though DHT operations were capped.
+
+**Files Affected**:
+- `src/slskd/VirtualSoulfind/ShadowIndex/ShardPublisher.cs`
+- `src/slskd/HashDb/HashDbService.cs`
+- `src/slskd/HashDb/Migrations/HashDbMigrations.cs`
+
+**Prevention**: Back bounded recurring publishers with a matching normalized
+index and keyset page. Retain a cycle cursor and wrap at the end so each cycle
+advances through the eligible set without increasing network operations. A
+full-set query followed by `Take` bounds only the final list, and a fixed first
+page does not provide publication coverage.
+
 ### 0z636. Interface Additions Must Update Concrete Test Stubs
 
 **The Bug**: Adding auto-retry candidate streaming to `IDownloadService`
