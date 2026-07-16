@@ -1,3 +1,12 @@
+## Update 2026-07-16 00:50:17Z
+
+- Completed the Lidarr external-status polling and render-efficiency pass.
+- Stopped the paired remote Lidarr system/local sync status interval while the document is hidden, added immediate visibility catch-up, and rejected overlapping slow cycles.
+- Added a 15-second shared client cache with in-flight coalescing for remote system status, eliminating duplicate Strict Mode and rapid-remount contacts without changing the established 30-second visible cadence.
+- Preserved prior status/sync state when every rendered field is unchanged and prevented hidden or unmounted completions from writing React state.
+- A hidden dashboard now makes zero status requests instead of two external and two local requests per steady-state minute; ten hidden minutes avoid 20 requests to each endpoint. Documented gotcha `0z590` in standalone commit `e7ba4233d`.
+- Validation passed: focused Web tests (`5/5`), complete Web tests (`857` passed, `4` skipped), production Web build, frontend lint, complete backend suites (`4763/4763`: `69` smoke, `4414` unit, `280` integration), repository lint, route/security/polling/identity gates, and all post-sync remediation checks. The consolidated baseline stopped only at the expected branch-sync gate because local work remains intentionally unpushed.
+
 ## Update 2026-07-16 00:34:00Z
 
 - Completed the Search user-history aggregation and request-reuse performance pass.

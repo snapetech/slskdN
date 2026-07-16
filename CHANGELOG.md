@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Lidarr dashboard status polling now pauses while the document is hidden,
+  rejects overlapping refreshes, coalesces rapid duplicate external status
+  requests, and preserves React state when every rendered status field is
+  unchanged.
 - Search download-history ranking now uses one database aggregate instead of
   materializing the complete retained download history, and short-lived client
   reuse prevents repeated detail navigation from rerunning the same summary.

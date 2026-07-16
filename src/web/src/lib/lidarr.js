@@ -1,7 +1,32 @@
 import api from './api';
 
-export const getStatus = async () =>
-  (await api.get('/integrations/lidarr/status')).data;
+const STATUS_CACHE_TTL_MS = 15_000;
+let statusCache = null;
+let statusCacheExpiresAt = 0;
+let statusInflight = null;
+
+export const getStatus = () => {
+  if (statusCache && statusCacheExpiresAt > Date.now()) {
+    return Promise.resolve(statusCache);
+  }
+
+  if (statusInflight) {
+    return statusInflight;
+  }
+
+  statusInflight = api
+    .get('/integrations/lidarr/status')
+    .then((response) => {
+      statusCache = response.data;
+      statusCacheExpiresAt = Date.now() + STATUS_CACHE_TTL_MS;
+      return statusCache;
+    })
+    .finally(() => {
+      statusInflight = null;
+    });
+
+  return statusInflight;
+};
 
 export const getSyncStatus = async () =>
   (await api.get('/integrations/lidarr/sync/status')).data;

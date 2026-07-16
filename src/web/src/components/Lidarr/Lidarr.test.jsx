@@ -1,0 +1,163 @@
+// <copyright file="Lidarr.test.jsx" company="slskdN Team">
+// Copyright (c) slskdN Team. All rights reserved.
+// </copyright>
+
+import * as lidarrAPI from '../../lib/lidarr';
+import * as wishlistAPI from '../../lib/wishlist';
+import Lidarr, {
+  areLidarrStatusesEqual,
+  areLidarrSyncStatesEqual,
+} from './Lidarr';
+import React from 'react';
+import { act, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('../../lib/lidarr', () => ({
+  getStatus: vi.fn(),
+  getSyncStatus: vi.fn(),
+  getWantedMissing: vi.fn(),
+  importCompletedDirectory: vi.fn(),
+  syncWanted: vi.fn(),
+}));
+
+vi.mock('../../lib/wishlist', () => ({
+  getAll: vi.fn(),
+}));
+
+vi.mock('react-toastify', () => ({
+  toast: {
+    error: vi.fn(),
+    success: vi.fn(),
+  },
+}));
+
+describe('Lidarr', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
+    lidarrAPI.getStatus.mockResolvedValue({
+      appName: 'Lidarr',
+      version: '2.0.0',
+    });
+    lidarrAPI.getSyncStatus.mockResolvedValue({ isSyncing: false });
+    lidarrAPI.getWantedMissing.mockResolvedValue({
+      records: [],
+      totalRecords: 0,
+    });
+    wishlistAPI.getAll.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
+  });
+
+  it('compares only status fields rendered by the dashboard', () => {
+    const status = { appName: 'Lidarr', version: '2.0.0' };
+    const syncState = {
+      isSyncing: false,
+      lastSyncAt: '2026-07-16T00:00:00Z',
+      nextSyncAt: '2026-07-16T01:00:00Z',
+      lastError: null,
+      lastResult: {
+        wantedCount: 3,
+        createdCount: 1,
+        duplicateCount: 2,
+        skippedCount: 0,
+      },
+    };
+
+    expect(areLidarrStatusesEqual(status, { ...status })).toBe(true);
+    expect(areLidarrStatusesEqual(status, { ...status, version: '2.1.0' })).toBe(false);
+    expect(areLidarrSyncStatesEqual(syncState, {
+      ...syncState,
+      lastResult: { ...syncState.lastResult },
+    })).toBe(true);
+    expect(areLidarrSyncStatesEqual(syncState, {
+      ...syncState,
+      lastResult: { ...syncState.lastResult, createdCount: 2 },
+    })).toBe(false);
+  });
+
+  it('hydrates once after Strict Mode replays the polling effect', async () => {
+    render(
+      <React.StrictMode>
+        <Lidarr />
+      </React.StrictMode>,
+    );
+
+    expect(await screen.findByText('Lidarr 2.0.0')).toBeInTheDocument();
+    expect(lidarrAPI.getStatus).toHaveBeenCalledTimes(1);
+    expect(lidarrAPI.getSyncStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not overlap slow status polls', async () => {
+    vi.useFakeTimers();
+    let resolveStatus;
+    lidarrAPI.getStatus.mockReturnValue(
+      new Promise((resolve) => {
+        resolveStatus = resolve;
+      }),
+    );
+
+    render(<Lidarr />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(90_000);
+    });
+
+    expect(lidarrAPI.getStatus).toHaveBeenCalledTimes(1);
+    expect(lidarrAPI.getSyncStatus).toHaveBeenCalledTimes(1);
+
+    resolveStatus({ appName: 'Lidarr', version: '2.0.0' });
+    await act(async () => {
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+
+    expect(lidarrAPI.getStatus).toHaveBeenCalledTimes(2);
+    expect(lidarrAPI.getSyncStatus).toHaveBeenCalledTimes(2);
+  });
+
+  it('suspends polling while hidden and refreshes when visible', async () => {
+    vi.useFakeTimers();
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: true,
+    });
+
+    render(<Lidarr />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(120_000);
+    });
+    expect(lidarrAPI.getStatus).not.toHaveBeenCalled();
+    expect(lidarrAPI.getSyncStatus).not.toHaveBeenCalled();
+
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      await Promise.resolve();
+    });
+    expect(lidarrAPI.getStatus).toHaveBeenCalledTimes(1);
+    expect(lidarrAPI.getSyncStatus).toHaveBeenCalledTimes(1);
+
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: true,
+    });
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(120_000);
+    });
+    expect(lidarrAPI.getStatus).toHaveBeenCalledTimes(1);
+    expect(lidarrAPI.getSyncStatus).toHaveBeenCalledTimes(1);
+  });
+});

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound Lidarr external status polling and render churn.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Changed the Lidarr dashboard's paired 30-second remote system/local sync status cycle to stop while hidden, refresh immediately on visibility, reject overlap, retain prior state when all rendered fields are unchanged, and avoid post-unmount or hidden state writes. Added a 15-second API-client status cache with concurrent-request coalescing so Strict Mode and rapid remounts share one external Lidarr request without reducing the established visible polling cadence. A backgrounded dashboard now issues zero status requests instead of two remote Lidarr and two local sync-status requests per steady-state minute; ten hidden minutes avoid 20 requests to each endpoint, and unchanged steady refreshes avoid both prior state writes. Added API cache/expiry, equality, Strict Mode, overlap, and visibility regressions; documented gotcha `0z590` in standalone commit `e7ba4233d`.
+
 - [x] Keep Search user-history ranking aggregation inside SQLite.
   - Status: completed (2026-07-16)
   - Priority: P1

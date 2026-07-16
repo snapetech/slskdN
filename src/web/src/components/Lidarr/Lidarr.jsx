@@ -1,7 +1,7 @@
 import './Lidarr.css';
 import * as lidarrAPI from '../../lib/lidarr';
 import * as wishlistAPI from '../../lib/wishlist';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import {
   Button,
@@ -118,6 +118,22 @@ const StatusBar = ({ status, syncState, onSync, syncing }) => {
 
 const PAGE_SIZE = 50;
 const WISHLIST_PAGE_SIZE = 50;
+const STATUS_POLL_INTERVAL_MS = 30_000;
+
+export const areLidarrStatusesEqual = (left, right) =>
+  left === right ||
+  (left?.appName === right?.appName && left?.version === right?.version);
+
+export const areLidarrSyncStatesEqual = (left, right) =>
+  left === right ||
+  (left?.isSyncing === right?.isSyncing &&
+    left?.lastSyncAt === right?.lastSyncAt &&
+    left?.nextSyncAt === right?.nextSyncAt &&
+    left?.lastError === right?.lastError &&
+    left?.lastResult?.wantedCount === right?.lastResult?.wantedCount &&
+    left?.lastResult?.createdCount === right?.lastResult?.createdCount &&
+    left?.lastResult?.duplicateCount === right?.lastResult?.duplicateCount &&
+    left?.lastResult?.skippedCount === right?.lastResult?.skippedCount);
 
 const WantedSection = ({ connected }) => {
   const [wanted, setWanted] = useState([]);
@@ -395,24 +411,66 @@ const Lidarr = () => {
   const [status, setStatus] = useState(null);
   const [syncState, setSyncState] = useState(null);
   const [syncing, setSyncing] = useState(false);
+  const mountedRef = useRef(false);
+  const statusInflightRef = useRef(false);
 
   const loadStatus = useCallback(async () => {
+    if (statusInflightRef.current) return;
+
+    statusInflightRef.current = true;
     try {
       const [s, ss] = await Promise.all([
         lidarrAPI.getStatus(),
         lidarrAPI.getSyncStatus(),
       ]);
-      setStatus(s);
-      setSyncState(ss);
+      if (mountedRef.current && !document.hidden) {
+        setStatus((previous) =>
+          areLidarrStatusesEqual(previous, s) ? previous : s,
+        );
+        setSyncState((previous) =>
+          areLidarrSyncStatesEqual(previous, ss) ? previous : ss,
+        );
+      }
     } catch {
-      setStatus(null);
+      if (mountedRef.current && !document.hidden) {
+        setStatus((previous) => (previous === null ? previous : null));
+      }
+    } finally {
+      statusInflightRef.current = false;
     }
   }, []);
 
   useEffect(() => {
-    loadStatus();
-    const id = setInterval(loadStatus, 30000);
-    return () => clearInterval(id);
+    mountedRef.current = true;
+    let interval = null;
+
+    const stopPolling = () => {
+      if (interval) {
+        window.clearInterval(interval);
+        interval = null;
+      }
+    };
+    const startPolling = () => {
+      if (document.hidden || interval) return;
+
+      loadStatus();
+      interval = window.setInterval(loadStatus, STATUS_POLL_INTERVAL_MS);
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      mountedRef.current = false;
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [loadStatus]);
 
   const handleSync = async () => {

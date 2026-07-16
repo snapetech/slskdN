@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Lidarr dashboard status polling now stops in hidden documents, refreshes on
+  visibility restoration, rejects overlap, reuses a short-lived external
+  status snapshot across rapid remounts, and skips unchanged state updates.
 - Search download-history ranking now aggregates counts, successful bytes, and
   last-download timestamps inside SQLite instead of materializing every
   retained download. Concurrent and rapid detail loads reuse one short-lived

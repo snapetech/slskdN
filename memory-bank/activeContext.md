@@ -1,3 +1,18 @@
+## Update 2026-07-16 00:50:17Z
+
+- Current task: performance and efficiency improvements in progress; Lidarr external-status polling pass complete locally.
+- Last activity:
+  - Made the paired 30-second external Lidarr system/local sync status cycle visible-only, non-overlapping, Strict Mode-safe, and immediate on visibility restoration.
+  - Added 15-second external status reuse with concurrent-request coalescing and suppressed hidden, unmounted, or unchanged React state writes.
+  - Reduced hidden dashboard status traffic from two external plus two local requests per steady-state minute to zero; ten hidden minutes avoid 20 requests to each endpoint without changing the visible cadence.
+  - Added cache/expiry, equality, Strict Mode, overlap, and visibility regressions; documented gotcha `0z590` in standalone commit `e7ba4233d`.
+- Validation:
+  - Passed focused Web tests (`5/5`), complete Web tests (`857` passed, `4` skipped), production Web build, complete backend suites (`4763/4763`: `69` smoke, `4414` unit, `280` integration), frontend and repository lint, route/security/polling/identity checks, and every post-sync remediation check.
+  - The consolidated release baseline stopped only at its expected branch-sync gate because this local work is intentionally unpushed.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 00:34:00Z
 
 - Current task: performance and efficiency improvements in progress; Search user-history aggregation pass complete locally.
