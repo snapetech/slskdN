@@ -13671,24 +13671,47 @@ _logger.LogDebug(
 
 **Why This Keeps Happening**: Per-peer/per-endpoint churn is useful diagnostic detail during development, but public DHT candidates routinely include dead, blocked, or incompatible endpoints. Keep individual endpoint failures below `Information`; use aggregate rollups and authenticated stats endpoints for operator-visible health.
 
-### 0z119. Peer Descriptor Refresh Must Not Duplicate The Bootstrap Publish At Startup
+### 0z119. Bootstrap And Refresh Services Need Single Descriptor-Publish Ownership
 
 **The Bug**: The packaged `0.24.5-slskdn.170` startup on `local test host` logged duplicate `[MeshDHT] No configured endpoints...` and `[MeshDHT] Published self descriptor...` lines because `MeshBootstrapService` published the initial descriptor while `PeerDescriptorRefreshService` immediately treated `DateTime.MinValue` as a due periodic refresh.
 
+The startup fix initialized the refresh clock correctly but left a second
+duplication in place: `MeshBootstrapService` continued publishing every fixed
+30 minutes while `PeerDescriptorRefreshService` independently owned the
+configured periodic and IP-change refreshes. Under defaults, the redundant
+loop added up to 48 DHT writes and 144 active STUN probes per day and ignored
+longer configured refresh intervals.
+
 **Files Affected**:
+- `src/slskd/Mesh/Bootstrap/MeshBootstrapService.cs`
 - `src/slskd/Mesh/Dht/PeerDescriptorRefreshService.cs`
 
 **Wrong**:
 ```csharp
 var lastRefresh = DateTime.MinValue;
+
+while (!stoppingToken.IsCancellationRequested)
+{
+    await Task.Delay(TimeSpan.FromMinutes(30), stoppingToken);
+    await publisher.PublishSelfAsync(stoppingToken);
+}
 ```
 
 **Correct**:
 ```csharp
 var lastRefresh = DateTime.UtcNow;
+
+await publisher.PublishSelfAsync(stoppingToken);
+// Return after the bootstrap publish; PeerDescriptorRefreshService owns
+// configured periodic and IP-change publication.
 ```
 
-**Why This Keeps Happening**: Multiple hosted services can share one publisher and start in the same host window. If one service owns the startup publish and another owns periodic TTL refreshes, the periodic service must initialize its schedule from startup time rather than immediately republishing the same descriptor.
+**Why This Keeps Happening**: Multiple hosted services can share one publisher
+and appear correct when only startup logs are inspected. Assign the startup
+publish to the bootstrap service and all recurring/IP-change publication to
+the refresh service, then test both the startup window and a full refresh
+interval. Initializing the periodic clock prevents only the first duplicate;
+it does not remove a second recurring loop.
 
 ### 0z118. Soulseek Timer Reset Classifiers Must Match Real Stack Signatures
 
