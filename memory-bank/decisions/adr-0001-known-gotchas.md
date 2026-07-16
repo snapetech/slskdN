@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z636. Interface Additions Must Update Concrete Test Stubs
+
+**The Bug**: Adding auto-retry candidate streaming to `IDownloadService`
+updated the production service and passed its unit-test project, but the full
+solution failed to compile because the integration harness has a concrete
+`StubDownloadService` implementation of the same interface.
+
+**Files Affected**:
+- `src/slskd/Transfers/Downloads/DownloadService.cs`
+- `tests/slskd.Tests.Integration/StubWebApplicationFactory.cs`
+
+**Prevention**: Search the complete repository for interface implementations,
+including nested test stubs, whenever an interface member changes. Compile the
+full solution after focused tests; mock proxies do not reveal missing members
+on concrete harness implementations.
+
 ### 0z635. Multiline Expressions Must Not Be Passed Directly As Arguments
 
 **The Bug**: A migration passed a SQL string concatenated across several lines
