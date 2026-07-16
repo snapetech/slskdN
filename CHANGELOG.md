@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Collection reordering now writes ordinals through bounded transactional
+  SQLite updates instead of hydrating and tracking the complete collection.
 - Key-unique Sharing deletes now execute as one atomic SQLite command instead
   of reading and hydrating an entity before deleting it.
 - Incoming collection announcements now replace existing items with one

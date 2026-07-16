@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch collection reorder persistence.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced complete collection-item hydration, ID dictionary construction, change tracking, and per-row ordinal updates with transactionally bounded 400-ID `CASE` updates. At 1,000 items, hydration falls from 1,000 entities to zero and persistence uses three bounded update commands. Exact requested order, the last position of duplicate repository inputs, unknown-ID ignoring, untouched-item ordinals, collection scoping, and empty-input no-op behavior remain unchanged. Added production SQLite 1,000-item command/materialization/order coverage plus duplicate/missing/untouched/empty regressions. Validation passed: focused reorder tests (`2/2`), broader Sharing tests (`89/89`), full backend tests (`4916/4916`: `69` application, `4567` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Make key-unique Sharing deletes atomic.
   - Status: completed (2026-07-16)
   - Priority: P1

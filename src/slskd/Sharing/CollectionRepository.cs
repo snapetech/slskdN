@@ -8,11 +8,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 /// <summary>EF Core implementation of ICollectionRepository.</summary>
 public sealed class CollectionRepository : ICollectionRepository
 {
+    private const int ReorderBatchSize = 400;
+
     private readonly IDbContextFactory<CollectionsDbContext> _factory;
 
     public CollectionRepository(IDbContextFactory<CollectionsDbContext> factory)
@@ -90,15 +93,39 @@ public sealed class CollectionRepository : ICollectionRepository
 
     public async Task ReorderItemsAsync(Guid collectionId, IReadOnlyList<Guid> itemIdsInOrder, CancellationToken cancellationToken = default)
     {
-        await using var db = await _factory.CreateDbContextAsync(cancellationToken);
-        var items = await db.CollectionItems.Where(x => x.CollectionId == collectionId).ToListAsync(cancellationToken);
-        var byId = items.ToDictionary(x => x.Id);
-        for (var i = 0; i < itemIdsInOrder.Count; i++)
+        var orderedItems = itemIdsInOrder
+            .Select((id, ordinal) => (Id: id, Ordinal: ordinal))
+            .GroupBy(item => item.Id)
+            .Select(group => group.Last())
+            .OrderBy(item => item.Ordinal)
+            .ToArray();
+        if (orderedItems.Length == 0)
         {
-            if (byId.TryGetValue(itemIdsInOrder[i], out var it))
-                it.Ordinal = i;
+            return;
         }
 
-        await db.SaveChangesAsync(cancellationToken);
+        await using var db = await _factory.CreateDbContextAsync(cancellationToken);
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+
+        foreach (var batch in orderedItems.Chunk(ReorderBatchSize))
+        {
+            var cases = batch.Select((_, index) => $"WHEN @id{index} THEN {batch[index].Ordinal}");
+            var ids = batch.Select((_, index) => $"@id{index}");
+            var commandText = $"""
+                UPDATE "CollectionItems"
+                SET "Ordinal" = CASE "Id" {string.Join(" ", cases)} ELSE "Ordinal" END
+                WHERE "CollectionId" = @collection_id
+                  AND "Id" IN ({string.Join(", ", ids)})
+                """;
+            var parameters = new List<object>(batch.Length + 1)
+            {
+                new SqliteParameter("@collection_id", collectionId),
+            };
+            parameters.AddRange(batch.Select((item, index) => new SqliteParameter($"@id{index}", item.Id)));
+
+            await db.Database.ExecuteSqlRawAsync(commandText, parameters, cancellationToken);
+        }
+
+        await transaction.CommitAsync(cancellationToken);
     }
 }

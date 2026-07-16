@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Collection reordering now applies ordinals through transactional 400-item
+  SQLite updates instead of hydrating the complete collection and tracking an
+  update for every requested item. A 1,000-item reorder hydrates zero entities
+  instead of 1,000 and uses three bounded update commands. Exact requested
+  order, last-position duplicate handling for repository callers, unknown-ID
+  filtering, untouched ordinals, and empty-input behavior remain unchanged.
 - Collection, collection-item, share-grant, share-group, and user-member
   deletion now uses one key-targeted SQLite command instead of a lookup plus a
   tracked delete. Each operation falls from two commands to one (50% fewer)

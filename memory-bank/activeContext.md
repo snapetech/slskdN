@@ -1,3 +1,17 @@
+## Update 2026-07-16 14:36:53Z
+
+- Current task: performance and efficiency improvements in progress; bounded collection reorder persistence complete locally.
+- Last activity:
+  - Replaced full collection-item hydration and tracked ordinal updates with transactional 400-ID `CASE` updates.
+  - At 1,000 items, hydration falls to zero and writes use three commands while order, duplicate/missing/untouched, collection-scope, and empty-input semantics remain unchanged.
+- Validation:
+  - Passed focused reorder (`2/2`), broader Sharing (`89/89`), and full backend (`4916/4916`) tests.
+  - Exact command/materialization/order and edge-case boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the collection reorder batching slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 14:25:22Z
 
 - Current task: performance and efficiency improvements in progress; atomic key-unique Sharing deletes complete locally.

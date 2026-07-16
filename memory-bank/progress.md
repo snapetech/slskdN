@@ -1,3 +1,10 @@
+## Update 2026-07-16 14:36:53Z
+
+- Completed the collection reorder persistence performance pass.
+- Reordering now writes item ordinals through bounded 400-ID `CASE` updates in one transaction instead of loading the complete collection and tracking each changed entity.
+- At 1,000 items, hydration falls from 1,000 entities to zero and persistence uses three update commands. Exact ordering, last-position duplicate semantics, unknown/untouched item handling, collection scoping, and empty-input no-op behavior remain unchanged.
+- Validation passed: focused reorder tests (`2/2`), broader Sharing tests (`89/89`), full backend tests (`4916/4916`: `69` application, `4567` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 14:25:22Z
 
 - Completed the key-unique Sharing delete performance pass.
