@@ -718,6 +718,59 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetVariantsByRecordingsAsync_ReturnsRequestedVariants()
+    {
+        var first = new HashDbEntry
+        {
+            FlacKey = "variant-key-1",
+            ByteHash = "variant-hash-1",
+            Size = 123,
+            FirstSeenAt = 1,
+            LastUpdatedAt = 1,
+            SeqId = 1,
+            UseCount = 1,
+        };
+        var second = new HashDbEntry
+        {
+            FlacKey = "variant-key-2",
+            ByteHash = "variant-hash-2",
+            Size = 456,
+            FirstSeenAt = 1,
+            LastUpdatedAt = 2,
+            SeqId = 2,
+            UseCount = 1,
+        };
+        await service.StoreHashAsync(first);
+        await service.StoreHashAsync(second);
+        await service.UpdateHashRecordingIdAsync(first.FlacKey, "recording-1");
+        await service.UpdateHashRecordingIdAsync(second.FlacKey, "recording-2");
+        await service.UpdateVariantMetadataAsync(first.FlacKey, new AudioVariant
+        {
+            VariantId = "variant-1",
+            MusicBrainzRecordingId = "recording-1",
+            QualityScore = 0.8,
+        });
+        await service.UpdateVariantMetadataAsync(second.FlacKey, new AudioVariant
+        {
+            VariantId = "variant-2",
+            MusicBrainzRecordingId = "recording-2",
+            QualityScore = 0.9,
+        });
+
+        var variants = await service.GetVariantsByRecordingsAsync(new[]
+        {
+            " recording-1 ",
+            "recording-1",
+            "recording-2",
+            "missing",
+        });
+
+        Assert.Equal(2, variants.Count);
+        Assert.Contains(variants, variant => variant.VariantId == "variant-1" && variant.MusicBrainzRecordingId == "recording-1");
+        Assert.Contains(variants, variant => variant.VariantId == "variant-2" && variant.MusicBrainzRecordingId == "recording-2");
+    }
+
+    [Fact]
     public async Task GetRecordingIdsWithHashesAsync_ReturnsRequestedMatchesInOneBatchShape()
     {
         var first = new HashDbEntry

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch music metadata exact and fallback matching.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Filtered album candidates first, loaded all candidate tracks through the bounded release batch, used lightweight recording presence for exact matches, and hydrated the complete 256-recording fallback variant set with one indexed query. Across 100 albums, exact matches fall from up to 102 reads to three (97.1% fewer); a full fallback miss falls from up to 358 reads to four (98.9% fewer). Added batch variant semantics and exact/fallback legacy-call-boundary regressions; documented gotcha `0z669` in `3f1fbbfb0`.
+
 - [x] Bound and batch recent music enumeration.
   - Status: completed (2026-07-16)
   - Priority: P1

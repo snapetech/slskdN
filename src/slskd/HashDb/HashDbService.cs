@@ -2531,6 +2531,61 @@ namespace slskd.HashDb
         }
 
         /// <inheritdoc/>
+        public async Task<List<AudioVariant>> GetVariantsByRecordingsAsync(
+            IEnumerable<string> recordingIds,
+            CancellationToken cancellationToken = default)
+        {
+            var normalized = recordingIds
+                .Where(recordingId => !string.IsNullOrWhiteSpace(recordingId))
+                .Select(recordingId => recordingId.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            var variants = new List<AudioVariant>();
+            if (normalized.Length == 0)
+            {
+                return variants;
+            }
+
+            using var conn = GetConnection();
+            foreach (var batch in normalized.Chunk(500))
+            {
+                using var cmd = conn.CreateCommand();
+                var parameters = batch.Select((_, index) => $"@recording{index}").ToArray();
+                cmd.CommandText = $"""
+                    SELECT *
+                    FROM HashDb
+                    WHERE musicbrainz_id IN ({string.Join(", ", parameters)})
+                    """;
+
+                for (var index = 0; index < batch.Length; index++)
+                {
+                    cmd.Parameters.AddWithValue(parameters[index], batch[index]);
+                }
+
+                await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    var variant = MapEntryToVariant(ReadHashEntry(reader));
+                    if (variant != null)
+                    {
+                        variants.Add(variant);
+                    }
+                }
+            }
+
+            return variants
+                .Where(variant => !string.IsNullOrWhiteSpace(variant.VariantId) || !string.IsNullOrWhiteSpace(variant.FlacKey))
+                .GroupBy(
+                    variant => $"{variant.MusicBrainzRecordingId}\u001f{(string.IsNullOrWhiteSpace(variant.VariantId) ? variant.FlacKey : variant.VariantId)}",
+                    StringComparer.Ordinal)
+                .Select(group => group
+                    .OrderByDescending(variant => variant.QualityScore)
+                    .ThenByDescending(variant => variant.LastSeenAt)
+                    .First())
+                .ToList();
+        }
+
+        /// <inheritdoc/>
         public async Task<List<AudioVariant>> GetVariantsByRecordingAndProfileAsync(string recordingId, string codecProfileKey, CancellationToken cancellationToken = default)
         {
             var list = new List<AudioVariant>();

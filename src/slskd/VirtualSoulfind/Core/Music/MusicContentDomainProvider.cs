@@ -112,21 +112,23 @@ namespace slskd.VirtualSoulfind.Core.Music
                     }
                 }
 
-                var albums = await _hashDb.GetAlbumTargetsAsync(cancellationToken).ConfigureAwait(false);
                 var normalizedTitle = NormalizeText(tags.Title);
                 var normalizedArtist = NormalizeText(tags.Artist);
                 var normalizedAlbum = NormalizeText(tags.Album);
+                var albums = (await _hashDb.GetAlbumTargetsAsync(cancellationToken).ConfigureAwait(false))
+                    .Where(album => string.IsNullOrWhiteSpace(normalizedAlbum) ||
+                        string.Equals(NormalizeText(album.Title), normalizedAlbum, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                var tracksByRelease = (await _hashDb
+                        .GetAlbumTracksAsync(albums.Select(album => album.ReleaseId), cancellationToken)
+                        .ConfigureAwait(false))
+                    .ToLookup(track => track.ReleaseId, StringComparer.OrdinalIgnoreCase);
 
                 foreach (var album in albums)
                 {
-                    if (!string.IsNullOrWhiteSpace(normalizedAlbum) &&
-                        !string.Equals(NormalizeText(album.Title), normalizedAlbum, StringComparison.OrdinalIgnoreCase))
-                    {
-                        continue;
-                    }
-
-                    var tracks = await _hashDb.GetAlbumTracksAsync(album.ReleaseId, cancellationToken).ConfigureAwait(false);
-                    var track = tracks.FirstOrDefault(candidate =>
+                    var track = tracksByRelease[album.ReleaseId]
+                        .OrderBy(candidate => candidate.Position)
+                        .FirstOrDefault(candidate =>
                         string.Equals(NormalizeText(candidate.Title), normalizedTitle, StringComparison.OrdinalIgnoreCase) &&
                         string.Equals(NormalizeText(candidate.Artist), normalizedArtist, StringComparison.OrdinalIgnoreCase));
 
@@ -135,7 +137,10 @@ namespace slskd.VirtualSoulfind.Core.Music
                         continue;
                     }
 
-                    var isAdvertisable = (await _hashDb.LookupHashesByRecordingIdAsync(track.RecordingId, cancellationToken).ConfigureAwait(false)).Any();
+                    var presentRecordingIds = await _hashDb
+                        .GetRecordingIdsWithHashesAsync(new[] { track.RecordingId }, cancellationToken)
+                        .ConfigureAwait(false);
+                    var isAdvertisable = presentRecordingIds.Contains(track.RecordingId);
                     return MusicItem.FromTrackEntry(track, isAdvertisable);
                 }
 
@@ -305,10 +310,14 @@ namespace slskd.VirtualSoulfind.Core.Music
             CancellationToken cancellationToken)
         {
             var recordingIds = await _hashDb.GetRecordingIdsWithVariantsAsync(cancellationToken).ConfigureAwait(false);
-            foreach (var recordingId in recordingIds.Take(VariantBackfillScanLimit))
+            var candidateRecordingIds = recordingIds.Take(VariantBackfillScanLimit).ToList();
+            var variantsByRecording = (await _hashDb
+                    .GetVariantsByRecordingsAsync(candidateRecordingIds, cancellationToken)
+                    .ConfigureAwait(false))
+                .ToLookup(variant => variant.MusicBrainzRecordingId, StringComparer.OrdinalIgnoreCase);
+            foreach (var recordingId in candidateRecordingIds)
             {
-                var variants = await _hashDb.GetVariantsByRecordingAsync(recordingId, cancellationToken).ConfigureAwait(false);
-                var bestVariant = variants
+                var bestVariant = variantsByRecording[recordingId]
                     .OrderByDescending(variant => variant.QualityScore)
                     .ThenByDescending(variant => variant.SeenCount)
                     .FirstOrDefault();

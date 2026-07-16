@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Virtual Soulfind music tag matching now batches exact album-track candidates
+  and the bounded 256-recording variant fallback. Across 100 albums, exact
+  matches fall from up to 102 database reads to three; a full fallback miss
+  falls from up to 358 reads to four (97.1% and 98.9% fewer).
 - Recent Virtual Soulfind music enumeration now uses a schema-v22 album-recency
   index, hydrates at most the requested track count, and batches advertisable
   presence. The default 50-item request falls from 52–101 database queries to

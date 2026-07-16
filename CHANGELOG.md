@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Music tag matching now batches candidate album tracks, recording presence,
+  and bounded fallback variants instead of querying each album and recording.
 - Recent music enumeration now pushes its global item limit into an indexed
   album-track query and batches recording-presence checks.
 - Music recording-ID resolution now uses a direct case-insensitive indexed

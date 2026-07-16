@@ -8,6 +8,7 @@ namespace slskd.Tests.Unit.VirtualSoulfind.Core.Music
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
     using Moq;
+    using slskd.Audio;
     using slskd.Common.Moderation;
     using slskd.HashDb;
     using slskd.HashDb.Models;
@@ -153,13 +154,17 @@ namespace slskd.Tests.Unit.VirtualSoulfind.Core.Music
             var recordingId = "42345678-1234-1234-1234-123456789abc";
             _hashDbMock.Setup(h => h.GetAlbumTargetsAsync(It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new[] { new AlbumTargetEntry { ReleaseId = releaseId, Title = "Test Album", Artist = "Test Artist" } });
-            _hashDbMock.Setup(h => h.GetAlbumTracksAsync(releaseId, It.IsAny<CancellationToken>()))
+            _hashDbMock.Setup(h => h.GetAlbumTracksAsync(
+                    It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new[]
                 {
                     new AlbumTargetTrackEntry { ReleaseId = releaseId, RecordingId = recordingId, Title = "Test Track", Artist = "Test Artist", Position = 1 }
                 });
-            _hashDbMock.Setup(h => h.LookupHashesByRecordingIdAsync(recordingId, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new[] { new HashDbEntry { MusicBrainzId = recordingId } });
+            _hashDbMock.Setup(h => h.GetRecordingIdsWithHashesAsync(
+                    It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new HashSet<string>(new[] { recordingId }, StringComparer.OrdinalIgnoreCase));
 
             var provider = new MusicContentDomainProvider(_loggerMock.Object, _hashDbMock.Object);
 
@@ -169,6 +174,55 @@ namespace slskd.Tests.Unit.VirtualSoulfind.Core.Music
             // Assert
             Assert.NotNull(result);
             Assert.Equal("Test Track", result.Title);
+            _hashDbMock.Verify(h => h.GetAlbumTracksAsync(
+                It.Is<IEnumerable<string>>(releaseIds => releaseIds.SequenceEqual(new[] { releaseId })),
+                It.IsAny<CancellationToken>()), Times.Once);
+            _hashDbMock.Verify(h => h.GetRecordingIdsWithHashesAsync(
+                It.Is<IEnumerable<string>>(recordingIds => recordingIds.SequenceEqual(new[] { recordingId })),
+                It.IsAny<CancellationToken>()), Times.Once);
+            _hashDbMock.Verify(h => h.GetAlbumTracksAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+            _hashDbMock.Verify(h => h.LookupHashesByRecordingIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task TryGetItemByLocalMetadataAsync_BatchesVariantFallback()
+        {
+            var fileMetadata = new LocalFileMetadata { Id = "test.flac", SizeBytes = 1024L };
+            var tags = new AudioTags("Fallback Track", "Artist", null, null, null, null, null, null, null, null, null, null, null, null);
+            var recordingIds = Enumerable.Range(1, 256)
+                .Select(index => $"30000000-0000-0000-0000-{index:D12}")
+                .ToList();
+            var matchingRecordingId = recordingIds[^1];
+            _hashDbMock.Setup(h => h.GetAlbumTargetsAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Array.Empty<AlbumTargetEntry>());
+            _hashDbMock.Setup(h => h.GetAlbumTracksAsync(
+                    It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Array.Empty<AlbumTargetTrackEntry>());
+            _hashDbMock.Setup(h => h.GetRecordingIdsWithVariantsAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(recordingIds);
+            _hashDbMock.Setup(h => h.GetVariantsByRecordingsAsync(
+                    It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<AudioVariant>
+                {
+                    new()
+                    {
+                        MusicBrainzRecordingId = matchingRecordingId,
+                        VariantId = "Fallback Track",
+                        QualityScore = 0.9,
+                    },
+                });
+            var provider = new MusicContentDomainProvider(_loggerMock.Object, _hashDbMock.Object);
+
+            var result = await provider.TryGetItemByLocalMetadataAsync(fileMetadata, tags);
+
+            Assert.NotNull(result);
+            Assert.Equal("Fallback Track", result.Title);
+            _hashDbMock.Verify(h => h.GetVariantsByRecordingsAsync(
+                It.Is<IEnumerable<string>>(ids => ids.SequenceEqual(recordingIds)),
+                It.IsAny<CancellationToken>()), Times.Once);
+            _hashDbMock.Verify(h => h.GetVariantsByRecordingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         }
 
         [Fact]

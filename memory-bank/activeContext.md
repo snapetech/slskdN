@@ -1,3 +1,17 @@
+## Update 2026-07-16 07:47:33Z
+
+- Current task: performance and efficiency improvements in progress; music metadata matching pass complete locally.
+- Last activity:
+  - Batched filtered album tracks and lightweight exact-match presence. Across 100 albums, exact tag resolution falls from up to 102 database reads to three (97.1% fewer).
+  - Batched the full 256-recording variant fallback into one indexed read. A full miss falls from up to 358 reads to four (98.9% fewer). Documented gotcha `0z669` (`3f1fbbfb0`).
+- Validation:
+  - Passed focused exact/fallback coverage (`10/10`), complete HashDb/provider suites (`80/80`), and full backend tests (`4838/4838`: `69` application, `4489` unit, `280` integration).
+  - Repository lint and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Run remediation and commit only the HashDb/music metadata-matching slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 07:38:13Z
 
 - Current task: performance and efficiency improvements in progress; recent music enumeration pass complete locally.
