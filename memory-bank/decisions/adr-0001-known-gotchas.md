@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z647. Completion Polls Must Not Hydrate Final Payloads
+
+**The Bug**: Wishlist and Auto-Replace waited for search completion by polling
+SQLite with `includeResponses: true`. Each readiness check deserialized the
+complete persisted response payload even though the loop inspected only the
+search state, repeating large payload work throughout every search.
+
+**Files Affected**:
+- `src/slskd/Wishlist/WishlistService.cs`
+- `src/slskd/Transfers/AutoReplace/AutoReplaceService.cs`
+
+**Prevention**: Poll a minimal response-free projection for readiness, then
+hydrate the final payload exactly once after the completed state is observed.
+Choose a polling cadence appropriate to the background workflow; do not use a
+high-frequency full-entity read merely because the eventual consumer needs the
+entity's large payload.
+
 ### 0z646. Test Helpers Can Shadow Static Options Factories
 
 **The Bug**: A Mesh regression used `Options.Create(...)` inside a test class
