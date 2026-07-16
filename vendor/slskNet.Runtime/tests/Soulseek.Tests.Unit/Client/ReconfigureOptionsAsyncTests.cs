@@ -319,6 +319,53 @@ namespace Soulseek.Tests.Unit.Client
         }
 
         [Trait("Category", "ReconfigureOptions")]
+        [Fact(DisplayName = "Reconfigures obfuscated listener and metadata if listen ports changed")]
+        public async Task Reconfigures_Obfuscated_Listener_And_Metadata_If_Listen_Ports_Changed()
+        {
+            var regularPort = GetAvailablePort();
+            var oldObfuscatedPort = GetAvailablePort();
+            while (oldObfuscatedPort == regularPort)
+            {
+                oldObfuscatedPort = GetAvailablePort();
+            }
+
+            var newRegularPort = GetAvailablePort();
+            while (newRegularPort == regularPort || newRegularPort == oldObfuscatedPort)
+            {
+                newRegularPort = GetAvailablePort();
+            }
+
+            var newObfuscatedPort = GetAvailablePort();
+            while (newObfuscatedPort == regularPort || newObfuscatedPort == oldObfuscatedPort || newObfuscatedPort == newRegularPort)
+            {
+                newObfuscatedPort = GetAvailablePort();
+            }
+
+            var oldObfuscation = new PeerObfuscationOptions(enabled: true, listenPort: oldObfuscatedPort);
+            var newObfuscation = new PeerObfuscationOptions(enabled: true, listenPort: newObfuscatedPort, preferOutbound: true);
+            var (client, mocks) = GetFixture(new SoulseekClientOptions(
+                listenPort: regularPort,
+                peerObfuscationOptions: oldObfuscation));
+
+            mocks.Listener.Setup(m => m.Listening).Returns(true);
+            var patch = new SoulseekClientOptionsPatch(
+                listenPort: newRegularPort,
+                peerObfuscationOptions: newObfuscation);
+
+            using (client)
+            {
+                client.SetProperty("State", SoulseekClientStates.Connected | SoulseekClientStates.LoggedIn);
+
+                await client.ReconfigureOptionsAsync(patch);
+
+                Assert.Equal(newRegularPort, client.Listener.Port);
+                Assert.NotNull(client.ObfuscatedListener);
+                Assert.Equal(newObfuscatedPort, client.ObfuscatedListener.Port);
+                Assert.Same(newObfuscation, client.Options.PeerObfuscationOptions);
+            }
+        }
+
+        [Trait("Category", "ReconfigureOptions")]
         [Fact(DisplayName = "Reconfigures listener if ListenIPAddress changed")]
         public async Task Reconfigures_Listener_If_ListenIPAddress_Changed()
         {

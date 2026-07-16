@@ -25,6 +25,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Listener IP and port changes no longer report a reconnect requirement after
   Soulseek.NET has already rebound the live listeners and advertised the new
   endpoint to the Soulseek server.
+- Live Soulseek listener changes now apply updated type-1 obfuscation options
+  before rebinding, keeping the obfuscated socket and advertised metadata on
+  the configured port instead of the previous one.
 - Runtime CORS edits now set application `pendingRestart` state because the
   policy is constructed from startup options; strict startup validation still
   rejects credentialed wildcard CORS when `web.enforce_security` is enabled.
