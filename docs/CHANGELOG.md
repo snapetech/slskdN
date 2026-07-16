@@ -22,6 +22,18 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Multi-source planning now merges registry and backend candidates through a
+  first-retaining `(backend, reference)` set instead of allocating formatted
+  string keys and LINQ grouping state. Null and empty references retain their
+  previous equivalence, registry candidates still win cross-source duplicates,
+  and unique order is unchanged. Because moderation receives the same track ID
+  for every candidate, each nonempty plan now performs one content-level check
+  before per-Soulseek-peer reputation filtering; blocked, quarantined, and
+  failed checks remain fail-closed, while empty candidate sets make no call. For
+  10,000 unique local candidates, warmed allocation falls from 7,295,712 to
+  2,218,032 bytes (69.6%) and moderation calls fall from 10,000 to one (99.99%).
+  A 100,000-entry duplicate fixture retains one candidate with less than 32 KiB
+  of planning allocation.
 - Cross-provider search aggregation now consumes result sequences directly
   instead of first copying every result, removes its unused hash dictionary,
   and deduplicates ASCII filename/size keys with allocation-free ordinal-ignore-

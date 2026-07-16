@@ -22,6 +22,7 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Planning
     /// <summary>
     ///     Tests for T-V2-P2-02: Multi-Source Planner.
     /// </summary>
+    [Collection(AllocationTestCollection.Name)]
     public class MultiSourcePlannerTests
     {
         [Fact]
@@ -322,6 +323,188 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Planning
 
             // Assert
             Assert.True(isValid);
+        }
+
+        [Fact]
+        public async Task CreatePlan_LargeCandidateSetModeratesContentOnceAndBoundsAllocation()
+        {
+            const int candidateCount = 10_000;
+            var trackId = ContentItemId.NewId().ToString();
+            var itemId = ContentItemId.Parse(trackId);
+            var now = DateTimeOffset.UtcNow;
+            var candidates = Enumerable.Range(0, candidateCount)
+                .Select(index => new SourceCandidate
+                {
+                    Id = $"candidate-{index}",
+                    ItemId = itemId,
+                    Backend = ContentBackendType.LocalLibrary,
+                    BackendRef = $"local-file-{index}",
+                    ExpectedQuality = index,
+                    TrustScore = index,
+                    LastValidatedAt = now,
+                    LastSeenAt = now,
+                })
+                .ToArray();
+            var catalogueStore = new Mock<ICatalogueStore>();
+            catalogueStore
+                .Setup(store => store.FindTrackByIdAsync(trackId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Track
+                {
+                    TrackId = trackId,
+                    ReleaseId = "release-1",
+                    TrackNumber = 1,
+                    Title = "Track",
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                });
+            var sourceRegistry = new Mock<ISourceRegistry>();
+            sourceRegistry
+                .Setup(registry => registry.FindCandidatesForItemAsync(itemId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(candidates);
+            var moderation = new Mock<IModerationProvider>();
+            moderation
+                .Setup(provider => provider.CheckContentIdAsync(trackId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(ModerationDecision.Allow("test"));
+            var reputationStore = new Mock<IPeerReputationStore>();
+            reputationStore
+                .Setup(store => store.IsPeerBannedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+            var peerReputation = new PeerReputationService(
+                Mock.Of<ILogger<PeerReputationService>>(),
+                reputationStore.Object);
+            var planner = new MultiSourcePlanner(
+                catalogueStore.Object,
+                sourceRegistry.Object,
+                Array.Empty<IContentBackend>(),
+                moderation.Object,
+                peerReputation);
+            var desiredTrack = new DesiredTrack
+            {
+                Domain = ContentDomain.Music,
+                DesiredTrackId = "desired-1",
+                TrackId = trackId,
+                Priority = IntentPriority.Normal,
+                Status = IntentStatus.Pending,
+                CreatedAt = now,
+                UpdatedAt = now,
+            };
+            _ = await planner.CreatePlanAsync(desiredTrack);
+            moderation.Invocations.Clear();
+
+            var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+            var plan = await planner.CreatePlanAsync(desiredTrack);
+            var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+            var step = Assert.Single(plan.Steps);
+            Assert.Equal(candidateCount, step.Candidates.Count);
+            Assert.True(
+                allocatedBytes < 2_500_000,
+                $"Expected large planning below 2,500,000 allocated bytes, got {allocatedBytes:N0} bytes.");
+            moderation.Verify(
+                provider => provider.CheckContentIdAsync(trackId, It.IsAny<CancellationToken>()),
+                Times.Once);
+
+            var duplicateCandidates = Enumerable.Repeat(candidates[0], 100_000).ToArray();
+            sourceRegistry
+                .Setup(registry => registry.FindCandidatesForItemAsync(itemId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(duplicateCandidates);
+            _ = await planner.CreatePlanAsync(desiredTrack);
+            moderation.Invocations.Clear();
+
+            allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+            plan = await planner.CreatePlanAsync(desiredTrack);
+            allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+            Assert.Single(Assert.Single(plan.Steps).Candidates);
+            Assert.True(
+                allocatedBytes < 32_768,
+                $"Expected duplicate planning below 32,768 allocated bytes, got {allocatedBytes:N0} bytes.");
+            moderation.Verify(
+                provider => provider.CheckContentIdAsync(trackId, It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task CreatePlan_DeduplicationKeepsFirstCandidateAcrossRegistryAndBackends()
+        {
+            var trackId = ContentItemId.NewId().ToString();
+            var itemId = ContentItemId.Parse(trackId);
+            var now = DateTimeOffset.UtcNow;
+            SourceCandidate Candidate(
+                string id,
+                ContentBackendType backendType,
+                string backendRef,
+                float score) => new()
+                {
+                    Id = id,
+                    ItemId = itemId,
+                    Backend = backendType,
+                    BackendRef = backendRef,
+                    ExpectedQuality = score,
+                    TrustScore = score,
+                    LastValidatedAt = now,
+                    LastSeenAt = now,
+                };
+            var firstCandidate = Candidate("registry-first", ContentBackendType.LocalLibrary, null, 1);
+            var catalogueStore = new Mock<ICatalogueStore>();
+            catalogueStore
+                .Setup(store => store.FindTrackByIdAsync(trackId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Track
+                {
+                    TrackId = trackId,
+                    ReleaseId = "release-1",
+                    TrackNumber = 1,
+                    Title = "Track",
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                });
+            var sourceRegistry = new Mock<ISourceRegistry>();
+            sourceRegistry
+                .Setup(registry => registry.FindCandidatesForItemAsync(itemId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(
+                [
+                    firstCandidate,
+                    Candidate("registry-duplicate", ContentBackendType.LocalLibrary, string.Empty, 2),
+                ]);
+            var backend = new Mock<IContentBackend>();
+            backend.SetupGet(value => value.SupportedDomain).Returns(ContentDomain.Music);
+            backend
+                .Setup(value => value.FindCandidatesAsync(itemId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(
+                [
+                    Candidate("backend-duplicate", ContentBackendType.LocalLibrary, string.Empty, 3),
+                    Candidate("backend-distinct", ContentBackendType.Http, "https://example.test/track", 4),
+                ]);
+            var moderation = new Mock<IModerationProvider>();
+            moderation
+                .Setup(provider => provider.CheckContentIdAsync(trackId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(ModerationDecision.Allow("test"));
+            var reputationStore = new Mock<IPeerReputationStore>();
+            var planner = new MultiSourcePlanner(
+                catalogueStore.Object,
+                sourceRegistry.Object,
+                [backend.Object],
+                moderation.Object,
+                new PeerReputationService(Mock.Of<ILogger<PeerReputationService>>(), reputationStore.Object));
+            var desiredTrack = new DesiredTrack
+            {
+                Domain = ContentDomain.Music,
+                DesiredTrackId = "desired-1",
+                TrackId = trackId,
+                Priority = IntentPriority.Normal,
+                Status = IntentStatus.Pending,
+                CreatedAt = now,
+                UpdatedAt = now,
+            };
+
+            var plan = await planner.CreatePlanAsync(desiredTrack);
+
+            Assert.Equal(2, plan.Steps.Count);
+            Assert.Same(firstCandidate, Assert.Single(plan.Steps[0].Candidates));
+            Assert.Equal("backend-distinct", Assert.Single(plan.Steps[1].Candidates).Id);
+            moderation.Verify(
+                provider => provider.CheckContentIdAsync(trackId, It.IsAny<CancellationToken>()),
+                Times.Once);
         }
     }
 }

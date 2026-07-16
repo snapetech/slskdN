@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Deduplicate planner candidates directly and reuse content moderation decisions.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `MultiSourcePlanner.CreatePlanAsync` now scans registry candidates followed by backend candidates into a first-retaining `(ContentBackendType, BackendRef)` set, treating null and empty references identically without formatted key strings, `GroupBy` objects, or group iterators. The planner performs the single content-level `CheckContentIdAsync(trackId)` decision once for each nonempty deduplicated set instead of repeating the identical check for every candidate, then retains per-Soulseek-peer reputation checks. For 10,000 unique local candidates, warmed whole-plan allocation falls from 7,295,712 to 2,218,032 bytes (69.6%) and moderation calls fall from 10,000 to one (99.99%). A 100,000-entry duplicate fixture retains one candidate below 32 KiB without raw-input-sized capacity reservation. Empty-input zero-call behavior, blocked/quarantined/error fail-closed behavior, registry-before-backend precedence, first-object identity, backend preference, trust/quality order, plan-step grouping, and peer reputation filtering remain unchanged. Added unique/duplicate allocation, exact moderation-call, and cross-source/null-empty deduplication regressions; documented local initializer indentation gotcha `0z719` (`c8cb2308a`). Validation passed: focused planner tests (`8/8`), broader VirtualSoulfind v2 tests (`207/207`), full backend suites (`5024/5024`: `69` application, `4675` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Stream and allocation-bound cross-provider search aggregation.
   - Status: completed (2026-07-16)
   - Priority: P1

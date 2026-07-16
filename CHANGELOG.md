@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Multi-source planning now deduplicates candidates without formatted grouping
+  keys and performs one content-level moderation check per plan.
 - Cross-provider search aggregation now streams results once and deduplicates
   common ASCII filename keys without allocating lowercase path copies.
 - IPLD graph construction now pre-sizes bounded coordinator collections from

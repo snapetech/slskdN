@@ -43,6 +43,8 @@ namespace slskd.VirtualSoulfind.v2.Planning
     /// </remarks>
     public sealed class MultiSourcePlanner : IPlanner
     {
+        private const int MaxInitialCandidateCapacity = 4096;
+
         private readonly ICatalogueStore _catalogueStore;
         private readonly ISourceRegistry _sourceRegistry;
         private readonly IEnumerable<IContentBackend> _backends;
@@ -157,16 +159,31 @@ namespace slskd.VirtualSoulfind.v2.Planning
             }
 
             // Step 4: Merge + dedupe candidates
-            var allCandidates = registryCandidates
-                .Concat(backendCandidates)
-                .GroupBy(c => $"{c.Backend}:{c.BackendRef}")
-                .Select(g => g.First()) // Take first from each group (deduplication)
-                .ToList();
+            var rawCandidateCount = (long)registryCandidates.Count + backendCandidates.Count;
+            var initialCandidateCapacity = rawCandidateCount <= MaxInitialCandidateCapacity
+                ? (int)rawCandidateCount
+                : 0;
+            var candidateKeys = new HashSet<(ContentBackendType Backend, string BackendRef)>(initialCandidateCapacity);
+            var allCandidates = new List<SourceCandidate>(initialCandidateCapacity);
+            foreach (var candidate in registryCandidates)
+            {
+                if (candidateKeys.Add((candidate.Backend, candidate.BackendRef ?? string.Empty)))
+                {
+                    allCandidates.Add(candidate);
+                }
+            }
+
+            foreach (var candidate in backendCandidates)
+            {
+                if (candidateKeys.Add((candidate.Backend, candidate.BackendRef ?? string.Empty)))
+                {
+                    allCandidates.Add(candidate);
+                }
+            }
 
             // Step 5: Filter through MCP (CheckContentIdAsync for Music domain)
             var filteredCandidates = await FilterThroughModerationAsync(
                 desiredTrack.TrackId,
-                domain,
                 allCandidates,
                 cancellationToken);
 
@@ -204,29 +221,37 @@ namespace slskd.VirtualSoulfind.v2.Planning
         // ========== Private Helper Methods ==========
         private async Task<List<SourceCandidate>> FilterThroughModerationAsync(
             string trackId,
-            ContentDomain domain,
             List<SourceCandidate> candidates,
             CancellationToken cancellationToken)
         {
             var filtered = new List<SourceCandidate>();
+            if (candidates.Count == 0)
+            {
+                return filtered;
+            }
+
+            try
+            {
+                var decision = await _moderationProvider.CheckContentIdAsync(
+                    trackId,
+                    cancellationToken);
+
+                if (decision.Verdict == ModerationVerdict.Blocked ||
+                    decision.Verdict == ModerationVerdict.Quarantined)
+                {
+                    return filtered;
+                }
+            }
+            catch
+            {
+                return filtered;
+            }
 
             foreach (var candidate in candidates)
             {
                 try
                 {
-                    // Step 1: Check through MCP using contentId as string
-                    var decision = await _moderationProvider.CheckContentIdAsync(
-                        trackId,
-                        cancellationToken);
-
-                    if (decision.Verdict == ModerationVerdict.Blocked ||
-                        decision.Verdict == ModerationVerdict.Quarantined)
-                    {
-                        // Skip blocked/quarantined content
-                        continue;
-                    }
-
-                    // Step 2: Check peer reputation (T-MCP04)
+                    // Check peer reputation (T-MCP04)
                     // For Soulseek backend, BackendRef contains "peerId|filepath"
                     string? peerId = null;
                     if (candidate.Backend == ContentBackendType.Soulseek && !string.IsNullOrWhiteSpace(candidate.BackendRef))

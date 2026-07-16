@@ -1,3 +1,17 @@
+## Update 2026-07-16 23:04:08Z
+
+- Current task: performance and efficiency improvements in progress; direct-deduplication and single-moderation multi-source planning complete locally.
+- Last activity:
+  - Replaced formatted-string grouping with a bounded first-retaining backend/reference set and moved the identical track moderation decision outside candidate iteration.
+  - A 10,000-candidate plan falls from 7,295,712 to 2,218,032 warmed allocated bytes (69.6%) and from 10,000 moderation calls to one (99.99%). A 100,000-entry duplicate input retains one candidate below 32 KiB.
+- Validation:
+  - Passed focused planner (`8/8`), broader VirtualSoulfind v2 (`207/207`), and full backend suites (`5024/5024`: `69` application, `4675` unit, `280` integration) tests.
+  - Exact first-source/null-empty deduplication, moderation, ordering, step, allocation, repository lint, and diff behavior passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Documented gotcha `0z719` (`c8cb2308a`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the multi-source planner slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 22:46:11Z
 
 - Current task: performance and efficiency improvements in progress; streaming cross-provider search aggregation complete locally.
