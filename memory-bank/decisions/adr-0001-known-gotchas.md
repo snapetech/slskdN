@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z651. Uniform Bulk Updates Must Stay In The Database
+
+**The Bug**: Wishlist “mark all viewed” selected and tracked every unread item,
+assigned the same timestamp in a managed loop, and asked EF to generate row
+updates. Work and memory therefore scaled with the complete unread set even
+though one predicate update expressed the operation exactly.
+
+**Files Affected**:
+- `src/slskd/Wishlist/WishlistService.cs`
+
+**Prevention**: When every matching row receives the same value and no
+per-entity side effect exists, use a set-based database update. Do not load
+entities merely to assign one constant property; cover bulk actions with SQL
+command-count tests so tracking loops cannot return unnoticed.
+
 ### 0z650. Set-Based Rewrites Must Preserve Existence-Guard Ordering
 
 **The Bug**: The first set-based Pod deletion rewrite deleted dependent rows
