@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Warm-cache access touches now update `last_accessed` directly instead of
+  reading and hydrating the complete metadata row before rewriting it. Each
+  touch falls from two SQLite commands and connections to one (50% fewer),
+  while identifier normalization and missing-entry no-op behavior remain
+  unchanged.
 - Federated recommendation promotion now resolves a duplicate Wishlist seed
   through one untracked, case-insensitive exact lookup backed by an idempotent
   SQLite index instead of loading and tracking the complete Wishlist. With

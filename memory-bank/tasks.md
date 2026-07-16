@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make warm-cache access touches atomic.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced read-hydrate-upsert cache touches with one targeted `last_accessed` update. Each existing-entry touch falls from two SQLite commands/connections to one (50% fewer), avoids full-row hydration and rewrite, and returns without creating missing rows. Identifier normalization and disabled-option behavior remain unchanged. Added production HashDb existing/missing/normalization coverage and an exact service regression requiring one atomic update with zero legacy get/upsert calls. Validation passed: focused touch tests (`2/2`), broader HashDb/warm-cache coverage (`97/97`), full backend tests (`4891/4891`: `69` application, `4542` unit, `280` integration), repository lint, diff checks, and every substantive remediation check before the expected divergent-branch release-sync stop.
+
 - [x] Index federated recommendation Wishlist duplicate checks.
   - Status: completed (2026-07-16)
   - Priority: P1

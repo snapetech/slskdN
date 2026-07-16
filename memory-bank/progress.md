@@ -1,3 +1,10 @@
+## Update 2026-07-16 12:49:02Z
+
+- Completed the atomic warm-cache access-touch performance pass.
+- Replaced metadata read/hydration plus full-row upsert with one targeted `last_accessed` update.
+- Each existing-entry touch falls from two SQLite commands/connections to one (50% fewer), while normalized identifiers and missing-entry no-op behavior remain unchanged.
+- Validation passed: focused touch tests (`2/2`), broader HashDb/warm-cache tests (`97/97`), complete smoke/unit/integration suites (`4891/4891`: `69` smoke, `4542` unit, `280` integration), repository lint, and diff checks. Exact service boundaries forbid legacy get/upsert calls, and production coverage proves missing rows are not created. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 12:41:43Z
 
 - Completed the federated recommendation Wishlist duplicate-lookup performance pass.

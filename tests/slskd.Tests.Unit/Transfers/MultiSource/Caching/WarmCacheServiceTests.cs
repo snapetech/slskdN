@@ -13,6 +13,28 @@ using Xunit;
 public sealed class WarmCacheServiceTests
 {
     [Fact]
+    public async Task TouchAsync_UsesOneAtomicTimestampUpdate()
+    {
+        var hashDb = new Mock<IHashDbService>();
+        var service = new WarmCacheService(
+            hashDb.Object,
+            new TestOptionsMonitor<WarmCacheOptions>(new WarmCacheOptions { Enabled = true }));
+
+        await service.TouchAsync(" content-id ");
+
+        hashDb.Verify(db => db.TouchWarmCacheEntryAsync(
+            " content-id ",
+            It.IsAny<long>(),
+            It.IsAny<CancellationToken>()), Times.Once);
+        hashDb.Verify(db => db.GetWarmCacheEntryAsync(
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        hashDb.Verify(db => db.UpsertWarmCacheEntryAsync(
+            It.IsAny<slskd.HashDb.Models.WarmCacheEntry>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task EvictIfNeededAsync_DelegatesCapacityCheckAndEvictionOnce()
     {
         var hashDb = new Mock<IHashDbService>();

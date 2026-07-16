@@ -371,6 +371,11 @@ namespace slskd.HashDb
 
         Task<Models.WarmCacheEntry?> GetWarmCacheEntryAsync(string contentId, CancellationToken cancellationToken = default);
 
+        Task<bool> TouchWarmCacheEntryAsync(
+            string contentId,
+            long lastAccessed,
+            CancellationToken cancellationToken = default);
+
         Task<IReadOnlyList<Models.WarmCacheEntry>> ListWarmCacheEntriesAsync(CancellationToken cancellationToken = default);
 
         Task<long> GetWarmCacheTotalSizeAsync(CancellationToken cancellationToken = default);

@@ -63,14 +63,10 @@ namespace slskd.Transfers.MultiSource.Caching
                 return;
             }
 
-            var existing = await hashDb.GetWarmCacheEntryAsync(contentId, ct).ConfigureAwait(false);
-            if (existing == null)
-            {
-                return;
-            }
-
-            existing.LastAccessed = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            await hashDb.UpsertWarmCacheEntryAsync(existing, ct).ConfigureAwait(false);
+            await hashDb.TouchWarmCacheEntryAsync(
+                contentId,
+                DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                ct).ConfigureAwait(false);
         }
 
         public async Task EvictIfNeededAsync(CancellationToken ct = default)

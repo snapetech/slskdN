@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Warm-cache access touches now update only their timestamp through one atomic
+  SQLite command.
 - Federated recommendation promotion now checks Wishlist duplicates through an
   indexed exact lookup instead of loading the complete Wishlist.
 - Music metadata fallback matching now queries one bounded best-variant sample

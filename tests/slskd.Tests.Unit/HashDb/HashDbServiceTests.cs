@@ -1359,6 +1359,20 @@ public class HashDbServiceTests : IDisposable
         Assert.Equal(130, await service.GetWarmCacheTotalSizeAsync());
     }
 
+    [Fact]
+    public async Task TouchWarmCacheEntryAsync_UpdatesExistingWithoutCreatingMissingEntry()
+    {
+        await service.UpsertWarmCacheEntryAsync(CreateWarmCacheEntry("existing", 10, 1));
+
+        var updated = await service.TouchWarmCacheEntryAsync(" existing ", 123);
+        var missing = await service.TouchWarmCacheEntryAsync("missing", 456);
+
+        Assert.True(updated);
+        Assert.False(missing);
+        Assert.Equal(123, (await service.GetWarmCacheEntryAsync("existing"))!.LastAccessed);
+        Assert.Null(await service.GetWarmCacheEntryAsync("missing"));
+    }
+
     private static WarmCacheEntry CreateWarmCacheEntry(string contentId, long sizeBytes, long lastAccessed, bool pinned = false) =>
         new()
         {

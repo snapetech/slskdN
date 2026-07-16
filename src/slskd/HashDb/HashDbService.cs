@@ -4081,6 +4081,30 @@ namespace slskd.HashDb
         }
 
         /// <inheritdoc/>
+        public async Task<bool> TouchWarmCacheEntryAsync(
+            string contentId,
+            long lastAccessed,
+            CancellationToken cancellationToken = default)
+        {
+            contentId = contentId?.Trim() ?? string.Empty;
+            if (contentId.Length == 0)
+            {
+                return false;
+            }
+
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = """
+                UPDATE WarmCacheEntries
+                SET last_accessed = @last_accessed
+                WHERE content_id = @content_id
+                """;
+            cmd.Parameters.AddWithValue("@last_accessed", lastAccessed);
+            cmd.Parameters.AddWithValue("@content_id", contentId);
+            return await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false) > 0;
+        }
+
+        /// <inheritdoc/>
         public async Task<IReadOnlyList<Models.WarmCacheEntry>> ListWarmCacheEntriesAsync(CancellationToken cancellationToken = default)
         {
             var list = new List<Models.WarmCacheEntry>();
