@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Shadow Index publishing now rotates through bounded indexed recording-ID
+  pages, avoids full-library sorting and materialization, and does not build
+  more shard candidates than the immediate DHT write budget can admit. The
+  configured Virtual Soulfind DHT operation limit is now honored.
 - Download auto-retry now reads an indexed, minimal oldest-first candidate
   stream and stops once its bounded global/per-peer plan is final instead of
   materializing the complete retained failure history on every cycle.

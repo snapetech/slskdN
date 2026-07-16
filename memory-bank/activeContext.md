@@ -1,3 +1,21 @@
+## Update 2026-07-16 03:12:37Z
+
+- Current task: performance and efficiency improvements in progress; Shadow Index publication/query pass complete locally.
+- Last activity:
+  - Replaced full-library distinct recording-ID sorting and fixed newest-batch selection with normalized case-insensitive keyset pages backed by HashDb migration 20.
+  - Added cursor wrap so publication advances through the library while retaining the established interval and DHT operation ceiling.
+  - Clamped candidates to the immediate DHT minute budget, avoiding 40 guaranteed excess builds under the default 100-shard/60-operation settings.
+  - Removed the duplicate `IDhtRateLimiter` registration that caused custom `MaxDhtOperationsPerMinute` settings to be ignored.
+  - A 100,000-ID proxy improved from 2.81 seconds for 100 old-shape queries to 0.01 seconds for 500 bounded pages; query-plan coverage requires an index range search without a temporary sort.
+  - Added keyset normalization, cursor/wrap, bounded publishing, DHT-budget, DI composition, cancellation, and query-plan regressions. Documented gotchas `0z637` through `0z639` in standalone commits `d1139b06b`, `9c60c280b`, and `7527bfe9d`, and extended shutdown-cancellation gotcha `0z429` in `52975512d`.
+- Validation:
+  - Passed focused backend tests (`7/7`), complete smoke/unit/integration suites (`4791/4791`: `69` smoke, `4442` unit, `280` integration), repository lint, identity and diff checks.
+  - The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+- Next steps:
+  1. Run complete validation and commit this Shadow Index pass.
+  2. Continue the broader performance goal from the next measured recurring hot path.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 02:46:03Z
 
 - Current task: performance and efficiency improvements in progress; recurring download auto-retry candidate-materialization pass complete locally.

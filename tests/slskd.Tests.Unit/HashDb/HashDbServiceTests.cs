@@ -53,6 +53,35 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Constructor_IndexesNormalizedRecordingIdPages()
+    {
+        await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText =
+            """
+            EXPLAIN QUERY PLAN
+            SELECT DISTINCT TRIM(musicbrainz_id) COLLATE NOCASE AS recording_id
+            FROM HashDb
+            WHERE musicbrainz_id IS NOT NULL AND TRIM(musicbrainz_id) <> ''
+              AND TRIM(musicbrainz_id) COLLATE NOCASE > 'm-recording'
+            ORDER BY recording_id COLLATE NOCASE
+            LIMIT 100
+            """;
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        var plan = new List<string>();
+        while (await reader.ReadAsync())
+        {
+            plan.Add(reader.GetString(3));
+        }
+
+        Assert.Contains(plan, detail =>
+            detail.Contains("SEARCH HashDb USING INDEX idx_hashdb_recording_normalized", StringComparison.Ordinal));
+        Assert.DoesNotContain(plan, detail => detail.Contains("TEMP B-TREE", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Constructor_IndexesPeerCapabilityStatsQuery()
     {
         await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
@@ -682,6 +711,39 @@ public class HashDbServiceTests : IDisposable
 
         var id = Assert.Single(ids);
         Assert.Equal("mb:rec1", id);
+    }
+
+    [Fact]
+    public async Task GetRecordingIdsWithVariantsPageAsync_NormalizesDeduplicatesAndUsesKeysetCursor()
+    {
+        foreach (var (key, recordingId, sequence) in new[]
+        {
+            ("flac-page-z", " z-recording ", 1L),
+            ("flac-page-a-upper", "A-recording", 2L),
+            ("flac-page-a-lower", " a-recording ", 3L),
+            ("flac-page-m", "m-recording", 4L),
+        })
+        {
+            await service.StoreHashAsync(new HashDbEntry
+            {
+                FlacKey = key,
+                ByteHash = $"hash-{key}",
+                Size = 123,
+                FirstSeenAt = sequence,
+                LastUpdatedAt = sequence,
+                SeqId = sequence,
+                UseCount = 1,
+            });
+            await service.UpdateHashRecordingIdAsync(key, recordingId);
+        }
+
+        var firstPage = await service.GetRecordingIdsWithVariantsPageAsync(afterRecordingId: null, limit: 2);
+        var secondPage = await service.GetRecordingIdsWithVariantsPageAsync(firstPage[^1], limit: 2);
+        var emptyPage = await service.GetRecordingIdsWithVariantsPageAsync(afterRecordingId: null, limit: 0);
+
+        Assert.Equal(new[] { "a-recording", "m-recording" }, firstPage.Select(id => id.ToLowerInvariant()));
+        Assert.Equal(new[] { "z-recording" }, secondPage.Select(id => id.ToLowerInvariant()));
+        Assert.Empty(emptyPage);
     }
 
     [Fact]

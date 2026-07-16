@@ -45,6 +45,7 @@ public class ShardPublisher : BackgroundService, IShardPublisher
     private readonly IOptionsMonitor<slskd.Options> optionsMonitor;
     private readonly IHashDbService? hashDb;
     private readonly IDhtRateLimiter? rateLimiter;
+    private string? lastPublishedRecordingId;
 
     public ShardPublisher(
         ILogger<ShardPublisher> logger,
@@ -110,30 +111,46 @@ public class ShardPublisher : BackgroundService, IShardPublisher
         logger.LogInformation("[VSF-PUBLISH] Shard publisher stopped");
     }
 
-    private async Task PublishShardsAsync(CancellationToken ct)
+    internal async Task PublishShardsAsync(CancellationToken ct)
     {
         logger.LogDebug("[VSF-PUBLISH] Starting shard publishing cycle");
 
-        // Get list of MBIDs we have observations/variants for
-        List<string> recordingIds;
+        var options = optionsMonitor.CurrentValue;
+        var configuredMaxShards = options.VirtualSoulfind?.ShadowIndex?.MaxShardsPerPublish > 0
+            ? options.VirtualSoulfind.ShadowIndex.MaxShardsPerPublish
+            : 50;
+        var configuredDhtOperations = options.VirtualSoulfind?.ShadowIndex?.MaxDhtOperationsPerMinute > 0
+            ? options.VirtualSoulfind.ShadowIndex.MaxDhtOperationsPerMinute
+            : 60;
+        var maxShardsPerCycle = rateLimiter == null
+            ? configuredMaxShards
+            : Math.Min(configuredMaxShards, configuredDhtOperations);
+        IReadOnlyList<string> recordingIds;
 
         if (hashDb != null)
         {
             try
             {
-                recordingIds = await hashDb.GetRecordingIdsWithVariantsAsync(ct);
-                logger.LogDebug("[VSF-PUBLISH] Found {Count} recording IDs with variants", recordingIds.Count);
+                recordingIds = await GetNextRecordingIdsAsync(maxShardsPerCycle, ct).ConfigureAwait(false);
+                logger.LogDebug(
+                    "[VSF-PUBLISH] Selected {Count} recording IDs through cursor {Cursor}",
+                    recordingIds.Count,
+                    lastPublishedRecordingId);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "[VSF-PUBLISH] Failed to get recording IDs from HashDb: {Message}", ex.Message);
-                recordingIds = new List<string>();
+                recordingIds = Array.Empty<string>();
             }
         }
         else
         {
             logger.LogWarning("[VSF-PUBLISH] HashDb not available, cannot get recording IDs");
-            recordingIds = new List<string>();
+            recordingIds = Array.Empty<string>();
         }
 
         if (recordingIds.Count == 0)
@@ -142,17 +159,8 @@ public class ShardPublisher : BackgroundService, IShardPublisher
             return;
         }
 
-        var options = optionsMonitor.CurrentValue;
-
-        // Limit to reasonable number per cycle to avoid overwhelming DHT
-        var maxShardsPerCycle = options.VirtualSoulfind?.ShadowIndex?.MaxShardsPerPublish > 0
-            ? options.VirtualSoulfind.ShadowIndex.MaxShardsPerPublish
-            : 50; // Default: 50 shards per cycle
-        var idsToPublish = recordingIds.Take(maxShardsPerCycle).ToList();
-
         logger.LogInformation(
-            "[VSF-PUBLISH] Publishing {Count} shards (out of {Total} available)",
-            idsToPublish.Count,
+            "[VSF-PUBLISH] Publishing {Count} bounded shard candidates",
             recordingIds.Count);
 
         var publishedCount = 0;
@@ -160,7 +168,7 @@ public class ShardPublisher : BackgroundService, IShardPublisher
 
         // Publish shards in parallel (with limit and rate limiting)
         using var semaphore = new SemaphoreSlim(5, 5); // Max 5 concurrent publishes
-        var publishTasks = idsToPublish.Select(async mbid =>
+        var publishTasks = recordingIds.Select(async mbid =>
         {
             await semaphore.WaitAsync(ct);
             try
@@ -195,6 +203,35 @@ public class ShardPublisher : BackgroundService, IShardPublisher
 
         logger.LogInformation("[VSF-PUBLISH] Publishing cycle complete: {Published} published, {Failed} failed",
             publishedCount, failedCount);
+    }
+
+    internal async Task<IReadOnlyList<string>> GetNextRecordingIdsAsync(int limit, CancellationToken cancellationToken)
+    {
+        if (hashDb == null || limit <= 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        var recordingIds = await hashDb.GetRecordingIdsWithVariantsPageAsync(
+            lastPublishedRecordingId,
+            limit,
+            cancellationToken).ConfigureAwait(false);
+
+        if (lastPublishedRecordingId != null && recordingIds.Count < limit)
+        {
+            var wrappedIds = await hashDb.GetRecordingIdsWithVariantsPageAsync(
+                afterRecordingId: null,
+                limit: limit - recordingIds.Count,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            recordingIds.AddRange(wrappedIds);
+        }
+
+        if (recordingIds.Count > 0)
+        {
+            lastPublishedRecordingId = recordingIds[^1];
+        }
+
+        return recordingIds;
     }
 
     private async Task PublishShardForMbidAsync(string mbid, CancellationToken ct)

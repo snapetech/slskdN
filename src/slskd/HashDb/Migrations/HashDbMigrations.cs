@@ -16,7 +16,7 @@ public static class HashDbMigrations
     /// <summary>
     ///     Current schema version. Increment when adding new migrations.
     /// </summary>
-    public const int CurrentVersion = 19;
+    public const int CurrentVersion = 20;
 
     private static readonly ILogger Log = Serilog.Log.ForContext(typeof(HashDbMigrations));
 
@@ -772,6 +772,23 @@ public static class HashDbMigrations
                 {
                     using var cmd = conn.CreateCommand();
                     cmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_issues_detected ON LibraryHealthIssues(detected_at DESC)";
+                    cmd.ExecuteNonQuery();
+                },
+            },
+
+            new Migration
+            {
+                Version = 20,
+                Name = "Normalized recording ID paging index",
+                Apply = conn =>
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText =
+                        """
+                        CREATE INDEX IF NOT EXISTS idx_hashdb_recording_normalized
+                        ON HashDb (TRIM(musicbrainz_id) COLLATE NOCASE)
+                        WHERE musicbrainz_id IS NOT NULL AND TRIM(musicbrainz_id) <> ''
+                        """;
                     cmd.ExecuteNonQuery();
                 },
             },

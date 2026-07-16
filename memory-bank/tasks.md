@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound and rotate Shadow Index shard publication.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced each enabled Shadow Index cycle's full distinct recording-ID query, managed materialization, and fixed newest-batch `Take` with a normalized case-insensitive keyset page backed by HashDb migration 20's expression index. An in-process cursor wraps at the end so cycles advance through the library without increasing DHT traffic. The effective batch is now the smaller of `MaxShardsPerPublish` and `MaxDhtOperationsPerMinute`, avoiding 40 guaranteed excess builds under the 100/60 defaults; removed a duplicate `IDhtRateLimiter` registration that previously overrode the options-aware factory. On a 100,000-ID SQLite proxy, 100 old-shape queries took 2.81 seconds while 500 bounded 100-ID pages took 0.01 seconds, and the query plan uses an index range search without a temporary sort. Added normalization/keyset, cursor/wrap, bounded-publisher, DHT-budget, DI composition, cancellation, and query-plan regressions; documented gotchas `0z637` through `0z639` in standalone commits `d1139b06b`, `9c60c280b`, and `7527bfe9d`, and extended shutdown-cancellation gotcha `0z429` in `52975512d`.
+
 - [x] Bound recurring download auto-retry candidate materialization.
   - Status: completed (2026-07-16)
   - Priority: P1

@@ -184,6 +184,17 @@ namespace slskd.HashDb
         Task<List<string>> GetRecordingIdsWithVariantsAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
+        ///     Gets a stable keyset page of normalized recording IDs that have variants.
+        /// </summary>
+        /// <param name="afterRecordingId">The exclusive normalized recording-ID cursor, or null for the first page.</param>
+        /// <param name="limit">The maximum number of IDs to return.</param>
+        /// <param name="cancellationToken">The token to monitor for cancellation.</param>
+        Task<List<string>> GetRecordingIdsWithVariantsPageAsync(
+            string? afterRecordingId,
+            int limit,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         ///     Get codec profile keys present for a recording.
         /// </summary>
         Task<List<string>> GetCodecProfilesForRecordingAsync(string recordingId, CancellationToken cancellationToken = default);

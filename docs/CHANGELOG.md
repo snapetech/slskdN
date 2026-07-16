@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Shadow Index publishing now advances through indexed normalized recording-ID
+  pages instead of loading the full library and repeatedly selecting one fixed
+  newest batch. Its candidate count is clamped to the immediate DHT write
+  budget, and Virtual Soulfind now honors the configured DHT operation limit.
 - Download auto-retry now streams a minimal, indexed oldest-first candidate
   sequence and stops database enumeration once its bounded global/per-peer plan
   cannot change, instead of materializing every retained failed download each

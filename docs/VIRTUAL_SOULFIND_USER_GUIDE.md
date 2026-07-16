@@ -44,6 +44,8 @@ VirtualSoulfind:
     Enabled: true
     PublishIntervalMinutes: 15  # Publish to DHT every 15 minutes
     ShardTTLHours: 1  # Shard lifetime in DHT
+    MaxShardsPerPublish: 100  # Upper bound before the DHT minute budget
+    MaxDhtOperationsPerMinute: 60  # Shared write-rate ceiling
 
   Scenes:
     Enabled: true
@@ -190,6 +192,12 @@ Run privacy audit at `/api/virtualsoulfind/privacy/audit`:
 
 ### Performance
 
+Shadow Index publishing advances through normalized recording IDs in bounded
+indexed pages and wraps at the end of the library. The effective per-cycle
+batch is the smaller of `MaxShardsPerPublish` and
+`MaxDhtOperationsPerMinute`, so increasing the shard setting alone cannot
+create work that the DHT write budget will reject.
+
 ✅ **DO:**
 - Enable shadow index caching: `ShadowIndex.EnableCache: true`
 - Use scene-scoped jobs for better peer targeting
@@ -224,4 +232,3 @@ POST /api/virtualsoulfind/scenes/{sceneId}/chat
 For issues or questions:
 - GitHub Issues: `https://github.com/snapetech/slskdn/issues`
 - Documentation: `docs/VIRTUAL_SOULFIND.md`
-

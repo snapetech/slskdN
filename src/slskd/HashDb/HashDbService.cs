@@ -2498,6 +2498,54 @@ namespace slskd.HashDb
         }
 
         /// <inheritdoc/>
+        public async Task<List<string>> GetRecordingIdsWithVariantsPageAsync(
+            string? afterRecordingId,
+            int limit,
+            CancellationToken cancellationToken = default)
+        {
+            var list = new List<string>();
+            if (limit <= 0)
+            {
+                return list;
+            }
+
+            var cursor = afterRecordingId?.Trim();
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+
+            // Keep separate first-page and keyset SQL shapes so SQLite can use an index range search.
+            cmd.CommandText = string.IsNullOrWhiteSpace(cursor)
+                ? """
+                    SELECT DISTINCT TRIM(musicbrainz_id) COLLATE NOCASE AS recording_id
+                    FROM HashDb
+                    WHERE musicbrainz_id IS NOT NULL AND TRIM(musicbrainz_id) <> ''
+                    ORDER BY recording_id COLLATE NOCASE
+                    LIMIT @limit
+                    """
+                : """
+                    SELECT DISTINCT TRIM(musicbrainz_id) COLLATE NOCASE AS recording_id
+                    FROM HashDb
+                    WHERE musicbrainz_id IS NOT NULL AND TRIM(musicbrainz_id) <> ''
+                      AND TRIM(musicbrainz_id) COLLATE NOCASE > @after
+                    ORDER BY recording_id COLLATE NOCASE
+                    LIMIT @limit
+                    """;
+            cmd.Parameters.AddWithValue("@limit", limit);
+            if (!string.IsNullOrWhiteSpace(cursor))
+            {
+                cmd.Parameters.AddWithValue("@after", cursor);
+            }
+
+            using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                list.Add(reader.GetString(0));
+            }
+
+            return list;
+        }
+
+        /// <inheritdoc/>
         public async Task<List<string>> GetCodecProfilesForRecordingAsync(string recordingId, CancellationToken cancellationToken = default)
         {
             var list = new List<string>();

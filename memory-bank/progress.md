@@ -1,3 +1,14 @@
+## Update 2026-07-16 03:12:37Z
+
+- Completed the Shadow Index query, publication rotation, and DHT-budget efficiency pass.
+- Replaced full distinct recording-ID sorting/materialization followed by a fixed first-page `Take` with a normalized case-insensitive keyset page backed by HashDb migration 20's expression index.
+- Added an in-process publication cursor with end-of-library wrap so recurring cycles advance through eligible recordings instead of refreshing the same newest batch indefinitely.
+- Clamped candidate selection to the smaller of the configured shard count and immediate DHT minute budget, avoiding 40 guaranteed excess builds under the 100/60 defaults without increasing network operations.
+- Removed the later duplicate `IDhtRateLimiter` registration that overrode the options-aware factory and caused custom DHT operation budgets to be ignored.
+- On a 100,000-ID SQLite proxy, 100 old-shape queries took 2.81 seconds while 500 bounded 100-ID pages took 0.01 seconds; committed query-plan coverage requires an index range search without temporary sorting.
+- Added normalized keyset, cursor/wrap, bounded-publisher, DHT-budget, DI composition, cancellation, and query-plan regressions. Documented gotchas `0z637` through `0z639` in standalone commits `d1139b06b`, `9c60c280b`, and `7527bfe9d`, and extended shutdown-cancellation gotcha `0z429` in `52975512d`.
+- Validation passed: focused backend tests (`7/7`), complete smoke/unit/integration suites (`4791/4791`: `69` smoke, `4442` unit, `280` integration), repository lint, identity and diff checks. The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+
 ## Update 2026-07-16 02:46:03Z
 
 - Completed the recurring download auto-retry candidate-materialization performance pass.
