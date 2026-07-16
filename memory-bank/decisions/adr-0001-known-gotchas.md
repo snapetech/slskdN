@@ -52,6 +52,20 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z656. Static Application Helpers Must Qualify The Serilog Logger
+
+**The Bug**: A static file-pruning helper called `Log.Warning`, but
+`Application` already exposes an instance `Log` property. Name resolution chose
+the instance member, so the application project failed to compile with CS0120.
+
+**Files Affected**:
+- `src/slskd/Application.cs`
+
+**Prevention**: In static helpers nested inside types that define a `Log`
+member, call `Serilog.Log` with its fully qualified name. Do not assume an
+imported static logger name wins over a same-type member during overload/name
+resolution.
+
 ### 0z655. Destructive File Pipelines Must Be Streamed And Enumerated Once
 
 **The Bug**: Retention pruning materialized every filename with
