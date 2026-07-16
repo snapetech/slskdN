@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z645. Bulk Hint Publication Must Not Rewrite Shared Indexes Per Item
+
+**The Bug**: Share initialization deduplicated content IDs in memory, but the
+background publisher still read and rewrote the same peer-to-content DHT index
+after every individual content hint. Publishing 1,000 IDs therefore performed
+2,000 shared-index operations in addition to the required 1,000 hint writes.
+
+**Files Affected**:
+- `src/slskd/Mesh/Dht/ContentPeerHintService.cs`
+- `src/slskd/Mesh/Dht/ContentPeerPublisher.cs`
+
+**Prevention**: Preserve paced per-item network writes, but drain bounded work
+batches and merge their IDs into shared reverse-index state once per batch.
+Deduplicate IDs while they are queued so repeated scans cannot consume channel
+capacity or publish the same hint repeatedly before its pending write finishes.
+Do not implement a bulk producer by repeatedly invoking a single-item method
+that performs shared read-modify-write work.
+
 ### 0z644. Batched SQLite Identity Lookups Need Explicit Collation
 
 **The Bug**: A batched peer-count query deduplicated inputs and returned results
