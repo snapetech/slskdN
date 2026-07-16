@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z632. Shared Request Promises Must Clear After Failure
+
+**The Bug**: The first lifecycle-aware Bridge hydration reused one config
+request promise across Strict Mode setup and concurrent callers, but cleared
+the ref only after a successful response. A rejected initial request therefore
+remained cached forever, and every visibility retry immediately received the
+same rejection without making a new request.
+
+**Files Affected**:
+- `src/web/src/components/System/Bridge/index.jsx`
+
+**Prevention**: Clear shared in-flight promise refs in a `finally` block when
+the ref still owns that exact request. Coalescing should cover concurrent work,
+not cache failures indefinitely. Cover an initial failure followed by an
+explicit or visibility-driven retry that makes a new request and renders the
+successful result.
+
 ### 0z631. React Event Handlers Must Not Feed Events Into Option Parameters
 
 **The Bug**: The Security dashboard changed `fetchData` to accept a boolean
