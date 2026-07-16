@@ -228,7 +228,13 @@ public class DescriptorRetrieverTests
                 now.AddMinutes(5));
         }
 
-        _ = await CreateRetriever().ClearCacheAsync();
+        var warmupRetriever = CreateRetriever();
+        var warmupCache = (ConcurrentDictionary<string, CachedDescriptor>)cacheField.GetValue(warmupRetriever)!;
+        warmupCache["content:audio:track:warmup"] = new CachedDescriptor(
+            descriptor,
+            now,
+            now.AddMinutes(5));
+        _ = await warmupRetriever.ClearCacheAsync();
         var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
         var result = await retriever.ClearCacheAsync();
         var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
