@@ -4,15 +4,21 @@
 namespace slskd.Tests.Unit.Sharing;
 
 using System;
+using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using slskd.Sharing;
 using Xunit;
 
 public class ShareGroupRepositoryTests : IDisposable
 {
     private readonly string _dbPath;
+    private readonly CommandCaptureInterceptor _commands = new();
     private readonly IDbContextFactory<CollectionsDbContext> _factory;
 
     public ShareGroupRepositoryTests()
@@ -20,18 +26,45 @@ public class ShareGroupRepositoryTests : IDisposable
         _dbPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"test_{Guid.NewGuid()}.db");
         var options = new DbContextOptionsBuilder<CollectionsDbContext>()
             .UseSqlite($"Data Source={_dbPath}")
+            .AddInterceptors(_commands)
             .Options;
         _factory = new TestDbContextFactory(options);
 
         // Ensure database is created
         using var db = new CollectionsDbContext(options);
         db.Database.EnsureCreated();
+        _commands.Commands.Clear();
     }
 
     public void Dispose()
     {
         if (System.IO.File.Exists(_dbPath))
             System.IO.File.Delete(_dbPath);
+    }
+
+    [Fact]
+    public async Task AddMemberAsync_CreatesAndDeduplicatesWithOneCommand()
+    {
+        var repo = new ShareGroupRepository(_factory);
+        var groupId = Guid.NewGuid();
+        using (var db = await _factory.CreateDbContextAsync())
+        {
+            db.ShareGroups.Add(new ShareGroup { Id = groupId, Name = "Test", OwnerUserId = "alice" });
+            await db.SaveChangesAsync();
+        }
+
+        _commands.Commands.Clear();
+        await repo.AddMemberAsync(groupId, "bob", default);
+        AssertSingleConditionalInsert();
+
+        _commands.Commands.Clear();
+        await repo.AddMemberAsync(groupId, "bob", default);
+        AssertSingleConditionalInsert();
+
+        using var verification = await _factory.CreateDbContextAsync();
+        var member = Assert.Single(await verification.ShareGroupMembers.AsNoTracking().ToListAsync());
+        Assert.Equal("bob", member.UserId);
+        Assert.Null(member.PeerId);
     }
 
     [Fact]
@@ -47,7 +80,9 @@ public class ShareGroupRepositoryTests : IDisposable
             await db.SaveChangesAsync();
         }
 
+        _commands.Commands.Clear();
         await repo.AddMemberByPeerIdAsync(groupId, "peer123", default);
+        AssertSingleConditionalInsert();
 
         using (var db = await _factory.CreateDbContextAsync())
         {
@@ -71,14 +106,54 @@ public class ShareGroupRepositoryTests : IDisposable
             await db.SaveChangesAsync();
         }
 
+        _commands.Commands.Clear();
         await repo.AddMemberByPeerIdAsync(groupId, "peer123", default);
+        AssertSingleConditionalInsert();
+
+        _commands.Commands.Clear();
         await repo.AddMemberByPeerIdAsync(groupId, "peer123", default);
+        AssertSingleConditionalInsert();
 
         using (var db = await _factory.CreateDbContextAsync())
         {
             var count = await db.ShareGroupMembers.CountAsync(m => m.ShareGroupId == groupId && m.PeerId == "peer123");
             Assert.Equal(1, count);
         }
+    }
+
+    [Fact]
+    public async Task AddMemberByPeerIdAsync_DuplicateLegacyPeer_DoesNotAddAgain()
+    {
+        var repo = new ShareGroupRepository(_factory);
+        var groupId = Guid.NewGuid();
+        using (var db = await _factory.CreateDbContextAsync())
+        {
+            db.ShareGroups.Add(new ShareGroup { Id = groupId, Name = "Test", OwnerUserId = "alice" });
+            db.ShareGroupMembers.Add(new ShareGroupMember
+            {
+                ShareGroupId = groupId,
+                UserId = "legacy-user-id",
+                PeerId = "peer123",
+            });
+            await db.SaveChangesAsync();
+        }
+
+        _commands.Commands.Clear();
+        await repo.AddMemberByPeerIdAsync(groupId, "peer123", default);
+        AssertSingleConditionalInsert();
+
+        using var verification = await _factory.CreateDbContextAsync();
+        var member = Assert.Single(await verification.ShareGroupMembers.AsNoTracking().ToListAsync());
+        Assert.Equal("legacy-user-id", member.UserId);
+    }
+
+    [Fact]
+    public async Task AddMemberAsync_MissingGroup_PreservesForeignKeyFailure()
+    {
+        _commands.Commands.Clear();
+        await Assert.ThrowsAsync<SqliteException>(() =>
+            new ShareGroupRepository(_factory).AddMemberAsync(Guid.NewGuid(), "bob", default));
+        AssertSingleConditionalInsert();
     }
 
     [Fact]
@@ -163,6 +238,13 @@ public class ShareGroupRepositoryTests : IDisposable
         Assert.False(isMember);
     }
 
+    private void AssertSingleConditionalInsert()
+    {
+        var command = Assert.Single(_commands.Commands);
+        Assert.StartsWith("INSERT INTO \"ShareGroupMembers\"", command.TrimStart(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("WHERE NOT EXISTS", command, StringComparison.OrdinalIgnoreCase);
+    }
+
     private class TestDbContextFactory : IDbContextFactory<CollectionsDbContext>
     {
         private readonly DbContextOptions<CollectionsDbContext> _options;
@@ -173,5 +255,33 @@ public class ShareGroupRepositoryTests : IDisposable
         }
 
         public CollectionsDbContext CreateDbContext() => new(_options);
+
+        public ValueTask<CollectionsDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult(CreateDbContext());
+    }
+
+    private sealed class CommandCaptureInterceptor : DbCommandInterceptor
+    {
+        public List<string> Commands { get; } = new();
+
+        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
+        {
+            Commands.Add(command.CommandText);
+            return ValueTask.FromResult(result);
+        }
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            Commands.Add(command.CommandText);
+            return ValueTask.FromResult(result);
+        }
     }
 }

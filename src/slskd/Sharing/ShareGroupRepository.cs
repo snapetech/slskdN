@@ -60,21 +60,29 @@ public sealed class ShareGroupRepository : IShareGroupRepository
     public async Task AddMemberAsync(Guid shareGroupId, string userId, CancellationToken cancellationToken = default)
     {
         await using var db = await _factory.CreateDbContextAsync(cancellationToken);
-        if (await db.ShareGroupMembers.AnyAsync(x => x.ShareGroupId == shareGroupId && x.UserId == userId, cancellationToken))
-            return;
-        db.ShareGroupMembers.Add(new ShareGroupMember { ShareGroupId = shareGroupId, UserId = userId });
-        await db.SaveChangesAsync(cancellationToken);
+        await db.Database.ExecuteSqlInterpolatedAsync($$"""
+            INSERT INTO "ShareGroupMembers" ("ShareGroupId", "UserId", "PeerId")
+            SELECT {{shareGroupId}}, {{userId}}, NULL
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM "ShareGroupMembers"
+                WHERE "ShareGroupId" = {{shareGroupId}}
+                  AND "UserId" = {{userId}})
+            """, cancellationToken);
     }
 
     public async Task AddMemberByPeerIdAsync(Guid shareGroupId, string peerId, CancellationToken cancellationToken = default)
     {
         await using var db = await _factory.CreateDbContextAsync(cancellationToken);
-        if (await db.ShareGroupMembers.AnyAsync(x => x.ShareGroupId == shareGroupId && x.PeerId == peerId, cancellationToken))
-            return;
-
-        // Use PeerId as UserId for backward compatibility (legacy code expects UserId)
-        db.ShareGroupMembers.Add(new ShareGroupMember { ShareGroupId = shareGroupId, UserId = peerId, PeerId = peerId });
-        await db.SaveChangesAsync(cancellationToken);
+        await db.Database.ExecuteSqlInterpolatedAsync($$"""
+            INSERT INTO "ShareGroupMembers" ("ShareGroupId", "UserId", "PeerId")
+            SELECT {{shareGroupId}}, {{peerId}}, {{peerId}}
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM "ShareGroupMembers"
+                WHERE "ShareGroupId" = {{shareGroupId}}
+                  AND "PeerId" = {{peerId}})
+            """, cancellationToken);
     }
 
     public async Task RemoveMemberAsync(Guid shareGroupId, string userId, CancellationToken cancellationToken = default)

@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Share-group member admission now uses one atomic conditional SQLite insert
+  instead of a duplicate read followed by a separate write.
 - Collection reordering now writes ordinals through bounded transactional
   SQLite updates instead of hydrating and tracking the complete collection.
 - Key-unique Sharing deletes now execute as one atomic SQLite command instead

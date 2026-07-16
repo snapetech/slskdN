@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make share-group member admission atomic.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced read-before-write duplicate checks in user and peer member admission with one parameterized `INSERT ... SELECT ... WHERE NOT EXISTS` command. Both new and duplicate paths fall from two SQLite commands to one (50% fewer), and the duplicate decision is atomic with insertion. Composite user-key semantics, peer-key semantics, legacy peer rows with different stored user IDs, backward-compatible peer user IDs, and missing-parent foreign-key failures remain unchanged. Added exact one-command new/duplicate coverage plus legacy-peer and foreign-key regressions. Validation passed: focused repository tests (`9/9`), broader Sharing tests (`92/92`), full backend tests (`4919/4919`: `69` application, `4570` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Batch collection reorder persistence.
   - Status: completed (2026-07-16)
   - Priority: P1

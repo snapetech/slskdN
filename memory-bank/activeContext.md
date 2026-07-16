@@ -1,3 +1,17 @@
+## Update 2026-07-16 14:43:53Z
+
+- Current task: performance and efficiency improvements in progress; atomic share-group member admission complete locally.
+- Last activity:
+  - Replaced separate duplicate reads and inserts with one parameterized conditional insert for user- and peer-keyed membership.
+  - Commands fall 50% and duplicate decisions are atomic while legacy peer, backward-compatible user ID, and foreign-key behavior remain unchanged.
+- Validation:
+  - Passed focused repository (`9/9`), broader Sharing (`92/92`), and full backend (`4919/4919`) tests.
+  - Exact command/new/duplicate, legacy-peer, foreign-key, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the atomic member-admission slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 14:36:53Z
 
 - Current task: performance and efficiency improvements in progress; bounded collection reorder persistence complete locally.

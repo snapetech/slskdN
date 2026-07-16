@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Share-group user and peer admission now uses one parameterized conditional
+  SQLite insert instead of a duplicate query followed by an insert. New and
+  duplicate admission fall from two commands to one (50% fewer), and the
+  duplicate decision is atomic with the write. User-key and peer-key duplicate
+  semantics, legacy peer rows whose user ID differs, backward-compatible peer
+  user IDs, and missing-group foreign-key failures remain unchanged.
 - Collection reordering now applies ordinals through transactional 400-item
   SQLite updates instead of hydrating the complete collection and tracking an
   update for every requested item. A 1,000-item reorder hydrates zero entities
