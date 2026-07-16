@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z622. SQLite Negative Limits Disable Pagination
+
+**The Bug**: The Library Health issues API passed caller-provided limits
+directly to SQLite. SQLite interprets a negative `LIMIT` as no limit, so a
+nominally paged endpoint could be made to materialize and serialize the entire
+issue table with one request.
+
+**Files Affected**:
+- `src/slskd/LibraryHealth/API/LibraryHealthController.cs`
+- `src/slskd/HashDb/HashDbService.cs`
+
+**Prevention**: Validate public page limits against explicit positive bounds
+and clamp again at the database service boundary for internal callers. Do not
+assume SQL engines interpret negative limits as empty pages or invalid input.
+Cover zero, negative, and over-maximum values at the API boundary.
+
 ### 0z621. Aggregate Endpoints Must Not Reuse Bounded Entity Lists
 
 **The Bug**: Library Health summary and grouping endpoints reused
