@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z658. High-Volume SQLite Ingestion Must Batch Rows Per Command
+
+**The Bug**: Source Discovery opened one SQLite command, rebuilt the same UPSERT
+text, and allocated five parameters for every returned file. The Soulseek search
+allows up to one million files, so a single discovery cycle could compile and
+execute one million commands inside one transaction even though the rows share
+one write shape.
+
+**Files Affected**:
+- `src/slskd/Transfers/MultiSource/Discovery/SourceDiscoveryService.cs`
+
+**Prevention**: Stream high-volume rows into bounded multi-value INSERT/UPSERT
+commands and keep the existing transaction boundary. Choose the batch size from
+the conservative SQLite variable limit: with five parameters per row, 100 rows
+uses 500 variables and remains below the historical 999-variable floor. Flush
+the final partial batch, check cancellation while filling batches, and cover a
+row count that crosses more than one complete batch.
+
 ### 0z657. File Scans Must Defer Group-Level Analysis And Batch Child Keys
 
 **The Bug**: Library Health ran release-completeness analysis from every file
