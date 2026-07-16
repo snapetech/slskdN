@@ -69,8 +69,16 @@ adding a `COLLATE NOCASE` predicate would still scan the table.
 **Prevention**: Replace parent-by-parent searches with a direct child-key query
 and ensure the index expression/collation exactly matches the caller's equality
 semantics. Lock the plan with `EXPLAIN QUERY PLAN`, including the named index
-and absence of temporary work, and verify the old catalog/per-parent methods
+and absence of a child-table scan, and verify the old catalog/per-parent methods
 are never invoked from the direct path.
+
+**2026-07-16 update:** Preserving the established newest-album/earliest-track
+choice requires ordering the small set of rows matched by one recording ID.
+Forcing an album-created index to remove that temporary sort makes SQLite scan
+albums and probe tracks release by release, recreating the expensive search
+shape inside one SQL command. Prefer the direct recording-index lookup plus a
+bounded semantic sort; do not optimize query-plan cosmetics at the expense of
+more rows and index probes.
 
 ### 0z665. Enumerating An ILookup Yields Groups, Not Elements
 
