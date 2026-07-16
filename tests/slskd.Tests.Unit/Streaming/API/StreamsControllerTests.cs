@@ -147,8 +147,8 @@ public class StreamsControllerTests
         SetContext(controller, authBearer: "tok");
         _tokensMock.Setup(x => x.ValidateAsync("tok", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ShareTokenClaims("s1", "c1", null, true, true, 1, DateTimeOffset.UtcNow.AddHours(1)));
-        _sharingMock.Setup(x => x.GetCollectionItemsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CollectionItem> { new() { ContentId = "other" } });
+        _sharingMock.Setup(x => x.CollectionContainsContentAsync(It.IsAny<Guid>(), "c1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
 
         var r = await controller.Get("c1", null, null, CancellationToken.None);
 
@@ -241,8 +241,8 @@ public class StreamsControllerTests
             SetContext(controller, authBearer: "share:the-jwt");
             _tokensMock.Setup(x => x.ValidateAsync("the-jwt", It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new ShareTokenClaims("s1", collectionId.ToString(), null, true, true, 2, DateTimeOffset.UtcNow.AddHours(1)));
-            _sharingMock.Setup(x => x.GetCollectionItemsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new List<CollectionItem> { new() { ContentId = "c1" } });
+            _sharingMock.Setup(x => x.CollectionContainsContentAsync(collectionId, "c1", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
             _locatorMock.Setup(x => x.Resolve("c1", It.IsAny<CancellationToken>()))
                 .Returns(new ResolvedContent(path, 2, "audio/flac"));
             _limiterMock.Setup(x => x.TryAcquire("s1", 2)).Returns(true);
@@ -252,6 +252,7 @@ public class StreamsControllerTests
             var file = Assert.IsType<FileStreamResult>(r);
             Assert.Equal("audio/flac", file.ContentType);
             _tokensMock.Verify(x => x.ValidateAsync("the-jwt", It.IsAny<CancellationToken>()), Times.Once);
+            _sharingMock.Verify(x => x.GetCollectionItemsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
             file.FileStream.Dispose();
         }
         finally
@@ -340,8 +341,8 @@ public class StreamsControllerTests
         controller.HttpContext.Request.Headers["X-Share-Token"] = "share-tok";
         _tokensMock.Setup(x => x.ValidateAsync("share-tok", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ShareTokenClaims("s1", collectionId.ToString(), null, true, true, 1, DateTimeOffset.UtcNow.AddHours(1)));
-        _sharingMock.Setup(x => x.GetCollectionItemsAsync(collectionId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CollectionItem> { new() { ContentId = "c1" } });
+        _sharingMock.Setup(x => x.CollectionContainsContentAsync(collectionId, "c1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
         _locatorMock.Setup(x => x.Resolve("c1", It.IsAny<CancellationToken>()))
             .Returns(new ResolvedContent("/tmp/x", 100, "audio/mpeg"));
         _ticketsServiceMock.Setup(x => x.Create("c1", "share:s1", TimeSpan.FromMinutes(2)))
@@ -353,6 +354,7 @@ public class StreamsControllerTests
         Assert.Equal("ticket-xyz", ok.Value?.GetType().GetProperty("ticket")?.GetValue(ok.Value));
         Assert.Equal(120, ok.Value?.GetType().GetProperty("expiresInSeconds")?.GetValue(ok.Value));
         _tokensMock.Verify(x => x.ValidateAsync("share-tok", It.IsAny<CancellationToken>()), Times.Once);
+        _sharingMock.Verify(x => x.GetCollectionItemsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -366,8 +368,8 @@ public class StreamsControllerTests
         controller.HttpContext.Request.Headers.Authorization = "Bearer share:share-tok";
         _tokensMock.Setup(x => x.ValidateAsync("share-tok", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ShareTokenClaims("s1", collectionId.ToString(), null, true, true, 1, DateTimeOffset.UtcNow.AddHours(1)));
-        _sharingMock.Setup(x => x.GetCollectionItemsAsync(collectionId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<CollectionItem> { new() { ContentId = "other" } });
+        _sharingMock.Setup(x => x.CollectionContainsContentAsync(collectionId, "c1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
 
         var r = await controller.CreateShareTicket("c1", CancellationToken.None);
 

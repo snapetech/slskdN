@@ -11,6 +11,9 @@ using Microsoft.EntityFrameworkCore;
 /// </summary>
 public class CollectionsDbContext : DbContext
 {
+    internal const string ContentLookupIndexName = "IX_CollectionItems_CollectionId_ContentId";
+    internal const string ContentLookupIndexSql = $"CREATE INDEX IF NOT EXISTS {ContentLookupIndexName} ON CollectionItems(CollectionId, ContentId)";
+
     public CollectionsDbContext(DbContextOptions<CollectionsDbContext> options)
         : base(options)
     {
@@ -50,6 +53,7 @@ public class CollectionsDbContext : DbContext
             e.HasOne(x => x.Collection).WithMany().HasForeignKey(x => x.CollectionId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => x.CollectionId);
             e.HasIndex(x => new { x.CollectionId, x.Ordinal });
+            e.HasIndex(x => new { x.CollectionId, x.ContentId }).HasDatabaseName(ContentLookupIndexName);
         });
 
         modelBuilder.Entity<ShareGrant>(e =>

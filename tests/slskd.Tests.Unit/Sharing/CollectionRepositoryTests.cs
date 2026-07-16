@@ -44,6 +44,85 @@ public sealed class CollectionRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task ContainsContentAsync_UsesCompositeIndexWithoutHydration()
+    {
+        var collectionId = Guid.NewGuid();
+        var otherCollectionId = Guid.NewGuid();
+        await using (var db = await _factory.CreateDbContextAsync())
+        {
+            db.Collections.AddRange(
+                new Collection { Id = collectionId, OwnerUserId = "owner", Title = "Collection" },
+                new Collection { Id = otherCollectionId, OwnerUserId = "owner", Title = "Other" });
+            db.CollectionItems.AddRange(Enumerable.Range(0, 1000).Select(index => new CollectionItem
+            {
+                CollectionId = collectionId,
+                ContentId = $"content:{index:D4}",
+                Ordinal = index,
+            }));
+            await db.SaveChangesAsync();
+        }
+
+        var repository = new CollectionRepository(_factory);
+        _commands.Commands.Clear();
+        _materialization.Count = 0;
+        Assert.True(await repository.ContainsContentAsync(collectionId, "content:0777"));
+        Assert.Equal(0, _materialization.Count);
+        var command = Assert.Single(_commands.Commands);
+        Assert.Contains("EXISTS", command, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"CollectionId\"", command, StringComparison.Ordinal);
+        Assert.Contains("\"ContentId\"", command, StringComparison.Ordinal);
+
+        _commands.Commands.Clear();
+        Assert.False(await repository.ContainsContentAsync(collectionId, "CONTENT:0777"));
+        Assert.False(await repository.ContainsContentAsync(otherCollectionId, "content:0777"));
+        Assert.Equal(2, _commands.Commands.Count);
+
+        await using var verification = await _factory.CreateDbContextAsync();
+        await verification.Database.OpenConnectionAsync();
+        await using var plan = verification.Database.GetDbConnection().CreateCommand();
+        plan.CommandText = """
+            EXPLAIN QUERY PLAN
+            SELECT 1
+            FROM CollectionItems
+            WHERE CollectionId = $collection_id
+              AND ContentId = $content_id
+            LIMIT 1
+            """;
+        var collectionParameter = plan.CreateParameter();
+        collectionParameter.ParameterName = "$collection_id";
+        collectionParameter.Value = collectionId;
+        plan.Parameters.Add(collectionParameter);
+        var contentParameter = plan.CreateParameter();
+        contentParameter.ParameterName = "$content_id";
+        contentParameter.Value = "content:0777";
+        plan.Parameters.Add(contentParameter);
+        await using var reader = await plan.ExecuteReaderAsync();
+        Assert.True(await reader.ReadAsync());
+        Assert.Contains(
+            "IX_CollectionItems_CollectionId_ContentId",
+            reader.GetString(3),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ContentLookupIndexUpgrade_IsIdempotentAndRestoresIndex()
+    {
+        await using var db = await _factory.CreateDbContextAsync();
+        await db.Database.ExecuteSqlRawAsync($"DROP INDEX {CollectionsDbContext.ContentLookupIndexName}");
+        await db.Database.ExecuteSqlRawAsync(CollectionsDbContext.ContentLookupIndexSql);
+        await db.Database.ExecuteSqlRawAsync(CollectionsDbContext.ContentLookupIndexSql);
+
+        await db.Database.OpenConnectionAsync();
+        await using var command = db.Database.GetDbConnection().CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = $name";
+        var name = command.CreateParameter();
+        name.ParameterName = "$name";
+        name.Value = CollectionsDbContext.ContentLookupIndexName;
+        command.Parameters.Add(name);
+        Assert.Equal(1L, await command.ExecuteScalarAsync());
+    }
+
+    [Fact]
     public async Task GetItemAsync_HydratesOnlyTheScopedItem()
     {
         var collectionId = Guid.NewGuid();

@@ -89,6 +89,7 @@ public sealed class SharingService : ISharingService
     public Task<bool> DeleteCollectionAsync(Guid id, CancellationToken ct = default) => _collections.DeleteAsync(id, ct);
     public Task<CollectionItem?> GetCollectionItemAsync(Guid collectionId, Guid itemId, CancellationToken ct = default) => _collections.GetItemAsync(collectionId, itemId, ct);
     public Task<IReadOnlyList<CollectionItem>> GetCollectionItemsAsync(Guid collectionId, CancellationToken ct = default) => _collections.GetItemsAsync(collectionId, ct);
+    public Task<bool> CollectionContainsContentAsync(Guid collectionId, string contentId, CancellationToken ct = default) => _collections.ContainsContentAsync(collectionId, contentId, ct);
     public Task<CollectionItem> AddCollectionItemAsync(CollectionItem item, CancellationToken ct = default) => _collections.AddItemAsync(item, ct);
     public Task UpdateCollectionItemAsync(CollectionItem item, CancellationToken ct = default) => _collections.UpdateItemAsync(item, ct);
     public Task<bool> RemoveCollectionItemAsync(Guid itemId, CancellationToken ct = default) => _collections.RemoveItemAsync(itemId, ct);

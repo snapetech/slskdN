@@ -1,6 +1,6 @@
 # Current API surface inventory
 
-Generated: 2026-07-16T01:05:14Z
+Generated: 2026-07-16T15:24:21Z
 
 This inventory is generated from controller attributes. It is intended for parity/security review, not as a replacement for Swagger or integration tests.
 
@@ -255,5 +255,5 @@ None found.
   - 58:    [HttpPost("{contentId}/ticket")]
   - 87:    [HttpPost("{contentId}/share-ticket")]
   - 88:    [AllowAnonymous]
-  - 153:    [HttpGet("{contentId}")]
-  - 154:    [AllowAnonymous]
+  - 152:    [HttpGet("{contentId}")]
+  - 153:    [AllowAnonymous]

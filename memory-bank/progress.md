@@ -1,3 +1,10 @@
+## Update 2026-07-16 15:23:21Z
+
+- Completed the indexed share-token streaming content-authorization performance pass.
+- Share-ticket creation and share-token streaming now issue one exact collection/content existence query instead of loading and scanning the complete collection; fresh and existing sharing databases receive the matching composite index.
+- With 1,000 items, authorization hydration falls from 1,000 entities to zero. Case-sensitive identity, collection scoping, token/ticket validation, resolver order, limiting, and not-found behavior remain unchanged.
+- Validation passed: focused repository/service/controller tests (`49/49`), broader Sharing/Streaming tests (`196/196`), full backend tests (`4933/4933`: `69` application, `4584` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 15:13:51Z
 
 - Completed the exact single-grant access authorization performance pass.

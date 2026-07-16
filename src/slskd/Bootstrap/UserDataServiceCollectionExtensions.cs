@@ -86,6 +86,7 @@ public static class UserDataServiceCollectionExtensions
             "ALTER TABLE CollectionItems ADD COLUMN Title TEXT",
             "ALTER TABLE CollectionItems ADD COLUMN Artist TEXT",
             "ALTER TABLE CollectionItems ADD COLUMN Album TEXT",
+            Sharing.CollectionsDbContext.ContentLookupIndexSql,
         })
         {
             try

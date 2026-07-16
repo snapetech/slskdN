@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Index share-token streaming content authorization.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added an exact collection/content existence lookup backed by `(CollectionId, ContentId)` and routed share-ticket creation plus share-token streaming through it instead of hydrating and scanning complete collections. The shared index definition is applied by EF for fresh databases and by idempotent startup SQL for existing databases. With 1,000 items, authorization hydration falls from 1,000 entities to zero. Case-sensitive content identity, collection scoping, token/ticket validation, resolver ordering, limiter behavior, and not-found results remain unchanged. Added production SQLite exact/miss/scope/zero-materialization/generated-SQL/query-plan coverage, idempotent upgrade coverage, exact service delegation, and both controller zero-list-call boundaries. Validation passed: focused repository/service/controller tests (`49/49`), broader Sharing/Streaming tests (`196/196`), full backend tests (`4933/4933`: `69` application, `4584` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Scope single-grant access authorization by grant ID.
   - Status: completed (2026-07-16)
   - Priority: P1

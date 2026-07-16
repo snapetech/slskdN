@@ -1,3 +1,17 @@
+## Update 2026-07-16 15:23:21Z
+
+- Current task: performance and efficiency improvements in progress; indexed share-token content authorization complete locally.
+- Last activity:
+  - Added an exact collection/content existence query and matching fresh/existing-database composite index, then removed full collection hydration from both share-token streaming paths.
+  - At 1,000 items, hydration falls to zero while case, scope, token/ticket, resolver, limiter, and not-found semantics remain unchanged.
+- Validation:
+  - Passed focused repository/service/controller (`49/49`), broader Sharing/Streaming (`196/196`), and full backend (`4933/4933`) tests.
+  - Exact SQL/result/miss/scope/materialization/query-plan/upgrade and zero-list caller boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the indexed streaming membership slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 15:13:51Z
 
 - Current task: performance and efficiency improvements in progress; exact single-grant access authorization complete locally.

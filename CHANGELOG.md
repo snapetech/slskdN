@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Share-token streaming authorization now uses an indexed content-membership
+  existence query instead of loading and scanning every collection item.
 - Single-grant authorization now resolves one active grant by ID and checks
   only its group membership instead of loading every accessible grant.
 - Collection item updates now resolve one scoped item by ID instead of loading

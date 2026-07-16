@@ -32,6 +32,7 @@ public interface ISharingService
     Task<bool> DeleteCollectionAsync(Guid id, CancellationToken ct = default);
     Task<CollectionItem?> GetCollectionItemAsync(Guid collectionId, Guid itemId, CancellationToken ct = default);
     Task<IReadOnlyList<CollectionItem>> GetCollectionItemsAsync(Guid collectionId, CancellationToken ct = default);
+    Task<bool> CollectionContainsContentAsync(Guid collectionId, string contentId, CancellationToken ct = default);
     Task<CollectionItem> AddCollectionItemAsync(CollectionItem item, CancellationToken ct = default);
     Task UpdateCollectionItemAsync(CollectionItem item, CancellationToken ct = default);
     Task<bool> RemoveCollectionItemAsync(Guid itemId, CancellationToken ct = default);

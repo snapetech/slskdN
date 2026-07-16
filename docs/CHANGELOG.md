@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Share-ticket creation and share-token streaming now authorize content through
+  one exact indexed collection-membership existence query instead of hydrating
+  and scanning every collection item. A `(CollectionId, ContentId)` index is
+  created for fresh and existing sharing databases. With 1,000 items,
+  authorization hydration falls from 1,000 rows to zero, while case-sensitive
+  content identity, collection scoping, token validation, resolver ordering,
+  tickets, and not-found behavior remain unchanged.
 - Single-grant get, backfill, and authenticated-manifest authorization now
   resolves one active grant by ID and queries group membership only for that
   grant instead of hydrating every accessible direct and group grant. With

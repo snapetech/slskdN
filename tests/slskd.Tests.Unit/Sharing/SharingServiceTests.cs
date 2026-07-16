@@ -49,6 +49,23 @@ public class SharingServiceTests
     }
 
     [Fact]
+    public async Task CollectionContainsContentAsync_DelegatesExactLookup()
+    {
+        var collectionId = Guid.NewGuid();
+        _collectionsMock
+            .Setup(repository => repository.ContainsContentAsync(collectionId, "content", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        Assert.True(await CreateService().CollectionContainsContentAsync(collectionId, "content", default));
+        _collectionsMock.Verify(
+            repository => repository.ContainsContentAsync(collectionId, "content", It.IsAny<CancellationToken>()),
+            Times.Once);
+        _collectionsMock.Verify(
+            repository => repository.GetItemsAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task CreateTokenAsync_GrantNotFound_Throws()
     {
         var svc = CreateService();

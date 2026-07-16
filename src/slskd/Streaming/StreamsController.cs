@@ -109,8 +109,7 @@ public class StreamsController : ControllerBase
         if (claims == null || !claims.AllowStream) return Unauthorized();
         if (!Guid.TryParse(claims.CollectionId, out var collectionId)) return NotFound();
 
-        var items = await _sharing.GetCollectionItemsAsync(collectionId, ct);
-        if (items.All(x => !string.Equals(x.ContentId, contentId, StringComparison.Ordinal))) return NotFound();
+        if (!await _sharing.CollectionContainsContentAsync(collectionId, contentId, ct)) return NotFound();
 
         if (_locator.Resolve(contentId, ct) == null) return NotFound();
 
@@ -202,8 +201,7 @@ public class StreamsController : ControllerBase
             if (claims == null) return Unauthorized();
             if (!claims.AllowStream) return Unauthorized();
             if (!Guid.TryParse(claims.CollectionId, out var collectionId)) return NotFound();
-            var items = await _sharing.GetCollectionItemsAsync(collectionId, ct);
-            if (items.All(x => !string.Equals(x.ContentId, contentId, StringComparison.Ordinal))) return NotFound();
+            if (!await _sharing.CollectionContainsContentAsync(collectionId, contentId, ct)) return NotFound();
         }
         else
         {
