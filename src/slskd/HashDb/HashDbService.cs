@@ -49,6 +49,7 @@ namespace slskd.HashDb
         private const int MeshMergeLookupBatchSize = 500;
         private const int MeshMergeInsertBatchSize = 100;
         private const int AlbumTrackUpsertBatchSize = 100;
+        private const int ReleaseJobUpsertBatchSize = 100;
 
         private readonly string dbPath;
         private readonly ILogger log = Log.ForContext<HashDbService>();
@@ -3339,36 +3340,23 @@ namespace slskd.HashDb
         /// <inheritdoc/>
         public async Task UpsertDiscographyReleaseJobsAsync(string jobId, IEnumerable<DiscographyReleaseJobStatus> releases, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(jobId) || releases == null)
+            jobId = jobId?.Trim() ?? string.Empty;
+            var normalized = NormalizeReleaseJobs(releases);
+            if (string.IsNullOrWhiteSpace(jobId) || normalized.Count == 0)
             {
                 return;
             }
 
             using var conn = GetConnection();
             using var tx = conn.BeginTransaction();
-
-            foreach (var release in releases)
-            {
-                if (release == null || string.IsNullOrWhiteSpace(release.ReleaseId))
-                {
-                    continue;
-                }
-
-                using var cmd = conn.CreateCommand();
-                cmd.Transaction = tx;
-                cmd.CommandText = @"
-                    INSERT INTO DiscographyReleaseJobs (discography_job_id, release_id, status)
-                    VALUES (@job_id, @release_id, @status)
-                    ON CONFLICT(discography_job_id, release_id) DO UPDATE SET
-                        status = excluded.status";
-
-                cmd.Parameters.AddWithValue("@job_id", jobId);
-                cmd.Parameters.AddWithValue("@release_id", release.ReleaseId);
-                cmd.Parameters.AddWithValue("@status", release.Status.ToString().ToLowerInvariant());
-
-                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-            }
-
+            await UpsertReleaseJobsInBatchesAsync(
+                conn,
+                tx,
+                "DiscographyReleaseJobs",
+                "discography_job_id",
+                jobId,
+                normalized,
+                cancellationToken).ConfigureAwait(false);
             tx.Commit();
         }
 
@@ -3890,43 +3878,75 @@ namespace slskd.HashDb
         public async Task UpsertLabelCrateReleaseJobsAsync(string jobId, IEnumerable<DiscographyReleaseJobStatus> releases, CancellationToken cancellationToken = default)
         {
             jobId = jobId?.Trim() ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(jobId) || releases == null)
+            var normalized = NormalizeReleaseJobs(releases);
+            if (string.IsNullOrWhiteSpace(jobId) || normalized.Count == 0)
             {
                 return;
             }
 
             using var conn = GetConnection();
             using var tx = conn.BeginTransaction();
+            await UpsertReleaseJobsInBatchesAsync(
+                conn,
+                tx,
+                "LabelCrateReleaseJobs",
+                "label_crate_job_id",
+                jobId,
+                normalized,
+                cancellationToken).ConfigureAwait(false);
+            tx.Commit();
+        }
 
-            foreach (var release in releases)
+        private static List<DiscographyReleaseJobStatus> NormalizeReleaseJobs(IEnumerable<DiscographyReleaseJobStatus>? releases)
+        {
+            if (releases == null)
             {
-                if (release == null || string.IsNullOrWhiteSpace(release.ReleaseId))
-                {
-                    continue;
-                }
-
-                var releaseId = release.ReleaseId.Trim();
-                if (string.IsNullOrWhiteSpace(releaseId))
-                {
-                    continue;
-                }
-
-                using var cmd = conn.CreateCommand();
-                cmd.Transaction = tx;
-                cmd.CommandText = @"
-                    INSERT INTO LabelCrateReleaseJobs (label_crate_job_id, release_id, status)
-                    VALUES (@job_id, @release_id, @status)
-                    ON CONFLICT(label_crate_job_id, release_id) DO UPDATE SET
-                        status = excluded.status";
-
-                cmd.Parameters.AddWithValue("@job_id", jobId);
-                cmd.Parameters.AddWithValue("@release_id", releaseId);
-                cmd.Parameters.AddWithValue("@status", release.Status.ToString().ToLowerInvariant());
-
-                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                return new List<DiscographyReleaseJobStatus>();
             }
 
-            tx.Commit();
+            return releases
+                .Where(release => release != null && !string.IsNullOrWhiteSpace(release.ReleaseId))
+                .Select(release => new DiscographyReleaseJobStatus
+                {
+                    ReleaseId = release.ReleaseId.Trim(),
+                    Status = release.Status,
+                })
+                .ToList();
+        }
+
+        private static async Task<int> UpsertReleaseJobsInBatchesAsync(
+            SqliteConnection connection,
+            SqliteTransaction transaction,
+            string tableName,
+            string jobIdColumn,
+            string jobId,
+            IReadOnlyList<DiscographyReleaseJobStatus> releases,
+            CancellationToken cancellationToken)
+        {
+            var commandCount = 0;
+            foreach (var batch in releases.Chunk(ReleaseJobUpsertBatchSize))
+            {
+                using var cmd = connection.CreateCommand();
+                cmd.Transaction = transaction;
+                var values = batch.Select((_, index) => $"(@job_id, @release_id{index}, @status{index})");
+                cmd.CommandText = $"""
+                    INSERT INTO {tableName} ({jobIdColumn}, release_id, status)
+                    VALUES {string.Join(", ", values)}
+                    ON CONFLICT({jobIdColumn}, release_id) DO UPDATE SET
+                        status = excluded.status
+                    """;
+                cmd.Parameters.AddWithValue("@job_id", jobId);
+                for (var index = 0; index < batch.Length; index++)
+                {
+                    cmd.Parameters.AddWithValue($"@release_id{index}", batch[index].ReleaseId);
+                    cmd.Parameters.AddWithValue($"@status{index}", batch[index].Status.ToString().ToLowerInvariant());
+                }
+
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                commandCount++;
+            }
+
+            return commandCount;
         }
 
         /// <inheritdoc/>

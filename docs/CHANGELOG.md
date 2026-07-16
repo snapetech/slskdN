@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Discography and label-crate release status lists now normalize composite job
+  keys before writing and use 100-row SQLite upserts inside their existing
+  transactions. A 202-row workload falls from 202 database commands to three
+  (98.5% fewer), while later duplicate statuses still win across batches.
 - HashDb statistics now aggregate total/capable peers, total/known FLAC
   inventory, and stored hashes with one SQLite command and one scan per table.
   Each dashboard or mesh-hello snapshot falls from five database commands to

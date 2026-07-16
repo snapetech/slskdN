@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch discography and label-crate release-job writes.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Normalized parent job IDs and release IDs before the transaction, skipped blank composite keys, and applied bounded 100-row upserts for both DiscographyReleaseJobs and LabelCrateReleaseJobs. A 202-valid-row workload falls from 202 SQLite commands to three (98.5% fewer) for either job type, with later duplicate status values still winning across batch boundaries. Fixed discography spaced keys becoming unreachable through normalized reads; added shared large-list normalization/duplicate regressions and documented gotcha `0z676` (`504f7008c`).
+
 - [x] Collapse HashDb statistics into one aggregate snapshot.
   - Status: completed (2026-07-16)
   - Priority: P1

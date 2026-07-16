@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Discography and label-crate release-job persistence now uses normalized,
+  bounded multi-row SQLite upserts.
 - HashDb statistics now aggregate peer, inventory, and hash counts through one
   SQLite snapshot command.
 - Album-target persistence now replaces normalized track lists with bounded

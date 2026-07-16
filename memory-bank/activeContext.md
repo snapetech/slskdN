@@ -1,3 +1,17 @@
+## Update 2026-07-16 09:06:26Z
+
+- Current task: performance and efficiency improvements in progress; release-job write batching pass complete locally.
+- Last activity:
+  - Normalized discography/label-crate composite job keys before transaction setup and replaced one release-status command per row with bounded 100-row SQLite upserts.
+  - A 202-valid-row list falls from 202 commands to three (98.5% fewer) for either job type. Later duplicate statuses still win across batches; discography spaced keys are now reachable by normalized reads. Documented gotcha `0z676` (`504f7008c`).
+- Validation:
+  - Passed focused release-job coverage (`2/2`), the complete HashDb class suite (`80/80`), and full backend tests (`4848/4848`: `69` application, `4499` unit, `280` integration).
+  - Repository lint and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the release-job persistence slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 08:58:04Z
 
 - Current task: performance and efficiency improvements in progress; HashDb statistics aggregation pass complete locally.

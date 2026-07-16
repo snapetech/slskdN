@@ -1364,6 +1364,52 @@ public class HashDbServiceTests : IDisposable
         Assert.Equal("rel-1", job.ReleaseId);
     }
 
+    [Fact]
+    public async Task ReleaseJobUpserts_BatchNormalizeAndApplyLaterDuplicateStatus()
+    {
+        await service.UpsertDiscographyJobAsync(new slskd.Jobs.DiscographyJob
+        {
+            JobId = "discography-job",
+            ArtistId = "artist-1",
+            ArtistName = "Artist",
+        });
+        await service.UpsertLabelCrateJobAsync(new slskd.Jobs.LabelCrateJob
+        {
+            JobId = "label-job",
+            LabelId = "label-1",
+            LabelName = "Label",
+        });
+        var releases = Enumerable.Range(1, 201)
+            .Select(index => new DiscographyReleaseJobStatus
+            {
+                ReleaseId = $" release-{index} ",
+                Status = JobStatus.Pending,
+            })
+            .Append(new DiscographyReleaseJobStatus
+            {
+                ReleaseId = "release-1",
+                Status = JobStatus.Failed,
+            })
+            .Append(new DiscographyReleaseJobStatus
+            {
+                ReleaseId = "   ",
+                Status = JobStatus.Completed,
+            })
+            .ToList();
+
+        await service.UpsertDiscographyReleaseJobsAsync(" discography-job ", releases);
+        await service.UpsertLabelCrateReleaseJobsAsync(" label-job ", releases);
+
+        var discography = await service.GetDiscographyReleaseJobsAsync("discography-job");
+        var label = await service.GetLabelCrateReleaseJobsAsync("label-job");
+        Assert.Equal(201, discography.Count);
+        Assert.Equal(201, label.Count);
+        Assert.All(discography, release => Assert.Equal(release.ReleaseId.Trim(), release.ReleaseId));
+        Assert.All(label, release => Assert.Equal(release.ReleaseId.Trim(), release.ReleaseId));
+        Assert.Equal(JobStatus.Failed, Assert.Single(discography, release => release.ReleaseId == "release-1").Status);
+        Assert.Equal(JobStatus.Failed, Assert.Single(label, release => release.ReleaseId == "release-1").Status);
+    }
+
     // ========== Hash Database Tests ==========
 
     [Fact]
