@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make combine-all metadata aggregation single-pass.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `MetadataPortability.MergeMetadataAsync` now feeds `CombineAll` sources directly into one aggregation pass instead of materializing a source list, projecting a second descriptor list, and running separate `SelectMany`/`Distinct`, maximum, codec, and confidence traversals. Ordered result lists plus membership sets retain first-occurrence hash/perceptual-hash order while scalar accumulators retain the first descriptor ContentID, maximum non-null size, first nonblank codec, sequential nullable-confidence average, and exact source count. For 100,000 sources containing duplicate hash data, warmed allocation falls from 9,602,312 bytes to less than 8 KiB (>99.9%); memory now scales with required unique output rather than source count. Null and empty boundaries, record equality distinctness, arithmetic order, output types, logging, and cancellation behavior remain unchanged. Added large allocation plus exact ordered-distinct/scalar selection coverage. Validation passed: focused metadata portability tests (`22/22`), broader MediaCore tests (`253/253`), full backend suites (`4996/4996`: `69` application, `4647` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Stream metadata package checksums without payload copies.
   - Status: completed (2026-07-16)
   - Priority: P1

@@ -1,3 +1,10 @@
+## Update 2026-07-16 19:42:45Z
+
+- Completed the single-pass combine-all metadata aggregation performance pass.
+- Source/descriptor copies and six separate aggregate traversals are replaced by ordered-distinct result/set accumulation and scalar fields in one source pass.
+- At 100,000 duplicate-heavy sources, warmed allocation falls from 9,602,312 bytes to below 8 KiB (>99.9%). Exact first-ID, ordered hash/perceptual distinctness, size, codec, confidence, count, and empty behavior remain unchanged.
+- Validation passed: focused metadata portability tests (`22/22`), broader MediaCore tests (`253/253`), full backend suites (`4996/4996`: `69` application, `4647` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 19:33:12Z
 
 - Completed the streaming metadata package-checksum performance pass.

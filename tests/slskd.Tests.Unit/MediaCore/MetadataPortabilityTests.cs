@@ -364,6 +364,96 @@ public class MetadataPortabilityTests
     }
 
     [Fact]
+    public async Task MergeMetadataAsync_CombineAllAvoidsDuplicateSourceAndDescriptorLists()
+    {
+        const int sourceCount = 100_000;
+        var contentId = "content:audio:track:mb-combine-large";
+        var descriptor = new ContentDescriptor
+        {
+            ContentId = contentId,
+            Hashes = new List<ContentHash> { new("sha256", "hash") },
+            PerceptualHashes = new List<PerceptualHash> { new("Chromaprint", "phash", 123UL) },
+            SizeBytes = 1234,
+            Codec = "flac",
+            Confidence = 0.75,
+        };
+        var timestamp = DateTimeOffset.UtcNow;
+        var sources = Enumerable.Range(0, sourceCount)
+            .Select(index => new MetadataSource($"source-{index}", descriptor, timestamp, index))
+            .ToArray();
+        _ = await _portability.MergeMetadataAsync(
+            contentId,
+            sources.AsSpan(0, 2).ToArray(),
+            MetadataMergeStrategy.CombineAll);
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var result = await _portability.MergeMetadataAsync(
+            contentId,
+            sources,
+            MetadataMergeStrategy.CombineAll);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(contentId, result.ContentId);
+        Assert.Equal(descriptor.Hashes, result.Hashes);
+        Assert.Equal(descriptor.PerceptualHashes, result.PerceptualHashes);
+        Assert.Equal(descriptor.SizeBytes, result.SizeBytes);
+        Assert.Equal(descriptor.Codec, result.Codec);
+        Assert.Equal(descriptor.Confidence, result.Confidence);
+        Assert.True(
+            allocatedBytes < 8 * 1024,
+            $"Expected single-pass combined aggregation below 8 KiB allocated, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
+    public async Task MergeMetadataAsync_CombineAllPreservesOrderedDistinctAndScalarSelection()
+    {
+        var hashA = new ContentHash("sha256", "a");
+        var hashB = new ContentHash("sha256", "b");
+        var hashC = new ContentHash("sha256", "c");
+        var perceptualA = new PerceptualHash("Chromaprint", "a", 1UL);
+        var perceptualB = new PerceptualHash("Chromaprint", "b", 2UL);
+        var timestamp = DateTimeOffset.UtcNow;
+        var sources = new[]
+        {
+            new MetadataSource("first", new ContentDescriptor
+            {
+                ContentId = "content:audio:track:first",
+                Hashes = new List<ContentHash> { hashA, hashB },
+                PerceptualHashes = new List<PerceptualHash> { perceptualA },
+                Codec = " ",
+            }, timestamp, 1),
+            new MetadataSource("second", new ContentDescriptor
+            {
+                ContentId = "content:audio:track:second",
+                Hashes = new List<ContentHash> { hashB, hashC },
+                PerceptualHashes = new List<PerceptualHash> { perceptualA, perceptualB },
+                SizeBytes = 10,
+                Codec = "flac",
+                Confidence = 0.25,
+            }, timestamp, 2),
+            new MetadataSource("third", new ContentDescriptor
+            {
+                ContentId = "content:audio:track:third",
+                SizeBytes = 20,
+                Codec = "mp3",
+                Confidence = 0.75,
+            }, timestamp, 3),
+        };
+
+        var result = await _portability.MergeMetadataAsync(
+            "content:audio:track:requested",
+            sources,
+            MetadataMergeStrategy.CombineAll);
+
+        Assert.Equal("content:audio:track:first", result.ContentId);
+        Assert.Equal(new[] { hashA, hashB, hashC }, result.Hashes);
+        Assert.Equal(new[] { perceptualA, perceptualB }, result.PerceptualHashes);
+        Assert.Equal(20, result.SizeBytes);
+        Assert.Equal("flac", result.Codec);
+        Assert.Equal(0.5, result.Confidence);
+    }
+
+    [Fact]
     public async Task MergeMetadataAsync_EmptySources_ThrowsException()
     {
         // Arrange

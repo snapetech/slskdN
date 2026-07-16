@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Combine-all metadata merging now aggregates ordered distinct hashes and scalar
+  fields in one source pass instead of building duplicate lists and rescanning.
 - Metadata export checksums now stream JSON segments directly into SHA-256
   instead of materializing complete UTF-16 and UTF-8 payload copies.
 - Metadata merge preference strategies now select their winning source in one

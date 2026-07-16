@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Combine-all metadata merging now aggregates every output field in one stable
+  source pass. It maintains ordered-distinct hash/perceptual-hash result lists
+  with membership sets and accumulates maximum size, first nonblank codec, and
+  average confidence directly, instead of creating source and descriptor copies
+  and running six LINQ traversals with per-source `SelectMany` state. For the
+  covered 100,000-source input, warmed allocation falls from 9,602,312 bytes to
+  below 8 KiB (>99.9%). First ContentID, ordered distinctness, nullable maximum,
+  codec selection, confidence arithmetic/order, exact source count, null/empty
+  behavior, and returned descriptor shape remain unchanged.
 - Metadata export checksum generation now writes the existing ordered
   `entries`/`links` JSON object through a reusable pooled buffer directly into
   incremental SHA-256. It no longer materializes the complete JSON as a UTF-16

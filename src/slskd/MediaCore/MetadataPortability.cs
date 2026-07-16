@@ -279,12 +279,9 @@ public class MetadataPortability : IMetadataPortability
 
         if (strategy == MetadataMergeStrategy.CombineAll)
         {
-            var sourceList = sources.ToList();
-            if (sourceList.Count == 0)
-                throw new ArgumentException("At least one metadata source is required", nameof(sources));
-
-            result = await CombineAllMetadataAsync(sourceList, cancellationToken);
-            sourceCount = sourceList.Count;
+            var combined = await CombineAllMetadataAsync(sources, cancellationToken);
+            result = combined.Descriptor;
+            sourceCount = combined.SourceCount;
         }
         else
         {
@@ -397,34 +394,86 @@ public class MetadataPortability : IMetadataPortability
         return false;
     }
 
-    private async Task<ContentDescriptor> CombineAllMetadataAsync(
+    private async Task<(ContentDescriptor Descriptor, int SourceCount)> CombineAllMetadataAsync(
         IEnumerable<MetadataSource> sources,
         CancellationToken cancellationToken)
     {
-        // Combine metadata from all sources
-        var descriptors = sources.Select(s => s.Descriptor).ToList();
+        var hashes = new List<ContentHash>();
+        var seenHashes = new HashSet<ContentHash>();
+        var perceptualHashes = new List<PerceptualHash>();
+        var seenPerceptualHashes = new HashSet<PerceptualHash>();
+        string? contentId = null;
+        long? sizeBytes = null;
+        string? codec = null;
+        var confidenceTotal = 0.0;
+        var confidenceCount = 0;
+        var sourceCount = 0;
+
+        foreach (var source in sources)
+        {
+            var descriptor = source.Descriptor;
+            if (sourceCount == 0)
+            {
+                contentId = descriptor.ContentId;
+            }
+
+            sourceCount++;
+
+            if (descriptor.Hashes != null)
+            {
+                foreach (var hash in descriptor.Hashes)
+                {
+                    if (seenHashes.Add(hash))
+                    {
+                        hashes.Add(hash);
+                    }
+                }
+            }
+
+            if (descriptor.PerceptualHashes != null)
+            {
+                foreach (var perceptualHash in descriptor.PerceptualHashes)
+                {
+                    if (seenPerceptualHashes.Add(perceptualHash))
+                    {
+                        perceptualHashes.Add(perceptualHash);
+                    }
+                }
+            }
+
+            if (descriptor.SizeBytes.HasValue &&
+                (!sizeBytes.HasValue || descriptor.SizeBytes.Value > sizeBytes.Value))
+            {
+                sizeBytes = descriptor.SizeBytes;
+            }
+
+            if (codec == null && !string.IsNullOrWhiteSpace(descriptor.Codec))
+            {
+                codec = descriptor.Codec;
+            }
+
+            if (descriptor.Confidence.HasValue)
+            {
+                confidenceTotal += descriptor.Confidence.Value;
+                confidenceCount++;
+            }
+        }
+
+        if (sourceCount == 0)
+            throw new ArgumentException("At least one metadata source is required", nameof(sources));
+
         var combined = new ContentDescriptor
         {
-            ContentId = descriptors.First().ContentId,
-
-            // Combine hashes from all sources
-            Hashes = descriptors.SelectMany(d => d.Hashes ?? Enumerable.Empty<ContentHash>()).Distinct().ToList(),
-
-            // Combine perceptual hashes
-            PerceptualHashes = descriptors.SelectMany(d => d.PerceptualHashes ?? Enumerable.Empty<PerceptualHash>()).Distinct().ToList(),
-
-            // Use the largest size if available
-            SizeBytes = descriptors.Max(d => d.SizeBytes),
-
-            // Prefer non-null codec
-            Codec = descriptors.FirstOrDefault(d => !string.IsNullOrWhiteSpace(d.Codec))?.Codec,
-
-            // Average confidence
-            Confidence = descriptors.Where(d => d.Confidence.HasValue).Average(d => d.Confidence)
+            ContentId = contentId!,
+            Hashes = hashes,
+            PerceptualHashes = perceptualHashes,
+            SizeBytes = sizeBytes,
+            Codec = codec,
+            Confidence = confidenceCount > 0 ? confidenceTotal / confidenceCount : null,
         };
 
         await Task.CompletedTask;
-        return combined;
+        return (combined, sourceCount);
     }
 
     internal static string ComputePackageChecksum(IEnumerable<MetadataEntry> entries, IEnumerable<IpldLink> links)
