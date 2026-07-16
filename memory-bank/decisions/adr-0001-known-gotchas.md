@@ -23985,6 +23985,12 @@ as `System.IO.File` or define an explicit alias. Do not rely on the unqualified
 `File` or `Transfer` type names when both domains are in scope. Prefer a stable
 alias such as `SlskdTransfer` for persisted transfer fixtures.
 
+**2026-07-16 update:** Importing `slskd.Search` creates the same `File`
+collision through its search-result model. HashDb controller fixtures that
+persist search responses must qualify cleanup calls as `System.IO.File` even
+when every constructed response file is already written as
+`slskd.Search.File`.
+
 ### 0z569. Frontend Combined Helpers Can Still Be HTTP Fan-Out
 
 **The Bug**: The Web helper named `getSlskdnStats` combined six API results in
