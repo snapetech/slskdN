@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z719. Expression-Bodied Local Initializers Need Continuation Indentation
+
+**The Bug**: A test-local expression-bodied factory placed the object
+initializer at the local function's base indentation. The code compiled and all
+tests passed, but repository lint rejected every initializer line with
+`WHITESPACE` errors because the expression after `=>` requires continuation
+indentation.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/VirtualSoulfind/v2/Planning/MultiSourcePlannerTests.cs`
+
+**Prevention**: When an expression-bodied local function returns an object
+initializer, indent the opening brace, members, and closing brace one
+continuation level beneath `=> new()`. Run `./bin/lint` after adding multiline
+local functions even when focused compilation and tests are already green.
+
 ### 0z718. A Nonzero Capacity Cap Can Worsen Dictionary Growth
 
 **The Bug**: Search aggregation initially pre-sized a dictionary to the maximum
