@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z694. EF Index Direction Must Match Migration SQL
+
+**The Bug**: A composite current-attempt index migration declared
+`RequestedAt DESC`, but the corresponding EF model initially used only
+`HasIndex(...)`. `EnsureCreated` would therefore build every key ascending,
+while upgraded databases received the mixed-direction migration index, making
+fresh and migrated installations use different schemas and query plans.
+
+**Files Affected**:
+- `src/slskd/Transfers/TransfersDbContext.cs`
+- `src/slskd/Core/Data/Migrations/Z07162026_DownloadRequestSummaryIndexMigration.cs`
+
+**Prevention**: For every mixed-direction composite index, pair migration SQL
+with an explicit EF `.IsDescending(...)` declaration and test both the model-
+created query plan and migration-created schema. Matching column names alone
+does not prove equivalent index ordering.
+
 ### 0z693. Migration Classes Do Nothing Until Migrator Registration
 
 **The Bug**: The ordered download auto-retry index migration was implemented
