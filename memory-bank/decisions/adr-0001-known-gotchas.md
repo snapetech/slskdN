@@ -52,6 +52,20 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z687. Database-Materialized Strings Require Value Assertions
+
+**The Bug**: A SQLite catalogue batch regression used `Assert.Same` to compare
+track titles after Dapper materialized the rows. Equal database strings are not
+required to retain the inserted object's reference, so the assertion tested
+object identity instead of stored value.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/VirtualSoulfind/v2/Catalogue/LocalFileAndVerifiedCopyTests.cs`
+
+**Prevention**: Use `Assert.Equal` for strings and other scalar values read
+through a database provider. Reserve `Assert.Same` for cases whose contract
+explicitly requires the exact in-memory object instance.
+
 ### 0z686. Positional Record Named Arguments Are Case-Sensitive
 
 **The Bug**: A `ResolvedLibraryItem` constructor call used the named argument
