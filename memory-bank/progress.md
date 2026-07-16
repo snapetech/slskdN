@@ -1,3 +1,10 @@
+## Update 2026-07-16 16:47:58Z
+
+- Completed the Virtual Soulfind canonical-selection performance pass.
+- Canonical variant choice now uses one stable maximum scan instead of sorting/materializing every hint, reducing complexity from O(n log n) to O(n) with constant working memory.
+- At 10,000 variants, measured selection allocation remains below 4 KiB. Codec priority/case behavior, quality order, unknown codecs, first-tie stability, response behavior, and network access remain unchanged.
+- Validation passed: focused controller tests (`6/6`), broader Virtual Soulfind tests (`397/397`), full backend suites (`4956/4956`: `69` application, `4607` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 16:40:52Z
 
 - Completed the MediaCore dashboard registry-snapshot consolidation performance pass.

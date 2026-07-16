@@ -84,27 +84,49 @@ public class CanonicalController : ControllerBase
         }
     }
 
-    private slskd.VirtualSoulfind.ShadowIndex.VariantHint? SelectCanonicalVariant(
+    internal static slskd.VirtualSoulfind.ShadowIndex.VariantHint? SelectCanonicalVariant(
         IReadOnlyList<slskd.VirtualSoulfind.ShadowIndex.VariantHint> variants)
     {
-        // Prefer FLAC > ALAC > AAC > MP3, then by quality score
-        var orderedVariants = variants
-            .OrderByDescending(v => GetCodecPriority(v.Codec))
-            .ThenByDescending(v => v.QualityScore)
-            .ToList();
+        slskd.VirtualSoulfind.ShadowIndex.VariantHint? canonicalVariant = null;
+        var canonicalCodecPriority = -1;
 
-        return orderedVariants.FirstOrDefault();
+        foreach (var variant in variants)
+        {
+            var codecPriority = GetCodecPriority(variant.Codec);
+            if (canonicalVariant == null ||
+                codecPriority > canonicalCodecPriority ||
+                (codecPriority == canonicalCodecPriority && variant.QualityScore > canonicalVariant.QualityScore))
+            {
+                canonicalVariant = variant;
+                canonicalCodecPriority = codecPriority;
+            }
+        }
+
+        return canonicalVariant;
     }
 
-    private int GetCodecPriority(string codec)
+    private static int GetCodecPriority(string codec)
     {
-        return codec?.ToUpperInvariant() switch
+        if (string.Equals(codec, "FLAC", StringComparison.OrdinalIgnoreCase))
         {
-            "FLAC" => 4,
-            "ALAC" => 3,
-            "AAC" => 2,
-            "MP3" => 1,
-            _ => 0
-        };
+            return 4;
+        }
+
+        if (string.Equals(codec, "ALAC", StringComparison.OrdinalIgnoreCase))
+        {
+            return 3;
+        }
+
+        if (string.Equals(codec, "AAC", StringComparison.OrdinalIgnoreCase))
+        {
+            return 2;
+        }
+
+        if (string.Equals(codec, "MP3", StringComparison.OrdinalIgnoreCase))
+        {
+            return 1;
+        }
+
+        return 0;
     }
 }

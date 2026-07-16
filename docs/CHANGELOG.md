@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Virtual Soulfind canonical selection now uses a stable single-pass maximum
+  instead of sorting and materializing the complete variant list. Selection
+  complexity falls from O(n log n) to O(n) with constant working memory; the
+  covered 10,000-variant input allocates less than 4 KiB during selection.
+  FLAC/ALAC/AAC/MP3 priority, case-insensitive codec matching, quality ordering,
+  unknown-codec handling, first-occurrence tie behavior, response fields, and
+  shadow-index network access remain unchanged.
 - MediaCore dashboard aggregation now shares one immutable content-registry
   snapshot between its registry and IPLD sections instead of reading registry
   statistics and every domain twice. For `D` domains, registry calls fall from

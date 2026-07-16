@@ -80,4 +80,42 @@ public class CanonicalControllerTests
         Assert.DoesNotContain("mbid-1", ok.Value?.ToString() ?? string.Empty, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("available_variants", ok.Value?.ToString() ?? string.Empty);
     }
+
+    [Fact]
+    public void SelectCanonicalVariant_UsesStableCodecThenQualityMaximum()
+    {
+        var expected = new VariantHint { Codec = "flac", QualityScore = 0.9 };
+        var tiedLater = new VariantHint { Codec = "FLAC", QualityScore = 0.9 };
+        var variants = new[]
+        {
+            new VariantHint { Codec = "unknown", QualityScore = 100 },
+            new VariantHint { Codec = "MP3", QualityScore = 1 },
+            new VariantHint { Codec = "ALAC", QualityScore = 1 },
+            new VariantHint { Codec = "FLAC", QualityScore = 0.8 },
+            expected,
+            tiedLater,
+        };
+
+        var result = CanonicalController.SelectCanonicalVariant(variants);
+
+        Assert.Same(expected, result);
+    }
+
+    [Fact]
+    public void SelectCanonicalVariant_LargeInputUsesBoundedWorkingMemory()
+    {
+        var variants = Enumerable.Range(0, 10_000)
+            .Select(index => new VariantHint { Codec = "FLAC", QualityScore = index })
+            .ToArray();
+        _ = CanonicalController.SelectCanonicalVariant(variants.AsSpan(0, 1).ToArray());
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var result = CanonicalController.SelectCanonicalVariant(variants);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Same(variants[^1], result);
+        Assert.True(
+            allocatedBytes < 4 * 1024,
+            $"Expected single-pass allocation below 4 KiB, got {allocatedBytes:N0} bytes.");
+    }
 }

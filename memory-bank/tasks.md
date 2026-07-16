@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make Virtual Soulfind canonical selection single-pass.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced the canonical variant list's full `OrderByDescending`/`ThenByDescending` materialization with a stable single-pass maximum. Complexity falls from O(n log n) to O(n) with constant working memory; the covered 10,000-variant input allocates less than 4 KiB during selection. FLAC-over-ALAC-over-AAC-over-MP3 priority, case-insensitive codec matching without uppercase-string allocation, quality ordering within a codec, unknown-codec handling, first-occurrence tie behavior, response shape/count/reason, cancellation, and shadow-index network access remain unchanged. Added exact ranking/tie and 10,000-variant allocation regressions. Validation passed: focused controller tests (`6/6`), broader Virtual Soulfind tests (`397/397`), full backend suites (`4956/4956`: `69` application, `4607` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Consolidate MediaCore dashboard registry snapshots.
   - Status: completed (2026-07-16)
   - Priority: P1

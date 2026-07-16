@@ -1,3 +1,17 @@
+## Update 2026-07-16 16:47:58Z
+
+- Current task: performance and efficiency improvements in progress; Virtual Soulfind canonical single-pass selection complete locally.
+- Last activity:
+  - Replaced complete variant sorting/materialization with a stable O(n), constant-working-memory maximum scan.
+  - The covered 10,000-variant selection allocates below 4 KiB while preserving codec/quality priority and first-tie behavior.
+- Validation:
+  - Passed focused controller (`6/6`), broader Virtual Soulfind (`397/397`), and full backend suites (`4956/4956`) tests.
+  - Exact priority/case/quality/tie and allocation boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the canonical selector slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 16:40:52Z
 
 - Current task: performance and efficiency improvements in progress; MediaCore dashboard registry-snapshot consolidation complete locally.
