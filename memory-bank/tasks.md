@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Reuse WorkRef security-validation patterns.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `WorkRef.ValidateSecurity` now enumerates one private process-wide sensitive-pattern table instead of constructing the same nine-element string array separately for every external-ID key/value, metadata key/value, title, and creator check. The regex text and order, lowercasing behavior, early exits, MusicBrainz/Discogs UUID exemptions, and all safe/unsafe outcomes remain unchanged. A representative safe music WorkRef performs four pattern scans per validation; across 10,000 warmed calls, allocation falls from exactly 3,840,000 bytes (384 bytes per call) to zero measured bytes. Added isolated exact-method warm-up and allocation coverage. Validation passed: focused WorkRef tests (`17/17`), broader SocialFederation tests (`79/79`), full backend suites (`5026/5026`: `69` application, `4677` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Reuse per-peer reputation decisions within each multi-source plan.
   - Status: completed (2026-07-16)
   - Priority: P1

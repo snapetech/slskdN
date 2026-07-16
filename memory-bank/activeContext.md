@@ -1,3 +1,17 @@
+## Update 2026-07-16 23:34:44Z
+
+- Current task: performance and efficiency improvements in progress; allocation-free warmed WorkRef pattern validation complete.
+- Last activity:
+  - Hoisted the validator's unchanged nine sensitive regex pattern strings into one private shared table instead of allocating an array for every checked field.
+  - A representative safe music WorkRef falls from exactly 3,840,000 allocated bytes across 10,000 warmed validations to zero measured bytes, removing 384 bytes per call for federation, recommendation, radar, and overlay users of the validator.
+- Validation:
+  - Passed focused WorkRef (`17/17`), broader SocialFederation (`79/79`), and full backend suites (`5026/5026`: `69` application, `4677` unit, `280` integration) tests.
+  - Exact pattern text/order, case normalization, early returns, UUID exemptions, safe/unsafe behavior, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  2. Revisit single-pass taste-recommendation aggregation as the next measured clean candidate.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 23:21:25Z
 
 - Current task: performance and efficiency improvements in progress; plan-local Soulseek reputation reuse complete locally.

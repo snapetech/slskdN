@@ -122,6 +122,19 @@ namespace slskd.SocialFederation
             "musicbrainz", "musicbrainz_artist", "musicbrainzArtist", "discogs"
         };
 
+        private static readonly string[] SensitivePatterns =
+        [
+            @"^[a-zA-Z]:[\\/]",
+            @"^/",
+            @"^\.\.",
+            @"[\\/]",
+            @"^[a-fA-F0-9]{32,}$",
+            @"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b",
+            @"^(pod|bridge):",
+            @"(localhost|127\.0\.0\.1|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)",
+            @"\b(hash|path|file|local|private|internal)\b"
+        ];
+
         public bool ValidateSecurity()
         {
             // Check external IDs for potentially sensitive patterns
@@ -166,22 +179,9 @@ namespace slskd.SocialFederation
             if (string.IsNullOrEmpty(input))
                 return false;
 
-            var patterns = new[]
+            foreach (var pattern in SensitivePatterns)
             {
-                @"^[a-zA-Z]:[\\/]",
-                @"^/",
-                @"^\.\.",
-                @"[\\/]",
-                @"^[a-fA-F0-9]{32,}$",
-                @"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b",
-                @"^(pod|bridge):",
-                @"(localhost|127\.0\.0\.1|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)",
-                @"\b(hash|path|file|local|private|internal)\b"
-            };
-
-            foreach (var p in patterns)
-            {
-                if (System.Text.RegularExpressions.Regex.IsMatch(input, p))
+                if (System.Text.RegularExpressions.Regex.IsMatch(input, pattern))
                     return true;
             }
 

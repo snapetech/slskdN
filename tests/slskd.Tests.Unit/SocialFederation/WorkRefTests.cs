@@ -13,6 +13,7 @@ namespace slskd.Tests.Unit.SocialFederation
     /// <summary>
     ///     Tests for T-FED02: WorkRef object types.
     /// </summary>
+    [Collection(AllocationTestCollection.Name)]
     public class WorkRefTests
     {
         [Fact]
@@ -70,6 +71,46 @@ namespace slskd.Tests.Unit.SocialFederation
 
             // Assert
             Assert.True(isValid);
+        }
+
+        [Fact]
+        public void ValidateSecurity_RepeatedSafeValidation_HasBoundedAllocation()
+        {
+            var warmup = new WorkRef
+            {
+                Domain = "music",
+                Title = "Warmup Song",
+                Creator = "Warmup Artist",
+                ExternalIds = new Dictionary<string, string>
+                {
+                    ["musicbrainz"] = "12345678-1234-1234-1234-1234567890ab",
+                },
+            };
+            Assert.True(warmup.ValidateSecurity());
+
+            var workRef = new WorkRef
+            {
+                Domain = "music",
+                Title = "Measured Song",
+                Creator = "Measured Artist",
+                ExternalIds = new Dictionary<string, string>
+                {
+                    ["musicbrainz"] = "12345678-1234-1234-1234-1234567890ab",
+                },
+            };
+
+            const int iterationCount = 10_000;
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            var isValid = false;
+            for (var i = 0; i < iterationCount; i++)
+            {
+                isValid = workRef.ValidateSecurity();
+            }
+
+            var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+            Assert.True(isValid);
+            Assert.True(allocated < 256, $"Expected less than 256 allocated bytes, but allocated {allocated:N0} bytes.");
         }
 
         [Fact]

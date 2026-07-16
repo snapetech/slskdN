@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- WorkRef security validation now shares one process-wide sensitive-pattern
+  table instead of recreating the same nine-element array for every external-ID,
+  metadata, title, and creator field checked. The pattern strings, evaluation
+  order, case normalization, early-return behavior, UUID exemptions, and safe/
+  unsafe decisions remain unchanged. Across 10,000 warmed validations of a
+  representative safe music WorkRef, measured allocation falls from 3,840,000
+  bytes to zero; the improvement also applies to federation publishing, taste
+  recommendations, MusicBrainz radar, and overlay callers of the validator.
 - Multi-source planning now caches successful allowed/banned reputation reads
   by exact ordinal Soulseek peer ID for the lifetime of one plan. Peer IDs are
   extracted with delimiter indexing, eliminating each candidate's `Split`
