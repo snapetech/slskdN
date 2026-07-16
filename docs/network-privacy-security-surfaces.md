@@ -12,6 +12,7 @@ This document records remediation rules for features that can publish data, disc
 | Rate limiting | Soulseek-originated discovery and browse/search style calls must pass through `ISoulseekSafetyLimiter`. |
 | Versioned route preference | New web-consumed APIs should use `/api/v0/*` unless intentionally native/internal and documented. |
 | Minimal data display | Candidate peer and mesh diagnostics should show enough to operate the feature without exposing unnecessary topology. |
+| Passive diagnostics | Status, stats, and health reads report collected state and must not initiate external probes. |
 | No upstream code copy | Upstream behavior can be matched, but remediation should use local implementation structure and comments. |
 
 ## Current externally relevant surfaces

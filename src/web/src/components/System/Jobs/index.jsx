@@ -48,7 +48,7 @@ const sameSwarmJobs = (previous, next) =>
   );
 
 const Jobs = () => {
-  const mountedRef = useRef(true);
+  const mountedRef = useRef(false);
   const swarmFetchInFlightRef = useRef(false);
   const swarmPollIntervalRef = useRef(null);
   const [jobs, setJobs] = useState([]);
@@ -70,8 +70,11 @@ const Jobs = () => {
     total: 0,
   });
 
-  useEffect(() => () => {
-    mountedRef.current = false;
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const fetchJobs = useCallback(async () => {

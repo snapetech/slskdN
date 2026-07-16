@@ -10,6 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Mesh transport stats, Network snapshots, and health checks now report the
+  last NAT result without triggering STUN detection during diagnostic reads.
+  System Mesh polling is also visible-only, non-overlapping, Strict Mode-safe,
+  and preserves unchanged or last-successful snapshots. The System polling
+  lifecycle gate now enforces Strict Mode-safe mounted-ref setup across its
+  complete component inventory.
 - Compact listen-along panels no longer fetch the global radio directory they
   do not render. Full directory views now poll once per visible minute without
   overlap or transient cache loss, while the backend coalesces concurrent

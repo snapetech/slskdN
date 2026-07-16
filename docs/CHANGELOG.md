@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Mesh diagnostic reads now expose the cached NAT type without launching STUN
+  probes from dashboards, Network snapshots, or health checks. System Mesh
+  stats polling stops while hidden, rejects overlap, survives Strict Mode
+  replay, and retains unchanged or last-successful data; the polling lifecycle
+  gate now checks setup/cleanup symmetry across every covered System panel.
 - Compact listen-along panels no longer request the unrendered global radio
   directory. Full panels use visible-only, non-overlapping one-minute polling,
   and the singleton backend coalesces callers onto one shared DHT directory

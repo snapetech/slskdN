@@ -16,5 +16,7 @@ public enum NatType
 /// </summary>
 public interface INatDetector
 {
+    NatType LastDetectedType { get; }
+
     Task<NatType> DetectAsync(CancellationToken ct = default);
 }

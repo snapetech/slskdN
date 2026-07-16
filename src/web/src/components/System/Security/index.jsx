@@ -15,7 +15,7 @@ import {
 } from 'semantic-ui-react';
 
 const Security = () => {
-  const mountedRef = useRef(true);
+  const mountedRef = useRef(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -40,8 +40,11 @@ const Security = () => {
     }
   }, []);
 
-  useEffect(() => () => {
-    mountedRef.current = false;
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   useEffect(() => {

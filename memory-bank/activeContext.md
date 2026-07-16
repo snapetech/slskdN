@@ -1,3 +1,21 @@
+## Update 2026-07-16 01:44:49Z
+
+- Current task: performance and efficiency improvements in progress; passive Mesh diagnostics and polling lifecycle pass complete locally.
+- Last activity:
+  - Confirmed that every mesh transport-stat read could initiate STUN NAT detection while the cached result remained unknown, affecting System Mesh polling, combined Network snapshots, and health checks.
+  - Added cached NAT state to `INatDetector` and made `MeshStatsCollector` report it without calling `DetectAsync`; startup/descriptor publishing and the explicit NAT action remain the active detection owners.
+  - Made System Mesh's 30-second stats cadence visible-only, non-overlapping, Strict Mode-safe, unchanged-result preserving, and last-success retaining.
+  - Repaired the polling lifecycle gate to enforce false initialization plus true setup and false cleanup, then aligned all eight covered System pollers with that Strict Mode-safe contract.
+  - Each diagnostic read falls from as many as three external STUN probes and a three-second timeout window to zero probes. A hidden Mesh tab falls from two transport HTTP requests per minute to zero.
+  - Added backend/Web regressions, updated network/System/release documentation, documented gotcha `0z627` in standalone commit `8d18a1590`, and extended lifecycle gotchas `0z606`/`0z618` in standalone commit `a34349d48`.
+- Validation:
+  - Passed focused collector tests (`2/2`), focused Mesh tests (`6/6`), and the broader affected System test slice (`78/78`).
+  - Passed complete backend suites (`4777/4777`: `69` smoke, `4428` unit, `280` integration), complete Web tests (`865` passed, `4` skipped), production Web build, frontend lint with zero errors, repository lint, and the strengthened polling lifecycle gate.
+  - The consolidated remediation baseline passed every check before stopping at its expected branch-sync gate because this local work is intentionally unpushed.
+- Next steps:
+  1. Continue the broader performance goal from measured hot paths, with Security dashboard retained-set aggregation still under review.
+  2. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 01:31:53Z
 
 - Current task: performance and efficiency improvements in progress; listen-along directory polling/DHT hydration pass complete locally.

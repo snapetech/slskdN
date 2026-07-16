@@ -63,7 +63,7 @@ public class MeshStatsCollector : IMeshStatsCollector
     /// <summary>
     /// Gets current mesh transport statistics.
     /// </summary>
-    public async Task<MeshTransportStats> GetStatsAsync()
+    public Task<MeshTransportStats> GetStatsAsync()
     {
         try
         {
@@ -119,39 +119,9 @@ public class MeshStatsCollector : IMeshStatsCollector
                 }
             }
 
-            // NAT type - perform detection if not already known
-            if (natDetector.Value is StunNatDetector stunDetector)
-            {
-                try
-                {
-                    // If we don't have a cached result, perform detection
-                    // Use cached value if available to avoid blocking health checks
-                    if (stunDetector.LastDetectedType == NatType.Unknown)
-                    {
-                        logger.LogDebug("Performing NAT detection for mesh stats");
+            natType = natDetector.Value?.LastDetectedType ?? NatType.Unknown;
 
-                        // Add timeout to NAT detection to prevent hanging health checks
-                        using var natTimeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-                        natType = await stunDetector.DetectAsync(natTimeoutCts.Token);
-                    }
-                    else
-                    {
-                        natType = stunDetector.LastDetectedType;
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    logger.LogDebug("NAT detection timed out - using Unknown");
-                    natType = NatType.Unknown;
-                }
-                catch (Exception ex)
-                {
-                    logger.LogDebug(ex, "Failed to detect NAT type");
-                    natType = NatType.Unknown;
-                }
-            }
-
-            return new MeshTransportStats(
+            return Task.FromResult(new MeshTransportStats(
                 ActiveDhtSessions: dhtNodes,
                 ActiveOverlaySessions: overlayConnections,
                 ActiveMirroredSessions: 0, // Not implemented yet
@@ -162,12 +132,12 @@ public class MeshStatsCollector : IMeshStatsCollector
                 DhtOperationsPerSecond: dhtOpsPerSecond,
                 RoutingTableSize: routingTableSize,
                 BootstrapPeers: bootstrapPeers,
-                PeerChurnEvents: peerChurnEvents);
+                PeerChurnEvents: peerChurnEvents));
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Failed to collect mesh transport stats");
-            return new MeshTransportStats(0, 0, 0, NatType.Unknown);
+            return Task.FromResult(new MeshTransportStats(0, 0, 0, NatType.Unknown));
         }
     }
 

@@ -64,7 +64,7 @@ const sameTraceSummary = (previous, next) => {
 
 const SwarmVisualization = ({ jobId }) => {
   const activeJobIdRef = useRef(jobId);
-  const mountedRef = useRef(true);
+  const mountedRef = useRef(false);
   const statusInFlightRef = useRef(false);
   const statusIntervalRef = useRef(null);
   const statusRequestGenerationRef = useRef(0);
@@ -76,8 +76,11 @@ const SwarmVisualization = ({ jobId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => () => {
-    mountedRef.current = false;
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const fetchStatus = useCallback(async () => {

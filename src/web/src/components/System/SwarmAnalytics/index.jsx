@@ -41,7 +41,7 @@ const normalizeDashboard = (value) => {
 const SwarmAnalytics = () => {
   const analyticsSignatureRef = useRef(null);
   const fetchRequestRef = useRef(null);
-  const mountedRef = useRef(true);
+  const mountedRef = useRef(false);
   const pollIntervalRef = useRef(null);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);

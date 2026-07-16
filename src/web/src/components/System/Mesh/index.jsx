@@ -2,7 +2,7 @@ import * as mesh from '../../../lib/mesh';
 import * as soulseekDiscovery from '../../../lib/soulseekDiscovery';
 import MeshEvidencePolicy from './MeshEvidencePolicy';
 import RealmSubjectIndexConflicts from './RealmSubjectIndexConflicts';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Button,
   Card,
@@ -19,9 +19,33 @@ import {
 
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+const MESH_STATS_POLL_INTERVAL_MS = 30_000;
+
+const sameMeshStats = (previous, next) =>
+  previous?.dht === next?.dht &&
+  previous?.overlay === next?.overlay &&
+  previous?.natType === next?.natType &&
+  previous?.status === next?.status &&
+  previous?.description === next?.description &&
+  previous?.totalPeers === next?.totalPeers &&
+  previous?.activeDhtSessions === next?.activeDhtSessions &&
+  previous?.activeOverlaySessions === next?.activeOverlaySessions &&
+  previous?.activeMirroredSessions === next?.activeMirroredSessions &&
+  previous?.routingTableSize === next?.routingTableSize &&
+  previous?.bootstrapPeers === next?.bootstrapPeers &&
+  previous?.dhtOperationsPerSecond === next?.dhtOperationsPerSecond &&
+  previous?.messagesSent === next?.messagesSent &&
+  previous?.messagesReceived === next?.messagesReceived &&
+  previous?.peerChurnEvents === next?.peerChurnEvents &&
+  previous?.routingTableHealthy === next?.routingTableHealthy &&
+  previous?.peerConnectivityHealthy === next?.peerConnectivityHealthy &&
+  previous?.messageFlowHealthy === next?.messageFlowHealthy;
 
 const Mesh = () => {
-  const mountedRef = useRef(true);
+  const mountedRef = useRef(false);
+  const statsFetchInFlightRef = useRef(false);
+  const statsLoadedRef = useRef(false);
+  const statsPollIntervalRef = useRef(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -39,34 +63,80 @@ const Mesh = () => {
     return error_?.message || fallback;
   };
 
-  useEffect(() => () => {
-    mountedRef.current = false;
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const fetchStats = useCallback(async () => {
+    if (
+      document.hidden ||
+      !mountedRef.current ||
+      statsFetchInFlightRef.current
+    ) {
+      return;
+    }
+
+    statsFetchInFlightRef.current = true;
+    try {
+      if (!statsLoadedRef.current) {
+        setLoading(true);
+        setError(null);
+      }
+
+      const data = await mesh.getStats();
+      if (!mountedRef.current || document.hidden) return;
+      statsLoadedRef.current = true;
+      setStats((previous) =>
+        sameMeshStats(previous, data) ? previous : data,
+      );
+      setError(null);
+    } catch (error_) {
+      if (!mountedRef.current || document.hidden) return;
+      if (!statsLoadedRef.current) {
+        setError(error_.message);
+      }
+    } finally {
+      statsFetchInFlightRef.current = false;
+      if (mountedRef.current && !document.hidden) {
+        setLoading(false);
+      }
+    }
   }, []);
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await mesh.getStats();
-        if (!mountedRef.current) return;
-        setStats(data);
-      } catch (error_) {
-        if (!mountedRef.current) return;
-        setError(error_.message);
-      } finally {
-        if (mountedRef.current) {
-          setLoading(false);
-        }
+    const stopPolling = () => {
+      if (statsPollIntervalRef.current) {
+        window.clearInterval(statsPollIntervalRef.current);
+        statsPollIntervalRef.current = null;
+      }
+    };
+    const startPolling = () => {
+      if (document.hidden || statsPollIntervalRef.current) return;
+
+      fetchStats();
+      statsPollIntervalRef.current = window.setInterval(
+        fetchStats,
+        MESH_STATS_POLL_INTERVAL_MS,
+      );
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        startPolling();
       }
     };
 
-    fetchStats();
-
-    // Refresh stats every 30 seconds
-    const interval = setInterval(fetchStats, 30_000);
-    return () => clearInterval(interval);
-  }, []);
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      stopPolling();
+    };
+  }, [fetchStats]);
 
   useEffect(() => {
     const fetchRendezvousStatus = async () => {

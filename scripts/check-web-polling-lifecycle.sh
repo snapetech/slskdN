@@ -12,12 +12,17 @@ require_poll_guard() {
     return
   fi
 
-  if ! rg -q --fixed-strings 'const mountedRef = useRef(true);' "$path"; then
-    printf '%s starts polling without a mountedRef lifecycle guard\n' "$file" >&2
+  if ! rg -q --fixed-strings 'const mountedRef = useRef(false);' "$path"; then
+    printf '%s must initialize mountedRef false for Strict Mode-safe setup\n' "$file" >&2
     failed=1
   fi
 
-  if ! rg -q --fixed-strings 'if (!mountedRef.current) return;' "$path"; then
+  if ! rg -q --fixed-strings 'mountedRef.current = true;' "$path"; then
+    printf '%s does not mark mountedRef true during effect setup\n' "$file" >&2
+    failed=1
+  fi
+
+  if ! rg -q --fixed-strings '!mountedRef.current' "$path"; then
     printf '%s starts polling without guarding async completion before state updates\n' "$file" >&2
     failed=1
   fi

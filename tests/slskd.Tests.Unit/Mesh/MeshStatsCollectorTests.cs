@@ -5,6 +5,7 @@ namespace slskd.Tests.Unit.Mesh;
 
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -29,5 +30,22 @@ public class MeshStatsCollectorTests
         var stats = await collector.GetStatsAsync();
 
         Assert.Equal(1, stats.ActiveDhtSessions);
+    }
+
+    [Fact]
+    public async Task GetStatsAsync_ReportsCachedNatTypeWithoutRunningDetection()
+    {
+        var natDetector = new Mock<INatDetector>();
+        natDetector.SetupGet(instance => instance.LastDetectedType).Returns(NatType.Restricted);
+        var serviceProvider = new Mock<IServiceProvider>();
+        serviceProvider.Setup(sp => sp.GetService(typeof(INatDetector))).Returns(natDetector.Object);
+        var collector = new MeshStatsCollector(NullLogger<MeshStatsCollector>.Instance, serviceProvider.Object);
+
+        var stats = await collector.GetStatsAsync();
+
+        Assert.Equal(NatType.Restricted, stats.DetectedNatType);
+        natDetector.Verify(
+            instance => instance.DetectAsync(It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }

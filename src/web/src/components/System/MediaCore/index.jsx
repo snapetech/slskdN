@@ -53,7 +53,7 @@ export const areContentIdStatsEqual = (left, right) => {
 };
 
 const MediaCore = () => {
-  const mountedRef = useRef(true);
+  const mountedRef = useRef(false);
   const statsLoadedRef = useRef(false);
   const statsInFlightRef = useRef(false);
   const statsIntervalRef = useRef(null);

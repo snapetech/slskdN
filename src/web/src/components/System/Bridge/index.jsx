@@ -21,7 +21,7 @@ import {
 const asArray = (value) => (Array.isArray(value) ? value : []);
 
 const Bridge = () => {
-  const mountedRef = useRef(true);
+  const mountedRef = useRef(false);
   const [config, setConfig] = useState(null);
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,6 +30,8 @@ const Bridge = () => {
   const [success, setSuccess] = useState(null);
 
   useEffect(() => {
+    mountedRef.current = true;
+
     const fetchData = async () => {
       try {
         setLoading(true);

@@ -85,7 +85,7 @@ const StatCard = ({ color, icon, inverted = false, label, subLabel, value }) => 
 // eslint-disable-next-line complexity
 const Network = ({ theme }) => {
   const fetchInFlightRef = useRef(false);
-  const mountedRef = useRef(true);
+  const mountedRef = useRef(false);
   const pollIntervalRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({});

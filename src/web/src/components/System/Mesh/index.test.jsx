@@ -5,9 +5,9 @@
 import Mesh from './index';
 import * as mesh from '../../../lib/mesh';
 import * as soulseekDiscovery from '../../../lib/soulseekDiscovery';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../lib/mesh', () => ({
   getStats: vi.fn(),
@@ -51,6 +51,10 @@ const meshStats = {
 describe('System Mesh', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
     mesh.getStats.mockResolvedValue(meshStats);
     soulseekDiscovery.addMeshRendezvousInterest.mockResolvedValue({});
     soulseekDiscovery.discoverMeshRendezvous.mockResolvedValue({
@@ -58,6 +62,102 @@ describe('System Mesh', () => {
     });
     soulseekDiscovery.removeMeshRendezvousInterest.mockResolvedValue({});
     soulseekDiscovery.getMeshRendezvousUsers.mockResolvedValue({ data: [] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('pauses stats polling while hidden and catches up when visible', async () => {
+    vi.useFakeTimers();
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: true,
+    });
+    soulseekDiscovery.getMeshRendezvousStatus.mockResolvedValue({
+      data: { enabled: false },
+    });
+
+    render(<Mesh />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(90_000);
+    });
+    expect(mesh.getStats).not.toHaveBeenCalled();
+
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: false,
+    });
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      await Promise.resolve();
+    });
+    expect(mesh.getStats).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(mesh.getStats).toHaveBeenCalledTimes(2);
+
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: true,
+    });
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      await vi.advanceTimersByTimeAsync(90_000);
+    });
+    expect(mesh.getStats).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not overlap slow stats requests', async () => {
+    vi.useFakeTimers();
+    let completeRequest;
+    mesh.getStats.mockReturnValue(
+      new Promise((resolve) => {
+        completeRequest = resolve;
+      }),
+    );
+    soulseekDiscovery.getMeshRendezvousStatus.mockResolvedValue({
+      data: { enabled: false },
+    });
+
+    render(<Mesh />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(90_000);
+    });
+    expect(mesh.getStats).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      completeRequest(meshStats);
+      await Promise.resolve();
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(mesh.getStats).toHaveBeenCalledTimes(2);
+  });
+
+  it('retains the last successful stats after a transient failure', async () => {
+    vi.useFakeTimers();
+    mesh.getStats
+      .mockResolvedValueOnce(meshStats)
+      .mockRejectedValueOnce(new Error('temporary failure'));
+    soulseekDiscovery.getMeshRendezvousStatus.mockResolvedValue({
+      data: { enabled: false },
+    });
+
+    render(<Mesh />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(screen.getByText(/Network Health: Healthy/)).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(screen.getByText(/Network Health: Healthy/)).toBeInTheDocument();
+    expect(screen.queryByText('Failed to load mesh statistics')).not.toBeInTheDocument();
   });
 
   it('renders Soulseek rendezvous as disabled by default', async () => {

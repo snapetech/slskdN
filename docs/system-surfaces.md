@@ -131,7 +131,10 @@ Use:
 - **System -> Mesh** for mesh evidence, realm subject-index review, and
   conflict surfaces. It also includes Soulseek mesh rendezvous controls for the
   opt-in `slskdn-mesh-v1` public interest tag and runtime peer capability
-  records discovered from signed slskdN descriptors.
+  records discovered from signed slskdN descriptors. Transport status reads
+  are passive: they report the last NAT result collected by mesh startup,
+  descriptor refresh, or the explicit NAT-detection action without launching
+  STUN probes from dashboard polling.
 - **System -> Swarm Analytics** for multi-source/rescue performance review.
 
 ## Library Health
