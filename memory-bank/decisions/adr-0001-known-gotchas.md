@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z703. FFT Allocation Tests Must Include Library Workspace
+
+**The Bug**: A Chromaprint allocation regression assumed that the visible
+downsample and complex-frame arrays represented nearly all per-call memory and
+set a 128 KiB ceiling after caching immutable analysis tables. The warmed call
+still allocated 201,064 bytes because MathNet's `Fourier.Forward` uses
+additional internal workspace.
+
+**Files Affected**:
+- `src/slskd/MediaCore/PerceptualHasher.cs`
+- `tests/slskd.Tests.Unit/MediaCore/PerceptualHasherTests.cs`
+
+**Prevention**: Allocation limits around third-party transforms must measure a
+warmed end-to-end call before selecting the threshold. Include library-owned
+workspace in the baseline, then set the regression boundary tightly enough to
+detect the application allocation being removed. Do not infer a whole-call
+ceiling solely by summing arrays visible in repository source.
+
 ### 0z702. ConcurrentDictionary Values Creates A Snapshot Allocation
 
 **The Bug**: Rewriting fingerprint statistics as one pass over
