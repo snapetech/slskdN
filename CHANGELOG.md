@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- HashDb history backfill now ingests each retained search page through one
+  batched transaction instead of one transaction per search.
 - Library Health scans now checkpoint durable progress every 100 files instead
   of rewriting scan status after every file.
 - Discography and label-crate release-job persistence now uses normalized,

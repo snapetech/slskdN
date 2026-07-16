@@ -222,4 +222,115 @@ public class HashDbControllerTests
             service => service.StoreHashFromVerificationAsync("song.flac", 123L, "bytehash", null, null, null, It.IsAny<CancellationToken>()),
             Times.Once);
     }
+
+    [Fact]
+    public async Task BackfillFromHistory_FlattensSearchPageIntoOneIngestionCall()
+    {
+        var dbPath = Path.Combine(Path.GetTempPath(), $"hashdb-controller-{Guid.NewGuid():N}.db");
+        var options = new DbContextOptionsBuilder<SearchDbContext>()
+            .UseSqlite($"Data Source={dbPath}")
+            .Options;
+        var newest = DateTime.UtcNow;
+        var oldest = newest.AddMinutes(-2);
+
+        try
+        {
+            await using (var context = new SearchDbContext(options))
+            {
+                await context.Database.EnsureCreatedAsync();
+                context.Searches.AddRange(
+                    new Search
+                    {
+                        Id = Guid.NewGuid(),
+                        StartedAt = newest,
+                        Responses = new[]
+                        {
+                            new Response
+                            {
+                                Username = "peer-newest",
+                                Files = new[] { new slskd.Search.File { Filename = "/music/newest.flac", Size = 50_000_000 } },
+                            },
+                        },
+                    },
+                    new Search
+                    {
+                        Id = Guid.NewGuid(),
+                        StartedAt = newest.AddMinutes(-1),
+                        Responses = Array.Empty<Response>(),
+                    },
+                    new Search
+                    {
+                        Id = Guid.NewGuid(),
+                        StartedAt = oldest,
+                        Responses = new[]
+                        {
+                            new Response
+                            {
+                                Username = "peer-oldest",
+                                Files = new[] { new slskd.Search.File { Filename = "/music/oldest.flac", Size = 50_000_001 } },
+                            },
+                        },
+                    });
+                await context.SaveChangesAsync();
+            }
+
+            List<Response>? capturedResponses = null;
+            var hashDb = new Mock<IHashDbService>();
+            hashDb
+                .Setup(service => service.GetBackfillProgressAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync((DateTimeOffset?)null);
+            hashDb
+                .Setup(service => service.BackfillFromSearchResponsesAsync(
+                    It.IsAny<IEnumerable<Response>>(),
+                    int.MaxValue,
+                    It.IsAny<CancellationToken>()))
+                .Callback<IEnumerable<Response>, int, CancellationToken>((responses, _, _) =>
+                    capturedResponses = responses.ToList())
+                .ReturnsAsync(2);
+            hashDb
+                .Setup(service => service.SetBackfillProgressAsync(
+                    It.IsAny<DateTimeOffset>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            var controller = new HashDbController(
+                hashDb.Object,
+                new SearchDbContextFactory(options),
+                Mock.Of<IHashDbOptimizationService>());
+
+            var result = await controller.BackfillFromHistory(batchSize: 10);
+
+            Assert.IsType<OkObjectResult>(result);
+            Assert.NotNull(capturedResponses);
+            Assert.Equal(new[] { "peer-newest", "peer-oldest" }, capturedResponses!.Select(response => response.Username));
+            hashDb.Verify(service => service.BackfillFromSearchResponsesAsync(
+                It.IsAny<IEnumerable<Response>>(),
+                int.MaxValue,
+                It.IsAny<CancellationToken>()), Times.Once);
+            hashDb.Verify(service => service.SetBackfillProgressAsync(
+                It.Is<DateTimeOffset>(value => value == new DateTimeOffset(oldest)),
+                It.IsAny<CancellationToken>()), Times.Once);
+        }
+        finally
+        {
+            if (System.IO.File.Exists(dbPath))
+            {
+                System.IO.File.Delete(dbPath);
+            }
+        }
+    }
+
+    private sealed class SearchDbContextFactory : IDbContextFactory<SearchDbContext>
+    {
+        private readonly DbContextOptions<SearchDbContext> options;
+
+        public SearchDbContextFactory(DbContextOptions<SearchDbContext> options)
+        {
+            this.options = options;
+        }
+
+        public SearchDbContext CreateDbContext() => new(options);
+
+        public ValueTask<SearchDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult(CreateDbContext());
+    }
 }

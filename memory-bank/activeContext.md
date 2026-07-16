@@ -1,3 +1,17 @@
+## Update 2026-07-16 09:25:29Z
+
+- Current task: performance and efficiency improvements in progress; history-backfill page consolidation pass complete locally.
+- Last activity:
+  - Flattened one ordered retained-search page into one existing bounded HashDb ingestion transaction instead of one call/transaction per search.
+  - With one FLAC response per search, the default 50-search page falls from 100 commands/50 transactions to two/one (98.0% fewer); the maximum 500-search page falls from 1,000 commands to six (99.4% fewer). Empty searches and the oldest progress timestamp remain intact. Extended gotcha `0z568` (`6380eebd5`).
+- Validation:
+  - Passed focused controller/backfill coverage (`12/12`) and full backend tests (`4850/4850`: `69` application, `4501` unit, `280` integration).
+  - Repository lint and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the HashDb history-backfill controller slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 09:17:07Z
 
 - Current task: performance and efficiency improvements in progress; Library Health scan-progress checkpointing pass complete locally.

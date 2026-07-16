@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- HashDb history backfill now flattens each retained search page into one
+  existing bounded inventory/peer ingestion transaction. With one FLAC response
+  per search, the default 50-search page falls from 100 database commands to
+  two (98.0% fewer); the maximum 500-search page falls from 1,000 to six
+  (99.4% fewer), while empty searches still advance durable progress.
 - Library Health scans now retain per-file in-memory progress while persisting
   durable checkpoints every 100 files plus initial, final, and failure states.
   A 201-file scan falls from 203 status writes to four (98.0% fewer); a

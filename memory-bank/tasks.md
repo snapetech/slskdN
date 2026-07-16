@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Consolidate each HashDb history-backfill search page.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Flattened the ordered responses from one retained-search page and invoked the existing bounded FLAC/peer ingestion once instead of opening one transaction per search. With one FLAC response per search, the default 50-search page falls from 100 SQLite commands and 50 transactions to two commands and one transaction (98.0% fewer); the maximum 500-search page falls from 1,000 commands to six (99.4% fewer). Empty searches remain counted for progress and the oldest processed timestamp is unchanged. Added a SQLite-backed controller call-boundary/order/progress regression; extended File-shadowing gotcha `0z568` (`6380eebd5`).
+
 - [x] Bound Library Health durable scan-progress writes.
   - Status: completed (2026-07-16)
   - Priority: P1

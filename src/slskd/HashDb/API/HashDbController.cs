@@ -344,21 +344,14 @@ namespace slskd.HashDb.API
                 .Take(batchSize)
                 .ToListAsync();
 
-            var totalFlacs = 0;
-            var searchesProcessed = 0;
-            DateTimeOffset? oldestProcessed = null;
-
-            foreach (var search in searches)
-            {
-                if (search.Responses != null && search.Responses.Any())
-                {
-                    var flacs = await HashDb.BackfillFromSearchResponsesAsync(search.Responses);
-                    totalFlacs += flacs;
-                }
-
-                searchesProcessed++;
-                oldestProcessed = search.StartedAt;
-            }
+            var responses = searches
+                .SelectMany(search => search.Responses ?? Array.Empty<Response>())
+                .ToList();
+            var totalFlacs = responses.Count == 0
+                ? 0
+                : await HashDb.BackfillFromSearchResponsesAsync(responses);
+            var searchesProcessed = searches.Count;
+            DateTimeOffset? oldestProcessed = searches.LastOrDefault()?.StartedAt;
 
             // Save progress (the oldest timestamp we processed, so next batch gets older ones)
             if (oldestProcessed.HasValue)
