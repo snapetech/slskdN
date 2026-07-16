@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Reuse descriptors during fuzzy candidate matching.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `FindSimilarContentAsync` now caches usable target and candidate descriptor retrievals for one search instead of retrieving the target for every candidate. For 100 unique candidates, retriever calls fall from 200 to 101 (49.5% fewer); duplicate candidates reuse their descriptor while preserving duplicate result entries. Missing and failed results are intentionally not cached, so later candidates retain recovery opportunities. Direct pair scoring, ContentID parsing/domain checks, hash preference, perceptual/text weighting, thresholds, ordering, and result multiplicity remain unchanged. Added exact 100-candidate call-count, duplicate-candidate/result, and missing-target retry coverage. Documented weighted-score test gotcha `0z701` (`d11c44e84`). Validation passed: focused fuzzy matcher tests (`38/38`), broader MediaCore tests (`225/225`), full backend suites (`4950/4950`: `69` application, `4601` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Cache IPLD validation registry membership.
   - Status: completed (2026-07-16)
   - Priority: P1

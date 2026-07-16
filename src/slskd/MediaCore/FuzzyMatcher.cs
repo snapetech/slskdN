@@ -243,7 +243,16 @@ public class FuzzyMatcher : IFuzzyMatcher
          .ToHashSet();
 
     /// <inheritdoc/>
-    public async Task<double> ScorePerceptualAsync(string contentIdA, string contentIdB, IContentIdRegistry registry, CancellationToken cancellationToken = default)
+    public Task<double> ScorePerceptualAsync(string contentIdA, string contentIdB, IContentIdRegistry registry, CancellationToken cancellationToken = default)
+    {
+        return ScorePerceptualAsync(contentIdA, contentIdB, descriptorCache: null, cancellationToken);
+    }
+
+    private async Task<double> ScorePerceptualAsync(
+        string contentIdA,
+        string contentIdB,
+        Dictionary<string, DescriptorRetrievalResult>? descriptorCache,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(contentIdA) || string.IsNullOrWhiteSpace(contentIdB))
             return 0.0;
@@ -262,8 +271,8 @@ public class FuzzyMatcher : IFuzzyMatcher
                 StringComparison.OrdinalIgnoreCase))
                 return 0.0;
 
-            var resultA = await _descriptorRetriever.RetrieveAsync(contentIdA, bypassCache: false, cancellationToken);
-            var resultB = await _descriptorRetriever.RetrieveAsync(contentIdB, bypassCache: false, cancellationToken);
+            var resultA = await RetrieveDescriptorAsync(contentIdA, descriptorCache, cancellationToken);
+            var resultB = await RetrieveDescriptorAsync(contentIdB, descriptorCache, cancellationToken);
 
             if (!resultA.Found || !resultB.Found || resultA.Descriptor == null || resultB.Descriptor == null)
                 return 0.0;
@@ -281,6 +290,25 @@ public class FuzzyMatcher : IFuzzyMatcher
             _logger.LogError(ex, "[FuzzyMatcher] Error computing perceptual similarity between {ContentIdA} and {ContentIdB}", contentIdA, contentIdB);
             return 0.0;
         }
+    }
+
+    private async Task<DescriptorRetrievalResult> RetrieveDescriptorAsync(
+        string contentId,
+        Dictionary<string, DescriptorRetrievalResult>? descriptorCache,
+        CancellationToken cancellationToken)
+    {
+        if (descriptorCache != null && descriptorCache.TryGetValue(contentId, out var cached))
+        {
+            return cached;
+        }
+
+        var result = await _descriptorRetriever.RetrieveAsync(contentId, bypassCache: false, cancellationToken);
+        if (descriptorCache != null && result.Found && result.Descriptor != null)
+        {
+            descriptorCache[contentId] = result;
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -308,6 +336,7 @@ public class FuzzyMatcher : IFuzzyMatcher
         CancellationToken cancellationToken = default)
     {
         var results = new List<FuzzyMatchResult>();
+        var descriptorCache = new Dictionary<string, DescriptorRetrievalResult>(StringComparer.Ordinal);
 
         foreach (var candidate in candidates)
         {
@@ -315,7 +344,11 @@ public class FuzzyMatcher : IFuzzyMatcher
                 break;
 
             // Compute perceptual similarity
-            var perceptualScore = await ScorePerceptualAsync(targetContentId, candidate, registry, cancellationToken);
+            var perceptualScore = await ScorePerceptualAsync(
+                targetContentId,
+                candidate,
+                descriptorCache,
+                cancellationToken);
 
             // Compute text similarity (if applicable)
             var textScore = ComputeTextSimilarity(targetContentId, candidate);

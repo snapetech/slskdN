@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Fuzzy content searches now reuse usable descriptors within one candidate
+  pass instead of retrieving the target descriptor for every comparison. For
+  100 unique candidates, descriptor-retriever calls fall from 200 to 101
+  (49.5% fewer); repeated candidate IDs reuse their descriptor while retaining
+  duplicate result entries. Missing and failed retrievals remain retryable,
+  and perceptual/text scoring, confidence ordering, thresholds, domain checks,
+  and direct pair scoring remain unchanged.
 - IPLD link validation now caches ContentID registration results for one
   validation run and checks each source once for orphan detection while still
   reporting every broken or orphaned link. For `L` links with `U` unique

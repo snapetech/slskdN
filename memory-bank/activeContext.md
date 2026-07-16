@@ -1,3 +1,17 @@
+## Update 2026-07-16 16:16:31Z
+
+- Current task: performance and efficiency improvements in progress; fuzzy candidate descriptor reuse complete locally.
+- Last activity:
+  - Reused usable target/candidate descriptor retrievals within one fuzzy candidate pass while leaving missing/error results retryable.
+  - At 100 unique candidates, retriever calls fall from 200 to 101 (49.5% fewer); duplicate candidate results retain multiplicity with one descriptor read.
+- Validation:
+  - Passed focused fuzzy matcher (`38/38`), broader MediaCore (`225/225`), and full backend suites (`4950/4950`) tests.
+  - Exact target, duplicate-candidate, duplicate-result, and missing-target retry boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Documented gotcha `0z701` (`d11c44e84`). Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the fuzzy descriptor-reuse slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 16:04:58Z
 
 - Current task: performance and efficiency improvements in progress; IPLD validation registry-membership caching complete locally.

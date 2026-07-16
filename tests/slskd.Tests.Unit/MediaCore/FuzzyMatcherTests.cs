@@ -4,6 +4,8 @@
 namespace slskd.Tests.Unit.MediaCore;
 
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -235,6 +237,137 @@ public class FuzzyMatcherTests
         // Assert
         Assert.NotNull(results);
         // Perceptual matching depends on registry/hash availability; allow empty when no hashes match
+    }
+
+    [Fact]
+    public async Task FindSimilarContentAsync_RetrievesTargetDescriptorOnceForAllCandidates()
+    {
+        var targetContentId = "content:audio:track:target";
+        var candidates = Enumerable.Range(0, 100)
+            .Select(i => $"content:audio:track:candidate-{i}")
+            .ToArray();
+
+        descriptorRetrieverMock
+            .Setup(d => d.RetrieveAsync(It.IsAny<string>(), false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string contentId, bool _, CancellationToken _) => new DescriptorRetrievalResult(
+                Found: true,
+                Descriptor: new ContentDescriptor
+                {
+                    ContentId = contentId,
+                    PerceptualHashes = new List<PerceptualHash>
+                    {
+                        new("Chromaprint", contentId, (ulong)contentId.Length),
+                    },
+                },
+                RetrievedAt: default,
+                RetrievalDuration: default,
+                FromCache: false,
+                Verification: null));
+        perceptualHasherMock
+            .Setup(p => p.Similarity(It.IsAny<ulong>(), It.IsAny<ulong>()))
+            .Returns(1.0);
+
+        var results = await matcher.FindSimilarContentAsync(
+            targetContentId,
+            candidates,
+            _registryMock.Object,
+            minConfidence: 0.0);
+
+        Assert.Equal(100, results.Count);
+        descriptorRetrieverMock.Verify(
+            d => d.RetrieveAsync(targetContentId, false, It.IsAny<CancellationToken>()),
+            Times.Once);
+        descriptorRetrieverMock.Verify(
+            d => d.RetrieveAsync(It.IsAny<string>(), false, It.IsAny<CancellationToken>()),
+            Times.Exactly(101));
+    }
+
+    [Fact]
+    public async Task FindSimilarContentAsync_ReusesCandidateDescriptorAndPreservesDuplicateResults()
+    {
+        var targetContentId = "content:audio:track:target";
+        var candidateContentId = "content:audio:track:candidate";
+
+        descriptorRetrieverMock
+            .Setup(d => d.RetrieveAsync(It.IsAny<string>(), false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string contentId, bool _, CancellationToken _) => new DescriptorRetrievalResult(
+                Found: true,
+                Descriptor: new ContentDescriptor
+                {
+                    ContentId = contentId,
+                    PerceptualHashes = new List<PerceptualHash>
+                    {
+                        new("Chromaprint", contentId, (ulong)contentId.Length),
+                    },
+                },
+                RetrievedAt: default,
+                RetrievalDuration: default,
+                FromCache: false,
+                Verification: null));
+        perceptualHasherMock
+            .Setup(p => p.Similarity(It.IsAny<ulong>(), It.IsAny<ulong>()))
+            .Returns(1.0);
+
+        var results = await matcher.FindSimilarContentAsync(
+            targetContentId,
+            new[] { candidateContentId, candidateContentId },
+            _registryMock.Object,
+            minConfidence: 0.0);
+
+        Assert.Equal(2, results.Count);
+        descriptorRetrieverMock.Verify(
+            d => d.RetrieveAsync(candidateContentId, false, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task FindSimilarContentAsync_RetriesMissingTargetDescriptor()
+    {
+        var targetContentId = "content:audio:track:target";
+        var candidates = new[]
+        {
+            "content:audio:track:first",
+            "content:audio:track:second",
+        };
+        var targetAttempts = 0;
+
+        descriptorRetrieverMock
+            .Setup(d => d.RetrieveAsync(It.IsAny<string>(), false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string contentId, bool _, CancellationToken _) =>
+            {
+                var found = contentId != targetContentId || ++targetAttempts > 1;
+                return new DescriptorRetrievalResult(
+                    Found: found,
+                    Descriptor: found
+                        ? new ContentDescriptor
+                        {
+                            ContentId = contentId,
+                            PerceptualHashes = new List<PerceptualHash>
+                            {
+                                new("Chromaprint", contentId, (ulong)contentId.Length),
+                            },
+                        }
+                        : null,
+                    RetrievedAt: default,
+                    RetrievalDuration: default,
+                    FromCache: false,
+                    Verification: null);
+            });
+        perceptualHasherMock
+            .Setup(p => p.Similarity(It.IsAny<ulong>(), It.IsAny<ulong>()))
+            .Returns(1.0);
+
+        var results = await matcher.FindSimilarContentAsync(
+            targetContentId,
+            candidates,
+            _registryMock.Object,
+            minConfidence: 0.7);
+
+        Assert.Single(results);
+        Assert.Equal(candidates[1], results[0].CandidateContentId);
+        descriptorRetrieverMock.Verify(
+            d => d.RetrieveAsync(targetContentId, false, It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
     }
 
     [Fact]

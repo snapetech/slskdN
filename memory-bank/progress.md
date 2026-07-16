@@ -1,3 +1,10 @@
+## Update 2026-07-16 16:16:31Z
+
+- Completed the fuzzy candidate descriptor-reuse performance pass.
+- Candidate matching now caches usable descriptor retrievals for the search, reducing 100 unique comparisons from 200 retriever calls to 101 (49.5% fewer); duplicate candidate results remain duplicated while their descriptor read is reused.
+- Missing and failed descriptor reads remain retryable. Direct pair scoring, domain/hash selection, score weighting, thresholds, order, and result behavior remain unchanged. Documented weighted-score test gotcha `0z701` (`d11c44e84`).
+- Validation passed: focused fuzzy matcher tests (`38/38`), broader MediaCore tests (`225/225`), full backend suites (`4950/4950`: `69` application, `4601` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 16:04:58Z
 
 - Completed the IPLD validation registry-membership caching performance pass.
