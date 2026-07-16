@@ -65,6 +65,8 @@ so the test project failed with CS8207.
 **Prevention**: Move parsing or other expression-tree-unsupported logic into a
 plain static boolean helper and call that helper from `It.Is`. Keep Moq matcher
 lambdas to expression-tree-safe member access, comparisons, and helper calls.
+Pass the helper as `value => IsValid(value)`; `It.Is<T>` requires an
+`Expression<Func<T, bool>>` and does not accept a bare method group.
 
 ### 0z671. SQLite Partial Index Queries Must Repeat The Predicate
 
