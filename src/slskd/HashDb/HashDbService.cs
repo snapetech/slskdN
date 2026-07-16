@@ -606,34 +606,38 @@ namespace slskd.HashDb
             using var conn = GetConnection();
             var stats = new HashDbStats { CurrentSeqId = currentSeqId };
 
-            using (var cmd = conn.CreateCommand())
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText =
+                """
+                WITH peer_stats AS (
+                    SELECT COUNT(*) AS total,
+                           COUNT(*) FILTER (WHERE caps > 0) AS slskdn
+                    FROM Peers
+                ),
+                inventory_stats AS (
+                    SELECT COUNT(*) AS total,
+                           COUNT(*) FILTER (WHERE hash_status = 'known') AS hashed
+                    FROM FlacInventory
+                ),
+                hash_stats AS (
+                    SELECT COUNT(*) AS total
+                    FROM HashDb
+                )
+                SELECT peer_stats.total,
+                       peer_stats.slskdn,
+                       inventory_stats.total,
+                       inventory_stats.hashed,
+                       hash_stats.total
+                FROM peer_stats, inventory_stats, hash_stats
+                """;
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
             {
-                cmd.CommandText = "SELECT COUNT(*) FROM Peers";
-                stats.TotalPeers = Convert.ToInt32(cmd.ExecuteScalar());
-            }
-
-            using (var cmd = conn.CreateCommand())
-            {
-                cmd.CommandText = "SELECT COUNT(*) FROM Peers WHERE caps > 0";
-                stats.SlskdnPeers = Convert.ToInt32(cmd.ExecuteScalar());
-            }
-
-            using (var cmd = conn.CreateCommand())
-            {
-                cmd.CommandText = "SELECT COUNT(*) FROM FlacInventory";
-                stats.TotalFlacEntries = Convert.ToInt32(cmd.ExecuteScalar());
-            }
-
-            using (var cmd = conn.CreateCommand())
-            {
-                cmd.CommandText = "SELECT COUNT(*) FROM FlacInventory WHERE hash_status = 'known'";
-                stats.HashedFlacEntries = Convert.ToInt32(cmd.ExecuteScalar());
-            }
-
-            using (var cmd = conn.CreateCommand())
-            {
-                cmd.CommandText = "SELECT COUNT(*) FROM HashDb";
-                stats.TotalHashEntries = Convert.ToInt32(cmd.ExecuteScalar());
+                stats.TotalPeers = reader.GetInt32(0);
+                stats.SlskdnPeers = reader.GetInt32(1);
+                stats.TotalFlacEntries = reader.GetInt32(2);
+                stats.HashedFlacEntries = reader.GetInt32(3);
+                stats.TotalHashEntries = reader.GetInt32(4);
             }
 
             if (System.IO.File.Exists(dbPath))

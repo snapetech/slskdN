@@ -255,6 +255,44 @@ public class HashDbServiceTests : IDisposable
         Assert.True(stats.DatabaseSizeBytes > 0); // SQLite creates some base tables
     }
 
+    [Fact]
+    public async Task GetStats_AggregatesPopulatedTablesInOneSnapshot()
+    {
+        await service.UpdatePeerCapabilitiesAsync(
+            "capable-peer",
+            slskd.Capabilities.PeerCapabilityFlags.SupportsMeshSync);
+        await service.TouchPeerAsync("plain-peer");
+        await service.UpsertFlacEntryAsync(new FlacInventoryEntry
+        {
+            PeerId = "capable-peer",
+            Path = "/music/known.flac",
+            Size = 50_000_000,
+            HashStatusStr = "known",
+        });
+        await service.UpsertFlacEntryAsync(new FlacInventoryEntry
+        {
+            PeerId = "plain-peer",
+            Path = "/music/pending.flac",
+            Size = 50_000_001,
+            HashStatusStr = "none",
+        });
+        await service.StoreHashAsync(new HashDbEntry
+        {
+            FlacKey = "hash-key",
+            ByteHash = "byte-hash",
+            Size = 50_000_000,
+        });
+
+        var stats = service.GetStats();
+
+        Assert.Equal(2, stats.TotalPeers);
+        Assert.Equal(1, stats.SlskdnPeers);
+        Assert.Equal(2, stats.TotalFlacEntries);
+        Assert.Equal(1, stats.HashedFlacEntries);
+        Assert.Equal(1, stats.TotalHashEntries);
+        Assert.Equal(1, stats.CurrentSeqId);
+    }
+
     // ========== Peer Management Tests ==========
 
     [Fact]

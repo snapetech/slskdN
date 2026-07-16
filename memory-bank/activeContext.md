@@ -1,3 +1,17 @@
+## Update 2026-07-16 08:58:04Z
+
+- Current task: performance and efficiency improvements in progress; HashDb statistics aggregation pass complete locally.
+- Last activity:
+  - Collapsed total/capable peer, total/known inventory, and hash counts into one SQLite CTE snapshot with one scan per table.
+  - Dashboard and mesh-hello statistics fall from five commands to one (80% fewer) and five scans to three (40% fewer). The filesystem database-size read remains unchanged.
+- Validation:
+  - Passed focused statistics coverage (`2/2`), the complete HashDb class suite (`79/79`), and full backend tests (`4847/4847`: `69` application, `4498` unit, `280` integration).
+  - Repository lint and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the HashDb statistics slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 08:51:29Z
 
 - Current task: performance and efficiency improvements in progress; album-target track-write batching pass complete locally.

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Collapse HashDb statistics into one aggregate snapshot.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced five scalar SQLite commands with one CTE projection that scans Peers, FlacInventory, and HashDb once each. Dashboard and mesh-hello snapshots now use one command instead of five (80% fewer), while table scans fall from five to three (40% fewer); the independent database file-size read is unchanged. Added empty and populated full-field regressions.
+
 - [x] Batch album-target track replacement writes.
   - Status: completed (2026-07-16)
   - Priority: P1

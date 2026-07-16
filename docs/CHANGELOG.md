@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- HashDb statistics now aggregate total/capable peers, total/known FLAC
+  inventory, and stored hashes with one SQLite command and one scan per table.
+  Each dashboard or mesh-hello snapshot falls from five database commands to
+  one (80% fewer) and from five table scans to three (40% fewer).
 - Album-target persistence now normalizes track metadata once and replaces the
   list with 100-row SQLite inserts inside its existing transaction. A typical
   12-track album falls from 14 database commands to three (78.6% fewer); a
