@@ -52,6 +52,20 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z672. Moq Expression Matchers Cannot Use Out Discards
+
+**The Bug**: A remediation regression used
+`It.Is<string>(value => Guid.TryParse(value, out _))`. Moq stores the predicate
+as an expression tree, and expression trees cannot contain discard variables,
+so the test project failed with CS8207.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/LibraryHealth/LibraryHealthRemediationServiceTests.cs`
+
+**Prevention**: Move parsing or other expression-tree-unsupported logic into a
+plain static boolean helper and call that helper from `It.Is`. Keep Moq matcher
+lambdas to expression-tree-safe member access, comparisons, and helper calls.
+
 ### 0z671. SQLite Partial Index Queries Must Repeat The Predicate
 
 **The Bug**: The first remediation-linkage query used a partial index on
