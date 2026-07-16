@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z654. Reusing Batch Snapshots Requires An Atomic Eligibility Claim
+
+**The Bug**: Removing per-item intent reloads by passing pending batch snapshots
+directly into processing would let a stale later snapshot run after another
+caller had already changed its status. A normal read-then-write status check
+cannot prevent two workers from processing the same intent concurrently.
+
+**Files Affected**:
+- `src/slskd/VirtualSoulfind/v2/Intents/IIntentQueue.cs`
+- `src/slskd/VirtualSoulfind/v2/Intents/InMemoryIntentQueue.cs`
+- `src/slskd/VirtualSoulfind/v2/Processing/IntentQueueProcessor.cs`
+
+**Prevention**: When a worker reuses records from an earlier batch read, claim
+each item with one atomic expected-state transition immediately before work.
+Only the caller that changes `Pending` to `InProgress` may continue. Do not
+replace an N+1 refresh with an unguarded stale snapshot or a separate status
+check followed by an unconditional update.
+
 ### 0z653. Batch Workers Must Reuse Loaded Items And Gate Debug Hydration
 
 **The Bug**: Intent processing loaded a bounded pending batch, then looked up
