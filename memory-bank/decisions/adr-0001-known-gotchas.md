@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z669. Metadata Matching Must Batch Exact And Fallback Candidate Hydration
+
+**The Bug**: Music tag matching queried tracks one album at a time, then its
+fallback loaded up to 256 recording IDs and queried variants separately for
+each. With 100 albums and no exact match, one local metadata lookup could issue
+358 database reads before returning or failing.
+
+**Files Affected**:
+- `src/slskd/HashDb/IHashDbService.cs`
+- `src/slskd/HashDb/HashDbService.cs`
+- `src/slskd/VirtualSoulfind/Core/Music/MusicContentDomainProvider.cs`
+
+**Prevention**: Batch exact child rows for the filtered parent set and preserve
+parent priority with an in-memory lookup. For a bounded fallback candidate list,
+hydrate all candidate variants in one indexed batch, group by recording ID, and
+iterate the original recency-ordered IDs when selecting a result. Use lightweight
+presence reads when only an advertisable boolean is needed, and verify all
+single-parent/single-recording methods are absent from both paths.
+
 ### 0z668. MusicItem Fixtures Require Valid MusicBrainz GUIDs
 
 **The Bug**: A recent-items provider regression used labels such as
