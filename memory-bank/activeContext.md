@@ -1,3 +1,17 @@
+## Update 2026-07-16 19:04:00Z
+
+- Current task: performance and efficiency improvements in progress; direct Soundex scanning complete locally.
+- Last activity:
+  - Removed full uppercase, filtered-letter array/string, and result-array intermediates; casing and code construction now happen during one bounded scan.
+  - Two 100,006-character inputs fall from 1,462,432 warmed allocated bytes to below 256 (>99.98%).
+- Validation:
+  - Passed focused fuzzy matcher (`52/52`), broader MediaCore (`246/246`), and full backend suites (`4989/4989`) tests.
+  - Exact whitespace/non-letter/case/duplicate/padding/match/allocation boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Documented gotcha `0z705` (`7314ffe33`). Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the direct Soundex slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 18:54:47Z
 
 - Current task: performance and efficiency improvements in progress; single-pass Jaccard fuzzy scoring complete locally.

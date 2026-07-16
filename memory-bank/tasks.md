@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove Soundex input-sized intermediates.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: `FuzzyMatcher.Soundex` now scans the original input directly, invariant-cases only letters that contribute to the code, stores the fixed four-character result in a stack span, and stops after filling it. It no longer creates a full uppercase string, LINQ filtered-letter iterator/array, filtered string, or result `char[]`. For two covered 100,006-character inputs, warmed `ScorePhonetic` allocation falls from 1,462,432 bytes to less than 256 bytes (>99.98%). Whitespace and all-non-letter handling, removal without duplicate-state reset, uppercase first-letter retention, vowel/duplicate mapping, zero padding, lowercase input, exact/partial/no-match scores, and invariant casing remain unchanged. Added long-input allocation plus lowercase-initial and punctuation duplicate-suppression regressions. Documented direct-casing derived-state gotcha `0z705` (`7314ffe33`). Validation passed: focused fuzzy matcher tests (`52/52`), broader MediaCore tests (`246/246`), full backend suites (`4989/4989`: `69` application, `4640` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Make Jaccard fuzzy scoring single-pass and allocation-bounded.
   - Status: completed (2026-07-16)
   - Priority: P1

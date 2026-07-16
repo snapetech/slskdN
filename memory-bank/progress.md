@@ -1,3 +1,10 @@
+## Update 2026-07-16 19:04:00Z
+
+- Completed the direct Soundex scanning performance pass.
+- Soundex now invariant-cases only contributing letters, uses a four-character stack span, and stops once the code is full instead of normalizing/filtering complete inputs into copies.
+- Across two 100,006-character inputs, warmed allocation falls from 1,462,432 bytes to below 256 bytes (>99.98%). Exact whitespace/non-letter, first-letter, duplicate/vowel, padding, case, punctuation, and match-score behavior remain unchanged. Documented derived-casing-state gotcha `0z705` (`7314ffe33`).
+- Validation passed: focused fuzzy matcher tests (`52/52`), broader MediaCore tests (`246/246`), full backend suites (`4989/4989`: `69` application, `4640` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 18:54:47Z
 
 - Completed the single-pass Jaccard fuzzy-score performance pass.

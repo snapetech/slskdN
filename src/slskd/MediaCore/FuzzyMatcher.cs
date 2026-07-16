@@ -232,22 +232,31 @@ public class FuzzyMatcher : IFuzzyMatcher
     {
         if (string.IsNullOrWhiteSpace(s)) return "0000";
 
-        s = s.ToUpperInvariant();
+        var firstLetterIndex = 0;
+        while (firstLetterIndex < s.Length && !char.IsLetter(s[firstLetterIndex]))
+        {
+            firstLetterIndex++;
+        }
 
-        // Remove non-alphabetic characters
-        s = new string(s.Where(char.IsLetter).ToArray());
-        if (s.Length == 0) return "0000";
+        if (firstLetterIndex == s.Length) return "0000";
 
-        var result = new char[4];
-        result[0] = s[0]; // Keep first letter
+        Span<char> result = stackalloc char[4];
+        result.Fill('0');
+        var firstLetter = char.ToUpperInvariant(s[firstLetterIndex]);
+        result[0] = firstLetter; // Keep first letter
 
         // Soundex digit mapping
-        var prevCode = GetSoundexCode(s[0]);
+        var prevCode = GetSoundexCode(firstLetter);
         int index = 1;
 
-        for (int i = 1; i < s.Length && index < 4; i++)
+        for (var i = firstLetterIndex + 1; i < s.Length && index < result.Length; i++)
         {
-            var code = GetSoundexCode(s[i]);
+            if (!char.IsLetter(s[i]))
+            {
+                continue;
+            }
+
+            var code = GetSoundexCode(char.ToUpperInvariant(s[i]));
 
             // Skip vowels and duplicates
             if (code != '0' && code != prevCode)
@@ -256,12 +265,6 @@ public class FuzzyMatcher : IFuzzyMatcher
             }
 
             prevCode = code;
-        }
-
-        // Pad with zeros
-        while (index < 4)
-        {
-            result[index++] = '0';
         }
 
         return new string(result);

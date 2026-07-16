@@ -75,6 +75,8 @@ public class FuzzyMatcherTests
     [InlineData("Johnson", "Jonson", 1.0)] // J525 - same Soundex
     [InlineData("Lee", "Leigh", 0.5)] // L000 vs L200 - impl returns 0.5 when first letter matches
     [InlineData("Smith", "Schmidt", 1.0)] // S530 vs S530 - same Soundex in impl
+    [InlineData("bara", "bfara", 1.0)] // Lowercase initial duplicate code is suppressed
+    [InlineData("Bara", "B-fara", 1.0)] // Non-letters are removed without resetting duplicate state
     [InlineData("Smith", "Jones", 0.0)] // S530 vs J520 - no match
     [InlineData("", "", 1.0)]
     public void ScorePhonetic_ReturnsExpectedSoundexMatch(string a, string b, double expected)
@@ -144,6 +146,22 @@ public class FuzzyMatcherTests
         var score2 = matcher.ScorePhonetic("Smith", "sMiTh");
         Assert.Equal(1.0, score1);
         Assert.Equal(1.0, score2);
+    }
+
+    [Fact]
+    public void ScorePhonetic_LongInputsAvoidsFilteredPayloadCopies()
+    {
+        var value = "Robert" + new string('a', 100_000);
+        _ = matcher.ScorePhonetic("warm", "worm");
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var score = matcher.ScorePhonetic(value, value);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(1.0, score);
+        Assert.True(
+            allocatedBytes < 256,
+            $"Expected direct Soundex scanning below 256 allocated bytes, got {allocatedBytes:N0} bytes.");
     }
 
     [Theory]

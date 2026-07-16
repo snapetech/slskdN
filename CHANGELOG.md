@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Soundex fuzzy scoring now scans and invariant-cases only contributing letters
+  instead of normalizing and filtering complete input payloads into copies.
 - Jaccard fuzzy scoring now tokenizes and measures set overlap in direct passes
   instead of building split/LINQ and duplicate intersection/union structures.
 - PCM extraction now decodes ffmpeg output directly from the existing stream

@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Soundex fuzzy scoring now scans input characters directly, applies invariant
+  uppercase only to recognized letters, and builds the fixed four-character
+  code in a stack buffer. It stops once the code is complete instead of
+  uppercasing the entire input and copying every letter through a LINQ array and
+  filtered string. For the covered 100,006-character pair, warmed allocation
+  falls from 1,462,432 bytes to below 256 bytes (>99.98%). Existing whitespace
+  handling, non-letter removal, first-letter retention, vowel/duplicate rules,
+  zero padding, lowercase and punctuation behavior, exact/partial/no-match
+  scores, and invariant casing remain unchanged.
 - Jaccard fuzzy scoring now tokenizes each input in one direct scan and counts
   overlap by probing the smaller token set, deriving union cardinality from the
   two existing set sizes. It no longer creates a split array, per-token trim
