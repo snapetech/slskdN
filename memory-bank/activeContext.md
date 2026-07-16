@@ -1,3 +1,17 @@
+## Update 2026-07-16 14:20:20Z
+
+- Current task: performance and efficiency improvements in progress; set-based incoming collection item replacement complete locally.
+- Last activity:
+  - Replaced complete prior-item hydration and tracked deletes with one `ExecuteDeleteAsync` command inside an explicit transaction spanning all announcement writes.
+  - At 1,000 prior items, replacement hydration falls 100% while item, collection, grant, validation, and rollback semantics remain unchanged. Documented gotchas `0z698` and `0z699` (`36a8f7f7c`).
+- Validation:
+  - Passed focused announcement (`6/6`), complete Sharing (`81/81`), and full backend (`4911/4911`) tests.
+  - Exact command/materialization/result and injected-failure rollback boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the collection-announcement replacement slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 14:09:48Z
 
 - Current task: performance and efficiency improvements in progress; indexed Wishlist ignored-result duplicate lookup complete locally.

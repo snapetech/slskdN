@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Incoming collection announcements now replace existing items with one
+  set-based SQLite delete instead of hydrating and deleting every old item.
 - Wishlist ignored-result duplicate checks now use the existing composite
   case-insensitive index instead of loading every rule for the item.
 - Share-group member details now batch peer-contact nickname lookup instead of

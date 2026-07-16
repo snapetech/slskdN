@@ -145,7 +145,30 @@ public sealed class ShareGrantAnnouncementService : IDisposable
         }
 
         await using var db = await _factory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await using var transaction = await db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
 
+        try
+        {
+            await IngestInTransactionAsync(db, msg, ownerUserId, localNetworkUserId, webAudienceId, ct).ConfigureAwait(false);
+            await transaction.CommitAsync(ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(ct).ConfigureAwait(false);
+            throw;
+        }
+
+        _log.LogInformation("[ShareGrantInbox] Ingested incoming share {ShareId} for collection {CollectionId}", msg.ShareGrantId, msg.CollectionId);
+    }
+
+    private static async Task IngestInTransactionAsync(
+        CollectionsDbContext db,
+        ShareGrantAnnouncement msg,
+        string ownerUserId,
+        string localNetworkUserId,
+        string? webAudienceId,
+        CancellationToken ct)
+    {
         // Upsert collection (owner is remote user)
         var c = await db.Collections.FirstOrDefaultAsync(x => x.Id == msg.CollectionId, ct).ConfigureAwait(false);
         if (c == null)
@@ -171,12 +194,10 @@ public sealed class ShareGrantAnnouncementService : IDisposable
             c.UpdatedAt = DateTime.UtcNow;
         }
 
-        // Replace items (small lists; simplest and deterministic)
-        var existingItems = await db.CollectionItems.Where(x => x.CollectionId == msg.CollectionId).ToListAsync(ct).ConfigureAwait(false);
-        if (existingItems.Count > 0)
-        {
-            db.CollectionItems.RemoveRange(existingItems);
-        }
+        await db.CollectionItems
+            .Where(item => item.CollectionId == msg.CollectionId)
+            .ExecuteDeleteAsync(ct)
+            .ConfigureAwait(false);
 
         var items = msg.Items ?? new List<ShareGrantAnnouncementItem>();
         foreach (var (item, index) in items.Select((value, i) => (value, i)))
@@ -236,7 +257,6 @@ public sealed class ShareGrantAnnouncementService : IDisposable
         }
 
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
-        _log.LogInformation("[ShareGrantInbox] Ingested incoming share {ShareId} for collection {CollectionId}", msg.ShareGrantId, msg.CollectionId);
     }
 
     private async Task ObserveBackgroundTaskAsync(Task task, string username)

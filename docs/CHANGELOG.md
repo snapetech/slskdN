@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Incoming collection announcements now replace prior collection items with
+  one set-based SQLite delete inside the same explicit transaction as the new
+  item, collection, and grant writes. With 1,000 prior items, replacement
+  hydration falls from 1,000 entities to zero and the old-item removal is one
+  command. Item order and fields, collection/grant updates, sender validation,
+  and all-or-nothing replacement behavior remain unchanged.
 - Wishlist ignored-result creation now resolves an existing
   item/peer/directory rule through the existing unique case-insensitive
   composite index instead of hydrating every ignored rule for that Wishlist

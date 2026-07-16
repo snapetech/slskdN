@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Replace incoming collection announcement items set-wise.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced complete existing-item hydration and tracked per-row deletion with one `ExecuteDeleteAsync` command inside an explicit transaction covering collection, item, and grant writes. With 1,000 prior items, replacement hydration falls from 1,000 entities to zero, while the removal is one SQL command. Item fields/order, collection and grant updates, sender validation, and rollback semantics remain unchanged. Added exact command/materialization/result coverage and an injected insert-failure rollback regression. Documented transactional EF test gotchas `0z698` and `0z699` (`36a8f7f7c`). Validation passed: focused announcement tests (`6/6`), complete Sharing unit coverage (`81/81`), full backend tests (`4911/4911`: `69` application, `4562` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Index Wishlist ignored-result duplicate checks.
   - Status: completed (2026-07-16)
   - Priority: P1

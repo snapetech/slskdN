@@ -1,3 +1,10 @@
+## Update 2026-07-16 14:20:20Z
+
+- Completed the incoming collection-announcement item replacement performance pass.
+- Announcement ingestion now removes prior items through one set-based SQLite delete in an explicit transaction with the collection, new-item, and grant writes instead of hydrating and tracking every prior item.
+- With 1,000 prior items, replacement hydration falls from 1,000 entities to zero and removal uses one command. Item order/data, collection/grant updates, sender validation, and rollback behavior remain unchanged. Documented transactional EF test gotchas `0z698` and `0z699` (`36a8f7f7c`).
+- Validation passed: focused announcement tests (`6/6`), complete Sharing unit coverage (`81/81`), full backend tests (`4911/4911`: `69` application, `4562` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 14:09:48Z
 
 - Completed the Wishlist ignored-result exact-lookup performance pass.
