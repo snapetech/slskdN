@@ -5,6 +5,7 @@ namespace slskd.Sharing;
 
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -69,10 +70,48 @@ public sealed class CollectionRepository : ICollectionRepository
     public async Task<CollectionItem> AddItemAsync(CollectionItem item, CancellationToken cancellationToken = default)
     {
         await using var db = await _factory.CreateDbContextAsync(cancellationToken);
-        var max = await db.CollectionItems.Where(x => x.CollectionId == item.CollectionId).MaxAsync(x => (int?)x.Ordinal, cancellationToken) ?? -1;
-        item.Ordinal = max + 1;
-        db.CollectionItems.Add(item);
-        await db.SaveChangesAsync(cancellationToken);
+        var parameters = new object[]
+        {
+            new SqliteParameter("@id", item.Id),
+            new SqliteParameter("@collection_id", item.CollectionId),
+            new SqliteParameter("@content_id", item.ContentId),
+            new SqliteParameter("@media_kind", item.MediaKind ?? (object)DBNull.Value),
+            new SqliteParameter("@file_name", item.FileName ?? (object)DBNull.Value),
+            new SqliteParameter("@title", item.Title ?? (object)DBNull.Value),
+            new SqliteParameter("@artist", item.Artist ?? (object)DBNull.Value),
+            new SqliteParameter("@album", item.Album ?? (object)DBNull.Value),
+            new SqliteParameter("@content_hash", item.ContentHash ?? (object)DBNull.Value),
+        };
+
+        try
+        {
+            var ordinals = await db.Database.SqlQueryRaw<int>("""
+                INSERT INTO "CollectionItems" (
+                    "Id", "CollectionId", "Ordinal", "ContentId", "MediaKind",
+                    "FileName", "Title", "Artist", "Album", "ContentHash")
+                SELECT
+                    @id,
+                    @collection_id,
+                    COALESCE(MAX("Ordinal"), -1) + 1,
+                    @content_id,
+                    @media_kind,
+                    @file_name,
+                    @title,
+                    @artist,
+                    @album,
+                    @content_hash
+                FROM "CollectionItems"
+                WHERE "CollectionId" = @collection_id
+                RETURNING "Ordinal" AS "Value"
+                """, parameters)
+                .ToListAsync(cancellationToken);
+            item.Ordinal = ordinals.Single();
+        }
+        catch (DbException ex)
+        {
+            throw new DbUpdateException("An error occurred while saving the entity changes.", ex);
+        }
+
         return item;
     }
 

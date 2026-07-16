@@ -9,6 +9,7 @@ using System.Data.Common;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using slskd.Sharing;
@@ -40,6 +41,74 @@ public sealed class CollectionRepositoryTests : IDisposable
         {
             System.IO.File.Delete(_dbPath);
         }
+    }
+
+    [Fact]
+    public async Task AddItemAsync_AssignsNextOrdinalAndPersistsAllFieldsWithOneCommand()
+    {
+        var collectionId = Guid.NewGuid();
+        await using (var db = await _factory.CreateDbContextAsync())
+        {
+            db.Collections.Add(new Collection { Id = collectionId, OwnerUserId = "owner", Title = "Collection" });
+            db.CollectionItems.Add(new CollectionItem
+            {
+                CollectionId = collectionId,
+                ContentId = "existing",
+                Ordinal = 7,
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var item = new CollectionItem
+        {
+            CollectionId = collectionId,
+            ContentId = "content-id",
+            MediaKind = "audio",
+            FileName = "track.flac",
+            Title = "Title",
+            Artist = "Artist",
+            Album = "Album",
+            ContentHash = "hash",
+        };
+        _commands.Commands.Clear();
+        _materialization.Count = 0;
+
+        var result = await new CollectionRepository(_factory).AddItemAsync(item);
+
+        Assert.Same(item, result);
+        Assert.Equal(8, result.Ordinal);
+        Assert.Equal(0, _materialization.Count);
+        var command = Assert.Single(_commands.Commands);
+        Assert.StartsWith("INSERT INTO \"CollectionItems\"", command.TrimStart(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("RETURNING \"Ordinal\"", command, StringComparison.OrdinalIgnoreCase);
+
+        await using var verification = await _factory.CreateDbContextAsync();
+        var persisted = await verification.CollectionItems.AsNoTracking().SingleAsync(candidate => candidate.Id == item.Id);
+        Assert.Equal(item.CollectionId, persisted.CollectionId);
+        Assert.Equal(item.Ordinal, persisted.Ordinal);
+        Assert.Equal(item.ContentId, persisted.ContentId);
+        Assert.Equal(item.MediaKind, persisted.MediaKind);
+        Assert.Equal(item.FileName, persisted.FileName);
+        Assert.Equal(item.Title, persisted.Title);
+        Assert.Equal(item.Artist, persisted.Artist);
+        Assert.Equal(item.Album, persisted.Album);
+        Assert.Equal(item.ContentHash, persisted.ContentHash);
+    }
+
+    [Fact]
+    public async Task AddItemAsync_MissingCollection_PreservesForeignKeyFailure()
+    {
+        _commands.Commands.Clear();
+        var exception = await Assert.ThrowsAsync<DbUpdateException>(() =>
+            new CollectionRepository(_factory).AddItemAsync(new CollectionItem
+            {
+                CollectionId = Guid.NewGuid(),
+                ContentId = "missing-parent",
+            }));
+
+        Assert.IsType<SqliteException>(exception.InnerException);
+        var command = Assert.Single(_commands.Commands);
+        Assert.StartsWith("INSERT INTO \"CollectionItems\"", command.TrimStart(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

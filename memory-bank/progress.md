@@ -1,3 +1,10 @@
+## Update 2026-07-16 14:56:01Z
+
+- Completed the atomic collection-item append performance pass.
+- Item append now combines maximum-plus-one ordinal assignment, complete field insertion, and ordinal return in one parameterized SQLite statement instead of a scalar read followed by a tracked insert.
+- Commands fall from two to one (50% fewer), and ordinal selection is atomic with the write. Empty/sparse ordinal behavior, every item field, same-entity return behavior, and EF/provider exception boundaries remain unchanged.
+- Validation passed: focused collection repository tests (`4/4`), broader Sharing tests (`95/95`), full backend tests (`4922/4922`: `69` application, `4573` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 14:43:53Z
 
 - Completed the atomic share-group member admission performance pass.

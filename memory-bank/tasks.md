@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make collection-item append ordinal assignment atomic.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced the maximum-ordinal query plus tracked insert with one parameterized `INSERT ... SELECT ... RETURNING` command that assigns and returns the next ordinal atomically. Each append falls from two SQLite commands to one (50% fewer). Zero-based empty collections, sparse maximum-plus-one behavior, all item fields, same-entity return behavior, and `DbUpdateException` with provider inner exceptions remain unchanged. Added exact command/returned-ordinal/zero-materialization/full-field persistence and missing-parent exception regressions. Validation passed: focused collection repository tests (`4/4`), broader Sharing tests (`95/95`), full backend tests (`4922/4922`: `69` application, `4573` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Make share-group member admission atomic.
   - Status: completed (2026-07-16)
   - Priority: P1

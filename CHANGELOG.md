@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Collection-item append now assigns and returns its next ordinal in the same
+  atomic SQLite insert instead of issuing a separate maximum-ordinal query.
 - Share-group member admission now uses one atomic conditional SQLite insert
   instead of a duplicate read followed by a separate write.
 - Collection reordering now writes ordinals through bounded transactional

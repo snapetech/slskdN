@@ -1,3 +1,17 @@
+## Update 2026-07-16 14:56:01Z
+
+- Current task: performance and efficiency improvements in progress; atomic collection-item append complete locally.
+- Last activity:
+  - Replaced separate maximum-ordinal lookup and tracked insertion with one parameterized `INSERT ... SELECT ... RETURNING` statement.
+  - Commands fall 50% and ordinal assignment is atomic while full-field, return-instance, sparse-order, and EF exception behavior remain unchanged.
+- Validation:
+  - Passed focused collection repository (`4/4`), broader Sharing (`95/95`), and full backend (`4922/4922`) tests.
+  - Exact command/ordinal/materialization/field/exception boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the atomic collection-item append slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 14:43:53Z
 
 - Current task: performance and efficiency improvements in progress; atomic share-group member admission complete locally.

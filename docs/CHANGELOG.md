@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Collection-item append now assigns the next ordinal and returns it through
+  one parameterized SQLite `INSERT ... SELECT ... RETURNING` statement instead
+  of querying the maximum ordinal before a tracked insert. Each append falls
+  from two commands to one (50% fewer), with ordinal selection atomic with the
+  write. Zero-based and sparse next-ordinal behavior, all persisted item
+  fields, returned-entity identity, and EF constraint-exception boundaries
+  remain unchanged.
 - Atomic share-group member admission now retains the prior EF
   `DbUpdateException` boundary for database constraint failures, with the
   provider error available as its inner exception. This restores compatibility
