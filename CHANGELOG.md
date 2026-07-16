@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- MediaCore recording-ID fallback now asks HashDb for one deduplicated best
+  variant instead of loading and sorting every variant for the recording.
 - Recipient collection authorization now uses one indexed scalar direct/group
   access query instead of loading every grant accessible to the user.
 - Share-token streaming authorization now uses an indexed content-membership

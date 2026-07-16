@@ -3003,6 +3003,41 @@ namespace slskd.HashDb
         }
 
         /// <inheritdoc/>
+        public async Task<AudioVariant?> GetBestVariantByRecordingAsync(
+            string recordingId,
+            CancellationToken cancellationToken = default)
+        {
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = """
+                WITH ranked AS (
+                    SELECT
+                        HashDb.*,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY COALESCE(NULLIF(TRIM(variant_id), ''), flac_key)
+                            ORDER BY quality_score DESC, last_updated_at DESC
+                        ) AS variant_rank
+                    FROM HashDb
+                    WHERE musicbrainz_id = @recording_id
+                )
+                SELECT *
+                FROM ranked
+                WHERE variant_rank = 1
+                ORDER BY quality_score DESC, seen_count DESC, last_updated_at DESC
+                LIMIT 1
+                """;
+            cmd.Parameters.AddWithValue("@recording_id", recordingId);
+
+            using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                return null;
+            }
+
+            return MapEntryToVariant(ReadHashEntry(reader));
+        }
+
+        /// <inheritdoc/>
         public async Task<List<AudioVariant>> GetVariantsByRecordingsAsync(
             IEnumerable<string> recordingIds,
             CancellationToken cancellationToken = default)

@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- MediaCore variant-ID resolution now uses one bounded HashDb best-variant
+  query when the identifier matches a recording rather than loading,
+  deduplicating, and sorting every variant for that recording. With 1,003 rows,
+  mapped return rows fall from 1,003 to one (99.9% fewer). Per-variant identity
+  deduplication, quality/seen-count ordering, latest-row selection within a
+  duplicate identity, exact recording-ID matching, direct FLAC-key precedence,
+  and non-music fallback remain unchanged.
 - Recipient collection GET authorization now resolves active direct-user and
   group-member access through one scalar SQLite query instead of hydrating the
   user's complete accessible-grant list. The query uses the collection grant

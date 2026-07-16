@@ -44,11 +44,9 @@ namespace slskd.MediaCore
                 return MediaVariant.FromAudioVariant(audio);
             }
 
-            var recordingVariants = await _hashDb.GetVariantsByRecordingAsync(variantId, cancellationToken).ConfigureAwait(false);
-            var bestRecordingVariant = recordingVariants?
-                .OrderByDescending(v => v.QualityScore)
-                .ThenByDescending(v => v.SeenCount)
-                .FirstOrDefault();
+            var bestRecordingVariant = await _hashDb
+                .GetBestVariantByRecordingAsync(variantId, cancellationToken)
+                .ConfigureAwait(false);
             if (bestRecordingVariant != null)
             {
                 return MediaVariant.FromAudioVariant(bestRecordingVariant);

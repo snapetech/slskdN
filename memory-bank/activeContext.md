@@ -1,3 +1,17 @@
+## Update 2026-07-16 15:38:43Z
+
+- Current task: performance and efficiency improvements in progress; bounded MediaCore recording fallback complete locally.
+- Last activity:
+  - Added an exact HashDb best-deduplicated-variant query and replaced MediaCore's full recording variant hydration/group/sort fallback.
+  - At 1,003 rows, mapped output falls 99.9% while direct-key, duplicate recency, quality/seen, exact identity, missing, and non-music semantics remain unchanged.
+- Validation:
+  - Passed focused (`3/3`), broader HashDb/MediaCore (`341/341`), and full backend (`4938/4938`) tests.
+  - Exact result/duplicate-conflict/index and one-best-read/zero-list boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the bounded MediaCore recording fallback slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 15:31:26Z
 
 - Current task: performance and efficiency improvements in progress; scalar recipient collection authorization complete locally.

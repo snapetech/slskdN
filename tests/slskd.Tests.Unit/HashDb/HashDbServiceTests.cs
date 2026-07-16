@@ -1079,6 +1079,86 @@ public class HashDbServiceTests : IDisposable
         Assert.Equal(new[] { "new-best", "old-best" }, bestVariants.Select(variant => variant.VariantId));
     }
 
+    [Fact]
+    public async Task GetBestVariantByRecordingAsync_ReturnsOneDeduplicatedBestVariant()
+    {
+        await using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}"))
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                WITH RECURSIVE sequence(value) AS (
+                    SELECT 1
+                    UNION ALL
+                    SELECT value + 1 FROM sequence WHERE value < 1000
+                )
+                INSERT INTO HashDb (
+                    flac_key,
+                    byte_hash,
+                    size,
+                    first_seen_at,
+                    last_updated_at,
+                    seq_id,
+                    use_count,
+                    musicbrainz_id,
+                    variant_id,
+                    quality_score,
+                    seen_count)
+                SELECT
+                    printf('filler-key-%04d', value),
+                    printf('filler-hash-%04d', value),
+                    123,
+                    1,
+                    value,
+                    value,
+                    1,
+                    'recording-target',
+                    printf('filler-variant-%04d', value),
+                    0.1,
+                    value
+                FROM sequence
+                UNION ALL
+                SELECT 'winner-new-key', 'winner-new-hash', 123, 1, 30, 1001, 1,
+                       'recording-target', 'duplicate-winner', 0.9, 1
+                UNION ALL
+                SELECT 'winner-old-key', 'winner-old-hash', 123, 1, 20, 1002, 1,
+                       'recording-target', 'duplicate-winner', 0.9, 100
+                UNION ALL
+                SELECT 'competitor-key', 'competitor-hash', 123, 1, 25, 1003, 1,
+                       'recording-target', 'competitor', 0.9, 50
+                """;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        var result = await service.GetBestVariantByRecordingAsync("recording-target");
+
+        Assert.NotNull(result);
+        Assert.Equal("competitor", result.VariantId);
+        Assert.Equal(50, result.SeenCount);
+        Assert.Null(await service.GetBestVariantByRecordingAsync("RECORDING-TARGET"));
+
+        await using var planConnection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await planConnection.OpenAsync();
+        await using var planCommand = planConnection.CreateCommand();
+        planCommand.CommandText = """
+            EXPLAIN QUERY PLAN
+            SELECT *
+            FROM HashDb
+            WHERE musicbrainz_id = 'recording-target'
+            ORDER BY quality_score DESC, seen_count DESC
+            LIMIT 1
+            """;
+        await using var reader = await planCommand.ExecuteReaderAsync();
+        var plan = new List<string>();
+        while (await reader.ReadAsync())
+        {
+            plan.Add(reader.GetString(3));
+        }
+
+        Assert.Contains(plan, detail =>
+            detail.Contains("SEARCH HashDb USING INDEX idx_hashdb_musicbrainz_id", StringComparison.Ordinal));
+    }
+
     private static HashDbEntry CreateVariantEntry(
         string flacKey,
         string recordingId,

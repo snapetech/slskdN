@@ -1,3 +1,10 @@
+## Update 2026-07-16 15:38:43Z
+
+- Completed the bounded MediaCore recording fallback variant-selection performance pass.
+- HashDb now returns one best deduplicated variant for an exact recording ID, and MediaCore no longer loads/groups/sorts the complete recording variant list after a FLAC-key miss.
+- With 1,003 rows, mapped return rows fall from 1,003 to one (99.9% fewer). Direct-key precedence, duplicate identity/recency, quality/seen ordering, exact identity, missing, and non-music behavior remain unchanged.
+- Validation passed: focused tests (`3/3`), broader HashDb/MediaCore tests (`341/341`), full backend tests (`4938/4938`: `69` application, `4589` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 15:31:26Z
 
 - Completed the scalar recipient collection-authorization performance pass.

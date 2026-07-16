@@ -220,6 +220,11 @@ namespace slskd.HashDb
         Task<List<AudioVariant>> GetVariantsByRecordingAsync(string recordingId, CancellationToken cancellationToken = default);
 
         /// <summary>
+        ///     Gets the best deduplicated variant for a recording.
+        /// </summary>
+        Task<AudioVariant?> GetBestVariantByRecordingAsync(string recordingId, CancellationToken cancellationToken = default);
+
+        /// <summary>
         ///     Gets variants for the requested recording identifiers.
         /// </summary>
         Task<List<AudioVariant>> GetVariantsByRecordingsAsync(

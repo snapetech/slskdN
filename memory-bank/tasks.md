@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound MediaCore recording fallback variant selection.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added an exact HashDb best-variant query that ranks duplicate variant identities by quality and recency, then returns the best deduplicated row by quality and seen count. MediaCore recording-ID fallback now calls it instead of loading, grouping, and sorting every recording variant. With 1,003 rows, mapped return rows fall from 1,003 to one (99.9% fewer). Direct FLAC-key precedence, exact recording identity, per-variant deduplication, latest duplicate-row selection, quality/seen ordering, missing results, and non-music fallback remain unchanged. Added a 1,003-row production SQLite duplicate-conflict/result/index regression and exact one-best-read/zero-list-call store coverage. Validation passed: focused tests (`3/3`), broader HashDb/MediaCore tests (`341/341`), full backend tests (`4938/4938`: `69` application, `4589` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Make recipient collection authorization scalar.
   - Status: completed (2026-07-16)
   - Priority: P1
