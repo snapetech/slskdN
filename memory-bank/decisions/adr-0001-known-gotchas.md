@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z660. Transaction Rollback Catches Must Not Enclose Post-Commit Work
+
+**The Bug**: Source Discovery committed its ingestion transaction, then ran
+optional hash verification inside the same `try`. If verification failed, the
+catch attempted `Rollback()` on the already committed transaction, replacing
+the original failure with a completed-transaction error.
+
+**Files Affected**:
+- `src/slskd/Transfers/MultiSource/Discovery/SourceDiscoveryService.cs`
+
+**Prevention**: Scope rollback catches only around work performed before
+`Commit()`. Move post-commit I/O outside that catch so later failures propagate
+without executing invalid transaction recovery. Add follow-on work only after
+reviewing where the transaction becomes terminal.
+
 ### 0z659. Results Returned After Try/Catch Must Be Declared Outside The Try
 
 **The Bug**: The first discovery-ingestion batching patch declared its result
