@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z619. Supplemental Loading Must Not Hide Supplied Primary Data
+
+**The Bug**: Search result cards reused already-available speed, queue, and
+slot metadata, but starting deferred reputation and opinion lookups set the
+shared user-card loading flag. The render path replaced all supplied primary
+metadata with a spinner until those optional requests completed.
+
+**Files Affected**:
+- `src/web/src/components/Shared/UserCard.jsx`
+
+**Prevention**: Treat supplied primary data and asynchronously loaded
+supplemental data as independent states. Optional lookup activity may add a
+local loading indicator, but must not replace valid primary metadata. Cover
+the interaction-triggered loading state before resolving the supplemental
+requests.
+
 ### 0z618. Mounted Refs Must Reset During Effect Setup
 
 **The Bug**: The System MediaCore polling effect initialized `mountedRef` only
