@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound MediaCore music-domain variant sampling.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced complete recording-ID materialization plus one variant read per recording with one bounded HashDb window query that selects the most recently updated case-insensitive recording group, preserves per-recording quality/recency ordering, and applies the requested item limit before returning to MediaCore. At the default 100-item limit with one variant per recording, reads fall from 101 to one (99.01% fewer), and application memory no longer scales with all recording IDs. Global variant-ID deduplication and non-music behavior remain unchanged. Added exact one-call/zero-legacy-call coverage and a production SQLite recency/quality/case-variant/limit regression. Documented fixture gotchas `0z691` (`520b57f5e`) and `0z692` (`010ab3816`). Validation passed: focused regressions (`2/2`), broader HashDb/MediaCore coverage (`323/323`), full backend tests (`4888/4888`: `69` application, `4539` unit, `280` integration), repository lint, diff checks, and every substantive remediation check before the expected divergent-branch release-sync stop.
+
 - [x] Make warm-cache eviction set-based.
   - Status: completed (2026-07-16)
   - Priority: P1

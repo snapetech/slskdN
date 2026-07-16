@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- MediaCore music-domain variant sampling now applies recording recency,
+  per-recording quality ordering, duplicate filtering, and the requested limit
+  in one HashDb query instead of materializing every recording ID and reading
+  variants one recording at a time. At the default 100-item limit with one
+  variant per recording, reads fall from 101 to one (99.01% fewer), and
+  application memory no longer scales with the complete recording-ID set.
 - Warm-cache capacity enforcement now calculates total size and cumulative
   oldest-unpinned reclamation inside one SQLite windowed delete instead of
   loading every entry and deleting metadata individually. Evicting 100 entries

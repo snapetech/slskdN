@@ -3058,6 +3058,80 @@ namespace slskd.HashDb
         }
 
         /// <inheritdoc/>
+        public async Task<List<AudioVariant>> GetRecentVariantsAsync(
+            int limit,
+            CancellationToken cancellationToken = default)
+        {
+            var variants = new List<AudioVariant>();
+            if (limit <= 0)
+            {
+                return variants;
+            }
+
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = """
+                WITH exact_recordings AS (
+                    SELECT
+                        musicbrainz_id,
+                        MAX(last_updated_at) AS recording_last_updated
+                    FROM HashDb
+                    WHERE musicbrainz_id IS NOT NULL
+                      AND TRIM(musicbrainz_id) <> ''
+                    GROUP BY musicbrainz_id
+                ),
+                selected_recordings AS (
+                    SELECT
+                        musicbrainz_id,
+                        recording_last_updated,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY TRIM(musicbrainz_id) COLLATE NOCASE
+                            ORDER BY recording_last_updated DESC, musicbrainz_id
+                        ) AS recording_rank
+                    FROM exact_recordings
+                ),
+                ranked AS (
+                    SELECT
+                        HashDb.*,
+                        selected_recordings.recording_last_updated,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY
+                                HashDb.musicbrainz_id,
+                                COALESCE(NULLIF(TRIM(variant_id), ''), flac_key)
+                            ORDER BY quality_score DESC, last_updated_at DESC, flac_key
+                        ) AS variant_rank
+                    FROM HashDb
+                    INNER JOIN selected_recordings
+                        ON selected_recordings.musicbrainz_id = HashDb.musicbrainz_id
+                       AND selected_recordings.recording_rank = 1
+                )
+                SELECT *
+                FROM ranked
+                WHERE variant_rank = 1
+                ORDER BY
+                    recording_last_updated DESC,
+                    musicbrainz_id COLLATE NOCASE,
+                    quality_score DESC,
+                    last_updated_at DESC,
+                    flac_key
+                LIMIT @limit
+                """;
+            cmd.Parameters.AddWithValue("@limit", limit);
+
+            using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                var variant = MapEntryToVariant(ReadHashEntry(reader));
+                if (variant != null)
+                {
+                    variants.Add(variant);
+                }
+            }
+
+            return variants;
+        }
+
+        /// <inheritdoc/>
         public async Task<List<AudioVariant>> GetVariantsByRecordingAndProfileAsync(string recordingId, string codecProfileKey, CancellationToken cancellationToken = default)
         {
             var list = new List<AudioVariant>();

@@ -1029,6 +1029,69 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetRecentVariantsAsync_PreservesRecordingRecencyAndVariantQualityWithinLimit()
+    {
+        var entries = new[]
+        {
+            CreateVariantEntry("old-best-key", "recording-a-old", "old-best", 20, 0.9),
+            CreateVariantEntry("old-other-key", "recording-a-old", "old-other", 20, 0.8),
+            CreateVariantEntry("new-low-key", "recording-z-new", "new-low", 30, 0.4),
+            CreateVariantEntry("new-best-key", "recording-z-new", "new-best", 30, 0.7),
+            CreateVariantEntry("case-shadow-key", "RECORDING-Z-NEW", "case-shadow", 10, 1.0),
+        };
+        foreach (var entry in entries)
+        {
+            await service.StoreHashAsync(entry);
+            await service.UpdateHashRecordingIdAsync(entry.FlacKey, entry.MusicBrainzId);
+            await service.UpdateVariantMetadataAsync(entry.FlacKey, new AudioVariant
+            {
+                FlacKey = entry.FlacKey,
+                VariantId = entry.VariantId,
+                MusicBrainzRecordingId = entry.MusicBrainzId,
+                QualityScore = entry.QualityScore ?? 0,
+            });
+        }
+        await using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}"))
+        {
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                UPDATE HashDb
+                SET last_updated_at = CASE musicbrainz_id
+                    WHEN 'recording-z-new' THEN 30
+                    WHEN 'recording-a-old' THEN 20
+                    ELSE 10
+                END
+                """;
+            await command.ExecuteNonQueryAsync();
+        }
+
+        var variants = await service.GetRecentVariantsAsync(3);
+
+        Assert.Equal(new[] { "new-best", "new-low", "old-best" }, variants.Select(variant => variant.VariantId));
+    }
+
+    private static HashDbEntry CreateVariantEntry(
+        string flacKey,
+        string recordingId,
+        string variantId,
+        long lastUpdatedAt,
+        double qualityScore) =>
+        new()
+        {
+            FlacKey = flacKey,
+            ByteHash = $"hash-{flacKey}",
+            Size = 123,
+            FirstSeenAt = 1,
+            LastUpdatedAt = lastUpdatedAt,
+            SeqId = lastUpdatedAt,
+            UseCount = 1,
+            MusicBrainzId = recordingId,
+            VariantId = variantId,
+            QualityScore = qualityScore,
+        };
+
+    [Fact]
     public async Task UpdateVariantAnalysisAsync_WithLargeBatch_UpdatesAnalysisOnly()
     {
         var entries = Enumerable.Range(1, 201)

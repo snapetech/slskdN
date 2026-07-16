@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- MediaCore music-domain variant samples now use one bounded HashDb projection
+  instead of loading recording IDs and querying each recording separately.
 - Warm-cache capacity enforcement now evicts oldest unpinned metadata through
   one set-based SQLite command.
 - Warm-cache hint ingestion now persists popularity increments through bounded

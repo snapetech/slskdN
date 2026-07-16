@@ -1,3 +1,10 @@
+## Update 2026-07-16 12:23:47Z
+
+- Completed the MediaCore music-domain variant sampling performance pass.
+- Replaced complete recording-ID materialization and one variant query per recording with one bounded HashDb window projection that preserves recent-recording priority, per-recording quality ordering, case-insensitive recording selection, global variant deduplication, and the requested result limit.
+- At the default 100-item limit with one variant per recording, reads fall from 101 to one (99.01% fewer), and application memory no longer scales with the complete recording-ID set. Documented fixture gotchas `0z691` (`520b57f5e`) and `0z692` (`010ab3816`).
+- Validation passed: focused regressions (`2/2`), broader HashDb/MediaCore tests (`323/323`), complete smoke/unit/integration suites (`4888/4888`: `69` smoke, `4539` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 12:11:57Z
 
 - Completed the set-based warm-cache eviction performance pass.

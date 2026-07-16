@@ -79,30 +79,14 @@ namespace slskd.MediaCore
         {
             if (domain == ContentDomain.Music)
             {
-                var recordingIds = await _hashDb.GetRecordingIdsWithVariantsAsync(cancellationToken).ConfigureAwait(false);
-                var results = new List<MediaVariant>();
-                foreach (var rid in recordingIds ?? new List<string>())
+                if (limit <= 0)
                 {
-                    if (results.Count >= limit)
-                    {
-                        break;
-                    }
-
-                    var list = await _hashDb.GetVariantsByRecordingAsync(rid, cancellationToken).ConfigureAwait(false);
-                    if (list != null)
-                    {
-                        foreach (var a in list)
-                        {
-                            results.Add(MediaVariant.FromAudioVariant(a));
-                            if (results.Count >= limit)
-                            {
-                                break;
-                            }
-                        }
-                    }
+                    return Array.Empty<MediaVariant>();
                 }
 
-                return results
+                var variants = await _hashDb.GetRecentVariantsAsync(limit, cancellationToken).ConfigureAwait(false);
+                return variants
+                    .ConvertAll(MediaVariant.FromAudioVariant)
                     .GroupBy(v => v.VariantId, StringComparer.Ordinal)
                     .Select(g => g.First())
                     .Take(limit)

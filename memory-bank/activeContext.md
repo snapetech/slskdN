@@ -1,3 +1,17 @@
+## Update 2026-07-16 12:23:47Z
+
+- Current task: performance and efficiency improvements in progress; MediaCore music-variant sampling pass complete locally.
+- Last activity:
+  - Added one bounded recent-variant HashDb projection and replaced MediaCore's complete recording-ID read plus per-recording query loop.
+  - At the default 100-item limit with one variant per recording, database reads fall from 101 to one (99.01% fewer), and application memory is result-bounded. Documented gotchas `0z691` (`520b57f5e`) and `0z692` (`010ab3816`).
+- Validation:
+  - Passed focused regressions (`2/2`), broader HashDb/MediaCore coverage (`323/323`), and full backend tests (`4888/4888`: `69` application, `4539` unit, `280` integration).
+  - Exact one-query service boundary, zero legacy calls, recording recency, quality ordering, case-variant selection, result limit, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the MediaCore/HashDb recent-variant slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 12:11:57Z
 
 - Current task: performance and efficiency improvements in progress; set-based warm-cache eviction pass complete locally.
