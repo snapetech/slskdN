@@ -1,3 +1,17 @@
+## Update 2026-07-16 16:04:58Z
+
+- Current task: performance and efficiency improvements in progress; IPLD validation registry-membership caching complete locally.
+- Last activity:
+  - Cached ContentID registration results within each validation run and reduced orphan-source membership checks from once per link to once per source.
+  - For 1,000 repeated links to one target, registry calls fall from 2,000 to two while per-link diagnostics and validation results remain unchanged.
+- Validation:
+  - Passed focused IPLD (`14/14`), broader MediaCore (`222/222`), and full backend suites (`4947/4947`) tests.
+  - Exact repeated-target, unique-target, orphan-source, and diagnostic-multiplicity checks, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the IPLD validation caching slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 15:53:55Z
 
 - Current task: performance and efficiency improvements in progress; AdvancedDiscovery peer-metric batching complete locally.

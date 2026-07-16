@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- IPLD link validation now caches ContentID registration results for one
+  validation run and checks each source once for orphan detection while still
+  reporting every broken or orphaned link. For `L` links with `U` unique
+  targets and `S` unique sources, registry checks fall from up to `2L` to at
+  most `U + S`; 1,000 repeated links from one source to one target fall from
+  2,000 checks to two (99.9% fewer). Link diagnostics and domain enumeration
+  remain unchanged; registration is evaluated at each ContentID's first
+  encounter for the duration of that run.
 - Advanced discovery peer ranking now resolves uncached local metrics through
   one service batch and bounded 500-ID HashDb reads instead of awaiting one
   storage lookup per peer. Ranking 100 uncached peers falls from 100 serialized

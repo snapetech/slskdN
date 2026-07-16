@@ -162,6 +162,89 @@ public class IpldMapperTests
     }
 
     [Fact]
+    public async Task ValidateLinksAsync_ReusesRegistrationChecksForRepeatedContentIds()
+    {
+        var sourceContentId = "content:audio:track:source";
+        var missingTarget = "content:audio:album:missing";
+        var registeredTarget = "content:audio:artist:registered";
+
+        _registryMock
+            .Setup(r => r.IsContentIdRegisteredAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((string contentId, CancellationToken _) => contentId != missingTarget);
+        await _mapper.AddLinksAsync(sourceContentId, new[]
+        {
+            new IpldLink(IpldLinkNames.Album, missingTarget),
+            new IpldLink(IpldLinkNames.Album, missingTarget),
+            new IpldLink(IpldLinkNames.Artist, registeredTarget),
+        });
+
+        _registryMock.Invocations.Clear();
+        _registryMock
+            .Setup(r => r.GetStatsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ContentIdRegistryStats(
+                TotalMappings: 1,
+                TotalDomains: 1,
+                MappingsByDomain: new Dictionary<string, int> { ["audio"] = 1 }));
+        _registryMock
+            .Setup(r => r.FindByDomainAsync("audio", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { sourceContentId });
+
+        var result = await _mapper.ValidateLinksAsync();
+
+        Assert.False(result.IsValid);
+        Assert.Equal(2, result.BrokenLinks.Count);
+        Assert.Empty(result.OrphanedLinks);
+        _registryMock.Verify(
+            r => r.IsContentIdRegisteredAsync(missingTarget, It.IsAny<CancellationToken>()),
+            Times.Once);
+        _registryMock.Verify(
+            r => r.IsContentIdRegisteredAsync(registeredTarget, It.IsAny<CancellationToken>()),
+            Times.Once);
+        _registryMock.Verify(
+            r => r.IsContentIdRegisteredAsync(sourceContentId, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ValidateLinksAsync_ChecksOrphanedSourceOnceAndReportsEveryLink()
+    {
+        var sourceContentId = "content:audio:track:source";
+        var firstTarget = "content:audio:album:first";
+        var secondTarget = "content:audio:album:second";
+        var sourceIsRegistered = true;
+
+        _registryMock
+            .Setup(r => r.IsContentIdRegisteredAsync(sourceContentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => sourceIsRegistered);
+        await _mapper.AddLinksAsync(sourceContentId, new[]
+        {
+            new IpldLink(IpldLinkNames.Album, firstTarget),
+            new IpldLink(IpldLinkNames.Album, secondTarget),
+        });
+
+        sourceIsRegistered = false;
+        _registryMock.Invocations.Clear();
+        _registryMock
+            .Setup(r => r.GetStatsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ContentIdRegistryStats(
+                TotalMappings: 0,
+                TotalDomains: 0,
+                MappingsByDomain: new Dictionary<string, int>()));
+        _registryMock
+            .Setup(r => r.FindByDomainAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<string>());
+
+        var result = await _mapper.ValidateLinksAsync();
+
+        Assert.False(result.IsValid);
+        Assert.Empty(result.BrokenLinks);
+        Assert.Equal(2, result.OrphanedLinks.Count);
+        _registryMock.Verify(
+            r => r.IsContentIdRegisteredAsync(sourceContentId, It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
     public void ToJson_ValidDescriptor_ReturnsJson()
     {
         // Arrange

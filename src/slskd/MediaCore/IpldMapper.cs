@@ -175,6 +175,7 @@ public class IpldMapper : IIpldMapper
     {
         var brokenLinks = new List<string>();
         var orphanedLinks = new List<string>();
+        var registrationStatusByContentId = new Dictionary<string, bool>();
         var totalValidated = 0;
 
         try
@@ -200,7 +201,7 @@ public class IpldMapper : IIpldMapper
 
                     foreach (var link in outgoing)
                     {
-                        if (!await _registry.IsContentIdRegisteredAsync(link.Target, cancellationToken))
+                        if (!await IsRegisteredAsync(link.Target))
                         {
                             brokenLinks.Add($"{contentId} -> {link.Target} ({link.Name})");
                         }
@@ -218,14 +219,38 @@ public class IpldMapper : IIpldMapper
 
             foreach (var (sourceContentId, links) in allOutgoingLinks)
             {
+                if (!links.Any(link => !string.IsNullOrWhiteSpace(link.Target)) ||
+                    await IsRegisteredAsync(sourceContentId))
+                {
+                    continue;
+                }
+
                 foreach (var link in links)
                 {
-                    if (!string.IsNullOrWhiteSpace(link.Target) &&
-                        !await _registry.IsContentIdRegisteredAsync(sourceContentId, cancellationToken))
+                    if (!string.IsNullOrWhiteSpace(link.Target))
                     {
                         orphanedLinks.Add($"{sourceContentId} -> {link.Target} ({link.Name})");
                     }
                 }
+            }
+
+            async Task<bool> IsRegisteredAsync(string contentId)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (string.IsNullOrWhiteSpace(contentId))
+                {
+                    return false;
+                }
+
+                if (registrationStatusByContentId.TryGetValue(contentId, out var isRegistered))
+                {
+                    return isRegistered;
+                }
+
+                isRegistered = await _registry.IsContentIdRegisteredAsync(contentId, cancellationToken);
+                registrationStatusByContentId[contentId] = isRegistered;
+                return isRegistered;
             }
         }
         catch (Exception ex)

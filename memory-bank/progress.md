@@ -1,3 +1,10 @@
+## Update 2026-07-16 16:04:58Z
+
+- Completed the IPLD validation registry-membership caching performance pass.
+- Validation now reuses each ContentID registration result within the run and checks an orphan source once instead of once per outgoing link while preserving every per-link diagnostic.
+- For `L` links with `U` unique targets and `S` unique sources, registry checks fall from up to `2L` to at most `U + S`; 1,000 repeated links from one source to one target fall from 2,000 checks to two (99.9% fewer). Empty-target, domain-enumeration, broken-link, and orphan-link behavior remain unchanged; membership is evaluated at first encounter for the run.
+- Validation passed: focused IPLD tests (`14/14`), broader MediaCore tests (`222/222`), full backend suites (`4947/4947`: `69` application, `4598` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 15:53:55Z
 
 - Completed the AdvancedDiscovery peer-metric batching performance pass.

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Cache IPLD validation registry membership.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: IPLD link validation now caches ContentID membership for one run and evaluates each orphan source once, replacing repeated registry awaits per outgoing link while preserving a diagnostic for every broken or orphaned link. For `L` links with `U` unique targets and `S` unique sources, registry checks fall from up to `2L` to at most `U + S`; 1,000 repeated links from one source to one target fall from 2,000 checks to two (99.9% fewer). Empty targets, domain enumeration, broken-link multiplicity, and orphan-link multiplicity remain unchanged; registration is evaluated at first encounter for the run. Added exact repeated-target/unique-target/source call-count coverage and multi-link orphan diagnostic coverage. Validation passed: focused IPLD tests (`14/14`), broader MediaCore tests (`222/222`), full backend suites (`4947/4947`: `69` application, `4598` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Batch AdvancedDiscovery peer metric hydration.
   - Status: completed (2026-07-16)
   - Priority: P1
