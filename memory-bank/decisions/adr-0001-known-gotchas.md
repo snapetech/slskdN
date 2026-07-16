@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z659. Results Returned After Try/Catch Must Be Declared Outside The Try
+
+**The Bug**: The first discovery-ingestion batching patch declared its result
+with `var` inside a `try` block, then returned that result after the matching
+`catch`. C# block scope makes the variable unavailable at the return site, so
+the implementation could not compile.
+
+**Files Affected**:
+- `src/slskd/Transfers/MultiSource/Discovery/SourceDiscoveryService.cs`
+
+**Prevention**: When a method must use a computed result after `try`/`catch`,
+declare the explicitly typed result before the `try` and assign it inside.
+Review variable lifetime whenever extracting a formerly method-wide accumulator
+into a structured result.
+
 ### 0z658. High-Volume SQLite Ingestion Must Batch Rows Per Command
 
 **The Bug**: Source Discovery opened one SQLite command, rebuilt the same UPSERT
