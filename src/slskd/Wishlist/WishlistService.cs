@@ -209,16 +209,9 @@ namespace slskd.Wishlist
         {
             using var context = ContextFactory.CreateDbContext();
             var now = DateTime.UtcNow;
-            var items = await context.WishlistItems
+            await context.WishlistItems
                 .Where(i => i.LastViewedAt == null || i.LastSearchedAt > i.LastViewedAt)
-                .ToListAsync();
-
-            foreach (var item in items)
-            {
-                item.LastViewedAt = now;
-            }
-
-            await context.SaveChangesAsync();
+                .ExecuteUpdateAsync(updates => updates.SetProperty(item => item.LastViewedAt, now));
         }
 
         public async Task<List<WishlistIgnoredResult>> ListIgnoredResultsAsync(Guid wishlistItemId)

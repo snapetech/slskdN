@@ -1,3 +1,18 @@
+## Update 2026-07-16 05:26:31Z
+
+- Current task: performance and efficiency improvements in progress; set-based Wishlist viewed-state pass complete locally.
+- Last activity:
+  - Replaced tracked bulk viewed-state updates with one predicate database command.
+  - The 501-row regression proves one command, correct eligibility filtering, and preservation of already-viewed timestamps. Documented gotcha `0z651` in `d7e4f5827`.
+- Validation:
+  - Passed focused Wishlist tests (`17/17`), smoke (`69/69`), integration (`280/280`), and the complete unit suite excluding the unrelated in-progress Shadow Index fixture (`4464/4464`).
+  - Repository lint, identity, and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`.
+  - Full `dotnet test` has one unrelated failure: untracked `ShardFormatTests.Serialize_HasFrozenCrossRuntimeMessagePackShape` still contains an empty expected-payload placeholder. Concurrent Mesh/Shadow Index changes remain untouched.
+- Next steps:
+  1. Commit only the Wishlist slice.
+  2. Continue the broader performance goal outside the dirty Mesh/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 05:17:30Z
 
 - Current task: performance and efficiency improvements in progress; set-based Pod deletion pass complete locally.

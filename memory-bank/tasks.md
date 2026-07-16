@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make Wishlist bulk viewed-state updates set-based.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced full matching-item materialization, EF tracking, and row update generation with one `UPDATE ... WHERE` setting the shared timestamp. The 501-row regression executes exactly one database command, updates only unread/new-result items, and preserves already-viewed timestamps. Documented gotcha `0z651` in `d7e4f5827`.
+
 - [x] Make Pod deletion set-based and history-size independent.
   - Status: completed (2026-07-16)
   - Priority: P1

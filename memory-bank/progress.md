@@ -1,3 +1,10 @@
+## Update 2026-07-16 05:26:31Z
+
+- Completed the Wishlist bulk viewed-state update performance pass.
+- Replaced matching-item materialization/tracking and per-row update generation with one predicate `ExecuteUpdateAsync` assigning the shared timestamp.
+- The 501-row regression executes exactly one `UPDATE ... WHERE`, updates only items with unseen results, and retains an already-viewed timestamp unchanged. Documented gotcha `0z651` in `d7e4f5827`.
+- Validation passed for the affected and otherwise clean scope: focused Wishlist tests (`17/17`), smoke (`69/69`), integration (`280/280`), all unit tests except the unrelated concurrent Shadow Index fixture (`4464/4464`), repository lint, identity, and diff checks. The untracked `ShardFormatTests.Serialize_HasFrozenCrossRuntimeMessagePackShape` currently expects an empty placeholder and is the sole full-suite failure; it was not modified. The remediation baseline passed every check before its expected release-sync stop because local `main` intentionally diverges from `origin/main`.
+
 ## Update 2026-07-16 05:17:30Z
 
 - Completed the Pod deletion set-based performance pass.

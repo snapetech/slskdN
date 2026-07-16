@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Wishlist “mark all viewed” now uses one set-based update instead of loading
+  and tracking every matching item.
 - Pod deletion now removes messages, members, and membership history with
   bounded set-based database commands instead of tracking every child row.
 - Share scan completion now queries advertisable content IDs directly instead

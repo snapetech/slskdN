@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Wishlist “mark all viewed” now applies its timestamp with one predicate
+  update. Database commands and managed memory no longer scale with the number
+  of unread Wishlist items.
 - Pod deletion now preserves its parent-existence guard and removes each child
   table with one set-based command inside the transaction. Deletion memory and
   command count no longer scale with retained message, member, or membership
