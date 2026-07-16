@@ -52,6 +52,19 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z639. Statement-Level Comments Need A Separating Blank Line
+
+**The Bug**: An explanatory comment inserted immediately after a local
+statement in `HashDbService` compiled and passed focused tests but produced
+StyleCop `SA1515`.
+
+**Files Affected**:
+- `src/slskd/HashDb/HashDbService.cs`
+
+**Prevention**: Leave a blank line between an executable statement or local
+declaration and a following standalone comment. Treat analyzer warnings from
+focused compilation as failures and correct them before broader validation.
+
 ### 0z638. Later DI Registrations Override Options-Aware Factories
 
 **The Bug**: Virtual Soulfind registered `IDhtRateLimiter` first through an
