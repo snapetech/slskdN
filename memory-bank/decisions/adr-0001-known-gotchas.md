@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z670. Remediation Linkage Must Persist The Job Identifier
+
+**The Bug**: Library Health's `LinkJobToIssuesAsync` changed issues to `Fixing`
+but never stored `RemediationJobId`. Status polling later selected fixing issues
+and compared that empty field to the job ID, so jobs created by the remediation
+service could never resolve their linked issues. The generic issue list is also
+capped at 250, making its in-memory linkage scan incomplete.
+
+**Files Affected**:
+- `src/slskd/LibraryHealth/Remediation/LibraryHealthRemediationService.cs`
+- `src/slskd/HashDb/IHashDbService.cs`
+- `src/slskd/HashDb/HashDbService.cs`
+
+**Prevention**: Persist status and remediation job ID atomically when linking
+issues. Query linked issues directly by the persisted job key rather than
+loading a capped general-purpose page and filtering in memory. Cover the full
+create-link-complete lifecycle and assert both fields round-trip from SQLite.
+
 ### 0z669. Metadata Matching Must Batch Exact And Fallback Candidate Hydration
 
 **The Bug**: Music tag matching queried tracks one album at a time, then its
