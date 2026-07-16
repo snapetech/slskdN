@@ -1,3 +1,17 @@
+## Update 2026-07-16 07:03:30Z
+
+- Current task: performance and efficiency improvements in progress; Library Bloom album-analysis pass complete locally.
+- Last activity:
+  - Added bounded indexed multi-release track reads and grouped them for Library Bloom snapshot/comparison work. A 100-release operation falls from 101 database queries to two (98.0% fewer).
+  - Replaced nested held-recording scans with a case-insensitive hash set. A 10,000-by-10,000 membership pass falls from up to 100 million comparisons to 10,000 expected O(1) lookups. Documented gotcha `0z663` (`1e4611295`).
+- Validation:
+  - Passed focused HashDb/Library Bloom coverage (`8/8`) and a fresh consolidated backend run (`4829/4829`: `69` application, `4480` unit, `280` integration). SQLite plan coverage proves indexed batch lookup without a temporary B-tree.
+  - Repository lint and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. An earlier unit attempt exposed an unrelated `DownloadService.Dispose` timing race; all seven exact theory cases, the complete unit rerun, and the final consolidated run passed. Concurrent Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Run the final consolidated test/remediation gates and commit only the HashDb/Library Bloom slice.
+  2. Continue the broader performance goal outside the dirty Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 06:48:55Z
 
 - Current task: performance and efficiency improvements in progress; SignalBus receive-concurrency pass complete locally.

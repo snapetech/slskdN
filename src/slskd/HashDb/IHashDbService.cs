@@ -48,6 +48,13 @@ namespace slskd.HashDb
         Task<IEnumerable<AlbumTargetTrackEntry>> GetAlbumTracksAsync(string releaseId, CancellationToken cancellationToken = default);
 
         /// <summary>
+        ///     Gets the stored track lists for the requested releases.
+        /// </summary>
+        Task<IEnumerable<AlbumTargetTrackEntry>> GetAlbumTracksAsync(
+            IEnumerable<string> releaseIds,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         ///     Gets the stored album targets.
         /// </summary>
         Task<IEnumerable<AlbumTargetEntry>> GetAlbumTargetsAsync(CancellationToken cancellationToken = default);

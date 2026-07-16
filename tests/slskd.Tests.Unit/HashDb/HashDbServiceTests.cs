@@ -110,6 +110,34 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Constructor_IndexesBatchedAlbumTrackQueryWithoutTemporarySort()
+    {
+        await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText =
+            """
+            EXPLAIN QUERY PLAN
+            SELECT release_id, track_position, recording_id, title, artist, duration_ms, isrc
+            FROM AlbumTargetTracks
+            WHERE release_id IN ('release-1', 'release-2')
+            ORDER BY release_id ASC, track_position ASC
+            """;
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        var plan = new List<string>();
+        while (await reader.ReadAsync())
+        {
+            plan.Add(reader.GetString(3));
+        }
+
+        Assert.Contains(plan, detail =>
+            detail.Contains("SEARCH AlbumTargetTracks USING INDEX", StringComparison.Ordinal) &&
+            detail.Contains("release_id=?", StringComparison.Ordinal));
+        Assert.DoesNotContain(plan, detail => detail.Contains("TEMP B-TREE", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Constructor_IndexesPeerCapabilityStatsQuery()
     {
         await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
@@ -359,6 +387,43 @@ public class HashDbServiceTests : IDisposable
         Assert.Equal("Track One", track.Title);
         Assert.Equal("Test Artist", track.Artist);
         Assert.Equal("US-AAA-01", track.Isrc);
+    }
+
+    [Fact]
+    public async Task GetAlbumTracksAsync_WithReleaseBatch_ReturnsRequestedTracks()
+    {
+        await service.UpsertAlbumTargetAsync(new AlbumTarget
+        {
+            MusicBrainzReleaseId = "release-1",
+            Title = "Album One",
+            Artist = "Artist",
+            Tracks = new[]
+            {
+                new TrackTarget { Position = 1, MusicBrainzRecordingId = "recording-1", Title = "One" },
+            },
+        });
+        await service.UpsertAlbumTargetAsync(new AlbumTarget
+        {
+            MusicBrainzReleaseId = "release-2",
+            Title = "Album Two",
+            Artist = "Artist",
+            Tracks = new[]
+            {
+                new TrackTarget { Position = 1, MusicBrainzRecordingId = "recording-2", Title = "Two" },
+            },
+        });
+
+        var tracks = (await service.GetAlbumTracksAsync(new[]
+        {
+            " release-1 ",
+            "release-1",
+            "release-2",
+            "missing",
+        })).ToList();
+
+        Assert.Equal(2, tracks.Count);
+        Assert.Equal(new[] { "release-1", "release-2" }, tracks.Select(track => track.ReleaseId));
+        Assert.Equal(new[] { "recording-1", "recording-2" }, tracks.Select(track => track.RecordingId));
     }
 
     [Fact]

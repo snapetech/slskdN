@@ -713,6 +713,49 @@ namespace slskd.HashDb
         }
 
         /// <inheritdoc/>
+        public async Task<IEnumerable<AlbumTargetTrackEntry>> GetAlbumTracksAsync(
+            IEnumerable<string> releaseIds,
+            CancellationToken cancellationToken = default)
+        {
+            var normalized = releaseIds
+                .Where(releaseId => !string.IsNullOrWhiteSpace(releaseId))
+                .Select(releaseId => releaseId.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            var tracks = new List<AlbumTargetTrackEntry>();
+            if (normalized.Length == 0)
+            {
+                return tracks;
+            }
+
+            using var conn = GetConnection();
+            foreach (var batch in normalized.Chunk(500))
+            {
+                using var cmd = conn.CreateCommand();
+                var parameters = batch.Select((_, index) => $"@release{index}").ToArray();
+                cmd.CommandText = $"""
+                    SELECT release_id, track_position, recording_id, title, artist, duration_ms, isrc
+                    FROM AlbumTargetTracks
+                    WHERE release_id IN ({string.Join(", ", parameters)})
+                    ORDER BY release_id ASC, track_position ASC
+                    """;
+
+                for (var index = 0; index < batch.Length; index++)
+                {
+                    cmd.Parameters.AddWithValue(parameters[index], batch[index]);
+                }
+
+                await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    tracks.Add(ReadAlbumTargetTrackEntry(reader));
+                }
+            }
+
+            return tracks;
+        }
+
+        /// <inheritdoc/>
         public async Task<IEnumerable<AlbumTargetEntry>> GetAlbumTargetsAsync(CancellationToken cancellationToken = default)
         {
             var targets = new List<AlbumTargetEntry>();

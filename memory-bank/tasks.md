@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch Library Bloom album analysis.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added a bounded HashDb release-ID track query using the existing composite primary-key index, then grouped the result for both Library Bloom snapshot and comparison paths. A 100-release operation falls from 101 database queries to two (98.0% fewer). Snapshot membership now uses a case-insensitive held-recording `HashSet`, reducing a 10,000-held-ID by 10,000-track pass from up to 100 million comparisons to 10,000 expected O(1) lookups. Added batch semantics, exact call-boundary, and SQLite plan regressions; documented gotcha `0z663` in `1e4611295`.
+
 - [x] Remove global SignalBus receive serialization.
   - Status: completed (2026-07-16)
   - Priority: P1

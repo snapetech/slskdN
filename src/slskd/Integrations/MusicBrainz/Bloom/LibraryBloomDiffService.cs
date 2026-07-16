@@ -171,24 +171,22 @@ public sealed class LibraryBloomDiffService : ILibraryBloomDiffService
     private async Task<List<LibraryBloomItem>> GetLocalHeldItemsAsync(CancellationToken cancellationToken)
     {
         var items = new List<LibraryBloomItem>();
-        var recordingIds = await _hashDb.GetRecordingIdsWithVariantsAsync(cancellationToken).ConfigureAwait(false);
-        items.AddRange(recordingIds
+        var heldRecordingIds = (await _hashDb.GetRecordingIdsWithVariantsAsync(cancellationToken).ConfigureAwait(false))
             .Select(NormalizeMbid)
             .Where(id => !string.IsNullOrWhiteSpace(id))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        items.AddRange(heldRecordingIds
             .Select(id => new LibraryBloomItem(RecordingNamespace, id)));
 
-        foreach (var release in await _hashDb.GetAlbumTargetsAsync(cancellationToken).ConfigureAwait(false))
+        var releases = (await _hashDb.GetAlbumTargetsAsync(cancellationToken).ConfigureAwait(false)).ToList();
+        var tracksByRelease = (await _hashDb
+                .GetAlbumTracksAsync(releases.Select(release => release.ReleaseId), cancellationToken)
+                .ConfigureAwait(false))
+            .ToLookup(track => track.ReleaseId, StringComparer.OrdinalIgnoreCase);
+        foreach (var release in releases)
         {
-            var tracks = (await _hashDb.GetAlbumTracksAsync(release.ReleaseId, cancellationToken).ConfigureAwait(false)).ToList();
-            if (tracks.Count == 0)
-            {
-                continue;
-            }
-
-            var hasHeldTrack = tracks.Any(track => items.Any(item =>
-                string.Equals(item.Namespace, RecordingNamespace, StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(item.Mbid, NormalizeMbid(track.RecordingId), StringComparison.OrdinalIgnoreCase)));
+            var hasHeldTrack = tracksByRelease[release.ReleaseId]
+                .Any(track => heldRecordingIds.Contains(NormalizeMbid(track.RecordingId)));
             if (hasHeldTrack)
             {
                 items.Add(new LibraryBloomItem(ReleaseNamespace, NormalizeMbid(release.ReleaseId)));
@@ -204,9 +202,14 @@ public sealed class LibraryBloomDiffService : ILibraryBloomDiffService
     private async Task<List<LibraryBloomCandidate>> GetCandidateTracksAsync(CancellationToken cancellationToken)
     {
         var candidates = new List<LibraryBloomCandidate>();
-        foreach (var release in await _hashDb.GetAlbumTargetsAsync(cancellationToken).ConfigureAwait(false))
+        var releases = (await _hashDb.GetAlbumTargetsAsync(cancellationToken).ConfigureAwait(false)).ToList();
+        var tracksByRelease = (await _hashDb
+                .GetAlbumTracksAsync(releases.Select(release => release.ReleaseId), cancellationToken)
+                .ConfigureAwait(false))
+            .ToLookup(track => track.ReleaseId, StringComparer.OrdinalIgnoreCase);
+        foreach (var release in releases)
         {
-            foreach (var track in await _hashDb.GetAlbumTracksAsync(release.ReleaseId, cancellationToken).ConfigureAwait(false))
+            foreach (var track in tracksByRelease[release.ReleaseId])
             {
                 var recordingId = NormalizeMbid(track.RecordingId);
                 if (string.IsNullOrWhiteSpace(recordingId))

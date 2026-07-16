@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Library Bloom album analysis now loads release tracks in indexed batches and
+  uses set-based held-recording membership instead of per-release queries and
+  nested linear scans.
 - SignalBus receive deduplication now uses atomic concurrent-cache admission
   instead of serializing every signal through one global semaphore.
 - Source Discovery now persists returned files with bounded multi-row SQLite

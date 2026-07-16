@@ -64,6 +64,48 @@ public sealed class LibraryBloomDiffServiceTests
     }
 
     [Fact]
+    public async Task CreateSnapshotAsync_BatchesAlbumTrackReads()
+    {
+        var targets = Enumerable.Range(1, 100)
+            .Select(index => new AlbumTargetEntry
+            {
+                ReleaseId = $"release-{index}",
+                Title = $"Release {index}",
+                Artist = "Artist",
+            })
+            .ToArray();
+        var tracksByRelease = targets.ToDictionary(
+            target => target.ReleaseId,
+            target => (IEnumerable<AlbumTargetTrackEntry>)new[]
+            {
+                new AlbumTargetTrackEntry
+                {
+                    ReleaseId = target.ReleaseId,
+                    RecordingId = $"recording-{target.ReleaseId}",
+                    Title = "Track",
+                    Artist = "Artist",
+                },
+            });
+        var hashDb = CreateHashDb(
+            heldRecordings: tracksByRelease.Values.SelectMany(tracks => tracks).Select(track => track.RecordingId),
+            targets: targets,
+            tracksByRelease: tracksByRelease);
+
+        await CreateService(hashDb).CreateSnapshotAsync(new LibraryBloomSnapshotRequest
+        {
+            SaltId = "salt",
+            ExpectedItems = 256,
+        });
+
+        hashDb.Verify(service => service.GetAlbumTracksAsync(
+            It.Is<IEnumerable<string>>(releaseIds => releaseIds.Count() == 100),
+            It.IsAny<CancellationToken>()), Times.Once);
+        hashDb.Verify(service => service.GetAlbumTracksAsync(
+            It.IsAny<string>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task CompareAsync_ReturnsLikelyMissingSuggestionFromInboundRecordingBloom()
     {
         var remoteSnapshot = await CreateRemoteSnapshotAsync("rec-missing");
@@ -203,11 +245,14 @@ public sealed class LibraryBloomDiffServiceTests
             .ReturnsAsync((heldRecordings ?? Array.Empty<string>()).ToList());
         hashDb.Setup(service => service.GetAlbumTargetsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(targets ?? Array.Empty<AlbumTargetEntry>());
-        hashDb.Setup(service => service.GetAlbumTracksAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((string releaseId, CancellationToken _) =>
-                tracksByRelease != null && tracksByRelease.TryGetValue(releaseId, out var tracks)
-                    ? tracks
-                    : Array.Empty<AlbumTargetTrackEntry>());
+        hashDb.Setup(service => service.GetAlbumTracksAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<string> releaseIds, CancellationToken _) =>
+                releaseIds.SelectMany(releaseId =>
+                    tracksByRelease != null && tracksByRelease.TryGetValue(releaseId, out var tracks)
+                        ? tracks
+                        : Array.Empty<AlbumTargetTrackEntry>()));
         return hashDb;
     }
 }

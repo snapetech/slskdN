@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Library Bloom now loads album tracks through bounded indexed release batches
+  and indexes held recording IDs before testing track membership. A 100-release
+  operation falls from 101 database queries to two, while a 10,000-by-10,000
+  membership pass falls from up to 100 million comparisons to 10,000 hash-set
+  lookups.
 - SignalBus now admits distinct incoming signal IDs concurrently with atomic
   cache operations while preserving duplicate, expiry, and cancellation
   behavior. A 100,000-signal burst avoids 200,000 global semaphore operations,
