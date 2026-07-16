@@ -1,3 +1,17 @@
+## Update 2026-07-16 08:01:58Z
+
+- Current task: performance and efficiency improvements in progress; Library Health remediation batching pass complete locally.
+- Last activity:
+  - Added schema-v23 remediation linkage indexing plus caller-ordered issue-ID and direct job/status reads. Persisting the remediation job ID fixes completion linkage beyond the generic 100-row default page.
+  - Replaced per-issue transitions with bounded transactional updates. At 100 issues, creation falls from 102 database operations to two and completion from 101 to two (98.0% fewer). Documented gotchas `0z670` (`d6ac7dfca`), `0z671` (`10cc0d947`), `0z672` (`0198ed44a`, `c634efef7`), and `0z673` (`9208446cd`).
+- Validation:
+  - Passed focused remediation/index coverage (`4/4`), broader HashDb/Library Health coverage (`98/98`), and full backend tests (`4841/4841`: `69` application, `4492` unit, `280` integration).
+  - Repository lint and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the schema-v23/Library Health remediation slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 07:47:33Z
 
 - Current task: performance and efficiency improvements in progress; music metadata matching pass complete locally.

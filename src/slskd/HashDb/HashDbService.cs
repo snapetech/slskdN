@@ -1664,6 +1664,84 @@ namespace slskd.HashDb
         }
 
         /// <inheritdoc/>
+        public async Task<List<LibraryHealth.LibraryIssue>> GetLibraryIssuesByIdsAsync(
+            IEnumerable<string> issueIds,
+            CancellationToken cancellationToken = default)
+        {
+            var normalized = issueIds
+                .Where(issueId => !string.IsNullOrWhiteSpace(issueId))
+                .Select(issueId => issueId.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            var issuesById = new Dictionary<string, LibraryHealth.LibraryIssue>(StringComparer.Ordinal);
+            if (normalized.Length == 0)
+            {
+                return new List<LibraryHealth.LibraryIssue>();
+            }
+
+            using var conn = GetConnection();
+            foreach (var batch in normalized.Chunk(500))
+            {
+                using var cmd = conn.CreateCommand();
+                var parameters = batch.Select((_, index) => $"@issue{index}").ToArray();
+                cmd.CommandText = $"SELECT * FROM LibraryHealthIssues WHERE issue_id IN ({string.Join(", ", parameters)})";
+                for (var index = 0; index < batch.Length; index++)
+                {
+                    cmd.Parameters.AddWithValue(parameters[index], batch[index]);
+                }
+
+                await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    var issue = ReadIssue(reader);
+                    issuesById[issue.IssueId] = issue;
+                }
+            }
+
+            return normalized
+                .Where(issuesById.ContainsKey)
+                .Select(issueId => issuesById[issueId])
+                .ToList();
+        }
+
+        /// <inheritdoc/>
+        public async Task<List<LibraryHealth.LibraryIssue>> GetLibraryIssuesByRemediationJobAsync(
+            string jobId,
+            LibraryHealth.LibraryIssueStatus status,
+            CancellationToken cancellationToken = default)
+        {
+            jobId = jobId?.Trim() ?? string.Empty;
+            var issues = new List<LibraryHealth.LibraryIssue>();
+            if (string.IsNullOrWhiteSpace(jobId))
+            {
+                return issues;
+            }
+
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText =
+                """
+                SELECT *
+                FROM LibraryHealthIssues
+                WHERE remediation_job_id IS NOT NULL
+                  AND remediation_job_id <> ''
+                  AND remediation_job_id = @job_id
+                  AND status = @status
+                ORDER BY detected_at DESC
+                """;
+            cmd.Parameters.AddWithValue("@job_id", jobId);
+            cmd.Parameters.AddWithValue("@status", status.ToString().ToLowerInvariant());
+
+            await using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                issues.Add(ReadIssue(reader));
+            }
+
+            return issues;
+        }
+
+        /// <inheritdoc/>
         public async Task<LibraryHealth.LibraryIssuePage> GetLibraryIssuePageAsync(
             LibraryHealth.LibraryHealthIssueFilter filter,
             CancellationToken cancellationToken = default)
@@ -2203,6 +2281,54 @@ namespace slskd.HashDb
             cmd.Parameters.AddWithValue("@status", status.ToString().ToLowerInvariant());
             cmd.Parameters.AddWithValue("@id", issueId);
             await cmd.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        /// <inheritdoc/>
+        public async Task<int> UpdateLibraryIssueStatusesAsync(
+            IEnumerable<string> issueIds,
+            LibraryHealth.LibraryIssueStatus status,
+            string? remediationJobId = null,
+            CancellationToken cancellationToken = default)
+        {
+            var normalized = issueIds
+                .Where(issueId => !string.IsNullOrWhiteSpace(issueId))
+                .Select(issueId => issueId.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            if (normalized.Length == 0)
+            {
+                return 0;
+            }
+
+            var normalizedJobId = remediationJobId?.Trim();
+            var affected = 0;
+            using var conn = GetConnection();
+            using var transaction = conn.BeginTransaction();
+            foreach (var batch in normalized.Chunk(500))
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.Transaction = transaction;
+                var parameters = batch.Select((_, index) => $"@issue{index}").ToArray();
+                cmd.CommandText = $"""
+                    UPDATE LibraryHealthIssues
+                    SET status = @status,
+                        remediation_job_id = CASE WHEN @set_job_id = 1 THEN @job_id ELSE remediation_job_id END,
+                        resolved_at = CASE WHEN @status IN ('resolved', 'ignored') THEN strftime('%s','now') ELSE resolved_at END
+                    WHERE issue_id IN ({string.Join(", ", parameters)})
+                    """;
+                cmd.Parameters.AddWithValue("@status", status.ToString().ToLowerInvariant());
+                cmd.Parameters.AddWithValue("@set_job_id", string.IsNullOrWhiteSpace(normalizedJobId) ? 0 : 1);
+                cmd.Parameters.AddWithValue("@job_id", (object?)normalizedJobId ?? DBNull.Value);
+                for (var index = 0; index < batch.Length; index++)
+                {
+                    cmd.Parameters.AddWithValue(parameters[index], batch[index]);
+                }
+
+                affected += await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            transaction.Commit();
+            return affected;
         }
 
         /// <inheritdoc/>

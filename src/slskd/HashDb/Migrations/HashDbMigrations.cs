@@ -16,7 +16,7 @@ public static class HashDbMigrations
     /// <summary>
     ///     Current schema version. Increment when adding new migrations.
     /// </summary>
-    public const int CurrentVersion = 22;
+    public const int CurrentVersion = 23;
 
     private static readonly ILogger Log = Serilog.Log.ForContext(typeof(HashDbMigrations));
 
@@ -818,6 +818,23 @@ public static class HashDbMigrations
                 {
                     using var cmd = conn.CreateCommand();
                     cmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_album_targets_created ON AlbumTargets(created_at DESC)";
+                    cmd.ExecuteNonQuery();
+                },
+            },
+
+            new Migration
+            {
+                Version = 23,
+                Name = "Library health remediation linkage index",
+                Apply = conn =>
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText =
+                        """
+                        CREATE INDEX IF NOT EXISTS idx_issues_remediation_status
+                        ON LibraryHealthIssues(remediation_job_id, status, detected_at DESC)
+                        WHERE remediation_job_id IS NOT NULL AND remediation_job_id <> ''
+                        """;
                     cmd.ExecuteNonQuery();
                 },
             },

@@ -43,11 +43,15 @@ public class LibraryHealthRemediationServiceTests
 
         var hashDb = new Mock<IHashDbService>();
         hashDb
-            .Setup(service => service.GetLibraryIssuesAsync(It.IsAny<LibraryHealthIssueFilter>(), It.IsAny<CancellationToken>()))
+            .Setup(service => service.GetLibraryIssuesByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<LibraryIssue> { issue });
         hashDb
-            .Setup(service => service.UpdateLibraryIssueStatusAsync("issue-1", LibraryIssueStatus.Fixing, It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask);
+            .Setup(service => service.UpdateLibraryIssueStatusesAsync(
+                It.IsAny<IEnumerable<string>>(),
+                LibraryIssueStatus.Fixing,
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
 
         var musicBrainz = new Mock<IMusicBrainzClient>();
         musicBrainz
@@ -114,9 +118,72 @@ public class LibraryHealthRemediationServiceTests
         musicBrainz.Verify(client => client.GetRecordingAsync("rec-2", It.IsAny<CancellationToken>()), Times.Once);
         multiSource.Verify(service => service.FindVerifiedSourcesAsync("Artist - Track One.flac", 0, null, It.IsAny<CancellationToken>()), Times.Once);
         multiSource.Verify(service => service.FindVerifiedSourcesAsync("Artist - Track Two.flac", 0, null, It.IsAny<CancellationToken>()), Times.Once);
-        hashDb.Verify(service => service.UpdateLibraryIssueStatusAsync("issue-1", LibraryIssueStatus.Fixing, It.IsAny<CancellationToken>()), Times.Once);
+        hashDb.Verify(service => service.GetLibraryIssuesByIdsAsync(
+            It.Is<IEnumerable<string>>(ids => ids.SequenceEqual(new[] { "issue-1" })),
+            It.IsAny<CancellationToken>()), Times.Once);
+        hashDb.Verify(service => service.UpdateLibraryIssueStatusesAsync(
+            It.Is<IEnumerable<string>>(ids => ids.SequenceEqual(new[] { "issue-1" })),
+            LibraryIssueStatus.Fixing,
+            It.Is<string>(value => IsGuid(value)),
+            It.IsAny<CancellationToken>()), Times.Once);
+        hashDb.Verify(service => service.GetLibraryIssuesAsync(
+            It.IsAny<LibraryHealthIssueFilter>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+        hashDb.Verify(service => service.UpdateLibraryIssueStatusAsync(
+            It.IsAny<string>(),
+            It.IsAny<LibraryIssueStatus>(),
+            It.IsAny<CancellationToken>()), Times.Never);
 
         await firstDownloadQueued.Task.WaitAsync(TimeSpan.FromSeconds(2));
         Assert.Contains(requests, request => request.TargetMusicBrainzRecordingId == "rec-1" && request.OutputPath == "/music/Artist/Album/Artist - Track One.flac");
     }
+
+    [Fact]
+    public async Task CheckJobStatusAndResolveIssuesAsync_UsesIndexedJobReadAndSetUpdate()
+    {
+        var jobId = Guid.NewGuid();
+        var issues = Enumerable.Range(1, 100)
+            .Select(index => new LibraryIssue
+            {
+                IssueId = $"issue-{index}",
+                RemediationJobId = jobId.ToString(),
+                Status = LibraryIssueStatus.Fixing,
+            })
+            .ToList();
+        var hashDb = new Mock<IHashDbService>();
+        hashDb.Setup(service => service.GetLibraryIssuesByRemediationJobAsync(
+                jobId.ToString(),
+                LibraryIssueStatus.Fixing,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(issues);
+        hashDb.Setup(service => service.UpdateLibraryIssueStatusesAsync(
+                It.IsAny<IEnumerable<string>>(),
+                LibraryIssueStatus.Resolved,
+                null,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(100);
+        var multiSource = new Mock<IMultiSourceDownloadService>();
+        multiSource.Setup(service => service.GetStatus(jobId))
+            .Returns(new MultiSourceDownloadStatus { Id = jobId, State = MultiSourceDownloadState.Completed });
+        var service = new LibraryHealthRemediationService(
+            Mock.Of<IServiceProvider>(),
+            hashDb.Object,
+            multiSource.Object,
+            Mock.Of<IMusicBrainzClient>(),
+            NullLogger<LibraryHealthRemediationService>.Instance);
+
+        await service.CheckJobStatusAndResolveIssuesAsync(jobId.ToString());
+
+        hashDb.Verify(value => value.UpdateLibraryIssueStatusesAsync(
+            It.Is<IEnumerable<string>>(ids => ids.Count() == 100),
+            LibraryIssueStatus.Resolved,
+            null,
+            It.IsAny<CancellationToken>()), Times.Once);
+        hashDb.Verify(value => value.UpdateLibraryIssueStatusAsync(
+            It.IsAny<string>(),
+            It.IsAny<LibraryIssueStatus>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    private static bool IsGuid(string value) => Guid.TryParse(value, out _);
 }

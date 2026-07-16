@@ -1669,6 +1669,88 @@ public class HashDbServiceTests : IDisposable
         Assert.Contains("idx_issues_detected", reader.GetString(3), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Constructor_IndexesRemediationJobIssueQueryWithoutTemporarySort()
+    {
+        await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText =
+            """
+            EXPLAIN QUERY PLAN
+            SELECT *
+            FROM LibraryHealthIssues
+            WHERE remediation_job_id IS NOT NULL
+              AND remediation_job_id <> ''
+              AND remediation_job_id = 'job-1'
+              AND status = 'fixing'
+            ORDER BY detected_at DESC
+            """;
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        var plan = new List<string>();
+        while (await reader.ReadAsync())
+        {
+            plan.Add(reader.GetString(3));
+        }
+
+        Assert.Contains(plan, detail =>
+            detail.Contains("SEARCH LibraryHealthIssues USING INDEX idx_issues_remediation_status", StringComparison.Ordinal));
+        Assert.DoesNotContain(plan, detail => detail.Contains("TEMP B-TREE", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task LibraryHealthRemediationBatch_RoundTripsLinkAndStatus()
+    {
+        for (var index = 1; index <= 3; index++)
+        {
+            await service.InsertLibraryIssueAsync(new LibraryIssue
+            {
+                IssueId = $"remediation-{index}",
+                FilePath = $"/music/{index}.flac",
+                Status = LibraryIssueStatus.Detected,
+                DetectedAt = DateTimeOffset.FromUnixTimeSeconds(index),
+            });
+        }
+
+        var requested = await service.GetLibraryIssuesByIdsAsync(new[]
+        {
+            "remediation-2",
+            " remediation-1 ",
+            "remediation-2",
+            "missing",
+        });
+        var linkedCount = await service.UpdateLibraryIssueStatusesAsync(
+            requested.Select(issue => issue.IssueId),
+            LibraryIssueStatus.Fixing,
+            " job-1 ");
+        var linked = await service.GetLibraryIssuesByRemediationJobAsync(" job-1 ", LibraryIssueStatus.Fixing);
+        var resolvedCount = await service.UpdateLibraryIssueStatusesAsync(
+            linked.Select(issue => issue.IssueId),
+            LibraryIssueStatus.Resolved);
+        var resolved = await service.GetLibraryIssuesByIdsAsync(linked.Select(issue => issue.IssueId));
+
+        Assert.Equal(2, requested.Count);
+        Assert.Equal(new[] { "remediation-2", "remediation-1" }, requested.Select(issue => issue.IssueId));
+        Assert.Equal(2, linkedCount);
+        Assert.Equal(2, linked.Count);
+        Assert.All(linked, issue =>
+        {
+            Assert.Equal("job-1", issue.RemediationJobId);
+            Assert.Equal(LibraryIssueStatus.Fixing, issue.Status);
+        });
+        Assert.Equal(2, resolvedCount);
+        Assert.All(resolved, issue =>
+        {
+            Assert.Equal("job-1", issue.RemediationJobId);
+            Assert.Equal(LibraryIssueStatus.Resolved, issue.Status);
+            Assert.NotNull(issue.ResolvedAt);
+        });
+        var untouched = Assert.Single(await service.GetLibraryIssuesByIdsAsync(new[] { "remediation-3" }));
+        Assert.Equal(LibraryIssueStatus.Detected, untouched.Status);
+        Assert.Empty(untouched.RemediationJobId);
+    }
+
     // ========== FlacInventoryEntry Tests ==========
 
     [Fact]

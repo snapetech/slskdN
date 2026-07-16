@@ -413,6 +413,8 @@ namespace slskd.HashDb
         Task UpsertLibraryHealthScanAsync(LibraryHealth.LibraryHealthScan scan, CancellationToken cancellationToken = default);
         Task<LibraryHealth.LibraryHealthScan?> GetLibraryHealthScanAsync(string scanId, CancellationToken cancellationToken = default);
         Task<List<LibraryHealth.LibraryIssue>> GetLibraryIssuesAsync(LibraryHealth.LibraryHealthIssueFilter filter, CancellationToken cancellationToken = default);
+        Task<List<LibraryHealth.LibraryIssue>> GetLibraryIssuesByIdsAsync(IEnumerable<string> issueIds, CancellationToken cancellationToken = default);
+        Task<List<LibraryHealth.LibraryIssue>> GetLibraryIssuesByRemediationJobAsync(string jobId, LibraryHealth.LibraryIssueStatus status, CancellationToken cancellationToken = default);
         Task<LibraryHealth.LibraryIssuePage> GetLibraryIssuePageAsync(LibraryHealth.LibraryHealthIssueFilter filter, CancellationToken cancellationToken = default);
         Task<LibraryHealth.LibraryHealthSummary> GetLibraryHealthSummaryAsync(string libraryPath, CancellationToken cancellationToken = default);
         Task<List<LibraryHealth.LibraryIssueTypeSummary>> GetLibraryIssueTypeSummariesAsync(string libraryPath, CancellationToken cancellationToken = default);
@@ -421,6 +423,7 @@ namespace slskd.HashDb
         Task<List<LibraryHealth.IssueCodecGroup>> GetLibraryIssueCodecSummariesAsync(string libraryPath, CancellationToken cancellationToken = default);
         Task<LibraryHealth.LibraryHealthDashboard> GetLibraryHealthDashboardAsync(string libraryPath, int artistLimit, int issueLimit, CancellationToken cancellationToken = default);
         Task UpdateLibraryIssueStatusAsync(string issueId, LibraryHealth.LibraryIssueStatus status, CancellationToken cancellationToken = default);
+        Task<int> UpdateLibraryIssueStatusesAsync(IEnumerable<string> issueIds, LibraryHealth.LibraryIssueStatus status, string? remediationJobId = null, CancellationToken cancellationToken = default);
         Task InsertLibraryIssueAsync(LibraryHealth.LibraryIssue issue, CancellationToken cancellationToken = default);
 
         // Peer metrics

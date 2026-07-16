@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Library Health remediation now persists its job linkage, reads requested and
+  active-job issues directly, and changes their state with bounded set-based
+  updates. At 100 issues, job creation falls from 102 database operations to
+  two and completion falls from 101 to two (98.0% fewer in both cases); linked
+  jobs are no longer hidden by the generic 100-issue default page.
 - Virtual Soulfind music tag matching now batches exact album-track candidates
   and the bounded 256-recording variant fallback. Across 100 albums, exact
   matches fall from up to 102 database reads to three; a full fallback miss

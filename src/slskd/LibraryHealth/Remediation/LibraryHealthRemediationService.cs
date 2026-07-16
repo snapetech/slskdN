@@ -50,18 +50,9 @@ namespace slskd.LibraryHealth.Remediation
         public async Task<string> CreateRemediationJobAsync(List<string> issueIds, CancellationToken cancellationToken = default)
         {
             // Fetch issues from database
-            var issues = new List<LibraryIssue>();
-            var allIssues = await hashDb.GetLibraryIssuesAsync(new LibraryHealthIssueFilter(), cancellationToken).ConfigureAwait(false);
-
-            foreach (var issueId in issueIds)
-            {
-                var issue = allIssues.FirstOrDefault(i => i.IssueId == issueId);
-
-                if (issue != null && issue.CanAutoFix && issue.Status != LibraryIssueStatus.Resolved)
-                {
-                    issues.Add(issue);
-                }
-            }
+            var issues = (await hashDb.GetLibraryIssuesByIdsAsync(issueIds, cancellationToken).ConfigureAwait(false))
+                .Where(issue => issue.CanAutoFix && issue.Status != LibraryIssueStatus.Resolved)
+                .ToList();
 
             if (issues.Count == 0)
             {
@@ -92,7 +83,11 @@ namespace slskd.LibraryHealth.Remediation
             }
 
             // Link job to issues
-            await LinkJobToIssuesAsync(jobId, issueIds, cancellationToken).ConfigureAwait(false);
+            await hashDb.UpdateLibraryIssueStatusesAsync(
+                issues.Select(issue => issue.IssueId),
+                LibraryIssueStatus.Fixing,
+                jobId,
+                cancellationToken).ConfigureAwait(false);
 
             return jobId;
         }
@@ -100,19 +95,19 @@ namespace slskd.LibraryHealth.Remediation
         /// <inheritdoc/>
         public async Task LinkJobToIssuesAsync(string jobId, List<string> issueIds, CancellationToken cancellationToken = default)
         {
-            var allIssues = await hashDb.GetLibraryIssuesAsync(new LibraryHealthIssueFilter(), cancellationToken).ConfigureAwait(false);
-
-            foreach (var issueId in issueIds)
+            var issues = await hashDb.GetLibraryIssuesByIdsAsync(issueIds, cancellationToken).ConfigureAwait(false);
+            if (issues.Count > 0)
             {
-                var issue = allIssues.FirstOrDefault(i => i.IssueId == issueId);
+                await hashDb.UpdateLibraryIssueStatusesAsync(
+                    issues.Select(issue => issue.IssueId),
+                    LibraryIssueStatus.Fixing,
+                    jobId,
+                    cancellationToken).ConfigureAwait(false);
+            }
 
-                if (issue != null)
-                {
-                    // Update in database
-                    await hashDb.UpdateLibraryIssueStatusAsync(issueId, LibraryIssueStatus.Fixing, cancellationToken).ConfigureAwait(false);
-
-                    log.LogInformation("[LH-Remediation] Linked issue {IssueId} to job {JobId}", issueId, jobId);
-                }
+            foreach (var issue in issues)
+            {
+                log.LogInformation("[LH-Remediation] Linked issue {IssueId} to job {JobId}", issue.IssueId, jobId);
             }
         }
 
@@ -120,13 +115,9 @@ namespace slskd.LibraryHealth.Remediation
         public async Task CheckJobStatusAndResolveIssuesAsync(string jobId, CancellationToken cancellationToken = default)
         {
             // Get all issues linked to this job
-            var filter = new LibraryHealthIssueFilter
-            {
-                Statuses = new List<LibraryIssueStatus> { LibraryIssueStatus.Fixing }
-            };
-
-            var allFixingIssues = await hashDb.GetLibraryIssuesAsync(filter, cancellationToken).ConfigureAwait(false);
-            var linkedIssues = allFixingIssues.Where(i => i.RemediationJobId == jobId).ToList();
+            var linkedIssues = await hashDb
+                .GetLibraryIssuesByRemediationJobAsync(jobId, LibraryIssueStatus.Fixing, cancellationToken)
+                .ConfigureAwait(false);
 
             if (linkedIssues.Count == 0)
             {
@@ -152,17 +143,23 @@ namespace slskd.LibraryHealth.Remediation
             // Resolve issues if download completed successfully
             if (downloadStatus.State == MultiSourceDownloadState.Completed)
             {
+                await hashDb.UpdateLibraryIssueStatusesAsync(
+                    linkedIssues.Select(issue => issue.IssueId),
+                    LibraryIssueStatus.Resolved,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
                 foreach (var issue in linkedIssues)
                 {
-                    await hashDb.UpdateLibraryIssueStatusAsync(issue.IssueId, LibraryIssueStatus.Resolved, cancellationToken).ConfigureAwait(false);
                     log.LogInformation("[LH-Remediation] Resolved issue {IssueId} - download completed", issue.IssueId);
                 }
             }
             else if (downloadStatus.State == MultiSourceDownloadState.Failed)
             {
+                await hashDb.UpdateLibraryIssueStatusesAsync(
+                    linkedIssues.Select(issue => issue.IssueId),
+                    LibraryIssueStatus.Failed,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
                 foreach (var issue in linkedIssues)
                 {
-                    await hashDb.UpdateLibraryIssueStatusAsync(issue.IssueId, LibraryIssueStatus.Failed, cancellationToken).ConfigureAwait(false);
                     log.LogWarning("[LH-Remediation] Failed to fix issue {IssueId} - download failed", issue.IssueId);
                 }
             }

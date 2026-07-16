@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch Library Health remediation linkage and status transitions.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added schema-v23 remediation-job/status indexing, caller-ordered targeted issue-ID and job/status reads, and bounded transactional set updates. At 100 issues, creation falls from 102 database operations to two and completion from 101 to two (98.0% fewer); remediation job IDs are now persisted, so completion can resolve linked issues beyond the generic 100-row default page. Added migration-plan, persistence lifecycle, and exact service call-boundary regressions; documented gotchas `0z670` (`d6ac7dfca`), `0z671` (`10cc0d947`), `0z672` (`0198ed44a`, `c634efef7`), and `0z673` (`9208446cd`).
+
 - [x] Batch music metadata exact and fallback matching.
   - Status: completed (2026-07-16)
   - Priority: P1
