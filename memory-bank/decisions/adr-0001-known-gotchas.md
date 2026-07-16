@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z692. HashDb Mutators Overwrite Fixture Recency
+
+**The Bug**: A recent-variant ordering regression assigned distinct
+`HashDbEntry.LastUpdatedAt` values before calling recording-ID and variant
+metadata update helpers. Those production helpers replace `last_updated_at`
+with the current time, and the test still passed because its expected recording
+order matched the query's alphabetical tie-breaker rather than proving recency.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/HashDb/HashDbServiceTests.cs`
+
+**Prevention**: When a HashDb regression depends on historical ordering, apply
+all production mutators first and then set the final timestamps explicitly in
+the SQLite fixture. Choose recording IDs whose alphabetical order conflicts
+with their intended recency order so a timestamp tie cannot satisfy the test.
+
 ### 0z691. MediaCore Variant Fixtures Need The Audio Namespace
 
 **The Bug**: A `HashDbMediaVariantStore` regression imported the HashDb,
