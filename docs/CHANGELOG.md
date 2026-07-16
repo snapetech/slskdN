@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- The security controller now consumes registered adversarial settings through
+  `IOptions`, so its settings endpoint no longer reports that configured
+  adversarial features are unavailable.
 - The web footer and README now offer direct PayPal and Ko-fi links for
   supporting slskdN development.
 - GitLab CI configuration now keeps the Arch package-smoke sudoers command as
