@@ -52,6 +52,26 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z667. Recent-Item Reads Must Push The Global Limit Into The Database
+
+**The Bug**: Music recent-item enumeration loaded the complete album catalog,
+queried tracks one release at a time, and loaded full hash rows once per emitted
+track. The default 50-item request used 52 queries when all tracks came from one
+album and up to 101 when they came from 50 albums.
+
+**Files Affected**:
+- `src/slskd/HashDb/Migrations/HashDbMigrations.cs`
+- `src/slskd/HashDb/IHashDbService.cs`
+- `src/slskd/HashDb/HashDbService.cs`
+- `src/slskd/VirtualSoulfind/Core/Music/MusicContentDomainProvider.cs`
+
+**Prevention**: Push the global item limit into one joined database query ordered
+by the parent recency key and child position. Index the parent order, project
+only child fields needed by the caller, and batch lightweight presence checks
+when the caller needs a boolean rather than full evidence rows. Verify the
+result count/order and prove legacy catalog, per-parent, and per-child methods
+are not called.
+
 ### 0z666. Reverse Lookups Need A Direct Comparer-Matched Index
 
 **The Bug**: Music recording-ID resolution loaded every album and queried each
