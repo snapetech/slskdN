@@ -268,13 +268,14 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
             return false;
         }
 
-        var locals = await _hashDb.GetVariantsByRecordingAsync(recordingId, cancellationToken).ConfigureAwait(false);
-        if (locals == null || locals.Count == 0)
+        var bestLocal = await _hashDb
+            .GetBestVariantByRecordingAsync(recordingId, cancellationToken)
+            .ConfigureAwait(false);
+        if (bestLocal == null)
         {
             return false;
         }
 
-        var bestLocal = locals.OrderByDescending(v => v.QualityScore).First();
         var proposedScore = proposedVariant?.QualityScore ?? bestLocal.QualityScore;
 
         if (bestLocal.QualityScore >= DefaultLocalQualityThreshold &&

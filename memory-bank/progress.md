@@ -1,3 +1,10 @@
+## Update 2026-07-16 15:44:51Z
+
+- Completed the bounded multi-source canonical skip local-variant read performance pass.
+- Canonical skip decisions now consume one exact best local variant instead of hydrating and sorting the complete recording variant list.
+- With the production 1,003-row best-variant fixture, mapped rows fall from 1,003 to one (99.9% fewer). Threshold, minimum-improvement, missing recording/local, and skip results remain unchanged.
+- Validation passed: focused tests (`4/4`), broader MultiSource tests (`130/130`), full backend suites (`4942/4942`: `69` application, `4593` unit, `280` integration), repository lint, and diff checks. The first consolidated run hit one unrelated transient Mesh stream pipe timeout; the exact test passed immediately (`1/1`) and the complete unit rerun passed (`4593/4593`). Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 15:38:43Z
 
 - Completed the bounded MediaCore recording fallback variant-selection performance pass.

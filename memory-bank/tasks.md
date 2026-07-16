@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound multi-source canonical skip local-variant reads.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced complete local recording-variant hydration and application sorting in `ShouldSkipDownloadAsync` with the exact bounded HashDb best-variant read. With the production 1,003-row fixture covered by that query, mapped rows fall from 1,003 to one (99.9% fewer). The 0.85 local-quality threshold, 0.1 minimum improvement, missing recording/local handling, and skip decisions remain unchanged. Added exact best-read/zero-list-call coverage across threshold, improvement, below-threshold, and no-recording cases. Validation passed: focused tests (`4/4`), broader MultiSource tests (`130/130`), full backend suites (`4942/4942`: `69` application, `4593` unit, `280` integration), repository lint, and diff checks. The first consolidated run hit one unrelated transient Mesh stream pipe timeout; the exact test passed immediately (`1/1`) and the complete unit rerun passed (`4593/4593`). Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Bound MediaCore recording fallback variant selection.
   - Status: completed (2026-07-16)
   - Priority: P1

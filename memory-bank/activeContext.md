@@ -1,3 +1,17 @@
+## Update 2026-07-16 15:44:51Z
+
+- Current task: performance and efficiency improvements in progress; bounded multi-source canonical skip reads complete locally.
+- Last activity:
+  - Replaced complete local variant hydration/sorting with the exact one-row HashDb best-variant read.
+  - At the covered 1,003-row boundary, mapped rows fall 99.9% while quality threshold, improvement, missing, and skip semantics remain unchanged.
+- Validation:
+  - Passed focused (`4/4`), broader MultiSource (`130/130`), and full backend suites (`4942/4942`) tests.
+  - Exact best-read/zero-list and decision boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. The first consolidated run had one transient Mesh stream pipe timeout; its exact rerun and the complete unit rerun passed. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the bounded canonical skip-read slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 15:38:43Z
 
 - Current task: performance and efficiency improvements in progress; bounded MediaCore recording fallback complete locally.

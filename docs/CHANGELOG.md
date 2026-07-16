@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Multi-source canonical download skip decisions now reuse the bounded HashDb
+  best-variant query instead of loading and sorting every local variant for the
+  recording. With 1,003 local rows, mapped rows fall from 1,003 to one (99.9%
+  fewer). The local-quality threshold, minimum proposed improvement, missing
+  recording/local behavior, and skip result remain unchanged.
 - MediaCore variant-ID resolution now uses one bounded HashDb best-variant
   query when the identifier matches a recording rather than loading,
   deduplicating, and sorting every variant for that recording. With 1,003 rows,
