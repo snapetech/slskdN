@@ -90,10 +90,8 @@ public sealed class ShareGrantRepository : IShareGrantRepository
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         await using var db = await _factory.CreateDbContextAsync(cancellationToken);
-        var e = await db.ShareGrants.FindAsync([id], cancellationToken);
-        if (e == null) return false;
-        db.ShareGrants.Remove(e);
-        await db.SaveChangesAsync(cancellationToken);
-        return true;
+        return await db.ShareGrants
+            .Where(grant => grant.Id == id)
+            .ExecuteDeleteAsync(cancellationToken) > 0;
     }
 }

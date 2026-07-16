@@ -1,3 +1,17 @@
+## Update 2026-07-16 14:25:22Z
+
+- Current task: performance and efficiency improvements in progress; atomic key-unique Sharing deletes complete locally.
+- Last activity:
+  - Replaced five read-hydrate-delete paths with one key-targeted `ExecuteDeleteAsync` command each.
+  - Commands fall 50% and entity hydration falls to zero while missing-row, return-value, and cascade behavior remain unchanged; non-unique peer-ID removal deliberately retains single-row semantics.
+- Validation:
+  - Passed focused delete (`3/3`), broader Sharing (`87/87`), and full backend (`4914/4914`) tests.
+  - Exact command/result/no-op/cascade boundaries, repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the atomic Sharing delete slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 14:20:20Z
 
 - Current task: performance and efficiency improvements in progress; set-based incoming collection item replacement complete locally.

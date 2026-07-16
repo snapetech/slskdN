@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Key-unique Sharing deletes now execute as one atomic SQLite command instead
+  of reading and hydrating an entity before deleting it.
 - Incoming collection announcements now replace existing items with one
   set-based SQLite delete instead of hydrating and deleting every old item.
 - Wishlist ignored-result duplicate checks now use the existing composite

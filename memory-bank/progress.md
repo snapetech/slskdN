@@ -1,3 +1,10 @@
+## Update 2026-07-16 14:25:22Z
+
+- Completed the key-unique Sharing delete performance pass.
+- Collection, collection-item, share-grant, share-group, and composite-key user-member removal now each use one direct SQLite delete instead of a lookup, entity hydration, tracked removal, and a second command.
+- Each operation falls from two commands to one (50% fewer) and hydration falls from one entity to zero. Existing/missing results, no-op member removal, and collection/group cascades remain unchanged; non-unique peer-ID removal intentionally retains its single-row path.
+- Validation passed: focused delete tests (`3/3`), broader Sharing tests (`87/87`), full backend tests (`4914/4914`: `69` application, `4565` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 14:20:20Z
 
 - Completed the incoming collection-announcement item replacement performance pass.

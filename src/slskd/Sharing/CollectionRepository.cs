@@ -52,11 +52,9 @@ public sealed class CollectionRepository : ICollectionRepository
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         await using var db = await _factory.CreateDbContextAsync(cancellationToken);
-        var e = await db.Collections.FindAsync([id], cancellationToken);
-        if (e == null) return false;
-        db.Collections.Remove(e);
-        await db.SaveChangesAsync(cancellationToken);
-        return true;
+        return await db.Collections
+            .Where(collection => collection.Id == id)
+            .ExecuteDeleteAsync(cancellationToken) > 0;
     }
 
     public async Task<IReadOnlyList<CollectionItem>> GetItemsAsync(Guid collectionId, CancellationToken cancellationToken = default)
@@ -85,11 +83,9 @@ public sealed class CollectionRepository : ICollectionRepository
     public async Task<bool> RemoveItemAsync(Guid itemId, CancellationToken cancellationToken = default)
     {
         await using var db = await _factory.CreateDbContextAsync(cancellationToken);
-        var e = await db.CollectionItems.FindAsync([itemId], cancellationToken);
-        if (e == null) return false;
-        db.CollectionItems.Remove(e);
-        await db.SaveChangesAsync(cancellationToken);
-        return true;
+        return await db.CollectionItems
+            .Where(item => item.Id == itemId)
+            .ExecuteDeleteAsync(cancellationToken) > 0;
     }
 
     public async Task ReorderItemsAsync(Guid collectionId, IReadOnlyList<Guid> itemIdsInOrder, CancellationToken cancellationToken = default)

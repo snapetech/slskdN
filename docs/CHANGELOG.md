@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Collection, collection-item, share-grant, share-group, and user-member
+  deletion now uses one key-targeted SQLite command instead of a lookup plus a
+  tracked delete. Each operation falls from two commands to one (50% fewer)
+  and entity hydration falls from one row to zero. Existing/missing return
+  values, missing-member no-ops, and database cascades remain unchanged;
+  peer-ID member deletion retains its single-row behavior because that
+  predicate is not database-unique.
 - Incoming collection announcements now replace prior collection items with
   one set-based SQLite delete inside the same explicit transaction as the new
   item, collection, and grant writes. With 1,000 prior items, replacement

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make key-unique Sharing deletes atomic.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced lookup, one-row hydration, change tracking, and `SaveChangesAsync` with direct `ExecuteDeleteAsync` for collection, collection-item, share-grant, share-group, and composite-key user-member deletion. Each path falls from two commands to one (50% fewer) and hydrates zero entities. Existing/missing boolean results, missing-member no-ops, and database cascades remain unchanged. Peer-ID member deletion remains read-then-delete because its predicate is not database-unique and set-based deletion would change single-row semantics. Added exact command/result/no-op/cascade regressions. Validation passed: focused delete tests (`3/3`), broader Sharing tests (`87/87`), full backend tests (`4914/4914`: `69` application, `4565` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Replace incoming collection announcement items set-wise.
   - Status: completed (2026-07-16)
   - Priority: P1

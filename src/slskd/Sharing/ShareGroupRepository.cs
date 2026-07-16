@@ -52,11 +52,9 @@ public sealed class ShareGroupRepository : IShareGroupRepository
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
         await using var db = await _factory.CreateDbContextAsync(cancellationToken);
-        var e = await db.ShareGroups.FindAsync([id], cancellationToken);
-        if (e == null) return false;
-        db.ShareGroups.Remove(e);
-        await db.SaveChangesAsync(cancellationToken);
-        return true;
+        return await db.ShareGroups
+            .Where(group => group.Id == id)
+            .ExecuteDeleteAsync(cancellationToken) > 0;
     }
 
     public async Task AddMemberAsync(Guid shareGroupId, string userId, CancellationToken cancellationToken = default)
@@ -82,10 +80,9 @@ public sealed class ShareGroupRepository : IShareGroupRepository
     public async Task RemoveMemberAsync(Guid shareGroupId, string userId, CancellationToken cancellationToken = default)
     {
         await using var db = await _factory.CreateDbContextAsync(cancellationToken);
-        var m = await db.ShareGroupMembers.FirstOrDefaultAsync(x => x.ShareGroupId == shareGroupId && x.UserId == userId, cancellationToken);
-        if (m == null) return;
-        db.ShareGroupMembers.Remove(m);
-        await db.SaveChangesAsync(cancellationToken);
+        await db.ShareGroupMembers
+            .Where(member => member.ShareGroupId == shareGroupId && member.UserId == userId)
+            .ExecuteDeleteAsync(cancellationToken);
     }
 
     public async Task RemoveMemberByPeerIdAsync(Guid shareGroupId, string peerId, CancellationToken cancellationToken = default)
