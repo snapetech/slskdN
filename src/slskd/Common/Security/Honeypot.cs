@@ -196,17 +196,42 @@ public sealed class Honeypot : IDisposable
     /// </summary>
     public HoneypotStats GetStats()
     {
-        var profiles = _threatProfiles.Values.ToList();
+        var totalThreats = 0;
+        var highThreats = 0;
+        var criticalThreats = 0;
+        foreach (var profile in _threatProfiles.Values)
+        {
+            if (profile.ThreatLevel >= ThreatLevel.Medium)
+            {
+                totalThreats++;
+            }
+
+            if (profile.ThreatLevel >= ThreatLevel.High)
+            {
+                highThreats++;
+            }
+
+            if (profile.ThreatLevel == ThreatLevel.Critical)
+            {
+                criticalThreats++;
+            }
+        }
+
+        var interactionsByType = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var interaction in _interactions.Values)
+        {
+            var type = interaction.DecoyType.ToString();
+            interactionsByType[type] = interactionsByType.GetValueOrDefault(type) + 1;
+        }
+
         return new HoneypotStats
         {
             TotalInteractions = _interactions.Count,
-            TotalThreats = profiles.Count(p => p.ThreatLevel >= ThreatLevel.Medium),
-            HighThreats = profiles.Count(p => p.ThreatLevel >= ThreatLevel.High),
-            CriticalThreats = profiles.Count(p => p.ThreatLevel == ThreatLevel.Critical),
+            TotalThreats = totalThreats,
+            HighThreats = highThreats,
+            CriticalThreats = criticalThreats,
             EventCount = _events.Count,
-            InteractionsByType = _interactions.Values
-                .GroupBy(i => i.DecoyType)
-                .ToDictionary(g => g.Key.ToString(), g => g.Count()),
+            InteractionsByType = interactionsByType,
         };
     }
 

@@ -186,14 +186,26 @@ public sealed class TemporalConsistency : IDisposable
     /// </summary>
     public TemporalStats GetStats()
     {
+        long totalChangesRecorded = 0;
+        long suspiciousChanges = 0;
+        var suspiciousPeers = 0;
+        foreach (var history in _peerHistories.Values)
+        {
+            totalChangesRecorded += history.TotalChanges;
+            suspiciousChanges += history.SuspiciousChanges;
+            if (history.TotalChanges > 10 && history.SuspiciousChanges > history.TotalChanges * 0.2)
+            {
+                suspiciousPeers++;
+            }
+        }
+
         return new TemporalStats
         {
             TrackedFiles = _fileHistories.Count,
             TrackedPeers = _peerHistories.Count,
-            TotalChangesRecorded = _peerHistories.Values.Sum(p => p.TotalChanges),
-            SuspiciousChanges = _peerHistories.Values.Sum(p => p.SuspiciousChanges),
-            SuspiciousPeers = _peerHistories.Values.Count(p =>
-                p.TotalChanges > 10 && p.SuspiciousChanges > p.TotalChanges * 0.2),
+            TotalChangesRecorded = totalChangesRecorded,
+            SuspiciousChanges = suspiciousChanges,
+            SuspiciousPeers = suspiciousPeers,
         };
     }
 

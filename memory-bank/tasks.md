@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound Security dashboard aggregation and polling.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced repeated retained-set materialization and LINQ rescans with one-pass exact aggregation across the Security dashboard's event, peer reputation, canary, network guard, violation, fingerprint, honeypot, Byzantine consensus, probabilistic verification, disclosure, and temporal collectors. A representative 25-read proxy over 10,000 events, 50,000 peer profiles, and 10,000 canaries improved from 369 ms to 178 ms (51.76%) after optimizing the three dominant collectors; the remaining collector changes remove additional repeated passes without changing response contracts. System Security's 30-second poll now stops while hidden, catches up on visibility, rejects overlap, suppresses unchanged writes, retains its last successful snapshot, and clears manual refresh state on hide. Corrected dynamic Semantic UI pane rendering and menu-item contracts that left Status blank and made Adversarial unselectable. Hidden traffic falls from two dashboard requests per minute to zero. Added exact backend aggregate and five Web lifecycle/render regressions, added required button tooltips, and documented gotchas `0z628` through `0z631` plus the dynamic-tab recurrence in standalone commits.
+
 - [x] Collapse Library Health dashboard fan-out and paged aggregates.
   - Status: completed (2026-07-16)
   - Priority: P1

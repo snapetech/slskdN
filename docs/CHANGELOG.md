@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Security dashboard statistics now use single-pass retained-set aggregation
+  across event, reputation, violation, canary, network, reconnaissance,
+  honeypot, consensus, verification, disclosure, and temporal collectors.
+  System Security polling stops while hidden, rejects overlap, preserves
+  unchanged or last-successful data, and correctly renders and switches its
+  active dynamic pane.
 - Mesh diagnostic reads now expose the cached NAT type without launching STUN
   probes from dashboards, Network snapshots, or health checks. System Mesh
   stats polling stops while hidden, rejects overlap, survives Strict Mode

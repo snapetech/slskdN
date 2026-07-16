@@ -178,20 +178,61 @@ public sealed class SecurityEventAggregator : ISecurityEventSink, IDisposable
     /// <inheritdoc/>
     public SecurityEventStats GetStats()
     {
-        var events = _events.ToList();
-        var now = DateTimeOffset.UtcNow;
-        var lastHour = events.Where(e => e.Timestamp > now.AddHours(-1)).ToList();
+        var lastHourCutoff = DateTimeOffset.UtcNow.AddHours(-1);
+        var totalEvents = 0;
+        var eventsLastHour = 0;
+        var criticalEvents = 0;
+        var highEvents = 0;
+        var mediumEvents = 0;
+        var lowEvents = 0;
+        var uniqueIps = new HashSet<string>(StringComparer.Ordinal);
+        var uniqueUsers = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var securityEvent in _events)
+        {
+            totalEvents++;
+            if (securityEvent.Timestamp > lastHourCutoff)
+            {
+                eventsLastHour++;
+            }
+
+            switch (securityEvent.Severity)
+            {
+                case SecuritySeverity.Critical:
+                    criticalEvents++;
+                    break;
+                case SecuritySeverity.High:
+                    highEvents++;
+                    break;
+                case SecuritySeverity.Medium:
+                    mediumEvents++;
+                    break;
+                case SecuritySeverity.Low:
+                    lowEvents++;
+                    break;
+            }
+
+            if (securityEvent.IpAddress != null)
+            {
+                uniqueIps.Add(securityEvent.IpAddress);
+            }
+
+            if (securityEvent.Username != null)
+            {
+                uniqueUsers.Add(securityEvent.Username);
+            }
+        }
 
         return new SecurityEventStats
         {
-            TotalEvents = events.Count,
-            EventsLastHour = lastHour.Count,
-            CriticalEvents = events.Count(e => e.Severity == SecuritySeverity.Critical),
-            HighEvents = events.Count(e => e.Severity == SecuritySeverity.High),
-            MediumEvents = events.Count(e => e.Severity == SecuritySeverity.Medium),
-            LowEvents = events.Count(e => e.Severity == SecuritySeverity.Low),
-            UniqueIps = events.Where(e => e.IpAddress != null).Select(e => e.IpAddress).Distinct().Count(),
-            UniqueUsers = events.Where(e => e.Username != null).Select(e => e.Username).Distinct().Count(),
+            TotalEvents = totalEvents,
+            EventsLastHour = eventsLastHour,
+            CriticalEvents = criticalEvents,
+            HighEvents = highEvents,
+            MediumEvents = mediumEvents,
+            LowEvents = lowEvents,
+            UniqueIps = uniqueIps.Count,
+            UniqueUsers = uniqueUsers.Count,
             EventCountsByType = _eventCountsByType.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
             LastEventByType = _lastEventByType.ToDictionary(kvp => kvp.Key, kvp => kvp.Value),
         };

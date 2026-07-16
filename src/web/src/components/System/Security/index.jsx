@@ -9,33 +9,57 @@ import {
   Icon,
   Loader,
   Message,
+  Popup,
   Segment,
   Statistic,
   Tab,
 } from 'semantic-ui-react';
 
 const Security = () => {
+  const dashboardLoadedRef = useRef(false);
+  const dashboardSignatureRef = useRef(null);
+  const fetchInFlightRef = useRef(false);
   const mountedRef = useRef(false);
+  const pollIntervalRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dashboard, setDashboard] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (showRefreshing = false) => {
+    if (document.hidden || !mountedRef.current || fetchInFlightRef.current) {
+      return;
+    }
+
+    fetchInFlightRef.current = true;
     try {
-      setRefreshing(true);
-      const dashboardData = await securityApi.getDashboard().catch(() => null);
-      if (!mountedRef.current) return;
-      setDashboard(dashboardData);
+      if (showRefreshing) {
+        setRefreshing(true);
+      }
+
+      const dashboardData = await securityApi.getDashboard();
+      if (!mountedRef.current || document.hidden) return;
+      const signature = JSON.stringify(dashboardData ?? null);
+      if (dashboardSignatureRef.current !== signature) {
+        dashboardSignatureRef.current = signature;
+        setDashboard(dashboardData);
+      }
+
+      dashboardLoadedRef.current = true;
       setError(null);
     } catch (fetchError) {
-      if (!mountedRef.current) return;
-      setError(fetchError.message || 'Failed to load security data');
+      if (!mountedRef.current || document.hidden) return;
+      if (!dashboardLoadedRef.current) {
+        setError(fetchError.message || 'Failed to load security data');
+      }
     } finally {
-      if (mountedRef.current) {
+      fetchInFlightRef.current = false;
+      if (mountedRef.current && !document.hidden) {
         setLoading(false);
-        setRefreshing(false);
+        if (showRefreshing) {
+          setRefreshing(false);
+        }
       }
     }
   }, []);
@@ -48,9 +72,33 @@ const Security = () => {
   }, []);
 
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 30_000);
-    return () => clearInterval(interval);
+    const stopPolling = () => {
+      if (pollIntervalRef.current) {
+        window.clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+    const startPolling = () => {
+      if (document.hidden || pollIntervalRef.current) return;
+
+      fetchData();
+      pollIntervalRef.current = window.setInterval(fetchData, 30_000);
+    };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setRefreshing(false);
+        stopPolling();
+      } else {
+        startPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      stopPolling();
+    };
   }, [fetchData]);
 
   if (loading) {
@@ -72,12 +120,18 @@ const Security = () => {
         <Message.Header>Security Module Unavailable</Message.Header>
         <p>{error}</p>
         <p>Security features may not be enabled on this server.</p>
-        <Button
-          onClick={fetchData}
-          size="small"
-        >
-          Retry
-        </Button>
+        <Popup
+          content="Try loading the security dashboard again after the service is enabled or the connection recovers."
+          position="top center"
+          trigger={
+            <Button
+              onClick={() => fetchData(true)}
+              size="small"
+            >
+              Retry
+            </Button>
+          }
+        />
       </Message>
     );
   }
@@ -140,27 +194,32 @@ const Security = () => {
           Security monitoring will begin automatically once peer activity is
           detected. Check the <strong>Mesh</strong> tab to verify connectivity.
         </p>
-        <Button
-          icon="refresh"
-          loading={refreshing}
-          onClick={fetchData}
-          primary
-          size="small"
-        >
-          Refresh Status
-        </Button>
+        <Popup
+          content="Request the latest security snapshot now instead of waiting for the next automatic refresh."
+          position="top center"
+          trigger={
+            <Button
+              icon="refresh"
+              loading={refreshing}
+              onClick={() => fetchData(true)}
+              primary
+              size="small"
+            >
+              Refresh Status
+            </Button>
+          }
+        />
       </Message>
     );
   }
 
   const panes = [
     {
-      menuItem: (
-        <span>
-          <Icon name="shield alternate" />
-          Status
-        </span>
-      ),
+      menuItem: {
+        content: 'Status',
+        icon: 'shield alternate',
+        key: 'status',
+      },
       render: () => (
         <Tab.Pane>
           <div className="security-dashboard">
@@ -174,12 +233,18 @@ const Security = () => {
                   </Header.Subheader>
                 </Header.Content>
               </Header>
-              <Button
-                icon="refresh"
-                loading={refreshing}
-                onClick={fetchData}
-                size="tiny"
-                title="Refresh"
+              <Popup
+                content="Request the latest security snapshot now to check recent network activity."
+                position="top center"
+                trigger={
+                  <Button
+                    icon="refresh"
+                    loading={refreshing}
+                    onClick={() => fetchData(true)}
+                    size="tiny"
+                    title="Refresh"
+                  />
+                }
               />
             </div>
 
@@ -243,12 +308,11 @@ const Security = () => {
       ),
     },
     {
-      menuItem: (
-        <span>
-          <Icon name="user secret" />
-          Adversarial
-        </span>
-      ),
+      menuItem: {
+        content: 'Adversarial',
+        icon: 'user secret',
+        key: 'adversarial',
+      },
       render: () => (
         <Tab.Pane>
           <AdversarialSettings />
@@ -264,7 +328,6 @@ const Security = () => {
         setActiveIndex(nextIndex)
       }
       panes={panes}
-      renderActiveOnly={false}
     />
   );
 };

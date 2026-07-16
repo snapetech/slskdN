@@ -288,16 +288,32 @@ public sealed class CanaryTraps
     /// </summary>
     public CanaryStats GetStats()
     {
-        var records = _canaries.Values.ToList();
+        var totalCanaries = 0;
+        var canariesWithSightings = 0;
+        var totalSightings = 0;
+        var uniqueUsers = new HashSet<string>(StringComparer.Ordinal);
 
-        // Lock each record individually to get a consistent Sightings.Count snapshot.
-        var sightingCounts = records.Select(r => { lock (r) { return r.Sightings.Count; } }).ToList();
+        foreach (var record in _canaries.Values)
+        {
+            totalCanaries++;
+            uniqueUsers.Add(record.Username);
+            lock (record)
+            {
+                var sightingCount = record.Sightings.Count;
+                totalSightings += sightingCount;
+                if (sightingCount > 0)
+                {
+                    canariesWithSightings++;
+                }
+            }
+        }
+
         return new CanaryStats
         {
-            TotalCanaries = records.Count,
-            CanariesWithSightings = sightingCounts.Count(c => c > 0),
-            TotalSightings = sightingCounts.Sum(),
-            UniqueUsersTracked = records.Select(r => r.Username).Distinct().Count(),
+            TotalCanaries = totalCanaries,
+            CanariesWithSightings = canariesWithSightings,
+            TotalSightings = totalSightings,
+            UniqueUsersTracked = uniqueUsers.Count,
         };
     }
 

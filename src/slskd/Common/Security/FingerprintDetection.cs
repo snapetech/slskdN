@@ -369,13 +369,27 @@ public sealed class FingerprintDetection : IDisposable
     /// </summary>
     public ReconnaissanceStats GetStats()
     {
-        var profiles = _profiles.Values.ToList();
+        var trackedIps = 0;
+        var knownScanners = 0;
+        long totalConnectionAttempts = 0;
+        long totalAnomalousRequests = 0;
+        foreach (var profile in _profiles.Values)
+        {
+            trackedIps++;
+            totalConnectionAttempts += profile.ConnectionAttempts;
+            totalAnomalousRequests += profile.AnomalousRequests;
+            if (profile.IsScanner)
+            {
+                knownScanners++;
+            }
+        }
+
         return new ReconnaissanceStats
         {
-            TrackedIps = profiles.Count,
-            KnownScanners = profiles.Count(p => p.IsScanner),
-            TotalConnectionAttempts = profiles.Sum(p => p.ConnectionAttempts),
-            TotalAnomalousRequests = profiles.Sum(p => p.AnomalousRequests),
+            TrackedIps = trackedIps,
+            KnownScanners = knownScanners,
+            TotalConnectionAttempts = totalConnectionAttempts,
+            TotalAnomalousRequests = totalAnomalousRequests,
             EventCount = _events.Count,
         };
     }

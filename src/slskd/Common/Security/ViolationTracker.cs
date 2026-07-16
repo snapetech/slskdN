@@ -225,14 +225,41 @@ public sealed class ViolationTracker : IDisposable
     public ViolationStats GetStats()
     {
         var now = DateTimeOffset.UtcNow;
+        var activeBans = 0;
+        var permanentBans = 0;
+        foreach (var ban in _bans.Values)
+        {
+            if (ban.ExpiresAt > now)
+            {
+                activeBans++;
+            }
+
+            if (ban.IsPermanent)
+            {
+                permanentBans++;
+            }
+        }
+
+        long totalIpViolations = 0;
+        foreach (var violation in _ipViolations.Values)
+        {
+            totalIpViolations += violation.TotalViolations;
+        }
+
+        long totalUsernameViolations = 0;
+        foreach (var violation in _usernameViolations.Values)
+        {
+            totalUsernameViolations += violation.TotalViolations;
+        }
+
         return new ViolationStats
         {
             TrackedIps = _ipViolations.Count,
             TrackedUsernames = _usernameViolations.Count,
-            ActiveBans = _bans.Count(kvp => kvp.Value.ExpiresAt > now),
-            PermanentBans = _bans.Count(kvp => kvp.Value.IsPermanent),
-            TotalIpViolations = _ipViolations.Values.Sum(v => v.TotalViolations),
-            TotalUsernameViolations = _usernameViolations.Values.Sum(v => v.TotalViolations),
+            ActiveBans = activeBans,
+            PermanentBans = permanentBans,
+            TotalIpViolations = totalIpViolations,
+            TotalUsernameViolations = totalUsernameViolations,
         };
     }
 

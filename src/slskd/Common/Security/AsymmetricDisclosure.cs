@@ -210,18 +210,54 @@ public sealed class AsymmetricDisclosure
     /// </summary>
     public DisclosureStats GetStats()
     {
-        var states = _trustStates.Values.ToList();
+        var totalPeers = 0;
+        var unknownPeers = 0;
+        var newPeers = 0;
+        var basicPeers = 0;
+        var trustedPeers = 0;
+        var vettedPeers = 0;
+        var friendPeers = 0;
+        long totalPositiveInteractions = 0;
+        long totalNegativeInteractions = 0;
+        foreach (var state in _trustStates.Values)
+        {
+            totalPeers++;
+            totalPositiveInteractions += state.PositiveInteractions;
+            totalNegativeInteractions += state.NegativeInteractions;
+            switch (state.CurrentTier)
+            {
+                case TrustTier.Unknown:
+                    unknownPeers++;
+                    break;
+                case TrustTier.New:
+                    newPeers++;
+                    break;
+                case TrustTier.Basic:
+                    basicPeers++;
+                    break;
+                case TrustTier.Trusted:
+                    trustedPeers++;
+                    break;
+                case TrustTier.Vetted:
+                    vettedPeers++;
+                    break;
+                case TrustTier.Friend:
+                    friendPeers++;
+                    break;
+            }
+        }
+
         return new DisclosureStats
         {
-            TotalPeers = states.Count,
-            UnknownPeers = states.Count(s => s.CurrentTier == TrustTier.Unknown),
-            NewPeers = states.Count(s => s.CurrentTier == TrustTier.New),
-            BasicPeers = states.Count(s => s.CurrentTier == TrustTier.Basic),
-            TrustedPeers = states.Count(s => s.CurrentTier == TrustTier.Trusted),
-            VettedPeers = states.Count(s => s.CurrentTier == TrustTier.Vetted),
-            FriendPeers = states.Count(s => s.CurrentTier == TrustTier.Friend),
-            TotalPositiveInteractions = states.Sum(s => s.PositiveInteractions),
-            TotalNegativeInteractions = states.Sum(s => s.NegativeInteractions),
+            TotalPeers = totalPeers,
+            UnknownPeers = unknownPeers,
+            NewPeers = newPeers,
+            BasicPeers = basicPeers,
+            TrustedPeers = trustedPeers,
+            VettedPeers = vettedPeers,
+            FriendPeers = friendPeers,
+            TotalPositiveInteractions = totalPositiveInteractions,
+            TotalNegativeInteractions = totalNegativeInteractions,
         };
     }
 

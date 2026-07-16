@@ -10,6 +10,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Security dashboard statistics now aggregate each retained collector set in a
+  single pass instead of repeatedly materializing and rescanning it. System
+  Security polling is visible-only, non-overlapping, preserves unchanged and
+  last-successful snapshots, and renders only the selected dynamic tab; the
+  previously blank Status body and broken Adversarial tab selection are fixed.
 - Mesh transport stats, Network snapshots, and health checks now report the
   last NAT result without triggering STUN detection during diagnostic reads.
   System Mesh polling is also visible-only, non-overlapping, Strict Mode-safe,

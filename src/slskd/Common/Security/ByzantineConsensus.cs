@@ -283,14 +283,40 @@ public sealed class ByzantineConsensus : IDisposable
     /// </summary>
     public ConsensusStats GetStats()
     {
-        var sessions = _sessions.Values.ToList();
+        var totalSessions = 0;
+        var activeSessions = 0;
+        var verifiedSessions = 0;
+        var failedSessions = 0;
+        var totalVotes = 0;
+        foreach (var session in _sessions.Values)
+        {
+            totalSessions++;
+            switch (session.State)
+            {
+                case ConsensusState.Collecting:
+                    activeSessions++;
+                    break;
+                case ConsensusState.Verified:
+                    verifiedSessions++;
+                    break;
+                case ConsensusState.Failed:
+                    failedSessions++;
+                    break;
+            }
+
+            foreach (var chunkVotes in session.ChunkVotes.Values)
+            {
+                totalVotes += chunkVotes.Votes.Count;
+            }
+        }
+
         return new ConsensusStats
         {
-            TotalSessions = sessions.Count,
-            ActiveSessions = sessions.Count(s => s.State == ConsensusState.Collecting),
-            VerifiedSessions = sessions.Count(s => s.State == ConsensusState.Verified),
-            FailedSessions = sessions.Count(s => s.State == ConsensusState.Failed),
-            TotalVotes = sessions.Sum(s => s.ChunkVotes.Values.Sum(v => v.Votes.Count)),
+            TotalSessions = totalSessions,
+            ActiveSessions = activeSessions,
+            VerifiedSessions = verifiedSessions,
+            FailedSessions = failedSessions,
+            TotalVotes = totalVotes,
         };
     }
 

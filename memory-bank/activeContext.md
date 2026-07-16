@@ -1,3 +1,22 @@
+## Update 2026-07-16 02:04:20Z
+
+- Current task: performance and efficiency improvements in progress; Security dashboard aggregation and polling pass complete locally.
+- Last activity:
+  - Replaced repeated materialization and retained-set rescans with single-pass exact aggregation across eleven Security dashboard collectors.
+  - A representative 25-read proxy over 10,000 events, 50,000 peers, and 10,000 canaries improved from 369 ms to 178 ms (51.76%) after optimizing the three dominant collectors; the other eight collector changes remove further repeated passes.
+  - Made the 30-second System Security refresh visible-only, non-overlapping, Strict Mode-safe, unchanged-result preserving, and last-success retaining. Hidden traffic falls from two dashboard requests per minute to zero.
+  - Fixed the existing dynamic Tab contracts that rendered a menu without the Status body and threw when selecting Adversarial. Only the selected diagnostic pane now mounts.
+  - Added exact backend aggregate tests and five Web lifecycle/render regressions, including hidden manual-refresh ownership, and added Popup tooltips to every touched Security button.
+  - Documented gotchas `0z628` through `0z631` and extended dynamic-tab gotcha `0z351` in standalone commits.
+- Validation:
+  - Passed focused Security backend tests (`60/60`) and focused Web tests (`5/5`).
+  - Passed complete backend suites (`4780/4780`: `69` smoke, `4431` unit, `280` integration), complete Web tests (`870` passed, `4` skipped), production Web build, frontend lint with zero errors, repository lint, and diff checks.
+  - The consolidated remediation baseline passed every check before stopping at its expected branch-sync gate because this local work is intentionally unpushed.
+- Next steps:
+  1. Commit this Security pass.
+  2. Continue the broader performance goal from the next measured hot path.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 01:44:49Z
 
 - Current task: performance and efficiency improvements in progress; passive Mesh diagnostics and polling lifecycle pass complete locally.

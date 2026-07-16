@@ -275,16 +275,41 @@ public sealed class PeerReputation
     /// </summary>
     public ReputationStats GetStats()
     {
-        var profiles = _profiles.Values.ToList();
+        var totalPeers = 0;
+        var trustedPeers = 0;
+        var untrustedPeers = 0;
+        long totalScore = 0;
+        long totalSuccessfulTransfers = 0;
+        long totalFailedTransfers = 0;
+        long totalProtocolViolations = 0;
+
+        foreach (var profile in _profiles.Values)
+        {
+            totalPeers++;
+            totalScore += profile.Score;
+            totalSuccessfulTransfers += profile.SuccessfulTransfers;
+            totalFailedTransfers += profile.FailedTransfers;
+            totalProtocolViolations += profile.ProtocolViolations;
+            if (profile.Score >= TrustedThreshold)
+            {
+                trustedPeers++;
+            }
+
+            if (profile.Score <= UntrustedThreshold)
+            {
+                untrustedPeers++;
+            }
+        }
+
         return new ReputationStats
         {
-            TotalPeers = profiles.Count,
-            TrustedPeers = profiles.Count(p => p.Score >= TrustedThreshold),
-            UntrustedPeers = profiles.Count(p => p.Score <= UntrustedThreshold),
-            AverageScore = profiles.Count > 0 ? profiles.Average(p => p.Score) : BaseScore,
-            TotalSuccessfulTransfers = profiles.Sum(p => p.SuccessfulTransfers),
-            TotalFailedTransfers = profiles.Sum(p => p.FailedTransfers),
-            TotalProtocolViolations = profiles.Sum(p => p.ProtocolViolations),
+            TotalPeers = totalPeers,
+            TrustedPeers = trustedPeers,
+            UntrustedPeers = untrustedPeers,
+            AverageScore = totalPeers > 0 ? (double)totalScore / totalPeers : BaseScore,
+            TotalSuccessfulTransfers = totalSuccessfulTransfers,
+            TotalFailedTransfers = totalFailedTransfers,
+            TotalProtocolViolations = totalProtocolViolations,
         };
     }
 

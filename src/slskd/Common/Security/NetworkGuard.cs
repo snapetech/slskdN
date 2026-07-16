@@ -251,13 +251,27 @@ public sealed class NetworkGuard : IDisposable
     /// </summary>
     public NetworkGuardStats GetStats()
     {
+        long totalConnections = 0;
+        foreach (var tracker in _connectionTrackers.Values)
+        {
+            totalConnections += tracker.TotalConnections;
+        }
+
+        long totalMessages = 0;
+        long rateLimitHits = 0;
+        foreach (var tracker in _messageRateTrackers.Values)
+        {
+            totalMessages += tracker.TotalMessages;
+            rateLimitHits += tracker.RateLimitHits;
+        }
+
         return new NetworkGuardStats
         {
             GlobalConnections = _globalConnectionCount,
             TrackedIps = _connectionTrackers.Count,
-            TotalConnections = _connectionTrackers.Values.Sum(t => t.TotalConnections),
-            TotalMessages = _messageRateTrackers.Values.Sum(t => t.TotalMessages),
-            RateLimitHits = _messageRateTrackers.Values.Sum(t => t.RateLimitHits),
+            TotalConnections = totalConnections,
+            TotalMessages = totalMessages,
+            RateLimitHits = rateLimitHits,
             MaxConnectionsPerIp = MaxConnectionsPerIp,
             MaxGlobalConnections = MaxGlobalConnections,
             MaxMessagesPerMinute = MaxMessagesPerMinute,

@@ -121,7 +121,10 @@ automation posture before enabling live backend execution.
 **System -> Security** shows runtime security posture and advanced adversarial
 settings. Use **System -> Policies** for auth/API-key/HTTPS/rate-limit YAML
 changes; use **System -> Security** for live security dashboards and specialized
-privacy/anonymity controls.
+privacy/anonymity controls. Its local dashboard snapshot refreshes every 30
+seconds only while visible, does not overlap slow requests, retains the last
+successful result across transient failures, and mounts only the selected
+Status or Adversarial pane.
 
 ## Network And Mesh
 

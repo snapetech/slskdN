@@ -314,15 +314,34 @@ public sealed class ProbabilisticVerification : IDisposable
     /// </summary>
     public VerificationStats GetStats()
     {
-        var sessions = _sessions.Values.ToList();
+        var totalSessions = 0;
+        var activeSessions = 0;
+        var totalChunksVerified = 0;
+        var totalChunksPassed = 0;
+        var totalChunksFailed = 0;
+        double totalSampleRate = 0;
+        foreach (var session in _sessions.Values)
+        {
+            totalSessions++;
+            if (!session.IsFinalized)
+            {
+                activeSessions++;
+            }
+
+            totalChunksVerified += session.Results.Count;
+            totalChunksPassed += session.PassedChunks;
+            totalChunksFailed += session.FailedChunks;
+            totalSampleRate += session.SampleRate;
+        }
+
         return new VerificationStats
         {
-            TotalSessions = sessions.Count,
-            ActiveSessions = sessions.Count(s => !s.IsFinalized),
-            TotalChunksVerified = sessions.Sum(s => s.Results.Count),
-            TotalChunksPassed = sessions.Sum(s => s.PassedChunks),
-            TotalChunksFailed = sessions.Sum(s => s.FailedChunks),
-            AverageSampleRate = sessions.Count > 0 ? sessions.Average(s => s.SampleRate) : 0,
+            TotalSessions = totalSessions,
+            ActiveSessions = activeSessions,
+            TotalChunksVerified = totalChunksVerified,
+            TotalChunksPassed = totalChunksPassed,
+            TotalChunksFailed = totalChunksFailed,
+            AverageSampleRate = totalSessions > 0 ? totalSampleRate / totalSessions : 0,
         };
     }
 
