@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove discarded contact hydration from share manifests.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Removed the complete contact-list read from `GetManifestAsync`; owner contact fields intentionally remain empty because collection ownership has only an application user ID and cannot safely resolve a peer. Each manifest falls by one database read, and 10,000 contacts now hydrate zero rows instead of 10,000. Explicit peer-backed share-group member nickname resolution is unchanged. Added an exact zero-contact-list-call regression and documented initializer-comment gotcha `0z697` (`8cd09ad07`). Validation passed: complete Sharing unit coverage (`79/79`), full backend tests (`4907/4907`: `69` application, `4558` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop.
+
 - [x] Push native Jobs listing into bounded HashDb pages.
   - Status: completed (2026-07-16)
   - Priority: P1

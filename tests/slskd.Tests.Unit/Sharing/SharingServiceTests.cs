@@ -243,11 +243,15 @@ public class SharingServiceTests
         _grantsMock.Setup(x => x.GetByIdAsync(grantId, It.IsAny<CancellationToken>())).ReturnsAsync(grant);
         _collectionsMock.Setup(x => x.GetByIdAsync(collectionId, It.IsAny<CancellationToken>())).ReturnsAsync(collection);
         _collectionsMock.Setup(x => x.GetItemsAsync(collectionId, It.IsAny<CancellationToken>())).ReturnsAsync(items);
+        var contactService = new Mock<IContactService>();
+        _serviceProviderMock.Setup(x => x.GetService(typeof(IContactService))).Returns(contactService.Object);
 
         var m = await svc.GetManifestAsync(grantId, "token", null, CancellationToken.None);
 
         Assert.NotNull(m);
         Assert.Equal("alice", m.OwnerUserId);
-        // OwnerContactNickname and OwnerPeerId are placeholders for future enhancement
+        Assert.Null(m.OwnerContactNickname);
+        Assert.Null(m.OwnerPeerId);
+        contactService.Verify(service => service.GetAllAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 }

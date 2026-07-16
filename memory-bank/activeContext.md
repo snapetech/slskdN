@@ -1,3 +1,17 @@
+## Update 2026-07-16 13:56:03Z
+
+- Current task: performance and efficiency improvements in progress; discarded share-manifest contact hydration removed locally.
+- Last activity:
+  - Removed one complete contact-list read per manifest because owner application IDs cannot resolve peer contacts.
+  - Preserved explicit peer-backed share-group nickname resolution; documented gotcha `0z697` (`8cd09ad07`).
+- Validation:
+  - Passed complete Sharing unit coverage (`79/79`) and full backend tests (`4907/4907`).
+  - The manifest contact boundary is now exactly zero reads/rows. Repository lint, diff checks, and every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the Sharing manifest slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 13:50:47Z
 
 - Current task: performance and efficiency improvements in progress; bounded native Jobs database pages complete locally.

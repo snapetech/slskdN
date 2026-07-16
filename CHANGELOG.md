@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Share-manifest reads no longer load the complete contact table when no peer
+  identity exists for owner-contact resolution.
 - Native Jobs filtering, sorting, counting, and pagination now execute in
   HashDb without loading and deserializing both complete job tables.
 - Search page startup now uses one bounded SignalR history snapshot and falls

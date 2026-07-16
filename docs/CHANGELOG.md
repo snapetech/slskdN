@@ -22,6 +22,13 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Share-manifest generation no longer resolves and loads every contact before
+  returning owner contact fields that must remain empty: collection ownership
+  stores an application user ID, not a resolvable peer ID. Each manifest read
+  removes one complete contact-table query and all associated hydration; with
+  10,000 contacts, contact rows loaded fall from 10,000 to zero. Share-group
+  member nickname resolution remains unchanged because those records carry
+  explicit peer IDs.
 - Native Jobs listing now counts and pages a lightweight union of discography
   and label-crate scalar columns in HashDb instead of synchronously loading,
   JSON-deserializing, combining, sorting, and then truncating both complete job

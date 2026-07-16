@@ -156,20 +156,6 @@ public sealed class SharingService : ISharingService
                 : null,
         }).ToList();
 
-        // Resolve owner contact nickname if Identity & Friends is enabled
-        string? ownerNickname = null;
-        string? ownerPeerId = null;
-        var contactService = _serviceProvider.GetService<IContactService>();
-        if (contactService != null)
-        {
-            // Try to find owner as a contact (if they're using Identity & Friends).
-            var allContacts = await contactService.GetAllAsync(ct).ConfigureAwait(false);
-
-            // Collection ownership stores an application user id, not a peer id.
-            // Keep contact fields empty until collection ownership records carry
-            // a peer identity that can be resolved without guessing.
-        }
-
         return new ShareManifestDto
         {
             CollectionId = c.Id.ToString(),
@@ -177,8 +163,11 @@ public sealed class SharingService : ISharingService
             Description = c.Description,
             Type = c.Type,
             OwnerUserId = c.OwnerUserId,
-            OwnerContactNickname = ownerNickname,
-            OwnerPeerId = ownerPeerId,
+
+            // Collection ownership stores an application user id, not a peer id.
+            // Keep contact fields empty until ownership records carry a resolvable peer identity.
+            OwnerContactNickname = null,
+            OwnerPeerId = null,
             Items = list,
         };
     }

@@ -1,3 +1,10 @@
+## Update 2026-07-16 13:56:03Z
+
+- Completed the share-manifest discarded-contact-read performance pass.
+- Manifest generation no longer loads the complete contact table before returning intentionally empty owner contact fields; collection ownership lacks a peer ID, while peer-backed group-member nickname resolution remains active.
+- Each manifest removes one database read; with 10,000 contacts, hydrated contact rows fall from 10,000 to zero. Added an exact no-contact-list-call regression and documented initializer-comment gotcha `0z697` (`8cd09ad07`).
+- Validation passed: complete Sharing unit coverage (`79/79`), full backend tests (`4907/4907`: `69` application, `4558` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 13:50:47Z
 
 - Completed the native Jobs listing database-pagination performance pass.
