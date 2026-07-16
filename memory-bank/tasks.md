@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch Lidarr and CSV Wishlist item persistence.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added a bounded 40-row Wishlist insert path whose 760 parameters remain below SQLite's conservative 999-variable boundary, with complete field mapping and transactional persistence. Lidarr now collects unique wanted albums per fetched page and calls the bulk API once while preserving its cap and in-page deduplication. At the default 100-item cap, Lidarr falls from 100 insert commands/transactions to three commands and one transaction (97.0%/99.0% fewer); a 100-track CSV import falls from 100 insert commands to three. Regressions measure the 100-command EF baseline, exact three-command optimized boundary, full field round-trip, Lidarr cap, and in-batch deduplication. Documented EF interceptor visibility gotcha `0z682` (`d51ac3a05`).
+
 - [x] Batch canonical audio-stat ranking and recomputation.
   - Status: completed (2026-07-16)
   - Priority: P1

@@ -4,6 +4,7 @@
 namespace slskd.Integrations.Lidarr;
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -72,6 +73,7 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
                 break;
             }
 
+            var pendingItems = new List<WishlistItem>();
             foreach (var album in records)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -90,25 +92,29 @@ public sealed class LidarrSyncService : BackgroundService, ILidarrSyncService
                     continue;
                 }
 
-                var item = new WishlistItem
+                pendingItems.Add(new WishlistItem
                 {
                     SearchText = searchText,
                     Filter = options.WishlistFilter,
                     Enabled = true,
                     AutoDownload = options.AutoDownload,
                     MaxResults = options.WishlistMaxResults,
-                };
+                });
 
-                await WishlistService.CreateAsync(item).ConfigureAwait(false);
                 existingSearches.Add(wishlistKey);
-                result.CreatedCount++;
 
-                if (result.CreatedCount >= options.MaxItemsPerSync)
+                if (result.CreatedCount + pendingItems.Count >= options.MaxItemsPerSync)
                 {
                     Log.Information("Lidarr sync reached per-cycle cap of {Cap} new items; will continue from page {Page} next cycle", options.MaxItemsPerSync, page);
                     reachedCap = true;
                     break;
                 }
+            }
+
+            if (pendingItems.Count > 0)
+            {
+                await WishlistService.CreateManyAsync(pendingItems, cancellationToken).ConfigureAwait(false);
+                result.CreatedCount += pendingItems.Count;
             }
 
             if (page * lidarrPageSize >= result.WantedCount)

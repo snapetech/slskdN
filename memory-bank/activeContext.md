@@ -1,3 +1,17 @@
+## Update 2026-07-16 10:20:03Z
+
+- Current task: performance and efficiency improvements in progress; Wishlist bulk-persistence pass complete locally.
+- Last activity:
+  - Added transactional 40-row Wishlist inserts and routed both CSV imports and Lidarr page synchronization through them. The 760-parameter boundary stays below SQLite's conservative 999-variable limit.
+  - Default 100-item Lidarr sync falls from 100 insert commands/transactions to three commands and one transaction (97.0%/99.0% fewer). A 100-track CSV import falls from 100 insert commands to three. Documented gotcha `0z682` (`d51ac3a05`).
+- Validation:
+  - Passed focused persistence/Lidarr coverage (`10/10`), broader Wishlist/Lidarr coverage (`44/44`), and full backend tests (`4862/4862`: `69` application, `4513` unit, `280` integration).
+  - Exact old/new SQLite command counts, complete field round-trip, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the Wishlist/Lidarr batching slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 10:01:01Z
 
 - Current task: performance and efficiency improvements in progress; canonical audio-stat batching pass complete locally.

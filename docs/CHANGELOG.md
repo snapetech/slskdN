@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Lidarr wanted synchronization now groups each fetched page into one Wishlist
+  persistence call, while Wishlist and CSV imports use 40-row SQLite inserts.
+  At the default 100-item Lidarr cap, inserts fall from 100 commands and 100
+  transactions to three commands and one transaction (97.0% and 99.0% fewer).
+  A 100-track CSV import also falls from 100 insert commands to three.
 - Canonical audio candidate ranking now reuses its loaded variants, reads all
   stored profile stats once, and batches missing-stat persistence. With 100
   missing profiles it falls from 301 SQLite commands to three (99.0% fewer).

@@ -71,6 +71,59 @@ public class LidarrSyncServiceTests
     }
 
     [Fact]
+    public async Task SyncWantedToWishlist_DeduplicatesWithinPendingBatch()
+    {
+        var lidarr = new FakeLidarrClient
+        {
+            Wanted =
+            [
+                new LidarrWantedAlbum
+                {
+                    Title = "Album",
+                    Artist = new LidarrArtistResource { ArtistName = "Artist" },
+                },
+                new LidarrWantedAlbum
+                {
+                    Title = "Album",
+                    Artist = new LidarrArtistResource { ArtistName = "Artist" },
+                },
+            ],
+        };
+        var wishlist = new FakeWishlistService();
+        var service = CreateService(lidarr, wishlist, wishlistFilter: "flac");
+
+        var result = await service.SyncWantedToWishlistAsync();
+
+        Assert.Equal(1, result.CreatedCount);
+        Assert.Equal(1, result.DuplicateCount);
+        Assert.Equal(1, Assert.Single(wishlist.CreateBatches));
+    }
+
+    [Fact]
+    public async Task SyncWantedToWishlist_WithLargePage_CreatesOneBoundedBatchAtCap()
+    {
+        var lidarr = new FakeLidarrClient
+        {
+            Wanted = Enumerable.Range(1, 250)
+                .Select(index => new LidarrWantedAlbum
+                {
+                    Title = $"Album {index}",
+                    Artist = new LidarrArtistResource { ArtistName = "Artist" },
+                })
+                .ToList(),
+        };
+        var wishlist = new FakeWishlistService();
+        var service = CreateService(lidarr, wishlist, wishlistFilter: "flac", maxItemsPerSync: 100);
+
+        var result = await service.SyncWantedToWishlistAsync();
+
+        Assert.Equal(100, result.CreatedCount);
+        Assert.Equal(100, wishlist.Created.Count);
+        Assert.Equal(100, Assert.Single(wishlist.CreateBatches));
+        Assert.Equal(1, lidarr.PageCalls);
+    }
+
+    [Fact]
     public void IsExpectedExternalHttpFailure_ReturnsTrue_ForHttpRequestException()
     {
         var ex = new HttpRequestException("Response status code does not indicate success: 500 (Internal Server Error).");
@@ -94,7 +147,11 @@ public class LidarrSyncServiceTests
         Assert.False(LidarrSyncService.IsExpectedExternalHttpFailure(ex));
     }
 
-    private static LidarrSyncService CreateService(FakeLidarrClient lidarr, FakeWishlistService wishlist, string wishlistFilter)
+    private static LidarrSyncService CreateService(
+        FakeLidarrClient lidarr,
+        FakeWishlistService wishlist,
+        string wishlistFilter,
+        int maxItemsPerSync = 100)
         => new(
             lidarr,
             wishlist,
@@ -109,7 +166,7 @@ public class LidarrSyncServiceTests
                         ApiKey = "key",
                         SyncWantedToWishlist = true,
                         WishlistFilter = wishlistFilter,
-                        MaxItemsPerSync = 100,
+                        MaxItemsPerSync = maxItemsPerSync,
                     },
                 },
             }));
@@ -119,6 +176,8 @@ public class LidarrSyncServiceTests
         public List<WishlistItem> Items { get; init; } = [];
 
         public List<WishlistItem> Created { get; } = [];
+
+        public List<int> CreateBatches { get; } = [];
 
         public List<WishlistIgnoredResult> IgnoredResults { get; } = [];
 
@@ -131,6 +190,17 @@ public class LidarrSyncServiceTests
             Created.Add(item);
             Items.Add(item);
             return Task.FromResult(item);
+        }
+
+        public Task<List<WishlistItem>> CreateManyAsync(
+            IEnumerable<WishlistItem> items,
+            CancellationToken cancellationToken = default)
+        {
+            var batch = items.ToList();
+            CreateBatches.Add(batch.Count);
+            Created.AddRange(batch);
+            Items.AddRange(batch);
+            return Task.FromResult(batch);
         }
 
         public Task<WishlistItem> UpdateAsync(WishlistItem item) => Task.FromResult(item);
@@ -179,6 +249,8 @@ public class LidarrSyncServiceTests
     {
         public IReadOnlyList<LidarrWantedAlbum> Wanted { get; init; } = [];
 
+        public int PageCalls { get; private set; }
+
         public Task<LidarrSystemStatus> GetSystemStatusAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(new LidarrSystemStatus());
 
@@ -189,7 +261,10 @@ public class LidarrSyncServiceTests
             int page,
             int pageSize,
             CancellationToken cancellationToken = default)
-            => Task.FromResult((page == 1 ? Wanted : [], Wanted.Count));
+        {
+            PageCalls++;
+            return Task.FromResult((page == 1 ? Wanted : [], Wanted.Count));
+        }
 
         public Task<IReadOnlyList<LidarrManualImportResource>> GetManualImportCandidatesAsync(
             string folder,

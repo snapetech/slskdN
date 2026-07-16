@@ -11,6 +11,7 @@ namespace slskd.Wishlist
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Data.Sqlite;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Options;
@@ -40,6 +41,13 @@ namespace slskd.Wishlist
         ///     Creates a new wishlist item.
         /// </summary>
         Task<WishlistItem> CreateAsync(WishlistItem item);
+
+        /// <summary>
+        ///     Creates wishlist items in bounded database batches.
+        /// </summary>
+        Task<List<WishlistItem>> CreateManyAsync(
+            IEnumerable<WishlistItem> items,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         ///     Updates an existing wishlist item.
@@ -91,6 +99,8 @@ namespace slskd.Wishlist
     /// </summary>
     public class WishlistService : BackgroundService, IWishlistService
     {
+        private const int WishlistInsertBatchSize = 40;
+
         public WishlistService(
             IDbContextFactory<WishlistDbContext> contextFactory,
             ISearchService searchService,
@@ -144,6 +154,29 @@ namespace slskd.Wishlist
 
             Log.Information("Created wishlist item {Id} for search: {SearchText}", item.Id, item.SearchText);
             return item;
+        }
+
+        /// <inheritdoc/>
+        public async Task<List<WishlistItem>> CreateManyAsync(
+            IEnumerable<WishlistItem> items,
+            CancellationToken cancellationToken = default)
+        {
+            var created = items.ToList();
+            foreach (var item in created)
+            {
+                item.Id = Guid.NewGuid();
+                item.CreatedAt = DateTime.UtcNow;
+            }
+
+            if (created.Count == 0)
+            {
+                return created;
+            }
+
+            using var context = ContextFactory.CreateDbContext();
+            await InsertWishlistItemsAsync(context, created, cancellationToken).ConfigureAwait(false);
+            Log.Information("Created {Count} wishlist items in a batch", created.Count);
+            return created;
         }
 
         /// <inheritdoc/>
@@ -337,14 +370,13 @@ namespace slskd.Wishlist
                     CreatedAt = DateTime.UtcNow,
                 };
 
-                context.WishlistItems.Add(item);
                 result.CreatedItems.Add(item);
                 existingKeys.Add(key);
             }
 
             if (result.CreatedItems.Count > 0)
             {
-                await context.SaveChangesAsync(cancellationToken);
+                await InsertWishlistItemsAsync(context, result.CreatedItems, cancellationToken).ConfigureAwait(false);
             }
 
             result.CreatedCount = result.CreatedItems.Count;
@@ -355,6 +387,80 @@ namespace slskd.Wishlist
                 result.SkippedCount);
 
             return result;
+        }
+
+        private static async Task InsertWishlistItemsAsync(
+            WishlistDbContext context,
+            IReadOnlyList<WishlistItem> items,
+            CancellationToken cancellationToken)
+        {
+            await using var transaction = await context.Database
+                .BeginTransactionAsync(cancellationToken)
+                .ConfigureAwait(false);
+            foreach (var batch in items.Chunk(WishlistInsertBatchSize))
+            {
+                var values = batch.Select((_, index) =>
+                    $"(@id{index}, @search_text{index}, @filter{index}, @enabled{index}, @auto_download{index}, @max_results{index}, @created_at{index}, @last_searched_at{index}, @last_match_count{index}, @last_visible_hit_count{index}, @last_hidden_locked_hit_count{index}, @last_filtered_out_hit_count{index}, @last_ignored_result_hit_count{index}, @last_response_count{index}, @total_search_count{index}, @total_download_count{index}, @max_downloads{index}, @last_search_id{index}, @last_viewed_at{index})");
+                var commandText = $"""
+                    INSERT INTO WishlistItems (
+                        Id,
+                        SearchText,
+                        Filter,
+                        Enabled,
+                        AutoDownload,
+                        MaxResults,
+                        CreatedAt,
+                        LastSearchedAt,
+                        LastMatchCount,
+                        LastVisibleHitCount,
+                        LastHiddenLockedHitCount,
+                        LastFilteredOutHitCount,
+                        LastIgnoredResultHitCount,
+                        LastResponseCount,
+                        TotalSearchCount,
+                        TotalDownloadCount,
+                        MaxDownloads,
+                        LastSearchId,
+                        LastViewedAt)
+                    VALUES {string.Join(", ", values)}
+                    """;
+                var parameters = new List<object>(batch.Length * 19);
+
+                for (var index = 0; index < batch.Length; index++)
+                {
+                    var item = batch[index];
+                    AddParameter(parameters, $"@id{index}", item.Id);
+                    AddParameter(parameters, $"@search_text{index}", item.SearchText);
+                    AddParameter(parameters, $"@filter{index}", item.Filter);
+                    AddParameter(parameters, $"@enabled{index}", item.Enabled);
+                    AddParameter(parameters, $"@auto_download{index}", item.AutoDownload);
+                    AddParameter(parameters, $"@max_results{index}", item.MaxResults);
+                    AddParameter(parameters, $"@created_at{index}", item.CreatedAt);
+                    AddParameter(parameters, $"@last_searched_at{index}", item.LastSearchedAt);
+                    AddParameter(parameters, $"@last_match_count{index}", item.LastMatchCount);
+                    AddParameter(parameters, $"@last_visible_hit_count{index}", item.LastVisibleHitCount);
+                    AddParameter(parameters, $"@last_hidden_locked_hit_count{index}", item.LastHiddenLockedHitCount);
+                    AddParameter(parameters, $"@last_filtered_out_hit_count{index}", item.LastFilteredOutHitCount);
+                    AddParameter(parameters, $"@last_ignored_result_hit_count{index}", item.LastIgnoredResultHitCount);
+                    AddParameter(parameters, $"@last_response_count{index}", item.LastResponseCount);
+                    AddParameter(parameters, $"@total_search_count{index}", item.TotalSearchCount);
+                    AddParameter(parameters, $"@total_download_count{index}", item.TotalDownloadCount);
+                    AddParameter(parameters, $"@max_downloads{index}", item.MaxDownloads);
+                    AddParameter(parameters, $"@last_search_id{index}", item.LastSearchId);
+                    AddParameter(parameters, $"@last_viewed_at{index}", item.LastViewedAt);
+                }
+
+                await context.Database
+                    .ExecuteSqlRawAsync(commandText, parameters, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        private static void AddParameter(List<object> parameters, string name, object? value)
+        {
+            parameters.Add(new SqliteParameter(name, value ?? DBNull.Value));
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
