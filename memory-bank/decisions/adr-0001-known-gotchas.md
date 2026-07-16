@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z710. Hash Compatibility Vectors Must Come From The Legacy Path
+
+**The Bug**: A publisher version-allocation regression guessed the expected
+eight-character SHA-256 prefix for a 100,000-character ContentID and asserted
+`639b830d`; the actual legacy interpolation/UTF-8 path produced `7b8f1451`.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/MediaCore/ContentDescriptorPublisherModerationTests.cs`
+
+**Prevention**: Before optimizing a hash/signature/version payload, run the
+unchanged legacy implementation on the exact deterministic fixture and record
+its output. Do not calculate or transcribe compatibility digests from memory.
+Keep the known vector in the final regression alongside null/number/culture
+inputs so byte-level payload drift cannot hide behind shape-only assertions.
+
 ### 0z709. Current-Thread Allocation Counters Cannot Span Async Hops
 
 **The Bug**: A descriptor batch-publishing regression measured
