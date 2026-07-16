@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch HashDb mesh hash merge reads and inserts.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced per-entry exact/variant lookup and new-entry storage with 500-key indexed classification batches plus transactional 100-row inserts. At the 1,000-entry sync cap, an all-new merge falls from 2,000 database commands to 12 (99.4% fewer), while an all-existing merge falls from 1,000 commands to two (99.8% fewer). Preserved exact-key preference, variant aliases, local conflict handling, same-batch duplicate behavior, and unique local sequence allocation; normalized keys now reach both lookup and storage. Added 201-entry sequence/duplicate, variant-conflict, and exact query-plan regressions; extended gotcha `0z675` (`88562aea3`).
+
 - [x] Collapse HashDb peer state read-before-write sequences.
   - Status: completed (2026-07-16)
   - Priority: P1

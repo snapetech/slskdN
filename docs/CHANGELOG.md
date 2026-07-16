@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- HashDb mesh merge now checks exact FLAC keys and variant aliases in bounded
+  500-key indexed reads, preserves local conflicts and input duplicate
+  semantics, and inserts new entries in transactional 100-row commands. At the
+  1,000-entry sync cap, an all-new merge falls from 2,000 database commands to
+  12 (99.4% fewer); an all-existing merge falls from 1,000 to two (99.8% fewer).
 - HashDb peer activity and capability updates now normalize identifiers once
   and create-or-update with one atomic SQLite command. Peer search/download
   events fall from three-to-five database commands to one (66.7–80% fewer),

@@ -1461,20 +1461,24 @@ public class HashDbServiceTests : IDisposable
     [Fact]
     public async Task MergeEntriesFromMeshAsync_MergesNewEntries()
     {
-        // Arrange
-        var entries = new List<HashDbEntry>
-        {
-            new HashDbEntry { FlacKey = "mesh1", ByteHash = "meshhash1", Size = 100 },
-            new HashDbEntry { FlacKey = "mesh2", ByteHash = "meshhash2", Size = 200 },
-        };
+        var entries = Enumerable.Range(1, 201)
+            .Select(index => new HashDbEntry
+            {
+                FlacKey = $"mesh-{index}",
+                ByteHash = $"meshhash-{index}",
+                Size = index,
+            })
+            .ToList();
+        entries.Add(new HashDbEntry { FlacKey = "mesh-1", ByteHash = "meshhash-1", Size = 1 });
 
-        // Act
         var merged = await service.MergeEntriesFromMeshAsync(entries);
 
-        // Assert
-        Assert.Equal(2, merged);
-        Assert.NotNull(await service.LookupHashAsync("mesh1"));
-        Assert.NotNull(await service.LookupHashAsync("mesh2"));
+        Assert.Equal(201, merged);
+        Assert.Equal(201, service.CurrentSeqId);
+        var stored = (await service.GetEntriesSinceSeqAsync(0, 250)).ToList();
+        Assert.Equal(201, stored.Count);
+        Assert.Equal(201, stored.Select(entry => entry.SeqId).Distinct().Count());
+        Assert.Equal(1, (await service.LookupHashAsync("mesh-1"))!.UseCount);
     }
 
     [Fact]
@@ -1494,6 +1498,65 @@ public class HashDbServiceTests : IDisposable
 
         // Assert
         Assert.Equal(1, merged); // Only the new one should be merged
+    }
+
+    [Fact]
+    public async Task MergeEntriesFromMeshAsync_PreservesVariantAliasConflictLookup()
+    {
+        await service.StoreHashAsync(new HashDbEntry
+        {
+            FlacKey = "local-key",
+            ByteHash = "local-hash",
+            Size = 100,
+        });
+        await using (var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}"))
+        {
+            await conn.OpenAsync();
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = "UPDATE HashDb SET variant_id = 'variant-alias' WHERE flac_key = 'local-key'";
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        var merged = await service.MergeEntriesFromMeshAsync(new[]
+        {
+            new HashDbEntry { FlacKey = "variant-alias", ByteHash = "remote-hash", Size = 100 },
+        });
+
+        Assert.Equal(0, merged);
+        Assert.Equal(1, service.CurrentSeqId);
+        Assert.Equal("local-hash", (await service.LookupHashAsync("local-key"))!.ByteHash);
+        await using var verifyConn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await verifyConn.OpenAsync();
+        await using var verifyCmd = verifyConn.CreateCommand();
+        verifyCmd.CommandText = "SELECT COUNT(*) FROM HashDb WHERE flac_key = 'variant-alias'";
+        Assert.Equal(0L, (long)(await verifyCmd.ExecuteScalarAsync())!);
+    }
+
+    [Fact]
+    public async Task Constructor_IndexesMeshMergeExactAndVariantLookup()
+    {
+        await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText =
+            """
+            EXPLAIN QUERY PLAN
+            SELECT flac_key, variant_id, byte_hash, use_count, last_updated_at
+            FROM HashDb
+            WHERE flac_key IN ('key-1', 'key-2')
+               OR variant_id IN ('key-1', 'key-2')
+            """;
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        var plan = new List<string>();
+        while (await reader.ReadAsync())
+        {
+            plan.Add(reader.GetString(3));
+        }
+
+        Assert.Contains(plan, detail => detail.Contains("sqlite_autoindex_HashDb_1", StringComparison.Ordinal));
+        Assert.Contains(plan, detail => detail.Contains("idx_hashdb_variant", StringComparison.Ordinal));
+        Assert.DoesNotContain(plan, detail => detail.Contains("SCAN HashDb", StringComparison.Ordinal));
     }
 
     [Fact]

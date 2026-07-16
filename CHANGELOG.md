@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- HashDb mesh synchronization now classifies existing hashes through bounded
+  indexed batches and inserts new hashes with transactional multi-row writes.
 - HashDb peer activity and capability writes now use single atomic SQLite
   upserts instead of read-before-write existence checks.
 - Passive FLAC discovery and history backfill now persist inventory and peer

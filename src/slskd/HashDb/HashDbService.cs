@@ -46,6 +46,8 @@ namespace slskd.HashDb
         private const int HashChunkSize = 32768;
         private const int FlacInventoryUpsertBatchSize = 100;
         private const int PeerUpsertBatchSize = 500;
+        private const int MeshMergeLookupBatchSize = 500;
+        private const int MeshMergeInsertBatchSize = 100;
 
         private readonly string dbPath;
         private readonly ILogger log = Log.ForContext<HashDbService>();
@@ -4078,32 +4080,91 @@ namespace slskd.HashDb
         /// <inheritdoc/>
         public async Task<int> MergeEntriesFromMeshAsync(IEnumerable<HashDbEntry> entries, CancellationToken cancellationToken = default)
         {
-            var entriesList = entries.ToList();
+            var entriesList = entries
+                .Select(entry => (Entry: entry, Key: entry.FlacKey?.Trim() ?? string.Empty))
+                .ToList();
             log.Information("[HashDb] Merging {Count} entries from mesh", entriesList.Count);
 
-            var merged = 0;
+            var requestedKeys = entriesList
+                .Select(item => item.Key)
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            var existingByExactKey = new Dictionary<string, (string ByteHash, int UseCount, long LastUpdatedAt)>(StringComparer.Ordinal);
+            var existingByVariantKey = new Dictionary<string, (string ByteHash, int UseCount, long LastUpdatedAt)>(StringComparer.Ordinal);
+            var readCommandCount = 0;
+
+            using var conn = GetConnection();
+            foreach (var batch in requestedKeys.Chunk(MeshMergeLookupBatchSize))
+            {
+                using var cmd = conn.CreateCommand();
+                var parameters = batch.Select((_, index) => $"@key{index}").ToArray();
+                cmd.CommandText = $"""
+                    SELECT flac_key, variant_id, byte_hash, use_count, last_updated_at
+                    FROM HashDb
+                    WHERE flac_key IN ({string.Join(", ", parameters)})
+                       OR variant_id IN ({string.Join(", ", parameters)})
+                    """;
+                for (var index = 0; index < batch.Length; index++)
+                {
+                    cmd.Parameters.AddWithValue(parameters[index], batch[index]);
+                }
+
+                using var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    var state = (
+                        ByteHash: reader.GetString(2),
+                        UseCount: reader.IsDBNull(3) ? 1 : reader.GetInt32(3),
+                        LastUpdatedAt: reader.GetInt64(4));
+                    existingByExactKey[reader.GetString(0)] = state;
+                    if (!reader.IsDBNull(1))
+                    {
+                        var variantId = reader.GetString(1);
+                        if (!string.IsNullOrWhiteSpace(variantId) &&
+                            (!existingByVariantKey.TryGetValue(variantId, out var previous) ||
+                             state.LastUpdatedAt > previous.LastUpdatedAt))
+                        {
+                            existingByVariantKey[variantId] = state;
+                        }
+                    }
+                }
+
+                readCommandCount++;
+            }
+
+            var existingByLookupKey = new Dictionary<string, (string ByteHash, int UseCount, long LastUpdatedAt)>(StringComparer.Ordinal);
+            foreach (var key in requestedKeys)
+            {
+                if (existingByExactKey.TryGetValue(key, out var exact))
+                {
+                    existingByLookupKey[key] = exact;
+                }
+                else if (existingByVariantKey.TryGetValue(key, out var variant))
+                {
+                    existingByLookupKey[key] = variant;
+                }
+            }
+
+            var candidates = new List<(HashDbEntry Entry, string Key)>();
             var conflicts = 0;
             var skipped = 0;
 
-            foreach (var entry in entriesList)
+            foreach (var item in entriesList)
             {
-                // Check if we have this entry
-                var existing = await LookupHashAsync(entry.FlacKey, cancellationToken);
-                if (existing == null)
+                if (!existingByLookupKey.TryGetValue(item.Key, out var existing))
                 {
-                    // New entry - assign our own seq_id
-                    await StoreHashAsync(entry, cancellationToken);
-                    merged++;
+                    candidates.Add(item);
+                    existingByLookupKey[item.Key] = (item.Entry.ByteHash, 1, 0);
                 }
-                else if (existing.ByteHash != entry.ByteHash)
+                else if (existing.ByteHash != item.Entry.ByteHash)
                 {
-                    // Conflict! Keep the one with higher use_count
+                    // Conflict: retain the established local entry.
                     log.Warning("[HashDb] Hash conflict for {Key}: local={Local} (uses:{LocalUse}) vs remote={Remote} (uses:{RemoteUse})",
-                        entry.FlacKey,
+                        item.Key,
                         existing.ByteHash,
                         existing.UseCount,
-                        entry.ByteHash,
-                        entry.UseCount);
+                        item.Entry.ByteHash,
+                        item.Entry.UseCount);
                     conflicts++;
                 }
                 else
@@ -4112,8 +4173,51 @@ namespace slskd.HashDb
                 }
             }
 
-            log.Information("[HashDb] Mesh merge complete: {Merged} new, {Conflicts} conflicts, {Skipped} already known",
-                merged, conflicts, skipped);
+            var merged = 0;
+            var writeCommandCount = 0;
+            if (candidates.Count > 0)
+            {
+                var lastSeqId = Interlocked.Add(ref currentSeqId, candidates.Count);
+                var firstSeqId = lastSeqId - candidates.Count + 1;
+                var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                using var transaction = conn.BeginTransaction();
+
+                for (var offset = 0; offset < candidates.Count; offset += MeshMergeInsertBatchSize)
+                {
+                    var batch = candidates.GetRange(
+                        offset,
+                        Math.Min(MeshMergeInsertBatchSize, candidates.Count - offset));
+                    using var cmd = conn.CreateCommand();
+                    cmd.Transaction = transaction;
+                    var values = batch.Select((_, index) =>
+                        $"(@flac_key{index}, @byte_hash{index}, @size{index}, @meta_flags{index}, @now, @now, @seq_id{index}, 1)");
+                    cmd.CommandText = $"""
+                        INSERT INTO HashDb
+                            (flac_key, byte_hash, size, meta_flags, first_seen_at, last_updated_at, seq_id, use_count)
+                        VALUES {string.Join(", ", values)}
+                        ON CONFLICT(flac_key) DO NOTHING
+                        """;
+                    cmd.Parameters.AddWithValue("@now", now);
+                    for (var index = 0; index < batch.Count; index++)
+                    {
+                        var item = batch[index];
+                        cmd.Parameters.AddWithValue($"@flac_key{index}", item.Key);
+                        cmd.Parameters.AddWithValue($"@byte_hash{index}", item.Entry.ByteHash);
+                        cmd.Parameters.AddWithValue($"@size{index}", item.Entry.Size);
+                        cmd.Parameters.AddWithValue($"@meta_flags{index}", item.Entry.MetaFlags ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue($"@seq_id{index}", firstSeqId + offset + index);
+                        hashCache?.Remove($"hashdb:lookup:{item.Key}");
+                    }
+
+                    merged += await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                    writeCommandCount++;
+                }
+
+                transaction.Commit();
+            }
+
+            log.Information("[HashDb] Mesh merge complete with {CommandCount} database commands: {Merged} new, {Conflicts} conflicts, {Skipped} already known",
+                readCommandCount + writeCommandCount, merged, conflicts, skipped);
 
             return merged;
         }

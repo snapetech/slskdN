@@ -1,3 +1,17 @@
+## Update 2026-07-16 08:42:53Z
+
+- Current task: performance and efficiency improvements in progress; HashDb mesh-merge batching pass complete locally.
+- Last activity:
+  - Replaced one exact/variant lookup per mesh hash and one store per new hash with bounded 500-key indexed reads and transactional 100-row inserts.
+  - At the 1,000-entry sync cap, all-new merges fall from 2,000 local database commands to 12 (99.4% fewer); all-existing merges fall from 1,000 to two (99.8% fewer). Exact-key preference, variant aliases, local conflicts, duplicates, and local sequence IDs remain intact. Extended gotcha `0z675` (`88562aea3`).
+- Validation:
+  - Passed focused merge/index coverage (`4/4`), the complete HashDb class suite (`77/77`), and full backend tests (`4845/4845`: `69` application, `4496` unit, `280` integration).
+  - Repository lint and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the HashDb mesh-merge slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 08:29:58Z
 
 - Current task: performance and efficiency improvements in progress; atomic HashDb peer-state write pass complete locally.
