@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Options;
 using Moq;
+using slskd.Migrations;
 using slskd.Search;
 using slskd.Transfers.Downloads;
 using slskd.Transfers.Ranking;
@@ -19,6 +20,94 @@ using Xunit;
 
 public sealed class WishlistServicePersistenceTests
 {
+    [Fact]
+    public async Task FindBySearchTextAsync_UsesCaseInsensitiveIndexAndHydratesOneRow()
+    {
+        var databasePath = Path.Combine(Path.GetTempPath(), $"wishlist-lookup-{Guid.NewGuid():N}.db");
+        var connectionString = $"Data Source={databasePath}";
+        try
+        {
+            var commandCapture = new CommandCaptureInterceptor();
+            var options = new DbContextOptionsBuilder<WishlistDbContext>()
+                .UseSqlite(connectionString)
+                .AddInterceptors(commandCapture)
+                .Options;
+            var contextFactory = new TestDbContextFactory(options);
+            var olderId = Guid.NewGuid();
+            var newerId = Guid.NewGuid();
+            await using (var context = await contextFactory.CreateDbContextAsync())
+            {
+                await context.Database.EnsureCreatedAsync();
+                new Z07162026_WishlistSearchTextIndexMigration(connectionString).Apply();
+                new Z07162026_WishlistSearchTextIndexMigration(connectionString).Apply();
+                context.WishlistItems.AddRange(Enumerable.Range(1, 1000).Select(index => new WishlistItem
+                {
+                    SearchText = $"unrelated-{index}",
+                    CreatedAt = DateTime.UtcNow.AddMinutes(-index),
+                }));
+                context.WishlistItems.AddRange(
+                    new WishlistItem
+                    {
+                        Id = olderId,
+                        SearchText = "TARGET SEARCH",
+                        CreatedAt = DateTime.UtcNow.AddMinutes(-2),
+                    },
+                    new WishlistItem
+                    {
+                        Id = newerId,
+                        SearchText = "target search",
+                        CreatedAt = DateTime.UtcNow.AddMinutes(-1),
+                    });
+                await context.SaveChangesAsync();
+            }
+
+            commandCapture.Commands.Clear();
+            commandCapture.ReadCommands.Clear();
+            var optionsMonitor = new Mock<IOptionsMonitor<slskd.Options>>();
+            optionsMonitor.SetupGet(monitor => monitor.CurrentValue).Returns(new slskd.Options());
+            using var service = new WishlistService(
+                contextFactory,
+                Mock.Of<ISearchService>(),
+                Mock.Of<ISoulseekClient>(),
+                optionsMonitor.Object,
+                Mock.Of<ISourceRankingService>(),
+                Mock.Of<IDownloadService>());
+
+            var found = await service.FindBySearchTextAsync(" Target Search ");
+
+            Assert.NotNull(found);
+            Assert.Equal(newerId, found!.Id);
+            var read = Assert.Single(commandCapture.ReadCommands);
+            Assert.Contains("COLLATE NOCASE", read, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("LIMIT", read, StringComparison.OrdinalIgnoreCase);
+            await using var connection = new SqliteConnection(connectionString);
+            await connection.OpenAsync();
+            await using var planCommand = connection.CreateCommand();
+            planCommand.CommandText = """
+                EXPLAIN QUERY PLAN
+                SELECT Id
+                FROM WishlistItems
+                WHERE SearchText = 'target search' COLLATE NOCASE
+                ORDER BY CreatedAt DESC
+                LIMIT 1
+                """;
+            await using var reader = await planCommand.ExecuteReaderAsync();
+            var plan = new List<string>();
+            while (await reader.ReadAsync())
+            {
+                plan.Add(reader.GetString(3));
+            }
+            Assert.Contains(plan, detail =>
+                detail.Contains("USING INDEX IX_WishlistItems_SearchText_NoCase", StringComparison.Ordinal));
+        }
+        finally
+        {
+            System.IO.File.Delete(databasePath);
+            System.IO.File.Delete(databasePath + "-shm");
+            System.IO.File.Delete(databasePath + "-wal");
+        }
+    }
+
     [Fact]
     public async Task CreateManyAsync_WithOneHundredItems_UsesThreeMultiRowCommands()
     {
@@ -208,6 +297,7 @@ public sealed class WishlistServicePersistenceTests
     private sealed class CommandCaptureInterceptor : DbCommandInterceptor
     {
         public List<string> Commands { get; } = new();
+        public List<string> ReadCommands { get; } = new();
 
         public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(
             DbCommand command,
@@ -215,7 +305,7 @@ public sealed class WishlistServicePersistenceTests
             InterceptionResult<int> result,
             CancellationToken cancellationToken = default)
         {
-            CaptureWrite(command);
+            CaptureCommand(command);
             return ValueTask.FromResult(result);
         }
 
@@ -225,17 +315,21 @@ public sealed class WishlistServicePersistenceTests
             InterceptionResult<DbDataReader> result,
             CancellationToken cancellationToken = default)
         {
-            CaptureWrite(command);
+            CaptureCommand(command);
             return ValueTask.FromResult(result);
         }
 
-        private void CaptureWrite(DbCommand command)
+        private void CaptureCommand(DbCommand command)
         {
             var text = command.CommandText.TrimStart();
             if (text.StartsWith("INSERT", StringComparison.OrdinalIgnoreCase) ||
                 text.StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase))
             {
                 Commands.Add(command.CommandText);
+            }
+            else if (text.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
+            {
+                ReadCommands.Add(command.CommandText);
             }
         }
     }

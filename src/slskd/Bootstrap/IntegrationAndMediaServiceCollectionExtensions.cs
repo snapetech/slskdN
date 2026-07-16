@@ -45,6 +45,7 @@ public static class IntegrationAndMediaServiceCollectionExtensions
         var wishlistMigration = new Migrations.Z05182026_WishlistItemViewingAndDownloadLimitsMigration($"Data Source={wishlistDbPath}");
         wishlistMigration.Apply();
         new Migrations.Z07142026_WishlistIgnoredResultsMigration($"Data Source={wishlistDbPath}").Apply();
+        new Migrations.Z07162026_WishlistSearchTextIndexMigration($"Data Source={wishlistDbPath}").Apply();
 
         services.AddSingleton<Wishlist.IWishlistService, Wishlist.WishlistService>();
         services.AddHostedService(provider => (Wishlist.WishlistService)provider.GetRequiredService<Wishlist.IWishlistService>());

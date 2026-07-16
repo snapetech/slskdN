@@ -1,3 +1,17 @@
+## Update 2026-07-16 12:41:43Z
+
+- Current task: performance and efficiency improvements in progress; indexed recommendation Wishlist duplicate lookup complete locally.
+- Last activity:
+  - Added an idempotent case-insensitive Wishlist search-text index and untracked newest exact-match lookup, then routed federated recommendation promotion through it.
+  - With 10,000 items, entity hydration falls from 10,000 tracked rows to one untracked row (99.99% fewer).
+- Validation:
+  - Passed focused lookup/promotion tests (`2/2`), broader Wishlist/recommendation/Lidarr coverage (`47/47`), and full backend tests (`4889/4889`: `69` application, `4540` unit, `280` integration).
+  - Exact indexed SQL, newest case-insensitive duplicate selection, migration idempotence, zero full-list calls, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the Wishlist index/exact-lookup slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 12:32:29Z
 
 - Current task: performance and efficiency improvements in progress; bounded music metadata variant fallback pass complete locally.

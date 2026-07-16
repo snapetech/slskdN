@@ -185,6 +185,11 @@ public class LidarrSyncServiceTests
 
         public Task<WishlistItem?> GetAsync(Guid id) => Task.FromResult<WishlistItem?>(null);
 
+        public Task<WishlistItem?> FindBySearchTextAsync(string searchText) =>
+            Task.FromResult(Items
+                .OrderByDescending(item => item.CreatedAt)
+                .FirstOrDefault(item => string.Equals(item.SearchText, searchText, StringComparison.OrdinalIgnoreCase)));
+
         public Task<WishlistItem> CreateAsync(WishlistItem item)
         {
             Created.Add(item);

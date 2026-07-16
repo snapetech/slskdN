@@ -38,6 +38,11 @@ namespace slskd.Wishlist
         Task<WishlistItem?> GetAsync(Guid id);
 
         /// <summary>
+        ///     Gets the newest wishlist item with the exact search text, case-insensitively.
+        /// </summary>
+        Task<WishlistItem?> FindBySearchTextAsync(string searchText);
+
+        /// <summary>
         ///     Creates a new wishlist item.
         /// </summary>
         Task<WishlistItem> CreateAsync(WishlistItem item);
@@ -139,6 +144,23 @@ namespace slskd.Wishlist
         {
             using var context = ContextFactory.CreateDbContext();
             return await context.WishlistItems.FindAsync(id);
+        }
+
+        /// <inheritdoc/>
+        public async Task<WishlistItem?> FindBySearchTextAsync(string searchText)
+        {
+            searchText = searchText?.Trim() ?? string.Empty;
+            if (searchText.Length == 0)
+            {
+                return null;
+            }
+
+            using var context = ContextFactory.CreateDbContext();
+            return await context.WishlistItems
+                .AsNoTracking()
+                .Where(item => EF.Functions.Collate(item.SearchText, "NOCASE") == searchText)
+                .OrderByDescending(item => item.CreatedAt)
+                .FirstOrDefaultAsync();
         }
 
         /// <inheritdoc/>

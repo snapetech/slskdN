@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Federated recommendation promotion now resolves a duplicate Wishlist seed
+  through one untracked, case-insensitive exact lookup backed by an idempotent
+  SQLite index instead of loading and tracking the complete Wishlist. With
+  10,000 items, hydrated entities fall from 10,000 to one (99.99% fewer), while
+  newest-duplicate selection and review-only seed behavior remain unchanged.
 - Music metadata fallback matching now reads one bounded best-variant row for
   each of at most 256 recent recordings instead of materializing every variant
   recording ID and issuing a second hydration query. Local reads fall from two

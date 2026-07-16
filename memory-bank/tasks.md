@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Index federated recommendation Wishlist duplicate checks.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Added an idempotent `SearchText COLLATE NOCASE` Wishlist index and an untracked exact lookup that preserves case-insensitive matching plus newest-duplicate selection. Federated recommendation promotion now calls that lookup instead of materializing and tracking every Wishlist item. With 10,000 items, hydrated entities fall from 10,000 to one (99.99% fewer), while the database uses the new index and review-only seed creation remains unchanged. Added a 1,002-row production SQLite result/SQL/query-plan/idempotence regression, exact service call boundaries, and a fake-service compatibility implementation. Validation passed: focused lookup/promotion tests (`2/2`), broader Wishlist/recommendation/Lidarr coverage (`47/47`), full backend tests (`4889/4889`: `69` application, `4540` unit, `280` integration), repository lint, diff checks, and every substantive remediation check before the expected divergent-branch release-sync stop.
+
 - [x] Bound music metadata variant fallback matching.
   - Status: completed (2026-07-16)
   - Priority: P1

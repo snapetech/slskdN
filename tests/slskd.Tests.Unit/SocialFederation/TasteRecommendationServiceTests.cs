@@ -157,11 +157,12 @@ public sealed class TasteRecommendationServiceTests
     public async Task PromoteToWishlistAsync_CreatesReviewOnlySeedAndDedupesExistingSearch()
     {
         var wishlist = new Mock<IWishlistService>();
-        wishlist.SetupSequence(service => service.ListAsync())
-            .ReturnsAsync(new List<WishlistItem>())
-            .ReturnsAsync(new List<WishlistItem>
+        wishlist.SetupSequence(service => service.FindBySearchTextAsync("Shared Artist Shared Song"))
+            .ReturnsAsync((WishlistItem?)null)
+            .ReturnsAsync(new WishlistItem
             {
-                new() { Id = Guid.Parse("11111111-1111-1111-1111-111111111111"), SearchText = "Shared Artist Shared Song" },
+                Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                SearchText = "Shared Artist Shared Song",
             });
         wishlist
             .Setup(service => service.CreateAsync(It.IsAny<WishlistItem>()))
@@ -193,6 +194,8 @@ public sealed class TasteRecommendationServiceTests
             item.AutoDownload == false &&
             item.Filter.Contains("source:taste-recommendation") &&
             item.Filter.Contains("review-only"))), Times.Once);
+        wishlist.Verify(service => service.FindBySearchTextAsync("Shared Artist Shared Song"), Times.Exactly(2));
+        wishlist.Verify(service => service.ListAsync(), Times.Never);
     }
 
     [Fact]

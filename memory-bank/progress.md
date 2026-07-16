@@ -1,3 +1,10 @@
+## Update 2026-07-16 12:41:43Z
+
+- Completed the federated recommendation Wishlist duplicate-lookup performance pass.
+- Added an idempotent case-insensitive Wishlist search-text index and an untracked newest exact-match lookup, then replaced complete Wishlist loading/tracking during recommendation promotion.
+- With 10,000 Wishlist items, hydrated entities fall from 10,000 to one (99.99% fewer). Case-insensitive duplicate behavior and review-only seed creation remain unchanged.
+- Validation passed: focused lookup/promotion tests (`2/2`), broader Wishlist/recommendation/Lidarr tests (`47/47`), complete smoke/unit/integration suites (`4889/4889`: `69` smoke, `4540` unit, `280` integration), repository lint, and diff checks. The 1,002-row SQLite regression proves result semantics, generated `COLLATE NOCASE`/`LIMIT` SQL, idempotent migration, and index selection. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 12:32:29Z
 
 - Completed the music metadata fallback variant-scan performance pass.

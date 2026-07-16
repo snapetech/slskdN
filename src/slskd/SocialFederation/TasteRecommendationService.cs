@@ -177,9 +177,7 @@ public sealed class TasteRecommendationService : ITasteRecommendationService
         }
 
         var searchText = BuildSearchText(request.WorkRef);
-        var existing = await _wishlistService.ListAsync().ConfigureAwait(false);
-        var duplicate = existing.FirstOrDefault(item =>
-            string.Equals(item.SearchText, searchText, StringComparison.OrdinalIgnoreCase));
+        var duplicate = await _wishlistService.FindBySearchTextAsync(searchText).ConfigureAwait(false);
         if (duplicate != null)
         {
             return new TasteRecommendationWishlistPromotionResult
