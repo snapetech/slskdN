@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z711. Allocation Warm-Ups Must Not Mutate The Measured Instance
+
+**The Bug**: A batch-publisher allocation test warmed `PublishBatchAsync` on
+the same publisher instance and descriptor later measured. If both calls built
+their millisecond-based version in the same tick, the measured descriptor was
+classified as “not newer,” producing 9,999 successes instead of 10,000.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/MediaCore/ContentDescriptorPublisherModerationTests.cs`
+
+**Prevention**: Warm stateful methods on a separate service instance and a
+separate fixture. The exact-method warm-up rule does not authorize changing the
+cache, version table, database, counters, or deduplication state later asserted
+by the measurement. After warming, verify the measured instance is pristine or
+construct it only after the warm-up completes.
+
 ### 0z710. Hash Compatibility Vectors Must Come From The Legacy Path
 
 **The Bug**: A publisher version-allocation regression guessed the expected
