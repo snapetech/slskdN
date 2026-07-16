@@ -192,12 +192,16 @@ public sealed class LibraryBloomDiffServiceTests
             });
         var wishlist = new Mock<IWishlistService>();
         wishlist.Setup(service => service.ListAsync()).ReturnsAsync(new List<WishlistItem>());
-        wishlist.Setup(service => service.CreateAsync(It.IsAny<WishlistItem>()))
-            .ReturnsAsync((WishlistItem item) =>
-            {
-                item.Id = Guid.NewGuid();
-                return item;
-            });
+        wishlist.Setup(service => service.CreateManyAsync(
+                It.IsAny<IEnumerable<WishlistItem>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<WishlistItem> items, CancellationToken _) => items
+                .Select(item =>
+                {
+                    item.Id = Guid.NewGuid();
+                    return item;
+                })
+                .ToList());
         var service = CreateService(localHashDb, wishlist);
 
         var result = await service.PromoteSuggestionsToWishlistAsync(new LibraryBloomWishlistPromotionRequest
@@ -209,16 +213,94 @@ public sealed class LibraryBloomDiffServiceTests
 
         Assert.Equal(1, result.CreatedCount);
         Assert.Empty(result.CreatedItemIds.Where(id => id == Guid.Empty));
-        wishlist.Verify(service => service.CreateAsync(It.Is<WishlistItem>(item =>
-            item.SearchText == "Remote Artist Missing Track" &&
-            item.Filter == "flac" &&
-            item.AutoDownload == false &&
-            item.MaxResults == 25)), Times.Once);
+        wishlist.Verify(service => service.CreateManyAsync(
+            It.Is<IEnumerable<WishlistItem>>(items => items.Count() == 1 &&
+                items.Single().SearchText == "Remote Artist Missing Track" &&
+                items.Single().Filter == "flac" &&
+                items.Single().AutoDownload == false &&
+                items.Single().MaxResults == 25),
+            It.IsAny<CancellationToken>()), Times.Once);
+        wishlist.Verify(service => service.CreateAsync(It.IsAny<WishlistItem>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task PromoteSuggestionsToWishlistAsync_WithMaximumSuggestions_UsesOneBulkCreate()
+    {
+        const int suggestionCount = 250;
+        var recordingIds = Enumerable.Range(1, suggestionCount)
+            .Select(index => $"rec-{index}")
+            .ToArray();
+        var remoteSnapshot = await CreateRemoteSnapshotAsync(recordingIds);
+        var localHashDb = CreateHashDb(
+            heldRecordings: Array.Empty<string>(),
+            targets: new[]
+            {
+                new AlbumTargetEntry { ReleaseId = "release-1", Title = "Remote Release", Artist = "Remote Artist" },
+            },
+            tracksByRelease: new Dictionary<string, IEnumerable<AlbumTargetTrackEntry>>
+            {
+                ["release-1"] = recordingIds.Select((recordingId, index) => new AlbumTargetTrackEntry
+                {
+                    ReleaseId = "release-1",
+                    Position = index + 1,
+                    RecordingId = recordingId,
+                    Title = $"Missing Track {index + 1}",
+                    Artist = "Remote Artist",
+                }),
+            });
+        var wishlist = new Mock<IWishlistService>();
+        wishlist.Setup(service => service.ListAsync()).ReturnsAsync(
+            Enumerable.Range(1, 9_999)
+                .Select(index => new WishlistItem
+                {
+                    SearchText = $"Unrelated {index}",
+                    Filter = "flac",
+                })
+                .Append(new WishlistItem
+                {
+                    SearchText = "Remote Artist Missing Track 250",
+                    Filter = "mp3",
+                })
+                .ToList());
+        wishlist.Setup(service => service.CreateManyAsync(
+                It.IsAny<IEnumerable<WishlistItem>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<WishlistItem> items, CancellationToken _) => items
+                .Select(item =>
+                {
+                    item.Id = Guid.NewGuid();
+                    return item;
+                })
+                .ToList());
+        var service = CreateService(localHashDb, wishlist);
+
+        var result = await service.PromoteSuggestionsToWishlistAsync(new LibraryBloomWishlistPromotionRequest
+        {
+            DiffRequest = new LibraryBloomDiffRequest
+            {
+                Snapshot = remoteSnapshot,
+                Limit = suggestionCount,
+            },
+        });
+
+        Assert.Equal(suggestionCount - 1, result.CreatedCount);
+        Assert.Equal(1, result.AlreadySeededCount);
+        Assert.Equal(suggestionCount - 1, result.CreatedItemIds.Distinct().Count());
+        Assert.DoesNotContain(Guid.Empty, result.CreatedItemIds);
+        wishlist.Verify(service => service.CreateManyAsync(
+            It.Is<IEnumerable<WishlistItem>>(items => items.Count() == suggestionCount - 1 &&
+                items.All(item => item.SearchText != "Remote Artist Missing Track 250")),
+            It.IsAny<CancellationToken>()), Times.Once);
+        wishlist.Verify(service => service.CreateAsync(It.IsAny<WishlistItem>()), Times.Never);
+        wishlist.Verify(service => service.ListAsync(), Times.Once);
     }
 
     private static async Task<LibraryBloomSnapshot> CreateRemoteSnapshotAsync(string recordingId)
+        => await CreateRemoteSnapshotAsync(new[] { recordingId });
+
+    private static async Task<LibraryBloomSnapshot> CreateRemoteSnapshotAsync(IEnumerable<string> recordingIds)
     {
-        var remoteHashDb = CreateHashDb(heldRecordings: new[] { recordingId });
+        var remoteHashDb = CreateHashDb(heldRecordings: recordingIds);
         return await CreateService(remoteHashDb).CreateSnapshotAsync(new LibraryBloomSnapshotRequest
         {
             SaltId = "remote-salt",
@@ -230,8 +312,12 @@ public sealed class LibraryBloomDiffServiceTests
         Mock<IHashDbService> hashDb,
         Mock<IWishlistService>? wishlist = null)
     {
-        wishlist ??= new Mock<IWishlistService>();
-        wishlist.Setup(service => service.ListAsync()).ReturnsAsync(new List<WishlistItem>());
+        if (wishlist == null)
+        {
+            wishlist = new Mock<IWishlistService>();
+            wishlist.Setup(service => service.ListAsync()).ReturnsAsync(new List<WishlistItem>());
+        }
+
         return new LibraryBloomDiffService(hashDb.Object, wishlist.Object);
     }
 

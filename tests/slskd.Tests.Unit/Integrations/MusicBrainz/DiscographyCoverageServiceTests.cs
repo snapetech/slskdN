@@ -127,12 +127,16 @@ public class DiscographyCoverageServiceTests
             {
                 new() { SearchText = "Artist Seeded Song", Filter = "flac" },
             });
-        wishlist.Setup(x => x.CreateAsync(It.IsAny<WishlistItem>()))
-            .ReturnsAsync((WishlistItem item) =>
-            {
-                item.Id = Guid.NewGuid();
-                return item;
-            });
+        wishlist.Setup(x => x.CreateManyAsync(
+                It.IsAny<IEnumerable<WishlistItem>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<WishlistItem> items, CancellationToken _) => items
+                .Select(item =>
+                {
+                    item.Id = Guid.NewGuid();
+                    return item;
+                })
+                .ToList());
 
         var service = CreateService(releaseGraph, profile, client, hashDb, wishlist);
 
@@ -145,11 +149,77 @@ public class DiscographyCoverageServiceTests
 
         Assert.Equal(1, result.CreatedCount);
         Assert.Equal(1, result.AlreadySeededCount);
-        wishlist.Verify(x => x.CreateAsync(It.Is<WishlistItem>(item =>
-            item.SearchText == "Artist Missing Song" &&
-            item.Filter == "flac" &&
-            item.MaxResults == 25 &&
-            item.AutoDownload == false)), Times.Once);
+        wishlist.Verify(x => x.CreateManyAsync(
+            It.Is<IEnumerable<WishlistItem>>(items => items.Count() == 1 && items.Single().SearchText == "Artist Missing Song" &&
+                items.Single().Filter == "flac" &&
+                items.Single().MaxResults == 25 &&
+                items.Single().AutoDownload == false),
+            It.IsAny<CancellationToken>()), Times.Once);
+        wishlist.Verify(x => x.CreateAsync(It.IsAny<WishlistItem>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task PromoteMissingToWishlist_WithOneThousandTracks_UsesOneBulkCreate()
+    {
+        const int trackCount = 1000;
+        var releaseGraph = new Mock<IArtistReleaseGraphService>();
+        var profile = new Mock<IDiscographyProfileService>();
+        var client = new Mock<IMusicBrainzClient>();
+        var hashDb = new Mock<IHashDbService>();
+        var wishlist = new Mock<IWishlistService>();
+        releaseGraph.Setup(x => x.GetArtistReleaseGraphAsync("artist-1", false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateGraph());
+        profile.Setup(x => x.ApplyProfile(It.IsAny<ArtistReleaseGraph>(), It.IsAny<DiscographyProfileFilter>()))
+            .Returns(new List<string> { "release-1" });
+        hashDb.Setup(x => x.GetAlbumTargetsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new AlbumTargetEntry
+                {
+                    ReleaseId = "release-1",
+                    Title = "Release One",
+                    Artist = "Artist",
+                },
+            });
+        hashDb.Setup(x => x.GetAlbumTracksAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Enumerable.Range(1, trackCount)
+                .Select(index => new AlbumTargetTrackEntry
+                {
+                    ReleaseId = "release-1",
+                    Position = index,
+                    RecordingId = $"recording-{index}",
+                    Title = $"Track {index}",
+                    Artist = "Artist",
+                }));
+        hashDb.Setup(x => x.LookupHashesByRecordingIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<HashDbEntry>());
+        wishlist.Setup(x => x.ListAsync()).ReturnsAsync(new List<WishlistItem>());
+        wishlist.Setup(x => x.CreateManyAsync(
+                It.IsAny<IEnumerable<WishlistItem>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<WishlistItem> items, CancellationToken _) => items
+                .Select(item =>
+                {
+                    item.Id = Guid.NewGuid();
+                    return item;
+                })
+                .ToList());
+        var service = CreateService(releaseGraph, profile, client, hashDb, wishlist);
+
+        var result = await service.PromoteMissingToWishlistAsync(new DiscographyWishlistPromotionRequest
+        {
+            ArtistId = "artist-1",
+            Filter = "flac",
+            MaxResults = 25,
+        });
+
+        Assert.Equal(trackCount, result.CreatedCount);
+        Assert.Equal(trackCount, result.CreatedItemIds.Distinct().Count());
+        Assert.DoesNotContain(Guid.Empty, result.CreatedItemIds);
+        wishlist.Verify(x => x.CreateManyAsync(
+            It.Is<IEnumerable<WishlistItem>>(items => items.Count() == trackCount),
+            It.IsAny<CancellationToken>()), Times.Once);
+        wishlist.Verify(x => x.CreateAsync(It.IsAny<WishlistItem>()), Times.Never);
     }
 
     [Fact]

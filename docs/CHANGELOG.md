@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- MusicBrainz discography and Library Bloom promotions now persist Wishlist
+  seeds through one bounded bulk call. A 1,000-track discography promotion falls
+  from 1,000 insert commands to 25 (97.5% fewer); the Bloom maximum of 250 falls
+  from 250 to seven (97.2% fewer). Bloom promotion also reads Wishlist once
+  instead of twice, and 250 suggestions against 10,000 existing items fall from
+  up to 2.5 million prefix comparisons to 250 hash-set lookups.
 - Lidarr wanted synchronization now groups each fetched page into one Wishlist
   persistence call, while Wishlist and CSV imports use 40-row SQLite inserts.
   At the default 100-item Lidarr cap, inserts fall from 100 commands and 100

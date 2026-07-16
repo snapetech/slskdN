@@ -74,6 +74,15 @@ public sealed class LibraryBloomDiffService : ILibraryBloomDiffService
         LibraryBloomDiffRequest request,
         CancellationToken cancellationToken = default)
     {
+        var wishlist = await GetWishlistIndexAsync().ConfigureAwait(false);
+        return await CompareAsync(request, wishlist, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<LibraryBloomDiffResult> CompareAsync(
+        LibraryBloomDiffRequest request,
+        WishlistIndex wishlist,
+        CancellationToken cancellationToken)
+    {
         var result = ValidateSnapshot(request.Snapshot);
         if (!result.IsCompatible)
         {
@@ -85,7 +94,6 @@ public sealed class LibraryBloomDiffService : ILibraryBloomDiffService
             request.Snapshot.FalsePositiveRate,
             request.Snapshot.BitsBase64,
             request.Snapshot.ItemCount);
-        var wishlistKeys = await GetWishlistKeysAsync().ConfigureAwait(false);
         var heldRecordings = (await _hashDb.GetRecordingIdsWithVariantsAsync(cancellationToken).ConfigureAwait(false))
             .Select(NormalizeMbid)
             .Where(id => !string.IsNullOrWhiteSpace(id))
@@ -124,8 +132,8 @@ public sealed class LibraryBloomDiffService : ILibraryBloomDiffService
                 Reason = recordingMatches
                     ? "Remote Bloom filter probably contains this recording MBID; false positives are possible."
                     : "Remote Bloom filter probably contains this release MBID; inspect before promoting.",
-                WishlistSeeded = wishlistKeys.Contains(NormalizeWishlistKey(searchText, "flac")) ||
-                    wishlistKeys.Any(key => key.StartsWith(NormalizeSearchText(searchText) + "\u001f", StringComparison.OrdinalIgnoreCase)),
+                WishlistSeeded = wishlist.Keys.Contains(NormalizeWishlistKey(searchText, "flac")) ||
+                    wishlist.SearchTexts.Contains(NormalizeSearchText(searchText)),
             });
         }
 
@@ -136,33 +144,41 @@ public sealed class LibraryBloomDiffService : ILibraryBloomDiffService
         LibraryBloomWishlistPromotionRequest request,
         CancellationToken cancellationToken = default)
     {
-        var diff = await CompareAsync(request.DiffRequest, cancellationToken).ConfigureAwait(false);
+        var wishlist = await GetWishlistIndexAsync().ConfigureAwait(false);
+        var diff = await CompareAsync(request.DiffRequest, wishlist, cancellationToken).ConfigureAwait(false);
         var result = new LibraryBloomWishlistPromotionResult();
         var filter = string.IsNullOrWhiteSpace(request.Filter) ? "flac" : request.Filter.Trim();
-        var existingKeys = await GetWishlistKeysAsync().ConfigureAwait(false);
         var createdKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var pendingItems = new List<WishlistItem>();
 
         foreach (var suggestion in diff.Suggestions)
         {
             var key = NormalizeWishlistKey(suggestion.SearchText, filter);
-            if (suggestion.WishlistSeeded || existingKeys.Contains(key) || !createdKeys.Add(key))
+            if (suggestion.WishlistSeeded || wishlist.Keys.Contains(key) || !createdKeys.Add(key))
             {
                 result.AlreadySeededCount++;
                 continue;
             }
 
-            var created = await _wishlistService.CreateAsync(new WishlistItem
+            pendingItems.Add(new WishlistItem
             {
                 SearchText = suggestion.SearchText,
                 Filter = filter,
                 Enabled = true,
                 AutoDownload = false,
                 MaxResults = request.MaxResults <= 0 ? 100 : request.MaxResults,
-            }).ConfigureAwait(false);
+            });
 
-            result.CreatedCount++;
-            result.CreatedItemIds.Add(created.Id);
-            existingKeys.Add(key);
+            wishlist.Keys.Add(key);
+        }
+
+        if (pendingItems.Count > 0)
+        {
+            var created = await _wishlistService
+                .CreateManyAsync(pendingItems, cancellationToken)
+                .ConfigureAwait(false);
+            result.CreatedCount = created.Count;
+            result.CreatedItemIds.AddRange(created.Select(item => item.Id));
         }
 
         return result;
@@ -234,12 +250,16 @@ public sealed class LibraryBloomDiffService : ILibraryBloomDiffService
             .ToList();
     }
 
-    private async Task<HashSet<string>> GetWishlistKeysAsync()
+    private async Task<WishlistIndex> GetWishlistIndexAsync()
     {
         var items = await _wishlistService.ListAsync().ConfigureAwait(false);
-        return items
-            .Select(item => NormalizeWishlistKey(item.SearchText, item.Filter))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return new WishlistIndex(
+            items
+                .Select(item => NormalizeWishlistKey(item.SearchText, item.Filter))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase),
+            items
+                .Select(item => NormalizeSearchText(item.SearchText))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase));
     }
 
     private static LibraryBloomDiffResult ValidateSnapshot(LibraryBloomSnapshot snapshot)
@@ -291,6 +311,8 @@ public sealed class LibraryBloomDiffService : ILibraryBloomDiffService
     private static string NormalizeSearchText(string searchText) => (searchText ?? string.Empty).Trim();
 
     private sealed record LibraryBloomItem(string Namespace, string Mbid);
+
+    private sealed record WishlistIndex(HashSet<string> Keys, HashSet<string> SearchTexts);
 
     private sealed record LibraryBloomCandidate(
         string ReleaseId,

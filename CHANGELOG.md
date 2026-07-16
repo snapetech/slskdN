@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- MusicBrainz discography and Library Bloom Wishlist promotions now batch new
+  seeds, reuse one Wishlist snapshot, and index search-text membership.
 - Lidarr wanted synchronization and Wishlist CSV imports now persist new items
   with bounded multi-row SQLite inserts.
 - Canonical audio-stat ranking and full recomputation now batch stored stats,

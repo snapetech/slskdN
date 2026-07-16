@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Batch MusicBrainz Wishlist promotions and Bloom membership checks.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Discography and Library Bloom promotion now collect unique missing seeds and invoke the existing bounded Wishlist bulk API once, preserving counts and returned IDs. A 1,000-track discography promotion falls from 1,000 insert commands to 25 (97.5% fewer); the Bloom maximum of 250 falls from 250 to seven (97.2% fewer). Bloom now builds exact-key and normalized-search-text sets from one Wishlist snapshot, eliminating its second list read and reducing a 250-by-10,000 membership pass from up to 2.5 million prefix comparisons to 250 hash lookups. Added exact 1,000-track/250-suggestion call boundaries, returned-ID coverage, a 10,000-item cross-filter membership fixture, and zero legacy single-create verification. Extended repeated-fixture gotcha `0z678` (`275539822`) and documented mock-factory override gotcha `0z683` (`ca6a10641`).
+
 - [x] Batch Lidarr and CSV Wishlist item persistence.
   - Status: completed (2026-07-16)
   - Priority: P1

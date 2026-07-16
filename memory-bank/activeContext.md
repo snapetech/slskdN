@@ -1,3 +1,17 @@
+## Update 2026-07-16 10:30:40Z
+
+- Current task: performance and efficiency improvements in progress; MusicBrainz Wishlist-promotion batching pass complete locally.
+- Last activity:
+  - Discography and Library Bloom promotion now collect unique missing seeds and use one bounded bulk persistence call. A 1,000-track discography promotion falls from 1,000 insert commands to 25 (97.5% fewer); the Bloom maximum of 250 falls from 250 to seven (97.2% fewer).
+  - Bloom now reuses one Wishlist snapshot and indexes exact keys plus normalized search text. A 250-by-10,000 pass falls from up to 2.5 million prefix comparisons to 250 lookups. Extended gotcha `0z678` (`275539822`) and added `0z683` (`ca6a10641`).
+- Validation:
+  - Passed focused promotion coverage (`12/12`), complete MusicBrainz integration coverage (`65/65`), and full backend tests (`4864/4864`: `69` application, `4515` unit, `280` integration).
+  - Large call-boundary/ID/cross-filter fixtures, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the MusicBrainz Wishlist-promotion slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 10:20:03Z
 
 - Current task: performance and efficiency improvements in progress; Wishlist bulk-persistence pass complete locally.

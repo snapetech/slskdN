@@ -229,6 +229,7 @@ public sealed class DiscographyCoverageService : IDiscographyCoverageService
             ArtistId = coverage.ArtistId,
         };
         var createdKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var pendingItems = new List<WishlistItem>();
 
         foreach (var track in coverage.Releases.SelectMany(release => release.Tracks))
         {
@@ -250,17 +251,23 @@ public sealed class DiscographyCoverageService : IDiscographyCoverageService
                 continue;
             }
 
-            var item = await wishlistService.CreateAsync(new WishlistItem
+            pendingItems.Add(new WishlistItem
             {
                 SearchText = searchText,
                 Filter = request.Filter.Trim(),
                 Enabled = true,
                 AutoDownload = false,
                 MaxResults = request.MaxResults,
-            }).ConfigureAwait(false);
+            });
+        }
 
-            result.CreatedCount++;
-            result.CreatedItemIds.Add(item.Id);
+        if (pendingItems.Count > 0)
+        {
+            var created = await wishlistService
+                .CreateManyAsync(pendingItems, cancellationToken)
+                .ConfigureAwait(false);
+            result.CreatedCount = created.Count;
+            result.CreatedItemIds.AddRange(created.Select(item => item.Id));
         }
 
         return result;
