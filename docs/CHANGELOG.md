@@ -22,6 +22,12 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Warm-cache capacity enforcement now calculates total size and cumulative
+  oldest-unpinned reclamation inside one SQLite windowed delete instead of
+  loading every entry and deleting metadata individually. Evicting 100 entries
+  falls from 102 commands and connections to one (99.02% fewer). Pinned rows,
+  least-recently-used ordering, exact capacity stopping, and the no-file-delete
+  boundary remain unchanged.
 - Warm-cache hint ingestion now sends the complete validated request through
   one service call and persists normalized popularity increments in bounded
   400-ID SQLite upserts. At the 100-hint endpoint maximum, writes and

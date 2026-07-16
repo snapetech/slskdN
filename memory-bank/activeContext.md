@@ -1,3 +1,17 @@
+## Update 2026-07-16 12:11:57Z
+
+- Current task: performance and efficiency improvements in progress; set-based warm-cache eviction pass complete locally.
+- Last activity:
+  - Replaced total-size/list/per-entry-delete orchestration with one SQLite windowed delete that selects the minimum cumulative oldest-unpinned prefix needed to meet the configured capacity.
+  - Evicting 100 metadata entries falls from 102 commands/connections to one (99.02% fewer), without deleting cached files or changing network behavior.
+- Validation:
+  - Passed focused eviction coverage (`2/2`), broader HashDb/warm-cache coverage (`94/94`), and full backend tests (`4886/4886`: `69` application, `4537` unit, `280` integration).
+  - Pinned-row retention, oldest-first selection, exact capacity, idempotence, zero legacy service calls, repository lint, and diff checks passed. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the warm-cache eviction slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 12:04:16Z
 
 - Current task: performance and efficiency improvements in progress; warm-cache popularity batching pass complete locally.

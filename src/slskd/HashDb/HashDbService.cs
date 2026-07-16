@@ -3968,6 +3968,39 @@ namespace slskd.HashDb
             return Convert.ToInt64(result);
         }
 
+        /// <inheritdoc/>
+        public async Task<int> EvictWarmCacheEntriesAsync(long maxBytes, CancellationToken cancellationToken = default)
+        {
+            using var conn = GetConnection();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = """
+                WITH totals AS (
+                    SELECT COALESCE(SUM(size_bytes), 0) AS total_bytes
+                    FROM WarmCacheEntries
+                ),
+                candidates AS (
+                    SELECT
+                        content_id,
+                        COALESCE(SUM(size_bytes) OVER (
+                            ORDER BY last_accessed, content_id COLLATE NOCASE
+                            ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+                        ), 0) AS reclaimed_before
+                    FROM WarmCacheEntries
+                    WHERE pinned = 0
+                )
+                DELETE FROM WarmCacheEntries
+                WHERE content_id IN (
+                    SELECT candidates.content_id
+                    FROM candidates
+                    CROSS JOIN totals
+                    WHERE totals.total_bytes > @max_bytes
+                      AND candidates.reclaimed_before < totals.total_bytes - @max_bytes
+                )
+                """;
+            cmd.Parameters.AddWithValue("@max_bytes", maxBytes);
+            return await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         private static Models.WarmCacheEntry ReadWarmCacheEntry(SqliteDataReader reader)
         {
             return new Models.WarmCacheEntry

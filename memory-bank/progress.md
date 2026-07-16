@@ -1,3 +1,10 @@
+## Update 2026-07-16 12:11:57Z
+
+- Completed the set-based warm-cache eviction performance pass.
+- Capacity enforcement now computes total bytes and the cumulative oldest-unpinned reclamation prefix inside one SQLite windowed delete instead of loading the complete cache and opening one delete connection per entry.
+- Evicting 100 entries falls from 102 commands/connections to one (99.02% fewer). Pinned rows, least-recently-used ordering, exact capacity stopping, disabled-cache behavior, and the metadata-only/no-file-delete boundary remain unchanged.
+- Added production SQLite oldest/pinned/exact-capacity/idempotence coverage and an exact service call-boundary regression. Validation passed: focused eviction (`2/2`) and broader HashDb/warm-cache (`94/94`) tests, complete smoke/unit/integration suites (`4886/4886`: `69` smoke, `4537` unit, `280` integration), repository lint, and diff checks. Every substantive remediation check passed before the expected divergent-branch release-sync stop. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+
 ## Update 2026-07-16 12:04:16Z
 
 - Completed the warm-cache popularity persistence batching pass.

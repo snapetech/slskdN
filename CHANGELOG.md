@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Warm-cache capacity enforcement now evicts oldest unpinned metadata through
+  one set-based SQLite command.
 - Warm-cache hint ingestion now persists popularity increments through bounded
   multi-row SQLite upserts.
 - Accessible share-grant resolution now batches group-membership evidence and

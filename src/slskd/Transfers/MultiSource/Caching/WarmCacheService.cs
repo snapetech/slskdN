@@ -4,8 +4,6 @@
 namespace slskd.Transfers.MultiSource.Caching
 {
     using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Extensions.Options;
@@ -84,30 +82,7 @@ namespace slskd.Transfers.MultiSource.Caching
             }
 
             var maxBytes = opts.MaxStorageGb * 1024L * 1024L * 1024L;
-            var total = await hashDb.GetWarmCacheTotalSizeAsync(ct).ConfigureAwait(false);
-            if (total <= maxBytes)
-            {
-                return;
-            }
-
-            var entries = await hashDb.ListWarmCacheEntriesAsync(ct).ConfigureAwait(false);
-            var toEvict = entries
-                .Where(e => !e.Pinned)
-                .OrderBy(e => e.LastAccessed)
-                .ToList();
-
-            long reclaimed = 0;
-            foreach (var e in toEvict)
-            {
-                if (total - reclaimed <= maxBytes)
-                {
-                    break;
-                }
-
-                // Do not delete files here; caller handles actual removal. We only drop metadata.
-                await hashDb.DeleteWarmCacheEntryAsync(e.ContentId, ct).ConfigureAwait(false);
-                reclaimed += e.SizeBytes;
-            }
+            await hashDb.EvictWarmCacheEntriesAsync(maxBytes, ct).ConfigureAwait(false);
         }
 
         public Task<IReadOnlyList<WarmCacheEntry>> ListAsync(CancellationToken ct = default)

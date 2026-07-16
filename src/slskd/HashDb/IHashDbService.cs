@@ -363,6 +363,11 @@ namespace slskd.HashDb
 
         Task<long> GetWarmCacheTotalSizeAsync(CancellationToken cancellationToken = default);
 
+        /// <summary>
+        ///     Deletes the oldest unpinned cache metadata needed to reach the size limit.
+        /// </summary>
+        Task<int> EvictWarmCacheEntriesAsync(long maxBytes, CancellationToken cancellationToken = default);
+
         // ========== Mesh Sync ==========
 
         /// <summary>

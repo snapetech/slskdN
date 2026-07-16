@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make warm-cache eviction set-based.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Replaced the total-size read, complete cache-entry materialization, and one metadata delete per reclaimed entry with one SQLite command that uses cumulative oldest-unpinned size to select the minimum eviction prefix. Evicting 100 entries falls from 102 commands/connections to one (99.02% fewer). Pinned metadata, least-recently-used ordering, exact capacity stopping, disabled-cache behavior, and the no-file-delete boundary remain unchanged. Added a production SQLite oldest/pinned/exact-capacity/idempotence regression and a service regression requiring one new call with zero legacy size/list/delete calls. Validation passed: focused eviction coverage (`2/2`), broader HashDb/warm-cache coverage (`94/94`), full backend tests (`4886/4886`: `69` application, `4537` unit, `280` integration), repository lint, diff checks, and every substantive remediation check before the expected divergent-branch release-sync stop.
+
 - [x] Batch warm-cache popularity hint persistence.
   - Status: completed (2026-07-16)
   - Priority: P1

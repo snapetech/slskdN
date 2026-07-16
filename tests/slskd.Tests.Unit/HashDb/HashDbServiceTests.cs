@@ -1272,6 +1272,34 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task EvictWarmCacheEntriesAsync_DeletesOldestUnpinnedEntriesInOneCall()
+    {
+        await service.UpsertWarmCacheEntryAsync(CreateWarmCacheEntry("pinned", 80, 1, pinned: true));
+        await service.UpsertWarmCacheEntryAsync(CreateWarmCacheEntry("oldest", 30, 2));
+        await service.UpsertWarmCacheEntryAsync(CreateWarmCacheEntry("middle", 40, 3));
+        await service.UpsertWarmCacheEntryAsync(CreateWarmCacheEntry("newest", 50, 4));
+
+        var deleted = await service.EvictWarmCacheEntriesAsync(130);
+        var deletedAgain = await service.EvictWarmCacheEntriesAsync(130);
+        var remaining = await service.ListWarmCacheEntriesAsync();
+
+        Assert.Equal(2, deleted);
+        Assert.Equal(0, deletedAgain);
+        Assert.Equal(new[] { "newest", "pinned" }, remaining.Select(entry => entry.ContentId).OrderBy(id => id));
+        Assert.Equal(130, await service.GetWarmCacheTotalSizeAsync());
+    }
+
+    private static WarmCacheEntry CreateWarmCacheEntry(string contentId, long sizeBytes, long lastAccessed, bool pinned = false) =>
+        new()
+        {
+            ContentId = contentId,
+            Path = $"/cache/{contentId}",
+            SizeBytes = sizeBytes,
+            Pinned = pinned,
+            LastAccessed = lastAccessed,
+        };
+
+    [Fact]
     public async Task GetLabelCrateJobAsync_NormalizesDeserializedJsonPayload()
     {
         await using var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(testDir, "hashdb.db")}");
