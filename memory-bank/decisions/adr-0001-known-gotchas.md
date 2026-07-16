@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z627. Diagnostic Reads Must Not Trigger External Network Probes
+
+**The Bug**: Mesh transport-stat reads launched STUN NAT detection whenever the
+cached type was `Unknown`. Dashboard polling, the combined Network snapshot,
+and health checks could therefore each turn a read-only diagnostic request into
+up to three seconds of external DNS/UDP work. An unreachable STUN service kept
+the type unknown, so the expensive probe repeated on every read.
+
+**Files Affected**:
+- `src/slskd/Mesh/MeshStatsCollector.cs`
+- `src/web/src/components/System/Mesh/index.jsx`
+
+**Prevention**: Stats, status, and health reads must report already collected
+state without initiating external discovery or connectivity probes. Give active
+network detection an explicit lifecycle owner or user action, cache its result
+there, and let diagnostics expose `Unknown` until that work completes. Polling
+UIs must also pause while hidden, reject overlap, and retain unchanged or last
+successful snapshots.
+
 ### 0z626. Polling Must Not Rehydrate A Distributed Directory On Every Request
 
 **The Bug**: The listen-along panel polled its HTTP directory every 30 seconds,
