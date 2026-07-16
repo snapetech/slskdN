@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z624. Unscoped Dotnet Format Rewrites Vendored Runtime Sources
+
+**The Bug**: Running `dotnet format` across the complete solution while making
+a focused application change rewrote hundreds of files under the vendored
+Soulseek runtime, creating a large unrelated diff even though those sources
+were clean at the start of the task.
+
+**Files Affected**:
+- `vendor/slskNet.Runtime/`
+
+**Prevention**: Use the repository's verify-only lint gate for whole-solution
+format validation. If formatting is required, scope `dotnet format` to the
+changed application project or named files and inspect `git status` immediately
+afterward. Never accept bulk vendor formatting as incidental cleanup in an
+unrelated change.
+
 ### 0z623. Aggregate Fixtures Must Match Every Composite Group Key
 
 **The Bug**: A Library Health release-summary regression seeded one album and
