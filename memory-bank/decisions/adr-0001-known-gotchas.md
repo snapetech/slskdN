@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z661. Concurrent Collections Must Not Be Wrapped In Unnecessary Global Locks
+
+**The Bug**: SignalBus serialized every incoming signal through one
+`SemaphoreSlim` even though its deduplication cache is a
+`ConcurrentDictionary`. Unrelated signal IDs therefore paid an asynchronous
+wait and could not perform atomic admission concurrently.
+
+**Files Affected**:
+- `src/slskd/Signals/SignalBus.cs`
+
+**Prevention**: Use `TryAdd` for atomic deduplication admission and the
+concurrent collection's safe enumeration/removal operations for maintenance.
+Reject expired inputs before admission so they do not occupy the cache. Add a
+same-ID concurrency regression proving exactly one delivery and exact duplicate
+statistics; do not replace a global lock until compound invariants have been
+reduced to atomic collection operations.
+
 ### 0z660. Transaction Rollback Catches Must Not Enclose Post-Commit Work
 
 **The Bug**: Source Discovery committed its ingestion transaction, then ran
