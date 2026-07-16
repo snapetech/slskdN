@@ -278,7 +278,6 @@ namespace slskd.Tests.Unit.LibraryHealth
                     MaxConcurrentFiles = 8,
                 });
                 await scanCompleted.Task.WaitAsync(TimeSpan.FromSeconds(10));
-
                 hashDb.Verify(
                     value => value.GetAlbumTargetAsync("release-1", It.IsAny<CancellationToken>()),
                     Times.Once);
@@ -295,6 +294,77 @@ namespace slskd.Tests.Unit.LibraryHealth
                         It.IsAny<string>(),
                         It.IsAny<CancellationToken>()),
                     Times.Never);
+            }
+            finally
+            {
+                Directory.Delete(shareRoot, recursive: true);
+            }
+        }
+
+        [Fact]
+        public async Task StartScanAsync_CheckpointsDurableProgressInsteadOfWritingEveryFile()
+        {
+            var shareRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(shareRoot);
+            for (var index = 1; index <= 201; index++)
+            {
+                await File.WriteAllBytesAsync(Path.Combine(shareRoot, $"track-{index}.flac"), new byte[] { 1 });
+            }
+
+            try
+            {
+                var scanCompleted = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+                var hashDb = new Mock<IHashDbService>();
+                hashDb
+                    .Setup(service => service.UpsertLibraryHealthScanAsync(
+                        It.IsAny<LibraryHealthScan>(),
+                        It.IsAny<CancellationToken>()))
+                    .Callback<LibraryHealthScan, CancellationToken>((scan, _) =>
+                    {
+                        if (scan.Status == ScanStatus.Completed)
+                        {
+                            scanCompleted.TrySetResult(scan.FilesScanned);
+                        }
+                    })
+                    .Returns(Task.CompletedTask);
+                hashDb
+                    .Setup(service => service.InsertLibraryIssueAsync(
+                        It.IsAny<LibraryIssue>(),
+                        It.IsAny<CancellationToken>()))
+                    .Returns(Task.CompletedTask);
+                var metadata = new Mock<IMetadataFacade>();
+                metadata
+                    .Setup(service => service.GetByFileAsync(
+                        It.IsAny<string>(),
+                        It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(default(MetadataResult));
+                var options = new slskd.Options
+                {
+                    Shares = new slskd.Options.SharesOptions { Directories = new[] { shareRoot } },
+                };
+                var service = new LibraryHealthService(
+                    hashDb.Object,
+                    Mock.Of<ILibraryHealthRemediationService>(),
+                    metadata.Object,
+                    Mock.Of<ICanonicalStatsService>(),
+                    Mock.Of<IMusicBrainzClient>(),
+                    new TestOptionsMonitor<slskd.Options>(options),
+                    NullLogger<LibraryHealthService>.Instance);
+
+                await service.StartScanAsync(new LibraryHealthScanRequest
+                {
+                    LibraryPath = shareRoot,
+                    MaxConcurrentFiles = 8,
+                });
+                var completedFiles = await scanCompleted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+                Assert.Equal(201, completedFiles);
+                hashDb.Verify(service => service.InsertLibraryIssueAsync(
+                    It.IsAny<LibraryIssue>(),
+                    It.IsAny<CancellationToken>()), Times.Exactly(201));
+                hashDb.Verify(service => service.UpsertLibraryHealthScanAsync(
+                    It.IsAny<LibraryHealthScan>(),
+                    It.IsAny<CancellationToken>()), Times.Exactly(4));
             }
             finally
             {

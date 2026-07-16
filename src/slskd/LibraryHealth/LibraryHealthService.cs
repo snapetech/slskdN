@@ -27,6 +27,8 @@ namespace slskd.LibraryHealth
     /// </summary>
     public class LibraryHealthService : ILibraryHealthService
     {
+        private const int ScanProgressCheckpointFiles = 100;
+
         private readonly IHashDbService hashDb;
         private readonly ILibraryHealthRemediationService remediationService;
         private readonly IMetadataFacade metadataFacade;
@@ -249,13 +251,16 @@ namespace slskd.LibraryHealth
                             log.LogWarning(ex, "[LH] Failed to scan file: {Path}", file);
                         }
 
-                        Interlocked.Increment(ref scannedCount);
+                        var completedFiles = Interlocked.Increment(ref scannedCount);
                         lock (scanLock)
                         {
-                            scan.FilesScanned = scannedCount;
+                            scan.FilesScanned = Math.Max(scan.FilesScanned, completedFiles);
                         }
 
-                        await hashDb.UpsertLibraryHealthScanAsync(scan, fileCancellationToken).ConfigureAwait(false);
+                        if (completedFiles % ScanProgressCheckpointFiles == 0)
+                        {
+                            await hashDb.UpsertLibraryHealthScanAsync(scan, fileCancellationToken).ConfigureAwait(false);
+                        }
                     }).ConfigureAwait(false);
 
                 await Parallel.ForEachAsync(

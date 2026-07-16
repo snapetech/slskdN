@@ -1,3 +1,17 @@
+## Update 2026-07-16 09:17:07Z
+
+- Current task: performance and efficiency improvements in progress; Library Health scan-progress checkpointing pass complete locally.
+- Last activity:
+  - Retained per-file active in-memory progress but bounded durable status persistence to initial, unique 100-file checkpoints, and final/failure writes.
+  - A 201-file scan falls from 203 status writes to four (98.0% fewer); 100,000 files fall from 100,002 to 1,002 (99.0% fewer). Atomic checkpoint ownership and monotonic visible progress remain correct under eight workers. Documented gotchas `0z677` (`bdf9f56ed`, `5c1d7dd00`) and `0z678` (`b7663cd73`).
+- Validation:
+  - Passed the exact 201-file regression (`1/1`), complete Library Health coverage (`30/30`), and full backend tests (`4849/4849`: `69` application, `4500` unit, `280` integration).
+  - Repository lint and diff checks passed. The remediation baseline reached only its expected release-sync stop because local `main` diverges from `origin/main`. Concurrent Application, Mesh, Pod, and Shadow Index edits remain untouched.
+- Next steps:
+  1. Commit only the Library Health progress-checkpoint slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-16 09:06:26Z
 
 - Current task: performance and efficiency improvements in progress; release-job write batching pass complete locally.

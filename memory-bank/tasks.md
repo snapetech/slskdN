@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound Library Health durable scan-progress writes.
+  - Status: completed (2026-07-16)
+  - Priority: P1
+  - Notes: Kept every file completion visible through the active in-memory scan while persisting only the initial state, each unique 100-file checkpoint, and final/failure state. A 201-file scan falls from 203 database writes to four (98.0% fewer); 100,000 files fall from 100,002 writes to 1,002 (99.0% fewer). Used the unique value returned by `Interlocked.Increment` for checkpoint ownership and a monotonic maximum for visible progress. Added an exact 201-file concurrency/call-boundary regression; documented gotcha `0z677` (`bdf9f56ed`, `5c1d7dd00`) and patching gotcha `0z678` (`b7663cd73`).
+
 - [x] Batch discography and label-crate release-job writes.
   - Status: completed (2026-07-16)
   - Priority: P1

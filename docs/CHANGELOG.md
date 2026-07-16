@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Library Health scans now retain per-file in-memory progress while persisting
+  durable checkpoints every 100 files plus initial, final, and failure states.
+  A 201-file scan falls from 203 status writes to four (98.0% fewer); a
+  100,000-file scan falls from 100,002 writes to 1,002 (99.0% fewer).
 - Discography and label-crate release status lists now normalize composite job
   keys before writing and use 100-row SQLite upserts inside their existing
   transactions. A 202-row workload falls from 202 database commands to three
