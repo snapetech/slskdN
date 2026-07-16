@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z650. Set-Based Rewrites Must Preserve Existence-Guard Ordering
+
+**The Bug**: The first set-based Pod deletion rewrite deleted dependent rows
+before learning whether the parent Pod existed. A request for a missing Pod
+could therefore remove orphan child rows even though the established operation
+returned `false` without mutating anything.
+
+**Files Affected**:
+- `src/slskd/PodCore/SqlitePodService.cs`
+
+**Prevention**: When replacing tracked deletion with direct SQL, preserve the
+original validation and existence checks before the first mutation. A final
+parent delete count can report existence, but it cannot retroactively undo
+earlier dependent deletes unless that result explicitly triggers rollback.
+
 ### 0z649. EF Entity Classes Do Not Support Record Copy Expressions
 
 **The Bug**: A Pod deletion regression attempted to customize a
