@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z712. Stack Formatting Must Handle Custom Culture Expansion
+
+**The Bug**: Descriptor version generation formatted a nullable negative size
+into a fixed 32-character stack span and ignored `TryFormat` failure. A custom
+current culture can define a negative sign longer than that buffer, so the new
+path would hash an empty size while the legacy interpolated payload included
+the complete culture-specific sign.
+
+**Files Affected**:
+- `src/slskd/MediaCore/ContentDescriptorPublisher.cs`
+- `tests/slskd.Tests.Unit/MediaCore/ContentDescriptorPublisherModerationTests.cs`
+
+**Prevention**: When replacing interpolation or `ToString` with bounded
+`TryFormat`, prove the buffer covers every supported provider or preserve a
+correct fallback for formatting expansion. Never ignore the boolean return.
+Include a custom `NumberFormatInfo` whose sign or separator exceeds the fast
+buffer so compatibility tests exercise the fallback rather than only standard
+cultures.
+
 ### 0z711. Allocation Warm-Ups Must Not Mutate The Measured Instance
 
 **The Bug**: A batch-publisher allocation test warmed `PublishBatchAsync` on
