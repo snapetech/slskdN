@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z633. Global Timer Spies Include Testing Library Polling
+
+**The Bug**: A Lyrics regression spied on `window.setInterval`, awaited text
+with Testing Library's `findBy` query, then asserted that no interval was ever
+created. The application created none, but Testing Library's internal 50 ms
+query polling interval made the assertion fail.
+
+**Files Affected**:
+- `src/web/src/components/Player/LyricsPane.test.jsx`
+
+**Prevention**: When proving removal of an application timer, inspect timer
+calls for the application's former cadence or install the spy only around the
+render/effect boundary before using async Testing Library queries. Do not
+assert that a browser-global timer API has zero calls after helpers that own
+their own polling schedules.
+
 ### 0z632. Shared Request Promises Must Clear After Failure
 
 **The Bug**: The first lifecycle-aware Bridge hydration reused one config
