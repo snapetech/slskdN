@@ -52,6 +52,21 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z739. Enum CompareTo Boxes Inside Hot Comparers
+
+**The Bug**: A bounded intent-queue heap compared `IntentPriority` values with
+the enum instance `CompareTo` method. That method accepts `object`, so every heap
+comparison boxed an enum value and raised a 10,000-item/50-result query from its
+401,120-byte LINQ baseline to 651,624 allocated bytes.
+
+**Files Affected**:
+- `src/slskd/VirtualSoulfind/v2/Intents/InMemoryIntentQueue.cs`
+
+**Prevention**: In hot generic comparers, cast enums to their underlying numeric
+type before calling `CompareTo`, or use explicit relational comparisons. Measure
+the completed bounded-selection path; value-type priority records do not prevent
+boxing inside their comparison logic.
+
 ### 0z738. PriorityQueue Root Priorities Require TryPeek
 
 **The Bug**: A bounded reputation-ranking heap tried to call a nonexistent
