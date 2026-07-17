@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Invalid watched configuration reloads now retain the last valid options for
+  background services instead of allowing an options validation exception to
+  stop the entire application.
 - The web footer and README now offer direct PayPal and Ko-fi links for
   supporting slskdN development.
 - GitLab CI configuration now keeps the Arch package-smoke sudoers command as
