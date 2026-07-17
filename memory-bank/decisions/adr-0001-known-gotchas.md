@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z732. Hoisted Async Work Must Preserve Empty-Loop Laziness
+
+**The Bug**: A swarm-grouping optimization moved invariant content discovery
+out of a per-hash loop, correctly collapsing repeated registry and descriptor
+reads for non-empty inputs. The first hoist placed discovery unconditionally
+before the loop, so an empty hash dictionary changed from immediate local
+fallback to unnecessary audio/video registry scans.
+
+**Files Affected**:
+- `src/slskd/Transfers/MultiSource/MediaCoreSwarmService.cs`
+- `tests/slskd.Tests.Unit/Transfers/MultiSource/MediaCoreSwarmServiceTests.cs`
+
+**Prevention**: Before hoisting I/O or other observable work out of a loop,
+preserve the loop's zero-iteration path explicitly. Add an empty-input
+regression that proves no external call occurs, alongside the wide-input test
+that proves repeated calls collapsed. Invariant arguments establish that work
+can be shared across iterations; they do not establish that it should run when
+there are no iterations.
+
 ### 0z730. Delimiter-Joined Group Keys Can Merge Distinct Field Tuples
 
 **The Bug**: Batched HashDb variant deduplication grouped rows by an
