@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Stream and bound SongID repeated-line scoring.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `SongIdScoring.ComputeRepeatedLineRatio` now scans CR/LF-delimited source ranges, trims them with the existing Unicode whitespace rule, normalizes only nonempty lines, and updates ordinal normalized-line occurrence counts online. It no longer retains a split string array, complete normalized list, LINQ groups, or repeated group enumerations. A method-local exact raw-range cache reuses normalization for up to 256 distinct lines, bounding speculative state while eliminating duplicate-heavy lower/replace/regex work. For 10,000 identical lines, warmed allocation falls from 3,143,312 to 728 bytes (>99.97%). For 10,000 distinct lines, allocation falls from 2,843,392 to 2,250,568 bytes (20.9%). Exact CR/LF separator handling, `TrimEntries` behavior, empty and normalization-empty filtering, loose-text casing/punctuation/ampersand/feature aliases, ordinal grouping, and repeated-group occurrence ratios remain unchanged. Added exact semantic plus duplicate-heavy and wide-unique allocation regressions. Validation passed: complete scoring (`58/58`), broader SongID (`98/98`), full backend suites (`5083/5083`: `69` application, `4734` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Eliminate match materialization from SongID synthetic-cue counts.
   - Status: completed (2026-07-17)
   - Priority: P1

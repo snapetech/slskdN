@@ -453,7 +453,7 @@ internal static class SongIdScoring
             return 1;
         }
 
-        var tokens = new Dictionary<LooseTextToken, byte>(LooseTextTokenComparer.Instance);
+        var tokens = new Dictionary<TextRange, byte>(TextRangeComparer.Instance);
         var rightTokenCount = 0;
         var intersectionCount = 0;
         AddLooseTextTokens(normalizedLeft, isRight: false, tokens, ref rightTokenCount, ref intersectionCount);
@@ -469,7 +469,7 @@ internal static class SongIdScoring
     private static void AddLooseTextTokens(
         string text,
         bool isRight,
-        Dictionary<LooseTextToken, byte> tokens,
+        Dictionary<TextRange, byte> tokens,
         ref int rightTokenCount,
         ref int intersectionCount)
     {
@@ -496,7 +496,7 @@ internal static class SongIdScoring
                 end = text.Length;
             }
 
-            var token = new LooseTextToken(text, start, end - start);
+            var token = new TextRange(text, start, end - start);
             ref var tokenMembership = ref CollectionsMarshal.GetValueRefOrAddDefault(tokens, token, out var exists);
             if (!exists)
             {
@@ -533,9 +533,9 @@ internal static class SongIdScoring
         return Regex.Replace(normalized, @"[^a-z0-9]+", " ").Trim();
     }
 
-    private readonly struct LooseTextToken
+    private readonly struct TextRange
     {
-        public LooseTextToken(string source, int start, int length)
+        public TextRange(string source, int start, int length)
         {
             Source = source;
             Start = start;
@@ -549,15 +549,15 @@ internal static class SongIdScoring
         public int Length { get; }
     }
 
-    private sealed class LooseTextTokenComparer : IEqualityComparer<LooseTextToken>
+    private sealed class TextRangeComparer : IEqualityComparer<TextRange>
     {
-        public static LooseTextTokenComparer Instance { get; } = new();
+        public static TextRangeComparer Instance { get; } = new();
 
-        public bool Equals(LooseTextToken left, LooseTextToken right)
+        public bool Equals(TextRange left, TextRange right)
             => left.Length == right.Length &&
                 left.Source.AsSpan(left.Start, left.Length).SequenceEqual(right.Source.AsSpan(right.Start, right.Length));
 
-        public int GetHashCode(LooseTextToken token)
+        public int GetHashCode(TextRange token)
         {
             HashCode hashCode = default;
             foreach (var value in token.Source.AsSpan(token.Start, token.Length))
@@ -1018,20 +1018,76 @@ internal static class SongIdScoring
         return CountTranscriptTokens(text ?? string.Empty);
     }
 
-    private static double ComputeRepeatedLineRatio(string text)
+    internal static double ComputeRepeatedLineRatio(string text)
     {
-        var lines = (text ?? string.Empty)
-            .Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(NormalizeLooseText)
-            .Where(value => !string.IsNullOrWhiteSpace(value))
-            .ToList();
-        if (lines.Count == 0)
+        const int maxCachedLineNormalizations = 256;
+        var source = text ?? string.Empty;
+        Dictionary<TextRange, string>? normalizationCache = null;
+        Dictionary<string, int>? counts = null;
+        var lineCount = 0;
+        var repeatedCount = 0;
+        var start = 0;
+
+        while (start <= source.Length)
         {
-            return 0;
+            var end = start;
+            while (end < source.Length && source[end] is not '\n' and not '\r')
+            {
+                end++;
+            }
+
+            var trimmedStart = start;
+            while (trimmedStart < end && char.IsWhiteSpace(source[trimmedStart]))
+            {
+                trimmedStart++;
+            }
+
+            var trimmedEnd = end;
+            while (trimmedEnd > trimmedStart && char.IsWhiteSpace(source[trimmedEnd - 1]))
+            {
+                trimmedEnd--;
+            }
+
+            if (trimmedStart < trimmedEnd)
+            {
+                var range = new TextRange(source, trimmedStart, trimmedEnd - trimmedStart);
+                if (normalizationCache is null || !normalizationCache.TryGetValue(range, out var normalized))
+                {
+                    normalized = NormalizeLooseText(source.Substring(trimmedStart, trimmedEnd - trimmedStart));
+                    if ((normalizationCache?.Count ?? 0) < maxCachedLineNormalizations)
+                    {
+                        normalizationCache ??= new Dictionary<TextRange, string>(TextRangeComparer.Instance);
+                        normalizationCache.Add(range, normalized);
+                    }
+                }
+
+                if (normalized.Length > 0)
+                {
+                    counts ??= new Dictionary<string, int>(StringComparer.Ordinal);
+                    ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(counts, normalized, out var exists);
+                    if (exists)
+                    {
+                        repeatedCount += count == 1 ? 2 : 1;
+                        count++;
+                    }
+                    else
+                    {
+                        count = 1;
+                    }
+
+                    lineCount++;
+                }
+            }
+
+            if (end == source.Length)
+            {
+                break;
+            }
+
+            start = end + 1;
         }
 
-        var repeated = lines.GroupBy(value => value, StringComparer.Ordinal).Where(group => group.Count() > 1).Sum(group => group.Count());
-        return repeated / (double)lines.Count;
+        return lineCount == 0 ? 0 : repeatedCount / (double)lineCount;
     }
 
     internal static double ComputeRepeatedNgramRatio(string text)

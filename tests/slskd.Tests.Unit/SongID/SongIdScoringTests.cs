@@ -600,4 +600,63 @@ public sealed class SongIdScoringTests
             allocatedBytes < 1_024,
             $"Expected synthetic-mention counting below 1 KiB allocated, got {allocatedBytes:N0} bytes.");
     }
+
+    [Theory]
+    [InlineData("", 0.0)]
+    [InlineData("one\ntwo\nthree", 0.0)]
+    [InlineData("one\none\ntwo", 2.0 / 3.0)]
+    [InlineData("one\none\none", 1.0)]
+    [InlineData("Alpha!\r\n alpha ", 1.0)]
+    [InlineData("Artist & Guest\nartist and guest", 1.0)]
+    [InlineData(" feat. \nfeat.", 1.0)]
+    [InlineData("!!!\nalpha\nalpha", 1.0)]
+    public void ComputeRepeatedLineRatio_PreservesSplitNormalizeAndOccurrenceSemantics(string text, double expected)
+    {
+        Assert.Equal(expected, SongIdScoring.ComputeRepeatedLineRatio(text), precision: 10);
+    }
+
+    [Fact]
+    public void ComputeRepeatedLineRatio_DuplicateHeavyTranscriptHasBoundedAllocation()
+    {
+        const string warmup = "warm repeated line\nwarm repeated line";
+        for (var index = 0; index < 32; index++)
+        {
+            _ = SongIdScoring.ComputeRepeatedLineRatio(warmup);
+        }
+
+        const int lineCount = 10_000;
+        var transcript = string.Join('\n', Enumerable.Repeat("Artist feat. Guest", lineCount));
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var ratio = SongIdScoring.ComputeRepeatedLineRatio(transcript);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(1.0, ratio);
+        Assert.True(
+            allocatedBytes < 16 * 1024,
+            $"Expected duplicate-heavy repeated-line scoring below 16 KiB allocated, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
+    public void ComputeRepeatedLineRatio_UniqueTranscriptHasBoundedAllocation()
+    {
+        const string warmup = "warm unique line\nsecond distinct line";
+        for (var index = 0; index < 32; index++)
+        {
+            _ = SongIdScoring.ComputeRepeatedLineRatio(warmup);
+        }
+
+        const int lineCount = 10_000;
+        var transcript = string.Join('\n', Enumerable.Range(0, lineCount).Select(index =>
+            $"line{(char)('a' + (index / 676))}{(char)('a' + ((index / 26) % 26))}{(char)('a' + (index % 26))} unique phrase"));
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var ratio = SongIdScoring.ComputeRepeatedLineRatio(transcript);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(0.0, ratio);
+        Assert.True(
+            allocatedBytes < 2_400_000,
+            $"Expected unique repeated-line scoring below 2.4 MB allocated, got {allocatedBytes:N0} bytes.");
+    }
 }

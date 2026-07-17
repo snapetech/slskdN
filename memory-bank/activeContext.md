@@ -1,3 +1,17 @@
+## Update 2026-07-17 01:25:56Z
+
+- Current task: performance and efficiency improvements in progress; streaming bounded SongID repeated-line scoring complete locally.
+- Last activity:
+  - Replaced split/list/group buffers with direct CR/LF range scanning and online normalized occurrence counting, plus a method-local 256-entry cap on exact-line normalization reuse.
+  - A 10,000-identical-line transcript falls from 3,143,312 to 728 warmed allocated bytes (>99.97%); 10,000 distinct lines fall from 2,843,392 to 2,250,568 bytes (20.9%).
+- Validation:
+  - Passed complete scoring (`58/58`), broader SongID (`98/98`), and full backend suites (`5083/5083`: `69` application, `4734` unit, `280` integration) tests.
+  - Exact CR/LF/trim/empty/normalization/alias/group/occurrence behavior, duplicate/unique allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the SongID repeated-line scoring slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 01:13:11Z
 
 - Current task: performance and efficiency improvements in progress; allocation-free SongID synthetic-cue counting complete locally.

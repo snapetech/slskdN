@@ -22,6 +22,18 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- SongID repeated-line scoring now scans CR/LF-delimited ranges directly,
+  applies the existing trim and loose-text normalization contract, and updates
+  normalized occurrence counts online instead of retaining split arrays, a
+  complete normalized-line list, and LINQ groups. Exact raw-line normalization
+  results are reused through a method-local cache capped at 256 entries, so
+  repeated lyrics avoid repeated lower/replace/regex work without adding an
+  input-sized cache for unique or hostile text. For 10,000 identical lines,
+  warmed allocation falls from 3,143,312 to 728 bytes (>99.97%). For 10,000
+  distinct lines it falls from 2,843,392 to 2,250,568 bytes (20.9%). CR/LF
+  splitting, Unicode whitespace trimming, empty/normalization-empty filtering,
+  loose-text aliases, ordinal normalized grouping, and occurrence-based ratios
+  remain unchanged.
 - SongID transcript synthetic-cue counting now executes its existing
   case-insensitive word-boundary regex through `Regex.Count` instead of
   materializing a `MatchCollection` and one `Match` per cue. For a transcript

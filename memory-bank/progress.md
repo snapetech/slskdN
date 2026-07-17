@@ -1,3 +1,12 @@
+## Update 2026-07-17 01:25:56Z
+
+- Completed streaming, bounded SongID repeated-line scoring.
+- Replaced split arrays, complete normalized-line lists, LINQ grouping, and repeated group enumeration with direct CR/LF range scanning and online normalized occurrence totals.
+- Added a method-local exact raw-line normalization cache capped at 256 entries; 10,000 identical lines fall from 3,143,312 to 728 warmed allocated bytes (>99.97%), while 10,000 distinct lines fall from 2,843,392 to 2,250,568 bytes (20.9%).
+- Preserved Unicode trimming, empty and normalization-empty filtering, loose-text aliases, ordinal normalized grouping, and occurrence-based repeated ratios.
+- Added exact semantic plus duplicate-heavy and wide-unique allocation regressions; passed complete scoring (`58/58`), broader SongID (`98/98`), and full backend (`5083/5083`: `69` application, `4734` unit, `280` integration) tests.
+- Passed repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 01:13:11Z
 
 - Completed allocation-free SongID synthetic transcript cue counting.
