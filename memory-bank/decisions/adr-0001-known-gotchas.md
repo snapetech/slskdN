@@ -70,6 +70,26 @@ individual fields. Do not join unrestricted values with a supposedly rare
 delimiter for grouping or deduplication; escaping rules are easy to omit and a
 delimiter that is uncommon is not impossible.
 
+### 0z731. Extracted Interpolated-Key Helpers Can Add A Result-Sized Allocation
+
+**The Bug**: A codec-profile change routed `BuildKey(AudioVariant)` through a
+new raw-field string-formatting helper so a SQLite callback could share the
+formatting fallback. The returned key stayed exact, but a 10,000-call
+allocation regression doubled from 720,000 to 1,440,000 bytes. Restoring the
+direct interpolation in the established variant overload removed the extra
+result-sized allocation while the comparison-only raw-field overload retained
+its stack-first path.
+
+**Files Affected**:
+- `src/slskd/Audio/CodecProfile.cs`
+- `tests/slskd.Tests.Unit/Audio/CodecProfileTests.cs`
+
+**Prevention**: Do not extract a hot interpolated string producer solely to
+share fallback formatting with a span-based comparison path. Keep the measured
+direct producer intact, isolate fallback-only formatting behind the uncommon
+oversize branch, and rerun the producer allocation regression whenever moving
+interpolation across a method boundary.
+
 ### 0z729. Repeated Batch Loops Need Method-Signature Patch Anchors
 
 **The Bug**: A HashDb optimization patch matched the first generic
