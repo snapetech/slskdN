@@ -251,11 +251,45 @@ public sealed class PeerReputation
     /// </summary>
     public IReadOnlyList<PeerProfile> GetSuspiciousPeers(int limit = 50)
     {
-        return _profiles.Values
-            .Where(p => p.Score < BaseScore)
-            .OrderBy(p => p.Score)
-            .Take(limit)
-            .ToList();
+        if (limit <= 0)
+        {
+            return Array.Empty<PeerProfile>();
+        }
+
+        var selected = new PriorityQueue<PeerProfile, PeerPriority>(SuspiciousPeerWorstFirstComparer.Instance);
+        var sequence = 0;
+        foreach (var pair in _profiles)
+        {
+            var profile = pair.Value;
+            var score = profile.Score;
+            if (score >= BaseScore)
+            {
+                continue;
+            }
+
+            var priority = new PeerPriority(score, sequence++);
+            if (selected.Count < limit)
+            {
+                selected.Enqueue(profile, priority);
+            }
+            else
+            {
+                selected.TryPeek(out _, out var worstPriority);
+                if (SuspiciousPeerWorstFirstComparer.Instance.Compare(priority, worstPriority) > 0)
+                {
+                    selected.Dequeue();
+                    selected.Enqueue(profile, priority);
+                }
+            }
+        }
+
+        var result = new PeerProfile[selected.Count];
+        for (var index = result.Length - 1; index >= 0; index--)
+        {
+            result[index] = selected.Dequeue();
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -263,11 +297,45 @@ public sealed class PeerReputation
     /// </summary>
     public IReadOnlyList<PeerProfile> GetTrustedPeers(int limit = 50)
     {
-        return _profiles.Values
-            .Where(p => p.Score >= TrustedThreshold)
-            .OrderByDescending(p => p.Score)
-            .Take(limit)
-            .ToList();
+        if (limit <= 0)
+        {
+            return Array.Empty<PeerProfile>();
+        }
+
+        var selected = new PriorityQueue<PeerProfile, PeerPriority>(TrustedPeerWorstFirstComparer.Instance);
+        var sequence = 0;
+        foreach (var pair in _profiles)
+        {
+            var profile = pair.Value;
+            var score = profile.Score;
+            if (score < TrustedThreshold)
+            {
+                continue;
+            }
+
+            var priority = new PeerPriority(score, sequence++);
+            if (selected.Count < limit)
+            {
+                selected.Enqueue(profile, priority);
+            }
+            else
+            {
+                selected.TryPeek(out _, out var worstPriority);
+                if (TrustedPeerWorstFirstComparer.Instance.Compare(priority, worstPriority) > 0)
+                {
+                    selected.Dequeue();
+                    selected.Enqueue(profile, priority);
+                }
+            }
+        }
+
+        var result = new PeerProfile[selected.Count];
+        for (var index = result.Length - 1; index >= 0; index--)
+        {
+            result[index] = selected.Dequeue();
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -283,8 +351,9 @@ public sealed class PeerReputation
         long totalFailedTransfers = 0;
         long totalProtocolViolations = 0;
 
-        foreach (var profile in _profiles.Values)
+        foreach (var pair in _profiles)
         {
+            var profile = pair.Value;
             totalPeers++;
             totalScore += profile.Score;
             totalSuccessfulTransfers += profile.SuccessfulTransfers;
@@ -326,6 +395,34 @@ public sealed class PeerReputation
             .OrderByDescending(x => x.Score)
             .Select(x => x.Username)
             .ToList();
+    }
+
+    private readonly record struct PeerPriority(int Score, int Sequence);
+
+    private sealed class SuspiciousPeerWorstFirstComparer : IComparer<PeerPriority>
+    {
+        public static SuspiciousPeerWorstFirstComparer Instance { get; } = new();
+
+        public int Compare(PeerPriority left, PeerPriority right)
+        {
+            var scoreComparison = right.Score.CompareTo(left.Score);
+            return scoreComparison != 0
+                ? scoreComparison
+                : right.Sequence.CompareTo(left.Sequence);
+        }
+    }
+
+    private sealed class TrustedPeerWorstFirstComparer : IComparer<PeerPriority>
+    {
+        public static TrustedPeerWorstFirstComparer Instance { get; } = new();
+
+        public int Compare(PeerPriority left, PeerPriority right)
+        {
+            var scoreComparison = left.Score.CompareTo(right.Score);
+            return scoreComparison != 0
+                ? scoreComparison
+                : right.Sequence.CompareTo(left.Sequence);
+        }
     }
 
     private void AdjustScore(PeerProfile profile, int adjustment, string reason)

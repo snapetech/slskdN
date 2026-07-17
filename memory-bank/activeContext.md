@@ -1,3 +1,17 @@
+## Update 2026-07-17 08:29:57Z
+
+- Current task: performance and efficiency improvements in progress; bounded peer-reputation rankings and snapshot-free statistics complete locally.
+- Last activity:
+  - Replaced complete suspicious/trusted profile sorts with stable worst-first priority queues capped at the requested limit and direct concurrent-map enumeration.
+  - A warmed 50-result suspicious page over 10,000 matches falls from 240,880 to 2,640 allocated bytes (98.9%); 10,000-profile statistics fall from 80,144 to 128 bytes (99.8%).
+- Validation:
+  - Passed complete peer-reputation tests (`23/23`) and backend validation (`5152/5152`: `69` application, `4803` unit, `280` integration).
+  - Exact thresholds/order/ties/limits/profile identity/statistic semantics, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. A forced one-thread unit run was canceled after 53 minutes without a runner summary; the supported four-thread configuration passed all `4803` unit tests in 30 seconds. Documented gotchas `0z737` (`61acd61c4`) and `0z738` (`6c2666a36`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the bounded peer-reputation ranking/statistics slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 07:21:25Z
 
 - Current task: performance and efficiency improvements in progress; page-bounded security-event queries complete locally.

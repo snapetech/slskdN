@@ -170,6 +170,29 @@ public class PeerReputationTests
 
         Assert.Equal(2, suspicious.Count);
         Assert.All(suspicious, p => Assert.True(p.Score < PeerReputation.BaseScore));
+        Assert.Equal(new[] { 25, 30 }, suspicious.Select(peer => peer.Score));
+    }
+
+    [Fact]
+    public void GetSuspiciousPeers_LargePopulationSmallLimitBoundsAllocation()
+    {
+        for (var index = 0; index < 10_000; index++)
+        {
+            _reputation.SetScore($"peer-{index:D5}", index % PeerReputation.BaseScore, "test");
+        }
+
+        for (var iteration = 0; iteration < 8; iteration++)
+        {
+            _ = _reputation.GetSuspiciousPeers(50);
+        }
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var suspicious = _reputation.GetSuspiciousPeers(50);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(50, suspicious.Count);
+        Assert.All(suspicious, peer => Assert.Equal(PeerReputation.MinScore, peer.Score));
+        Assert.True(allocatedBytes < 16_384, $"Allocated {allocatedBytes:N0} bytes.");
     }
 
     [Fact]
@@ -183,6 +206,7 @@ public class PeerReputationTests
 
         Assert.Equal(2, trusted.Count);
         Assert.All(trusted, p => Assert.True(p.Score >= PeerReputation.TrustedThreshold));
+        Assert.Equal(new[] { 90, 80 }, trusted.Select(peer => peer.Score));
     }
 
     [Fact]
@@ -211,6 +235,27 @@ public class PeerReputationTests
         Assert.Equal(3, stats.TotalPeers);
         Assert.Equal(1, stats.TrustedPeers);
         Assert.Equal(1, stats.UntrustedPeers);
+    }
+
+    [Fact]
+    public void GetStats_LargePopulationBoundsAllocation()
+    {
+        for (var index = 0; index < 10_000; index++)
+        {
+            _reputation.GetOrCreateProfile($"peer-{index:D5}");
+        }
+
+        for (var iteration = 0; iteration < 8; iteration++)
+        {
+            _ = _reputation.GetStats();
+        }
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var stats = _reputation.GetStats();
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(10_000, stats.TotalPeers);
+        Assert.True(allocatedBytes < 1_024, $"Allocated {allocatedBytes:N0} bytes.");
     }
 
     [Fact]

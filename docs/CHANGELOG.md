@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Peer reputation suspicious/trusted listings now scan profiles directly into a
+  stable worst-first priority queue capped at the requested limit instead of
+  snapshotting and fully sorting every matching profile. A warmed 50-row
+  suspicious page from 10,000 matching profiles falls from 240,880 to 2,640
+  allocated bytes (98.9%), changing selection storage from O(matches) to
+  O(limit). Reputation statistics now enumerate the concurrent profile map
+  directly, reducing the equivalent 10,000-profile snapshot from 80,144 to 128
+  bytes (99.8%). Suspicious/trusted thresholds, score ordering, first-enumerated
+  equal-score ties, non-positive limits, profile identity, and all statistic
+  totals and averages remain unchanged.
 - Security event severity, IP, and username queries now scan the retained queue
   into a lazily allocated ring capped at the requested page and rotate that ring
   in place to return newest-first results. They no longer materialize and

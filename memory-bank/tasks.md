@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound peer-reputation ranking and statistics allocation.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `PeerReputation.GetSuspiciousPeers` and `GetTrustedPeers` now enumerate the concurrent profile map directly and retain only the requested best scores in stable worst-first priority queues. This replaces `ConcurrentDictionary.Values` snapshots and complete LINQ sorts, changing selection storage from O(matches) to O(limit) while preserving score order and first-enumerated equal-score ties. A warmed 50-result suspicious page over 10,000 matching profiles falls from 240,880 to 2,640 allocated bytes (98.9%). `GetStats` also enumerates the map directly, falling from 80,144 to 128 bytes (99.8%) for 10,000 profiles. Thresholds, non-positive limits, profile identity, transfer/protocol totals, trusted/untrusted counts, and average behavior remain unchanged. Validation passed: complete service (`23/23`) and backend (`5152/5152`: `69` application, `4803` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Documented production-constant and priority-queue API gotchas `0z737` (`61acd61c4`) and `0z738` (`6c2666a36`).
+
 - [x] Bound newest security-event query allocation by requested page size.
   - Status: completed (2026-07-17)
   - Priority: P1
