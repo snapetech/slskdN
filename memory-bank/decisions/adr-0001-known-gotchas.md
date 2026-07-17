@@ -58,9 +58,10 @@ This is not optional. This is the highest priority action after fixing a bug.
 used a strict 4 KiB ceiling around a steady-state path that normally allocates
 less than that amount. Across three loaded full-unit runs, runtime/test-harness
 lazy work on the measuring thread raised one of the two results to 5,064–7,200
-bytes, while every exact rerun and subsequent complete-unit rerun passed. The
-tests therefore produced recurring false failures without evidence of a
-production allocation regression.
+bytes, while every exact rerun and subsequent complete-unit rerun passed. An
+initial correction to an 8 KiB ceiling then failed at 8,592 bytes in the next
+loaded run. The tests therefore produced recurring false failures without
+evidence of a production allocation regression.
 
 **Files Affected**:
 - `tests/slskd.Tests.Unit/SocialFederation/TasteRecommendationServiceTests.cs`
@@ -68,10 +69,12 @@ production allocation regression.
 **Prevention**: Warm the exact public path, serialize current-thread allocation
 tests, and give sub-10-KiB ceilings enough headroom for the highest observed
 loaded-suite runtime overhead. Keep the bound orders of magnitude below the
-allocation behavior the regression is intended to prevent; for these duplicate-
-heavy aggregation paths, 8 KiB remains strict while covering the observed
-loaded-suite range. Validate both the exact test and a complete unit run after
-changing a tight ceiling.
+allocation behavior the regression is intended to prevent. Do not round a bound
+barely above the current maximum: the first 8 KiB correction left no room for a
+slightly larger runtime event. For these duplicate-heavy aggregation paths,
+16 KiB remains strict while giving the sub-10-KiB observations meaningful
+headroom. Validate both the exact test and a complete unit run after changing a
+tight ceiling.
 
 ### 0z753. Interface Optional Arguments Do Not Apply To Concrete Calls
 
