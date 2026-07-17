@@ -77,7 +77,11 @@ delimiter that is uncommon is not impossible.
 ranking SQL into `LookupHashesByRecordingIdsAsync`, while a separate return-tail
 hunk removed deduplication from the intended `GetVariantsByRecordingsAsync`.
 The split edit changed two methods and caused the variant reader to return all
-10,000 duplicate rows.
+10,000 duplicate rows. The same failure recurred when a patch anchored on the
+repeated `WITH source AS (` text: the new profile CTE landed in
+`GetVariantsByRecordingAsync`, while its join landed in
+`GetVariantsByRecordingAndProfileAsync`, producing a runtime `no such table`
+error and leaving the scalar reader with undeclared SQL parameters.
 
 **Files Affected**:
 - `src/slskd/HashDb/HashDbService.cs`
