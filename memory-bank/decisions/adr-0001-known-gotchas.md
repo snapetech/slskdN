@@ -21988,3 +21988,20 @@ push and release tag then produced a failed pipeline before any job could run.
 their shell text contains `: ` or other YAML-significant syntax. Validate the
 full file with the target GitLab instance's CI lint API; a generic YAML parser
 cannot detect GitLab's required string shape.
+
+### 0z562. Fatal Startup Exceptions Must Exit With A Failure Status
+
+**The Bug**: `StartupWebApplicationRunner.Run(...)` caught unexpected startup
+exceptions, logged `Application terminated unexpectedly`, and then returned
+without calling the injected process-exit action. Fatal failures such as an
+occupied HTTP port therefore produced exit status `0`, so service managers and
+deployment probes treated a failed start as success.
+
+**Files Affected**:
+- `src/slskd/Bootstrap/StartupWebApplicationRunner.cs`
+- `tests/slskd.Tests.Unit/Bootstrap/StartupWebApplicationRunnerTests.cs`
+
+**Prevention**: Every startup path that catches a fatal exception must call the
+injected exit action with a non-zero status. Keep a unit assertion on the
+generic termination handler and a live occupied-listener check so fatal logs
+cannot be paired with a successful process status.
