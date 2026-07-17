@@ -2,22 +2,22 @@ class Slskdn < Formula
   desc "Unofficial slskd fork with batteries-included Soulseek features"
   homepage "https://github.com/snapetech/slskdn"
   license "AGPL-3.0-or-later"
-  version "2026071721-slskdn.283"
+  version "2026071723-slskdn.284"
 
   on_macos do
     on_arm do
-      url "https://github.com/snapetech/slskdn/releases/download/2026071721-slskdn.283/slskdn-main-osx-arm64.zip"
-      sha256 "f831feb33fc6289ec288b7a6cb2030de0c32532df8906046923b2b7c583335a0"
+      url "https://github.com/snapetech/slskdn/releases/download/2026071723-slskdn.284/slskdn-main-osx-arm64.zip"
+      sha256 "848cef9f51fe5f064fdfcb3e27331d669a08e23e6c1d2762c2297203a8529aea"
     end
     on_intel do
-      url "https://github.com/snapetech/slskdn/releases/download/2026071721-slskdn.283/slskdn-main-osx-x64.zip"
-      sha256 "d417ddb7060d2c6143e581ca177d0263169076fef360201ee87d20be90329c56"
+      url "https://github.com/snapetech/slskdn/releases/download/2026071723-slskdn.284/slskdn-main-osx-x64.zip"
+      sha256 "8a1c0a86ec79d28e467a56c6611fe092fdb546466d44313ff8967bca35f4781e"
     end
   end
 
   on_linux do
-    url "https://github.com/snapetech/slskdn/releases/download/2026071721-slskdn.283/slskdn-main-linux-glibc-x64.zip"
-    sha256 "83a31ebfc4c2aa883f48daf0825043006bfde17619405b5a704421aa23ea9bd2"
+    url "https://github.com/snapetech/slskdn/releases/download/2026071723-slskdn.284/slskdn-main-linux-glibc-x64.zip"
+    sha256 "ba1f73a1a304c38cf09e6a8b892138b6e32d8640b5f814a536b3738ee644b1f9"
   end
 
   def install
