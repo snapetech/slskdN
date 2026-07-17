@@ -95,60 +95,73 @@ namespace slskd.Transfers
         {
             using var context = ContextFactory.CreateDbContext();
             var now = DateTime.UtcNow;
-            var activeTransfers = context.Transfers
-                .AsNoTracking()
-                .Where(transfer => !transfer.Removed && transfer.State == TransferStates.InProgress)
-                .Select(transfer => new
-                {
-                    transfer.AverageSpeed,
-                    transfer.BytesTransferred,
-                    transfer.Direction,
-                    transfer.StartedAt,
-                })
-                .ToList();
-            var byteTotals = context.Transfers
+            var directionTotals = context.Transfers
                 .AsNoTracking()
                 .GroupBy(transfer => transfer.Direction)
                 .Select(group => new
                 {
                     Direction = group.Key,
                     BytesTransferred = group.Sum(transfer => transfer.BytesTransferred),
+                    RecordedSpeed = group.Sum(transfer =>
+                        !transfer.Removed &&
+                        transfer.State == TransferStates.InProgress &&
+                        transfer.AverageSpeed > 0
+                            ? transfer.AverageSpeed
+                            : 0),
                 })
                 .ToList();
 
-            double GetLiveSpeed(double averageSpeed, long bytesTransferred, DateTime? startedAt)
+            double downloadSpeed = 0;
+            double uploadSpeed = 0;
+            long downloadedBytes = 0;
+            long uploadedBytes = 0;
+            foreach (var total in directionTotals)
             {
-                if (averageSpeed > 0)
+                if (total.Direction == TransferDirection.Download)
                 {
-                    return averageSpeed;
+                    downloadSpeed = total.RecordedSpeed;
+                    downloadedBytes = total.BytesTransferred;
                 }
-
-                var elapsed = startedAt.HasValue ? now - startedAt.Value : TimeSpan.Zero;
-                return elapsed.TotalSeconds > 0 && bytesTransferred > 0
-                    ? bytesTransferred / elapsed.TotalSeconds
-                    : 0;
+                else if (total.Direction == TransferDirection.Upload)
+                {
+                    uploadSpeed = total.RecordedSpeed;
+                    uploadedBytes = total.BytesTransferred;
+                }
             }
 
-            var downloadSpeed = activeTransfers
-                .Where(transfer => transfer.Direction == TransferDirection.Download)
-                .Sum(transfer => GetLiveSpeed(
-                    transfer.AverageSpeed,
+            var fallbackTransfers = context.Transfers
+                .AsNoTracking()
+                .Where(transfer =>
+                    !transfer.Removed &&
+                    transfer.State == TransferStates.InProgress &&
+                    !(transfer.AverageSpeed > 0) &&
+                    transfer.BytesTransferred > 0 &&
+                    transfer.StartedAt.HasValue)
+                .Select(transfer => new
+                {
                     transfer.BytesTransferred,
-                    transfer.StartedAt));
-            var uploadSpeed = activeTransfers
-                .Where(transfer => transfer.Direction == TransferDirection.Upload)
-                .Sum(transfer => GetLiveSpeed(
-                    transfer.AverageSpeed,
-                    transfer.BytesTransferred,
-                    transfer.StartedAt));
-            var downloadedBytes = byteTotals
-                .Where(total => total.Direction == TransferDirection.Download)
-                .Select(total => total.BytesTransferred)
-                .SingleOrDefault();
-            var uploadedBytes = byteTotals
-                .Where(total => total.Direction == TransferDirection.Upload)
-                .Select(total => total.BytesTransferred)
-                .SingleOrDefault();
+                    transfer.Direction,
+                    transfer.StartedAt,
+                });
+
+            foreach (var transfer in fallbackTransfers)
+            {
+                var elapsed = now - transfer.StartedAt!.Value;
+                if (elapsed.TotalSeconds <= 0)
+                {
+                    continue;
+                }
+
+                var fallbackSpeed = transfer.BytesTransferred / elapsed.TotalSeconds;
+                if (transfer.Direction == TransferDirection.Download)
+                {
+                    downloadSpeed += fallbackSpeed;
+                }
+                else if (transfer.Direction == TransferDirection.Upload)
+                {
+                    uploadSpeed += fallbackSpeed;
+                }
+            }
 
             return (downloadSpeed, uploadSpeed, downloadedBytes, uploadedBytes);
         }

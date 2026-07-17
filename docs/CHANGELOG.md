@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Transfer speed snapshots now compute retained directional bytes and positive
+  recorded live speeds in one SQL grouping query, then stream only active rows
+  that require elapsed-time fallback in the unchanged second query. A warmed
+  snapshot over 10,000 active transfers with recorded speeds falls from
+  3,207,376 to 77,448 allocated bytes (97.6%); application-side memory now
+  scales with fallback rows rather than all active transfers. Positive-speed
+  precedence, zero/non-positive elapsed fallback, one captured timestamp,
+  removed/completed live-speed exclusion, retained-byte inclusion, directional
+  totals, the two-query contract, and narrow projections remain unchanged.
 - Audio dedupe grouping now indexes the normalized sketch and rounded duration
   as a structured key instead of formatting a new composite string for every
   variant. For 10,000 variants across 100 audio groups and 10 streams per

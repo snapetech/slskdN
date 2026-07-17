@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound transfer speed snapshot materialization.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `TransferService.GetSpeedSnapshot` now folds positive recorded live speeds into the existing retained-byte SQL grouping query and streams only active rows whose non-positive recorded speed, positive transferred bytes, and available start time require elapsed-time fallback. It no longer materializes every active projection and scan that list once per direction; the database-command count remains two. For 10,000 active transfers with recorded speeds, warmed snapshot allocation falls from 3,207,376 to 77,448 bytes (97.6%), and application-side memory now scales with fallback rows rather than all active rows. Exact positive-speed precedence, captured-time fallback arithmetic, future/missing-start and non-positive-byte zero behavior, removed/completed live-speed exclusion, retained-byte inclusion, directional totals, and narrow database projections remain unchanged. Added wide allocation coverage and strengthened state/filter semantics. Validation passed: focused transfer service (`7/7`), broader transfers (`276/276`), full backend suites (`5113/5113`: `69` application, `4764` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Remove per-variant formatted audio dedupe group keys.
   - Status: completed (2026-07-17)
   - Priority: P1

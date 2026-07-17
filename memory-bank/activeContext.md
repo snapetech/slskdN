@@ -1,3 +1,17 @@
+## Update 2026-07-17 03:32:24Z
+
+- Current task: performance and efficiency improvements in progress; bounded transfer speed snapshots complete locally.
+- Last activity:
+  - Combined positive recorded speeds with retained directional bytes in one SQL aggregate and streamed only rows requiring captured-time fallback through the second query.
+  - A 10,000-active-transfer recorded-speed fixture falls from 3,207,376 to 77,448 warmed allocated bytes (97.6%).
+- Validation:
+  - Passed transfer service (`7/7`), broader transfers (`276/276`), and full backend suites (`5113/5113`: `69` application, `4764` unit, `280` integration) tests.
+  - Exact speed precedence/fallback, state/removal filtering, retained bytes, direction handling, two-command query shape, allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the bounded transfer speed snapshot slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 03:20:08Z
 
 - Current task: performance and efficiency improvements in progress; structured audio dedupe group keys complete locally.

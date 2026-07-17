@@ -1,3 +1,12 @@
+## Update 2026-07-17 03:32:24Z
+
+- Completed SQL-aggregated, fallback-streamed transfer speed snapshots.
+- Moved positive recorded speeds into the retained-byte direction aggregate and restricted the second unchanged query slot to rows requiring elapsed-time fallback.
+- Reduced a warmed 10,000-active-transfer recorded-speed snapshot from 3,207,376 to 77,448 allocated bytes (97.6%); application memory now scales with fallback rows rather than all active rows.
+- Preserved positive-speed precedence, captured-time fallback arithmetic, removed/completed live-speed exclusion, retained-byte inclusion, directional results, two database commands, and narrow projections.
+- Added allocation coverage and strengthened filter semantics; passed transfer service (`7/7`), broader transfers (`276/276`), and full backend (`5113/5113`: `69` application, `4764` unit, `280` integration) tests.
+- Passed repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 03:20:08Z
 
 - Completed allocation-bounded audio dedupe group indexing.

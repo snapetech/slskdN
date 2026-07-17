@@ -7,6 +7,7 @@ namespace slskd.Tests.Unit.Transfers;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
@@ -20,6 +21,7 @@ using Soulseek;
 using Xunit;
 using SlskdTransfer = slskd.Transfers.Transfer;
 
+[Collection(AllocationTestCollection.Name)]
 public sealed class TransferServiceTests
 {
     [Fact]
@@ -54,6 +56,12 @@ public sealed class TransferServiceTests
                     bytesTransferred: 30_000,
                     removed: true),
                 CreateTransfer(
+                    TransferDirection.Download,
+                    TransferStates.InProgress,
+                    bytesTransferred: 7_000,
+                    averageSpeed: 100_000,
+                    removed: true),
+                CreateTransfer(
                     TransferDirection.Upload,
                     TransferStates.InProgress,
                     bytesTransferred: 4_000,
@@ -61,7 +69,8 @@ public sealed class TransferServiceTests
                 CreateTransfer(
                     TransferDirection.Upload,
                     TransferStates.Completed | TransferStates.Succeeded,
-                    bytesTransferred: 50_000));
+                    bytesTransferred: 50_000,
+                    averageSpeed: 100_000));
             context.SaveChanges();
         }
         commandCapture.Commands.Clear();
@@ -79,13 +88,54 @@ public sealed class TransferServiceTests
 
         Assert.InRange(snapshot.DownloadSpeed, minimumDownloadSpeed - 1, maximumDownloadSpeed + 1);
         Assert.Equal(3_000, snapshot.UploadSpeed);
-        Assert.Equal(51_000, snapshot.DownloadedBytes);
+        Assert.Equal(58_000, snapshot.DownloadedBytes);
         Assert.Equal(54_000, snapshot.UploadedBytes);
         Assert.Equal(2, commandCapture.Commands.Count);
         Assert.Contains(commandCapture.Commands, command =>
             command.Contains("GROUP BY", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(commandCapture.Commands, command =>
             command.Contains("Filename", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void GetSpeedSnapshot_WideActiveSetHasBoundedAllocation()
+    {
+        const int transferCount = 10_000;
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        connection.Open();
+        var options = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        var contextFactory = new TestDbContextFactory(options);
+        using (var context = contextFactory.CreateDbContext())
+        {
+            context.Database.EnsureCreated();
+            context.Transfers.AddRange(Enumerable.Range(0, transferCount).Select(index =>
+                CreateTransfer(
+                    index % 2 == 0 ? TransferDirection.Download : TransferDirection.Upload,
+                    TransferStates.InProgress,
+                    bytesTransferred: 1_000,
+                    averageSpeed: index % 2 == 0 ? 1_000 : 2_000)));
+            context.SaveChanges();
+        }
+
+        var service = new TransferService(
+            Mock.Of<IUploadService>(),
+            Mock.Of<IDownloadService>(),
+            contextFactory);
+        _ = service.GetSpeedSnapshot();
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var snapshot = service.GetSpeedSnapshot();
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(5_000_000, snapshot.DownloadSpeed);
+        Assert.Equal(10_000_000, snapshot.UploadSpeed);
+        Assert.Equal(5_000_000, snapshot.DownloadedBytes);
+        Assert.Equal(5_000_000, snapshot.UploadedBytes);
+        Assert.True(
+            allocatedBytes < 100_000,
+            $"Expected transfer speed snapshot below 100 KB allocated, got {allocatedBytes:N0} bytes.");
     }
 
     [Fact]
