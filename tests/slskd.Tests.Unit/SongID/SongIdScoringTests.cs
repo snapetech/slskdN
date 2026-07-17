@@ -157,6 +157,104 @@ public sealed class SongIdScoringTests
     }
 
     [Fact]
+    public void ApplyCorpusReranking_PreservesDirectMatchPrecedenceAndFuzzyBoosts()
+    {
+        var run = new SongIdRun
+        {
+            Tracks = new List<SongIdTrackCandidate>
+            {
+                new()
+                {
+                    RecordingId = "rec-direct",
+                    Artist = "Exact Artist",
+                    Title = "Exact Title",
+                },
+            },
+            Albums = new List<SongIdAlbumCandidate>
+            {
+                new()
+                {
+                    Artist = "Exact Artist",
+                    Title = "Different Album",
+                },
+            },
+            Artists = new List<SongIdArtistCandidate>
+            {
+                new() { Name = "Exact Artist" },
+            },
+            CorpusMatches = new List<SongIdCorpusMatch>
+            {
+                new()
+                {
+                    RecordingId = "rec-direct",
+                    Artist = "Different Artist",
+                    Title = "Different Title",
+                    SimilarityScore = 0.40,
+                },
+                new()
+                {
+                    RecordingId = "rec-fuzzy",
+                    Artist = "Exact Artist",
+                    Title = "Exact Title",
+                    SimilarityScore = 0.99,
+                },
+            },
+        };
+
+        SongIdScoring.ApplyCorpusReranking(run);
+
+        Assert.Equal(0.40 * 0.18, run.Tracks[0].ActionScore, precision: 10);
+        Assert.Equal(0.75 * 0.14, run.Albums[0].ActionScore, precision: 10);
+        Assert.Equal(0.12, run.Artists[0].ActionScore, precision: 10);
+    }
+
+    [Fact]
+    public void ApplyCorpusReranking_RepeatedLabelsHaveBoundedAllocation()
+    {
+        const int candidateCount = 1_000;
+        var run = new SongIdRun
+        {
+            Tracks = Enumerable.Range(0, candidateCount)
+                .Select(index => new SongIdTrackCandidate
+                {
+                    RecordingId = $"candidate-{index}",
+                    Artist = "Artist feat. Guest",
+                    Title = "The Example & Song",
+                })
+                .ToList(),
+            CorpusMatches = Enumerable.Range(0, 5)
+                .Select(index => new SongIdCorpusMatch
+                {
+                    RecordingId = $"corpus-{index}",
+                    Artist = "Artist featuring Guest",
+                    Title = "The Example and Song",
+                    SimilarityScore = 0.90,
+                })
+                .ToList(),
+        };
+        SongIdScoring.ApplyCorpusReranking(new SongIdRun
+        {
+            Tracks = new List<SongIdTrackCandidate>
+            {
+                new() { RecordingId = "warm", Artist = "Warm Artist", Title = "Warm Title" },
+            },
+            CorpusMatches = new List<SongIdCorpusMatch>
+            {
+                new() { RecordingId = "other", Artist = "Warm Artist", Title = "Warm Title" },
+            },
+        });
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        SongIdScoring.ApplyCorpusReranking(run);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.All(run.Tracks, track => Assert.Equal(0.18, track.ActionScore, precision: 10));
+        Assert.True(
+            allocatedBytes < 640_000,
+            $"Expected corpus reranking allocation below 640 KB, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
     public void ComputeTrackSearchQualityScore_ReflectsCanonicalBoost()
     {
         var track = new SongIdTrackCandidate

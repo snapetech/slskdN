@@ -1,3 +1,17 @@
+## Update 2026-07-17 01:36:57Z
+
+- Current task: performance and efficiency improvements in progress; normalized-label SongID corpus reranking complete locally.
+- Last activity:
+  - Prepared the capped corpus scoring data once, reused normalized corpus labels, normalized each fuzzy candidate field once, and replaced per-candidate LINQ scans with direct loops.
+  - A 1,000-track/five-match repeated-label fixture falls from 3,933,352 to 454,848 warmed allocated bytes (88.4%).
+- Validation:
+  - Passed complete scoring (`60/60`), broader SongID (`104/104`), and full backend suites (`5085/5085`: `69` application, `4736` unit, `280` integration) tests.
+  - Exact direct-match precedence, fuzzy fallback and formulas, normalization, clamping, ordering, allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the SongID corpus-reranking slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 01:25:56Z
 
 - Current task: performance and efficiency improvements in progress; streaming bounded SongID repeated-line scoring complete locally.

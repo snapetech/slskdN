@@ -372,9 +372,11 @@ internal static class SongIdScoring
             return;
         }
 
+        var corpusMatches = BuildCorpusMatchScoring(run.CorpusMatches);
+
         foreach (var track in run.Tracks)
         {
-            var boost = GetTrackCorpusBoost(track, run.CorpusMatches);
+            var boost = GetTrackCorpusBoost(track, corpusMatches);
             if (boost <= 0)
             {
                 continue;
@@ -387,7 +389,7 @@ internal static class SongIdScoring
 
         foreach (var album in run.Albums)
         {
-            var boost = GetAlbumCorpusBoost(album, run.CorpusMatches);
+            var boost = GetAlbumCorpusBoost(album, corpusMatches);
             if (boost <= 0)
             {
                 continue;
@@ -400,7 +402,7 @@ internal static class SongIdScoring
 
         foreach (var artist in run.Artists)
         {
-            var boost = GetArtistCorpusBoost(artist, run.CorpusMatches);
+            var boost = GetArtistCorpusBoost(artist, corpusMatches);
             if (boost <= 0)
             {
                 continue;
@@ -443,7 +445,12 @@ internal static class SongIdScoring
     {
         var normalizedLeft = NormalizeLooseText(left);
         var normalizedRight = NormalizeLooseText(right);
-        if (string.IsNullOrWhiteSpace(normalizedLeft) || string.IsNullOrWhiteSpace(normalizedRight))
+        return CompareNormalizedLooseText(normalizedLeft, normalizedRight);
+    }
+
+    private static double CompareNormalizedLooseText(string normalizedLeft, string normalizedRight)
+    {
+        if (normalizedLeft.Length == 0 || normalizedRight.Length == 0)
         {
             return 0;
         }
@@ -581,50 +588,84 @@ internal static class SongIdScoring
         };
     }
 
-    private static double GetTrackCorpusBoost(SongIdTrackCandidate track, IReadOnlyCollection<SongIdCorpusMatch> matches)
+    private static CorpusMatchScoring[] BuildCorpusMatchScoring(IReadOnlyCollection<SongIdCorpusMatch> matches)
     {
-        var directMatch = matches
-            .Where(match => !string.IsNullOrWhiteSpace(match.RecordingId) &&
+        var scoringMatches = new CorpusMatchScoring[matches.Count];
+        var index = 0;
+        foreach (var match in matches)
+        {
+            scoringMatches[index++] = new CorpusMatchScoring(
+                match.RecordingId,
+                NormalizeLooseText(match.Artist),
+                NormalizeLooseText(match.Title),
+                match.SimilarityScore);
+        }
+
+        return scoringMatches;
+    }
+
+    private static double GetTrackCorpusBoost(SongIdTrackCandidate track, CorpusMatchScoring[] matches)
+    {
+        var directMatch = 0.0;
+        foreach (var match in matches)
+        {
+            if (!string.IsNullOrWhiteSpace(match.RecordingId) &&
                 string.Equals(match.RecordingId, track.RecordingId, StringComparison.OrdinalIgnoreCase))
-            .Select(match => match.SimilarityScore)
-            .DefaultIfEmpty(0)
-            .Max();
+            {
+                directMatch = Math.Max(directMatch, match.SimilarityScore);
+            }
+        }
+
         if (directMatch > 0)
         {
             return directMatch;
         }
 
-        return matches
-            .Select(match =>
-            {
-                var titleSimilarity = CompareLooseText(track.Title, match.Title);
-                var artistSimilarity = CompareLooseText(track.Artist, match.Artist);
-                return (titleSimilarity * 0.65) + (artistSimilarity * 0.35);
-            })
-            .DefaultIfEmpty(0)
-            .Max();
+        var normalizedTitle = NormalizeLooseText(track.Title);
+        var normalizedArtist = NormalizeLooseText(track.Artist);
+        var fuzzyMatch = 0.0;
+        foreach (var match in matches)
+        {
+            var titleSimilarity = CompareNormalizedLooseText(normalizedTitle, match.NormalizedTitle);
+            var artistSimilarity = CompareNormalizedLooseText(normalizedArtist, match.NormalizedArtist);
+            fuzzyMatch = Math.Max(fuzzyMatch, (titleSimilarity * 0.65) + (artistSimilarity * 0.35));
+        }
+
+        return fuzzyMatch;
     }
 
-    private static double GetAlbumCorpusBoost(SongIdAlbumCandidate album, IReadOnlyCollection<SongIdCorpusMatch> matches)
+    private static double GetAlbumCorpusBoost(SongIdAlbumCandidate album, CorpusMatchScoring[] matches)
     {
-        return matches
-            .Select(match =>
-            {
-                var artistSimilarity = CompareLooseText(album.Artist, match.Artist);
-                var titleSimilarity = CompareLooseText(album.Title, match.Title);
-                return Math.Max(artistSimilarity * 0.75, titleSimilarity * 0.55);
-            })
-            .DefaultIfEmpty(0)
-            .Max();
+        var normalizedArtist = NormalizeLooseText(album.Artist);
+        var normalizedTitle = NormalizeLooseText(album.Title);
+        var fuzzyMatch = 0.0;
+        foreach (var match in matches)
+        {
+            var artistSimilarity = CompareNormalizedLooseText(normalizedArtist, match.NormalizedArtist);
+            var titleSimilarity = CompareNormalizedLooseText(normalizedTitle, match.NormalizedTitle);
+            fuzzyMatch = Math.Max(fuzzyMatch, Math.Max(artistSimilarity * 0.75, titleSimilarity * 0.55));
+        }
+
+        return fuzzyMatch;
     }
 
-    private static double GetArtistCorpusBoost(SongIdArtistCandidate artist, IReadOnlyCollection<SongIdCorpusMatch> matches)
+    private static double GetArtistCorpusBoost(SongIdArtistCandidate artist, CorpusMatchScoring[] matches)
     {
-        return matches
-            .Select(match => CompareLooseText(artist.Name, match.Artist))
-            .DefaultIfEmpty(0)
-            .Max();
+        var normalizedName = NormalizeLooseText(artist.Name);
+        var fuzzyMatch = 0.0;
+        foreach (var match in matches)
+        {
+            fuzzyMatch = Math.Max(fuzzyMatch, CompareNormalizedLooseText(normalizedName, match.NormalizedArtist));
+        }
+
+        return fuzzyMatch;
     }
+
+    private readonly record struct CorpusMatchScoring(
+        string? RecordingId,
+        string NormalizedArtist,
+        string NormalizedTitle,
+        double SimilarityScore);
 
     private static SongIdForensicLane BuildIdentityLane(SongIdRun run)
     {

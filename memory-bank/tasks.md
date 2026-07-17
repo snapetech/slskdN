@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Reuse normalized labels during SongID corpus reranking.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `SongIdScoring.ApplyCorpusReranking` now builds one compact scoring array for the capped corpus matches, normalizes each corpus artist/title once, normalizes each track/album/artist field once only when fuzzy scoring is needed, and uses direct loops instead of allocating LINQ pipelines for every candidate. For 1,000 fuzzy track candidates and five repeated-label corpus matches, warmed allocation falls from 3,933,352 to 454,848 bytes (88.4%). Exact case-insensitive recording-ID matching, highest positive direct-score precedence over stronger fuzzy matches, zero/non-positive direct fallback, loose-text normalization and token-set scoring, track/album/artist formulas, clamping, and ordering remain unchanged. Added direct-precedence/fuzzy-formula compatibility and representative allocation regressions. Validation passed: complete scoring (`60/60`), broader SongID (`104/104`), full backend suites (`5085/5085`: `69` application, `4736` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Stream and bound SongID repeated-line scoring.
   - Status: completed (2026-07-17)
   - Priority: P1

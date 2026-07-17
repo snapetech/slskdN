@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- SongID corpus reranking now prepares the capped corpus matches once, reuses
+  their normalized artist/title labels across track, album, and artist scoring,
+  and normalizes each candidate label once before direct scoring scans. This
+  replaces per-candidate LINQ iterator/closure pipelines and up to five repeated
+  normalizations of each candidate field. For 1,000 fuzzy track candidates and
+  five repeated-label corpus matches, warmed allocation falls from 3,933,352 to
+  454,848 bytes (88.4%). Recording-ID direct-match precedence, highest direct
+  similarity selection, zero-score fuzzy fallback, loose-text normalization and
+  token similarity, track/album/artist weight formulas, score clamping, and
+  final ordering remain unchanged.
 - SongID repeated-line scoring now scans CR/LF-delimited ranges directly,
   applies the existing trim and loose-text normalization contract, and updates
   normalized occurrence counts online instead of retaining split arrays, a

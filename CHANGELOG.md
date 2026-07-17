@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- SongID corpus reranking now normalizes each corpus and candidate label once
+  per run and scores candidates through direct scans instead of repeated LINQ
+  pipelines and repeated normalization.
 - SongID repeated-line scoring now streams trimmed lines, bounds exact-line
   normalization reuse, and aggregates normalized occurrences online.
 - SongID synthetic transcript cue counts now use count-only regex execution

@@ -1,3 +1,12 @@
+## Update 2026-07-17 01:36:57Z
+
+- Completed normalized-label reuse and direct scanning for SongID corpus reranking.
+- Prepared the capped corpus matches once and normalized every corpus/candidate label once per rerank instead of once per candidate-match comparison; removed the per-candidate LINQ iterator and closure pipelines.
+- Reduced warmed allocation for 1,000 fuzzy track candidates against five repeated-label matches from 3,933,352 to 454,848 bytes (88.4%).
+- Preserved direct recording-ID precedence, maximum direct-score selection, fuzzy fallback, loose-text semantics, all track/album/artist boost formulas, clamping, and final ordering.
+- Added semantic and allocation regressions; passed complete scoring (`60/60`), broader SongID (`104/104`), and full backend (`5085/5085`: `69` application, `4736` unit, `280` integration) tests.
+- Passed repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 01:25:56Z
 
 - Completed streaming, bounded SongID repeated-line scoring.
