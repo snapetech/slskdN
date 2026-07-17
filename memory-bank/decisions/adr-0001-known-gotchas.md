@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z743. Zero-Copy Normalized Hashing Can Lose To Runtime String Hashing
+
+**The Bug**: Replacing cross-provider search aggregation's allocated ASCII
+slash/trim normalization with per-character normalized comparison and
+`HashCode.Add` hashing reduced a 10,000-result merge from 3,153,504 to
+1,473,504 allocated bytes (53.3%), but made it take 10 ms instead of 4 ms
+(2.5x slower).
+
+**Files Affected**:
+- `src/slskd/Search/Providers/SearchAggregator.cs`
+
+**Prevention**: Measure CPU as well as allocation before replacing normalized
+string dictionary keys with a custom character-by-character comparer. The
+runtime's optimized ordinal-ignore-case string hash can outweigh the garbage
+collector cost of short-lived normalization strings. Retain the allocating
+path when it is faster, or use a proven vectorized/span hash that preserves
+randomized hashing and exact legacy normalization before reconsidering the
+change.
+
 ### 0z742. Upload Queue Fixtures Must Set The Strategy They Assert
 
 **The Bug**: A wide upload-queue benchmark assigned descending `Enqueued`
