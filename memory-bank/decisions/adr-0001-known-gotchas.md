@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z768. Security-Fixed Transitive Dependencies Need An Explicit Floor
+
+**The Bug**: `dotNetRDF` allowed NuGet to resolve a vulnerable AngleSharp
+version transitively. The application had no direct AngleSharp reference, so a
+repository-wide text search did not reveal the runtime dependency even though
+Dependabot correctly attributed it to the application project.
+
+**Files Affected**:
+- `src/slskd/slskd.csproj`
+
+**Prevention**: For a transitive advisory whose parent package has not raised
+its minimum, add an explicit direct package reference at the first patched
+version. Verify the graph with `dotnet nuget why` and `dotnet list package
+--include-transitive`, then run the consuming subsystem and complete test suite.
+Do not assume the absence of source-level API calls or a text-search hit means
+the vulnerable runtime assembly is absent.
+
 ### 0z767. COPR Automation Must Prefer Configured API Tokens Over GSSAPI
 
 **The Bug**: The COPR workflow preferred Fedora password-and-OTP GSSAPI whenever
