@@ -52,6 +52,20 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z747. CanaryRecord Fixtures Must Set FullHash
+
+**The Bug**: A full-capacity canary eviction fixture initialized each
+`CanaryRecord` without its required `FullHash` member, causing CS9035 and
+preventing the unit-test project from compiling.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Common/Security/CanaryTrapsTests.cs`
+
+**Prevention**: When constructing `CanaryRecord` directly in tests, set every
+required member, including `CanaryId`, `Username`, `Filename`, `CreatedAt`, and
+`FullHash`. Do not infer the required-member set from the fields used by the
+specific method under test.
+
 ### 0z746. Manual Stable List Sorts Can Lose To LINQ's Key Sort
 
 **The Bug**: Replacing peer-cost projection plus LINQ `OrderBy` with a
