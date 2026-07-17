@@ -186,17 +186,9 @@ namespace slskd
 
             Flags = Program.Flags;
 
-            var regexOptions = RegexOptions.Compiled;
-
-            if (!Flags.CaseSensitiveRegEx)
-            {
-                regexOptions |= RegexOptions.IgnoreCase;
-            }
-
-            CompiledSearchRequestFilters = OptionsAtStartup.Filters.Search.Request
-                .Select(f => new Regex(f, regexOptions, SearchRequestFilterMatchTimeout))
-                .ToList()
-                .AsReadOnly();
+            CompiledSearchRequestFilters = CompileSearchRequestFilters(
+                OptionsAtStartup.Filters.Search.Request,
+                Flags.CaseSensitiveRegEx);
 
             State = state;
             RegisterChange(State.OnChange(state => State_OnChange(state)));
@@ -780,6 +772,23 @@ namespace slskd
                 searchResponseCache: new SearchResponseCache(),
                 searchResponseResolver: searchResponseResolver,
                 placeInQueueResolver: placeInQueueResolver);
+        }
+
+        internal static IReadOnlyList<Regex> CompileSearchRequestFilters(
+            IEnumerable<string> filters,
+            bool caseSensitive)
+        {
+            var regexOptions = RegexOptions.Compiled;
+
+            if (!caseSensitive)
+            {
+                regexOptions |= RegexOptions.IgnoreCase;
+            }
+
+            return filters
+                .Select(f => new Regex(f, regexOptions, SearchRequestFilterMatchTimeout))
+                .ToList()
+                .AsReadOnly();
         }
 
         private static UserEndPointCache CreateUserEndPointCache()
@@ -2242,10 +2251,9 @@ namespace slskd
                 if (PreviousOptions.Filters.Search.Request.Except(newOptions.Filters.Search.Request).Any()
                     || newOptions.Filters.Search.Request.Except(PreviousOptions.Filters.Search.Request).Any())
                 {
-                    CompiledSearchRequestFilters = newOptions.Filters.Search.Request
-                        .Select(f => new Regex(f, RegexOptions.Compiled, SearchRequestFilterMatchTimeout))
-                        .ToList()
-                        .AsReadOnly();
+                    CompiledSearchRequestFilters = CompileSearchRequestFilters(
+                        newOptions.Filters.Search.Request,
+                        Flags.CaseSensitiveRegEx);
 
                     Log.Information("Updated and re-compiled search response filters");
                 }
