@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z728. Interface-Typed List Enumeration Boxes Once Per Loop
+
+**The Bug**: A shared reputation-score helper accepted
+`IReadOnlyList<PeerReputationEvent>` even though every caller held a concrete
+`List<PeerReputationEvent>`. Its `foreach` therefore used the interface
+enumerator and boxed once per peer, adding about 40,000 bytes to a 1,000-peer
+statistics snapshot.
+
+**Files Affected**:
+- `src/slskd/Common/Moderation/PeerReputationStore.cs`
+- `tests/slskd.Tests.Unit/Common/Moderation/PeerReputationStoreTests.cs`
+
+**Prevention**: Keep hot private helpers concrete when their ownership boundary
+already guarantees `List<T>`, or iterate an `IReadOnlyList<T>` by index when the
+abstraction is required. A `foreach` over `List<T>` uses its struct enumerator;
+the same loop through an enumerable/list interface can allocate a boxed
+enumerator on every invocation. Measure helper extraction independently instead
+of assuming a narrower public-looking signature is allocation-neutral.
+
 ### 0z727. Span `IndexOf` Overloads Do Not Accept `StringComparison` Through Instance Syntax
 
 **The Bug**: An allocation-free lowercase search called
