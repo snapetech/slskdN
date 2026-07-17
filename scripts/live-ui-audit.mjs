@@ -230,12 +230,14 @@ for (let index = 0; index < routeQueue.length; index += 1) {
           const menuBounds = menu.getBoundingClientRect();
           const viewportStart = menuBounds.left + menu.clientLeft;
           const viewportEnd = viewportStart + menu.clientWidth;
+          const visibilityTolerance = 1;
           return {
             activeText: (activeItem.textContent ?? '').replaceAll(/\s+/gu, ' ').trim(),
             activeEnd: activeBounds.right,
             activeStart: activeBounds.left,
             activeVisible:
-              activeBounds.left >= viewportStart && activeBounds.right <= viewportEnd,
+              activeBounds.left >= viewportStart - visibilityTolerance &&
+              activeBounds.right <= viewportEnd + visibilityTolerance,
             clientWidth: menu.clientWidth,
             scrollLeft: menu.scrollLeft,
             scrollWidth: menu.scrollWidth,
