@@ -52,6 +52,44 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z763. Timed Stream Tests Must Dispose Leases On Assertion Failure
+
+**The Bug**: A mesh hash-mismatch test kept its stream lease alive until after
+the read and assertions. Under a loaded hosted suite, the five-second read
+deadline fired before the background pipe producer completed. The exception
+skipped stream disposal, leaving the linked cancellation source and pipe work
+alive long enough to prevent the test process from terminating normally.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Streaming/MeshStreamServiceTests.cs`
+- `tests/slskd.Tests.Unit/Streaming/PeerStreamServiceTests.cs`
+
+**Prevention**: Put every returned stream lease in `await using` immediately so
+timeouts and failed assertions still cancel and dispose background producers.
+Use a scoped `await using (...)` block when later assertions verify disposal
+side effects; an `await using var` declaration does not dispose until method
+exit, so verification inside that method otherwise runs too early.
+Give asynchronous producer/consumer tests loaded-suite deadline headroom while
+keeping a finite bound. A timeout is test cleanup, not the primary assertion;
+the expected EOF and zero-byte assertions must still prove the contract.
+
+### 0z762. Preserve-Status Timeouts Can Report Expiry As Success
+
+**The Bug**: The release gate wrapped commands with `timeout --preserve-status`.
+When a failing `dotnet test` process reached the 1,800-second deadline, it
+handled termination and exited with status zero after printing MSBuild child
+node errors. GNU `timeout` preserved that zero status, so the release gate
+continued and published from a unit suite that had logged a failure.
+
+**Files Affected**:
+- `packaging/scripts/run-release-gate.sh`
+- `packaging/scripts/validate-packaging-metadata.sh`
+
+**Prevention**: Release gates must use timeout's own exit status so expiry is
+unconditionally reported as 124, regardless of how the child handles TERM.
+Never use `--preserve-status` for pass/fail gates. Cover the wrapper with a
+command that traps TERM and exits zero, proving timeout still fails the gate.
+
 ### 0z761. Allocation Ceilings Must Allow Loaded-Suite Runtime Overhead
 
 **The Bug**: A metadata source-selection regression used a 4 KiB allocation
