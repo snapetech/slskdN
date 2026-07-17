@@ -1,3 +1,17 @@
+## Update 2026-07-17 16:50:07Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded Tor isolation credentials complete locally.
+- Last activity:
+  - Replaced password concatenation, disposable SHA, input/digest arrays, full dashed hex strings, replacement, substring, lowercase, and username concatenation intermediates with bounded stack/cleared-pool encoding, fixed-span hashing, and exact lowercase output formatting.
+  - Across 100,000 calls, username allocation falls from 84,001,056 to 6,400,608 bytes (92.4%) and elapsed time falls from 106 to 43 ms (59.4%); password allocation falls from 86,400,488 to 5,600,040 bytes (93.5%) and elapsed time falls from 106 to 42 ms (60.4%).
+- Validation:
+  - Passed complete Tor transport (`27/27`), broader Mesh transport (`263/263`), and backend validation (`5274/5274`: `69` application, `4925` unit, `280` integration), plus repository lint.
+  - Exact hash/prefix/suffix/case/empty/Unicode/long-input behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Network and circuit selection are unchanged; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the Tor credential optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 16:38:09Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded shared SHA string hashing complete locally.

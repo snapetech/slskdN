@@ -2,6 +2,8 @@
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Logging;
 using Moq;
 using slskd.Common.Security;
@@ -9,6 +11,7 @@ using Xunit;
 
 namespace slskd.Tests.Unit.Mesh.Transport;
 
+[Collection(AllocationTestCollection.Name)]
 public class TorSocksTransportTests : IDisposable
 {
     private readonly Mock<ILogger<TorSocksTransport>> _loggerMock;
@@ -27,6 +30,70 @@ public class TorSocksTransportTests : IDisposable
     public void Dispose()
     {
         // Cleanup if needed
+    }
+
+    [Fact]
+    public void GenerateIsolationUsername_RepeatedTypicalKeyBoundsAllocation()
+    {
+        _ = TorSocksTransport.GenerateIsolationUsername("peer:overlay:alpha");
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        string? result = null;
+        for (var index = 0; index < 100_000; index++)
+        {
+            result = TorSocksTransport.GenerateIsolationUsername("peer:overlay:alpha");
+        }
+
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal("tor-862e7fb0cb94a411", result);
+        Assert.InRange(allocated, 0, 7_200_000);
+    }
+
+    [Fact]
+    public void GenerateIsolationPassword_RepeatedTypicalKeyBoundsAllocation()
+    {
+        _ = TorSocksTransport.GenerateIsolationPassword("peer:overlay:alpha");
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        string? result = null;
+        for (var index = 0; index < 100_000; index++)
+        {
+            result = TorSocksTransport.GenerateIsolationPassword("peer:overlay:alpha");
+        }
+
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal("e3ad803cf2a6ea31", result);
+        Assert.InRange(allocated, 0, 6_300_000);
+    }
+
+    [Fact]
+    public void IsolationCredentials_PreserveExactHashPrefixesAndLongUnicode()
+    {
+        var keys = new[]
+        {
+            string.Empty,
+            "Peer:Overlay:Alpha",
+            new string('É', 600) + "🎵",
+        };
+
+        foreach (var key in keys)
+        {
+            var expectedUsernameHash = SHA256.HashData(Encoding.UTF8.GetBytes(key));
+            var expectedPasswordHash = SHA256.HashData(Encoding.UTF8.GetBytes(key + "-password"));
+
+            Assert.Equal(
+                $"tor-{Convert.ToHexStringLower(expectedUsernameHash)[..16]}",
+                TorSocksTransport.GenerateIsolationUsername(key));
+            Assert.Equal(
+                Convert.ToHexStringLower(expectedPasswordHash)[..16],
+                TorSocksTransport.GenerateIsolationPassword(key));
+        }
     }
 
     [Fact]

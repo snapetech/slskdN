@@ -22,6 +22,17 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Tor stream-isolation credential generation now UTF-8 encodes the isolation
+  key and password suffix directly into bounded stack or cleared pooled storage,
+  hashes into a fixed SHA-256 span, and writes only the required eight-byte
+  lowercase prefix into the exact username/password character span. Across
+  100,000 calls, username allocation falls from 84,001,056 to 6,400,608 bytes
+  (92.4%) and elapsed time falls from 106 to 43 ms (59.4%); password allocation
+  falls from 86,400,488 to 5,600,040 bytes (93.5%) and elapsed time falls from
+  106 to 42 ms (60.4%). Deterministic SHA-256 identity, the `tor-` prefix,
+  password suffix bytes, lowercase format, case sensitivity, empty keys, and
+  long Unicode inputs remain unchanged. Circuit selection and network activity
+  are unaffected.
 - Shared `Compute.Sha1Hash` and `Compute.Sha256Hash` now UTF-8 encode common
   inputs into stack storage and oversized inputs into cleared pooled storage,
   hash through static span APIs, and format uppercase hexadecimal directly.

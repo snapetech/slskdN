@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove Tor isolation-credential hash and formatting intermediates.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `TorSocksTransport` now UTF-8 encodes each isolation key and the password suffix directly into bounded stack storage or cleared pooled storage, hashes into a fixed SHA-256 span, and writes the exact eight-byte lowercase prefix into final username/password character spans. This removes the password concatenation, disposable algorithm, input/digest arrays, full dashed hexadecimal string, replacement, substring, lowercase copy, and final username concatenation. Across 100,000 calls, username allocation falls from 84,001,056 to 6,400,608 bytes (92.4%) and elapsed time falls from 106 to 43 ms (59.4%); password allocation falls from 86,400,488 to 5,600,040 bytes (93.5%) and elapsed time falls from 106 to 42 ms (60.4%). Exact hash prefix, `tor-` prefix, password suffix, lowercase format, case sensitivity, empty keys, and pooled long-Unicode behavior remain unchanged; no Tor connections or circuit-selection behavior changed. Validation passed: complete Tor transport (`27/27`), broader Mesh transport (`263/263`), and backend (`5274/5274`: `69` application, `4925` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Remove shared SHA string-hashing intermediates.
   - Status: completed (2026-07-17)
   - Priority: P1

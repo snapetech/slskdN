@@ -1,10 +1,13 @@
 // <copyright file="TorSocksTransport.cs" company="slskdN Team">
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
+using System.Buffers;
 using System.Net.Sockets;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace slskd.Common.Security;
 
@@ -411,22 +414,49 @@ public sealed class TorSocksTransport : IAnonymityTransport, IDisposable
     }
 
     internal static string GenerateIsolationUsername(string isolationKey)
-    {
-        // Generate a deterministic username based on the isolation key
-        // This ensures the same peer always gets the same username (and thus same Tor circuit)
-        using var sha256 = System.Security.Cryptography.SHA256.Create();
-        var keyBytes = System.Text.Encoding.UTF8.GetBytes(isolationKey);
-        var hash = sha256.ComputeHash(keyBytes);
-        return "tor-" + BitConverter.ToString(hash).Replace("-", string.Empty).Substring(0, 16).ToLower();
-    }
+        => GenerateIsolationCredential(
+            isolationKey,
+            ReadOnlySpan<char>.Empty,
+            "tor-");
 
     internal static string GenerateIsolationPassword(string isolationKey)
+        => GenerateIsolationCredential(
+            isolationKey,
+            "-password",
+            ReadOnlySpan<char>.Empty);
+
+    private static string GenerateIsolationCredential(
+        string isolationKey,
+        ReadOnlySpan<char> suffix,
+        ReadOnlySpan<char> prefix)
     {
-        // Generate a deterministic password based on the isolation key
-        using var sha256 = System.Security.Cryptography.SHA256.Create();
-        var keyBytes = System.Text.Encoding.UTF8.GetBytes(isolationKey + "-password");
-        var hash = sha256.ComputeHash(keyBytes);
-        return BitConverter.ToString(hash).Replace("-", string.Empty).Substring(0, 16).ToLower();
+        var keyByteCount = Encoding.UTF8.GetByteCount(isolationKey);
+        var suffixByteCount = Encoding.UTF8.GetByteCount(suffix);
+        var byteCount = keyByteCount + suffixByteCount;
+        byte[]? rentedBytes = null;
+        Span<byte> bytes = byteCount <= 512
+            ? stackalloc byte[byteCount]
+            : (rentedBytes = ArrayPool<byte>.Shared.Rent(byteCount));
+
+        try
+        {
+            _ = Encoding.UTF8.GetBytes(isolationKey, bytes);
+            _ = Encoding.UTF8.GetBytes(suffix, bytes[keyByteCount..]);
+            Span<byte> hash = stackalloc byte[32];
+            SHA256.HashData(bytes[..byteCount], hash);
+
+            Span<char> credential = stackalloc char[prefix.Length + 16];
+            prefix.CopyTo(credential);
+            _ = Convert.TryToHexStringLower(hash[..8], credential[prefix.Length..], out _);
+            return new string(credential);
+        }
+        finally
+        {
+            if (rentedBytes != null)
+            {
+                ArrayPool<byte>.Shared.Return(rentedBytes, clearArray: true);
+            }
+        }
     }
 
     private static async Task ReadExactlyAsync(

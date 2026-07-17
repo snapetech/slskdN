@@ -1,3 +1,12 @@
+## Update 2026-07-17 16:50:07Z
+
+- Completed allocation-bounded Tor stream-isolation credential generation.
+- Replaced password-key concatenation, disposable SHA, input/digest arrays, full dashed hex strings, replacement, substring, lowercase, and username concatenation intermediates with bounded stack/cleared-pool encoding, a fixed digest span, and exact lowercase prefix formatting.
+- Across 100,000 calls, username allocation falls from 84,001,056 to 6,400,608 bytes (92.4%) and elapsed time falls from 106 to 43 ms (59.4%); password allocation falls from 86,400,488 to 5,600,040 bytes (93.5%) and elapsed time falls from 106 to 42 ms (60.4%).
+- Preserved exact SHA-256 identity, `tor-` prefix, password suffix bytes, lowercase output, case sensitivity, empty keys, and pooled long-Unicode behavior; network and circuit-selection behavior are unchanged.
+- Added semantic and allocation regressions; passed complete Tor transport (`27/27`), broader Mesh transport (`263/263`), and backend validation (`5274/5274`: `69` application, `4925` unit, `280` integration).
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 16:38:09Z
 
 - Completed allocation-bounded shared SHA-1/SHA-256 string hashing.

@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Tor stream-isolation usernames and passwords now hash and format through
+  bounded span/pool storage without concatenated keys, disposable algorithms,
+  digest arrays, full hexadecimal strings, substrings, or lowercase copies.
 - Shared SHA-1 and SHA-256 string hashing now uses bounded UTF-8 stack/pool
   storage, static span hashing, and direct uppercase hexadecimal formatting
   without disposable algorithms or intermediate arrays and strings.
