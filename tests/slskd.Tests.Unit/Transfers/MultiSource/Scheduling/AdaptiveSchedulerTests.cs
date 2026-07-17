@@ -328,4 +328,26 @@ public class AdaptiveSchedulerTests
 
         Assert.Equal(0.59, score, 10);
     }
+
+    [Fact]
+    public async Task AdaptWeightsAsync_PerfectThroughputCorrelationUpdatesExpectedWeights()
+    {
+        for (var index = 0; index < 20; index++)
+        {
+            await _service.RecordChunkCompletionAsync(
+                index,
+                $"peer-{index % 5}",
+                success: index % 2 == 0,
+                durationMs: 1_000,
+                bytesTransferred: index % 2 == 0 ? 2_000_000 : 100_000,
+                CancellationToken.None);
+        }
+
+        await _service.AdaptWeightsAsync();
+        var stats = _service.GetStats();
+
+        Assert.Equal(0.36 / 0.91, stats.ReputationWeight, 10);
+        Assert.Equal(0.37 / 0.91, stats.ThroughputWeight, 10);
+        Assert.Equal(0.18 / 0.91, stats.RttWeight, 10);
+    }
 }

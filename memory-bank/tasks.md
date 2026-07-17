@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Calculate adaptive scheduler factor correlations in one online pass.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `AdaptiveScheduler.AdaptWeightsAsync` now updates the shared outcome moments and the reputation, throughput, and RTT factor moments/covariances together during one enumeration of the recent-completion queue. This removes the completion list snapshot, six factor/outcome lists, selector delegates, and repeated average/covariance/variance LINQ passes. Across 10,000 adaptations of a full 100-completion window, allocation falls from 95,631,384 to 3,360,040 bytes (96.5%) and elapsed time from 305 to 46 ms (84.9%). The ten-sample threshold, Pearson correlation behavior, zero-variance handling, absolute-correlation target weights, learning-rate smoothing, and final normalization remain unchanged. Validation passed: complete scheduler tests (`16/16`) and backend (`5178/5178`: `69` application, `4829` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Remove copied and filtered lists from swarm efficiency aggregation.
   - Status: completed (2026-07-17)
   - Priority: P1

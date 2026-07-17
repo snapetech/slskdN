@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Adaptive scheduler weight learning now computes reputation, throughput, and
+  RTT Pearson correlations together in one online covariance pass over recent
+  completions instead of allocating six factor/outcome lists and repeatedly
+  averaging and rescanning them. Across 10,000 adaptations of a full
+  100-completion window, allocation falls from 95,631,384 to 3,360,040 bytes
+  (96.5%) and elapsed time from 305 to 46 ms (84.9%). The ten-completion
+  threshold, factor scoring, zero-variance handling, learning-rate smoothing,
+  absolute-correlation weighting, and final weight normalization remain
+  unchanged.
 - Swarm efficiency reporting now keeps one point-in-time active-download value
   snapshot and aggregates eligible downloads, worker redundancy, reassignment
   rates, active peers, and positive throughput durations directly instead of

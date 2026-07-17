@@ -6,7 +6,6 @@ namespace slskd.Transfers.MultiSource.Scheduling;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -150,24 +149,21 @@ public class AdaptiveScheduler : IAdaptiveScheduler
                 _logger.LogDebug("[AdaptiveScheduler] Adapting weights based on recent performance");
 
                 // Analyze recent completions to determine which factors are most predictive
-                var recent = _recentCompletions.ToList();
-                if (recent.Count < 10)
+                var correlations = CalculateFactorCorrelations();
+                if (correlations.Count < 10)
                 {
                     return; // Not enough data
                 }
 
-                // Calculate correlation between factors and success
-                var reputationCorrelation = CalculateFactorCorrelation(recent, f => GetReputationScore(f.PeerId));
-                var throughputCorrelation = CalculateFactorCorrelation(recent, f => GetThroughputScore(f.PeerId, f.BytesTransferred, f.DurationMs));
-                var rttCorrelation = CalculateFactorCorrelation(recent, f => GetRttScore(f.PeerId));
-
                 // Normalize correlations to weights
-                var totalCorrelation = Math.Abs(reputationCorrelation) + Math.Abs(throughputCorrelation) + Math.Abs(rttCorrelation);
+                var totalCorrelation = Math.Abs(correlations.Reputation) +
+                    Math.Abs(correlations.Throughput) +
+                    Math.Abs(correlations.Rtt);
                 if (totalCorrelation > 0)
                 {
-                    var newReputationWeight = Math.Abs(reputationCorrelation) / totalCorrelation;
-                    var newThroughputWeight = Math.Abs(throughputCorrelation) / totalCorrelation;
-                    var newRttWeight = Math.Abs(rttCorrelation) / totalCorrelation;
+                    var newReputationWeight = Math.Abs(correlations.Reputation) / totalCorrelation;
+                    var newThroughputWeight = Math.Abs(correlations.Throughput) / totalCorrelation;
+                    var newRttWeight = Math.Abs(correlations.Rtt) / totalCorrelation;
 
                     // Smooth adaptation (exponential moving average)
                     _reputationWeight = (LearningRate * newReputationWeight) + ((1 - LearningRate) * _reputationWeight);
@@ -305,31 +301,66 @@ public class AdaptiveScheduler : IAdaptiveScheduler
         return (successRate * 0.7) + (normalizedDuration * 0.3);
     }
 
-    private double CalculateFactorCorrelation(
-        List<ChunkCompletionFeedback> completions,
-        Func<ChunkCompletionFeedback, double> factorExtractor)
+    private (int Count, double Reputation, double Throughput, double Rtt) CalculateFactorCorrelations()
     {
-        if (completions.Count < 2)
+        var count = 0;
+        var outcomeMean = 0.0;
+        var outcomeVariance = 0.0;
+        var reputationMean = 0.0;
+        var reputationVariance = 0.0;
+        var reputationCovariance = 0.0;
+        var throughputMean = 0.0;
+        var throughputVariance = 0.0;
+        var throughputCovariance = 0.0;
+        var rttMean = 0.0;
+        var rttVariance = 0.0;
+        var rttCovariance = 0.0;
+
+        foreach (var feedback in _recentCompletions)
         {
-            return 0.0;
+            count++;
+            var outcome = feedback.Success ? 1.0 : 0.0;
+            var outcomeDifference = outcome - outcomeMean;
+            outcomeMean += outcomeDifference / count;
+            var adjustedOutcomeDifference = outcome - outcomeMean;
+            outcomeVariance += outcomeDifference * adjustedOutcomeDifference;
+
+            var reputation = GetReputationScore(feedback.PeerId);
+            var reputationDifference = reputation - reputationMean;
+            reputationMean += reputationDifference / count;
+            reputationVariance += reputationDifference * (reputation - reputationMean);
+            reputationCovariance += reputationDifference * adjustedOutcomeDifference;
+
+            var throughput = GetThroughputScore(feedback.PeerId, feedback.BytesTransferred, feedback.DurationMs);
+            var throughputDifference = throughput - throughputMean;
+            throughputMean += throughputDifference / count;
+            throughputVariance += throughputDifference * (throughput - throughputMean);
+            throughputCovariance += throughputDifference * adjustedOutcomeDifference;
+
+            var rtt = GetRttScore(feedback.PeerId);
+            var rttDifference = rtt - rttMean;
+            rttMean += rttDifference / count;
+            rttVariance += rttDifference * (rtt - rttMean);
+            rttCovariance += rttDifference * adjustedOutcomeDifference;
         }
 
-        var factors = completions.Select(factorExtractor).ToList();
-        var outcomes = completions.Select(f => f.Success ? 1.0 : 0.0).ToList();
-
-        var avgFactor = factors.Average();
-        var avgOutcome = outcomes.Average();
-
-        var numerator = factors.Zip(outcomes, (f, o) => (f - avgFactor) * (o - avgOutcome)).Sum();
-        var factorVariance = factors.Sum(f => Math.Pow(f - avgFactor, 2));
-        var outcomeVariance = outcomes.Sum(o => Math.Pow(o - avgOutcome, 2));
-
-        if (factorVariance == 0 || outcomeVariance == 0)
+        if (count < 2 || outcomeVariance == 0)
         {
-            return 0.0;
+            return (count, 0.0, 0.0, 0.0);
         }
 
-        return numerator / Math.Sqrt(factorVariance * outcomeVariance);
+        return (
+            count,
+            CalculateCorrelation(reputationCovariance, reputationVariance, outcomeVariance),
+            CalculateCorrelation(throughputCovariance, throughputVariance, outcomeVariance),
+            CalculateCorrelation(rttCovariance, rttVariance, outcomeVariance));
+    }
+
+    private static double CalculateCorrelation(double covariance, double factorVariance, double outcomeVariance)
+    {
+        return factorVariance == 0
+            ? 0.0
+            : covariance / Math.Sqrt(factorVariance * outcomeVariance);
     }
 
     private double GetReputationScore(string peerId)

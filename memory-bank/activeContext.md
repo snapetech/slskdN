@@ -1,3 +1,17 @@
+## Update 2026-07-17 11:29:29Z
+
+- Current task: performance and efficiency improvements in progress; one-pass adaptive factor correlation complete locally.
+- Last activity:
+  - Replaced the completion snapshot, six factor/outcome lists, and repeated correlation passes with online moments and covariances for all three adaptive factors in one queue enumeration.
+  - Across 10,000 full-window adaptations, allocation falls from 95,631,384 to 3,360,040 bytes (96.5%) and elapsed time from 305 to 46 ms (84.9%).
+- Validation:
+  - Passed complete adaptive scheduler (`16/16`) and backend validation (`5178/5178`: `69` application, `4829` unit, `280` integration), plus repository lint.
+  - Exact sample threshold, factor scoring, zero-variance handling, smoothing, normalization, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the adaptive correlation optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 11:18:02Z
 
 - Current task: performance and efficiency improvements in progress; one-pass swarm efficiency aggregation complete locally.

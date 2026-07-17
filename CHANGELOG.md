@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Adaptive scheduler weight learning now calculates all factor correlations in
+  one online covariance pass without factor and outcome lists.
 - Swarm efficiency reporting now aggregates download and peer metrics in direct
   passes without copied and filtered LINQ lists.
 - Adaptive peer scoring now aggregates recent completion success and duration
