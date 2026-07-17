@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove UTF-8 Base64 conversion byte-array intermediates and close the performance-improvement goal.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `Base64Extensions` now UTF-8 encodes common values into stack storage and oversized values into cleared pooled storage before creating the final Base64 string; decoding writes directly into the same bounded storage before constructing the UTF-8 result. Across 100,000 calls, encode allocation falls from 15,200,040 to 9,600,040 bytes (36.8%) while remaining at 7 ms, and decode allocation falls from 12,800,608 to 7,200,608 bytes (43.8%) while remaining at 6 ms. Framework-compatible output, whitespace, invalid UTF-8 replacement, malformed Base64 and null exceptions, empty input, Unicode, malformed surrogates, and long pooled values remain unchanged. Validation passed: focused (`4/4`), broader Common (`631/631`), and backend (`5282/5282`: `69` application, `4933` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and scoped diff checks. Extended allocation-bound gotcha `0z754` in standalone commit `c3e87fa3e` and corrected the two Taste Recommendation bounds in `4e8932069`. This is the final slice of the finite performance-improvement goal.
+
 - [x] Remove shared security-hash input and digest intermediates.
   - Status: completed (2026-07-17)
   - Priority: P1

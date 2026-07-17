@@ -1,3 +1,12 @@
+## Update 2026-07-17 17:22:00Z
+
+- Completed allocation-bounded UTF-8 Base64 string conversion and the finite performance-improvement goal.
+- Removed encode/decode byte-array intermediates with bounded stack storage for common values and cleared pooled storage for oversized values.
+- Across 100,000 calls, encode allocation falls from 15,200,040 to 9,600,040 bytes (36.8%) while remaining at 7 ms; decode allocation falls from 12,800,608 to 7,200,608 bytes (43.8%) while remaining at 6 ms.
+- Preserved framework-compatible output, whitespace handling, invalid UTF-8 replacement, malformed Base64 and null exceptions, empty input, Unicode, malformed surrogates, and long pooled-input behavior.
+- Added semantic and allocation regressions; passed focused (`4/4`), broader Common (`631/631`), and backend validation (`5282/5282`: `69` application, `4933` unit, `280` integration).
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and scoped diff checks passed. Extended gotcha `0z754` (`c3e87fa3e`) and committed its Taste Recommendation bound correction separately (`4e8932069`); concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 17:06:55Z
 
 - Completed allocation-bounded salted hashing, boolean hash verification, and double SHA-256 security helpers.

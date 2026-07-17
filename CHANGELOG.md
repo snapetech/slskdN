@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- UTF-8 Base64 string conversion now encodes and decodes through bounded stack
+  or cleared pooled byte storage without intermediate byte arrays.
 - Salted constant-time hashing, boolean hash verification, and double SHA-256
   now use static span hashing without disposable algorithms, stack-input copies,
   intermediate digest arrays, or verification result arrays.

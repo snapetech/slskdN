@@ -17,6 +17,7 @@
 namespace slskd
 {
     using System;
+    using System.Buffers;
     using System.Text;
 
     /// <summary>
@@ -31,7 +32,24 @@ namespace slskd
         /// <returns>The encoded string.</returns>
         public static string ToBase64(this string str)
         {
-            return Convert.ToBase64String(Encoding.UTF8.GetBytes(str));
+            var byteCount = Encoding.UTF8.GetByteCount(str);
+            byte[]? rentedBytes = null;
+            Span<byte> bytes = byteCount <= 512
+                ? stackalloc byte[byteCount]
+                : (rentedBytes = ArrayPool<byte>.Shared.Rent(byteCount));
+
+            try
+            {
+                _ = Encoding.UTF8.GetBytes(str, bytes);
+                return Convert.ToBase64String(bytes[..byteCount]);
+            }
+            finally
+            {
+                if (rentedBytes != null)
+                {
+                    ArrayPool<byte>.Shared.Return(rentedBytes, clearArray: true);
+                }
+            }
         }
 
         /// <summary>
@@ -41,7 +59,30 @@ namespace slskd
         /// <returns>The decoded string.</returns>
         public static string FromBase64(this string str)
         {
-            return Encoding.UTF8.GetString(Convert.FromBase64String(str));
+            ArgumentNullException.ThrowIfNull(str);
+
+            var maxByteCount = (str.Length / 4 * 3) + 3;
+            byte[]? rentedBytes = null;
+            Span<byte> bytes = maxByteCount <= 512
+                ? stackalloc byte[maxByteCount]
+                : (rentedBytes = ArrayPool<byte>.Shared.Rent(maxByteCount));
+
+            try
+            {
+                if (!Convert.TryFromBase64String(str, bytes, out var bytesWritten))
+                {
+                    return Encoding.UTF8.GetString(Convert.FromBase64String(str));
+                }
+
+                return Encoding.UTF8.GetString(bytes[..bytesWritten]);
+            }
+            finally
+            {
+                if (rentedBytes != null)
+                {
+                    ArrayPool<byte>.Shared.Return(rentedBytes, clearArray: true);
+                }
+            }
         }
     }
 }
