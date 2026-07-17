@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z734. Bounded Worker Pools Must Retain Completed Results on Cancellation
+
+**The Bug**: A descriptor-discovery worker pool threw cancellation between
+work items and awaited all workers before projecting results. Cancellation
+therefore skipped projection entirely and discarded descriptors that had
+already completed, while the previous serial loop retained variants completed
+before cancellation.
+
+**Files Affected**:
+- `src/slskd/Transfers/MultiSource/MediaCoreSwarmService.cs`
+- `tests/slskd.Tests.Unit/Transfers/MultiSource/MediaCoreSwarmServiceTests.cs`
+
+**Prevention**: When converting an incremental serial producer to parallel
+retrieval followed by ordered projection, decide explicitly whether completed
+results survive cancellation. If existing behavior returns a completed prefix,
+handle token cancellation around the worker join and project populated result
+slots in original order. Add a cancellation regression that proves completed
+work is retained and unstarted work is not issued.
+
 ### 0z733. Parallel Cacheable Reads Must Coalesce Normalized Duplicates
 
 **The Bug**: A descriptor-discovery optimization replaced serial reads with a
