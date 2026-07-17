@@ -52,6 +52,27 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z754. Tiny Allocation Bounds Need Loaded-Suite Headroom
+
+**The Bug**: The duplicate-heavy Taste Recommendation allocation regressions
+used a strict 4 KiB ceiling around a steady-state path that normally allocates
+less than that amount. Across three loaded full-unit runs, runtime/test-harness
+lazy work on the measuring thread raised one of the two results to 5,064–7,200
+bytes, while every exact rerun and subsequent complete-unit rerun passed. The
+tests therefore produced recurring false failures without evidence of a
+production allocation regression.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/SocialFederation/TasteRecommendationServiceTests.cs`
+
+**Prevention**: Warm the exact public path, serialize current-thread allocation
+tests, and give sub-10-KiB ceilings enough headroom for the highest observed
+loaded-suite runtime overhead. Keep the bound orders of magnitude below the
+allocation behavior the regression is intended to prevent; for these duplicate-
+heavy aggregation paths, 8 KiB remains strict while covering the observed
+loaded-suite range. Validate both the exact test and a complete unit run after
+changing a tight ceiling.
+
 ### 0z753. Interface Optional Arguments Do Not Apply To Concrete Calls
 
 **The Bug**: `IUsernamePseudonymizer.GetPeerIdAsync` declares an optional
