@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Peer-reputation statistics now compute event totals, type counts, decayed
+  scores, ban counts, and the average score in one locked pass over each peer's
+  events using one captured timestamp. This removes the complete event-copy
+  graph, LINQ grouping buffers, two async score operations per peer, and three
+  redundant event traversals. A warmed 1,000-peer/10,000-event snapshot falls
+  from 1,127,672 to 8,688 allocated bytes (99.2%); event visits fall from 40,000
+  to 10,000 (75.0%), and per-peer async score operations fall from 2,000 to
+  zero. Individual and aggregate scoring share the same severity/decay helper;
+  totals, type keys/counts, the 90-day decay rule, ban threshold, empty state,
+  and average-score behavior remain unchanged.
 - Native shared-library search now scans the directory/file sequence directly
   into its capped result list and stops enumeration as soon as the page is
   full. It no longer copies every shared-file reference before filtering, and

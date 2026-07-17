@@ -1,3 +1,12 @@
+## Update 2026-07-17 04:46:36Z
+
+- Completed one-pass peer-reputation statistics aggregation.
+- Replaced the complete event copy, LINQ type grouping, two async score calls per peer, and repeated score scans with one captured-time pass over each locked concrete event list; individual and aggregate scoring share the same severity/decay helper.
+- Reduced a warmed 1,000-peer/10,000-event snapshot from 1,127,672 to 8,688 allocated bytes (99.2%), event visits from 40,000 to 10,000 (75.0%), and per-peer async score operations from 2,000 to zero.
+- Preserved event/type/peer totals, severity and 90-day decay arithmetic, ban threshold, empty state, and average score behavior.
+- Added exact wide-result and allocation coverage; passed store (`9/9`), broader moderation (`113/113`), and backend (`5125/5125`: `69` application, `4776` unit, `280` integration) tests.
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed. Documented interface-enumerator boxing gotcha `0z728` (`9d9da9cb3`); concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 04:33:43Z
 
 - Completed streamed, early-stopping native shared-library search selection.

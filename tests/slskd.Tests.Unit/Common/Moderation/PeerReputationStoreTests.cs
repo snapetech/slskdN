@@ -4,6 +4,7 @@
 namespace slskd.Tests.Unit.Common.Moderation
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -16,6 +17,7 @@ namespace slskd.Tests.Unit.Common.Moderation
     /// <summary>
     ///     Tests for T-MCP04: Peer Reputation Store implementation.
     /// </summary>
+    [Collection(AllocationTestCollection.Name)]
     public class PeerReputationStoreTests : IDisposable
     {
         private readonly Mock<ILogger<PeerReputationStore>> _loggerMock;
@@ -228,6 +230,45 @@ namespace slskd.Tests.Unit.Common.Moderation
             Assert.Equal(2, stats.BannedPeers);
             Assert.Equal(20, stats.EventsByType[PeerReputationEventType.AssociatedWithBlockedContent]);
             Assert.True(stats.AverageReputationScore < 0);
+        }
+
+        [Fact]
+        public async Task GetStatsAsync_WideSnapshotHasBoundedAllocation()
+        {
+            const int peerCount = 1_000;
+            const int eventsPerPeer = 10;
+            _ = await _store.GetStatsAsync();
+            var cacheField = typeof(PeerReputationStore).GetField(
+                "_eventCache",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            var cache = Assert.IsType<System.Collections.Concurrent.ConcurrentDictionary<string, List<PeerReputationEvent>>>(
+                cacheField!.GetValue(_store));
+            var timestamp = DateTimeOffset.UtcNow;
+            for (var peerIndex = 0; peerIndex < peerCount; peerIndex++)
+            {
+                cache[$"peer-{peerIndex}"] = Enumerable.Range(0, eventsPerPeer)
+                    .Select(_ => new PeerReputationEvent(
+                        peerId: $"peer-{peerIndex}",
+                        eventType: PeerReputationEventType.AssociatedWithBlockedContent,
+                        timestamp: timestamp))
+                    .ToList();
+            }
+
+            _ = await _store.GetStatsAsync();
+            var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+            var stats = await _store.GetStatsAsync();
+            var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+            Assert.Equal(peerCount * eventsPerPeer, stats.TotalEvents);
+            Assert.Equal(peerCount, stats.UniquePeers);
+            Assert.Equal(peerCount, stats.BannedPeers);
+            Assert.Equal(
+                peerCount * eventsPerPeer,
+                stats.EventsByType[PeerReputationEventType.AssociatedWithBlockedContent]);
+            Assert.Equal(-30, stats.AverageReputationScore);
+            Assert.True(
+                allocatedBytes < 15_000,
+                $"Wide reputation statistics allocated {allocatedBytes:N0} bytes.");
         }
 
         public void Dispose()

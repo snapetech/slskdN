@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Peer-reputation statistics now aggregate event counts, scores, bans, and type
+  totals in one locked pass per peer instead of copying and rescanning events.
 - Native library search now scans shared files directly into its bounded result
   page and stops at the limit instead of copying the complete share first.
 - Native library browsing now uses structured duplicate keys, reuses canonical

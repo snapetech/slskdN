@@ -1,3 +1,17 @@
+## Update 2026-07-17 04:46:36Z
+
+- Current task: performance and efficiency improvements in progress; one-pass peer-reputation statistics complete locally.
+- Last activity:
+  - Replaced full event copies, grouping, and two score calls per peer with one captured-time pass per locked peer list, sharing exact score arithmetic with individual lookups.
+  - A 1,000-peer/10,000-event snapshot falls from 1,127,672 to 8,688 warmed allocated bytes (99.2%); event visits fall 75.0% and 2,000 per-peer async operations are eliminated.
+- Validation:
+  - Passed store (`9/9`), broader moderation (`113/113`), and backend validation (`5125/5125`: `69` application, `4776` unit, `280` integration).
+  - Exact severity/decay/ban/count/type/average/empty semantics, allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Documented interface-enumerator boxing gotcha `0z728` (`9d9da9cb3`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the one-pass reputation statistics slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 04:33:43Z
 
 - Current task: performance and efficiency improvements in progress; streamed native library search selection complete locally.

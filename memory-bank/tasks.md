@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Aggregate peer-reputation statistics in one pass.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `PeerReputationStore.GetStatsAsync` now captures one timestamp and computes total events, type counts, decayed peer scores, ban counts, and the average score while locking and scanning each peer list once. It removes the complete event snapshot/copies, LINQ grouping buffers, two async score calls per peer, and three redundant event traversals. Individual and aggregate paths share one concrete-list score helper. A warmed 1,000-peer/10,000-event snapshot falls from 1,127,672 to 8,688 allocated bytes (99.2%); event visits fall from 40,000 to 10,000 (75.0%) and per-peer async score operations from 2,000 to zero. Severity, the 90-day decay rule, ban threshold, totals/type counts, empty state, and average behavior remain unchanged. Validation passed: store (`9/9`), broader moderation (`113/113`), and backend (`5125/5125`: `69` application, `4776` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Documented interface-enumerator boxing gotcha `0z728` (`9d9da9cb3`).
+
 - [x] Stream native shared-library search into the bounded page.
   - Status: completed (2026-07-17)
   - Priority: P1

@@ -123,19 +123,11 @@ namespace slskd.Common.Moderation
 
             // Calculate score with decay
             var now = DateTimeOffset.UtcNow;
-            var score = 0;
 
             lock (events)
             {
-                foreach (var @event in events)
-                {
-                    var age = now - @event.Timestamp;
-                    var weight = age.TotalDays <= DecayDays ? 1.0 : DecayFactor;
-                    score -= (int)(GetEventSeverity(@event.EventType) * weight);
-                }
+                return CalculateScore(events, now);
             }
-
-            return score;
         }
 
         /// <inheritdoc/>
@@ -195,41 +187,40 @@ namespace slskd.Common.Moderation
         /// <inheritdoc/>
         public async Task<PeerReputationStats> GetStatsAsync(CancellationToken cancellationToken = default)
         {
-            // Ensure data is loaded
             await EnsureDataLoadedAsync(cancellationToken);
 
-            var allEvents = _eventCache.Values.SelectMany(events =>
-            {
-                lock (events)
-                {
-                    return events.ToList();
-                }
-            }).ToList();
-
+            var now = DateTimeOffset.UtcNow;
+            long totalEvents = 0;
             var bannedPeers = 0;
             var totalScore = 0.0;
+            var eventsByType = new Dictionary<PeerReputationEventType, long>();
 
-            foreach (var peerId in _eventCache.Keys)
+            foreach (var events in _eventCache.Values)
             {
-                if (await IsPeerBannedAsync(peerId, cancellationToken))
+                var score = 0;
+                lock (events)
+                {
+                    totalEvents += events.Count;
+                    score = CalculateScore(events, now, eventsByType);
+                }
+
+                if (score <= -BanThreshold)
                 {
                     bannedPeers++;
                 }
 
-                totalScore += await GetReputationScoreAsync(peerId, cancellationToken);
+                totalScore += score;
             }
 
-            var eventsByType = allEvents
-                .GroupBy(e => e.EventType)
-                .ToDictionary(g => g.Key, g => (long)g.Count());
+            var uniquePeers = _eventCache.Count;
 
             return new PeerReputationStats
             {
-                TotalEvents = allEvents.Count,
-                UniquePeers = _eventCache.Count,
+                TotalEvents = totalEvents,
+                UniquePeers = uniquePeers,
                 BannedPeers = bannedPeers,
                 EventsByType = eventsByType,
-                AverageReputationScore = _eventCache.Count > 0 ? totalScore / _eventCache.Count : 0
+                AverageReputationScore = uniquePeers > 0 ? totalScore / uniquePeers : 0
             };
         }
 
@@ -281,6 +272,27 @@ namespace slskd.Common.Moderation
                 PeerReputationEventType.ProtocolViolation => 1,
                 _ => 1
             };
+        }
+
+        private static int CalculateScore(
+            List<PeerReputationEvent> events,
+            DateTimeOffset now,
+            Dictionary<PeerReputationEventType, long>? eventsByType = null)
+        {
+            var score = 0;
+            foreach (var @event in events)
+            {
+                if (eventsByType != null)
+                {
+                    eventsByType[@event.EventType] = eventsByType.GetValueOrDefault(@event.EventType) + 1;
+                }
+
+                var age = now - @event.Timestamp;
+                var weight = age.TotalDays <= DecayDays ? 1.0 : DecayFactor;
+                score -= (int)(GetEventSeverity(@event.EventType) * weight);
+            }
+
+            return score;
         }
 
         /// <summary>
