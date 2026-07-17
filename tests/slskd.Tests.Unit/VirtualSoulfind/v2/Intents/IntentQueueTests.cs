@@ -5,7 +5,9 @@
 // Intent Queue tests
 namespace slskd.Tests.Unit.VirtualSoulfind.v2.Intents
 {
+    using System;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using slskd.VirtualSoulfind.Core;
     using slskd.VirtualSoulfind.v2.Intents;
@@ -57,6 +59,38 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Intents
             Assert.Equal(IntentPriority.High, pending[0].Priority);
             Assert.Equal(IntentPriority.Normal, pending[1].Priority);
             Assert.Equal(IntentPriority.Low, pending[2].Priority);
+        }
+
+        [Fact]
+        public async Task GetPendingTracks_OrdersSamePriorityByCreationTime()
+        {
+            var queue = new InMemoryIntentQueue();
+
+            var first = await queue.EnqueueTrackAsync(ContentDomain.Music, "track1", IntentPriority.High);
+            Thread.Sleep(1);
+            var second = await queue.EnqueueTrackAsync(ContentDomain.Music, "track2", IntentPriority.High);
+
+            var pending = await queue.GetPendingTracksAsync();
+
+            Assert.Equal(new[] { first.DesiredTrackId, second.DesiredTrackId }, pending.Select(track => track.DesiredTrackId));
+        }
+
+        [Fact]
+        public void GetPendingTracks_WidePopulationSmallLimitBoundsAllocation()
+        {
+            var queue = CreateWideQueue();
+            for (var iteration = 0; iteration < 8; iteration++)
+            {
+                _ = queue.GetPendingTracksAsync(50).GetAwaiter().GetResult();
+            }
+
+            var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+            var pending = queue.GetPendingTracksAsync(50).GetAwaiter().GetResult();
+            var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+            Assert.Equal(50, pending.Count);
+            Assert.All(pending, track => Assert.Equal(IntentPriority.Urgent, track.Priority));
+            Assert.True(allocatedBytes < 16_384, $"Allocated {allocatedBytes:N0} bytes.");
         }
 
         [Fact]
@@ -114,6 +148,23 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Intents
         }
 
         [Fact]
+        public void CountTracksByStatus_WidePopulationBoundsAllocation()
+        {
+            var queue = CreateWideQueue();
+            for (var iteration = 0; iteration < 8; iteration++)
+            {
+                _ = queue.CountTracksByStatusAsync(IntentStatus.Pending).GetAwaiter().GetResult();
+            }
+
+            var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+            var count = queue.CountTracksByStatusAsync(IntentStatus.Pending).GetAwaiter().GetResult();
+            var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+            Assert.Equal(10_000, count);
+            Assert.True(allocatedBytes < 1_024, $"Allocated {allocatedBytes:N0} bytes.");
+        }
+
+        [Fact]
         public async Task EnqueueRelease_CreatesIntent()
         {
             var queue = new InMemoryIntentQueue();
@@ -140,6 +191,20 @@ namespace slskd.Tests.Unit.VirtualSoulfind.v2.Intents
             Assert.NotNull(found);
             Assert.Equal(intent.DesiredReleaseId, found.DesiredReleaseId);
             Assert.Null(missing);
+        }
+
+        private static InMemoryIntentQueue CreateWideQueue()
+        {
+            var queue = new InMemoryIntentQueue();
+            for (var index = 0; index < 10_000; index++)
+            {
+                _ = queue.EnqueueTrackAsync(
+                    ContentDomain.Music,
+                    $"track-{index:D5}",
+                    (IntentPriority)(index % 4)).GetAwaiter().GetResult();
+            }
+
+            return queue;
         }
     }
 }

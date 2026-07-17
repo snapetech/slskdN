@@ -1,3 +1,17 @@
+## Update 2026-07-17 09:16:44Z
+
+- Current task: performance and efficiency improvements in progress; bounded in-memory intent selection and snapshot-free status counting complete locally.
+- Last activity:
+  - Replaced whole-map pending intent snapshot/sort with a stable priority queue capped at the requested batch and direct map enumeration for status counts.
+  - A warmed 50-result batch over 10,000 pending tracks falls from 401,120 to 5,688 allocated bytes (98.6%); status counting falls from 80,240 to 136 bytes (99.8%).
+- Validation:
+  - Passed complete intent queue (`11/11`) and backend validation (`5162/5162`: `69` application, `4813` unit, `280` integration).
+  - Exact pending/priority/creation/tie/identity/limit/count semantics, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Documented gotcha `0z739` (`6ea759972`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the bounded in-memory intent queue slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 08:57:19Z
 
 - Current task: performance and efficiency improvements in progress; bounded network guard ranking and snapshot-free statistics complete locally.

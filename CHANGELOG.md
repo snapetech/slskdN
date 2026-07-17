@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- In-memory intent scheduling now retains only the requested best pending batch,
+  and status counts scan track intents without concurrent-value snapshots.
 - Network guard rankings now retain only the requested top connectors, and its
   statistics aggregate concurrent tracker maps without value snapshots.
 - Honeypot, reconnaissance, and paranoid-mode recent-event queries now retain

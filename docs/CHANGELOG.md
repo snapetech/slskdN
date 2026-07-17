@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- In-memory intent scheduling now scans track intents directly and retains only
+  the requested pending batch in a stable worst-first priority queue instead of
+  snapshotting and fully sorting every pending intent. A warmed 50-track batch
+  over 10,000 pending intents falls from 401,120 to 5,688 allocated bytes
+  (98.6%); selection storage changes from O(pending intents) to O(limit), and
+  selection time from O(n log n) to O(n log limit). Status counting now scans
+  the concurrent map directly, reducing the equivalent 10,000-track call from
+  80,240 to 136 bytes (99.8%). Pending-only filtering, priority-descending and
+  creation-time-ascending order, first-enumerated exact ties, returned object
+  identity, non-positive limits, and exact status counts remain unchanged.
 - Network guard top-connector queries now snapshot tracker counters into value
   candidates and retain only the requested best candidates in a stable
   worst-first priority queue before creating response objects. A warmed 50-row

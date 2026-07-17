@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound in-memory intent queue selection and counting allocation.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `InMemoryIntentQueue.GetPendingTracksAsync` now scans the concurrent track map directly and retains only the requested pending batch in a stable worst-first priority queue. This removes the `Values` snapshot and complete LINQ sort, changing selection storage from O(pending intents) to O(limit) and time from O(n log n) to O(n log limit). A warmed 50-result batch over 10,000 pending tracks falls from 401,120 to 5,688 allocated bytes (98.6%). `CountTracksByStatusAsync` now counts through the direct map enumerator, falling from 80,240 to 136 bytes (99.8%). Pending filtering, priority/creation order, first-enumerated ties, object identity, limits, and status totals remain unchanged. Validation passed: complete queue (`11/11`) and backend (`5162/5162`: `69` application, `4813` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Documented enum-comparer boxing gotcha `0z739` (`6ea759972`).
+
 - [x] Bound network guard ranking and statistics allocation.
   - Status: completed (2026-07-17)
   - Priority: P1

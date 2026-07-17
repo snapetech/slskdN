@@ -6,7 +6,6 @@ namespace slskd.VirtualSoulfind.v2.Intents
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using slskd.VirtualSoulfind.Core;
@@ -70,14 +69,44 @@ namespace slskd.VirtualSoulfind.v2.Intents
             int limit = 100,
             CancellationToken cancellationToken = default)
         {
-            var pending = _tracks.Values
-                .Where(t => t.Status == IntentStatus.Pending)
-                .OrderByDescending(t => t.Priority)
-                .ThenBy(t => t.CreatedAt)
-                .Take(limit)
-                .ToList();
+            if (limit <= 0)
+            {
+                return Task.FromResult<IReadOnlyList<DesiredTrack>>(Array.Empty<DesiredTrack>());
+            }
 
-            return Task.FromResult<IReadOnlyList<DesiredTrack>>(pending);
+            var pending = new PriorityQueue<DesiredTrack, PendingTrackPriority>(PendingTrackWorstFirstComparer.Instance);
+            var sequence = 0;
+            foreach (var pair in _tracks)
+            {
+                var track = pair.Value;
+                if (track.Status != IntentStatus.Pending)
+                {
+                    continue;
+                }
+
+                var priority = new PendingTrackPriority(track.Priority, track.CreatedAt, sequence++);
+                if (pending.Count < limit)
+                {
+                    pending.Enqueue(track, priority);
+                }
+                else
+                {
+                    pending.TryPeek(out _, out var worstPriority);
+                    if (PendingTrackWorstFirstComparer.Instance.Compare(priority, worstPriority) > 0)
+                    {
+                        pending.Dequeue();
+                        pending.Enqueue(track, priority);
+                    }
+                }
+            }
+
+            var result = new DesiredTrack[pending.Count];
+            for (var index = result.Length - 1; index >= 0; index--)
+            {
+                result[index] = pending.Dequeue();
+            }
+
+            return Task.FromResult<IReadOnlyList<DesiredTrack>>(result);
         }
 
         public Task UpdateTrackStatusAsync(
@@ -163,8 +192,40 @@ namespace slskd.VirtualSoulfind.v2.Intents
             IntentStatus status,
             CancellationToken cancellationToken = default)
         {
-            var count = _tracks.Values.Count(t => t.Status == status);
+            var count = 0;
+            foreach (var pair in _tracks)
+            {
+                if (pair.Value.Status == status)
+                {
+                    count++;
+                }
+            }
+
             return Task.FromResult(count);
+        }
+
+        private readonly record struct PendingTrackPriority(
+            IntentPriority Priority,
+            DateTimeOffset CreatedAt,
+            int Sequence);
+
+        private sealed class PendingTrackWorstFirstComparer : IComparer<PendingTrackPriority>
+        {
+            public static PendingTrackWorstFirstComparer Instance { get; } = new();
+
+            public int Compare(PendingTrackPriority left, PendingTrackPriority right)
+            {
+                var priorityComparison = ((int)left.Priority).CompareTo((int)right.Priority);
+                if (priorityComparison != 0)
+                {
+                    return priorityComparison;
+                }
+
+                var createdComparison = right.CreatedAt.CompareTo(left.CreatedAt);
+                return createdComparison != 0
+                    ? createdComparison
+                    : right.Sequence.CompareTo(left.Sequence);
+            }
         }
     }
 }
