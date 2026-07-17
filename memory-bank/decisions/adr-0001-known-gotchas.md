@@ -52,6 +52,20 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z748. Empty Canary Suffixes Do Not Round Trip
+
+**The Bug**: A suffix round-trip test included an empty canary ID and expected
+decoding its generated empty suffix to return an empty string. Generation does
+return an empty string for an empty ID, but decoding intentionally returns
+`null` for empty input because no encoded canary is present.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Common/Security/CanaryTrapsTests.cs`
+
+**Prevention**: Test the empty generation and empty decoding contracts
+separately. Round-trip assertions require at least one hexadecimal nibble;
+preserve `DecodeInvisibleSuffix(string.Empty) == null` as the absence signal.
+
 ### 0z747. CanaryRecord Fixtures Must Set FullHash
 
 **The Bug**: A full-capacity canary eviction fixture initialized each
