@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Multi-source variant matching now prepares basenames once and compares common
+  ASCII filename characters without per-variant intersection sets.
 - MediaCore swarm prediction now enumerates available peers once, reuses common
   ContentID compatibility, and aggregates capability statistics directly.
 - Adaptive scheduler weight learning now calculates all factor correlations in

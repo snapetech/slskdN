@@ -117,11 +117,13 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
 
     private static bool IsContentVariantMatch(string filename, long fileSize, ContentVariantsResult contentVariants)
     {
+        var baseFilename = IOPath.GetFileName(filename);
+
         // Check if this file could be a variant of the known content
         foreach (var variant in contentVariants.Variants)
         {
             // Check filename similarity (simplified - could use more sophisticated matching)
-            var filenameSimilarity = CalculateFilenameSimilarity(IOPath.GetFileName(filename), variant.Filename);
+            var filenameSimilarity = CalculateFilenameSimilarity(baseFilename, variant.Filename);
 
             // Check size compatibility (allow some variance for different encodings)
             var sizeSimilarity = fileSize > 0 && variant.Descriptor?.SizeBytes > 0
@@ -142,10 +144,44 @@ public class MultiSourceDownloadService : IMultiSourceDownloadService
     {
         // Simple similarity based on common substrings
         // In practice, this could use Levenshtein distance or other similarity metrics
-        var commonChars = filename1.Intersect(filename2).Count();
+        var commonChars = CountDistinctCommonAsciiCharacters(filename1, filename2);
         var maxLength = Math.Max(filename1.Length, filename2.Length);
 
         return maxLength > 0 ? commonChars / (double)maxLength : 0.0;
+    }
+
+    private static int CountDistinctCommonAsciiCharacters(string first, string second)
+    {
+        Span<ulong> secondCharacters = stackalloc ulong[2];
+        secondCharacters.Clear();
+        foreach (var character in second)
+        {
+            if (character > 0x7f)
+            {
+                return first.Intersect(second).Count();
+            }
+
+            secondCharacters[character >> 6] |= 1UL << (character & 0x3f);
+        }
+
+        var commonCharacters = 0;
+        foreach (var character in first)
+        {
+            if (character > 0x7f)
+            {
+                return first.Intersect(second).Count();
+            }
+
+            ref var characters = ref secondCharacters[character >> 6];
+            var characterMask = 1UL << (character & 0x3f);
+            if ((characters & characterMask) != 0)
+            {
+                commonCharacters++;
+                characters &= ~characterMask;
+            }
+        }
+
+        return commonCharacters;
     }
 
     /// <inheritdoc/>

@@ -1,3 +1,17 @@
+## Update 2026-07-17 11:55:57Z
+
+- Current task: performance and efficiency improvements in progress; allocation-free common-ASCII multi-source filename matching complete locally.
+- Last activity:
+  - Hoisted basename extraction out of the variant loop and replaced common ASCII `Intersect` sets with a two-word stack bitset while preserving the Unicode fallback.
+  - Across 10,000 complete 50-variant misses, allocation falls from 438,080,048 to 1,920,040 bytes (99.6%) and elapsed time from 497 to 85 ms (82.9%).
+- Validation:
+  - Passed new multi-source variant matching (`7/7`) and backend validation (`5187/5187`: `69` application, `4838` unit, `280` integration), plus repository lint.
+  - Exact case/distinct/Unicode/empty/denominator/basename/size/threshold behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed after the initialization fix. Documented gotcha `0z744` (`52a6b06f2`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the filename-variant matching optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 11:44:15Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded MediaCore swarm capability prediction complete locally.

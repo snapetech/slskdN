@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Multi-source content-variant matching now extracts each candidate basename
+  once and counts distinct common ASCII filename characters through a two-word
+  stack bitset instead of allocating a LINQ intersection set for every
+  candidate/variant pair. Non-ASCII filenames retain the exact UTF-16
+  character-set fallback. Across 10,000 complete misses against 50 variants,
+  allocation falls from 438,080,048 to 1,920,040 bytes (99.6%) and elapsed time
+  from 497 to 85 ms (82.9%). Case sensitivity, distinct-character counting,
+  Unicode/surrogate behavior, maximum-length normalization, size gating,
+  thresholds, and first-match behavior remain unchanged.
 - MediaCore optimal-swarm prediction now materializes caller-provided peers
   once, reuses the most recent exact ContentID compatibility result, records
   compatibility in a compact per-peer bitmap, and aggregates speed and

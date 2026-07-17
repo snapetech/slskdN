@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove per-variant filename intersection sets from multi-source matching.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `MultiSourceDownloadService.IsContentVariantMatch` now extracts the incoming basename once before traversing discovered variants. `CalculateFilenameSimilarity` counts common distinct ASCII UTF-16 characters with a cleared two-word stack bitset that clears matched bits, while non-ASCII inputs retain the exact LINQ set-intersection fallback. Across 10,000 complete misses against 50 variants, allocation falls from 438,080,048 to 1,920,040 bytes (99.6%) and elapsed time from 497 to 85 ms (82.9%). Exact case-sensitive distinct-character semantics, Unicode/surrogate fallback, empty names, normalization denominator, basename extraction, size similarity, thresholds, and first-match behavior remain unchanged. Validation passed: new variant-matching tests (`7/7`) and backend (`5187/5187`: `69` application, `4838` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Documented required stack-bitset initialization as gotcha `0z744` (`52a6b06f2`).
+
 - [x] Reuse MediaCore swarm peer materialization and ContentID compatibility.
   - Status: completed (2026-07-17)
   - Priority: P1
