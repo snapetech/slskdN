@@ -252,15 +252,17 @@ public sealed class NetworkGuard : IDisposable
     public NetworkGuardStats GetStats()
     {
         long totalConnections = 0;
-        foreach (var tracker in _connectionTrackers.Values)
+        foreach (var pair in _connectionTrackers)
         {
+            var tracker = pair.Value;
             totalConnections += tracker.TotalConnections;
         }
 
         long totalMessages = 0;
         long rateLimitHits = 0;
-        foreach (var tracker in _messageRateTrackers.Values)
+        foreach (var pair in _messageRateTrackers)
         {
+            var tracker = pair.Value;
             totalMessages += tracker.TotalMessages;
             rateLimitHits += tracker.RateLimitHits;
         }
@@ -302,18 +304,54 @@ public sealed class NetworkGuard : IDisposable
     /// </summary>
     public IReadOnlyList<ConnectionInfo> GetTopConnectors(int limit = 10)
     {
-        return _connectionTrackers
-            .Select(kvp => new ConnectionInfo
+        if (limit <= 0)
+        {
+            return Array.Empty<ConnectionInfo>();
+        }
+
+        var selected = new PriorityQueue<ConnectorCandidate, ConnectorPriority>(ConnectorWorstFirstComparer.Instance);
+        var sequence = 0;
+        foreach (var pair in _connectionTrackers)
+        {
+            var tracker = pair.Value;
+            var candidate = new ConnectorCandidate(
+                pair.Key,
+                tracker.ActiveConnections,
+                tracker.TotalConnections,
+                tracker.PendingRequests);
+            var priority = new ConnectorPriority(
+                candidate.ActiveConnections,
+                candidate.TotalConnections,
+                sequence++);
+            if (selected.Count < limit)
             {
-                Ip = kvp.Key,
-                ActiveConnections = kvp.Value.ActiveConnections,
-                TotalConnections = kvp.Value.TotalConnections,
-                PendingRequests = kvp.Value.PendingRequests,
-            })
-            .OrderByDescending(c => c.ActiveConnections)
-            .ThenByDescending(c => c.TotalConnections)
-            .Take(limit)
-            .ToList();
+                selected.Enqueue(candidate, priority);
+            }
+            else
+            {
+                selected.TryPeek(out _, out var worstPriority);
+                if (ConnectorWorstFirstComparer.Instance.Compare(priority, worstPriority) > 0)
+                {
+                    selected.Dequeue();
+                    selected.Enqueue(candidate, priority);
+                }
+            }
+        }
+
+        var result = new ConnectionInfo[selected.Count];
+        for (var index = result.Length - 1; index >= 0; index--)
+        {
+            var candidate = selected.Dequeue();
+            result[index] = new ConnectionInfo
+            {
+                Ip = candidate.Ip,
+                ActiveConnections = candidate.ActiveConnections,
+                TotalConnections = candidate.TotalConnections,
+                PendingRequests = candidate.PendingRequests,
+            };
+        }
+
+        return result;
     }
 
     private void CleanupExpired(object? state)
@@ -426,6 +464,36 @@ public sealed class NetworkGuard : IDisposable
     public void Dispose()
     {
         Common.TimerDisposer.DisposeWithWait(_cleanupTimer);
+    }
+
+    private readonly record struct ConnectorCandidate(
+        IPAddress Ip,
+        int ActiveConnections,
+        long TotalConnections,
+        int PendingRequests);
+
+    private readonly record struct ConnectorPriority(
+        int ActiveConnections,
+        long TotalConnections,
+        int Sequence);
+
+    private sealed class ConnectorWorstFirstComparer : IComparer<ConnectorPriority>
+    {
+        public static ConnectorWorstFirstComparer Instance { get; } = new();
+
+        public int Compare(ConnectorPriority left, ConnectorPriority right)
+        {
+            var activeComparison = left.ActiveConnections.CompareTo(right.ActiveConnections);
+            if (activeComparison != 0)
+            {
+                return activeComparison;
+            }
+
+            var totalComparison = left.TotalConnections.CompareTo(right.TotalConnections);
+            return totalComparison != 0
+                ? totalComparison
+                : right.Sequence.CompareTo(left.Sequence);
+        }
     }
 
     private sealed class ConnectionTracker

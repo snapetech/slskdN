@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Network guard top-connector queries now snapshot tracker counters into value
+  candidates and retain only the requested best candidates in a stable
+  worst-first priority queue before creating response objects. A warmed 50-row
+  ranking over 10,000 tracked IPs falls from 641,032 to 8,608 allocated bytes
+  (98.7%); selection storage changes from O(tracked IPs) to O(limit), and DTO
+  creation falls from 10,000 objects to 50 (99.5%). Network guard statistics now
+  enumerate both concurrent tracker maps directly, reducing a warmed
+  10,000-IP snapshot from 80,144 to 192 bytes (99.8%). Active-connection and
+  historical-connection ordering, first-enumerated exact ties, non-positive
+  limits, pending-request values, and all aggregate counters remain unchanged.
 - Honeypot events, fingerprint-reconnaissance events, and paranoid-mode
   anomalies now share a concrete concurrent-queue reader that scans each queue
   into a lazily allocated ring capped at the requested page, then rotates the

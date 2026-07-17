@@ -1,3 +1,17 @@
+## Update 2026-07-17 08:57:19Z
+
+- Current task: performance and efficiency improvements in progress; bounded network guard ranking and snapshot-free statistics complete locally.
+- Last activity:
+  - Replaced eager top-connector DTO projection/full sorting with a stable priority queue capped at the requested limit and final-page-only DTO creation.
+  - A warmed 50-result ranking over 10,000 tracked IPs falls from 641,032 to 8,608 allocated bytes (98.7%); statistics fall from 80,144 to 192 bytes (99.8%).
+- Validation:
+  - Passed complete network guard (`20/20`) and backend validation (`5159/5159`: `69` application, `4810` unit, `280` integration).
+  - Exact active/total/tie/limit/pending/statistic semantics, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the bounded network guard ranking/statistics slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 08:43:20Z
 
 - Current task: performance and efficiency improvements in progress; remaining reverse-buffered security event pages complete locally.

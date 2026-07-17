@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Network guard rankings now retain only the requested top connectors, and its
+  statistics aggregate concurrent tracker maps without value snapshots.
 - Honeypot, reconnaissance, and paranoid-mode recent-event queries now retain
   only the requested newest page instead of reverse-buffering full histories.
 - Peer reputation rankings now retain only the requested best-scored peers, and

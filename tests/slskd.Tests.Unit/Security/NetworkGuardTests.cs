@@ -134,6 +134,24 @@ public class NetworkGuardTests : IDisposable
     }
 
     [Fact]
+    public void GetStats_WidePopulationBoundsAllocation()
+    {
+        using var guard = CreateWideGuard();
+        for (var iteration = 0; iteration < 8; iteration++)
+        {
+            _ = guard.GetStats();
+        }
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var stats = guard.GetStats();
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(10_000, stats.TrackedIps);
+        Assert.Equal(10_050, stats.TotalConnections);
+        Assert.True(allocatedBytes < 1_024, $"Allocated {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
     public void AllowConnection_GlobalLimit_ReturnsFalse()
     {
         using var guard = new NetworkGuard(NullLogger<NetworkGuard>.Instance)
@@ -213,6 +231,56 @@ public class NetworkGuardTests : IDisposable
     }
 
     [Fact]
+    public void GetTopConnectors_UsesTotalConnectionsAsSecondaryOrder()
+    {
+        var firstIp = IPAddress.Parse("10.0.0.1");
+        var firstIds = new string[3];
+        for (var index = 0; index < firstIds.Length; index++)
+        {
+            firstIds[index] = _guard.RegisterConnection(firstIp);
+        }
+
+        _guard.UnregisterConnection(firstIp, firstIds[0]);
+        _guard.UnregisterConnection(firstIp, firstIds[1]);
+
+        var secondIp = IPAddress.Parse("10.0.0.2");
+        var secondIds = new string[2];
+        for (var index = 0; index < secondIds.Length; index++)
+        {
+            secondIds[index] = _guard.RegisterConnection(secondIp);
+        }
+
+        _guard.UnregisterConnection(secondIp, secondIds[0]);
+
+        var top = _guard.GetTopConnectors(1);
+
+        var connector = Assert.Single(top);
+        Assert.Equal(firstIp, connector.Ip);
+        Assert.Equal(1, connector.ActiveConnections);
+        Assert.Equal(3, connector.TotalConnections);
+        Assert.Empty(_guard.GetTopConnectors(0));
+        Assert.Empty(_guard.GetTopConnectors(-1));
+    }
+
+    [Fact]
+    public void GetTopConnectors_WidePopulationSmallLimitBoundsAllocation()
+    {
+        using var guard = CreateWideGuard();
+        for (var iteration = 0; iteration < 8; iteration++)
+        {
+            _ = guard.GetTopConnectors(50);
+        }
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var top = guard.GetTopConnectors(50);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(50, top.Count);
+        Assert.All(top, connector => Assert.Equal(2, connector.ActiveConnections));
+        Assert.True(allocatedBytes < 16_384, $"Allocated {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
     public void AllowMessage_RateLimit_ReturnsFalse()
     {
         using var guard = new NetworkGuard(NullLogger<NetworkGuard>.Instance)
@@ -241,5 +309,27 @@ public class NetworkGuardTests : IDisposable
         guard.Dispose();
 
         Assert.False(timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan));
+    }
+
+    private static NetworkGuard CreateWideGuard()
+    {
+        var guard = new NetworkGuard(NullLogger<NetworkGuard>.Instance);
+        for (var index = 0; index < 10_000; index++)
+        {
+            var ip = new IPAddress(new byte[]
+            {
+                10,
+                (byte)(index >> 16),
+                (byte)(index >> 8),
+                (byte)index,
+            });
+            guard.RegisterConnection(ip);
+            if (index < 50)
+            {
+                guard.RegisterConnection(ip);
+            }
+        }
+
+        return guard;
     }
 }

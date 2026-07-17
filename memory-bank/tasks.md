@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound network guard ranking and statistics allocation.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `NetworkGuard.GetTopConnectors` now snapshots counter fields into value candidates, retains only the requested best candidates in a stable worst-first priority queue, and creates `ConnectionInfo` objects only for the retained page. This replaces eager projection plus a complete LINQ sort, changing selection storage from O(tracked IPs) to O(limit). A warmed 50-result query over 10,000 IPs falls from 641,032 to 8,608 allocated bytes (98.7%), while DTO creation falls from 10,000 to 50 (99.5%). `GetStats` now enumerates both concurrent tracker maps directly, falling from 80,144 to 192 bytes (99.8%) for 10,000 tracked IPs. Active/total ordering, first-enumerated ties, non-positive limits, pending values, and aggregate counters remain unchanged. Validation passed: complete guard (`20/20`) and backend (`5159/5159`: `69` application, `4810` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Bound remaining security recent-event query allocation.
   - Status: completed (2026-07-17)
   - Priority: P1
