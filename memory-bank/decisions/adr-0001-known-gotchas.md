@@ -806,20 +806,24 @@ using `$"..."`, or use an interpolated raw string when the fragment itself must
 span lines. Inspect the delimiter type independently for the outer command and
 every LINQ-generated fragment before compiling.
 
-### 0z680. Extracted Database Helpers Must Use Their Declared Receiver
+### 0z680. Extracted Helpers Must Use Their Declared Receiver
 
 **The Bug**: Extracting canonical-stat upsert SQL from an instance method into
 a static helper left `conn.CreateCommand()` in the body even though the helper
 parameter was named `connection`, causing a compile-time undefined-name error.
+The same error recurred when opinion-list filtering moved into an
+`IEnumerable<OpinionRecord>` helper but its LINQ pipeline still began at the
+service field's `opinions.Values` receiver.
 
 **Files Affected**:
 - `src/slskd/HashDb/HashDbService.cs`
+- `src/slskd/Opinions/OpinionService.cs`
 
-**Prevention**: After moving database code into a helper, inspect every
-connection, transaction, command, and cancellation-token receiver against the
-new parameter list before continuing. Prefer replacing the receiver as part of
-the extraction patch and run a focused compile immediately after the helper is
-introduced.
+**Prevention**: After moving code into a helper, inspect the root receiver and
+every connection, transaction, command, collection, and cancellation-token
+reference against the new parameter list before continuing. Prefer replacing
+the receiver as part of the extraction patch and run a focused compile
+immediately after the helper is introduced.
 
 ### 0z679. Batched Child Fixtures Must Carry Their Parent Key
 
