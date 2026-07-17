@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove per-sample standard-deviation materialization from peer metrics.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `PeerMetricsService` now calculates RTT and throughput population standard deviation in one pass over each concrete 30-sample queue, using static selectors instead of allocating `Select` iterators and temporary lists before a second scan. Across 100,000 full-window calculations, allocation falls from 47,022,080 to 6,400,040 bytes (86.4%) and elapsed time from 156 to 46 ms (70.5%). Exact population standard deviation, one-sample zero behavior, oldest-sample eviction, EMA updates, telemetry, and persistence remain unchanged. Validation passed: complete service tests (`6/6`) and backend (`5175/5175`: `69` application, `4826` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. An adjacent zero-copy `SearchAggregator` hash candidate was rejected after increasing elapsed time from 4 to 10 ms and documented as gotcha `0z743` (`f38f303e7`).
+
 - [x] Remove per-file ASCII normalization strings from search response merging.
   - Status: completed (2026-07-17)
   - Priority: P1

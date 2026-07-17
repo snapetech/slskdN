@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Peer RTT and throughput sampling now computes population standard deviation
+  directly over each 30-value queue with a one-pass online calculation instead
+  of allocating a projection iterator and list, averaging that list, and
+  scanning it again. Across 100,000 full-window calculations, allocation falls
+  from 47,022,080 to 6,400,040 bytes (86.4%) and elapsed time from 156 to 46 ms
+  (70.5%). Population-standard-deviation results, one-sample zero behavior,
+  oldest-sample eviction, EMA updates, telemetry, and persistence remain
+  unchanged.
 - Soulseek and mesh search response merging now compares common ASCII
   filenames through a zero-copy case/path/trim comparer instead of allocating
   up to three normalized strings per file. A warmed 10,000-file merge falls

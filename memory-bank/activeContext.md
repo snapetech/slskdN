@@ -1,3 +1,17 @@
+## Update 2026-07-17 10:55:02Z
+
+- Current task: performance and efficiency improvements in progress; allocation-free peer-metrics standard-deviation calculation complete locally.
+- Last activity:
+  - Replaced per-sample LINQ projection/list materialization and two-pass population-standard-deviation calculation with one online scan of each concrete 30-sample queue.
+  - Across 100,000 full-window calculations, allocation falls from 47,022,080 to 6,400,040 bytes (86.4%) and elapsed time from 156 to 46 ms (70.5%).
+- Validation:
+  - Passed complete peer metrics service (`6/6`) and backend validation (`5175/5175`: `69` application, `4826` unit, `280` integration), plus repository lint.
+  - Exact population deviation, oldest-sample eviction, RTT/throughput handling, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Rejected an adjacent slower zero-copy hashing candidate and documented gotcha `0z743` (`f38f303e7`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the peer metrics calculation, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 10:39:00Z
 
 - Current task: performance and efficiency improvements in progress; zero-copy ASCII search response deduplication complete locally.

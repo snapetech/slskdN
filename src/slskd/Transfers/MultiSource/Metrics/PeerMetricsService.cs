@@ -134,7 +134,7 @@ namespace slskd.Transfers.MultiSource.Metrics
                 }
 
                 // Compute standard deviation from recent samples
-                metrics.RttStdDevMs = ComputeStdDev(metrics.RecentRttSamples.Select(s => s.RttMs));
+                metrics.RttStdDevMs = ComputeStdDev(metrics.RecentRttSamples, static sample => sample.RttMs);
 
                 metrics.LastRttSample = DateTimeOffset.UtcNow;
                 metrics.SampleCount++;
@@ -189,7 +189,9 @@ namespace slskd.Transfers.MultiSource.Metrics
                 }
 
                 // Compute standard deviation
-                metrics.ThroughputStdDevBytesPerSec = ComputeStdDev(metrics.RecentThroughputSamples.Select(s => s.BytesPerSec));
+                metrics.ThroughputStdDevBytesPerSec = ComputeStdDev(
+                    metrics.RecentThroughputSamples,
+                    static sample => sample.BytesPerSec);
 
                 metrics.TotalBytesTransferred += bytesTransferred;
                 metrics.LastThroughputSample = DateTimeOffset.UtcNow;
@@ -268,17 +270,23 @@ namespace slskd.Transfers.MultiSource.Metrics
                 .ToList();
         }
 
-        private double ComputeStdDev(IEnumerable<double> values)
+        private static double ComputeStdDev<T>(Queue<T> values, Func<T, double> valueSelector)
         {
-            var valuesList = values.ToList();
-            if (valuesList.Count < 2)
+            var count = 0;
+            var mean = 0.0;
+            var sumSquaredDifferences = 0.0;
+            foreach (var value in values)
             {
-                return 0.0;
+                count++;
+                var sample = valueSelector(value);
+                var difference = sample - mean;
+                mean += difference / count;
+                sumSquaredDifferences += difference * (sample - mean);
             }
 
-            double avg = valuesList.Average();
-            double sumSquaredDiffs = valuesList.Sum(v => Math.Pow(v - avg, 2));
-            return Math.Sqrt(sumSquaredDiffs / valuesList.Count);
+            return count < 2
+                ? 0.0
+                : Math.Sqrt(sumSquaredDifferences / count);
         }
 
         private async Task<PeerPerformanceMetrics> GetOrCreateMetricsAsync(string peerId, PeerSource source, CancellationToken ct)

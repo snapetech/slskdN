@@ -99,5 +99,35 @@ namespace slskd.Tests.Unit.Transfers.MultiSource.Metrics
             Assert.Empty(peers);
             hashDb.Verify(m => m.GetTopPeerMetricsAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
         }
+
+        [Fact]
+        public async Task RecordPerformanceSamples_ComputesPopulationStandardDeviationOverSlidingWindows()
+        {
+            var metrics = new PeerPerformanceMetrics
+            {
+                PeerId = "peer-1",
+                Source = PeerSource.Soulseek,
+            };
+            var hashDb = new Mock<IHashDbService>();
+            hashDb.Setup(database => database.GetPeerMetricsAsync("peer-1", It.IsAny<CancellationToken>()))
+                .ReturnsAsync(metrics);
+            hashDb.Setup(database => database.UpsertPeerMetricsAsync(metrics, It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+            var service = new PeerMetricsService(hashDb.Object, NullLogger<PeerMetricsService>.Instance);
+
+            foreach (var rttMs in Enumerable.Range(1, 35))
+            {
+                await service.RecordRttSampleAsync("peer-1", rttMs);
+            }
+
+            await service.RecordThroughputSampleAsync("peer-1", 100, System.TimeSpan.FromSeconds(1));
+            await service.RecordThroughputSampleAsync("peer-1", 200, System.TimeSpan.FromSeconds(1));
+            await service.RecordThroughputSampleAsync("peer-1", 300, System.TimeSpan.FromSeconds(1));
+
+            Assert.Equal(30, metrics.RecentRttSamples.Count);
+            Assert.Equal(6, metrics.RecentRttSamples.Peek().RttMs);
+            Assert.Equal(System.Math.Sqrt(899.0 / 12), metrics.RttStdDevMs, 10);
+            Assert.Equal(System.Math.Sqrt(20_000.0 / 3), metrics.ThroughputStdDevBytesPerSec, 10);
+        }
     }
 }
