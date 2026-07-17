@@ -25542,3 +25542,25 @@ containers and explicit error classes, not a generic ARIA live-region role.
 Record generic alerts separately when needed, preserve their element classes in
 evidence, and validate a proposed selector against representative dropdown,
 toast, and form states before using it as a route-failure gate.
+
+### 0z593. Icon-Only Buttons Need Both Popup Help And Accessible Names
+
+**The Bug**: Live headless inspection found pagination, refresh, browse-search,
+transfer-column, and integration-provider buttons whose rendered content was
+only an `aria-hidden` icon. Most had neither a Semantic UI `Popup` nor an
+`aria-label`, leaving their purpose invisible to screen readers and unexplained
+on mouse hover. Disabled previous-page buttons could also lose their hover help
+when the popup trigger itself was disabled.
+
+**Files Affected**:
+- `src/web/src/components/Search/Searches.jsx`
+- `src/web/src/components/Lidarr/Lidarr.jsx`
+- `src/web/src/components/Browse/Browse.jsx`
+- `src/web/src/components/Transfers/TransferManager.jsx`
+- `src/web/src/components/System/Integrations.jsx`
+
+**Prevention**: Wrap every button in a descriptive Semantic UI `Popup` and give
+icon-only controls an explicit accessible name. For disabled controls, attach
+the popup trigger to a non-disabled wrapper so hover help remains available.
+Browser tests must inspect the rendered button name and hover each icon-only
+control; an icon glyph or `data-testid` is not an accessible label.
