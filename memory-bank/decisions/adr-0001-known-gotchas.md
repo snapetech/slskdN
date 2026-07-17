@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z727. Span `IndexOf` Overloads Do Not Accept `StringComparison` Through Instance Syntax
+
+**The Bug**: An allocation-free lowercase search called
+`buffer[..written].IndexOf(lowerValue.AsSpan(), StringComparison.Ordinal)`.
+The compiler selected the generic element-search overload instead of the
+string-comparison overload and rejected `ReadOnlySpan<char>` as its element
+argument with CS9244.
+
+**Files Affected**:
+- `src/slskd/API/Native/LibraryItemsController.cs`
+
+**Prevention**: Use the explicit `MemoryExtensions.IndexOf` string overload
+when comparing character spans with a `StringComparison`, or use the ordinary
+two-span ordinal overload when ordinal comparison is sufficient. Compile a
+small focused test immediately after introducing span overloads because their
+instance-call candidates differ from the similarly named `string` methods.
+
 ### 0z726. Unordered EF Queries Do Not Preserve Fixture Insertion Order
 
 **The Bug**: A wide share-grant regression built expected group-grant IDs in
