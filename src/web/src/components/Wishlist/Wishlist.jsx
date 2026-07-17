@@ -1814,6 +1814,7 @@ const Wishlist = () => {
                 trigger={
                   <Button
                     active={viewMode === 'table'}
+                    aria-label="Show wishlist as a table"
                     icon="table"
                     onClick={() => setViewMode('table')}
                   />
@@ -1824,6 +1825,7 @@ const Wishlist = () => {
                 trigger={
                   <Button
                     active={viewMode === 'cards'}
+                    aria-label="Show wishlist as cards"
                     icon="th"
                     onClick={() => setViewMode('cards')}
                   />

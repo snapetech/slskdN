@@ -79,6 +79,18 @@ describe('Wishlist', () => {
     expect(screen.getByText('23 left')).toBeInTheDocument();
   });
 
+  it('gives icon-only view mode buttons accessible names', async () => {
+    renderWishlist();
+
+    expect(await screen.findByText('rare album')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Show wishlist as a table' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Show wishlist as cards' }),
+    ).toBeInTheDocument();
+  });
+
   it('keeps wishlist rows on direct request states without inbox promotion', async () => {
     renderWishlist();
 

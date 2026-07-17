@@ -228,14 +228,19 @@ for (let index = 0; index < routeQueue.length; index += 1) {
           if (!activeItem) return { activeVisible: false };
           const activeBounds = activeItem.getBoundingClientRect();
           const menuBounds = menu.getBoundingClientRect();
+          const viewportStart = menuBounds.left + menu.clientLeft;
+          const viewportEnd = viewportStart + menu.clientWidth;
           return {
             activeText: (activeItem.textContent ?? '').replaceAll(/\s+/gu, ' ').trim(),
+            activeEnd: activeBounds.right,
+            activeStart: activeBounds.left,
             activeVisible:
-              activeBounds.left >= menuBounds.left &&
-              activeBounds.right <= menuBounds.right,
+              activeBounds.left >= viewportStart && activeBounds.right <= viewportEnd,
             clientWidth: menu.clientWidth,
             scrollLeft: menu.scrollLeft,
             scrollWidth: menu.scrollWidth,
+            viewportEnd,
+            viewportStart,
           };
         })
         .catch(() => null)

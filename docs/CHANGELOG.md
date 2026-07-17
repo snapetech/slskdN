@@ -25,7 +25,7 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Release gates now fail unconditionally when a command exceeds its timeout,
   streaming pipe regressions dispose their leases on every assertion path, and
   COPR uploads retry bounded transient API failures using the verified SRPM
-  artifact path.
+  artifact path against Fedora's published COPR service host.
 - Listener IP and port changes no longer report a reconnect requirement after
   Soulseek.NET has already rebound the live listeners and advertised the new
   endpoint to the Soulseek server.
@@ -52,12 +52,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 - Live Web validation now has a repeatable authenticated Chromium audit across
   all top-level routes, System tabs, runtime-discovered internal links,
   external-link reachability, browser/network errors, visible error states,
-  screenshots, control names, and active-tab visibility.
+  screenshots, control names, and active-tab visibility measured against the
+  actual horizontal scroll viewport.
 - Search and Lidarr pagination, Lidarr refresh, user browsing, wishlist
-  pagination, transfer-column selection, and media-server provider controls now
-  expose clear accessible names and mouseover help. Media-server selectors use
-  the adapters' real labels instead of rendering blank, and direct navigation
-  automatically reveals later System tabs inside the overflowing tab strip.
+  pagination and view modes, transfer-column selection, and media-server
+  provider controls now expose clear accessible names and mouseover help.
+  Media-server selectors use the adapters' real labels instead of rendering
+  blank, and direct navigation automatically reveals later System tabs inside
+  the overflowing tab strip.
 - Release council backlog validation now regenerates its derived report on
   every run and scans only Git-tracked repository roots. Local ignored reports,
   dependency trees, build outputs, and optional directories can no longer make

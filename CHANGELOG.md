@@ -35,13 +35,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   configuration edits set `pendingRestart` instead of implying that the
   unchanged startup middleware policy has already taken effect.
 - Restored visible, named, and mouseover-explained Web controls for search and
-  Lidarr pagination, Lidarr refresh, user browsing, wishlist pagination,
+  Lidarr pagination, Lidarr refresh, user browsing, wishlist pagination and
+  view modes,
   transfer columns, and media-server provider selection; provider selectors now
   render the adapters' actual labels instead of blank buttons.
 - Kept the selected System tab visible when its 22-item navigation strip
   overflows the viewport, including direct links to later admin panels.
 - Made release council reports regenerate from tracked repository files so
   ignored local build artifacts cannot mask clean-checkout gate failures.
+- Targeted Fedora COPR's published service host for password-and-OTP Kerberos
+  uploads so valid tickets no longer fail against a missing HTTP principal.
 - Restored distributed mesh DHT lookup and cross-runtime signed-store
   interoperability, registered the remote Pod/shadow-index/gateway services,
   and preserved routable shadow-index peer hints.
