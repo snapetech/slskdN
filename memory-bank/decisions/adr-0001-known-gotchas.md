@@ -25621,3 +25621,18 @@ service container or middleware pipeline with `RequiresRestart`. Add an
 options-monitor regression that changes a representative leaf and observes
 `State.PendingRestart`; API acceptance alone does not prove that a runtime
 configuration change took effect.
+
+### 0z597. Option Lifecycle Attribute Tests Need The Configuration Namespace
+
+**The Bug**: A regression test for CORS restart metadata referenced
+`RequiresRestartAttribute` as though it were in the root application namespace.
+The attribute is declared in `slskd.Configuration`, so the focused test project
+failed to compile before it could exercise the lifecycle behavior.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Core/ApplicationLifecycleTests.cs`
+
+**Prevention**: Import `slskd.Configuration` when reflecting over option
+lifecycle attributes in tests. Compile the smallest focused test slice
+immediately after adding metadata assertions so namespace and fixture failures
+surface before broader validation.
