@@ -25509,3 +25509,20 @@ bounded snapshot. Stop its interval while the document is hidden, refresh once
 when visibility returns, reject overlapping cycles, coalesce concurrent client
 requests behind a short cache, and retain prior React state when every rendered
 field is unchanged.
+
+### 0z591. Browser Audits Must Gate Optional Follow-Up Locators
+
+**The Bug**: The live UI audit counted theme choices after opening the theme
+menu, but unconditionally clicked a specific choice even when the count was
+zero. A delayed or failed popup render therefore turned an optional interaction
+check into a 30-second locator timeout after the full route crawl had already
+completed, preventing the audit report from being written.
+
+**Files Affected**:
+- `scripts/live-ui-audit.mjs`
+
+**Prevention**: Treat optional browser interactions as conditional assertions.
+Only locate and click a child control after its container and required choices
+are visible, apply a short explicit timeout, record a failed check instead of
+aborting the route report, and always write collected evidence in a finalization
+path.
