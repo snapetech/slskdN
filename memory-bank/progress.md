@@ -1,3 +1,12 @@
+## Update 2026-07-17 03:20:08Z
+
+- Completed allocation-bounded audio dedupe group indexing.
+- Replaced one formatted sketch/duration dictionary key per variant with the exact structured identity and retained the existing duplicate grouping pipeline.
+- Reduced a 10,000-variant/100-group/10-stream-per-group fixture from 2,377,744 to 1,817,312 warmed allocated bytes (23.6%).
+- Preserved missing-sketch and duration bucketing behavior, group count/sketch/stable-tie ordering, stream-hash fallback, duplicate-set first-occurrence order, and within-set variant order.
+- Added exact ordering and allocation regressions; passed focused dedupe (`2/2`), complete audio (`43/43`), and full backend (`5112/5112`: `69` application, `4763` unit, `280` integration) tests.
+- Passed repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 03:01:12Z
 
 - Completed direct codec-profile key generation and stack-based HashDb profile matching.

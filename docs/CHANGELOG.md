@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Audio dedupe grouping now indexes the normalized sketch and rounded duration
+  as a structured key instead of formatting a new composite string for every
+  variant. For 10,000 variants across 100 audio groups and 10 streams per
+  group, warmed end-to-end result construction falls from 2,377,744 to
+  1,817,312 allocated bytes (23.6%). Missing-sketch normalization, duration
+  bucketing, group count/sketch/stable-tie order, codec-specific stream-hash
+  fallback, duplicate-set first-occurrence order, and variant order remain
+  unchanged.
 - Codec-profile key generation now reads variant fields directly instead of
   allocating an intermediate `CodecProfile`, and formats a proven nullable bit
   depth through its value to avoid boxing. Across 10,000 generated lossless

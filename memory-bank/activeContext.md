@@ -1,3 +1,17 @@
+## Update 2026-07-17 03:20:08Z
+
+- Current task: performance and efficiency improvements in progress; structured audio dedupe group keys complete locally.
+- Last activity:
+  - Replaced a formatted sketch/duration string per variant with the exact value-tuple identity and reused model-initialized result/group lists.
+  - A 10,000-variant fixture across 100 groups and 10 streams per group falls from 2,377,744 to 1,817,312 warmed allocated bytes (23.6%).
+- Validation:
+  - Passed focused dedupe (`2/2`), complete audio (`43/43`), and full backend suites (`5112/5112`: `69` application, `4763` unit, `280` integration) tests.
+  - Exact sketch/duration grouping, group and duplicate-set ordering, stream-hash fallback, allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the audio dedupe structured-key slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 03:01:12Z
 
 - Current task: performance and efficiency improvements in progress; direct codec-profile keys and stack matching complete locally.

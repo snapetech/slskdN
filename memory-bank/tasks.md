@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove per-variant formatted audio dedupe group keys.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `DedupeService.GetDedupeAsync` now indexes groups by the normalized sketch and rounded-duration value tuple instead of allocating `"{sketch}:{duration}"` for every input variant. It also reuses the result and group models' initialized lists instead of replacing them before use. For 10,000 variants across 100 audio groups and 10 duplicate streams per group, warmed end-to-end result allocation falls from 2,377,744 to 1,817,312 bytes (23.6%). Exact recording ID, missing-sketch normalization, duration rounding, count-descending/sketch/stable-tie group order, codec-specific stream-hash fallback, duplicate-set first-occurrence order, and within-set variant order remain unchanged. Added exact ordering and duplicate-heavy allocation regressions. Validation passed: focused dedupe (`2/2`), complete audio (`43/43`), full backend suites (`5112/5112`: `69` application, `4763` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Remove intermediate codec-profile allocations from variant key paths.
   - Status: completed (2026-07-17)
   - Priority: P1

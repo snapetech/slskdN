@@ -40,7 +40,6 @@ namespace slskd.Audio
             var result = new DedupeResult
             {
                 RecordingId = recordingId,
-                Groups = new List<DedupeGroup>(),
             };
 
             if (variants == null || variants.Count == 0)
@@ -48,13 +47,13 @@ namespace slskd.Audio
                 return result;
             }
 
-            var groups = new Dictionary<string, DedupeGroup>();
+            var groups = new Dictionary<(string Sketch, int Duration), DedupeGroup>();
 
             foreach (var v in variants)
             {
                 var sketch = string.IsNullOrWhiteSpace(v.AudioSketchHash) ? "none" : v.AudioSketchHash;
                 var durationKey = RoundDuration(v.DurationMs);
-                var groupKey = $"{sketch}:{durationKey}";
+                var groupKey = (sketch, durationKey);
 
                 if (!groups.TryGetValue(groupKey, out var group))
                 {
@@ -62,7 +61,6 @@ namespace slskd.Audio
                     {
                         AudioSketchHash = sketch == "none" ? string.Empty : sketch,
                         RepresentativeDurationMs = durationKey,
-                        Variants = new List<DedupeVariant>(),
                     };
                     groups[groupKey] = group;
                 }
