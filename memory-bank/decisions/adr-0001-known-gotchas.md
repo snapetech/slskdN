@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z746. Manual Stable List Sorts Can Lose To LINQ's Key Sort
+
+**The Bug**: Replacing peer-cost projection plus LINQ `OrderBy` with a
+preallocated list and `List.Sort` preserved stable ties by seeding each result's
+rank and comparing it after cost. Across twenty 10,000-peer rankings, allocation
+fell only from 76,009,480 to 72,001,160 bytes (5.3%), while elapsed time rose
+from 50 to 57 ms (14.0%). The comparison callback and repeated tie comparisons
+lost to LINQ's optimized key-based stable sort.
+
+**Files Affected**:
+- `src/slskd/Transfers/MultiSource/Metrics/PeerCostFunction.cs`
+
+**Prevention**: Do not replace `OrderBy` with a comparison-based in-place sort
+solely to remove ordering buffers when all projected result objects are still
+required. Benchmark allocation and CPU together with realistic ties; retain the
+key-based ordered pipeline when the small allocation reduction costs runtime.
+
 ### 0z745. ASCII Token Scanners Must Preserve Prior Unicode Case Normalization
 
 **The Bug**: An allocation optimization replaced a lowercase-then-ASCII-regex
