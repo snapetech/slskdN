@@ -127,6 +127,31 @@ public class SoulseekOptionsValidationTests
     }
 
     [Fact]
+    public void Options_RejectsEnabledObfuscationWithoutRegularPortAdvertisement()
+    {
+        var options = new Options
+        {
+            Soulseek = new Options.SoulseekOptions
+            {
+                Obfuscation = new Options.SoulseekOptions.ObfuscationOptions
+                {
+                    Enabled = true,
+                    Mode = SoulseekObfuscationMode.Compatibility.ToString(),
+                    AdvertiseRegularPort = false,
+                },
+            },
+        };
+
+        var results = options.Validate(new ValidationContext(options)).ToList();
+
+        Assert.Contains(
+            results,
+            result => result.ErrorMessage!.Contains(
+                "regular peer port to remain advertised",
+                System.StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void SoulseekObfuscationPlan_ReportsConfiguredActiveRuntime()
     {
         var plan = SoulseekObfuscationSupport.BuildPlan(new Options.SoulseekOptions

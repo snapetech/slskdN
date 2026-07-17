@@ -2707,6 +2707,13 @@ namespace slskd
                             [nameof(ListenPort)]));
                     }
 
+                    if (Enabled && !AdvertiseRegularPort)
+                    {
+                        results.Add(new ValidationResult(
+                            "Soulseek obfuscation requires the regular peer port to remain advertised for legacy compatibility.",
+                            [nameof(AdvertiseRegularPort)]));
+                    }
+
                     if (Enabled && mode == SoulseekObfuscationMode.Only)
                     {
                         results.Add(new ValidationResult(

@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Soulseek obfuscation configuration now rejects disabling regular-port
+  advertisement before runtime construction instead of terminating during
+  application startup.
 - The web footer and README now offer direct PayPal and Ko-fi links for
   supporting slskdN development.
 - GitLab CI configuration now keeps the Arch package-smoke sudoers command as
