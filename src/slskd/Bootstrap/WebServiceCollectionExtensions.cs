@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
@@ -40,6 +41,8 @@ using Utility.EnvironmentVariables;
 
 public static class WebServiceCollectionExtensions
 {
+    internal const string ApiKeyOrJwtAuthenticationScheme = "ApiKeyOrJwt";
+
     private static class DotNetRuntimeStatsHolder
     {
         public static IDisposable? Value { get; set; }
@@ -192,7 +195,16 @@ public static class WebServiceCollectionExtensions
                 });
             });
 
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            services.AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = ApiKeyOrJwtAuthenticationScheme;
+                    options.DefaultChallengeScheme = ApiKeyOrJwtAuthenticationScheme;
+                    options.DefaultScheme = ApiKeyOrJwtAuthenticationScheme;
+                })
+                .AddPolicyScheme(
+                    ApiKeyOrJwtAuthenticationScheme,
+                    ApiKeyOrJwtAuthenticationScheme,
+                    options => options.ForwardDefaultSelector = SelectAuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
                     options.TokenValidationParameters = new TokenValidationParameters
@@ -542,4 +554,10 @@ public static class WebServiceCollectionExtensions
         return services;
     }
 
+    internal static string SelectAuthenticationScheme(HttpContext context)
+    {
+        return context.Request.Headers.ContainsKey("X-API-Key")
+            ? ApiKeyAuthentication.AuthenticationScheme
+            : JwtBearerDefaults.AuthenticationScheme;
+    }
 }
