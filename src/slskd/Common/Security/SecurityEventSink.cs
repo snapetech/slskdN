@@ -147,32 +147,97 @@ public sealed class SecurityEventAggregator : ISecurityEventSink, IDisposable
     /// <inheritdoc/>
     public IReadOnlyList<SecurityEvent> GetRecentEvents(int count = 100, SecuritySeverity minSeverity = SecuritySeverity.Info)
     {
-        return _events
-            .Where(e => e.Severity >= minSeverity)
-            .Reverse()
-            .Take(count)
-            .ToList();
+        if (count <= 0)
+        {
+            return Array.Empty<SecurityEvent>();
+        }
+
+        var capacity = Math.Min(count, MaxEvents);
+        SecurityEvent[]? buffer = null;
+        var matchCount = 0;
+        foreach (var securityEvent in _events)
+        {
+            if (securityEvent.Severity < minSeverity)
+            {
+                continue;
+            }
+
+            buffer ??= new SecurityEvent[capacity];
+            buffer[matchCount++ % capacity] = securityEvent;
+        }
+
+        return ToNewestFirst(buffer, matchCount);
     }
 
     /// <inheritdoc/>
     public IReadOnlyList<SecurityEvent> GetEventsForIp(IPAddress ip, int count = 100)
     {
+        if (count <= 0)
+        {
+            return Array.Empty<SecurityEvent>();
+        }
+
         var ipStr = ip.ToString();
-        return _events
-            .Where(e => e.IpAddress == ipStr)
-            .Reverse()
-            .Take(count)
-            .ToList();
+        var capacity = Math.Min(count, MaxEvents);
+        SecurityEvent[]? buffer = null;
+        var matchCount = 0;
+        foreach (var securityEvent in _events)
+        {
+            if (securityEvent.IpAddress != ipStr)
+            {
+                continue;
+            }
+
+            buffer ??= new SecurityEvent[capacity];
+            buffer[matchCount++ % capacity] = securityEvent;
+        }
+
+        return ToNewestFirst(buffer, matchCount);
     }
 
     /// <inheritdoc/>
     public IReadOnlyList<SecurityEvent> GetEventsForUser(string username, int count = 100)
     {
-        return _events
-            .Where(e => e.Username?.Equals(username, StringComparison.OrdinalIgnoreCase) == true)
-            .Reverse()
-            .Take(count)
-            .ToList();
+        if (count <= 0)
+        {
+            return Array.Empty<SecurityEvent>();
+        }
+
+        var capacity = Math.Min(count, MaxEvents);
+        SecurityEvent[]? buffer = null;
+        var matchCount = 0;
+        foreach (var securityEvent in _events)
+        {
+            if (securityEvent.Username?.Equals(username, StringComparison.OrdinalIgnoreCase) != true)
+            {
+                continue;
+            }
+
+            buffer ??= new SecurityEvent[capacity];
+            buffer[matchCount++ % capacity] = securityEvent;
+        }
+
+        return ToNewestFirst(buffer, matchCount);
+    }
+
+    private static IReadOnlyList<SecurityEvent> ToNewestFirst(SecurityEvent[]? buffer, int matchCount)
+    {
+        if (buffer == null)
+        {
+            return Array.Empty<SecurityEvent>();
+        }
+
+        if (matchCount < buffer.Length)
+        {
+            Array.Resize(ref buffer, matchCount);
+            Array.Reverse(buffer);
+            return buffer;
+        }
+
+        var nextIndex = matchCount % buffer.Length;
+        Array.Reverse(buffer, 0, nextIndex);
+        Array.Reverse(buffer, nextIndex, buffer.Length - nextIndex);
+        return buffer;
     }
 
     /// <inheritdoc/>

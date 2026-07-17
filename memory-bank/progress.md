@@ -1,3 +1,12 @@
+## Update 2026-07-17 07:21:25Z
+
+- Completed page-bounded newest security-event queries.
+- Replaced complete filtered-history reverse buffers with one lazy circular array capped at the requested page, followed by in-place partial reversal or full-ring segment rotation.
+- Reduced a warmed 50-result severity query over 10,000 retained matches from 80,800 to 496 allocated bytes (99.4%); selection storage is now O(page size) instead of O(matches).
+- Preserved severity thresholds, exact IP filtering, case-insensitive usernames, newest-first order, non-positive counts, empty matches, retention bounds, and concurrent queue snapshot behavior.
+- Added exact cross-filter ordering/count-edge and wide allocation regressions; passed focused aggregator (`2/2`), broader common security (`329/329`), and backend (`5150/5150`: `69` application, `4801` unit, `280` integration) tests.
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 07:08:50Z
 
 - Completed allocation-bounded Library Bloom snapshot item construction.

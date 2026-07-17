@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound newest security-event query allocation by requested page size.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `SecurityEventAggregator` now scans severity, IP, and username matches into a lazily allocated circular array capped at `min(count, MaxEvents)`, then reverses the partial buffer or rotates full ring segments in place for newest-first output. This replaces LINQ `Reverse`, which buffered every retained match before applying `Take`. A warmed 50-result severity page from 10,000 retained matches falls from 80,800 to 496 allocated bytes (99.4%), changing selection storage from O(matches) to O(page size). Severity ordering, exact IP strings, ordinal-ignore-case usernames, newest order, count edges, empty matches, retention limits, and concurrent queue snapshot behavior remain unchanged. Validation passed: focused aggregator (`2/2`), broader common security (`329/329`), and backend (`5150/5150`: `69` application, `4801` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Build Library Bloom snapshot items and namespace counts without formatted dedup keys.
   - Status: completed (2026-07-17)
   - Priority: P1

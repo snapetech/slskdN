@@ -1,3 +1,17 @@
+## Update 2026-07-17 07:21:25Z
+
+- Current task: performance and efficiency improvements in progress; page-bounded security-event queries complete locally.
+- Last activity:
+  - Replaced complete reverse buffers for severity/IP/user event queries with a lazy requested-page ring and in-place newest-first rotation.
+  - A warmed 50-result query over 10,000 retained matches falls from 80,800 to 496 allocated bytes (99.4%).
+- Validation:
+  - Passed focused aggregator (`2/2`), broader common security (`329/329`), and backend validation (`5150/5150`: `69` application, `4801` unit, `280` integration).
+  - Exact filters/order/count/empty/retention/concurrency semantics, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the page-bounded security-event query slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 07:08:50Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded Library Bloom snapshots complete locally.

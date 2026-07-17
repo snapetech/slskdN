@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Security event severity, IP, and username queries now scan the retained queue
+  into a lazily allocated ring capped at the requested page and rotate that ring
+  in place to return newest-first results. They no longer materialize and
+  reverse every match before `Take`. A warmed 50-row recent-event page from
+  10,000 retained matches falls from 80,800 to 496 allocated bytes (99.4%), so
+  selection storage is O(page size) rather than O(retained matches). Severity
+  thresholds, exact IP matching, case-insensitive usernames, newest-first order,
+  retention bounds, non-positive counts, empty matches, and queue snapshot
+  semantics remain unchanged.
 - Library Bloom snapshot construction now stores normalized held items as value
   types, deduplicates releases during the existing catalogue scan, and counts
   namespaces while populating the filter. This removes a reference object and
