@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z753. Interface Optional Arguments Do Not Apply To Concrete Calls
+
+**The Bug**: `IUsernamePseudonymizer.GetPeerIdAsync` declares an optional
+cancellation token, but `UsernamePseudonymizer.GetPeerIdAsync` implements the
+same parameter without a default value. A performance test called the concrete
+type with only the username and failed to compile with CS7036 even though the
+one-argument call is valid through an interface-typed reference.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/VirtualSoulfind/Capture/UsernamePseudonymizerTests.cs`
+- `src/slskd/VirtualSoulfind/Capture/UsernamePseudonymizer.cs`
+
+**Prevention**: Inspect the compile-time receiver signature before relying on
+an interface's optional argument. When a fixture intentionally uses the concrete
+type, pass `CancellationToken.None` explicitly unless the concrete method also
+declares the default.
+
 ### 0z752. CommitmentVerification Uses IsValid, Not Success
 
 **The Bug**: New cryptographic-commitment tests asserted a presumed `Success`
