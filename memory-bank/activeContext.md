@@ -1,3 +1,17 @@
+## Update 2026-07-17 11:05:44Z
+
+- Current task: performance and efficiency improvements in progress; one-pass adaptive recent-peer scoring complete locally.
+- Last activity:
+  - Replaced filtered completion/duration lists and repeated scans with one queue traversal that aggregates the selected peer's recent success and duration values.
+  - Across 100,000 full 100-completion evaluations, allocation falls from 173,600,752 to 12,800,040 bytes (92.6%) and elapsed time from 586 to 174 ms (70.3%).
+- Validation:
+  - Passed complete adaptive scheduler (`15/15`) and backend validation (`5176/5176`: `69` application, `4827` unit, `280` integration), plus repository lint.
+  - Exact peer/time filtering, success and duration weighting, all-failure and empty-history behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the adaptive scoring optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 10:55:02Z
 
 - Current task: performance and efficiency improvements in progress; allocation-free peer-metrics standard-deviation calculation complete locally.

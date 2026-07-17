@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Adaptive peer scoring now aggregates recent completion success and duration
+  in one queue scan without filtered lists or repeated counting passes.
 - Peer RTT and throughput standard deviations now use a one-pass calculation
   over their sliding windows without LINQ projection and list materialization.
 - Search response merging now deduplicates common ASCII filenames without

@@ -310,4 +310,22 @@ public class AdaptiveSchedulerTests
         // Queue should be limited to MaxRecentCompletions
         Assert.True(stats.TotalCompletions <= MaxRecentCompletions);
     }
+
+    [Fact]
+    public async Task CalculateRecentPerformanceScore_UsesMatchingPeerSuccessAndDuration()
+    {
+        const string PeerId = "target-peer";
+        await _service.RecordChunkCompletionAsync(1, PeerId, success: true, durationMs: 1_000, bytesTransferred: 1_000, CancellationToken.None);
+        await _service.RecordChunkCompletionAsync(2, PeerId, success: true, durationMs: 3_000, bytesTransferred: 1_000, CancellationToken.None);
+        await _service.RecordChunkCompletionAsync(3, PeerId, success: false, durationMs: 500, bytesTransferred: 0, CancellationToken.None);
+        await _service.RecordChunkCompletionAsync(4, PeerId, success: false, durationMs: 500, bytesTransferred: 0, CancellationToken.None);
+        await _service.RecordChunkCompletionAsync(5, "other-peer", success: true, durationMs: 1, bytesTransferred: 1_000, CancellationToken.None);
+
+        var method = typeof(AdaptiveScheduler).GetMethod(
+            "CalculateRecentPerformanceScore",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        var score = Assert.IsType<double>(method.Invoke(_service, new object[] { PeerId }));
+
+        Assert.Equal(0.59, score, 10);
+    }
 }

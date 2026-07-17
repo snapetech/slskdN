@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Adaptive chunk assignment now computes each selected peer's recent
+  performance score in one completion-queue scan with one captured cutoff
+  instead of building filtered completion and successful-duration lists and
+  traversing them repeatedly. Across 100,000 full 100-completion evaluations,
+  allocation falls from 173,600,752 to 12,800,040 bytes (92.6%) and elapsed
+  time from 586 to 174 ms (70.3%). Exact peer filtering, the ten-minute window,
+  success-rate and successful-duration weighting, all-failure behavior, and
+  the neutral empty-history score remain unchanged.
 - Peer RTT and throughput sampling now computes population standard deviation
   directly over each 30-value queue with a one-pass online calculation instead
   of allocating a projection iterator and list, averaging that list, and

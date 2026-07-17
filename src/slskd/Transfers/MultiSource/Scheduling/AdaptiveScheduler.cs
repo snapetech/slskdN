@@ -266,25 +266,39 @@ public class AdaptiveScheduler : IAdaptiveScheduler
 
     private double CalculateRecentPerformanceScore(string peerId)
     {
-        var recent = _recentCompletions
-            .Where(f => f.PeerId == peerId && (DateTimeOffset.UtcNow - f.Timestamp).TotalMinutes < 10)
-            .ToList();
+        var now = DateTimeOffset.UtcNow;
+        var completionCount = 0;
+        var successfulCount = 0;
+        var successfulDurationMs = 0.0;
+        foreach (var feedback in _recentCompletions)
+        {
+            if (feedback.PeerId != peerId || (now - feedback.Timestamp).TotalMinutes >= 10)
+            {
+                continue;
+            }
 
-        if (recent.Count == 0)
+            completionCount++;
+            if (feedback.Success)
+            {
+                successfulCount++;
+                successfulDurationMs += feedback.DurationMs;
+            }
+        }
+
+        if (completionCount == 0)
         {
             return 0.5; // Neutral score
         }
 
-        var successRate = (double)recent.Count(f => f.Success) / recent.Count;
+        var successRate = (double)successfulCount / completionCount;
 
         // Only successful completions have a meaningful duration. When every recent attempt
-        // failed this set is empty, so Average() would throw InvalidOperationException; treat
+        // failed, there is no successful duration to average; treat
         // that as the worst duration score (the peer is already penalized via successRate=0).
-        var successfulDurations = recent.Where(f => f.Success).Select(f => (double)f.DurationMs).ToList();
         var normalizedDuration = 0.0;
-        if (successfulDurations.Count > 0)
+        if (successfulCount > 0)
         {
-            var avgDuration = successfulDurations.Average();
+            var avgDuration = successfulDurationMs / successfulCount;
             normalizedDuration = Math.Max(0.0, 1.0 - (avgDuration / 10000.0)); // 10s = 0, 0s = 1
         }
 

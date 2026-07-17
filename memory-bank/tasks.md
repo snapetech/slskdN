@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Stream adaptive recent-peer scoring without filtered completion lists.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `AdaptiveScheduler.CalculateRecentPerformanceScore` now captures one cutoff and aggregates matching completions, successes, and successful duration in one direct queue scan instead of materializing all matching completions, rescanning for success count, materializing successful durations, and averaging them. Across 100,000 full 100-completion evaluations, allocation falls from 173,600,752 to 12,800,040 bytes (92.6%) and elapsed time from 586 to 174 ms (70.3%). Exact peer and ten-minute filtering, success/duration weighting, all-failure behavior, and neutral empty-history behavior remain unchanged. Validation passed: complete scheduler tests (`15/15`) and backend (`5176/5176`: `69` application, `4827` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Remove per-sample standard-deviation materialization from peer metrics.
   - Status: completed (2026-07-17)
   - Priority: P1
