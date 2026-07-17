@@ -167,6 +167,20 @@ public class OptionsControllerTests
         Assert.Equal("Invalid YAML configuration", ok.Value);
     }
 
+    [Theory]
+    [InlineData("-0.1")]
+    [InlineData("100.1")]
+    public void ValidateYamlFile_WithOutOfRangeAutoRetryTolerance_ReturnsInvalidConfiguration(string tolerance)
+    {
+        var controller = CreateController();
+        var yaml = $"transfers:\n  download:\n    auto_retry:\n      alternate_source_size_tolerance_percent: {tolerance}";
+
+        var result = controller.ValidateYamlFile(yaml);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal("Invalid YAML configuration", ok.Value);
+    }
+
     [Fact]
     public void ApplyOverlay_WithInvalidOverlay_DoesNotLeakValidationMessage()
     {
