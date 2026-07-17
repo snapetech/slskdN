@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Canary registration now uses the static HMAC-SHA256 path and writes lowercase
+  hexadecimal identifiers directly from hash spans instead of allocating a
+  disposable HMAC object, an eight-byte prefix slice, uppercase hexadecimal
+  strings, and lowercase copies. Across 100,000 repeated registrations,
+  allocation falls from 116,800,712 to 61,600,040 bytes (47.3%) and median
+  elapsed time from 209 to 173 ms (17.2%). Deterministic daily IDs, the
+  16-character lowercase identifier, 64-character full hash, lookup behavior, record
+  replacement, and secret-key isolation remain unchanged.
 - Canary filename suffix generation now writes hexadecimal bits directly into
   its final string, while decoding scans zero-width bits once into hexadecimal
   characters instead of allocating a filtered bit list and one formatted

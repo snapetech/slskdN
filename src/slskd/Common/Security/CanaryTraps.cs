@@ -55,11 +55,10 @@ public sealed class CanaryTraps
         var input = $"{username}|{filename}|{DateTimeOffset.UtcNow:yyyyMMdd}";
         var inputBytes = Encoding.UTF8.GetBytes(input);
 
-        using var hmac = new HMACSHA256(_secretKey);
-        var hash = hmac.ComputeHash(inputBytes);
+        var hash = HMACSHA256.HashData(_secretKey, inputBytes);
 
         // Use first 8 bytes as canary ID (64 bits - enough to be unique)
-        var canaryId = Convert.ToHexString(hash[..8]).ToLowerInvariant();
+        var canaryId = Convert.ToHexStringLower(hash.AsSpan(0, 8));
 
         var record = new CanaryRecord
         {
@@ -67,7 +66,7 @@ public sealed class CanaryTraps
             Username = username,
             Filename = filename,
             CreatedAt = DateTimeOffset.UtcNow,
-            FullHash = Convert.ToHexString(hash).ToLowerInvariant(),
+            FullHash = Convert.ToHexStringLower(hash),
         };
 
         // Store for later lookup

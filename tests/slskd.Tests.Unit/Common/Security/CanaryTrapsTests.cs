@@ -15,6 +15,43 @@ using Xunit;
 public class CanaryTrapsTests
 {
     [Fact]
+    public void GenerateCanary_AvoidsHmacAndHexFormattingIntermediates()
+    {
+        var canary = new CanaryTraps(NullLogger<CanaryTraps>.Instance, new byte[32]);
+
+        _ = canary.GenerateCanary("benchmark", "track.flac");
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        CanaryResult? result = null;
+        for (var iteration = 0; iteration < 100_000; iteration++)
+        {
+            result = canary.GenerateCanary("benchmark", "track.flac");
+        }
+
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.NotNull(result);
+        Assert.Same(result!.Record, canary.LookupCanary(result.CanaryId));
+        Assert.InRange(allocated, 0, 70_000_000);
+    }
+
+    [Fact]
+    public void GenerateCanary_ProducesLowercaseIdFromFullHash()
+    {
+        var canary = new CanaryTraps(NullLogger<CanaryTraps>.Instance, new byte[32]);
+
+        var result = canary.GenerateCanary("peer", "track.flac");
+
+        Assert.Equal(16, result.CanaryId.Length);
+        Assert.Equal(64, result.Record.FullHash.Length);
+        Assert.StartsWith(result.CanaryId, result.Record.FullHash, StringComparison.Ordinal);
+        Assert.Equal(result.CanaryId.ToLowerInvariant(), result.CanaryId);
+        Assert.Equal(result.Record.FullHash.ToLowerInvariant(), result.Record.FullHash);
+    }
+
+    [Fact]
     public void GenerateInvisibleSuffix_AvoidsPerNibbleStringsAndBuilderGrowth()
     {
         var canary = new CanaryTraps(NullLogger<CanaryTraps>.Instance, new byte[32]);

@@ -1,3 +1,17 @@
+## Update 2026-07-17 12:56:07Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded canary registration complete locally.
+- Last activity:
+  - Replaced disposable HMAC construction and uppercase-then-lowercase hex formatting with static HMAC-SHA256 and direct lowercase span formatting.
+  - Across 100,000 repeated registrations, allocation falls from 116,800,712 to 61,600,040 bytes (47.3%) and median elapsed time from 209 to 173 ms (17.2%).
+- Validation:
+  - Passed complete canary (`15/15`) and backend validation (`5207/5207`: `69` application, `4858` unit, `280` integration), plus repository lint.
+  - Exact daily ID/hash/lookup/secret behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. The known mesh-stream timeout (`0z557`) passed its exact and complete-unit reruns. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the canary registration optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 12:43:53Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded canary suffix encoding/decoding complete locally.

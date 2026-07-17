@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove HMAC and lowercase-hex intermediates from canary registration.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `CanaryTraps.GenerateCanary` now uses static `HMACSHA256.HashData` and .NET 10 lowercase hexadecimal conversion over the eight-byte hash prefix span and full hash. This removes one disposable HMAC object, the prefix byte-array slice, two uppercase hexadecimal strings, and two lowercase copies per registration. Across 100,000 repeated registrations, allocation falls from 116,800,712 to 61,600,040 bytes (47.3%) and median elapsed time from 209 to 173 ms (17.2%). Deterministic daily HMAC identity, 16-character ID/full-hash prefix, 64-character full hash, lowercase output, same-key replacement, lookup identity, and cloned secret storage remain unchanged. Validation passed: complete canary tests (`15/15`) and backend (`5207/5207`: `69` application, `4858` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. The known mesh-stream pipe timeout (`0z557`) passed its exact rerun (`1/1`) and complete unit rerun (`4858/4858`).
+
 - [x] Remove per-nibble and filtered-bit allocations from canary suffixes.
   - Status: completed (2026-07-17)
   - Priority: P1
