@@ -88,40 +88,32 @@ public sealed class ShareGrantRepository : IShareGrantRepository
 
     public async Task<IReadOnlyList<ShareGrant>> GetAccessibleByUserAsync(string userId, CancellationToken cancellationToken = default)
     {
-        var now = DateTime.UtcNow;
-        await using var db = await _factory.CreateDbContextAsync(cancellationToken);
-        var candidates = await db.ShareGrants.AsNoTracking()
-            .Where(g =>
-                (g.ExpiryUtc == null || g.ExpiryUtc > now) &&
-                ((g.AudienceType == AudienceTypes.User && g.AudienceId == userId) ||
-                 g.AudienceType == AudienceTypes.ShareGroup))
-            .ToListAsync(cancellationToken);
-
-        var direct = candidates.Where(g => g.AudienceType == AudienceTypes.User).ToList();
-        var groupGrants = candidates.Where(g => g.AudienceType == AudienceTypes.ShareGroup).ToList();
-        var result = new List<ShareGrant>(direct);
-        var groupIds = groupGrants
-            .Select(g => Guid.TryParse(g.AudienceId, out var groupId) ? groupId : (Guid?)null)
-            .Where(groupId => groupId.HasValue)
-            .Select(groupId => groupId!.Value)
-            .Distinct()
-            .ToList();
-
-        if (groupIds.Count == 0)
-            return result;
-
-        var memberGroupIds = await db.ShareGroupMembers.AsNoTracking()
-            .Where(member => member.UserId == userId && groupIds.Contains(member.ShareGroupId))
-            .Select(member => member.ShareGroupId)
-            .ToHashSetAsync(cancellationToken);
-
-        foreach (var grant in groupGrants)
+        var parameters = new object[]
         {
-            if (Guid.TryParse(grant.AudienceId, out var groupId) && memberGroupIds.Contains(groupId))
-                result.Add(grant);
-        }
-
-        return result;
+            new SqliteParameter("@user_id", userId),
+            new SqliteParameter("@user_type", AudienceTypes.User),
+            new SqliteParameter("@group_type", AudienceTypes.ShareGroup),
+            new SqliteParameter("@now", DateTime.UtcNow),
+        };
+        await using var db = await _factory.CreateDbContextAsync(cancellationToken);
+        return await db.ShareGrants
+            .FromSqlRaw("""
+                SELECT grant.*
+                FROM "ShareGrants" AS grant
+                WHERE (grant."ExpiryUtc" IS NULL OR grant."ExpiryUtc" > @now)
+                  AND (
+                      (grant."AudienceType" = @user_type AND grant."AudienceId" = @user_id)
+                      OR (
+                          grant."AudienceType" = @group_type
+                          AND EXISTS (
+                              SELECT 1
+                              FROM "ShareGroupMembers" AS member
+                              WHERE member."UserId" = @user_id
+                                AND member."ShareGroupId" = grant."AudienceId" COLLATE NOCASE)))
+                ORDER BY CASE WHEN grant."AudienceType" = @user_type THEN 0 ELSE 1 END
+                """, parameters)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<ShareGrant> AddAsync(ShareGrant entity, CancellationToken cancellationToken = default)

@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Accessible share-grant lookup now uses one parameterized SQL query with an
+  indexed group-membership `EXISTS` check instead of hydrating all active group
+  grants, parsing/distincting their IDs, issuing a membership query, and
+  filtering them in application memory. In a fixture with one direct grant and
+  10,000 group grants across 100 groups, of which 100 group grants are
+  accessible, entity hydration falls from 10,001 to the required 101 rows
+  (99.0%) and database commands fall from two to one. Expiry filtering, exact
+  direct-user matching, case-insensitive GUID membership, malformed-ID
+  exclusion, duplicate grants, direct-before-group order, and cancellation
+  remain unchanged; within-category database order remains unspecified.
 - Transfer speed snapshots now compute retained directional bytes and positive
   recorded live speeds in one SQL grouping query, then stream only active rows
   that require elapsed-time fallback in the unchanged second query. A warmed

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Filter accessible group grants before entity hydration.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `ShareGrantRepository.GetAccessibleByUserAsync` now returns direct and group-accessible grants through one parameterized SQL query whose indexed `EXISTS` subquery matches the authenticated user against `ShareGroupMembers`. This replaces hydration of every active group grant, two filtered list copies, GUID parsing/distinct buffers, a separate membership query/hash set, and application-side filtering. In a fixture with one direct grant plus 10,000 group grants across 100 groups, where one membership exposes 100 group grants, hydrated entities fall from 10,001 to the required 101 (99.0%) and commands fall from two to one. Exact expiry handling, direct-user equality, case-insensitive GUID matching, malformed group-ID exclusion, duplicate-grant retention, direct-before-group order, and cancellation remain unchanged; within-category order remains unspecified. Added exact one-query semantics and wide materialization coverage. Validation passed: focused repository (`5/5`), broader sharing (`107/107`), full backend suites (`5114/5114`: `69` application, `4765` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Documented unordered EF result gotcha `0z726` (`f6780b4cc`).
+
 - [x] Bound transfer speed snapshot materialization.
   - Status: completed (2026-07-17)
   - Priority: P1

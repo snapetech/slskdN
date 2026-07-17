@@ -1,3 +1,17 @@
+## Update 2026-07-17 03:48:49Z
+
+- Current task: performance and efficiency improvements in progress; database-filtered accessible share grants complete locally.
+- Last activity:
+  - Replaced all-group grant hydration and application membership filtering with one parameterized SQL `EXISTS` query that returns direct grants first and only accessible group grants.
+  - A one-direct/10,000-group-grant fixture with 100 accessible group grants falls from 10,001 to 101 hydrated entities (99.0%) and from two commands to one.
+- Validation:
+  - Passed focused repository (`5/5`), broader sharing (`107/107`), and full backend suites (`5114/5114`: `69` application, `4765` unit, `280` integration) tests.
+  - Exact expiry/direct/group/malformed/duplicate/order semantics, query shape, hydration count, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Documented unordered EF result gotcha `0z726` (`f6780b4cc`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the accessible share-grant query slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 03:32:24Z
 
 - Current task: performance and efficiency improvements in progress; bounded transfer speed snapshots complete locally.

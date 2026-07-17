@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Accessible share-grant queries now filter group membership in the database
+  instead of hydrating every active group grant for application-side filtering.
 - Transfer speed snapshots now aggregate recorded live speeds and retained bytes
   in SQL and stream only transfers requiring elapsed-time fallback calculation.
 - Audio dedupe grouping now uses structured sketch/duration keys instead of

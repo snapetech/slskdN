@@ -1,3 +1,12 @@
+## Update 2026-07-17 03:48:49Z
+
+- Completed database-filtered accessible share-grant retrieval.
+- Replaced global group-grant hydration, partition lists, GUID/distinct buffers, and a second membership query with one parameterized `EXISTS` query that returns only accessible entities.
+- In a one-direct/10,000-group-grant fixture with 100 accessible group grants, reduced hydration from 10,001 to 101 entities (99.0%) and database commands from two to one.
+- Preserved expiry, direct-user and case-insensitive group membership behavior, malformed-ID exclusion, duplicate grants, direct-before-group order, and cancellation; within-category order remains unspecified.
+- Added exact SQL-contract and wide materialization regressions; passed repository (`5/5`), broader sharing (`107/107`), and full backend (`5114/5114`: `69` application, `4765` unit, `280` integration) tests.
+- Passed repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks. Documented unordered-query gotcha `0z726` (`f6780b4cc`); concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 03:32:24Z
 
 - Completed SQL-aggregated, fallback-streamed transfer speed snapshots.

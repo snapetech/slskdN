@@ -178,7 +178,7 @@ public sealed class ShareGrantRepositoryTests : IDisposable
     }
 
     [Fact]
-    public async Task GetAccessibleByUserAsync_BatchesGroupMembershipLookup()
+    public async Task GetAccessibleByUserAsync_FiltersGroupMembershipInSingleQuery()
     {
         var collectionId = Guid.NewGuid();
         var memberGroupId = Guid.NewGuid();
@@ -212,7 +212,49 @@ public sealed class ShareGrantRepositoryTests : IDisposable
         var result = await new ShareGrantRepository(_factory).GetAccessibleByUserAsync("alice");
 
         Assert.Equal(new[] { directGrant.Id, memberGrant.Id, duplicateMemberGrant.Id }.OrderBy(id => id), result.Select(grant => grant.Id).OrderBy(id => id));
-        Assert.Equal(2, _interceptor.Commands.Count);
+        var command = Assert.Single(_interceptor.Commands);
+        Assert.Contains("EXISTS", command, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ShareGroupMembers", command, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetAccessibleByUserAsync_WideGroupSetHydratesOnlyAccessibleGrants()
+    {
+        const int groupCount = 100;
+        const int grantCount = 10_000;
+        var collectionId = Guid.NewGuid();
+        var groupIds = Enumerable.Range(0, groupCount).Select(_ => Guid.NewGuid()).ToArray();
+        var memberGroupId = groupIds[0];
+        var directGrant = CreateGrant(collectionId, AudienceTypes.User, "alice");
+        var groupGrants = Enumerable.Range(0, grantCount)
+            .Select(index => CreateGrant(collectionId, AudienceTypes.ShareGroup, groupIds[index % groupCount].ToString()))
+            .ToList();
+        var expectedMemberGrantIds = groupGrants
+            .Where(grant => grant.AudienceId == memberGroupId.ToString())
+            .Select(grant => grant.Id)
+            .ToList();
+
+        await using (var db = await _factory.CreateDbContextAsync())
+        {
+            db.Collections.Add(new Collection { Id = collectionId, OwnerUserId = "owner", Title = "Wide" });
+            db.ShareGroups.Add(new ShareGroup { Id = memberGroupId, Name = "Member", OwnerUserId = "owner" });
+            db.ShareGroupMembers.Add(new ShareGroupMember { ShareGroupId = memberGroupId, UserId = "alice" });
+            db.ShareGrants.Add(directGrant);
+            db.ShareGrants.AddRange(groupGrants);
+            await db.SaveChangesAsync();
+        }
+
+        _interceptor.Commands.Clear();
+        _materialization.Count = 0;
+        var result = await new ShareGrantRepository(_factory).GetAccessibleByUserAsync("alice");
+
+        Assert.Equal(1 + expectedMemberGrantIds.Count, result.Count);
+        Assert.Equal(directGrant.Id, result[0].Id);
+        Assert.Equal(
+            expectedMemberGrantIds.OrderBy(id => id),
+            result.Skip(1).Select(grant => grant.Id).OrderBy(id => id));
+        Assert.Equal(result.Count, _materialization.Count);
+        Assert.Single(_interceptor.Commands);
     }
 
     private static ShareGrant CreateGrant(Guid collectionId, string audienceType, string audienceId, DateTime? expiryUtc = null) =>
