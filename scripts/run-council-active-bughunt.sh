@@ -22,7 +22,8 @@ write_section() {
 
   {
     printf '\n## %s\n' "$title"
-    rg -n -U --with-filename --pcre2 --hidden --glob '!.git/**' --glob '!.council/**' "$pattern" "$@" || true
+    git ls-files -z -- "$@" |
+      xargs -0 -r rg -n -U --with-filename --pcre2 -- "$pattern" || true
   } >>"$report"
 }
 
@@ -44,32 +45,32 @@ EOF
 write_section \
   "Async void boundaries" \
   'async void' \
-  src tests examples
+  src tests
 
 write_section \
   "Silent catch or lossy exception boundaries" \
   'catch \(Exception\)(?:\s*when[^{]+)?\s*\{\s*(?://\s*(?:noop|ignored?)\s*)?\s*\}' \
-  src tests examples
+  src tests
 
 write_section \
   "Callback/event invocation boundaries" \
   '\?\.(Invoke|BeginInvoke)\(|\.Invoke\(' \
-  src tests examples
+  src tests
 
 write_section \
   "Remote/user text in diagnostics or HTTP errors" \
   '(log|logger|Diagnostic|Console\.WriteLine|StatusCode\(|BadRequest\()[^;\n]*(username|query|filename|directory|token|message)' \
-  src tests examples
+  src tests
 
 write_section \
   "Red-team abuse lens" \
   '(token|secret|password|authorization|cookie|api[-_]?key|session|redirect|proxy|forwarded|path|filename|exec|spawn|shell|http://|https://)' \
-  src tests examples scripts docs
+  src tests scripts docs
 
 write_section \
   "Public mutable ownership surfaces" \
   'public [^;\n=]*\[\][^{;\n]*(\{|=>|;)|public .*I(ReadOnly)?(Collection|List|Enumerable)<|params ' \
-  src tests examples
+  src tests
 
 printf 'Active council bughunt candidates saved to %s.\n' "$report"
 printf 'Verdict boundary: this report is a discovery queue, not proof of no bugs.\n'

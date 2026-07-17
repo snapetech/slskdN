@@ -22,6 +22,10 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Release council backlog validation now regenerates its derived report on
+  every run and scans only Git-tracked repository roots. Local ignored reports,
+  dependency trees, build outputs, and optional directories can no longer make
+  a developer checkout pass counts that fail in the clean tag checkout.
 - The web footer and README now offer direct PayPal and Ko-fi links for
   supporting slskdN development.
 - Mesh DHT interoperability now uses one frozen 20-byte key/node contract,

@@ -24,9 +24,7 @@ pass() {
   printf 'PASS %s\n' "$1"
 }
 
-if [[ ! -f "$report" ]]; then
-  bash scripts/run-council-active-bughunt.sh >/dev/null
-fi
+bash scripts/run-council-active-bughunt.sh >/dev/null
 
 if [[ ! -f "$backlog" ]]; then
   fail "active backlog is missing: $backlog"

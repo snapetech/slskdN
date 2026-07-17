@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Made release council reports regenerate from tracked repository files so
+  ignored local build artifacts cannot mask clean-checkout gate failures.
 - Restored distributed mesh DHT lookup and cross-runtime signed-store
   interoperability, registered the remote Pod/shadow-index/gateway services,
   and preserved routable shadow-index peer hints.

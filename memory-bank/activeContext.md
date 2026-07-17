@@ -1,3 +1,14 @@
+## Update 2026-07-17 17:44:00Z
+
+- Current task: correct the clean-checkout release gate, publish the next stable release, deploy it to the live validation host, and monitor the replacement.
+- Last activity:
+  - Release `2026071717-slskdn.278` passed locally but failed on GitHub because the active backlog gate reused ignored local report data and scanned non-repository paths.
+  - Restricted the scan to Git-tracked repository roots, forced report regeneration on every gate run, updated deterministic counts, and documented gotcha `0z760` (`eb16d5a50`).
+- Next steps:
+  1. Validate the correction in the current checkout and a clean worktree, then commit and push it.
+  2. Create stable release `2026071717-slskdn.279` through the mandatory helper and verify its artifacts/image.
+  3. Replace the prior live validation build, verify service health, and monitor without creating another release.
+
 ## Update 2026-07-17 17:35:00Z
 
 - Current task: publish the complete worktree, create one stable release, deploy it to the live validation host, and monitor the replacement.

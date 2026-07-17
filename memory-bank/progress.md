@@ -1,3 +1,10 @@
+## Update 2026-07-17 17:44:00Z
+
+- The first stable release attempt, `2026071717-slskdn.278`, passed the complete local release gate but failed the clean hosted checkout because council backlog validation reused an ignored local report and scanned non-repository paths.
+- Made the report generator consume only Git-tracked files under repository-owned roots and made the gate regenerate the report on every invocation; local dependencies, build output, and stale `.council` data no longer affect committed counts.
+- Updated the deterministic active-backlog counts and documented gotcha `0z760` in standalone commit `eb16d5a50`.
+- The failed immutable tag remains historical; the corrected release will use the next stable release number rather than moving or reusing it.
+
 ## Update 2026-07-17 17:35:00Z
 
 - Completed the pending distributed mesh interoperability, service-router wiring, private-gateway identity/DNS hardening, shadow-index routing-hint, and durable Pod-send corrections.

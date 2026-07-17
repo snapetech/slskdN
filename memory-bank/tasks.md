@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Make release council backlog validation deterministic across clean and developer checkouts.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: Release `2026071717-slskdn.278` exposed that the local gate reused an ignored `.council` report and scanned local-only trees while the hosted tag checkout regenerated a different report. The runner now scans only Git-tracked files under repository-owned roots, the gate always regenerates its report, and committed counts reflect that deterministic input. Documented gotcha `0z760` in standalone commit `eb16d5a50`.
+
 - [x] Complete distributed mesh interoperability and private-gateway hardening.
   - Status: completed (2026-07-17)
   - Priority: P1
