@@ -44,6 +44,8 @@ For dev or build tags, use the same logical version string embedded in the tag.
   honor the configured case mode across cache entries and reloads.
 - API YAML validation now applies the documented `transfers.groups`
   compatibility layout with top-level precedence and full nested validation.
+- The AngleSharp runtime inherited through dotNetRDF is pinned to patched
+  version `1.5.0` instead of the vulnerable transitive `1.4.0` resolution.
 - API-key authentication now runs before global rate-limit partitioning, so
   authenticated callers bypass anonymous API quotas as intended. Kestrel
   request-body limit failures now return redacted 413 Problem Details.

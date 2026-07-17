@@ -146,6 +146,7 @@
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.16.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.16.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.16.0" />
+    <PackageReference Include="AngleSharp" Version="1.5.0" />
     <PackageReference Include="dotNetRDF" Version="3.5.2" />
   </ItemGroup>
 </Project>

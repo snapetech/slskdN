@@ -46,6 +46,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Preferred configured COPR API tokens for unattended uploads, with Kerberos
   credentials retained as fallbacks, so missing HTTP service principals no
   longer block releases that already have valid token credentials.
+- Raised the transitive AngleSharp runtime floor to `1.5.0`, closing the HTML5
+  annotation-XML mutation-XSS advisory inherited through dotNetRDF.
 - Restored distributed mesh DHT lookup and cross-runtime signed-store
   interoperability, registered the remote Pod/shadow-index/gateway services,
   and preserved routable shadow-index peer hints.

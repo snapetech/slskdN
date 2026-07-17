@@ -14,10 +14,10 @@
   - Priority: P1
   - Notes: Corrected loaded-suite allocation ceilings exposed by `.280` and `.281`, then fixed `.282` release timeout masking and streaming-test cleanup before publishing `.283`. The hosted release gate passed (`890` Web with `4` skips, `4949` unit, `74` smoke, `99` focused, `40` integration), all six archives and embedded assets/version passed release verification, and both main and omnibus multi-architecture GHCR images were published. Replaced the prior live validation image with `.283`; the service is healthy with zero restarts, zero OOM events, no severe/warning log entries, active VPN forwarding, Soulseek activity, and successful downloads. Authenticated Chromium visited `43` routes with zero browser/network observations and the live core-page suite passed `4/4`. Fixed the audit's horizontal-tab visibility calculation and two unnamed Wishlist view buttons on `main`; those source fixes await the next explicitly authorized release. COPR recovery now prefers configured API-token credentials; build `10739201` succeeded for Fedora 43 and Rawhide. Chocolatey package creation passed, but both the tag job and standalone recovery received five consecutive external 504 responses.
 
-- [ ] Ship the post-`.283` Wishlist accessibility correction in the next authorized release.
+- [ ] Ship the post-`.283` source corrections in the next authorized release.
   - Status: waiting for explicit release authorization (2026-07-17)
   - Priority: P2
-  - Notes: `main` names both icon-only Wishlist view-mode buttons and passes the focused component coverage. Do not create another tag solely for this follow-up without explicit authorization.
+  - Notes: `main` names both icon-only Wishlist view-mode buttons and pins the AngleSharp runtime inherited through dotNetRDF to patched version `1.5.0`. Focused Wishlist (`10/10`), Solid unit/integration (`2/2`, `7/7`), full .NET (`5303/5303`), repository lint, and NuGet vulnerability scanning pass. Do not create another tag solely for these follow-ups without explicit authorization.
 
 - [ ] Retry stable Chocolatey publication after its push service recovers.
   - Status: blocked on external service availability (2026-07-17)

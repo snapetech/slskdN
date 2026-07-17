@@ -6,12 +6,13 @@
   - Deployed the immutable `.283` GHCR image with rollback preserved. The service remains healthy with zero restarts/OOM events and no severe or warning log entries while searches and downloads run normally.
   - Audited `43` authenticated routes and all discovered internal links with zero browser/network observations; the live core-page Playwright suite passed `4/4`.
   - Corrected two unnamed Wishlist view-mode buttons, horizontal System-tab audit geometry, COPR retry behavior, and unattended COPR authentication selection on `main` without creating another tag.
+  - Pinned transitive AngleSharp to patched version `1.5.0`; focused Solid coverage, full .NET (`5303/5303`), lint, and the NuGet vulnerability scan pass.
 - Release status:
   - The complete tag workflow passed, including build, platform archives, GitHub release, AUR, PPA, Nix, Homebrew, main and omnibus Docker, and announcement jobs. Artifact verification passed for every archive, required payload, checksum, footer marker, and embedded version.
   - COPR API-token recovery build `10739201` succeeded for Fedora 43 and Rawhide. Chocolatey package creation passed but its external push service returned 504 on all five release and recovery attempts.
 - Next steps:
   1. Retry Chocolatey through the existing manual workflow only after the external service recovers.
-  2. Include the Wishlist accessibility fix in the next explicitly authorized release.
+  2. Include the Wishlist accessibility and AngleSharp security fixes in the next explicitly authorized release.
   3. Do not create another release or tag without explicit authorization.
 
 ## Update 2026-07-17 18:20:49Z
