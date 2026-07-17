@@ -70,6 +70,37 @@ namespace slskd.Audio
             };
         }
 
+        internal static string BuildKey(AudioVariant variant)
+        {
+            if (variant == null)
+            {
+                throw new ArgumentNullException(nameof(variant));
+            }
+
+            if (IsLosslessCodec(variant.Codec) && variant.BitDepth.HasValue)
+            {
+                return $"{variant.Codec}-{variant.BitDepth.Value}bit-{variant.SampleRateHz}Hz-{variant.Channels}ch";
+            }
+
+            return $"{variant.Codec}-lossy-{variant.SampleRateHz}Hz-{variant.Channels}ch";
+        }
+
+        internal static bool MatchesKey(AudioVariant variant, string key)
+        {
+            if (variant == null)
+            {
+                throw new ArgumentNullException(nameof(variant));
+            }
+
+            Span<char> buffer = stackalloc char[256];
+            var formatted = IsLosslessCodec(variant.Codec) && variant.BitDepth.HasValue
+                ? buffer.TryWrite($"{variant.Codec}-{variant.BitDepth.Value}bit-{variant.SampleRateHz}Hz-{variant.Channels}ch", out var charsWritten)
+                : buffer.TryWrite($"{variant.Codec}-lossy-{variant.SampleRateHz}Hz-{variant.Channels}ch", out charsWritten);
+            return formatted
+                ? buffer[..charsWritten].SequenceEqual(key)
+                : string.Equals(BuildKey(variant), key, StringComparison.Ordinal);
+        }
+
         private static string GetCodecName(Properties props, string extension)
         {
             // Prefer explicit container/extension mapping; fall back to first codec description.

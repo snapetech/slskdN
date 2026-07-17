@@ -3260,7 +3260,7 @@ namespace slskd.HashDb
             {
                 var entry = ReadHashEntry(reader);
                 var variant = MapEntryToVariant(entry);
-                if (variant != null && CodecProfile.FromVariant(variant).ToKey() == codecProfileKey)
+                if (variant != null && CodecProfile.MatchesKey(variant, codecProfileKey))
                 {
                     list.Add(variant);
                 }

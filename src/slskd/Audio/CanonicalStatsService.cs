@@ -119,9 +119,7 @@ namespace slskd.Audio
                 return profileKey;
             }
 
-            profileKey = bitDepth.HasValue
-                ? $"{variant.Codec}-{bitDepth}bit-{variant.SampleRateHz}Hz-{variant.Channels}ch"
-                : $"{variant.Codec}-lossy-{variant.SampleRateHz}Hz-{variant.Channels}ch";
+            profileKey = CodecProfile.BuildKey(variant);
             profileKeyCache.Add(identity, profileKey);
             return profileKey;
         }

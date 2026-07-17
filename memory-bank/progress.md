@@ -1,3 +1,12 @@
+## Update 2026-07-17 03:01:12Z
+
+- Completed direct codec-profile key generation and stack-based HashDb profile matching.
+- Removed intermediate `CodecProfile` objects and nullable boxing from generated keys; common equality checks now format into bounded stack storage with exact allocating fallback.
+- Reduced 10,000 key generations from 1,440,000 to 720,000 warmed allocated bytes (50.0%); 10,000 row-style comparisons remain below 1 KiB.
+- Preserved lossless/bit-depth/profile formatting, current culture, ordinal equality, oversize behavior, and exact HashDb profile filtering.
+- Added compatibility, allocation, and database-filter regressions; passed focused codec/profile (`9/9`) and full backend (`5110/5110`: `69` application, `4761` unit, `280` integration) tests.
+- Passed repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks. Documented gotcha `0z725` (`2210bce3f`); concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 02:47:21Z
 
 - Completed streaming paged canonical statistics recomputation and singleton-profile fast paths.

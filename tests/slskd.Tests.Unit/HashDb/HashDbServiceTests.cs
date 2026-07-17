@@ -1732,6 +1732,46 @@ public class HashDbServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task GetVariantsByRecordingAndProfileAsync_FiltersExactProfileKey()
+    {
+        foreach (var (flacKey, variantId, sampleRate, bitDepth) in new[]
+        {
+            ("profile-key-16", "variant-16", 44_100, (int?)16),
+            ("profile-key-24", "variant-24", 48_000, (int?)24),
+        })
+        {
+            await service.StoreHashAsync(new HashDbEntry
+            {
+                FlacKey = flacKey,
+                ByteHash = $"hash-{flacKey}",
+                Size = 321,
+                FirstSeenAt = 1,
+                LastUpdatedAt = 1,
+                SeqId = sampleRate,
+                UseCount = 1,
+            });
+            await service.UpdateHashRecordingIdAsync(flacKey, "recording-profile");
+            await service.UpdateVariantMetadataAsync(flacKey, new AudioVariant
+            {
+                VariantId = variantId,
+                MusicBrainzRecordingId = "recording-profile",
+                Codec = "FLAC",
+                SampleRateHz = sampleRate,
+                BitDepth = bitDepth,
+                Channels = 2,
+                QualityScore = 0.8,
+            });
+        }
+
+        var variants = await service.GetVariantsByRecordingAndProfileAsync(
+            "recording-profile",
+            "FLAC-16bit-44100Hz-2ch");
+
+        var variant = Assert.Single(variants);
+        Assert.Equal("variant-16", variant.VariantId);
+    }
+
+    [Fact]
     public async Task GetLabelCrateReleaseJobsAsync_SkipsBlankReleaseIds()
     {
         await service.UpsertLabelCrateJobAsync(new slskd.Jobs.LabelCrateJob

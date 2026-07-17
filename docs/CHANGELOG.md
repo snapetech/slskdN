@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Codec-profile key generation now reads variant fields directly instead of
+  allocating an intermediate `CodecProfile`, and formats a proven nullable bit
+  depth through its value to avoid boxing. Across 10,000 generated lossless
+  keys, warmed allocation falls from 1,440,000 to 720,000 bytes (50.0%). HashDb
+  recording/profile filtering now writes ordinary keys into a 256-character
+  stack buffer and compares the produced span directly, remaining below 1 KiB
+  across 10,000 warmed comparisons; oversized keys retain the exact allocating
+  fallback. Lossless codec recognition, nullable-bit-depth behavior, current
+  formatting culture, exact ordinal equality, and returned profile filtering
+  remain unchanged.
 - Canonical statistics recomputation now scans each fetched page once into
   requested-recording indexes whose profile lists retain first-seen order. A
   shared page-local codec-profile key cache replaces the recording `ToLookup`,

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove intermediate codec-profile allocations from variant key paths.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `CodecProfile.BuildKey` now formats directly from an `AudioVariant`, avoiding the temporary `CodecProfile`; formatting `BitDepth.Value` after the existing `HasValue` proof also avoids nullable boxing. For 10,000 lossless key generations, warmed allocation falls from 1,440,000 to 720,000 bytes (50.0%). `CodecProfile.MatchesKey` writes common keys into a 256-character stack span and compares them ordinally, staying below 1 KiB across 10,000 comparisons; oversized keys fall back to exact allocated generation. `CanonicalStatsService` now uses the shared direct builder, and `HashDbService.GetVariantsByRecordingAndProfileAsync` uses allocation-free matching inside its row loop. Exact null guard, lossless codec set, lossy bit-depth suppression, current-culture numeric formatting, output spelling, oversized behavior, and HashDb profile results remain unchanged. Added six compatibility cases, direct-generation and matching allocation regressions, plus an exact HashDb profile filter test. Validation passed: focused codec/profile tests (`9/9`), full backend suites (`5110/5110`: `69` application, `4761` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Documented nullable interpolation gotcha `0z725` (`2210bce3f`).
+
 - [x] Stream paged canonical statistics recomputation.
   - Status: completed (2026-07-17)
   - Priority: P1
