@@ -84,7 +84,9 @@ hidden.
 `offsetLeft` with `scrollLeft` is also wrong when the item's offset includes a
 layout origin or border that the scroll offset does not. Use rendered rectangles
 for the item and the container's visible left edge through `clientWidth`, or
-normalize every offset to the same scroll-content origin. Confirm the result
+normalize every offset to the same scroll-content origin. Allow a one-CSS-pixel
+edge tolerance because fractional layout and borders can place a fully visible
+item a fraction of a pixel beyond the integer `clientWidth`. Confirm the result
 against routes near both the start and end of the overflowing tab strip.
 
 ### 0z765. Popup Tooltips Do Not Supply Accessible Button Names
