@@ -3,7 +3,7 @@ name: slskdn
 description: Unofficial slskd fork with batteries-included Soulseek, mesh, and discovery features
 type: application
 version: 0.2.1
-appVersion: "2026071717-slskdn.279"
+appVersion: "2026071721-slskdn.283"
 keywords:
   - p2p
   - mesh-networking
