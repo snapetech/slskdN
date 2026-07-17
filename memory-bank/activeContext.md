@@ -1,3 +1,17 @@
+## Update 2026-07-17 12:22:05Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded auto-replace filename filtering complete locally.
+- Last activity:
+  - Prepared expected filename tokens once per completed search and replaced candidate token sets/intersections with direct token-range scans and early overlap decisions.
+  - Across 10,000 complete misses, allocation falls from 52,641,656 to 4,880,848 bytes (90.7%) and elapsed time from 102 to 37 ms (63.7%).
+- Validation:
+  - Passed complete auto-replace (`11/11`) and backend validation (`5193/5193`: `69` application, `4844` unit, `280` integration), plus repository lint.
+  - Exact filename cleaning, ignored/case/distinct/short-name/threshold/Unicode behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. One unrelated streaming timeout passed its exact rerun and the complete unit rerun. Documented gotcha `0z745` (`768f87bf2`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the auto-replace filename matching optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 11:55:57Z
 
 - Current task: performance and efficiency improvements in progress; allocation-free common-ASCII multi-source filename matching complete locally.

@@ -216,6 +216,49 @@ public class AutoReplaceServiceTests
             "/music/Other Artist/Album/01 - Different Song.flac"));
     }
 
+    [Theory]
+    [InlineData("Alpha Beta.flac", "/music/ALPHA_BETA.mp3", true)]
+    [InlineData("Alpha Beta.flac", "/music/Alpha Other.mp3", false)]
+    [InlineData("Alpha Beta Gamma Delta.flac", "/music/Alpha Alpha Other.mp3", false)]
+    [InlineData("Kiss Song.flac", "/music/Kiss Song.mp3", true)]
+    [InlineData("The Remastered.flac", "/music/The Remastered.mp3", false)]
+    public void IsPlausibleFilenameMatch_PreservesTokenSemantics(
+        string expected,
+        string candidate,
+        bool isMatch)
+    {
+        Assert.Equal(isMatch, AutoReplaceService.IsPlausibleFilenameMatch(expected, candidate));
+    }
+
+    [Fact]
+    public void PreparedFilenameMatching_AvoidsPerCandidateTokenSets()
+    {
+        const string expected = "The Artist - Elaborate Track Title (2024 Remastered).flac";
+        var candidates = Enumerable.Range(0, 10_000)
+            .Select(index => $"/music/Other Artist/Album/{index:D5} - Different Song Title.flac")
+            .ToArray();
+        var expectedTokens = AutoReplaceService.GetMatchTokens(expected);
+
+        _ = AutoReplaceService.IsPlausibleFilenameMatch(expectedTokens, candidates[0]);
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var matches = 0;
+        foreach (var candidate in candidates)
+        {
+            if (AutoReplaceService.IsPlausibleFilenameMatch(expectedTokens, candidate))
+            {
+                matches++;
+            }
+        }
+
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal(0, matches);
+        Assert.InRange(allocated, 0, 6_000_000);
+    }
+
     [Fact]
     public async Task ReplaceDownloadAsync_Emits_RequestIdentity_For_Removed_Attempt()
     {

@@ -384,6 +384,7 @@ namespace slskd.Transfers.AutoReplace
 
                 // Get expected extension
                 var expectedExt = GetExtension(request.Filename)?.ToLowerInvariant();
+                var expectedMatchTokens = GetMatchTokens(request.Filename);
 
                 foreach (var response in searchWithResponses.Responses)
                 {
@@ -415,7 +416,7 @@ namespace slskd.Transfers.AutoReplace
                             continue;
                         }
 
-                        if (!IsPlausibleFilenameMatch(request.Filename, file.Filename))
+                        if (!IsPlausibleFilenameMatch(expectedMatchTokens, file.Filename))
                         {
                             continue;
                         }
@@ -755,32 +756,89 @@ namespace slskd.Transfers.AutoReplace
         internal static bool IsPlausibleFilenameMatch(string expectedFilename, string candidateFilename)
         {
             var expected = GetMatchTokens(expectedFilename);
-            var candidate = GetMatchTokens(candidateFilename);
 
-            if (expected.Count == 0 || candidate.Count == 0)
+            return IsPlausibleFilenameMatch(expected, candidateFilename);
+        }
+
+        internal static bool IsPlausibleFilenameMatch(HashSet<string> expected, string candidateFilename)
+        {
+            if (expected.Count == 0)
             {
                 return false;
             }
 
-            var overlap = expected.Intersect(candidate, StringComparer.OrdinalIgnoreCase).Count();
+            var cleanCandidate = CleanTrackTitle(candidateFilename).ToLowerInvariant();
             if (expected.Count <= 2)
             {
-                return overlap == expected.Count;
+                foreach (var token in expected)
+                {
+                    if (!ContainsMatchToken(cleanCandidate, token))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
             }
 
-            var overlapRatio = overlap / (double)expected.Count;
-            return overlap >= 2 && overlapRatio >= 0.5;
+            var requiredOverlap = Math.Max(2, (expected.Count + 1) / 2);
+            var overlap = 0;
+            foreach (var token in expected)
+            {
+                if (ContainsMatchToken(cleanCandidate, token) && ++overlap >= requiredOverlap)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
-        private static HashSet<string> GetMatchTokens(string filename)
+        private static bool ContainsMatchToken(string candidate, string expectedToken)
+        {
+            var index = 0;
+            while (index < candidate.Length)
+            {
+                while (index < candidate.Length && !IsAsciiLetterOrDigit(candidate[index]))
+                {
+                    index++;
+                }
+
+                var tokenStart = index;
+                while (index < candidate.Length && IsAsciiLetterOrDigit(candidate[index]))
+                {
+                    index++;
+                }
+
+                var tokenLength = index - tokenStart;
+                if (tokenLength > 1 && candidate.AsSpan(tokenStart, tokenLength).SequenceEqual(expectedToken))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsAsciiLetterOrDigit(char value)
+        {
+            return (value >= 'a' && value <= 'z') || (value >= '0' && value <= '9');
+        }
+
+        internal static HashSet<string> GetMatchTokens(string filename)
         {
             var clean = CleanTrackTitle(filename).ToLowerInvariant();
-            var tokens = Regex.Matches(clean, "[a-z0-9]+")
-                .Select(match => match.Value)
-                .Where(token => token.Length > 1)
-                .Where(token => !IgnoredMatchTokens.Contains(token));
+            var tokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (Match match in Regex.Matches(clean, "[a-z0-9]+"))
+            {
+                var token = match.Value;
+                if (token.Length > 1 && !IgnoredMatchTokens.Contains(token))
+                {
+                    tokens.Add(token);
+                }
+            }
 
-            return new HashSet<string>(tokens, StringComparer.OrdinalIgnoreCase);
+            return tokens;
         }
 
         private static readonly HashSet<string> IgnoredMatchTokens = new(StringComparer.OrdinalIgnoreCase)

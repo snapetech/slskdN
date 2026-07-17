@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Auto-replace alternative filtering now prepares the expected filename token
+  set once per completed search and scans each cleaned candidate's ASCII token
+  ranges directly instead of re-cleaning the expected filename, allocating a
+  candidate token set, and constructing a LINQ intersection for every viable
+  result. Across 10,000 complete misses, allocation falls from 52,641,656 to
+  4,880,848 bytes (90.7%) and elapsed time from 102 to 37 ms (63.7%). Existing
+  path and extension cleaning, ignored-token rules, case behavior, distinct
+  overlap, short-name all-token matching, thresholds, and Unicode invariant
+  normalization remain unchanged.
 - Multi-source content-variant matching now extracts each candidate basename
   once and counts distinct common ASCII filename characters through a two-word
   stack bitset instead of allocating a LINQ intersection set for every

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Prepare auto-replace filename matching once per search.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `AutoReplaceService.FindAlternativesWithStatusAsync` now extracts the expected filename token set once after the search completes and reuses it across viable response files. Candidate matching scans cleaned ASCII token ranges directly for each distinct expected token, eliminating the candidate `HashSet`, LINQ intersection, and repeated expected cleaning/tokenization while returning as soon as the required overlap is known. Across 10,000 complete misses, allocation falls from 52,641,656 to 4,880,848 bytes (90.7%) and elapsed time from 102 to 37 ms (63.7%). Path/extension cleaning, ignored tokens, case-insensitive matching, distinct duplicate handling, one/two-token all-match behavior, larger-name thresholds, and Unicode invariant normalization remain unchanged. Validation passed: complete auto-replace tests (`11/11`) and backend (`5193/5193`: `69` application, `4844` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. One unrelated streaming timeout passed both its exact rerun (`1/1`) and the complete unit rerun (`4844/4844`). Documented Unicode token-normalization gotcha `0z745` (`768f87bf2`).
+
 - [x] Remove per-variant filename intersection sets from multi-source matching.
   - Status: completed (2026-07-17)
   - Priority: P1
