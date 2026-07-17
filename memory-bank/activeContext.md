@@ -1,3 +1,17 @@
+## Update 2026-07-17 10:24:30Z
+
+- Current task: performance and efficiency improvements in progress; filename-bounded download enqueue history complete locally.
+- Last activity:
+  - Restricted download enqueue history reads to the requested filenames and indexed the matching records once for duplicate, inheritance, and supersession checks.
+  - A cold-process 10,000-unrelated/one-matching fixture falls from 10,001 to one materialized transfer, from 105,121,288 to 3,226,088 allocated bytes (96.9%), and from 453 to 144 ms (68.2%).
+- Validation:
+  - Passed complete download service (`38/38`), broader Downloads (`39/39`), and backend validation (`5169/5169`: `69` application, `4820` unit, `280` integration), plus repository lint.
+  - Exact filename matching, active duplicate rejection, newest request identity inheritance, matching-history supersession, unrelated-history isolation, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the filename-bounded download enqueue optimization and regression coverage.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 10:07:28Z
 
 - Current task: performance and efficiency improvements in progress; one-pass upload scheduling complete locally.

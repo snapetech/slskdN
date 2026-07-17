@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Download enqueue duplicate, request-inheritance, and supersession checks now
+  query only the requested filenames and index the matching history once
+  instead of materializing every past download from the selected user and
+  rescanning that complete list for each file. In a cold-process fixture with
+  10,000 unrelated historical downloads and one matching active transfer,
+  materialized transfers fall from 10,001 to one (99.99%), allocation falls
+  from 105,121,288 to 3,226,088 bytes (96.9%), and elapsed time falls from 453
+  to 144 ms (68.2%). Active-duplicate rejection, exact filename matching,
+  newest request identity inheritance, matching-history supersession, and
+  unrelated history remain unchanged.
 - Upload scheduling now scans tracked uploads once and retains only the best
   eligible group/upload pair instead of rebuilding a grouped concurrent map,
   buffering every ready upload, and ordering both groups and the winning list.

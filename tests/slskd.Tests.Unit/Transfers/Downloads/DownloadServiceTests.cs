@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Options;
 using Moq;
 using slskd.Events;
@@ -84,6 +85,70 @@ public class DownloadServiceTests
             service.Dispose();
             DeleteDatabase(databasePath);
         }
+    }
+
+    [Fact]
+    public async Task EnqueueAsync_WideUnrelatedHistoryMaterializesOnlyRequestedFilename()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var materialization = new TransferMaterializationInterceptor();
+        var options = new DbContextOptionsBuilder<TransfersDbContext>()
+            .UseSqlite(connection)
+            .AddInterceptors(materialization)
+            .Options;
+        var requestedFilename = @"Music\requested.flac";
+        var now = DateTime.UtcNow;
+
+        await using (var context = new TransfersDbContext(options))
+        {
+            await context.Database.EnsureCreatedAsync();
+            context.Transfers.AddRange(Enumerable.Range(0, 10_000).Select(index => new slskd.Transfers.Transfer
+            {
+                Id = Guid.NewGuid(),
+                Username = "alice",
+                Direction = TransferDirection.Download,
+                Filename = $@"History\unrelated-{index:D5}.flac",
+                Size = 1_234,
+                RequestedAt = now.AddSeconds(-index - 1),
+                EndedAt = now,
+                State = TransferStates.Completed | TransferStates.Succeeded,
+            }));
+            context.Transfers.Add(new slskd.Transfers.Transfer
+            {
+                Id = Guid.NewGuid(),
+                Username = "alice",
+                Direction = TransferDirection.Download,
+                Filename = requestedFilename,
+                Size = 1_234,
+                RequestedAt = now,
+                State = TransferStates.InProgress,
+            });
+            await context.SaveChangesAsync();
+        }
+
+        materialization.TransferCount = 0;
+        var soulseekClient = new Mock<ISoulseekClient>();
+        soulseekClient.SetupGet(client => client.Downloads).Returns(Array.Empty<Soulseek.Transfer>());
+        using var service = CreateDownloadService(options, soulseekClient);
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        var (enqueued, failed) = await service.EnqueueAsync(
+            "alice",
+            new[] { (Filename: requestedFilename, Size: 1_234L) },
+            CancellationToken.None);
+
+        stopwatch.Stop();
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+        Assert.Empty(enqueued);
+        Assert.Equal(new[] { requestedFilename }, failed);
+        Assert.True(
+            materialization.TransferCount == 1,
+            $"Materialized {materialization.TransferCount:N0} transfers in {stopwatch.ElapsedMilliseconds:N0} ms and allocated {allocatedBytes:N0} bytes.");
+        Assert.True(
+            allocatedBytes < 8_000_000,
+            $"Allocated {allocatedBytes:N0} bytes in {stopwatch.ElapsedMilliseconds:N0} ms.");
     }
 
     [Fact]
@@ -177,21 +242,50 @@ public class DownloadServiceTests
             .UseSqlite($"Data Source={databasePath}")
             .Options;
         var existingId = Guid.NewGuid();
+        var latestExistingId = Guid.NewGuid();
+        var unrelatedId = Guid.NewGuid();
+        var olderRequestId = Guid.NewGuid();
+        var inheritedRequestId = Guid.NewGuid();
 
         await using (var context = new TransfersDbContext(options))
         {
             await context.Database.EnsureCreatedAsync();
-            context.Transfers.Add(new slskd.Transfers.Transfer
-            {
-                Id = existingId,
-                Username = "alice",
-                Direction = TransferDirection.Download,
-                Filename = @"Music\track.flac",
-                Size = 1234,
-                RequestedAt = DateTime.UtcNow.AddHours(-1),
-                EndedAt = DateTime.UtcNow.AddMinutes(-30),
-                State = TransferStates.Completed | TransferStates.Succeeded,
-            });
+            context.Transfers.AddRange(
+                new slskd.Transfers.Transfer
+                {
+                    Id = existingId,
+                    RequestId = olderRequestId,
+                    Username = "alice",
+                    Direction = TransferDirection.Download,
+                    Filename = @"Music\track.flac",
+                    Size = 1234,
+                    RequestedAt = DateTime.UtcNow.AddHours(-2),
+                    EndedAt = DateTime.UtcNow.AddMinutes(-90),
+                    State = TransferStates.Completed | TransferStates.Succeeded,
+                },
+                new slskd.Transfers.Transfer
+                {
+                    Id = latestExistingId,
+                    RequestId = inheritedRequestId,
+                    Username = "alice",
+                    Direction = TransferDirection.Download,
+                    Filename = @"Music\track.flac",
+                    Size = 1234,
+                    RequestedAt = DateTime.UtcNow.AddHours(-1),
+                    EndedAt = DateTime.UtcNow.AddMinutes(-30),
+                    State = TransferStates.Completed | TransferStates.Succeeded,
+                },
+                new slskd.Transfers.Transfer
+                {
+                    Id = unrelatedId,
+                    Username = "alice",
+                    Direction = TransferDirection.Download,
+                    Filename = @"Music\unrelated.flac",
+                    Size = 1234,
+                    RequestedAt = DateTime.UtcNow.AddMinutes(-15),
+                    EndedAt = DateTime.UtcNow.AddMinutes(-10),
+                    State = TransferStates.Completed | TransferStates.Succeeded,
+                });
             await context.SaveChangesAsync();
         }
 
@@ -210,10 +304,15 @@ public class DownloadServiceTests
 
             await using var context = new TransfersDbContext(options);
             var existing = await context.Transfers.SingleAsync(t => t.Id == existingId);
+            var latestExisting = await context.Transfers.SingleAsync(t => t.Id == latestExistingId);
+            var unrelated = await context.Transfers.SingleAsync(t => t.Id == unrelatedId);
             var replacement = await context.Transfers.SingleAsync(t => t.Id == enqueued.Single().Id);
 
             Assert.True(existing.Removed);
+            Assert.True(latestExisting.Removed);
+            Assert.False(unrelated.Removed);
             Assert.False(replacement.Removed);
+            Assert.Equal(inheritedRequestId, replacement.RequestId);
             Assert.Equal(TransferStates.Queued | TransferStates.Locally, replacement.State);
 
             Assert.True(service.TryCancel(replacement.Id));
@@ -1569,6 +1668,21 @@ public class DownloadServiceTests
             Mock.Of<IRelayService>(),
             Mock.Of<IFTPService>(),
             new EventBus(eventService.Object));
+    }
+
+    private sealed class TransferMaterializationInterceptor : IMaterializationInterceptor
+    {
+        public int TransferCount { get; set; }
+
+        public object InitializedInstance(MaterializationInterceptionData materializationData, object entity)
+        {
+            if (entity is slskd.Transfers.Transfer)
+            {
+                TransferCount++;
+            }
+
+            return entity;
+        }
     }
 
     private static DownloadService CreateDownloadService(

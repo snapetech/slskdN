@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound download enqueue history materialization by requested filenames.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `DownloadService.EnqueueAsync` now applies the existing indexed username/filename predicates before materialization and builds exact-filename history indexes once for active-duplicate rejection, latest request inheritance, and supersession. A cold-process fixture with 10,000 unrelated historical downloads and one matching active transfer falls from 10,001 to one materialized transfer (99.99%), from 105,121,288 to 3,226,088 allocated bytes (96.9%), and from 453 to 144 ms (68.2%). Exact filename comparison, duplicate rejection, newest request identity, matching-history removal, unrelated history, per-user serialization, and enqueue behavior remain unchanged. Validation passed: complete download service (`38/38`), broader Downloads (`39/39`), and backend (`5169/5169`: `69` application, `4820` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Replace upload scheduling buffers and sorts with one-pass selection.
   - Status: completed (2026-07-17)
   - Priority: P1

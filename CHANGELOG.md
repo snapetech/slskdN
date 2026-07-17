@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Download enqueue checks now load history only for the requested filenames
+  instead of materializing every past download from the selected user.
 - Upload scheduling now selects the next eligible transfer in one pass without
   rebuilding grouped ready-upload lists or sorting each scheduling decision.
 - Full security challenge and verification caches now find their oldest entry

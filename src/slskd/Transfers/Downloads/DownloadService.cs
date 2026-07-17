@@ -496,19 +496,38 @@ namespace slskd.Transfers.Downloads
                 using var context = ContextFactory.CreateDbContext();
 
                 /*
-                    get all past downloads from this user.  this list will remain stable throughout this process because
-                    we have exclusive access for this user.  we'll be adding new records, but we've already deduplicated
-                    them so we don't have to worry about duplicate records being created in the critical section
+                    Get past downloads from this user for only the requested filenames. This list will remain stable
+                    throughout this process because we have exclusive access for this user. We'll be adding new records,
+                    but we've already deduplicated them so we don't have to worry about duplicate records being created
+                    in the critical section.
                 */
+                var requestedFilenames = fileList
+                    .Select(file => file.Filename)
+                    .Distinct()
+                    .ToArray();
                 var existingRecords = context.Transfers
                     .Where(t => t.Direction == TransferDirection.Download)
                     .Where(t => t.Username == username)
+                    .Where(t => requestedFilenames.Contains(t.Filename))
                     .AsNoTracking() // note: AI wants to remove this, dont.
                     .ToList();
 
-                var existingInProgressRecords = existingRecords
-                    .Where(t => t.EndedAt == null || !t.State.HasFlag(TransferStates.Completed))
-                    .ToDictionary(t => t.Filename, t => t);
+                var existingRecordsByFilename = new Dictionary<string, List<Transfer>>(StringComparer.Ordinal);
+                var existingInProgressRecords = new Dictionary<string, Transfer>(StringComparer.Ordinal);
+                foreach (var record in existingRecords)
+                {
+                    if (!existingRecordsByFilename.TryGetValue(record.Filename, out var records))
+                    {
+                        records = [];
+                        existingRecordsByFilename.Add(record.Filename, records);
+                    }
+
+                    records.Add(record);
+                    if (record.EndedAt == null || !record.State.HasFlag(TransferStates.Completed))
+                    {
+                        existingInProgressRecords.Add(record.Filename, record);
+                    }
+                }
 
                 /*
                     determine how many concurrent enqueue requests we want to send to the remote client.
@@ -543,6 +562,7 @@ namespace slskd.Transfers.Downloads
                         try
                         {
                             Log.Debug("Checking whether download of {Filename} from {Username} is already in progress", file.Filename, username);
+                            existingRecordsByFilename.TryGetValue(file.Filename, out var existingFilenameRecords);
 
                             /*
                                 if there are any that haven't ended yet (checking a few ways out of paranoia), then there's already
@@ -584,11 +604,20 @@ namespace slskd.Transfers.Downloads
                             }
                             else
                             {
-                                var inheritFrom = existingRecords
-                                    .Where(t => t.Filename == file.Filename && t.RequestId.HasValue)
-                                    .OrderByDescending(t => t.RequestedAt)
-                                    .Select(t => t.RequestId)
-                                    .FirstOrDefault();
+                                Guid? inheritFrom = null;
+                                DateTime? inheritFromRequestedAt = null;
+                                if (existingFilenameRecords != null)
+                                {
+                                    foreach (var record in existingFilenameRecords)
+                                    {
+                                        if (record.RequestId.HasValue &&
+                                            (!inheritFromRequestedAt.HasValue || record.RequestedAt > inheritFromRequestedAt.Value))
+                                        {
+                                            inheritFrom = record.RequestId;
+                                            inheritFromRequestedAt = record.RequestedAt;
+                                        }
+                                    }
+                                }
 
                                 if (inheritFrom.HasValue)
                                 {
@@ -649,11 +678,19 @@ namespace slskd.Transfers.Downloads
 
                             Log.Debug("Added Transfer record for download of {Filename} from {Username} (id: {Id})", transfer.Filename, transfer.Username, transfer.Id);
 
-                            foreach (var record in existingRecords.Where(t => t.Filename == file.Filename && !t.Removed))
+                            if (existingFilenameRecords != null)
                             {
-                                record.Removed = true;
-                                context.Update(record);
-                                Log.Debug("Marked existing download record of {Filename} from {Username} removed (id: {Id})", file.Filename, username, record.Id);
+                                foreach (var record in existingFilenameRecords)
+                                {
+                                    if (record.Removed)
+                                    {
+                                        continue;
+                                    }
+
+                                    record.Removed = true;
+                                    context.Update(record);
+                                    Log.Debug("Marked existing download record of {Filename} from {Username} removed (id: {Id})", file.Filename, username, record.Id);
+                                }
                             }
 
                             /*
