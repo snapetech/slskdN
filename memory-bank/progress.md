@@ -1,3 +1,12 @@
+## Update 2026-07-17 00:21:11Z
+
+- Completed a single-pass, distinct-lane-bounded Discovery Graph evidence summary.
+- Replaced flattened LINQ grouping and repeated average/sum/count enumeration with insertion-ordered case-insensitive lane accumulators, stable distinct-lane sorting, and one final DTO materialization pass.
+- Reduced warmed allocation for 100,000 duplicate lane observations from 2,098,912 to 784 bytes (>99.96%); retained aggregation state now scales with distinct lanes rather than observations.
+- Preserved first lane spelling, case-insensitive grouping, sequential score averaging and rounding, checked minimum-one count sums, formatted summaries, score/label ordering, and first-seen stable ties.
+- Added exact semantic and duplicate-heavy allocation regressions; passed focused summary (`2/2`), complete DiscoveryGraph service (`9/9`), and full backend (`5035/5035`: `69` application, `4686` unit, `280` integration) tests.
+- Passed repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 00:09:17Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded fallback taste-recommendation keys complete locally.

@@ -791,21 +791,51 @@ public sealed class DiscoveryGraphService : IDiscoveryGraphService
         return lanes;
     }
 
-    private static List<DiscoveryGraphEvidenceLane> BuildGraphEvidenceSummary(DiscoveryGraphResult graph)
-        => graph.Edges
-            .SelectMany(edge => edge.EvidenceLanes)
-            .GroupBy(lane => lane.Lane, StringComparer.OrdinalIgnoreCase)
-            .Select(group => new DiscoveryGraphEvidenceLane
+    internal static List<DiscoveryGraphEvidenceLane> BuildGraphEvidenceSummary(DiscoveryGraphResult graph)
+    {
+        var accumulatorsByLane = new Dictionary<string, EvidenceLaneAccumulator>(StringComparer.OrdinalIgnoreCase);
+        var accumulators = new List<EvidenceLaneAccumulator>();
+
+        foreach (var edge in graph.Edges)
+        {
+            foreach (var lane in edge.EvidenceLanes)
             {
-                Lane = group.Key,
-                Label = FormatLaneLabel(group.Key),
-                Score = Math.Round(group.Average(lane => lane.Score), 3),
-                Count = group.Sum(lane => Math.Max(1, lane.Count)),
-                Summary = $"{FormatLaneLabel(group.Key)} appears on {group.Count()} graph edge{(group.Count() == 1 ? string.Empty : "s")}.",
-            })
-            .OrderByDescending(lane => lane.Score)
-            .ThenBy(lane => lane.Label, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+                if (!accumulatorsByLane.TryGetValue(lane.Lane, out var accumulator))
+                {
+                    accumulator = new EvidenceLaneAccumulator(lane.Lane, accumulators.Count);
+                    accumulatorsByLane.Add(lane.Lane, accumulator);
+                    accumulators.Add(accumulator);
+                }
+
+                accumulator.Add(lane);
+            }
+        }
+
+        foreach (var accumulator in accumulators)
+        {
+            accumulator.Complete();
+        }
+
+        accumulators.Sort(static (left, right) =>
+        {
+            var result = right.Score.CompareTo(left.Score);
+            if (result != 0)
+            {
+                return result;
+            }
+
+            result = StringComparer.OrdinalIgnoreCase.Compare(left.Label, right.Label);
+            return result != 0 ? result : left.FirstSeenOrder.CompareTo(right.FirstSeenOrder);
+        });
+
+        var summaries = new List<DiscoveryGraphEvidenceLane>(accumulators.Count);
+        foreach (var accumulator in accumulators)
+        {
+            summaries.Add(accumulator.ToSummary());
+        }
+
+        return summaries;
+    }
 
     private static string FormatLaneLabel(string lane)
         => string.Join(
@@ -813,4 +843,50 @@ public sealed class DiscoveryGraphService : IDiscoveryGraphService
             (lane ?? string.Empty)
                 .Split(new[] { '_', '-' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(part => char.ToUpperInvariant(part[0]) + part[1..]));
+
+    private sealed class EvidenceLaneAccumulator
+    {
+        private double _scoreTotal;
+
+        public EvidenceLaneAccumulator(string lane, int firstSeenOrder)
+        {
+            Lane = lane;
+            Label = FormatLaneLabel(lane);
+            FirstSeenOrder = firstSeenOrder;
+        }
+
+        public string Lane { get; }
+
+        public string Label { get; }
+
+        public int FirstSeenOrder { get; }
+
+        public double Score { get; private set; }
+
+        public int Count { get; private set; }
+
+        public int ObservationCount { get; private set; }
+
+        public void Add(DiscoveryGraphEvidenceLane lane)
+        {
+            _scoreTotal += lane.Score;
+            Count = checked(Count + Math.Max(1, lane.Count));
+            ObservationCount++;
+        }
+
+        public void Complete()
+        {
+            Score = Math.Round(_scoreTotal / ObservationCount, 3);
+        }
+
+        public DiscoveryGraphEvidenceLane ToSummary()
+            => new()
+            {
+                Lane = Lane,
+                Label = Label,
+                Score = Score,
+                Count = Count,
+                Summary = $"{Label} appears on {ObservationCount} graph edge{(ObservationCount == 1 ? string.Empty : "s")}.",
+            };
+    }
 }

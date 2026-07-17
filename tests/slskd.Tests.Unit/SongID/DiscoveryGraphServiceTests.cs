@@ -10,6 +10,7 @@ using slskd.Integrations.MusicBrainz.Models;
 using slskd.SongID;
 using Xunit;
 
+[Collection(AllocationTestCollection.Name)]
 public sealed class DiscoveryGraphServiceTests
 {
     [Fact]
@@ -467,5 +468,110 @@ public sealed class DiscoveryGraphServiceTests
             lane.Count == 1 &&
             lane.Summary == "Identity appears on 1 graph edge.");
         Assert.Contains(graph.EvidenceSummary, lane => lane.Lane == "action");
+    }
+
+    [Fact]
+    public void BuildGraphEvidenceSummary_PreservesGroupingCountingAndStableOrdering()
+    {
+        var graph = new DiscoveryGraphResult
+        {
+            Edges = new List<DiscoveryGraphEdge>
+            {
+                new()
+                {
+                    EvidenceLanes = new List<DiscoveryGraphEvidenceLane>
+                    {
+                        new() { Lane = "IDENTITY", Score = 0.9, Count = 0 },
+                        new() { Lane = "zeta-lane", Score = 0.6, Count = -4 },
+                    },
+                },
+                new()
+                {
+                    EvidenceLanes = new List<DiscoveryGraphEvidenceLane>
+                    {
+                        new() { Lane = "identity", Score = 0.3, Count = 2 },
+                        new() { Lane = "zeta_lane", Score = 0.6, Count = 1 },
+                    },
+                },
+            },
+        };
+
+        var summaries = DiscoveryGraphService.BuildGraphEvidenceSummary(graph);
+
+        Assert.Equal(new[] { "IDENTITY", "zeta-lane", "zeta_lane" }, summaries.Select(summary => summary.Lane));
+        Assert.Collection(
+            summaries,
+            summary =>
+            {
+                Assert.Equal("IDENTITY", summary.Label);
+                Assert.Equal(0.6, summary.Score);
+                Assert.Equal(3, summary.Count);
+                Assert.Equal("IDENTITY appears on 2 graph edges.", summary.Summary);
+            },
+            summary =>
+            {
+                Assert.Equal("Zeta Lane", summary.Label);
+                Assert.Equal(0.6, summary.Score);
+                Assert.Equal(1, summary.Count);
+                Assert.Equal("Zeta Lane appears on 1 graph edge.", summary.Summary);
+            },
+            summary =>
+            {
+                Assert.Equal("Zeta Lane", summary.Label);
+                Assert.Equal(0.6, summary.Score);
+                Assert.Equal(1, summary.Count);
+                Assert.Equal("Zeta Lane appears on 1 graph edge.", summary.Summary);
+            });
+    }
+
+    [Fact]
+    public void BuildGraphEvidenceSummary_DuplicateHeavyInput_HasBoundedAllocation()
+    {
+        DiscoveryGraphService.BuildGraphEvidenceSummary(new DiscoveryGraphResult
+        {
+            Edges = new List<DiscoveryGraphEdge>
+            {
+                new()
+                {
+                    EvidenceLanes = new List<DiscoveryGraphEvidenceLane>
+                    {
+                        new() { Lane = "warmup", Score = 0.5, Count = 1 },
+                        new() { Lane = "WARMUP", Score = 0.7, Count = 1 },
+                    },
+                },
+            },
+        });
+
+        const int observationCount = 100_000;
+        var lanes = new List<DiscoveryGraphEvidenceLane>(observationCount);
+        for (var i = 0; i < observationCount; i++)
+        {
+            lanes.Add(new DiscoveryGraphEvidenceLane
+            {
+                Lane = "identity",
+                Score = 0.75,
+                Count = 1,
+            });
+        }
+
+        var graph = new DiscoveryGraphResult
+        {
+            Edges = new List<DiscoveryGraphEdge>
+            {
+                new() { EvidenceLanes = lanes },
+            },
+        };
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var summaries = DiscoveryGraphService.BuildGraphEvidenceSummary(graph);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        var summary = Assert.Single(summaries);
+        Assert.Equal(0.75, summary.Score);
+        Assert.Equal(observationCount, summary.Count);
+        Assert.Equal($"Identity appears on {observationCount} graph edges.", summary.Summary);
+        Assert.True(
+            allocatedBytes < 4_096,
+            $"Expected duplicate-heavy evidence summarization below 4 KiB allocated, got {allocatedBytes:N0} bytes.");
     }
 }

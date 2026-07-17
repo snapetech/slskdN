@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Discovery Graph evidence summaries now aggregate each lane in one pass and
+  sort only distinct lane totals instead of buffering every edge-lane group.
 - Text-only taste-recommendation keys now normalize through reusable stack
   storage and allocate a canonical string only for each distinct work group.
 - Taste recommendations now aggregate observations directly and retain only the

@@ -1,3 +1,17 @@
+## Update 2026-07-17 00:21:11Z
+
+- Current task: performance and efficiency improvements in progress; single-pass Discovery Graph evidence summarization complete locally.
+- Last activity:
+  - Replaced flattened `SelectMany`/`GroupBy` buffers and repeated group enumeration with insertion-ordered, case-insensitive per-lane accumulators and distinct-only stable sorting/materialization.
+  - A 100,000-observation duplicate fixture falls from 2,098,912 to 784 warmed allocated bytes (>99.96%), with retained aggregation state proportional to distinct lanes.
+- Validation:
+  - Passed focused evidence-summary (`2/2`), complete DiscoveryGraph service (`9/9`), and full backend suites (`5035/5035`: `69` application, `4686` unit, `280` integration) tests.
+  - Exact lane casing/grouping, score average/rounding, checked count aggregation, label/summary formatting, score/label ordering, stable ties, allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the Discovery Graph evidence-summary slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 00:09:17Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded fallback taste-recommendation keys complete locally.

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Stream Discovery Graph evidence summarization by distinct lane.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `DiscoveryGraphService.BuildGraphEvidenceSummary` now scans every edge lane once into insertion-ordered, ordinal-ignore-case accumulators instead of retaining flattened `GroupBy` element buffers and repeatedly enumerating each group for average, sum, and count. Only distinct lane accumulators are completed, stably sorted, and materialized. For 100,000 duplicate lane observations, warmed allocation falls from 2,098,912 to 784 bytes (>99.96%), with retained aggregation state proportional to distinct lanes. Exact first-seen lane spelling, case-insensitive grouping, sequential average and three-decimal rounding, `Math.Max(1, Count)` checked summation, label formatting, occurrence-based singular/plural summaries, descending rounded-score ordering, ordinal-ignore-case label ordering, and first-seen stable ties remain unchanged. Added focused compatibility and duplicate-heavy allocation regressions. Validation passed: focused summary tests (`2/2`), complete DiscoveryGraph service tests (`9/9`), full backend suites (`5035/5035`: `69` application, `4686` unit, `280` integration), repository lint, remediation baseline through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Allocation-bound fallback taste-recommendation work keys.
   - Status: completed (2026-07-17)
   - Priority: P1

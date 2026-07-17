@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Discovery Graph evidence summarization now scans edge lanes directly into
+  case-insensitive per-lane accumulators and sorts only the distinct summaries,
+  eliminating `SelectMany`/`GroupBy` buffers and repeated group enumeration.
+  For 100,000 duplicate lane observations, warmed allocation falls from
+  2,098,912 to 784 bytes (>99.96%), and retained aggregation memory is
+  proportional to distinct lanes rather than observations. First-seen lane
+  spelling, case-insensitive grouping, average-score rounding, minimum-one
+  count contribution, formatted labels, singular/plural summaries, descending
+  score order, label order, and first-seen stable ties remain unchanged.
 - Taste recommendations without MusicBrainz IDs now write the exact legacy
   `text:creator:title:year` canonical form into one reusable 1,024-character
   stack buffer. Lookups hash and compare that span directly; only a newly
