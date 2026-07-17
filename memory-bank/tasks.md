@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Stream SongID repeated-trigram transcript scoring.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `SongIdScoring.ComputeRepeatedNgramRatio` now performs allocation-free token counting to retain the legacy six-token early return, then scans invariant-lowercased ASCII-letter/apostrophe token ranges through a sliding three-token window. One exact dictionary stores only distinct range keys and updates repeated-occurrence totals online, replacing regex `Match`/token allocations, joined n-gram strings, complete n-gram lists, and `GroupBy` buffers. A 30,000-token transcript with three repeating tokens falls from 13,552,656 to 288 isolated warmed allocated bytes (>99.997%) and stays below 16 KiB under broad-suite runtime initialization. A 10,000-distinct-token transcript falls from 5,804,800 to 1,748,840 bytes (69.9%). Exact invariant lowercasing, `[a-zA-Z']+` token semantics, overlapping windows, fewer-than-six behavior, repeated-group occurrence counting, and ordinal equality remain unchanged. Added exact token/ratio plus duplicate-heavy and wide-unique allocation regressions. Validation passed: focused n-gram (`10/10`), complete scoring (`30/30`), broader SongID (`70/70`), full backend suites (`5055/5055`: `69` application, `4706` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Documented fixture-alphabet gotcha `0z723` (`48a5957fb`) and broad-suite allocation-headroom gotcha `0z724` (`441e40e58`).
+
 - [x] Bound SongID loose-text token comparison allocation.
   - Status: completed (2026-07-17)
   - Priority: P1

@@ -1034,21 +1034,168 @@ internal static class SongIdScoring
         return repeated / (double)lines.Count;
     }
 
-    private static double ComputeRepeatedNgramRatio(string text)
+    internal static double ComputeRepeatedNgramRatio(string text)
     {
-        var tokens = Regex.Matches((text ?? string.Empty).ToLowerInvariant(), @"[a-zA-Z']+")
-            .Select(match => match.Value)
-            .ToList();
-        if (tokens.Count < 6)
+        var normalized = (text ?? string.Empty).ToLowerInvariant();
+        var tokenCount = CountRepeatedNgramTokens(normalized);
+        if (tokenCount < 6)
         {
             return 0;
         }
 
-        var ngrams = Enumerable.Range(0, tokens.Count - 2)
-            .Select(index => string.Join(" ", tokens.Skip(index).Take(3)))
-            .ToList();
-        var repeated = ngrams.GroupBy(value => value, StringComparer.Ordinal).Where(group => group.Count() > 1).Sum(group => group.Count());
-        return repeated / (double)ngrams.Count;
+        var counts = new Dictionary<RepeatedNgram, int>(RepeatedNgramComparer.Instance);
+        var previousPreviousStart = 0;
+        var previousPreviousLength = 0;
+        var previousStart = 0;
+        var previousLength = 0;
+        var seenTokens = 0;
+        var repeatedCount = 0;
+        var index = 0;
+
+        while (index < normalized.Length)
+        {
+            while (index < normalized.Length && !IsRepeatedNgramTokenCharacter(normalized[index]))
+            {
+                index++;
+            }
+
+            var start = index;
+            while (index < normalized.Length && IsRepeatedNgramTokenCharacter(normalized[index]))
+            {
+                index++;
+            }
+
+            if (start == index)
+            {
+                break;
+            }
+
+            var length = index - start;
+            if (seenTokens >= 2)
+            {
+                var ngram = new RepeatedNgram(
+                    normalized,
+                    previousPreviousStart,
+                    previousPreviousLength,
+                    previousStart,
+                    previousLength,
+                    start,
+                    length);
+                ref var count = ref CollectionsMarshal.GetValueRefOrAddDefault(counts, ngram, out var exists);
+                if (exists)
+                {
+                    repeatedCount += count == 1 ? 2 : 1;
+                    count++;
+                }
+                else
+                {
+                    count = 1;
+                }
+            }
+
+            previousPreviousStart = previousStart;
+            previousPreviousLength = previousLength;
+            previousStart = start;
+            previousLength = length;
+            seenTokens++;
+        }
+
+        return repeatedCount / (double)(tokenCount - 2);
+    }
+
+    private static int CountRepeatedNgramTokens(string text)
+    {
+        var count = 0;
+        var insideToken = false;
+        foreach (var value in text)
+        {
+            var isTokenCharacter = IsRepeatedNgramTokenCharacter(value);
+            if (isTokenCharacter && !insideToken)
+            {
+                count++;
+            }
+
+            insideToken = isTokenCharacter;
+        }
+
+        return count;
+    }
+
+    private static bool IsRepeatedNgramTokenCharacter(char value)
+        => value is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or '\'';
+
+    private readonly struct RepeatedNgram
+    {
+        public RepeatedNgram(
+            string source,
+            int firstStart,
+            int firstLength,
+            int secondStart,
+            int secondLength,
+            int thirdStart,
+            int thirdLength)
+        {
+            Source = source;
+            FirstStart = firstStart;
+            FirstLength = firstLength;
+            SecondStart = secondStart;
+            SecondLength = secondLength;
+            ThirdStart = thirdStart;
+            ThirdLength = thirdLength;
+        }
+
+        public string Source { get; }
+
+        public int FirstStart { get; }
+
+        public int FirstLength { get; }
+
+        public int SecondStart { get; }
+
+        public int SecondLength { get; }
+
+        public int ThirdStart { get; }
+
+        public int ThirdLength { get; }
+    }
+
+    private sealed class RepeatedNgramComparer : IEqualityComparer<RepeatedNgram>
+    {
+        public static RepeatedNgramComparer Instance { get; } = new();
+
+        public bool Equals(RepeatedNgram left, RepeatedNgram right)
+            => TokenEquals(left.Source, left.FirstStart, left.FirstLength, right.Source, right.FirstStart, right.FirstLength) &&
+                TokenEquals(left.Source, left.SecondStart, left.SecondLength, right.Source, right.SecondStart, right.SecondLength) &&
+                TokenEquals(left.Source, left.ThirdStart, left.ThirdLength, right.Source, right.ThirdStart, right.ThirdLength);
+
+        public int GetHashCode(RepeatedNgram ngram)
+        {
+            HashCode hashCode = default;
+            AddToken(ref hashCode, ngram.Source, ngram.FirstStart, ngram.FirstLength);
+            hashCode.Add(' ');
+            AddToken(ref hashCode, ngram.Source, ngram.SecondStart, ngram.SecondLength);
+            hashCode.Add(' ');
+            AddToken(ref hashCode, ngram.Source, ngram.ThirdStart, ngram.ThirdLength);
+            return hashCode.ToHashCode();
+        }
+
+        private static bool TokenEquals(
+            string leftSource,
+            int leftStart,
+            int leftLength,
+            string rightSource,
+            int rightStart,
+            int rightLength)
+            => leftLength == rightLength &&
+                leftSource.AsSpan(leftStart, leftLength).SequenceEqual(rightSource.AsSpan(rightStart, rightLength));
+
+        private static void AddToken(ref HashCode hashCode, string source, int start, int length)
+        {
+            foreach (var value in source.AsSpan(start, length))
+            {
+                hashCode.Add(value);
+            }
+        }
     }
 
     private static int CountSyntheticMentions(string text)

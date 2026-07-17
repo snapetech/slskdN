@@ -1,3 +1,12 @@
+## Update 2026-07-17 00:50:21Z
+
+- Completed streaming SongID transcript repeated-trigram scoring.
+- Replaced regex matches, token strings, joined n-gram strings, n-gram lists, and LINQ groups with exact non-owning trigram ranges and online occurrence aggregation.
+- Reduced isolated warmed allocation for a 30,000-token/three-token-cycle transcript from 13,552,656 to 288 bytes (>99.997%), with a broad-suite regression ceiling below 16 KiB; 10,000 distinct tokens fall from 5,804,800 to 1,748,840 bytes (69.9%).
+- Preserved invariant lowercase and `[a-zA-Z']+` token semantics, the six-token threshold, overlapping windows, occurrence-based repeated ratios, and exact ordinal equality.
+- Added exact semantic plus duplicate-heavy and wide-unique allocation regressions; passed focused n-gram (`10/10`), complete scoring (`30/30`), broader SongID (`70/70`), and full backend (`5055/5055`: `69` application, `4706` unit, `280` integration) tests.
+- Passed repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks. Documented gotchas `0z723` (`48a5957fb`) and `0z724` (`441e40e58`); concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 00:35:36Z
 
 - Completed allocation-bounded SongID loose-text token comparison.

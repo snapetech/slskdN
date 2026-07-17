@@ -469,4 +469,63 @@ public sealed class SongIdScoringTests
             allocatedBytes < 10_000_000,
             $"Expected repeated loose-text comparisons below 10 MB allocated, got {allocatedBytes:N0} bytes.");
     }
+
+    [Theory]
+    [InlineData("a b c a b", 0.0)]
+    [InlineData("a b c d e f", 0.0)]
+    [InlineData("a b c a b c", 0.5)]
+    [InlineData("a b c a b c a b c", 1.0)]
+    [InlineData("a a a a a a", 1.0)]
+    [InlineData("DON'T stop now don't stop now", 0.5)]
+    [InlineData("Ä A B C ä a b c", 0.5)]
+    [InlineData("", 0.0)]
+    public void ComputeRepeatedNgramRatio_PreservesTokenAndOccurrenceSemantics(string text, double expected)
+    {
+        Assert.Equal(expected, SongIdScoring.ComputeRepeatedNgramRatio(text), precision: 10);
+    }
+
+    [Fact]
+    public void ComputeRepeatedNgramRatio_DuplicateHeavyTranscriptHasBoundedAllocation()
+    {
+        const string warmup = "warm repeated phrase warm repeated phrase";
+        for (var index = 0; index < 32; index++)
+        {
+            _ = SongIdScoring.ComputeRepeatedNgramRatio(warmup);
+        }
+
+        const int repetitions = 10_000;
+        var transcript = string.Join(' ', Enumerable.Repeat("alpha beta gamma", repetitions));
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var ratio = SongIdScoring.ComputeRepeatedNgramRatio(transcript);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(1.0, ratio);
+        Assert.True(
+            allocatedBytes < 16 * 1024,
+            $"Expected repeated-trigram analysis below 16 KiB allocated, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
+    public void ComputeRepeatedNgramRatio_UniqueTranscriptRetainsOnlyDistinctRangeKeys()
+    {
+        const string warmup = "warm unique phrase with enough tokens";
+        for (var index = 0; index < 32; index++)
+        {
+            _ = SongIdScoring.ComputeRepeatedNgramRatio(warmup);
+        }
+
+        const int tokenCount = 10_000;
+        var transcript = string.Join(' ', Enumerable.Range(0, tokenCount).Select(index =>
+            $"token{(char)('a' + (index / 676))}{(char)('a' + ((index / 26) % 26))}{(char)('a' + (index % 26))}"));
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var ratio = SongIdScoring.ComputeRepeatedNgramRatio(transcript);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(0.0, ratio);
+        Assert.True(
+            allocatedBytes < 1_900_000,
+            $"Expected unique-trigram analysis below 1.9 MB allocated, got {allocatedBytes:N0} bytes.");
+    }
 }

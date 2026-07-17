@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- SongID transcript trigram repetition now streams token ranges and aggregates
+  distinct trigrams without regex match, token, n-gram, or grouping buffers.
 - SongID loose-text similarity now compares normalized token ranges through one
   membership table instead of allocating split tokens and extra Jaccard sets.
 - Discovery Graph evidence summaries now aggregate each lane in one pass and

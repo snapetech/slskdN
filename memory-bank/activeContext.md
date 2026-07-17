@@ -1,3 +1,17 @@
+## Update 2026-07-17 00:50:21Z
+
+- Current task: performance and efficiency improvements in progress; streaming SongID repeated-trigram scoring complete locally.
+- Last activity:
+  - Replaced regex match/token/n-gram strings and LINQ grouping buffers with a two-pass ASCII-letter/apostrophe range scanner, sliding trigram keys, and online exact occurrence counts.
+  - A 30,000-token repeated transcript falls from 13,552,656 to 288 isolated warmed allocated bytes (>99.997%) and stays below 16 KiB in the broad suite; 10,000 distinct tokens fall from 5,804,800 to 1,748,840 bytes (69.9%).
+- Validation:
+  - Passed focused n-gram (`10/10`), complete scoring (`30/30`), broader SongID (`70/70`), and full backend suites (`5055/5055`: `69` application, `4706` unit, `280` integration) tests.
+  - Exact lowercase/token/threshold/window/occurrence/ratio, duplicate/unique allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff behavior passed. Documented fixture-alphabet gotcha `0z723` (`48a5957fb`) and allocation-headroom gotcha `0z724` (`441e40e58`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the SongID repeated-trigram slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 00:35:36Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded SongID loose-text comparison complete locally.

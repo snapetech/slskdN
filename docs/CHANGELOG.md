@@ -22,6 +22,18 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- SongID transcript repetition scoring now scans the invariant-lowercased text
+  twice—first to preserve the six-token threshold, then to aggregate overlapping
+  three-token range keys directly. It no longer creates regex `Match` objects,
+  token strings, joined n-gram strings, complete n-gram lists, or LINQ grouping
+  buffers. A 30,000-token transcript containing three repeated tokens falls
+  from 13,552,656 to 288 isolated warmed allocated bytes (>99.997%) and remains
+  below 16 KiB under broad-suite runtime noise. A 10,000-distinct-token fixture
+  falls from 5,804,800 to 1,748,840 bytes (69.9%), with retained state
+  proportional to distinct trigrams. ASCII-letter/apostrophe tokenization,
+  invariant lowercasing, overlapping windows, the minimum-six-token boundary,
+  occurrence-based repeated counts, and exact ordinal collision checks remain
+  unchanged.
 - SongID loose-text similarity now scans normalized token ranges into one
   exact membership table instead of allocating two split arrays, per-token
   strings, and separate LINQ intersection and union sets. A representative
