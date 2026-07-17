@@ -1,3 +1,17 @@
+## Update 2026-07-17 10:39:00Z
+
+- Current task: performance and efficiency improvements in progress; zero-copy ASCII search response deduplication complete locally.
+- Last activity:
+  - Replaced per-file ASCII lowercase/path/trim strings in `SearchResponseMerger` with exact comparison and hashing over the source filename; retained the legacy Unicode fallback.
+  - A warmed 10,000-file merge falls from 4,513,824 to 1,473,824 allocated bytes (67.3%) and from 15 to 5 ms (66.7%).
+- Validation:
+  - Passed complete merger (`10/10`), Search (`75/75`), and backend validation (`5174/5174`: `69` application, `4825` unit, `280` integration), plus repository lint.
+  - ASCII case/slash/trim equivalence, exact username and size identity, Unicode lowercase behavior and distinctions, cross-Unicode-to-ASCII keys, response contents, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the search response normalization optimization and regression coverage.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 10:24:30Z
 
 - Current task: performance and efficiency improvements in progress; filename-bounded download enqueue history complete locally.

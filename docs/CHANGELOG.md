@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Soulseek and mesh search response merging now compares common ASCII
+  filenames through a zero-copy case/path/trim comparer instead of allocating
+  up to three normalized strings per file. A warmed 10,000-file merge falls
+  from 4,513,824 to 1,473,824 allocated bytes (67.3%) and from 15 to 5 ms
+  (66.7%). Non-ASCII names retain the exact invariant-lowercase fallback,
+  including values that lowercase into ASCII. Username case sensitivity, file
+  size, slash and outer-whitespace equivalence, first-file retention, regular
+  versus locked-file ordering, and merged response fields remain unchanged.
 - Download enqueue duplicate, request-inheritance, and supersession checks now
   query only the requested filenames and index the matching history once
   instead of materializing every past download from the selected user and

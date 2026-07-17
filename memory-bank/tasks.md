@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove per-file ASCII normalization strings from search response merging.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `SearchResponseMerger.Deduplicate` now stores common ASCII filename keys with a zero-copy comparer that performs the existing case folding, slash normalization, and outer-whitespace trimming while hashing and comparing. Non-ASCII filenames retain the exact invariant-lowercase allocation path, and values whose lowercase becomes ASCII join the ASCII key set. A warmed 10,000-file merge falls from 4,513,824 to 1,473,824 allocated bytes (67.3%) and from 15 to 5 ms (66.7%). Username case sensitivity, file size identity, Unicode distinctions, first-file retention, regular/locked order, response projection, and source metadata remain unchanged. Validation passed: merger (`10/10`), Search (`75/75`), and backend (`5174/5174`: `69` application, `4825` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Bound download enqueue history materialization by requested filenames.
   - Status: completed (2026-07-17)
   - Priority: P1

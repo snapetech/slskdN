@@ -176,4 +176,70 @@ public class SearchResponseMergerTests
 
         Assert.Empty(result);
     }
+
+    [Theory]
+    [InlineData("  Music\\Song.FLAC\t", "music/song.flac")]
+    [InlineData("ÄRTIST\\SONG.FLAC", "ärtist/song.flac")]
+    [InlineData("K.flac", "k.flac")]
+    [InlineData("İ.flac", "i.flac")]
+    public void Deduplicate_PreservesLegacyFilenameNormalization(string firstFilename, string secondFilename)
+    {
+        var expectedCount = LegacyNormalize(firstFilename) == LegacyNormalize(secondFilename) ? 1 : 2;
+        var response = new Response
+        {
+            Username = "same-peer",
+            Files = new[]
+            {
+                new File { Filename = firstFilename, Size = 1_000 },
+                new File { Filename = secondFilename, Size = 1_000 },
+            },
+        };
+
+        var result = SearchResponseMerger.Deduplicate(new[] { response }, System.Array.Empty<Response>());
+
+        Assert.Equal(expectedCount, Assert.Single(result).Files.Count);
+    }
+
+    [Fact]
+    public void Deduplicate_WideAsciiResponseBoundsAllocation()
+    {
+        var files = Enumerable.Range(0, 10_000)
+            .Select(index => new File
+            {
+                Filename = $@"  Music\Artist\Album\Track-{index:D5}.FLAC  ",
+                Size = index + 1,
+            })
+            .ToList();
+        var responses = new[]
+        {
+            new Response
+            {
+                Username = "wide-peer",
+                Files = files,
+                FileCount = files.Count,
+            },
+        };
+        _ = SearchResponseMerger.Deduplicate(
+            new[] { new Response { Username = "warmup", Files = new[] { files[0] } } },
+            System.Array.Empty<Response>());
+
+        var allocatedBefore = System.GC.GetAllocatedBytesForCurrentThread();
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var result = SearchResponseMerger.Deduplicate(responses, System.Array.Empty<Response>());
+        stopwatch.Stop();
+        var allocatedBytes = System.GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        var response = Assert.Single(result);
+        Assert.Equal(files.Count, response.Files.Count);
+        Assert.True(
+            allocatedBytes < 1_600_000,
+            $"Allocated {allocatedBytes:N0} bytes in {stopwatch.ElapsedMilliseconds:N0} ms.");
+    }
+
+    private static string LegacyNormalize(string filename)
+    {
+        return filename.ToLowerInvariant()
+            .Replace('\\', '/')
+            .Trim();
+    }
 }
