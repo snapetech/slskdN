@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Proof-of-storage and cryptographic-commitment statistics now aggregate their
+  concurrent state maps directly without value snapshots or repeated passes.
 - In-memory intent scheduling now retains only the requested best pending batch,
   and status counts scan track intents without concurrent-value snapshots.
 - Network guard rankings now retain only the requested top connectors, and its

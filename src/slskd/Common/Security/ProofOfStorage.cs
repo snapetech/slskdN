@@ -227,14 +227,38 @@ public sealed class ProofOfStorage : IDisposable
     /// </summary>
     public ChallengeStats GetStats()
     {
-        var challenges = _pendingChallenges.Values.ToList();
+        var totalChallenges = 0;
+        var pendingChallenges = 0;
+        var verifiedChallenges = 0;
+        var failedChallenges = 0;
+        var expiredChallenges = 0;
+        foreach (var pair in _pendingChallenges)
+        {
+            totalChallenges++;
+            switch (pair.Value.State)
+            {
+                case ChallengeState.Pending:
+                    pendingChallenges++;
+                    break;
+                case ChallengeState.Verified:
+                    verifiedChallenges++;
+                    break;
+                case ChallengeState.Failed:
+                    failedChallenges++;
+                    break;
+                case ChallengeState.Expired:
+                    expiredChallenges++;
+                    break;
+            }
+        }
+
         return new ChallengeStats
         {
-            TotalChallenges = challenges.Count,
-            PendingChallenges = challenges.Count(c => c.State == ChallengeState.Pending),
-            VerifiedChallenges = challenges.Count(c => c.State == ChallengeState.Verified),
-            FailedChallenges = challenges.Count(c => c.State == ChallengeState.Failed),
-            ExpiredChallenges = challenges.Count(c => c.State == ChallengeState.Expired),
+            TotalChallenges = totalChallenges,
+            PendingChallenges = pendingChallenges,
+            VerifiedChallenges = verifiedChallenges,
+            FailedChallenges = failedChallenges,
+            ExpiredChallenges = expiredChallenges,
         };
     }
 

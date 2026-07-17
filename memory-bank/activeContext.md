@@ -1,3 +1,17 @@
+## Update 2026-07-17 09:36:51Z
+
+- Current task: performance and efficiency improvements in progress; snapshot-free commitment and storage-challenge statistics complete locally.
+- Last activity:
+  - Replaced full concurrent-value snapshots plus four state-count passes with one direct state-map enumeration in both security collectors.
+  - A full 10,000-commitment call falls from 160,144 to 104 allocated bytes (99.9%); a full 1,000-challenge call falls from 16,144 to 104 bytes (99.4%).
+- Validation:
+  - Passed collector (`5/5`), Common Security (`335/335`), and backend validation (`5164/5164`: `69` application, `4815` unit, `280` integration), plus repository lint.
+  - Exact state totals, cancelled-item treatment, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Rejected a mesh-search heap after measuring a 20x CPU regression and documented gotcha `0z740` (`f5a106758`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the security collector statistics slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 09:16:44Z
 
 - Current task: performance and efficiency improvements in progress; bounded in-memory intent selection and snapshot-free status counting complete locally.

@@ -211,14 +211,38 @@ public sealed class CryptographicCommitment : IDisposable
     /// </summary>
     public CommitmentStats GetStats()
     {
-        var commitments = _commitments.Values.ToList();
+        var totalCommitments = 0;
+        var pendingCommitments = 0;
+        var verifiedCommitments = 0;
+        var failedCommitments = 0;
+        var expiredCommitments = 0;
+        foreach (var pair in _commitments)
+        {
+            totalCommitments++;
+            switch (pair.Value.State)
+            {
+                case CommitmentState.Pending:
+                    pendingCommitments++;
+                    break;
+                case CommitmentState.Verified:
+                    verifiedCommitments++;
+                    break;
+                case CommitmentState.Failed:
+                    failedCommitments++;
+                    break;
+                case CommitmentState.Expired:
+                    expiredCommitments++;
+                    break;
+            }
+        }
+
         return new CommitmentStats
         {
-            TotalCommitments = commitments.Count,
-            PendingCommitments = commitments.Count(c => c.State == CommitmentState.Pending),
-            VerifiedCommitments = commitments.Count(c => c.State == CommitmentState.Verified),
-            FailedCommitments = commitments.Count(c => c.State == CommitmentState.Failed),
-            ExpiredCommitments = commitments.Count(c => c.State == CommitmentState.Expired),
+            TotalCommitments = totalCommitments,
+            PendingCommitments = pendingCommitments,
+            VerifiedCommitments = verifiedCommitments,
+            FailedCommitments = failedCommitments,
+            ExpiredCommitments = expiredCommitments,
         };
     }
 

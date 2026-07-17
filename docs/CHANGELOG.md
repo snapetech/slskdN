@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Proof-of-storage and cryptographic-commitment statistics now enumerate their
+  concurrent state maps once instead of copying every tracked object and then
+  counting each state in separate passes. A warmed full-capacity commitment
+  snapshot over 10,000 items falls from 160,144 to 104 allocated bytes (99.9%);
+  the equivalent 1,000-item storage-challenge snapshot falls from 16,144 to 104
+  bytes (99.4%). Collector storage changes from O(tracked items) to O(1), and
+  total, pending, verified, failed, expired, and cancelled-item treatment remain
+  unchanged.
 - In-memory intent scheduling now scans track intents directly and retains only
   the requested pending batch in a stable worst-first priority queue instead of
   snapshotting and fully sorting every pending intent. A warmed 50-track batch

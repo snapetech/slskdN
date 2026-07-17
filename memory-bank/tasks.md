@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove security commitment and storage-challenge statistics snapshots.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `CryptographicCommitment.GetStats` and `ProofOfStorage.GetStats` now enumerate their concurrent state maps once instead of allocating `Values`/`List` snapshots and executing four additional state-count passes. A warmed full-capacity 10,000-commitment call falls from 160,144 to 104 allocated bytes (99.9%); a 1,000-challenge call falls from 16,144 to 104 bytes (99.4%). Collector storage changes from O(tracked items) to O(1), while total/pending/verified/failed/expired counts and cancelled-item treatment remain unchanged. Validation passed: collector (`5/5`), Common Security (`335/335`), and backend (`5164/5164`: `69` application, `4815` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. A rejected mesh-search heap experiment documented gotcha `0z740` (`f5a106758`).
+
 - [x] Bound in-memory intent queue selection and counting allocation.
   - Status: completed (2026-07-17)
   - Priority: P1

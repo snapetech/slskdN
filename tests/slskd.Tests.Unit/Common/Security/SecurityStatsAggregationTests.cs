@@ -145,6 +145,61 @@ public class SecurityStatsAggregationTests
         Assert.Equal(1, fingerprintStats.TotalAnomalousRequests);
     }
 
+    [Fact]
+    public void CryptographicCommitment_GetStats_WidePopulationBoundsAllocation()
+    {
+        using var commitments = new CryptographicCommitment();
+        var fileHash = new string('a', 64);
+        for (var index = 0; index < CryptographicCommitment.MaxCommitments; index++)
+        {
+            var result = commitments.CreateCommitment(fileHash, "peer", $"track-{index:D5}.flac");
+            commitments.GetCommitment(result.CommitmentId)!.State = (CommitmentState)(index % 5);
+        }
+
+        for (var iteration = 0; iteration < 8; iteration++)
+        {
+            _ = commitments.GetStats();
+        }
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var stats = commitments.GetStats();
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(10_000, stats.TotalCommitments);
+        Assert.Equal(2_000, stats.PendingCommitments);
+        Assert.Equal(2_000, stats.VerifiedCommitments);
+        Assert.Equal(2_000, stats.FailedCommitments);
+        Assert.Equal(2_000, stats.ExpiredCommitments);
+        Assert.True(allocatedBytes < 1_024, $"Allocated {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
+    public void ProofOfStorage_GetStats_WidePopulationBoundsAllocation()
+    {
+        using var challenges = new ProofOfStorage();
+        for (var index = 0; index < ProofOfStorage.MaxPendingChallenges; index++)
+        {
+            var result = challenges.CreateChallenge($"track-{index:D4}.flac", 10_000, "peer");
+            challenges.GetChallenge(result.ChallengeId)!.State = (ChallengeState)(index % 5);
+        }
+
+        for (var iteration = 0; iteration < 8; iteration++)
+        {
+            _ = challenges.GetStats();
+        }
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var stats = challenges.GetStats();
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(1_000, stats.TotalChallenges);
+        Assert.Equal(200, stats.PendingChallenges);
+        Assert.Equal(200, stats.VerifiedChallenges);
+        Assert.Equal(200, stats.FailedChallenges);
+        Assert.Equal(200, stats.ExpiredChallenges);
+        Assert.True(allocatedBytes < 1_024, $"Allocated {allocatedBytes:N0} bytes.");
+    }
+
     private static SecurityEvent CreateEvent(
         SecuritySeverity severity,
         string? ipAddress,
