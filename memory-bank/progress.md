@@ -1,3 +1,12 @@
+## Update 2026-07-17 04:03:10Z
+
+- Completed allocation-bounded, stable newest opinion listing.
+- Prepared optional query filters once and replaced complete match sorting with a worst-first priority queue capped at the requested limit; per-enumeration sequence retains first-seen equal-timestamp ties.
+- Reduced a warmed 10,000-match/50-result fixture from 1,949,376 to 101,584 allocated bytes (94.8%); selection storage is now O(limit) rather than O(matches).
+- Preserved expiry boundaries, case-insensitive and padded filters, whitespace-disabled filters, the 1–1,000 clamp, newest/tie ordering, and detached result clones.
+- Added exact semantic and allocation regressions; completed backend validation (`5116/5116`: `69` application, `4767` unit, `280` integration) after focused opinions (`4/4`) and broader opinion-related tests (`17/17`) passed.
+- The first full unit attempt hit one transient `MeshStreamServiceTests.OpenAsync_HashMismatch_EmitsNoBytes` cancellation; the exact test (`1/1`) and complete unit project (`4767/4767`) passed on rerun. Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed. Extended extracted-receiver gotcha `0z680` (`08a870f17`); concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 03:48:49Z
 
 - Completed database-filtered accessible share-grant retrieval.

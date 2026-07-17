@@ -87,22 +87,62 @@ public sealed class OpinionService : IOpinionService, IDisposable
     {
         query ??= new OpinionQuery();
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        return Task.FromResult<IReadOnlyList<OpinionRecord>>(BuildOpinionList(opinions.Values, query, now));
+    }
+
+    internal static List<OpinionRecord> BuildOpinionList(
+        IEnumerable<OpinionRecord> opinions,
+        OpinionQuery query,
+        long now)
+    {
         var limit = Math.Clamp(query.Limit, 1, 1000);
+        var issuer = string.IsNullOrWhiteSpace(query.Issuer) ? null : query.Issuer.Trim();
+        var subjectId = string.IsNullOrWhiteSpace(query.SubjectId) ? null : NormalizeSubjectId(query.SubjectId);
+        var scope = string.IsNullOrWhiteSpace(query.Scope) ? null : NormalizeScope(query.Scope);
+        var source = string.IsNullOrWhiteSpace(query.Source) ? null : query.Source.Trim();
+        PriorityQueue<OpinionCandidate, OpinionCandidate>? newest = null;
+        var sequence = 0;
 
-        var result = opinions.Values
-            .Where(opinion => query.IncludeExpired || !opinion.ExpiresUnixMs.HasValue || opinion.ExpiresUnixMs.Value > now)
-            .Where(opinion => string.IsNullOrWhiteSpace(query.Issuer) || string.Equals(opinion.Issuer, query.Issuer.Trim(), StringComparison.OrdinalIgnoreCase))
-            .Where(opinion => !query.SubjectType.HasValue || opinion.SubjectType == query.SubjectType.Value)
-            .Where(opinion => string.IsNullOrWhiteSpace(query.SubjectId) || string.Equals(opinion.SubjectId, NormalizeSubjectId(query.SubjectId), StringComparison.OrdinalIgnoreCase))
-            .Where(opinion => !query.Kind.HasValue || opinion.Kind == query.Kind.Value)
-            .Where(opinion => string.IsNullOrWhiteSpace(query.Scope) || string.Equals(opinion.Scope, NormalizeScope(query.Scope), StringComparison.OrdinalIgnoreCase))
-            .Where(opinion => string.IsNullOrWhiteSpace(query.Source) || string.Equals(opinion.Source, query.Source.Trim(), StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(opinion => opinion.UpdatedUnixMs)
-            .Take(limit)
-            .Select(Clone)
-            .ToList();
+        foreach (var opinion in opinions)
+        {
+            var currentSequence = sequence++;
+            if ((!query.IncludeExpired && opinion.ExpiresUnixMs.HasValue && opinion.ExpiresUnixMs.Value <= now) ||
+                (issuer != null && !string.Equals(opinion.Issuer, issuer, StringComparison.OrdinalIgnoreCase)) ||
+                (query.SubjectType.HasValue && opinion.SubjectType != query.SubjectType.Value) ||
+                (subjectId != null && !string.Equals(opinion.SubjectId, subjectId, StringComparison.OrdinalIgnoreCase)) ||
+                (query.Kind.HasValue && opinion.Kind != query.Kind.Value) ||
+                (scope != null && !string.Equals(opinion.Scope, scope, StringComparison.OrdinalIgnoreCase)) ||
+                (source != null && !string.Equals(opinion.Source, source, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
 
-        return Task.FromResult<IReadOnlyList<OpinionRecord>>(result);
+            newest ??= new PriorityQueue<OpinionCandidate, OpinionCandidate>(OpinionCandidateWorstFirstComparer.Instance);
+            var candidate = new OpinionCandidate(opinion, currentSequence);
+            if (newest.Count < limit)
+            {
+                newest.Enqueue(candidate, candidate);
+            }
+            else if (OpinionCandidateWorstFirstComparer.Instance.Compare(candidate, newest.Peek()) > 0)
+            {
+                newest.Dequeue();
+                newest.Enqueue(candidate, candidate);
+            }
+        }
+
+        if (newest == null)
+        {
+            return new List<OpinionRecord>();
+        }
+
+        var result = new List<OpinionRecord>(newest.Count);
+        while (newest.Count > 0)
+        {
+            result.Add(Clone(newest.Dequeue().Opinion));
+        }
+
+        result.Reverse();
+        return result;
     }
 
     public async Task<OpinionSummary> SummarizeAsync(
@@ -356,6 +396,21 @@ public sealed class OpinionService : IOpinionService, IDisposable
         };
 
         AtomicFileWriter.WriteAllText(storagePath, JsonSerializer.Serialize(state, JsonOptions));
+    }
+
+    private readonly record struct OpinionCandidate(OpinionRecord Opinion, int Sequence);
+
+    private sealed class OpinionCandidateWorstFirstComparer : IComparer<OpinionCandidate>
+    {
+        public static OpinionCandidateWorstFirstComparer Instance { get; } = new();
+
+        public int Compare(OpinionCandidate left, OpinionCandidate right)
+        {
+            var timestampComparison = left.Opinion.UpdatedUnixMs.CompareTo(right.Opinion.UpdatedUnixMs);
+            return timestampComparison != 0
+                ? timestampComparison
+                : right.Sequence.CompareTo(left.Sequence);
+        }
     }
 
     private static OpinionRecord Clone(OpinionRecord opinion)

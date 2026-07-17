@@ -1,3 +1,17 @@
+## Update 2026-07-17 04:03:10Z
+
+- Current task: performance and efficiency improvements in progress; bounded stable opinion listing complete locally.
+- Last activity:
+  - Prepared query filters once and replaced complete match sorting with a stable worst-first priority queue capped at the requested limit.
+  - A 10,000-match/50-result fixture falls from 1,949,376 to 101,584 warmed allocated bytes (94.8%), with O(limit) selection storage.
+- Validation:
+  - Passed focused opinions (`4/4`), broader opinion-related tests (`17/17`), and complete backend validation (`5116/5116`: `69` application, `4767` unit, `280` integration).
+  - Exact expiry/filter/limit/newest/stable-tie/clone semantics, allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. The initial full unit attempt had one transient MeshStream hash-mismatch cancellation; its exact (`1/1`) and full unit (`4767/4767`) reruns passed. Extended gotcha `0z680` (`08a870f17`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the bounded opinion-list slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 03:48:49Z
 
 - Current task: performance and efficiency improvements in progress; database-filtered accessible share grants complete locally.

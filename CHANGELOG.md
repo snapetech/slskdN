@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Opinion listing now normalizes query filters once and retains only the bounded
+  newest matches instead of fully sorting every matching retained opinion.
 - Accessible share-grant queries now filter group membership in the database
   instead of hydrating every active group grant for application-side filtering.
 - Transfer speed snapshots now aggregate recorded live speeds and retained bytes

@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Opinion listing now prepares issuer, subject, scope, and source filters once,
+  scans retained opinions directly, and keeps only the requested newest matches
+  in a stable worst-first priority queue. This replaces repeated trim/
+  normalization inside every predicate and a full ordered buffer, reducing
+  selection storage from O(matches) to O(limit). For 10,000 matching opinions
+  with a 50-result limit, warmed allocation including required result cloning
+  falls from 1,949,376 to 101,584 bytes (94.8%). Expiry boundaries,
+  case-insensitive filters, padded query normalization, the 1–1,000 limit clamp,
+  newest-first order, first-enumerated equal-timestamp ties, and detached result
+  clones remain unchanged.
 - Accessible share-grant lookup now uses one parameterized SQL query with an
   indexed group-membership `EXISTS` check instead of hydrating all active group
   grants, parsing/distincting their IDs, issuing a membership query, and

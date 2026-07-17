@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound opinion-list query normalization and newest selection.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `OpinionService.ListAsync` now prepares optional issuer/subject/scope/source filters once, scans the concurrent value snapshot directly, and retains at most the clamped result limit in a worst-first priority queue. Per-enumeration sequence numbers preserve the previous stable first-enumerated winner for equal timestamps; only retained results are cloned and reversed into newest-first order. This replaces per-record query trimming/normalization and the complete `OrderByDescending` match buffer, changing selection storage from O(matches) to O(limit) and time from O(matches log matches) to O(matches log limit). For 10,000 matching opinions and a 50-result limit, warmed allocation including required clones falls from 1,949,376 to 101,584 bytes (94.8%). Exact expiry, case-insensitive optional filters, whitespace-disabled filters, padded normalization, limit clamping, newest/tie order, and detached clones remain unchanged. Added exact semantic and wide allocation regressions. Validation passed: focused opinions (`4/4`), broader opinion-related tests (`17/17`), complete backend validation (`5116/5116`: `69` application, `4767` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. The first full unit attempt had one transient `MeshStreamServiceTests.OpenAsync_HashMismatch_EmitsNoBytes` cancellation; its exact rerun (`1/1`) and complete unit rerun (`4767/4767`) passed. Extended extracted-receiver gotcha `0z680` (`08a870f17`).
+
 - [x] Filter accessible group grants before entity hydration.
   - Status: completed (2026-07-17)
   - Priority: P1
