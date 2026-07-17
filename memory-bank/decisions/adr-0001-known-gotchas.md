@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z750. Allocation-Free BitConverter Replacements Must Preserve Endianness
+
+**The Bug**: A watermark-expansion optimization replaced
+`BitConverter.GetBytes(counter)` with an explicit little-endian span write.
+That matches common x64 hosts but changes the derived watermark stream on a
+big-endian runtime because `BitConverter` intentionally uses platform byte
+order.
+
+**Files Affected**:
+- `src/slskd/Common/Security/CanaryTraps.cs`
+
+**Prevention**: Replace allocating `BitConverter.GetBytes` calls with
+`BitConverter.TryWriteBytes` when exact legacy behavior matters. Use
+`BinaryPrimitives.Write*Endian` only when the protocol or stored format already
+specifies that explicit byte order.
+
 ### 0z749. Hex Identifier Documentation Must Distinguish Bytes From Characters
 
 **The Bug**: Canary registration notes described an eight-byte hash prefix as a
