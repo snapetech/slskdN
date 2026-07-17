@@ -111,6 +111,106 @@ public sealed class SongIdScoringTests
     }
 
     [Fact]
+    public void ApplyRunQualityConsensus_PreservesFuzzySupportAndUnsupportedCandidateState()
+    {
+        var unsupportedAlbum = new SongIdAlbumCandidate
+        {
+            Artist = "Unrelated Artist",
+            CanonicalSupportCount = 7,
+            CanonicalScore = 0.55,
+            IdentityScore = 0.40,
+            ByzantineScore = 0.30,
+            ActionScore = 0.20,
+        };
+        var run = new SongIdRun
+        {
+            Tracks = new List<SongIdTrackCandidate>
+            {
+                new() { Artist = "Consensus Artist feat. Guest", CanonicalScore = 0.80 },
+                new() { Artist = "Consensus Artist featuring Guest", CanonicalScore = 0.60 },
+                new() { Artist = "Consensus Artist featuring Guest", CanonicalScore = 0.0 },
+            },
+            Albums = new List<SongIdAlbumCandidate>
+            {
+                new() { Artist = "consensus artist featuring guest" },
+                unsupportedAlbum,
+            },
+            Artists = new List<SongIdArtistCandidate>
+            {
+                new() { Name = "Consensus Artist ft. Guest" },
+            },
+        };
+
+        SongIdScoring.ApplyRunQualityConsensus(run);
+
+        Assert.Equal(2, run.Albums[0].CanonicalSupportCount);
+        Assert.Equal(0.80, run.Albums[0].CanonicalScore);
+        Assert.Equal(7, unsupportedAlbum.CanonicalSupportCount);
+        Assert.Equal(0.55, unsupportedAlbum.CanonicalScore);
+        Assert.Equal(0.40, unsupportedAlbum.IdentityScore);
+        Assert.Equal(0.30, unsupportedAlbum.ByzantineScore);
+        Assert.Equal(0.20, unsupportedAlbum.ActionScore);
+        Assert.Equal(2, run.Artists[0].CanonicalSupportCount);
+        Assert.Equal(0.80, run.Artists[0].CanonicalScore);
+    }
+
+    [Fact]
+    public void ApplyRunQualityConsensus_RepeatedArtistLabelsHaveBoundedAllocation()
+    {
+        const int trackCount = 1_000;
+        const int candidateCount = 6;
+        var run = new SongIdRun
+        {
+            Tracks = Enumerable.Range(0, trackCount)
+                .Select(_ => new SongIdTrackCandidate
+                {
+                    Artist = "Consensus Artist feat. Guest",
+                    CanonicalScore = 0.80,
+                })
+                .ToList(),
+            Albums = Enumerable.Range(0, candidateCount)
+                .Select(_ => new SongIdAlbumCandidate { Artist = "Consensus Artist featuring Guest" })
+                .ToList(),
+            Artists = Enumerable.Range(0, candidateCount)
+                .Select(_ => new SongIdArtistCandidate { Name = "Consensus Artist featuring Guest" })
+                .ToList(),
+        };
+        SongIdScoring.ApplyRunQualityConsensus(new SongIdRun
+        {
+            Tracks = new List<SongIdTrackCandidate>
+            {
+                new() { Artist = "Warm Artist", CanonicalScore = 0.5 },
+            },
+            Albums = new List<SongIdAlbumCandidate>
+            {
+                new() { Artist = "Warm Artist" },
+            },
+            Artists = new List<SongIdArtistCandidate>
+            {
+                new() { Name = "Warm Artist" },
+            },
+        });
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        SongIdScoring.ApplyRunQualityConsensus(run);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.All(run.Albums, album =>
+        {
+            Assert.Equal(trackCount, album.CanonicalSupportCount);
+            Assert.Equal(0.80, album.CanonicalScore);
+        });
+        Assert.All(run.Artists, artist =>
+        {
+            Assert.Equal(trackCount, artist.CanonicalSupportCount);
+            Assert.Equal(0.80, artist.CanonicalScore);
+        });
+        Assert.True(
+            allocatedBytes < 384_000,
+            $"Expected quality-consensus allocation below 384 KB, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
     public void ApplyCorpusReranking_ReordersTrackCandidatesByCorpusEvidence()
     {
         var run = new SongIdRun

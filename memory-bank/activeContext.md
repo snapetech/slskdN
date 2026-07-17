@@ -1,3 +1,17 @@
+## Update 2026-07-17 01:48:22Z
+
+- Current task: performance and efficiency improvements in progress; precomputed SongID run-quality consensus complete locally.
+- Last activity:
+  - Prepared normalized positive-canonical-track artist labels once and replaced per-candidate filtered lists and LINQ maxima with direct support count/maximum aggregation.
+  - A 1,000-track/six-album/six-artist repeated-label fixture falls from 5,292,504 to 274,176 warmed allocated bytes (94.8%).
+- Validation:
+  - Passed complete scoring (`62/62`), broader SongID (`106/106`), and full backend suites (`5087/5087`: `69` application, `4738` unit, `280` integration) tests.
+  - Exact loose-text/threshold/positive-score/support/maximum/formula/clamping/no-support behavior, allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the SongID run-quality consensus slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 01:36:57Z
 
 - Current task: performance and efficiency improvements in progress; normalized-label SongID corpus reranking complete locally.

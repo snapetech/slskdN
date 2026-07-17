@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Precompute SongID canonical-track quality consensus labels.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `SongIdScoring.ApplyRunQualityConsensus` now filters positive canonical tracks once, prepares their normalized artist labels once, and directly aggregates support count plus maximum canonical score for every album and artist. It no longer constructs a supporting-track list and LINQ maximum for each candidate or renormalizes each track artist across candidate scans. For 1,000 canonical tracks and six album plus six artist candidates, warmed allocation falls from 5,292,504 to 274,176 bytes (94.8%). Exact loose-text normalization and feature aliases, the `>= 0.8` support threshold, positive canonical-score requirement (including `NaN` exclusion), support counts, maximum selection, boost formulas, score clamping, and unchanged state for unsupported candidates remain intact. Added fuzzy/zero/unsupported compatibility and repeated-label allocation regressions. Validation passed: complete scoring (`62/62`), broader SongID (`106/106`), full backend suites (`5087/5087`: `69` application, `4738` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Reuse normalized labels during SongID corpus reranking.
   - Status: completed (2026-07-17)
   - Priority: P1

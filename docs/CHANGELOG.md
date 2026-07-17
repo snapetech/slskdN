@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- SongID run-quality consensus now filters positive canonical tracks once,
+  normalizes their artist labels once, and directly aggregates support count
+  and maximum canonical score for each album and artist candidate. It replaces
+  per-candidate filtered track lists, LINQ maxima, and repeated track-label
+  normalization. For 1,000 canonical tracks and six album plus six artist
+  candidates sharing a normalized label, warmed allocation falls from
+  5,292,504 to 274,176 bytes (94.8%). The 0.8 loose-text threshold, feature
+  aliases, positive-score requirement, support counts, maximum score, boost
+  formulas, clamping, and no-support state remain unchanged.
 - SongID corpus reranking now prepares the capped corpus matches once, reuses
   their normalized artist/title labels across track, album, and artist scoring,
   and normalizes each candidate label once before direct scoring scans. This

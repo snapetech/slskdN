@@ -1,3 +1,12 @@
+## Update 2026-07-17 01:48:22Z
+
+- Completed canonical-track label precomputation and direct support aggregation for SongID run-quality consensus.
+- Replaced per-album/per-artist filtered track lists, LINQ maxima, and repeated track-label normalization with one positive-canonical-track scoring array and direct count/maximum passes.
+- Reduced warmed allocation for 1,000 canonical tracks and six album plus six artist candidates from 5,292,504 to 274,176 bytes (94.8%).
+- Preserved loose-text aliases and similarity, the 0.8 threshold, positive-score filtering, support counts, maximum scores, all boost formulas, clamping, and unsupported-candidate state.
+- Added semantic and allocation regressions; passed complete scoring (`62/62`), broader SongID (`106/106`), and full backend (`5087/5087`: `69` application, `4738` unit, `280` integration) tests.
+- Passed repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 01:36:57Z
 
 - Completed normalized-label reuse and direct scanning for SongID corpus reranking.

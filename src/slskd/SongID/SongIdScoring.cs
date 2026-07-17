@@ -330,38 +330,55 @@ internal static class SongIdScoring
 
     public static void ApplyRunQualityConsensus(SongIdRun run)
     {
+        if (run.Albums.Count == 0 && run.Artists.Count == 0)
+        {
+            return;
+        }
+
+        var canonicalTracks = BuildCanonicalTrackScoring(run.Tracks, out var canonicalTrackCount);
+        if (canonicalTrackCount == 0)
+        {
+            return;
+        }
+
         foreach (var album in run.Albums)
         {
-            var supportingTracks = run.Tracks
-                .Where(track => CompareLooseText(track.Artist, album.Artist) >= 0.8 && track.CanonicalScore > 0)
-                .ToList();
-            if (supportingTracks.Count == 0)
+            GetCanonicalSupport(
+                NormalizeLooseText(album.Artist),
+                canonicalTracks,
+                canonicalTrackCount,
+                out var supportCount,
+                out var canonicalScore);
+            if (supportCount == 0)
             {
                 continue;
             }
 
-            album.CanonicalSupportCount = supportingTracks.Count;
-            album.CanonicalScore = supportingTracks.Max(track => track.CanonicalScore);
+            album.CanonicalSupportCount = supportCount;
+            album.CanonicalScore = canonicalScore;
             album.IdentityScore = ClampScore(album.IdentityScore + (album.CanonicalScore * 0.12));
             album.ByzantineScore = ClampScore(album.ByzantineScore + (album.CanonicalScore * 0.08));
-            album.ActionScore = ClampScore(album.ActionScore + (Math.Min(1, supportingTracks.Count / 3.0) * 0.10) + (album.CanonicalScore * 0.05));
+            album.ActionScore = ClampScore(album.ActionScore + (Math.Min(1, supportCount / 3.0) * 0.10) + (album.CanonicalScore * 0.05));
         }
 
         foreach (var artist in run.Artists)
         {
-            var supportingTracks = run.Tracks
-                .Where(track => CompareLooseText(track.Artist, artist.Name) >= 0.8 && track.CanonicalScore > 0)
-                .ToList();
-            if (supportingTracks.Count == 0)
+            GetCanonicalSupport(
+                NormalizeLooseText(artist.Name),
+                canonicalTracks,
+                canonicalTrackCount,
+                out var supportCount,
+                out var canonicalScore);
+            if (supportCount == 0)
             {
                 continue;
             }
 
-            artist.CanonicalSupportCount = supportingTracks.Count;
-            artist.CanonicalScore = supportingTracks.Max(track => track.CanonicalScore);
+            artist.CanonicalSupportCount = supportCount;
+            artist.CanonicalScore = canonicalScore;
             artist.IdentityScore = ClampScore(artist.IdentityScore + (artist.CanonicalScore * 0.10));
             artist.ByzantineScore = ClampScore(artist.ByzantineScore + (artist.CanonicalScore * 0.06));
-            artist.ActionScore = ClampScore(artist.ActionScore + (Math.Min(1, supportingTracks.Count / 4.0) * 0.12) + (artist.CanonicalScore * 0.04));
+            artist.ActionScore = ClampScore(artist.ActionScore + (Math.Min(1, supportCount / 4.0) * 0.12) + (artist.CanonicalScore * 0.04));
         }
     }
 
@@ -587,6 +604,51 @@ internal static class SongIdScoring
             _ => false,
         };
     }
+
+    private static CanonicalTrackScoring[] BuildCanonicalTrackScoring(
+        IReadOnlyCollection<SongIdTrackCandidate> tracks,
+        out int canonicalTrackCount)
+    {
+        var canonicalTracks = new CanonicalTrackScoring[tracks.Count];
+        canonicalTrackCount = 0;
+        foreach (var track in tracks)
+        {
+            if (!(track.CanonicalScore > 0))
+            {
+                continue;
+            }
+
+            canonicalTracks[canonicalTrackCount++] = new CanonicalTrackScoring(
+                NormalizeLooseText(track.Artist),
+                track.CanonicalScore);
+        }
+
+        return canonicalTracks;
+    }
+
+    private static void GetCanonicalSupport(
+        string normalizedArtist,
+        CanonicalTrackScoring[] tracks,
+        int trackCount,
+        out int supportCount,
+        out double canonicalScore)
+    {
+        supportCount = 0;
+        canonicalScore = 0;
+        for (var index = 0; index < trackCount; index++)
+        {
+            var track = tracks[index];
+            if (CompareNormalizedLooseText(track.NormalizedArtist, normalizedArtist) < 0.8)
+            {
+                continue;
+            }
+
+            supportCount++;
+            canonicalScore = Math.Max(canonicalScore, track.CanonicalScore);
+        }
+    }
+
+    private readonly record struct CanonicalTrackScoring(string NormalizedArtist, double CanonicalScore);
 
     private static CorpusMatchScoring[] BuildCorpusMatchScoring(IReadOnlyCollection<SongIdCorpusMatch> matches)
     {
