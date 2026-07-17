@@ -145,6 +145,119 @@ public sealed class LibraryBloomDiffServiceTests
     }
 
     [Fact]
+    public async Task CompareAsync_PreservesFirstDuplicateMetadataAndStableSortTies()
+    {
+        var recordingIds = new[] { "recording-b", "recording-duplicate", "recording-a" };
+        var targets = new[]
+        {
+            new AlbumTargetEntry { ReleaseId = "release-z", Title = "Same Release", Artist = "Artist" },
+            new AlbumTargetEntry { ReleaseId = "release-a", Title = "Same Release", Artist = "Artist" },
+        };
+        var tracksByRelease = new Dictionary<string, IEnumerable<AlbumTargetTrackEntry>>
+        {
+            ["release-z"] = new[]
+            {
+                new AlbumTargetTrackEntry
+                {
+                    ReleaseId = "release-z",
+                    RecordingId = "recording-b",
+                    Title = "Same Track",
+                    Artist = "Artist",
+                },
+                new AlbumTargetTrackEntry
+                {
+                    ReleaseId = "release-z",
+                    RecordingId = "recording-duplicate",
+                    Title = "Same Track",
+                    Artist = "Artist",
+                },
+            },
+            ["release-a"] = new[]
+            {
+                new AlbumTargetTrackEntry
+                {
+                    ReleaseId = "release-a",
+                    RecordingId = "recording-a",
+                    Title = "Same Track",
+                    Artist = "Artist",
+                },
+                new AlbumTargetTrackEntry
+                {
+                    ReleaseId = "release-a",
+                    RecordingId = "RECORDING-DUPLICATE",
+                    Title = "Discarded Duplicate",
+                    Artist = "Other Artist",
+                },
+            },
+        };
+        var service = CreateService(CreateHashDb(
+            heldRecordings: Array.Empty<string>(),
+            targets: targets,
+            tracksByRelease: tracksByRelease));
+
+        var result = await service.CompareAsync(new LibraryBloomDiffRequest
+        {
+            Snapshot = await CreateRemoteSnapshotAsync(recordingIds),
+            Limit = 10,
+        });
+
+        Assert.Equal(recordingIds, result.Suggestions.Select(suggestion => suggestion.Mbid));
+        Assert.Equal("release-z", result.Suggestions[1].ReleaseId);
+        Assert.Equal("Same Track", result.Suggestions[1].TrackTitle);
+    }
+
+    [Fact]
+    public async Task CompareAsync_DuplicateHeavyCandidatesBoundAllocation()
+    {
+        const int releaseCount = 100;
+        const int recordingCount = 100;
+        var recordingIds = Enumerable.Range(0, recordingCount)
+            .Select(index => $"recording-{index:D3}")
+            .ToArray();
+        var targets = Enumerable.Range(0, releaseCount)
+            .Select(index => new AlbumTargetEntry
+            {
+                ReleaseId = $"release-{index:D3}",
+                Title = $"Release {index:D3}",
+                Artist = "Artist",
+            })
+            .ToArray();
+        var tracksByRelease = targets.ToDictionary(
+            target => target.ReleaseId,
+            target => (IEnumerable<AlbumTargetTrackEntry>)recordingIds.Select((recordingId, index) =>
+                new AlbumTargetTrackEntry
+                {
+                    ReleaseId = target.ReleaseId,
+                    RecordingId = recordingId,
+                    Title = $"Track {index:D3}",
+                    Artist = "Artist",
+                }).ToArray());
+        var service = CreateService(CreateHashDb(
+            heldRecordings: Array.Empty<string>(),
+            targets: targets,
+            tracksByRelease: tracksByRelease));
+        var request = new LibraryBloomDiffRequest
+        {
+            Snapshot = await CreateRemoteSnapshotAsync(recordingIds),
+            Limit = recordingCount,
+        };
+
+        for (var iteration = 0; iteration < 4; iteration++)
+        {
+            await service.CompareAsync(request);
+        }
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var result = await service.CompareAsync(request);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(recordingCount, result.Suggestions.Count);
+        Assert.Equal("recording-000", result.Suggestions[0].Mbid);
+        Assert.Equal("recording-099", result.Suggestions[^1].Mbid);
+        Assert.True(allocatedBytes < 400_000, $"Allocated {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
     public async Task CompareAsync_RejectsUnsupportedSnapshotVersion()
     {
         var service = CreateService(CreateHashDb());

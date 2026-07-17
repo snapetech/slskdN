@@ -1,3 +1,12 @@
+## Update 2026-07-17 06:57:49Z
+
+- Completed early-deduplicated Library Bloom candidate construction.
+- Moved normalized case-insensitive recording deduplication into the release/track scan, projected metadata only for first occurrences, and replaced post-dedup LINQ ordering buffers with an explicitly stable in-place sort.
+- Reduced a duplicate-heavy 10,000-track/100-recording call from 10,000 to 100 candidate objects (99.0%) and from 1,128,208 to 309,256 warmed allocated bytes (72.6%).
+- Preserved batched album reads, blank filtering, first metadata, ordinal-ignore-case artist/release/track order, stable ties, held exclusion, Bloom matching, limits, confidence, and wishlist state.
+- Added first-duplicate/stable-tie and wide allocation regressions; passed complete service (`9/9`), broader MusicBrainz integrations (`67/67`), and backend (`5146/5146`: `69` application, `4797` unit, `280` integration) tests.
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 06:45:59Z
 
 - Completed prepared-query, allocation-bounded advanced filename matching.

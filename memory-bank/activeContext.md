@@ -1,3 +1,17 @@
+## Update 2026-07-17 06:57:49Z
+
+- Current task: performance and efficiency improvements in progress; early-deduplicated Library Bloom candidates complete locally.
+- Last activity:
+  - Moved normalized recording deduplication ahead of candidate projection and replaced post-dedup LINQ ordering with an explicitly stable in-place sort.
+  - A 10,000-track/100-recording fixture falls from 10,000 to 100 candidate objects (99.0%) and from 1,128,208 to 309,256 warmed allocated bytes (72.6%).
+- Validation:
+  - Passed complete service (`9/9`), broader MusicBrainz integrations (`67/67`), and backend validation (`5146/5146`: `69` application, `4797` unit, `280` integration).
+  - Exact normalization/deduplication/first-metadata/order/tie/held/Bloom/limit/confidence/wishlist semantics, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the Library Bloom candidate slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 06:45:59Z
 
 - Current task: performance and efficiency improvements in progress; prepared advanced filename matching complete locally.

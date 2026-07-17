@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Library Bloom comparison now applies case-insensitive normalized recording-ID
+  deduplication while scanning album tracks, constructs metadata only for each
+  first occurrence, and sorts that bounded candidate list in place with an
+  explicit first-seen tie key. A 10,000-track fixture containing 100 distinct
+  recordings reduces candidate objects from 10,000 to 100 (99.0%) and warmed
+  end-to-end allocation from 1,128,208 to 309,256 bytes (72.6%). Album/track
+  batch reads, blank-ID filtering, first duplicate metadata, artist/release/
+  track ordinal-ignore-case ordering, stable ties, held-recording exclusion,
+  Bloom membership, limits, confidence, and wishlist detection remain unchanged.
 - Advanced discovery filename matching now lowercases, splits, and deduplicates
   the invariant request name once per peer or variant-discovery operation. Each
   candidate retains only its required lowercase base name and scans token ranges

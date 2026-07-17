@@ -218,6 +218,7 @@ public sealed class LibraryBloomDiffService : ILibraryBloomDiffService
     private async Task<List<LibraryBloomCandidate>> GetCandidateTracksAsync(CancellationToken cancellationToken)
     {
         var candidates = new List<LibraryBloomCandidate>();
+        var recordingIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var releases = (await _hashDb.GetAlbumTargetsAsync(cancellationToken).ConfigureAwait(false)).ToList();
         var tracksByRelease = (await _hashDb
                 .GetAlbumTracksAsync(releases.Select(release => release.ReleaseId), cancellationToken)
@@ -228,7 +229,7 @@ public sealed class LibraryBloomDiffService : ILibraryBloomDiffService
             foreach (var track in tracksByRelease[release.ReleaseId])
             {
                 var recordingId = NormalizeMbid(track.RecordingId);
-                if (string.IsNullOrWhiteSpace(recordingId))
+                if (string.IsNullOrWhiteSpace(recordingId) || !recordingIds.Add(recordingId))
                 {
                     continue;
                 }
@@ -238,16 +239,32 @@ public sealed class LibraryBloomDiffService : ILibraryBloomDiffService
                     ReleaseTitle: release.Title.Trim(),
                     RecordingId: recordingId,
                     TrackTitle: track.Title.Trim(),
-                    Artist: string.IsNullOrWhiteSpace(track.Artist) ? release.Artist.Trim() : track.Artist.Trim()));
+                    Artist: string.IsNullOrWhiteSpace(track.Artist) ? release.Artist.Trim() : track.Artist.Trim(),
+                    Sequence: candidates.Count));
             }
         }
 
-        return candidates
-            .DistinctBy(candidate => candidate.RecordingId, StringComparer.OrdinalIgnoreCase)
-            .OrderBy(candidate => candidate.Artist, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(candidate => candidate.ReleaseTitle, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(candidate => candidate.TrackTitle, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        candidates.Sort(static (left, right) =>
+        {
+            var artistOrder = StringComparer.OrdinalIgnoreCase.Compare(left.Artist, right.Artist);
+            if (artistOrder != 0)
+            {
+                return artistOrder;
+            }
+
+            var releaseOrder = StringComparer.OrdinalIgnoreCase.Compare(left.ReleaseTitle, right.ReleaseTitle);
+            if (releaseOrder != 0)
+            {
+                return releaseOrder;
+            }
+
+            var trackOrder = StringComparer.OrdinalIgnoreCase.Compare(left.TrackTitle, right.TrackTitle);
+            return trackOrder != 0
+                ? trackOrder
+                : left.Sequence.CompareTo(right.Sequence);
+        });
+
+        return candidates;
     }
 
     private async Task<WishlistIndex> GetWishlistIndexAsync()
@@ -319,5 +336,6 @@ public sealed class LibraryBloomDiffService : ILibraryBloomDiffService
         string ReleaseTitle,
         string RecordingId,
         string TrackTitle,
-        string Artist);
+        string Artist,
+        int Sequence);
 }

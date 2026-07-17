@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Deduplicate Library Bloom track candidates before metadata projection.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `LibraryBloomDiffService.GetCandidateTracksAsync` now normalizes and case-insensitively deduplicates recording IDs during the existing release/track scan, constructs candidate metadata only for the first occurrence, and sorts the retained list in place using artist/release/track keys plus original sequence for stable exact ties. A duplicate-heavy 10,000-track/100-recording comparison reduces candidate objects from 10,000 to 100 (99.0%) and warmed end-to-end allocation from 1,128,208 to 309,256 bytes (72.6%). Batched album reads, blank IDs, first-occurrence metadata, ordinal-ignore-case ordering, stable ties, held filtering, Bloom checks, suggestion limits/confidence, and wishlist detection remain unchanged. Validation passed: complete service (`9/9`), broader MusicBrainz integrations (`67/67`), and backend (`5146/5146`: `69` application, `4797` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Prepare advanced filename queries and scan candidate tokens without per-match sets.
   - Status: completed (2026-07-17)
   - Priority: P1

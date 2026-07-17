@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Library Bloom comparison now deduplicates normalized recording candidates
+  before constructing and sorting suggestion metadata.
 - Advanced discovery now prepares filename-token queries once and scans each
   candidate without per-comparison split arrays or intersection sets.
 - Advanced content-variant discovery now aggregates structural source groups in
