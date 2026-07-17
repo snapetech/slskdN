@@ -168,15 +168,30 @@ namespace slskd.Audio
             return (int)(Math.Round(bitrate / 32.0) * 32);
         }
 
-        private static List<AudioVariant> DeduplicateStreams(List<AudioVariant> variants, bool crossCodec = false)
+        internal static List<AudioVariant> DeduplicateStreams(List<AudioVariant> variants, bool crossCodec = false)
         {
-            return variants
-                .GroupBy(v => BuildDedupKey(v, crossCodec))
-                .Select(g => g
-                    .OrderByDescending(v => v.QualityScore)
-                    .ThenByDescending(v => v.SeenCount)
-                    .First())
-                .ToList();
+            var result = new List<AudioVariant>();
+            var resultIndexByKey = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (var variant in variants)
+            {
+                var key = BuildDedupKey(variant, crossCodec);
+                if (!resultIndexByKey.TryGetValue(key, out var resultIndex))
+                {
+                    resultIndexByKey.Add(key, result.Count);
+                    result.Add(variant);
+                    continue;
+                }
+
+                var current = result[resultIndex];
+                var qualityComparison = Comparer<double>.Default.Compare(variant.QualityScore, current.QualityScore);
+                if (qualityComparison > 0 ||
+                    (qualityComparison == 0 && variant.SeenCount > current.SeenCount))
+                {
+                    result[resultIndex] = variant;
+                }
+            }
+
+            return result;
         }
 
         private static string BuildDedupKey(AudioVariant v, bool crossCodec)
@@ -196,9 +211,19 @@ namespace slskd.Audio
             return $"{codecPart}:{streamHash}:{sketch}:{durationBucket}";
         }
 
-        private static string FirstNonEmpty(params string[] values)
+        private static string FirstNonEmpty(string? first, string? second = null, string? third = null)
         {
-            return values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(first))
+            {
+                return first;
+            }
+
+            if (!string.IsNullOrWhiteSpace(second))
+            {
+                return second;
+            }
+
+            return !string.IsNullOrWhiteSpace(third) ? third : string.Empty;
         }
 
         private static int RoundDuration(int durationMs)

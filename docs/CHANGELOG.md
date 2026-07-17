@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Canonical audio stream deduplication now indexes each formatted deduplication
+  key to its first result slot and replaces that slot only when a later variant
+  has higher quality or, on equal quality, a higher seen count. It replaces
+  `GroupBy` element buffers and an ordered sequence per duplicate group while
+  preserving first-group result order and stable exact ties. Stream-hash
+  fallback selection now uses fixed arguments instead of allocating a `params`
+  array for every variant. For 10,000 variants collapsing into 100 streams,
+  warmed allocation falls from 1,703,240 to 972,384 bytes (42.9%). Codec-aware
+  versus cross-codec keys, hash/sketch/duration components, winner precedence,
+  and returned object identity remain unchanged.
 - SongID loose-text normalization now expands ampersands once, returns already
   normalized lowercase ASCII labels directly, and otherwise performs invariant
   character folding, the existing `feat.`/`feat`/`ft.`/`ft` substitutions, and

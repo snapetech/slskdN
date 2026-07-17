@@ -11,6 +11,7 @@ namespace slskd.Tests.Unit.Audio
     using slskd.HashDb;
     using Xunit;
 
+    [Collection(AllocationTestCollection.Name)]
     public class CanonicalStatsServiceTests
     {
         [Fact]
@@ -193,6 +194,84 @@ namespace slskd.Tests.Unit.Audio
             hashDb.Verify(service => service.UpsertCanonicalStatsAsync(
                 It.IsAny<CanonicalStats>(),
                 It.IsAny<CancellationToken>()), Times.Never);
+        }
+
+        [Fact]
+        public void DeduplicateStreams_PreservesGroupOrderAndWinnerPrecedence()
+        {
+            var firstA = CreateDedupVariant("a-first", "stream-a", quality: 0.80, seenCount: 5);
+            var firstB = CreateDedupVariant("b-first", "stream-b", quality: 0.85, seenCount: 3);
+            var betterA = CreateDedupVariant("a-better", "stream-a", quality: 0.90, seenCount: 1);
+            var moreSeenB = CreateDedupVariant("b-more-seen", "stream-b", quality: 0.85, seenCount: 8);
+            var tiedA = CreateDedupVariant("a-tied", "stream-a", quality: 0.90, seenCount: 1);
+
+            var result = CanonicalStatsService.DeduplicateStreams(
+                new List<AudioVariant> { firstA, firstB, betterA, moreSeenB, tiedA });
+
+            Assert.Collection(
+                result,
+                variant => Assert.Same(betterA, variant),
+                variant => Assert.Same(moreSeenB, variant));
+        }
+
+        [Fact]
+        public void DeduplicateStreams_CrossCodecFlagPreservesCodecPartitioning()
+        {
+            var flac = CreateDedupVariant("flac", "shared-stream", quality: 0.80, seenCount: 5);
+            var mp3 = CreateDedupVariant("mp3", "shared-stream", quality: 0.90, seenCount: 2);
+            mp3.Codec = "MP3";
+            mp3.FlacPcmMd5 = null;
+            mp3.Mp3StreamHash = "shared-stream";
+
+            Assert.Equal(2, CanonicalStatsService.DeduplicateStreams(new List<AudioVariant> { flac, mp3 }).Count);
+            Assert.Same(
+                mp3,
+                Assert.Single(CanonicalStatsService.DeduplicateStreams(
+                    new List<AudioVariant> { flac, mp3 },
+                    crossCodec: true)));
+        }
+
+        [Fact]
+        public void DeduplicateStreams_DuplicateHeavyInputHasBoundedAllocation()
+        {
+            const int variantCount = 10_000;
+            const int distinctStreamCount = 100;
+            var variants = Enumerable.Range(0, variantCount)
+                .Select(index => CreateDedupVariant(
+                    $"variant-{index}",
+                    $"stream-{index % distinctStreamCount}",
+                    quality: index / (double)variantCount,
+                    seenCount: index))
+                .ToList();
+            _ = CanonicalStatsService.DeduplicateStreams(variants.Take(10).ToList());
+
+            var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+            var result = CanonicalStatsService.DeduplicateStreams(variants);
+            var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+            Assert.Equal(distinctStreamCount, result.Count);
+            Assert.All(result, variant => Assert.True(variant.VariantId!.StartsWith("variant-99", StringComparison.Ordinal)));
+            Assert.True(
+                allocatedBytes < 1_200_000,
+                $"Expected canonical stream deduplication below 1.2 MB allocated, got {allocatedBytes:N0} bytes.");
+        }
+
+        private static AudioVariant CreateDedupVariant(
+            string variantId,
+            string streamHash,
+            double quality,
+            int seenCount)
+        {
+            return new AudioVariant
+            {
+                VariantId = variantId,
+                Codec = "FLAC",
+                FlacPcmMd5 = streamHash,
+                AudioSketchHash = "shared-sketch",
+                DurationMs = 180_000,
+                QualityScore = quality,
+                SeenCount = seenCount,
+            };
         }
 
         private static AudioVariant CreateVariant(

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Stream canonical audio variant deduplication.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `CanonicalStatsService.DeduplicateStreams` now scans variants once into an ordinal key-to-result-index map and insertion-ordered result list, replacing each retained slot only for a higher quality score or an equal-quality higher seen count. This removes `GroupBy` element buffers and per-group `OrderByDescending` sequences while preserving first-group order and first-winner stable ties. `FirstNonEmpty` now accepts three fixed optional values instead of allocating a `params` array for every dedup key. For 10,000 variants collapsing to 100 streams, warmed allocation falls from 1,703,240 to 972,384 bytes (42.9%). Exact codec partitioning/cross-codec behavior, stream-hash fallback order, sketch/duration key composition, quality/seen precedence, and returned variant identity remain unchanged. Added ordering/tie, codec-boundary, and duplicate-heavy allocation regressions. Validation passed: complete canonical-stats service (`7/7`), full backend suites (`5096/5096`: `69` application, `4747` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Fuse SongID loose-text normalization passes.
   - Status: completed (2026-07-17)
   - Priority: P1

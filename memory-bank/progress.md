@@ -1,3 +1,12 @@
+## Update 2026-07-17 02:13:06Z
+
+- Completed single-pass, insertion-ordered canonical audio stream deduplication.
+- Replaced LINQ grouping and per-group sorting with an ordinal dedup-key index plus stable result slots; removed per-variant `params` arrays from stream-hash fallback selection.
+- Reduced warmed allocation for 10,000 variants collapsing into 100 streams from 1,703,240 to 972,384 bytes (42.9%).
+- Preserved first-group ordering, quality then seen-count winner selection, stable exact ties, codec-aware/cross-codec keys, component fallback order, and returned object identity.
+- Added semantic and allocation regressions; passed complete canonical-stats service (`7/7`) and full backend (`5096/5096`: `69` application, `4747` unit, `280` integration) tests.
+- Passed repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 02:02:08Z
 
 - Completed fused, exact-size SongID loose-text normalization.

@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Canonical audio stream deduplication now retains the best variant per key in
+  one insertion-ordered pass instead of buffering and sorting LINQ groups.
 - SongID loose-text normalization now fuses case folding, feature aliases, and
   ASCII token cleanup into a direct exact-size scan instead of chained string
   replacements, regex replacement, and trimming.

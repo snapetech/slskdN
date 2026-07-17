@@ -1,3 +1,17 @@
+## Update 2026-07-17 02:13:06Z
+
+- Current task: performance and efficiency improvements in progress; single-pass canonical audio stream deduplication complete locally.
+- Last activity:
+  - Replaced deduplication groups and per-group sorting with an insertion-ordered key-to-result-slot index; replaced per-variant `params` arrays with fixed stream-hash fallback arguments.
+  - A 10,000-variant/100-stream duplicate-heavy fixture falls from 1,703,240 to 972,384 warmed allocated bytes (42.9%).
+- Validation:
+  - Passed complete canonical-stats service (`7/7`) and full backend suites (`5096/5096`: `69` application, `4747` unit, `280` integration) tests.
+  - Exact group order, quality/seen/tie selection, codec partitioning, cross-codec collapse, key component fallback, allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the canonical stream-deduplication slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 02:02:08Z
 
 - Current task: performance and efficiency improvements in progress; fused SongID loose-text normalization complete locally.
