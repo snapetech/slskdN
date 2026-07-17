@@ -1,18 +1,18 @@
 ## Update 2026-07-17 22:17:00Z
 
-- Current task: stable release `2026071721-slskdn.283` is published and running on the live validation host; final package-channel recovery and repository-state documentation remain.
+- Current task: stable release `2026071721-slskdn.283` publication, deployment, validation, and recoverable package-channel remediation are complete.
 - Last activity:
   - Fixed loaded-suite allocation gates, release timeout masking, and timed stream cleanup before publishing and verifying `.283`.
   - Deployed the immutable `.283` GHCR image with rollback preserved. The service remains healthy with zero restarts/OOM events and no severe or warning log entries while searches and downloads run normally.
   - Audited `43` authenticated routes and all discovered internal links with zero browser/network observations; the live core-page Playwright suite passed `4/4`.
-  - Corrected two unnamed Wishlist view-mode buttons, horizontal System-tab audit geometry, COPR retry behavior, and the Fedora COPR service endpoint on `main` without creating another tag.
+  - Corrected two unnamed Wishlist view-mode buttons, horizontal System-tab audit geometry, COPR retry behavior, and unattended COPR authentication selection on `main` without creating another tag.
 - Release status:
-  - Build, platform archives, GitHub release, AUR, PPA, Nix, Homebrew, main Docker, and announcement jobs passed. Artifact verification passed for every archive, required payload, checksum, footer marker, and embedded version.
-  - COPR standalone recovery is running from the corrected endpoint. Chocolatey package creation passed but its external push service returned 504 on all five release and recovery attempts.
+  - The complete tag workflow passed, including build, platform archives, GitHub release, AUR, PPA, Nix, Homebrew, main and omnibus Docker, and announcement jobs. Artifact verification passed for every archive, required payload, checksum, footer marker, and embedded version.
+  - COPR API-token recovery submitted build `10739201` successfully. Chocolatey package creation passed but its external push service returned 504 on all five release and recovery attempts.
 - Next steps:
-  1. Inspect the completed COPR recovery log and record its result.
-  2. Retry Chocolatey through the existing manual workflow only after the external service recovers.
-  3. Include the Wishlist accessibility fix in the next explicitly authorized release; do not create another tag now.
+  1. Retry Chocolatey through the existing manual workflow only after the external service recovers.
+  2. Include the Wishlist accessibility fix in the next explicitly authorized release.
+  3. Do not create another release or tag without explicit authorization.
 
 ## Update 2026-07-17 18:20:49Z
 
