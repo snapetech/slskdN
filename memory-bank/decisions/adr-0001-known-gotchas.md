@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z735. Allocation-Free Token Matching Must Not Rescan Per Query Token
+
+**The Bug**: A filename-similarity optimization removed split arrays and an
+`Intersect` set, reducing a 10,000-source fixture from 14.7 MB to 2.0 MB, but
+its first range scanner repeatedly rescanned each candidate for every query
+token. The five-call fixture slowed from 137 ms to 278 ms despite the large
+allocation improvement.
+
+**Files Affected**:
+- `src/slskd/Transfers/MultiSource/Discovery/AdvancedDiscoveryService.cs`
+- `tests/slskd.Tests.Unit/Transfers/MultiSource/Discovery/AdvancedDiscoveryServiceTests.cs`
+
+**Prevention**: Measure CPU time as well as allocation when replacing hash-set
+token operations with nested scans. Prepare invariant normalized query state
+and distinct query words once per outer operation, then keep candidate work
+bounded by the small prepared set. A zero-allocation inner loop is not an
+improvement if its repeated scans increase end-to-end latency.
+
 ### 0z734. Bounded Worker Pools Must Retain Completed Results on Cancellation
 
 **The Bug**: A descriptor-discovery worker pool threw cancellation between
