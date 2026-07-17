@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z751. No-Build Benchmarks Must Follow A Proven Successful Build
+
+**The Bug**: A hash helper changed from one input string to two inputs, but one
+verification call site retained the old signature and failed compilation. The
+benchmark command piped build output through a text filter and then ran later
+`--no-build` iterations regardless, so those iterations reported plausible
+numbers from the previous assembly instead of the edited source.
+
+**Files Affected**:
+- `src/slskd/Common/Security/CryptographicCommitment.cs`
+
+**Prevention**: After changing a shared helper signature, search every call site
+and run one unfiltered build/test command to a successful exit before any
+`--no-build` measurement. Do not let output-filter pipelines mask the build
+exit status or treat stale-binary timings as implementation evidence.
+
 ### 0z750. Allocation-Free BitConverter Replacements Must Preserve Endianness
 
 **The Bug**: A watermark-expansion optimization replaced
