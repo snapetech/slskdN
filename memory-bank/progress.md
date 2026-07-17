@@ -1,3 +1,11 @@
+## Update 2026-07-17 17:35:00Z
+
+- Completed the pending distributed mesh interoperability, service-router wiring, private-gateway identity/DNS hardening, shadow-index routing-hint, and durable Pod-send corrections.
+- Unified DHT keys and node identities on the frozen 20-byte contract, added iterative distributed value lookup, and bound STORE signatures/admission state to the Ed25519 signer independently of the overlay username.
+- Registered Pod, shadow-index, private-gateway, and introspection handlers with the live router; shadow-index publication and reads now use the distributed client and preserve bounded full peer hints.
+- Tunnel connections now dial only policy-approved addresses, gateway checks use the node's real profile identity, and successful durable message persistence is no longer reported as failed when immediate routing is unavailable.
+- Complete backend validation passed (`5282/5282`: `69` application, `4933` unit, `280` integration), together with repository lint and all substantive remediation checks. Added gotchas `0z755`–`0z759` in standalone commit `8ffeffadf`.
+
 ## Update 2026-07-17 17:22:00Z
 
 - Completed allocation-bounded UTF-8 Base64 string conversion and the finite performance-improvement goal.

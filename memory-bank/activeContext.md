@@ -1,3 +1,17 @@
+## Update 2026-07-17 17:35:00Z
+
+- Current task: publish the complete worktree, create one stable release, deploy it to the live validation host, and monitor the replacement.
+- Last activity:
+  - Completed distributed mesh DHT lookup/identity interoperability, service-router registration, shadow-index distributed routing hints, private-gateway identity and DNS binding, and durable Pod-send semantics.
+  - Committed the final Base64 performance slice as `12a7c2656` and documented mesh gotchas `0z755`–`0z759` separately as `8ffeffadf`.
+- Validation:
+  - Complete backend validation passed (`5282/5282`: `69` application, `4933` unit, `280` integration), plus repository lint.
+  - All substantive remediation checks passed; release sync remains pending because local `main` must incorporate three remote commits before publication.
+- Next steps:
+  1. Commit the remaining complete worktree and merge the three remote main commits without dropping either side.
+  2. Run the full release gate, push main, and create stable release `2026071717-slskdn.278` if still available.
+  3. Verify published artifacts, replace the prior live validation build, and monitor health without creating another release.
+
 ## Update 2026-07-17 17:22:00Z
 
 - Current task: finite performance and efficiency improvement goal complete locally; allocation-bounded UTF-8 Base64 conversion is the final slice.

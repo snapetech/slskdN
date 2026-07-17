@@ -2,6 +2,7 @@
 //     Copyright (c) slskdN Team. All rights reserved.
 // </copyright>
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -40,23 +41,40 @@ public sealed class DefaultTunnelConnectivity : ITunnelConnectivity
         IReadOnlyList<string> resolvedIPs,
         CancellationToken cancellationToken)
     {
-        TcpClient? tcpClient = null;
-
-        try
+        SocketException? lastSocketError = null;
+        foreach (var resolvedIP in resolvedIPs)
         {
-            tcpClient = new TcpClient();
-            await tcpClient.ConnectAsync(host, port, cancellationToken).ConfigureAwait(false);
-            var stream = tcpClient.GetStream();
-            var remote = tcpClient.Client.RemoteEndPoint as System.Net.IPEndPoint;
-            var connectedIP = remote?.Address.ToString();
+            if (!IPAddress.TryParse(resolvedIP, out var address))
+            {
+                continue;
+            }
 
-            // NetworkStream owns the socket when it is disposed by the caller.
-            tcpClient = null;
-            return (stream, connectedIP);
+            TcpClient? tcpClient = null;
+            try
+            {
+                // Dial the address that passed policy validation. Resolving the hostname again
+                // here would introduce a DNS-rebinding time-of-check/time-of-use gap.
+                tcpClient = new TcpClient(address.AddressFamily);
+                await tcpClient.ConnectAsync(address, port, cancellationToken).ConfigureAwait(false);
+                var stream = tcpClient.GetStream();
+                var remote = tcpClient.Client.RemoteEndPoint as IPEndPoint;
+                var connectedIP = remote?.Address.ToString();
+
+                // NetworkStream owns the socket when it is disposed by the caller.
+                tcpClient = null;
+                return (stream, connectedIP);
+            }
+            catch (SocketException ex)
+            {
+                lastSocketError = ex;
+            }
+            finally
+            {
+                tcpClient?.Dispose();
+            }
         }
-        finally
-        {
-            tcpClient?.Dispose();
-        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        throw lastSocketError ?? new SocketException((int)SocketError.HostNotFound);
     }
 }

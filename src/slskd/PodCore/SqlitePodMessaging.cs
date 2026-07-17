@@ -119,7 +119,7 @@ namespace slskd.PodCore
                         "Message saved but routing failed for {MessageId}: {Error}",
                         message.MessageId,
                         routingResult.ErrorMessage ?? "Routing failed");
-                    return false;
+                    return true;
                 }
 
                 logger.LogDebug("Message saved and routed successfully");

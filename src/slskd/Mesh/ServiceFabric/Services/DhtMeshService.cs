@@ -285,7 +285,7 @@ public class DhtMeshService : IMeshService
             }
 
             // Verify signature before storing
-            if (!VerifyStoreSignature(request, context.RemotePeerId))
+            if (!VerifyStoreSignature(request, out var publisherPeerId))
             {
                 _logger.LogWarning(
                     "[DHT] Store request signature verification failed for key {KeyHex} from peer {PeerId}",
@@ -311,7 +311,7 @@ public class DhtMeshService : IMeshService
 
             // Store the key-value pair with TTL
             var ttlSeconds = Math.Clamp(request.TtlSeconds ?? 3600, 60, 3600 * 24); // 1m to 24h
-            if (!TryAdmitRemoteStore(context.RemotePeerId, request.Key, ttlSeconds))
+            if (!TryAdmitRemoteStore(publisherPeerId!, request.Key, ttlSeconds))
             {
                 return new ServiceReply
                 {
@@ -325,7 +325,7 @@ public class DhtMeshService : IMeshService
             await _dhtClient.PutAsync(request.Key, request.Value, ttlSeconds, cancellationToken);
 
             // Update routing table with the storing peer
-            await _routingTable.TouchAsync(request.RequesterId, context.RemotePeerId);
+            await _routingTable.TouchAsync(request.RequesterId, publisherPeerId!);
 
             var response = new StoreResponse
             {
@@ -365,8 +365,9 @@ public class DhtMeshService : IMeshService
     /// <summary>
     /// Verify the signature on a STORE request.
     /// </summary>
-    private bool VerifyStoreSignature(StoreRequest request, string remotePeerId)
+    private bool VerifyStoreSignature(StoreRequest request, out string? publisherPeerId)
     {
+        publisherPeerId = null;
         try
         {
             // Create DhtStoreMessage from request and verify signature
@@ -381,7 +382,11 @@ public class DhtMeshService : IMeshService
                 TimestampUnixMs = request.TimestampUnixMs
             };
 
-            return storeMessage.VerifySignature(remotePeerId);
+            if (!storeMessage.VerifySignature())
+                return false;
+
+            publisherPeerId = storeMessage.GetSignerPeerId();
+            return publisherPeerId != null;
         }
         catch (Exception ex)
         {

@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using slskd.Mesh;
 using slskd.Messaging;
+using slskd.Identity;
 using slskd.PodCore;
 using slskd.PodCore.API;
 
@@ -34,6 +35,7 @@ public class PodsController : ControllerBase
     private readonly IConversationService? conversationService;
     private readonly IOptionsMonitor<MeshOptions>? meshOptions;
     private readonly IGoldStarClubService? goldStarClubService;
+    private readonly IProfileService? profileService;
 
     public PodsController(
         IPodService podService,
@@ -42,7 +44,8 @@ public class PodsController : ControllerBase
         ILogger<PodsController> logger,
         IConversationService? conversationService = null,
         IOptionsMonitor<MeshOptions>? meshOptions = null,
-        IGoldStarClubService? goldStarClubService = null)
+        IGoldStarClubService? goldStarClubService = null,
+        IProfileService? profileService = null)
     {
         this.podService = podService;
         this.podMessaging = podMessaging;
@@ -51,6 +54,7 @@ public class PodsController : ControllerBase
         this.conversationService = conversationService;
         this.meshOptions = meshOptions;
         this.goldStarClubService = goldStarClubService;
+        this.profileService = profileService;
     }
 
     /// <summary>
@@ -178,9 +182,14 @@ public class PodsController : ControllerBase
             // Validate that the requesting peer will be the first member (and owner)
             if (request.Pod.Capabilities?.Contains(PodCapability.PrivateServiceGateway) == true)
             {
-                if (request.Pod.PrivateServicePolicy?.GatewayPeerId != request.RequestingPeerId)
+                var gatewayPeerId = request.Pod.PrivateServicePolicy?.GatewayPeerId;
+                var isLocalAdministratorGateway = await IsAuthorizedLocalAdministratorGatewayAsync(
+                    request.RequestingPeerId,
+                    gatewayPeerId,
+                    ct);
+                if (gatewayPeerId != request.RequestingPeerId && !isLocalAdministratorGateway)
                 {
-                    return BadRequest(new { error = "When creating a VPN pod, RequestingPeerId must match GatewayPeerId" });
+                    return BadRequest(new { error = "When creating a VPN pod, GatewayPeerId must match the requesting peer or this node's local gateway identity" });
                 }
             }
 
@@ -276,7 +285,11 @@ public class PodsController : ControllerBase
                         return StatusCode(403, new { error = "Only pod members can update pods" });
                     }
 
-                    if (!isGatewayPeer)
+                    var isLocalAdministratorGateway = await IsAuthorizedLocalAdministratorGatewayAsync(
+                        request.RequestingPeerId,
+                        gatewayPeerId,
+                        ct);
+                    if (!isGatewayPeer && !isLocalAdministratorGateway)
                     {
                         return StatusCode(403, new { error = "Only the designated gateway peer can modify private service policy" });
                     }
@@ -300,6 +313,23 @@ public class PodsController : ControllerBase
             logger.LogError(ex, "Failed to update pod {PodId}", podId);
             return StatusCode(500, new { error = "Failed to update pod" });
         }
+    }
+
+    private async Task<bool> IsAuthorizedLocalAdministratorGatewayAsync(
+        string requestingPeerId,
+        string? gatewayPeerId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(gatewayPeerId) ||
+            profileService == null ||
+            !User.IsInRole(AuthRole.AdministratorOnly))
+        {
+            return false;
+        }
+
+        var localProfile = await profileService.GetMyProfileAsync(cancellationToken);
+        return string.Equals(localProfile.PeerId, gatewayPeerId, StringComparison.Ordinal) &&
+               !string.Equals(requestingPeerId, gatewayPeerId, StringComparison.Ordinal);
     }
 
     /// <summary>

@@ -117,6 +117,9 @@ public class KademliaRpcClient
         byte[] key,
         CancellationToken cancellationToken = default)
     {
+        if (key.Length != 20)
+            throw new ArgumentException("Key must be 20 bytes", nameof(key));
+
         // First try to find the value locally
         var localValues = await _dhtClient.GetMultipleAsync(key, cancellationToken);
         if (localValues.Any())
@@ -129,14 +132,58 @@ public class KademliaRpcClient
             };
         }
 
-        // Not found locally - perform node lookup
-        var closestNodes = await FindNodeAsync(key, cancellationToken);
+        var visited = new HashSet<string>();
+        var candidates = new SortedSet<NodeDistance>(
+            _routingTable.GetClosest(key, K).Select(node => new NodeDistance(node, key)));
+        var closestFound = new SortedSet<NodeDistance>(candidates);
+
+        for (var iteration = 0; iteration < MaxIterations && candidates.Any(); iteration++)
+        {
+            var toContact = candidates
+                .Where(candidate => !visited.Contains(candidate.Node.Address))
+                .Take(Alpha)
+                .ToList();
+            if (!toContact.Any())
+                break;
+
+            foreach (var candidate in toContact)
+                visited.Add(candidate.Node.Address);
+
+            var results = await Task.WhenAll(toContact.Select(candidate =>
+                QueryFindValueAsync(candidate.Node, key, cancellationToken)));
+            foreach (var response in results.Where(response => response != null))
+            {
+                if (response!.Found && response.Value != null)
+                {
+                    return new FindValueResult
+                    {
+                        Found = true,
+                        Value = response.Value,
+                        ClosestNodes = closestFound.Select(candidate => candidate.Node).Take(K).ToList()
+                    };
+                }
+
+                foreach (var nodeInfo in response.ClosestNodes ?? Array.Empty<DhtNodeInfo>())
+                {
+                    if (nodeInfo.NodeId.Length != 20 || string.IsNullOrWhiteSpace(nodeInfo.Address))
+                        continue;
+
+                    var node = new KNode(nodeInfo.NodeId, nodeInfo.Address, nodeInfo.LastSeen);
+                    var distance = new NodeDistance(node, key);
+                    candidates.Add(distance);
+                    closestFound.Add(distance);
+                }
+            }
+
+            candidates = new SortedSet<NodeDistance>(candidates.Take(K));
+            closestFound = new SortedSet<NodeDistance>(closestFound.Take(K));
+        }
 
         return new FindValueResult
         {
             Found = false,
             Value = null,
-            ClosestNodes = closestNodes
+            ClosestNodes = closestFound.Select(candidate => candidate.Node).Take(K).ToList()
         };
     }
 
@@ -261,6 +308,42 @@ public class KademliaRpcClient
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "[Kademlia] FIND_NODE query to {Address} threw exception", node.Address);
+        }
+
+        return null;
+    }
+
+    private async Task<FindValueResponse?> QueryFindValueAsync(
+        KNode node,
+        byte[] key,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var request = new FindValueRequest
+            {
+                Key = key,
+                RequesterId = _routingTable.GetSelfId(),
+                Count = K
+            };
+            var call = new ServiceCall
+            {
+                ServiceName = "dht",
+                Method = "FindValue",
+                Payload = JsonSerializer.SerializeToUtf8Bytes(request)
+            };
+            var reply = await _meshClient.CallAsync(node.Address, call, cancellationToken);
+            if (reply.IsSuccess)
+                return JsonSerializer.Deserialize<FindValueResponse>(reply.Payload);
+
+            _logger.LogDebug(
+                "[Kademlia] FIND_VALUE query to {Address} failed: {Error}",
+                node.Address,
+                reply.ErrorMessage);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "[Kademlia] FIND_VALUE query to {Address} threw exception", node.Address);
         }
 
         return null;
@@ -401,9 +484,13 @@ public class DhtStoreMessage
 
             var publicKeyBytes = Convert.FromBase64String(PublicKeyBase64);
             if (publicKeyBytes.Length != 32) return false;
+            if (!RequesterId.SequenceEqual(SHA256.HashData(publicKeyBytes).AsSpan(0, 20).ToArray()))
+            {
+                return false;
+            }
+
             if (expectedPeerId is not null
-                && (!string.Equals(Ed25519Signer.DerivePeerId(publicKeyBytes), expectedPeerId, StringComparison.Ordinal)
-                    || !RequesterId.SequenceEqual(SHA256.HashData(publicKeyBytes).AsSpan(0, 20).ToArray())))
+                && !string.Equals(Ed25519Signer.DerivePeerId(publicKeyBytes), expectedPeerId, StringComparison.Ordinal))
             {
                 return false;
             }
@@ -417,8 +504,7 @@ public class DhtStoreMessage
                 Signature = SignatureBase64,
                 TimestampUnixMs = TimestampUnixMs
             };
-            var payloadJson = SerializeMessageForSigning(signingMessage);
-            var signablePayload = $"{signingMessage.Type}|{TimestampUnixMs}|{payloadJson}";
+            var signablePayload = GetSignablePayload(signingMessage);
             var payloadBytes = Encoding.UTF8.GetBytes(signablePayload);
 
             // Verify signature
@@ -428,6 +514,36 @@ public class DhtStoreMessage
         {
             return false;
         }
+    }
+
+    public string? GetSignerPeerId()
+    {
+        try
+        {
+            var publicKeyBytes = Convert.FromBase64String(PublicKeyBase64 ?? string.Empty);
+            return publicKeyBytes.Length == 32 ? Ed25519Signer.DerivePeerId(publicKeyBytes) : null;
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+    }
+
+    internal string GetSignablePayload()
+    {
+        var signingMessage = new DhtStoreSigningMessage(this)
+        {
+            PublicKey = PublicKeyBase64 ?? string.Empty,
+            Signature = SignatureBase64 ?? string.Empty,
+            TimestampUnixMs = TimestampUnixMs
+        };
+        return GetSignablePayload(signingMessage);
+    }
+
+    private static string GetSignablePayload(DhtStoreSigningMessage signingMessage)
+    {
+        var payloadJson = SerializeMessageForSigning(signingMessage);
+        return $"{signingMessage.Type}|{signingMessage.TimestampUnixMs}|{payloadJson}";
     }
 
     private static string SerializeMessageForSigning(MeshMessage message)

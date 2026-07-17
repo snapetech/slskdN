@@ -19,7 +19,10 @@ namespace slskd.Mesh.Dht;
 public interface IMeshDhtClient
 {
     Task PutAsync(string key, object? value, int ttlSeconds, CancellationToken ct = default);
+    Task PutAsync(byte[] key, byte[] value, int ttlSeconds, CancellationToken ct = default);
     Task<byte[]?> GetRawAsync(string key, CancellationToken ct = default);
+    Task<byte[]?> GetRawAsync(byte[] key, CancellationToken ct = default);
+    Task<IReadOnlyList<byte[]>> GetMultipleAsync(byte[] key, CancellationToken ct = default);
     Task<T?> GetAsync<T>(string key, CancellationToken ct = default);
 
     /// <summary>
@@ -55,16 +58,60 @@ public class MeshDhtClient : IMeshDhtClient
     {
         var payload = value as byte[] ?? MessagePackSerializer.Serialize(value, cancellationToken: ct);
         var ttl = Math.Min(Math.Max(ttlSeconds, 60), 3600); // clamp 1m..1h
-        await inner.PutAsync(KeyBytes(key), payload, ttl, ct);
+        await PutAsync(DeriveKey(key), payload, ttl, ct);
         logger.LogDebug("[MeshDHT] Put {Key} ttl={Ttl}s size={Size}", key, ttl, payload.Length);
     }
 
+    public async Task PutAsync(byte[] key, byte[] value, int ttlSeconds, CancellationToken ct = default)
+    {
+        if (key.Length != 20)
+            throw new ArgumentException("DHT key must be 20 bytes", nameof(key));
+
+        var ttl = Math.Min(Math.Max(ttlSeconds, 60), 3600);
+        if (dhtService.Value is { } distributedDht)
+        {
+            await distributedDht.StoreAsync(key, value, ttl, ct);
+        }
+        else
+        {
+            await inner.PutAsync(key, value, ttl, ct);
+        }
+    }
+
     public Task<byte[]?> GetRawAsync(string key, CancellationToken ct = default) =>
-        inner.GetAsync(KeyBytes(key), ct);
+        GetRawAsync(DeriveKey(key), ct);
+
+    public async Task<byte[]?> GetRawAsync(byte[] key, CancellationToken ct = default)
+    {
+        if (key.Length != 20)
+            throw new ArgumentException("DHT key must be 20 bytes", nameof(key));
+
+        var local = await inner.GetAsync(key, ct);
+        if (local != null || dhtService.Value is not { } distributedDht)
+        {
+            return local;
+        }
+
+        var result = await distributedDht.FindValueAsync(key, ct);
+        return result.Found ? result.Value : null;
+    }
+
+    public async Task<IReadOnlyList<byte[]>> GetMultipleAsync(byte[] key, CancellationToken ct = default)
+    {
+        if (key.Length != 20)
+            throw new ArgumentException("DHT key must be 20 bytes", nameof(key));
+
+        var local = await inner.GetMultipleAsync(key, ct);
+        if (local.Count > 0 || dhtService.Value is not { } distributedDht)
+            return local;
+
+        var result = await distributedDht.FindValueAsync(key, ct);
+        return result.Found && result.Value != null ? [result.Value] : Array.Empty<byte[]>();
+    }
 
     public async Task<T?> GetAsync<T>(string key, CancellationToken ct = default)
     {
-        var raw = await inner.GetAsync(KeyBytes(key), ct);
+        var raw = await GetRawAsync(key, ct);
         if (raw == null) return default;
         try
         {
@@ -119,6 +166,6 @@ public class MeshDhtClient : IMeshDhtClient
         return val == null ? Array.Empty<byte[]>() : new List<byte[]> { val };
     }
 
-    private static byte[] KeyBytes(string key) =>
-        SHA256.HashData(Encoding.UTF8.GetBytes(key));
+    internal static byte[] DeriveKey(string key) =>
+        SHA1.HashData(Encoding.UTF8.GetBytes(key));
 }

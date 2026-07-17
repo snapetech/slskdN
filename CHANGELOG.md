@@ -10,6 +10,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Restored distributed mesh DHT lookup and cross-runtime signed-store
+  interoperability, registered the remote Pod/shadow-index/gateway services,
+  and preserved routable shadow-index peer hints.
+- Closed the private-gateway DNS rebinding gap by connecting only to addresses
+  that passed policy validation, and used the node's real gateway identity for
+  authorization and forwarding.
+- Kept successfully persisted Pod messages accepted when their immediate
+  best-effort routing attempt fails.
 - Preserved the existing `DbUpdateException` boundary when atomic share-group
   member admission encounters a database constraint failure.
 - Registered the ordered download auto-retry index migration so application
@@ -17,6 +25,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Mesh DHT string keys now use the frozen 160-bit wire contract, local misses
+  perform iterative distributed lookups, and signed publisher identity is
+  derived from the canonical Ed25519 key rather than an overlay username.
 - UTF-8 Base64 string conversion now encodes and decodes through bounded stack
   or cleared pooled byte storage without intermediate byte arrays.
 - Salted constant-time hashing, boolean hash verification, and double SHA-256

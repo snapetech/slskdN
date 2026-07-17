@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using slskd.Common.Security;
+using slskd.Identity;
 using slskd.Mesh;
 using slskd.Mesh.ServiceFabric;
 using slskd.Mesh.Transport;
@@ -35,6 +36,7 @@ public sealed class PrivateGatewayMeshService : IMeshService, IDisposable
     private readonly IServiceProvider _serviceProvider;
     private readonly IDnsSecurityService _dnsSecurity;
     private readonly ITunnelConnectivity _tunnelConnectivity;
+    private readonly IProfileService? _profileService;
     private readonly int _maxPayload;
     private readonly CancellationTokenSource _cleanupCancellationTokenSource = new();
     private readonly Task _cleanupTask;
@@ -61,13 +63,15 @@ public sealed class PrivateGatewayMeshService : IMeshService, IDisposable
         IServiceProvider serviceProvider,
         IOptions<MeshOptions>? meshOptions = null,
         ITunnelConnectivity? tunnelConnectivity = null,
-        IDnsSecurityService? dnsSecurity = null)
+        IDnsSecurityService? dnsSecurity = null,
+        IProfileService? profileService = null)
     {
         _logger = logger;
         _podService = podService;
         _serviceProvider = serviceProvider;
         _dnsSecurity = dnsSecurity ?? serviceProvider.GetRequiredService<DnsSecurityService>();
         _tunnelConnectivity = tunnelConnectivity ?? new DefaultTunnelConnectivity();
+        _profileService = profileService;
         _maxPayload = meshOptions?.Value?.Security?.GetEffectiveMaxPayloadSize() ?? slskd.Mesh.Transport.SecurityUtils.MaxRemotePayloadSize;
 
         // LongRunning ensures a dedicated OS thread starts immediately, avoiding thread-pool
@@ -232,11 +236,9 @@ public sealed class PrivateGatewayMeshService : IMeshService, IDisposable
             };
         }
 
-        // For MVP, we'll assume this service runs on the gateway peer
-        // In production, this would need to verify the local peer ID matches the gateway
-        // Service Fabric context: In production Service Fabric deployment, get from service context
-        // For non-Service Fabric deployments, this placeholder is acceptable
-        var localPeerId = "peer:mesh:self";
+        var localPeerId = _profileService == null
+            ? "peer:mesh:self"
+            : (await _profileService.GetMyProfileAsync(cancellationToken)).PeerId;
         if (!string.Equals(pod.PrivateServicePolicy.GatewayPeerId, localPeerId, StringComparison.Ordinal))
         {
             _logger.LogWarning(
@@ -429,7 +431,7 @@ public sealed class PrivateGatewayMeshService : IMeshService, IDisposable
             if (connectedIP != null)
             {
                 // Ensure the connected IP is in our allowed list
-                if (!resolvedIPs.Contains(connectedIP) && !_dnsSecurity.ValidateTunnelIP(tunnelId, connectedIP))
+                if (!resolvedIPs.Any(allowedIP => IpAddressesEqual(allowedIP, connectedIP)))
                 {
                     _logger.LogWarning(
                         "[PrivateGateway] AUDIT: Tunnel rejected - Reason:DnsRebinding, PeerId:{PeerId}, PodId:{PodId}, Host:{Host}, ConnectedIP:{ConnectedIP}, AllowedIPs:{AllowedIPs}",
@@ -490,6 +492,27 @@ public sealed class PrivateGatewayMeshService : IMeshService, IDisposable
                 ErrorMessage = "Failed to connect to destination"
             };
         }
+    }
+
+    private static bool IpAddressesEqual(string first, string second)
+    {
+        if (!IPAddress.TryParse(first, out var firstAddress) ||
+            !IPAddress.TryParse(second, out var secondAddress))
+        {
+            return false;
+        }
+
+        if (firstAddress.IsIPv4MappedToIPv6)
+        {
+            firstAddress = firstAddress.MapToIPv4();
+        }
+
+        if (secondAddress.IsIPv4MappedToIPv6)
+        {
+            secondAddress = secondAddress.MapToIPv4();
+        }
+
+        return firstAddress.Equals(secondAddress);
     }
 
     private async Task<ServiceReply> HandleTunnelDataAsync(

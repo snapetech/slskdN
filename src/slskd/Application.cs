@@ -675,6 +675,50 @@ namespace slskd
                     {
                         Log.Warning("MeshContentMeshService not available for registration");
                     }
+
+                    var podsService = ServiceProvider.GetService<Mesh.ServiceFabric.Services.PodsMeshService>();
+                    if (podsService != null)
+                    {
+                        router.RegisterService(podsService);
+                        Log.Information("Registered Pods mesh service for remote Pod workflows");
+                    }
+                    else
+                    {
+                        Log.Warning("PodsMeshService not available for registration");
+                    }
+
+                    var virtualSoulfindService = ServiceProvider.GetService<Mesh.ServiceFabric.Services.VirtualSoulfindMeshService>();
+                    if (virtualSoulfindService != null)
+                    {
+                        router.RegisterService(virtualSoulfindService);
+                        Log.Information("Registered shadow-index mesh service for remote content discovery");
+                    }
+                    else
+                    {
+                        Log.Warning("VirtualSoulfindMeshService not available for registration");
+                    }
+
+                    var privateGatewayService = ServiceProvider.GetService<Mesh.ServiceFabric.Services.PrivateGatewayMeshService>();
+                    if (privateGatewayService != null)
+                    {
+                        router.RegisterService(privateGatewayService);
+                        Log.Information("Registered private-gateway mesh service for Pod forwarding");
+                    }
+                    else
+                    {
+                        Log.Warning("PrivateGatewayMeshService not available for registration");
+                    }
+
+                    var introspectionService = ServiceProvider.GetService<Mesh.ServiceFabric.Services.MeshIntrospectionService>();
+                    if (introspectionService != null)
+                    {
+                        router.RegisterService(introspectionService);
+                        Log.Information("Registered mesh-introspect service");
+                    }
+                    else
+                    {
+                        Log.Warning("MeshIntrospectionService not available for registration");
+                    }
                 }
                 else
                 {

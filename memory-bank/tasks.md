@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Complete distributed mesh interoperability and private-gateway hardening.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: Unified the Kademlia 20-byte key/node contract, added iterative remote value lookup and byte-key APIs, bound signed STORE identity and admission state to the canonical Ed25519 key without equating it to an overlay username, froze cross-runtime signing/shard vectors, registered the Pod/shadow-index/private-gateway/introspection handlers with the live router, moved shadow-index publication/query to the distributed client, and retained bounded routable peer hints. Private-gateway tunnels now dial only policy-approved IPs and use the node's real profile identity; persisted Pod sends remain accepted after best-effort routing failure. Validation passed with the complete backend (`5282/5282`: `69` application, `4933` unit, `280` integration), repository lint, and substantive remediation checks. Added gotchas `0z755`–`0z759` in standalone commit `8ffeffadf`.
+
 - [x] Remove UTF-8 Base64 conversion byte-array intermediates and close the performance-improvement goal.
   - Status: completed (2026-07-17)
   - Priority: P1

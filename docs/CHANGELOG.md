@@ -22,6 +22,23 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Mesh DHT interoperability now uses one frozen 20-byte key/node contract,
+  performs bounded iterative `FIND_VALUE` lookups after local misses, and binds
+  signed STORE requester IDs and admission state to the Ed25519 signing key
+  without assuming that a Soulseek/overlay username uses the same identity
+  scheme. Canonical JSON signing and MessagePack shard vectors freeze the
+  cross-runtime wire shapes. Pod, shadow-index, private-gateway, and
+  introspection mesh handlers are registered with the live router; shadow-index
+  publication and reads use the distributed client and preserve bounded full
+  peer hints while rejecting legacy non-routable hints.
+- Private-gateway tunnels now connect directly to one of the IP addresses that
+  passed DNS policy validation instead of resolving the hostname again, compare
+  normalized connected addresses to the approved set, and use the node's real
+  profile identity for gateway authorization and forwarding. This closes the
+  DNS time-of-check/time-of-use gap while retaining bounded policy checks.
+- Pod message sends now report success after durable persistence even when the
+  immediate best-effort route fails, preventing callers from duplicating an
+  already-stored message while later delivery remains available.
 - UTF-8 Base64 string conversion now writes common inputs into stack storage and
   oversized inputs into cleared pooled storage, with decoding performed directly
   into the same bounded storage. Across 100,000 calls, encoding allocation falls

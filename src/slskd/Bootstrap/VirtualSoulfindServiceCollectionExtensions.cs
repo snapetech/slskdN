@@ -132,6 +132,19 @@ public static class VirtualSoulfindServiceCollectionExtensions
         services.AddOptions<VirtualSoulfind.v2.Backends.NativeMeshBackendOptions>();
         services.AddOptions<VirtualSoulfind.v2.Backends.SoulseekBackendOptions>();
 
+        services.AddSingleton<IOptionsMonitor<VirtualSoulfind.v2.VirtualSoulfindV2Options>>(sp =>
+        {
+            var root = sp.GetRequiredService<IOptionsMonitor<slskd.Options>>().CurrentValue.VirtualSoulfindV2;
+            var wrapped = Microsoft.Extensions.Options.Options.Create(new VirtualSoulfind.v2.VirtualSoulfindV2Options
+            {
+                Enabled = root.Enabled,
+                DefaultPlanningMode = root.DefaultMode.ToString(),
+                MaxConcurrentPlans = Math.Max(1, root.MaxConcurrentExecutions),
+                PlanTimeoutSeconds = new VirtualSoulfind.v2.VirtualSoulfindV2Options().PlanTimeoutSeconds,
+            });
+            return new Common.Moderation.WrappedOptionsMonitor<VirtualSoulfind.v2.VirtualSoulfindV2Options>(wrapped);
+        });
+
         services.AddSingleton<IOptionsMonitor<VirtualSoulfind.v2.Resolution.ResolverOptions>>(sp =>
         {
             var root = sp.GetRequiredService<IOptionsMonitor<slskd.Options>>().CurrentValue.VirtualSoulfindV2;

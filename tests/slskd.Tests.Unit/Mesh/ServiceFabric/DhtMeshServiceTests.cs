@@ -39,10 +39,10 @@ public class DhtMeshServiceTests
             dhtClient.Object,
             signer);
 
-        var forged = await StoreAsync(service, signer, requesterId, 0, remotePeerId: "forged-peer");
-        Assert.Equal(ServiceStatusCodes.Unauthorized, forged.StatusCode);
+        var signedFromDifferentOverlayUsername = await StoreAsync(service, signer, requesterId, 0, remotePeerId: "soulseek-user");
+        Assert.Equal(ServiceStatusCodes.OK, signedFromDifferentOverlayUsername.StatusCode);
 
-        for (var index = 0; index < 64; index++)
+        for (var index = 1; index < 64; index++)
         {
             var accepted = await StoreAsync(service, signer, requesterId, index, peerId);
             Assert.Equal(ServiceStatusCodes.OK, accepted.StatusCode);

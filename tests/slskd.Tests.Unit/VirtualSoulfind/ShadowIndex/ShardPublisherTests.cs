@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using slskd.Core;
 using slskd.HashDb;
+using slskd.Mesh.Dht;
 using slskd.VirtualSoulfind.ShadowIndex;
 using Xunit;
 
@@ -55,7 +56,7 @@ public sealed class ShardPublisherTests
                 Timestamp = DateTimeOffset.UtcNow,
                 TTLSeconds = 3600,
             });
-        var dht = new Mock<IDhtClient>();
+        var dht = new Mock<IMeshDhtClient>();
         var publisher = CreatePublisher(hashDb.Object, builder.Object, dht.Object);
 
         await publisher.PublishShardsAsync(CancellationToken.None);
@@ -83,7 +84,7 @@ public sealed class ShardPublisherTests
         var builder = new Mock<IShadowIndexBuilder>();
         builder.Setup(service => service.BuildShardAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ShadowIndexShard { TTLSeconds = 3600 });
-        var dht = new Mock<IDhtClient>();
+        var dht = new Mock<IMeshDhtClient>();
         var rateLimiter = new Mock<IDhtRateLimiter>();
         rateLimiter.Setup(limiter => limiter.TryAcquireAsync(It.IsAny<CancellationToken>())).ReturnsAsync(true);
         var publisher = CreatePublisher(
@@ -124,7 +125,7 @@ public sealed class ShardPublisherTests
     private static ShardPublisher CreatePublisher(
         IHashDbService hashDb,
         IShadowIndexBuilder? builder = null,
-        IDhtClient? dht = null,
+        IMeshDhtClient? dht = null,
         IDhtRateLimiter? rateLimiter = null,
         int maxShardsPerPublish = 2,
         int maxDhtOperationsPerMinute = 60)
@@ -146,7 +147,7 @@ public sealed class ShardPublisherTests
         return new ShardPublisher(
             NullLogger<ShardPublisher>.Instance,
             builder ?? Mock.Of<IShadowIndexBuilder>(),
-            dht ?? Mock.Of<IDhtClient>(),
+            dht ?? Mock.Of<IMeshDhtClient>(),
             new TestOptionsMonitor<slskd.Options>(options),
             hashDb,
             rateLimiter);

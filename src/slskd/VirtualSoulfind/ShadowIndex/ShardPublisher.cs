@@ -10,6 +10,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using slskd.HashDb;
+using slskd.Mesh.Dht;
 
 namespace slskd.VirtualSoulfind.ShadowIndex;
 
@@ -41,7 +42,7 @@ public class ShardPublisher : BackgroundService, IShardPublisher
 {
     private readonly ILogger<ShardPublisher> logger;
     private readonly IShadowIndexBuilder builder;
-    private readonly IDhtClient dht;
+    private readonly IMeshDhtClient dht;
     private readonly IOptionsMonitor<slskd.Options> optionsMonitor;
     private readonly IHashDbService? hashDb;
     private readonly IDhtRateLimiter? rateLimiter;
@@ -50,7 +51,7 @@ public class ShardPublisher : BackgroundService, IShardPublisher
     public ShardPublisher(
         ILogger<ShardPublisher> logger,
         IShadowIndexBuilder builder,
-        IDhtClient dht,
+        IMeshDhtClient dht,
         IOptionsMonitor<slskd.Options> optionsMonitor,
         IHashDbService? hashDb = null,
         IDhtRateLimiter? rateLimiter = null)

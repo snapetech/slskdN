@@ -232,8 +232,8 @@ public static class ExperimentalMeshServiceCollectionExtensions
             var keyStore = sp.GetRequiredService<Mesh.Overlay.IKeyStore>();
             var pubKey = keyStore.Current.PublicKey;
 
-            // KademliaRoutingTable expects 160-bit IDs (20 bytes). SHA1 gives exactly 20 bytes.
-            var selfId = System.Security.Cryptography.SHA1.HashData(pubKey);
+            // Bind the 160-bit Kademlia node ID to the same SHA-256 identity digest as PeerId.
+            var selfId = System.Security.Cryptography.SHA256.HashData(pubKey).AsSpan(0, 20).ToArray();
 
             return new Mesh.Dht.KademliaRoutingTable(selfId);
         });
@@ -256,6 +256,9 @@ public static class ExperimentalMeshServiceCollectionExtensions
             return service;
         });
         services.AddSingleton<Mesh.ServiceFabric.Services.DhtMeshService>();
+        services.AddSingleton<Mesh.ServiceFabric.Services.PodsMeshService>();
+        services.AddSingleton<Mesh.ServiceFabric.Services.VirtualSoulfindMeshService>();
+        services.AddSingleton<Mesh.ServiceFabric.Services.MeshIntrospectionService>();
         services.AddSingleton<Mesh.Dht.DhtService>(sp =>
         {
             Log.Debug("[DI] Constructing DhtService...");

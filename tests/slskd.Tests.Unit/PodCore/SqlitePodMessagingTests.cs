@@ -217,7 +217,7 @@ public class SqlitePodMessagingTests : IDisposable
     }
 
     [Fact]
-    public async Task SendAsync_WhenRoutingFails_ReturnsFalseAfterPersisting()
+    public async Task SendAsync_WhenRoutingFails_ReturnsTrueAfterPersisting()
     {
         _routerMock
             .Setup(r => r.RouteMessageAsync(It.IsAny<PodMessage>(), It.IsAny<CancellationToken>()))
@@ -235,7 +235,7 @@ public class SqlitePodMessagingTests : IDisposable
 
         var ok = await _messaging.SendAsync(message);
 
-        Assert.False(ok);
+        Assert.True(ok);
         var stored = await _dbContext.Messages.FirstOrDefaultAsync(m => m.PodId == PodId1 && m.Body == "Hello route failure");
         Assert.NotNull(stored);
     }

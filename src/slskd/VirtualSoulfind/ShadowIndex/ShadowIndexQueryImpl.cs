@@ -4,6 +4,7 @@
 namespace slskd.VirtualSoulfind.ShadowIndex;
 
 using slskd.VirtualSoulfind.Capture;
+using slskd.Mesh.Dht;
 
 /// <summary>
 /// Interface for querying shadow index via DHT.
@@ -41,14 +42,14 @@ public class ShadowIndexQueryResult
 public class ShadowIndexQuery : IShadowIndexQuery
 {
     private readonly ILogger<ShadowIndexQuery> logger;
-    private readonly IDhtClient dht;
+    private readonly IMeshDhtClient dht;
     private readonly IShardMerger merger;
     private readonly IShardCache cache;
     private readonly IUsernamePseudonymizer pseudonymizer;
 
     public ShadowIndexQuery(
         ILogger<ShadowIndexQuery> logger,
-        IDhtClient dht,
+        IMeshDhtClient dht,
         IShardMerger merger,
         IShardCache cache,
         IUsernamePseudonymizer pseudonymizer)
@@ -139,9 +140,21 @@ public class ShadowIndexQuery : IShadowIndexQuery
 
     private string? DecodePeerIdHint(byte[] hint)
     {
-        // This is only an 8-byte routing hint, not a routable full peer ID.
-        // Returning a fabricated peer:vsf value makes downstream callers believe
-        // they can route downloads to a peer that does not actually exist.
-        return null;
+        // Legacy eight-byte pseudonyms are not routable. New publishers may place
+        // a bounded UTF-8 peer identity in the same MessagePack binary slot.
+        if (hint.Length <= 8 || hint.Length > 256)
+            return null;
+
+        try
+        {
+            var peerId = new System.Text.UTF8Encoding(false, true).GetString(hint);
+            return string.IsNullOrWhiteSpace(peerId) || peerId.Any(char.IsControl)
+                ? null
+                : peerId;
+        }
+        catch (System.Text.DecoderFallbackException)
+        {
+            return null;
+        }
     }
 }
