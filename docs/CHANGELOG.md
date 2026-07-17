@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Virtual Soulfind DHT key derivation now UTF-8 encodes each frozen namespace,
+  separator, and identifier directly into bounded stack or cleared pooled
+  storage before SHA-1 instead of allocating an interpolated combined string and
+  byte array. DHT lower-hex formatting also writes lowercase directly. Across
+  100,000 typical recording-key derivations, allocation falls from 29,600,040
+  to 4,800,040 bytes (83.8%) while elapsed time remains 34 ms. All five namespace
+  contracts, 20-byte SHA-1 output, identifier case, long Unicode inputs, and
+  lowercase hex remain unchanged.
 - Bridge identity sanitization now UTF-8 encodes common inputs into bounded
   stack storage and long Unicode inputs into cleared pooled storage, hashes into
   a fixed digest span, and writes the exact `pod:` plus 16-character lowercase

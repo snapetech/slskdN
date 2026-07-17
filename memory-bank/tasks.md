@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove combined string and input-array allocations from DHT key derivation.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `DhtKeyDerivation` now routes release, recording, artist, scene, and scene-members keys through one two-part UTF-8 SHA-1 helper. It writes the frozen namespace, separator, and supplied ID into bounded stack storage for typical inputs or cleared pooled storage for long Unicode IDs, removing the interpolated combined string and UTF-8 array while retaining the required 20-byte result. `ToHexString` formats lowercase directly. Across 100,000 recording-key derivations, allocation falls from 29,600,040 to 4,800,040 bytes (83.8%) while elapsed time remains 34 ms. Exact namespace strings, SHA-1 results, identifier case, Unicode behavior, output length, and lower-hex formatting remain unchanged. Validation passed: focused (`8/8`), Virtual Soulfind (`411/411`), and backend (`5244/5244`: `69` application, `4895` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Remove bridge identity hash and formatting intermediates.
   - Status: completed (2026-07-17)
   - Priority: P1

@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.VirtualSoulfind.ShadowIndex;
 
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -22,7 +23,7 @@ public static class DhtKeyDerivation
     /// </summary>
     public static byte[] DeriveReleaseKey(string mbReleaseId)
     {
-        return SHA1.HashData(Encoding.UTF8.GetBytes($"{NAMESPACE_MBID_RELEASE}:{mbReleaseId}"));
+        return DeriveKey(NAMESPACE_MBID_RELEASE, mbReleaseId);
     }
 
     /// <summary>
@@ -30,7 +31,7 @@ public static class DhtKeyDerivation
     /// </summary>
     public static byte[] DeriveRecordingKey(string mbRecordingId)
     {
-        return SHA1.HashData(Encoding.UTF8.GetBytes($"{NAMESPACE_MBID_RECORDING}:{mbRecordingId}"));
+        return DeriveKey(NAMESPACE_MBID_RECORDING, mbRecordingId);
     }
 
     /// <summary>
@@ -38,7 +39,7 @@ public static class DhtKeyDerivation
     /// </summary>
     public static byte[] DeriveArtistKey(string mbArtistId)
     {
-        return SHA1.HashData(Encoding.UTF8.GetBytes($"{NAMESPACE_MBID_ARTIST}:{mbArtistId}"));
+        return DeriveKey(NAMESPACE_MBID_ARTIST, mbArtistId);
     }
 
     /// <summary>
@@ -46,7 +47,7 @@ public static class DhtKeyDerivation
     /// </summary>
     public static byte[] DeriveSceneKey(string sceneId)
     {
-        return SHA1.HashData(Encoding.UTF8.GetBytes($"{NAMESPACE_SCENE}:{sceneId}"));
+        return DeriveKey(NAMESPACE_SCENE, sceneId);
     }
 
     /// <summary>
@@ -54,7 +55,7 @@ public static class DhtKeyDerivation
     /// </summary>
     public static byte[] DeriveSceneMembersKey(string sceneId)
     {
-        return SHA1.HashData(Encoding.UTF8.GetBytes($"{NAMESPACE_SCENE_MEMBERS}:{sceneId}"));
+        return DeriveKey(NAMESPACE_SCENE_MEMBERS, sceneId);
     }
 
     /// <summary>
@@ -62,7 +63,7 @@ public static class DhtKeyDerivation
     /// </summary>
     public static string ToHexString(byte[] key)
     {
-        return Convert.ToHexString(key).ToLowerInvariant();
+        return Convert.ToHexStringLower(key);
     }
 
     /// <summary>
@@ -75,5 +76,29 @@ public static class DhtKeyDerivation
         keyType = null;
         id = null;
         return false;
+    }
+
+    private static byte[] DeriveKey(string keyNamespace, string id)
+    {
+        var byteCount = Encoding.UTF8.GetByteCount(keyNamespace) + 1 + Encoding.UTF8.GetByteCount(id);
+        byte[]? rentedBytes = null;
+        Span<byte> bytes = byteCount <= 512
+            ? stackalloc byte[byteCount]
+            : (rentedBytes = ArrayPool<byte>.Shared.Rent(byteCount));
+
+        try
+        {
+            var bytesWritten = Encoding.UTF8.GetBytes(keyNamespace, bytes);
+            bytes[bytesWritten++] = (byte)':';
+            bytesWritten += Encoding.UTF8.GetBytes(id, bytes[bytesWritten..]);
+            return SHA1.HashData(bytes[..bytesWritten]);
+        }
+        finally
+        {
+            if (rentedBytes != null)
+            {
+                ArrayPool<byte>.Shared.Return(rentedBytes, clearArray: true);
+            }
+        }
     }
 }

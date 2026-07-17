@@ -1,3 +1,17 @@
+## Update 2026-07-17 15:08:25Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded Virtual Soulfind DHT key derivation complete locally.
+- Last activity:
+  - Replaced interpolated namespace/ID strings and UTF-8 arrays with a shared two-part SHA-1 helper over bounded stack or cleared pooled storage; lower-hex output now formats directly.
+  - Across 100,000 recording-key derivations, allocation falls from 29,600,040 to 4,800,040 bytes (83.8%) while elapsed time remains 34 ms.
+- Validation:
+  - Passed focused DHT derivation (`8/8`), Virtual Soulfind (`411/411`), and backend validation (`5244/5244`: `69` application, `4895` unit, `280` integration), plus repository lint.
+  - Exact namespace/SHA-1/case/Unicode/hex behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and other Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the DHT key-derivation optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 14:36:03Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded bridge identity sanitization complete locally.

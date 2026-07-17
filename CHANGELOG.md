@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Virtual Soulfind DHT key derivation now hashes namespace and identifier parts
+  through bounded span/pool UTF-8 storage instead of interpolated strings and
+  byte arrays, and lower-hex formatting no longer creates an uppercase copy.
 - Bridge identity sanitization now hashes and formats its abbreviated internal
   pod ID through bounded span/pool storage without byte-array, full-hex,
   substring, lowercase-copy, or interpolation intermediates.
