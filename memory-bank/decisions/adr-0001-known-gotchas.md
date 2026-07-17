@@ -52,6 +52,26 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z764. COPR Recovery Must Retry Transient API Responses With The Exact SRPM Path
+
+**The Bug**: A stable release authenticated to Fedora Kerberos and built its
+SRPM successfully, but `copr-cli build` received a transient non-JSON API
+response and failed immediately. The standalone recovery workflow could not
+reliably recover it because it assigned the artifact to lowercase `srpm` and
+then invoked the client with undefined uppercase `$SRPM`.
+
+**Files Affected**:
+- `.github/workflows/build-on-tag.yml`
+- `.github/workflows/release-copr.yml`
+- `packaging/scripts/validate-packaging-metadata.sh`
+
+**Prevention**: Treat COPR upload as a bounded external-service operation:
+validate the exact SRPM path, run `copr-cli --debug`, and retry transient API
+failures with short backoff before failing the job. Use the same lowercase
+artifact variable from assignment through upload, and keep a standalone
+workflow-dispatch path so package recovery never requires moving or recreating
+a release tag.
+
 ### 0z763. Timed Stream Tests Must Dispose Leases On Assertion Failure
 
 **The Bug**: A mesh hash-mismatch test kept its stream lease alive until after
