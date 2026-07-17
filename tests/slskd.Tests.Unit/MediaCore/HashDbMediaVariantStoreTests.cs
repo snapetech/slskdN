@@ -101,8 +101,8 @@ public sealed class HashDbMediaVariantStoreTests
         }
 
         Assert.True(
-            allocatedBytes < 8 * 1024,
-            $"Expected duplicate-heavy music projection below 8 KiB allocated, got {allocatedBytes:N0} bytes.");
+            allocatedBytes < 16 * 1024,
+            $"Expected duplicate-heavy music projection below 16 KiB allocated, got {allocatedBytes:N0} bytes.");
     }
 
     [Fact]

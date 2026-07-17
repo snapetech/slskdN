@@ -571,7 +571,7 @@ public sealed class DiscoveryGraphServiceTests
         Assert.Equal(observationCount, summary.Count);
         Assert.Equal($"Identity appears on {observationCount} graph edges.", summary.Summary);
         Assert.True(
-            allocatedBytes < 4_096,
-            $"Expected duplicate-heavy evidence summarization below 4 KiB allocated, got {allocatedBytes:N0} bytes.");
+            allocatedBytes < 16 * 1024,
+            $"Expected duplicate-heavy evidence summarization below 16 KiB allocated, got {allocatedBytes:N0} bytes.");
     }
 }

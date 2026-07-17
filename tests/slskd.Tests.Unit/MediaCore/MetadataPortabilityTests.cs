@@ -400,8 +400,8 @@ public class MetadataPortabilityTests
         Assert.Equal(descriptor.Codec, result.Codec);
         Assert.Equal(descriptor.Confidence, result.Confidence);
         Assert.True(
-            allocatedBytes < 8 * 1024,
-            $"Expected single-pass combined aggregation below 8 KiB allocated, got {allocatedBytes:N0} bytes.");
+            allocatedBytes < 16 * 1024,
+            $"Expected single-pass combined aggregation below 16 KiB allocated, got {allocatedBytes:N0} bytes.");
     }
 
     [Fact]

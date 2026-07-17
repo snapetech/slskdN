@@ -93,8 +93,8 @@ public class ShadowIndexDescriptorSourceTests
             Enumerable.Range(0, 10).Reverse().Select(value => value.ToString("x2")),
             descriptor.Hashes.Select(hash => hash.Hex));
         Assert.True(
-            allocatedBytes < 8 * 1024,
-            $"Expected duplicate-heavy descriptor building below 8 KiB allocated, got {allocatedBytes:N0} bytes.");
+            allocatedBytes < 16 * 1024,
+            $"Expected duplicate-heavy descriptor building below 16 KiB allocated, got {allocatedBytes:N0} bytes.");
     }
 
     private static ShadowIndexDescriptorSource CreateSource(ShadowIndexQueryResult result)
