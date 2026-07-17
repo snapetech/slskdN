@@ -25584,3 +25584,21 @@ control before querying it, stub browser APIs explicitly when rendering their
 consumer in jsdom, and add the smallest component-level regression for a
 focused contract bug. Do not reactivate an unrelated skipped workflow merely
 to cover one child component.
+
+### 0z595. Overflowing Tab Menus Must Reveal The Active Route
+
+**The Bug**: The System page has more horizontal tabs than fit in a desktop
+viewport. Its Semantic UI tab menu was scrollable, but direct navigation to a
+later route left the active tab beyond the visible scroll area with
+`scrollLeft=0`. Users could see the requested pane while its selected tab and
+all later navigation choices remained off-screen.
+
+**Files Affected**:
+- `src/web/src/components/System/System.jsx`
+- `src/web/src/components/System/System.css`
+
+**Prevention**: Give overflowing tab strips explicit horizontal scrolling and
+nowrap behavior, then reveal the active item whenever route selection changes.
+Headless route coverage must compare the active item's bounds with the menu's
+visible bounds; rendering the pane successfully does not prove its navigation
+control is reachable.
