@@ -4,6 +4,7 @@
 namespace slskd.Tests.Unit.Common.Security;
 
 using System;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 using slskd.Common.Security;
@@ -11,6 +12,36 @@ using Xunit;
 
 public class CryptographicCommitmentTests
 {
+    [Fact]
+    public void VerifyCommitment_AvoidsDigestComparisonArrays()
+    {
+        using var commitments = new CryptographicCommitment();
+        var fileHash = new string('a', 64);
+        var created = new List<CommitmentResult>(10_000);
+        for (var index = 0; index < 10_000; index++)
+        {
+            created.Add(commitments.CreateCommitment(fileHash, "peer", "track.flac"));
+        }
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var validCount = 0;
+        foreach (var result in created)
+        {
+            if (commitments.VerifyCommitment(result.CommitmentId, fileHash, result.Nonce).IsValid)
+            {
+                validCount++;
+            }
+        }
+
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal(created.Count, validCount);
+        Assert.InRange(allocated, 0, 4_200_000);
+    }
+
     [Fact]
     public void CreateCommitment_PreservesNormalizedHashContract()
     {
@@ -41,6 +72,19 @@ public class CryptographicCommitmentTests
 
         Assert.True(verification.IsValid);
         Assert.Equal(CommitmentState.Verified, commitments.GetCommitment(result.CommitmentId)!.State);
+    }
+
+    [Fact]
+    public void VerifyCommitment_RejectsWrongNonce()
+    {
+        using var commitments = new CryptographicCommitment();
+        var fileHash = new string('a', 64);
+        var result = commitments.CreateCommitment(fileHash, "peer", "track.flac");
+
+        var verification = commitments.VerifyCommitment(result.CommitmentId, fileHash, new string('0', 64));
+
+        Assert.False(verification.IsValid);
+        Assert.Equal(CommitmentState.Failed, commitments.GetCommitment(result.CommitmentId)!.State);
     }
 
     [Fact]

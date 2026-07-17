@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Cryptographic commitment verification now UTF-8 encodes the computed and
+  stored 64-character digests into fixed spans before the existing constant-
+  time comparison instead of allocating two byte arrays per attempt. Across
+  10,000 successful one-time verifications, allocation falls from 5,440,040 to
+  3,680,040 bytes (32.4%) and elapsed time from 14 to 13 ms (7.1%). Digest
+  recomputation, fixed-time equality, hash/nonce normalization, success and
+  failure state transitions, verified output, and one-time semantics remain
+  unchanged.
 - Cryptographic commitment creation now normalizes the file hash once,
   generates nonce bytes into a fixed span, formats lowercase digests directly,
   and UTF-8 encodes the hash/nonce pair into bounded stack or cleared pooled

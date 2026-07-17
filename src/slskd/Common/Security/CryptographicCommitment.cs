@@ -137,10 +137,14 @@ public sealed class CryptographicCommitment : IDisposable
 
             // Recompute commitment hash
             var computedCommitment = ComputeSha256(revealedHash.ToLowerInvariant(), nonce);
+            Span<byte> computedCommitmentBytes = stackalloc byte[64];
+            Span<byte> storedCommitmentBytes = stackalloc byte[64];
+            _ = Encoding.UTF8.GetBytes(computedCommitment, computedCommitmentBytes);
+            _ = Encoding.UTF8.GetBytes(commitment.CommitmentHash, storedCommitmentBytes);
 
             if (!CryptographicOperations.FixedTimeEquals(
-                Encoding.UTF8.GetBytes(computedCommitment),
-                Encoding.UTF8.GetBytes(commitment.CommitmentHash)))
+                computedCommitmentBytes,
+                storedCommitmentBytes))
             {
                 commitment.State = CommitmentState.Failed;
                 return CommitmentVerification.Failed("Commitment hash mismatch - possible bait-and-switch!");

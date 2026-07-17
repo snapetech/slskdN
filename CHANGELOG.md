@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Cryptographic commitment verification now compares digest bytes through fixed
+  spans instead of allocating two UTF-8 arrays per attempt.
 - Cryptographic commitment creation now reuses normalized hashes and hashes
   nonce inputs through bounded span/pool buffers without binary/hex copies.
 - Pod ID generation now hashes through static/span APIs and writes only the

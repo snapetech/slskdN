@@ -1,3 +1,17 @@
+## Update 2026-07-17 13:44:10Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded cryptographic commitment verification complete locally.
+- Last activity:
+  - Replaced the two per-attempt UTF-8 digest arrays with fixed spans feeding the existing constant-time comparison.
+  - Across 10,000 successful verifications, allocation falls from 5,440,040 to 3,680,040 bytes (32.4%) and elapsed time from 14 to 13 ms (7.1%).
+- Validation:
+  - Passed complete commitment (`5/5`), Common Security (`365/365`), and backend validation (`5225/5225`: `69` application, `4876` unit, `280` integration), plus repository lint.
+  - Exact fixed-time success/failure/state behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the commitment verification optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 13:34:50Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded cryptographic commitment creation complete locally.

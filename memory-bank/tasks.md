@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove digest comparison arrays from cryptographic commitment verification.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `CryptographicCommitment.VerifyCommitment` now UTF-8 encodes the internally fixed 64-character computed and stored hexadecimal digests into two fixed stack spans before `CryptographicOperations.FixedTimeEquals`. This removes two 64-byte arrays from every verification while retaining the constant-time comparison. Across 10,000 successful one-time verifications, allocation falls from 5,440,040 to 3,680,040 bytes (32.4%) and elapsed time from 14 to 13 ms (7.1%). Exact digest recomputation, hash/nonce normalization, expiry and one-time checks, fixed-time mismatch handling, verified hashes, and success/failure states remain unchanged. Validation passed: complete commitment tests (`5/5`), broader Common Security (`365/365`), and backend (`5225/5225`: `69` application, `4876` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Remove duplicate normalization and hash intermediates from cryptographic commitments.
   - Status: completed (2026-07-17)
   - Priority: P1
