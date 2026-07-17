@@ -1,3 +1,12 @@
+## Update 2026-07-17 02:35:30Z
+
+- Completed cached-profile canonical audio candidate selection.
+- Replaced repeated profile object/key creation and LINQ grouping/distinct buffers with one run-local identity-to-key cache, direct profile/stat indexes, ordered missing-profile tracking, and profiled ranking values.
+- Reduced warmed allocation for 10,000 variants across 100 profiles from 7,096,536 to 2,926,368 bytes (58.8%).
+- Preserved formatted-key collision behavior, lossless classification, first persisted stats, missing-stat computation/upsert order, canonicality/quality/seen stable ranking, returned identity, and database-call count.
+- Added wide-profile ordering/allocation regression; passed canonical-stats service (`10/10`) and full backend (`5099/5099`: `69` application, `4750` unit, `280` integration) tests.
+- Passed repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 02:24:28Z
 
 - Completed single-pass canonical audio statistics aggregation.

@@ -1,3 +1,17 @@
+## Update 2026-07-17 02:35:30Z
+
+- Current task: performance and efficiency improvements in progress; cached-profile canonical candidate selection complete locally.
+- Last activity:
+  - Replaced repeated profile objects/keys and grouping/distinct pipelines with a run-local profile-key cache, direct variant/stat indexes, ordered missing-profile tracking, and cached-key ranking values.
+  - A 10,000-variant/100-profile fixture falls from 7,096,536 to 2,926,368 warmed allocated bytes (58.8%).
+- Validation:
+  - Passed complete canonical-stats service (`10/10`) and full backend suites (`5099/5099`: `69` application, `4750` unit, `280` integration) tests.
+  - Exact profile formatting/collision/lossless/stat-selection/missing-stat/ranking/identity/database-call behavior, allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the canonical candidate profile-cache slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 02:24:28Z
 
 - Current task: performance and efficiency improvements in progress; single-pass canonical audio statistics aggregation complete locally.

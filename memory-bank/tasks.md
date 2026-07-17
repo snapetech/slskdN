@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Cache canonical candidate codec-profile keys.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `CanonicalStatsService.GetCanonicalVariantCandidatesAsync` now caches the exact formatted key once per distinct codec/sample-rate/effective-bit-depth/channel identity, builds variant-profile and first-persisted-stat indexes directly, tracks missing profiles through one ordered set, and carries cached keys beside deduplicated candidates during ranking. This removes repeated `CodecProfile` allocations and formatted keys plus LINQ `GroupBy`/`Distinct` buffers. Different identities that format to the same legacy key still merge through the ordinal string index, preserving collision behavior. For 10,000 variants across 100 profiles, warmed allocation falls from 7,096,536 to 2,926,368 bytes (58.8%). Exact lossless profile formatting, first persisted stats, missing-stat order/upsert behavior, lossless/canonicality/quality/seen stable ordering, returned object identity, and three database-call contract remain unchanged. Added wide-profile ordering/allocation coverage. Validation passed: complete canonical-stats service (`10/10`), full backend suites (`5099/5099`: `69` application, `4750` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Aggregate canonical audio statistics in one pass.
   - Status: completed (2026-07-17)
   - Priority: P1

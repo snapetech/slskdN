@@ -49,20 +49,38 @@ namespace slskd.Audio
             // Deduplicate across codecs using stream hash or audio sketch + duration bucket
             var deduped = DeduplicateStreams(variants, crossCodec: true);
 
-            var variantsByProfile = variants
-                .GroupBy(variant => CodecProfile.FromVariant(variant).ToKey(), StringComparer.Ordinal)
-                .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
-            var statsByProfile = (await hashDb
-                    .GetCanonicalStatsForRecordingAsync(recordingId, ct)
-                    .ConfigureAwait(false))
-                .GroupBy(stats => stats.CodecProfileKey, StringComparer.Ordinal)
-                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
-            var missingStats = new List<CanonicalStats>();
-            foreach (var profileKey in deduped
-                .Select(variant => CodecProfile.FromVariant(variant).ToKey())
-                .Distinct(StringComparer.Ordinal))
+            var profileKeyCache = new Dictionary<CodecProfileIdentity, string>();
+            var variantsByProfile = new Dictionary<string, List<AudioVariant>>(StringComparer.Ordinal);
+            foreach (var variant in variants)
             {
-                if (!statsByProfile.ContainsKey(profileKey))
+                var profileKey = GetCodecProfileKey(variant, profileKeyCache);
+                if (!variantsByProfile.TryGetValue(profileKey, out var profileVariants))
+                {
+                    profileVariants = new List<AudioVariant>();
+                    variantsByProfile.Add(profileKey, profileVariants);
+                }
+
+                profileVariants.Add(variant);
+            }
+
+            var persistedStats = await hashDb
+                .GetCanonicalStatsForRecordingAsync(recordingId, ct)
+                .ConfigureAwait(false);
+            var statsByProfile = new Dictionary<string, CanonicalStats>(StringComparer.Ordinal);
+            foreach (var stats in persistedStats)
+            {
+                statsByProfile.TryAdd(stats.CodecProfileKey, stats);
+            }
+
+            var missingStats = new List<CanonicalStats>();
+            var missingProfileKeys = new HashSet<string>(StringComparer.Ordinal);
+            var profiledCandidates = new ProfiledVariant[deduped.Count];
+            for (var index = 0; index < deduped.Count; index++)
+            {
+                var variant = deduped[index];
+                var profileKey = GetCodecProfileKey(variant, profileKeyCache);
+                profiledCandidates[index] = new ProfiledVariant(variant, profileKey);
+                if (!statsByProfile.ContainsKey(profileKey) && missingProfileKeys.Add(profileKey))
                 {
                     var computed = BuildCanonicalStats(recordingId, profileKey, variantsByProfile[profileKey]);
                     statsByProfile[profileKey] = computed;
@@ -75,17 +93,46 @@ namespace slskd.Audio
                 await hashDb.UpsertCanonicalStatsAsync(missingStats, ct).ConfigureAwait(false);
             }
 
-            return deduped
-                .OrderByDescending(v => IsLossless(v.Codec))
-                .ThenByDescending(v =>
-                {
-                    var key = CodecProfile.FromVariant(v).ToKey();
-                    return statsByProfile.GetValueOrDefault(key)?.CanonicalityScore ?? 0.0;
-                })
-                .ThenByDescending(v => v.QualityScore)
-                .ThenByDescending(v => v.SeenCount)
+            return profiledCandidates
+                .OrderByDescending(candidate => IsLossless(candidate.Variant.Codec))
+                .ThenByDescending(candidate => statsByProfile.GetValueOrDefault(candidate.ProfileKey)?.CanonicalityScore ?? 0.0)
+                .ThenByDescending(candidate => candidate.Variant.QualityScore)
+                .ThenByDescending(candidate => candidate.Variant.SeenCount)
+                .Select(candidate => candidate.Variant)
                 .ToList();
         }
+
+        private static string GetCodecProfileKey(
+            AudioVariant variant,
+            Dictionary<CodecProfileIdentity, string> profileKeyCache)
+        {
+            var bitDepth = IsLossless(variant.Codec) && variant.BitDepth.HasValue
+                ? variant.BitDepth
+                : null;
+            var identity = new CodecProfileIdentity(
+                variant.Codec,
+                variant.SampleRateHz,
+                bitDepth,
+                variant.Channels);
+            if (profileKeyCache.TryGetValue(identity, out var profileKey))
+            {
+                return profileKey;
+            }
+
+            profileKey = bitDepth.HasValue
+                ? $"{variant.Codec}-{bitDepth}bit-{variant.SampleRateHz}Hz-{variant.Channels}ch"
+                : $"{variant.Codec}-lossy-{variant.SampleRateHz}Hz-{variant.Channels}ch";
+            profileKeyCache.Add(identity, profileKey);
+            return profileKey;
+        }
+
+        private readonly record struct CodecProfileIdentity(
+            string? Codec,
+            int SampleRateHz,
+            int? BitDepth,
+            int Channels);
+
+        private readonly record struct ProfiledVariant(AudioVariant Variant, string ProfileKey);
 
         public async Task RecomputeAllStatsAsync(CancellationToken ct = default)
         {

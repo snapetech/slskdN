@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Canonical audio candidate selection now caches each distinct codec/sample
+  rate/bit-depth/channel profile key for the full selection run, builds variant
+  and persisted-stat indexes directly, and carries the cached key beside each
+  deduplicated candidate through ranking. It replaces repeated `CodecProfile`
+  object/key construction, `GroupBy` element buffers, and a second distinct-key
+  pipeline. For 10,000 variants across 100 profiles, warmed allocation falls
+  from 7,096,536 to 2,926,368 bytes (58.8%). Lossless classification, exact
+  profile-key formatting and collision behavior, first persisted-stat choice,
+  missing-stat computation order, canonicality/quality/seen ranking, stable
+  ties, returned variant identity, and database call count remain unchanged.
 - Canonical audio statistics now aggregate normalized seen totals, sequential
   quality sums, transcode-suspect counts, codec/bitrate/sample-rate
   distributions, and the quality-then-seen best variant in one pass over the

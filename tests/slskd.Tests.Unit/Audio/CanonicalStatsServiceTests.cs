@@ -124,6 +124,59 @@ namespace slskd.Tests.Unit.Audio
         }
 
         [Fact]
+        public async Task GetCanonicalVariantCandidatesAsync_WideInputHasBoundedAllocation()
+        {
+            const int variantCount = 10_000;
+            const int profileCount = 100;
+            var variants = Enumerable.Range(0, variantCount)
+                .Select(index => new AudioVariant
+                {
+                    VariantId = $"variant-{index}",
+                    MusicBrainzRecordingId = "recording-wide",
+                    Codec = "FLAC",
+                    SampleRateHz = 44_100 + (index % profileCount),
+                    BitDepth = 16,
+                    Channels = 2,
+                    FlacPcmMd5 = $"stream-{index}",
+                    AudioSketchHash = "shared-sketch",
+                    QualityScore = index / (double)variantCount,
+                    SeenCount = index + 1,
+                })
+                .ToList();
+            var stats = variants
+                .Take(profileCount)
+                .Select((variant, index) => new CanonicalStats
+                {
+                    CodecProfileKey = CodecProfile.FromVariant(variant).ToKey(),
+                    CanonicalityScore = index / (double)profileCount,
+                })
+                .ToList();
+            var hashDb = new Mock<IHashDbService>();
+            hashDb.Setup(service => service.GetVariantsByRecordingAsync(
+                    "recording-wide",
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(variants);
+            hashDb.Setup(service => service.GetCanonicalStatsForRecordingAsync(
+                    "recording-wide",
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(stats);
+            var service = new CanonicalStatsService(
+                hashDb.Object,
+                Mock.Of<Microsoft.Extensions.Logging.ILogger<CanonicalStatsService>>());
+            _ = await service.GetCanonicalVariantCandidatesAsync("recording-wide");
+
+            var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+            var candidates = await service.GetCanonicalVariantCandidatesAsync("recording-wide");
+            var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+            Assert.Equal(variantCount, candidates.Count);
+            Assert.Equal($"variant-{variantCount - 1}", candidates[0].VariantId);
+            Assert.True(
+                allocatedBytes < 3_600_000,
+                $"Expected canonical candidate selection below 3.6 MB allocated, got {allocatedBytes:N0} bytes.");
+        }
+
+        [Fact]
         public async Task RecomputeAllStatsAsync_WithOneThousandRecordings_UsesPagedBatchCalls()
         {
             const int recordingCount = 1000;
