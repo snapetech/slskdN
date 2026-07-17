@@ -22,6 +22,9 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Unexpected startup failures now return a non-zero process status after fatal
+  logging, so service managers no longer treat an occupied HTTP port as a
+  successful start.
 - The web footer and README now offer direct PayPal and Ko-fi links for
   supporting slskdN development.
 - GitLab CI configuration now keeps the Arch package-smoke sudoers command as

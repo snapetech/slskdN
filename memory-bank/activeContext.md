@@ -9122,3 +9122,15 @@ rollback.
   - Passed backend and Web production builds plus focused core-page Playwright coverage (`4/4`).
 - Next steps:
   1. Push the CI fixes to `main` without creating a release/build tag.
+
+## Update 2026-07-17 03:15:00Z
+
+- Current task: fatal startup exit-status fix ready for draft PR.
+- Last activity:
+  - Changed unexpected startup termination to return process status `1` after logging the fatal exception.
+  - Added focused regression coverage and documented gotcha `0z562`.
+- Validation:
+  - Passed the focused unit test and a live occupied-HTTP-port process check (`exit=1`).
+- Next steps:
+  1. Review and merge the draft PR.
+  2. No release/build tag was created.
