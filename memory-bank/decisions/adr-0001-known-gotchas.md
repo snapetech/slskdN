@@ -25810,3 +25810,21 @@ therefore received the wrong status and hid a correctable input problem.
 **Prevention**: Preserve safe status semantics for known framework request
 exceptions while keeping internal details redacted. Drive regression coverage
 with an actually oversized request in addition to formatter-level tests.
+
+### 0z609. Retaining Monitors Need A Primed Value And A Narrow Catch Boundary
+
+**The Bug**: The first retaining-options implementation populated its cache
+lazily. If an invalid reload arrived before any consumer read `CurrentValue`,
+there was no last valid default value to retain and the next read rebuilt the
+same invalid options. It also caught every exception from the options factory,
+which could hide programming or process failures unrelated to configuration.
+
+**Files Affected**:
+- `src/slskd/Common/Configuration/RetainingOptionsMonitor.cs`
+- `tests/slskd.Tests/RetainingOptionsMonitorTests.cs`
+
+**Prevention**: Construct and cache the validated default options value when
+the monitor is created. On reload, retain that value only for recognized
+options-validation or configuration-binding failures; allow unrelated faults
+to surface. Test an invalid first reload before the first public value read and
+test that unexpected factory exceptions are not swallowed.
