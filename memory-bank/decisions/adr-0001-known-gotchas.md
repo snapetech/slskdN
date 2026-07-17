@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z722. Do Not Join Stack And Heap Spans In One Branch Local
+
+**The Bug**: A synchronous recommendation-key fast path assigned either a
+slice of a reusable stack buffer or a fallback string to one branch-joined
+`ReadOnlySpan<char>` local inside a loop. C# 12 rejected the stack assignment
+with `CS8352`/`CS8347`; marking only the writer's destination `scoped` did not
+make the joined local's lifetime safe.
+
+**Files Affected**:
+- `src/slskd/SocialFederation/TasteRecommendationService.cs`
+
+**Prevention**: Keep stack-backed and heap-backed span branches lexically
+separate. Pass each branch directly to a synchronous consumer whose span
+parameter is explicitly `scoped`, and let that consumer finish hashing,
+comparison, and any required string materialization before returning. Do not
+merge the two storage lifetimes into one local even when the method is
+synchronous and the span is not intentionally retained.
+
 ### 0z721. Exact-Method Warm-Ups Must Exercise The Measured State Branch
 
 **The Bug**: A cache-clear allocation regression warmed `ClearCacheAsync` on
