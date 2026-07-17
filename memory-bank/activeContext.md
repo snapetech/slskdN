@@ -1,3 +1,17 @@
+## Update 2026-07-17 17:06:55Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded shared security hashing complete locally.
+- Last activity:
+  - Replaced disposable SHA, stack-input arrays, first-digest arrays, and boolean-verification result arrays with static SHA-256 over combined stack/cleared-pool storage and fixed destination spans.
+  - Across 100,000 calls, public salted-hash allocation falls from 29,601,072 to 5,600,848 bytes (81.1%) and elapsed time falls from 58 to 30 ms (48.3%); double-hash allocation falls from 40,800,416 to 5,600,192 bytes (86.3%) and elapsed time falls from 87 to 60 ms (31.0%). Boolean verification removes its remaining 5,600,632 allocated bytes down to 64 while remaining effectively flat at 46–47 ms.
+- Validation:
+  - Passed complete SecurityUtils (`56/56`), broader Common (`627/627`), and backend validation (`5278/5278`: `69` application, `4929` unit, `280` integration), plus repository lint.
+  - Exact salted/double hash, constant-time/mismatched-length/empty/oversized behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Documented gotcha `0z754` (`8ee44f3a3`) and committed its Taste Recommendation test fix separately (`ed1db48b5`); concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the shared security-hash optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 16:50:07Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded Tor isolation credentials complete locally.

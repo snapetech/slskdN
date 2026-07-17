@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Salted constant-time hashing, boolean hash verification, and double SHA-256
+  now use static span hashing without disposable algorithms, stack-input copies,
+  intermediate digest arrays, or verification result arrays.
 - Tor stream-isolation usernames and passwords now hash and format through
   bounded span/pool storage without concatenated keys, disposable algorithms,
   digest arrays, full hexadecimal strings, substrings, or lowercase copies.

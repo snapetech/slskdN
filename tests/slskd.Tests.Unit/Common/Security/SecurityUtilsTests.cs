@@ -14,8 +14,92 @@ using Xunit;
 
 namespace slskd.Tests.Unit.Common.Security;
 
+[Collection(AllocationTestCollection.Name)]
 public class SecurityUtilsTests
 {
+    [Fact]
+    public void ConstantTimeHash_RepeatedTypicalInputBoundsAllocation()
+    {
+        var input = Encoding.UTF8.GetBytes("security-input");
+        var salt = Encoding.UTF8.GetBytes("fixed-salt");
+        _ = SecurityUtils.ConstantTimeHash(input, salt);
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        byte[]? result = null;
+        for (var index = 0; index < 100_000; index++)
+        {
+            result = SecurityUtils.ConstantTimeHash(input, salt);
+        }
+
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal("1715C7288A95EE3C501324410CE64514935E77EDE94F9559A71865D616557CF5", Convert.ToHexString(result!));
+        Assert.InRange(allocated, 0, 6_300_000);
+    }
+
+    [Fact]
+    public void DoubleSha256_RepeatedTypicalInputBoundsAllocation()
+    {
+        var input = Encoding.UTF8.GetBytes("double-hash-input");
+        _ = SecurityUtils.DoubleSha256(input);
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        byte[]? result = null;
+        for (var index = 0; index < 100_000; index++)
+        {
+            result = SecurityUtils.DoubleSha256(input);
+        }
+
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal("FEBDEB553949840B31AF0412A0D2B62FE115DDB6FA104AA7665D389BC3ED00C6", Convert.ToHexString(result!));
+        Assert.InRange(allocated, 0, 6_300_000);
+    }
+
+    [Fact]
+    public void ConstantTimeVerifyHash_RepeatedValidInputBoundsAllocation()
+    {
+        var input = Encoding.UTF8.GetBytes("security-input");
+        var salt = Encoding.UTF8.GetBytes("fixed-salt");
+        var expected = SecurityUtils.ConstantTimeHash(input, salt);
+        _ = SecurityUtils.ConstantTimeVerifyHash(input, expected, salt);
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var result = false;
+        for (var index = 0; index < 100_000; index++)
+        {
+            result = SecurityUtils.ConstantTimeVerifyHash(input, expected, salt);
+        }
+
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.True(result);
+        Assert.InRange(allocated, 0, 1_024);
+    }
+
+    [Fact]
+    public void HashHelpers_OversizedInputMatchesFrameworkHashing()
+    {
+        var input = Encoding.UTF8.GetBytes(new string('É', 700) + "🎵");
+        var salt = Encoding.UTF8.GetBytes("oversized-salt");
+        var combined = new byte[input.Length + salt.Length];
+        input.CopyTo(combined, 0);
+        salt.CopyTo(combined, input.Length);
+
+        var hash = SecurityUtils.ConstantTimeHash(input, salt);
+        var doubleHash = SecurityUtils.DoubleSha256(input);
+
+        Assert.Equal(SHA256.HashData(combined), hash);
+        Assert.Equal(SHA256.HashData(SHA256.HashData(input)), doubleHash);
+        Assert.False(SecurityUtils.ConstantTimeVerifyHash(input, hash.AsSpan(0, 31), salt));
+    }
+
     [Theory]
     [InlineData(new byte[] { 1, 2, 3 }, new byte[] { 1, 2, 3 }, true)]
     [InlineData(new byte[] { 1, 2, 3 }, new byte[] { 1, 2, 4 }, false)]

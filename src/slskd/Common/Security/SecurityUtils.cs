@@ -143,8 +143,13 @@ public static class SecurityUtils
     /// <returns>The hashed bytes.</returns>
     public static byte[] ConstantTimeHash(ReadOnlySpan<byte> input, ReadOnlySpan<byte> salt = default)
     {
-        using var sha256 = SHA256.Create();
+        var hash = new byte[32];
+        ConstantTimeHash(input, salt, hash);
+        return hash;
+    }
 
+    private static void ConstantTimeHash(ReadOnlySpan<byte> input, ReadOnlySpan<byte> salt, Span<byte> hash)
+    {
         // Combine input and salt. Cap stackalloc to avoid stack overflow on
         // pathological caller-controlled lengths; fall back to a pooled heap
         // buffer for anything larger than the stack budget.
@@ -156,7 +161,8 @@ public static class SecurityUtils
             Span<byte> combined = stackalloc byte[combinedLength];
             input.CopyTo(combined);
             salt.CopyTo(combined[input.Length..]);
-            return sha256.ComputeHash(combined.ToArray());
+            SHA256.HashData(combined, hash);
+            return;
         }
 
         var buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(combinedLength);
@@ -165,7 +171,7 @@ public static class SecurityUtils
             var combined = buffer.AsSpan(0, combinedLength);
             input.CopyTo(combined);
             salt.CopyTo(combined[input.Length..]);
-            return sha256.ComputeHash(buffer, 0, combinedLength);
+            SHA256.HashData(combined, hash);
         }
         finally
         {
@@ -182,7 +188,8 @@ public static class SecurityUtils
     /// <returns>True if the value matches the expected hash.</returns>
     public static bool ConstantTimeVerifyHash(ReadOnlySpan<byte> value, ReadOnlySpan<byte> expectedHash, ReadOnlySpan<byte> salt = default)
     {
-        var computedHash = ConstantTimeHash(value, salt);
+        Span<byte> computedHash = stackalloc byte[32];
+        ConstantTimeHash(value, salt, computedHash);
         return ConstantTimeEquals(computedHash, expectedHash);
     }
 
@@ -221,9 +228,9 @@ public static class SecurityUtils
     /// <returns>The double-hashed bytes.</returns>
     public static byte[] DoubleSha256(ReadOnlySpan<byte> input)
     {
-        using var sha256 = SHA256.Create();
-        var firstHash = sha256.ComputeHash(input.ToArray());
-        return sha256.ComputeHash(firstHash);
+        Span<byte> firstHash = stackalloc byte[32];
+        SHA256.HashData(input, firstHash);
+        return SHA256.HashData(firstHash);
     }
 
     /// <summary>

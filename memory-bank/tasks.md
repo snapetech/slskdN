@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove shared security-hash input and digest intermediates.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `SecurityUtils.ConstantTimeHash` now hashes combined stack or cleared pooled input through static SHA-256 into a caller-provided destination, retaining only the required public result array. `ConstantTimeVerifyHash` keeps its computed digest on the stack, and `DoubleSha256` keeps the first digest in a fixed span before returning only the second. Across 100,000 calls, public salted-hash allocation falls from 29,601,072 to 5,600,848 bytes (81.1%) and elapsed time falls from 58 to 30 ms (48.3%); double-hash allocation falls from 40,800,416 to 5,600,192 bytes (86.3%) and elapsed time falls from 87 to 60 ms (31.0%). After the public hash optimization, boolean verification allocation falls from 5,600,632 to 64 bytes while elapsed time remains effectively flat at 46–47 ms. Exact input/salt ordering, SHA-256 bytes, constant-time comparison, mismatched lengths, and oversized pooled behavior remain unchanged. Validation passed: complete SecurityUtils (`56/56`), broader Common (`627/627`), and backend (`5278/5278`: `69` application, `4929` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Documented loaded-suite allocation-bound gotcha `0z754` in standalone commit `8ee44f3a3` and corrected the two affected test ceilings in `ed1db48b5`.
+
 - [x] Remove Tor isolation-credential hash and formatting intermediates.
   - Status: completed (2026-07-17)
   - Priority: P1

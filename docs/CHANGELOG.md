@@ -22,6 +22,18 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- `SecurityUtils` salted hashing now hashes combined stack or cleared pooled
+  input directly into a caller-provided SHA-256 destination, boolean verification
+  keeps that digest on the stack, and double SHA-256 keeps its first digest in a
+  fixed span. Across 100,000 calls, public salted-hash allocation falls from
+  29,601,072 to 5,600,848 bytes (81.1%) and elapsed time falls from 58 to 30 ms
+  (48.3%); double-hash allocation falls from 40,800,416 to 5,600,192 bytes
+  (86.3%) and elapsed time falls from 87 to 60 ms (31.0%). After the public hash
+  optimization, boolean verification removes its remaining result arrays,
+  falling from 5,600,632 to 64 bytes while remaining effectively flat at 46–47
+  ms. Exact input-plus-salt ordering, SHA-256 bytes, constant-time comparison,
+  mismatched-length rejection, empty spans, and oversized pooled inputs remain
+  unchanged.
 - Tor stream-isolation credential generation now UTF-8 encodes the isolation
   key and password suffix directly into bounded stack or cleared pooled storage,
   hashes into a fixed SHA-256 span, and writes only the required eight-byte

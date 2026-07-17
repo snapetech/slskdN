@@ -1,3 +1,12 @@
+## Update 2026-07-17 17:06:55Z
+
+- Completed allocation-bounded salted hashing, boolean hash verification, and double SHA-256 security helpers.
+- Replaced disposable algorithms, stack-input array copies, intermediate first-digest arrays, and boolean-verification result arrays with static SHA-256 over combined stack/cleared-pool storage and fixed destination spans.
+- Across 100,000 calls, public salted-hash allocation falls from 29,601,072 to 5,600,848 bytes (81.1%) and elapsed time falls from 58 to 30 ms (48.3%); double-hash allocation falls from 40,800,416 to 5,600,192 bytes (86.3%) and elapsed time falls from 87 to 60 ms (31.0%). After the public hash optimization, boolean verification allocation falls from 5,600,632 to 64 bytes while elapsed time remains effectively flat at 46–47 ms.
+- Preserved exact input-plus-salt ordering, SHA-256 vectors, constant-time comparison, mismatched-length rejection, empty spans, and oversized pooled-input behavior.
+- Added semantic and allocation regressions; passed complete SecurityUtils (`56/56`), broader Common (`627/627`), and backend validation (`5278/5278`: `69` application, `4929` unit, `280` integration).
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed. Documented recurring tight loaded-suite allocation bounds as gotcha `0z754` (`8ee44f3a3`) and corrected the two affected Taste Recommendation tests separately (`ed1db48b5`); concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 16:50:07Z
 
 - Completed allocation-bounded Tor stream-isolation credential generation.
