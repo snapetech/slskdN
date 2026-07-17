@@ -872,7 +872,7 @@ const MediaCore = () => {
             <Card
               as="a"
               color={podWorkflowFilter === section.href.slice(1) ? 'blue' : undefined}
-              href={section.href}
+              href={`${window.location.pathname}${section.href}`}
               key={section.href}
               onClick={() => setPodWorkflowFilter(section.href.slice(1))}
               raised={podWorkflowFilter === section.href.slice(1)}

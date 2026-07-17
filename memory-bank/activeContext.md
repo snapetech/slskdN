@@ -1,3 +1,19 @@
+## Update 2026-07-17 22:55:00Z
+
+- Current task: post-release live monitoring and authenticated browser validation are complete; one MediaCore navigation defect is fixed on `main` only.
+- Last activity:
+  - Sampled the deployed `.283` container and HTTP health `20` times over `9.5` minutes. Every sample stayed healthy on the expected image with zero restarts or OOM events; the window contained `320` informational events and no warning, error, or fatal logs.
+  - Re-audited `43` authenticated route shapes, `252` unique resolved links, `2,900` visible controls, and `1,333` link occurrences with screenshots. The only deployed accessibility finding remains the two Wishlist buttons already corrected on `main`; all five external links resolve successfully when the Ko-fi bot-resistant endpoint is checked with a browser user agent.
+  - Passed seven live core/auth browser tests and a two-minute SignalR hold with two open sockets and no browser/network/WebSocket observations.
+  - Fixed MediaCore workflow anchors that incorrectly resolved from `/system/mediacore` to the document base. Focused MediaCore tests (`9/9`), Web build, complete .NET (`5303/5303`), and repository lint pass.
+- Operational watch items:
+  - The media pool is `89%` used with about `31 TB` free; this is not current application pressure but should remain monitored.
+  - Public DHT discovery is ready, while no compatible mesh-overlay peer is currently connected. Periodic Kademlia store warnings reflect that empty overlay routing table; no application failure is established.
+- Next steps:
+  1. Include the Wishlist accessibility, AngleSharp security floor, and MediaCore anchor fixes in the next explicitly authorized release.
+  2. Retry Chocolatey through the existing manual workflow only after the external service recovers.
+  3. Do not create another release or tag without explicit authorization.
+
 ## Update 2026-07-17 22:17:00Z
 
 - Current task: stable release `2026071721-slskdn.283` publication, deployment, validation, and recoverable package-channel remediation are complete.

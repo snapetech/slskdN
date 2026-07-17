@@ -25,6 +25,7 @@ vi.mock('react-toastify', () => ({
 describe('MediaCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.history.replaceState({}, '', '/system/mediacore');
     Object.defineProperty(document, 'hidden', {
       configurable: true,
       value: false,
@@ -68,7 +69,7 @@ describe('MediaCore', () => {
     expect(screen.getAllByText('Publishes opinion data').length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: /DHT Publishing/ })).toHaveAttribute(
       'href',
-      '#podcore-dht-publishing',
+      '/system/mediacore#podcore-dht-publishing',
     );
     expect(screen.getByText('Find pods first')).toBeInTheDocument();
     expect(screen.getByText('Advanced registry publishing controls')).toBeInTheDocument();
