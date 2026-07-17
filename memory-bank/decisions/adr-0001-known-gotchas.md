@@ -52,6 +52,22 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z740. Bounded String Heaps Can Lose Badly To LINQ's Partial Sort
+
+**The Bug**: Replacing mesh search's `OrderBy(...).Take(51)` with a stable
+51-entry `PriorityQueue` reduced a warmed 10,000-match request from 228,304 to
+31,152 allocated bytes, but made 50 calls take 225 ms instead of 11 ms—about
+20 times slower in the Debug regression fixture.
+
+**Files Affected**:
+- `src/slskd/DhtRendezvous/Search/MeshSearchRpcHandler.cs`
+
+**Prevention**: Benchmark CPU and allocation before replacing ordered `Take`
+over strings. Current .NET ordered iterators can perform partial selection for
+bounded consumers, while a custom heap pays an interface comparer call and
+ordinal string comparison at each heap level. Keep the LINQ form when its
+measured partial-sort CPU advantage dominates, even if a heap uses less memory.
+
 ### 0z739. Enum CompareTo Boxes Inside Hot Comparers
 
 **The Bug**: A bounded intent-queue heap compared `IntentPriority` values with
