@@ -52,6 +52,23 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z724. Allocation Ceilings Need Broad-Suite Runtime Headroom
+
+**The Bug**: A duplicate-heavy n-gram allocation regression measured 288
+bytes in isolated focused runs after 32 exact-method warm-ups, so its ceiling
+was set to 4 KiB. The broader SongID run consistently measured 8,200 bytes as
+tiered runtime work occurred inside the measured call, even though the
+payload-scaled allocation remained eliminated.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/SongID/SongIdScoringTests.cs`
+
+**Prevention**: Establish allocation ceilings from both isolated and broader
+suite execution. Exact-state warm-ups are necessary but cannot guarantee that
+tiered compilation or runtime helper initialization has completed on the test
+thread. Keep enough fixed headroom for one-time runtime noise while choosing a
+boundary that still rejects the old input-proportional allocation path.
+
 ### 0z723. Unique Token Fixtures Must Vary Inside The Matched Alphabet
 
 **The Bug**: A wide-unique repeated-n-gram allocation fixture generated
