@@ -52,6 +52,20 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z749. Hex Identifier Documentation Must Distinguish Bytes From Characters
+
+**The Bug**: Canary registration notes described an eight-byte hash prefix as a
+"16-byte identifier" and the SHA-256 hash as a "64-byte full hash." Lowercase
+hex encoding produces 16 and 64 characters respectively; the underlying values
+remain 8 and 32 bytes.
+
+**Files Affected**:
+- `docs/CHANGELOG.md`
+
+**Prevention**: State both units explicitly when documenting hex identities:
+an N-byte value encodes to 2N hexadecimal characters. Use "character" for the
+serialized identifier length and "byte" only for the underlying binary span.
+
 ### 0z748. Empty Canary Suffixes Do Not Round Trip
 
 **The Bug**: A suffix round-trip test included an empty canary ID and expected
