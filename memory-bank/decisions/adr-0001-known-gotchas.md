@@ -25828,3 +25828,17 @@ the monitor is created. On reload, retain that value only for recognized
 options-validation or configuration-binding failures; allow unrelated faults
 to surface. Test an invalid first reload before the first public value read and
 test that unexpected factory exceptions are not swallowed.
+
+### 0z610. Negative Exception Tests Need Concrete Sentinel Types
+
+**The Bug**: A regression proving that the retaining monitor does not swallow
+unexpected failures used `ApplicationException` as its sentinel. The repository
+enables CA2201, so the test project failed compilation because that exception
+type is intentionally too generic to communicate a concrete failure category.
+
+**Files Affected**:
+- `tests/slskd.Tests/RetainingOptionsMonitorTests.cs`
+
+**Prevention**: Use a specific exception outside the production catch filter,
+such as `IOException`, when testing propagation boundaries. Run the focused
+test project with analyzers enabled before broad validation.
