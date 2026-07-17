@@ -1,3 +1,17 @@
+## Update 2026-07-17 16:04:06Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded legacy bridge filename generation complete locally.
+- Last activity:
+  - Replaced interpolation and lowercase-extension intermediates with exact bounded stack/pool character formatting, a cached platform invalid-character set, a no-sanitize fast path, and a disabled-debug logging guard.
+  - Across 100,000 common filenames, allocation falls from 29,600,040 to 16,800,040 bytes (43.2%) and elapsed time falls from 17 to 14 ms (17.6%).
+- Validation:
+  - Passed focused bridge helpers (`9/9`), Virtual Soulfind (`429/429`), and backend validation (`5262/5262`: `69` application, `4913` unit, `280` integration), plus repository lint.
+  - Exact format/case/current-culture bitrate/Unicode/long-input/invalid-character behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Extended gotcha `0z712` in standalone commit `feeab21f7`; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the bridge filename optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 15:52:34Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded legacy bridge peer anonymization complete locally.

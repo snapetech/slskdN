@@ -17,6 +17,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Legacy bridge filename generation now formats artist, title, codec, bitrate,
+  and lowercase extension through bounded span/pool storage, avoids filesystem
+  sanitization allocations when no invalid characters are present, and skips
+  debug-log argument allocation when debug logging is disabled.
 - Legacy bridge peer anonymization now hashes and formats its exact friendly
   username through bounded span/pool storage without digest arrays, full-hex
   strings, substrings, lowercase copies, or final interpolation.

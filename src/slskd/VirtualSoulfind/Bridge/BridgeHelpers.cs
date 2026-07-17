@@ -4,6 +4,7 @@
 namespace slskd.VirtualSoulfind.Bridge;
 
 using System.Buffers;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using slskd.VirtualSoulfind.ShadowIndex;
@@ -111,6 +112,7 @@ public interface IFilenameGenerator
 /// </summary>
 public class FilenameGenerator : IFilenameGenerator
 {
+    private static readonly char[] InvalidFilenameCharacters = Path.GetInvalidFileNameChars();
     private readonly ILogger<FilenameGenerator> logger;
 
     public FilenameGenerator(ILogger<FilenameGenerator> logger)
@@ -124,21 +126,106 @@ public class FilenameGenerator : IFilenameGenerator
         VariantHint variant,
         CancellationToken ct)
     {
-        // Generate: "Artist - Title [Codec BitrateKbps].ext"
-        var filename = $"{artist} - {title} [{variant.Codec} {variant.BitrateKbps}kbps].{variant.Codec.ToLowerInvariant()}";
+        var codec = variant.Codec;
+        var culture = CultureInfo.CurrentCulture;
+        var bitrateLength = GetFormattedInt32Length(variant.BitrateKbps, culture.NumberFormat);
+        var filenameLength = artist.Length + title.Length + (codec.Length * 2) + bitrateLength + 12;
+        char[]? rentedCharacters = null;
+        Span<char> characters = filenameLength <= 512
+            ? stackalloc char[filenameLength]
+            : (rentedCharacters = ArrayPool<char>.Shared.Rent(filenameLength));
 
-        // Sanitize for filesystem
-        filename = SanitizeFilename(filename);
+        try
+        {
+            var position = 0;
+            artist.AsSpan().CopyTo(characters[position..]);
+            position += artist.Length;
+            " - ".AsSpan().CopyTo(characters[position..]);
+            position += 3;
+            title.AsSpan().CopyTo(characters[position..]);
+            position += title.Length;
+            " [".AsSpan().CopyTo(characters[position..]);
+            position += 2;
+            codec.AsSpan().CopyTo(characters[position..]);
+            position += codec.Length;
+            characters[position++] = ' ';
+            if (!variant.BitrateKbps.TryFormat(
+                    characters[position..],
+                    out var bitrateCharactersWritten,
+                    provider: culture))
+            {
+                return GenerateFilenameWithExpandedLowercaseExtension(artist, title, variant);
+            }
 
-        logger.LogDebug("[VSF-BRIDGE] Generated filename: {Filename}", filename);
+            position += bitrateCharactersWritten;
+            "kbps].".AsSpan().CopyTo(characters[position..]);
+            position += 6;
+
+            var extensionLength = codec.AsSpan().ToLowerInvariant(characters[position..]);
+            if (extensionLength < 0)
+            {
+                return GenerateFilenameWithExpandedLowercaseExtension(artist, title, variant);
+            }
+
+            position += extensionLength;
+            var filename = SanitizeFilename(new string(characters[..position]));
+
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("[VSF-BRIDGE] Generated filename: {Filename}", filename);
+            }
+
+            return Task.FromResult(filename);
+        }
+        finally
+        {
+            if (rentedCharacters != null)
+            {
+                ArrayPool<char>.Shared.Return(rentedCharacters, clearArray: true);
+            }
+        }
+    }
+
+    private Task<string> GenerateFilenameWithExpandedLowercaseExtension(
+        string artist,
+        string title,
+        VariantHint variant)
+    {
+        var filename = SanitizeFilename(
+            $"{artist} - {title} [{variant.Codec} {variant.BitrateKbps}kbps].{variant.Codec.ToLowerInvariant()}");
+        if (logger.IsEnabled(LogLevel.Debug))
+        {
+            logger.LogDebug("[VSF-BRIDGE] Generated filename: {Filename}", filename);
+        }
 
         return Task.FromResult(filename);
     }
 
-    private string SanitizeFilename(string filename)
+    private static int GetFormattedInt32Length(int value, NumberFormatInfo numberFormat)
     {
-        var invalid = Path.GetInvalidFileNameChars();
-        return string.Join("_", filename.Split(invalid, StringSplitOptions.RemoveEmptyEntries));
+        var remaining = value < 0 ? (uint)(-(long)value) : (uint)value;
+        var length = value < 0 ? numberFormat.NegativeSign.Length : 0;
+
+        do
+        {
+            length++;
+            remaining /= 10;
+        }
+        while (remaining != 0);
+
+        return length;
+    }
+
+    private static string SanitizeFilename(string filename)
+    {
+        if (filename.AsSpan().IndexOfAny(InvalidFilenameCharacters) < 0)
+        {
+            return filename;
+        }
+
+        return string.Join(
+            "_",
+            filename.Split(InvalidFilenameCharacters, StringSplitOptions.RemoveEmptyEntries));
     }
 }
 

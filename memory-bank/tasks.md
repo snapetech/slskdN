@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound legacy bridge filename formatting and sanitization allocations.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `FilenameGenerator` now calculates the exact output length, writes artist, title, codec, current-culture bitrate, and lowercase extension into bounded stack storage or cleared pooled storage, and creates only the required result string on the common path. Sanitization caches the platform invalid-character set and returns that result unchanged when no invalid characters occur; disabled debug logging no longer allocates its structured argument array. Across 100,000 common filenames, allocation falls from 29,600,040 to 16,800,040 bytes (43.2%) and elapsed time falls from 17 to 14 ms (17.6%). Exact format, lowercase extension, expanded culture-specific signs, Unicode, pooled long input, and invalid-run collapse behavior remain unchanged. Validation passed: focused bridge helpers (`9/9`), Virtual Soulfind (`429/429`), and backend (`5262/5262`: `69` application, `4913` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Extended the custom-culture stack-formatting gotcha `0z712` in standalone commit `feeab21f7`.
+
 - [x] Remove bridge peer-anonymizer hash and formatting intermediates.
   - Status: completed (2026-07-17)
   - Priority: P1

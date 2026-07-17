@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Legacy bridge filename generation now formats the exact artist, title, codec,
+  bitrate, and lowercase extension through bounded stack or cleared pooled
+  character storage, caches the platform invalid-character set, and returns the
+  original formatted string when sanitization is unnecessary. Disabled debug
+  logging no longer allocates its structured argument array. Across 100,000
+  common filenames, allocation falls from 29,600,040 to 16,800,040 bytes (43.2%)
+  and elapsed time falls from 17 to 14 ms (17.6%). Exact output, invariant codec
+  casing, current-culture bitrate formatting, Unicode, long inputs, and the
+  existing invalid-run collapse behavior remain unchanged.
 - Legacy bridge peer anonymization now UTF-8 encodes peer IDs into bounded stack
   or cleared pooled storage, hashes into a fixed SHA-256 span, and writes the
   exact `mesh-peer-` plus six-character lowercase prefix through one character

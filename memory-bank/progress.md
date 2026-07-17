@@ -1,3 +1,12 @@
+## Update 2026-07-17 16:04:06Z
+
+- Completed allocation-bounded legacy bridge filename generation and sanitization.
+- Replaced interpolation and lowercase-extension intermediates with exact bounded stack/pool character formatting; cached invalid filename characters, returned the formatted string directly on the common valid path, and guarded disabled debug logging.
+- Across 100,000 common filenames, allocation falls from 29,600,040 to 16,800,040 bytes (43.2%) and elapsed time falls from 17 to 14 ms (17.6%).
+- Preserved exact filename format, invariant codec casing, current-culture and expanded-sign bitrate formatting, Unicode, long pooled inputs, platform-specific invalid characters, and the existing adjacent-invalid-run collapse behavior.
+- Added semantic and allocation regressions; passed focused bridge helpers (`9/9`), Virtual Soulfind (`429/429`), and backend validation (`5262/5262`: `69` application, `4913` unit, `280` integration).
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed. Extended custom-culture formatting gotcha `0z712` in standalone commit `feeab21f7`; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 07:21:25Z
 
 - Completed page-bounded newest security-event queries.
