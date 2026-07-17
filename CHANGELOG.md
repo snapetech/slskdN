@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Canary filename suffix encoding and decoding now avoid per-nibble strings and
+  filtered bit lists.
 - Auto-replace filename filtering now prepares expected tokens once per search
   and scans candidate token ranges without per-candidate token sets.
 - Multi-source variant matching now prepares basenames once and compares common

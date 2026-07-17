@@ -134,18 +134,25 @@ public sealed class CanaryTraps
     {
         // Use zero-width space (U+200B) and zero-width non-joiner (U+200C)
         // to encode binary data in the filename
-        var sb = new StringBuilder();
-
-        foreach (var c in canaryId)
+        return string.Create(canaryId.Length * 4, canaryId, static (encoded, id) =>
         {
-            var nibble = Convert.ToInt32(c.ToString(), 16);
-            for (int i = 3; i >= 0; i--)
+            var encodedIndex = 0;
+            foreach (var c in id)
             {
-                sb.Append(((nibble >> i) & 1) == 1 ? '\u200B' : '\u200C');
-            }
-        }
+                var nibble = c switch
+                {
+                    >= '0' and <= '9' => c - '0',
+                    >= 'a' and <= 'f' => c - 'a' + 10,
+                    >= 'A' and <= 'F' => c - 'A' + 10,
+                    _ => Convert.ToInt32(c.ToString(), 16),
+                };
 
-        return sb.ToString();
+                for (int i = 3; i >= 0; i--)
+                {
+                    encoded[encodedIndex++] = ((nibble >> i) & 1) == 1 ? '\u200B' : '\u200C';
+                }
+            }
+        });
     }
 
     /// <summary>
@@ -160,32 +167,27 @@ public sealed class CanaryTraps
             return null;
         }
 
-        // Filter to only zero-width characters
-        var bits = suffix.Where(c => c == '\u200B' || c == '\u200C').ToList();
-
-        if (bits.Count < 4 || bits.Count % 4 != 0)
+        var bitCount = 0;
+        var nibble = 0;
+        StringBuilder? decoded = null;
+        foreach (var value in suffix)
         {
-            return null;
-        }
-
-        var sb = new StringBuilder();
-
-        for (int i = 0; i < bits.Count; i += 4)
-        {
-            int nibble = 0;
-            for (int j = 0; j < 4; j++)
+            if (value != '\u200B' && value != '\u200C')
             {
-                nibble <<= 1;
-                if (bits[i + j] == '\u200B')
-                {
-                    nibble |= 1;
-                }
+                continue;
             }
 
-            sb.Append(nibble.ToString("x"));
+            nibble = (nibble << 1) | (value == '\u200B' ? 1 : 0);
+            bitCount++;
+            if (bitCount % 4 == 0)
+            {
+                decoded ??= new StringBuilder();
+                decoded.Append(nibble < 10 ? (char)('0' + nibble) : (char)('a' + nibble - 10));
+                nibble = 0;
+            }
         }
 
-        return sb.ToString();
+        return bitCount >= 4 && bitCount % 4 == 0 ? decoded!.ToString() : null;
     }
 
     /// <summary>

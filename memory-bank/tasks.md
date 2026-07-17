@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove per-nibble and filtered-bit allocations from canary suffixes.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `CanaryTraps.GenerateInvisibleSuffix` now parses common hexadecimal characters without one-character strings and fills the exact final zero-width string through `string.Create`. `DecodeInvisibleSuffix` filters and assembles nibbles in one pass without a LINQ iterator/list or formatted nibble strings. Across 100,000 16-nibble operations, generation allocation falls from 88,000,040 to 15,200,040 bytes (82.7%) and elapsed time from 40 to 18 ms (55.0%); decoding allocation falls from 81,600,040 to 16,000,040 bytes (80.4%) and elapsed time from 97 to 29 ms (70.1%). Exact uppercase/lowercase behavior, ignored surrounding/interleaved text, invalid hex exceptions, incomplete-nibble rejection, and empty generation/decoding contracts remain unchanged. Validation passed: complete canary tests (`13/13`) and backend (`5205/5205`: `69` application, `4856` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. The known mesh-stream pipe timeout (`0z557`) passed its exact rerun (`1/1`) and complete unit rerun (`4856/4856`). Documented rejected manual stable sorting (`0z746`, `ce908197c`), required canary fixture members (`0z747`, `5f8d36245`), and empty suffix semantics (`0z748`, `2880cf71a`).
+
 - [x] Prepare auto-replace filename matching once per search.
   - Status: completed (2026-07-17)
   - Priority: P1

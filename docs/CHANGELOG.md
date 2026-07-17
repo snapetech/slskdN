@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Canary filename suffix generation now writes hexadecimal bits directly into
+  its final string, while decoding scans zero-width bits once into hexadecimal
+  characters instead of allocating a filtered bit list and one formatted
+  string per nibble. Across 100,000 16-nibble operations, generation allocation
+  falls from 88,000,040 to 15,200,040 bytes (82.7%) and elapsed time from 40 to
+  18 ms (55.0%); decoding allocation falls from 81,600,040 to 16,000,040 bytes
+  (80.4%) and elapsed time from 97 to 29 ms (70.1%). Uppercase input, lowercase
+  output, embedded non-canary text, invalid hexadecimal input, incomplete
+  nibbles, and empty-input behavior remain unchanged.
 - Auto-replace alternative filtering now prepares the expected filename token
   set once per completed search and scans each cleaned candidate's ASCII token
   ranges directly instead of re-cleaning the expected filename, allocating a

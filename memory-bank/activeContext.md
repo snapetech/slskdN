@@ -1,3 +1,17 @@
+## Update 2026-07-17 12:43:53Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded canary suffix encoding/decoding complete locally.
+- Last activity:
+  - Replaced per-nibble generation strings and growing builders with exact final-string filling; replaced decoding's filtered bit list and formatted nibbles with one direct scan.
+  - Across 100,000 16-nibble operations, generation improves from 88,000,040 to 15,200,040 allocated bytes (82.7%) and 40 to 18 ms (55.0%); decoding improves from 81,600,040 to 16,000,040 bytes (80.4%) and 97 to 29 ms (70.1%).
+- Validation:
+  - Passed complete canary (`13/13`) and backend validation (`5205/5205`: `69` application, `4856` unit, `280` integration), plus repository lint.
+  - Exact case/noise/invalid/incomplete/empty behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. The known mesh-stream timeout passed its exact and complete-unit reruns. Documented gotchas `0z746` (`ce908197c`), `0z747` (`5f8d36245`), and `0z748` (`2880cf71a`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the canary suffix optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 12:22:05Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded auto-replace filename filtering complete locally.
