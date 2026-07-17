@@ -1,3 +1,12 @@
+## Update 2026-07-17 07:08:50Z
+
+- Completed allocation-bounded Library Bloom snapshot item construction.
+- Replaced per-item reference objects, formatted namespace/MBID deduplication keys, a final distinct-list copy, and namespace grouping with value-type items, direct release deduplication, and counts accumulated during filter insertion.
+- Reduced a warmed 10,000-recording snapshot from 4,757,336 to 2,182,464 allocated bytes (54.1%).
+- Preserved normalized recording/release identity, blank/duplicate filtering, first-seen Bloom insertion order, salted membership bits, sizing/false-positive/fill metadata, privacy notes, batched album reads, and cancellation; exact namespace counts remain distinct from probabilistic Bloom `ItemCount`.
+- Added exact normalized counts/membership and wide allocation regressions; passed complete service (`11/11`), broader MusicBrainz integrations (`69/69`), and backend (`5148/5148`: `69` application, `4799` unit, `280` integration) tests.
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed. Documented Bloom-count gotcha `0z736` (`14526b5a5`); concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 06:57:49Z
 
 - Completed early-deduplicated Library Bloom candidate construction.

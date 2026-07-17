@@ -1,3 +1,17 @@
+## Update 2026-07-17 07:08:50Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded Library Bloom snapshots complete locally.
+- Last activity:
+  - Replaced per-item objects/formatted dedup keys, the final distinct copy, and namespace grouping with value-type items, direct release deduplication, and insertion-time counts.
+  - A warmed 10,000-recording snapshot falls from 4,757,336 to 2,182,464 allocated bytes (54.1%).
+- Validation:
+  - Passed complete service (`11/11`), broader MusicBrainz integrations (`69/69`), and backend validation (`5148/5148`: `69` application, `4799` unit, `280` integration).
+  - Exact identity/filter/order/membership/sizing/metadata/privacy/batching/cancellation semantics, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Documented gotcha `0z736` (`14526b5a5`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the Library Bloom snapshot slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 06:57:49Z
 
 - Current task: performance and efficiency improvements in progress; early-deduplicated Library Bloom candidates complete locally.

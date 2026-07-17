@@ -106,6 +106,78 @@ public sealed class LibraryBloomDiffServiceTests
     }
 
     [Fact]
+    public async Task CreateSnapshotAsync_PreservesNormalizedItemDeduplicationAndMembership()
+    {
+        var targets = new[]
+        {
+            new AlbumTargetEntry { ReleaseId = " Release-A ", Title = "Release", Artist = "Artist" },
+            new AlbumTargetEntry { ReleaseId = "release-a", Title = "Duplicate", Artist = "Artist" },
+            new AlbumTargetEntry { ReleaseId = " ", Title = "Blank", Artist = "Artist" },
+        };
+        var tracksByRelease = targets.ToDictionary(
+            target => target.ReleaseId,
+            target => (IEnumerable<AlbumTargetTrackEntry>)new[]
+            {
+                new AlbumTargetTrackEntry
+                {
+                    ReleaseId = target.ReleaseId,
+                    RecordingId = "rec-1",
+                    Title = "Track",
+                    Artist = "Artist",
+                },
+            });
+        var service = CreateService(CreateHashDb(
+            heldRecordings: new[] { " REC-1 ", "rec-1", "REC-2", " " },
+            targets: targets,
+            tracksByRelease: tracksByRelease));
+
+        var snapshot = await service.CreateSnapshotAsync(new LibraryBloomSnapshotRequest
+        {
+            SaltId = "salt",
+            ExpectedItems = 16,
+        });
+
+        Assert.Equal(2, snapshot.NamespaceItemCounts["musicbrainz:recording"]);
+        Assert.Equal(1, snapshot.NamespaceItemCounts["musicbrainz:release"]);
+        var filter = BloomFilter.FromBase64(
+            snapshot.ExpectedItems,
+            snapshot.FalsePositiveRate,
+            snapshot.BitsBase64,
+            snapshot.ItemCount);
+        Assert.True(filter.Contains("salt\u001fmusicbrainz:recording\u001frec-1"));
+        Assert.True(filter.Contains("salt\u001fmusicbrainz:recording\u001frec-2"));
+        Assert.True(filter.Contains("salt\u001fmusicbrainz:release\u001frelease-a"));
+    }
+
+    [Fact]
+    public async Task CreateSnapshotAsync_WideHeldRecordingSetBoundsAllocation()
+    {
+        const int recordingCount = 10_000;
+        var service = CreateService(CreateHashDb(
+            heldRecordings: Enumerable.Range(0, recordingCount)
+                .Select(index => $"recording-{index:D5}")));
+        var request = new LibraryBloomSnapshotRequest
+        {
+            SaltId = "allocation-salt",
+            ExpectedItems = recordingCount,
+        };
+
+        for (var iteration = 0; iteration < 4; iteration++)
+        {
+            await service.CreateSnapshotAsync(request);
+        }
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var snapshot = await service.CreateSnapshotAsync(request);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.InRange(snapshot.ItemCount, 1, recordingCount);
+        Assert.Equal(recordingCount, snapshot.NamespaceItemCounts["musicbrainz:recording"]);
+        Assert.False(snapshot.NamespaceItemCounts.ContainsKey("musicbrainz:release"));
+        Assert.True(allocatedBytes < 2_600_000, $"Allocated {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
     public async Task CompareAsync_ReturnsLikelyMissingSuggestionFromInboundRecordingBloom()
     {
         var remoteSnapshot = await CreateRemoteSnapshotAsync("rec-missing");

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Build Library Bloom snapshot items and namespace counts without formatted dedup keys.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `LibraryBloomDiffService.CreateSnapshotAsync` now holds normalized recording/release items in a value-type list, deduplicates releases with their exact case-insensitive identity during the existing catalogue scan, and increments exact namespace counts while inserting items into the Bloom filter. It removes one item object and formatted namespace/MBID key per held item, the final distinct-list copy, and namespace `GroupBy` state. A warmed 10,000-recording snapshot falls from 4,757,336 to 2,182,464 allocated bytes (54.1%). Normalization, blank/duplicate filtering, insertion order, salted membership, sizing/false-positive/fill metadata, privacy notes, album batching, and cancellation remain unchanged; exact namespace counts remain authoritative over probabilistic Bloom `ItemCount`. Validation passed: complete service (`11/11`), broader MusicBrainz integrations (`69/69`), and backend (`5148/5148`: `69` application, `4799` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Documented Bloom-count gotcha `0z736` (`14526b5a5`).
+
 - [x] Deduplicate Library Bloom track candidates before metadata projection.
   - Status: completed (2026-07-17)
   - Priority: P1

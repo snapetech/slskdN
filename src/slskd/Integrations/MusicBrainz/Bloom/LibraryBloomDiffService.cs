@@ -39,9 +39,11 @@ public sealed class LibraryBloomDiffService : ILibraryBloomDiffService
 
         var items = await GetLocalHeldItemsAsync(cancellationToken).ConfigureAwait(false);
         var filter = new BloomFilter(Math.Max(expectedItems, items.Count), falsePositiveRate);
+        var namespaceItemCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (var item in items)
         {
             filter.Add(BuildSaltedItem(saltId, item.Namespace, item.Mbid));
+            namespaceItemCounts[item.Namespace] = namespaceItemCounts.GetValueOrDefault(item.Namespace) + 1;
         }
 
         return new LibraryBloomSnapshot
@@ -58,9 +60,7 @@ public sealed class LibraryBloomDiffService : ILibraryBloomDiffService
             ItemCount = filter.ItemCount,
             FillRatio = filter.FillRatio,
             BitsBase64 = filter.ToBase64(),
-            NamespaceItemCounts = items
-                .GroupBy(item => item.Namespace, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase),
+            NamespaceItemCounts = namespaceItemCounts,
             PrivacyNotes =
             {
                 "Snapshot contains salted Bloom-filter membership only; it does not include filenames, paths, file hashes, or exact item identifiers.",
@@ -186,14 +186,17 @@ public sealed class LibraryBloomDiffService : ILibraryBloomDiffService
 
     private async Task<List<LibraryBloomItem>> GetLocalHeldItemsAsync(CancellationToken cancellationToken)
     {
-        var items = new List<LibraryBloomItem>();
         var heldRecordingIds = (await _hashDb.GetRecordingIdsWithVariantsAsync(cancellationToken).ConfigureAwait(false))
             .Select(NormalizeMbid)
             .Where(id => !string.IsNullOrWhiteSpace(id))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        items.AddRange(heldRecordingIds
-            .Select(id => new LibraryBloomItem(RecordingNamespace, id)));
+        var items = new List<LibraryBloomItem>(heldRecordingIds.Count);
+        foreach (var recordingId in heldRecordingIds)
+        {
+            items.Add(new LibraryBloomItem(RecordingNamespace, recordingId));
+        }
 
+        var heldReleaseIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var releases = (await _hashDb.GetAlbumTargetsAsync(cancellationToken).ConfigureAwait(false)).ToList();
         var tracksByRelease = (await _hashDb
                 .GetAlbumTracksAsync(releases.Select(release => release.ReleaseId), cancellationToken)
@@ -205,14 +208,15 @@ public sealed class LibraryBloomDiffService : ILibraryBloomDiffService
                 .Any(track => heldRecordingIds.Contains(NormalizeMbid(track.RecordingId)));
             if (hasHeldTrack)
             {
-                items.Add(new LibraryBloomItem(ReleaseNamespace, NormalizeMbid(release.ReleaseId)));
+                var releaseId = NormalizeMbid(release.ReleaseId);
+                if (!string.IsNullOrWhiteSpace(releaseId) && heldReleaseIds.Add(releaseId))
+                {
+                    items.Add(new LibraryBloomItem(ReleaseNamespace, releaseId));
+                }
             }
         }
 
-        return items
-            .Where(item => !string.IsNullOrWhiteSpace(item.Mbid))
-            .DistinctBy(item => $"{item.Namespace}\u001f{item.Mbid}", StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        return items;
     }
 
     private async Task<List<LibraryBloomCandidate>> GetCandidateTracksAsync(CancellationToken cancellationToken)
@@ -327,7 +331,7 @@ public sealed class LibraryBloomDiffService : ILibraryBloomDiffService
 
     private static string NormalizeSearchText(string searchText) => (searchText ?? string.Empty).Trim();
 
-    private sealed record LibraryBloomItem(string Namespace, string Mbid);
+    private readonly record struct LibraryBloomItem(string Namespace, string Mbid);
 
     private sealed record WishlistIndex(HashSet<string> Keys, HashSet<string> SearchTexts);
 

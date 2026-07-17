@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Library Bloom snapshots now build unique value-type items and exact namespace
+  counts directly instead of allocating formatted deduplication keys and groups.
 - Library Bloom comparison now deduplicates normalized recording candidates
   before constructing and sorting suggestion metadata.
 - Advanced discovery now prepares filename-token queries once and scans each

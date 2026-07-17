@@ -22,6 +22,17 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Library Bloom snapshot construction now stores normalized held items as value
+  types, deduplicates releases during the existing catalogue scan, and counts
+  namespaces while populating the filter. This removes a reference object and
+  formatted namespace/MBID key per item, the final distinct-list copy, and
+  post-build grouping. A warmed 10,000-recording snapshot falls from 4,757,336
+  to 2,182,464 allocated bytes (54.1%). Exact normalized recording/release
+  counts, first-seen Bloom insertion order, salted membership bits, expected
+  sizing, false-positive behavior, fill metadata, privacy notes, batched album
+  reads, and empty/duplicate filtering remain unchanged. Bloom `ItemCount`
+  remains probabilistic; exact cardinality continues to come from namespace
+  counts.
 - Library Bloom comparison now applies case-insensitive normalized recording-ID
   deduplication while scanning album tracks, constructs metadata only for each
   first occurrence, and sorts that bounded candidate list in place with an
