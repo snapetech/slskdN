@@ -74,44 +74,8 @@ public class LibraryItemsController : ControllerBase
 
         try
         {
-            // Get all shared files
-            var allFiles = new List<Soulseek.File>();
             var directories = await shareService.BrowseAsync();
-
-            foreach (var dir in directories)
-            {
-                if (dir.Files != null)
-                {
-                    allFiles.AddRange(dir.Files);
-                }
-            }
-
-            // Filter by query if provided
-            IEnumerable<Soulseek.File> filtered = allFiles;
-            if (!string.IsNullOrWhiteSpace(query))
-            {
-                var queryLower = query.ToLowerInvariant();
-                filtered = allFiles.Where(f =>
-                    f.Filename.ToLowerInvariant().Contains(queryLower));
-            }
-
-            // Filter by media kind if provided
-            if (!string.IsNullOrWhiteSpace(kinds))
-            {
-                var kindSet = kinds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .Select(k => k.ToLowerInvariant())
-                    .ToHashSet();
-
-                filtered = filtered.Where(f =>
-                {
-                    var ext = Path.GetExtension(f.Filename).TrimStart('.').ToLowerInvariant();
-                    var kind = GetMediaKind(ext);
-                    return kindSet.Contains(kind.ToLowerInvariant());
-                });
-            }
-
-            // Limit results
-            var results = filtered.Take(limit).ToList();
+            var results = BuildSearchFilePage(directories, query, kinds, limit);
 
             var codeToMasked = BuildCodeToMaskedFilenameMap();
             var items = await ConvertToLibraryItemsAsync(
@@ -741,6 +705,49 @@ public class LibraryItemsController : ControllerBase
     {
         var separatorIndex = path.LastIndexOf('\\');
         return separatorIndex < 0 ? string.Empty : path[..separatorIndex];
+    }
+
+    private static List<Soulseek.File> BuildSearchFilePage(
+        IEnumerable<Soulseek.Directory> directories,
+        string? query,
+        string? kinds,
+        int limit)
+    {
+        var queryLower = query?.ToLowerInvariant();
+        var kindSet = string.IsNullOrWhiteSpace(kinds)
+            ? null
+            : kinds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(kind => kind.ToLowerInvariant())
+                .ToHashSet();
+        var results = new List<Soulseek.File>(limit);
+
+        foreach (var directory in directories)
+        {
+            foreach (var file in directory.Files)
+            {
+                if (queryLower != null && !ContainsLowerInvariant(file.Filename, queryLower))
+                {
+                    continue;
+                }
+
+                if (kindSet != null)
+                {
+                    var extension = Path.GetExtension(file.Filename).TrimStart('.').ToLowerInvariant();
+                    if (!kindSet.Contains(GetMediaKind(extension).ToLowerInvariant()))
+                    {
+                        continue;
+                    }
+                }
+
+                results.Add(file);
+                if (results.Count == limit)
+                {
+                    return results;
+                }
+            }
+        }
+
+        return results;
     }
 
     private static LibraryFilePage BuildFilePage(

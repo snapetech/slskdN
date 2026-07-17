@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Native library search now scans shared files directly into its bounded result
+  page and stops at the limit instead of copying the complete share first.
 - Native library browsing now uses structured duplicate keys, reuses canonical
   virtual paths, matches invariant queries through reusable span storage, and
   retains only the requested sorted prefix instead of fully sorting every file.

@@ -321,6 +321,74 @@ public class LibraryItemsControllerTests
     }
 
     [Fact]
+    public async Task SearchItems_WideMissHasBoundedAllocation()
+    {
+        const int fileCount = 10_000;
+        var directories = new List<Soulseek.Directory>
+        {
+            new("Music", Enumerable.Range(0, fileCount)
+                .Select(index => new Soulseek.File(
+                    index + 1,
+                    $"TRACK-{index:D5}.MP3",
+                    index + 1,
+                    ".MP3"))
+                .ToList()),
+        };
+        shareServiceMock
+            .Setup(service => service.BrowseAsync(It.IsAny<slskd.Shares.Share>()))
+            .ReturnsAsync(directories);
+        _ = await controller.SearchItems(query: "absent", kinds: null, limit: 50, CancellationToken.None);
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var result = await controller.SearchItems(query: "absent", kinds: null, limit: 50, CancellationToken.None);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        var response = Assert.IsType<OkObjectResult>(result).Value!;
+        var items = (System.Collections.IEnumerable)response.GetType().GetProperty("items")!.GetValue(response)!;
+        Assert.Empty(items.Cast<object>());
+        Assert.True(
+            allocatedBytes < 10_000,
+            $"Wide library search miss allocated {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
+    public async Task SearchItems_FilledPageStopsShareEnumerationAtLimit()
+    {
+        const int limit = 50;
+        var enumeratedDirectories = 0;
+        shareServiceMock
+            .Setup(service => service.BrowseAsync(It.IsAny<slskd.Shares.Share>()))
+            .ReturnsAsync(EnumerateDirectories());
+        shareServiceMock
+            .Setup(service => service.ResolveFileAsync(It.IsAny<string>()))
+            .ReturnsAsync((string filename) => ("local", $"/missing/{filename}", 1L));
+
+        var result = await controller.SearchItems(query: null, kinds: null, limit: limit, CancellationToken.None);
+
+        var response = Assert.IsType<OkObjectResult>(result).Value!;
+        var items = (System.Collections.IEnumerable)response.GetType().GetProperty("items")!.GetValue(response)!;
+        Assert.Equal(limit, items.Cast<object>().Count());
+        Assert.Equal(1, enumeratedDirectories);
+
+        IEnumerable<Soulseek.Directory> EnumerateDirectories()
+        {
+            enumeratedDirectories++;
+            yield return new Soulseek.Directory(
+                "First",
+                Enumerable.Range(0, limit)
+                    .Select(index => new Soulseek.File(index + 1, $"track-{index:D2}.mp3", 1, ".mp3")));
+
+            for (var index = 0; index < 10; index++)
+            {
+                enumeratedDirectories++;
+                yield return new Soulseek.Directory(
+                    $"Trailing-{index}",
+                    new[] { new Soulseek.File(limit + index + 1, $"trailing-{index}.mp3", 1, ".mp3") });
+            }
+        }
+    }
+
+    [Fact]
     public async Task SearchItems_WithOneHundredFiles_UsesOneBatchHashLookup()
     {
         const int fileCount = 100;

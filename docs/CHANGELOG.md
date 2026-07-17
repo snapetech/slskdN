@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Native shared-library search now scans the directory/file sequence directly
+  into its capped result list and stops enumeration as soon as the page is
+  full. It no longer copies every shared-file reference before filtering, and
+  full-scan query misses use the same stack/pooled lowercase-invariant matcher
+  as browser search instead of allocating one lowercase filename per file. A
+  warmed 10,000-file uppercase miss falls from 644,816 to 4,960 allocated bytes
+  (99.2%). In a filled-page fixture, a 50-result limit consumes only the first
+  sufficient directory instead of all 11 directories. First-match order,
+  trimmed case/Unicode query behavior, media-kind filtering, the 1–100 limit,
+  batch hash lookup, and empty-share local fallback remain unchanged.
 - Native shared-library browsing now scans files once into structured path or
   filename/size duplicate groups, reuses already-canonical virtual paths, and
   performs legacy-equivalent lowercase-invariant query matching through stack

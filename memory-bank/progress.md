@@ -1,3 +1,12 @@
+## Update 2026-07-17 04:33:43Z
+
+- Completed streamed, early-stopping native shared-library search selection.
+- Replaced the complete shared-file reference copy plus LINQ filter/take chain with one direct directory/file scan into a list capped at the requested limit; full-scan misses reuse allocation-free common invariant matching.
+- Reduced a warmed 10,000-file uppercase query miss from 644,816 to 4,960 allocated bytes (99.2%). A filled 50-result page now stops after the first sufficient directory instead of enumerating all 11 fixture directories.
+- Preserved first-match order, trimmed invariant case/Unicode queries, media-kind filtering, the 1–100 clamp, batch hash lookup, and empty-share local fallback.
+- Added exact allocation and early-enumeration regressions; passed complete controller (`30/30`) and backend (`5124/5124`: `69` application, `4775` unit, `280` integration) tests.
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 04:22:57Z
 
 - Completed allocation-bounded native shared-library browser paging.

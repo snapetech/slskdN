@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Stream native shared-library search into the bounded page.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `LibraryItemsController.SearchItems` now scans the directory/file sequence once into a result list pre-sized to the clamped limit and returns immediately when that page is full. This removes the complete shared-file reference copy and LINQ filter/take pipeline; full-scan query misses reuse the browser's stack/pooled lowercase-invariant matcher instead of allocating a lowercase filename for each file. A warmed 10,000-file uppercase miss falls from 644,816 to 4,960 allocated bytes (99.2%). An exact filled-page iterator regression proves a 50-result limit consumes only the first sufficient directory rather than all 11 fixture directories. First-match order, query trimming/case/Unicode semantics, kind filtering, the 1–100 limit, batch hash lookup, and empty-share local fallback remain unchanged. Validation passed: complete controller (`30/30`) and backend (`5124/5124`: `69` application, `4775` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Bound native shared-library browser paging allocation.
   - Status: completed (2026-07-17)
   - Priority: P1

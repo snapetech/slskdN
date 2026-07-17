@@ -1,3 +1,17 @@
+## Update 2026-07-17 04:33:43Z
+
+- Current task: performance and efficiency improvements in progress; streamed native library search selection complete locally.
+- Last activity:
+  - Replaced complete shared-file reference materialization and the LINQ filter/take chain with one direct scan that returns at the clamped result limit; full-scan misses reuse common invariant span matching.
+  - A 10,000-file uppercase miss falls from 644,816 to 4,960 warmed allocated bytes (99.2%); a filled 50-result page consumes one sufficient directory instead of all 11 fixture directories.
+- Validation:
+  - Passed complete controller (`30/30`) and backend validation (`5124/5124`: `69` application, `4775` unit, `280` integration).
+  - Exact order/query/kind/limit/hash/fallback semantics, allocation, early enumeration, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the streamed native library search slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 04:22:57Z
 
 - Current task: performance and efficiency improvements in progress; bounded native library browser paging complete locally.
