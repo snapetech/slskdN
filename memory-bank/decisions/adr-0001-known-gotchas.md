@@ -25526,3 +25526,19 @@ Only locate and click a child control after its container and required choices
 are visible, apply a short explicit timeout, record a failed check instead of
 aborting the route report, and always write collected evidence in a finalization
 path.
+
+### 0z592. Generic Alert Roles Are Not Reliable Error Selectors
+
+**The Bug**: The live UI audit treated every visible `[role="alert"]` element as
+an error. Semantic UI applies that role to ordinary dropdown selection text, so
+valid values such as active filters, page sizes, and status labels made healthy
+routes appear to contain visible failures.
+
+**Files Affected**:
+- `scripts/live-ui-audit.mjs`
+
+**Prevention**: Detect visible failures with application-specific error
+containers and explicit error classes, not a generic ARIA live-region role.
+Record generic alerts separately when needed, preserve their element classes in
+evidence, and validate a proposed selector against representative dropdown,
+toast, and form states before using it as a route-failure gate.
