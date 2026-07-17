@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- SongID lyrics/speech token counting now reuses the direct ASCII-letter and
+  apostrophe run scanner instead of materializing a regex `Match` for every
+  token. The counter still scans the original transcript independently from
+  invariant-lowercased n-gram analysis, preserving Unicode boundary behavior.
+  On a 30,000-token transcript, warmed allocation falls from 6,764,680 bytes
+  to zero measured bytes. Uppercase/lowercase ASCII letters, apostrophe-only
+  runs, digit and punctuation separators, non-ASCII boundaries, empty input,
+  and null runtime input retain the exact `[a-zA-Z']+` count contract.
 - SongID transcript repetition scoring now scans the invariant-lowercased text
   twice—first to preserve the six-token threshold, then to aggregate overlapping
   three-token range keys directly. It no longer creates regex `Match` objects,

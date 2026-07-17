@@ -528,4 +528,40 @@ public sealed class SongIdScoringTests
             allocatedBytes < 1_900_000,
             $"Expected unique-trigram analysis below 1.9 MB allocated, got {allocatedBytes:N0} bytes.");
     }
+
+    [Theory]
+    [InlineData("hello world", 2)]
+    [InlineData("DON'T stop", 2)]
+    [InlineData("123 alpha-beta", 2)]
+    [InlineData("ÄPFEL", 1)]
+    [InlineData("' ''", 2)]
+    [InlineData("abc123def", 2)]
+    [InlineData("", 0)]
+    [InlineData(null, 0)]
+    public void CountTokens_PreservesAsciiLetterAndApostropheRuns(string? text, int expected)
+    {
+        Assert.Equal(expected, SongIdScoring.CountTokens(text!));
+    }
+
+    [Fact]
+    public void CountTokens_LargeTranscriptHasBoundedAllocation()
+    {
+        const string warmup = "warm token count";
+        for (var index = 0; index < 32; index++)
+        {
+            _ = SongIdScoring.CountTokens(warmup);
+        }
+
+        const int repetitions = 10_000;
+        var transcript = string.Join(' ', Enumerable.Repeat("alpha beta gamma", repetitions));
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var tokenCount = SongIdScoring.CountTokens(transcript);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(repetitions * 3, tokenCount);
+        Assert.True(
+            allocatedBytes < 1_024,
+            $"Expected transcript token counting below 1 KiB allocated, got {allocatedBytes:N0} bytes.");
+    }
 }

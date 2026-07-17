@@ -1,3 +1,17 @@
+## Update 2026-07-17 01:01:43Z
+
+- Current task: performance and efficiency improvements in progress; allocation-free SongID transcript token counting complete locally.
+- Last activity:
+  - Replaced regex match-object construction with direct original-text scanning of ASCII-letter/apostrophe runs, sharing the exact character predicate used by n-gram analysis without sharing its lowercased input.
+  - A 30,000-token transcript falls from 6,764,680 warmed allocated bytes to zero measured bytes.
+- Validation:
+  - Passed focused token-count (`9/9`), complete scoring (`39/39`), broader SongID (`79/79`), and full backend suites (`5064/5064`: `69` application, `4715` unit, `280` integration) tests.
+  - Exact ASCII case/apostrophe/digit/punctuation/Unicode/null/empty boundaries, allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff behavior passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the SongID token-count slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 00:50:21Z
 
 - Current task: performance and efficiency improvements in progress; streaming SongID repeated-trigram scoring complete locally.

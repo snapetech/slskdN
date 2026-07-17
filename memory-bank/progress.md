@@ -1,3 +1,12 @@
+## Update 2026-07-17 01:01:43Z
+
+- Completed allocation-free SongID transcript token counting.
+- Replaced regex `MatchCollection`/per-token `Match` construction with the shared direct ASCII-letter/apostrophe run scanner while retaining original-text rather than lowercased-input counting.
+- Reduced warmed allocation for a 30,000-token transcript from 6,764,680 bytes to zero measured bytes.
+- Preserved exact `[a-zA-Z']+` boundaries across ASCII case, apostrophe runs, digits, punctuation, non-ASCII text, empty strings, and null runtime input.
+- Added exact semantic and large allocation regressions; passed focused token-count (`9/9`), complete scoring (`39/39`), broader SongID (`79/79`), and full backend (`5064/5064`: `69` application, `4715` unit, `280` integration) tests.
+- Passed repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 00:50:21Z
 
 - Completed streaming SongID transcript repeated-trigram scoring.

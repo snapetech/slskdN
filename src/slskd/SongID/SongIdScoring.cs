@@ -1013,9 +1013,9 @@ internal static class SongIdScoring
         return string.Join(" ", new[] { artist, title, externalId }.Where(value => !string.IsNullOrWhiteSpace(value)));
     }
 
-    private static int CountTokens(string text)
+    internal static int CountTokens(string text)
     {
-        return Regex.Matches(text ?? string.Empty, @"[a-zA-Z']+").Count;
+        return CountTranscriptTokens(text ?? string.Empty);
     }
 
     private static double ComputeRepeatedLineRatio(string text)
@@ -1037,7 +1037,7 @@ internal static class SongIdScoring
     internal static double ComputeRepeatedNgramRatio(string text)
     {
         var normalized = (text ?? string.Empty).ToLowerInvariant();
-        var tokenCount = CountRepeatedNgramTokens(normalized);
+        var tokenCount = CountTranscriptTokens(normalized);
         if (tokenCount < 6)
         {
             return 0;
@@ -1054,13 +1054,13 @@ internal static class SongIdScoring
 
         while (index < normalized.Length)
         {
-            while (index < normalized.Length && !IsRepeatedNgramTokenCharacter(normalized[index]))
+            while (index < normalized.Length && !IsTranscriptTokenCharacter(normalized[index]))
             {
                 index++;
             }
 
             var start = index;
-            while (index < normalized.Length && IsRepeatedNgramTokenCharacter(normalized[index]))
+            while (index < normalized.Length && IsTranscriptTokenCharacter(normalized[index]))
             {
                 index++;
             }
@@ -1103,13 +1103,13 @@ internal static class SongIdScoring
         return repeatedCount / (double)(tokenCount - 2);
     }
 
-    private static int CountRepeatedNgramTokens(string text)
+    private static int CountTranscriptTokens(string text)
     {
         var count = 0;
         var insideToken = false;
         foreach (var value in text)
         {
-            var isTokenCharacter = IsRepeatedNgramTokenCharacter(value);
+            var isTokenCharacter = IsTranscriptTokenCharacter(value);
             if (isTokenCharacter && !insideToken)
             {
                 count++;
@@ -1121,7 +1121,7 @@ internal static class SongIdScoring
         return count;
     }
 
-    private static bool IsRepeatedNgramTokenCharacter(char value)
+    private static bool IsTranscriptTokenCharacter(char value)
         => value is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or '\'';
 
     private readonly struct RepeatedNgram

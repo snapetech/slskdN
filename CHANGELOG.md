@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- SongID transcript token counts now scan ASCII letter/apostrophe runs directly
+  instead of materializing a regex match object for every token.
 - SongID transcript trigram repetition now streams token ranges and aggregates
   distinct trigrams without regex match, token, n-gram, or grouping buffers.
 - SongID loose-text similarity now compares normalized token ranges through one

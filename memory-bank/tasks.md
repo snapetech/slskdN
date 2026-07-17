@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove regex allocations from SongID transcript token counts.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `SongIdScoring.CountTokens` now uses the same direct character-run scanner as repeated-trigram analysis instead of constructing a regex `MatchCollection` and one `Match` object per token. It still scans the original transcript rather than the invariant-lowercased n-gram copy, so non-ASCII characters whose case mapping could become ASCII cannot change the established metric. For a 30,000-token transcript, warmed allocation falls from 6,764,680 bytes to zero measured bytes. Exact `[a-zA-Z']+` behavior for ASCII case, apostrophe runs, numeric/punctuation separators, non-ASCII boundaries, empty input, and null runtime input remains unchanged. Added exact semantic and large allocation regressions. Validation passed: focused token-count (`9/9`), complete scoring (`39/39`), broader SongID (`79/79`), full backend suites (`5064/5064`: `69` application, `4715` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Stream SongID repeated-trigram transcript scoring.
   - Status: completed (2026-07-17)
   - Priority: P1
