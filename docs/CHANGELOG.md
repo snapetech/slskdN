@@ -22,6 +22,11 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- API-key authentication now runs during the default authentication stage so
+  valid API-key callers reach HTTP rate limiting as authenticated principals.
+  General API requests from those callers no longer consume or exhaust the
+  anonymous per-IP bucket; JWT, federation inbox, mesh gateway, event
+  injection, and warm-cache rate-limit behavior is unchanged.
 - Release council backlog validation now regenerates its derived report on
   every run and scans only Git-tracked repository roots. Local ignored reports,
   dependency trees, build outputs, and optional directories can no longer make

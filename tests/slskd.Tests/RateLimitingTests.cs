@@ -43,6 +43,20 @@ public class RateLimitingTests
     }
 
     [Fact]
+    public async Task Authenticated_api_key_requests_bypass_ApiPermitLimit()
+    {
+        using var factory = new RateLimitingTestHostFactory();
+        using var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-API-Key", "configured-key");
+
+        for (var request = 0; request < 4; request++)
+        {
+            using var response = await client.GetAsync("/api/v0/session");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+    }
+
+    [Fact]
     public async Task Burst_federation_inbox_over_FederationPermitLimit_returns_429()
     {
         using var factory = new FedMeshRateLimitTestHostFactory();

@@ -6,7 +6,10 @@ namespace slskd.Tests;
 using System;
 using System.IO;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.RateLimiting;
+using System.Text.Encodings.Web;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -20,6 +23,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Asp.Versioning;
 using slskd;
@@ -33,6 +37,9 @@ using slskd.Core.Security;
 /// </summary>
 public class RateLimitingTestHostFactory : WebApplicationFactory<ProgramStub>
 {
+    private const string TestApiKeyScheme = "TestApiKey";
+    private const string TestSelectorScheme = "TestApiKeyOrJwt";
+
     protected override IHostBuilder CreateHostBuilder()
     {
         var solutionRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
@@ -105,11 +112,26 @@ public class RateLimitingTestHostFactory : WebApplicationFactory<ProgramStub>
                                 return RateLimitPartition.GetFixedWindowLimiter("mesh:" + ip, _ => new FixedWindowRateLimiterOptions { PermitLimit = meshPermit, Window = meshWindow });
                             if (path.Contains("/inbox", StringComparison.OrdinalIgnoreCase) && string.Equals(context.Request.Method, "POST", StringComparison.OrdinalIgnoreCase))
                                 return RateLimitPartition.GetFixedWindowLimiter("fed:" + ip, _ => new FixedWindowRateLimiterOptions { PermitLimit = fedPermit, Window = fedWindow });
+                            if (context.User.Identity?.IsAuthenticated == true)
+                                return RateLimitPartition.GetNoLimiter("authenticated");
+                            if (!path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase))
+                                return RateLimitPartition.GetNoLimiter("web");
                             return RateLimitPartition.GetFixedWindowLimiter("api:" + ip, _ => new FixedWindowRateLimiterOptions { PermitLimit = apiPermit, Window = apiWindow });
                         });
                     });
 
-                    services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+                    services.AddAuthentication(options =>
+                        {
+                            options.DefaultAuthenticateScheme = TestSelectorScheme;
+                            options.DefaultChallengeScheme = TestSelectorScheme;
+                        })
+                        .AddPolicyScheme(TestSelectorScheme, TestSelectorScheme, options =>
+                            options.ForwardDefaultSelector = context =>
+                                context.Request.Headers.ContainsKey("X-API-Key")
+                                    ? TestApiKeyScheme
+                                    : JwtBearerDefaults.AuthenticationScheme)
+                        .AddJwtBearer()
+                        .AddScheme<AuthenticationSchemeOptions, TestApiKeyAuthenticationHandler>(TestApiKeyScheme, _ => { });
                     services.AddAuthorization(o =>
                         o.AddPolicy(AuthPolicy.Any, p => p.RequireAuthenticatedUser()));
 
@@ -132,11 +154,37 @@ public class RateLimitingTestHostFactory : WebApplicationFactory<ProgramStub>
                 web.Configure(app =>
                 {
                     app.UseRouting();
-                    app.UseRateLimiter();
                     app.UseAuthentication();
+                    app.UseRateLimiter();
                     app.UseAuthorization();
                     app.UseEndpoints(e => e.MapControllers());
                 });
             });
+    }
+
+    private sealed class TestApiKeyAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+    {
+        public TestApiKeyAuthenticationHandler(
+            IOptionsMonitor<AuthenticationSchemeOptions> options,
+            ILoggerFactory logger,
+            UrlEncoder encoder)
+            : base(options, logger, encoder)
+        {
+        }
+
+        protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+        {
+            if (Request.Headers["X-API-Key"] != "configured-key")
+            {
+                return Task.FromResult(AuthenticateResult.Fail("Invalid API key"));
+            }
+
+            var identity = new ClaimsIdentity(
+                new[] { new Claim(ClaimTypes.Name, "rate-limit-test") },
+                TestApiKeyScheme);
+            var principal = new ClaimsPrincipal(identity);
+            return Task.FromResult(AuthenticateResult.Success(
+                new AuthenticationTicket(principal, TestApiKeyScheme)));
+        }
     }
 }
