@@ -8,7 +8,7 @@
   - Corrected two unnamed Wishlist view-mode buttons, horizontal System-tab audit geometry, COPR retry behavior, and unattended COPR authentication selection on `main` without creating another tag.
 - Release status:
   - The complete tag workflow passed, including build, platform archives, GitHub release, AUR, PPA, Nix, Homebrew, main and omnibus Docker, and announcement jobs. Artifact verification passed for every archive, required payload, checksum, footer marker, and embedded version.
-  - COPR API-token recovery submitted build `10739201` successfully. Chocolatey package creation passed but its external push service returned 504 on all five release and recovery attempts.
+  - COPR API-token recovery build `10739201` succeeded for Fedora 43 and Rawhide. Chocolatey package creation passed but its external push service returned 504 on all five release and recovery attempts.
 - Next steps:
   1. Retry Chocolatey through the existing manual workflow only after the external service recovers.
   2. Include the Wishlist accessibility fix in the next explicitly authorized release.
