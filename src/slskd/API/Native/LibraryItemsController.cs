@@ -4,6 +4,7 @@
 namespace slskd.API.Native;
 
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -173,15 +174,16 @@ public class LibraryItemsController : ControllerBase
             var directoryEntries = query == null
                 ? BuildDirectoryEntries(directories, browserPath)
                 : new List<LibraryDirectoryResponse>();
-            var fileCandidates = BuildFileCandidates(directories, codeToMasked, browserPath, query, kinds);
-            var groupedFiles = fileCandidates
-                .GroupBy(file => query == null ? file.PathKey : file.DuplicateKey, StringComparer.OrdinalIgnoreCase)
-                .Select(group => group.First() with { DuplicateCount = group.Count() })
-                .OrderBy(file => file.Path, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-            var pagedFiles = groupedFiles.Skip(offset).Take(limit).ToList();
+            var filePage = BuildFilePage(
+                directories,
+                codeToMasked,
+                browserPath,
+                query,
+                kinds,
+                offset,
+                limit);
             var items = await ConvertToLibraryItemsAsync(
-                pagedFiles.Select(file => new LibraryItemCandidate(
+                filePage.Files.Select(file => new LibraryItemCandidate(
                     File: file.File,
                     RemoteFilename: file.RemoteFilename,
                     DisplayPath: file.Path,
@@ -194,12 +196,12 @@ public class LibraryItemsController : ControllerBase
                 breadcrumbs = BuildBreadcrumbs(browserPath),
                 directories = directoryEntries,
                 files = items,
-                totalFiles = groupedFiles.Count,
+                totalFiles = filePage.TotalFiles,
                 totalDirectories = directoryEntries.Count,
                 offset,
                 limit,
-                hasMore = offset + items.Count < groupedFiles.Count,
-                duplicatesRemoved = fileCandidates.Count - groupedFiles.Count,
+                hasMore = offset + items.Count < filePage.TotalFiles,
+                duplicatesRemoved = filePage.CandidateCount - filePage.TotalFiles,
             });
         }
         catch (Exception ex)
@@ -741,12 +743,14 @@ public class LibraryItemsController : ControllerBase
         return separatorIndex < 0 ? string.Empty : path[..separatorIndex];
     }
 
-    private static List<LibraryFileCandidate> BuildFileCandidates(
+    private static LibraryFilePage BuildFilePage(
         IReadOnlyList<Soulseek.Directory> directories,
         IReadOnlyDictionary<int, string> codeToMasked,
         string path,
         string? query,
-        string? kinds)
+        string? kinds,
+        int offset,
+        int limit)
     {
         var queryLower = query?.ToLowerInvariant();
         var kindSet = string.IsNullOrWhiteSpace(kinds)
@@ -754,39 +758,102 @@ public class LibraryItemsController : ControllerBase
             : kinds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Select(k => k.ToLowerInvariant())
                 .ToHashSet();
+        var groups = new Dictionary<LibraryFileGroupKey, LibraryFileGroup>(LibraryFileGroupKeyComparer.Instance);
+        var candidateCount = 0;
+        var sequence = 0;
 
-        return directories
-            .SelectMany(directory =>
+        foreach (var directory in directories)
+        {
+            var directoryPath = NormalizeVirtualPath(directory.Name);
+            foreach (var file in directory.Files ?? Enumerable.Empty<Soulseek.File>())
             {
-                var directoryPath = NormalizeVirtualPath(directory.Name);
-                return (directory.Files ?? Enumerable.Empty<Soulseek.File>()).Select(file =>
+                string remoteFilename;
+                string displayPath;
+                if (codeToMasked.TryGetValue(file.Code, out var masked))
                 {
-                    var remoteFilename = codeToMasked.TryGetValue(file.Code, out var masked)
-                        ? masked
-                        : JoinVirtualPath(directoryPath, file.Filename);
-                    var displayPath = NormalizeVirtualPath(remoteFilename);
-                    return new LibraryFileCandidate(
-                        file,
-                        remoteFilename,
-                        displayPath,
-                        file.Size,
-                        GetVirtualFileName(displayPath));
-                });
-            })
-            .Where(candidate => queryLower == null
-                ? IsDirectChildFile(candidate.Path, path)
-                : candidate.Path.ToLowerInvariant().Contains(queryLower))
-            .Where(candidate =>
-            {
-                if (kindSet == null)
+                    remoteFilename = masked;
+                    displayPath = NormalizeVirtualPath(remoteFilename);
+                }
+                else
                 {
-                    return true;
+                    remoteFilename = JoinVirtualPath(directoryPath, file.Filename);
+                    displayPath = remoteFilename;
                 }
 
-                var ext = Path.GetExtension(candidate.FileName).TrimStart('.').ToLowerInvariant();
-                return kindSet.Contains(GetMediaKind(ext).ToLowerInvariant());
-            })
-            .ToList();
+                if (queryLower == null
+                    ? !IsDirectChildFile(displayPath, path)
+                    : !ContainsLowerInvariant(displayPath, queryLower))
+                {
+                    continue;
+                }
+
+                var fileName = GetNormalizedVirtualFileName(displayPath);
+                if (kindSet == null)
+                {
+                    AddCandidate(file, remoteFilename, displayPath, fileName);
+                    continue;
+                }
+
+                var ext = Path.GetExtension(fileName).TrimStart('.').ToLowerInvariant();
+                if (kindSet.Contains(GetMediaKind(ext).ToLowerInvariant()))
+                {
+                    AddCandidate(file, remoteFilename, displayPath, fileName);
+                }
+            }
+        }
+
+        if (offset >= groups.Count)
+        {
+            return new LibraryFilePage(new List<LibraryFileCandidate>(), groups.Count, candidateCount);
+        }
+
+        var selectionLimit = (int)Math.Min(groups.Count, (long)offset + limit);
+        var selected = new PriorityQueue<LibraryFileGroup, LibraryFileGroup>(LibraryFileGroupWorstFirstComparer.Instance);
+        foreach (var group in groups.Values)
+        {
+            if (selected.Count < selectionLimit)
+            {
+                selected.Enqueue(group, group);
+            }
+            else if (LibraryFileGroupWorstFirstComparer.Instance.Compare(group, selected.Peek()) > 0)
+            {
+                selected.Dequeue();
+                selected.Enqueue(group, group);
+            }
+        }
+
+        var files = new List<LibraryFileCandidate>(Math.Min(limit, groups.Count - offset));
+        var selectedPosition = selectionLimit;
+        while (selected.Count > 0)
+        {
+            selectedPosition--;
+            if (selectedPosition < offset)
+            {
+                break;
+            }
+
+            var group = selected.Dequeue();
+            files.Add(group.Candidate with { DuplicateCount = group.DuplicateCount });
+        }
+
+        files.Reverse();
+        return new LibraryFilePage(files, groups.Count, candidateCount);
+
+        void AddCandidate(Soulseek.File file, string remoteFilename, string displayPath, string fileName)
+        {
+            candidateCount++;
+            var candidate = new LibraryFileCandidate(file, remoteFilename, displayPath, file.Size, fileName);
+            var key = query == null
+                ? new LibraryFileGroupKey(candidate.Path, 0)
+                : new LibraryFileGroupKey(candidate.FileName, candidate.Bytes);
+            if (groups.TryGetValue(key, out var group))
+            {
+                groups[key] = group with { DuplicateCount = group.DuplicateCount + 1 };
+                return;
+            }
+
+            groups.Add(key, new LibraryFileGroup(candidate, 1, sequence++));
+        }
     }
 
     private static bool IsDirectChildFile(string filePath, string directoryPath)
@@ -809,11 +876,46 @@ public class LibraryItemsController : ControllerBase
         return SplitVirtualPath(path).LastOrDefault() ?? path;
     }
 
+    private static string GetNormalizedVirtualFileName(string path)
+    {
+        var separatorIndex = path.LastIndexOf('\\');
+        return separatorIndex < 0 ? path : path[(separatorIndex + 1)..];
+    }
+
+    private static bool ContainsLowerInvariant(string value, string lowerValue)
+    {
+        const int StackBufferLength = 256;
+        char[]? rentedBuffer = null;
+        var buffer = value.Length <= StackBufferLength
+            ? stackalloc char[value.Length]
+            : rentedBuffer = ArrayPool<char>.Shared.Rent(value.Length);
+
+        try
+        {
+            var written = value.AsSpan().ToLowerInvariant(buffer);
+            return written >= 0
+                ? buffer[..written].IndexOf(lowerValue.AsSpan()) >= 0
+                : value.ToLowerInvariant().Contains(lowerValue);
+        }
+        finally
+        {
+            if (rentedBuffer != null)
+            {
+                ArrayPool<char>.Shared.Return(rentedBuffer);
+            }
+        }
+    }
+
     private static string NormalizeVirtualPath(string? path)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
             return string.Empty;
+        }
+
+        if (IsNormalizedVirtualPath(path))
+        {
+            return path;
         }
 
         return string.Join(
@@ -822,13 +924,40 @@ public class LibraryItemsController : ControllerBase
                 .Split('\\', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
     }
 
+    private static bool IsNormalizedVirtualPath(string path)
+    {
+        var atSegmentStart = true;
+        var previousWasWhitespace = false;
+        foreach (var character in path)
+        {
+            if (character == '/' ||
+                (character == '\\' && (atSegmentStart || previousWasWhitespace)) ||
+                (atSegmentStart && char.IsWhiteSpace(character)))
+            {
+                return false;
+            }
+
+            if (character == '\\')
+            {
+                atSegmentStart = true;
+                previousWasWhitespace = false;
+                continue;
+            }
+
+            atSegmentStart = false;
+            previousWasWhitespace = char.IsWhiteSpace(character);
+        }
+
+        return !atSegmentStart && !previousWasWhitespace;
+    }
+
     private static IReadOnlyList<string> SplitVirtualPath(string path)
     {
         return NormalizeVirtualPath(path)
             .Split('\\', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     }
 
-    private record LibraryFileCandidate(
+    private readonly record struct LibraryFileCandidate(
         Soulseek.File File,
         string RemoteFilename,
         string Path,
@@ -836,8 +965,45 @@ public class LibraryItemsController : ControllerBase
         string FileName)
     {
         public int DuplicateCount { get; init; } = 1;
-        public string DuplicateKey => $"{FileName}|{Bytes}";
-        public string PathKey => Path;
+    }
+
+    private readonly record struct LibraryFilePage(
+        List<LibraryFileCandidate> Files,
+        int TotalFiles,
+        int CandidateCount);
+
+    private readonly record struct LibraryFileGroupKey(string Value, long Bytes);
+
+    private readonly record struct LibraryFileGroup(
+        LibraryFileCandidate Candidate,
+        int DuplicateCount,
+        int Sequence);
+
+    private sealed class LibraryFileGroupKeyComparer : IEqualityComparer<LibraryFileGroupKey>
+    {
+        public static LibraryFileGroupKeyComparer Instance { get; } = new();
+
+        public bool Equals(LibraryFileGroupKey left, LibraryFileGroupKey right)
+            => left.Bytes == right.Bytes &&
+                string.Equals(left.Value, right.Value, StringComparison.OrdinalIgnoreCase);
+
+        public int GetHashCode(LibraryFileGroupKey value)
+            => HashCode.Combine(StringComparer.OrdinalIgnoreCase.GetHashCode(value.Value), value.Bytes);
+    }
+
+    private sealed class LibraryFileGroupWorstFirstComparer : IComparer<LibraryFileGroup>
+    {
+        public static LibraryFileGroupWorstFirstComparer Instance { get; } = new();
+
+        public int Compare(LibraryFileGroup left, LibraryFileGroup right)
+        {
+            var pathComparison = StringComparer.OrdinalIgnoreCase.Compare(
+                right.Candidate.Path,
+                left.Candidate.Path);
+            return pathComparison != 0
+                ? pathComparison
+                : right.Sequence.CompareTo(left.Sequence);
+        }
     }
 
     private sealed record LibraryItemCandidate(

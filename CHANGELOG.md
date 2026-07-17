@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Native library browsing now uses structured duplicate keys, reuses canonical
+  virtual paths, matches invariant queries through reusable span storage, and
+  retains only the requested sorted prefix instead of fully sorting every file.
 - Opinion listing now normalizes query filters once and retains only the bounded
   newest matches instead of fully sorting every matching retained opinion.
 - Accessible share-grant queries now filter group membership in the database

@@ -25,6 +25,7 @@ using Xunit;
 /// <summary>
 /// Unit tests for LibraryItemsController (library search API for E2E and Collections UI).
 /// </summary>
+[Collection(AllocationTestCollection.Name)]
 public class LibraryItemsControllerTests
 {
     private readonly Mock<IShareService> shareServiceMock;
@@ -477,6 +478,61 @@ public class LibraryItemsControllerTests
     }
 
     [Fact]
+    public async Task BrowseItems_WideSearchPageHasBoundedAllocation()
+    {
+        const int fileCount = 10_000;
+        const int offset = 25;
+        const int limit = 50;
+        var directories = new List<Soulseek.Directory>
+        {
+            new("Music", Enumerable.Range(0, fileCount)
+                .Select(index =>
+                {
+                    var fileIndex = fileCount - index - 1;
+                    return new Soulseek.File(index + 1, $"track-{fileIndex:D5}.mp3", fileIndex + 1, ".mp3");
+                })
+                .ToList()),
+        };
+        shareServiceMock
+            .Setup(service => service.BrowseAsync(It.IsAny<slskd.Shares.Share>()))
+            .ReturnsAsync(directories);
+        shareServiceMock
+            .Setup(service => service.ResolveFileAsync(It.IsAny<string>()))
+            .ReturnsAsync((string filename) => ("local", $"/missing/{filename}", 1L));
+        hashDbServiceMock
+            .Setup(service => service.LookupHashesByFlacKeysAsync(
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IEnumerable<string> keys, CancellationToken _) => keys
+                .Select((key, index) => new HashDbEntry
+                {
+                    FlacKey = key,
+                    FileSha256 = $"sha-{index}",
+                })
+                .ToList());
+        _ = await controller.BrowseItems(query: "track", kinds: null, limit: limit, offset: offset);
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var result = await controller.BrowseItems(query: "track", kinds: null, limit: limit, offset: offset);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        var response = Assert.IsType<OkObjectResult>(result).Value!;
+        var responseType = response.GetType();
+        var files = ((System.Collections.IEnumerable)responseType.GetProperty("files")!.GetValue(response)!)
+            .Cast<object>()
+            .ToList();
+        Assert.Equal(limit, files.Count);
+        Assert.Equal("Music\\track-00025.mp3", files[0].GetType().GetProperty("Path")!.GetValue(files[0]));
+        Assert.Equal("Music\\track-00074.mp3", files[^1].GetType().GetProperty("Path")!.GetValue(files[^1]));
+        Assert.Equal(fileCount, responseType.GetProperty("totalFiles")!.GetValue(response));
+        Assert.Equal(0, responseType.GetProperty("duplicatesRemoved")!.GetValue(response));
+        Assert.True((bool)responseType.GetProperty("hasMore")!.GetValue(response)!);
+        Assert.True(
+            allocatedBytes < 4_750_000,
+            $"Library browser page allocated {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
     public void BuildDirectoryEntries_WithTenThousandRoots_EnumeratesInputOnce()
     {
         const int rootCount = 10_000;
@@ -503,6 +559,40 @@ public class LibraryItemsControllerTests
         Assert.Equal("Root-00000", first.GetType().GetProperty("Path")!.GetValue(first));
         Assert.Equal(1, first.GetType().GetProperty("FileCount")!.GetValue(first));
         Assert.Equal(2, first.GetType().GetProperty("ChildDirectoryCount")!.GetValue(first));
+    }
+
+    [Fact]
+    public void NormalizeVirtualPath_ReusesCanonicalInputAndPreservesCleanup()
+    {
+        var method = typeof(LibraryItemsController).GetMethod(
+            "NormalizeVirtualPath",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        var canonical = new string("Music\\Artist\\Track.mp3".ToCharArray());
+
+        var unchanged = method!.Invoke(null, new object?[] { canonical });
+
+        Assert.Same(canonical, unchanged);
+        Assert.Equal("Music\\Artist\\Track.mp3", method.Invoke(null, new object?[] { " / Music // Artist / Track.mp3 / " }));
+        Assert.Equal("Music\\Artist", method.Invoke(null, new object?[] { "Music\\\\Artist" }));
+        Assert.Equal("Music Folder\\Artist Name", method.Invoke(null, new object?[] { " Music Folder \\ Artist Name " }));
+        Assert.Equal(string.Empty, method.Invoke(null, new object?[] { " \t " }));
+    }
+
+    [Theory]
+    [InlineData("Music\\Björk\\SÓNG.FLAC", "sóng")]
+    [InlineData("Music\\Straße\\Track.flac", "STRASSE")]
+    [InlineData("Music\\ΟΣ\\Track.flac", "ος")]
+    [InlineData("Music\\İstanbul\\Track.flac", "istanbul")]
+    public void ContainsLowerInvariant_MatchesLegacyInvariantSearch(string value, string query)
+    {
+        var method = typeof(LibraryItemsController).GetMethod(
+            "ContainsLowerInvariant",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        var lowerQuery = query.ToLowerInvariant();
+
+        var actual = method!.Invoke(null, new object[] { value, lowerQuery });
+
+        Assert.Equal(value.ToLowerInvariant().Contains(lowerQuery), actual);
     }
 
     [Fact]

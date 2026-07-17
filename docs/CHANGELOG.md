@@ -22,6 +22,17 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Native shared-library browsing now scans files once into structured path or
+  filename/size duplicate groups, reuses already-canonical virtual paths, and
+  performs legacy-equivalent lowercase-invariant query matching through stack
+  or pooled character storage. A stable worst-first priority queue retains only
+  the first `offset + limit` groups instead of fully sorting every distinct
+  match. For a warmed 10,000-file search requesting 50 results at offset 25,
+  allocation falls from 10,708,672 to 4,294,352 bytes (59.9%), while sort
+  storage falls from O(distinct matches) to O(offset + limit). Path order,
+  first-seen equal-path ties, direct-child browsing, duplicate collapse/counts,
+  case and Unicode query behavior, kind filtering, totals, and pagination
+  metadata remain unchanged.
 - Opinion listing now prepares issuer, subject, scope, and source filters once,
   scans retained opinions directly, and keeps only the requested newest matches
   in a stable worst-first priority queue. This replaces repeated trim/

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound native shared-library browser paging allocation.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `LibraryItemsController.BrowseItems` now scans files once into structured path or filename/size duplicate groups, reuses canonical virtual paths, extracts normalized filenames directly, and performs the existing lowercase-invariant query match through stack or pooled character storage. A stable worst-first priority queue retains only the first `offset + limit` groups instead of fully sorting all distinct matches; per-group sequence preserves first-seen equal-path ties. A warmed 10,000-file search page at offset 25 and limit 50 falls from 10,708,672 to 4,294,352 allocated bytes (59.9%), and sort storage changes from O(distinct matches) to O(offset + limit). Exact path order, direct-child behavior, duplicate collapse/counts, case/Unicode query semantics, kind filtering, totals, and pagination metadata remain unchanged. Added allocation, normalization-reuse, and invariant-search compatibility regressions. Validation passed: complete controller (`28/28`) and backend (`5122/5122`: `69` application, `4773` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Documented span overload gotcha `0z727` (`455358fed`).
+
 - [x] Bound opinion-list query normalization and newest selection.
   - Status: completed (2026-07-17)
   - Priority: P1

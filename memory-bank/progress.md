@@ -1,3 +1,12 @@
+## Update 2026-07-17 04:22:57Z
+
+- Completed allocation-bounded native shared-library browser paging.
+- Replaced interpolated duplicate keys and complete distinct-file sorting with structured groups plus a stable worst-first priority queue capped at `offset + limit`; reused canonical paths and allocation-free common query matching.
+- Reduced a warmed 10,000-file/offset-25/limit-50 search fixture from 10,708,672 to 4,294,352 allocated bytes (59.9%); sort storage is now O(offset + limit) rather than O(distinct matches).
+- Preserved path and stable-tie order, direct-child browsing, duplicate collapse/counts, invariant case and Unicode query behavior, kind filtering, totals, and pagination metadata.
+- Added exact allocation, path-normalization reuse, and legacy invariant-search regressions; passed complete controller (`28/28`) and backend (`5122/5122`: `69` application, `4773` unit, `280` integration) tests.
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed. Documented span overload gotcha `0z727` (`455358fed`); concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 04:03:10Z
 
 - Completed allocation-bounded, stable newest opinion listing.

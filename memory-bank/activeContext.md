@@ -1,3 +1,17 @@
+## Update 2026-07-17 04:22:57Z
+
+- Current task: performance and efficiency improvements in progress; bounded native library browser paging complete locally.
+- Last activity:
+  - Replaced interpolated duplicate keys and complete match sorting with structured groups and a stable priority queue capped at `offset + limit`; canonical paths and common invariant query matching no longer allocate per file.
+  - A 10,000-file search at offset 25 and limit 50 falls from 10,708,672 to 4,294,352 warmed allocated bytes (59.9%), with O(offset + limit) sort storage.
+- Validation:
+  - Passed complete controller (`28/28`) and backend validation (`5122/5122`: `69` application, `4773` unit, `280` integration).
+  - Exact path/stable-tie/direct-child/duplicate/query/kind/total/pagination semantics, allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Documented span overload gotcha `0z727` (`455358fed`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the bounded native library browser paging slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 04:03:10Z
 
 - Current task: performance and efficiency improvements in progress; bounded stable opinion listing complete locally.
