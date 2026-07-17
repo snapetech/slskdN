@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- SongID loose-text similarity now compares normalized token ranges through one
+  membership table instead of allocating split tokens and extra Jaccard sets.
 - Discovery Graph evidence summaries now aggregate each lane in one pass and
   sort only distinct lane totals instead of buffering every edge-lane group.
 - Text-only taste-recommendation keys now normalize through reusable stack

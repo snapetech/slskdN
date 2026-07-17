@@ -3,6 +3,7 @@
 // </copyright>
 namespace slskd.SongID;
 
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using slskd.Audio;
 
@@ -452,16 +453,68 @@ internal static class SongIdScoring
             return 1;
         }
 
-        var leftTokens = normalizedLeft.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToHashSet(StringComparer.Ordinal);
-        var rightTokens = normalizedRight.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToHashSet(StringComparer.Ordinal);
-        if (leftTokens.Count == 0 || rightTokens.Count == 0)
+        var tokens = new Dictionary<LooseTextToken, byte>(LooseTextTokenComparer.Instance);
+        var rightTokenCount = 0;
+        var intersectionCount = 0;
+        AddLooseTextTokens(normalizedLeft, isRight: false, tokens, ref rightTokenCount, ref intersectionCount);
+        if (tokens.Count == 0)
         {
             return 0;
         }
 
-        var intersection = leftTokens.Intersect(rightTokens).Count();
-        var union = leftTokens.Union(rightTokens).Count();
-        return union == 0 ? 0 : intersection / (double)union;
+        AddLooseTextTokens(normalizedRight, isRight: true, tokens, ref rightTokenCount, ref intersectionCount);
+        return rightTokenCount == 0 ? 0 : intersectionCount / (double)tokens.Count;
+    }
+
+    private static void AddLooseTextTokens(
+        string text,
+        bool isRight,
+        Dictionary<LooseTextToken, byte> tokens,
+        ref int rightTokenCount,
+        ref int intersectionCount)
+    {
+        const byte leftMembership = 1;
+        const byte rightMembership = 2;
+        var membership = isRight ? rightMembership : leftMembership;
+        var start = 0;
+
+        while (start < text.Length)
+        {
+            while (start < text.Length && text[start] == ' ')
+            {
+                start++;
+            }
+
+            if (start == text.Length)
+            {
+                break;
+            }
+
+            var end = text.IndexOf(' ', start);
+            if (end < 0)
+            {
+                end = text.Length;
+            }
+
+            var token = new LooseTextToken(text, start, end - start);
+            ref var tokenMembership = ref CollectionsMarshal.GetValueRefOrAddDefault(tokens, token, out var exists);
+            if (!exists)
+            {
+                tokenMembership = membership;
+                if (isRight)
+                {
+                    rightTokenCount++;
+                }
+            }
+            else if (isRight && (tokenMembership & rightMembership) == 0)
+            {
+                tokenMembership |= rightMembership;
+                rightTokenCount++;
+                intersectionCount++;
+            }
+
+            start = end + 1;
+        }
     }
 
     private static string NormalizeLooseText(string? value)
@@ -478,6 +531,42 @@ internal static class SongIdScoring
             .Replace(" ft. ", " featuring ", StringComparison.Ordinal)
             .Replace(" ft ", " featuring ", StringComparison.Ordinal);
         return Regex.Replace(normalized, @"[^a-z0-9]+", " ").Trim();
+    }
+
+    private readonly struct LooseTextToken
+    {
+        public LooseTextToken(string source, int start, int length)
+        {
+            Source = source;
+            Start = start;
+            Length = length;
+        }
+
+        public string Source { get; }
+
+        public int Start { get; }
+
+        public int Length { get; }
+    }
+
+    private sealed class LooseTextTokenComparer : IEqualityComparer<LooseTextToken>
+    {
+        public static LooseTextTokenComparer Instance { get; } = new();
+
+        public bool Equals(LooseTextToken left, LooseTextToken right)
+            => left.Length == right.Length &&
+                left.Source.AsSpan(left.Start, left.Length).SequenceEqual(right.Source.AsSpan(right.Start, right.Length));
+
+        public int GetHashCode(LooseTextToken token)
+        {
+            HashCode hashCode = default;
+            foreach (var value in token.Source.AsSpan(token.Start, token.Length))
+            {
+                hashCode.Add(value);
+            }
+
+            return hashCode.ToHashCode();
+        }
     }
 
     private static bool IsLossless(string? codec)

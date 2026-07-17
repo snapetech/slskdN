@@ -7,6 +7,7 @@ using slskd.Audio;
 using slskd.SongID;
 using Xunit;
 
+[Collection(AllocationTestCollection.Name)]
 public sealed class SongIdScoringTests
 {
     [Fact]
@@ -413,5 +414,59 @@ public sealed class SongIdScoringTests
 
         Assert.Equal(1, featuringScore);
         Assert.Equal(1, andScore);
+    }
+
+    [Theory]
+    [InlineData("alpha alpha beta", "alpha gamma gamma", 1.0 / 3.0)]
+    [InlineData("Alpha---Beta", "alpha beta", 1.0)]
+    [InlineData("ÄPFEL", "pfel", 1.0)]
+    [InlineData("alpha\tbeta", "alpha beta", 1.0)]
+    [InlineData("alpha", "alpha beta", 0.5)]
+    [InlineData("alpha alpha", "alpha", 1.0)]
+    [InlineData("alpha", null, 0.0)]
+    [InlineData("", "", 0.0)]
+    public void CompareLooseText_PreservesNormalizedTokenSetSemantics(string left, string? right, double expected)
+    {
+        Assert.Equal(expected, SongIdScoring.CompareLooseText(left, right), precision: 10);
+    }
+
+    [Fact]
+    public void CompareLooseText_LargeTokenSetsHaveBoundedAllocation()
+    {
+        const int tokenCount = 5_000;
+        var left = string.Join(' ', Enumerable.Range(0, tokenCount).Select(index => $"token{index}"));
+        var right = string.Join(' ', Enumerable.Range(tokenCount / 2, tokenCount).Select(index => $"token{index}"));
+        _ = SongIdScoring.CompareLooseText("warm shared tokens", "warm different tokens");
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var score = SongIdScoring.CompareLooseText(left, right);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(1.0 / 3.0, score, precision: 10);
+        Assert.True(
+            allocatedBytes < 1_000_000,
+            $"Expected loose-text token comparison below 1 MB allocated, got {allocatedBytes:N0} bytes.");
+    }
+
+    [Fact]
+    public void CompareLooseText_RepeatedTypicalComparisonsHaveBoundedAllocation()
+    {
+        const int iterations = 10_000;
+        const string left = "Artist feat. Guest Album Song";
+        const string right = "Artist featuring Other Album Song";
+        _ = SongIdScoring.CompareLooseText(left, right);
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        var score = 0.0;
+        for (var index = 0; index < iterations; index++)
+        {
+            score += SongIdScoring.CompareLooseText(left, right);
+        }
+
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+        Assert.Equal(2.0 / 3.0, score / iterations, precision: 10);
+        Assert.True(
+            allocatedBytes < 10_000_000,
+            $"Expected repeated loose-text comparisons below 10 MB allocated, got {allocatedBytes:N0} bytes.");
     }
 }

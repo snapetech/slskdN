@@ -22,6 +22,16 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- SongID loose-text similarity now scans normalized token ranges into one
+  exact membership table instead of allocating two split arrays, per-token
+  strings, and separate LINQ intersection and union sets. A representative
+  10,000-comparison corpus-style batch falls from 24,400,248 to 9,760,000
+  warmed allocated bytes (60.0%). Comparing two 5,000-token inputs with a
+  2,500-token overlap falls from 1,480,736 to 907,208 bytes (38.7%). Existing
+  lowercase/feature/ampersand/punctuation normalization, ASCII token filtering,
+  duplicate-token collapse, empty and exact-match handling, and exact Jaccard
+  scores remain unchanged; hash collisions still require full ordinal token
+  equality.
 - Discovery Graph evidence summarization now scans edge lanes directly into
   case-insensitive per-lane accumulators and sorts only the distinct summaries,
   eliminating `SelectMany`/`GroupBy` buffers and repeated group enumeration.

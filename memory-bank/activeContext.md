@@ -1,3 +1,17 @@
+## Update 2026-07-17 00:35:36Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded SongID loose-text comparison complete locally.
+- Last activity:
+  - Replaced normalized string splitting, per-token substrings, and LINQ intersection/union sets with non-owning token ranges and one exact left/right membership dictionary.
+  - A 10,000-comparison representative batch falls from 24,400,248 to 9,760,000 warmed allocated bytes (60.0%); a 5,000-token-per-side overlap fixture falls from 1,480,736 to 907,208 bytes (38.7%).
+- Validation:
+  - Passed focused scoring (`20/20`), broader SongID (`60/60`), and full backend suites (`5045/5045`: `69` application, `4696` unit, `280` integration) tests.
+  - Exact normalization, duplicate-token, empty/equal, overlap/union, collision, typical/large allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff behavior passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the SongID loose-text comparison slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 00:21:11Z
 
 - Current task: performance and efficiency improvements in progress; single-pass Discovery Graph evidence summarization complete locally.

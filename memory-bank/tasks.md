@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound SongID loose-text token comparison allocation.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `SongIdScoring.CompareLooseText` now scans each normalized string into non-owning token ranges and records left/right membership in one exact dictionary. It no longer creates two split arrays, one string per token, or the additional hash sets built by LINQ `Intersect` and `Union`; membership updates use one dictionary probe while exact ordinal span equality protects hash collisions. For 10,000 representative non-equal corpus comparisons, warmed allocation falls from 24,400,248 to 9,760,000 bytes (60.0%). For two 5,000-token inputs with 2,500 shared tokens, allocation falls from 1,480,736 to 907,208 bytes (38.7%). Existing lowercasing, ampersand and feature-alias replacement, punctuation/Unicode filtering, ASCII-space tokenization, duplicate collapse, empty/exact handling, and Jaccard scores remain unchanged. Added normalization/token-set compatibility plus typical and large allocation regressions. Validation passed: focused scoring (`20/20`), broader SongID (`60/60`), full backend suites (`5045/5045`: `69` application, `4696` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Stream Discovery Graph evidence summarization by distinct lane.
   - Status: completed (2026-07-17)
   - Priority: P1

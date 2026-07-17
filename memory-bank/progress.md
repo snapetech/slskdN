@@ -1,3 +1,12 @@
+## Update 2026-07-17 00:35:36Z
+
+- Completed allocation-bounded SongID loose-text token comparison.
+- Replaced split arrays, per-token strings, and separate LINQ intersection/union sets with non-owning normalized token ranges and one exact left/right membership dictionary.
+- Reduced warmed allocation across 10,000 representative corpus comparisons from 24,400,248 to 9,760,000 bytes (60.0%); two 5,000-token inputs fall from 1,480,736 to 907,208 bytes (38.7%).
+- Preserved normalization aliases, punctuation/Unicode filtering, ASCII tokenization, duplicate collapse, empty/exact behavior, ordinal collision checks, and exact Jaccard scores.
+- Added compatibility and typical/large allocation regressions; passed focused scoring (`20/20`), broader SongID (`60/60`), and full backend (`5045/5045`: `69` application, `4696` unit, `280` integration) tests.
+- Passed repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 00:21:11Z
 
 - Completed a single-pass, distinct-lane-bounded Discovery Graph evidence summary.
