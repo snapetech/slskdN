@@ -114,15 +114,19 @@ public class MediaCoreSwarmService : IMediaCoreSwarmService
 
             var groupsByContentId = new Dictionary<string, SwarmGroup>();
             var recommendedContentIds = new List<string>();
+            if (verificationResult.SourcesByHash.Count == 0)
+            {
+                return CreateFallbackGrouping(verificationResult, cancellationToken);
+            }
+
+            var contentVariants = await DiscoverContentVariantsAsync(
+                verificationResult.Filename,
+                verificationResult.FileSize,
+                cancellationToken);
 
             // Process each hash group and try to map to ContentIDs
             foreach (var (hash, sources) in verificationResult.SourcesByHash)
             {
-                var contentVariants = await DiscoverContentVariantsAsync(
-                    verificationResult.Filename,
-                    verificationResult.FileSize,
-                    cancellationToken);
-
                 foreach (var variant in contentVariants.Variants)
                 {
                     if (!groupsByContentId.ContainsKey(variant.ContentId))

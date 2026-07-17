@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Share MediaCore content discovery across verified hash groups.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `MediaCoreSwarmService.GroupSourcesByContentIdAsync` now discovers variants once for its invariant filename/size target before iterating hash groups, rather than repeating two registry scans and up to 50 descriptor reads per group. A 100-group fixture drops from 200 total registry scans to 2 (99.0%); descriptor reads are likewise bounded per candidate rather than multiplied by group count. Empty inputs still fall back with zero discovery I/O. Discovered variant identity, quality, recommendations, first-matching-group sources, fallback membership, and cancellation remain unchanged. Validation passed: service (`3/3`), MultiSource (`121/121`), broader MultiSource/MediaCore (`393/393`), and backend (`5137/5137`: `69` application, `4788` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Documented hoisted-work gotcha `0z732` (`1285d62fa`).
+
 - [x] Bound source-ranking and batch-history lookup allocation.
   - Status: completed (2026-07-17)
   - Priority: P1

@@ -22,6 +22,14 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- MediaCore swarm grouping now performs invariant content discovery once per
+  filename/size target before iterating verified hash groups. A 100-hash-group
+  request drops from 100 audio plus 100 video registry scans to one of each
+  (99.0% fewer discovery passes); descriptor reads are likewise no longer
+  multiplied by hash-group count. Existing discovered-variant grouping,
+  quality, recommendations, first-matching-group source selection, and fallback
+  contents remain unchanged. Empty source maps retain their zero-I/O fallback,
+  avoiding unnecessary network-adjacent descriptor work.
 - Source ranking now snapshots candidates once, deduplicates usernames directly,
   and reads only stored success/failure counters through one raw SQLite query
   over a JSON table parameter. Missing peers remain neutral without allocating

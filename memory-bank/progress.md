@@ -1,3 +1,12 @@
+## Update 2026-07-17 06:01:37Z
+
+- Completed one-pass MediaCore content discovery for verified swarm grouping.
+- Hoisted invariant filename/size variant discovery out of the per-hash loop while preserving a zero-I/O empty-input fallback.
+- Reduced a 100-hash-group fixture from 100 audio and 100 video registry scans to one each (99.0% fewer discovery passes); descriptor reads are no longer multiplied by hash-group count.
+- Preserved discovered variant grouping, quality, recommendations, first-matching-group sources, fallback contents, and cancellation.
+- Added non-empty semantics, wide call-count, and empty-input regressions; passed service (`3/3`), MultiSource (`121/121`), broader MultiSource/MediaCore (`393/393`), and backend (`5137/5137`: `69` application, `4788` unit, `280` integration) tests.
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed. Documented hoisted-work gotcha `0z732` (`1285d62fa`); concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 05:50:19Z
 
 - Completed allocation-bounded source ranking and public batch-history retrieval.

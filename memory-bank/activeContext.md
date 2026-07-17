@@ -1,3 +1,17 @@
+## Update 2026-07-17 06:01:37Z
+
+- Current task: performance and efficiency improvements in progress; one-pass MediaCore swarm discovery complete locally.
+- Last activity:
+  - Hoisted invariant filename/size content discovery out of verified hash-group iteration while retaining the empty-input zero-I/O fallback.
+  - A 100-group request falls from 200 registry scans to 2 (99.0%); descriptor reads are likewise no longer multiplied by group count.
+- Validation:
+  - Passed service (`3/3`), MultiSource (`121/121`), broader MultiSource/MediaCore (`393/393`), and backend validation (`5137/5137`: `69` application, `4788` unit, `280` integration).
+  - Exact discovered grouping/quality/recommendation/first-group/fallback/empty/cancellation semantics, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Documented gotcha `0z732` (`1285d62fa`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the one-pass MediaCore swarm-discovery slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 05:50:19Z
 
 - Current task: performance and efficiency improvements in progress; bounded source ranking and history lookup complete locally.

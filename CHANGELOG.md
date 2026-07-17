@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- MediaCore swarm grouping now discovers content variants once per target instead
+  of repeating registry and descriptor reads for every verified hash group.
 - Source ranking and batch-history reads now query existing peer counters through
   one narrow SQLite JSON-table lookup instead of EF local-collection expansion.
 - Profile-filtered HashDb variant reads now match distinct codec profiles and
