@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove revealed/content hash comparison arrays from commitments.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `CryptographicCommitment.VerifyCommitment` now normalizes the revealed hash once for digest recomputation and actual-hash comparison. Revealed-hash and `VerifyContent` checks share a constant-time UTF-8 comparison that uses bounded stack storage for common hashes and cleared pooled storage for long Unicode values instead of two byte arrays. Across 10,000 successful one-time verifications, allocation falls from 3,680,000 to 1,920,000 bytes (47.8%); across 100,000 repeated uppercase verified-content checks, allocation falls from 32,800,000 to 15,200,000 bytes (53.7%). Invariant normalization, fixed-time equality, length mismatches, Unicode fallback, state gating, and success/failure transitions remain unchanged. Validation passed: complete commitment (`6/6`), Common Security (`373/373`), and backend (`5233/5233`: `69` application, `4884` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Reuse pooled hash input storage for proof-of-storage responses.
   - Status: completed (2026-07-17)
   - Priority: P1

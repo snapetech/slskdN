@@ -13,7 +13,7 @@ using Xunit;
 public class CryptographicCommitmentTests
 {
     [Fact]
-    public void VerifyCommitment_AvoidsDigestComparisonArrays()
+    public void VerifyCommitment_AvoidsRevealedHashComparisonArrays()
     {
         using var commitments = new CryptographicCommitment();
         var fileHash = new string('a', 64);
@@ -39,7 +39,34 @@ public class CryptographicCommitmentTests
 
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.Equal(created.Count, validCount);
-        Assert.InRange(allocated, 0, 4_200_000);
+        Assert.InRange(allocated, 0, 2_300_000);
+    }
+
+    [Fact]
+    public void VerifyContent_RepeatedUppercaseHashBoundsAllocation()
+    {
+        using var commitments = new CryptographicCommitment();
+        var fileHash = new string('A', 64);
+        var created = commitments.CreateCommitment(fileHash, "peer", "track.flac");
+        _ = commitments.VerifyCommitment(created.CommitmentId, fileHash, created.Nonce);
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        var validCount = 0;
+        for (var index = 0; index < 100_000; index++)
+        {
+            if (commitments.VerifyContent(created.CommitmentId, fileHash))
+            {
+                validCount++;
+            }
+        }
+
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal(100_000, validCount);
+        Assert.InRange(allocated, 0, 17_000_000);
     }
 
     [Fact]
@@ -98,5 +125,7 @@ public class CryptographicCommitmentTests
 
         Assert.True(verification.IsValid);
         Assert.Equal(fileHash.ToLowerInvariant(), commitments.GetCommitment(result.CommitmentId)!.ActualHash);
+        Assert.True(commitments.VerifyContent(result.CommitmentId, fileHash));
+        Assert.False(commitments.VerifyContent(result.CommitmentId, "different"));
     }
 }

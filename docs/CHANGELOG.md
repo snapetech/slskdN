@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Cryptographic commitment revealed-hash and verified-content checks now use a
+  shared constant-time UTF-8 comparison over bounded stack or cleared pooled
+  storage, and commitment verification normalizes each revealed hash once.
+  Across 10,000 successful one-time verifications, allocation falls from
+  3,680,000 to 1,920,000 bytes (47.8%). Across 100,000 repeated uppercase
+  verified-content checks, allocation falls from 32,800,000 to 15,200,000 bytes
+  (53.7%). Invariant hash normalization, constant-time equality, different-
+  length rejection, long Unicode inputs, and verified-state gating remain
+  unchanged.
 - Proof-of-storage response generation now UTF-8 encodes the challenge nonce
   and reads the requested file chunk directly into one pooled hash input buffer,
   hashes through a fixed digest span in a synchronous helper, formats lowercase

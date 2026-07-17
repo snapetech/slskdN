@@ -1,3 +1,17 @@
+## Update 2026-07-17 14:18:54Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded cryptographic commitment revealed/content comparisons complete locally.
+- Last activity:
+  - Reused one normalized revealed hash and replaced per-call UTF-8 comparison arrays with a constant-time bounded span/pool helper.
+  - Successful one-time verification allocation falls from 3,680,000 to 1,920,000 bytes per 10,000 calls (47.8%); uppercase verified-content allocation falls from 32,800,000 to 15,200,000 bytes per 100,000 calls (53.7%).
+- Validation:
+  - Passed complete commitment (`6/6`), Common Security (`373/373`), and backend validation (`5233/5233`: `69` application, `4884` unit, `280` integration), plus repository lint.
+  - Exact normalization/fixed-time/length/Unicode/state behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the commitment comparison optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 14:10:43Z
 
 - Current task: performance and efficiency improvements in progress; pooled proof-of-storage response generation complete locally.

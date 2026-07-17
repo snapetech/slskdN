@@ -136,7 +136,8 @@ public sealed class CryptographicCommitment : IDisposable
             }
 
             // Recompute commitment hash
-            var computedCommitment = ComputeSha256(revealedHash.ToLowerInvariant(), nonce);
+            var normalizedRevealedHash = revealedHash.ToLowerInvariant();
+            var computedCommitment = ComputeSha256(normalizedRevealedHash, nonce);
             Span<byte> computedCommitmentBytes = stackalloc byte[64];
             Span<byte> storedCommitmentBytes = stackalloc byte[64];
             _ = Encoding.UTF8.GetBytes(computedCommitment, computedCommitmentBytes);
@@ -151,9 +152,7 @@ public sealed class CryptographicCommitment : IDisposable
             }
 
             // Verify the revealed hash matches what was originally committed
-            if (!CryptographicOperations.FixedTimeEquals(
-                Encoding.UTF8.GetBytes(revealedHash.ToLowerInvariant()),
-                Encoding.UTF8.GetBytes(commitment.ActualHash)))
+            if (!FixedTimeEqualsUtf8(normalizedRevealedHash, commitment.ActualHash))
             {
                 commitment.State = CommitmentState.Failed;
                 return CommitmentVerification.Failed("Revealed hash doesn't match original commitment");
@@ -184,9 +183,7 @@ public sealed class CryptographicCommitment : IDisposable
             return false;
         }
 
-        return CryptographicOperations.FixedTimeEquals(
-            Encoding.UTF8.GetBytes(contentHash.ToLowerInvariant()),
-            Encoding.UTF8.GetBytes(commitment.ActualHash));
+        return FixedTimeEqualsUtf8(contentHash.ToLowerInvariant(), commitment.ActualHash);
     }
 
     /// <summary>
@@ -280,6 +277,37 @@ public sealed class CryptographicCommitment : IDisposable
             Span<byte> hash = stackalloc byte[32];
             SHA256.HashData(bytes[..byteCount], hash);
             return Convert.ToHexStringLower(hash);
+        }
+        finally
+        {
+            if (rentedBytes != null)
+            {
+                ArrayPool<byte>.Shared.Return(rentedBytes, clearArray: true);
+            }
+        }
+    }
+
+    private static bool FixedTimeEqualsUtf8(string first, string second)
+    {
+        var byteCount = Encoding.UTF8.GetByteCount(first);
+        if (byteCount != Encoding.UTF8.GetByteCount(second))
+        {
+            return false;
+        }
+
+        byte[]? rentedBytes = null;
+        var combinedByteCount = checked(byteCount * 2);
+        Span<byte> bytes = combinedByteCount <= 1024
+            ? stackalloc byte[combinedByteCount]
+            : (rentedBytes = ArrayPool<byte>.Shared.Rent(combinedByteCount));
+
+        try
+        {
+            _ = Encoding.UTF8.GetBytes(first, bytes[..byteCount]);
+            _ = Encoding.UTF8.GetBytes(second, bytes.Slice(byteCount, byteCount));
+            return CryptographicOperations.FixedTimeEquals(
+                bytes[..byteCount],
+                bytes.Slice(byteCount, byteCount));
         }
         finally
         {

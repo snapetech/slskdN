@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Commitment revealed-hash and verified-content checks now reuse normalized
+  values and bounded span/pool UTF-8 storage instead of allocating two byte
+  arrays for each constant-time comparison.
 - Proof-of-storage response generation now reads challenged file chunks directly
   into cleared pooled hash input storage instead of allocating separate nonce,
   chunk, concatenation, digest, and uppercase/lowercase hexadecimal buffers.
