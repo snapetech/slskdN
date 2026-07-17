@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Pod ID generation now hashes through static/span SHA-256 APIs, compares two
+  conversation peers directly in ordinal order, and writes the final prefixed
+  lowercase identifier without a sorting array, disposable hash object, full
+  uppercase hex string, lowercase copy, substring, or intermediate prefixed
+  string. Across 100,000 conversation IDs, allocation falls from 100,800,712
+  to 32,000,040 bytes (68.3%) and elapsed time from 105 to 46 ms (56.2%). Exact
+  SHA-256 vectors, timestamp inputs, ordinal peer symmetry, 16/32-character
+  prefixes, lowercase format, validation exceptions, and output strings remain
+  unchanged.
 - Canary watermark expansion now reuses one HMAC instance and fixed stack spans
   for the initial digest, counter input, and expanded block instead of
   allocating a counter array, concatenated hash/counter array, and result hash

@@ -9,6 +9,44 @@ namespace slskd.Tests.Unit.PodCore;
 public class PodIdFactoryTests
 {
     [Fact]
+    public void ConversationPodId_AvoidsSortingAndHexIntermediates()
+    {
+        _ = PodIdFactory.ConversationPodId("peer:mesh:self", "bridge:user1");
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        string? podId = null;
+        for (var iteration = 0; iteration < 100_000; iteration++)
+        {
+            podId = PodIdFactory.ConversationPodId("peer:mesh:self", "bridge:user1");
+        }
+
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal("pod:48125a1143f74eb823a53f3239149045", podId);
+        Assert.InRange(allocated, 0, 40_000_000);
+    }
+
+    [Fact]
+    public void Generate_ReturnsLegacySha256Prefix()
+    {
+        var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(1_710_000_000_000);
+
+        var podId = PodIdFactory.Generate("pod-name", timestamp);
+
+        Assert.Equal("2a553274bdbc6023", podId);
+    }
+
+    [Fact]
+    public void ConversationPodId_ReturnsLegacySha256Prefix()
+    {
+        var podId = PodIdFactory.ConversationPodId("peer:mesh:self", "bridge:user1");
+
+        Assert.Equal("pod:48125a1143f74eb823a53f3239149045", podId);
+    }
+
+    [Fact]
     public void ConversationPodId_WithTwoPeers_ReturnsDeterministicId()
     {
         // Arrange

@@ -23,9 +23,9 @@ namespace slskd.Messaging
             var ts = timestamp ?? DateTimeOffset.UtcNow;
             var input = $"{podName}:{ts.ToUnixTimeMilliseconds()}";
 
-            using var sha = SHA256.Create();
-            var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(input));
-            return Convert.ToHexString(hash).Substring(0, 16).ToLowerInvariant();
+            Span<byte> hash = stackalloc byte[32];
+            SHA256.HashData(Encoding.UTF8.GetBytes(input), hash);
+            return Convert.ToHexStringLower(hash[..8]);
         }
 
         /// <summary>
@@ -36,15 +36,20 @@ namespace slskd.Messaging
         /// <returns>A deterministic pod ID for the conversation (format: pod: + 32 hex chars).</returns>
         public static string ConversationPodId(string userId1, string userId2)
         {
-            // Sort user IDs to ensure consistent pod ID regardless of order
-            var users = new[] { userId1, userId2 };
-            Array.Sort(users, StringComparer.Ordinal);
+            var firstUser = userId1;
+            var secondUser = userId2;
+            if (StringComparer.Ordinal.Compare(firstUser, secondUser) > 0)
+            {
+                (firstUser, secondUser) = (secondUser, firstUser);
+            }
 
-            var input = $"conversation:{users[0]}:{users[1]}";
-            using var sha = SHA256.Create();
-            var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(input));
-            var hex = Convert.ToHexString(hash).ToLowerInvariant();
-            return $"pod:{hex.Substring(0, 32)}";
+            var input = $"conversation:{firstUser}:{secondUser}";
+            var hash = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+            return string.Create(36, hash, static (podId, digest) =>
+            {
+                "pod:".CopyTo(podId);
+                _ = Convert.TryToHexStringLower(digest.AsSpan(0, 16), podId[4..], out _);
+            });
         }
 
         /// <summary>

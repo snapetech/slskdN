@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Pod ID generation now hashes through static/span APIs and writes only the
+  required lowercase prefix without two-peer sorting or full-hex intermediates.
 - Long canary watermark expansion now reuses one HMAC and fixed span buffers
   instead of allocating hash, counter, and concatenation arrays per block.
 - Canary registration now computes HMACs and lowercase identifiers without

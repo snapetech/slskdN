@@ -1,3 +1,17 @@
+## Update 2026-07-17 13:17:58Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded pod ID generation complete locally.
+- Last activity:
+  - Replaced two-peer array sorting, disposable SHA objects, and full hex/lowercase/substring pipelines with direct ordinal comparison, static/span hashing, and exact final-string filling.
+  - Across 100,000 conversation IDs, allocation falls from 100,800,712 to 32,000,040 bytes (68.3%) and elapsed time from 105 to 46 ms (56.2%).
+- Validation:
+  - Passed complete pod ID factory (`12/12`) and backend validation (`5219/5219`: `69` application, `4870` unit, `280` integration), plus repository lint.
+  - Exact SHA vectors, timestamp/order/format/error behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the pod ID optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 13:08:41Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded canary watermark expansion complete locally.

@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove sorting and hexadecimal intermediates from pod ID generation.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `PodIdFactory.Generate` now hashes into a stack span and formats only the required eight-byte lowercase prefix. `ConversationPodId` directly compares the two peers with the existing ordinal comparer, hashes statically, and fills the exact `pod:` plus 32-character lowercase result in one allocation through `string.Create`/`TryToHexStringLower`. This removes the two-element sort array, disposable SHA object, full uppercase hex string, lowercase copy, substring, and prefixed-string intermediate. Across 100,000 conversation IDs, allocation falls from 100,800,712 to 32,000,040 bytes (68.3%) and elapsed time from 105 to 46 ms (56.2%). Exact known SHA-256 outputs, millisecond timestamps, ordinal peer symmetry, lowercase formats, array validation, and exception behavior remain unchanged. Validation passed: complete factory tests (`12/12`) and backend (`5219/5219`: `69` application, `4870` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Remove per-block arrays from canary watermark expansion.
   - Status: completed (2026-07-17)
   - Priority: P1
