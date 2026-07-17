@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Upload scheduling now selects the next eligible transfer in one pass without
+  rebuilding grouped ready-upload lists or sorting each scheduling decision.
 - Full security challenge and verification caches now find their oldest entry
   without allocating and ordering concurrent-value snapshots during eviction.
 - Proof-of-storage and cryptographic-commitment statistics now aggregate their

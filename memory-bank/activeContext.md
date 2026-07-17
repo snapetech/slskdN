@@ -1,3 +1,17 @@
+## Update 2026-07-17 10:07:28Z
+
+- Current task: performance and efficiency improvements in progress; one-pass upload scheduling complete locally.
+- Last activity:
+  - Replaced per-decision ready-upload grouping/list buffering and group/upload sorting with one scan retaining the best eligible upload.
+  - A warmed 10,000-ready FIFO decision falls from 265,480 to 320 allocated bytes (99.9%); 20 decisions fall from 8 to 3 ms (62.5%).
+- Validation:
+  - Passed complete queue (`32/32`), upload subsystem (`50/50`), and backend validation (`5168/5168`: `69` application, `4819` unit, `280` integration), plus repository lint.
+  - Global/group slot limits, priority/name order, FIFO/round-robin selection, exact ties, group pinning, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Documented gotcha `0z742` (`551f93910`). Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the upload scheduling optimization and regression coverage.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 09:54:17Z
 
 - Current task: performance and efficiency improvements in progress; full-capacity security challenge/session eviction optimization complete locally.

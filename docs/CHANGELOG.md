@@ -22,6 +22,15 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Upload scheduling now scans tracked uploads once and retains only the best
+  eligible group/upload pair instead of rebuilding a grouped concurrent map,
+  buffering every ready upload, and ordering both groups and the winning list.
+  A warmed FIFO decision over 10,000 ready uploads falls from 265,480 to 320
+  allocated bytes (99.9%), while 20 decisions fall from 8 to 3 ms (62.5%).
+  Temporary selection storage changes from O(ready uploads) to O(1). Checked
+  global-slot aggregation, group capacity, priority/name ordering, FIFO and
+  round-robin timestamps, first-enumerated exact ties, group pinning, and slot
+  accounting remain unchanged.
 - Full 1,000-entry proof-of-storage, Byzantine-consensus, and probabilistic-
   verification caches now select the oldest entry in one direct scan instead
   of copying and ordering every retained value to evict one item. Warmed

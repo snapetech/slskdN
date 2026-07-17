@@ -790,6 +790,103 @@ namespace slskd.Tests.Unit.Transfers.Uploads
                 Assert.Equal(user2, result.Username);
                 Assert.Equal(file2, result.Filename);
             }
+
+            [Fact]
+            public void Releases_FirstEnumeratedUpload_WhenTimestampsTie()
+            {
+                var (queue, _) = GetFixture();
+                var timestamp = DateTime.UtcNow;
+                queue.SetProperty(
+                    "Uploads",
+                    new ConcurrentDictionary<string, List<Upload>>(
+                        new[]
+                        {
+                            new KeyValuePair<string, List<Upload>>(
+                                "same-user",
+                                new List<Upload>
+                                {
+                                    new Upload { Username = "same-user", Filename = "first.flac", Enqueued = timestamp, Ready = timestamp },
+                                    new Upload { Username = "same-user", Filename = "second.flac", Enqueued = timestamp, Ready = timestamp },
+                                }),
+                        }));
+
+                var selected = queue.InvokeMethod<Upload>("Process");
+
+                Assert.Equal("first.flac", selected.Filename);
+            }
+
+            [Fact]
+            public void ReleasesNameOrderedGroup_WhenPrioritiesTie()
+            {
+                var (queue, mocks) = GetFixture();
+                mocks.UserService.Setup(m => m.GetGroup("z-user")).Returns("z-group");
+                mocks.UserService.Setup(m => m.GetGroup("a-user")).Returns("a-group");
+                queue.SetProperty(
+                    "Groups",
+                    new Dictionary<string, UploadGroup>
+                    {
+                        ["z-group"] = new UploadGroup { Name = "z-group", Priority = 5, Slots = 1 },
+                        ["a-group"] = new UploadGroup { Name = "a-group", Priority = 5, Slots = 1 },
+                    });
+
+                var timestamp = DateTime.UtcNow;
+                queue.SetProperty(
+                    "Uploads",
+                    new ConcurrentDictionary<string, List<Upload>>(
+                        new[]
+                        {
+                            new KeyValuePair<string, List<Upload>>(
+                                "z-user",
+                                new List<Upload> { new Upload { Username = "z-user", Filename = "z.flac", Ready = timestamp } }),
+                            new KeyValuePair<string, List<Upload>>(
+                                "a-user",
+                                new List<Upload> { new Upload { Username = "a-user", Filename = "a.flac", Ready = timestamp } }),
+                        }));
+
+                var selected = queue.InvokeMethod<Upload>("Process");
+
+                Assert.Equal("a.flac", selected.Filename);
+            }
+
+            [Fact]
+            public void WideReadyQueue_BoundsProcessAllocation()
+            {
+                var (queue, _) = GetFixture();
+                var groups = queue.GetProperty<Dictionary<string, UploadGroup>>("Groups");
+                groups[Application.DefaultGroup].Slots = 1_000;
+                groups[Application.DefaultGroup].Strategy = QueueStrategy.FirstInFirstOut;
+                queue.SetProperty("GlobalSlots", 1_000);
+
+                var ready = DateTime.UtcNow;
+                var uploadsForUser = new List<Upload>(10_000);
+                for (var index = 0; index < 10_000; index++)
+                {
+                    uploadsForUser.Add(new Upload
+                    {
+                        Username = "wide-user",
+                        Filename = $"file-{index:D5}.flac",
+                        Enqueued = ready.AddTicks(-index),
+                        Ready = ready,
+                    });
+                }
+
+                queue.SetProperty(
+                    "Uploads",
+                    new ConcurrentDictionary<string, List<Upload>>(
+                        new[] { new KeyValuePair<string, List<Upload>>("wide-user", uploadsForUser) }));
+
+                for (var iteration = 0; iteration < 8; iteration++)
+                {
+                    _ = queue.InvokeMethod<Upload>("Process");
+                }
+
+                var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+                var selected = queue.InvokeMethod<Upload>("Process");
+                var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+                Assert.Equal("file-09991.flac", selected.Filename);
+                Assert.True(allocatedBytes < 2_048, $"Allocated {allocatedBytes:N0} bytes.");
+            }
         }
 
         private static (UploadQueue queue, Mocks mocks) GetFixture(Options options = null)

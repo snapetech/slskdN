@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Replace upload scheduling buffers and sorts with one-pass selection.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `UploadQueue.Process` now performs checked global-slot aggregation and scans tracked uploads once, retaining only the best eligible group/upload pair. This removes the temporary concurrent group map, all ready-upload lists, and group/upload ordered pipelines from every enqueue, ready, completion, and configuration-triggered scheduling decision. A warmed FIFO decision over 10,000 ready uploads falls from 265,480 to 320 allocated bytes (99.9%); 20 decisions fall from 8 to 3 ms (62.5%), and temporary selection storage changes from O(ready uploads) to O(1). Group capacity, priority/name order, FIFO/round-robin timestamps, first-enumerated ties, group pinning, and slot accounting remain unchanged. Validation passed: complete queue (`32/32`), upload subsystem (`50/50`), and backend (`5168/5168`: `69` application, `4819` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks. Documented fixture strategy gotcha `0z742` (`551f93910`).
+
 - [x] Remove full security session and challenge eviction snapshots where CPU also improves.
   - Status: completed (2026-07-17)
   - Priority: P1

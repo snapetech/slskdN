@@ -518,64 +518,84 @@ namespace slskd.Transfers
                 // number of global slots, just exit. we *could* proceed, but uploads would stack up behind the
                 // global semaphore in Soulseek.NET and we wouldn't be able to control the order in which those
                 // were processed, so don't do that.
-                if (Groups.Values.Sum(g => g.UsedSlots) >= GlobalSlots)
+                var totalUsedSlots = 0;
+                foreach (var group in Groups.Values)
+                {
+                    totalUsedSlots = checked(totalUsedSlots + group.UsedSlots);
+                }
+
+                if (totalUsedSlots >= GlobalSlots)
                 {
                     return null;
                 }
 
-                // flip the uploads dictionary so that it is keyed by group instead of user. wait until just before we process the
-                // queue to do this, and fetch each user's group as we do, to allow users to move between groups at run time. we
-                // delay "pinning" an upload to a group (via UsedSlots, below) for the same reason.
-                var readyUploadsByGroup = Uploads.Aggregate(
-                    seed: new ConcurrentDictionary<string, List<Upload>>(),
-                    func: (groups, user) =>
-                    {
-                        var ready = user.Value.Where(u => u.Ready.HasValue && !u.Started.HasValue);
-
-                        if (ready.Any())
-                        {
-                            var group = Users.GetGroup(user.Key) ?? string.Empty;
-
-                            groups.AddOrUpdate(
-                                key: group,
-                                addValue: new List<Upload>(ready),
-                                updateValueFactory: (group, list) =>
-                                {
-                                    list.AddRange(ready);
-                                    return list;
-                                });
-                        }
-
-                        return groups;
-                    });
-
-                // process each group in ascending order of priority, and stop after the first ready upload is released.
-                foreach (var group in Groups.Values.OrderBy(g => g.Priority).ThenBy(g => g.Name))
+                Upload? selectedUpload = null;
+                UploadGroup? selectedGroup = null;
+                foreach (var user in Uploads)
                 {
-                    if (group.UsedSlots >= group.Slots || !readyUploadsByGroup.TryGetValue(group.Name, out var uploads) || !uploads.Any())
+                    var groupName = Users.GetGroup(user.Key) ?? string.Empty;
+                    if (!Groups.TryGetValue(groupName, out var group) || group.UsedSlots >= group.Slots)
                     {
                         continue;
                     }
 
-                    var upload = uploads
-                        .OrderBy(u => group.Strategy == QueueStrategy.FirstInFirstOut ? u.Enqueued : u.Ready)
-                        .First();
+                    var groupComparison = selectedGroup == null
+                        ? -1
+                        : group.Priority.CompareTo(selectedGroup.Priority);
+                    if (groupComparison == 0)
+                    {
+                        groupComparison = Comparer<string>.Default.Compare(group.Name, selectedGroup!.Name);
+                    }
 
-                    // mark the upload as started, and "pin" it to the group from which the slot is obtained, so the slot can be
-                    // returned to the proper place upon completion
-                    upload.Started = DateTime.UtcNow;
-                    upload.Group = group.Name;
-                    group.UsedSlots++;
+                    if (groupComparison > 0)
+                    {
+                        continue;
+                    }
 
-                    // release the upload
-                    upload.TaskCompletionSource.SetResult();
-                    Log.Debug("Started: {File} for {User} at {Time}", upload.Filename, upload.Username, upload.Enqueued);
-                    Log.Debug("Group {Group} slots: {Used}/{Available}", group.Name, group.UsedSlots, group.Slots);
+                    foreach (var upload in user.Value)
+                    {
+                        if (!upload.Ready.HasValue || upload.Started.HasValue)
+                        {
+                            continue;
+                        }
 
-                    return upload;
+                        if (groupComparison < 0 || selectedUpload == null)
+                        {
+                            selectedGroup = group;
+                            selectedUpload = upload;
+                            groupComparison = 0;
+                            continue;
+                        }
+
+                        var uploadTime = group.Strategy == QueueStrategy.FirstInFirstOut
+                            ? upload.Enqueued
+                            : upload.Ready.Value;
+                        var selectedTime = group.Strategy == QueueStrategy.FirstInFirstOut
+                            ? selectedUpload.Enqueued
+                            : selectedUpload.Ready!.Value;
+                        if (uploadTime < selectedTime)
+                        {
+                            selectedUpload = upload;
+                        }
+                    }
                 }
 
-                return null;
+                if (selectedUpload == null || selectedGroup == null)
+                {
+                    return null;
+                }
+
+                // Mark the upload as started and pin it to the group from which the slot is obtained, so the slot can be returned
+                // to the proper place upon completion.
+                selectedUpload.Started = DateTime.UtcNow;
+                selectedUpload.Group = selectedGroup.Name;
+                selectedGroup.UsedSlots++;
+
+                selectedUpload.TaskCompletionSource.SetResult();
+                Log.Debug("Started: {File} for {User} at {Time}", selectedUpload.Filename, selectedUpload.Username, selectedUpload.Enqueued);
+                Log.Debug("Group {Group} slots: {Used}/{Available}", selectedGroup.Name, selectedGroup.UsedSlots, selectedGroup.Slots);
+
+                return selectedUpload;
             }
             finally
             {
