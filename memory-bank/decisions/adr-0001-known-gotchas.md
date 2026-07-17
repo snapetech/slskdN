@@ -52,6 +52,24 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z725. Nullable Values Box Inside Span Interpolation
+
+**The Bug**: A codec-profile matcher wrote an interpolated key into stack
+storage, but interpolated the `int?` bit-depth property directly after checking
+`HasValue`. The span destination avoided the result string, yet each call still
+allocated a 24-byte box for the nullable value.
+
+**Files Affected**:
+- `src/slskd/Audio/CodecProfile.cs`
+- `tests/slskd.Tests.Unit/Audio/CodecProfileTests.cs`
+
+**Prevention**: After proving `Nullable<T>.HasValue`, interpolate its `.Value`
+rather than the nullable wrapper itself. Stack-backed interpolated string
+handlers eliminate destination allocation, not boxing required by a value whose
+static type lacks a direct handler overload. Measure the supposedly
+allocation-free path; successful stack formatting alone is not evidence of
+zero allocation.
+
 ### 0z724. Allocation Ceilings Need Broad-Suite Runtime Headroom
 
 **The Bug**: A duplicate-heavy n-gram allocation regression measured 288
