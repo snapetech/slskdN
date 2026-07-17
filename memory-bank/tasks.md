@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Remove identifier and comparison arrays from proof-of-storage challenges.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `ProofOfStorage.CreateChallenge` now fills a fixed nonce span, formats lowercase hexadecimal directly, formats the 16-character GUID prefix through a fixed character span, and reuses one captured creation timestamp. `VerifyResponse` retains invariant lowercase and `CryptographicOperations.FixedTimeEquals` semantics while UTF-8 encoding into bounded stack or cleared pooled storage instead of two arrays. Across 1,000 challenges, creation allocation falls from 799,832 to 578,656 bytes (27.7%) and successful verification allocation falls from 360,040 to 184,000 bytes (48.9%). Lowercase identifier/nonce formats, challenge bounds, invariant case behavior, long Unicode fallback, invalid-proof handling, and state transitions remain unchanged. Validation passed: focused proof-of-storage (`6/6`), broader Common Security (`371/371`), and backend (`5231/5231`: `69` application, `4882` unit, `280` integration), repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Remove digest comparison arrays from cryptographic commitment verification.
   - Status: completed (2026-07-17)
   - Priority: P1

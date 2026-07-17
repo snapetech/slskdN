@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- Proof-of-storage challenge creation now formats random nonce and abbreviated
+  GUID identifiers without uppercase/lowercase or full-GUID string copies, and
+  verification reuses bounded span/pool storage for constant-time comparison.
 - Cryptographic commitment verification now compares digest bytes through fixed
   spans instead of allocating two UTF-8 arrays per attempt.
 - Cryptographic commitment creation now reuses normalized hashes and hashes

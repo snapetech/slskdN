@@ -1,3 +1,17 @@
+## Update 2026-07-17 13:57:30Z
+
+- Current task: performance and efficiency improvements in progress; allocation-bounded proof-of-storage challenge creation and verification complete locally.
+- Last activity:
+  - Replaced nonce uppercase/lowercase conversion, full GUID string formatting, and two verification byte arrays with fixed spans plus cleared pooled storage for large values.
+  - Across 1,000 challenges, creation allocation falls from 799,832 to 578,656 bytes (27.7%) and successful verification allocation falls from 360,040 to 184,000 bytes (48.9%).
+- Validation:
+  - Passed focused proof-of-storage (`6/6`), Common Security (`371/371`), and backend validation (`5231/5231`: `69` application, `4882` unit, `280` integration), plus repository lint.
+  - Exact ID/nonce/bounds/case/constant-time/Unicode/state behavior, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the proof-of-storage optimization, regression coverage, and completion docs.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 13:44:10Z
 
 - Current task: performance and efficiency improvements in progress; allocation-bounded cryptographic commitment verification complete locally.

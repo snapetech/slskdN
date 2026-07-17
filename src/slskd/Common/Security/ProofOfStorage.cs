@@ -4,6 +4,7 @@
 namespace slskd.Common.Security;
 
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
@@ -66,10 +67,14 @@ public sealed class ProofOfStorage : IDisposable
         var offset = maxOffset > 0 ? RandomNumberGenerator.GetInt32(0, (int)Math.Min(maxOffset, int.MaxValue)) : 0;
 
         // Generate challenge nonce
-        var nonceBytes = RandomNumberGenerator.GetBytes(16);
-        var nonce = Convert.ToHexString(nonceBytes).ToLowerInvariant();
+        Span<byte> nonceBytes = stackalloc byte[16];
+        RandomNumberGenerator.Fill(nonceBytes);
+        var nonce = Convert.ToHexStringLower(nonceBytes);
 
-        var challengeId = Guid.NewGuid().ToString("N")[..16];
+        Span<char> challengeIdCharacters = stackalloc char[32];
+        _ = Guid.NewGuid().TryFormat(challengeIdCharacters, out _, "N");
+        var challengeId = new string(challengeIdCharacters[..16]);
+        var now = DateTimeOffset.UtcNow;
 
         var challenge = new Challenge
         {
@@ -80,8 +85,8 @@ public sealed class ProofOfStorage : IDisposable
             Length = challengeSize,
             Nonce = nonce,
             Username = username,
-            CreatedAt = DateTimeOffset.UtcNow,
-            ExpiresAt = DateTimeOffset.UtcNow.Add(ChallengeTtl),
+            CreatedAt = now,
+            ExpiresAt = now.Add(ChallengeTtl),
             State = ChallengeState.Pending,
         };
 
@@ -189,9 +194,7 @@ public sealed class ProofOfStorage : IDisposable
             }
 
             // Use constant-time comparison
-            var responseValid = CryptographicOperations.FixedTimeEquals(
-                Encoding.UTF8.GetBytes(response.ToLowerInvariant()),
-                Encoding.UTF8.GetBytes(expectedResponse.ToLowerInvariant()));
+            var responseValid = FixedTimeEqualsInvariantIgnoreCase(response, expectedResponse);
 
             if (!responseValid)
             {
@@ -226,6 +229,39 @@ public sealed class ProofOfStorage : IDisposable
         }
 
         return false;
+    }
+
+    private static bool FixedTimeEqualsInvariantIgnoreCase(string first, string second)
+    {
+        var normalizedFirst = first.ToLowerInvariant();
+        var normalizedSecond = second.ToLowerInvariant();
+        var byteCount = Encoding.UTF8.GetByteCount(normalizedFirst);
+        if (byteCount != Encoding.UTF8.GetByteCount(normalizedSecond))
+        {
+            return false;
+        }
+
+        byte[]? rentedBytes = null;
+        var combinedByteCount = checked(byteCount * 2);
+        Span<byte> bytes = combinedByteCount <= 1024
+            ? stackalloc byte[combinedByteCount]
+            : (rentedBytes = ArrayPool<byte>.Shared.Rent(combinedByteCount));
+
+        try
+        {
+            _ = Encoding.UTF8.GetBytes(normalizedFirst, bytes[..byteCount]);
+            _ = Encoding.UTF8.GetBytes(normalizedSecond, bytes.Slice(byteCount, byteCount));
+            return CryptographicOperations.FixedTimeEquals(
+                bytes[..byteCount],
+                bytes.Slice(byteCount, byteCount));
+        }
+        finally
+        {
+            if (rentedBytes != null)
+            {
+                ArrayPool<byte>.Shared.Return(rentedBytes, clearArray: true);
+            }
+        }
     }
 
     /// <summary>

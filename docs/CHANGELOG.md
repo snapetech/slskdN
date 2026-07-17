@@ -22,6 +22,17 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Proof-of-storage challenge creation now fills nonce bytes and formats their
+  lowercase hexadecimal representation directly, formats abbreviated GUIDs
+  through a fixed character span, and captures one creation timestamp.
+  Case-insensitive response verification now UTF-8 encodes normalized values
+  into bounded stack or cleared pooled storage for the existing constant-time
+  comparison instead of allocating two byte arrays. Across 1,000 challenges,
+  creation allocation falls from 799,832 to 578,656 bytes (27.7%) and successful
+  verification allocation falls from 360,040 to 184,000 bytes (48.9%). Lowercase
+  ID/nonce formats, offset and length behavior, invariant case comparison,
+  constant-time equality, long Unicode inputs, and challenge state transitions
+  remain unchanged.
 - Cryptographic commitment verification now UTF-8 encodes the computed and
   stored 64-character digests into fixed spans before the existing constant-
   time comparison instead of allocating two byte arrays per attempt. Across
