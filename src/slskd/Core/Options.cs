@@ -1433,7 +1433,7 @@ namespace slskd
                     /// <summary>
                     ///     Gets the maximum size difference percentage accepted for alternate-source retry candidates.
                     /// </summary>
-                    [Range(0, 100)]
+                    [Range(0.0, 100.0)]
                     public double AlternateSourceSizeTolerancePercent { get; init; } = 5.0;
                 }
             }
