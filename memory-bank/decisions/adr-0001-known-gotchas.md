@@ -52,6 +52,25 @@ This is not optional. This is the highest priority action after fixing a bug.
 
 ## 🚨 CRITICAL: Bugs That Keep Coming Back
 
+### 0z726. Unordered EF Queries Do Not Preserve Fixture Insertion Order
+
+**The Bug**: A wide share-grant regression built expected group-grant IDs in
+fixture insertion order, but the production query had no `ORDER BY`. SQLite
+returned the matching rows in primary-key/index order, so the test failed even
+though the repository's existing behavior made no within-category ordering
+promise.
+
+**Files Affected**:
+- `tests/slskd.Tests.Unit/Sharing/ShareGrantRepositoryTests.cs`
+- `src/slskd/Sharing/ShareGrantRepository.cs`
+
+**Prevention**: Treat every database result without an explicit `ORDER BY` as
+unordered. Assert membership or compare sorted identities when order is not an
+API contract. If order is part of the required behavior, encode it in the SQL
+or LINQ query and test that declared key; never derive expected row order from
+`AddRange`, entity creation order, GUID generation order, or observed SQLite
+scan order.
+
 ### 0z725. Nullable Values Box Inside Span Interpolation
 
 **The Bug**: A codec-profile matcher wrote an interpolated key into stack
