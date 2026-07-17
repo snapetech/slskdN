@@ -6,6 +6,7 @@ namespace slskd.Transfers.Ranking
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.EntityFrameworkCore;
@@ -87,19 +88,52 @@ namespace slskd.Transfers.Ranking
                 return Enumerable.Empty<RankedSource>();
             }
 
-            // Get usernames for history lookup
-            var usernames = candidateList.Select(c => c.Username).Distinct().ToList();
-            var histories = await GetHistoriesAsync(usernames, cancellationToken);
+            var usernames = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var candidate in candidateList)
+            {
+                usernames.Add(candidate.Username);
+            }
 
-            // Calculate scores for each candidate
-            var ranked = candidateList.Select(candidate =>
+            var histories = await GetExistingHistoryCountsAsync(usernames, cancellationToken).ConfigureAwait(false);
+            var ranked = new List<RankedSource>(candidateList.Count);
+            foreach (var candidate in candidateList)
             {
                 histories.TryGetValue(candidate.Username, out var history);
-                return CalculateScore(candidate, history ?? new UserDownloadHistory { Username = candidate.Username });
-            });
+                ranked.Add(CalculateScore(candidate, history.Successes, history.Failures));
+            }
 
-            // Sort by smart score descending
             return ranked.OrderByDescending(r => r.SmartScore).ToList();
+        }
+
+        private async Task<Dictionary<string, (int Successes, int Failures)>> GetExistingHistoryCountsAsync(
+            HashSet<string> usernames,
+            CancellationToken cancellationToken)
+        {
+            await using var context = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+            await context.Database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+            await using var command = context.Database.GetDbConnection().CreateCommand();
+            command.CommandText =
+                """
+                SELECT "Username", "Successes", "Failures"
+                FROM "DownloadHistory"
+                WHERE "Username" IN (
+                    SELECT CAST(value AS TEXT)
+                    FROM json_each(@usernames)
+                )
+                """;
+            var usernamesParameter = command.CreateParameter();
+            usernamesParameter.ParameterName = "@usernames";
+            usernamesParameter.Value = JsonSerializer.Serialize(usernames);
+            command.Parameters.Add(usernamesParameter);
+
+            var histories = new Dictionary<string, (int Successes, int Failures)>(StringComparer.Ordinal);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+            while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+            {
+                histories[reader.GetString(0)] = (reader.GetInt32(1), reader.GetInt32(2));
+            }
+
+            return histories;
         }
 
         /// <inheritdoc/>
@@ -158,35 +192,38 @@ namespace slskd.Transfers.Ranking
             IEnumerable<string> usernames,
             CancellationToken cancellationToken = default)
         {
-            await using var context = await contextFactory.CreateDbContextAsync(cancellationToken);
-
-            var usernameList = usernames.ToList();
-            var entries = await context.DownloadHistory
-                .Where(e => usernameList.Contains(e.Username))
-                .ToDictionaryAsync(e => e.Username, cancellationToken);
-
-            var result = new Dictionary<string, UserDownloadHistory>();
-            foreach (var username in usernameList)
+            var distinctUsernames = new List<string>();
+            var usernameSet = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var username in usernames)
             {
-                if (entries.TryGetValue(username, out var entry))
+                if (usernameSet.Add(username))
                 {
-                    result[username] = new UserDownloadHistory
-                    {
-                        Username = entry.Username,
-                        Successes = entry.Successes,
-                        Failures = entry.Failures,
-                    };
+                    distinctUsernames.Add(username);
                 }
-                else
+            }
+
+            if (distinctUsernames.Count == 0)
+            {
+                return new Dictionary<string, UserDownloadHistory>(StringComparer.Ordinal);
+            }
+
+            var histories = await GetExistingHistoryCountsAsync(usernameSet, cancellationToken).ConfigureAwait(false);
+            var result = new Dictionary<string, UserDownloadHistory>(distinctUsernames.Count, StringComparer.Ordinal);
+            foreach (var username in distinctUsernames)
+            {
+                histories.TryGetValue(username, out var history);
+                result[username] = new UserDownloadHistory
                 {
-                    result[username] = new UserDownloadHistory { Username = username, Successes = 0, Failures = 0 };
-                }
+                    Username = username,
+                    Successes = history.Successes,
+                    Failures = history.Failures,
+                };
             }
 
             return result;
         }
 
-        private RankedSource CalculateScore(SourceCandidate candidate, UserDownloadHistory history)
+        private RankedSource CalculateScore(SourceCandidate candidate, int successes, int failures)
         {
             // Speed score: 0-40 points based on upload speed
             // Scale: 0 B/s = 0, 10 MB/s+ = 40
@@ -201,11 +238,12 @@ namespace slskd.Transfers.Ranking
 
             // History score: -15 to +15 based on past success rate
             double historyScore = 0;
-            if (history != null && history.Successes + history.Failures > 0)
+            if (successes + failures > 0)
             {
                 // Center at 0.5 success rate = 0 points
                 // 1.0 success rate = +15, 0.0 success rate = -15
-                historyScore = (history.SuccessRate - 0.5) * 2 * MaxHistoryScore;
+                var successRate = (double)successes / (successes + failures);
+                historyScore = (successRate - 0.5) * 2 * MaxHistoryScore;
             }
 
             // Size match score: 0-20 points for auto-replace scenarios

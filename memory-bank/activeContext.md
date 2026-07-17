@@ -1,3 +1,17 @@
+## Update 2026-07-17 05:50:19Z
+
+- Current task: performance and efficiency improvements in progress; bounded source ranking and history lookup complete locally.
+- Last activity:
+  - Replaced EF local-collection expansion and unseen-peer history placeholders with one narrow SQLite JSON-table lookup of stored success/failure counter tuples.
+  - A 10,000-unseen-source ranking falls from 17,691,760 to 3,072,360 warmed allocated bytes (82.6%); public batch history falls from 15,057,752 to 1,974,288 bytes (86.9%).
+- Validation:
+  - Passed service (`5/5`), ranking consumers (`32/32`), broader Transfers/Wishlist (`303/303`), and backend validation (`5134/5134`: `69` application, `4785` unit, `280` integration).
+  - Exact ordinal/escaped-Unicode usernames, stored and missing history, duplicate order, score components/ties, allocation, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks passed. Concurrent Application, Mesh, Pod, and Shadow Index implementation edits remain untouched.
+- Next steps:
+  1. Commit only the source-ranking and batch-history allocation slice.
+  2. Continue the broader performance goal outside the dirty Application/Mesh/Pod/Shadow Index implementation scope.
+  3. Do not create a release tag unless explicitly requested.
+
 ## Update 2026-07-17 05:34:14Z
 
 - Current task: performance and efficiency improvements in progress; database-filtered profile-specific HashDb variants complete locally.

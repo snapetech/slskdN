@@ -22,6 +22,17 @@ For dev or build tags, use the same logical version string embedded in the tag.
 
 ## [Unreleased]
 
+- Source ranking now snapshots candidates once, deduplicates usernames directly,
+  and reads only stored success/failure counters through one raw SQLite query
+  over a JSON table parameter. Missing peers remain neutral without allocating
+  placeholder history DTOs or dictionary entries before scoring. A warmed
+  10,000-unseen-source ranking falls from 17,691,760 to 3,072,360 allocated
+  bytes (82.6%). The public batch-history API shares the lookup, materializing
+  its required default DTOs only in the final result; its equivalent fixture
+  falls from 15,057,752 to 1,974,288 bytes (86.9%). Exact ordinal usernames,
+  JSON-escaped Unicode names, stored and missing history scores, duplicate
+  input collapse/order, score components, and stable equal-score order remain
+  unchanged.
 - Profile-filtered HashDb variant reads now group raw codec fields first, run
   the exact culture-sensitive profile matcher once per distinct profile, join
   matching profiles back to the recording, and rank structural variant

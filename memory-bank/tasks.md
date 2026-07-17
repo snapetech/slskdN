@@ -9,6 +9,11 @@
 
 ### High Priority
 
+- [x] Bound source-ranking and batch-history lookup allocation.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: `SourceRankingService` now snapshots candidates once, deduplicates usernames directly, reads only persisted `(successes, failures)` counters through one narrow SQLite query over a JSON table parameter, and creates no placeholder history objects before scoring. `GetHistoriesAsync` shares the lookup and creates required stored/default DTOs only in its final insertion-ordered result. A warmed 10,000-unseen-source ranking falls from 17,691,760 to 3,072,360 allocated bytes (82.6%); the equivalent public batch-history lookup falls from 15,057,752 to 1,974,288 bytes (86.9%). Exact ordinal/escaped-Unicode usernames, missing-peer neutrality, stored scores, duplicate collapse/order, all score components, and stable score ties remain unchanged. Validation passed: service (`5/5`), ranking consumers (`32/32`), broader Transfers/Wishlist (`303/303`), and backend (`5134/5134`: `69` application, `4785` unit, `280` integration) tests, repository lint, remediation through the expected divergent-branch release-sync stop, and diff checks.
+
 - [x] Filter and rank profile-specific HashDb variants before hydration.
   - Status: completed (2026-07-17)
   - Priority: P1

@@ -1,3 +1,12 @@
+## Update 2026-07-17 05:50:19Z
+
+- Completed allocation-bounded source ranking and public batch-history retrieval.
+- Replaced EF local-collection expansion, tracked history entities, duplicate username lists, and pre-scoring missing-history DTOs with one JSON-table SQLite lookup of persisted counter tuples.
+- Reduced warmed 10,000-unseen-source ranking from 17,691,760 to 3,072,360 allocated bytes (82.6%); reduced the equivalent public batch-history lookup from 15,057,752 to 1,974,288 bytes (86.9%).
+- Preserved exact ordinal and JSON-escaped Unicode usernames, stored/missing history behavior, duplicate input order, score components, and stable equal-score order.
+- Added semantic and wide allocation regressions; passed service (`5/5`), ranking consumers (`32/32`), broader Transfers/Wishlist (`303/303`), and backend (`5134/5134`: `69` application, `4785` unit, `280` integration) tests.
+- Repository lint, remediation through its expected divergent-branch release-sync stop, and diff checks passed; concurrent Application, Mesh, Pod, and Shadow Index implementation edits remained untouched.
+
 ## Update 2026-07-17 05:34:14Z
 
 - Completed database-filtered and ranked profile-specific HashDb variant retrieval.
