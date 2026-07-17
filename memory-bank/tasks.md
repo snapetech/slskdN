@@ -9,6 +9,21 @@
 
 ### High Priority
 
+- [x] Publish, deploy, and validate stable release `2026071721-slskdn.283`.
+  - Status: completed (2026-07-17)
+  - Priority: P1
+  - Notes: Corrected loaded-suite allocation ceilings exposed by `.280` and `.281`, then fixed `.282` release timeout masking and streaming-test cleanup before publishing `.283`. The hosted release gate passed (`890` Web with `4` skips, `4949` unit, `74` smoke, `99` focused, `40` integration), all six archives and embedded assets/version passed release verification, and the multi-architecture GHCR image was published. Replaced the prior live validation image with `.283`; the service is healthy with zero restarts, zero OOM events, no severe/warning log entries, active VPN forwarding, Soulseek activity, and successful downloads. Authenticated Chromium visited `43` routes with zero browser/network observations and the live core-page suite passed `4/4`. Fixed the audit's horizontal-tab visibility calculation and two unnamed Wishlist view buttons on `main`; those source fixes await the next explicitly authorized release. COPR recovery was corrected to use Fedora's published service host. Chocolatey package creation passed, but both the tag job and standalone recovery received five consecutive external 504 responses.
+
+- [ ] Ship the post-`.283` Wishlist accessibility correction in the next authorized release.
+  - Status: waiting for explicit release authorization (2026-07-17)
+  - Priority: P2
+  - Notes: `main` names both icon-only Wishlist view-mode buttons and passes the focused component coverage. Do not create another tag solely for this follow-up without explicit authorization.
+
+- [ ] Retry stable Chocolatey publication after its push service recovers.
+  - Status: blocked on external service availability (2026-07-17)
+  - Priority: P2
+  - Notes: The `.283` package builds successfully, but `https://push.chocolatey.org/` returned 504 on all five bounded attempts in both the release job and standalone recovery workflow. The existing manual workflow can safely retry the same version without a new release.
+
 - [x] Complete every defect represented by open PRs #266–#276.
   - Status: completed (2026-07-17)
   - Priority: P1

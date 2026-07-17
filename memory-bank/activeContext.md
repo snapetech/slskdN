@@ -1,20 +1,18 @@
-## Update 2026-07-17 20:13:00Z
+## Update 2026-07-17 22:17:00Z
 
-- Current task: open PR defect backlog #266–#276 is fixed and validated locally; final push and PR-state reconciliation remain.
+- Current task: stable release `2026071721-slskdn.283` is published and running on the live validation host; final package-channel recovery and repository-state documentation remain.
 - Last activity:
-  - Consolidated live listener/obfuscation reconfiguration, adversarial options injection, obfuscation validation, fatal startup status, retained valid reloads, fractional range validation, regex case semantics, compatibility YAML validation, API-key rate-limit authentication, and 413 request handling onto `main`.
-  - Hardened the submitted retaining monitor by priming the default validated value, narrowing its rejection catch boundary, and adding invalid-first-reload plus unexpected-failure coverage.
-  - Preserved the separate CORS lifecycle correction so startup-bound CORS edits report `pendingRestart`.
-- Validation:
-  - Focused combined coverage passed (`53` application unit, `10` HTTP/integration, `29` vendored runtime), retained-options coverage passed (`3/3`), and DI resolution coverage passed (`7/7`).
-  - Full .NET validation passed (`5302/5302`: `74` application, `4948` unit, `280` integration), repository lint passed, and every substantive remediation check passed.
+  - Fixed loaded-suite allocation gates, release timeout masking, and timed stream cleanup before publishing and verifying `.283`.
+  - Deployed the immutable `.283` GHCR image with rollback preserved. The service remains healthy with zero restarts/OOM events and no severe or warning log entries while searches and downloads run normally.
+  - Audited `43` authenticated routes and all discovered internal links with zero browser/network observations; the live core-page Playwright suite passed `4/4`.
+  - Corrected two unnamed Wishlist view-mode buttons, horizontal System-tab audit geometry, COPR retry behavior, and the Fedora COPR service endpoint on `main` without creating another tag.
 - Release status:
-  - No new release was published or deployed. The `.280` workflow failed in its build gate, and the live validation host remains on `.279`.
-  - Do not create another release or tag unless explicitly requested.
+  - Build, platform archives, GitHub release, AUR, PPA, Nix, Homebrew, main Docker, and announcement jobs passed. Artifact verification passed for every archive, required payload, checksum, footer marker, and embedded version.
+  - COPR standalone recovery is running from the corrected endpoint. Chocolatey package creation passed but its external push service returned 504 on all five release and recovery attempts.
 - Next steps:
-  1. Commit and push the completion update to GitHub and GitLab.
-  2. Reconcile open PRs #266–#276 as superseded by the validated `main` fixes.
-  3. Do not deploy or publish a release without explicit authorization.
+  1. Inspect the completed COPR recovery log and record its result.
+  2. Retry Chocolatey through the existing manual workflow only after the external service recovers.
+  3. Include the Wishlist accessibility fix in the next explicitly authorized release; do not create another tag now.
 
 ## Update 2026-07-17 18:20:49Z
 
